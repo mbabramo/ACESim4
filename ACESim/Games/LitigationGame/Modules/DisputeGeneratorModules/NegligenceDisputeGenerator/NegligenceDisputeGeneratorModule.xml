@@ -1,0 +1,8 @@
+﻿<ACESim>
+  <parentSettingsFile filename="$NegligenceInputs.xml" />
+  <parentSettingsFile filename="NegligenceDisputeGeneratorReport.xml" />
+  <defineTemplate name="DisputeGeneratorModule">
+    <setting name="NegligenceDisputeGeneratorModule" type="class" subclass="NegligenceDisputeGeneratorModule" codeGeneratorName="NegligenceDisputeGeneratorModule" codeGeneratorOptions="" >
+    </setting>
+  </defineTemplate>
+</ACESim>

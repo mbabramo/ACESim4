@@ -1,0 +1,14 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace ACESim
+{
+    [Serializable]
+    public class DropOrDefaultChoiceModuleSettings
+    {
+        public DropOrDefaultPeriod Period;
+        public bool DropOrDefaultBasedOnProbabilityCutoffOnly;
+    }
+}

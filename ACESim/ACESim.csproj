@@ -1,0 +1,1134 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>9.0.30729</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{4B723348-E50B-490C-ACEE-E8A56EC8564B}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>ACESim</RootNamespace>
+    <AssemblyName>ACESim</AssemblyName>
+    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <FileUpgradeFlags>
+    </FileUpgradeFlags>
+    <UpgradeBackupLocation>
+    </UpgradeBackupLocation>
+    <OldToolsVersion>3.5</OldToolsVersion>
+    <TargetFrameworkProfile />
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <PublishUrl>publish\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>false</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>2</WarningLevel>
+    <DocumentationFile>bin\Debug\ACESim.XML</DocumentationFile>
+    <NoWarn>
+    </NoWarn>
+    <Prefer32Bit>false</Prefer32Bit>
+    <GenerateSerializationAssemblies>On</GenerateSerializationAssemblies>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject>ACESim.Program</StartupObject>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="encog-core-cs, Version=3.0.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\encog-core-cs\bin\Debug\encog-core-cs.dll</HintPath>
+    </Reference>
+    <Reference Include="EntityFramework, Version=4.3.1.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\EntityFramework.4.3.1\lib\net40\EntityFramework.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Data.Edm, Version=5.6.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Microsoft.Data.Edm.5.6.1\lib\net40\Microsoft.Data.Edm.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Data.OData, Version=5.6.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Microsoft.Data.OData.5.6.1\lib\net40\Microsoft.Data.OData.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Data.Services.Client, Version=5.6.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\Microsoft.Data.Services.Client.5.6.1\lib\net40\Microsoft.Data.Services.Client.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.WindowsAzure.CloudDrive, Version=1.8.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
+    <Reference Include="Microsoft.WindowsAzure.Configuration, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.WindowsAzure.ConfigurationManager.2.0.3\lib\net40\Microsoft.WindowsAzure.Configuration.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.WindowsAzure.Diagnostics, Version=2.2.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
+    <Reference Include="Microsoft.WindowsAzure.ServiceRuntime, Version=2.7.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\Program Files\Microsoft SDKs\Azure\.NET SDK\v2.9\bin\runtimes\base\Microsoft.WindowsAzure.ServiceRuntime.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.WindowsAzure.Storage, Version=3.0.3.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\WindowsAzure.Storage.3.0.3.0\lib\net40\Microsoft.WindowsAzure.Storage.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.WindowsAzure.StorageClient, Version=1.7.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL" />
+    <Reference Include="Newtonsoft.Json, Version=4.5.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.5.0.8\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="System" />
+    <Reference Include="System.ComponentModel.Composition" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Core">
+      <RequiredTargetFramework>3.5</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="System.Data.Entity" />
+    <Reference Include="System.Data.Services" />
+    <Reference Include="System.Data.Services.Client" />
+    <Reference Include="System.Data.SqlServerCe, Version=3.5.1.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Resources\System.Data.SqlServerCe.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Data.SqlServerCe.Entity, Version=4.0.0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Resources\System.Data.SqlServerCe.Entity.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Security" />
+    <Reference Include="System.Spatial, Version=5.6.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\System.Spatial.5.6.1\lib\net40\System.Spatial.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Web" />
+    <Reference Include="System.Web.Mobile" />
+    <Reference Include="System.Windows.Presentation" />
+    <Reference Include="System.Xaml" />
+    <Reference Include="System.Data.DataSetExtensions">
+      <RequiredTargetFramework>3.5</RequiredTargetFramework>
+    </Reference>
+    <Reference Include="System.Data" />
+    <Reference Include="System.Deployment" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.XML" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="WindowsBase" />
+    <Reference Include="WpfChartUserControl, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\WpfChartUserControl\bin\Debug\WpfChartUserControl.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="alglib380\alglibinternal.cs" />
+    <Compile Include="alglib380\alglibmisc.cs" />
+    <Compile Include="alglib380\ap.cs" />
+    <Compile Include="alglib380\dataanalysis.cs" />
+    <Compile Include="alglib380\diffequations.cs" />
+    <Compile Include="alglib380\fasttransforms.cs" />
+    <Compile Include="alglib380\integration.cs" />
+    <Compile Include="alglib380\interpolation.cs" />
+    <Compile Include="alglib380\linalg.cs" />
+    <Compile Include="alglib380\optimization.cs" />
+    <Compile Include="alglib380\solvers.cs" />
+    <Compile Include="alglib380\specialfunctions.cs" />
+    <Compile Include="alglib380\statistics.cs" />
+    <Compile Include="Executor\Interactionless.cs" />
+    <Compile Include="Executor\ProgressResumptionManager.cs" />
+    <Compile Include="Executor\ProgressResumptionManagerInfo.cs" />
+    <Compile Include="Executor\ProgressResumptionOptions.cs" />
+    <Compile Include="Games\General\DecisionPoint.cs" />
+    <Compile Include="Games\General\ActionGroup.cs" />
+    <Compile Include="Games\General\ActionGroupRepetition.cs" />
+    <Compile Include="Games\LitigationGame\LitigationGameSimpleTwoClaimModel.cs" />
+    <Compile Include="Games\LitigationGame\LitigationGameToyModel.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingAggressiveness\PresetAggressivenessOverride\PresetAggressivenessOverrideModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingAggressiveness\PresetAggressivenessOverride\PresetAggressivenessOverrideModuleInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingAggressiveness\RangeUncertaintyAggressivenessOverride\RangeUncertaintyAggressivenessOverrideModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingAggressiveness\RangeUncertaintyAggressivenessOverride\RangeUncertaintyAggressivenessOverrideModuleInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingAggressiveness\RangeUncertaintyAggressivenessOverride\RangeUncertaintyAggressivenessOverrideModuleSettings.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingAggressiveness\SymmetricAggressivenessOverride\SymmetricAggressivenessOverrideModuleSettings.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingModules\UtilityRangeBargainingModule\SettlementProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\CumulativeDistribution\CumulativeDistributionInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\CumulativeDistribution\CumulativeDistributionModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\CumulativeDistribution\CumulativeDistributionModuleProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\CumulativeDistribution\CumulativeDistributionUpdateInfo.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DropOrDefaultModules\DropComparisonModule\DropComparisonInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DropOrDefaultModules\DropComparisonModule\DropComparisonModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DropOrDefaultModules\DropComparisonModule\DropComparisonModuleProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DropOrDefaultModules\DropComparisonModule\DropComparisonModuleSettings.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DropOrDefaultModules\DropOrDefaultPeriod.cs" />
+    <Compile Include="Games\LitigationGame\Modules\ForecastingModules\ProbabilityPWinsForecastingModule\ProbabilityPWinsForecastingModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\ForecastingModules\ProbabilityPWinsForecastingModule\ProbabilityPWinsForecastingModuleSettings.cs" />
+    <Compile Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostModuleProgress.cs" />
+    <Compile Include="Neural\GRNNGradient.cs" />
+    <Compile Include="Neural\GRNN_Improvements.cs" />
+    <Compile Include="Neural\KDTreeFromClusterCenters.cs" />
+    <Compile Include="Neural\SimpleBackprop.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Reports\aspnet_Applications.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\aspnet_Membership.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\aspnet_Membership_GetPasswordWithFormat_Result.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\aspnet_Membership_GetPassword_Result.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\aspnet_Membership_GetUserByName_Result.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\aspnet_Membership_GetUserByUserId_Result.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\aspnet_Profile.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\aspnet_Profile_GetProperties_Result.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\aspnet_Roles.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\aspnet_SchemaVersions.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\aspnet_Users.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\aspnet_UsersInRoles_RemoveUsersFromRoles_Result.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\Charting\PointChartReport.cs" />
+    <Compile Include="Commands\CommandSet.cs" />
+    <Compile Include="Commands\Command\Command.cs" />
+    <Compile Include="Commands\Command\EvolveCommand.cs" />
+    <Compile Include="Commands\MultiPartCommand.cs" />
+    <Compile Include="Commands\Command\PlayCommand.cs" />
+    <Compile Include="Commands\Command\ReportCommand.cs" />
+    <Compile Include="Evolution\CompleteSettings.cs" />
+    <Compile Include="Evolution\Decision.cs" />
+    <Compile Include="Evolution\DecisionEvolver.cs" />
+    <Compile Include="Evolution\EvolutionSettings.cs" />
+    <Compile Include="Evolution\InputGroups.cs" />
+    <Compile Include="Executor\ExecutorMultiple.cs" />
+    <Compile Include="Executor\ProgressStep.cs" />
+    <Compile Include="Games\LitigationGame\Modules\Adjustments\AdjustmentsModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\Adjustments\AdjustmentsModuleInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\Adjustments\AdjustmentsModuleProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\Adjustments\NoAdjustmentsModule\NoAdjustmentsModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\Adjustments\NoAdjustmentsModule\NoAdjustmentsModuleInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\Adjustments\ShootoutAdjustmentsModule\ShootoutAdjustmentsModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\Adjustments\ShootoutAdjustmentsModule\ShootoutAdjustmentsModuleInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\Adjustments\ShootoutAdjustmentsModule\ShootoutAdjustmentsModuleProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\Adjustments\SideBetAdjustmentsModule\LitigationSideBet.cs" />
+    <Compile Include="Games\LitigationGame\Modules\Adjustments\SideBetAdjustmentsModule\SideBetAdjustmentsModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\Adjustments\SideBetAdjustmentsModule\SideBetAdjustmentsModuleInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\Adjustments\SideBetAdjustmentsModule\SideBetAdjustmentsModuleProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingAggressiveness\AggressivenessModuleInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingAggressiveness\SkipAggressivenessOverride\SkipAggressivenessOverrideModuleInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingAggressiveness\SymmetricAggressivenessOverride\SymmetricAggressivenessOverrideModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingAggressiveness\SymmetricAggressivenessOverride\SymmetricAggressivenessOverrideModuleInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingAggressiveness\SeparateAggressivenessOverride\SeparateAggressivenessOverrideModuleInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingModules\FairBargainingModule\FairBargainingInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingModules\FairBargainingModule\FairBargainingModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingModules\FairBargainingModule\FairBargainingModuleProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ForbiddenActDisputeGenerator\ForbiddenActDisputeGeneratorInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ForbiddenActDisputeGenerator\ForbiddenActDisputeGeneratorModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ForbiddenActDisputeGenerator\ForbiddenActDisputeGeneratorModuleProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DropOrDefaultModules\DropOrDefaultChoiceModule\DropInfo.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DummyModule\DummyModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DummyModule\DummyModuleProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\Adjustments\ShootoutAdjustmentsModule\LitigationShootout.cs" />
+    <Compile Include="Games\BargainingGame2\BargainingGame2.cs" />
+    <Compile Include="Games\BargainingGame2\BargainingGame2Definition.cs" />
+    <Compile Include="Games\BargainingGame2\BargainingGame2Factory.cs" />
+    <Compile Include="Games\BargainingGame2\BargainingGame2Inputs.cs" />
+    <Compile Include="Games\BargainingGame2\BargainingGame2ProgressInfo.cs" />
+    <Compile Include="Games\CurveFitting5DGame\CurveFitting5DGame.cs" />
+    <Compile Include="Games\CurveFitting5DGame\CurveFitting5DGameDefinition.cs" />
+    <Compile Include="Games\CurveFitting5DGame\CurveFitting5DGameFactory.cs" />
+    <Compile Include="Games\CurveFitting5DGame\CurveFitting5DGameInputs.cs" />
+    <Compile Include="Games\CurveFitting5DGame\CurveFitting5DGameProgressInfo.cs" />
+    <Compile Include="Games\CurveFittingGame\CurveFittingGame.cs" />
+    <Compile Include="Games\CurveFittingGame\CurveFittingGameDefinition.cs" />
+    <Compile Include="Games\CurveFittingGame\CurveFittingGameFactory.cs" />
+    <Compile Include="Games\CurveFittingGame\CurveFittingGameInputs.cs" />
+    <Compile Include="Games\CurveFittingGame\CurveFittingGameProgressInfo.cs" />
+    <Compile Include="Games\General\ActionPoint.cs" />
+    <Compile Include="Games\General\Forecast.cs" />
+    <Compile Include="Games\General\Game.cs" />
+    <Compile Include="Games\General\GameDefinition.cs" />
+    <Compile Include="Games\General\GameFactoryFactory.cs" />
+    <Compile Include="Games\General\GameInputs.cs" />
+    <Compile Include="Games\General\GameInputsModule.cs" />
+    <Compile Include="Games\General\GameModule.cs" />
+    <Compile Include="Games\General\GameModuleProgress.cs" />
+    <Compile Include="Games\General\GamePlayer.cs" />
+    <Compile Include="Games\General\GameProgress.cs" />
+    <Compile Include="Games\General\GameProgressLogger.cs" />
+    <Compile Include="Games\General\GameProgressReportable.cs" />
+    <Compile Include="Games\General\IGameFactory.cs" />
+    <Compile Include="Games\General\IGameName.cs" />
+    <Compile Include="Games\General\ModularGame.cs" />
+    <Compile Include="Games\General\ModularGameInputs.cs" />
+    <Compile Include="Games\LitigationGame\LitigationGame.cs" />
+    <Compile Include="Games\LitigationGame\LitigationGameDefinition.cs" />
+    <Compile Include="Games\LitigationGame\LitigationGameFactory.cs" />
+    <Compile Include="Games\LitigationGame\LitigationGameInputs.cs" />
+    <Compile Include="Games\LitigationGame\LitigationGameProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingAggressiveness\BargainingAggressivenessModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingAggressiveness\BargainingAggressivenessModuleProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingAggressiveness\SkipAggressivenessOverride\SkipAggressivenessOverrideModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingAggressiveness\SeparateAggressivenessOverride\SeparateAggressivenessOverrideModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingModules\BargainingInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingModules\BargainingModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingModules\BargainingModuleProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingModules\NoBargainingBargainingModule\NoBargainingBargainingInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingModules\NoBargainingBargainingModule\NoBargainingBargainingModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingModules\NoBargainingBargainingModule\NoBargainingBargainingModuleProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingModules\OfferThresholdBargainingModule\OfferThresholdBargainingInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingModules\OfferThresholdBargainingModule\OfferThresholdBargainingModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingModules\OfferThresholdBargainingModule\OfferThresholdBargainingModuleProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingModules\SimplisticBargainingModule\SimplisticBargainingInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingModules\SimplisticBargainingModule\SimplisticBargainingModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingModules\SimplisticBargainingModule\SimplisticBargainingModuleProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingModules\SimultaneousOfferBargainingModule\SimultaneousOfferBargainingInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingModules\SimultaneousOfferBargainingModule\SimultaneousOfferBargainingModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingModules\SimultaneousOfferBargainingModule\SimultaneousOfferBargainingModuleProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingModules\SimultaneousOfferSymmetricBargainingModule\SimultaneousOfferSymmetricBargainingInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingModules\SimultaneousOfferSymmetricBargainingModule\SimultaneousOfferSymmetricBargainingModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingModules\SimultaneousOfferSymmetricBargainingModule\SimultaneousOfferSymmetricBargainingModuleProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingModules\UtilityRangeBargainingModule\UtilityRangeBargainingInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingModules\UtilityRangeBargainingModule\UtilityRangeBargainingModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingModules\UtilityRangeBargainingModule\UtilityRangeBargainingModuleProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\BargainingModules\UtilityRangeBargainingModule\UtilityRangeBargainingModuleSettings.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ContinuousPrecautionDisputeGenerator\ContinuousPrecautionDisputeGeneratorModuleProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ContinuousPrecautionDisputeGenerator\ContinuousPrecautionDisputeGeneratorInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ContinuousPrecautionDisputeGenerator\ContinuousPrecautionDisputeGeneratorModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DisputeGeneratorModules\DisputeGeneratorModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DisputeGeneratorModules\DisputeGeneratorInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DisputeGeneratorModules\DisputeGeneratorModuleProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ExogenousDisputeGenerator\ExogenousDisputeGeneratorInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ExogenousDisputeGenerator\ExogenousDisputeGeneratorModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ExogenousDisputeGenerator\ExogenousDisputeGeneratorModuleProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DisputeGeneratorModules\NegligenceDisputeGenerator\NegligenceDisputeGeneratorInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DisputeGeneratorModules\NegligenceDisputeGenerator\NegligenceDisputeGeneratorModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DisputeGeneratorModules\NegligenceDisputeGenerator\NegligenceDisputeGeneratorModuleProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DropOrDefaultModules\AbandonExtremesModule\AbandonExtremesInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DropOrDefaultModules\AbandonExtremesModule\AbandonExtremesModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DropOrDefaultModules\AbandonExtremesModule\AbandonExtremesModuleProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DropOrDefaultModules\DropOrDefaultChoiceModule\DropOrDefaultChoiceInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DropOrDefaultModules\DropOrDefaultChoiceModule\DropOrDefaultChoiceModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DropOrDefaultModules\DropOrDefaultChoiceModule\DropOrDefaultChoiceModuleProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DropOrDefaultModules\DropOrDefaultChoiceModule\DropOrDefaultChoiceModuleSettings.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DropOrDefaultModules\DropOrDefaultInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DropOrDefaultModules\DropOrDefaultModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DropOrDefaultModules\DropOrDefaultModuleProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DropOrDefaultModules\NeverGiveUpModule\NeverGiveUpInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DropOrDefaultModules\NeverGiveUpModule\NeverGiveUpModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\DropOrDefaultModules\NeverGiveUpModule\NeverGiveUpModuleProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\ForecastingModules\ForecastingInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\ForecastingModules\ForecastingModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\ForecastingModules\ForecastingModuleProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostEndogenousEffortModule\LitigationCostEndogenousEffortInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostEndogenousEffortModule\LitigationCostEndogenousEffortModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostEndogenousEffortModule\LitigationCostEndogenousEffortModuleProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostEndogenousEffortModule\LitigationCostEndogenousEffortModuleSettings.cs" />
+    <Compile Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostStandardModule\LitigationCostStandardInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostStandardModule\LitigationCostStandardModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostStandardModule\LitigationCostStandardModuleProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\TrialModules\TrialInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\TrialModules\TrialModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\TrialModules\TrialModuleProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\TrialModules\TrialPerfectModule\TrialPerfectInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\TrialModules\TrialPerfectModule\TrialPerfectModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\TrialModules\TrialPerfectModule\TrialPerfectModuleProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\TrialModules\TrialStandardModule\TrialStandardInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\TrialModules\TrialStandardModule\TrialStandardModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\TrialModules\TrialStandardModule\TrialStandardModuleProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\UtilityCalculation\UtilityCalculation.cs" />
+    <Compile Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\IndependentEstimatesModule\IndependentEstimatesInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\IndependentEstimatesModule\IndependentEstimatesModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\IndependentEstimatesModule\IndependentEstimatesModuleProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\PerfectEstimatesModule\PerfectEstimatesInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\PerfectEstimatesModule\PerfectEstimatesModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\PerfectEstimatesModule\PerfectEstimatesModuleProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\SeparateEstimatesModule\SeparateEstimatesInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\SeparateEstimatesModule\SeparateEstimatesModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\SeparateEstimatesModule\SeparateEstimatesModuleProgress.cs" />
+    <Compile Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\ValueAndErrorForecastingInputs.cs" />
+    <Compile Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\ValueAndErrorForecastingModule.cs" />
+    <Compile Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\ValueAndErrorForecastingModuleProgress.cs" />
+    <Compile Include="Games\MyGame\MyGame.cs" />
+    <Compile Include="Games\MyGame\MyGameDefinition.cs" />
+    <Compile Include="Games\MyGame\MyGameFactory.cs" />
+    <Compile Include="Games\MyGame\MyGameInputs.cs" />
+    <Compile Include="Games\MyGame\MyGameProgressInfo.cs" />
+    <Compile Include="Games\ObfuscationGame\ObfuscationGameModule.cs" />
+    <Compile Include="Games\ObfuscationGame\ObfuscationGame.cs" />
+    <Compile Include="Games\ObfuscationGame\ObfuscationGameDefinition.cs" />
+    <Compile Include="Games\ObfuscationGame\ObfuscationGameFactory.cs" />
+    <Compile Include="Games\ObfuscationGame\ObfuscationGameInputs.cs" />
+    <Compile Include="Games\ObfuscationGame\ObfuscationGameProgressInfo.cs" />
+    <Compile Include="Games\PointFittingGame\PointFittingGame.cs" />
+    <Compile Include="Games\PointFittingGame\PointFittingGameDefinition.cs" />
+    <Compile Include="Games\PointFittingGame\PointFittingGameFactory.cs" />
+    <Compile Include="Games\PointFittingGame\PointFittingGameInputs.cs" />
+    <Compile Include="Games\PointFittingGame\PointFittingGameProgressInfo.cs" />
+    <Compile Include="Executor\CurrentExecutionInformation.cs" />
+    <Compile Include="Executor\Executor.cs" />
+    <Compile Include="Executor\IUiInteraction.cs" />
+    <Compile Include="Executor\SimulationInteraction.cs" />
+    <Compile Include="Commands\ExecuteList.cs" />
+    <Compile Include="Neural\FuzzyCMeansClustering.cs" />
+    <Compile Include="Neural\GRNN.cs" />
+    <Compile Include="Neural\ICalculateScoreForSpecificIteration.cs" />
+    <Compile Include="Neural\KMeansClustering.cs" />
+    <Compile Include="Neural\NeuralNetworkData.cs" />
+    <Compile Include="Neural\RandomClustering.cs" />
+    <Compile Include="Neural\RBFForExactInterpolation.cs" />
+    <Compile Include="Neural\TrainingInfo.cs" />
+    <Compile Include="Reports\Column.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\ColumnList.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\ColumnListToColumn.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\DatabaseAccess\EntityDataReader.cs" />
+    <Compile Include="Reports\DatabaseAccess\SaveExecutionResults.cs" />
+    <Compile Include="Reports\DataPoint.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\ExecutionResultSet.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\Filter\FilterAnd.cs" />
+    <Compile Include="Reports\Filter\FilterInt.cs" />
+    <Compile Include="Reports\Filter\FilterOr.cs" />
+    <Compile Include="Reports\Charting\StrategyGraphInfo.cs" />
+    <Compile Include="Executor\SimulationCoordinator.cs" />
+    <Compile Include="Reports\Filter\Filter.cs" />
+    <Compile Include="Reports\Filter\FilterBool.cs" />
+    <Compile Include="Reports\Filter\FilterDouble.cs" />
+    <Compile Include="Reports\Filter\FilterText.cs" />
+    <Compile Include="Reports\Operator.cs" />
+    <Compile Include="Reports\Report.cs" />
+    <Compile Include="Reports\ReportDefinition.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\ReportSnippet.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\ReportSnippetToReportDefinition.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\RolePermission.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\Row.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\RowList.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\RowListToRow.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\RowOrColInfo.cs" />
+    <Compile Include="Reports\RowOrColInfoGenerator.cs" />
+    <Compile Include="Reports\RowOrColInfoOrGenerator.cs" />
+    <Compile Include="Reports\RowOrColumnGroup.cs" />
+    <Compile Include="Reports\SettingCategory.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\SettingChoice.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\SettingChoiceSet.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\SettingChoiceToExecutionResultSet.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\SettingChoiceToSettingChoiceSet.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\SimData.Context.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>SimData.Context.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\SimData.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\SimData.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>SimData.edmx</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\Statistic.cs" />
+    <Compile Include="Reports\vw_aspnet_Applications.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\vw_aspnet_MembershipUsers.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\vw_aspnet_Profiles.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\vw_aspnet_Roles.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\vw_aspnet_Users.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Reports\vw_aspnet_UsersInRoles.cs">
+      <DependentUpon>SimData.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Settings\ChangeSettings\ChangeSimulationSettingGenerator.cs" />
+    <Compile Include="Settings\ChangeSettings\ChangeSimulationSettings.cs" />
+    <Compile Include="Settings\ChangeSettings\ChangeSimulationSettingContainer.cs" />
+    <Compile Include="Settings\ChangeSettings\IChangeSimulationSettingPermutator.cs" />
+    <Compile Include="Settings\CodeBasedGeneration\CodeBasedSettingGeneratorFactory.cs" />
+    <Compile Include="Settings\CodeBasedGeneration\ICodeBasedSettingGenerator.cs" />
+    <Compile Include="Settings\CodeBasedGeneration\ICodeBasedSettingGeneratorName.cs" />
+    <Compile Include="Settings\Compiling\SettingCompilation.cs" />
+    <Compile Include="Settings\Distributions\BetaDistribution.cs" />
+    <Compile Include="Settings\Distributions\GammaDistribution.cs" />
+    <Compile Include="Settings\Input\FlipInputSeedAttribute.cs" />
+    <Compile Include="Settings\Input\IterationID.cs" />
+    <Compile Include="Settings\Input\OversamplingInfo.cs" />
+    <Compile Include="Settings\Input\OversamplingPlan.cs" />
+    <Compile Include="Settings\Input\SwapInputSeedsAttribute.cs" />
+    <Compile Include="Settings\Loading and tracking\FindReplaceVariable.cs" />
+    <Compile Include="Settings\Loading and tracking\OptionalAndSkipAttributes.cs" />
+    <Compile Include="Settings\Setting\SettingVariable.cs" />
+    <Compile Include="Strategies\CachedInputsAndScores.cs" />
+    <Compile Include="Strategies\DirectScoreEstimation.cs" />
+    <Compile Include="Strategies\GRNNSmoothing.cs" />
+    <Compile Include="Strategies\OptimizePointsAndSmoothRemotely.cs" />
+    <Compile Include="Strategies\Points.cs" />
+    <Compile Include="Strategies\PriorityQueueSmallRAMFootprint.cs" />
+    <Compile Include="Strategies\RegressionBasedSmoothing.cs" />
+    <Compile Include="Strategies\RPROPSmoothing.cs" />
+    <Compile Include="Strategies\SmootherWithRegularGridForApproximateNearestNeighbor.cs" />
+    <Compile Include="Strategies\SmoothingOptions.cs" />
+    <Compile Include="Strategies\SmoothingPointsQuantification.cs" />
+    <Compile Include="Settings\Distributions\MixtureDistribution.cs" />
+    <Compile Include="Settings\Distributions\CurveDistribution.cs" />
+    <Compile Include="Settings\Distributions\Distribution.cs" />
+    <Compile Include="Settings\Distributions\DistributionFactory.cs" />
+    <Compile Include="Settings\Distributions\DistributionsInputTracker.cs" />
+    <Compile Include="Settings\Distributions\IDistribution.cs" />
+    <Compile Include="Settings\Distributions\IDistributionName.cs" />
+    <Compile Include="Settings\Distributions\NormalDistribution.cs" />
+    <Compile Include="Settings\Distributions\UniformDistribution.cs" />
+    <Compile Include="Settings\Input\InputSeeds.cs" />
+    <Compile Include="Settings\Input\InputSeedsColumnGenerator.cs" />
+    <Compile Include="Settings\Input\InputSeedsSet.cs" />
+    <Compile Include="Settings\Input\InputSeedsSortHelper.cs" />
+    <Compile Include="Settings\Input\InputVariables.cs" />
+    <Compile Include="Settings\Loading and tracking\FileLoaderException.cs" />
+    <Compile Include="Settings\Loading and tracking\SettingAndFieldInfo.cs" />
+    <Compile Include="Settings\Loading and tracking\SettingsLoader.cs" />
+    <Compile Include="Settings\Loading and tracking\SettingVariableFromSettingTracker.cs" />
+    <Compile Include="Settings\Loading and tracking\StoredSettingAndFieldInfo.cs" />
+    <Compile Include="Settings\SettingsSet\EvolutionSettingsSet.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Settings\SettingsSet\GameDefinitionSettingsSet.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Settings\SettingsSet\GameInputsSet.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Settings\SettingsSet\SettingsSet.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Settings\Setting\Setting.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Settings\Setting\SettingBoolean.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Settings\Setting\SettingCalc.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Settings\Setting\SettingClassOrList.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Settings\Setting\SettingDistribution.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Settings\Setting\SettingDouble.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Settings\Setting\SettingInt32.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Settings\Setting\SettingInt64.cs" />
+    <Compile Include="Settings\Setting\SettingStrategy.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Settings\Setting\SettingString.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Settings\Setting\SettingVariableFromProgram.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Settings\Setting\SettingVariableFromSetting.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Strategies\IStrategyComponent.cs" />
+    <Compile Include="Strategies\NearbyPointWeighting.cs" />
+    <Compile Include="Neural\NeuralNetworkWrapper.cs" />
+    <Compile Include="Strategies\NeuralNetworkStrategyComponent.cs" />
+    <Compile Include="Neural\NeuralNetworkTesting.cs" />
+    <Compile Include="Strategies\OptimizePointsAndSmooth.cs" />
+    <Compile Include="Strategies\KDTree.cs" />
+    <Compile Include="Strategies\SmoothingSetPointInfo.cs" />
+    <Compile Include="Strategies\Strategy.cs" />
+    <Compile Include="Strategies\StrategyBounds.cs" />
+    <Compile Include="Strategies\StrategyComparison.cs" />
+    <Compile Include="Strategies\StrategyPointOn45DegreeLine.cs" />
+    <Compile Include="Strategies\StrategySerialization.cs" />
+    <Compile Include="Util\ArrayFormConversionExtension.cs" />
+    <Compile Include="Util\AzureBlob.cs" />
+    <Compile Include="Util\AzureCloudDrive.cs" />
+    <Compile Include="Util\AzureQueue.cs" />
+    <Compile Include="Util\AzureQueueWithBlobObject.cs" />
+    <Compile Include="Util\AzureReset.cs" />
+    <Compile Include="Util\AzureSetup.cs" />
+    <Compile Include="Util\AzureSockets.cs" />
+    <Compile Include="Util\AzureStartupDiagnostic.cs" />
+    <Compile Include="Util\AzureTableGrouping.cs" />
+    <Compile Include="Util\AzureTableV2.cs" />
+    <Compile Include="Util\AzureTables.cs" />
+    <Compile Include="Util\BatchExtensions.cs" />
+    <Compile Include="Util\Class1.cs" />
+    <Compile Include="Util\ClusteringByFirstItem.cs" />
+    <Compile Include="Util\ExceptionExtraction.cs" />
+    <Compile Include="Util\HeisenbugTracker.cs" />
+    <Compile Include="Util\ConstrainedOrder.cs" />
+    <Compile Include="Util\ConstrainToRange.cs" />
+    <Compile Include="Util\CumulativeDistribution.cs" />
+    <Compile Include="Reports\Charting\Graph2DSettings.cs" />
+    <Compile Include="Util\FieldwiseObjectComparison.cs" />
+    <Compile Include="Util\GoldenSectionOptimizer.cs" />
+    <Compile Include="Util\InverseCumulativeNormalDistributionPoints.cs" />
+    <Compile Include="Util\LimitedConcurrencyLevelTaskScheduler.cs" />
+    <Compile Include="Util\LitigationGameProbMagnitudeSimpleModel.cs" />
+    <Compile Include="Util\MD5HashGenerator.cs" />
+    <Compile Include="Util\ObfuscationBruteForce.cs" />
+    <Compile Include="Util\ObjectPool.cs" />
+    <Compile Include="Util\ObjectPoolConcurrent.cs" />
+    <Compile Include="Util\ObjectPoolGeneric.cs" />
+    <Compile Include="Util\OptimizeSmoothedNoisyFunction.cs" />
+    <Compile Include="Util\Parabola.cs" />
+    <Compile Include="Util\ProcessInAzureWorkerRole.cs" />
+    <Compile Include="Util\ProcessInSeparateAppDomain.cs" />
+    <Compile Include="Util\RandomSubset.cs" />
+    <Compile Include="Util\Retry.cs" />
+    <Compile Include="Util\StochasticCutoffFinder.cs" />
+    <Compile Include="Util\MonotonicCurve.cs" />
+    <Compile Include="Util\TestableDateTime.cs" />
+    <Compile Include="Util\ThreadLocalDisposables.cs" />
+    <Compile Include="Util\ValueFromSignalEstimator.cs" />
+    <Compile Include="Util\FastPseudoRandom.cs" />
+    <Compile Include="Util\FixedSizeQueue.cs" />
+    <Compile Include="Util\HyperbolicTangentCurve.cs" />
+    <Compile Include="Util\NormalDistributionApproximation.cs" />
+    <Compile Include="Util\NumberPrint.cs" />
+    <Compile Include="Util\CloneExtension.cs" />
+    <Compile Include="Util\LinearRegression.cs" />
+    <Compile Include="Util\Parallelizer.cs" />
+    <Compile Include="Util\MathApproximate.cs" />
+    <Compile Include="Util\PermutationMaker.cs" />
+    <Compile Include="Util\Primes.cs" />
+    <Compile Include="Util\PriorityQueue.cs" />
+    <Compile Include="Util\ProfileSimple.cs" />
+    <Compile Include="Util\RandomGenerator.cs" />
+    <Compile Include="Neural\NeuralSimulatedAnnealingGoffe.cs" />
+    <Compile Include="Neural\NeuralSimulatedAnnealingGoffeHelper.cs" />
+    <Compile Include="Neural\SimulatedAnnealingGoffe.cs" />
+    <Compile Include="Util\StatCollector.cs" />
+    <Compile Include="Util\SummaryStatistics.cs" />
+    <Compile Include="Util\Serialization.cs" />
+    <Compile Include="Util\CombinationMaker.cs" />
+    <Compile Include="Util\ListExtensions.cs" />
+    <Compile Include="Util\RangeFinder.cs" />
+    <Compile Include="Util\TabbedWriteLine.cs" />
+    <Compile Include="Util\WalkToIdentifyMemoryPath.cs" />
+    <Compile Include="Util\WeightedPercentileTracker.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <None Include="App.config">
+      <SubType>Designer</SubType>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="ClassDiagram1.cd" />
+    <None Include="Games\BargainingGame2\Reports\BargainingGame2Report" />
+    <None Include="Games\CurveFitting5DGame\Iterations\CurveFitting5DIterations" />
+    <None Include="Games\CurveFitting5DGame\Reports\CurveFitting5DReport" />
+    <None Include="Games\CurveFitting5DGame\Reports\GenomeGraph" />
+    <None Include="Games\CurveFitting5DGame\Reports\GenomeGraph3d" />
+    <None Include="Games\CurveFitting5DGame\Strategies\CurveFitting5DGenomes" />
+    <None Include="Games\CurveFitting5DGame\Strategies\PreevolvedGenome" />
+    <None Include="Games\CurveFittingGame\Iterations\CurveFittingIterations" />
+    <None Include="Games\CurveFittingGame\Reports\CurveFittingReport" />
+    <None Include="Games\CurveFittingGame\Reports\GenomeGraph" />
+    <None Include="Games\CurveFittingGame\Reports\GenomeGraph3d" />
+    <None Include="Games\CurveFittingGame\Strategies\CurveFittingGenomes" />
+    <None Include="Games\CurveFittingGame\Strategies\PreevolvedGenome" />
+    <None Include="Games\PointFittingGame\Iterations\PointFittingIterations" />
+    <None Include="Games\PointFittingGame\Reports\GenomeGraph2d" />
+    <None Include="Games\PointFittingGame\Reports\GenomeGraph2d3d" />
+    <None Include="Games\PointFittingGame\Reports\PointFittingReport" />
+    <None Include="Games\PointFittingGame\Strategies\PointFittingGenomes" />
+    <None Include="packages.config">
+      <SubType>Designer</SubType>
+    </None>
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+    <EntityDeploy Include="Reports\SimData.edmx">
+      <Generator>EntityModelCodeGenerator</Generator>
+      <LastGenOutput>SimData.Designer.cs</LastGenOutput>
+    </EntityDeploy>
+    <None Include="Reports\SimData.Context.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <DependentUpon>SimData.edmx</DependentUpon>
+      <LastGenOutput>SimData.Context.cs</LastGenOutput>
+    </None>
+    <None Include="Reports\SimData.edmx.diagram">
+      <DependentUpon>SimData.edmx</DependentUpon>
+    </None>
+    <None Include="Reports\SimData.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <DependentUpon>SimData.edmx</DependentUpon>
+      <LastGenOutput>SimData.cs</LastGenOutput>
+    </None>
+    <None Include="Resources\Settings.xsd">
+      <SubType>Designer</SubType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Games\BargainingGame2\Settings\BargainingGame2Commands.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\BargainingGame2\Settings\BargainingGame2Definitions.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\BargainingGame2\Settings\BargainingGame2EvolutionSettings.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\BargainingGame2\Settings\BargainingGame2Inputs.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\BargainingGame2\Settings\BargainingGame2OverallSettings.xml" />
+    <Content Include="Games\BargainingGame2\Settings\BargainingGame2Report.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\CurveFitting5DGame\Settings\Commands.xml" />
+    <Content Include="Games\CurveFitting5DGame\Settings\GameDefinitions5DAllInputsTogether.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\CurveFitting5DGame\Settings\GameInputs5D.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\CurveFitting5DGame\Settings\OverallSettings5D.xml" />
+    <Content Include="Games\CurveFitting5DGame\Settings\ReportAverageScore.xml" />
+    <Content Include="Games\CurveFitting5DGame\Strategies\CurveFitting5DGenomes.xml" />
+    <Content Include="Games\CurveFittingGame\Settings\CurveFittingGameSettings.xml" />
+    <Content Include="Games\CurveFittingGame\Settings\Commands.xml" />
+    <Content Include="Games\CurveFittingGame\Settings\GameDefinitions.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\CurveFittingGame\Settings\GameDefinitions1D.xml" />
+    <Content Include="Games\CurveFittingGame\Settings\GameDefinitions5D.xml" />
+    <Content Include="Games\CurveFittingGame\Settings\GameInputs.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\CurveFittingGame\Settings\GameInputs1D.xml" />
+    <Content Include="Games\CurveFittingGame\Settings\GameInputs5D.xml" />
+    <Content Include="Games\CurveFittingGame\Settings\OverallSettings.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\CurveFittingGame\Settings\OverallSettings1D.xml" />
+    <Content Include="Games\CurveFittingGame\Settings\OverallSettings5D.xml" />
+    <Content Include="Games\CurveFittingGame\Settings\ReportAverageScore.xml" />
+    <Content Include="Games\CurveFittingGame\Strategies\CurveFittingGenomes.xml" />
+    <Content Include="Games\LitigationGame\Modules\Adjustments\NoAdjustmentsModule\NoAdjustmentsModule.xml" />
+    <Content Include="Games\LitigationGame\Modules\Adjustments\NoAdjustmentsModule\NoAdjustmentsModuleInputs.xml" />
+    <Content Include="Games\LitigationGame\Modules\Adjustments\ShootoutAdjustmentsModule\ShootoutAdjustmentsModule.xml" />
+    <Content Include="Games\LitigationGame\Modules\Adjustments\ShootoutAdjustmentsModule\ShootoutAdjustmentsModuleInputs.xml" />
+    <Content Include="Games\LitigationGame\Modules\Adjustments\SideBetAdjustmentsModule\SideBetAdjustmentsModule.xml" />
+    <Content Include="Games\LitigationGame\Modules\Adjustments\SideBetAdjustmentsModule\SideBetAdjustmentsModuleInputs.xml" />
+    <Content Include="Games\LitigationGame\Modules\BargainingAggressiveness\RangeUncertaintyAggressivenessOverride\RangeUncertaintyAggressivenessOverrideModule.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Modules\BargainingAggressiveness\RangeUncertaintyAggressivenessOverride\RangeUncertaintyAggressivenessOverrideModuleInputs.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Modules\BargainingAggressiveness\SkipAggressivenessOverride\SkipAggressivenessOverrideModule.xml" />
+    <Content Include="Games\LitigationGame\Modules\BargainingAggressiveness\SkipAggressivenessOverride\SkipAggressivenessOverrideModuleInputs.xml" />
+    <Content Include="Games\LitigationGame\Modules\BargainingAggressiveness\PresetAggressivenessOverride\PresetAggressivenessOverrideModule.xml" />
+    <Content Include="Games\LitigationGame\Modules\BargainingAggressiveness\PresetAggressivenessOverride\PresetAggressivenessOverrideModuleInputs.xml" />
+    <Content Include="Games\LitigationGame\Modules\BargainingAggressiveness\SymmetricAggressivenessOverride\SymmetricAggressivenessOverrideModule.xml" />
+    <Content Include="Games\LitigationGame\Modules\BargainingAggressiveness\SymmetricAggressivenessOverride\SymmetricAggressivenessOverrideModuleInputs.xml" />
+    <Content Include="Games\LitigationGame\Modules\BargainingAggressiveness\SeparateAggressivenessOverride\SeparateAggressivenessOverrideModule.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Modules\BargainingAggressiveness\SeparateAggressivenessOverride\SeparateAggressivenessOverrideModuleInputs.xml" />
+    <Content Include="Games\LitigationGame\Modules\BargainingModules\BargainingModuleReport.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Modules\BargainingModules\FairBargainingModule\FairBargainingInputs.xml" />
+    <Content Include="Games\LitigationGame\Modules\BargainingModules\FairBargainingModule\FairBargainingModule.xml" />
+    <Content Include="Games\LitigationGame\Modules\BargainingModules\FairBargainingModule\FairBargainingReport.xml" />
+    <Content Include="Games\LitigationGame\Modules\BargainingModules\NoBargainingBargainingModule\NoBargainingBargainingInputs.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Modules\BargainingModules\NoBargainingBargainingModule\NoBargainingBargainingModule.xml" />
+    <Content Include="Games\LitigationGame\Modules\BargainingModules\NoBargainingBargainingModule\NoBargainingBargainingReport.xml" />
+    <Content Include="Games\LitigationGame\Modules\BargainingModules\OfferThresholdBargainingModule\OfferThresholdBargainingInputs.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Modules\BargainingModules\OfferThresholdBargainingModule\OfferThresholdBargainingModule.xml" />
+    <Content Include="Games\LitigationGame\Modules\BargainingModules\OfferThresholdBargainingModule\OfferThresholdBargainingReport.xml" />
+    <Content Include="Games\LitigationGame\Modules\BargainingModules\SimplisticBargainingModule\SimplisticBargainingInputs.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Modules\BargainingModules\SimplisticBargainingModule\SimplisticBargainingModule.xml" />
+    <Content Include="Games\LitigationGame\Modules\BargainingModules\SimplisticBargainingModule\SimplisticBargainingReport.xml" />
+    <Content Include="Games\LitigationGame\Modules\BargainingModules\SimultaneousOfferBargainingModule\SimultaneousOfferBargainingInputs.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Modules\BargainingModules\SimultaneousOfferBargainingModule\SimultaneousOfferBargainingModule.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Modules\BargainingModules\SimultaneousOfferBargainingModule\SimultaneousOfferBargainingReport.xml" />
+    <Content Include="Games\LitigationGame\Modules\BargainingModules\SimultaneousOfferSymmetricBargainingModule\SimultaneousOfferSymmetricBargainingInputs.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Modules\BargainingModules\SimultaneousOfferSymmetricBargainingModule\SimultaneousOfferSymmetricBargainingModule.xml" />
+    <Content Include="Games\LitigationGame\Modules\BargainingModules\SimultaneousOfferSymmetricBargainingModule\SimultaneousOfferSymmetricBargainingReport.xml" />
+    <Content Include="Games\LitigationGame\Modules\BargainingModules\UtilityRangeBargainingModule\UtilityRangeBargainingInputs.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Modules\BargainingModules\UtilityRangeBargainingModule\UtilityRangeBargainingModule.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Modules\BargainingModules\UtilityRangeBargainingModule\UtilityRangeBargainingReport.xml" />
+    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ContinuousPrecautionDisputeGenerator\ContinuousPrecautionDisputeGeneratorModule.xml" />
+    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ContinuousPrecautionDisputeGenerator\ContinuousPrecautionDisputeGeneratorReport.xml" />
+    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ContinuousPrecautionDisputeGenerator\ContinuousPrecautionDisputeGeneratorInputs.xml" />
+    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\DisputeGeneratorReport.xml" />
+    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ExogenousDisputeGenerator\ExogenousDisputeGeneratorInputsExogenouslySpecifiedProbabilityCorrect.xml" />
+    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ExogenousDisputeGenerator\ExogenousDisputeGeneratorInputsCloseCases.xml" />
+    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ExogenousDisputeGenerator\ExogenousDisputeGeneratorInputs.xml" />
+    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ExogenousDisputeGenerator\ExogenousDisputeGeneratorModule.xml" />
+    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ExogenousDisputeGenerator\ExogenousDisputeGeneratorReport.xml" />
+    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ExogenousDisputeGenerator\ExogenousDisputeGeneratorInputsWeakPCases.xml" />
+    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ForbiddenActDisputeGenerator\ForbiddenActDisputeGeneratorModule.xml" />
+    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ForbiddenActDisputeGenerator\ForbiddenActDisputeGeneratorReport.xml" />
+    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ForbiddenActDisputeGenerator\ForbiddenActInputs.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ForbiddenActDisputeGenerator\StrongerEvidence.xml" />
+    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\NegligenceDisputeGenerator\NegligenceDisputeGeneratorModule.xml" />
+    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\NegligenceDisputeGenerator\NegligenceInputs.xml" />
+    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\NegligenceDisputeGenerator\NegligenceDisputeGeneratorReport.xml" />
+    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\NegligenceDisputeGenerator\SimpleNegligenceInputs.xml" />
+    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\NegligenceDisputeGenerator\StrictLiabilityInputs.xml" />
+    <Content Include="Games\LitigationGame\Modules\DropOrDefaultModules\AbandonExtremesModule\AbandonExtremesInputs.xml" />
+    <Content Include="Games\LitigationGame\Modules\DropOrDefaultModules\AbandonExtremesModule\AbandonExtremesModule.xml" />
+    <Content Include="Games\LitigationGame\Modules\DropOrDefaultModules\AbandonExtremesModule\AbandonExtremesReport.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Modules\DropOrDefaultModules\DropComparisonModule\DropComparisonInputs.xml" />
+    <Content Include="Games\LitigationGame\Modules\DropOrDefaultModules\DropComparisonModule\DropComparisonModule.xml" />
+    <Content Include="Games\LitigationGame\Modules\DropOrDefaultModules\DropComparisonModule\DropComparisonReport.xml" />
+    <Content Include="Games\LitigationGame\Modules\DropOrDefaultModules\DropOrDefaultChoiceModule\DropOrDefaultChoiceInputs.xml" />
+    <Content Include="Games\LitigationGame\Modules\DropOrDefaultModules\DropOrDefaultChoiceModule\DropOrDefaultChoiceModule.xml" />
+    <Content Include="Games\LitigationGame\Modules\DropOrDefaultModules\DropOrDefaultChoiceModule\DropOrDefaultChoiceReport.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Modules\DropOrDefaultModules\DropOrDefaultReport.xml" />
+    <Content Include="Games\LitigationGame\Modules\DropOrDefaultModules\NeverGiveUpModule\NeverGiveUpInputs.xml" />
+    <Content Include="Games\LitigationGame\Modules\DropOrDefaultModules\NeverGiveUpModule\NeverGiveUpModule.xml" />
+    <Content Include="Games\LitigationGame\Modules\DropOrDefaultModules\NeverGiveUpModule\NeverGiveUpReport.xml" />
+    <Content Include="Games\LitigationGame\Modules\DummyModule\DummyModule.xml" />
+    <Content Include="Games\LitigationGame\Modules\ForecastingModules\ForecastingModule.xml" />
+    <Content Include="Games\LitigationGame\Modules\ForecastingModules\ProbabilityPWinsForecastingModule\ProbabilityPWinsForecastingModule.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostEndogenousEffortModule\LitigationCostEndogenousEffortInputs.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostEndogenousEffortModule\LitigationCostEndogenousEffortModule.xml" />
+    <Content Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostEndogenousEffortModule\LitigationCostEndogenousEffortReport.xml" />
+    <Content Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostStandardModule\LitigationCostlessStandardInputs.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostStandardModule\LitigationCostlessStandardModule.xml" />
+    <Content Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostStandardModule\LitigationCostStandardInputs.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostStandardModule\LitigationCostStandardModule.xml" />
+    <Content Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostStandardModule\LitigationCostStandardReport.xml" />
+    <Content Include="Games\LitigationGame\Modules\TrialModules\TrialPerfectModule\TrialPerfectInputs.xml" />
+    <Content Include="Games\LitigationGame\Modules\TrialModules\TrialPerfectModule\TrialPerfectModule.xml" />
+    <Content Include="Games\LitigationGame\Modules\TrialModules\TrialPerfectModule\TrialPerfectReport.xml" />
+    <Content Include="Games\LitigationGame\Modules\TrialModules\TrialReport.xml" />
+    <Content Include="Games\LitigationGame\Modules\TrialModules\TrialStandardModule\TrialStandardInputs.xml" />
+    <Content Include="Games\LitigationGame\Modules\TrialModules\TrialStandardModule\TrialStandardModule.xml" />
+    <Content Include="Games\LitigationGame\Modules\TrialModules\TrialStandardModule\TrialStandardReport.xml" />
+    <Content Include="Games\LitigationGame\Modules\UtilityCalculation\BothPartiesRiskAverse.xml" />
+    <Content Include="Games\LitigationGame\Modules\UtilityCalculation\BothPartiesLossAverse.xml" />
+    <Content Include="Games\LitigationGame\Modules\UtilityCalculation\BothPartiesRiskNeutral.xml" />
+    <Content Include="Games\LitigationGame\Modules\UtilityCalculation\BothPartiesLogRiskAverse.xml" />
+    <Content Include="Games\LitigationGame\Modules\UtilityCalculation\CARARiskAverseUtilityMaximizer.xml" />
+    <Content Include="Games\LitigationGame\Modules\UtilityCalculation\GeneralRiskAverseUtilityMaximizer.xml" />
+    <Content Include="Games\LitigationGame\Modules\UtilityCalculation\HeterogeneousRiskAversion.xml" />
+    <Content Include="Games\LitigationGame\Modules\UtilityCalculation\LogRiskAverseUtilityMaximizer.xml" />
+    <Content Include="Games\LitigationGame\Modules\UtilityCalculation\LossAverseUtilityMaximizer.xml" />
+    <Content Include="Games\LitigationGame\Modules\UtilityCalculation\PHighRiskAverseDNeutral.xml" />
+    <Content Include="Games\LitigationGame\Modules\UtilityCalculation\PLossAverseDNeutral.xml" />
+    <Content Include="Games\LitigationGame\Modules\UtilityCalculation\PRiskAverseDNeutral.xml" />
+    <Content Include="Games\LitigationGame\Modules\UtilityCalculation\RiskNeutralUtilityMaximizer.xml" />
+    <Content Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\IndependentEstimatesModule\IndependentEstimatesInputs.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\IndependentEstimatesModule\IndependentEstimatesModule.xml" />
+    <Content Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\IndependentEstimatesModule\IndependentEstimatesReport.xml" />
+    <Content Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\PerfectEstimatesModule\PerfectEstimatesInputs.xml" />
+    <Content Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\PerfectEstimatesModule\PerfectEstimatesModule.xml" />
+    <Content Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\PerfectEstimatesModule\PerfectEstimatesReport.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\SeparateEstimatesModule\SeparateEstimatesInputs.xml" />
+    <Content Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\SeparateEstimatesModule\SeparateEstimatesModule.xml" />
+    <Content Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\SeparateEstimatesModule\SeparateEstimatesReport.xml" />
+    <Content Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\ValueAndErrorForecastingReport.xml" />
+    <Content Include="Games\LitigationGame\Settings\BasicAsymmetricInfo.xml" />
+    <Content Include="Games\LitigationGame\Settings\BasicRegretAversion.xml" />
+    <Content Include="Games\LitigationGame\Settings\BasicRiskAversion.xml" />
+    <Content Include="Games\LitigationGame\Settings\ChangingLitigationCosts.xml" />
+    <Content Include="Games\LitigationGame\Settings\EndogenousLitigationCosts.xml" />
+    <Content Include="Games\LitigationGame\Settings\LitigationGameCommandsInterimReports.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Settings\LitigationGameCommandsNoReports.xml" />
+    <Content Include="Games\LitigationGame\Settings\LitigationGameCommandsOneReport.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Settings\LitigationGameModuleSelector.xml" />
+    <Content Include="Games\LitigationGame\Settings\LitigationGameDefinitions.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Settings\LitigationGameEvolutionSettings.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Settings\LitigationGameCommands.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Settings\LitigationGameInputs.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Settings\LitigationGameMultipleRepetitions.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Settings\LitigationGameMultipleRunBaselineEssentials.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Settings\LitigationGameMultipleRunBaselineRiskNeutral.xml" />
+    <Content Include="Games\LitigationGame\Settings\LitigationGameMultipleRunBaselineRiskOther.xml" />
+    <Content Include="Games\LitigationGame\Settings\LitigationGameMultipleRunBaselinModRiskAv.xml" />
+    <Content Include="Games\LitigationGame\Settings\LitigationGameMultipleRunSettings.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Settings\LitigationGameMultipleRunSettingsTemp.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Settings\LitigationGameMultipleRunBaseline.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Settings\LitigationGameMultipleRunSettingsTemp2.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Settings\LitigationGameSeveringSettlements.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Settings\LitigationGameSingleRunSettings.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Settings\LitigationGameReport.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Settings\LitigationGameSingleRunSettingsTemp.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Settings\LitigationGameSmoothingOptions.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Settings\LowDamages.xml" />
+    <Content Include="Games\LitigationGame\Settings\RangeUncertaintySettings.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Settings\RangeUncertaintySettingsFast.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Settings\WithEndDrops.xml" />
+    <Content Include="Games\LitigationGame\Settings\NoEndDrops.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Settings\PerfectInformationExample.xml" />
+    <Content Include="Games\LitigationGame\Settings\SavedSettings\AggressivenessBasedOnRiskAversion.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Settings\Temp1.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Settings\Temp2.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\LitigationGame\Settings\Temp3.xml" />
+    <Content Include="Games\MyGame\Settings\MyGameCommands.xml" />
+    <Content Include="Games\MyGame\Settings\MyGameDefinitions.xml" />
+    <Content Include="Games\MyGame\Settings\MyGameInputs.xml" />
+    <Content Include="Games\MyGame\Settings\MyGameOverallSettings.xml" />
+    <Content Include="Games\MyGame\Settings\MyGameReport.xml" />
+    <Content Include="Games\ObfuscationGame\Settings\ObfuscationGameCommands.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\ObfuscationGame\Settings\ObfuscationGameDefinitions.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\ObfuscationGame\Settings\ObfuscationGameInputs.xml" />
+    <Content Include="Games\ObfuscationGame\Settings\ObfuscationGameInputsOversampling.xml" />
+    <Content Include="Games\ObfuscationGame\Settings\ObfuscationGameOverallSettings.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\ObfuscationGame\Settings\ObfuscationGameReport.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\PointFittingGame\Settings\Commands.xml" />
+    <Content Include="Games\PointFittingGame\Settings\GameDefinitions2D.xml" />
+    <Content Include="Games\PointFittingGame\Settings\GameDefinitions4D.xml" />
+    <Content Include="Games\PointFittingGame\Settings\GameInputs2d.xml" />
+    <Content Include="Games\PointFittingGame\Settings\GameInputs4d.xml" />
+    <Content Include="Games\PointFittingGame\Settings\OverallSettingsWithCombination.xml" />
+    <Content Include="Games\PointFittingGame\Settings\OverallSettingsWithPolynomial.xml" />
+    <Content Include="Games\PointFittingGame\Settings\OverallSettingsWithWarp.xml" />
+    <Content Include="Games\PointFittingGame\Settings\ReportAverageScore.xml" />
+    <Content Include="Games\PointFittingGame\Strategies\PointFittingGenomes.xml" />
+    <Content Include="Games\SharedEvolutionSettings\EvolutionSettings.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\SharedEvolutionSettings\SmoothingOptions.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Reports\SimData.edmx.sql" />
+    <Content Include="Scratch.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Games\BargainingGame2\Iterations\" />
+    <Folder Include="Games\BargainingGame2\Strategies\" />
+    <Folder Include="Games\LitigationGame\Iterations\" />
+    <Folder Include="Games\LitigationGame\Reports\" />
+    <Folder Include="Games\LitigationGame\Strategies\" />
+    <Folder Include="Games\ObfuscationGame\Strategies\" />
+  </ItemGroup>
+  <ItemGroup>
+    <BootstrapperPackage Include=".NETFramework,Version=v4.0">
+      <Visible>False</Visible>
+      <ProductName>Microsoft .NET Framework 4 %28x86 and x64%29</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Client.3.5">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1 Client Profile</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.SQL.Server.Compact.3.5">
+      <Visible>False</Visible>
+      <ProductName>SQL Server Compact 3.5 SP2</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Windows.Installer.3.1">
+      <Visible>False</Visible>
+      <ProductName>Windows Installer 3.1</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
+  </ItemGroup>
+  <ItemGroup>
+    <WCFMetadata Include="Service References\" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

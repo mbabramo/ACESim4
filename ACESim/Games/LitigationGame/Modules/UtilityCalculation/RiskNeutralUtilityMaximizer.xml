@@ -1,0 +1,8 @@
+﻿<ACESim>
+  <defineTemplate name="RiskNeutralUtilityMaximizer">
+    <setting name="Individual" type="class" subclass="RiskNeutralUtilityMaximizer">
+      <setting name="InitialWealth" type="double">InitialWealthValue</setting>
+    </setting>
+  </defineTemplate>
+</ACESim>
+ 

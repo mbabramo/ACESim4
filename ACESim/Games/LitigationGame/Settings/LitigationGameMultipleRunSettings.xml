@@ -1,0 +1,74 @@
+﻿<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ACESimMultiple>
+  <singleSettingsFile filename="LitigationGameSingleRunSettings.xml">
+    <!--<defineVariable findString="$BeginningDropOrDefaultModule" replaceString="NeverGiveUp"/>
+    <defineVariable findString="$EndDropOrDefaultModule" replaceString="NeverGiveUp"/>
+    <defineVariable findString="$BargainingModule" replaceString="NoBargainingBargaining" />-->
+
+    <!--<defineVariable findString="$LitigationCostModule" replaceString="LitigationCostEndogenousEffort"/>
+    <defineVariable findString="$SpecificLitigationCostSettings" replaceString="LitigationCostEndogenousEffortModule"/>  
+    <defineVariable findString="$OptimizeInvestigationIntensity" replaceString="false"/>
+    <defineVariable findString="$OptimizeTrialPrep" replaceString="true"/>
+    <defineVariable findString="$ExploreEndogenousEffortInvestigationEquilibria" replaceString="false"/>
+    <defineVariable findString="$ExploreEndogenousEffortTrialEquilibria" replaceString="true"/>
+    <defineVariable findString="$EndogenousEffortEquilibriumUsesSimpleMethod" replaceString="true"/>
+    <defineVariable findString="$EndogenousEffortEquilibriumSimpleMethodRepetitions" replaceString="3"/>
+    <defineVariable findString="$CommonTrialExpensesMin" replaceString="150.0"/>
+    <defineVariable findString="$CommonTrialExpensesMax" replaceString="150.0"/>-->
+
+
+    <defineVariable findString="$AdjustmentsModule" replaceString="ShootoutAdjustmentsModule"/>
+    <defineVariable findString="$DiscountFactorForShootouts" replaceString="1.0"/>
+    <defineVariable findString="$MultiplierForShootouts" replaceString="0.50"/>
+    <defineVariable findString="$EnforceWhenCaseDroppedImmediatelyAfterward" replaceString="false"/>
+    <defineVariable findString="$TrialExpensesMultiplierWithDoubleDamages" replaceString="2.0"/>
+
+    <!--<defineVariable findString="$LoserPaysRule" replaceString="true"/>-->
+
+    <defineVariable findString="$BargainingAggressivenessOverrideSetting" replaceString="Symmetric"/>
+    
+    
+    <defineVariable findString="$AggressivenessContagion" replaceString="0.25"/>
+    
+    <defineVariable findString="$MaxIterations" replaceString="50,000" />
+  </singleSettingsFile>
+  <!--<singleSettingsFile filename="LitigationGameSingleRunSettings.xml">
+    --><!--<defineVariable findString="$BeginningDropOrDefaultModule" replaceString="NeverGiveUp"/>
+    <defineVariable findString="$EndDropOrDefaultModule" replaceString="NeverGiveUp"/>
+    <defineVariable findString="$BargainingModule" replaceString="NoBargainingBargaining" />--><!--
+
+    --><!--<defineVariable findString="$LitigationCostModule" replaceString="LitigationCostEndogenousEffort"/>
+    <defineVariable findString="$SpecificLitigationCostSettings" replaceString="LitigationCostEndogenousEffortModule"/>  
+    <defineVariable findString="$OptimizeInvestigationIntensity" replaceString="false"/>
+    <defineVariable findString="$OptimizeTrialPrep" replaceString="true"/>
+    <defineVariable findString="$ExploreEndogenousEffortInvestigationEquilibria" replaceString="false"/>
+    <defineVariable findString="$ExploreEndogenousEffortTrialEquilibria" replaceString="true"/>
+    <defineVariable findString="$EndogenousEffortEquilibriumUsesSimpleMethod" replaceString="true"/>
+    <defineVariable findString="$EndogenousEffortEquilibriumSimpleMethodRepetitions" replaceString="3"/>
+    <defineVariable findString="$CommonTrialExpensesMin" replaceString="150.0"/>
+    <defineVariable findString="$CommonTrialExpensesMax" replaceString="150.0"/>--><!--
+
+    <defineVariable findString="$LitigationCostModule" replaceString="LitigationCostShootout"/>
+    <defineVariable findString="$SpecificLitigationCostSettings" replaceString="LitigationCostShootoutModule"/>
+    <defineVariable findString="$DiscountFactorForShootouts" replaceString="1.0"/>
+    <defineVariable findString="$MultiplierForShootouts" replaceString="0.50"/>
+    <defineVariable findString="$EnforceWhenCaseDroppedImmediatelyAfterward" replaceString="false"/>
+    <defineVariable findString="$TrialExpensesMultiplierWithDoubleDamages" replaceString="2.0"/>
+
+
+    --><!--<defineVariable findString="$AdjustmentsModule" replaceString="ShootoutAdjustmentsModule"/>
+    <defineVariable findString="$DiscountFactorForShootouts" replaceString="1.0"/>
+    <defineVariable findString="$MultiplierForShootouts" replaceString="0.50"/>
+    <defineVariable findString="$EnforceWhenCaseDroppedImmediatelyAfterward" replaceString="false"/>
+    <defineVariable findString="$TrialExpensesMultiplierWithDoubleDamages" replaceString="2.0"/>--><!--
+
+    --><!--<defineVariable findString="$LoserPaysRule" replaceString="true"/>--><!--
+
+    <defineVariable findString="$BargainingAggressivenessOverrideSetting" replaceString="Symmetric"/>
+
+
+    <defineVariable findString="$AggressivenessContagion" replaceString="0.25"/>
+
+    <defineVariable findString="$MaxIterations" replaceString="50,000" />
+  </singleSettingsFile>-->
+</ACESimMultiple>

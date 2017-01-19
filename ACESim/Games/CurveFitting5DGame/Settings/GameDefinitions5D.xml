@@ -1,0 +1,163 @@
+﻿<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<ACESim>
+
+  <gameDefinitionsAll>
+    <gameDefinition name="CurveFitting5DGame">
+      <setting name="Decisions" type="list">
+        <setting name="Decision" type="class">
+          <setting name="Name" type="text">z</setting>
+          <setting name="DoPreplay" type="bool">false</setting>
+          <setting name="Abbreviation" type="text">p</setting>
+          <setting name="InputNames" type="list">
+            <setting name="input" type="text">x</setting>
+            <setting name="input" type="text">y</setting>
+            <setting name="input" type="text">z</setting>
+            <setting name="input" type="text">v</setting>
+            <setting name="input" type="text">w</setting>
+          </setting>
+          <setting name="InputAbbreviations" type="list">
+            <setting name="input" type="text">x</setting>
+            <setting name="input" type="text">y</setting>
+            <setting name="input" type="text">z</setting>
+            <setting name="input" type="text">v</setting>
+            <setting name="input" type="text">w</setting>
+          </setting>
+          <setting name="InputGroups" type="list">
+            <setting name="InputGroup" type="class">
+              <setting name="Name" type="text">x and y</setting>
+              <setting name="Inputs" type="list">
+                <setting name="InputInfo" type="class">
+                  <setting name="InputName" type="text">x</setting>
+                  <setting name="SubGroups" type="list">
+                    <setting name="InputGroup" type="class">
+                      <setting name="Name" type="text">x</setting>
+                      <setting name="Inputs" type="list">
+                        <setting name="InputInfo" type="class">
+                          <setting name="InputName" type="text">x</setting>
+                          <setting name="SubGroups" type="list"></setting>
+                        </setting>
+                        <setting name="InputInfo" type="class">
+                          <setting name="InputName" type="text">z</setting>
+                          <setting name="SubGroups" type="list">
+                            <setting name="InputGroup" type="class">
+                              <setting name="Name" type="text">z</setting>
+                              <setting name="Inputs" type="list">
+                                <setting name="InputInfo" type="class">
+                                  <setting name="InputName" type="text">z</setting>
+                                  <setting name="SubGroups" type="list"></setting>
+                                </setting>
+                                <setting name="InputInfo" type="class">
+                                  <setting name="InputName" type="text">v</setting>
+                                  <setting name="SubGroups" type="list"></setting>
+                                </setting>
+                              </setting>
+                              <!--End of inputs list-->
+                            </setting>
+                            <!--End of InputGroup-->
+                          </setting>
+                        </setting>
+                      </setting>
+                      <!--End of inputs list-->
+                    </setting>
+                    <!--End of InputGroup-->
+                  </setting>
+                  <!--End of subgroups-->
+                </setting>
+                <!--End of InputInfo-->
+                <setting name="InputInfo" type="class">
+                  <setting name="InputName" type="text">y</setting>
+                  <setting name="SubGroups" type="list"></setting>
+                </setting>
+              </setting>
+              <!--End of inputs list-->
+            </setting>
+            <!--End of InputGroup-->
+            <setting name="InputGroup" type="class">
+              <setting name="Name" type="text">w</setting>
+              <setting name="Inputs" type="list">
+                <setting name="InputInfo" type="class">
+                  <setting name="InputName" type="text">w</setting>
+                  <setting name="SubGroups" type="list"></setting>
+                </setting>
+              </setting>
+              <!--End of inputs list-->
+            </setting>
+            <!--End of InputGroup-->
+          </setting>
+          <!--End of InputGroups list-->
+          <!--The following example does x-->
+          <!--<setting name="InputGroups" type="list">
+                      <setting name="InputGroup" type="class">
+                        <setting name="Name" type="text">x, y, and z</setting>
+                        <setting name="Inputs" type="list">
+                          <setting name="InputInfo" type="class">
+                            <setting name="InputName" type="text">x</setting>
+                            <setting name="SubGroups" type="list"></setting>
+                          </setting>
+                          <setting name="InputInfo" type="class">
+                            <setting name="InputName" type="text">y</setting>
+                            <setting name="SubGroups" type="list"></setting>
+                          </setting>
+                          <setting name="InputInfo" type="class">
+                            <setting name="InputName" type="text">z</setting>
+                            <setting name="SubGroups" type="list"></setting>
+                          </setting>
+                        </setting>
+                      </setting>
+                      <setting name="InputGroup" type="class">
+                        <setting name="Name" type="text">v</setting>
+                        <setting name="Inputs" type="list">
+                          <setting name="InputInfo" type="class">
+                            <setting name="InputName" type="text">v</setting>
+                            <setting name="SubGroups" type="list"></setting>
+                          </setting>
+                        </setting>
+                      </setting>
+                      <setting name="InputGroup" type="class">
+                        <setting name="Name" type="text">w</setting>
+                        <setting name="Inputs" type="list">
+                          <setting name="InputInfo" type="class">
+                            <setting name="InputName" type="text">w</setting>
+                            <setting name="SubGroups" type="list"></setting>
+                          </setting>
+                        </setting>
+                      </setting>
+                    </setting>-->
+          <setting name="GenomeBounds" type="class">
+            <setting name="InputsBounds" type="list">
+              <setting name="Dimension 1 Bounds" type="class">
+                <setting name="LowerBound" type="double">0</setting>
+                <setting name="UpperBound" type="double">1</setting>
+              </setting>
+              <setting name="Dimension 2 Bounds" type="class">
+                <setting name="LowerBound" type="double">0</setting>
+                <setting name="UpperBound" type="double">1</setting>
+              </setting>
+              <setting name="Dimension 3 Bounds" type="class">
+                <setting name="LowerBound" type="double">0</setting>
+                <setting name="UpperBound" type="double">1</setting>
+              </setting>
+              <setting name="Dimension 4 Bounds" type="class">
+                <setting name="LowerBound" type="double">0</setting>
+                <setting name="UpperBound" type="double">1</setting>
+              </setting>
+              <setting name="Dimension 5 Bounds" type="class">
+                <setting name="LowerBound" type="double">0</setting>
+                <setting name="UpperBound" type="double">1</setting>
+              </setting>
+            </setting>
+            <setting name="LowerBound" type="double">0</setting>
+            <setting name="UpperBound" type="double">3.0</setting>
+            <setting name="ProportionInBoundsRequired" type="double">0.7</setting>
+          </setting>
+          <setting name="GenomeGraphInfos" type="list">
+          </setting>
+          <setting name="HighestIsBest" type="bool">false</setting>
+        </setting>
+
+      </setting>
+    </gameDefinition>
+  </gameDefinitionsAll>
+
+</ACESim>

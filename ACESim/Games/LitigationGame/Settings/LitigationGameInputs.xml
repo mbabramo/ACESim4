@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+
+<ACESim>
+  <gameInputsAll>
+      <gameInputs name="LitigationGameInputs" gameName="LitigationGame">
+        <!-- Noninherited members of LitigationGameInputs go first -->
+        <setting name="PlayersActToMaximizeSocialWelfare" type="bool">$PlayersActToMaximizeSocialWelfare</setting>
+        <!-- Inherited member of modular game inputs goes next -->
+        <setting name="GameModulesInputs" type="list">
+          <setting name="DummyModuleInputs" type="class" subclass="GameModuleInputs"></setting>
+          <insertTemplate name="DisputeGeneratorInputs"/>
+          <insertTemplate name="BaseProbabilityForecastingInputs" />
+          <insertTemplate name="BaseDamagesForecastingInputs" />
+          <insertTemplate name="LitigationCostInputs"/>
+          <insertTemplate name="BeginningDropOrDefaultInputs"/>
+          <insertTemplate name="AggressivenessModuleInputs1"/>
+          <insertTemplate name="AggressivenessModuleInputs2"/>
+          <insertTemplate name="BargainingInputs"/>
+          <insertTemplate name="MidDropOrDefaultInputs"/>
+          <insertTemplate name="AdjustmentsModuleInputs1"/>
+          <insertTemplate name="AdjustmentsModuleInputs2"/>
+          <insertTemplate name="EndDropOrDefaultInputs"/>
+          <insertTemplate name="TrialModuleInputs"/>
+          <setting name="ProbabilityPWinsForecastingInputs" type="class" subclass="GameModuleInputs"></setting>
+          <setting name="UpdateCumulativeDistributionsInputs" type="class" subclass="GameModuleInputs"></setting>
+        </setting>
+      </gameInputs>
+    </gameInputsAll>
+</ACESim>

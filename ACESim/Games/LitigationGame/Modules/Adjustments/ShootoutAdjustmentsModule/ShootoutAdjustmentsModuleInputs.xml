@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ACESim>
+  <defineTemplate name="AdjustmentsModuleInputs$AdjustModNumber">
+    <setting name="AdjustmentsModuleInputs" type="class" subclass="ShootoutAdjustmentsModuleInputs" >
+      <setting name="DiscountFactorForShootouts" type="double">
+        $DiscountFactorForShootouts
+      </setting>
+      <setting name="MultiplierForShootouts" type="double">
+        $MultiplierForShootouts
+      </setting>
+      <setting name="EnforceWhenCaseDroppedImmediatelyAfterward" type="bool">
+        $EnforceWhenCaseDroppedImmediatelyAfterward
+      </setting>
+      <setting name="TrialExpensesMultiplierWithDoubleDamages" type="double">
+        $TrialExpensesMultiplierWithDoubleDamages
+      </setting>
+    </setting>
+  </defineTemplate>
+</ACESim>

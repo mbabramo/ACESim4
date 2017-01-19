@@ -1,0 +1,9 @@
+﻿<ACESim>
+  <parentSettingsFile filename="ExogenousDisputeGeneratorInputs$ExogenousDisputeGeneratorInputsSpecific.xml" />
+  <parentSettingsFile filename="ExogenousDisputeGeneratorReport.xml" />
+  <defineTemplate name="DisputeGeneratorModule">
+    <setting name="ExogenousDisputeGeneratorModule" type="class" subclass="ExogenousDisputeGeneratorModule" codeGeneratorName="ExogenousDisputeGeneratorModule" codeGeneratorOptions="" >
+     
+    </setting>
+  </defineTemplate>
+</ACESim>

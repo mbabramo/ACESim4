@@ -1,0 +1,32 @@
+
+<ACESim>
+  <commandSetsAll>
+    <commandSet name="EvolveCurveFittingStrategies">
+      <multipartCommand name="EvolveCurveFittingStrategies" gameInputsName="CurveFittingGameInputs">
+        <!--InitializeStrategiesFile="PreevolvedStrategy"-->
+        <evolveCommand
+                    evolutionSettingsName="SimpleEvolution"
+                    storeStrategiesFile="CurveFittingStrategies"
+                    initializeStrategiesFile="CurveFittingStrategies"
+                    useInitializeStrategiesFile="false"
+                    evolveOnlyIfNecessary="false" />
+        <playCommand numberIterations="100" StoreStrategiesFile="CurveFittingStrategies" storeIterationResultsFile="CurveFittingIterations" parallelReporting="true" savePlayedGamesInMemoryOnly="false">
+          <changeSimulationSettings>
+            <setting name="Obfuscation" type="double">
+                0.0
+            </setting>
+          </changeSimulationSettings>
+        </playCommand>
+        <reportCommand name="CurveFittingReportCommand" storeIterationResultsFile="CurveFittingIterations" storeReportResultsFile="CurveFittingReport">
+          <rowsGroup name="CurveFittingRows"></rowsGroup>
+          <colsGroup name="CurveFittingColumns"></colsGroup>
+        </reportCommand>
+
+      </multipartCommand>
+    </commandSet>
+  </commandSetsAll>
+
+  <executeCommandList>
+    <executeCommandSet name="EvolveCurveFittingStrategies"/>
+  </executeCommandList>
+</ACESim>

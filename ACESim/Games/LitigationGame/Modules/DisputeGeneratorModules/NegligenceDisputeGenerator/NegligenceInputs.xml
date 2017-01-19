@@ -1,0 +1,97 @@
+﻿<ACESim>
+  <defineTemplate name="DisputeGeneratorInputs">
+    <setting name="DisputeGeneratorInputs" type="class" subclass="NegligenceDisputeGeneratorInputs" >
+      <setting name="UndetectedCasesForEachDetectedCase" type="distribution" subtype="mixture">
+        <setting type="bool" name="average">false</setting>
+        <setting name="subdistributions" type="list">
+          <setting name="NoOtherCases" type="distribution" subtype="uniform">
+            <setting type="double" name="fromVal">0</setting>
+            <setting type="double" name="toVal">0</setting>
+          </setting>
+          <setting name="RangeOfCases" type="distribution" subtype="uniform">
+            <setting type="double" name="fromVal">0</setting>
+            <setting type="double" name="toVal">$UndetectedCasesForEachDetectedCaseMax</setting>
+          </setting>
+        </setting>
+      </setting>
+      <setting name="DamagesClaimMultiplier" type="distribution" subtype="uniform">
+        <setting type="double" name="fromVal">1.0</setting>
+        <setting type="double" name="toVal">2.0</setting>
+      </setting>
+      <setting name="CostOfPrecaution" type="distribution" subtype="uniform">
+        <setting type="double" name="fromVal">0.0</setting>
+        <setting type="double" name="toVal">200.0</setting>
+      </setting>
+      <setting name="ProbabilityInjuryWithPrecaution" type="double">
+        0.1
+      </setting>
+      <setting name="ProbabilityInjuryWithoutPrecaution" type="distribution" subtype="mixture">
+        <setting type="bool" name="average">false</setting>
+        <setting name="subdistributions" type="list">
+          <!--<setting name="MakesNoDifference" type="distribution" subtype="uniform">
+            <setting type="double" name="fromVal">0.1</setting>
+            <setting type="double" name="toVal">0.1</setting>
+          </setting>
+          <setting name="MakesNoDifference2" type="distribution" subtype="uniform">
+            <setting type="double" name="fromVal">0.1</setting>
+            <setting type="double" name="toVal">0.1</setting>
+          </setting>
+          <setting name="MakesNoDifference3" type="distribution" subtype="uniform">
+            <setting type="double" name="fromVal">0.1</setting>
+            <setting type="double" name="toVal">0.1</setting>
+          </setting>
+          <setting name="MakesNoDifference4" type="distribution" subtype="uniform">
+            <setting type="double" name="fromVal">0.1</setting>
+            <setting type="double" name="toVal">0.1</setting>
+          </setting>
+          <setting name="MakesNoDifference5" type="distribution" subtype="uniform">
+            <setting type="double" name="fromVal">0.1</setting>
+            <setting type="double" name="toVal">0.1</setting>
+          </setting>
+          <setting name="MakesNoDifference6" type="distribution" subtype="uniform">
+            <setting type="double" name="fromVal">0.1</setting>
+            <setting type="double" name="toVal">0.1</setting>
+          </setting>
+          <setting name="MakesNoDifference7" type="distribution" subtype="uniform">
+            <setting type="double" name="fromVal">0.1</setting>
+            <setting type="double" name="toVal">0.1</setting>
+          </setting>
+          <setting name="MakesNoDifference8" type="distribution" subtype="uniform">
+            <setting type="double" name="fromVal">0.1</setting>
+            <setting type="double" name="toVal">0.1</setting>
+          </setting>
+          <setting name="MakesNoDifference9" type="distribution" subtype="uniform">
+            <setting type="double" name="fromVal">0.1</setting>
+            <setting type="double" name="toVal">0.1</setting>
+          </setting>-->
+          <setting name="MakesDifference" type="distribution" subtype="uniform">
+            <setting type="double" name="fromVal">0.1</setting>
+            <setting type="double" name="toVal">0.8</setting>
+          </setting>
+        </setting>
+      </setting>
+      <setting name="ProbabilityInjuryWithoutPrecautionNoise" type="distribution" subtype="normal">
+        <setting type="double" name="mean">0</setting>
+        <setting type="double" name="stdev">10.0</setting>
+      </setting>
+      <setting name="ProbabilityInjuryRandomSeed" type="distribution" subtype="uniform">
+        <setting type="double" name="fromVal">0.0</setting>
+        <setting type="double" name="toVal">1.0</setting>
+      </setting>
+      <setting name="MagnitudeOfInjury" type="distribution" subtype="uniform">
+        <setting type="double" name="fromVal">0.0</setting>
+        <setting type="double" name="toVal">2000.0</setting>
+      </setting>
+      <setting name="BaseProbabilityLiabilityWithPrecaution" type="double">0.1</setting>
+      <setting name="BaseProbabilityLiabilityWithoutPrecautionMinimum" type="double">0.1</setting>
+      <setting name="BaseProbabilityLiabilityWithoutPrecautionMaximum" type="double">0.9</setting>
+      <setting name="BaseProbabilityLiabilityWithoutPrecautionWhenCostsAreTwiceBenefits" type="double">0.2</setting>
+      <setting name="BaseProbabilityLiabilityWithoutPrecautionWhenCostsAreHalfBenefits" type="double">0.8</setting>
+      <setting name="StrictLiability" type="bool">false</setting>
+      <setting name="RandSeedForPreEvolution" type="distribution" subtype="uniform">
+        <setting type="double" name="fromVal">0.0</setting>
+        <setting type="double" name="toVal">1.0</setting>
+      </setting>
+    </setting>
+  </defineTemplate>
+</ACESim>

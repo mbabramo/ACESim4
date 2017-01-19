@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+
+<ACESim>
+
+  <gameInputsAll>
+    <gameInputs name="ObfuscationGameInputs" gameName="ObfuscationGame">
+        <setting name="actualNumber" type="distribution" subtype="uniform">
+          <setting type="double" name="fromVal">0.0</setting>
+          <setting type="double" name="toVal">1.0</setting>
+        </setting>
+        <setting name="standardDeviationOfObfuscation" type="distribution" subtype="uniform">
+          <setting type="double" name="fromVal">0.0</setting>
+          <setting type="double" name="toVal">1.0</setting>
+        </setting>
+        <setting name="obfuscation" type="distribution" subtype="normal">
+          <setting type="double" name="mean">0.0</setting>
+          <setting type="variableFromSetting" name="stdev">standardDeviationOfObfuscation</setting>
+        </setting>
+        <setting name="numberWithObfuscation" type="calc" operator="+">
+          <setting type="variableFromSetting" name="actual">actualNumber</setting>
+          <setting type="variableFromSetting" name="obf">obfuscation</setting>
+        </setting>
+      </gameInputs>
+    </gameInputsAll>
+    
+</ACESim>

@@ -1,0 +1,65 @@
+
+<ACESim>
+  <commandSetsAll>
+    <commandSet name="L">
+      <multipartCommand name="L" gameInputsName="LitigationGameInputs">
+        <!--InitializeStrategiesFile="PreevolvedStrategy"-->
+        <evolveCommand
+                    evolutionSettingsName="SimpleEvolution"
+                    storeStrategiesFile="LitigationGameStrategies"
+                    initializeStrategiesFile="LitigationGameStrategies"
+                    useInitializeStrategiesFile="$UseInitializeStrategiesFile"
+                    evolveOnlyIfNecessary="$EvolveOnlyIfNecessary" 
+                    />
+        <playCommand numberIterations="10000"  StoreStrategiesFile="LitigationGameStrategies" storeIterationResultsFile="LitigationGameIterations" parallelReporting="$ParallelReporting" savePlayedGamesInMemoryOnly="false">
+          <changeSimulationSettings>
+          </changeSimulationSettings>
+        </playCommand>
+        <reportCommand name="LitigationGameReportCommand" storeIterationResultsFile="LitigationGameIterations" storeReportResultsFile="$ReportPrefix MainRprt" parallelReporting="$ParallelReporting">
+          <rowsGroup name="LitigationGameRows"></rowsGroup>
+          <colsGroup name="LitigationGameColumns"></colsGroup>
+
+          <pointChartReport xAxisVariableName="PEstimatePResultMostRecentBargainingRound" yAxisVariableName="MostRecentPlaintiffOffer">
+            <graph2DSettings graphName="Parties' offers" seriesName="Plaintiff" xMin="0.0" xMax="1.0" xAxisLabel="Party's estimate of probability plaintiff wins" yAxisLabel="Party's offer divided by damages claim"
+                             scatterplot="true" maxNumberPoints="150"  dockLegendLeft="true" />
+          </pointChartReport>
+          <pointChartReport xAxisVariableName="DEstimatePResultMostRecentBargainingRound" yAxisVariableName="MostRecentDefendantOffer">
+            <graph2DSettings graphName="Parties' offers" seriesName="Defendant" xMin="0.0" xMax="1.0" xAxisLabel="Party's estimate of probability plaintiff wins" yAxisLabel="Party's offer divided by damages claim"
+                             scatterplot="true" maxNumberPoints="150" superimposeLinesToSeriesWithName="Plaintiff" highlightSuperimposedWhenFirstHigher="true" dockLegendLeft="true" />
+          </pointChartReport>
+          <pointChartReport xAxisVariableName="EvidentiaryStrengthLiability" yAxisVariableName="PEstimatePResult">
+            <graph2DSettings graphName="Parties' probability estimates" subtitle="Estimated immediately before final resolution" seriesName="Plaintiff" xMin="0.0" xMax="1.0" yMin="0.0" yMax="1.0" xAxisLabel="Actual strength of plaintiff case" yAxisLabel="Party's probability estimate"
+                             scatterplot="true" maxNumberPoints="500" dockLegendLeft="true" />
+          </pointChartReport>
+          <pointChartReport xAxisVariableName="EvidentiaryStrengthLiability" yAxisVariableName="DEstimatePResult">
+            <graph2DSettings graphName="Parties' probability estimates" subtitle="Estimated immediately before final resolution" seriesName="Defendant" xMin="0.0" xMax="1.0" yMin="0.0" yMax="1.0" xAxisLabel="Actual strength of plaintiff case" yAxisLabel="Party's probability estimate"
+                             scatterplot="true" maxNumberPoints="500" dockLegendLeft="true" />
+          </pointChartReport>
+        </reportCommand>
+        <reportCommand name="LitigationGameReportBargainingCommand" storeIterationResultsFile="LitigationGameIterations" storeReportResultsFile="$ReportPrefix BrgRprt" parallelReporting="$ParallelReporting">
+          <rowsGroup name="LitigationGameRows"></rowsGroup>
+          <rowsGroup name="BargainingModuleRowsForBargainingReport"></rowsGroup>
+          <colsGroup name="BargainingModuleColumnsForBargainingReport"></colsGroup>
+        </reportCommand>
+        <reportCommand name="LitigationGameReportExpensesCommand" storeIterationResultsFile="LitigationGameIterations" storeReportResultsFile="$ReportPrefix LitigationGameExpensesReport" parallelReporting="$ParallelReporting">
+          <rowsGroup name="LitigationGameRows"></rowsGroup>
+          <colsGroup name="LitigationCostModuleColumnsForCostReport"></colsGroup>
+        </reportCommand>
+        <reportCommand name="LitigationGameReportProbabilityEstimatesCommand" storeIterationResultsFile="LitigationGameIterations" storeReportResultsFile="$ReportPrefix EstRprt" parallelReporting="$ParallelReporting">
+          <rowsGroup name="LitigationGameRows"></rowsGroup>
+          <rowsGroup name="ProbabilityForecastingModuleRowsForEstimatesReport"></rowsGroup>
+          <colsGroup name="ProbabilityForecastingModuleColumnsForEstimatesReport"></colsGroup>
+          <colsGroup name="TrialModuleColumnsForEstimatesReport"></colsGroup>
+        </reportCommand>
+        <!--<reportCommand name="LitigationGameReportDamagesEstimatesCommand" storeIterationResultsFile="LitigationGameIterations" storeReportResultsFile="$ReportPrefix LitigationGameDamagesEstimatesReport" parallelReporting="$ParallelReporting">
+          <rowsGroup name="LitigationGameRows"></rowsGroup>
+          <rowsGroup name="DamagesForecastingModuleRowsForEstimatesReport"></rowsGroup>
+          <colsGroup name="DamagesForecastingModuleColumnsForEstimatesReport"></colsGroup>
+        </reportCommand>-->
+      </multipartCommand>
+    </commandSet>
+  </commandSetsAll>
+  <executeCommandList>
+    <executeCommandSet name="L"/>
+  </executeCommandList>
+</ACESim>

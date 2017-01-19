@@ -1,0 +1,6 @@
+﻿<ACESim>
+  <defineTemplate name="ProbabilityPWinsForecastingModule">
+    <setting name="ProbabilityPWinsForecastingModule" type="class" subclass="ProbabilityPWinsForecastingModule" codeGeneratorName="ProbabilityPWinsForecastingModule" codeGeneratorOptions="UseBruteForceCalculationOfProbabilityPWins: $UseBruteForceCalculationOfProbabilityPWins; JudgeNoiseLevelLiability: $JudgeNoiseLevelLiability" >
+    </setting>
+  </defineTemplate>
+</ACESim>

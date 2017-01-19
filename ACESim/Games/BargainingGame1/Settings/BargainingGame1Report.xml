@@ -1,0 +1,115 @@
+
+<ACESim>
+<rowOrColGroup name="BargainingGame1Rows">
+  <rowOrColInfo name="All">
+  </rowOrColInfo>
+  <rowOrColInfo name="Estimate80">
+    <filter type="double">
+      <variableName>Player1EstimateOfPlayer1</variableName>
+      <operation>GTEQ</operation>
+      <value>0.795</value>
+    </filter>
+    <filter type="double">
+      <variableName>Player1EstimateOfPlayer1</variableName>
+      <operation>LTEQ</operation>
+      <value>0.805</value>
+    </filter>
+  </rowOrColInfo>
+  <rowOrColInfo name="LowPerceivedSurplus">
+      <filter type="double">
+        <variableName>Player1PerceivedBargainingRoom</variableName>
+        <operation>GTEQ</operation>
+        <value>0.05</value>
+      </filter>
+    <filter type="double">
+      <variableName>Player1PerceivedBargainingRoom</variableName>
+      <operation>LTEQ</operation>
+      <value>0.2</value>
+    </filter>
+  </rowOrColInfo>
+  <rowOrColInfo name="HighPerceivedSurplus">
+    <filter type="double">
+      <variableName>Player1PerceivedBargainingRoom</variableName>
+      <operation>GTEQ</operation>
+      <value>0.75</value>
+    </filter>
+    <filter type="double">
+      <variableName>Player1PerceivedBargainingRoom</variableName>
+      <operation>LTEQ</operation>
+      <value>1.0</value>
+    </filter>
+  </rowOrColInfo>
+  <rowOrColInfo name="ActualResult80">
+    <filter type="double">
+      <variableName>Player1ResultIfNegotiationFails</variableName>
+      <operation>GTEQ</operation>
+      <value>0.795</value>
+    </filter>
+    <filter type="double">
+      <variableName>Player1ResultIfNegotiationFails</variableName>
+      <operation>LTEQ</operation>
+      <value>0.805</value>
+    </filter>
+  </rowOrColInfo>
+  <rowOrColInfo name="AR80LowObf">
+    <filter type="double">
+      <variableName>Player1ResultIfNegotiationFails</variableName>
+      <operation>GTEQ</operation>
+      <value>0.795</value>
+    </filter>
+    <filter type="double">
+      <variableName>Player1ResultIfNegotiationFails</variableName>
+      <operation>LTEQ</operation>
+      <value>0.805</value>
+    </filter>
+    <filter type="double">
+      <variableName>ObfuscationForSelf</variableName>
+      <operation>LTEQ</operation>
+      <value>0.02</value>
+    </filter>
+    <filter type="double">
+      <variableName>ObfuscationForOpponent</variableName>
+      <operation>LTEQ</operation>
+      <value>0.02</value>
+    </filter>
+  </rowOrColInfo>
+  <rowOrColInfo name="LowObfuscationBoth">
+    <filter type="double">
+      <variableName>ObfuscationForSelf</variableName>
+      <operation>LTEQ</operation>
+      <value>0.02</value>
+    </filter>
+    <filter type="double">
+      <variableName>ObfuscationForOpponent</variableName>
+      <operation>LTEQ</operation>
+      <value>0.02</value>
+    </filter>
+  </rowOrColInfo>
+  </rowOrColGroup>
+  <rowOrColGroup name="BargainingGame1Columns">
+    <rowOrColInfo name="Count" variableName="Player1EstimateOfPlayer1" statistic="COUNT">
+    </rowOrColInfo>
+    <rowOrColInfo name="P1Est1" variableName="Player1EstimateOfPlayer1" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="P1Est1Std" variableName="Player1EstimateOfPlayer1" statistic="STDEV">
+    </rowOrColInfo>
+    <rowOrColInfo name="P1Est1Err" variableName="Player1EstimateOfPlayer1Error" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="P1Est1Std" variableName="Player1EstimateOfPlayer1Error" statistic="STDEV">
+    </rowOrColInfo>
+    <rowOrColInfo name="P1ObfStd" variableName="OfuscationRealizedOfPlayer1ResultForPlayer1" statistic="STDEV">
+    </rowOrColInfo>
+    <rowOrColInfo name="P1ResINF" variableName="Player1ResultIfNegotiationFails" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="Avgoff" variableName="AmountOfPiePlayer1InsistsOn" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="Sdoffer" variableName="AmountOfPiePlayer1InsistsOn" statistic="STDEV">
+    </rowOrColInfo>
+    <rowOrColInfo name="%surs" variableName="Player1PctOfPerceivedBargainingRoomInsistedOn" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="%surssd" variableName="Player1PctOfPerceivedBargainingRoomInsistedOn" statistic="STDEV">
+    </rowOrColInfo>
+    <rowOrColInfo name="Succ%" variableName="NegotiationSucceeds" statistic="MEAN">
+    </rowOrColInfo>
+  </rowOrColGroup>
+</ACESim>

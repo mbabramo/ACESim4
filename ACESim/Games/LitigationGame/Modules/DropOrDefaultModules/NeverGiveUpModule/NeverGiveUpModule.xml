@@ -1,0 +1,8 @@
+﻿<ACESim>
+  <parentSettingsFile filename="NeverGiveUpInputs.xml" />
+  <parentSettingsFile filename="NeverGiveUpReport.xml" />
+  <defineTemplate name="$DropOrDefaultPointDropOrDefaultModule">
+    <setting name="NeverGiveUpModule" type="class" subclass="NeverGiveUpModule" codeGeneratorName="NeverGiveUpModule" codeGeneratorOptions="DropOrDefaultPoint: $DropOrDefaultPoint" >
+    </setting>
+  </defineTemplate>
+</ACESim>

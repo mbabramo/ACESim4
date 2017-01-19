@@ -1,0 +1,39 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ACESim>
+    
+    <gameInputsAll>
+        <gameInputs name="CurveFittingGameInputs" gameName="CurveFittingGame">
+          <setting name="x" type="distribution" subtype="uniform">
+            <setting type="double" name="fromVal">0.0</setting>
+            <setting type="double" name="toVal">6.28</setting>
+          </setting>
+          <setting name="Obfuscation" type="distribution" subtype="normal">
+            <setting type="double" name="mean">0.0</setting>
+            <setting type="double" name="stdev">0.0</setting>
+          </setting>
+            <!--<setting name="Obfuscations" type="list">
+                <setting name="Obfuscation 1" type="distribution" subtype="normal">
+                    <setting type="double" name="mean">0.0</setting>
+                    <setting type="double" name="stdev">0.0</setting>
+                </setting>
+                <setting name="Obfuscation 2" type="distribution" subtype="normal">
+                    <setting type="double" name="mean">0.0</setting>
+                    <setting type="double" name="stdev">0.0</setting>
+                </setting>
+                <setting name="Obfuscation 3" type="distribution" subtype="normal">
+                    <setting type="double" name="mean">0.0</setting>
+                    <setting type="double" name="stdev">0.0</setting>
+                </setting>
+              <setting name="Obfuscation 4" type="distribution" subtype="normal">
+                <setting type="double" name="mean">0.0</setting>
+                <setting type="double" name="stdev">0.0</setting>
+              </setting>
+              <setting name="Obfuscation 5" type="distribution" subtype="normal">
+                <setting type="double" name="mean">0.0</setting>
+                <setting type="double" name="stdev">0.0</setting>
+              </setting>
+            </setting>-->
+        </gameInputs>
+    </gameInputsAll>
+    
+</ACESim>

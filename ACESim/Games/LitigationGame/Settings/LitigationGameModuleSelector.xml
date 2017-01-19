@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ACESim>
+  <parentSettingsFile filename="../Modules/UpdateCumulativeDistributionsModule/UpdateCumulativeDistributionsModule.xml">
+  </parentSettingsFile>
+  <parentSettingsFile filename="../Modules/DummyModule/DummyModule.xml">
+    <defineVariable findString="$DummyModuleName" replaceString="Beginning" />
+  </parentSettingsFile>
+  <parentSettingsFile filename="../Modules/Adjustments/$AdjustmentsModule1/$AdjustmentsModule1.xml">
+    <defineVariable findString="$AdjustModNumber" replaceString="1" />
+  </parentSettingsFile>
+  <parentSettingsFile filename="../Modules/Adjustments/$AdjustmentsModule2/$AdjustmentsModule2.xml">
+    <defineVariable findString="$AdjustModNumber" replaceString="2" />
+  </parentSettingsFile>
+  <parentSettingsFile filename="../Modules/DummyModule/DummyModule.xml">
+    <defineVariable findString="$DummyModuleName" replaceString="End" />
+  </parentSettingsFile>
+  <parentSettingsFile filename="../Modules/DisputeGeneratorModules/$DisputeGeneratorModule/$DisputeGeneratorModuleModule.xml" />
+  <parentSettingsFile filename="../Modules/UtilityCalculation/$RiskSelection.xml" />
+  <parentSettingsFile filename="../Modules/ValueAndErrorForecastingModules/$ProbabilityForecastingModule/$ProbabilityForecastingModule.xml">
+    <defineVariable findString="$ForecastingType" replaceString="Probability" />
+  </parentSettingsFile>
+  <parentSettingsFile filename="../Modules/ValueAndErrorForecastingModules/$DamagesForecastingModule/$DamagesForecastingModule.xml">
+    <defineVariable findString="$ForecastingType" replaceString="Damages" />
+  </parentSettingsFile>
+  <parentSettingsFile filename="../Modules/DropOrDefaultModules/$BeginningDropOrDefaultModuleModule/$BeginningDropOrDefaultModuleModule.xml">
+    <defineVariable findString="$DropOrDefaultPoint" replaceString="Beginning" />
+  </parentSettingsFile>
+  <parentSettingsFile filename="../Modules/DropOrDefaultModules/$EndDropOrDefaultModuleModule/$EndDropOrDefaultModuleModule.xml">
+    <defineVariable findString="$DropOrDefaultPoint" replaceString="End" />
+  </parentSettingsFile>
+  <parentSettingsFile filename="../Modules/DropOrDefaultModules/$MidDropOrDefaultModuleModule/$MidDropOrDefaultModuleModule.xml">
+    <defineVariable findString="$DropOrDefaultPoint" replaceString="Mid" />
+  </parentSettingsFile>
+  <parentSettingsFile filename="../Modules/LitigationCostModules/$LitigationCostModuleModule/$SpecificLitigationCostSettings.xml" />
+  <parentSettingsFile filename="../Modules/BargainingAggressiveness/$BargainingAggressivenessOverrideSetting1AggressivenessOverride/$BargainingAggressivenessOverrideSetting1AggressivenessOverrideModule.xml">
+    <defineVariable findString="$AggressModNumber" replaceString="1" />
+  </parentSettingsFile>
+  <parentSettingsFile filename="../Modules/BargainingAggressiveness/$BargainingAggressivenessOverrideSetting2AggressivenessOverride/$BargainingAggressivenessOverrideSetting2AggressivenessOverrideModule.xml">
+    <defineVariable findString="$AggressModNumber" replaceString="2" />
+  </parentSettingsFile>
+  <parentSettingsFile filename="../Modules/BargainingModules/$BargainingModuleModule/$BargainingModuleModule.xml" />
+  <parentSettingsFile filename="../Modules/TrialModules/$TrialModule/$TrialModule.xml" />
+  <parentSettingsFile filename="../Modules/ForecastingModules/ProbabilityPWinsForecastingModule/ProbabilityPWinsForecastingModule.xml" />
+</ACESim>

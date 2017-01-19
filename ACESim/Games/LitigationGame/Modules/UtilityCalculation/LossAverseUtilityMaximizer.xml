@@ -1,0 +1,10 @@
+﻿<ACESim>
+  <defineTemplate name="LossAverseUtilityMaximizer">
+    <setting name="Individual" type="class" subclass="LossAverseUtilityMaximizer">
+      <setting name="InitialWealth" type="double">InitialWealthValue</setting>
+      <setting name="MaxSubjectiveLossAsMultipleOfSubjectiveGain" type="double">MaxSubjectiveLossAsMultipleOfSubjectiveGainValue</setting>
+      <setting name="GainNeededToGetToHalfOfSubjectiveMaxGain" type="double">GainNeededToGetToHalfOfSubjectiveMaxGainValue</setting>
+      <setting name="LossNeededToGetToHalfOfSubjectiveMaxLoss" type="double">LossNeededToGetToHalfOfSubjectiveMaxLossValue</setting>
+    </setting>
+  </defineTemplate>
+</ACESim>

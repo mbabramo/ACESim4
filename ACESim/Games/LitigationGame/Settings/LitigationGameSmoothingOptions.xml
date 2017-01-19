@@ -1,0 +1,180 @@
+﻿<ACESim>
+
+  <defineTemplate name="OversamplingOptions">
+    <setting name="SizeOfOversamplingSample" type="int">1000</setting>
+    <setting name="SizeOfSuccessReplicationSample" type="int">1000</setting>
+    <setting name="StartSuccessReplicationFromScratch" type="bool">true</setting>
+    <setting name="SkipIfSuccessAttemptRateFallsBelow" type="double">0.0001</setting>
+    <setting name="MaxFailuresToRemember" type="int">1000</setting>
+  </defineTemplate>
+
+  <defineTemplate name="DirectScoreEstimationSmoothingOptionsContent">
+    <insertTemplate name="OversamplingOptions" />
+    <setting name="NumRefinementPasses" type="int">1</setting>
+    <setting name="NumIterationsScoreEstimationNetworkMainSet" type="int">100000</setting>
+    <setting name="NumIterationsScoreEstimationNetworkValidationSet" type="int">500</setting>
+    <setting name="NumIterationsOutputEstimationNetworkMainSet" type="int">100000</setting>
+    <setting name="NumIterationsOutputEstimationNetworkValidationSet" type="int">500</setting>
+    <setting name="InitialWeightOnRandomStrategy" type="double">0.8</setting>
+    <setting name="WeightOnRandomStrategyMultiplier" type="double">0.95</setting>
+    <setting name="EpochsScoreEstimationNetwork" type="int">500</setting>
+    <setting name="ValidateEveryNEpochsScoreEstimationNetwork" type="int">9999</setting>
+    <setting name="HiddenLayerSizeScoreEstimationNetwork" type="int">20</setting>
+    <setting name="EpochsOutputEstimationNetwork" type="int">500</setting>
+    <setting name="ValidateEveryNEpochsOutputEstimationNetwork" type="int">9999</setting>
+    <setting name="HiddenLayerSizeOutputEstimationNetwork" type="int">20</setting>
+    <setting name="AutomaticallyGeneratePlots" type="bool">true</setting>
+  </defineTemplate>
+
+    <defineTemplate name="DirectScoreEstimationSmoothingOptions">
+    <setting name="SmoothingOptions" type="class" subclass="DirectScoreEstimationSmoothingOptions">
+      <insertTemplate name="DirectScoreEstimationSmoothingOptionsContent" />
+    </setting>
+  </defineTemplate>
+  
+  <defineTemplate name="DecisionRepresentsCorrectAnswerSmoothingOptions">
+    <setting name="DecisionRepresentsCorrectAnswerSmoothingOptions" type="class" subclass="DirectScoreEstimationSmoothingOptions">
+      <insertTemplate name="DirectScoreEstimationSmoothingOptionsContent" />
+    </setting>
+  </defineTemplate>
+  
+  <defineTemplate name="NeuralNetworkWithoutPresmoothingOptions">
+    <setting name="SmoothingOptions" type="class" subclass="NeuralNetworkWithoutPresmoothingOptions">
+      <insertTemplate name="OversamplingOptions" />
+      <setting name="FirstHiddenLayerNeurons" type="int">500</setting>
+      <setting name="SecondHiddenLayerNeurons" type="int">0</setting>
+      <setting name="Epochs" type="int">5000</setting>
+    </setting>
+  </defineTemplate>
+
+  <defineTemplate name="NearestNeighborSmoothingOptions">
+    <setting name="SmoothingOptions" type="class" subclass="NearestNeighborSmoothingOptions">
+      <insertTemplate name="OversamplingOptions" />
+      <setting name="PreliminaryOptimizationPrecision" type="double">0.0001</setting>
+      <setting name="MemoryLimitForIterations" type="int">10000</setting>
+      <setting name="AutomaticallyGeneratePlots" type="bool">false</setting>
+      <setting name="SwitchToDirectEstimationWhenScoreRepresentsCorrectAnswer" type="bool">true</setting>
+      <setting name="FirstHiddenLayerNeurons" type="int">500</setting>
+      <setting name="SecondHiddenLayerNeurons" type="int">0</setting>
+      <setting name="Epochs" type="int">5000</setting>
+    </setting>
+  </defineTemplate>
+
+  <defineTemplate name="RegressionBasedSmoothingOptionsFast">
+    <setting name="SmoothingOptions" type="class" subclass="RegressionBasedSmoothingOptions">
+      <insertTemplate name="OversamplingOptions" />
+      <setting name="PreliminaryOptimizationPrecision" type="double">0.001</setting>
+      <setting name="MemoryLimitForIterations" type="int">1000000</setting>
+      <setting name="AutomaticallyGeneratePlots" type="bool">false</setting>
+      <setting name="SwitchToDirectEstimationWhenScoreRepresentsCorrectAnswer" type="bool">true</setting>
+      <setting name="SmoothingRepetitions" type="int">2</setting>
+      <setting name="SmoothingRestoreOriginalPointsForFirstNRepetitions" type="int">0</setting>
+      <setting name="MaximumDerivativeOrder" type="int">1</setting>
+      <setting name="NearbyNeighborsToWeighInSmoothing" type="int">50</setting>
+      <setting name="NearbyNeighborsToWeighInPlayMode" type="int">20</setting>
+      <setting name="NumObsInOptimizeWeightingRegression" type="int">100000</setting>
+      <setting name="NumPointsPerWeightingRegressionObs" type="int">100000</setting>
+      <setting name="CreateRegularGridAfterRegressionBasedSmoothing" type="bool">true</setting>
+      <setting name="RegularGridPoints" type="int">25000</setting>
+    </setting>
+  </defineTemplate>
+
+  <defineTemplate name="RegressionBasedSmoothingOptions">
+    <setting name="SmoothingOptions" type="class" subclass="RegressionBasedSmoothingOptions">
+      <insertTemplate name="OversamplingOptions" />
+      <setting name="PreliminaryOptimizationPrecision" type="double">0.0001</setting>
+      <setting name="MemoryLimitForIterations" type="int">1000000</setting>
+      <setting name="AutomaticallyGeneratePlots" type="bool">false</setting>
+      <setting name="SwitchToDirectEstimationWhenScoreRepresentsCorrectAnswer" type="bool">true</setting>
+      <setting name="SmoothingRepetitions" type="int">6</setting>
+      <setting name="SmoothingRestoreOriginalPointsForFirstNRepetitions" type="int">3</setting>
+      <setting name="MaximumDerivativeOrder" type="int">1</setting>
+      <setting name="NearbyNeighborsToWeighInSmoothing" type="int">200</setting>
+      <setting name="NearbyNeighborsToWeighInPlayMode" type="int">10</setting>
+      <setting name="NumObsInOptimizeWeightingRegression" type="int">100000</setting>
+      <setting name="NumPointsPerWeightingRegressionObs" type="int">100000</setting>
+      <setting name="CreateRegularGridAfterRegressionBasedSmoothing" type="bool">false</setting>
+      <setting name="RegularGridPoints" type="int">25000</setting>
+    </setting>
+  </defineTemplate>
+
+  <defineTemplate name="RPROPSmoothingOptions">
+    <setting name="SmoothingOptions" type="class" subclass="RPROPSmoothingOptions">
+      <insertTemplate name="OversamplingOptions" />
+      <setting name="PreliminaryOptimizationPrecision" type="double">0.0001</setting>
+      <setting name="MemoryLimitForIterations" type="int">1000000</setting>
+      <setting name="AutomaticallyGeneratePlots" type="bool">false</setting>
+      <setting name="SwitchToDirectEstimationWhenScoreRepresentsCorrectAnswer" type="bool">false</setting>
+      <setting name="FirstHiddenLayerNeurons" type="int">100</setting>
+      <setting name="SecondHiddenLayerNeurons" type="int">0</setting>
+      <setting name="Epochs" type="int">3000</setting>
+      <setting name="TestValidationSetEveryNEpochs" type="int">100000</setting>
+    </setting>
+  </defineTemplate>
+
+  <defineTemplate name="RPROPSmoothingOptionsFast">
+    <setting name="SmoothingOptions" type="class" subclass="RPROPSmoothingOptions">
+      <insertTemplate name="OversamplingOptions" />
+      <setting name="PreliminaryOptimizationPrecision" type="double">0.0001</setting>
+      <setting name="MemoryLimitForIterations" type="int">1000000</setting>
+      <setting name="AutomaticallyGeneratePlots" type="bool">false</setting>
+      <setting name="SwitchToDirectEstimationWhenScoreRepresentsCorrectAnswer" type="bool">false</setting>
+      <setting name="FirstHiddenLayerNeurons" type="int">50</setting>
+      <setting name="SecondHiddenLayerNeurons" type="int">0</setting>
+      <setting name="Epochs" type="int">3000</setting>
+      <setting name="TestValidationSetEveryNEpochs" type="int">1000</setting>
+    </setting>
+  </defineTemplate>
+
+  <defineTemplate name="GRNNSmoothingOptions">
+    <setting name="SmoothingOptions" type="class" subclass="GRNNSmoothingOptions">
+      <insertTemplate name="OversamplingOptions" />
+      <setting name="PreliminaryOptimizationPrecision" type="double">0.00001</setting>
+      <setting name="MemoryLimitForIterations" type="int">1000000000</setting>
+      <setting name="AutomaticallyGeneratePlots" type="bool">false</setting>
+      <setting name="SwitchToDirectEstimationWhenScoreRepresentsCorrectAnswer" type="bool">false</setting>
+      <setting name="LimitCalculationToNearestNeighbors" type="bool">true</setting>
+      <setting name="NearbyNeighborsToConsider" type="int">100</setting>
+      <setting name="SpeedUpWithApproximateNearestNeighbors" type="bool">true</setting>
+    </setting>
+  </defineTemplate>
+
+  <defineTemplate name="GRNNSmoothingOptionsFast">
+    <setting name="SmoothingOptions" type="class" subclass="GRNNSmoothingOptions">
+      <insertTemplate name="OversamplingOptions" />
+      <setting name="PreliminaryOptimizationPrecision" type="double">0.001</setting>
+      <setting name="MemoryLimitForIterations" type="int">1000000000</setting>
+      <setting name="AutomaticallyGeneratePlots" type="bool">false</setting>
+      <setting name="SwitchToDirectEstimationWhenScoreRepresentsCorrectAnswer" type="bool">false</setting>
+      <setting name="LimitCalculationToNearestNeighbors" type="bool">true</setting>
+      <setting name="NearbyNeighborsToConsider" type="int">50</setting>
+      <setting name="SpeedUpWithApproximateNearestNeighbors" type="bool">true</setting>
+    </setting>
+  </defineTemplate>
+
+  <defineTemplate name="GRNNSmoothingOptionsTwoNeighbors">
+    <setting name="SmoothingOptions" type="class" subclass="GRNNSmoothingOptions">
+      <insertTemplate name="OversamplingOptions" />
+      <setting name="PreliminaryOptimizationPrecision" type="double">0.001</setting>
+      <setting name="MemoryLimitForIterations" type="int">1000000000</setting>
+      <setting name="AutomaticallyGeneratePlots" type="bool">false</setting>
+      <setting name="SwitchToDirectEstimationWhenScoreRepresentsCorrectAnswer" type="bool">false</setting>
+      <setting name="LimitCalculationToNearestNeighbors" type="bool">true</setting>
+      <setting name="NearbyNeighborsToConsider" type="int">2</setting>
+      <setting name="SpeedUpWithApproximateNearestNeighbors" type="bool">true</setting>
+    </setting>
+  </defineTemplate>
+
+  <defineTemplate name="GRNNSmoothingOptionsFiveNeighbors">
+    <setting name="SmoothingOptions" type="class" subclass="GRNNSmoothingOptions">
+      <insertTemplate name="OversamplingOptions" />
+      <setting name="PreliminaryOptimizationPrecision" type="double">0.001</setting>
+      <setting name="MemoryLimitForIterations" type="int">1000000000</setting>
+      <setting name="AutomaticallyGeneratePlots" type="bool">false</setting>
+      <setting name="SwitchToDirectEstimationWhenScoreRepresentsCorrectAnswer" type="bool">false</setting>
+      <setting name="LimitCalculationToNearestNeighbors" type="bool">true</setting>
+      <setting name="NearbyNeighborsToConsider" type="int">5</setting>
+      <setting name="SpeedUpWithApproximateNearestNeighbors" type="bool">true</setting>
+    </setting>
+  </defineTemplate>
+</ACESim>

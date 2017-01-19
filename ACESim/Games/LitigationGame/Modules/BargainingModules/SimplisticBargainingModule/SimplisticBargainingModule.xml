@@ -1,0 +1,8 @@
+﻿<ACESim>
+  <parentSettingsFile filename="SimplisticBargainingInputs.xml" />
+  <parentSettingsFile filename="SimplisticBargainingReport.xml" />
+  <defineTemplate name="BargainingModule">
+    <setting name="SimplisticBargainingModule" type="class" subclass="SimplisticBargainingModule" codeGeneratorName="SimplisticBargainingModule" codeGeneratorOptions="" >
+    </setting>
+  </defineTemplate>
+</ACESim>

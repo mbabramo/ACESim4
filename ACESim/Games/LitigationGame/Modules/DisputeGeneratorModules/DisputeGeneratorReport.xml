@@ -1,0 +1,18 @@
+﻿<ACESim>
+  <defineTemplate name="DisputeGeneratorModuleColumnsForMainReportBase">
+    <rowOrColInfo name="EvidentiaryStrengthLiability" variableName="EvidentiaryStrengthLiability" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="BaseDamagesIfPWins" variableName="BaseDamagesIfPWins" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="DamagesClaim" variableName="DamagesClaim" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="PrelitigationWelfareEffectOnD" variableName="PrelitigationWelfareEffectOnD" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="PrelitigationWelfareEffectOnP" variableName="PrelitigationWelfareEffectOnP" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="SocialLoss" variableName="SocialLoss" statistic="MEAN">
+    </rowOrColInfo>
+  </defineTemplate>
+  <defineTemplate name="DisputeGeneratorModuleRowsForMainReportBase">
+  </defineTemplate>
+</ACESim>

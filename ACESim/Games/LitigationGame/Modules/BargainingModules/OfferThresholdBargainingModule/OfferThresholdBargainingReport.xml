@@ -1,0 +1,69 @@
+﻿<ACESim>
+  <parentSettingsFile filename="../BargainingModuleReport.xml"/>
+  <defineTemplate name="BargainingModuleRowsForMainReport">
+    <insertTemplate name="BargainingModuleRowsForMainReportBase"/>
+    <rowOrColInfo name="First round settlement">
+      <filter varType="int">
+        <variableName>BargainingRoundInWhichSettlementReached</variableName>
+        <operation>EQ</operation>
+        <value>1</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="Later round settlement">
+      <filter varType="int">
+        <variableName>BargainingRoundInWhichSettlementReached</variableName>
+        <operation>GT</operation>
+        <value>1</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="Settlement from both offers">
+      <filter varType="bool">
+        <variableName>SettlementIsOnBothOffers</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+    </rowOrColInfo>
+  </defineTemplate>
+  <defineTemplate name="BargainingModuleColumnsForMainReport">
+    <insertTemplate name="BargainingModuleColumnsForMainReportBase"/>
+    <rowOrColInfo name="MostRecentBargainingDistancePlaintiffOffer" variableName="MostRecentBargainingDistancePlaintiffOffer" statistic="MEAN">
+    </rowOrColInfo>
+  </defineTemplate>
+  <defineTemplate name="BargainingModuleRowsForBargainingReport">
+    <insertTemplate name="BargainingModuleRowsForBargainingReportBase"/>
+  </defineTemplate>
+  <defineTemplate name="BargainingModuleColumnsForBargainingReport">
+    <insertTemplate name="BargainingModuleColumnsForBargainingReportBase"/>
+
+    
+    <rowOrColInfo name="MostRecentPlaintiffOffer" variableName="MostRecentPlaintiffOffer" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="MostRecentDefendantOffer" variableName="MostRecentDefendantOffer" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="MostRecentPlaintiffThreshold" variableName="MostRecentPlaintiffThreshold" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="MostRecentDefendantThreshold" variableName="MostRecentDefendantThreshold" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="MostRecentBargainingDistancePlaintiffOffer" variableName="MostRecentBargainingDistancePlaintiffOffer" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="MostRecentBargainingDistanceDefendantOffer" variableName="MostRecentBargainingDistanceDefendantOffer" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="BargainingRound" variableName="BargainingRound" statistic="MEAN">
+    </rowOrColInfo>
+
+    <rowOrColInfoGenerator name="ListPlaintiffOffer" outputVariableName="ListPlaintiffOffer" rowOrColNamePrefix="POffer round" statistic="MEAN" reportIndexStartingAtZero="false" numberElementsInList="4">
+    </rowOrColInfoGenerator>
+    <rowOrColInfoGenerator name="ListDefendantOffer" outputVariableName="ListDefendantOffer" rowOrColNamePrefix="DOffer round" statistic="MEAN" reportIndexStartingAtZero="false" numberElementsInList="4">
+    </rowOrColInfoGenerator>
+
+    <rowOrColInfoGenerator name="ListPlaintiffThreshold" outputVariableName="ListPlaintiffThreshold" rowOrColNamePrefix="PThreshold round" statistic="MEAN" reportIndexStartingAtZero="false" numberElementsInList="4">
+    </rowOrColInfoGenerator>
+    <rowOrColInfoGenerator name="ListDefendantThreshold" outputVariableName="ListDefendantThreshold" rowOrColNamePrefix="DThreshold round" statistic="MEAN" reportIndexStartingAtZero="false" numberElementsInList="4">
+    </rowOrColInfoGenerator>
+
+    <rowOrColInfoGenerator name="ListBargainingDistancePlaintiffOffer" outputVariableName="ListBargainingDistancePlaintiffOffer" rowOrColNamePrefix="BargainingDistancePOffer round" statistic="MEAN" reportIndexStartingAtZero="false" numberElementsInList="4">
+    </rowOrColInfoGenerator>
+    <rowOrColInfoGenerator name="ListBargainingDistanceDefendantOffer" outputVariableName="ListBargainingDistanceDefendantOffer" rowOrColNamePrefix="BargainingDistanceDOffer round" statistic="MEAN" reportIndexStartingAtZero="false" numberElementsInList="4">
+    </rowOrColInfoGenerator>
+  </defineTemplate>
+</ACESim>

@@ -1,0 +1,245 @@
+﻿<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ACESimMultiple>
+  <singleSettingsFile filename="LitigationGameSingleRunSettings.xml">
+    <defineVariableAlternatives name="base">
+      <defineVariableAlternative name="sevs2" star="true">
+        <defineVariable findString="$MinSmoothingPoints" replaceString="100" />
+        <defineVariable findString="$MaxSmoothingPoints" replaceString="100" />
+        <defineVariable findString="$MinIterations" replaceString="25,000" />
+        <defineVariable findString="$MaxIterations" replaceString="25,000" />
+
+        <defineVariable findString="$ParallelOptimization" replaceString="T" />
+        <defineVariable findString="$StopParallelOptimizationAfterOptimizingNDecisions" replaceString="-1" />
+        <defineVariable findString="$ParallelReporting" replaceString="T" />
+        <defineVariable findString="$UseInitializeStrategiesFile" replaceString="F" />
+        <defineVariable findString="$EvolveOnlyIfNecessary" replaceString="F" />
+
+        <defineVariable findString="$RepetitionsOfEntireSmoothingProcess" replaceString="12" />
+        <defineVariable findString="$RepetitionsOfAllModules" replaceString="1" /> <!--DO NOT USE-->
+        <!--Don't use-->
+      </defineVariableAlternative>
+    </defineVariableAlternatives>
+    <defineVariableAlternatives>
+      <defineVariableAlternative name="r1" star="true">
+      </defineVariableAlternative>
+      <!--<defineVariableAlternative name="r2" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r3" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r4" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r5" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r6" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r7" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r8" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r9" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r10" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r11" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r12" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r13" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r14" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r15" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r16" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r17" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r18" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r19" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r20" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r21" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r22" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r23" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r24" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r25" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r26" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r27" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r28" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r29" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r30" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r31" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r32" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r33" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r34" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r35" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r36" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r37" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r38" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r39" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r40" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r41" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r42" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r43" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r44" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r45" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r46" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r47" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r48" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r49" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r50" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r51" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r52" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r53" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r54" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r55" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r56" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r57" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r58" >
+      </defineVariableAlternative>
+      <defineVariableAlternative name="r59" >
+      </defineVariableAlternative>-->
+    </defineVariableAlternatives>
+    <defineVariableAlternatives name="brgn">
+      <defineVariableAlternative name="ddc" star="true">
+        
+        <defineVariable findString="$LoserPaysRule" replaceString="false"/>
+        <defineVariable findString="$RiskSelection" replaceString="BothPartiesRiskNeutral" />
+        
+        <defineVariable findString="$JudgeNoiseLevelLiability" replaceString="0.2"/>
+        <defineVariable findString="$PNoiseLevelMin" replaceString="0.05" />
+        <defineVariable findString="$PNoiseLevelMax" replaceString="0.05" />
+        <defineVariable findString="$DNoiseLevelMin" replaceString="0.05" />
+        <defineVariable findString="$DNoiseLevelMax" replaceString="0.05" />
+        <defineVariable findString="$NoiseLevelOfPlaintiffFirstIndependentInformation" replaceString="1000"/>
+        <defineVariable findString="$NoiseLevelOfDefendantFirstIndependentInformation" replaceString="1000"/>
+        <defineVariable findString="$NoiseLevelOfPlaintiffIndependentInformation" replaceString="1000"/>
+        <defineVariable findString="$NoiseLevelOfDefendantIndependentInformation" replaceString="1000"/>
+        
+        <defineVariable findString="$LitigationCostModule" replaceString="LitigationCostStandard"/>
+        <defineVariable findString="$SpecificLitigationCostSettings" replaceString="LitigationCostStandardModule"/>
+        <defineVariable findString="$CommonTrialExpensesMin" replaceString="100.0"/>
+        <defineVariable findString="$CommonTrialExpensesMax" replaceString="100.0"/>
+        <defineVariable findString="$PAdditionalTrialExpensesMin" replaceString="0.0"/>
+        <defineVariable findString="$PAdditionalTrialExpensesMax" replaceString="0.0"/>
+        <defineVariable findString="$DAdditionalTrialExpensesMin" replaceString="0.0"/>
+        <defineVariable findString="$DAdditionalTrialExpensesMax" replaceString="0.0"/>
+        <defineVariable findString="$PInvestigationExpensesIfDispute" replaceString="0.0"/>
+        <defineVariable findString="$DInvestigationExpensesIfDispute" replaceString="0.0"/>
+        
+        <defineVariable findString="$BargainingRepetitions" replaceString="1" />
+        <defineVariable findString="$DivideBargainingIntoMinirounds" replaceString="false" />
+        <defineVariable findString="$NumBargainingMinirounds" replaceString="1" />
+        <defineVariable findString="$PMarginalInvestigationExpensesAfterEachMiddleBargainingRound" replaceString="50"/>
+        <defineVariable findString="$DMarginalInvestigationExpensesAfterEachMiddleBargainingRound" replaceString="50"/>
+        <defineVariable findString="$PMarginalInvestigationExpensesAfterFirstBargainingRound" replaceString="50"/>
+        <defineVariable findString="$DMarginalInvestigationExpensesAfterFirstBargainingRound" replaceString="50"/>
+        <defineVariable findString="$PMarginalInvestigationExpensesAfterLastBargainingRound" replaceString="50"/>
+        <defineVariable findString="$DMarginalInvestigationExpensesAfterLastBargainingRound" replaceString="50"/>
+        
+
+        <!--<defineVariable findString="$DamagesForecastingModule" replaceString="PerfectEstimatesModule" />-->
+        
+        <defineVariable findString="$DropOrDefaultBasedOnProbabilityCutoffOnly" replaceString="F" />
+        <!--<defineVariable findString="$DropOrDefaultBasedOnProbabilityCutoffOnly" replaceString="T" />-->
+        <defineVariable findString="$CaseResolvedBasedOnExogenouslySpecifiedProbability" replaceString="F"/>
+        <defineVariable findString="$BargainingAggressivenessOverrideSetting1" replaceString="Skip"/>
+        <defineVariable findString="$BargainingAggressivenessOverrideSetting2" replaceString="Separate"/>
+        <defineVariable findString="$MisestimateOpponentsAggressivenessWhenOptimizing" replaceString="false"/>
+        <defineVariable findString="$AssumedAggressivenessOfOpponent" replaceString="0.0"/>
+        <defineVariable findString="$WeightOnAggressivenessAssumption" replaceString="0.0"/>
+        <defineVariable findString="$BargainingAggressivenessFindEquilibriumUseComplexMethod" replaceString="false"/>
+        <defineVariable findString="$BargainingAggressivenessFindEquilibriumUseSimpleMethod" replaceString="false"/>
+        <defineVariable findString="$BargainingAggressivenessFindEquilibriumSimpleMethodRepetitions" replaceString="50"/>
+        <defineVariable findString="$BargainingAggressivenessFindEquilibriumSimpleMethodUseFastConvergence" replaceString="true"/>
+        <defineVariable findString="$BargainingAggressivenessFindEquilibriumSimpleMethodAbortFastConvergenceIfPreciseEnough" replaceString="false"/>
+        <defineVariable findString="$BargainingAggressivenessFindEquilibriumSimpleMethodFastConvergencePrecision" replaceString="0.0025"/>
+        <defineVariable findString="$BargainingAggressivenessFindEquilibriumSimpleMethodIterationsOverride" replaceString="50000"/>
+        <defineVariable findString="$BargainingAggressivenessFindEquilibriumSimpleMethodCreateMovie" replaceString="false"/>
+
+        <defineVariable findString="$PTasteForSettlementMin" replaceString="0.0" />
+        <defineVariable findString="$PTasteForSettlementMax" replaceString="1.0" />
+        <defineVariable findString="$DTasteForSettlementMin" replaceString="0.0" />
+        <defineVariable findString="$DTasteForSettlementMax" replaceString="1.0" />
+        <!--<defineVariable findString="$PRegretAversionMin" replaceString="0.0" />
+        <defineVariable findString="$PRegretAversionMax" replaceString="5.0" />
+        <defineVariable findString="$DRegretAversionMin" replaceString="0.0" />
+        <defineVariable findString="$DRegretAversionMax" replaceString="5.0" />-->
+        
+        <defineVariable findString="$BeginningDropOrDefaultModule" replaceString="NeverGiveUp"/>
+        <!--<defineVariable findString="$BeginningDropOrDefaultModule" replaceString="DropOrDefaultChoice"/>-->
+        <defineVariable findString="$MidDropOrDefaultModule" replaceString="NeverGiveUp"/>
+        <defineVariable findString="$EndDropOrDefaultModule" replaceString="NeverGiveUp"/>
+      </defineVariableAlternative>
+    </defineVariableAlternatives>
+    <defineVariableAlternatives name="BSt">
+      <defineVariableAlternative name="c2" star="true">
+        <defineVariable findString="$BargainingClaimComponents" replaceString="2" />
+        <defineVariable findString="$ChooseSmoothingPointsByClusteringLargerNumberOfPoints" replaceString="FALSE" />
+        <defineVariable findString="$NegotiateSeparatelyOverProbabilityAndMagnitude" replaceString="TRUE" />
+        <defineVariable findString="$NegotiateProbabilityBeforeMagnitude" replaceString="true" />
+        <defineVariable findString="$RejectLowProbabilitySettlements" replaceString="FALSE" />
+        <defineVariable findString="$RejectHighProbabilitySettlements" replaceString="FALSE" />
+        <defineVariable findString="$LowProbabilityThreshold" replaceString="0.4" />
+        <defineVariable findString="$HighProbabilityThreshold" replaceString="0.6" />
+        <defineVariable findString="$PartialSettlementEnforced" replaceString="FALSE" />
+        <defineVariable findString="$DamagesForecastingModule" replaceString="IndependentEstimatesModule" />
+        <defineVariable findString="$ExogenousDamagesMin" replaceString="995" />
+        <defineVariable findString="$ExogenousDamagesMax" replaceString="1000" />
+      </defineVariableAlternative>
+      <!--<defineVariableAlternative name="c1" star="true">
+        <defineVariable findString="$BargainingClaimComponents" replaceString="1" />
+        <defineVariable findString="$ChooseSmoothingPointsByClusteringLargerNumberOfPoints" replaceString="FALSE" />
+        <defineVariable findString="$NegotiateSeparatelyOverProbabilityAndMagnitude" replaceString="FALSE" />
+        <defineVariable findString="$NegotiateProbabilityBeforeMagnitude" replaceString="true" />
+        <defineVariable findString="$RejectLowProbabilitySettlements" replaceString="FALSE" />
+        <defineVariable findString="$RejectHighProbabilitySettlements" replaceString="FALSE" />
+        <defineVariable findString="$LowProbabilityThreshold" replaceString="0.4" />
+        <defineVariable findString="$HighProbabilityThreshold" replaceString="0.6" />
+        <defineVariable findString="$PartialSettlementEnforced" replaceString="FALSE" />
+        <defineVariable findString="$DamagesForecastingModule" replaceString="IndependentEstimatesModule" />
+        <defineVariable findString="$ExogenousDamagesMin" replaceString="1000" />
+        <defineVariable findString="$ExogenousDamagesMax" replaceString="1000" />
+      </defineVariableAlternative>-->
+    </defineVariableAlternatives>
+  </singleSettingsFile>
+</ACESimMultiple>

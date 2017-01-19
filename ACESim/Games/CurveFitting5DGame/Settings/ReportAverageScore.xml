@@ -1,0 +1,21 @@
+
+<ACESim>
+<rowOrColGroup name="CurveFitting5DRows">
+    <rowOrColInfo name="All">
+    </rowOrColInfo>
+  </rowOrColGroup>
+  <rowOrColGroup name="CurveFitting5DColumns">
+    <rowOrColInfo name="Total" statistic="COUNT">
+    </rowOrColInfo>
+    <rowOrColInfo name="TotalScoreDecision1Average" variableName="TotalScoreDecision1" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="TargetAverage" variableName="Target" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="GuessAverage" variableName="Guess" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="TargetStd" variableName="Target" statistic="STDEV">
+    </rowOrColInfo>
+    <rowOrColInfo name="GuessStd" variableName="Guess" statistic="STDEV">
+    </rowOrColInfo>
+  </rowOrColGroup>
+</ACESim>

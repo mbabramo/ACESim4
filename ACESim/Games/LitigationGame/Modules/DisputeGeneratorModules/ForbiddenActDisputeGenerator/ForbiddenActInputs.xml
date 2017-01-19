@@ -1,0 +1,32 @@
+﻿<ACESim>
+  <defineTemplate name="DisputeGeneratorInputs">
+    <setting name="DisputeGeneratorInputs" type="class" subclass="ForbiddenActDisputeGeneratorInputs" >
+      <setting name="PrivateBenefitOfAct" type="distribution" subtype="uniform">
+        <setting type="double" name="fromVal">0</setting>
+        <setting type="double" name="toVal">2000</setting>
+      </setting>
+      <setting name="SocialCostOfAct" type="distribution" subtype="uniform">
+        <setting type="double" name="fromVal">0</setting>
+        <setting type="double" name="toVal">5000</setting>
+      </setting>
+      <setting name="LiabilityMultiplier" type="double">
+        1.0
+      </setting>
+      <setting name="UntruncatedEvidentiaryStrengthDidNotDoIt" type="distribution" subtype="normal">
+        <setting type="double" name="mean">0.0</setting>
+        <setting type="double" name="stdev">0.1</setting>
+      </setting>
+      <setting name="AdditiveEvidentiaryStrengthDidIt" type="distribution" subtype="normal">
+        <setting type="double" name="mean">0.5</setting>
+        <setting type="double" name="stdev">0.1</setting>
+      </setting>
+      <setting name="DamagesEqualPrivateBenefit" type="bool">false</setting>
+      <setting name="DamagesEqualSocialCost" type="bool">false</setting>
+      <setting name="DamagesEqualLargerOfPrivateBenefitAndSocialCost" type="bool">true</setting>
+      <setting name="RandSeedForPreEvolution" type="distribution" subtype="uniform">
+        <setting type="double" name="fromVal">0.0</setting>
+        <setting type="double" name="toVal">1.0</setting>
+      </setting>
+    </setting>
+  </defineTemplate>
+</ACESim>

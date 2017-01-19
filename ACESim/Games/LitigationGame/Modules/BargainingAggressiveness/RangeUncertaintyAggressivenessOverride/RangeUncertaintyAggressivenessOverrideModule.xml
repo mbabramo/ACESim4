@@ -1,0 +1,8 @@
+﻿<ACESim>
+  <parentSettingsFile filename="RangeUncertaintyAggressivenessOverrideModuleInputs.xml" />
+  <defineTemplate name="BargainingAggressivenessModule$AggressModNumber">
+    <setting name="RangeUncertaintyAggressivenessOverrideModule" type="class" subclass="RangeUncertaintyAggressivenessOverrideModule" codeGeneratorName="RangeUncertaintyAggressivenessOverrideModule" codeGeneratorOptions="EvolvingRangeUncertaintySettings: $EvolvingRangeUncertaintySettings; RangeUncertaintyAggressivenessIterationsOverrideMin: $RangeUncertaintyAggressivenessIterationsOverrideMin; RangeUncertaintyAggressivenessIterationsOverrideMax: $RangeUncertaintyAggressivenessIterationsOverrideMax; RangeUncertaintyAggressivenessIterationsOverrideCurvature: $RangeUncertaintyAggressivenessIterationsOverrideCurvature; RangeUncertaintyAggressivenessSmoothingPointsOverrideMin: $RangeUncertaintyAggressivenessSmoothingPointsOverrideMin; RangeUncertaintyAggressivenessSmoothingPointsOverrideMax: $RangeUncertaintyAggressivenessSmoothingPointsOverrideMax; RangeUncertaintyAggressivenessSmoothingPointsOverrideCurvature: $RangeUncertaintyAggressivenessSmoothingPointsOverrideCurvature; AggressModNumber: $AggressModNumber" >
+
+  </setting>
+  </defineTemplate>
+</ACESim>

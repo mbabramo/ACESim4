@@ -1,0 +1,81 @@
+﻿<ACESim>
+  <defineTemplate name="LitigationCostInputs">
+    <setting name="LitigationCostInputs" type="class" subclass="LitigationCostStandardInputs" >
+      <setting name="PInvestigationExpensesIfDispute" type="double">
+        $PInvestigationExpensesIfDispute
+      </setting>
+      <setting name="DInvestigationExpensesIfDispute" type="double">
+        $DInvestigationExpensesIfDispute
+      </setting>
+      <setting name="PMarginalInvestigationExpensesAfterEachMiddleBargainingRound" type="double">
+        $PMarginalInvestigationExpensesAfterEachMiddleBargainingRound
+      </setting>
+      <setting name="DMarginalInvestigationExpensesAfterEachMiddleBargainingRound" type="double">
+        $DMarginalInvestigationExpensesAfterEachMiddleBargainingRound
+      </setting>
+      <setting name="PMarginalInvestigationExpensesAfterFirstBargainingRound" type="double">
+        $PMarginalInvestigationExpensesAfterFirstBargainingRound
+      </setting>
+      <setting name="DMarginalInvestigationExpensesAfterFirstBargainingRound" type="double">
+        $DMarginalInvestigationExpensesAfterFirstBargainingRound
+      </setting>
+      <setting name="PMarginalInvestigationExpensesAfterLastBargainingRound" type="double">
+        $PMarginalInvestigationExpensesAfterLastBargainingRound
+      </setting>
+      <setting name="DMarginalInvestigationExpensesAfterLastBargainingRound" type="double">
+        $DMarginalInvestigationExpensesAfterLastBargainingRound
+      </setting>
+      <setting name="PSettlementFailureCostPerBargainingRound" type="double">
+        $PSettlementFailureCostPerBargainingRound
+      </setting>
+      <setting name="DSettlementFailureCostPerBargainingRound" type="double">
+        $DSettlementFailureCostPerBargainingRound
+      </setting>
+      <setting name="CommonTrialExpenses" type="distribution" subtype="uniform">
+        <setting type="double" name="fromVal">$CommonTrialExpensesMin</setting>
+        <setting type="double" name="toVal">$CommonTrialExpensesMax</setting>
+      </setting>
+      <setting name="PAdditionalTrialExpenses" type="distribution" subtype="uniform">
+        <setting type="double" name="fromVal">$PAdditionalTrialExpensesMin</setting>
+        <setting type="double" name="toVal">$PAdditionalTrialExpensesMax</setting>
+      </setting>
+      <setting name="DAdditionalTrialExpenses" type="distribution" subtype="uniform">
+        <setting type="double" name="fromVal">$DAdditionalTrialExpensesMin</setting>
+        <setting type="double" name="toVal">$DAdditionalTrialExpensesMax</setting>
+      </setting>
+      <setting name="TrialTaxEachParty" type="double">
+        $TrialTaxEachParty
+      </setting>
+      <setting name="TrialTaxLoser" type="double">
+        $TrialTaxLoser
+      </setting>
+      <setting name="TrialTaxDLoser" type="double">
+        $TrialTaxDLoser
+      </setting>
+      <setting name="PartiesInformationImprovesOverTime" type="bool">
+        $PartiesInformationImprovesOverTime
+      </setting>
+      <setting name="NoiseLevelOfPlaintiffFirstIndependentInformation" type="double">
+        $NoiseLevelOfPlaintiffFirstIndependentInformation
+      </setting>
+      <setting name="NoiseLevelOfDefendantFirstIndependentInformation" type="double">
+        $NoiseLevelOfDefendantFirstIndependentInformation
+      </setting>
+      <setting name="NoiseLevelOfPlaintiffIndependentInformation" type="double">
+        $NoiseLevelOfPlaintiffIndependentInformation
+      </setting>
+      <setting name="NoiseLevelOfDefendantIndependentInformation" type="double">
+        $NoiseLevelOfDefendantIndependentInformation
+      </setting>
+      <setting name="LoserPaysRule" type="bool">$LoserPaysRule</setting>
+      <setting name="LimitLoserPaysToOwnExpenses" type="bool">$LimitLoserPaysToOwnExpenses</setting>
+      <setting name="ApplyLoserPaysWhenCasesAbandoned" type="bool">$ApplyLoserPaysWhenCasesAbandoned</setting>
+      <setting name="ApplyLoserPaysToSettlementsForLessThanThisProportionOfDamages" type="double">$ApplyLoserPaysToSettlementsForLessThanThisProportionOfDamages</setting>
+      <setting name="MinimumMarginOfVictoryForLoserPays" type="double">$MinimumMarginOfVictoryForLoserPays</setting>
+      <setting name="LoserPaysMultiple" type="double">$LoserPaysMultiple</setting>
+      <setting name="UseContingencyFees" type="bool">$UseContingencyFees</setting>
+      <setting name="ContingencyFeeRate" type="double">$ContingencyFeeRate</setting>
+      <insertTemplate name="PartiesInfo"/>
+    </setting>
+  </defineTemplate>
+</ACESim>

@@ -1,0 +1,23 @@
+﻿<ACESim>
+  <defineTemplate name="DisputeGeneratorInputs">
+    <setting name="DisputeGeneratorInputs" type="class" subclass="ExogenousDisputeGeneratorInputs" >
+      <setting name="DamagesClaim" type="double">$ExogenousDamagesMax</setting>
+      <setting name="Damages" type="distribution" subtype="uniform">
+        <setting type="double" name="fromVal">$ExogenousDamagesMin</setting>
+        <setting type="double" name="toVal">$ExogenousDamagesMax</setting>
+      </setting>
+      <setting name="EvidentiaryStrengthLiability" type="distribution" subtype="uniform">
+        <setting type="double" name="fromVal">0</setting>
+        <setting type="double" name="toVal">1.0</setting>
+      </setting>
+      <setting name="ProbabilityCorrectGivenThreeQuartersAgreement" type="double">0.99999999999999999</setting> <!--Note that when we are not using exogenous probability, it makes sense to make all cases to right of 0.50 correct, so that we then have some probability of correctness once the judge gets a noisy estimate-->
+      <setting name="ProbabilityCorrectGivenUnanimity" type="double">1.0</setting>
+      <setting name="RandSeedForDeterminingCorrectness" type="distribution" subtype="uniform">
+        <setting type="double" name="fromVal">0.0</setting>
+        <setting type="double" name="toVal">1.0</setting>
+      </setting>
+      <setting name="SocialLossWeightOnPCompensationInaccuracy" type="double">0.15</setting>
+      <setting name="SocialLossWeightOnDDeterrenceInaccuracy" type="double">0.15</setting>
+    </setting>
+  </defineTemplate>
+</ACESim>

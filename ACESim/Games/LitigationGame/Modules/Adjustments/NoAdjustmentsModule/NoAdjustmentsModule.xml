@@ -1,0 +1,7 @@
+﻿<ACESim>
+  <parentSettingsFile filename="NoAdjustmentsModuleInputs.xml" />
+  <defineTemplate name="AdjustmentsModule$AdjustModNumber">">
+    <setting name="NoAdjustmentsModule" type="class" subclass="NoAdjustmentsModule" codeGeneratorName="NoAdjustmentsModule" codeGeneratorOptions="AdjustModNumber: $AdjustModNumber" >
+    </setting>
+  </defineTemplate>
+</ACESim>

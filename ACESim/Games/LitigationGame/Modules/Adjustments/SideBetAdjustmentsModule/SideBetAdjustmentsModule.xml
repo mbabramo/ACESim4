@@ -1,0 +1,7 @@
+﻿<ACESim>
+  <parentSettingsFile filename="SideBetAdjustmentsModuleInputs.xml" />
+  <defineTemplate name="AdjustmentsModule$AdjustModNumber">
+    <setting name="SideBetAdjustmentsModule" type="class" subclass="SideBetAdjustmentsModule" codeGeneratorName="SideBetAdjustmentsModule" codeGeneratorOptions="AdjustModNumber: $AdjustModNumber">
+    </setting>
+  </defineTemplate>
+</ACESim>

@@ -1,0 +1,19 @@
+﻿<ACESim>
+  <parentSettingsFile filename="LossAverseUtilityMaximizer.xml" />
+  <defineTemplate name="PartiesInfo">
+    <insertTemplate name="LossAverseUtilityMaximizer" 
+                    find1="Individual" replace1="Plaintiff" 
+                    find2="InitialWealthValue" replace2="100000" 
+                    find3="MaxSubjectiveLossAsMultipleOfSubjectiveGainValue" replace3="2.5" 
+                    find4="GainNeededToGetToHalfOfSubjectiveMaxGainValue" replace4="20000"
+                    find5="LossNeededToGetToHalfOfSubjectiveMaxLossValue" replace5="10000"
+                    />
+    <insertTemplate name="LossAverseUtilityMaximizer"
+                    find1="Individual" replace1="Defendant"
+                    find2="InitialWealthValue" replace2="100000"
+                    find3="MaxSubjectiveLossAsMultipleOfSubjectiveGainValue" replace3="2.5"
+                    find4="GainNeededToGetToHalfOfSubjectiveMaxGainValue" replace4="20000"
+                    find5="LossNeededToGetToHalfOfSubjectiveMaxLossValue" replace5="10000"
+                    />
+  </defineTemplate>
+</ACESim>

@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ACESimMultiple>
+  <singleSettingsFile filename="LitigationGameSingleRunSettings.xml">
+    <defineVariable findString="$MaxIterations" replaceString="50,000" />
+    <defineVariable findString="$BargainingAggressivenessOverrideSetting" replaceString="Separate"/>
+    <defineVariable findString="$BargainingAggressivenessFindEquilibriumUseComplexMethod" replaceString="false"/>
+    <defineVariable findString="$BargainingAggressivenessFindEquilibriumUseSimpleMethod" replaceString="true"/>
+    <defineVariable findString="$BargainingAggressivenessFindEquilibriumSimpleMethodRepetitions" replaceString="4"/>
+    <!--<defineVariable findString="$PTasteForSettlementMin" replaceString="0.0" />
+    <defineVariable findString="$PTasteForSettlementMax" replaceString="2.0" />
+    <defineVariable findString="$DTasteForSettlementMin" replaceString="0.0" />
+    <defineVariable findString="$DTasteForSettlementMax" replaceString="2.0" />-->
+    <defineVariable findString="$RiskSelection" replaceString="HeterogeneousRiskAversion" />
+    <defineVariable findString="$FullInformationAboutUtilityFunctions" replaceString="false" />
+    <!--no one knows opponent's risk aversion level-->
+    <defineVariable findString="$PRiskAversionRParameterValueMin" replaceString="0.0" />
+    <defineVariable findString="$PRiskAversionRParameterValueMax" replaceString="8.0" />
+    <defineVariable findString="$DRiskAversionRParameterValueMin" replaceString="0.0" />
+    <defineVariable findString="$DRiskAversionRParameterValueMax" replaceString="8.0" />
+  </singleSettingsFile>
+</ACESimMultiple>

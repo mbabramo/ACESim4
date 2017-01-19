@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ACESim>
+  <parentSettingsFile filename="ObfuscationGameDefinitions.xml" />
+  <parentSettingsFile filename="ObfuscationGameInputs.xml" />
+  <parentSettingsFile filename="../../SharedEvolutionSettings/EvolutionSettings.xml" />
+  <parentSettingsFile filename="ObfuscationGameReport.xml" />
+  <parentSettingsFile filename="ObfuscationGameCommands.xml" />
+</ACESim>

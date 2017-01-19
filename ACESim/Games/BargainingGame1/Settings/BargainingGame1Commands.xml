@@ -1,0 +1,26 @@
+
+<ACESim>
+  <commandSetsAll>
+    <commandSet name="EvolveBargainingGame1Strategies">
+      <multipartCommand name="EvolveBargainingGame1Strategies" gameInputsName="BargainingGame1Inputs">
+        <!--InitializeStrategiesFile="PreevolvedStrategy"-->
+        <evolveCommand
+                    evolutionSettingsName="SimpleEvolution"
+                    StoreStrategiesFile="BargainingGame1Strategies"
+                    evolveOnlyIfNecessary="false"/>
+        <!--InitializeStrategiesFile="BargainingGame1Strategies"-->
+        <playCommand numberIterations="1000000"  StoreStrategiesFile="BargainingGame1Strategies" storeIterationResultsFile="BargainingGame1Iterations">
+          <changeSimulationSettings>
+          </changeSimulationSettings>
+        </playCommand>
+        <reportCommand name="BargainingGame1ReportCommand" storeIterationResultsFile="BargainingGame1Iterations" storeReportResultsFile="BargainingGame1Report">
+          <rowsGroup name="BargainingGame1Rows"></rowsGroup>
+          <colsGroup name="BargainingGame1Columns"></colsGroup>
+        </reportCommand>
+      </multipartCommand>
+    </commandSet>
+  </commandSetsAll>
+  <executeCommandList>
+    <executeCommandSet name="EvolveBargainingGame1Strategies"/>
+  </executeCommandList>
+</ACESim>

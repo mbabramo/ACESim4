@@ -1,0 +1,109 @@
+﻿<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ACESimMultiple skip="20">
+  <singleSettingsFile filename="LitigationGameSingleRunSettings.xml">
+    <defineVariableAlternatives name="BaseSettings">
+      <defineVariableAlternative name="norm" star="true">
+      </defineVariableAlternative>
+      <defineVariableAlternative name="endo">
+        <defineVariable findString="$LitigationCostModule" replaceString="LitigationCostEndogenousEffort"/>
+        <defineVariable findString="$SpecificLitigationCostSettings" replaceString="LitigationCostEndogenousEffortModule"/>
+        <defineVariable findString="$OptimizeInvestigationIntensity" replaceString="true"/>
+        <defineVariable findString="$OptimizeTrialPrep" replaceString="true"/>
+        <defineVariable findString="$ExploreEndogenousEffortInvestigationEquilibria" replaceString="false"/>
+        <defineVariable findString="$ExploreEndogenousEffortTrialEquilibria" replaceString="false"/>
+        <defineVariable findString="$EndogenousEffortEquilibriumUsesSimpleMethod" replaceString="false"/>
+        <defineVariable findString="$EndogenousEffortEquilibriumSimpleMethodRepetitions" replaceString="3"/>
+        <defineVariable findString="$CommonTrialExpensesMin" replaceString="100.0"/>
+        <defineVariable findString="$CommonTrialExpensesMax" replaceString="100.0"/>
+        <defineVariable findString="$PAdditionalTrialExpensesMin" replaceString="0.0"/>
+        <defineVariable findString="$PAdditionalTrialExpensesMax" replaceString="0.0"/>
+        <defineVariable findString="$DAdditionalTrialExpensesMin" replaceString="0.0"/>
+        <defineVariable findString="$DAdditionalTrialExpensesMax" replaceString="0.0"/>
+        <defineVariable findString="$PInvestigationExpensesIfDispute" replaceString="0.0"/>
+        <defineVariable findString="$DInvestigationExpensesIfDispute" replaceString="0.0"/>
+        <defineVariable findString="$PMarginalInvestigationExpensesAfterEachMiddleBargainingRound" replaceString="0.0"/>
+        <defineVariable findString="$DMarginalInvestigationExpensesAfterEachMiddleBargainingRound" replaceString="0.0"/>
+        <defineVariable findString="$PMarginalInvestigationExpensesAfterFirstBargainingRound" replaceString="0.0"/>
+        <defineVariable findString="$DMarginalInvestigationExpensesAfterFirstBargainingRound" replaceString="0.0"/>
+        <defineVariable findString="$PMarginalInvestigationExpensesAfterLastBargainingRound" replaceString="0.0"/>
+        <defineVariable findString="$DMarginalInvestigationExpensesAfterLastBargainingRound" replaceString="0.0"/>
+        <defineVariable findString="$PSettlementFailureCostPerBargainingRound" replaceString="0.0"/>
+        <defineVariable findString="$DSettlementFailureCostPerBargainingRound" replaceString="0.0"/>
+      </defineVariableAlternative>
+    </defineVariableAlternatives>
+    <defineVariableAlternatives name="Bias">
+      <defineVariableAlternative name="nobias" star="true">
+        <defineVariable findString="$BiasAffectingEntireLegalSystemStdev" replaceString="0.0" />
+      </defineVariableAlternative>
+    </defineVariableAlternatives>
+    <defineVariableAlternatives name="Damages">
+      <defineVariableAlternative name="1000" star="true">
+        <defineVariable findString="$ExogenousDamagesMin" replaceString="1000" />
+        <defineVariable findString="$ExogenousDamagesMax" replaceString="1000" />
+      </defineVariableAlternative>
+      <defineVariableAlternative name="500">
+        <defineVariable findString="$ExogenousDamagesMin" replaceString="500" />
+        <defineVariable findString="$ExogenousDamagesMax" replaceString="500" />
+      </defineVariableAlternative>
+      <defineVariableAlternative name="2000">
+        <defineVariable findString="$ExogenousDamagesMin" replaceString="2000" />
+        <defineVariable findString="$ExogenousDamagesMax" replaceString="2000" />
+      </defineVariableAlternative>
+      <defineVariableAlternative name="10000">
+        <defineVariable findString="$ExogenousDamagesMin" replaceString="10000" />
+        <defineVariable findString="$ExogenousDamagesMax" replaceString="10000" />
+      </defineVariableAlternative>
+    </defineVariableAlternatives>
+    <defineVariableAlternatives name="Info">
+      <defineVariableAlternative name="inf" star="true">
+        <defineVariable findString="$PNoiseLevelMin" replaceString="0.05" />
+        <defineVariable findString="$PNoiseLevelMax" replaceString="0.05" />
+        <defineVariable findString="$DNoiseLevelMin" replaceString="0.05" />
+        <defineVariable findString="$DNoiseLevelMax" replaceString="0.05" />
+      </defineVariableAlternative>
+    </defineVariableAlternatives>
+    <defineVariableAlternatives name="Rules">
+      <defineVariableAlternative name="nofeeshift" star="true">
+        <defineVariable findString="$LoserPaysRule" replaceString="false"/>
+      </defineVariableAlternative>
+      <defineVariableAlternative name="loserpays" star="true">
+        <defineVariable findString="$LoserPaysRule" replaceString="true"/>
+      </defineVariableAlternative>
+    </defineVariableAlternatives>
+    <defineVariableAlternatives name="Risk">
+      <defineVariableAlternative name="RiskN" star="true">
+        <defineVariable findString="$RiskSelection" replaceString="BothPartiesRiskNeutral" />
+      </defineVariableAlternative>
+      <defineVariableAlternative name="ModAv">
+        <defineVariable findString="$RiskSelection" replaceString="BothPartiesRiskAverse" />
+        <defineVariable findString="$RiskAversionLevel" replaceString="2.0" />
+      </defineVariableAlternative>
+      <defineVariableAlternative name="PAvDNeut">
+        <defineVariable findString="$RiskSelection" replaceString="PRiskAverseDNeutral" />
+        <defineVariable findString="$RiskAversionLevel" replaceString="8.0" />
+      </defineVariableAlternative>
+      <defineVariableAlternative name="LossAv">
+        <defineVariable findString="$RiskSelection" replaceString="BothPartiesLossAverse" />
+      </defineVariableAlternative>
+      <defineVariableAlternative name="HetR">
+        <defineVariable findString="$RiskSelection" replaceString="HeterogeneousRiskAversion" />
+        <defineVariable findString="$FullInformationAboutUtilityFunctions" replaceString="false" />
+        <defineVariable findString="$PRiskAversionRParameterValueMin" replaceString="0.0" />
+        <defineVariable findString="$PRiskAversionRParameterValueMax" replaceString="4.0" />
+        <defineVariable findString="$DRiskAversionRParameterValueMin" replaceString="0.0" />
+        <defineVariable findString="$DRiskAversionRParameterValueMax" replaceString="4.0" />
+        <defineVariable findString="$RepetitionsOfEntireSmoothingProcess" replaceString="2" />
+        <defineVariable findString="$MaxRepetitionsProjectionDecision" replaceString="2" />
+      </defineVariableAlternative>
+    </defineVariableAlternatives>
+    <defineVariableAlternatives name="Dispute">
+      <defineVariableAlternative name="Exogenous" star="true">
+      </defineVariableAlternative>
+      <!--<defineVariableAlternative name="Negligence">
+        <defineVariable findString="$DisputeGeneratorModule" replaceString="NegligenceDisputeGenerator" />
+        <defineVariable findString="$NegligenceInputs" replaceString="SimpleNegligenceInputs"/>
+        <defineVariable findString="$UndetectedCasesForEachDetectedCaseMax" replaceString="10.0" />
+      </defineVariableAlternative>-->
+    </defineVariableAlternatives>
+  </singleSettingsFile>
+</ACESimMultiple>

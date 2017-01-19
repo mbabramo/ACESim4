@@ -1,0 +1,9 @@
+﻿<ACESim>
+  <parentSettingsFile filename="PerfectEstimatesInputs.xml" />
+  <parentSettingsFile filename="PerfectEstimatesReport.xml" />
+  <defineTemplate name="$ForecastingTypeForecastingModule">
+    <setting name="PerfectEstimatesModule" type="class" subclass="PerfectEstimatesModule" codeGeneratorName="PerfectEstimatesModule" codeGeneratorOptions="ForecastingType: $ForecastingType" >
+      
+    </setting>
+  </defineTemplate>
+</ACESim>

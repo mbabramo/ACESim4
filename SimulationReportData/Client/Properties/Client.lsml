@@ -1,0 +1,181 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Application
+  DefaultNavigationItem="!module/NavigationItems[Tasks]"
+  Name="LightSwitchApplication"
+  Shell="Microsoft.LightSwitch.Cosmopolitan:CosmopolitanShell"
+  Theme="Microsoft.LightSwitch.RichClient:Blue"
+  Version="1.0.0.0"
+  TargetPlatform="RichClient" xmlns="http://schemas.microsoft.com/LightSwitch/2010/xaml/model">
+  <Application.Attributes>
+    <ModuleNamespace
+      Namespace="LightSwitchApplication" />
+    <Partial
+      IsPrimary="True" />
+  </Application.Attributes>
+  <Application.Methods></Application.Methods>
+  <Application.NavigationItems>
+    <ApplicationNavigationGroup
+      DefaultItem="!module/NavigationItems[Tasks]/Children[RowsListDetail]"
+      Name="Tasks">
+      <ApplicationNavigationGroup.Attributes>
+        <DisplayName
+          Value="Structure" />
+      </ApplicationNavigationGroup.Attributes>
+      <ApplicationNavigationLink
+        Command="!module/Commands[ScreenCommandShowRowsListDetail]"
+        Name="RowsListDetail" />
+      <ApplicationNavigationLink
+        Command="!module/Commands[ScreenCommandShowColumnsListDetail]"
+        Name="ColumnsListDetail" />
+      <ApplicationNavigationLink
+        Command="!module/Commands[ScreenCommandShowRowListsListDetail]"
+        Name="RowListsListDetail" />
+      <ApplicationNavigationLink
+        Command="!module/Commands[ScreenCommandShowColumnListsListDetail]"
+        Name="ColumnListsListDetail" />
+      <ApplicationNavigationLink
+        Command="!module/Commands[ScreenCommandShowReportSnippetsListDetail]"
+        Name="ReportSnippetsListDetail" />
+      <ApplicationNavigationLink
+        Command="!module/Commands[ScreenCommandShowReportDefinitionsListDetail]"
+        Name="ReportDefinitionsListDetail" />
+      <ApplicationNavigationLink
+        Command="!module/Commands[ScreenCommandShowRowListOrder]"
+        Name="RowListOrder" />
+      <ApplicationNavigationLink
+        Command="!module/Commands[ScreenCommandShowColumnListOrder]"
+        Name="ColumnListOrder" />
+    </ApplicationNavigationGroup>
+    <ApplicationNavigationGroup
+      Name="group">
+      <ApplicationNavigationGroup.Attributes>
+        <DisplayName
+          Value="Reports" />
+      </ApplicationNavigationGroup.Attributes>
+      <ApplicationNavigationLink
+        Command="!module/Commands[ScreenCommandShowTabulatedReport]"
+        Name="TabulatedReport" />
+    </ApplicationNavigationGroup>
+    <ApplicationNavigationGroup
+      Name="group1">
+      <ApplicationNavigationGroup.Attributes>
+        <DisplayName
+          Value="Data Points" />
+      </ApplicationNavigationGroup.Attributes>
+      <ApplicationNavigationLink
+        Command="!module/Commands[ScreenCommandShowCreateNewDataPoint]"
+        Name="link4" />
+      <ApplicationNavigationLink
+        Command="!module/Commands[ScreenCommandShowDataPointsListDetail]"
+        Name="link" />
+      <ApplicationNavigationLink
+        Command="!module/Commands[ScreenCommandShowDataPointsByRowAndColumn]"
+        Name="link1" />
+    </ApplicationNavigationGroup>
+    <ApplicationNavigationGroup
+      Name="group2">
+      <ApplicationNavigationGroup.Attributes>
+        <DisplayName
+          Value="Execution Sets" />
+      </ApplicationNavigationGroup.Attributes>
+      <ApplicationNavigationLink
+        Command="!module/Commands[ScreenCommandShowSearchExecutionResultSets]"
+        Name="link5" />
+      <ApplicationNavigationLink
+        Command="!module/Commands[ScreenCommandShowCreateNewExecutionResultSet]"
+        Name="link6" />
+      <ApplicationNavigationLink
+        Command="!module/Commands[ScreenCommandShowCreateNewSettingCategory]"
+        Name="link2" />
+      <ApplicationNavigationLink
+        Command="!module/Commands[ScreenCommandShowSettingChoicesListDetail]"
+        Name="link3" />
+    </ApplicationNavigationGroup>
+    <ApplicationNavigationGroup
+      Name="Administration">
+      <ApplicationNavigationGroup.Attributes>
+        <DisplayName
+          Value="Administration" />
+      </ApplicationNavigationGroup.Attributes>
+      <ApplicationNavigationLink
+        Command="Microsoft.LightSwitch.Security:!module/Commands[ScreenCommandShowRolesScreen]"
+        Name="RolesScreen" />
+      <ApplicationNavigationLink
+        Command="Microsoft.LightSwitch.Security:!module/Commands[ScreenCommandShowUsersScreen]"
+        Name="UsersScreen" />
+    </ApplicationNavigationGroup>
+  </Application.NavigationItems>
+  <EntityContainerGroup
+    Name="DataWorkspace">
+    <EntityContainerGroupProperty
+      EntityContainer="Microsoft.LightSwitch.Security:SecurityData"
+      Name="SecurityData">
+      <EntityContainerGroupProperty.Attributes>
+        <Generated />
+        <DisplayName
+          Value="Security Data" />
+        <Description
+          Value="Service that provides access to security-related data." />
+      </EntityContainerGroupProperty.Attributes>
+    </EntityContainerGroupProperty>
+    <EntityContainerGroupProperty
+      EntityContainer="SimReportData"
+      Name="SimReportData" />
+  </EntityContainerGroup>
+  <GlobalAttributeGroup>
+    <GlobalAttributeGroup.Attributes>
+      <Proxy
+        Target="ServiceInterface:LightSwitchServiceApplicationGroup" />
+    </GlobalAttributeGroup.Attributes>
+  </GlobalAttributeGroup>
+  <Application.Commands>
+    <ApplicationCommand
+      Name="ScreenCommandShowRowsListDetail"
+      Target="!module/Methods[ShowRowsListDetail]" />
+    <ApplicationCommand
+      Name="ScreenCommandShowColumnsListDetail"
+      Target="!module/Methods[ShowColumnsListDetail]" />
+    <ApplicationCommand
+      Name="ScreenCommandShowColumnListsListDetail"
+      Target="!module/Methods[ShowColumnListsListDetail]" />
+    <ApplicationCommand
+      Name="ScreenCommandShowRowListsListDetail"
+      Target="!module/Methods[ShowRowListsListDetail]" />
+    <ApplicationCommand
+      Name="ScreenCommandShowReportSnippetsListDetail"
+      Target="!module/Methods[ShowReportSnippetsListDetail]" />
+    <ApplicationCommand
+      Name="ScreenCommandShowReportDefinitionsListDetail"
+      Target="!module/Methods[ShowReportDefinitionsListDetail]" />
+    <ApplicationCommand
+      Name="ScreenCommandShowSearchExecutionResultSets"
+      Target="!module/Methods[ShowSearchExecutionResultSets]" />
+    <ApplicationCommand
+      Name="ScreenCommandShowDataPointsListDetail"
+      Target="!module/Methods[ShowDataPointsListDetail]" />
+    <ApplicationCommand
+      Name="ScreenCommandShowCreateNewExecutionResultSet"
+      Target="!module/Methods[ShowCreateNewExecutionResultSet]" />
+    <ApplicationCommand
+      Name="ScreenCommandShowCreateNewDataPoint"
+      Target="!module/Methods[ShowCreateNewDataPoint]" />
+    <ApplicationCommand
+      Name="ScreenCommandShowTabulatedReport"
+      Target="!module/Methods[ShowTabulatedReport]" />
+    <ApplicationCommand
+      Name="ScreenCommandShowDataPointsByRowAndColumn"
+      Target="!module/Methods[ShowDataPointsByRowAndColumn]" />
+    <ApplicationCommand
+      Name="ScreenCommandShowRowListOrder"
+      Target="!module/Methods[ShowRowListOrder]" />
+    <ApplicationCommand
+      Name="ScreenCommandShowColumnListOrder"
+      Target="!module/Methods[ShowColumnListOrder]" />
+    <ApplicationCommand
+      Name="ScreenCommandShowCreateNewSettingCategory"
+      Target="!module/Methods[ShowCreateNewSettingCategory]" />
+    <ApplicationCommand
+      Name="ScreenCommandShowSettingChoicesListDetail"
+      Target="!module/Methods[ShowSettingChoicesListDetail]" />
+  </Application.Commands>
+</Application>

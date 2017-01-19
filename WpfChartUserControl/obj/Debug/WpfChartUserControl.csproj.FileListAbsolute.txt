@@ -1,0 +1,80 @@
+C:\Documents and Settings\mabramowicz\My Documents\ACESim2\trunk\galaw\WpfChartUserControl\bin\Debug\WpfChartUserControl.dll
+C:\Documents and Settings\mabramowicz\My Documents\ACESim2\trunk\galaw\WpfChartUserControl\bin\Debug\WpfChartUserControl.pdb
+C:\Documents and Settings\mabramowicz\My Documents\ACESim2\trunk\galaw\WpfChartUserControl\obj\Debug\ResolveAssemblyReference.cache
+C:\Documents and Settings\mabramowicz\My Documents\ACESim2\trunk\galaw\WpfChartUserControl\obj\Debug\UserControl1.baml
+C:\Documents and Settings\mabramowicz\My Documents\ACESim2\trunk\galaw\WpfChartUserControl\obj\Debug\UserControl1.g.cs
+C:\Documents and Settings\mabramowicz\My Documents\ACESim2\trunk\galaw\WpfChartUserControl\obj\Debug\WpfChartUserControl_MarkupCompile.cache
+C:\Documents and Settings\mabramowicz\My Documents\ACESim2\trunk\galaw\WpfChartUserControl\obj\Debug\WpfChartUserControl.g.resources
+C:\Documents and Settings\mabramowicz\My Documents\ACESim2\trunk\galaw\WpfChartUserControl\obj\Debug\WpfChartUserControl.Properties.Resources.resources
+C:\Documents and Settings\mabramowicz\My Documents\ACESim2\trunk\galaw\WpfChartUserControl\obj\Debug\GenerateResource.read.1.tlog
+C:\Documents and Settings\mabramowicz\My Documents\ACESim2\trunk\galaw\WpfChartUserControl\obj\Debug\GenerateResource.write.1.tlog
+C:\Documents and Settings\mabramowicz\My Documents\ACESim2\trunk\galaw\WpfChartUserControl\obj\Debug\WpfChartUserControl.dll
+C:\Documents and Settings\mabramowicz\My Documents\ACESim2\trunk\galaw\WpfChartUserControl\obj\Debug\WpfChartUserControl.pdb
+C:\Documents and Settings\mabramowicz\My Documents\ACESim2\WpfChartUserControl\bin\Debug\WpfChartUserControl.dll
+C:\Documents and Settings\mabramowicz\My Documents\ACESim2\WpfChartUserControl\bin\Debug\WpfChartUserControl.pdb
+C:\Documents and Settings\mabramowicz\My Documents\ACESim2\WpfChartUserControl\obj\Debug\ResolveAssemblyReference.cache
+C:\Documents and Settings\mabramowicz\My Documents\ACESim2\WpfChartUserControl\obj\Debug\UserControl1.baml
+C:\Documents and Settings\mabramowicz\My Documents\ACESim2\WpfChartUserControl\obj\Debug\UserControl1.g.cs
+C:\Documents and Settings\mabramowicz\My Documents\ACESim2\WpfChartUserControl\obj\Debug\WpfChartUserControl_MarkupCompile.cache
+C:\Documents and Settings\mabramowicz\My Documents\ACESim2\WpfChartUserControl\obj\Debug\WpfChartUserControl.g.resources
+C:\Documents and Settings\mabramowicz\My Documents\ACESim2\WpfChartUserControl\obj\Debug\WpfChartUserControl.Properties.Resources.resources
+C:\Documents and Settings\mabramowicz\My Documents\ACESim2\WpfChartUserControl\obj\Debug\GenerateResource.read.1.tlog
+C:\Documents and Settings\mabramowicz\My Documents\ACESim2\WpfChartUserControl\obj\Debug\GenerateResource.write.1.tlog
+C:\Documents and Settings\mabramowicz\My Documents\ACESim2\WpfChartUserControl\obj\Debug\WpfChartUserControl.dll
+C:\Documents and Settings\mabramowicz\My Documents\ACESim2\WpfChartUserControl\obj\Debug\WpfChartUserControl.pdb
+F:\ACESim\WpfChartUserControl\bin\Debug\WpfChartUserControl.dll
+F:\ACESim\WpfChartUserControl\bin\Debug\WpfChartUserControl.pdb
+F:\ACESim\WpfChartUserControl\obj\Debug\ResolveAssemblyReference.cache
+F:\ACESim\WpfChartUserControl\obj\Debug\UserControl1.baml
+F:\ACESim\WpfChartUserControl\obj\Debug\UserControl1.g.cs
+F:\ACESim\WpfChartUserControl\obj\Debug\WpfChartUserControl_MarkupCompile.cache
+F:\ACESim\WpfChartUserControl\obj\Debug\WpfChartUserControl.g.resources
+F:\ACESim\WpfChartUserControl\obj\Debug\WpfChartUserControl.Properties.Resources.resources
+F:\ACESim\WpfChartUserControl\obj\Debug\GenerateResource.read.1.tlog
+F:\ACESim\WpfChartUserControl\obj\Debug\GenerateResource.write.1.tlog
+F:\ACESim\WpfChartUserControl\obj\Debug\WpfChartUserControl.dll
+F:\ACESim\WpfChartUserControl\obj\Debug\WpfChartUserControl.pdb
+C:\Documents and Settings\mabramowicz\My Documents\ACESimlatest\WpfChartUserControl\bin\Debug\WpfChartUserControl.dll
+C:\Documents and Settings\mabramowicz\My Documents\ACESimlatest\WpfChartUserControl\bin\Debug\WpfChartUserControl.pdb
+C:\Documents and Settings\mabramowicz\My Documents\ACESimlatest\WpfChartUserControl\obj\Debug\ResolveAssemblyReference.cache
+C:\Documents and Settings\mabramowicz\My Documents\ACESimlatest\WpfChartUserControl\obj\Debug\UserControl1.baml
+C:\Documents and Settings\mabramowicz\My Documents\ACESimlatest\WpfChartUserControl\obj\Debug\UserControl1.g.cs
+C:\Documents and Settings\mabramowicz\My Documents\ACESimlatest\WpfChartUserControl\obj\Debug\WpfChartUserControl_MarkupCompile.cache
+C:\Documents and Settings\mabramowicz\My Documents\ACESimlatest\WpfChartUserControl\obj\Debug\WpfChartUserControl.g.resources
+C:\Documents and Settings\mabramowicz\My Documents\ACESimlatest\WpfChartUserControl\obj\Debug\WpfChartUserControl.Properties.Resources.resources
+C:\Documents and Settings\mabramowicz\My Documents\ACESimlatest\WpfChartUserControl\obj\Debug\GenerateResource.read.1.tlog
+C:\Documents and Settings\mabramowicz\My Documents\ACESimlatest\WpfChartUserControl\obj\Debug\GenerateResource.write.1.tlog
+C:\Documents and Settings\mabramowicz\My Documents\ACESimlatest\WpfChartUserControl\obj\Debug\WpfChartUserControl.dll
+C:\Documents and Settings\mabramowicz\My Documents\ACESimlatest\WpfChartUserControl\obj\Debug\WpfChartUserControl.pdb
+C:\Users\Family\Documents\ACESim2\WpfChartUserControl\bin\Debug\WpfChartUserControl.dll
+C:\Users\Family\Documents\ACESim2\WpfChartUserControl\bin\Debug\WpfChartUserControl.pdb
+C:\Users\Family\Documents\ACESim2\WpfChartUserControl\obj\Debug\UserControl1.baml
+C:\Users\Family\Documents\ACESim2\WpfChartUserControl\obj\Debug\UserControl1.g.cs
+C:\Users\Family\Documents\ACESim2\WpfChartUserControl\obj\Debug\WpfChartUserControl_MarkupCompile.cache
+C:\Users\Family\Documents\ACESim2\WpfChartUserControl\obj\Debug\WpfChartUserControl.g.resources
+C:\Users\Family\Documents\ACESim2\WpfChartUserControl\obj\Debug\WpfChartUserControl.Properties.Resources.resources
+C:\Users\Family\Documents\ACESim2\WpfChartUserControl\obj\Debug\WpfChartUserControl.csproj.GenerateResource.Cache
+C:\Users\Family\Documents\ACESim2\WpfChartUserControl\obj\Debug\WpfChartUserControl.dll
+C:\Users\Family\Documents\ACESim2\WpfChartUserControl\obj\Debug\WpfChartUserControl.pdb
+C:\Users\Family\SkyDrive\Documents\ACESim2\WpfChartUserControl\bin\Debug\WpfChartUserControl.dll
+C:\Users\Family\SkyDrive\Documents\ACESim2\WpfChartUserControl\bin\Debug\WpfChartUserControl.pdb
+C:\Users\Family\SkyDrive\Documents\ACESim2\WpfChartUserControl\obj\Debug\WpfChartUserControl.csprojResolveAssemblyReference.cache
+C:\Users\Family\SkyDrive\Documents\ACESim2\WpfChartUserControl\obj\Debug\UserControl1.baml
+C:\Users\Family\SkyDrive\Documents\ACESim2\WpfChartUserControl\obj\Debug\UserControl1.g.cs
+C:\Users\Family\SkyDrive\Documents\ACESim2\WpfChartUserControl\obj\Debug\WpfChartUserControl_MarkupCompile.cache
+C:\Users\Family\SkyDrive\Documents\ACESim2\WpfChartUserControl\obj\Debug\WpfChartUserControl.g.resources
+C:\Users\Family\SkyDrive\Documents\ACESim2\WpfChartUserControl\obj\Debug\WpfChartUserControl.Properties.Resources.resources
+C:\Users\Family\SkyDrive\Documents\ACESim2\WpfChartUserControl\obj\Debug\WpfChartUserControl.csproj.GenerateResource.Cache
+C:\Users\Family\SkyDrive\Documents\ACESim2\WpfChartUserControl\obj\Debug\WpfChartUserControl.dll
+C:\Users\Family\SkyDrive\Documents\ACESim2\WpfChartUserControl\obj\Debug\WpfChartUserControl.pdb
+C:\ACESim\WpfChartUserControl\bin\Debug\WpfChartUserControl.dll
+C:\ACESim\WpfChartUserControl\bin\Debug\WpfChartUserControl.pdb
+C:\ACESim\WpfChartUserControl\obj\Debug\WpfChartUserControl.csprojResolveAssemblyReference.cache
+C:\ACESim\WpfChartUserControl\obj\Debug\UserControl1.baml
+C:\ACESim\WpfChartUserControl\obj\Debug\UserControl1.g.cs
+C:\ACESim\WpfChartUserControl\obj\Debug\WpfChartUserControl_MarkupCompile.cache
+C:\ACESim\WpfChartUserControl\obj\Debug\WpfChartUserControl.g.resources
+C:\ACESim\WpfChartUserControl\obj\Debug\WpfChartUserControl.Properties.Resources.resources
+C:\ACESim\WpfChartUserControl\obj\Debug\WpfChartUserControl.csproj.GenerateResource.Cache
+C:\ACESim\WpfChartUserControl\obj\Debug\WpfChartUserControl.dll
+C:\ACESim\WpfChartUserControl\obj\Debug\WpfChartUserControl.pdb

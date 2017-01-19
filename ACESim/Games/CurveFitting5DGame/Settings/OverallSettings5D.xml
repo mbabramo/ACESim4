@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ACESim>
+  <!--<parentSettingsFile filename="GameDefinitions5D.xml" />-->
+  <parentSettingsFile filename="GameDefinitions5DAllInputsTogether.xml" />
+  <parentSettingsFile filename="GameInputs5D.xml" />
+  <parentSettingsFile filename="../../SharedEvolutionSettings/EvolutionSettings.xml" />
+  <parentSettingsFile filename="ReportAverageScore.xml" />
+  <parentSettingsFile filename="Commands.xml" />
+</ACESim>

@@ -1,0 +1,121 @@
+﻿<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<ACESim>
+  <gameDefinitionsAll>
+    <gameDefinition name="BargainingGame2">
+      <setting name="DecisionsExecutionOrder" type="list">
+        <setting name="Decision" type="class">
+          <setting name="Name" type="text">EstimateOfSelfWithCostsPct</setting>
+          
+          <setting name="Abbreviation" type="text">estselfpct</setting>
+          <setting name="InputNames" type="list">
+            <setting name="test1" type="text">Self result proxy</setting>
+            <setting name="test1" type="text">Self noise level</setting>
+          </setting>
+          <setting name="InputAbbreviations" type="list">
+            <setting name="test1" type="text">SelfProxy</setting>
+            <setting name="test1" type="text">SelfNoiseLevel</setting>
+          </setting>
+          <setting name="StrategyBounds" type="class">
+            <setting name="LowerBound" type="double">-1.0</setting>
+            <setting name="UpperBound" type="double">2.0</setting>
+          </setting>
+          <setting name="Bipolar" type="bool">false</setting>
+          <setting name="HighestIsBest" type="bool">false</setting>
+          <setting name="MaxEvolveRepetitions" type="int">1</setting>
+          
+        </setting>
+
+        <setting name="Decision" type="class">
+          <setting name="Name" type="text">EstimateOfSelfPctErr</setting>
+          
+          <setting name="Abbreviation" type="text">estselfpct</setting>
+          <setting name="InputNames" type="list">
+            <setting name="test1" type="text">Self result proxy</setting>
+            <setting name="test1" type="text">Self noise level</setting>
+          </setting>
+          <setting name="InputAbbreviations" type="list">
+            <setting name="test1" type="text">SelfProxy</setting>
+            <setting name="test1" type="text">SelfNoiseLevel</setting>
+          </setting>
+          <setting name="StrategyBounds" type="class">
+            <setting name="LowerBound" type="double">0</setting>
+            <setting name="UpperBound" type="double">1.0</setting>
+          </setting>
+          <setting name="Bipolar" type="bool">false</setting>
+          <setting name="HighestIsBest" type="bool">false</setting>
+          <setting name="MaxEvolveRepetitions" type="int">1</setting>
+          
+        </setting>
+
+        <setting name="Decision" type="class">
+          <setting name="Name" type="text">EstimateOfOpponentsErr</setting>
+          
+          <setting name="Abbreviation" type="text">estselfpct</setting>
+          <setting name="InputNames" type="list">
+            <setting name="test1" type="text">Self result proxy</setting>
+            <setting name="test1" type="text">Opponent noise level</setting>
+          </setting>
+          <setting name="InputAbbreviations" type="list">
+            <setting name="test1" type="text">SelfProxy</setting>
+            <setting name="test1" type="text">SelfNoiseLevel</setting>
+          </setting>
+          <setting name="StrategyBounds" type="class">
+            <setting name="LowerBound" type="double">0</setting>
+            <setting name="UpperBound" type="double">1.0</setting>
+          </setting>
+          <setting name="Bipolar" type="bool">false</setting>
+          <setting name="HighestIsBest" type="bool">false</setting>
+          <setting name="MaxEvolveRepetitions" type="int">1</setting>
+          
+        </setting>
+
+        <setting name="Decision" type="class">
+          <setting name="Name" type="text">OfferToMake</setting>
+          
+          <setting name="Abbreviation" type="text">offer</setting>
+          <setting name="InputNames" type="list">
+            <setting name="test1" type="text">Self result estimate</setting>
+            <setting name="test1" type="text">Opponent result estimate</setting>
+            <setting name="test1" type="text">Self estimated error each player</setting>
+            <setting name="test1" type="text">Opponent estimated error each player</setting>
+          </setting>
+          <setting name="InputAbbreviations" type="list">
+            <setting name="test1" type="text">SelfEstimate</setting>
+            <setting name="test1" type="text">OppEstimate</setting>
+            <setting name="test1" type="text">EstError</setting>
+            <setting name="test1" type="text">OppEstError</setting>
+          </setting>
+          <setting name="StrategyBounds" type="class">
+            <setting name="LowerBound" type="double">0</setting>
+            <setting name="UpperBound" type="double">1.0</setting>
+          </setting>
+          <setting name="Bipolar" type="bool">false</setting>
+          <setting name="HighestIsBest" type="bool">true</setting>
+          <setting name="MaxEvolveRepetitions" type="int">99999</setting>
+          <setting name="PreservePreviousVersionWhenOptimizing" type="bool">true</setting>
+        </setting>
+
+        <setting name="Decision" type="class">
+          <setting name="Name" type="text">AdjustmentToAvoidOverfitting</setting>
+          
+          <setting name="Abbreviation" type="text">adjustment</setting>
+          <setting name="InputNames" type="list">
+          </setting>
+          <setting name="InputAbbreviations" type="list">
+          </setting>
+          <setting name="StrategyBounds" type="class">
+            <setting name="LowerBound" type="double">0</setting>
+            <setting name="UpperBound" type="double">0.1</setting>
+          </setting>
+          <setting name="Bipolar" type="bool">false</setting>
+          <setting name="HighestIsBest" type="bool">true</setting>
+          <setting name="MaxEvolveRepetitions" type="int">99999</setting>
+          <setting name="UseAlternativeGameInputs" type="bool">true</setting>
+        </setting>
+
+
+      </setting>
+    </gameDefinition>
+  </gameDefinitionsAll>
+</ACESim>

@@ -1,0 +1,23 @@
+﻿<ACESim>
+  <defineTemplate name="DisputeGeneratorInputs">
+    <setting name="DisputeGeneratorInputs" type="class" subclass="ExogenousDisputeGeneratorInputs" >
+      <setting name="DamagesClaim" type="double">$ExogenousDamagesMax</setting>
+      <setting name="Damages" type="distribution" subtype="uniform">
+        <setting type="double" name="fromVal">$ExogenousDamagesMin</setting>
+        <setting type="double" name="toVal">$ExogenousDamagesMax</setting>
+      </setting>
+      <setting name="BaseProbabilityPWins" type="distribution" subtype="uniform">
+        <setting type="double" name="fromVal">0.4</setting>
+        <setting type="double" name="toVal">0.6</setting>
+      </setting>
+      <setting name="ProbabilityCorrectGivenThreeQuartersAgreement" type="double">0.90</setting>
+      <setting name="ProbabilityCorrectGivenUnanimity" type="double">1.0</setting>
+      <setting name="RandSeedForDeterminingCorrectness" type="distribution" subtype="uniform">
+        <setting type="double" name="fromVal">0.0</setting>
+        <setting type="double" name="toVal">1.0</setting>
+      </setting>
+      <setting name="SocialLossWeightOnPCompensationInaccuracy" type="double">0.15</setting>
+      <setting name="SocialLossWeightOnDDeterrenceInaccuracy" type="double">0.15</setting>
+    </setting>
+  </defineTemplate>
+</ACESim>

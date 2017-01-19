@@ -1,0 +1,8 @@
+﻿<ACESim>
+  <parentSettingsFile filename="LitigationCostlessStandardInputs.xml" />
+  <parentSettingsFile filename="LitigationCostStandardReport.xml" />
+  <defineTemplate name="LitigationCostModule">
+    <setting name="LitigationCostStandardModule" type="class" subclass="LitigationCostStandardModule" codeGeneratorName="LitigationCostStandardModule" codeGeneratorOptions="" >
+    </setting>
+  </defineTemplate>
+</ACESim>

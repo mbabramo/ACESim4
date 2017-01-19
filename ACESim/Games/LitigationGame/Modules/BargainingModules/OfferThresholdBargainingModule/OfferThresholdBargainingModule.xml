@@ -1,0 +1,8 @@
+﻿<ACESim>
+  <parentSettingsFile filename="OfferThresholdBargainingInputs.xml" />
+  <parentSettingsFile filename="OfferThresholdBargainingReport.xml" />
+  <defineTemplate name="BargainingModule">
+    <setting name="OfferThresholdBargainingModule" type="class" subclass="OfferThresholdBargainingModule" codeGeneratorName="OfferThresholdBargainingModule" codeGeneratorOptions="" >
+    </setting>
+  </defineTemplate>
+</ACESim>

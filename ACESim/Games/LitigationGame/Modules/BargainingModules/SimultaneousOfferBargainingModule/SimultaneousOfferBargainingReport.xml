@@ -1,0 +1,34 @@
+﻿<ACESim>
+  <parentSettingsFile filename="../BargainingModuleReport.xml"/>
+  <defineTemplate name="BargainingModuleRowsForMainReport">
+    <insertTemplate name="BargainingModuleRowsForMainReportBase"/>
+  </defineTemplate>
+  <defineTemplate name="BargainingModuleColumnsForMainReport">
+    <insertTemplate name="BargainingModuleColumnsForMainReportBase"/>
+    <rowOrColInfo name="MostRecentBargainingDistance" variableName="MostRecentBargainingDistance" statistic="MEAN">
+    </rowOrColInfo>
+  </defineTemplate>
+  <defineTemplate name="BargainingModuleRowsForBargainingReport">
+    <insertTemplate name="BargainingModuleRowsForBargainingReportBase"/>
+  </defineTemplate>
+  <defineTemplate name="BargainingModuleColumnsForBargainingReport">
+    <insertTemplate name="BargainingModuleColumnsForBargainingReportBase"/>
+    <rowOrColInfo name="MostRecentPlaintiffOffer" variableName="MostRecentPlaintiffOffer" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="MostRecentDefendantOffer" variableName="MostRecentDefendantOffer" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="MostRecentBargainingDistance" variableName="MostRecentBargainingDistance" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="MostRecentBargainingDistanceS" variableName="MostRecentBargainingDistance" statistic="STDEV">
+    </rowOrColInfo>
+    <rowOrColInfoGenerator name="POfferList" outputVariableName="POfferList" rowOrColNamePrefix="POffer round" statistic="MEAN" reportIndexStartingAtZero="false" numberElementsInList="4">
+    </rowOrColInfoGenerator>
+    <rowOrColInfoGenerator name="DOfferList" outputVariableName="DOfferList" rowOrColNamePrefix="DOffer round" statistic="MEAN" reportIndexStartingAtZero="false" numberElementsInList="4">
+    </rowOrColInfoGenerator>
+    <rowOrColInfoGenerator name="BargainingDistanceList" outputVariableName="BargainingDistanceList" rowOrColNamePrefix="BargainingRange round" statistic="MEAN" reportIndexStartingAtZero="false" numberElementsInList="4">
+    </rowOrColInfoGenerator>
+    <rowOrColInfo name="BargainingRound" variableName="BargainingRound" statistic="MEAN">
+    </rowOrColInfo>
+    
+  </defineTemplate>
+</ACESim>

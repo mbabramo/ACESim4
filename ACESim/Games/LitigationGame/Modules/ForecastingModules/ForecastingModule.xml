@@ -1,0 +1,6 @@
+﻿<ACESim>
+  <defineTemplate name="ForecastingModule">
+    <setting name="SubclassName" type="class" subclass="SubclassName" codeGeneratorName="SubclassName" codeGeneratorOptions="cgOptions" >
+    </setting>
+  </defineTemplate>
+</ACESim>

@@ -1,0 +1,43 @@
+﻿<ACESim>
+  <defineTemplate name="BargainingInputs">
+    <setting name="BargainingInputs" type="class" subclass="SimultaneousOfferBargainingInputs" >
+      <setting name="RandomSeedForSimultaneousAcceptanceOfOtherOffers" type="distribution" subtype="uniform">
+        <setting type="double" name="fromVal">0.0</setting>
+        <setting type="double" name="toVal">1.0</setting>
+      </setting>
+      <setting name="RandomSeedToDetermineWhetherAcceptanceOfOtherOffersAllowed" type="distribution" subtype="uniform">
+        <setting type="double" name="fromVal">0.0</setting>
+        <setting type="double" name="toVal">1.0</setting>
+      </setting>
+      <setting name="ChanceLastMomentAcceptanceAllowed" type="double">$ChanceLastMomentAcceptanceAllowed</setting>
+      <setting name="PartiesTakeIntoAccountPreviousOffer" type="bool">$PartiesTakeIntoAccountPreviousOffer</setting>
+      <setting name="PartiesConsiderAccuracyOfOwnEstimates" type="bool">$PartiesConsiderAccuracyOfOwnEstimates</setting>
+      <setting name="ConsiderTasteForFairness" type="bool">$ConsiderTasteForFairness</setting>
+      <setting name="TasteForFairnessOnlySelfRegarding" type="bool">$TasteForFairnessOnlySelfRegarding</setting>
+      <setting name="PTasteForFairness" type="distribution" subtype="uniform">
+        <setting name="fromVal" type="double">$PTasteForFairnessMin</setting>
+        <setting name="toVal" type="double">$PTasteForFairnessMax</setting>
+      </setting>
+      <setting name="DTasteForFairness" type="distribution" subtype="uniform">
+        <setting name="fromVal" type="double">$DTasteForFairnessMin</setting>
+        <setting name="toVal" type="double">$DTasteForFairnessMax</setting>
+      </setting>
+      <setting name="PTasteForSettlement" type="distribution" subtype="uniform">
+        <setting name="fromVal" type="double">$PTasteForSettlementMin</setting>
+        <setting name="toVal" type="double">$PTasteForSettlementMax</setting>
+      </setting>
+      <setting name="DTasteForSettlement" type="distribution" subtype="uniform">
+        <setting name="fromVal" type="double">$DTasteForSettlementMin</setting>
+        <setting name="toVal" type="double">$DTasteForSettlementMax</setting>
+      </setting>
+      <setting name="PRegretAversion" type="distribution" subtype="uniform">
+        <setting name="fromVal" type="double">$PRegretAversionMin</setting>
+        <setting name="toVal" type="double">$PRegretAversionMax</setting>
+      </setting>
+      <setting name="DRegretAversion" type="distribution" subtype="uniform">
+        <setting name="fromVal" type="double">$DRegretAversionMin</setting>
+        <setting name="toVal" type="double">$DRegretAversionMax</setting>
+      </setting>
+    </setting>
+  </defineTemplate>
+</ACESim>

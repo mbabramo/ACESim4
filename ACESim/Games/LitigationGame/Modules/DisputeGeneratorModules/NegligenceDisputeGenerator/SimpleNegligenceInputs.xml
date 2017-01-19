@@ -1,0 +1,55 @@
+﻿<ACESim>
+  <defineTemplate name="DisputeGeneratorInputs">
+    <setting name="DisputeGeneratorInputs" type="class" subclass="NegligenceDisputeGeneratorInputs" >
+      <setting name="UndetectedCasesForEachDetectedCase" type="distribution" subtype="uniform">
+        <setting type="double" name="fromVal">0</setting>
+        <setting type="double" name="toVal">$UndetectedCasesForEachDetectedCaseMax</setting>
+      </setting>
+      <setting name="DamagesClaimMultiplier" type="distribution" subtype="uniform">
+        <setting type="double" name="fromVal">1.0</setting>
+        <setting type="double" name="toVal">1.0</setting>
+      </setting>
+      <setting name="CostOfPrecaution" type="distribution" subtype="mixture">
+        <setting type="bool" name="average">false</setting>
+        <setting name="subdistributions" type="list">
+          <setting name="LowCost" type="distribution" subtype="uniform">
+            <setting type="double" name="fromVal">0</setting>
+            <setting type="double" name="toVal">200</setting>
+          </setting>
+          <setting name="HighCost" type="distribution" subtype="uniform">
+            <setting type="double" name="fromVal">1000</setting>
+            <setting type="double" name="toVal">3000</setting>
+          </setting>
+        </setting>
+      </setting>
+      <setting name="ProbabilityInjuryWithPrecaution" type="double">
+        0.0
+      </setting>
+      <setting name="ProbabilityInjuryWithoutPrecaution" type="double" >
+        0.5
+      </setting>
+      <setting name="ProbabilityInjuryWithoutPrecautionNoise" type="distribution" subtype="normal">
+        <setting type="double" name="mean">0</setting>
+        <setting type="double" name="stdev">0.0</setting>
+      </setting>
+      <setting name="ProbabilityInjuryRandomSeed" type="distribution" subtype="uniform">
+        <setting type="double" name="fromVal">0.0</setting>
+        <setting type="double" name="toVal">1.0</setting>
+      </setting>
+      <setting name="MagnitudeOfInjury" type="distribution" subtype="uniform">
+        <setting type="double" name="fromVal">1000.0</setting>
+        <setting type="double" name="toVal">3000.0</setting>
+      </setting>
+      <setting name="BaseProbabilityLiabilityWithPrecaution" type="double">0.1</setting>
+      <setting name="BaseProbabilityLiabilityWithoutPrecautionMinimum" type="double">0.1</setting>
+      <setting name="BaseProbabilityLiabilityWithoutPrecautionMaximum" type="double">0.9</setting>
+      <setting name="BaseProbabilityLiabilityWithoutPrecautionWhenCostsAreTwiceBenefits" type="double">0.2</setting>
+      <setting name="BaseProbabilityLiabilityWithoutPrecautionWhenCostsAreHalfBenefits" type="double">0.8</setting>
+      <setting name="StrictLiability" type="bool">false</setting>
+      <setting name="RandSeedForPreEvolution" type="distribution" subtype="uniform">
+        <setting type="double" name="fromVal">0.0</setting>
+        <setting type="double" name="toVal">1.0</setting>
+      </setting>
+    </setting>
+  </defineTemplate>
+</ACESim>

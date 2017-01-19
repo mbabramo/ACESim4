@@ -1,0 +1,103 @@
+﻿<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ACESim>
+  <parentSettingsFile filename="LitigationGameSingleRunSettings.xml">
+    <defineVariable findString="$ParallelOptimization" replaceString="T" />
+    <defineVariable findString="$StopParallelOptimizationAfterOptimizingNDecisions" replaceString="-1" note="set to -1 if not stopping"/>
+    <defineVariable findString="$ParallelReporting" replaceString="T" />
+    <defineVariable findString="$UseInitializeStrategiesFile" replaceString="F" />
+    <defineVariable findString="$EvolveOnlyIfNecessary" replaceString="F" />
+    
+    <defineVariable findString="$DropOrDefaultBasedOnProbabilityCutoffOnly" replaceString="T" />
+    <!--Selecting true here means that only a single probability estimate is used to make these decisions, and the decision is zero-dimensional, so no neural network is used-->
+    <!--<defineVariable findString="$ProbabilityForecastingModule" replaceString="PerfectEstimatesModule" />-->
+    <!--<defineVariable findString="$JudgeNoiseLevelLiability" replaceString="0.00"/>-->
+    
+    <defineVariable findString="$CaseResolvedBasedOnExogenouslySpecifiedProbability" replaceString="F"/>
+    <!--<defineVariable findString="$BargainingModule" replaceString="NoBargainingBargaining" />-->
+    <defineVariable findString="$BargainingAggressivenessOverrideSetting1" replaceString="Preset" />
+    <defineVariable findString="$BargainingAggressivenessOverrideSetting2" replaceString="Skip" />
+    <!--<defineVariable findString="$BargainingAggressivenessOverrideSetting1" replaceString="Symmetric" />
+    <defineVariable findString="$BargainingAggressivenessOverrideSetting2" replaceString="Separate" />-->
+    <!--<defineVariable findString="$ProbabilityForecastingModule" replaceString="PerfectEstimatesModule" />-->
+    <!--<defineVariable findString="$BeginningDropOrDefaultModule" replaceString="NeverGiveUp"/>-->
+    <!--<defineVariable findString="$BeginningDropOrDefaultModule" replaceString="AbandonExtremes"/>-->
+    <!--<defineVariable findString="$EndDropOrDefaultModule" replaceString="AbandonExtremes"/>-->
+    <defineVariable findString="$EndDropOrDefaultModule" replaceString="NeverGiveUp"/>
+    <defineVariable findString="$BeginningDropOrDefaultModule" replaceString="DropOrDefaultChoice"/>
+    <defineVariable findString="$MidDropOrDefaultModule" replaceString="DropOrDefaultChoice"/>
+    <!--<defineVariable findString="$EndDropOrDefaultModule" replaceString="DropOrDefaultChoice"/>-->
+    <!--Plaintiff-->
+    <defineVariable findString="$PAggressivenessOverrideModifiedMin" replaceString="0" />
+    <defineVariable findString="$PAggressivenessOverrideModifiedMax" replaceString="0.1" />
+    <!--Defendant-->
+    <defineVariable findString="$DAggressivenessOverrideModifiedMin" replaceString="0" />
+    <defineVariable findString="$DAggressivenessOverrideModifiedMax" replaceString="0.1" />
+
+
+    <defineVariable findString="$NegotiateSeparatelyOverProbabilityAndMagnitude" replaceString="F" />
+    <defineVariable findString="$NegotiateProbabilityBeforeMagnitude" replaceString="T" />
+    <defineVariable findString="$BargainingClaimComponents" replaceString="1" />
+    <defineVariable findString="$PartialSettlementEnforced" replaceString="F" />
+
+    <!--<defineVariable findString="$NegotiateSeparatelyOverProbabilityAndMagnitude" replaceString="T" />
+    <defineVariable findString="$NegotiateProbabilityBeforeMagnitude" replaceString="T" />
+    <defineVariable findString="$BargainingClaimComponents" replaceString="2" />
+    <defineVariable findString="$PartialSettlementEnforced" replaceString="true" />
+    <defineVariable findString="$RejectLowProbabilitySettlements" replaceString="F" />
+    <defineVariable findString="$RejectHighProbabilitySettlements" replaceString="F" />
+    <defineVariable findString="$LowProbabilityThreshold" replaceString="0.4" />
+    <defineVariable findString="$HighProbabilityThreshold" replaceString="0.6" />-->
+
+    <defineVariable findString="$RepetitionsOfAllModules" replaceString="1" />
+    <defineVariable findString="$MinSmoothingPoints" replaceString="50" />
+    <defineVariable findString="$MaxSmoothingPoints" replaceString="50" />
+    <defineVariable findString="$MinIterations" replaceString="5,000" />
+    <defineVariable findString="$MaxIterations" replaceString="5,000" />
+
+    <defineVariable findString="$PRegretAversionMin" replaceString="0.0" />
+    <defineVariable findString="$PRegretAversionMax" replaceString="0.0" />
+    <defineVariable findString="$DRegretAversionMin" replaceString="0.0" />
+    <defineVariable findString="$DRegretAversionMax" replaceString="0.0" />
+
+    <defineVariable findString="$LitigationCostModule" replaceString="LitigationCostStandard"/>
+    <defineVariable findString="$SpecificLitigationCostSettings" replaceString="LitigationCostStandardModule"/>
+    <defineVariable findString="$CommonTrialExpensesMin" replaceString="100.0"/>
+    <defineVariable findString="$CommonTrialExpensesMax" replaceString="100.0"/>
+    <defineVariable findString="$PAdditionalTrialExpensesMin" replaceString="0.0"/>
+    <defineVariable findString="$PAdditionalTrialExpensesMax" replaceString="0.0"/>
+    <defineVariable findString="$DAdditionalTrialExpensesMin" replaceString="0.0"/>
+    <defineVariable findString="$DAdditionalTrialExpensesMax" replaceString="0.0"/>
+    <defineVariable findString="$PInvestigationExpensesIfDispute" replaceString="0.0"/>
+    <defineVariable findString="$DInvestigationExpensesIfDispute" replaceString="0.0"/>
+    <defineVariable findString="$PMarginalInvestigationExpensesAfterEachMiddleBargainingRound" replaceString="37.5"/>
+    <defineVariable findString="$DMarginalInvestigationExpensesAfterEachMiddleBargainingRound" replaceString="37.5"/>
+    <defineVariable findString="$PMarginalInvestigationExpensesAfterFirstBargainingRound" replaceString="37.5"/>
+    <defineVariable findString="$DMarginalInvestigationExpensesAfterFirstBargainingRound" replaceString="37.5"/>
+    <defineVariable findString="$PMarginalInvestigationExpensesAfterLastBargainingRound" replaceString="37.5"/>
+    <defineVariable findString="$DMarginalInvestigationExpensesAfterLastBargainingRound" replaceString="37.5"/>
+    <!--<defineVariable findString="$PMarginalInvestigationExpensesAfterEachMiddleBargainingRound" replaceString="75.0"/>
+    <defineVariable findString="$DMarginalInvestigationExpensesAfterEachMiddleBargainingRound" replaceString="75.0"/>
+    <defineVariable findString="$PMarginalInvestigationExpensesAfterFirstBargainingRound" replaceString="75.0"/>
+    <defineVariable findString="$DMarginalInvestigationExpensesAfterFirstBargainingRound" replaceString="75.0"/>
+    <defineVariable findString="$PMarginalInvestigationExpensesAfterLastBargainingRound" replaceString="75.0"/>
+    <defineVariable findString="$DMarginalInvestigationExpensesAfterLastBargainingRound" replaceString="75.0"/>-->
+    <defineVariable findString="$PSettlementFailureCostPerBargainingRound" replaceString="0.0"/>
+    <defineVariable findString="$DSettlementFailureCostPerBargainingRound" replaceString="0.0"/>
+    <defineVariable findString="$TrialTaxEachParty" replaceString="0.0"/>
+    <defineVariable findString="$TrialTaxLoser" replaceString="0.0"/>
+    <defineVariable findString="$TrialTaxDLoser" replaceString="0.0"/>
+
+    <defineVariable findString="$PNoiseLevelMin" replaceString="0.2" />
+    <defineVariable findString="$PNoiseLevelMax" replaceString="0.2" />
+    <defineVariable findString="$DNoiseLevelMin" replaceString="0.2" />
+    <defineVariable findString="$DNoiseLevelMax" replaceString="0.2" />
+    <defineVariable findString="$NoiseLevelOfPlaintiffFirstIndependentInformation" replaceString="0.1"/>
+    <defineVariable findString="$NoiseLevelOfDefendantFirstIndependentInformation" replaceString="0.1"/>
+    <defineVariable findString="$NoiseLevelOfPlaintiffIndependentInformation" replaceString="0.2"/>
+    <defineVariable findString="$NoiseLevelOfDefendantIndependentInformation" replaceString="0.2"/>
+
+    <defineVariable findString="$BargainingRepetitions" replaceString="1" />
+    
+    <defineVariable findString="$RepetitionsOfEntireSmoothingProcess" replaceString="2" />
+  </parentSettingsFile>
+</ACESim>

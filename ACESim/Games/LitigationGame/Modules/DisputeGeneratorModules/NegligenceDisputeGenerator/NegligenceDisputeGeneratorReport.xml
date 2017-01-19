@@ -1,0 +1,117 @@
+﻿<ACESim>
+  <parentSettingsFile filename="../DisputeGeneratorReport.xml"/>
+  <defineTemplate name="DisputeGeneratorModuleRowsForMainReport">
+    <insertTemplate name="DisputeGeneratorModuleRowsForMainReportBase" />
+    <rowOrColInfo name="Defendant takes precaution">
+      <filter varType="bool">
+        <variableName>TakePrecaution</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="Defendant no precaution">
+      <filter varType="bool">
+        <variableName>TakePrecaution</variableName>
+        <operation>EQ</operation>
+        <value>false</value>
+      </filter>
+    </rowOrColInfo>
+
+    <rowOrColInfo name="C LT B but no precaution">
+      <filter varType="bool">
+        <variableName>TakePrecaution</variableName>
+        <operation>EQ</operation>
+        <value>false</value>
+      </filter>
+      <filter varType="double">
+        <variableName>CostBenefitRatio</variableName>
+        <operation>LT</operation>
+        <value>1.0</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="C LT B but no precaution injury occurs">
+      <filter varType="bool">
+        <variableName>TakePrecaution</variableName>
+        <operation>EQ</operation>
+        <value>false</value>
+      </filter>
+      <filter varType="double">
+        <variableName>CostBenefitRatio</variableName>
+        <operation>LT</operation>
+        <value>1.0</value>
+      </filter>
+      <filter varType="bool">
+        <variableName>DisputeExists</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="C GT B">
+      <filter varType="double">
+        <variableName>CostBenefitRatio</variableName>
+        <operation>GT</operation>
+        <value>1.0</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="C LT B">
+      <filter varType="double">
+        <variableName>CostBenefitRatio</variableName>
+        <operation>LT</operation>
+        <value>1.0</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="High C/B ratio">
+      <filter varType="double">
+        <variableName>CostBenefitRatio</variableName>
+        <operation>GT</operation>
+        <value>2.0</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="Low C/B ratio">
+      <filter varType="double">
+        <variableName>CostBenefitRatio</variableName>
+        <operation>LT</operation>
+        <value>0.3</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="Small injuries">
+      <filter varType="double">
+        <variableName>MagnitudeOfInjury</variableName>
+        <operation>LT</operation>
+        <value>100.0</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="Large injuries">
+      <filter varType="double">
+        <variableName>MagnitudeOfInjury</variableName>
+        <operation>GT</operation>
+        <value>1900.0</value>
+      </filter>
+    </rowOrColInfo>
+  </defineTemplate>
+  <defineTemplate name="DisputeGeneratorModuleColumnsForMainReport">
+    <insertTemplate name="DisputeGeneratorModuleColumnsForMainReportBase" />
+
+    <rowOrColInfo name="C GT B">
+      <filter varType="double">
+        <variableName>CostBenefitRatio</variableName>
+        <operation>GT</operation>
+        <value>1.0</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="C LT B">
+      <filter varType="double">
+        <variableName>CostBenefitRatio</variableName>
+        <operation>LT</operation>
+        <value>1.0</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="PrecautionPct" variableName="DummyVariable" statistic="PercentOfCasesFilteredOpposite">
+      <filter varType="bool">
+        <variableName>TakePrecaution</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+    </rowOrColInfo>
+  </defineTemplate>
+</ACESim>

@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ACESim>
+  <parentSettingsFile filename="LitigationGameSingleRunSettings.xml">
+    <defineVariable findString="$MinSmoothingPoints" replaceString="1000" />
+    <defineVariable findString="$MaxSmoothingPoints" replaceString="1000" />
+    <defineVariable findString="$MinIterations" replaceString="500,000" />
+    <defineVariable findString="$MaxIterations" replaceString="500,000" />
+
+    <defineVariable findString="$JudgeNoiseLevelLiability" replaceString="0.20"/>
+    <defineVariable findString="$JudgeNoiseLevelDamages" replaceString="0.0"/>
+    <defineVariable findString="$BiasAffectingJudgeMean" replaceString="0.0" />
+    <defineVariable findString="$BiasAffectingJudgeStdev" replaceString="0.0" />
+    <defineVariable findString="$BiasAffectingEntireLegalSystemStdev" replaceString="0.0" />
+    
+    <defineVariable findString="$PRegretAversionMin" replaceString="0.0" />
+    <defineVariable findString="$PRegretAversionMax" replaceString="0.0" />
+    <defineVariable findString="$DRegretAversionMin" replaceString="0.0" />
+    <defineVariable findString="$DRegretAversionMax" replaceString="0.0" />
+
+    <defineVariable findString="$PNoiseLevelMin" replaceString="0.05" />
+    <defineVariable findString="$PNoiseLevelMax" replaceString="0.05" />
+    <defineVariable findString="$DNoiseLevelMin" replaceString="0.05" />
+    <defineVariable findString="$DNoiseLevelMax" replaceString="0.05" />
+
+    <!--Use this approach to illustrate the symmetric equilibrium only-->
+    <!--<defineVariable findString="$BargainingAggressivenessOverrideSetting1" replaceString="Skip"/>
+    <defineVariable findString="$BargainingAggressivenessOverrideSetting2" replaceString="Symmetric"/>
+    <defineVariable findString="$MisestimateOpponentsAggressivenessWhenOptimizing" replaceString="false"/>
+    <defineVariable findString="$AssumedAggressivenessOfOpponent" replaceString="0.0"/>
+    <defineVariable findString="$WeightOnAggressivenessAssumption" replaceString="0.0"/>-->
+
+    <!--Use the following approach to illustrate the symmetric equilibrium followed by optimization taking into account available information-->
+    <defineVariable findString="$BargainingAggressivenessOverrideSetting1" replaceString="Symmetric"/>
+    <defineVariable findString="$BargainingAggressivenessOverrideSetting2" replaceString="Separate"/>
+    <defineVariable findString="$MisestimateOpponentsAggressivenessWhenOptimizing" replaceString="false"/>
+    <defineVariable findString="$AssumedAggressivenessOfOpponent" replaceString="0.0"/>
+    <defineVariable findString="$WeightOnAggressivenessAssumption" replaceString="0.0"/>
+    <defineVariable findString="$BargainingAggressivenessFindEquilibriumUseComplexMethod" replaceString="false"/>
+    <defineVariable findString="$BargainingAggressivenessFindEquilibriumUseSimpleMethod" replaceString="true"/>
+    <defineVariable findString="$BargainingAggressivenessFindEquilibriumSimpleMethodRepetitions" replaceString="200"/>
+    <defineVariable findString="$BargainingAggressivenessFindEquilibriumSimpleMethodUseFastConvergence" replaceString="true"/>
+    <defineVariable findString="$BargainingAggressivenessFindEquilibriumSimpleMethodAbortFastConvergenceIfPreciseEnough" replaceString="false"/>
+    <defineVariable findString="$BargainingAggressivenessFindEquilibriumSimpleMethodFastConvergencePrecision" replaceString="0.0025"/>
+    <defineVariable findString="$BargainingAggressivenessFindEquilibriumSimpleMethodIterationsOverride" replaceString="25000"/>
+    <defineVariable findString="$BargainingAggressivenessFindEquilibriumSimpleMethodCreateMovie" replaceString="true"/>
+  </parentSettingsFile>
+</ACESim>

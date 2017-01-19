@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ACESim>
+  <defineTemplate name="AdjustmentsModuleInputs$AdjustModNumber">
+    <setting name="AdjustmentsModuleInputs" type="class" subclass="SideBetAdjustmentsModuleInputs" >
+      <setting name="PctOfDamagesClaimChallengedPartyWouldReceive" type="double">
+        $PctOfDamagesClaimChallengedPartyWouldReceive
+      </setting>
+      <setting name="PctOfDamagesChallengerWouldReceive" type="double">
+        $PctOfDamagesChallengerWouldReceive
+      </setting>
+      <setting name="DoubleChallengeCountsAsSingleChallenge" type="bool">
+        $DoubleChallengeCountsAsSingleChallenge
+      </setting>
+    </setting>
+  </defineTemplate>
+</ACESim>

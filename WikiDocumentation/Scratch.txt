@@ -1,0 +1,66 @@
+
+
+    <!-- <xsl:template match="member" mode="Property">
+         <xsl:param name="className"/>
+         
+         <xsl:variable name="name" select="substring-after(@name, concat($className, '.'))"/>
+         <xsl:value-of select="concat(&quot; '''&quot;, $name, &quot;''':: &quot;)"/>
+         
+         <xsl:if test="summary">
+             <xsl:apply-templates select="summary" mode="Summary"/>
+             <xsl:value-of select="$newline"/>
+         </xsl:if>
+         
+         <xsl:if test="remarks">
+             <xsl:apply-templates select="remarks" mode="Remarks"/>
+             <xsl:value-of select="$newline"/>
+         </xsl:if>
+     </xsl:template>
+
+     <xsl:template match="member" mode="Method">
+         <xsl:param name="className"/>
+         <xsl:variable name="name" select="substring-after(@name, concat($className, '.'))"/>
+         
+         <xsl:variable name="type">
+             <xsl:if test="returns/@cref">
+                 <xsl:value-of select="concat(' as ', substring-after(returns/@cref,'T:'))"/>
+             </xsl:if>
+         </xsl:variable>
+
+         <xsl:value-of select="concat(&quot; '''&quot;, $name, &quot;'''&quot;, $type, ':: ')"/>
+         
+         <xsl:if test="summary">
+             <xsl:apply-templates select="summary/* | summary/text()" mode="Text"/>
+             <xsl:value-of select="$newline"/>
+         </xsl:if>
+         
+         <xsl:if test="remarks">
+             <xsl:value-of select="'Remarks: '"/>
+             <xsl:apply-templates select="remarks/* | remarks/text()" mode="Text"/>
+             <xsl:value-of select="$newline"/>
+         </xsl:if>
+         
+         <xsl:if test="param">
+             <xsl:apply-templates select="param" mode="Text"/>
+         </xsl:if>
+         
+         <xsl:if test="returns">
+             <xsl:value-of select="'Returns: '"/>
+             <xsl:apply-templates select="returns/* | returns/text()" mode="Text"/>
+         </xsl:if>
+         
+         <xsl:if test="exception">
+             <xsl:apply-templates select="exception" mode="Text"/>
+         </xsl:if>
+     </xsl:template> -->
+    
+    <!-- <xsl:template match="summary" mode="Summary">
+        <xsl:value-of select="* | text()" mode="Text"/>
+        <xsl:value-of select="$newline"/>
+    </xsl:template> -->
+    
+    <!-- <xsl:template match="returns" mode="Returns">
+        <xsl:variable name="normalizedText" select="normalize-space(text())"/>
+        <xsl:value-of select="concat(' * Returns:', $normalizedText)"/>
+        <xsl:value-of select="$newline"/>
+    </xsl:template> -->

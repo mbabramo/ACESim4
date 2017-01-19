@@ -1,0 +1,27 @@
+
+<ACESim>
+  <commandSetsAll>
+    <commandSet name="EvolveMyGameStrategies">
+      <multipartCommand name="EvolveMyGameStrategies" gameInputsName="MyGameInputs">
+        <!--InitializeStrategiesFile="PreevolvedStrategy"-->
+        <evolveCommand
+                    evolutionSettingsName="SimpleEvolution"
+                    storeStrategiesFile="MyGameStrategies"
+                    initializeStrategiesFile="MyGameStrategies"
+                    useInitializeStrategiesFile="false"
+                    evolveOnlyIfNecessary="false" />
+        <playCommand numberIterations="100" StoreStrategiesFile="MyGameStrategies" storeIterationResultsFile="MyGameIterations" parallelReporting="true" savePlayedGamesInMemoryOnly="false">
+          <changeSimulationSettings>
+          </changeSimulationSettings>
+        </playCommand>
+        <reportCommand name="MyGameReportCommand" storeIterationResultsFile="MyGameIterations" storeReportResultsFile="MyGameReport">
+          <rowsGroup name="MyGameRows"></rowsGroup>
+          <colsGroup name="MyGameColumns"></colsGroup>
+        </reportCommand>
+      </multipartCommand>
+    </commandSet>
+  </commandSetsAll>
+  <executeCommandList>
+    <executeCommandSet name="EvolveMyGameStrategies"/>
+  </executeCommandList>
+</ACESim>

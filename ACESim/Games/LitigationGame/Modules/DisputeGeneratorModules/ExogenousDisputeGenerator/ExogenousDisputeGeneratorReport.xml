@@ -1,0 +1,9 @@
+﻿<ACESim>
+  <parentSettingsFile filename="../DisputeGeneratorReport.xml"/>
+  <defineTemplate name="DisputeGeneratorModuleRowsForMainReport">
+    <insertTemplate name="DisputeGeneratorModuleRowsForMainReportBase" />
+  </defineTemplate>
+  <defineTemplate name="DisputeGeneratorModuleColumnsForMainReport">
+    <insertTemplate name="DisputeGeneratorModuleColumnsForMainReportBase" />
+  </defineTemplate>
+</ACESim>

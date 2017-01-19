@@ -1,0 +1,7 @@
+﻿<ACESim>
+  <defineTemplate name="LogRiskAverseUtilityMaximizer">
+    <setting name="Individual" type="class" subclass="LogRiskAverseUtilityMaximizer">
+      <setting name="InitialWealth" type="double">InitialWealthValue</setting>
+    </setting>
+  </defineTemplate>
+</ACESim>

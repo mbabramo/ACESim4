@@ -1,0 +1,8 @@
+﻿<ACESim>
+  <parentSettingsFile filename="SimultaneousOfferBargainingInputs.xml" />
+  <parentSettingsFile filename="SimultaneousOfferBargainingReport.xml" />
+  <defineTemplate name="BargainingModule">
+    <setting name="SimultaneousOfferBargainingModule" type="class" subclass="SimultaneousOfferBargainingModule" codeGeneratorName="SimultaneousOfferBargainingModule" codeGeneratorOptions="AddOptionToAcceptOthersOfferWhenNoOverlap: $AddOptionToAcceptOthersOfferWhenNoOverlap" >
+    </setting>
+  </defineTemplate>
+</ACESim>

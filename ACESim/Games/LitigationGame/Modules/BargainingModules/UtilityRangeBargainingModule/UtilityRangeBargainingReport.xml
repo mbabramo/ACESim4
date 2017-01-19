@@ -1,0 +1,82 @@
+﻿<ACESim>
+  <parentSettingsFile filename="../BargainingModuleReport.xml"/>
+  <defineTemplate name="BargainingModuleRowsForMainReport">
+    <insertTemplate name="BargainingModuleRowsForMainReportBase"/>
+  </defineTemplate>
+  <defineTemplate name="BargainingModuleColumnsForMainReport">
+    <insertTemplate name="BargainingModuleColumnsForMainReportBase"/>
+    <rowOrColInfo name="MostRecentBargainingDistance" variableName="MostRecentBargainingDistance" statistic="MEAN">
+    </rowOrColInfo>
+  </defineTemplate>
+  <defineTemplate name="BargainingModuleRowsForBargainingReport">
+    <insertTemplate name="BargainingModuleRowsForBargainingReportBase"/>
+  </defineTemplate>
+  <defineTemplate name="BargainingModuleColumnsForBargainingReport">
+    <insertTemplate name="BargainingModuleColumnsForBargainingReportBase"/>
+    <rowOrColInfo name="BargainingCount" variableName="MostRecentPlaintiffOffer" statistic="COUNT">
+    </rowOrColInfo>
+    <rowOrColInfo name="MostRecentPlaintiffOffer" variableName="MostRecentPlaintiffOffer" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="MostRecentDefendantOffer" variableName="MostRecentDefendantOffer" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="PAggressivenessOverride" variableName="PAggressivenessOverride" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="DAggressivenessOverride" variableName="DAggressivenessOverride" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="MostRecentBargainingDistance" variableName="MostRecentBargainingDistance" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="MostRecentBargainingDistanceS" variableName="MostRecentBargainingDistance" statistic="STDEV">
+    </rowOrColInfo>
+    <rowOrColInfo name="MostRecentPProjectionOfPUtilityDelta" variableName="MostRecentPlaintiffProjectionOfPUtilityDeltaIfBargainingIsBlocked" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="MostRecentPProjectionOfDUtilityDelta" variableName="MostRecentPlaintiffProjectionOfDUtilityDeltaIfBargainingIsBlocked" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="MostRecentDProjectionOfPUtilityDelta" variableName="MostRecentDefendantProjectionOfPUtilityDeltaIfBargainingIsBlocked" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="MostRecentDProjectionOfDUtilityDelta" variableName="MostRecentDefendantProjectionOfDUtilityDeltaIfBargainingIsBlocked" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="MostRecentPProjectionOfPEquivalentWealthDelta" variableName="MostRecentPlaintiffProjectionOfPEquivalentWealthDeltaIfBargainingIsBlocked" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="MostRecentPProjectionOfDEquivalentWealthDelta" variableName="MostRecentPlaintiffProjectionOfDEquivalentWealthDeltaIfBargainingIsBlocked" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="MostRecentDProjectionOfPEquivalentWealthDelta" variableName="MostRecentDefendantProjectionOfPEquivalentWealthDeltaIfBargainingIsBlocked" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="MostRecentDProjectionOfDEquivalentWealthDelta" variableName="MostRecentDefendantProjectionOfDEquivalentWealthDeltaIfBargainingIsBlocked" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="NEVForPPct" variableName="DummyVariable" statistic="PercentOfCasesFilteredOpposite">
+      <filter varType="bool">
+        <variableName>NEVForP</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="NEVForDPct" variableName="DummyVariable" statistic="PercentOfCasesFilteredOpposite">
+      <filter varType="bool">
+        <variableName>NEVForD</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="ChangeInPlaintiffOffer" variableName="ChangeInPlaintiffOffer" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="ChangeInDefendantOffer" variableName="ChangeInDefendantOffer" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="MostRecentDPerceivedBargainingRange" variableName="MostRecentDPerceivedBargainingRange" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="MostRecentPPerceivedBargainingRange" variableName="MostRecentPPerceivedBargainingRange" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfoGenerator name="POfferList" outputVariableName="POfferList" rowOrColNamePrefix="POffer round" statistic="MEAN" reportIndexStartingAtZero="false" numberElementsInList="4">
+    </rowOrColInfoGenerator>
+    <rowOrColInfoGenerator name="DOfferList" outputVariableName="DOfferList" rowOrColNamePrefix="DOffer round" statistic="MEAN" reportIndexStartingAtZero="false" numberElementsInList="4">
+    </rowOrColInfoGenerator>
+    <rowOrColInfoGenerator name="BargainingDistanceList" outputVariableName="BargainingDistanceList" rowOrColNamePrefix="BargainingRange round" statistic="MEAN" reportIndexStartingAtZero="false" numberElementsInList="4">
+    </rowOrColInfoGenerator>
+    <rowOrColInfoGenerator name="PPerceivedBargainingRangeList" outputVariableName="PPerceivedBargainingRangeList" rowOrColNamePrefix="PPerceivedBargainingRange round" statistic="MEAN" reportIndexStartingAtZero="false" numberElementsInList="4">
+    </rowOrColInfoGenerator>
+    <rowOrColInfoGenerator name="DPerceivedBargainingRangeList" outputVariableName="DPerceivedBargainingRangeList" rowOrColNamePrefix="DPerceivedBargainingRange round" statistic="MEAN" reportIndexStartingAtZero="false" numberElementsInList="4">
+    </rowOrColInfoGenerator>
+    
+    <rowOrColInfo name="BargainingRound" variableName="BargainingRound" statistic="MEAN">
+    </rowOrColInfo>
+  </defineTemplate>
+</ACESim>

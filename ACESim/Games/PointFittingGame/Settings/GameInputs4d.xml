@@ -1,0 +1,118 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ACESim>
+    
+    <gameInputsAll>
+        <gameInputs name="PointFittingGameInputs" gameName="PointFittingGame">
+            <setting name="Points" type="list">
+                <setting name="Point 1" type="list">
+                    <setting name="Dimension 1" type="double">
+                        0.0
+                    </setting>
+                    <setting name="Dimension 2" type="double">
+                        1.0
+                    </setting>
+                    <setting name="Dimension 3" type="double">
+                        254.0
+                    </setting>
+                    <setting name="Dimension 4" type="double">
+                        3.0
+                    </setting>
+                    <setting name="Target" type="double">
+                        4.0
+                    </setting>
+                </setting>
+                <setting name="Point 2" type="list">
+                    <setting name="Dimension 1" type="double">
+                        0.0
+                    </setting>
+                    <setting name="Dimension 2" type="double">
+                        1.0
+                    </setting>
+                    <setting name="Dimension 3" type="double">
+                        106.0
+                    </setting>
+                    <setting name="Dimension 4" type="double">
+                        4.0
+                    </setting>
+                    <setting name="Target" type="double">
+                        5.0
+                    </setting>
+                </setting>
+                <setting name="Point 3" type="list">
+                    <setting name="Dimension 1" type="double">
+                        0.0
+                    </setting>
+                    <setting name="Dimension 2" type="double">
+                        1.0
+                    </setting>
+                    <setting name="Dimension 3" type="double">
+                        912.0
+                    </setting>
+                    <setting name="Dimension 4" type="double">
+                        3.0
+                    </setting>
+                    <setting name="Target" type="double">
+                        6.0
+                    </setting>
+                </setting>
+                <setting name="Point 4" type="list">
+                    <setting name="Dimension 1" type="double">
+                        0.0
+                    </setting>
+                    <setting name="Dimension 2" type="double">
+                        1.0
+                    </setting>
+                    <setting name="Dimension 3" type="double">
+                        553.0
+                    </setting>
+                    <setting name="Dimension 4" type="double">
+                        6.0
+                    </setting>
+                    <setting name="Target" type="double">
+                        7.0
+                    </setting>
+                </setting>
+                <setting name="Point 5" type="list">
+                  <setting name="Dimension 1" type="double">
+                    4.0
+                  </setting>
+                  <setting name="Dimension 2" type="double">
+                    2.0
+                  </setting>
+                  <setting name="Dimension 3" type="double">
+                    312.0
+                  </setting>
+                  <setting name="Dimension 4" type="double">
+                    1.0
+                  </setting>
+                  <setting name="Target" type="double">
+                    12.0
+                  </setting>
+                </setting>
+            </setting>
+            <setting name="Obfuscations" type="list">
+                <setting name="Obfuscation 1" type="distribution" subtype="normal">
+                    <setting type="double" name="mean">0.0</setting>
+                    <setting type="double" name="stdev">2.0</setting>
+                </setting>
+                <setting name="Obfuscation 2" type="distribution" subtype="normal">
+                    <setting type="double" name="mean">0.0</setting>
+                    <setting type="double" name="stdev">2.0</setting>
+                </setting>
+                <setting name="Obfuscation 3" type="distribution" subtype="normal">
+                    <setting type="double" name="mean">0.0</setting>
+                    <setting type="double" name="stdev">2.0</setting>
+                </setting>
+                <setting name="Obfuscation 4" type="distribution" subtype="normal">
+                    <setting type="double" name="mean">0.0</setting>
+                    <setting type="double" name="stdev">2.0</setting>
+                </setting>
+              <setting name="Obfuscation 5" type="distribution" subtype="normal">
+                <setting type="double" name="mean">0.0</setting>
+                <setting type="double" name="stdev">2.0</setting>
+              </setting>
+            </setting>
+        </gameInputs>
+    </gameInputsAll>
+    
+</ACESim>

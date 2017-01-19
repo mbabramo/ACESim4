@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ACESim>
+  <parentSettingsFile filename="../../SharedEvolutionSettings/EvolutionSettings.xml" />
+  <evolutionSettingsAll>
+    <evolutionSettings name="SimpleEvolution">
+      <setting name="RepetitionsOfEntireSmoothingProcess" type="int">5</setting>
+      <setting name="NumberPointsInCumulativeDistribution" type="int">51</setting>
+    </evolutionSettings>
+  </evolutionSettingsAll>
+</ACESim>

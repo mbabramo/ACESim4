@@ -1,0 +1,28 @@
+﻿<ACESim>
+  <commandSetsAll>
+    <commandSet name="L">
+      <multipartCommand name="L" gameInputsName="LitigationGameInputs">
+        <!--InitializeStrategiesFile="PreevolvedStrategy"-->
+        <evolveCommand
+                    evolutionSettingsName="SimpleEvolution"
+                    storeStrategiesFile="LitigationGameStrategies"
+                    initializeStrategiesFile="LitigationGameStrategies"
+                    useInitializeStrategiesFile="$UseInitializeStrategiesFile"
+                    evolveOnlyIfNecessary="$EvolveOnlyIfNecessary"
+                    />
+        <playCommand numberIterations="10000"  StoreStrategiesFile="LitigationGameStrategies" storeIterationResultsFile="LitigationGameIterations" parallelReporting="$ParallelReporting" savePlayedGamesInMemoryOnly="true">
+          <changeSimulationSettings>
+          </changeSimulationSettings>
+        </playCommand>
+        <reportCommand name="LitigationGameReportCommand" storeIterationResultsFile="LitigationGameIterations" storeReportResultsFile="$ReportPrefix SimpleRprt" parallelReporting="$ParallelReporting">
+          <rowsGroup name="LitigationGameRows"></rowsGroup>
+          <colsGroup name="LitigationGameColumns"></colsGroup>
+          <!--<colsGroup name="LitigationGameColumnsMini"></colsGroup>-->
+        </reportCommand>
+      </multipartCommand>
+    </commandSet>
+  </commandSetsAll>
+  <executeCommandList>
+    <executeCommandSet name="L"/>
+  </executeCommandList>
+</ACESim>

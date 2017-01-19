@@ -1,0 +1,8 @@
+﻿<ACESim>
+  <parentSettingsFile filename="DropOrDefaultChoiceInputs.xml" />
+  <parentSettingsFile filename="DropOrDefaultChoiceReport.xml" />
+  <defineTemplate name="$DropOrDefaultPointDropOrDefaultModule">
+    <setting name="DropOrDefaultChoiceModule" type="class" subclass="DropOrDefaultChoiceModule" codeGeneratorName="DropOrDefaultChoiceModule" codeGeneratorOptions="DropOrDefaultPoint: $DropOrDefaultPoint; DropOrDefaultBasedOnProbabilityCutoffOnly: $DropOrDefaultBasedOnProbabilityCutoffOnly" >
+    </setting>
+  </defineTemplate>
+</ACESim>

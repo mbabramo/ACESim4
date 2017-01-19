@@ -1,0 +1,6 @@
+﻿<ACESim>
+  <defineTemplate name="DummyModule$DummyModuleName">
+    <setting name="DummyModule" type="class" subclass="DummyModule" codeGeneratorName="DummyModule" codeGeneratorOptions="$DummyModuleName" >
+    </setting>
+  </defineTemplate>
+</ACESim>

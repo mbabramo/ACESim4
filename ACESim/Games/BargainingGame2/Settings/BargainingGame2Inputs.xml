@@ -1,0 +1,81 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+
+<ACESim>
+    <gameInputsAll>
+      <gameInputs name="BargainingGame2Inputs" gameName="BargainingGame2">
+        <setting name="selfPctOfPie" type="distribution" subtype="uniform">
+          <setting type="double" name="fromVal">0.0</setting>
+          <setting type="double" name="toVal">1.0</setting>
+        </setting>
+        <setting name="selfFailCost" type="distribution" subtype="uniform">
+          <setting type="double" name="fromVal">0.0</setting>
+          <setting type="double" name="toVal">0.5</setting>
+        </setting>
+        <setting name="oppFailCost" type="distribution" subtype="uniform">
+          <setting type="double" name="fromVal">0.0</setting>
+          <setting type="double" name="toVal">0.5</setting>
+        </setting>
+        <setting name="selfNoiseLevel" type="distribution" subtype="mixture">
+          <setting type="bool" name="average">false</setting>
+          <setting name="subdistributions" type="list">
+            <setting name="veryLowNoise" type="distribution" subtype="uniform">
+              <setting type="double" name="fromVal">0.0</setting>
+              <setting type="double" name="toVal">0.01</setting>
+            </setting>
+            <setting name="lowNoise" type="distribution" subtype="uniform">
+              <setting type="double" name="fromVal">0.0</setting>
+              <setting type="double" name="toVal">0.05</setting>
+            </setting>
+            <setting name="highNoise" type="distribution" subtype="uniform">
+              <setting type="double" name="fromVal">0.0</setting>
+              <setting type="double" name="toVal">0.25</setting>
+            </setting>
+            <setting name="veryHighNoise" type="distribution" subtype="uniform">
+              <setting type="double" name="fromVal">0.0</setting>
+              <setting type="double" name="toVal">1.00</setting>
+            </setting>
+          </setting>
+        </setting>
+        <!--<setting name="selfNoiseLevel" type="distribution" subtype="uniform">
+          <setting type="double" name="fromVal">0.0</setting>
+          <setting type="double" name="toVal">0.2</setting>
+        </setting>
+        <setting name="oppNoiseLevel" type="distribution" subtype="uniform">
+          <setting type="double" name="fromVal">0.0</setting>
+          <setting type="double" name="toVal">0.2</setting> 
+        </setting>-->
+        <setting name="oppNoiseLevel" type="distribution" subtype="mixture">
+          <setting type="bool" name="average">false</setting>
+          <setting name="subdistributions" type="list">
+            <setting name="veryLowNoise" type="distribution" subtype="uniform">
+              <setting type="double" name="fromVal">0.0</setting>
+              <setting type="double" name="toVal">0.01</setting>
+            </setting>
+            <setting name="lowNoise" type="distribution" subtype="uniform">
+              <setting type="double" name="fromVal">0.0</setting>
+              <setting type="double" name="toVal">0.02</setting>
+            </setting>
+            <setting name="highNoise" type="distribution" subtype="uniform">
+              <setting type="double" name="fromVal">0.0</setting>
+              <setting type="double" name="toVal">0.25</setting>
+            </setting>
+            <setting name="veryHighNoise" type="distribution" subtype="uniform">
+              <setting type="double" name="fromVal">0.0</setting>
+              <setting type="double" name="toVal">1.0</setting>
+            </setting>
+          </setting>
+        </setting>
+        <setting name="selfNoiseRealized" type="distribution" subtype="normal">
+          <setting type="double" name="mean">0.0</setting>
+          <setting type="variableFromSetting" name="stdev">selfNoiseLevel</setting>
+        </setting>
+        <setting name="oppNoiseRealized" type="distribution" subtype="normal">
+          <setting type="double" name="mean">0.0</setting>
+          <setting type="variableFromSetting" name="stdev">oppNoiseLevel</setting>
+        </setting>
+        <!--<setting name="deobfuscator" type="strategy" filename="../../ObfuscationGame/Strategies/ObfuscationGameStrategies" decisionNum="1">
+        </setting>-->
+      </gameInputs>
+    </gameInputsAll>
+    
+</ACESim>

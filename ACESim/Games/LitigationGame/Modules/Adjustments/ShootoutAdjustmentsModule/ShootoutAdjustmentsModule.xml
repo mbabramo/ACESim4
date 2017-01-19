@@ -1,0 +1,7 @@
+﻿<ACESim>
+  <parentSettingsFile filename="ShootoutAdjustmentsModuleInputs.xml" />
+  <defineTemplate name="AdjustmentsModule$AdjustModNumber">">
+    <setting name="ShootoutAdjustmentsModule" type="class" subclass="ShootoutAdjustmentsModule" codeGeneratorName="ShootoutAdjustmentsModule" codeGeneratorOptions="AdjustmentsFindEquilibriumUseComplexMethod: $AdjustmentsFindEquilibriumUseComplexMethod; AdjustmentsFindEquilibriumUseSimpleMethod: $AdjustmentsFindEquilibriumUseSimpleMethod; AdjustmentsFindEquilibriumSimpleMethodRepetitions: $AdjustmentsFindEquilibriumSimpleMethodRepetitions; AdjustModNumber: $AdjustModNumber" >
+    </setting>
+  </defineTemplate>
+</ACESim>

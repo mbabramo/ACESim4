@@ -1,0 +1,36 @@
+
+<ACESim>
+  <commandSetsAll>
+    <commandSet name="EvolveBargainingGame2Strategies">
+      <multipartCommand name="EvolveBargainingGame2Strategies" gameInputsName="BargainingGame2Inputs">
+        <!--InitializeStrategiesFile="PreevolvedStrategy"-->
+        <evolveCommand
+                    evolutionSettingsName="SimpleEvolution"
+                    storeStrategiesFile="BargainingGame2Strategies"
+                    initializeStrategiesFile="BargainingGame2Strategies"
+                    useInitializeStrategiesFile="false"
+                    evolveOnlyIfNecessary="false" />
+        <!--InitializeStrategiesFile="BargainingGame2Strategies"-->
+        <playCommand numberIterations="50000"  StoreStrategiesFile="BargainingGame2Strategies" storeIterationResultsFile="BargainingGame2Iterations" parallelReporting="true" savePlayedGamesInMemoryOnly="false">
+          <changeSimulationSettings>
+          </changeSimulationSettings>
+        </playCommand>
+        <reportCommand name="BargainingGame2ReportCommandNoiseLevel" storeIterationResultsFile="BargainingGame2Iterations" storeReportResultsFile="BargainingGame2ReportCommandNoiseLevel">
+          <rowsGroup name="BargainingGame2Rows"></rowsGroup>
+          <colsGroup name="BargainingGame2ColumnsNoiseLevel"></colsGroup>
+        </reportCommand>
+        <reportCommand name="BargainingGame2ReportCommandPlayerEstimates" storeIterationResultsFile="BargainingGame2Iterations" storeReportResultsFile="BargainingGame2ReportCommandPlayerEstimates">
+          <rowsGroup name="BargainingGame2Rows"></rowsGroup>
+          <colsGroup name="BargainingGame2ColumnsPlayerEstimates"></colsGroup>
+        </reportCommand>
+        <reportCommand name="BargainingGame2ReportCommandMain" storeIterationResultsFile="BargainingGame2Iterations" storeReportResultsFile="BargainingGame2ReportCommandMain">
+          <rowsGroup name="BargainingGame2Rows"></rowsGroup>
+          <colsGroup name="BargainingGame2ColumnsMain"></colsGroup>
+        </reportCommand>
+      </multipartCommand>
+    </commandSet>
+  </commandSetsAll>
+  <executeCommandList>
+    <executeCommandSet name="EvolveBargainingGame2Strategies"/>
+  </executeCommandList>
+</ACESim>

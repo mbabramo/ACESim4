@@ -1,0 +1,99 @@
+﻿
+
+
+                switch (boundsRelation)
+                {
+                    case BoundsRelation.Above:
+                        switch (stage)
+                        {
+                            case SearchStage.Growth:
+                                if (positiveSearch)
+                                {
+                                    // Growth has passed the upper bound
+                                    stage = SearchStage.InwardShrink;
+                                    guessOuterBound = guess;
+                                }
+                                else // negative search
+                                {
+                                    // Negative search: growth has not yet reached the upper bound
+                                    guessInnerBound = guess;
+                                }
+                                break;
+                            case SearchStage.InwardShrink:
+                                if (positiveSearch)
+                                {
+                                    // Decay hasn't yet reached the upper bound, continue decaying inwards
+                                    guessOuterBound = guess;
+                                }
+                                else // negative search
+                                {
+                                    // Decay has taken guess above the bounds.  Must
+                                    // decay outwards (which is downwards.)
+                                    guessInnerBound = guess;
+                                    stage = SearchStage.OutwardShrink;
+                                }
+                                break;
+                            case SearchStage.OutwardShrink:
+                                if (positiveSearch)
+                                {
+                                    // Decay has passed the upper bound, decay inwards
+                                    stage = SearchStage.InwardShrink;
+                                    guessOuterBound = guess;
+                                }
+                                else // negative search
+                                {
+                                    // Decay has not reached teh inner bound
+                                    guessInnerBound = guess;
+                                }
+                                break;
+                        }
+                        break;
+                    case BoundsRelation.Below:
+                        switch (stage)
+                        {
+                            case SearchStage.Growth:
+                                if (positiveSearch)
+                                {
+                                    // positive growth hasn't reach the bounds yet.
+                                    guessInnerBound = guess;
+                                }
+                                else
+                                {
+                                    // Negative search: growth has surpassed the bounds
+                                    stage = SearchStage.InwardShrink;
+                                    guessOuterBound = guess;
+                                }
+                                break;
+                            case SearchStage.InwardShrink:
+                                if (positiveSearch)
+                                {
+                                    // decay has passed the lower (inner) bounds
+                                    guessInnerBound = guess;
+                                    stage = SearchStage.OutwardShrink;
+                                }
+                                else
+                                {
+                                    // Negative search: decay hasn't reached the bounds yet
+                                    guessOuterBound = guess;
+                                }
+                                break;
+                            case SearchStage.OutwardShrink:
+                                if (positiveSearch)
+                                {
+                                    // decay has passed the lower (inner) bounds
+                                    guessInnerBound = guess;
+                                }
+                                else
+                                {
+                                    // <----<X----+===+----0------------>
+                                    // Negative search: decay hasn't reached the bounds yet
+                                    guessOuterBound = guess;
+                                    stage = SearchStage.InwardShrink;
+                                }
+                                break;
+                        }
+                        break;
+                    case BoundsRelation.Within:
+                        // Should not get here.
+                        break;
+                }

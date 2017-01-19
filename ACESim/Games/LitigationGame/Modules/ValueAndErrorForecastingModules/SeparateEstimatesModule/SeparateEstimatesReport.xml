@@ -1,0 +1,23 @@
+﻿<ACESim>
+  <parentSettingsFile filename="../ValueAndErrorForecastingReport.xml"/>
+  <defineTemplate name="$ForecastingTypeForecastingModuleRowsForMainReport">
+    <insertTemplate name="$ForecastingTypeForecastingModuleRowsForMainReportBase"/>
+  </defineTemplate>
+  <defineTemplate name="$ForecastingTypeForecastingModuleColumnsForMainReport">
+    <insertTemplate name="$ForecastingTypeForecastingModuleColumnsForMainReportBase"/>
+  </defineTemplate>
+  <defineTemplate name="$ForecastingTypeForecastingModuleRowsForEstimatesReport">
+    <insertTemplate name="$ForecastingTypeForecastingModuleRowsForEstimatesReportBase"/>
+  </defineTemplate>
+  <defineTemplate name="$ForecastingTypeForecastingModuleColumnsForEstimatesReport">
+    <insertTemplate name="$ForecastingTypeForecastingModuleColumnsForEstimatesReportBase"/>
+    <rowOrColInfo name="$ForecastingType.PNoiseLevel" variableName="$ForecastingType.PNoiseLevel" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="$ForecastingType.DNoiseLevel" variableName="$ForecastingType.DNoiseLevel" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="$ForecastingType.PlaintiffProxy" variableName="$ForecastingType.PlaintiffProxy" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="$ForecastingType.DefendantProxy" variableName="$ForecastingType.DefendantProxy" statistic="MEAN">
+    </rowOrColInfo>
+  </defineTemplate>
+</ACESim>

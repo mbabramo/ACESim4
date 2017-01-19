@@ -1,0 +1,345 @@
+
+<ACESim>
+<rowOrColGroup name="BargainingGame2Rows">
+  <rowOrColInfo name="All">
+  </rowOrColInfo>
+  <rowOrColInfo name="VeryLowTotalCosts">
+    <filter varType="double">
+      <variableName>PlayersCombinedCosts</variableName>
+      <operation>LTEQ</operation>
+      <value>0.02</value>
+    </filter>
+  </rowOrColInfo>
+  <rowOrColInfo name="LowTotalCosts">
+      <filter varType="double">
+        <variableName>PlayersCombinedCosts</variableName>
+        <operation>GTEQ</operation>
+        <value>0.05</value>
+      </filter>
+    <filter varType="double">
+      <variableName>PlayersCombinedCosts</variableName>
+      <operation>LTEQ</operation>
+      <value>0.10</value>
+    </filter>
+  </rowOrColInfo>
+  <rowOrColInfo name="MediumTotalCosts">
+    <filter varType="double">
+      <variableName>PlayersCombinedCosts</variableName>
+      <operation>GTEQ</operation>
+      <value>0.25</value>
+    </filter>
+    <filter varType="double">
+      <variableName>PlayersCombinedCosts</variableName>
+      <operation>LTEQ</operation>
+      <value>0.30</value>
+    </filter>
+  </rowOrColInfo>
+  <rowOrColInfo name="HighTotalCosts">
+    <filter varType="double">
+      <variableName>PlayersCombinedCosts</variableName>
+      <operation>GTEQ</operation>
+      <value>0.90</value>
+    </filter>
+    <filter varType="double">
+      <variableName>PlayersCombinedCosts</variableName>
+      <operation>LTEQ</operation>
+      <value>0.95</value>
+    </filter>
+  </rowOrColInfo>
+  <rowOrColInfo name="Player1MuchLowerCost">
+    <filter varType="double">
+      <variableName>Player1FailCost</variableName>
+      <operation>LTEQ</operation>
+      <value>0.05</value>
+    </filter>
+    <filter varType="double">
+      <variableName>Player2FailCost</variableName>
+      <operation>GTEQ</operation>
+      <value>0.40</value>
+    </filter>
+  </rowOrColInfo>
+  <rowOrColInfo name="Player2MuchLowerCost">
+    <filter varType="double">
+      <variableName>Player2FailCost</variableName>
+      <operation>LTEQ</operation>
+      <value>0.05</value>
+    </filter>
+    <filter varType="double">
+      <variableName>Player1FailCost</variableName>
+      <operation>GTEQ</operation>
+      <value>0.40</value>
+    </filter>
+  </rowOrColInfo>
+  <rowOrColInfo name="BothVeryLowNoise">
+    <filter varType="double">
+      <variableName>Player1NoiseLevel</variableName>
+      <operation>LTEQ</operation>
+      <value>0.002</value>
+    </filter>
+    <filter varType="double">
+      <variableName>Player2NoiseLevel</variableName>
+      <operation>LTEQ</operation>
+      <value>0.002</value>
+    </filter>
+  </rowOrColInfo>
+  <rowOrColInfo name="BothHighNoise">
+    <filter varType="double">
+      <variableName>Player1NoiseLevel</variableName>
+      <operation>GTEQ</operation>
+      <value>0.50</value>
+    </filter>
+    <filter varType="double">
+      <variableName>Player2NoiseLevel</variableName>
+      <operation>GTEQ</operation>
+      <value>0.50</value>
+    </filter>
+  </rowOrColInfo>
+  <rowOrColInfo name="Player2LowNoise">
+    <filter varType="double">
+      <variableName>Player2NoiseLevel</variableName>
+      <operation>LTEQ</operation>
+      <value>0.01</value>
+    </filter>
+  </rowOrColInfo>
+  <rowOrColInfo name="Player1MuchBetterInfo">
+    <filter varType="double">
+      <variableName>Player1NoiseLevel</variableName>
+      <operation>LTEQ</operation>
+      <value>0.02</value>
+    </filter>
+    <filter varType="double">
+      <variableName>Player2NoiseLevel</variableName>
+      <operation>GTEQ</operation>
+      <value>0.18</value>
+    </filter>
+  </rowOrColInfo>
+  <rowOrColInfo name="Player2MuchBetterInfo">
+    <filter varType="double">
+      <variableName>Player2NoiseLevel</variableName>
+      <operation>LTEQ</operation>
+      <value>0.02</value>
+    </filter>
+    <filter varType="double">
+      <variableName>Player1NoiseLevel</variableName>
+      <operation>GTEQ</operation>
+      <value>0.18</value>
+    </filter>
+  </rowOrColInfo>
+  <rowOrColInfo name="SimCostPlayer1BetterInfo">
+    <filter varType="double">
+      <variableName>Player1FailCost</variableName>
+      <operation>GTEQ</operation>
+      <value>0.25</value>
+    </filter>
+    <filter varType="double">
+      <variableName>Player1FailCost</variableName>
+      <operation>LTEQ</operation>
+      <value>0.30</value>
+    </filter>
+    <filter varType="double">
+      <variableName>Player2FailCost</variableName>
+      <operation>GTEQ</operation>
+      <value>0.25</value>
+    </filter>
+    <filter varType="double">
+      <variableName>Player1FailCost</variableName>
+      <operation>LTEQ</operation>
+      <value>0.30</value>
+    </filter>
+    <filter varType="double">
+      <variableName>Player1NoiseLevel</variableName>
+      <operation>LTEQ</operation>
+      <value>0.02</value>
+    </filter>
+    <filter varType="double">
+      <variableName>Player2NoiseLevel</variableName>
+      <operation>GTEQ</operation>
+      <value>0.18</value>
+    </filter>
+  </rowOrColInfo>
+  <rowOrColInfo name="SimCostPlayer2BetterInfo">
+    <filter varType="double">
+      <variableName>Player1FailCost</variableName>
+      <operation>GTEQ</operation>
+      <value>0.25</value>
+    </filter>
+    <filter varType="double">
+      <variableName>Player1FailCost</variableName>
+      <operation>LTEQ</operation>
+      <value>0.30</value>
+    </filter>
+    <filter varType="double">
+      <variableName>Player2FailCost</variableName>
+      <operation>GTEQ</operation>
+      <value>0.25</value>
+    </filter>
+    <filter varType="double">
+      <variableName>Player1FailCost</variableName>
+      <operation>LTEQ</operation>
+      <value>0.30</value>
+    </filter>
+    <filter varType="double">
+      <variableName>Player2NoiseLevel</variableName>
+      <operation>LTEQ</operation>
+      <value>0.02</value>
+    </filter>
+    <filter varType="double">
+      <variableName>Player1NoiseLevel</variableName>
+      <operation>GTEQ</operation>
+      <value>0.18</value>
+    </filter>
+  </rowOrColInfo>
+  <rowOrColInfo name="P1EstimateWithCosts80">
+    <filter varType="double">
+      <variableName>Player1EstimateOfPlayer1WithCosts</variableName>
+      <operation>GTEQ</operation>
+      <value>0.795</value>
+    </filter>
+    <filter varType="double">
+      <variableName>Player1EstimateOfPlayer1WithCosts</variableName>
+      <operation>LTEQ</operation>
+      <value>0.805</value>
+    </filter>
+  </rowOrColInfo>
+  <rowOrColInfo name="ActualResultIfNegotFails80">
+    <filter varType="double">
+      <variableName>Player1ResultIfNegotiationFails</variableName>
+      <operation>GTEQ</operation>
+      <value>0.795</value>
+    </filter>
+    <filter varType="double">
+      <variableName>Player1ResultIfNegotiationFails</variableName>
+      <operation>LTEQ</operation>
+      <value>0.805</value>
+    </filter>
+  </rowOrColInfo>
+  <rowOrColInfo name="AR80LowObf">
+    <filter varType="double">
+      <variableName>Player1ResultIfNegotiationFails</variableName>
+      <operation>GTEQ</operation>
+      <value>0.795</value>
+    </filter>
+    <filter varType="double">
+      <variableName>Player1ResultIfNegotiationFails</variableName>
+      <operation>LTEQ</operation>
+      <value>0.805</value>
+    </filter>
+    <filter varType="double">
+      <variableName>Player1NoiseLevel</variableName>
+      <operation>LTEQ</operation>
+      <value>0.02</value>
+    </filter>
+    <filter varType="double">
+      <variableName>Player2NoiseLevel</variableName>
+      <operation>LTEQ</operation>
+      <value>0.02</value>
+    </filter>
+  </rowOrColInfo>
+  </rowOrColGroup>
+  <rowOrColGroup name="BargainingGame2ColumnsMain">
+    <rowOrColInfo name="Count" variableName="Player1EstimateOfPlayer1WithCosts" statistic="COUNT">
+    </rowOrColInfo>
+    <rowOrColInfo name="Succ%" variableName="NegotiationSucceeds" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="%savingsforself" variableName="ProportionOfCostSavingsPlayer1InsistsOn" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="%savingsforselfsd" variableName="ProportionOfCostSavingsPlayer1InsistsOn" statistic="STDEV">
+    </rowOrColInfo>
+    <rowOrColInfo name="distapart" variableName="HowFarApartOffersAre" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="distapartfail" variableName="HowFarApartOffersAreWhenNegotiationFails" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="P1Result" variableName="Player1Result" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="P2Result" variableName="Player2Result" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="P1ResINF" variableName="Player1ResultIfNegotiationFails" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="P2ResINF" variableName="Player2ResultIfNegotiationFails" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="Player1InsistsAvg" variableName="AmountOfPiePlayer1InsistsOn" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="Player2InsistsAvg" variableName="AmountOfPiePlayer2InsistsOn" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="Player1InsistsStdev" variableName="AmountOfPiePlayer1InsistsOn" statistic="STDEV">
+    </rowOrColInfo>
+    <rowOrColInfo name="Player2InsistsStdev" variableName="AmountOfPiePlayer2InsistsOn" statistic="STDEV">
+    </rowOrColInfo>
+  </rowOrColGroup>
+  <rowOrColGroup name="BargainingGame2ColumnsPlayerEstimates">
+    <rowOrColInfo name="P1Est1NoCosts" variableName="Player1EstimateOfPlayer1WithoutCosts" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="P2Est2NoCosts" variableName="Player2EstimateOfPlayer2WithoutCosts" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="P1Est1Std" variableName="Player1EstimateOfPlayer1WithoutCosts" statistic="STDEV">
+    </rowOrColInfo>
+    <rowOrColInfo name="P2Est2Std" variableName="Player2EstimateOfPlayer2WithoutCosts" statistic="STDEV">
+    </rowOrColInfo>
+    <rowOrColInfo name="P1Est1WithCosts" variableName="Player1EstimateOfPlayer1WithCosts" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="P2Est2WithCosts" variableName="Player2EstimateOfPlayer2WithCosts" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="P1Est1WithCostsStd" variableName="Player1EstimateOfPlayer1WithCosts" statistic="STDEV">
+    </rowOrColInfo>
+    <rowOrColInfo name="P2Est2WithCostsStd" variableName="Player2EstimateOfPlayer2WithCosts" statistic="STDEV">
+    </rowOrColInfo>
+    <rowOrColInfo name="P1Est2NoCosts" variableName="Player1EstimateOfPlayer2WithoutCosts" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="P2Est1NoCosts" variableName="Player2EstimateOfPlayer1WithoutCosts" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="P1Est2Std" variableName="Player1EstimateOfPlayer2WithoutCosts" statistic="STDEV">
+    </rowOrColInfo>
+    <rowOrColInfo name="P2Est1Std" variableName="Player2EstimateOfPlayer1WithoutCosts" statistic="STDEV">
+    </rowOrColInfo>
+    <rowOrColInfo name="P1Est2WithCosts" variableName="Player1EstimateOfPlayer2WithCosts" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="P2Est1WithCosts" variableName="Player2EstimateOfPlayer1WithCosts" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="P1Est2WithCostsStd" variableName="Player1EstimateOfPlayer2WithCosts" statistic="STDEV">
+    </rowOrColInfo>
+    <rowOrColInfo name="P2Est1WithCostsStd" variableName="Player2EstimateOfPlayer1WithCosts" statistic="STDEV">
+    </rowOrColInfo>
+    <rowOrColInfo name="P1EstErr" variableName="Player1EstimateOfOwnErrorForEachPlayer" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="P2EstErr" variableName="Player2EstimateOfOwnErrorForEachPlayer" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="P1EstErrStd" variableName="Player1EstimateOfOwnErrorForEachPlayer" statistic="STDEV">
+    </rowOrColInfo>
+    <rowOrColInfo name="P2EstErrStd" variableName="Player2EstimateOfOwnErrorForEachPlayer" statistic="STDEV">
+    </rowOrColInfo>
+    <rowOrColInfo name="P1EstOppErr" variableName="Player1EstimateOfOpponentErrorForEachPlayer" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="P2EstOppErr" variableName="Player2EstimateOfOpponentErrorForEachPlayer" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="P1EstOppErrStd" variableName="Player1EstimateOfOpponentErrorForEachPlayer" statistic="STDEV">
+    </rowOrColInfo>
+    <rowOrColInfo name="P2EstOppErrStd" variableName="Player2EstimateOfOpponentErrorForEachPlayer" statistic="STDEV">
+    </rowOrColInfo>
+    <rowOrColInfo name="P1Proxy1" variableName="Player1ProxyForPlayer1" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="P2Proxy2" variableName="Player2ProxyForPlayer2" statistic="MEAN">
+    </rowOrColInfo>
+  </rowOrColGroup>
+  <rowOrColGroup name="BargainingGame2ColumnsNoiseLevel">
+    <rowOrColInfo name="Player1NoiseLevel" variableName="Player1NoiseLevel" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="Player1NoiseLevelStd" variableName="Player1NoiseLevel" statistic="STDEV">
+    </rowOrColInfo>
+    <rowOrColInfo name="Player1AbsNoiseRealized" variableName="Player1AbsNoiseRealized" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="Player1AbsNoiseRealized" variableName="Player1AbsNoiseRealized" statistic="COUNT">
+    </rowOrColInfo>
+    <rowOrColInfo name="Player1AbsNoiseRealizedStd" variableName="Player1AbsNoiseRealized" statistic="STDEV">
+    </rowOrColInfo>
+    <rowOrColInfo name="Player2NoiseLevel" variableName="Player2NoiseLevel" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="Player2NoiseLevelStd" variableName="Player2NoiseLevel" statistic="STDEV">
+    </rowOrColInfo>
+    <rowOrColInfo name="Player2AbsNoiseRealized" variableName="Player2AbsNoiseRealized" statistic="MEAN">
+    </rowOrColInfo>
+    <rowOrColInfo name="Player2AbsNoiseRealizedStd" variableName="Player2AbsNoiseRealized" statistic="STDEV">
+    </rowOrColInfo>
+    <rowOrColInfo name="Player2AbsNoiseRealized" variableName="Player2AbsNoiseRealized" statistic="COUNT">
+    </rowOrColInfo>
+  </rowOrColGroup>
+</ACESim>

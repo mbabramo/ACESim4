@@ -1,0 +1,15 @@
+﻿<ACESim>
+  <parentSettingsFile filename="../ValueAndErrorForecastingReport.xml"/>
+  <defineTemplate name="$ForecastingTypeForecastingModuleRowsForMainReport">
+    <insertTemplate name="$ForecastingTypeForecastingModuleRowsForMainReportBase"/>
+  </defineTemplate>
+  <defineTemplate name="$ForecastingTypeForecastingModuleColumnsForMainReport">
+    <insertTemplate name="$ForecastingTypeForecastingModuleColumnsForMainReportBase"/>
+  </defineTemplate>
+  <defineTemplate name="$ForecastingTypeForecastingModuleRowsForEstimatesReport">
+    <insertTemplate name="$ForecastingTypeForecastingModuleRowsForEstimatesReportBase"/>
+  </defineTemplate>
+  <defineTemplate name="$ForecastingTypeForecastingModuleColumnsForEstimatesReport">
+    <insertTemplate name="$ForecastingTypeForecastingModuleColumnsForEstimatesReportBase"/>
+  </defineTemplate>
+</ACESim>

@@ -1,0 +1,7 @@
+﻿<ACESim>
+  <defineTemplate name="TrialModuleInputs">
+    <setting name="TrialModuleInputs" type="class" subclass="TrialPerfectInputs" >
+      <setting name="PlaintiffMustPayDamagesIfItLoses" type="bool">$PlaintiffMustPayDamagesIfItLoses</setting>
+    </setting>
+      </defineTemplate>
+</ACESim>
