@@ -350,11 +350,14 @@ namespace ACESim
                         ag.LastDecisionNumber = decisionNumber;
 
                         dp.DecisionNumberWithinActionGroup = decisionNumberWithinActionGroup;
-                        if (lastRepetitionTagProcessedForModule[(int)ag.ModuleNumber] != null && lastRepetitionTagProcessedForModule[(int)ag.ModuleNumber] != ag.RepetitionTagString())
-                            decisionsProcessedWithinModules[(int)ag.ModuleNumber] = 0;
-                        dp.DecisionNumberWithinModule = decisionsProcessedWithinModules[(int)ag.ModuleNumber];
-                        decisionsProcessedWithinModules[(int) ag.ModuleNumber]++;
-                        lastRepetitionTagProcessedForModule[(int)ag.ModuleNumber] = ag.RepetitionTagString();
+                        if (ag.ModuleNumber != null)
+                        {
+                            if (lastRepetitionTagProcessedForModule[(int)ag.ModuleNumber] != null && lastRepetitionTagProcessedForModule[(int)ag.ModuleNumber] != ag.RepetitionTagString())
+                                decisionsProcessedWithinModules[(int)ag.ModuleNumber] = 0;
+                            dp.DecisionNumberWithinModule = decisionsProcessedWithinModules[(int)ag.ModuleNumber];
+                            decisionsProcessedWithinModules[(int)ag.ModuleNumber]++;
+                            lastRepetitionTagProcessedForModule[(int)ag.ModuleNumber] = ag.RepetitionTagString();
+                        }
                         
                         DecisionsExecutionOrder.Add(dp.Decision); // note that the same Decision object can be included multiple times on this list
                         DecisionPointsExecutionOrder.Add(dp);
@@ -457,7 +460,7 @@ namespace ACESim
         private void AddAutomaticRepetitionsForEvolutionOnly()
         {
             AutomaticRepetitionsIndexNumbersInEvolutionOrder = new List<Tuple<string, List<int?>>>();
-            foreach (ActionGroupRepetition evolutionRepetition in AutomaticRepetitions.Where(x => x.IsEvolutionRepetitionOnly))
+            foreach (ActionGroupRepetition evolutionRepetition in AutomaticRepetitions?.Where(x => x.IsEvolutionRepetitionOnly) ?? new List<ActionGroupRepetition>())
             {
                 List<DecisionPoint> decisionPointsEvolutionOrderCopy = new List<DecisionPoint>();
                 int? startOfTagRange = null;
@@ -479,7 +482,7 @@ namespace ACESim
                 }
                 DecisionPointsEvolutionOrder = decisionPointsEvolutionOrderCopy;
             }
-            foreach (ActionGroupRepetition evolutionRepetition in AutomaticRepetitions.Where(x => x.IsEvolutionRepetitionOnly))
+            foreach (ActionGroupRepetition evolutionRepetition in AutomaticRepetitions?.Where(x => x.IsEvolutionRepetitionOnly) ?? new List<ActionGroupRepetition>())
             {
                 List<int?> tagsForRepetition = new List<int?>();
                 int matchNumber = 1;

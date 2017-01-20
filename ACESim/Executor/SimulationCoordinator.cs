@@ -183,7 +183,7 @@ namespace ACESim
 
             int decisionsAffectingProgressStep = GameDefinition.DecisionPointsEvolutionOrder.Where(x => 
                 !(
-                    (GameDefinition.GameModules != null && GameDefinition.GetOriginalGameModuleForDecisionNumber((int)x.DecisionNumber).IgnoreWhenCountingProgress) // decisions to ignore in counting progress
+                    (GameDefinition.GameModules != null && GameDefinition.GameModules.Any() && GameDefinition.GetOriginalGameModuleForDecisionNumber((int)x.DecisionNumber).IgnoreWhenCountingProgress) // decisions to ignore in counting progress
                     || ((doNotEvolveByDefault && strategies[(int)x.DecisionNumber].StrategyDeserializedFromDisk && !x.Decision.EvolveThisDecisionEvenWhenSkippingByDefault) || (!doNotEvolveByDefault && strategies[(int)x.DecisionNumber].StrategyDeserializedFromDisk && x.Decision.SkipThisDecisionWhenEvolvingIfAlreadyEvolved)) // decisions to skip
                     || (GameDefinition.DecisionsExecutionOrder[(int)x.DecisionNumber].MaxEvolveRepetitions < stepNumber)
                 )

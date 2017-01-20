@@ -69,3 +69,4 @@ C:\GitHub\ACESim\ACESim\obj\Debug\ACESim.Properties.Resources.resources
 C:\GitHub\ACESim\ACESim\obj\Debug\ACESim.csproj.GenerateResource.Cache
 C:\GitHub\ACESim\ACESim\obj\Debug\ACESim.exe
 C:\GitHub\ACESim\ACESim\obj\Debug\ACESim.pdb
+C:\GitHub\ACESim\ACESim\obj\Debug\ACESim.csprojResolveAssemblyReference.cache
