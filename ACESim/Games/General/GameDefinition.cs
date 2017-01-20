@@ -317,7 +317,8 @@ namespace ACESim
             ExecutionOrderIndexForEachDecision = new List<int>();
             ActionPointIndexForEachDecision = new List<int>();
             DecisionIndexForEachCumulativeDistributionsUpdate = new List<int>();
-            
+            if (GameModules == null)
+                GameModules = new List<GameModule>();
             int[] decisionsProcessedWithinModules = new int[GameModules.Count()];
             string[] lastRepetitionTagProcessedForModule = new string[GameModules.Count()];
             for (int m = 0; m < GameModules.Count(); m++)

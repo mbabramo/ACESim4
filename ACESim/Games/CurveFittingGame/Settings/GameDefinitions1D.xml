@@ -99,6 +99,15 @@
                 </setting>-->
                 
             </setting>
+          <setting name="GameModules" type="list">
+      </setting>
+      <setting name="GameModuleNamesGameReliesOn" type="list">
+      </setting>
+      <setting name="ActionGroupsEvolveInOppositeOrderFromExecution" type="bool">
+        true
+      </setting>
+      <setting name="AutomaticRepetitions" type="list">
+      </setting>
         </gameDefinition>
     </gameDefinitionsAll>
 
