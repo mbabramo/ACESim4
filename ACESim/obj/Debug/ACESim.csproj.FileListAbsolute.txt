@@ -1,54 +1,6 @@
-C:\ACESim\ACESim\bin\Debug\App.config
-C:\ACESim\ACESim\bin\Debug\ACESim.exe.config
-C:\ACESim\ACESim\bin\Debug\ACESim.XML
-C:\ACESim\ACESim\bin\Debug\ACESim.exe
-C:\ACESim\ACESim\bin\Debug\ACESim.pdb
-C:\ACESim\ACESim\bin\Debug\encog-core-cs.dll
-C:\ACESim\ACESim\bin\Debug\EntityFramework.dll
-C:\ACESim\ACESim\bin\Debug\Microsoft.WindowsAzure.CloudDrive.dll
-C:\ACESim\ACESim\bin\Debug\Microsoft.WindowsAzure.Configuration.dll
-C:\ACESim\ACESim\bin\Debug\Microsoft.WindowsAzure.Diagnostics.dll
-C:\ACESim\ACESim\bin\Debug\Microsoft.WindowsAzure.Storage.dll
-C:\ACESim\ACESim\bin\Debug\Microsoft.WindowsAzure.StorageClient.dll
-C:\ACESim\ACESim\bin\Debug\System.Data.SqlServerCe.dll
-C:\ACESim\ACESim\bin\Debug\System.Data.SqlServerCe.Entity.dll
-C:\ACESim\ACESim\bin\Debug\WpfChartUserControl.dll
-C:\ACESim\ACESim\bin\Debug\Microsoft.WindowsAzure.Diagnostics.StorageUtility.dll
-C:\ACESim\ACESim\bin\Debug\Microsoft.Data.OData.dll
-C:\ACESim\ACESim\bin\Debug\Microsoft.Data.Edm.dll
-C:\ACESim\ACESim\bin\Debug\System.Spatial.dll
-C:\ACESim\ACESim\bin\Debug\encog-core-cs.pdb
-C:\ACESim\ACESim\bin\Debug\encog-core-cs.xml
-C:\ACESim\ACESim\bin\Debug\EntityFramework.xml
-C:\ACESim\ACESim\bin\Debug\Microsoft.WindowsAzure.CloudDrive.xml
-C:\ACESim\ACESim\bin\Debug\Microsoft.WindowsAzure.Diagnostics.xml
-C:\ACESim\ACESim\bin\Debug\Microsoft.WindowsAzure.Storage.xml
-C:\ACESim\ACESim\bin\Debug\Microsoft.WindowsAzure.StorageClient.xml
-C:\ACESim\ACESim\bin\Debug\WpfChartUserControl.pdb
-C:\ACESim\ACESim\obj\Debug\ACESim.Properties.Resources.resources
-C:\ACESim\ACESim\obj\Debug\ACESim.csproj.GenerateResource.Cache
-C:\ACESim\ACESim\obj\Debug\ACESim.exe
-C:\ACESim\ACESim\obj\Debug\ACESim.pdb
-C:\ACESim\ACESim\obj\Debug\ACESim.csprojResolveAssemblyReference.cache
-C:\Users\Family\SkyDrive\ACESim\ACESim\bin\Debug\ACESim.exe.config
-C:\Users\Family\SkyDrive\ACESim\ACESim\bin\Debug\ACESim.XML
-C:\Users\Family\SkyDrive\ACESim\ACESim\obj\Debug\ACESim.exe
-C:\Users\Family\SkyDrive\ACESim\ACESim\obj\Debug\ACESim.pdb
-E:\OneDrive\ACESim (old subversion)\ACESim\bin\Debug\ACESim.exe.config
-E:\OneDrive\ACESim (old subversion)\ACESim\bin\Debug\ACESim.XML
-E:\OneDrive\ACESim (old subversion)\ACESim\obj\Debug\ACESim.exe
-E:\OneDrive\ACESim (old subversion)\ACESim\obj\Debug\ACESim.pdb
-E:\OneDrive\ACESim (old subversion)\ACESim\obj\Debug\ACESim.csprojResolveAssemblyReference.cache
-E:\OneDrive\ACESim (old subversion)\ACESim\obj\Debug\ACESim.Properties.Resources.resources
-E:\OneDrive\ACESim (old subversion)\ACESim\obj\Debug\ACESim.csproj.GenerateResource.Cache
+C:\GitHub\ACESim\ACESim\bin\Debug\App.config
 C:\GitHub\ACESim\ACESim\bin\Debug\ACESim.exe.config
 C:\GitHub\ACESim\ACESim\bin\Debug\ACESim.XML
-C:\GitHub\ACESim\ACESim\obj\Debug\ACESim.exe
-C:\GitHub\ACESim\ACESim\obj\Debug\ACESim.pdb
-C:\GitHub\ACESim\ACESim\obj\Debug\ACESim.csprojResolveAssemblyReference.cache
-C:\GitHub\ACESim\ACESim\obj\Debug\ACESim.Properties.Resources.resources
-C:\GitHub\ACESim\ACESim\obj\Debug\ACESim.csproj.GenerateResource.Cache
-C:\GitHub\ACESim\ACESim\bin\Debug\App.config
 C:\GitHub\ACESim\ACESim\bin\Debug\ACESim.exe
 C:\GitHub\ACESim\ACESim\bin\Debug\ACESim.pdb
 C:\GitHub\ACESim\ACESim\bin\Debug\encog-core-cs.dll
@@ -113,3 +65,7 @@ C:\GitHub\ACESim\ACESim\bin\Debug\ko\System.Spatial.resources.dll
 C:\GitHub\ACESim\ACESim\bin\Debug\ru\System.Spatial.resources.dll
 C:\GitHub\ACESim\ACESim\bin\Debug\zh-Hans\System.Spatial.resources.dll
 C:\GitHub\ACESim\ACESim\bin\Debug\zh-Hant\System.Spatial.resources.dll
+C:\GitHub\ACESim\ACESim\obj\Debug\ACESim.Properties.Resources.resources
+C:\GitHub\ACESim\ACESim\obj\Debug\ACESim.csproj.GenerateResource.Cache
+C:\GitHub\ACESim\ACESim\obj\Debug\ACESim.exe
+C:\GitHub\ACESim\ACESim\obj\Debug\ACESim.pdb

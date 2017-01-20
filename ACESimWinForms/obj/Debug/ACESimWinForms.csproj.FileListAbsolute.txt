@@ -39,14 +39,6 @@ E:\OneDrive\ACESim (old subversion)\ACESimWinForms\obj\Debug\ACESim.Window.resou
 E:\OneDrive\ACESim (old subversion)\ACESimWinForms\obj\Debug\ACESimWinForms.csproj.GenerateResource.Cache
 E:\OneDrive\ACESim (old subversion)\ACESimWinForms\obj\Debug\ACESimWinForms.exe
 E:\OneDrive\ACESim (old subversion)\ACESimWinForms\obj\Debug\ACESimWinForms.pdb
-C:\GitHub\ACESim\ACESimWinForms\obj\Debug\ACESimWinForms.csprojResolveAssemblyReference.cache
-C:\GitHub\ACESim\ACESimWinForms\obj\Debug\ACESim.LineChart.resources
-C:\GitHub\ACESim\ACESimWinForms\obj\Debug\ACESimWinForms.Properties.Resources.resources
-C:\GitHub\ACESim\ACESimWinForms\obj\Debug\ACESim.ScatterplotHostForm.resources
-C:\GitHub\ACESim\ACESimWinForms\obj\Debug\ACESim.Window.resources
-C:\GitHub\ACESim\ACESimWinForms\obj\Debug\ACESimWinForms.csproj.GenerateResource.Cache
-C:\GitHub\ACESim\ACESimWinForms\obj\Debug\ACESimWinForms.exe
-C:\GitHub\ACESim\ACESimWinForms\obj\Debug\ACESimWinForms.pdb
 C:\GitHub\ACESim\ACESimWinForms\bin\Debug\App.config
 C:\GitHub\ACESim\ACESimWinForms\bin\Debug\ACESimWinForms.exe.config
 C:\GitHub\ACESim\ACESimWinForms\bin\Debug\ACESimWinForms.exe
@@ -112,3 +104,11 @@ C:\GitHub\ACESim\ACESimWinForms\bin\Debug\ko\System.Spatial.resources.dll
 C:\GitHub\ACESim\ACESimWinForms\bin\Debug\ru\System.Spatial.resources.dll
 C:\GitHub\ACESim\ACESimWinForms\bin\Debug\zh-Hans\System.Spatial.resources.dll
 C:\GitHub\ACESim\ACESimWinForms\bin\Debug\zh-Hant\System.Spatial.resources.dll
+C:\GitHub\ACESim\ACESimWinForms\obj\Debug\ACESimWinForms.csprojResolveAssemblyReference.cache
+C:\GitHub\ACESim\ACESimWinForms\obj\Debug\ACESim.LineChart.resources
+C:\GitHub\ACESim\ACESimWinForms\obj\Debug\ACESimWinForms.Properties.Resources.resources
+C:\GitHub\ACESim\ACESimWinForms\obj\Debug\ACESim.ScatterplotHostForm.resources
+C:\GitHub\ACESim\ACESimWinForms\obj\Debug\ACESim.Window.resources
+C:\GitHub\ACESim\ACESimWinForms\obj\Debug\ACESimWinForms.csproj.GenerateResource.Cache
+C:\GitHub\ACESim\ACESimWinForms\obj\Debug\ACESimWinForms.exe
+C:\GitHub\ACESim\ACESimWinForms\obj\Debug\ACESimWinForms.pdb
