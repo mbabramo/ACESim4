@@ -1,7 +1,6 @@
 ﻿<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 
 <ACESim>
-    
     <gameDefinitionsAll>
         <gameDefinition name="CurveFittingGame">
             <setting name="DecisionsExecutionOrder" type="list">
