@@ -21,6 +21,7 @@
                         <setting name="LowerBound" type="double">-1</setting>
                         <setting name="UpperBound" type="double">1</setting>
                     </setting>
+                  <setting name="ProduceClusteringPointsEvenlyFrom0To1" type="bool">false</setting>
                   <setting name="Bipolar" type="bool">false</setting>
                   <setting name="StrategyGraphInfos" type="list">
                     <setting name="StrategyGraphInfo 1" type="class">
@@ -66,6 +67,7 @@
                   <setting name="LowerBound" type="double">0</setting>
                   <setting name="UpperBound" type="double">50</setting>
                 </setting>
+                <setting name="ProduceClusteringPointsEvenlyFrom0To1" type="bool">false</setting>
                 <setting name="Bipolar" type="bool">false</setting>
                 <setting name="StrategyGraphInfos" type="list">
                   <setting name="StrategyGraphInfo E" type="class">
