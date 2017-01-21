@@ -6,6 +6,7 @@ using System.ComponentModel.Composition;
 
 namespace ACESim
 {
+    [Serializable]
     public class CurveFittingGameDefinition : GameDefinition
     {
         // Nothing

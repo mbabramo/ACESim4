@@ -6,6 +6,7 @@ using System.Diagnostics;
 
 namespace ACESim
 {
+    [Serializable]
     public class CurveFittingGame : Game
     {
         int CurveNumber; // allows information to be passed from Play() to makeDecision()
