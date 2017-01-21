@@ -10,17 +10,24 @@ namespace ACESim
     {
         public ProgressResumptionManagerInfo Info = new ProgressResumptionManagerInfo();
         public ProgressResumptionOptions ProgressResumptionOption;
-        public string ProgressString;
+        public string Path;
 
-        public ProgressResumptionManager(ProgressResumptionOptions progressResumptionOption, string progressString)
+        public ProgressResumptionManager(ProgressResumptionOptions progressResumptionOption, string path)
         {
             ProgressResumptionOption = progressResumptionOption;
-            ProgressString = progressString;
+            Path = path;
+            if (ProgressResumptionOption == ProgressResumptionOptions.SkipToPreviousPositionThenResume)
+                LoadProgress();
+        }
+
+        internal void LoadProgress()
+        {
+            Info = (ProgressResumptionManagerInfo) BinarySerialization.GetSerializedObject(Path, false);
         }
 
         internal void SaveProgressIfSaving()
         {
-            throw new NotImplementedException();
+            BinarySerialization.SerializeObject(Path, Info, true, false);
         }
     }
 }

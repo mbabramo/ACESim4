@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
+    [Serializable]
     public class ProgressResumptionManagerInfo
     {
         public int ExecutorMultipleSetNumber;
