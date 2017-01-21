@@ -6,7 +6,7 @@ using System.ComponentModel.Composition;
 
 namespace ACESim
 {
-    [Serializable]
+    [Serializable] 
     [Export(typeof(IGameFactory))]
     [ExportMetadata("GameName", "CurveFittingGame")] // put the name of the game class here: ExportMetadata("GameName", "XXX")
     public class CurveFittingGameFactory : IGameFactory
