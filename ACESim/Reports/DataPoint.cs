@@ -15,7 +15,6 @@ namespace ACESim.Reports
     public partial class DataPoint
     {
         public int Id { get; set; }
-        public byte[] RowVersion { get; set; }
         public Nullable<double> Value { get; set; }
         public int DataPoint_Row { get; set; }
         public int DataPoint_Column { get; set; }

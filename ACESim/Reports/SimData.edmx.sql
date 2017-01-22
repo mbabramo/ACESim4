@@ -2,13 +2,13 @@
 -- --------------------------------------------------
 -- Entity Designer DDL Script for SQL Server 2005, 2008, 2012 and Azure
 -- --------------------------------------------------
--- Date Created: 01/19/2017 19:17:00
+-- Date Created: 01/22/2017 00:15:01
 -- Generated from EDMX file: C:\GitHub\ACESim\ACESim\Reports\SimData.edmx
 -- --------------------------------------------------
 
 SET QUOTED_IDENTIFIER OFF;
 GO
-USE [ACESIM];
+USE [SimData];
 GO
 IF SCHEMA_ID(N'dbo') IS NULL EXECUTE(N'CREATE SCHEMA [dbo]');
 GO
@@ -17,11 +17,29 @@ GO
 -- Dropping existing FOREIGN KEY constraints
 -- --------------------------------------------------
 
-IF OBJECT_ID(N'[dbo].[FK_ColumnListToColumn_Column]', 'F') IS NOT NULL
-    ALTER TABLE [dbo].[ColumnListToColumns] DROP CONSTRAINT [FK_ColumnListToColumn_Column];
+IF OBJECT_ID(N'[dbo].[FK__aspnet_Me__Appli__02084FDA]', 'F') IS NOT NULL
+    ALTER TABLE [dbo].[aspnet_Membership] DROP CONSTRAINT [FK__aspnet_Me__Appli__02084FDA];
+GO
+IF OBJECT_ID(N'[dbo].[FK__aspnet_Ro__Appli__208CD6FA]', 'F') IS NOT NULL
+    ALTER TABLE [dbo].[aspnet_Roles] DROP CONSTRAINT [FK__aspnet_Ro__Appli__208CD6FA];
+GO
+IF OBJECT_ID(N'[dbo].[FK__aspnet_Us__Appli__71D1E811]', 'F') IS NOT NULL
+    ALTER TABLE [dbo].[aspnet_Users] DROP CONSTRAINT [FK__aspnet_Us__Appli__71D1E811];
+GO
+IF OBJECT_ID(N'[dbo].[FK__aspnet_Me__UserI__02FC7413]', 'F') IS NOT NULL
+    ALTER TABLE [dbo].[aspnet_Membership] DROP CONSTRAINT [FK__aspnet_Me__UserI__02FC7413];
+GO
+IF OBJECT_ID(N'[dbo].[FK__aspnet_Pr__UserI__17036CC0]', 'F') IS NOT NULL
+    ALTER TABLE [dbo].[aspnet_Profile] DROP CONSTRAINT [FK__aspnet_Pr__UserI__17036CC0];
 GO
 IF OBJECT_ID(N'[dbo].[FK_ColumnListToColumn_ColumnList]', 'F') IS NOT NULL
     ALTER TABLE [dbo].[ColumnListToColumns] DROP CONSTRAINT [FK_ColumnListToColumn_ColumnList];
+GO
+IF OBJECT_ID(N'[dbo].[FK_ReportSnippet_ColumnList]', 'F') IS NOT NULL
+    ALTER TABLE [dbo].[ReportSnippets] DROP CONSTRAINT [FK_ReportSnippet_ColumnList];
+GO
+IF OBJECT_ID(N'[dbo].[FK_ColumnListToColumn_Column]', 'F') IS NOT NULL
+    ALTER TABLE [dbo].[ColumnListToColumns] DROP CONSTRAINT [FK_ColumnListToColumn_Column];
 GO
 IF OBJECT_ID(N'[dbo].[FK_DataPoint_Column]', 'F') IS NOT NULL
     ALTER TABLE [dbo].[DataPoints] DROP CONSTRAINT [FK_DataPoint_Column];
@@ -32,50 +50,26 @@ GO
 IF OBJECT_ID(N'[dbo].[FK_ExecutionResultSet_DataPoint]', 'F') IS NOT NULL
     ALTER TABLE [dbo].[DataPoints] DROP CONSTRAINT [FK_ExecutionResultSet_DataPoint];
 GO
-IF OBJECT_ID(N'[dbo].[FK__aspnet_Me__Appli__02084FDA]', 'F') IS NOT NULL
-    ALTER TABLE [dbo].[aspnet_Membership] DROP CONSTRAINT [FK__aspnet_Me__Appli__02084FDA];
-GO
-IF OBJECT_ID(N'[dbo].[FK__aspnet_Me__UserI__02FC7413]', 'F') IS NOT NULL
-    ALTER TABLE [dbo].[aspnet_Membership] DROP CONSTRAINT [FK__aspnet_Me__UserI__02FC7413];
-GO
-IF OBJECT_ID(N'[dbo].[FK__aspnet_Pr__UserI__17036CC0]', 'F') IS NOT NULL
-    ALTER TABLE [dbo].[aspnet_Profile] DROP CONSTRAINT [FK__aspnet_Pr__UserI__17036CC0];
-GO
-IF OBJECT_ID(N'[dbo].[FK__aspnet_Ro__Appli__208CD6FA]', 'F') IS NOT NULL
-    ALTER TABLE [dbo].[aspnet_Roles] DROP CONSTRAINT [FK__aspnet_Ro__Appli__208CD6FA];
-GO
-IF OBJECT_ID(N'[dbo].[FK__aspnet_Us__Appli__71D1E811]', 'F') IS NOT NULL
-    ALTER TABLE [dbo].[aspnet_Users] DROP CONSTRAINT [FK__aspnet_Us__Appli__71D1E811];
-GO
-IF OBJECT_ID(N'[dbo].[FK__aspnet_Us__RoleI__25518C17]', 'F') IS NOT NULL
-    ALTER TABLE [dbo].[aspnet_UsersInRoles] DROP CONSTRAINT [FK__aspnet_Us__RoleI__25518C17];
-GO
-IF OBJECT_ID(N'[dbo].[FK__aspnet_Us__UserI__245D67DE]', 'F') IS NOT NULL
-    ALTER TABLE [dbo].[aspnet_UsersInRoles] DROP CONSTRAINT [FK__aspnet_Us__UserI__245D67DE];
-GO
-IF OBJECT_ID(N'[dbo].[FK_ReportSnippet_ColumnList]', 'F') IS NOT NULL
-    ALTER TABLE [dbo].[ReportSnippets] DROP CONSTRAINT [FK_ReportSnippet_ColumnList];
-GO
-IF OBJECT_ID(N'[dbo].[FK_ReportSnippet_RowList]', 'F') IS NOT NULL
-    ALTER TABLE [dbo].[ReportSnippets] DROP CONSTRAINT [FK_ReportSnippet_RowList];
+IF OBJECT_ID(N'[dbo].[FK_SettingChoiceToExecutionResult_ExecutionResultSet]', 'F') IS NOT NULL
+    ALTER TABLE [dbo].[SettingChoiceToExecutionResultSets] DROP CONSTRAINT [FK_SettingChoiceToExecutionResult_ExecutionResultSet];
 GO
 IF OBJECT_ID(N'[dbo].[FK_ReportSnippetToReportDefinitio_ReportDefinition]', 'F') IS NOT NULL
     ALTER TABLE [dbo].[ReportSnippetToReportDefinitions] DROP CONSTRAINT [FK_ReportSnippetToReportDefinitio_ReportDefinition];
 GO
+IF OBJECT_ID(N'[dbo].[FK_ReportSnippet_RowList]', 'F') IS NOT NULL
+    ALTER TABLE [dbo].[ReportSnippets] DROP CONSTRAINT [FK_ReportSnippet_RowList];
+GO
 IF OBJECT_ID(N'[dbo].[FK_ReportSnippetToReportDefinitio_ReportSnippet]', 'F') IS NOT NULL
     ALTER TABLE [dbo].[ReportSnippetToReportDefinitions] DROP CONSTRAINT [FK_ReportSnippetToReportDefinitio_ReportSnippet];
-GO
-IF OBJECT_ID(N'[dbo].[FK_RowListToRow_Row]', 'F') IS NOT NULL
-    ALTER TABLE [dbo].[RowListToRows] DROP CONSTRAINT [FK_RowListToRow_Row];
 GO
 IF OBJECT_ID(N'[dbo].[FK_RowListToRow_RowList]', 'F') IS NOT NULL
     ALTER TABLE [dbo].[RowListToRows] DROP CONSTRAINT [FK_RowListToRow_RowList];
 GO
+IF OBJECT_ID(N'[dbo].[FK_RowListToRow_Row]', 'F') IS NOT NULL
+    ALTER TABLE [dbo].[RowListToRows] DROP CONSTRAINT [FK_RowListToRow_Row];
+GO
 IF OBJECT_ID(N'[dbo].[FK_SettingChoice_SettingCategory]', 'F') IS NOT NULL
     ALTER TABLE [dbo].[SettingChoices] DROP CONSTRAINT [FK_SettingChoice_SettingCategory];
-GO
-IF OBJECT_ID(N'[dbo].[FK_SettingChoiceToExecutionResult_ExecutionResultSet]', 'F') IS NOT NULL
-    ALTER TABLE [dbo].[SettingChoiceToExecutionResultSets] DROP CONSTRAINT [FK_SettingChoiceToExecutionResult_ExecutionResultSet];
 GO
 IF OBJECT_ID(N'[dbo].[FK_SettingChoiceToExecutionResult_SettingChoice]', 'F') IS NOT NULL
     ALTER TABLE [dbo].[SettingChoiceToExecutionResultSets] DROP CONSTRAINT [FK_SettingChoiceToExecutionResult_SettingChoice];
@@ -85,6 +79,12 @@ IF OBJECT_ID(N'[dbo].[FK_SettingChoiceToSettingChoiceSe_SettingChoice]', 'F') IS
 GO
 IF OBJECT_ID(N'[dbo].[FK_SettingChoiceToSettingChoiceSe_SettingChoiceSet]', 'F') IS NOT NULL
     ALTER TABLE [dbo].[SettingChoiceToSettingChoiceSets] DROP CONSTRAINT [FK_SettingChoiceToSettingChoiceSe_SettingChoiceSet];
+GO
+IF OBJECT_ID(N'[dbo].[FK_aspnet_UsersInRoles_aspnet_Roles]', 'F') IS NOT NULL
+    ALTER TABLE [dbo].[aspnet_UsersInRoles] DROP CONSTRAINT [FK_aspnet_UsersInRoles_aspnet_Roles];
+GO
+IF OBJECT_ID(N'[dbo].[FK_aspnet_UsersInRoles_aspnet_Users]', 'F') IS NOT NULL
+    ALTER TABLE [dbo].[aspnet_UsersInRoles] DROP CONSTRAINT [FK_aspnet_UsersInRoles_aspnet_Users];
 GO
 
 -- --------------------------------------------------
@@ -108,9 +108,6 @@ IF OBJECT_ID(N'[dbo].[aspnet_SchemaVersions]', 'U') IS NOT NULL
 GO
 IF OBJECT_ID(N'[dbo].[aspnet_Users]', 'U') IS NOT NULL
     DROP TABLE [dbo].[aspnet_Users];
-GO
-IF OBJECT_ID(N'[dbo].[aspnet_UsersInRoles]', 'U') IS NOT NULL
-    DROP TABLE [dbo].[aspnet_UsersInRoles];
 GO
 IF OBJECT_ID(N'[dbo].[ColumnLists]', 'U') IS NOT NULL
     DROP TABLE [dbo].[ColumnLists];
@@ -163,23 +160,26 @@ GO
 IF OBJECT_ID(N'[dbo].[SettingChoiceToSettingChoiceSets]', 'U') IS NOT NULL
     DROP TABLE [dbo].[SettingChoiceToSettingChoiceSets];
 GO
-IF OBJECT_ID(N'[ACESIMModelStoreContainer].[vw_aspnet_Applications]', 'U') IS NOT NULL
-    DROP TABLE [ACESIMModelStoreContainer].[vw_aspnet_Applications];
+IF OBJECT_ID(N'[dbo].[vw_aspnet_Applications]', 'U') IS NOT NULL
+    DROP TABLE [dbo].[vw_aspnet_Applications];
 GO
-IF OBJECT_ID(N'[ACESIMModelStoreContainer].[vw_aspnet_MembershipUsers]', 'U') IS NOT NULL
-    DROP TABLE [ACESIMModelStoreContainer].[vw_aspnet_MembershipUsers];
+IF OBJECT_ID(N'[dbo].[vw_aspnet_MembershipUsers]', 'U') IS NOT NULL
+    DROP TABLE [dbo].[vw_aspnet_MembershipUsers];
 GO
-IF OBJECT_ID(N'[ACESIMModelStoreContainer].[vw_aspnet_Profiles]', 'U') IS NOT NULL
-    DROP TABLE [ACESIMModelStoreContainer].[vw_aspnet_Profiles];
+IF OBJECT_ID(N'[dbo].[vw_aspnet_Profiles]', 'U') IS NOT NULL
+    DROP TABLE [dbo].[vw_aspnet_Profiles];
 GO
-IF OBJECT_ID(N'[ACESIMModelStoreContainer].[vw_aspnet_Roles]', 'U') IS NOT NULL
-    DROP TABLE [ACESIMModelStoreContainer].[vw_aspnet_Roles];
+IF OBJECT_ID(N'[dbo].[vw_aspnet_Roles]', 'U') IS NOT NULL
+    DROP TABLE [dbo].[vw_aspnet_Roles];
 GO
-IF OBJECT_ID(N'[ACESIMModelStoreContainer].[vw_aspnet_Users]', 'U') IS NOT NULL
-    DROP TABLE [ACESIMModelStoreContainer].[vw_aspnet_Users];
+IF OBJECT_ID(N'[dbo].[vw_aspnet_Users]', 'U') IS NOT NULL
+    DROP TABLE [dbo].[vw_aspnet_Users];
 GO
-IF OBJECT_ID(N'[ACESIMModelStoreContainer].[vw_aspnet_UsersInRoles]', 'U') IS NOT NULL
-    DROP TABLE [ACESIMModelStoreContainer].[vw_aspnet_UsersInRoles];
+IF OBJECT_ID(N'[dbo].[vw_aspnet_UsersInRoles]', 'U') IS NOT NULL
+    DROP TABLE [dbo].[vw_aspnet_UsersInRoles];
+GO
+IF OBJECT_ID(N'[dbo].[aspnet_UsersInRoles]', 'U') IS NOT NULL
+    DROP TABLE [dbo].[aspnet_UsersInRoles];
 GO
 
 -- --------------------------------------------------
@@ -264,7 +264,6 @@ GO
 -- Creating table 'ColumnLists'
 CREATE TABLE [dbo].[ColumnLists] (
     [Id] int IDENTITY(1,1) NOT NULL,
-    [RowVersion] binary(8)  NOT NULL,
     [Name] nvarchar(255)  NOT NULL
 );
 GO
@@ -272,7 +271,6 @@ GO
 -- Creating table 'ColumnListToColumns'
 CREATE TABLE [dbo].[ColumnListToColumns] (
     [Id] int IDENTITY(1,1) NOT NULL,
-    [RowVersion] binary(8)  NOT NULL,
     [OrderInList] int  NULL,
     [ColumnListToColumn_Column] int  NOT NULL,
     [ColumnListToColumn_ColumnList] int  NOT NULL
@@ -282,7 +280,6 @@ GO
 -- Creating table 'Columns'
 CREATE TABLE [dbo].[Columns] (
     [Id] int IDENTITY(1,1) NOT NULL,
-    [RowVersion] binary(8)  NOT NULL,
     [Name] nvarchar(255)  NOT NULL
 );
 GO
@@ -290,7 +287,6 @@ GO
 -- Creating table 'DataPoints'
 CREATE TABLE [dbo].[DataPoints] (
     [Id] int IDENTITY(1,1) NOT NULL,
-    [RowVersion] binary(8)  NOT NULL,
     [Value] float  NULL,
     [DataPoint_Row] int  NOT NULL,
     [DataPoint_Column] int  NOT NULL,
@@ -301,7 +297,6 @@ GO
 -- Creating table 'ExecutionResultSets'
 CREATE TABLE [dbo].[ExecutionResultSets] (
     [Id] int IDENTITY(1,1) NOT NULL,
-    [RowVersion] binary(8)  NOT NULL,
     [Time] datetime  NOT NULL,
     [SettingChoiceSummary] nvarchar(255)  NOT NULL,
     [FullSettingsList] nvarchar(255)  NOT NULL,
@@ -312,7 +307,6 @@ GO
 -- Creating table 'ReportDefinitions'
 CREATE TABLE [dbo].[ReportDefinitions] (
     [Id] int IDENTITY(1,1) NOT NULL,
-    [RowVersion] binary(8)  NOT NULL,
     [Name] nvarchar(255)  NOT NULL
 );
 GO
@@ -320,7 +314,6 @@ GO
 -- Creating table 'ReportSnippets'
 CREATE TABLE [dbo].[ReportSnippets] (
     [Id] int IDENTITY(1,1) NOT NULL,
-    [RowVersion] binary(8)  NOT NULL,
     [Name] nvarchar(255)  NOT NULL,
     [ReportSnippet_RowList] int  NOT NULL,
     [ReportSnippet_ColumnList] int  NOT NULL
@@ -330,7 +323,6 @@ GO
 -- Creating table 'ReportSnippetToReportDefinitions'
 CREATE TABLE [dbo].[ReportSnippetToReportDefinitions] (
     [Id] int IDENTITY(1,1) NOT NULL,
-    [RowVersion] binary(8)  NOT NULL,
     [ReportSnippetToReportDefinitio_ReportDefinition] int  NOT NULL,
     [ReportSnippetToReportDefinitio_ReportSnippet] int  NOT NULL
 );
@@ -346,7 +338,6 @@ GO
 -- Creating table 'RowLists'
 CREATE TABLE [dbo].[RowLists] (
     [Id] int IDENTITY(1,1) NOT NULL,
-    [RowVersion] binary(8)  NOT NULL,
     [Name] nvarchar(255)  NOT NULL
 );
 GO
@@ -354,7 +345,6 @@ GO
 -- Creating table 'RowListToRows'
 CREATE TABLE [dbo].[RowListToRows] (
     [Id] int IDENTITY(1,1) NOT NULL,
-    [RowVersion] binary(8)  NOT NULL,
     [OrderInList] int  NULL,
     [RowListToRow_Row] int  NOT NULL,
     [RowListToRow_RowList] int  NOT NULL
@@ -364,7 +354,6 @@ GO
 -- Creating table 'Rows'
 CREATE TABLE [dbo].[Rows] (
     [Id] int IDENTITY(1,1) NOT NULL,
-    [RowVersion] binary(8)  NOT NULL,
     [Name] nvarchar(255)  NOT NULL
 );
 GO
@@ -372,7 +361,6 @@ GO
 -- Creating table 'SettingCategories'
 CREATE TABLE [dbo].[SettingCategories] (
     [Id] int IDENTITY(1,1) NOT NULL,
-    [RowVersion] binary(8)  NOT NULL,
     [Name] nvarchar(255)  NOT NULL
 );
 GO
@@ -380,7 +368,6 @@ GO
 -- Creating table 'SettingChoices'
 CREATE TABLE [dbo].[SettingChoices] (
     [Id] int IDENTITY(1,1) NOT NULL,
-    [RowVersion] binary(8)  NOT NULL,
     [Name] nvarchar(255)  NOT NULL,
     [SettingChoice_SettingCategory] int  NOT NULL
 );
@@ -389,7 +376,6 @@ GO
 -- Creating table 'SettingChoiceSets'
 CREATE TABLE [dbo].[SettingChoiceSets] (
     [Id] int IDENTITY(1,1) NOT NULL,
-    [RowVersion] binary(8)  NOT NULL,
     [Name] nvarchar(255)  NOT NULL
 );
 GO
@@ -397,7 +383,6 @@ GO
 -- Creating table 'SettingChoiceToExecutionResultSets'
 CREATE TABLE [dbo].[SettingChoiceToExecutionResultSets] (
     [Id] int IDENTITY(1,1) NOT NULL,
-    [RowVersion] binary(8)  NOT NULL,
     [SettingChoiceToExecutionResult_ExecutionResultSet] int  NOT NULL,
     [SettingChoiceToExecutionResult_SettingChoice] int  NOT NULL
 );
@@ -406,7 +391,6 @@ GO
 -- Creating table 'SettingChoiceToSettingChoiceSets'
 CREATE TABLE [dbo].[SettingChoiceToSettingChoiceSets] (
     [Id] int IDENTITY(1,1) NOT NULL,
-    [RowVersion] binary(8)  NOT NULL,
     [SettingChoiceToSettingChoiceSe_SettingChoice] int  NOT NULL,
     [SettingChoiceToSettingChoiceSe_SettingChoiceSet] int  NOT NULL
 );

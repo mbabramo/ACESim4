@@ -21,7 +21,6 @@ namespace ACESim.Reports
         }
     
         public int Id { get; set; }
-        public byte[] RowVersion { get; set; }
         public System.DateTime Time { get; set; }
         public string SettingChoiceSummary { get; set; }
         public string FullSettingsList { get; set; }

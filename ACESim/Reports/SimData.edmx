@@ -210,7 +210,6 @@
       <PropertyRef Name="Id" />
     </Key>
     <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
-    <Property Name="RowVersion" Type="binary" StoreGeneratedPattern="Computed" Nullable="false" MaxLength="8" />
     <Property Name="Name" Type="nvarchar" Nullable="false" MaxLength="255" />
   </EntityType>
   <EntityType Name="ColumnListToColumns">
@@ -218,7 +217,6 @@
       <PropertyRef Name="Id" />
     </Key>
     <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
-    <Property Name="RowVersion" Type="binary" StoreGeneratedPattern="Computed" Nullable="false" MaxLength="8" />
     <Property Name="OrderInList" Type="int" Nullable="true" />
     <Property Name="ColumnListToColumn_Column" Type="int" Nullable="false" />
     <Property Name="ColumnListToColumn_ColumnList" Type="int" Nullable="false" />
@@ -228,7 +226,6 @@
       <PropertyRef Name="Id" />
     </Key>
     <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
-    <Property Name="RowVersion" Type="binary" StoreGeneratedPattern="Computed" Nullable="false" MaxLength="8" />
     <Property Name="Name" Type="nvarchar" Nullable="false" MaxLength="255" />
   </EntityType>
   <EntityType Name="DataPoints">
@@ -236,7 +233,6 @@
       <PropertyRef Name="Id" />
     </Key>
     <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
-    <Property Name="RowVersion" Type="binary" StoreGeneratedPattern="Computed" Nullable="false" MaxLength="8" />
     <Property Name="Value" Type="float" Nullable="true" />
     <Property Name="DataPoint_Row" Type="int" Nullable="false" />
     <Property Name="DataPoint_Column" Type="int" Nullable="false" />
@@ -247,7 +243,6 @@
       <PropertyRef Name="Id" />
     </Key>
     <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
-    <Property Name="RowVersion" Type="binary" StoreGeneratedPattern="Computed" Nullable="false" MaxLength="8" />
     <Property Name="Time" Type="datetime" Nullable="false" />
     <Property Name="SettingChoiceSummary" Type="nvarchar" Nullable="false" MaxLength="255" />
     <Property Name="FullSettingsList" Type="nvarchar" Nullable="false" MaxLength="255" />
@@ -258,7 +253,6 @@
       <PropertyRef Name="Id" />
     </Key>
     <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
-    <Property Name="RowVersion" Type="binary" StoreGeneratedPattern="Computed" Nullable="false" MaxLength="8" />
     <Property Name="Name" Type="nvarchar" Nullable="false" MaxLength="255" />
   </EntityType>
   <EntityType Name="ReportSnippets">
@@ -266,7 +260,6 @@
       <PropertyRef Name="Id" />
     </Key>
     <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
-    <Property Name="RowVersion" Type="binary" StoreGeneratedPattern="Computed" Nullable="false" MaxLength="8" />
     <Property Name="Name" Type="nvarchar" Nullable="false" MaxLength="255" />
     <Property Name="ReportSnippet_RowList" Type="int" Nullable="false" />
     <Property Name="ReportSnippet_ColumnList" Type="int" Nullable="false" />
@@ -276,7 +269,6 @@
       <PropertyRef Name="Id" />
     </Key>
     <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
-    <Property Name="RowVersion" Type="binary" StoreGeneratedPattern="Computed" Nullable="false" MaxLength="8" />
     <Property Name="ReportSnippetToReportDefinitio_ReportDefinition" Type="int" Nullable="false" />
     <Property Name="ReportSnippetToReportDefinitio_ReportSnippet" Type="int" Nullable="false" />
   </EntityType>
@@ -293,7 +285,6 @@
       <PropertyRef Name="Id" />
     </Key>
     <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
-    <Property Name="RowVersion" Type="binary" StoreGeneratedPattern="Computed" Nullable="false" MaxLength="8" />
     <Property Name="Name" Type="nvarchar" Nullable="false" MaxLength="255" />
   </EntityType>
   <EntityType Name="RowListToRows">
@@ -301,7 +292,6 @@
       <PropertyRef Name="Id" />
     </Key>
     <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
-    <Property Name="RowVersion" Type="binary" StoreGeneratedPattern="Computed" Nullable="false" MaxLength="8" />
     <Property Name="OrderInList" Type="int" Nullable="true" />
     <Property Name="RowListToRow_Row" Type="int" Nullable="false" />
     <Property Name="RowListToRow_RowList" Type="int" Nullable="false" />
@@ -311,7 +301,6 @@
       <PropertyRef Name="Id" />
     </Key>
     <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
-    <Property Name="RowVersion" Type="binary" StoreGeneratedPattern="Computed" Nullable="false" MaxLength="8" />
     <Property Name="Name" Type="nvarchar" Nullable="false" MaxLength="255" />
   </EntityType>
   <EntityType Name="SettingCategories">
@@ -319,7 +308,6 @@
       <PropertyRef Name="Id" />
     </Key>
     <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
-    <Property Name="RowVersion" Type="binary" StoreGeneratedPattern="Computed" Nullable="false" MaxLength="8" />
     <Property Name="Name" Type="nvarchar" Nullable="false" MaxLength="255" />
   </EntityType>
   <EntityType Name="SettingChoices">
@@ -327,7 +315,6 @@
       <PropertyRef Name="Id" />
     </Key>
     <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
-    <Property Name="RowVersion" Type="binary" StoreGeneratedPattern="Computed" Nullable="false" MaxLength="8" />
     <Property Name="Name" Type="nvarchar" Nullable="false" MaxLength="255" />
     <Property Name="SettingChoice_SettingCategory" Type="int" Nullable="false" />
   </EntityType>
@@ -336,7 +323,6 @@
       <PropertyRef Name="Id" />
     </Key>
     <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
-    <Property Name="RowVersion" Type="binary" StoreGeneratedPattern="Computed" Nullable="false" MaxLength="8" />
     <Property Name="Name" Type="nvarchar" Nullable="false" MaxLength="255" />
   </EntityType>
   <EntityType Name="SettingChoiceToExecutionResultSets">
@@ -344,7 +330,6 @@
       <PropertyRef Name="Id" />
     </Key>
     <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
-    <Property Name="RowVersion" Type="binary" StoreGeneratedPattern="Computed" Nullable="false" MaxLength="8" />
     <Property Name="SettingChoiceToExecutionResult_ExecutionResultSet" Type="int" Nullable="false" />
     <Property Name="SettingChoiceToExecutionResult_SettingChoice" Type="int" Nullable="false" />
   </EntityType>
@@ -353,7 +338,6 @@
       <PropertyRef Name="Id" />
     </Key>
     <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
-    <Property Name="RowVersion" Type="binary" StoreGeneratedPattern="Computed" Nullable="false" MaxLength="8" />
     <Property Name="SettingChoiceToSettingChoiceSe_SettingChoice" Type="int" Nullable="false" />
     <Property Name="SettingChoiceToSettingChoiceSe_SettingChoiceSet" Type="int" Nullable="false" />
   </EntityType>
@@ -1225,7 +1209,6 @@
             <PropertyRef Name="Id" />
           </Key>
           <Property Name="Id" Type="Int32" Nullable="false" p1:StoreGeneratedPattern="Identity" />
-          <Property Name="RowVersion" Type="Binary" Nullable="false" MaxLength="8" FixedLength="true" p1:StoreGeneratedPattern="Computed" />
           <Property Name="Name" Type="String" Nullable="false" MaxLength="255" Unicode="true" FixedLength="false" />
           <NavigationProperty Name="ColumnListToColumns" Relationship="ACESIMModel.ColumnListToColumn_ColumnList" FromRole="ColumnLists" ToRole="ColumnListToColumns" />
           <NavigationProperty Name="ReportSnippets" Relationship="ACESIMModel.ReportSnippet_ColumnList" FromRole="ColumnLists" ToRole="ReportSnippets" />
@@ -1235,7 +1218,6 @@
             <PropertyRef Name="Id" />
           </Key>
           <Property Name="Id" Type="Int32" Nullable="false" p1:StoreGeneratedPattern="Identity" />
-          <Property Name="RowVersion" Type="Binary" Nullable="false" MaxLength="8" FixedLength="true" p1:StoreGeneratedPattern="Computed" />
           <Property Name="OrderInList" Type="Int32" />
           <Property Name="ColumnListToColumn_Column" Type="Int32" Nullable="false" />
           <Property Name="ColumnListToColumn_ColumnList" Type="Int32" Nullable="false" />
@@ -1247,7 +1229,6 @@
             <PropertyRef Name="Id" />
           </Key>
           <Property Name="Id" Type="Int32" Nullable="false" p1:StoreGeneratedPattern="Identity" />
-          <Property Name="RowVersion" Type="Binary" Nullable="false" MaxLength="8" FixedLength="true" p1:StoreGeneratedPattern="Computed" />
           <Property Name="Name" Type="String" Nullable="false" MaxLength="255" Unicode="true" FixedLength="false" />
           <NavigationProperty Name="ColumnListToColumns" Relationship="ACESIMModel.ColumnListToColumn_Column" FromRole="Columns" ToRole="ColumnListToColumns" />
           <NavigationProperty Name="DataPoints" Relationship="ACESIMModel.DataPoint_Column" FromRole="Columns" ToRole="DataPoints" />
@@ -1257,7 +1238,6 @@
             <PropertyRef Name="Id" />
           </Key>
           <Property Name="Id" Type="Int32" Nullable="false" p1:StoreGeneratedPattern="Identity" />
-          <Property Name="RowVersion" Type="Binary" Nullable="false" MaxLength="8" FixedLength="true" p1:StoreGeneratedPattern="Computed" />
           <Property Name="Value" Type="Double" />
           <Property Name="DataPoint_Row" Type="Int32" Nullable="false" />
           <Property Name="DataPoint_Column" Type="Int32" Nullable="false" />
@@ -1271,7 +1251,6 @@
             <PropertyRef Name="Id" />
           </Key>
           <Property Name="Id" Type="Int32" Nullable="false" p1:StoreGeneratedPattern="Identity" />
-          <Property Name="RowVersion" Type="Binary" Nullable="false" MaxLength="8" FixedLength="true" p1:StoreGeneratedPattern="Computed" />
           <Property Name="Time" Type="DateTime" Nullable="false" Precision="3" />
           <Property Name="SettingChoiceSummary" Type="String" Nullable="false" MaxLength="255" Unicode="true" FixedLength="false" />
           <Property Name="FullSettingsList" Type="String" Nullable="false" MaxLength="255" Unicode="true" FixedLength="false" />
@@ -1284,7 +1263,6 @@
             <PropertyRef Name="Id" />
           </Key>
           <Property Name="Id" Type="Int32" Nullable="false" p1:StoreGeneratedPattern="Identity" />
-          <Property Name="RowVersion" Type="Binary" Nullable="false" MaxLength="8" FixedLength="true" p1:StoreGeneratedPattern="Computed" />
           <Property Name="Name" Type="String" Nullable="false" MaxLength="255" Unicode="true" FixedLength="false" />
           <NavigationProperty Name="ReportSnippetToReportDefinitions" Relationship="ACESIMModel.ReportSnippetToReportDefinitio_ReportDefinition" FromRole="ReportDefinitions" ToRole="ReportSnippetToReportDefinitions" />
         </EntityType>
@@ -1293,7 +1271,6 @@
             <PropertyRef Name="Id" />
           </Key>
           <Property Name="Id" Type="Int32" Nullable="false" p1:StoreGeneratedPattern="Identity" />
-          <Property Name="RowVersion" Type="Binary" Nullable="false" MaxLength="8" FixedLength="true" p1:StoreGeneratedPattern="Computed" />
           <Property Name="Name" Type="String" Nullable="false" MaxLength="255" Unicode="true" FixedLength="false" />
           <Property Name="ReportSnippet_RowList" Type="Int32" Nullable="false" />
           <Property Name="ReportSnippet_ColumnList" Type="Int32" Nullable="false" />
@@ -1306,7 +1283,6 @@
             <PropertyRef Name="Id" />
           </Key>
           <Property Name="Id" Type="Int32" Nullable="false" p1:StoreGeneratedPattern="Identity" />
-          <Property Name="RowVersion" Type="Binary" Nullable="false" MaxLength="8" FixedLength="true" p1:StoreGeneratedPattern="Computed" />
           <Property Name="ReportSnippetToReportDefinitio_ReportDefinition" Type="Int32" Nullable="false" />
           <Property Name="ReportSnippetToReportDefinitio_ReportSnippet" Type="Int32" Nullable="false" />
           <NavigationProperty Name="ReportDefinition" Relationship="ACESIMModel.ReportSnippetToReportDefinitio_ReportDefinition" FromRole="ReportSnippetToReportDefinitions" ToRole="ReportDefinitions" />
@@ -1325,7 +1301,6 @@
             <PropertyRef Name="Id" />
           </Key>
           <Property Name="Id" Type="Int32" Nullable="false" p1:StoreGeneratedPattern="Identity" />
-          <Property Name="RowVersion" Type="Binary" Nullable="false" MaxLength="8" FixedLength="true" p1:StoreGeneratedPattern="Computed" />
           <Property Name="Name" Type="String" Nullable="false" MaxLength="255" Unicode="true" FixedLength="false" />
           <NavigationProperty Name="ReportSnippets" Relationship="ACESIMModel.ReportSnippet_RowList" FromRole="RowLists" ToRole="ReportSnippets" />
           <NavigationProperty Name="RowListToRows" Relationship="ACESIMModel.RowListToRow_RowList" FromRole="RowLists" ToRole="RowListToRows" />
@@ -1335,7 +1310,6 @@
             <PropertyRef Name="Id" />
           </Key>
           <Property Name="Id" Type="Int32" Nullable="false" p1:StoreGeneratedPattern="Identity" />
-          <Property Name="RowVersion" Type="Binary" Nullable="false" MaxLength="8" FixedLength="true" p1:StoreGeneratedPattern="Computed" />
           <Property Name="OrderInList" Type="Int32" />
           <Property Name="RowListToRow_Row" Type="Int32" Nullable="false" />
           <Property Name="RowListToRow_RowList" Type="Int32" Nullable="false" />
@@ -1347,7 +1321,6 @@
             <PropertyRef Name="Id" />
           </Key>
           <Property Name="Id" Type="Int32" Nullable="false" p1:StoreGeneratedPattern="Identity" />
-          <Property Name="RowVersion" Type="Binary" Nullable="false" MaxLength="8" FixedLength="true" p1:StoreGeneratedPattern="Computed" />
           <Property Name="Name" Type="String" Nullable="false" MaxLength="255" Unicode="true" FixedLength="false" />
           <NavigationProperty Name="DataPoints" Relationship="ACESIMModel.DataPoint_Row" FromRole="Rows" ToRole="DataPoints" />
           <NavigationProperty Name="RowListToRows" Relationship="ACESIMModel.RowListToRow_Row" FromRole="Rows" ToRole="RowListToRows" />
@@ -1357,7 +1330,6 @@
             <PropertyRef Name="Id" />
           </Key>
           <Property Name="Id" Type="Int32" Nullable="false" p1:StoreGeneratedPattern="Identity" />
-          <Property Name="RowVersion" Type="Binary" Nullable="false" MaxLength="8" FixedLength="true" p1:StoreGeneratedPattern="Computed" />
           <Property Name="Name" Type="String" Nullable="false" MaxLength="255" Unicode="true" FixedLength="false" />
           <NavigationProperty Name="SettingChoices" Relationship="ACESIMModel.SettingChoice_SettingCategory" FromRole="SettingCategories" ToRole="SettingChoices" />
         </EntityType>
@@ -1366,7 +1338,6 @@
             <PropertyRef Name="Id" />
           </Key>
           <Property Name="Id" Type="Int32" Nullable="false" p1:StoreGeneratedPattern="Identity" />
-          <Property Name="RowVersion" Type="Binary" Nullable="false" MaxLength="8" FixedLength="true" p1:StoreGeneratedPattern="Computed" />
           <Property Name="Name" Type="String" Nullable="false" MaxLength="255" Unicode="true" FixedLength="false" />
           <Property Name="SettingChoice_SettingCategory" Type="Int32" Nullable="false" />
           <NavigationProperty Name="SettingCategory" Relationship="ACESIMModel.SettingChoice_SettingCategory" FromRole="SettingChoices" ToRole="SettingCategories" />
@@ -1378,7 +1349,6 @@
             <PropertyRef Name="Id" />
           </Key>
           <Property Name="Id" Type="Int32" Nullable="false" p1:StoreGeneratedPattern="Identity" />
-          <Property Name="RowVersion" Type="Binary" Nullable="false" MaxLength="8" FixedLength="true" p1:StoreGeneratedPattern="Computed" />
           <Property Name="Name" Type="String" Nullable="false" MaxLength="255" Unicode="true" FixedLength="false" />
           <NavigationProperty Name="SettingChoiceToSettingChoiceSets" Relationship="ACESIMModel.SettingChoiceToSettingChoiceSe_SettingChoiceSet" FromRole="SettingChoiceSets" ToRole="SettingChoiceToSettingChoiceSets" />
         </EntityType>
@@ -1387,7 +1357,6 @@
             <PropertyRef Name="Id" />
           </Key>
           <Property Name="Id" Type="Int32" Nullable="false" p1:StoreGeneratedPattern="Identity" />
-          <Property Name="RowVersion" Type="Binary" Nullable="false" MaxLength="8" FixedLength="true" p1:StoreGeneratedPattern="Computed" />
           <Property Name="SettingChoiceToExecutionResult_ExecutionResultSet" Type="Int32" Nullable="false" />
           <Property Name="SettingChoiceToExecutionResult_SettingChoice" Type="Int32" Nullable="false" />
           <NavigationProperty Name="ExecutionResultSet" Relationship="ACESIMModel.SettingChoiceToExecutionResult_ExecutionResultSet" FromRole="SettingChoiceToExecutionResultSets" ToRole="ExecutionResultSets" />
@@ -1398,7 +1367,6 @@
             <PropertyRef Name="Id" />
           </Key>
           <Property Name="Id" Type="Int32" Nullable="false" p1:StoreGeneratedPattern="Identity" />
-          <Property Name="RowVersion" Type="Binary" Nullable="false" MaxLength="8" FixedLength="true" p1:StoreGeneratedPattern="Computed" />
           <Property Name="SettingChoiceToSettingChoiceSe_SettingChoice" Type="Int32" Nullable="false" />
           <Property Name="SettingChoiceToSettingChoiceSe_SettingChoiceSet" Type="Int32" Nullable="false" />
           <NavigationProperty Name="SettingChoice" Relationship="ACESIMModel.SettingChoiceToSettingChoiceSe_SettingChoice" FromRole="SettingChoiceToSettingChoiceSets" ToRole="SettingChoices" />
@@ -1933,7 +1901,6 @@
       <EntityTypeMapping TypeName="IsTypeOf(ACESIMModel.ColumnList)">
         <MappingFragment StoreEntitySet="ColumnLists">
           <ScalarProperty Name="Id" ColumnName="Id" />
-          <ScalarProperty Name="RowVersion" ColumnName="RowVersion" />
           <ScalarProperty Name="Name" ColumnName="Name" />
         </MappingFragment>
       </EntityTypeMapping>
@@ -1942,7 +1909,6 @@
       <EntityTypeMapping TypeName="IsTypeOf(ACESIMModel.ColumnListToColumn)">
         <MappingFragment StoreEntitySet="ColumnListToColumns">
           <ScalarProperty Name="Id" ColumnName="Id" />
-          <ScalarProperty Name="RowVersion" ColumnName="RowVersion" />
           <ScalarProperty Name="OrderInList" ColumnName="OrderInList" />
           <ScalarProperty Name="ColumnListToColumn_Column" ColumnName="ColumnListToColumn_Column" />
           <ScalarProperty Name="ColumnListToColumn_ColumnList" ColumnName="ColumnListToColumn_ColumnList" />
@@ -1953,7 +1919,6 @@
       <EntityTypeMapping TypeName="IsTypeOf(ACESIMModel.Column)">
         <MappingFragment StoreEntitySet="Columns">
           <ScalarProperty Name="Id" ColumnName="Id" />
-          <ScalarProperty Name="RowVersion" ColumnName="RowVersion" />
           <ScalarProperty Name="Name" ColumnName="Name" />
         </MappingFragment>
       </EntityTypeMapping>
@@ -1962,7 +1927,6 @@
       <EntityTypeMapping TypeName="IsTypeOf(ACESIMModel.DataPoint)">
         <MappingFragment StoreEntitySet="DataPoints">
           <ScalarProperty Name="Id" ColumnName="Id" />
-          <ScalarProperty Name="RowVersion" ColumnName="RowVersion" />
           <ScalarProperty Name="Value" ColumnName="Value" />
           <ScalarProperty Name="DataPoint_Row" ColumnName="DataPoint_Row" />
           <ScalarProperty Name="DataPoint_Column" ColumnName="DataPoint_Column" />
@@ -1974,7 +1938,6 @@
       <EntityTypeMapping TypeName="IsTypeOf(ACESIMModel.ExecutionResultSet)">
         <MappingFragment StoreEntitySet="ExecutionResultSets">
           <ScalarProperty Name="Id" ColumnName="Id" />
-          <ScalarProperty Name="RowVersion" ColumnName="RowVersion" />
           <ScalarProperty Name="Time" ColumnName="Time" />
           <ScalarProperty Name="SettingChoiceSummary" ColumnName="SettingChoiceSummary" />
           <ScalarProperty Name="FullSettingsList" ColumnName="FullSettingsList" />
@@ -1986,7 +1949,6 @@
       <EntityTypeMapping TypeName="IsTypeOf(ACESIMModel.ReportDefinition)">
         <MappingFragment StoreEntitySet="ReportDefinitions">
           <ScalarProperty Name="Id" ColumnName="Id" />
-          <ScalarProperty Name="RowVersion" ColumnName="RowVersion" />
           <ScalarProperty Name="Name" ColumnName="Name" />
         </MappingFragment>
       </EntityTypeMapping>
@@ -1995,7 +1957,6 @@
       <EntityTypeMapping TypeName="IsTypeOf(ACESIMModel.ReportSnippet)">
         <MappingFragment StoreEntitySet="ReportSnippets">
           <ScalarProperty Name="Id" ColumnName="Id" />
-          <ScalarProperty Name="RowVersion" ColumnName="RowVersion" />
           <ScalarProperty Name="Name" ColumnName="Name" />
           <ScalarProperty Name="ReportSnippet_RowList" ColumnName="ReportSnippet_RowList" />
           <ScalarProperty Name="ReportSnippet_ColumnList" ColumnName="ReportSnippet_ColumnList" />
@@ -2006,7 +1967,6 @@
       <EntityTypeMapping TypeName="IsTypeOf(ACESIMModel.ReportSnippetToReportDefinition)">
         <MappingFragment StoreEntitySet="ReportSnippetToReportDefinitions">
           <ScalarProperty Name="Id" ColumnName="Id" />
-          <ScalarProperty Name="RowVersion" ColumnName="RowVersion" />
           <ScalarProperty Name="ReportSnippetToReportDefinitio_ReportDefinition" ColumnName="ReportSnippetToReportDefinitio_ReportDefinition" />
           <ScalarProperty Name="ReportSnippetToReportDefinitio_ReportSnippet" ColumnName="ReportSnippetToReportDefinitio_ReportSnippet" />
         </MappingFragment>
@@ -2024,7 +1984,6 @@
       <EntityTypeMapping TypeName="IsTypeOf(ACESIMModel.RowList)">
         <MappingFragment StoreEntitySet="RowLists">
           <ScalarProperty Name="Id" ColumnName="Id" />
-          <ScalarProperty Name="RowVersion" ColumnName="RowVersion" />
           <ScalarProperty Name="Name" ColumnName="Name" />
         </MappingFragment>
       </EntityTypeMapping>
@@ -2033,7 +1992,6 @@
       <EntityTypeMapping TypeName="IsTypeOf(ACESIMModel.RowListToRow)">
         <MappingFragment StoreEntitySet="RowListToRows">
           <ScalarProperty Name="Id" ColumnName="Id" />
-          <ScalarProperty Name="RowVersion" ColumnName="RowVersion" />
           <ScalarProperty Name="OrderInList" ColumnName="OrderInList" />
           <ScalarProperty Name="RowListToRow_Row" ColumnName="RowListToRow_Row" />
           <ScalarProperty Name="RowListToRow_RowList" ColumnName="RowListToRow_RowList" />
@@ -2044,7 +2002,6 @@
       <EntityTypeMapping TypeName="IsTypeOf(ACESIMModel.Row)">
         <MappingFragment StoreEntitySet="Rows">
           <ScalarProperty Name="Id" ColumnName="Id" />
-          <ScalarProperty Name="RowVersion" ColumnName="RowVersion" />
           <ScalarProperty Name="Name" ColumnName="Name" />
         </MappingFragment>
       </EntityTypeMapping>
@@ -2053,7 +2010,6 @@
       <EntityTypeMapping TypeName="IsTypeOf(ACESIMModel.SettingCategory)">
         <MappingFragment StoreEntitySet="SettingCategories">
           <ScalarProperty Name="Id" ColumnName="Id" />
-          <ScalarProperty Name="RowVersion" ColumnName="RowVersion" />
           <ScalarProperty Name="Name" ColumnName="Name" />
         </MappingFragment>
       </EntityTypeMapping>
@@ -2062,7 +2018,6 @@
       <EntityTypeMapping TypeName="IsTypeOf(ACESIMModel.SettingChoice)">
         <MappingFragment StoreEntitySet="SettingChoices">
           <ScalarProperty Name="Id" ColumnName="Id" />
-          <ScalarProperty Name="RowVersion" ColumnName="RowVersion" />
           <ScalarProperty Name="Name" ColumnName="Name" />
           <ScalarProperty Name="SettingChoice_SettingCategory" ColumnName="SettingChoice_SettingCategory" />
         </MappingFragment>
@@ -2072,7 +2027,6 @@
       <EntityTypeMapping TypeName="IsTypeOf(ACESIMModel.SettingChoiceSet)">
         <MappingFragment StoreEntitySet="SettingChoiceSets">
           <ScalarProperty Name="Id" ColumnName="Id" />
-          <ScalarProperty Name="RowVersion" ColumnName="RowVersion" />
           <ScalarProperty Name="Name" ColumnName="Name" />
         </MappingFragment>
       </EntityTypeMapping>
@@ -2081,7 +2035,6 @@
       <EntityTypeMapping TypeName="IsTypeOf(ACESIMModel.SettingChoiceToExecutionResultSet)">
         <MappingFragment StoreEntitySet="SettingChoiceToExecutionResultSets">
           <ScalarProperty Name="Id" ColumnName="Id" />
-          <ScalarProperty Name="RowVersion" ColumnName="RowVersion" />
           <ScalarProperty Name="SettingChoiceToExecutionResult_ExecutionResultSet" ColumnName="SettingChoiceToExecutionResult_ExecutionResultSet" />
           <ScalarProperty Name="SettingChoiceToExecutionResult_SettingChoice" ColumnName="SettingChoiceToExecutionResult_SettingChoice" />
         </MappingFragment>
@@ -2091,7 +2044,6 @@
       <EntityTypeMapping TypeName="IsTypeOf(ACESIMModel.SettingChoiceToSettingChoiceSet)">
         <MappingFragment StoreEntitySet="SettingChoiceToSettingChoiceSets">
           <ScalarProperty Name="Id" ColumnName="Id" />
-          <ScalarProperty Name="RowVersion" ColumnName="RowVersion" />
           <ScalarProperty Name="SettingChoiceToSettingChoiceSe_SettingChoice" ColumnName="SettingChoiceToSettingChoiceSe_SettingChoice" />
           <ScalarProperty Name="SettingChoiceToSettingChoiceSe_SettingChoiceSet" ColumnName="SettingChoiceToSettingChoiceSe_SettingChoiceSet" />
         </MappingFragment>

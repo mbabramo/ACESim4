@@ -15,7 +15,6 @@ namespace ACESim.Reports
     public partial class SettingChoiceToSettingChoiceSet
     {
         public int Id { get; set; }
-        public byte[] RowVersion { get; set; }
         public int SettingChoiceToSettingChoiceSe_SettingChoice { get; set; }
         public int SettingChoiceToSettingChoiceSe_SettingChoiceSet { get; set; }
     

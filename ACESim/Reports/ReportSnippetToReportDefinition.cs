@@ -15,7 +15,6 @@ namespace ACESim.Reports
     public partial class ReportSnippetToReportDefinition
     {
         public int Id { get; set; }
-        public byte[] RowVersion { get; set; }
         public int ReportSnippetToReportDefinitio_ReportDefinition { get; set; }
         public int ReportSnippetToReportDefinitio_ReportSnippet { get; set; }
     

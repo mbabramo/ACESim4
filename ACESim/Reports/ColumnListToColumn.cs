@@ -15,7 +15,6 @@ namespace ACESim.Reports
     public partial class ColumnListToColumn
     {
         public int Id { get; set; }
-        public byte[] RowVersion { get; set; }
         public Nullable<int> OrderInList { get; set; }
         public int ColumnListToColumn_Column { get; set; }
         public int ColumnListToColumn_ColumnList { get; set; }
