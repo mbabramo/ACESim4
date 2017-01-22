@@ -23,7 +23,7 @@
         <insertTemplate name="EndDropOrDefaultModule" />
         <insertTemplate name="TrialModule" />
         <insertTemplate name="ProbabilityPWinsForecastingModule" />
-        <insertTemplate name="UpdateCumulativeDistributionsModule" />
+        <insertTemplate name="CumulativeDistributionModule" />
         <insertTemplate name="DummyModuleEnd" />
       </setting>
       <setting name="GameModuleNamesGameReliesOn" type="list">

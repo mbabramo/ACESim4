@@ -870,6 +870,7 @@
       <SubType>Designer</SubType>
     </Content>
     <Content Include="Games\LitigationGame\Modules\BargainingModules\UtilityRangeBargainingModule\UtilityRangeBargainingReport.xml" />
+    <Content Include="Games\LitigationGame\Modules\CumulativeDistribution\CumulativeDistributionModule.xml" />
     <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ContinuousPrecautionDisputeGenerator\ContinuousPrecautionDisputeGeneratorModule.xml" />
     <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ContinuousPrecautionDisputeGenerator\ContinuousPrecautionDisputeGeneratorReport.xml" />
     <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ContinuousPrecautionDisputeGenerator\ContinuousPrecautionDisputeGeneratorInputs.xml" />
@@ -918,6 +919,7 @@
     </Content>
     <Content Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostEndogenousEffortModule\LitigationCostEndogenousEffortModule.xml" />
     <Content Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostEndogenousEffortModule\LitigationCostEndogenousEffortReport.xml" />
+    <Content Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostReport.xml" />
     <Content Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostStandardModule\LitigationCostlessStandardInputs.xml">
       <SubType>Designer</SubType>
     </Content>

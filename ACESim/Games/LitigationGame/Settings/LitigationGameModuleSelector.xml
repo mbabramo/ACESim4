@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ACESim>
-  <parentSettingsFile filename="../Modules/UpdateCumulativeDistributionsModule/UpdateCumulativeDistributionsModule.xml">
+  <parentSettingsFile filename="../Modules/CumulativeDistribution/CumulativeDistributionModule.xml">
   </parentSettingsFile>
   <parentSettingsFile filename="../Modules/DummyModule/DummyModule.xml">
     <defineVariable findString="$DummyModuleName" replaceString="Beginning" />
