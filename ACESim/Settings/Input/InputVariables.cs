@@ -98,6 +98,7 @@ namespace ACESim
                 }
             }
 
+            // DEBUG -- THE NON-COMPILED APPROACH IS NOT CURRENTLY WORKING, BUT IT IS BEING TRIGGERED BY CHANGESIMULATIONSETTING.
             bool blockCompilation = false; // change to true if there is a possible problem with compilation -- BUT currently only compilation works. 
             object result;
             if (blockCompilation || (compiledExpression == null || (currentExecutionInformation.SettingOverride != null && currentExecutionInformation.SettingOverride.groupOfSimultaneousSettingChanges.Any())))

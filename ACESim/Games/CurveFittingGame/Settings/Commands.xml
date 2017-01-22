@@ -12,9 +12,9 @@
                     evolveOnlyIfNecessary="false" />
         <playCommand numberIterations="100" StoreStrategiesFile="CurveFittingStrategies" storeIterationResultsFile="CurveFittingIterations" parallelReporting="true" savePlayedGamesInMemoryOnly="false">
           <changeSimulationSettings>
-            <setting name="Obfuscation" type="double">
+            <!--<setting name="Obfuscation" type="double">
                 0.0
-            </setting>
+            </setting> DEBUG  this does not work right now; see note in InputVariables.GetSettings(). It's not passing the inputs to the variable as needed. In most cases, we shouldn't need this feature anyway. -->
           </changeSimulationSettings>
         </playCommand>
         <reportCommand name="CurveFittingReportCommand" storeIterationResultsFile="CurveFittingIterations" storeReportResultsFile="CurveFittingReport">

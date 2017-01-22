@@ -4,34 +4,34 @@ Decision index 0 (Estimation) of 0..1 in Step 0...
      Main set     
           Initializing...          
           Identifying closest point for each iteration to run...          
-          Successes: 100000 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
+          Successes: 10000 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
           Determining unsmoothed optimal value...          
-          Total time elapsed: 15946          
+          Total time elapsed: 1605          
      Validation set     
           Initializing...          
           Identifying closest point for each iteration to run...          
           Successes: 10000 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
           Determining unsmoothed optimal value...          
-          Total time elapsed: 1770          
-     Smoothing using 1000 points and 100000 iterations (150 max per point)     
-     Score based on validation set: 0.00198827220048392     
-     Elapsed seconds: 18.306 current time: 1:42:23 PM     
+          Total time elapsed: 1635          
+     Smoothing using 100 points and 10000 iterations (150 max per point)     
+     Score based on validation set: 0.0101373881846077     
+     Elapsed seconds: 3.469 current time: 2:34:47 PM     
 Decision index 1 (z) of 0..1 in Step 0... 
      Strategy state serialized as strsta2     
      Presmoothing already computed: False Cache has values: False     
      Main set     
           Initializing...          
           Identifying closest point for each iteration to run...          
-          Successes: 100000 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
+          Successes: 10000 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
           Determining unsmoothed optimal value...          
-          Total time elapsed: 14754          
+          Total time elapsed: 1779          
      Validation set     
           Initializing...          
           Identifying closest point for each iteration to run...          
           Successes: 10000 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
           Determining unsmoothed optimal value...          
-          Total time elapsed: 1763          
-     Smoothing using 1000 points and 100000 iterations (150 max per point)     
-     Score based on validation set: 3.4069581479284E-05     
-     Elapsed seconds: 17.117 current time: 1:42:40 PM     
-Total run time 00.00:00:36 days
+          Total time elapsed: 1548          
+     Smoothing using 100 points and 10000 iterations (150 max per point)     
+     Score based on validation set: 0.000297093423541039     
+     Elapsed seconds: 3.452 current time: 2:34:51 PM     
+Total run time 00.00:00:07 days
