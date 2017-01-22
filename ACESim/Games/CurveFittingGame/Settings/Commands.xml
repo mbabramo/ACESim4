@@ -12,9 +12,9 @@
                     evolveOnlyIfNecessary="false" />
         <playCommand numberIterations="100" StoreStrategiesFile="CurveFittingStrategies" storeIterationResultsFile="CurveFittingIterations" parallelReporting="true" savePlayedGamesInMemoryOnly="false">
           <changeSimulationSettings>
-            <!--<setting name="Obfuscation" type="double">
+            <setting name="Obfuscation" type="double">
                 0.0
-            </setting>-->
+            </setting>
           </changeSimulationSettings>
         </playCommand>
         <reportCommand name="CurveFittingReportCommand" storeIterationResultsFile="CurveFittingIterations" storeReportResultsFile="CurveFittingReport">
