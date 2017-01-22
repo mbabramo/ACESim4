@@ -181,7 +181,7 @@ namespace ACESim
                 double newScore = ScoreStrategyBasedOnValidationSet();
                 TabbedText.WriteLine("Score based on validation set: " + newScore);
             }
-            bool printOutSmoothingPoints = true;
+            bool printOutSmoothingPoints = false;
             int maxSmoothingPointsToPrint = 5;
             if (printOutSmoothingPoints)
             {

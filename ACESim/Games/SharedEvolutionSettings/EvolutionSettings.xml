@@ -4,7 +4,7 @@
   
   <evolutionSettingsAll>
     <evolutionSettings name="SimpleEvolution">
-      <setting name="ParallelOptimization" type="bool">true</setting>
+      <setting name="ParallelOptimization" type="bool">false</setting>
       <setting name="StopParallelOptimizationAfterOptimizingNDecisions" type="int">-1</setting>
 
       <setting name="AverageInPreviousVersionsOfStrategy" type="bool">$AverageInPreviousVersionsOfStrategy</setting>

@@ -77,7 +77,7 @@ namespace ACESim
 
         internal void GenerateStatistics(List<RowOrColInfo> theRows, List<RowOrColInfo> theColumns, List<GameProgressReportable> theOutputs)
         {
-            bool getOutputValuesForEachCellIndividually = false; // if this is set to true, then we proceed entirely on a cell-by-cell basis. If false, then we figure out all the filters and variable values for each row and column separately, to make it faster to calculate each individual cell. It may be easier to trace problems by setting this to true.
+            bool getOutputValuesForEachCellIndividually = true; // DEBUG // if this is set to true, then we proceed entirely on a cell-by-cell basis. If false, then we figure out all the filters and variable values for each row and column separately, to make it faster to calculate each individual cell. It may be easier to trace problems by setting this to true.
             List<double?>[] outputValuesForRow = new List<double?>[theRows.Count], outputValuesForColumn = new List<double?>[theColumns.Count];
             BitArray[] filtersForRow = new BitArray[theRows.Count], filtersForColumn = new BitArray[theColumns.Count];
             BitArray[] nonNullFiltersForRow = new BitArray[theRows.Count], nonNullFiltersForColumn = new BitArray[theColumns.Count];
@@ -107,7 +107,7 @@ namespace ACESim
                 {
                     RowOrColInfo column = theColumns[c];
                     double? calculatedStatistic;
-                    getOutputValuesForEachCellIndividually = false; // Set this to true to improve ability to step through and figure out what is causing an unexpected reporting result
+                    getOutputValuesForEachCellIndividually = true; // DEBUG false; // Set this to true to improve ability to step through and figure out what is causing an unexpected reporting result
                     if (getOutputValuesForEachCellIndividually)
                         calculatedStatistic = GenerateStatisticForIntersection(row, column, theOutputs); // this is slower, original algorithm -- keep for now
                     else

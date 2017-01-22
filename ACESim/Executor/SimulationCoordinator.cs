@@ -314,7 +314,7 @@ namespace ACESim
             strategies[decisionNumber].DevelopStrategy(false, prm, out stop); // This is where we actually want to do the evolution
 
             DecisionPoint dp = GameDefinition.DecisionPointForDecisionNumber(decisionNumber);
-            GameModule module = GameDefinition.GameModules == null ? null : GameDefinition.GetOriginalGameModuleForDecisionNumber(decisionNumber);
+            GameModule module = GameDefinition.GameModules == null || !GameDefinition.GameModules.Any() ? null : GameDefinition.GetOriginalGameModuleForDecisionNumber(decisionNumber);
             if (decisionsAffectingProgressStep > 0 && (module == null || !module.IgnoreWhenCountingProgress))
                 SimulationInteraction.GetCurrentProgressStep().SetProportionOfStepComplete(1, true, "DecisionsWithinExecuteEvolveStep");
 

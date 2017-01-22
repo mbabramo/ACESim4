@@ -20,7 +20,7 @@ namespace ACESim
         bool StoppedProcess;
         public bool DisableProgressTracking = false;
 
-        bool TraceProgressStep = true; // DEBUG
+        bool TraceProgressStep = false; 
 
         public void Trace()
         {

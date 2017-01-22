@@ -6,7 +6,7 @@
         <gameDefinition name="CurveFittingGame">
             <setting name="DecisionsExecutionOrder" type="list">
                 <setting name="Decision" type="class">
-                    <setting name="Name" type="text">z</setting>
+                    <setting name="Name" type="text">Estimation</setting>
                     
                     <setting name="Abbreviation" type="text">p</setting>
                     <setting name="InputNames" type="list">

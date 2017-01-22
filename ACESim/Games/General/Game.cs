@@ -264,12 +264,12 @@ namespace ACESim
 
             if (GameProgressLogger.LoggingOn)
             {
-                string gamePointString = CurrentActionPoint.Name + " " + " Preparation phase: " + PreparationPhase.ToString();
+                string gamePointString = (CurrentActionPoint?.Name ?? "") + " " + " Preparation phase: " + PreparationPhase.ToString();
                 GameProgressLogger.AddGameProgressStep(Progress, gamePointString);
                 GameProgressLogger.Log(gamePointString);
             }
 
-            string gamePointString2 = CurrentActionPoint.Name + " " + " Preparation phase: " + PreparationPhase.ToString() + "\n";
+            string gamePointString2 = (CurrentActionPoint?.Name ?? "") + " " + " Preparation phase: " + PreparationPhase.ToString() + "\n";
 
             MostRecentCumulativeDistributions = GetMostRecentCumulativeDistributions();
 
@@ -414,6 +414,8 @@ namespace ACESim
         /// </summary>
         protected double Calculate(List<double> inputs)
         {
+            if (CurrentDecisionIndex == CurrentlyEvolvingDecisionIndex)
+                Progress.CurrentlyEvolvingDecisionIndexReached = true;
             return Strategies[(int) CurrentDecisionIndex].Calculate(inputs);
         }
     }

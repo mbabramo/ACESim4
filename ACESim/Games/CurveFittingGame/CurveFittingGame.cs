@@ -130,9 +130,8 @@ namespace ACESim
                     break;
 
             }
-
-            if (CurrentDecisionIndex == RecordInputsForDecisionNumber && !PreparationPhase)
-                RecordedInputs.Add(inputs);
+            
+            RecordInputsIfNecessary(inputs.ToList());
 
             return inputs.ToList();
         }

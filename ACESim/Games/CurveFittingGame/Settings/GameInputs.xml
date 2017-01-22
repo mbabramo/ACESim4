@@ -7,10 +7,10 @@
             <setting type="double" name="fromVal">0.0</setting>
             <setting type="double" name="toVal">5.0</setting>
           </setting>
-          <setting name="y" type="distribution" subtype="uniform">
+          <!--<setting name="y" type="distribution" subtype="uniform">
             <setting type="double" name="fromVal">0.0</setting>
             <setting type="double" name="toVal">5.0</setting>
-          </setting>
+          </setting>-->
           <setting name="Obfuscation" type="distribution" subtype="normal">
             <setting type="double" name="mean">0.0</setting>
             <setting type="double" name="stdev">0.0</setting>
