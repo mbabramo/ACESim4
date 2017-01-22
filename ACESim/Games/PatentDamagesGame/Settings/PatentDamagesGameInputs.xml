@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ACESim>
+    
+    <gameInputsAll>
+        <gameInputs name="PatentDamagesGameInputs" gameName="PatentDamagesGame">
+          <setting type="double" name="MarketRateOfReturn">0.00</setting>
+          <setting type="double" name="PermittedRateOfReturn">0.10</setting>
+          <setting type="double" name="CostOfEntry">0.10</setting>
+          <setting name="InventionValue" type="distribution" subtype="uniform">
+            <setting type="double" name="fromVal">0.0</setting>
+            <setting type="double" name="toVal">1.0</setting>
+          </setting>
+          <setting name="InventionValueCourtNoise" type="distribution" subtype="normal">
+            <setting type="double" name="mean">0.0</setting>
+            <setting type="double" name="stdev">0.1</setting>
+          </setting>
+          <setting type="double" name="SpilloverMultiplier">1.0</setting>
+          <setting type="double" name="SuccessProbabilityMinimumInvestment">0.25</setting>
+          <setting type="double" name="SuccessProbabilityDoubleInvestment">0.30</setting>
+          <setting type="double" name="SuccessIndependence">0.5</setting>
+          <setting name="CommonSuccessRandomSeed" type="distribution" subtype="uniform">
+            <setting type="double" name="fromVal">0.0</setting>
+            <setting type="double" name="toVal">1.0</setting>
+          </setting>
+          <setting type="double" name="InadvertentInfringementProbability">0.1</setting>
+        </gameInputs>
+    </gameInputsAll>
+    
+</ACESim>

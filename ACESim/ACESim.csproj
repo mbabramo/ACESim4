@@ -185,6 +185,11 @@
     <Compile Include="Games\LitigationGame\Modules\ForecastingModules\ProbabilityPWinsForecastingModule\ProbabilityPWinsForecastingModule.cs" />
     <Compile Include="Games\LitigationGame\Modules\ForecastingModules\ProbabilityPWinsForecastingModule\ProbabilityPWinsForecastingModuleSettings.cs" />
     <Compile Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostModuleProgress.cs" />
+    <Compile Include="Games\PatentDamagesGame\PatentDamagesGame.cs" />
+    <Compile Include="Games\PatentDamagesGame\PatentDamagesGameDefinition.cs" />
+    <Compile Include="Games\PatentDamagesGame\PatentDamagesGameFactory.cs" />
+    <Compile Include="Games\PatentDamagesGame\PatentDamagesGameInputs.cs" />
+    <Compile Include="Games\PatentDamagesGame\PatentDamagesGameProgressInfo.cs" />
     <Compile Include="Neural\GRNNGradient.cs" />
     <Compile Include="Neural\GRNN_Improvements.cs" />
     <Compile Include="Neural\KDTreeFromClusterCenters.cs" />
@@ -1065,6 +1070,12 @@
     <Content Include="Games\ObfuscationGame\Settings\ObfuscationGameReport.xml">
       <SubType>Designer</SubType>
     </Content>
+    <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesCommands.xml" />
+    <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesGameDefinition.xml" />
+    <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesGameInputs.xml" />
+    <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesGameSettings.xml" />
+    <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesOverallSettings.xml" />
+    <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesReport.xml" />
     <Content Include="Games\PointFittingGame\Settings\Commands.xml" />
     <Content Include="Games\PointFittingGame\Settings\GameDefinitions2D.xml" />
     <Content Include="Games\PointFittingGame\Settings\GameDefinitions4D.xml" />
@@ -1091,6 +1102,9 @@
     <Folder Include="Games\LitigationGame\Reports\" />
     <Folder Include="Games\LitigationGame\Strategies\" />
     <Folder Include="Games\ObfuscationGame\Strategies\" />
+    <Folder Include="Games\PatentDamagesGame\Iterations\" />
+    <Folder Include="Games\PatentDamagesGame\Reports\" />
+    <Folder Include="Games\PatentDamagesGame\Strategies\" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.0">

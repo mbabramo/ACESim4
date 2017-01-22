@@ -319,6 +319,8 @@ namespace ACESim
                 SimulationInteraction.GetCurrentProgressStep().SetProportionOfStepComplete(1, true, "DecisionsWithinExecuteEvolveStep");
 
             bool doAll = isLastEvolveStep || GameDefinition.DecisionsExecutionOrder[decisionNumber].MaxEvolveRepetitions == stepNumber;
+            if (strategies[decisionNumber].Decision.StrategyGraphInfos == null)
+                strategies[decisionNumber].Decision.StrategyGraphInfos = new List<StrategyGraphInfo>();
             if (doAll || strategies[decisionNumber].Decision.StrategyGraphInfos.Any(x => x.ReportAfterEachEvolutionStep))
                 strategies[decisionNumber].Decision.AddToStrategyGraphs(theBaseOutputDirectory, true, true, strategies[decisionNumber], GameDefinition.DecisionPointsExecutionOrder[decisionNumber].ActionGroup);
 
