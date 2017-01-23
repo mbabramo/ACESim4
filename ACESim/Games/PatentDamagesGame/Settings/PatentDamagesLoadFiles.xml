@@ -2,7 +2,7 @@
 <ACESim>
   <parentSettingsFile filename="PatentDamagesGameDefinition.xml" />
   <parentSettingsFile filename="PatentDamagesGameInputs.xml" />
-  <parentSettingsFile filename="PatentDamagesGameSettings.xml" />
+  <parentSettingsFile filename="PatentDamagesEvolutionSettings.xml" />
   <parentSettingsFile filename="PatentDamagesReport.xml" />
   <parentSettingsFile filename="PatentDamagesCommands.xml" />
 </ACESim>

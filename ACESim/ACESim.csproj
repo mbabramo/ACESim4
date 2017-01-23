@@ -187,6 +187,7 @@
     <Compile Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostModuleProgress.cs" />
     <Compile Include="Games\PatentDamagesGame\AllInventorsInfo.cs" />
     <Compile Include="Games\PatentDamagesGame\InventorInfo.cs" />
+    <Compile Include="Games\PatentDamagesGame\PatentDamagesDecision.cs" />
     <Compile Include="Games\PatentDamagesGame\PatentDamagesGame.cs" />
     <Compile Include="Games\PatentDamagesGame\PatentDamagesGameDefinition.cs" />
     <Compile Include="Games\PatentDamagesGame\PatentDamagesGameFactory.cs" />
@@ -1072,11 +1073,12 @@
     <Content Include="Games\ObfuscationGame\Settings\ObfuscationGameReport.xml">
       <SubType>Designer</SubType>
     </Content>
+    <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesVariableSettings.xml" />
     <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesCommands.xml" />
     <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesGameDefinition.xml" />
     <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesGameInputs.xml" />
-    <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesGameSettings.xml" />
-    <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesOverallSettings.xml" />
+    <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesEvolutionSettings.xml" />
+    <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesLoadFiles.xml" />
     <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesReport.xml" />
     <Content Include="Games\PointFittingGame\Settings\Commands.xml" />
     <Content Include="Games\PointFittingGame\Settings\GameDefinitions2D.xml" />

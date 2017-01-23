@@ -4,11 +4,11 @@
     <setting type="class" name="InventorXX">
               <setting name="InventionValueNoise" type="distribution" subtype="normal">
                 <setting type="double" name="mean">0.0</setting>
-                <setting type="double" name="stdev">0.1</setting>
+                <setting type="double" name="stdev">$InventionValueNoiseStdev</setting>
               </setting>
               <setting name="CostOfMinimumInvestment" type="distribution" subtype="uniform">
-                <setting type="double" name="fromVal">0.5</setting>
-                <setting type="double" name="toVal">1.5</setting>
+                <setting type="double" name="fromVal">$CostOfMinimumInvestmentMin</setting>
+                <setting type="double" name="toVal">$CostOfMinimumInvestmentMax</setting>
               </setting>
               <setting name="RandomSeed" type="distribution" subtype="uniform">
                 <setting type="double" name="fromVal">0.0</setting>
@@ -18,26 +18,32 @@
   </defineTemplate>
     <gameInputsAll>
         <gameInputs name="PatentDamagesGameInputs" gameName="PatentDamagesGame">
+          <setting type="double" name="InventionValueNoiseStdev">$InventionValueNoiseStdev</setting>
           <setting type="double" name="MarketRateOfReturn">0.00</setting>
-          <setting type="double" name="PermittedRateOfReturn">0.10</setting>
-          <setting type="double" name="CostOfEntry">0.10</setting>
+          <setting type="double" name="PermittedRateOfReturn">$PermittedRateOfReturn</setting>
+          <setting type="double" name="CostOfEntry">$CostOfEntry</setting>
           <setting name="InventionValue" type="distribution" subtype="uniform">
             <setting type="double" name="fromVal">0.0</setting>
             <setting type="double" name="toVal">1.0</setting>
           </setting>
           <setting name="InventionValueCourtNoise" type="distribution" subtype="normal">
             <setting type="double" name="mean">0.0</setting>
-            <setting type="double" name="stdev">0.1</setting>
+            <setting type="double" name="stdev">$InventionValueCourtNoiseStdev</setting>
           </setting>
-          <setting type="double" name="SpilloverMultiplier">1.0</setting>
-          <setting type="double" name="SuccessProbabilityMinimumInvestment">0.25</setting>
-          <setting type="double" name="SuccessProbabilityDoubleInvestment">0.30</setting>
-          <setting type="double" name="SuccessIndependence">0.5</setting>
+          <setting type="double" name="SpilloverMultiplier">$SpilloverMultiplier</setting>
+          <setting type="double" name="SuccessProbabilityMinimumInvestment">$SuccessProbabilityMinimumInvestment</setting>
+          <setting type="double" name="SuccessProbabilityDoubleInvestment">$SuccessProbabilityDoubleInvestment</setting>
+          <setting type="double" name="SuccessProbabilityTripleInvestment">$SuccessProbabilityTenTimesInvestment</setting>
+          <setting type="double" name="SuccessIndependence">$SuccessIndependence</setting>
           <setting name="CommonSuccessRandomSeed" type="distribution" subtype="uniform">
             <setting type="double" name="fromVal">0.0</setting>
             <setting type="double" name="toVal">1.0</setting>
           </setting>
-          <setting type="double" name="InadvertentInfringementProbability">0.1</setting>
+          <setting name="PickWinnerRandomSeed" type="distribution" subtype="uniform">
+            <setting type="double" name="fromVal">0.0</setting>
+            <setting type="double" name="toVal">1.0</setting>
+          </setting>
+          <setting type="double" name="InadvertentInfringementProbability">$InadvertentInfringementProbability</setting>
           <setting name="CommonSuccessRandomSeed" type="distribution" subtype="uniform">
             <setting type="double" name="fromVal">0.0</setting>
             <setting type="double" name="toVal">1.0</setting>

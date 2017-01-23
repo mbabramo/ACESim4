@@ -8,14 +8,25 @@ namespace ACESim
     [Serializable]
     public class PatentDamagesGameProgressInfo : GameProgress
     {
-        public double TotalScoreDecision1; // must be defined as fields rather than as properties to include in automatic report generation.
-        public double TotalScoreDecision2;
+        public List<double> InventorEstimatesInventionValue;
+        public List<bool> InventorEntryDecisions;
+        public bool MainInventorEnters => InventorEntryDecisions.First();
+        public List<bool> InventorTryToInventDecisions;
+        public bool MainInventorTries => InventorTryToInventDecisions.First();
+        public List<double> InventorSpendDecisions;
+        public List<bool> InventorSucceedsAtInvention;
+        public int? WinnerOfPatent = null;
+        public double InventorUtility;
 
         public override GameProgress DeepCopy()
         {
             PatentDamagesGameProgressInfo copy = new PatentDamagesGameProgressInfo();
-            copy.TotalScoreDecision1 = this.TotalScoreDecision1;
-            copy.TotalScoreDecision2 = this.TotalScoreDecision2;
+            copy.InventorEstimatesInventionValue = InventorEstimatesInventionValue.ToList();
+            copy.InventorEntryDecisions = InventorEntryDecisions.ToList();
+            copy.InventorTryToInventDecisions = InventorTryToInventDecisions.ToList();
+            copy.InventorSpendDecisions = InventorSpendDecisions.ToList();
+            copy.WinnerOfPatent = WinnerOfPatent;
+            copy.InventorUtility = InventorUtility;
 
             copy.GameComplete = this.GameComplete;
 
@@ -23,5 +34,7 @@ namespace ACESim
 
             return copy;
         }
+
+
     }
 }
