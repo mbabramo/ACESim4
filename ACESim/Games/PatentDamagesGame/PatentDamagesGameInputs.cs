@@ -19,6 +19,7 @@ namespace ACESim
         public double SuccessIndependence;
         public double CommonSuccessRandomSeed;
         public double InadvertentInfringementProbability;
+        public AllInventorsInfo AllInventorsInfo;
         
     }
 }

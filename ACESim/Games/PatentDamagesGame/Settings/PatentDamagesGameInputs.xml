@@ -1,6 +1,21 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ACESim>
-    
+  <defineTemplate name="InventorInfoTemplate">
+    <setting type="class" name="InventorXX">
+              <setting name="InventionValueNoise" type="distribution" subtype="normal">
+                <setting type="double" name="mean">0.0</setting>
+                <setting type="double" name="stdev">0.1</setting>
+              </setting>
+              <setting name="CostOfMinimumInvestment" type="distribution" subtype="uniform">
+                <setting type="double" name="fromVal">0.5</setting>
+                <setting type="double" name="toVal">1.5</setting>
+              </setting>
+              <setting name="RandomSeed" type="distribution" subtype="uniform">
+                <setting type="double" name="fromVal">0.0</setting>
+                <setting type="double" name="toVal">1.0</setting>
+              </setting>
+            </setting>
+  </defineTemplate>
     <gameInputsAll>
         <gameInputs name="PatentDamagesGameInputs" gameName="PatentDamagesGame">
           <setting type="double" name="MarketRateOfReturn">0.00</setting>
@@ -23,6 +38,22 @@
             <setting type="double" name="toVal">1.0</setting>
           </setting>
           <setting type="double" name="InadvertentInfringementProbability">0.1</setting>
+          <setting name="CommonSuccessRandomSeed" type="distribution" subtype="uniform">
+            <setting type="double" name="fromVal">0.0</setting>
+            <setting type="double" name="toVal">1.0</setting>
+          </setting>
+          <setting name="AllInventorsInfo" type="class">
+            <insertTemplate name="InventorInfoTemplate" find1="InventorXX" replace1="Inventor01"/>
+            <insertTemplate name="InventorInfoTemplate" find1="InventorXX" replace1="Inventor02"/>
+            <insertTemplate name="InventorInfoTemplate" find1="InventorXX" replace1="Inventor03"/>
+            <insertTemplate name="InventorInfoTemplate" find1="InventorXX" replace1="Inventor04"/>
+            <insertTemplate name="InventorInfoTemplate" find1="InventorXX" replace1="Inventor05"/>
+            <insertTemplate name="InventorInfoTemplate" find1="InventorXX" replace1="Inventor06"/>
+            <insertTemplate name="InventorInfoTemplate" find1="InventorXX" replace1="Inventor07"/>
+            <insertTemplate name="InventorInfoTemplate" find1="InventorXX" replace1="Inventor08"/>
+            <insertTemplate name="InventorInfoTemplate" find1="InventorXX" replace1="Inventor09"/>
+            <insertTemplate name="InventorInfoTemplate" find1="InventorXX" replace1="Inventor10"/>
+          </setting>>
         </gameInputs>
     </gameInputsAll>
     

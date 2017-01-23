@@ -185,6 +185,8 @@
     <Compile Include="Games\LitigationGame\Modules\ForecastingModules\ProbabilityPWinsForecastingModule\ProbabilityPWinsForecastingModule.cs" />
     <Compile Include="Games\LitigationGame\Modules\ForecastingModules\ProbabilityPWinsForecastingModule\ProbabilityPWinsForecastingModuleSettings.cs" />
     <Compile Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostModuleProgress.cs" />
+    <Compile Include="Games\PatentDamagesGame\AllInventorsInfo.cs" />
+    <Compile Include="Games\PatentDamagesGame\InventorInfo.cs" />
     <Compile Include="Games\PatentDamagesGame\PatentDamagesGame.cs" />
     <Compile Include="Games\PatentDamagesGame\PatentDamagesGameDefinition.cs" />
     <Compile Include="Games\PatentDamagesGame\PatentDamagesGameFactory.cs" />
