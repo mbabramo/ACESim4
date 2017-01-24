@@ -36,7 +36,7 @@ namespace ACESim
         /// <returns></returns>
         public GameProgress CreateNewGameProgress(IterationID iterationID)
         {
-            return new PatentDamagesGameProgressInfo()  { IterationID = iterationID };
+            return new PatentDamagesGameProgress()  { IterationID = iterationID };
         }
 
         /// <summary>

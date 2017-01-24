@@ -11,8 +11,10 @@ namespace ACESim
     {
 
         PatentDamagesGameInputs PDInputs => (PatentDamagesGameInputs)GameInputs;
-        PatentDamagesGameProgressInfo PDProg => (PatentDamagesGameProgressInfo)Progress;
+        PatentDamagesGameProgress PDProg => (PatentDamagesGameProgress)Progress;
         InventorInfo InventorToOptimizeInfo => PDInputs.AllInventorsInfo.InventorToOptimize;
+        InventorInfo InventorInfo(int i) => PDInputs.AllInventorsInfo.Inventor(i);
+        int NumPotentialInventors => PDInputs.AllInventorsInfo.NumPotentialInventors;
 
         /// <summary>
         /// <para>
@@ -30,6 +32,9 @@ namespace ACESim
                 case (int)PatentDamagesDecision.Enter:
                     MakeEntryDecisions();
                     break;
+                case (int)PatentDamagesDecision.SuccessProbabilityAfterEntry:
+                    ForecastProbabilityOfSuccessAfterEntry();
+                    break;
                 case (int)PatentDamagesDecision.TryToInvent:
                     MakeTryToInventDecisions();
                     break;
@@ -37,11 +42,19 @@ namespace ACESim
                     MakeSpendDecisions();
                     IdentifyPatentWinner();
                     break;
+                case (int)PatentDamagesDecision.SuccessProbabilityAfterInvestment:
+                    ForecastProbabilityOfSuccessAfterInvestment();
+                    break;
                 case (int)PatentDamagesDecision.Price:
+                    MakePricingDecision();
+                    DetermineInadvertentInfringement();
                     break;
                 case (int)PatentDamagesDecision.Accept:
+                    DetermineAcceptance();
                     break;
                 case (int)PatentDamagesDecision.Infringe:
+                    DetermineIntentionalInfringement();
+                    CalculateDamages();
                     break;
                 default:
                     // Do Nothing; there are only two decisions
@@ -50,23 +63,48 @@ namespace ACESim
             }
         }
 
+        public void CalculateInventorEstimates(IEnumerable<InventorInfo> inventorInfos, double actualInventionValue, double stdDevOfNoiseDistribution)
+        {
+            PDProg.InventorEstimatesInventionValue = new List<double>();
+            foreach (var inventorInfo in inventorInfos)
+            {
+                double estimate = PatentDamagesGame.GetEstimateOfInventionValue(stdDevOfNoiseDistribution, inventorInfo.InventionValueNoise, actualInventionValue);
+                PDProg.InventorEstimatesInventionValue.Add(estimate);
+            }
+        }
+
+        public static double GetEstimateOfInventionValue(double stdDevOfNoiseDistribution, double drawFromNoiseDistribution, double actualInventionValue)
+        {
+            return ObfuscationGame.ObfuscationCorrectAnswer.Calculate(stdDevOfNoiseDistribution, drawFromNoiseDistribution + actualInventionValue);
+        }
+
         private void MakeEntryDecisions()
         {
-            todo; // limit entry based on round number if we're evolving -- maybe use a variable for this or maybe just hard code it here.
             CalculateInventorEstimates(PDInputs.AllInventorsInfo.AllInventors(), PDInputs.InventionValue, PDInputs.InventionValueNoiseStdev);
             PDProg.InventorEntryDecisions = new List<bool>();
             bool mainInventorEnters = MakeDecision() > 0;
             PDProg.InventorEntryDecisions.Add(mainInventorEnters);
             var strategy = CurrentlyEvolving ? Strategies[(int)PatentDamagesDecision.Enter].PreviousVersionOfThisStrategy : Strategies[(int)PatentDamagesDecision.Enter];
+            int inventor = 1;
             foreach (var inventorInfo in PDInputs.AllInventorsInfo.InventorsNotBeingOptimized())
             {
-                if (strategy == null)
+                if (CurrentlyEvolving && inventor > PDInputs.MaxPotentialEntrants)
+                    PDProg.InventorEntryDecisions.Add(true); // during evolution, we limit the number of potential entrants so that we can evolve strategy gradually
+                else if (strategy == null)
                     PDProg.InventorEntryDecisions.Add(true);
                 else
                 {
                     double otherInventorEntryDecision = strategy.Calculate(new List<double> { inventorInfo.CostOfMinimumInvestment });
                     PDProg.InventorEntryDecisions.Add(otherInventorEntryDecision > 0);
                 }
+            }
+        }
+
+        private void ForecastProbabilityOfSuccessAfterEntry()
+        {
+            if (PDProg.MainInventorEnters)
+            {
+                PDProg.ForecastAfterEntry = MakeDecision();
             }
         }
 
@@ -104,7 +142,7 @@ namespace ACESim
                 if (!PDProg.InventorTryToInventDecisions[inventor])
                     PDProg.InventorSpendDecisions.Add(0);
                 else if (strategy == null)
-                    PDProg.InventorSpendDecisions.Add(1.0);
+                    PDProg.InventorSpendDecisions.Add(1.0); // in first round, 
                 else
                 {
                     double otherInventorSpendDecision = strategy.Calculate(new List<double> { inventorInfo.CostOfMinimumInvestment, PDProg.InventorEstimatesInventionValue[inventor] });
@@ -114,17 +152,24 @@ namespace ACESim
             }
         }
 
+        private void ForecastProbabilityOfSuccessAfterInvestment()
+        {
+            if (PDProg.MainInventorTries)
+            {
+                PDProg.ForecastAfterInvestment = MakeDecision();
+            }
+        }
+
         private void IdentifyPatentWinner()
         {
             PDProg.InventorSucceedsAtInvention = new List<bool>();
-            var inventorsInfo = PDInputs.AllInventorsInfo.AllInventors().ToList();
             double curvature = MonotonicCurve.CalculateCurvatureForThreePoints(1.0, PDInputs.SuccessProbabilityMinimumInvestment, 2.0, PDInputs.SuccessProbabilityDoubleInvestment, 10.0, PDInputs.SuccessProbabilityTenTimesInvestment);
-            for (int i = 0; i < inventorsInfo.Count(); i++)
+            for (int i = 0; i < NumPotentialInventors; i++)
             {
                 bool tries = PDProg.InventorTryToInventDecisions[i];
                 if (tries)
                 {
-                    var inventorInfo = inventorsInfo[i];
+                    var inventorInfo = InventorInfo(i);
                     double weightedSeed = PDInputs.CommonSuccessRandomSeed * (1.0 - PDInputs.SuccessIndependence) + inventorInfo.RandomSeed * PDInputs.SuccessIndependence;
                     double thresholdNeeded = MonotonicCurve.CalculateYValueForX(1.0, 1.0, curvature, PDProg.InventorSpendDecisions[i]);
                     bool success = weightedSeed < thresholdNeeded;
@@ -138,7 +183,7 @@ namespace ACESim
             {
                 int winnerIndex = (int)(PDInputs.PickWinnerRandomSeed * (double)numSuccessful);
                 int succeedersFound = 0;
-                for (int i = 0; i < inventorsInfo.Count(); i++)
+                for (int i = 0; i < NumPotentialInventors; i++)
                 {
                     if (PDProg.InventorSucceedsAtInvention[i])
                     {
@@ -154,6 +199,65 @@ namespace ACESim
             }
         }
 
+        private void MakePricingDecision()
+        {
+            if (PDProg.InventionOccurs)
+            {
+                if (PDProg.WinnerOfPatent == 0)
+                    PDProg.Price = MakeDecision();
+                else
+                {
+                    var strategy = CurrentlyEvolving ? Strategies[(int)PatentDamagesDecision.Price].PreviousVersionOfThisStrategy : Strategies[(int)PatentDamagesDecision.Price];
+                    PDProg.Price = strategy.Calculate(new List<double> { InventorInfo((int) PDProg.WinnerOfPatent).CostOfMinimumInvestment, PDProg.InventorEstimatesInventionValue[(int) PDProg.WinnerOfPatent] });
+                }
+            }
+        }
+
+        private void DetermineInadvertentInfringement()
+        {
+            if (PDProg.InventionOccurs)
+            {
+                PDProg.InadvertentInfringement = PDInputs.InadvertentInfringementRandomSeed < PDInputs.InadvertentInfringementProbability ;
+            }
+        }
+
+        private void DetermineAcceptance()
+        {
+            if (PDProg.InventionOccurs && !PDProg.InadvertentInfringement)
+            {
+                PDProg.PriceAccepted = MakeDecision() > 0;
+            }
+        }
+
+        private void DetermineIntentionalInfringement()
+        {
+            if (PDProg.InventionOccurs && !PDProg.InadvertentInfringement && !PDProg.PriceAccepted)
+            {
+                PDProg.IntentionalInfringement = MakeDecision() > 0;
+            }
+        }
+
+        private void DetermineDamages()
+        {
+            if (PDProg.InadvertentInfringement || PDProg.IntentionalInfringement)
+            {
+                double riskAdjustedEntrySpending = PDInputs.CostOfEntry / PDProg.ForecastAfterEntry;
+                double riskAdjustedInventionSpending = PDProg.InventorSpendDecisions[(int)PDProg.WinnerOfPatent] / PDProg.ForecastAfterInvestment;
+                double costBasedDamages = (riskAdjustedEntrySpending + riskAdjustedInventionSpending) * (1.0 + PDInputs.PermittedRateOfReturn);
+                double courtEstimateOfValue = GetEstimateOfInventionValue(PDInputs.InventionValueCourtNoiseStdev, PDInputs.InventionValueCourtNoise, PDInputs.InventionValue);
+                double weight = PDProg.InadvertentInfringement ? PDInputs.WeightOnCostPlusDamagesForInadvertentInfringement : PDInputs.WeightOnCostPlusDamagesForIntentionalInfringement;
+                double weightedDamages = weight * costBasedDamages + (1.0 - weight) * courtEstimateOfValue;
+                double multiplier = PDProg.InadvertentInfringement ? 1.0 : PDInputs.DamagesMultiplierForIntentionalInfringement;
+                double fullDamages = weightedDamages * multiplier;
+                PDProg.Damages = fullDamages;
+            }
+        }
+
+        public void CalculateWelfareOutcomes()
+        {
+            asdf
+        }
+
         /// <summary>
         /// This method returns the strategy inputs for the current decision being calculated.
         /// </summary>
@@ -167,16 +271,20 @@ namespace ACESim
                 case (int)PatentDamagesDecision.Enter:
                     inputs = new double[] { InventorToOptimizeInfo.CostOfMinimumInvestment };
                     break;
+                case (int)PatentDamagesDecision.SuccessProbabilityAfterEntry:
+                    inputs = new double[] { InventorToOptimizeInfo.CostOfMinimumInvestment };
+                    break;
                 case (int)PatentDamagesDecision.TryToInvent:
+                case (int)PatentDamagesDecision.SuccessProbabilityAfterInvestment:
                 case (int)PatentDamagesDecision.Spend:
                 case (int)PatentDamagesDecision.Price:
                     inputs = new double[] { InventorToOptimizeInfo.CostOfMinimumInvestment, PDProg.InventorEstimatesInventionValue.First() };
                     break;
                 case (int)PatentDamagesDecision.Accept:
-                    inputs = new double[] { };
+                    inputs = new double[] { PDInputs.InventionValue, (double) PDProg.Price };
                     break;
                 case (int)PatentDamagesDecision.Infringe:
-                    inputs = new double[] { };
+                    inputs = new double[] { PDInputs.InventionValue, (double)PDProg.Price };
                     break;
                 default:
                     throw new Exception("Unknown decision.");
@@ -187,21 +295,5 @@ namespace ACESim
             return inputs.ToList();
         }
 
-
-        public void CalculateInventorEstimates(IEnumerable<InventorInfo> inventorInfos, double actualInventionValue, double stdDevOfNoiseDistribution)
-        {
-            PDProg.InventorEstimatesInventionValue = new List<double>();
-            foreach (var inventorInfo in inventorInfos)
-            {
-                double estimate = PatentDamagesGame.GetEstimateOfInventionValue(stdDevOfNoiseDistribution, inventorInfo.InventionValueNoise, actualInventionValue);
-                PDProg.InventorEstimatesInventionValue.Add(estimate);
-            }
-        }
-
-
-        public static double GetEstimateOfInventionValue(double stdDevOfNoiseDistribution, double drawFromNoiseDistribution, double actualInventionValue)
-        {
-            return ObfuscationGame.ObfuscationCorrectAnswer.Calculate(stdDevOfNoiseDistribution, drawFromNoiseDistribution + actualInventionValue);
-        }
     }
 }

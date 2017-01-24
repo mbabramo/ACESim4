@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8" ?> 
+<ACESimMultiple>
+  <singleSettingsFile filename="PatentDamagesBaselineVariableSettings.xml">
+    <defineVariableAlternatives name="BaseSettings">
+      <defineVariableAlternative name="base" star="true">
+      </defineVariableAlternative>
+      <defineVariableAlternative name="tradDam">
+        <defineVariable findString="$WeightOnCostPlusDamagesForInadvertentInfringement" replaceString="0.0"/>
+        <defineVariable findString="$WeightOnCostPlusDamagesForIntentionalInfringement" replaceString="0.0"/>
+      </defineVariableAlternative>
+    </defineVariableAlternatives>
+  </singleSettingsFile>
+</ACESimMultiple>

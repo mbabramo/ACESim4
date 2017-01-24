@@ -192,7 +192,7 @@
     <Compile Include="Games\PatentDamagesGame\PatentDamagesGameDefinition.cs" />
     <Compile Include="Games\PatentDamagesGame\PatentDamagesGameFactory.cs" />
     <Compile Include="Games\PatentDamagesGame\PatentDamagesGameInputs.cs" />
-    <Compile Include="Games\PatentDamagesGame\PatentDamagesGameProgressInfo.cs" />
+    <Compile Include="Games\PatentDamagesGame\PatentDamagesGameProgress.cs" />
     <Compile Include="Neural\GRNNGradient.cs" />
     <Compile Include="Neural\GRNN_Improvements.cs" />
     <Compile Include="Neural\KDTreeFromClusterCenters.cs" />
@@ -1073,7 +1073,8 @@
     <Content Include="Games\ObfuscationGame\Settings\ObfuscationGameReport.xml">
       <SubType>Designer</SubType>
     </Content>
-    <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesVariableSettings.xml" />
+    <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesBaselineVariableSettings.xml" />
+    <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesChangeVariableSettings.xml" />
     <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesCommands.xml" />
     <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesGameDefinition.xml" />
     <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesGameInputs.xml" />

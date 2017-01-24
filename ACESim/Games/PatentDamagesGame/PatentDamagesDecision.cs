@@ -9,8 +9,10 @@ namespace ACESim
     public enum PatentDamagesDecision : int
     {
         Enter,
+        SuccessProbabilityAfterEntry,
         TryToInvent,
         Spend,
+        SuccessProbabilityAfterInvestment,
         Price,
         Accept,
         Infringe

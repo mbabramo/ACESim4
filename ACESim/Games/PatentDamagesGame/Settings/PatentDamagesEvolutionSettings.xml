@@ -10,9 +10,9 @@
     <defineVariable findString="$StartAveragingInPreviousVersionsOfStrategyOnStepN" replaceString="3" />
     <defineVariable findString="$MinSmoothingPoints" replaceString="1000" />
     <defineVariable findString="$MaxSmoothingPoints" replaceString="1000" />
-    <defineVariable findString="$MinIterations" replaceString="25,000" />
+    <defineVariable findString="$MinIterations" replaceString="1,000" />
     <defineVariable findString="$MaxIterations" replaceString="25,000" />
-    <defineVariable findString="$RepetitionsOfEntireSmoothingProcess" replaceString="1" />
+    <defineVariable findString="$RepetitionsOfEntireSmoothingProcess" replaceString="12" />
     <defineVariable findString="$NumberPointsInCumulativeDistribution" replaceString="31" />
     <defineVariable findString="$SmoothingOptionSet" replaceString="GRNNSmoothingOptions" />
     <!--<defineVariable findString="$SmoothingOptionSet" replaceString="GRNNSmoothingOptionsFast" />-->

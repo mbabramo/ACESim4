@@ -18,14 +18,22 @@
   </defineTemplate>
     <gameInputsAll>
         <gameInputs name="PatentDamagesGameInputs" gameName="PatentDamagesGame">
+          <setting type="double" name="InitialWealthOfEntrants">$InitialWealthOfEntrants</setting>
           <setting type="double" name="InventionValueNoiseStdev">$InventionValueNoiseStdev</setting>
-          <setting type="double" name="MarketRateOfReturn">0.00</setting>
+          <setting type="double" name="MarketRateOfReturn">$MarketRateOfReturn</setting>
           <setting type="double" name="PermittedRateOfReturn">$PermittedRateOfReturn</setting>
           <setting type="double" name="CostOfEntry">$CostOfEntry</setting>
+          <setting name="MaxPotentialEntrants" type="distribution" subtype="curve">
+            <setting name="fromVal" type="double">2</setting>
+            <setting name="toVal" type="double">20</setting>
+            <setting name="curvature" type="double">1.0</setting>
+            <setting name="input" type="variableFromProgram">EvolveStepPctThisDecision</setting>
+          </setting>
           <setting name="InventionValue" type="distribution" subtype="uniform">
             <setting type="double" name="fromVal">0.0</setting>
             <setting type="double" name="toVal">1.0</setting>
           </setting>
+          <setting name="InventionValueCourtNoiseStdev" type="double">$InventionValueCourtNoiseStdev</setting>
           <setting name="InventionValueCourtNoise" type="distribution" subtype="normal">
             <setting type="double" name="mean">0.0</setting>
             <setting type="double" name="stdev">$InventionValueCourtNoiseStdev</setting>
@@ -35,6 +43,7 @@
           <setting type="double" name="SuccessProbabilityDoubleInvestment">$SuccessProbabilityDoubleInvestment</setting>
           <setting type="double" name="SuccessProbabilityTenTimesInvestment">$SuccessProbabilityTenTimesInvestment</setting>
           <setting type="double" name="SuccessIndependence">$SuccessIndependence</setting>
+          <setting type="double" name="InadvertentInfringementProbability">$InadvertentInfringementProbability</setting>
           <setting name="CommonSuccessRandomSeed" type="distribution" subtype="uniform">
             <setting type="double" name="fromVal">0.0</setting>
             <setting type="double" name="toVal">1.0</setting>
@@ -43,12 +52,15 @@
             <setting type="double" name="fromVal">0.0</setting>
             <setting type="double" name="toVal">1.0</setting>
           </setting>
-          <setting type="double" name="InadvertentInfringementProbability">$InadvertentInfringementProbability</setting>
-          <setting name="CommonSuccessRandomSeed" type="distribution" subtype="uniform">
+          <setting name="InadvertentInfringementRandomSeed" type="distribution" subtype="uniform">
             <setting type="double" name="fromVal">0.0</setting>
             <setting type="double" name="toVal">1.0</setting>
           </setting>
+          <setting type="double" name="WeightOnCostPlusDamagesForInadvertentInfringement">$WeightOnCostPlusDamagesForInadvertentInfringement</setting>
+          <setting type="double" name="WeightOnCostPlusDamagesForIntentionalInfringement">$WeightOnCostPlusDamagesForIntentionalInfringement</setting>
+          <setting type="double" name="DamagesMultiplierForIntentionalInfringement">$DamagesMultiplierForIntentionalInfringement</setting>
           <setting name="AllInventorsInfo" type="class">
+            <insertTemplate name="InventorInfoTemplate" find1="InventorXX" replace1="Inventor00"/>
             <insertTemplate name="InventorInfoTemplate" find1="InventorXX" replace1="Inventor01"/>
             <insertTemplate name="InventorInfoTemplate" find1="InventorXX" replace1="Inventor02"/>
             <insertTemplate name="InventorInfoTemplate" find1="InventorXX" replace1="Inventor03"/>
@@ -58,7 +70,6 @@
             <insertTemplate name="InventorInfoTemplate" find1="InventorXX" replace1="Inventor07"/>
             <insertTemplate name="InventorInfoTemplate" find1="InventorXX" replace1="Inventor08"/>
             <insertTemplate name="InventorInfoTemplate" find1="InventorXX" replace1="Inventor09"/>
-            <insertTemplate name="InventorInfoTemplate" find1="InventorXX" replace1="Inventor10"/>
           </setting>>
         </gameInputs>
     </gameInputsAll>
