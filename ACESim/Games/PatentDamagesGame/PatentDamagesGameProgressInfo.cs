@@ -21,10 +21,11 @@ namespace ACESim
         public override GameProgress DeepCopy()
         {
             PatentDamagesGameProgressInfo copy = new PatentDamagesGameProgressInfo();
-            copy.InventorEstimatesInventionValue = InventorEstimatesInventionValue.ToList();
-            copy.InventorEntryDecisions = InventorEntryDecisions.ToList();
-            copy.InventorTryToInventDecisions = InventorTryToInventDecisions.ToList();
-            copy.InventorSpendDecisions = InventorSpendDecisions.ToList();
+            copy.InventorEstimatesInventionValue = InventorEstimatesInventionValue == null ? null : InventorEstimatesInventionValue.ToList();
+            copy.InventorEntryDecisions = InventorEntryDecisions == null ? null : InventorEntryDecisions.ToList();
+            copy.InventorTryToInventDecisions = InventorTryToInventDecisions == null ? null : InventorTryToInventDecisions.ToList();
+            copy.InventorSpendDecisions = InventorSpendDecisions == null ? null : InventorSpendDecisions.ToList();
+            copy.InventorSucceedsAtInvention = InventorSucceedsAtInvention == null ? null : InventorSucceedsAtInvention.ToList();
             copy.WinnerOfPatent = WinnerOfPatent;
             copy.InventorUtility = InventorUtility;
 

@@ -52,6 +52,7 @@ namespace ACESim
 
         private void MakeEntryDecisions()
         {
+            todo; // limit entry based on round number if we're evolving -- maybe use a variable for this or maybe just hard code it here.
             CalculateInventorEstimates(PDInputs.AllInventorsInfo.AllInventors(), PDInputs.InventionValue, PDInputs.InventionValueNoiseStdev);
             PDProg.InventorEntryDecisions = new List<bool>();
             bool mainInventorEnters = MakeDecision() > 0;

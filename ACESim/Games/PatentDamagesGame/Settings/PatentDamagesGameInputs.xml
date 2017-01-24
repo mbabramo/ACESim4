@@ -33,7 +33,7 @@
           <setting type="double" name="SpilloverMultiplier">$SpilloverMultiplier</setting>
           <setting type="double" name="SuccessProbabilityMinimumInvestment">$SuccessProbabilityMinimumInvestment</setting>
           <setting type="double" name="SuccessProbabilityDoubleInvestment">$SuccessProbabilityDoubleInvestment</setting>
-          <setting type="double" name="SuccessProbabilityTripleInvestment">$SuccessProbabilityTenTimesInvestment</setting>
+          <setting type="double" name="SuccessProbabilityTenTimesInvestment">$SuccessProbabilityTenTimesInvestment</setting>
           <setting type="double" name="SuccessIndependence">$SuccessIndependence</setting>
           <setting name="CommonSuccessRandomSeed" type="distribution" subtype="uniform">
             <setting type="double" name="fromVal">0.0</setting>
