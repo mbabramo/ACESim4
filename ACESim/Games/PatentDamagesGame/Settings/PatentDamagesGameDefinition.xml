@@ -5,89 +5,184 @@
         <gameDefinition name="PatentDamagesGame">
             <setting name="DecisionsExecutionOrder" type="list">
                 <setting name="Decision" type="class">
-                    <setting name="Name" type="text">Estimation</setting>
-                    
-                    <setting name="Abbreviation" type="text">Est</setting>
+                    <setting name="Name" type="text">Enter</setting>
+                    <setting name="Abbreviation" type="text">Ent</setting>
                     <setting name="InputNames" type="list">
-                        <setting name="test1" type="text">x</setting>
+                        <setting name="input1" type="text">CostOfMinInvestment</setting>
                     </setting>
                     <setting name="InputAbbreviations" type="list">
-                        <setting name = "test1" type ="text">x</setting>
+                        <setting name = "input1" type ="text">CMI</setting>
                     </setting>
                     <setting name="StrategyBounds" type="class">
                         <setting name="LowerBound" type="double">-1.0</setting>
                         <setting name="UpperBound" type="double">1.0</setting>
                     </setting>
-                  <setting name="ProduceClusteringPointsEvenlyFrom0To1" type="bool">false</setting>
-                  <setting name="Bipolar" type="bool">false</setting>
+                  <setting name="ProduceClusteringPointsEvenlyFrom0To1" type="bool">true</setting>
+                  <setting name="Bipolar" type="bool">true</setting>
                   <setting name="StrategyGraphInfos" type="list">
                   </setting>
-                  <setting name="HighestIsBest" type="bool">false</setting>
+                  <setting name="HighestIsBest" type="bool">true</setting>
                   <setting name="MaxEvolveRepetitions" type="int">99999</setting>
                 </setting>
               <setting name="Decision" type="class">
-                <setting name="Name" type="text">z</setting>
-                
-                <setting name="Abbreviation" type="text">p</setting>
+                <setting name="Name" type="text">SuccessAfterEntry</setting>
+                <setting name="Abbreviation" type="text">SucEnt</setting>
                 <setting name="InputNames" type="list">
-                  <setting name="test1" type="text">x</setting>
-                </setting>
+                  <setting name="input1" type="text">CostOfMinInvestment</setting>
+                  </setting>
                 <setting name="InputAbbreviations" type="list">
-                  <setting name = "test1" type ="text">x</setting>
-                </setting>
+                  <setting name = "input1" type ="text">CMI</setting>
+                  </setting>
                 <setting name="StrategyBounds" type="class">
                   <setting name="LowerBound" type="double">0</setting>
-                  <setting name="UpperBound" type="double">5.0</setting>
+                  <setting name="UpperBound" type="double">1.0</setting>
+                </setting>
+                <setting name="ProduceClusteringPointsEvenlyFrom0To1" type="bool">true</setting>
+                <setting name="Bipolar" type="bool">false</setting>
+                <setting name="StrategyGraphInfos" type="list">
+                </setting>
+                <setting name="HighestIsBest" type="bool">false</setting>
+                <setting name="MaxEvolveRepetitions" type="int">99999</setting>
+              </setting>
+              <setting name="Decision" type="class">
+                <setting name="Name" type="text">TryToInvent</setting>
+                <setting name="Abbreviation" type="text">Try</setting>
+                <setting name="InputNames" type="list">
+                  <setting name="input1" type="text">CostOfMinInvestment</setting>
+                  <setting name="input2" type="text">InventionValueEstimate</setting>
+                </setting>
+                <setting name="InputAbbreviations" type="list">
+                  <setting name="input1" type ="text">CMI</setting>
+                  <setting name="input2" type="text">ValEst</setting>
+                </setting>
+                <setting name="StrategyBounds" type="class">
+                  <setting name="LowerBound" type="double">-1.0</setting>
+                  <setting name="UpperBound" type="double">1.0</setting>
+                </setting>
+                <setting name="ProduceClusteringPointsEvenlyFrom0To1" type="bool">false</setting>
+                <setting name="Bipolar" type="bool">true</setting>
+                <setting name="StrategyGraphInfos" type="list">
+                </setting>
+                <setting name="HighestIsBest" type="bool">true</setting>
+                <setting name="MaxEvolveRepetitions" type="int">99999</setting>
+              </setting>
+              <setting name="Decision" type="class">
+                <setting name="Name" type="text">Spend</setting>
+                <setting name="Abbreviation" type="text">Spend</setting>
+                  <setting name="InputNames" type="list">
+                    <setting name="input1" type="text">CostOfMinInvestment</setting>
+                    <setting name="input2" type="text">InventionValueEstimate</setting>
+                  </setting>
+                  <setting name="InputAbbreviations" type="list">
+                    <setting name="input1" type ="text">CMI</setting>
+                    <setting name="input2" type="text">ValEst</setting>
+                  </setting>
+                <setting name="StrategyBounds" type="class">
+                  <setting name="LowerBound" type="double">$InvestmentMultipleMin</setting>
+                  <setting name="UpperBound" type="double">$InvestmentMultipleMax</setting>
                 </setting>
                 <setting name="ProduceClusteringPointsEvenlyFrom0To1" type="bool">false</setting>
                 <setting name="Bipolar" type="bool">false</setting>
                 <setting name="StrategyGraphInfos" type="list">
-                  <setting name="StrategyGraphInfo 1" type="class">
-                    <setting name="InputsToGraph" type="list">
-                      <setting name="input 1" type="class">
-                        <setting name="InputAbbreviation" type="text">x</setting>
-                        <setting name="MinValue" type="double">0.0</setting>
-                        <setting name="MaxValue" type="double">5.0</setting>
-                        <setting name="NumValues" type="int">50</setting>
-                      </setting>
-                    </setting>
-                    <setting name="InputsToFix" type="list">
-                    </setting>
-                    <setting name="OutputReportFilename" type="text">StrategyGraph</setting>
-                    <setting name="ReportAfterEachGeneration" type="bool">false</setting>
-                    <setting name="ReportAfterEachEvolutionStep" type="bool">false</setting>
-                    <setting name="ReportAfterEvolution" type="bool">true</setting>
+                </setting>
+                <setting name="HighestIsBest" type="bool">true</setting>
+                <setting name="MaxEvolveRepetitions" type="int">99999</setting>
+              </setting>
+              <setting name="Decision" type="class">
+                <setting name="Name" type="text">SuccessAfterInvestment</setting>
+                <setting name="Abbreviation" type="text">SucInv</setting>
+                  <setting name="InputNames" type="list">
+                    <setting name="input1" type="text">CostOfMinInvestment</setting>
+                    <setting name="input2" type="text">InventionValueEstimate</setting>
                   </setting>
+                  <setting name="InputAbbreviations" type="list">
+                    <setting name="input1" type ="text">CMI</setting>
+                    <setting name="input2" type="text">ValEst</setting>
+                  </setting>
+                <setting name="StrategyBounds" type="class">
+                  <setting name="LowerBound" type="double">0</setting>
+                  <setting name="UpperBound" type="double">1.0</setting>
+                </setting>
+                <setting name="ProduceClusteringPointsEvenlyFrom0To1" type="bool">false</setting>
+                <setting name="Bipolar" type="bool">false</setting>
+                <setting name="StrategyGraphInfos" type="list">
                 </setting>
                 <setting name="HighestIsBest" type="bool">false</setting>
                 <setting name="MaxEvolveRepetitions" type="int">99999</setting>
-                
               </setting>
-                
-                <!--<setting name="Decision" type="class">
-                    <setting name="Name" type="text">Error Decision</setting>
-                    
-                    <setting name="Abbreviation" type="text">e</setting>
-                    <setting name="InputNames" type="list">
-                    </setting>
-                    <setting name="InputAbbreviations" type="list">
-                    </setting>
-                    <setting name="StrategyBounds" type="class">
-                        <setting name="LowerBound" type="double">0.0</setting>
-                        <setting name="UpperBound" type="double">200.0</setting>
-                    </setting>
-                    <setting name="HighestIsBest" type="bool">false</setting>
-          <setting name="MaxEvolveRepetitions" type="int">99999</setting>
-          
-                </setting>-->
-                
+              <setting name="Decision" type="class">
+                <setting name="Name" type="text">Price</setting>
+                <setting name="Abbreviation" type="text">P</setting>
+                  <setting name="InputNames" type="list">
+                    <setting name="input1" type="text">CostOfMinInvestment</setting>
+                    <setting name="input2" type="text">InventionValueEstimate</setting>
+                  </setting>
+                  <setting name="InputAbbreviations" type="list">
+                    <setting name="input1" type ="text">CMI</setting>
+                    <setting name="input2" type="text">ValEst</setting>
+                  </setting>
+                <setting name="StrategyBounds" type="class">
+                  <setting name="LowerBound" type="double">$PriceMultipleMin</setting>
+                  <setting name="UpperBound" type="double">$PriceMultipleMax</setting>
+                </setting>
+                <setting name="ProduceClusteringPointsEvenlyFrom0To1" type="bool">false</setting>
+                <setting name="Bipolar" type="bool">false</setting>
+                <setting name="StrategyGraphInfos" type="list">
+                </setting>
+                <setting name="HighestIsBest" type="bool">true</setting>
+                <setting name="MaxEvolveRepetitions" type="int">99999</setting>
+              </setting>
+              <setting name="Decision" type="class">
+                <setting name="Name" type="text">Accept</setting>
+                <setting name="Abbreviation" type="text">Acc</setting>
+                  <setting name="InputNames" type="list">
+                    <setting name="input1" type="text">InventionValue</setting>
+                    <setting name="input2" type="text">Price</setting>
+                  </setting>
+                  <setting name="InputAbbreviations" type="list">
+                    <setting name="input1" type ="text">Val</setting>
+                    <setting name="input2" type="text">P</setting>
+                  </setting>
+                <setting name="StrategyBounds" type="class">
+                  <setting name="LowerBound" type="double">-1.0</setting>
+                  <setting name="UpperBound" type="double">1.0</setting>
+                </setting>
+                <setting name="ProduceClusteringPointsEvenlyFrom0To1" type="bool">false</setting>
+                <setting name="Bipolar" type="bool">true</setting>
+                <setting name="StrategyGraphInfos" type="list">
+                </setting>
+                <setting name="HighestIsBest" type="bool">true</setting>
+                <setting name="MaxEvolveRepetitions" type="int">99999</setting>
+              </setting>
+              <setting name="Decision" type="class">
+                <setting name="Name" type="text">Infringe</setting>
+                <setting name="Abbreviation" type="text">Inf</setting>
+                  <setting name="InputNames" type="list">
+                    <setting name="input1" type="text">InventionValue</setting>
+                    <setting name="input2" type="text">Price</setting>
+                  </setting>
+                  <setting name="InputAbbreviations" type="list">
+                    <setting name="input1" type ="text">Val</setting>
+                    <setting name="input2" type="text">P</setting>
+                  </setting>
+                <setting name="StrategyBounds" type="class">
+                  <setting name="LowerBound" type="double">-1.0</setting>
+                  <setting name="UpperBound" type="double">1.0</setting>
+                </setting>
+                <setting name="ProduceClusteringPointsEvenlyFrom0To1" type="bool">false</setting>
+                <setting name="Bipolar" type="bool">true</setting>
+                <setting name="StrategyGraphInfos" type="list">
+                </setting>
+                <setting name="HighestIsBest" type="bool">true</setting>
+                <setting name="MaxEvolveRepetitions" type="int">99999</setting>
+              </setting>
             </setting>
           <setting name="GameModules" type="list">
       </setting>
       <setting name="GameModuleNamesGameReliesOn" type="list">
       </setting>
       <setting name="ActionGroupsEvolveInOppositeOrderFromExecution" type="bool">
-        true
+        false
       </setting>
       <setting name="AutomaticRepetitions" type="list">
       </setting>
