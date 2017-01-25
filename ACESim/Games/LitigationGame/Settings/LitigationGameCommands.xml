@@ -15,7 +15,7 @@
           <changeSimulationSettings>
           </changeSimulationSettings>
         </playCommand>
-        <reportCommand name="LitigationGameReportCommand" storeIterationResultsFile="LitigationGameIterations" storeReportResultsFile="$ReportPrefix MainRprt" parallelReporting="$ParallelReporting">
+        <reportCommand name="LitigationGameReportCommand" storeIterationResultsFile="LitigationGameIterations" storeReportResultsFile="$ReportPrefix MainRprt" parallelReporting="$ParallelReporting" requireCumulativeDistributions="true">
           <rowsGroup name="LitigationGameRows"></rowsGroup>
           <colsGroup name="LitigationGameColumns"></colsGroup>
 
@@ -36,22 +36,22 @@
                              scatterplot="true" maxNumberPoints="500" dockLegendLeft="true" />
           </pointChartReport>
         </reportCommand>
-        <reportCommand name="LitigationGameReportBargainingCommand" storeIterationResultsFile="LitigationGameIterations" storeReportResultsFile="$ReportPrefix BrgRprt" parallelReporting="$ParallelReporting">
+        <reportCommand name="LitigationGameReportBargainingCommand" storeIterationResultsFile="LitigationGameIterations" storeReportResultsFile="$ReportPrefix BrgRprt" parallelReporting="$ParallelReporting" requireCumulativeDistributions="true">
           <rowsGroup name="LitigationGameRows"></rowsGroup>
           <rowsGroup name="BargainingModuleRowsForBargainingReport"></rowsGroup>
           <colsGroup name="BargainingModuleColumnsForBargainingReport"></colsGroup>
         </reportCommand>
-        <reportCommand name="LitigationGameReportExpensesCommand" storeIterationResultsFile="LitigationGameIterations" storeReportResultsFile="$ReportPrefix LitigationGameExpensesReport" parallelReporting="$ParallelReporting">
+        <reportCommand name="LitigationGameReportExpensesCommand" storeIterationResultsFile="LitigationGameIterations" storeReportResultsFile="$ReportPrefix LitigationGameExpensesReport" parallelReporting="$ParallelReporting" requireCumulativeDistributions="true">
           <rowsGroup name="LitigationGameRows"></rowsGroup>
           <colsGroup name="LitigationCostModuleColumnsForCostReport"></colsGroup>
         </reportCommand>
-        <reportCommand name="LitigationGameReportProbabilityEstimatesCommand" storeIterationResultsFile="LitigationGameIterations" storeReportResultsFile="$ReportPrefix EstRprt" parallelReporting="$ParallelReporting">
+        <reportCommand name="LitigationGameReportProbabilityEstimatesCommand" storeIterationResultsFile="LitigationGameIterations" storeReportResultsFile="$ReportPrefix EstRprt" parallelReporting="$ParallelReporting" requireCumulativeDistributions="true">
           <rowsGroup name="LitigationGameRows"></rowsGroup>
           <rowsGroup name="ProbabilityForecastingModuleRowsForEstimatesReport"></rowsGroup>
           <colsGroup name="ProbabilityForecastingModuleColumnsForEstimatesReport"></colsGroup>
           <colsGroup name="TrialModuleColumnsForEstimatesReport"></colsGroup>
         </reportCommand>
-        <!--<reportCommand name="LitigationGameReportDamagesEstimatesCommand" storeIterationResultsFile="LitigationGameIterations" storeReportResultsFile="$ReportPrefix LitigationGameDamagesEstimatesReport" parallelReporting="$ParallelReporting">
+        <!--<reportCommand name="LitigationGameReportDamagesEstimatesCommand" storeIterationResultsFile="LitigationGameIterations" storeReportResultsFile="$ReportPrefix LitigationGameDamagesEstimatesReport" parallelReporting="$ParallelReporting" requireCumulativeDistributions="true">
           <rowsGroup name="LitigationGameRows"></rowsGroup>
           <rowsGroup name="DamagesForecastingModuleRowsForEstimatesReport"></rowsGroup>
           <colsGroup name="DamagesForecastingModuleColumnsForEstimatesReport"></colsGroup>

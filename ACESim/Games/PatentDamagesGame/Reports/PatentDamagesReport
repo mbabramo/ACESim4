@@ -1,2 +1,15 @@
-         	Total        	TotalScoreDecision1 Average      
-All      	100          	0.00111                          
+                              	Total        	AvgNumberEntrants      	AvgNumberTrying      	AvgAmountPaid      	AvgDamagesWhereGiven      	AvgInventorUtility      	AvgUserUtility      	AvgSocialWelfare      
+All                           	100          	1.37                   	1.07                 	--                 	--                        	1.021                   	--                  	0                     
+SomeoneEnters                 	86           	1.593                  	1.244                	--                 	--                        	1.024                   	--                  	0                     
+NooneEnters                   	14           	0                      	0                    	0                  	--                        	1                       	0                   	0                     
+FirstInventorEnters           	67           	1.761                  	1.373                	--                 	--                        	1.031                   	--                  	0                     
+FirstInventorDoesntEnter      	33           	0.5758                 	0.4545               	--                 	--                        	1                       	--                  	0                     
+SomeoneTries                  	71           	1.62                   	1.507                	--                 	--                        	1.037                   	--                  	0                     
+NooneTries                    	29           	0.7586                 	0                    	0                  	--                        	0.981                   	0                   	0                     
+FirstInventorTries            	52           	1.769                  	1.692                	0.4257             	0.6557                    	1.055                   	-0.00652            	0                     
+FirstInventorDoesntTry        	48           	0.9375                 	0.3958               	--                 	--                        	0.9844                  	--                  	0                     
+InventionOccurs               	42           	1.738                  	1.619                	--                 	--                        	1.126                   	--                  	0                     
+InadvertentInfringement       	5            	2                      	1.8                  	0.6944             	0.6944                    	1.065                   	0.03854             	0                     
+PriceAccepted                 	2            	1.5                    	1.5                  	0.4625             	--                        	0.9269                  	-0.08115            	0                     
+IntentionalInfringement       	35           	1.714                  	1.6                  	--                 	--                        	1.146                   	--                  	0                     
+InventionUsed                 	42           	1.738                  	1.619                	--                 	--                        	1.126                   	--                  	0                     

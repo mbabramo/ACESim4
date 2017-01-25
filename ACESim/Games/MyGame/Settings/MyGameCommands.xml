@@ -14,7 +14,7 @@
           <changeSimulationSettings>
           </changeSimulationSettings>
         </playCommand>
-        <reportCommand name="MyGameReportCommand" storeIterationResultsFile="MyGameIterations" storeReportResultsFile="MyGameReport">
+        <reportCommand name="MyGameReportCommand" storeIterationResultsFile="MyGameIterations" storeReportResultsFile="MyGameReport" requireCumulativeDistributions="false">
           <rowsGroup name="MyGameRows"></rowsGroup>
           <colsGroup name="MyGameColumns"></colsGroup>
         </reportCommand>

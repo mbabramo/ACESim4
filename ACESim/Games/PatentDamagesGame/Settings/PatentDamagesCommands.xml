@@ -9,7 +9,12 @@
                     storeStrategiesFile="PatentDamagesStrategies"
                     initializeStrategiesFile="PatentDamagesStrategies"
                     useInitializeStrategiesFile="false"
-                    evolveOnlyIfNecessary="false" />
+                    evolveOnlyIfNecessary="false">
+          <reportCommand name="PatentDamagesInterimReportCommand" storeIterationResultsFile="PatentDamagesInterimIterations" storeReportResultsFile="PatentDamagesInterimReport" betweenDecisions="true" parallelReporting="true" requireCumulativeDistributions="false">
+            <rowsGroup name="PatentDamagesRows"></rowsGroup>
+            <colsGroup name="PatentDamagesColumns"></colsGroup>
+          </reportCommand>
+        </evolveCommand>
         <playCommand numberIterations="100" StoreStrategiesFile="PatentDamagesStrategies" storeIterationResultsFile="PatentDamagesIterations" parallelReporting="true" savePlayedGamesInMemoryOnly="false">
           <changeSimulationSettings>
             <!--<setting name="Obfuscation" type="double">
@@ -17,7 +22,7 @@
             </setting> DEBUG  this does not work right now; see note in InputVariables.GetSettings(). It's not passing the inputs to the variable as needed. In most cases, we shouldn't need this feature anyway. -->
           </changeSimulationSettings>
         </playCommand>
-        <reportCommand name="PatentDamagesReportCommand" storeIterationResultsFile="PatentDamagesIterations" storeReportResultsFile="PatentDamagesReport">
+        <reportCommand name="PatentDamagesReportCommand" storeIterationResultsFile="PatentDamagesIterations" storeReportResultsFile="PatentDamagesReport" requireCumulativeDistributions="false">
           <rowsGroup name="PatentDamagesRows"></rowsGroup>
           <colsGroup name="PatentDamagesColumns"></colsGroup>
         </reportCommand>

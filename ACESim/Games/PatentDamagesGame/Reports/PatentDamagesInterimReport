@@ -1,0 +1,15 @@
+                              	Tot          	Ent          	Try          	Spe          	Pay          	Dam          	IUt          	UUt          	Soc          
+All                           	1000         	0            	0            	--           	0            	--           	1            	0            	0            
+SomeoneEnters                 	0            	--           	--           	--           	--           	--           	--           	--           	--           
+NooneEnters                   	1000         	0            	0            	--           	0            	--           	1            	0            	0            
+FirstInventorEnters           	0            	--           	--           	--           	--           	--           	--           	--           	--           
+FirstInventorDoesntEnter      	1000         	0            	0            	--           	0            	--           	1            	0            	0            
+SomeoneTries                  	0            	--           	--           	--           	--           	--           	--           	--           	--           
+NooneTries                    	1000         	0            	0            	--           	0            	--           	1            	0            	0            
+FirstInventorTries            	0            	--           	--           	--           	--           	--           	--           	--           	--           
+FirstInventorDoesntTry        	1000         	0            	0            	--           	0            	--           	1            	0            	0            
+InventionOccurs               	0            	--           	--           	--           	--           	--           	--           	--           	--           
+InadvertentInfringement       	0            	--           	--           	--           	--           	--           	--           	--           	--           
+PriceAccepted                 	0            	--           	--           	--           	--           	--           	--           	--           	--           
+IntentionalInfringement       	0            	--           	--           	--           	--           	--           	--           	--           	--           
+InventionUsed                 	0            	--           	--           	--           	--           	--           	--           	--           	--           

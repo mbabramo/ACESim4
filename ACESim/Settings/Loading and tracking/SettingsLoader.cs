@@ -1031,11 +1031,12 @@ FileAccess.Read);
                 string storeIterationResultsFile = GetStringAttribute(commandToProcess, "storeIterationResultsFile", true);
                 string storeReportResultsFile = GetStringAttribute(commandToProcess, "storeReportResultsFile", true);
                 bool parallelReporting = GetBoolAttribute(commandToProcess, "parallelReporting", false);
+                bool requireCumulativeDistributions = GetBoolAttribute(commandToProcess, "requireCumulativeDistributions", false);
                 List<RowOrColumnGroup> theRowsGroups = ProcessRowsGroupListOrColsGroupList(commandToProcess, true);
                 List<RowOrColumnGroup> theColsGroups = ProcessRowsGroupListOrColsGroupList(commandToProcess, false);
                 List<PointChartReport> thePointChartReports = ProcessPointChartReportList(commandToProcess);
                 ReportCommand theCommand = new ReportCommand(theMultipartCommand, reportName, storeIterationResultsFile,
-                    storeReportResultsFile, theRowsGroups, theColsGroups, thePointChartReports, baseOutputDirectory, parallelReporting);
+                    storeReportResultsFile, theRowsGroups, theColsGroups, thePointChartReports, baseOutputDirectory, requireCumulativeDistributions, parallelReporting);
                 return theCommand;
             }
             catch (FileLoaderException ex)

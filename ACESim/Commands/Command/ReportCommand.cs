@@ -22,6 +22,7 @@ namespace ACESim
         public bool parallelReporting;
         public List<GameProgressReportable> theOutputs;
         public bool isInterimReport;
+        public bool requireCumulativeDistributions;
 
         public ReportCommand(
             MultiPartCommand theMultipartCommand,
@@ -32,6 +33,7 @@ namespace ACESim
             List<RowOrColumnGroup> theColsGroups,
             List<PointChartReport> thePointChartReports,
             string theBaseOutputDirectory,
+            bool theRequireCumulativeDistributions,
             bool theParallelReporting)
             : base(theMultipartCommand)
         {
@@ -44,6 +46,7 @@ namespace ACESim
             pointChartReports = thePointChartReports;
             baseOutputDirectory = theBaseOutputDirectory;
             parallelReporting = theParallelReporting;
+            requireCumulativeDistributions = theRequireCumulativeDistributions;
         }
 
         public override void Execute(SimulationInteraction simulationInteraction)

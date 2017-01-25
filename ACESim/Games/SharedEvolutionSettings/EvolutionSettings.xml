@@ -12,19 +12,19 @@
       <setting name="StartAveragingInPreviousVersionsOfStrategyOnStepN" type="int">$StartAveragingInPreviousVersionsOfStrategyOnStepN</setting>
       
       <setting name="DoNotEvolveByDefault" type="bool">false</setting>
-      <setting name="RepetitionsOfEntireSmoothingProcess" type="int">1</setting>
+      <setting name="RepetitionsOfEntireSmoothingProcess" type="int">$RepetitionsOfEntireSmoothingProcess</setting>
       <setting name="NumberPointsInCumulativeDistribution" type="int">51</setting>
 
       <setting name="SmoothingPointsMainSet" type="class">
         <setting name="NumSmoothingPoints" type="distribution" subtype="curve">
-          <setting name="fromVal" type="double">100</setting>
-          <setting name="toVal" type="double">100</setting>
+          <setting name="fromVal" type="double">$MinSmoothingPoints</setting>
+          <setting name="toVal" type="double">$MaxSmoothingPoints</setting>
           <setting name="curvature" type="double">0.5</setting>
           <setting name="input" type="variableFromProgram">EvolveStepPctThisDecision</setting>
         </setting>
         <setting name="NumIterations" type="distribution" subtype="curve">
-          <setting name="fromVal" type="double">10,000</setting>
-          <setting name="toVal" type="double">10,000</setting>
+          <setting name="fromVal" type="double">$MinIterations</setting>
+          <setting name="toVal" type="double">$MaxIterations</setting>
           <setting name="curvature" type="double">0.5</setting>
           <setting name="input" type="variableFromProgram">EvolveStepPctThisDecision</setting>
         </setting>

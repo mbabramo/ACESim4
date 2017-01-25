@@ -25,7 +25,7 @@ namespace ACESim
         /// </summary>
         public double CostOfEntry;
         /// <summary>
-        /// The maximum number of potential inventors. We increase this gradually during evolution to above the maximum supported by AllInventorsInfo, which also places a cap on the maximum number.
+        /// The maximum number of potential inventors. We increase this gradually during evolution to above the maximum supported by AllInventorsInfo.
         /// </summary>
         public double MaxPotentialEntrants; 
         /// <summary>

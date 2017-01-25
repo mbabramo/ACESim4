@@ -30,7 +30,7 @@
             </setting>
           </changeSimulationSettings>
         </playCommand>
-        <reportCommand name="PointFittingReportCommand" storeIterationResultsFile="PointFittingIterations" storeReportResultsFile="PointFittingReport">
+        <reportCommand name="PointFittingReportCommand" storeIterationResultsFile="PointFittingIterations" storeReportResultsFile="PointFittingReport" requireCumulativeDistributions="false">
           <rowsGroup name="pointFittingRows"></rowsGroup>
           <colsGroup name="pointFittingColumns"></colsGroup>
         </reportCommand>

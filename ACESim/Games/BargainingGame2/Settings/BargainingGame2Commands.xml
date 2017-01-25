@@ -15,15 +15,15 @@
           <changeSimulationSettings>
           </changeSimulationSettings>
         </playCommand>
-        <reportCommand name="BargainingGame2ReportCommandNoiseLevel" storeIterationResultsFile="BargainingGame2Iterations" storeReportResultsFile="BargainingGame2ReportCommandNoiseLevel">
+        <reportCommand name="BargainingGame2ReportCommandNoiseLevel" storeIterationResultsFile="BargainingGame2Iterations" storeReportResultsFile="BargainingGame2ReportCommandNoiseLevel" requireCumulativeDistributions="false">
           <rowsGroup name="BargainingGame2Rows"></rowsGroup>
           <colsGroup name="BargainingGame2ColumnsNoiseLevel"></colsGroup>
         </reportCommand>
-        <reportCommand name="BargainingGame2ReportCommandPlayerEstimates" storeIterationResultsFile="BargainingGame2Iterations" storeReportResultsFile="BargainingGame2ReportCommandPlayerEstimates">
+        <reportCommand name="BargainingGame2ReportCommandPlayerEstimates" storeIterationResultsFile="BargainingGame2Iterations" storeReportResultsFile="BargainingGame2ReportCommandPlayerEstimates" requireCumulativeDistributions="false">
           <rowsGroup name="BargainingGame2Rows"></rowsGroup>
           <colsGroup name="BargainingGame2ColumnsPlayerEstimates"></colsGroup>
         </reportCommand>
-        <reportCommand name="BargainingGame2ReportCommandMain" storeIterationResultsFile="BargainingGame2Iterations" storeReportResultsFile="BargainingGame2ReportCommandMain">
+        <reportCommand name="BargainingGame2ReportCommandMain" storeIterationResultsFile="BargainingGame2Iterations" storeReportResultsFile="BargainingGame2ReportCommandMain" requireCumulativeDistributions="false">
           <rowsGroup name="BargainingGame2Rows"></rowsGroup>
           <colsGroup name="BargainingGame2ColumnsMain"></colsGroup>
         </reportCommand>

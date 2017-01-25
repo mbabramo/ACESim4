@@ -73,7 +73,7 @@
               </changeSimulationSettingsContainer>
           </changeSimulationSettingsContainer>-->
         </playCommand>
-        <reportCommand name="ObfuscationGameReportCommand" storeIterationResultsFile="ObfuscationGameIterations" storeReportResultsFile="ObfuscationGameReport">
+        <reportCommand name="ObfuscationGameReportCommand" storeIterationResultsFile="ObfuscationGameIterations" storeReportResultsFile="ObfuscationGameReport" requireCumulativeDistributions="false">
           <rowsGroup name="ObfuscationGameRows"></rowsGroup>
           <colsGroup name="ObfuscationGameColumns"></colsGroup>
         </reportCommand>

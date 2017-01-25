@@ -14,7 +14,7 @@
           <changeSimulationSettings>
           </changeSimulationSettings>
         </playCommand>
-        <reportCommand name="LitigationGameReportCommand" storeIterationResultsFile="LitigationGameIterations" storeReportResultsFile="$ReportPrefix SimpleRprt" parallelReporting="$ParallelReporting">
+        <reportCommand name="LitigationGameReportCommand" storeIterationResultsFile="LitigationGameIterations" storeReportResultsFile="$ReportPrefix SimpleRprt" parallelReporting="$ParallelReporting" requireCumulativeDistributions="true">
           <rowsGroup name="LitigationGameRows"></rowsGroup>
           <colsGroup name="LitigationGameColumns"></colsGroup>
           <!--<colsGroup name="LitigationGameColumnsMini"></colsGroup>-->

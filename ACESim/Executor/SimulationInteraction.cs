@@ -32,7 +32,7 @@ namespace ACESim
         }
 
         public bool StopAfterOptimizingCurrentDecisionPoint = false;
-
+        
         public int? HighestCumulativeDistributionUpdateIndexEvolved;
 
         public CurrentExecutionInformation CurrentExecutionInformation;

@@ -17,7 +17,7 @@
             </setting> DEBUG  this does not work right now; see note in InputVariables.GetSettings(). It's not passing the inputs to the variable as needed. In most cases, we shouldn't need this feature anyway. -->
           </changeSimulationSettings>
         </playCommand>
-        <reportCommand name="CurveFittingReportCommand" storeIterationResultsFile="CurveFittingIterations" storeReportResultsFile="CurveFittingReport">
+        <reportCommand name="CurveFittingReportCommand" storeIterationResultsFile="CurveFittingIterations" storeReportResultsFile="CurveFittingReport" requireCumulativeDistributions="false">
           <rowsGroup name="CurveFittingRows"></rowsGroup>
           <colsGroup name="CurveFittingColumns"></colsGroup>
         </reportCommand>

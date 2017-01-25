@@ -152,17 +152,20 @@ namespace ACESim
 
         protected void RunInterimReports(List<ReportCommand> reportsToRun)
         {
-            if (reportsToRun != null && reportsToRun.Any() && SimulationInteraction.HighestCumulativeDistributionUpdateIndexEvolved != null /* to run the games all the way through, we need to make sure that we've had a chance to update the cumulative distributions (todo: add a flag indicating whether cumulative distributions are used to make sure that this will work even in a game without cumulative distributions) */)
+            if (reportsToRun != null && reportsToRun.Any() && (reportsToRun.Where(x => !x.requireCumulativeDistributions).Any() || SimulationInteraction.HighestCumulativeDistributionUpdateIndexEvolved != null) /* to run the games all the way through, we need to make sure that we've had a chance to update the cumulative distributions */)
             {
                 int numObservationsForEmbeddedReports = 1000; // leave it as int so that we can change it by putting in a breakpoint for a particular report
-                Play(numObservationsForEmbeddedReports, true);
+                Play(numObservationsForEmbeddedReports, false /* DEBUG */);
                 List<GameProgressReportable> played = SimulationInteraction.CurrentExecutionInformation.Outputs.ToList();
                 foreach (var report in reportsToRun)
                 {
-                    report.theOutputs = played;
-                    report.CommandSetStartTime = SimulationInteraction.CurrentExecutionInformation.CurrentCommand.CommandSetStartTime;
-                    report.isInterimReport = true;
-                    report.Execute(SimulationInteraction);
+                    if (!report.requireCumulativeDistributions || SimulationInteraction.HighestCumulativeDistributionUpdateIndexEvolved != null)
+                    {
+                        report.theOutputs = played;
+                        report.CommandSetStartTime = SimulationInteraction.CurrentExecutionInformation.CurrentCommand.CommandSetStartTime;
+                        report.isInterimReport = true;
+                        report.Execute(SimulationInteraction);
+                    }
                 }
                 SimulationInteraction.CurrentExecutionInformation.Outputs = new System.Collections.Concurrent.ConcurrentStack<GameProgressReportable>();
             }

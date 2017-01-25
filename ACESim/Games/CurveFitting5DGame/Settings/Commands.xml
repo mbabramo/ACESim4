@@ -17,7 +17,7 @@
             </setting>
           </changeSimulationSettings>
         </playCommand>
-        <reportCommand name="CurveFitting5DReportCommand" storeIterationResultsFile="CurveFitting5DIterations" storeReportResultsFile="CurveFitting5DReport">
+        <reportCommand name="CurveFitting5DReportCommand" storeIterationResultsFile="CurveFitting5DIterations" storeReportResultsFile="CurveFitting5DReport" requireCumulativeDistributions="false">
           <rowsGroup name="CurveFitting5DRows"></rowsGroup>
           <colsGroup name="CurveFitting5DColumns"></colsGroup>
         </reportCommand>

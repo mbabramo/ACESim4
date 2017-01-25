@@ -1,13 +1,108 @@
-
 <ACESim>
 <rowOrColGroup name="PatentDamagesRows">
     <rowOrColInfo name="All">
     </rowOrColInfo>
+    <rowOrColInfo name="SomeoneEnters">
+      <filter varType="bool">
+        <variableName>SomeoneEnters</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="NooneEnters">
+      <filter varType="bool">
+        <variableName>SomeoneEnters</variableName>
+        <operation>EQ</operation>
+        <value>false</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="FirstInventorEnters">
+      <filter varType="bool">
+        <variableName>MainInventorEnters</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="FirstInventorDoesntEnter">
+      <filter varType="bool">
+        <variableName>MainInventorEnters</variableName>
+        <operation>EQ</operation>
+        <value>false</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="SomeoneTries">
+      <filter varType="bool">
+        <variableName>SomeoneTries</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="NooneTries">
+      <filter varType="bool">
+        <variableName>SomeoneTries</variableName>
+        <operation>EQ</operation>
+        <value>false</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="FirstInventorTries">
+      <filter varType="bool">
+        <variableName>MainInventorTries</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="FirstInventorDoesntTry">
+      <filter varType="bool">
+        <variableName>MainInventorTries</variableName>
+        <operation>EQ</operation>
+        <value>false</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="InventionOccurs">
+      <filter varType="bool">
+        <variableName>InventionOccurs</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="InadvertentInfringement">
+      <filter varType="bool">
+        <variableName>InadvertentInfringement</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="PriceAccepted">
+      <filter varType="bool">
+        <variableName>PriceAccepted</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="IntentionalInfringement">
+      <filter varType="bool">
+        <variableName>IntentionalInfringement</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="InventionUsed">
+      <filter varType="bool">
+        <variableName>InventionUsed</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+    </rowOrColInfo>
   </rowOrColGroup>
   <rowOrColGroup name="PatentDamagesColumns">
-    <rowOrColInfo name="Total" statistic="COUNT">
-    </rowOrColInfo>
-    <rowOrColInfo name="TotalScoreDecision1 Average" variableName="TotalScoreDecision1" statistic="MEAN">
-    </rowOrColInfo>
+    <rowOrColInfo name="Tot" statistic="COUNT" />
+    <rowOrColInfo name="Ent" variableName="NumberEntrants" statistic="MEAN" />
+    <rowOrColInfo name="Try" variableName="NumberTrying" statistic="MEAN" />
+    <rowOrColInfo name="Spe" variableName="AverageSpendingOfEntrants" statistic="MEAN" />
+    <rowOrColInfo name="Pay" variableName="AmountPaid" statistic="MEAN" />
+    <rowOrColInfo name="Dam" variableName="Damages" statistic="MEAN" />
+    <rowOrColInfo name="IUt" variableName="InventorUtility" statistic="MEAN" />
+    <rowOrColInfo name="UUt" variableName="UserUtility" statistic="MEAN" />
+    <rowOrColInfo name="Soc" variableName="SocialWelfare" statistic="MEAN" />
   </rowOrColGroup>
 </ACESim>
