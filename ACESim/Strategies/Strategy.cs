@@ -1382,12 +1382,12 @@ namespace ACESim
             }
         }
 
-        public double Calculate(List<double> inputs, GameModule gameModuleToUseForDefaultDecision = null)
+        public double Calculate(List<double> inputs, IDefaultBehaviorBeforeEvolution gameModuleToUseForDefaultDecision = null)
         {
             return CalculateHelper(inputs, gameModuleToUseForDefaultDecision) * ResultMultiplier + ResultIncrement;
         }
 
-        private double CalculateHelper(List<double> inputs, GameModule gameModuleToUseForDefaultDecision = null)
+        private double CalculateHelper(List<double> inputs, IDefaultBehaviorBeforeEvolution defaultBehavior = null)
         {
             if (GeneralOverrideValue != null)
                 return (double)GeneralOverrideValue;
@@ -1411,8 +1411,8 @@ namespace ACESim
             }
             else
             {
-                if (gameModuleToUseForDefaultDecision != null)
-                    return gameModuleToUseForDefaultDecision.DefaultBehaviorBeforeEvolution(inputs, DecisionNumber);
+                if (defaultBehavior != null)
+                    return defaultBehavior.DefaultBehaviorBeforeEvolution(inputs, DecisionNumber);
                 else
                     return (Decision.StrategyBounds.LowerBound + Decision.StrategyBounds.UpperBound) / 2.0;
             }

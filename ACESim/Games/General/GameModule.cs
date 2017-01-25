@@ -8,7 +8,7 @@ using System.Text;
 namespace ACESim
 {
     [Serializable]
-    public class GameModule
+    public class GameModule : IDefaultBehaviorBeforeEvolution
     {
         /// <summary>
         /// A list of decisions. This should be set in the game module xml file or in the GenerateSetting method. After this list is created, the module can override the 

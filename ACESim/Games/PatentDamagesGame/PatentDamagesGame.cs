@@ -7,7 +7,7 @@ using System.Diagnostics;
 namespace ACESim
 {
     [Serializable]
-    public class PatentDamagesGame : Game
+    public class PatentDamagesGame : Game, IDefaultBehaviorBeforeEvolution
     {
 
         PatentDamagesGameInputs PDInputs => (PatentDamagesGameInputs)GameInputs;
@@ -80,9 +80,14 @@ namespace ACESim
 
         private void MakeEntryDecisions()
         {
-            CalculateInventorEstimates(PDInputs.AllInventorsInfo.AllInventors(), PDInputs.InventionValue, PDInputs.InventionValueNoiseStdev);
-            PDProg.InventorEntryDecisions = new List<bool>();
+            if (PreparationPhase)
+            {
+                CalculateInventorEstimates(PDInputs.AllInventorsInfo.AllInventors(), PDInputs.InventionValue, PDInputs.InventionValueNoiseStdev);
+                GetDecisionInputs();
+                return;
+            }
             bool mainInventorEnters = MakeDecision() > 0;
+            PDProg.InventorEntryDecisions = new List<bool>();
             PDProg.InventorEntryDecisions.Add(mainInventorEnters);
             var strategy = CurrentlyEvolving ? Strategies[(int)PatentDamagesDecision.Enter].PreviousVersionOfThisStrategy : Strategies[(int)PatentDamagesDecision.Enter];
             int inventor = 1;
@@ -102,6 +107,11 @@ namespace ACESim
 
         private void ForecastProbabilityOfSuccessAfterEntry()
         {
+            if (PreparationPhase)
+            {
+                GetDecisionInputs();
+                return;
+            }
             if (PDProg.MainInventorEnters)
             {
                 PDProg.ForecastAfterEntry = MakeDecision();
@@ -110,6 +120,11 @@ namespace ACESim
 
         private void MakeTryToInventDecisions()
         {
+            if (PreparationPhase)
+            {
+                GetDecisionInputs();
+                return;
+            }
             PDProg.InventorTryToInventDecisions = new List<bool>();
             bool mainInventorTries = PDProg.MainInventorEnters && MakeDecision() > 0;
             PDProg.InventorTryToInventDecisions.Add(mainInventorTries);
@@ -132,6 +147,11 @@ namespace ACESim
 
         private void MakeSpendDecisions()
         {
+            if (PreparationPhase)
+            {
+                GetDecisionInputs();
+                return;
+            }
             PDProg.InventorSpendDecisions = new List<double>();
             double mainInventorSpend = PDProg.MainInventorTries ? MakeDecision() : 0;
             mainInventorSpend *= InventorToOptimizeInfo.CostOfMinimumInvestment;
@@ -156,6 +176,11 @@ namespace ACESim
 
         private void ForecastProbabilityOfSuccessAfterInvestment()
         {
+            if (PreparationPhase)
+            {
+                GetDecisionInputs();
+                return;
+            }
             if (PDProg.MainInventorTries)
             {
                 PDProg.ForecastAfterInvestment = MakeDecision();
@@ -164,6 +189,8 @@ namespace ACESim
 
         private void IdentifyPatentWinner()
         {
+            if (PreparationPhase)
+                return;
             PDProg.InventorSucceedsAtInvention = new List<bool>();
             double curvature = MonotonicCurve.CalculateCurvatureForThreePoints(1.0, PDInputs.SuccessProbabilityMinimumInvestment, 2.0, PDInputs.SuccessProbabilityDoubleInvestment, 10.0, PDInputs.SuccessProbabilityTenTimesInvestment);
             for (int i = 0; i < NumPotentialInventors; i++)
@@ -204,6 +231,11 @@ namespace ACESim
 
         private void MakePricingDecision()
         {
+            if (PreparationPhase)
+            {
+                GetDecisionInputs();
+                return;
+            }
             if (PDProg.InventionOccurs)
             {
                 InventorInfo winnerInfo = InventorInfo((int)PDProg.WinnerOfPatent);
@@ -222,6 +254,8 @@ namespace ACESim
 
         private void DetermineInadvertentInfringement()
         {
+            if (PreparationPhase)
+                return;
             if (PDProg.InventionOccurs)
             {
                 PDProg.InadvertentInfringement = PDInputs.InadvertentInfringementRandomSeed < PDInputs.InadvertentInfringementProbability ;
@@ -230,6 +264,11 @@ namespace ACESim
 
         private void DetermineAcceptance()
         {
+            if (PreparationPhase)
+            {
+                GetDecisionInputs();
+                return;
+            }
             if (PDProg.InventionOccurs && !PDProg.InadvertentInfringement)
             {
                 PDProg.PriceAccepted = MakeDecision() > 0;
@@ -238,6 +277,11 @@ namespace ACESim
 
         private void DetermineIntentionalInfringement()
         {
+            if (PreparationPhase)
+            {
+                GetDecisionInputs();
+                return;
+            }
             if (PDProg.InventionOccurs && !PDProg.InadvertentInfringement && !PDProg.PriceAccepted)
             {
                 PDProg.IntentionalInfringement = MakeDecision() > 0;
@@ -246,6 +290,8 @@ namespace ACESim
 
         private void DetermineDamages()
         {
+            if (PreparationPhase)
+                return;
             if (PDProg.InadvertentInfringement || PDProg.IntentionalInfringement)
             {
                 double riskAdjustedEntrySpending = PDInputs.CostOfEntry / PDProg.ForecastAfterEntry;
@@ -262,6 +308,8 @@ namespace ACESim
 
         public void CalculateWelfareOutcomes()
         {
+            if (PreparationPhase)
+                return;
             double allPrivateInvestments = 0; // includes money invested and money put to market
             double socialBenefit = 0;
             int inventor = 0;
@@ -279,7 +327,7 @@ namespace ACESim
                 double marketReturn = unspentMoney * PDInputs.MarketRateOfReturn;
                 wealth += marketReturn;
                 socialBenefit += wealth;
-                if (inventor == (int)PDProg.WinnerOfPatent)
+                if (inventor == PDProg.WinnerOfPatent)
                 {
                     double spillover = PDInputs.InventionValue * PDInputs.SpilloverMultiplier; // note that spillover occurs regardless of whether invention is used
                     socialBenefit += spillover;
@@ -303,6 +351,8 @@ namespace ACESim
 
         protected void DoScoring()
         {
+            if (PreparationPhase)
+                return;
             Score((int)PatentDamagesDecision.Enter, PDProg.InventorUtility);
             if (PDProg.MainInventorEnters)
             {
@@ -350,10 +400,10 @@ namespace ACESim
                     inputs = new double[] { InventorToOptimizeInfo.CostOfMinimumInvestment, PDProg.InventorEstimatesInventionValue.First() };
                     break;
                 case (int)PatentDamagesDecision.Accept:
-                    inputs = new double[] { PDInputs.InventionValue, (double) PDProg.Price };
+                    inputs = new double[] { PDInputs.InventionValue, PDProg.Price ?? 0 };
                     break;
                 case (int)PatentDamagesDecision.Infringe:
-                    inputs = new double[] { PDInputs.InventionValue, (double)PDProg.Price };
+                    inputs = new double[] { PDInputs.InventionValue, PDProg.Price ?? 0 };
                     break;
                 default:
                     throw new Exception("Unknown decision.");
@@ -364,5 +414,29 @@ namespace ACESim
             return inputs.ToList();
         }
 
+        public double DefaultBehaviorBeforeEvolution(List<double> inputs, int decisionNumber)
+        {
+            switch (CurrentDecisionIndex)
+            {
+                case (int)PatentDamagesDecision.Enter:
+                    return 1.0; 
+                case (int)PatentDamagesDecision.SuccessProbabilityAfterEntry:
+                    return 0.5; 
+                case (int)PatentDamagesDecision.TryToInvent:
+                    return 1.0;
+                case (int)PatentDamagesDecision.SuccessProbabilityAfterInvestment:
+                    return 0.5;
+                case (int)PatentDamagesDecision.Spend:
+                    return 1.0;
+                case (int)PatentDamagesDecision.Price:
+                    return 1.0;
+                case (int)PatentDamagesDecision.Accept:
+                    return 1.0;
+                case (int)PatentDamagesDecision.Infringe:
+                    return 0;
+                default:
+                    throw new Exception("Unknown decision.");
+            }
+        }
     }
 }

@@ -359,11 +359,11 @@ namespace ACESim
             else
             { // could be a score for a subsequent decision
                 int numberDecisionsPastDecision = decisionNumber - currentlyEvolvingDecisionIndex;
-                if (numberDecisionsPastDecision <= currentlyEvolvingStrategy.Decision.SubsequentDecisionsToRecordScoresFor)
+                if (numberDecisionsPastDecision > 0 && numberDecisionsPastDecision <= currentlyEvolvingStrategy.Decision.SubsequentDecisionsToRecordScoresFor)
                 {
                     Strategies[decisionNumber - numberDecisionsPastDecision].AddScore(score, WeightOfScoreInWeightedAverage, numberDecisionsPastDecision);
                 }
-                else if (numberDecisionsPastDecision <= currentlyEvolvingStrategy.Decision.NumberDecisionsToEitherRecordOrCacheBeyondThisOne)
+                else if (numberDecisionsPastDecision > 0 && numberDecisionsPastDecision <= currentlyEvolvingStrategy.Decision.NumberDecisionsToEitherRecordOrCacheBeyondThisOne)
                 {
                     Strategy strategyForScoreBeingRecorded = Strategies[decisionNumber];
                     if (strategyForScoreBeingRecorded.StrategyStillToEvolveThisEvolveStep && !DisableFurtherCaching)
@@ -394,7 +394,7 @@ namespace ACESim
             if (CurrentlyEvolvingModule != null)
                 CurrentlyEvolvingModule.Score();
         }
-
+        
         /// <summary>
         /// Calls GetDecisionInputs and Calculate, and it updates the 
         /// decisionCompleted field of GameSettings 
@@ -416,7 +416,7 @@ namespace ACESim
         {
             if (CurrentDecisionIndex == CurrentlyEvolvingDecisionIndex)
                 Progress.CurrentlyEvolvingDecisionIndexReached = true;
-            return Strategies[(int) CurrentDecisionIndex].Calculate(inputs);
+            return Strategies[(int) CurrentDecisionIndex].Calculate(inputs, this is IDefaultBehaviorBeforeEvolution ? (IDefaultBehaviorBeforeEvolution)this : null);
         }
     }
 }
