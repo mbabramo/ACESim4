@@ -55,13 +55,38 @@ namespace ACESim
                     DetermineIntentionalInfringement();
                     DetermineDamages();
                     CalculateWelfareOutcomes();
-                    DoScoring();
+                    if (CurrentlyEvolving && !AlternativeHistoryMode)
+                        DoScoring();
                     if (!PreparationPhase)
                         Progress.GameComplete = true;
                     break;
                 default:
                     throw new Exception("Unknown decision.");
             }
+        }
+
+        bool AlternativeHistoryMode = false;
+        int? CurrentDecisionIndexOverride;
+        int? CurrentDecisionIndexIncludingAlternativeHistory => AlternativeHistoryMode ? CurrentDecisionIndexOverride : CurrentDecisionIndex;
+
+        public PatentDamagesGameProgress GetAlternativeHistory(PatentDamagesGameProgress initialGameState)
+        {
+            var originalProgress = Progress;
+            Progress = initialGameState;
+            bool initialPreparationState = PreparationPhase;
+            AlternativeHistoryMode = true;
+            for (CurrentDecisionIndexOverride = (int)PatentDamagesDecision.Enter; CurrentDecisionIndexOverride <= (int)PatentDamagesDecision.Infringe; CurrentDecisionIndexOverride++)
+            {
+                PreparationPhase = true;
+                PrepareForOrMakeCurrentDecision();
+                PreparationPhase = false;
+                PrepareForOrMakeCurrentDecision();
+            }
+            var finalProgress = (PatentDamagesGameProgress) Progress.DeepCopy();
+            Progress = initialGameState;
+            AlternativeHistoryMode = false;
+            PreparationPhase = initialPreparationState;
+            return finalProgress;
         }
 
         public void CalculateInventorEstimates(IEnumerable<InventorInfo> inventorInfos, double actualInventionValue, double stdDevOfNoiseDistribution)
@@ -90,7 +115,7 @@ namespace ACESim
             PDProg.MainInventorEnters = MakeDecision() > 0;
             PDProg.InventorEntryDecisions = new List<bool>();
             PDProg.InventorEntryDecisions.Add(PDProg.MainInventorEnters);
-            var strategy = CurrentlyEvolving ? Strategies[(int)PatentDamagesDecision.Enter].PreviousVersionOfThisStrategy : Strategies[(int)PatentDamagesDecision.Enter];
+            var strategy = Strategies[(int)PatentDamagesDecision.Enter];
             int inventor = 1;
             foreach (var inventorInfo in PDInputs.AllInventorsInfo.InventorsNotBeingOptimized())
             {
@@ -327,6 +352,7 @@ namespace ACESim
             double allPrivateInvestments = 0; // includes money invested and money put to market
             double socialBenefit = 0;
             int inventor = 0;
+            List<double> inventorUtilities = new List<double>();
             foreach (InventorInfo inventorInfo in PDInputs.AllInventorsInfo.AllInventors())
             {
                 double wealth = PDInputs.InitialWealthOfEntrants;
@@ -357,10 +383,12 @@ namespace ACESim
                         PDProg.UserUtility = 0;
                     }
                 }
+                inventorUtilities.Add(wealth);
                 if (inventor == 0)
-                    PDProg.InventorUtility = wealth;
+                    PDProg.MainInventorUtility = wealth;
                 inventor++;
             }
+            PDProg.AverageInventorUtility = inventorUtilities.Average();
             PDProg.SocialWelfare = socialBenefit;
         }
 
@@ -368,20 +396,20 @@ namespace ACESim
         {
             if (PreparationPhase || !CurrentlyEvolving)
                 return;
-            Score((int)PatentDamagesDecision.Enter, PDProg.InventorUtility);
+            Score((int)PatentDamagesDecision.Enter, PDProg.MainInventorUtility);
             if (PDProg.MainInventorEnters)
             {
-                Score((int)PatentDamagesDecision.TryToInvent, PDProg.InventorUtility);
+                Score((int)PatentDamagesDecision.TryToInvent, PDProg.MainInventorUtility);
                 bool isSuccess = PDProg.WinnerOfPatent == 0 && PDProg.AmountPaid > 0; // note that not getting paid counts as a failure for our purposes -- although one might wonder about that. we could also develop a model in which commercialization might fail, i.e., there is only some probability that the invention will have value.
                 double successNumber = isSuccess ? 1.0 : 0;
                 double entrySuccessMeasure = (PDProg.ForecastAfterEntry - successNumber) * (PDProg.ForecastAfterEntry - successNumber); // we must square this, so that we're minimizing the square. That ensures an unbiased estimtae
                 Score((int)PatentDamagesDecision.SuccessProbabilityAfterEntry, entrySuccessMeasure);
                 if (PDProg.MainInventorTries)
                 {
-                    Score((int)PatentDamagesDecision.Spend, PDProg.InventorUtility);
-                    Score((int)PatentDamagesDecision.Price, PDProg.InventorUtility);
+                    Score((int)PatentDamagesDecision.Spend, PDProg.MainInventorUtility);
+                    Score((int)PatentDamagesDecision.Price, PDProg.MainInventorUtility);
                     double investmentSuccessMeasure = (PDProg.ForecastAfterInvestment - successNumber) * (PDProg.ForecastAfterInvestment - successNumber); // we must square this, so that we're minimizing the square. That ensures an unbiased estimtae
-                    Score((int)PatentDamagesDecision.SuccessProbabilityAfterInvestment, PDProg.InventorUtility);
+                    Score((int)PatentDamagesDecision.SuccessProbabilityAfterInvestment, PDProg.MainInventorUtility);
                 }
             }
             if (PDProg.InventionOccurs && !PDProg.InadvertentInfringement)
@@ -399,6 +427,9 @@ namespace ACESim
         {
 
             double[] inputs = null;
+
+            // In alternative history mode, we want to make entry a little more likely, so we make the decision as if the cost of investment were lower. We want to optimize to the point where this will cause entry that will lower average inventor welfare.
+            double adjustmentForAlternativeHistory = AlternativeHistoryMode ? 1.0 : 0.98;
 
             switch (CurrentDecisionIndex)
             {
@@ -424,7 +455,8 @@ namespace ACESim
                     throw new Exception("Unknown decision.");
             }
             
-            RecordInputsIfNecessary(inputs.ToList());
+            if (!AlternativeHistoryMode)
+                RecordInputsIfNecessary(inputs.ToList());
 
             return inputs.ToList();
         }
