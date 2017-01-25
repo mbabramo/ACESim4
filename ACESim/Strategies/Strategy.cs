@@ -1438,8 +1438,9 @@ namespace ACESim
             }
             else
             {
-                foreach (var input in Decision.InputNames)
-                    theInputGroup.Inputs.Add(new InputInfo() { InputName = input, SubGroups = null });
+                if (Decision.InputNames != null)
+                    foreach (var input in Decision.InputNames)
+                        theInputGroup.Inputs.Add(new InputInfo() { InputName = input, SubGroups = null });
             }
             InputGroups.Add(theInputGroup);
             UsingDefaultInputGroup = true;

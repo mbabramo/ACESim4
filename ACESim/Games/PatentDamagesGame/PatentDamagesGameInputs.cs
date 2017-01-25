@@ -25,10 +25,6 @@ namespace ACESim
         /// </summary>
         public double CostOfEntry;
         /// <summary>
-        /// The maximum number of potential inventors. We increase this gradually during evolution to above the maximum supported by AllInventorsInfo.
-        /// </summary>
-        public double MaxPotentialEntrants; 
-        /// <summary>
         /// The actual value of the invention to the user. The user knows this, but others can only estimate it imprecisely.
         /// </summary>
         public double InventionValue;
@@ -68,6 +64,10 @@ namespace ACESim
         /// The probability that a user will inadvertently infringe.
         /// </summary>
         public double InadvertentInfringementProbability;
+        /// <summary>
+        /// The random seed that determines whether the last entrant enters. If the optimal amoung of entry is 1.7, that means there is a 70% chance that there will be two entrants.
+        /// </summary>
+        public double FractionalEntryRandomSeed;
         /// <summary>
         /// The random seed that determines all inventors' success when inventors' successes are not independent and that has less of a role as inventors' successes become more independent. Each inventor also has his/her own random seed.
         /// </summary>

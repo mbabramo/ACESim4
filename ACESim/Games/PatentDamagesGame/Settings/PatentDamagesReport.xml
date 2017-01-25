@@ -101,7 +101,7 @@
     <rowOrColInfo name="Spe" variableName="AverageSpendingOfEntrants" statistic="MEAN" />
     <rowOrColInfo name="Pay" variableName="AmountPaid" statistic="MEAN" />
     <rowOrColInfo name="Dam" variableName="Damages" statistic="MEAN" />
-    <rowOrColInfo name="IUt" variableName="InventorUtility" statistic="MEAN" />
+    <rowOrColInfo name="IUt" variableName="AverageInventorUtility" statistic="MEAN" />
     <rowOrColInfo name="UUt" variableName="UserUtility" statistic="MEAN" />
     <rowOrColInfo name="Soc" variableName="SocialWelfare" statistic="MEAN" />
   </rowOrColGroup>

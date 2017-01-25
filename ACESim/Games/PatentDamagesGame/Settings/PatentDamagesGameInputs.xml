@@ -23,12 +23,6 @@
           <setting type="double" name="MarketRateOfReturn">$MarketRateOfReturn</setting>
           <setting type="double" name="PermittedRateOfReturn">$PermittedRateOfReturn</setting>
           <setting type="double" name="CostOfEntry">$CostOfEntry</setting>
-          <setting name="MaxPotentialEntrants" type="distribution" subtype="curve">
-            <setting name="fromVal" type="double">2</setting>
-            <setting name="toVal" type="double">20</setting>
-            <setting name="curvature" type="double">1.0</setting>
-            <setting name="input" type="variableFromProgram">EvolveStepPctThisDecision</setting>
-          </setting>
           <setting name="InventionValue" type="distribution" subtype="uniform">
             <setting type="double" name="fromVal">0.0</setting>
             <setting type="double" name="toVal">1.0</setting>
@@ -44,6 +38,10 @@
           <setting type="double" name="SuccessProbabilityTenTimesInvestment">$SuccessProbabilityTenTimesInvestment</setting>
           <setting type="double" name="SuccessIndependence">$SuccessIndependence</setting>
           <setting type="double" name="InadvertentInfringementProbability">$InadvertentInfringementProbability</setting>
+          <setting name="FractionalEntryRandomSeed" type="distribution" subtype="uniform">
+            <setting type="double" name="fromVal">0.0</setting>
+            <setting type="double" name="toVal">1.0</setting>
+          </setting>
           <setting name="CommonSuccessRandomSeed" type="distribution" subtype="uniform">
             <setting type="double" name="fromVal">0.0</setting>
             <setting type="double" name="toVal">1.0</setting>
