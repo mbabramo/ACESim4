@@ -68,7 +68,7 @@ namespace ACESim
             bool skipReportingForInterimReport = true;
             if (!skipReportingForInterimReport || !isInterimReport)
             {
-                bool addToDatabase = true; 
+                bool addToDatabase = false; 
                 bool addToMetareport = false; 
                 if (addToDatabase)
                     theReport.AddToDatabase(simulationInteraction.namesOfVariableSets, simulationInteraction.namesOfVariableSetsChosen, CommandSetStartTime);
