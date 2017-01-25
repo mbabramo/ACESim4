@@ -32,8 +32,7 @@ namespace ACESim
         public double? Damages;
         public double AmountPaid;
 
-        public double AverageInventorUtility;
-        public double MainInventorUtility;
+        public double InventorUtility;
         public double UserUtility;
         public double SocialWelfare;
 
@@ -63,8 +62,7 @@ namespace ACESim
             copy.InventionUsed = InventionUsed;
             copy.Damages = Damages;
             copy.AmountPaid = AmountPaid;
-            copy.MainInventorUtility = MainInventorUtility;
-            copy.AverageInventorUtility = AverageInventorUtility;
+            copy.InventorUtility = InventorUtility;
             copy.UserUtility = UserUtility;
             copy.SocialWelfare = SocialWelfare;
 
