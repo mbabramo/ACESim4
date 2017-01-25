@@ -40,8 +40,18 @@
       </setting>
       
       <setting name="SmoothingPointsValidationSet" type="class" subclass="SmoothingPointsValidationSetQuantification">
-        <setting name="NumSmoothingPoints" type="int">500</setting>
-        <setting name="NumIterations" type="long">10,000</setting>
+        <setting name="NumSmoothingPoints" type="distribution" subtype="curve">
+          <setting name="fromVal" type="double">$MinSmoothingPoints</setting>
+          <setting name="toVal" type="double">$MaxSmoothingPoints</setting>
+          <setting name="curvature" type="double">0.5</setting>
+          <setting name="input" type="variableFromProgram">EvolveStepPctThisDecision</setting>
+        </setting>
+        <setting name="NumIterations" type="distribution" subtype="curve">
+          <setting name="fromVal" type="double">$MinIterations</setting>
+          <setting name="toVal" type="double">$MaxIterations</setting>
+          <setting name="curvature" type="double">0.5</setting>
+          <setting name="input" type="variableFromProgram">EvolveStepPctThisDecision</setting>
+        </setting>
         <setting name="ChunkIterationsForRemoting" type="bool">FALSE</setting>
         <setting name="RemotingCanSeparateFindingAndSmoothing" type="bool">FALSE</setting>
         <setting name="UseWorkerRolesForRemoting" type="bool">FALSE</setting>

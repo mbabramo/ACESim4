@@ -5,7 +5,7 @@
     <defineVariable findString="$NumGamePlaysForCumulativeDistribution" replaceString="100000" />
     <defineVariable findString="$ParallelOptimization" replaceString="true" /> <!--see also below-->
     <defineVariable findString="$StopParallelOptimizationAfterOptimizingNDecisions" replaceString="-1" />
-    <defineVariable findString="$AverageInPreviousVersionsOfStrategy" replaceString="FALSE" />
+    <defineVariable findString="$AverageInPreviousVersionsOfStrategy" replaceString="TRUE" />
     <defineVariable findString="$UseAlternatingAveraging" replaceString="FALSE" />
     <defineVariable findString="$StartAveragingInPreviousVersionsOfStrategyOnStepN" replaceString="3" />
     <defineVariable findString="$MinSmoothingPoints" replaceString="100" />
