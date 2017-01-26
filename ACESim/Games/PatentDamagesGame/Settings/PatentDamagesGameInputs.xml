@@ -6,9 +6,9 @@
                 <setting type="double" name="mean">0.0</setting>
                 <setting type="double" name="stdev">$InventionValueNoiseStdev</setting>
               </setting>
-              <setting name="CostOfMinimumInvestment" type="distribution" subtype="uniform">
-                <setting type="double" name="fromVal">$CostOfMinimumInvestmentMin</setting>
-                <setting type="double" name="toVal">$CostOfMinimumInvestmentMax</setting>
+              <setting name="CostOfMinimumInvestmentMultiplier" type="distribution" subtype="uniform">
+                <setting type="double" name="fromVal">$CostOfMinimumInvestmentMultiplierMin</setting>
+                <setting type="double" name="toVal">$CostOfMinimumInvestmentMultiplierMax</setting>
               </setting>
               <setting name="RandomSeed" type="distribution" subtype="uniform">
                 <setting type="double" name="fromVal">0.0</setting>
@@ -24,6 +24,10 @@
           <setting type="double" name="PermittedRateOfReturn">$PermittedRateOfReturn</setting>
           <setting type="int" name="MaxNumEntrants">$MaxNumEntrants</setting>
           <setting type="double" name="CostOfEntry">$CostOfEntry</setting>
+              <setting name="CostOfMinimumInvestmentBaseline" type="distribution" subtype="uniform">
+                <setting type="double" name="fromVal">$CostOfMinimumInvestmentBaselineMin</setting>
+                <setting type="double" name="toVal">$CostOfMinimumInvestmentBaselineMax</setting>
+              </setting>
           <setting name="InventionValue" type="distribution" subtype="uniform">
             <setting type="double" name="fromVal">0.0</setting>
             <setting type="double" name="toVal">1.0</setting>

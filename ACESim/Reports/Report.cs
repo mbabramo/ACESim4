@@ -107,7 +107,7 @@ namespace ACESim
                 {
                     RowOrColInfo column = theColumns[c];
                     double? calculatedStatistic;
-                    getOutputValuesForEachCellIndividually = true; // DEBUG false; // Set this to true to improve ability to step through and figure out what is causing an unexpected reporting result
+                    getOutputValuesForEachCellIndividually = true; // DEBUG -- false should be faster but isn't working right now ; // Set this to true to improve ability to step through and figure out what is causing an unexpected reporting result
                     if (getOutputValuesForEachCellIndividually)
                         calculatedStatistic = GenerateStatisticForIntersection(row, column, theOutputs); // this is slower, original algorithm -- keep for now
                     else

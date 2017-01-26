@@ -29,6 +29,10 @@ namespace ACESim
         /// </summary>
         public double CostOfEntry;
         /// <summary>
+        /// The baseline cost of minimum investment. Individual inventors' costs will be relative to this baseline.
+        /// </summary>
+        public double CostOfMinimumInvestmentBaseline;
+        /// <summary>
         /// The actual value of the invention to the user. The user knows this, but others can only estimate it imprecisely.
         /// </summary>
         public double InventionValue;
@@ -93,7 +97,7 @@ namespace ACESim
         /// </summary>
         public double WeightOnCostPlusDamagesForIntentionalInfringement;
         /// <summary>
-        /// A damages multiplier for intentional infringement. A multiplier of 1 means that there is no intentional infringement.
+        /// A damages multiplier for intentional infringement. A multiplier of 1 means that there is no extra penalty for intentional infringement.
         /// </summary>
         public double DamagesMultiplierForIntentionalInfringement;
         /// <summary>

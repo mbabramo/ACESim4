@@ -30,7 +30,8 @@ namespace ACESim
         public bool PriceAccepted;
         public bool IntentionalInfringement;
         public bool InventionUsed;
-        public double? Damages;
+        public double DamagesPaid;
+        public double? HypotheticalDamages;
         public double AmountPaid;
 
         public double AverageInventorUtility;
@@ -64,7 +65,8 @@ namespace ACESim
             copy.PriceAccepted = PriceAccepted;
             copy.IntentionalInfringement = IntentionalInfringement;
             copy.InventionUsed = InventionUsed;
-            copy.Damages = Damages;
+            copy.DamagesPaid = DamagesPaid;
+            copy.HypotheticalDamages = HypotheticalDamages;
             copy.AmountPaid = AmountPaid;
             copy.AverageInventorUtility = AverageInventorUtility;
             copy.MainInventorUtility = MainInventorUtility;

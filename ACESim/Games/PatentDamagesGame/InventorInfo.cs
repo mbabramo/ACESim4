@@ -9,7 +9,7 @@ namespace ACESim
     public class InventorInfo
     {
         public double InventionValueNoise;
-        public double CostOfMinimumInvestment;
+        public double CostOfMinimumInvestmentMultiplier;
         public double RandomSeed;
     }
 }

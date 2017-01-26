@@ -143,7 +143,7 @@ namespace ACESim
                     PDProg.InventorTryToInventDecisions.Add(false);
                 else
                 {
-                    double otherInventorTryToInventDecision = strategy.Calculate(new List<double> { inventorInfo.CostOfMinimumInvestment, PDProg.InventorEstimatesInventionValue[inventor] }, this);
+                    double otherInventorTryToInventDecision = strategy.Calculate(new List<double> { PDInputs.CostOfMinimumInvestmentBaseline, inventorInfo.CostOfMinimumInvestmentMultiplier, PDProg.InventorEstimatesInventionValue[inventor] }, this);
                     PDProg.InventorTryToInventDecisions.Add(otherInventorTryToInventDecision > 0);
                 }
                 inventor++;
@@ -163,7 +163,7 @@ namespace ACESim
             }
             PDProg.InventorSpendDecisions = new List<double>();
             double mainInventorSpend = PDProg.MainInventorTries ? MakeDecision() : 0;
-            mainInventorSpend *= InventorToOptimizeInfo.CostOfMinimumInvestment;
+            mainInventorSpend *= PDInputs.CostOfMinimumInvestmentBaseline * InventorToOptimizeInfo.CostOfMinimumInvestmentMultiplier;
             PDProg.InventorSpendDecisions.Add(mainInventorSpend);
             var strategy = Strategies[(int)PatentDamagesDecision.Spend];
             int inventor = 1;
@@ -173,8 +173,8 @@ namespace ACESim
                     PDProg.InventorSpendDecisions.Add(0);
                 else
                 {
-                    double otherInventorSpendDecision = strategy.Calculate(new List<double> { inventorInfo.CostOfMinimumInvestment, PDProg.InventorEstimatesInventionValue[inventor] }, this);
-                    otherInventorSpendDecision *= inventorInfo.CostOfMinimumInvestment;
+                    double otherInventorSpendDecision = strategy.Calculate(new List<double> { PDInputs.CostOfMinimumInvestmentBaseline, inventorInfo.CostOfMinimumInvestmentMultiplier, PDProg.InventorEstimatesInventionValue[inventor] }, this);
+                    otherInventorSpendDecision *= PDInputs.CostOfMinimumInvestmentBaseline * inventorInfo.CostOfMinimumInvestmentMultiplier;
                     PDProg.InventorSpendDecisions.Add(otherInventorSpendDecision);
                 }
                 inventor++;
@@ -208,7 +208,7 @@ namespace ACESim
                 {
                     var inventorInfo = InventorInfo(i);
                     double weightedSeed = PDInputs.CommonSuccessRandomSeed * (1.0 - PDInputs.SuccessIndependence) + inventorInfo.RandomSeed * PDInputs.SuccessIndependence;
-                    double multipleOfMinimumInvestment = PDProg.InventorSpendDecisions[i] / InventorInfo(i).CostOfMinimumInvestment; // the spend decision has been multiplied by cost of minimum investment, so we need to divide that back out to get the multiple of minimum investment
+                    double multipleOfMinimumInvestment = PDProg.InventorSpendDecisions[i] / (PDInputs.CostOfMinimumInvestmentBaseline * InventorInfo(i).CostOfMinimumInvestmentMultiplier); // the spend decision has been multiplied by cost of minimum investment, so we need to divide that back out to get the multiple of minimum investment
                     double thresholdNeeded = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(PDInputs.SuccessProbabilityMinimumInvestment, PDInputs.SuccessProbabilityTenTimesInvestment, curvature, (multipleOfMinimumInvestment - 1.0)/9.0); 
                     bool success = weightedSeed < thresholdNeeded;
                     PDProg.InventorSucceedsAtInvention.Add(success);
@@ -257,7 +257,7 @@ namespace ACESim
                 else
                 {
                     var strategy = Strategies[(int)PatentDamagesDecision.Price];
-                    var inputs = new List<double> { winnerInfo.CostOfMinimumInvestment, winnerEstimateInventionValue };
+                    var inputs = new List<double> { PDInputs.CostOfMinimumInvestmentBaseline, winnerInfo.CostOfMinimumInvestmentMultiplier, winnerEstimateInventionValue };
                     PDProg.Price = strategy.Calculate(inputs, this) * winnerEstimateInventionValue;
                 }
             }
@@ -304,7 +304,8 @@ namespace ACESim
         {
             if (PreparationPhase)
                 return;
-            if (PDProg.InadvertentInfringement || PDProg.IntentionalInfringement)
+
+            if (PDProg.WinnerOfPatent != null)
             {
                 double forecastAfterEntry = PDProg.ForecastAfterEntry == 0 ? 1 : PDProg.ForecastAfterEntry;
                 double forecastAfterInvestment = PDProg.ForecastAfterInvestment == 0 ? 1 : PDProg.ForecastAfterInvestment;
@@ -316,9 +317,13 @@ namespace ACESim
                 double weightedDamages = weight * costBasedDamages + (1.0 - weight) * courtEstimateOfValue;
                 double multiplier = PDProg.InadvertentInfringement ? 1.0 : PDInputs.DamagesMultiplierForIntentionalInfringement;
                 double fullDamages = weightedDamages * multiplier;
-                PDProg.Damages = fullDamages;
+                PDProg.HypotheticalDamages = fullDamages;
             }
-            PDProg.AmountPaid = PDProg.PriceAccepted ? PDProg.Price ?? 0 : (PDProg.InventionUsed ? (double)PDProg.Damages : 0);
+            if (PDProg.InadvertentInfringement || PDProg.IntentionalInfringement)
+                PDProg.DamagesPaid = (double) PDProg.HypotheticalDamages;
+            else
+                PDProg.DamagesPaid = 0;
+            PDProg.AmountPaid = PDProg.PriceAccepted ? PDProg.Price ?? 0 : PDProg.DamagesPaid;
         }
 
         public void CalculateWelfareOutcomes()
@@ -380,9 +385,9 @@ namespace ACESim
             if (PDProg.MainInventorEnters)
             {
                 Score((int)PatentDamagesDecision.TryToInvent, PDProg.MainInventorUtility);
-                bool isSuccess = PDProg.WinnerOfPatent == 0 && PDProg.AmountPaid > 0; // note that not getting paid counts as a failure for our purposes -- although one might wonder about that. we could also develop a model in which commercialization might fail, i.e., there is only some probability that the invention will have value.
+                bool isSuccess = PDProg.WinnerOfPatent == 0; // ALTERNATIVE -- under this approach not getting paid by some increases the amount others pay: && PDProg.AmountPaid > 0;
                 double successNumber = isSuccess ? 1.0 : 0;
-                double entrySuccessMeasure = successNumber; // DEBUG (PDProg.ForecastAfterEntry - successNumber) * (PDProg.ForecastAfterEntry - successNumber); // we must square this, so that we're minimizing the square. That ensures an unbiased estimtae
+                double entrySuccessMeasure = (PDProg.ForecastAfterEntry - successNumber) * (PDProg.ForecastAfterEntry - successNumber); // we must square this, so that we're minimizing the square. That ensures an unbiased estimtae
                 Score((int)PatentDamagesDecision.SuccessProbabilityAfterEntry, entrySuccessMeasure);
                 if (PDProg.MainInventorTries)
                 {
@@ -420,7 +425,7 @@ namespace ACESim
                 case (int)PatentDamagesDecision.SuccessProbabilityAfterInvestment:
                 case (int)PatentDamagesDecision.Spend:
                 case (int)PatentDamagesDecision.Price:
-                    inputs = new double[] { InventorToOptimizeInfo.CostOfMinimumInvestment, PDProg.InventorEstimatesInventionValue.First() };
+                    inputs = new double[] { PDInputs.CostOfMinimumInvestmentBaseline, InventorToOptimizeInfo.CostOfMinimumInvestmentMultiplier, PDProg.InventorEstimatesInventionValue.First() };
                     break;
                 case (int)PatentDamagesDecision.Accept:
                     inputs = new double[] { PDInputs.InventionValue, PDProg.Price ?? 0 };
