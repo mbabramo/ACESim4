@@ -164,6 +164,7 @@
                       <setting name="xAxisLabel" type="text">Invention Value Estimate</setting>
                       <setting name="yAxisLabel" type="text">Price</setting>
                       <setting name="dockLegendLeft" type="bool">true</setting>
+                      <setting name="fadeSeriesOfSameName" type="bool">true</setting>
                     </setting>
                   </setting>  
                   
@@ -197,6 +198,7 @@
                       <setting name="xAxisLabel" type="text">Cost Minimum Investment</setting>
                       <setting name="yAxisLabel" type="text">Price</setting>
                       <setting name="dockLegendLeft" type="bool">true</setting>
+                      <setting name="fadeSeriesOfSameName" type="bool">true</setting>
                     </setting>
                   </setting>  
                 </setting>

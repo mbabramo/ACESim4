@@ -389,6 +389,7 @@ namespace ACESim
             }
             PDProg.AverageInventorUtility = combinedWealthOfPotentialInventors / (double)PDProg.NumberEntrants;
             PDProg.SocialWelfare = socialBenefit;
+            PDProg.PrivateWelfare = privateBenefit;
         }
 
         protected void DoScoring()
