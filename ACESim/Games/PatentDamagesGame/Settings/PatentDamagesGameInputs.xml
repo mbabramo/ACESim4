@@ -60,6 +60,7 @@
             <setting type="double" name="fromVal">0.0</setting>
             <setting type="double" name="toVal">1.0</setting>
           </setting>
+          <setting type="double" name="ProportionOfValueForStandardDamages">$ProportionOfValueForStandardDamages</setting>
           <setting type="double" name="WeightOnCostPlusDamagesForInadvertentInfringement">$WeightOnCostPlusDamagesForInadvertentInfringement</setting>
           <setting type="double" name="WeightOnCostPlusDamagesForIntentionalInfringement">$WeightOnCostPlusDamagesForIntentionalInfringement</setting>
           <setting type="double" name="DamagesMultiplierForIntentionalInfringement">$DamagesMultiplierForIntentionalInfringement</setting>

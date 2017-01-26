@@ -249,10 +249,11 @@ namespace ACESim
                 PDProg.FirstInventorWinsPatent = PDProg.WinnerOfPatent == 0 ? 1.0 : 0;
                 InventorInfo winnerInfo = InventorInfo((int)PDProg.WinnerOfPatent);
                 PDProg.WinnerPredictionUserWelfareChangeIntentionalInfringement = PredictWelfareChangeFromIntentionalInfringement(InventionEstimateToUse.Inventor);
-                double inventorOffer = (double) PDProg.WinnerPredictionUserWelfareChangeIntentionalInfringement + 2 * PDInputs.LitigationCostsEachParty; // E.g., suppose that intentional infringement damages would be 90 but costs would be 10. Then, winnerUserWelfareChange is 80. Inventor should be willing to offer up to 100.
-                if (inventorOffer < 0)
-                    inventorOffer = 1.0; // don't make a negative offer -- may not actually occur.
-                PDProg.InventorOffer = inventorOffer;
+                // Inventor say: If I lose, then maybe user will intentionally infringe. In that case, I would receive damages - costs. So, then I should be willing to take any offer at least that great. Since Welfare Change = Value - Damages - Costs, it follows that Value - Welfare Change - 2 * costs = Value - (Value - Damages - Costs) - 2 * costs = Damages + Costs - 2 * Costs = Damages - Costs. So, Value - Welfare Change - 2 * costs is my best offer. 
+                if (PDProg.WinnerPredictionUserWelfareChangeIntentionalInfringement > 0)
+                    PDProg.InventorOffer = PDProg.InventorEstimatesInventionValue[(int)PDProg.WinnerOfPatent] - PDProg.WinnerPredictionUserWelfareChangeIntentionalInfringement - 2 * PDInputs.LitigationCostsEachParty;
+                else
+                    PDProg.InventorOffer = 0; // it doesn't look like user would intentionally infringe, so anything inventor can get is gravy.
             }
         }
 
@@ -260,16 +261,12 @@ namespace ACESim
         {
             if (PDProg.InventionOccurs && !PDProg.InadvertentInfringement)
             {
-                // we'll calculate this for our reporting purposes regardless of whether inadvertent infringement occurs
+                // User says: What will my welfare be if negotiation fails? If I would intentionally infringe, it will be Welfare Change = Value - damages - costs. So, anticipating that, I should be willing to pay up to Damages + Costs to get the value without litigation, i.e. value - (value - damages - costs). If I would not intentionally infringe, then the most I would be willing to pay is the value itself.
                 PDProg.UserPredictedWelfareChangeIntentionalInfringement = PredictWelfareChangeFromIntentionalInfringement(InventionEstimateToUse.ActualUserValue);
                 if (PDProg.UserPredictedWelfareChangeIntentionalInfringement > 0)
-                    PDProg.UserOffer = PDInputs.InventionValue - PDProg.UserPredictedWelfareChangeIntentionalInfringement; // Constaint is: Value - Payment > Welfare Absent Payment; So, Value - Welfare > Payment. 
+                    PDProg.UserOffer = PDInputs.InventionValue - PDProg.UserPredictedWelfareChangeIntentionalInfringement; // Constraint is: Value - Payment > Welfare Absent Payment; So, Value - Welfare > Payment. 
                 else
                     PDProg.UserOffer = PDInputs.InventionValue; // I won't intentionally infringe, since that would hurt me. So, most I'll pay is the value that I'll receive from use. 
-                if (!CurrentlyEvolving && PDProg.WinnerPredictionUserWelfareChangeIntentionalInfringement > PDProg.UserPredictedWelfareChangeIntentionalInfringement + 0.02)
-                {
-                    var DEBUG = 0;
-                }
             }
         }
 
@@ -344,8 +341,9 @@ namespace ACESim
                     inventionValue = PDProg.InventorEstimatesInventionValue[(int)PDProg.WinnerOfPatent];
                     break;
             }
+            double adjustedInventionValue = PDInputs.ProportionOfValueForStandardDamages * inventionValue; // 1.0 would be a disgorgement remedy; 0.5 would be trying to reflect what the parties would decide.
             double weight = inadvertentInfringement ? PDInputs.WeightOnCostPlusDamagesForInadvertentInfringement : PDInputs.WeightOnCostPlusDamagesForIntentionalInfringement;
-            double weightedDamages = weight * costBasedDamages + (1.0 - weight) * inventionValue;
+            double weightedDamages = weight * costBasedDamages + (1.0 - weight) * adjustedInventionValue;
             double multiplier = inadvertentInfringement ? 1.0 : PDInputs.DamagesMultiplierForIntentionalInfringement;
             double fullDamages = weightedDamages * multiplier;
             return fullDamages;

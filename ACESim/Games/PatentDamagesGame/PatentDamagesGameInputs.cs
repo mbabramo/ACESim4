@@ -101,6 +101,10 @@ namespace ACESim
         /// </summary>
         public double WeightOnCostPlusDamagesForIntentionalInfringement;
         /// <summary>
+        /// The proportion of the user's estimated value that should be used for standard damages. A value of 0.5 suggests that the court would let the inventor and the user each keep half of the surplus from the negotiation.
+        /// </summary>
+        public double ProportionOfValueForStandardDamages;
+        /// <summary>
         /// A damages multiplier for intentional infringement. A multiplier of 1 means that there is no extra penalty for intentional infringement.
         /// </summary>
         public double DamagesMultiplierForIntentionalInfringement;
