@@ -37,9 +37,9 @@
         <value>true</value>
       </filter>
     </rowOrColInfo>
-    <rowOrColInfo name="PriceAccepted">
+    <rowOrColInfo name="AgreementReached">
       <filter varType="bool">
-        <variableName>PriceAccepted</variableName>
+        <variableName>AgreementReached</variableName>
         <operation>EQ</operation>
         <value>true</value>
       </filter>
