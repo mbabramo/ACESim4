@@ -298,6 +298,14 @@ namespace ACESim
             PDProg.InventionUsed = PDProg.InadvertentInfringement || PDProg.PriceAccepted || PDProg.IntentionalInfringement;
         }
 
+        private double PredictWelfareChangeFromIntentionalInfringement()
+        {
+            double anticipatedDamages = CalculateHypotheticalDamages(true, false);
+            double welfareChange = PDInputs.InventionValue - anticipatedDamages - PDInputs.LitigationCostsEachParty;
+            PDProg.PredictedWelfareChangeIntentionalInfringement = welfareChange;
+            return welfareChange;
+        }
+
         private void DetermineDamages()
         {
             if (PreparationPhase)
@@ -305,7 +313,7 @@ namespace ACESim
 
             if (PDProg.WinnerOfPatent != null)
             {
-                PDProg.HypotheticalDamages = CalculateHypotheticalDamages(false);
+                PDProg.HypotheticalDamages = CalculateHypotheticalDamages(false, PDProg.InadvertentInfringement);
             }
             if (PDProg.InadvertentInfringement || PDProg.IntentionalInfringement)
                 PDProg.DamagesPaid = (double) PDProg.HypotheticalDamages;
@@ -314,7 +322,7 @@ namespace ACESim
             PDProg.AmountPaid = PDProg.PriceAccepted ? PDProg.Price ?? 0 : PDProg.DamagesPaid;
         }
 
-        private double CalculateHypotheticalDamages(bool useRealInventionValue)
+        private double CalculateHypotheticalDamages(bool useRealInventionValue, bool inadvertentInfringement)
         {
             double forecastAfterEntry = PDProg.ForecastAfterEntry == 0 ? 1 : PDProg.ForecastAfterEntry;
             double forecastAfterInvestment = PDProg.ForecastAfterInvestment == 0 ? 1 : PDProg.ForecastAfterInvestment;
@@ -322,9 +330,9 @@ namespace ACESim
             double riskAdjustedInventionSpending = PDProg.InventorSpendDecisions[(int)PDProg.WinnerOfPatent] / forecastAfterInvestment;
             double costBasedDamages = (riskAdjustedEntrySpending + riskAdjustedInventionSpending) * (1.0 + PDInputs.PermittedRateOfReturn);
             double inventionValue = useRealInventionValue ? PDInputs.InventionValue : GetEstimateOfInventionValue(PDInputs.InventionValueCourtNoiseStdev, PDInputs.InventionValueCourtNoise, PDInputs.InventionValue);
-            double weight = PDProg.InadvertentInfringement ? PDInputs.WeightOnCostPlusDamagesForInadvertentInfringement : PDInputs.WeightOnCostPlusDamagesForIntentionalInfringement;
+            double weight = inadvertentInfringement ? PDInputs.WeightOnCostPlusDamagesForInadvertentInfringement : PDInputs.WeightOnCostPlusDamagesForIntentionalInfringement;
             double weightedDamages = weight * costBasedDamages + (1.0 - weight) * inventionValue;
-            double multiplier = PDProg.InadvertentInfringement ? 1.0 : PDInputs.DamagesMultiplierForIntentionalInfringement;
+            double multiplier = inadvertentInfringement ? 1.0 : PDInputs.DamagesMultiplierForIntentionalInfringement;
             double fullDamages = weightedDamages * multiplier;
             return fullDamages;
         }

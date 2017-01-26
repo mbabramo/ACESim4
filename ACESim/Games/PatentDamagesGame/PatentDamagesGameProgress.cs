@@ -30,6 +30,7 @@ namespace ACESim
         public bool PriceAccepted;
         public bool IntentionalInfringement;
         public bool InventionUsed;
+        public double? PredictedWelfareChangeIntentionalInfringement;
         public double DamagesPaid;
         public double? HypotheticalDamages;
         public double AmountPaid;
@@ -65,6 +66,7 @@ namespace ACESim
             copy.PriceAccepted = PriceAccepted;
             copy.IntentionalInfringement = IntentionalInfringement;
             copy.InventionUsed = InventionUsed;
+            copy.PredictedWelfareChangeIntentionalInfringement = PredictedWelfareChangeIntentionalInfringement;
             copy.DamagesPaid = DamagesPaid;
             copy.HypotheticalDamages = HypotheticalDamages;
             copy.AmountPaid = AmountPaid;
