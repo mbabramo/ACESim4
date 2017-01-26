@@ -34,6 +34,7 @@
                   <setting name="UpperBound" type="double">1.0</setting>
                 </setting>
                 <setting name="ProduceClusteringPointsEvenlyFrom0To1" type="bool">true</setting>
+                <!--<setting name="ScoreRepresentsCorrectAnswer" type="bool">true</setting>-->
                 <setting name="Bipolar" type="bool">false</setting>
                 <setting name="StrategyGraphInfos" type="list">
                 </setting>
@@ -100,6 +101,7 @@
                   <setting name="UpperBound" type="double">1.0</setting>
                 </setting>
                 <setting name="ProduceClusteringPointsEvenlyFrom0To1" type="bool">false</setting>
+                <!--<setting name="ScoreRepresentsCorrectAnswer" type="bool">true</setting>-->
                 <setting name="Bipolar" type="bool">false</setting>
                 <setting name="StrategyGraphInfos" type="list">
                 </setting>

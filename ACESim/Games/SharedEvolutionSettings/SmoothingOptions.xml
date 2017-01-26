@@ -8,23 +8,23 @@
     <setting name="MaxFailuresToRemember" type="int">1000</setting>
   </defineTemplate>
 
-  <defineTemplate name="DirectScoreEstimationSmoothingOptions">
-    <setting name="SmoothingOptions" type="class" subclass="DirectScoreEstimationSmoothingOptions">
+  <defineTemplate name="DecisionRepresentsCorrectAnswerSmoothingOptions">
+    <setting name="DecisionRepresentsCorrectAnswerSmoothingOptions" type="class" subclass="DirectScoreEstimationSmoothingOptions">
       <insertTemplate name="OversamplingOptions" />
       <setting name="NumRefinementPasses" type="int">1</setting>
       <setting name="NumIterationsScoreEstimationNetworkMainSet" type="int">10000</setting>
       <setting name="NumIterationsScoreEstimationNetworkValidationSet" type="int">1000</setting>
-      <setting name="NumIterationsOutputEstimationNetworkMainSet" type="int">10000</setting>
-      <setting name="NumIterationsOutputEstimationNetworkValidationSet" type="int">1000</setting>
-      <setting name="InitialWeightOnRandomStrategy" type="double">0.8</setting>
-      <setting name="WeightOnRandomStrategyMultiplier" type="double">0.95</setting>
-      <setting name="EpochsScoreEstimationNetwork" type="int">200</setting>
+      <setting name="NumIterationsOutputEstimationNetworkMainSet" type="int">0</setting>
+      <setting name="NumIterationsOutputEstimationNetworkValidationSet" type="int">0</setting>
+      <setting name="InitialWeightOnRandomStrategy" type="double">0</setting>
+      <setting name="WeightOnRandomStrategyMultiplier" type="double">0</setting>
+      <setting name="EpochsScoreEstimationNetwork" type="int">100</setting>
       <setting name="ValidateEveryNEpochsScoreEstimationNetwork" type="int">999999</setting>
-      <setting name="HiddenLayerSizeScoreEstimationNetwork" type="int">25</setting>
-      <setting name="EpochsOutputEstimationNetwork" type="int">200</setting>
-      <setting name="ValidateEveryNEpochsOutputEstimationNetwork" type="int">200</setting>
-      <setting name="HiddenLayerSizeOutputEstimationNetwork" type="int">25</setting>
-      <setting name="AutomaticallyGeneratePlots" type="bool">true</setting>
+      <setting name="HiddenLayerSizeScoreEstimationNetwork" type="int">10</setting>
+      <setting name="EpochsOutputEstimationNetwork" type="int">0</setting>
+      <setting name="ValidateEveryNEpochsOutputEstimationNetwork" type="int">0</setting>
+      <setting name="HiddenLayerSizeOutputEstimationNetwork" type="int">0</setting>
+      <setting name="AutomaticallyGeneratePlots" type="bool">false</setting>
     </setting>
   </defineTemplate>
 

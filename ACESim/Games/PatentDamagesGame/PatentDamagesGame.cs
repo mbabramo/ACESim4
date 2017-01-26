@@ -135,7 +135,7 @@ namespace ACESim
             PDProg.InventorTryToInventDecisions = new List<bool>();
             PDProg.MainInventorTries = PDProg.MainInventorEnters && MakeDecision() > 0;
             PDProg.InventorTryToInventDecisions.Add(PDProg.MainInventorTries);
-            var strategy = CurrentlyEvolving ? Strategies[(int)PatentDamagesDecision.TryToInvent].PreviousVersionOfThisStrategy : Strategies[(int)PatentDamagesDecision.TryToInvent];
+            var strategy = Strategies[(int)PatentDamagesDecision.TryToInvent];
             int inventor = 1;
             foreach (var inventorInfo in PDInputs.AllInventorsInfo.InventorsNotBeingOptimized())
             {
@@ -145,7 +145,7 @@ namespace ACESim
                     PDProg.InventorTryToInventDecisions.Add(true);
                 else
                 {
-                    double otherInventorTryToInventDecision = strategy.Calculate(new List<double> { inventorInfo.CostOfMinimumInvestment, PDProg.InventorEstimatesInventionValue[inventor] });
+                    double otherInventorTryToInventDecision = strategy.Calculate(new List<double> { inventorInfo.CostOfMinimumInvestment, PDProg.InventorEstimatesInventionValue[inventor] }, this);
                     PDProg.InventorTryToInventDecisions.Add(otherInventorTryToInventDecision > 0);
                 }
                 inventor++;
@@ -177,7 +177,7 @@ namespace ACESim
                     PDProg.InventorSpendDecisions.Add(1.0 * inventorInfo.CostOfMinimumInvestment); 
                 else
                 {
-                    double otherInventorSpendDecision = strategy.Calculate(new List<double> { inventorInfo.CostOfMinimumInvestment, PDProg.InventorEstimatesInventionValue[inventor] });
+                    double otherInventorSpendDecision = strategy.Calculate(new List<double> { inventorInfo.CostOfMinimumInvestment, PDProg.InventorEstimatesInventionValue[inventor] }, this);
                     otherInventorSpendDecision *= inventorInfo.CostOfMinimumInvestment;
                     PDProg.InventorSpendDecisions.Add(otherInventorSpendDecision);
                 }
@@ -253,6 +253,7 @@ namespace ACESim
                 }
                 InventorInfo winnerInfo = InventorInfo((int)PDProg.WinnerOfPatent);
                 double winnerEstimateInventionValue = PDProg.InventorEstimatesInventionValue[(int)PDProg.WinnerOfPatent];
+                PDProg.FirstInventorWinsPatent = PDProg.WinnerOfPatent == 0 ? 1.0 : 0;
                 if (PDProg.WinnerOfPatent == 0)
                 {
                     PDProg.Price = MakeDecision() * winnerEstimateInventionValue;
@@ -264,7 +265,7 @@ namespace ACESim
                     if (strategy == null)
                         PDProg.Price = DefaultBehaviorBeforeEvolution(inputs, (int)PatentDamagesDecision.Price) * winnerEstimateInventionValue;
                     else
-                        PDProg.Price = strategy.Calculate(inputs) * winnerEstimateInventionValue;
+                        PDProg.Price = strategy.Calculate(inputs, this) * winnerEstimateInventionValue;
                 }
                 if (PDProg.Price > 10)
                 {
@@ -392,7 +393,7 @@ namespace ACESim
                 Score((int)PatentDamagesDecision.TryToInvent, PDProg.MainInventorUtility);
                 bool isSuccess = PDProg.WinnerOfPatent == 0 && PDProg.AmountPaid > 0; // note that not getting paid counts as a failure for our purposes -- although one might wonder about that. we could also develop a model in which commercialization might fail, i.e., there is only some probability that the invention will have value.
                 double successNumber = isSuccess ? 1.0 : 0;
-                double entrySuccessMeasure = (PDProg.ForecastAfterEntry - successNumber) * (PDProg.ForecastAfterEntry - successNumber); // we must square this, so that we're minimizing the square. That ensures an unbiased estimtae
+                double entrySuccessMeasure = successNumber; // DEBUG (PDProg.ForecastAfterEntry - successNumber) * (PDProg.ForecastAfterEntry - successNumber); // we must square this, so that we're minimizing the square. That ensures an unbiased estimtae
                 Score((int)PatentDamagesDecision.SuccessProbabilityAfterEntry, entrySuccessMeasure);
                 if (PDProg.MainInventorTries)
                 {

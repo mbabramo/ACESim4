@@ -68,7 +68,7 @@
       <!--<insertTemplate name="RegressionBasedSmoothingOptions"/>-->
       <!--<insertTemplate name="RPROPSmoothingOptions"/>-->
       <insertTemplate name="GRNNSmoothingOptionsFast"/>
-      <!--<insertTemplate name="DirectScoreEstimationSmoothingOptions"/>-->
+      <insertTemplate name="DecisionRepresentsCorrectAnswerSmoothingOptions"/>
       <!--<insertTemplate name="DirectScoreEstimationThoroughSmoothingOptions"/>-->
       <!--<insertTemplate name="DirectScoreEstimationExperimentalSmoothingOptions"/>-->
       

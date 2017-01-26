@@ -10,7 +10,7 @@
                     initializeStrategiesFile="PatentDamagesStrategies"
                     useInitializeStrategiesFile="false"
                     evolveOnlyIfNecessary="false">
-          <reportCommand name="PatentDamagesInterimReportCommand" storeIterationResultsFile="PatentDamagesInterimIterations" storeReportResultsFile="PatentDamagesInterimReport" betweenDecisions="true" parallelReporting="true" requireCumulativeDistributions="false">
+          <reportCommand name="PatentDamagesInterimReportCommand" storeIterationResultsFile="PatentDamagesInterimIterations" storeReportResultsFile="PatentDamagesInterimReport" betweenDecisions="true" parallelReporting="false" requireCumulativeDistributions="false">
             <rowsGroup name="PatentDamagesRows"></rowsGroup>
             <colsGroup name="PatentDamagesColumns"></colsGroup>
           </reportCommand>

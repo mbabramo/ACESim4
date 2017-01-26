@@ -23,6 +23,7 @@ namespace ACESim
         public double AverageSpendingOfEntrants;
         public List<bool> InventorSucceedsAtInvention;
         public int? WinnerOfPatent = null;
+        public double FirstInventorWinsPatent = 0;
         public bool InventionOccurs;
         public double? Price;
         public bool InadvertentInfringement;
@@ -56,6 +57,7 @@ namespace ACESim
             copy.AverageSpendingOfEntrants = AverageSpendingOfEntrants;
             copy.InventorSucceedsAtInvention = InventorSucceedsAtInvention == null ? null : InventorSucceedsAtInvention.ToList();
             copy.WinnerOfPatent = WinnerOfPatent;
+            copy.FirstInventorWinsPatent = FirstInventorWinsPatent;
             copy.InventionOccurs = InventionOccurs;
             copy.Price = Price;
             copy.InadvertentInfringement = InadvertentInfringement;

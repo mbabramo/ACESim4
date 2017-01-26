@@ -2,6 +2,13 @@
 <rowOrColGroup name="PatentDamagesRows">
     <rowOrColInfo name="All">
     </rowOrColInfo>
+    <rowOrColInfo name="FirstTries">
+      <filter varType="bool">
+        <variableName>MainInventorTries</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+    </rowOrColInfo>
     <rowOrColInfo name="SomeoneTries">
       <filter varType="bool">
         <variableName>SomeoneTries</variableName>
@@ -63,5 +70,8 @@
     <rowOrColInfo name="UUt" variableName="UserUtility" statistic="MEAN" />
     <rowOrColInfo name="Soc" variableName="SocialWelfare" statistic="MEAN" />
     <rowOrColInfo name="Prv" variableName="PrivateWelfare" statistic="MEAN" />
+    <rowOrColInfo name="FIW" variableName="FirstInventorWinsPatent" statistic="MEAN" />
+    <rowOrColInfo name="FAE" variableName="ForecastAfterEntry" statistic="MEAN" />
+    <rowOrColInfo name="FAI" variableName="ForecastAfterInvestment" statistic="MEAN" />
   </rowOrColGroup>
 </ACESim>
