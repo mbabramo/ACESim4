@@ -13,7 +13,6 @@ namespace ACESim
         TryToInvent,
         Spend,
         SuccessProbabilityAfterInvestment,
-        Price,
-        Accept
+        Price
     }
 }

@@ -47,10 +47,7 @@ namespace ACESim
                 case (int)PatentDamagesDecision.Price:
                     MakePricingDecision();
                     DetermineInadvertentInfringement();
-                    break;
-                case (int)PatentDamagesDecision.Accept:
-                    DetermineAcceptance();
-                    DetermineIntentionalInfringement();
+                    DetermineOfferResponse();
                     DetermineDamages();
                     CalculateWelfareOutcomes();
                     DoScoring();
@@ -271,29 +268,26 @@ namespace ACESim
             }
         }
 
-        private void DetermineAcceptance()
+        private void DetermineOfferResponse()
         {
-            if (PDProg.InventionOccurs && !PDProg.InadvertentInfringement)
+            if (PDProg.InventionOccurs)
             {
-                if (PreparationPhase)
+                // we'll calculate this for our reporting purposes regardless of whether inadvertent infringement occurs
+                double intentionalInfringement = PredictWelfareChangeFromIntentionalInfringement();
+                if (!PDProg.InadvertentInfringement)
                 {
-                    GetDecisionInputs();
-                    return;
+                    double acceptance = PDInputs.InventionValue - (double)PDProg.Price;
+                    double avoidInvention = 0;
+                    if (intentionalInfringement < avoidInvention && acceptance < avoidInvention)
+                        PDProg.PriceAccepted = false;
+                    else if (acceptance > intentionalInfringement)
+                        PDProg.PriceAccepted = true;
+                    else
+                    {
+                        PDProg.PriceAccepted = false;
+                        PDProg.IntentionalInfringement = true;
+                    }
                 }
-                PDProg.PriceAccepted = MakeDecision() > 0;
-            }
-        }
-
-        private void DetermineIntentionalInfringement()
-        {
-            if (PDProg.InventionOccurs && !PDProg.InadvertentInfringement && !PDProg.PriceAccepted)
-            {
-                if (PreparationPhase)
-                {
-                    GetDecisionInputs();
-                    return;
-                }
-                PDProg.IntentionalInfringement = MakeDecision() > 0;
             }
             PDProg.InventionUsed = PDProg.InadvertentInfringement || PDProg.PriceAccepted || PDProg.IntentionalInfringement;
         }
@@ -416,10 +410,6 @@ namespace ACESim
                     Score((int)PatentDamagesDecision.SuccessProbabilityAfterInvestment, PDProg.MainInventorUtility);
                 }
             }
-            if (PDProg.InventionOccurs && !PDProg.InadvertentInfringement)
-            {
-                Score((int)PatentDamagesDecision.Accept, PDProg.UserUtility);
-            }
         }
 
         /// <summary>
@@ -443,9 +433,6 @@ namespace ACESim
                 case (int)PatentDamagesDecision.Spend:
                 case (int)PatentDamagesDecision.Price:
                     inputs = new double[] { PDInputs.CostOfMinimumInvestmentBaseline, InventorToOptimizeInfo.CostOfMinimumInvestmentMultiplier, PDProg.InventorEstimatesInventionValue.First() };
-                    break;
-                case (int)PatentDamagesDecision.Accept:
-                    inputs = new double[] { PDInputs.InventionValue, PDProg.Price ?? 0 };
                     break;
                 default:
                     throw new Exception("Unknown decision.");
@@ -472,8 +459,6 @@ namespace ACESim
                     return 1.0;
                 case (int)PatentDamagesDecision.Price:
                     return 0.75;
-                case (int)PatentDamagesDecision.Accept:
-                    return 1.0;
                 default:
                     throw new Exception("Unknown decision.");
             }

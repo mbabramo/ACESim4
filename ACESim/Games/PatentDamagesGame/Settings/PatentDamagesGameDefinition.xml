@@ -203,28 +203,6 @@
                 <setting name="HighestIsBest" type="bool">true</setting>
                 <setting name="MaxEvolveRepetitions" type="int">99999</setting>
               </setting>
-              <setting name="Decision" type="class">
-                <setting name="Name" type="text">Accept</setting>
-                <setting name="Abbreviation" type="text">Acc</setting>
-                  <setting name="InputNames" type="list">
-                    <setting name="input1" type="text">InventionValue</setting>
-                    <setting name="input2" type="text">Price</setting>
-                  </setting>
-                  <setting name="InputAbbreviations" type="list">
-                    <setting name="input1" type ="text">Val</setting>
-                    <setting name="input2" type="text">P</setting>
-                  </setting>
-                <setting name="StrategyBounds" type="class">
-                  <setting name="LowerBound" type="double">-1.0</setting>
-                  <setting name="UpperBound" type="double">1.0</setting>
-                </setting>
-                <setting name="ProduceClusteringPointsEvenlyFrom0To1" type="bool">false</setting>
-                <setting name="Bipolar" type="bool">true</setting>
-                <setting name="StrategyGraphInfos" type="list">
-                </setting>
-                <setting name="HighestIsBest" type="bool">true</setting>
-                <setting name="MaxEvolveRepetitions" type="int">2</setting>
-              </setting>
             </setting>
           <setting name="GameModules" type="list">
       </setting>
