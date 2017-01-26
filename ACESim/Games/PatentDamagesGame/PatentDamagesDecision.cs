@@ -14,7 +14,6 @@ namespace ACESim
         Spend,
         SuccessProbabilityAfterInvestment,
         Price,
-        Accept,
-        Infringe
+        Accept
     }
 }

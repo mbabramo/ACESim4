@@ -73,6 +73,10 @@ namespace ACESim
         /// </summary>
         public double InadvertentInfringementProbability;
         /// <summary>
+        /// The amount that each side must spend if infringement occurs.
+        /// </summary>
+        public double LitigationCostsEachParty;
+        /// <summary>
         /// The random seed that determines whether the last entrant enters. If the optimal amoung of entry is 1.7, that means there is a 70% chance that there will be two entrants.
         /// </summary>
         public double FractionalEntryRandomSeed;

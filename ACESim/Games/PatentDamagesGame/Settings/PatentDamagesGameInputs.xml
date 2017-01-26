@@ -43,6 +43,7 @@
           <setting type="double" name="SuccessProbabilityTenTimesInvestment">$SuccessProbabilityTenTimesInvestment</setting>
           <setting type="double" name="SuccessIndependence">$SuccessIndependence</setting>
           <setting type="double" name="InadvertentInfringementProbability">$InadvertentInfringementProbability</setting>
+          <setting type="double" name="LitigationCostsEachParty">$LitigationCostsEachParty</setting>
           <setting name="FractionalEntryRandomSeed" type="distribution" subtype="uniform">
             <setting type="double" name="fromVal">0.0</setting>
             <setting type="double" name="toVal">1.0</setting>
