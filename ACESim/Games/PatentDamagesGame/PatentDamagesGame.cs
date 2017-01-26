@@ -114,13 +114,13 @@ namespace ACESim
 
         private void ForecastProbabilityOfSuccessAfterEntry()
         {
-            if (PreparationPhase)
-            {
-                GetDecisionInputs();
-                return;
-            }
             if (PDProg.MainInventorEnters)
             {
+                if (PreparationPhase)
+                {
+                    GetDecisionInputs();
+                    return;
+                }
                 PDProg.ForecastAfterEntry = MakeDecision();
             }
         }
@@ -158,6 +158,8 @@ namespace ACESim
         {
             if (PreparationPhase)
             {
+                if (!PDProg.MainInventorTries)
+                    return;
                 GetDecisionInputs();
                 return;
             }
@@ -186,13 +188,13 @@ namespace ACESim
 
         private void ForecastProbabilityOfSuccessAfterInvestment()
         {
-            if (PreparationPhase)
-            {
-                GetDecisionInputs();
-                return;
-            }
             if (PDProg.MainInventorTries)
             {
+                if (PreparationPhase)
+                {
+                    GetDecisionInputs();
+                    return;
+                }
                 PDProg.ForecastAfterInvestment = MakeDecision();
             }
         }
@@ -242,13 +244,13 @@ namespace ACESim
 
         private void MakePricingDecision()
         {
-            if (PreparationPhase)
-            {
-                GetDecisionInputs();
-                return;
-            }
             if (PDProg.InventionOccurs)
             {
+                if (PreparationPhase)
+                {
+                    GetDecisionInputs();
+                    return;
+                }
                 InventorInfo winnerInfo = InventorInfo((int)PDProg.WinnerOfPatent);
                 double winnerEstimateInventionValue = PDProg.InventorEstimatesInventionValue[(int)PDProg.WinnerOfPatent];
                 if (PDProg.WinnerOfPatent == 0)
@@ -283,26 +285,26 @@ namespace ACESim
 
         private void DetermineAcceptance()
         {
-            if (PreparationPhase)
-            {
-                GetDecisionInputs();
-                return;
-            }
             if (PDProg.InventionOccurs && !PDProg.InadvertentInfringement)
             {
+                if (PreparationPhase)
+                {
+                    GetDecisionInputs();
+                    return;
+                }
                 PDProg.PriceAccepted = MakeDecision() > 0;
             }
         }
 
         private void DetermineIntentionalInfringement()
         {
-            if (PreparationPhase)
-            {
-                GetDecisionInputs();
-                return;
-            }
             if (PDProg.InventionOccurs && !PDProg.InadvertentInfringement && !PDProg.PriceAccepted)
             {
+                if (PreparationPhase)
+                {
+                    GetDecisionInputs();
+                    return;
+                }
                 PDProg.IntentionalInfringement = MakeDecision() > 0;
             }
             PDProg.InventionUsed = PDProg.InadvertentInfringement || PDProg.PriceAccepted || PDProg.IntentionalInfringement;
@@ -371,7 +373,6 @@ namespace ACESim
                 }
                 if (inventor == 0)
                     PDProg.MainInventorUtility = wealth;
-                var DEBUGX = combinedWealthOfPotentialInventors;
                 if (inventor < PDProg.NumberEntrants)
                     combinedWealthOfPotentialInventors += wealth;
                 inventor++;

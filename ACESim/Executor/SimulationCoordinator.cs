@@ -349,7 +349,7 @@ namespace ACESim
             prm.ProgressResumptionOption = ProgressResumptionOptions.ProceedNormallySavingPastProgress;
         }
 
-        public void Play(int numberOfIterations, bool parallelReporting)
+        public IEnumerable<GameProgress> Play(int numberOfIterations, bool parallelReporting)
         {
             evolutionSettings = SimulationInteraction.GetEvolutionSettings();
 
@@ -370,6 +370,7 @@ namespace ACESim
             {
                 completedProgress.Report(SimulationInteraction);
             }
+            return completedGameProgressInfos; // ordinarily disregarded
         }
 
 

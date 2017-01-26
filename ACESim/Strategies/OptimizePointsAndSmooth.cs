@@ -2006,7 +2006,7 @@ totalIterations, oversamplingInfo, out decisionReached, out preplayedGameProgres
             }
             else
             {
-                bool printOutSampleValues = false; // use this to figure out why the optimum is what it is
+                bool printOutSampleValues = true; // DEBUG ; // use this to figure out why the optimum is what it is
                 if (printOutSampleValues)
                 {
                     double distance = Decision.StrategyBounds.UpperBound - Decision.StrategyBounds.LowerBound;
