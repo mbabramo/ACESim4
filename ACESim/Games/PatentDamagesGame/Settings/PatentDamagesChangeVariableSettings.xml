@@ -24,10 +24,10 @@
       </defineVariableAlternative>
     </defineVariableAlternatives>
     <defineVariableAlternatives name="inadv">
-      <defineVariableAlternative name="someinadv" star="true">
+      <defineVariableAlternative name="someinadv">
          <defineVariable findString="$InadvertentInfringementProbability" replaceString="0.10"/>
       </defineVariableAlternative>
-      <defineVariableAlternative name="noinadv">
+      <defineVariableAlternative name="noinadv" star="true">
          <defineVariable findString="$InadvertentInfringementProbability" replaceString="0.0"/>
       </defineVariableAlternative>
       <defineVariableAlternative name="allinadv">

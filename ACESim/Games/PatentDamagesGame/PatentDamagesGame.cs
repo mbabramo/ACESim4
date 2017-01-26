@@ -141,8 +141,6 @@ namespace ACESim
             {
                 if (!PDProg.InventorEntryDecisions[inventor])
                     PDProg.InventorTryToInventDecisions.Add(false);
-                else if (strategy == null)
-                    PDProg.InventorTryToInventDecisions.Add(true);
                 else
                 {
                     double otherInventorTryToInventDecision = strategy.Calculate(new List<double> { inventorInfo.CostOfMinimumInvestment, PDProg.InventorEstimatesInventionValue[inventor] }, this);
@@ -167,14 +165,12 @@ namespace ACESim
             double mainInventorSpend = PDProg.MainInventorTries ? MakeDecision() : 0;
             mainInventorSpend *= InventorToOptimizeInfo.CostOfMinimumInvestment;
             PDProg.InventorSpendDecisions.Add(mainInventorSpend);
-            var strategy = CurrentlyEvolving ? Strategies[(int)PatentDamagesDecision.Spend].PreviousVersionOfThisStrategy : Strategies[(int)PatentDamagesDecision.Spend];
+            var strategy = Strategies[(int)PatentDamagesDecision.Spend];
             int inventor = 1;
             foreach (var inventorInfo in PDInputs.AllInventorsInfo.InventorsNotBeingOptimized())
             {
                 if (!PDProg.InventorTryToInventDecisions[inventor])
                     PDProg.InventorSpendDecisions.Add(0);
-                else if (strategy == null)
-                    PDProg.InventorSpendDecisions.Add(1.0 * inventorInfo.CostOfMinimumInvestment); 
                 else
                 {
                     double otherInventorSpendDecision = strategy.Calculate(new List<double> { inventorInfo.CostOfMinimumInvestment, PDProg.InventorEstimatesInventionValue[inventor] }, this);
@@ -260,16 +256,9 @@ namespace ACESim
                 }
                 else
                 {
-                    var strategy = CurrentlyEvolving ? Strategies[(int)PatentDamagesDecision.Price].PreviousVersionOfThisStrategy : Strategies[(int)PatentDamagesDecision.Price];
+                    var strategy = Strategies[(int)PatentDamagesDecision.Price];
                     var inputs = new List<double> { winnerInfo.CostOfMinimumInvestment, winnerEstimateInventionValue };
-                    if (strategy == null)
-                        PDProg.Price = DefaultBehaviorBeforeEvolution(inputs, (int)PatentDamagesDecision.Price) * winnerEstimateInventionValue;
-                    else
-                        PDProg.Price = strategy.Calculate(inputs, this) * winnerEstimateInventionValue;
-                }
-                if (PDProg.Price > 10)
-                {
-                    var DEBUG = 0;
+                    PDProg.Price = strategy.Calculate(inputs, this) * winnerEstimateInventionValue;
                 }
             }
         }
