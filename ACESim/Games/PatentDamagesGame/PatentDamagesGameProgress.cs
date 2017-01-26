@@ -36,6 +36,7 @@ namespace ACESim
         public double MainInventorUtility;
         public double UserUtility;
         public double SocialWelfare;
+        public double PrivateWelfare;
 
         public override GameProgress DeepCopy()
         {
@@ -67,6 +68,7 @@ namespace ACESim
             copy.MainInventorUtility = MainInventorUtility;
             copy.UserUtility = UserUtility;
             copy.SocialWelfare = SocialWelfare;
+            copy.PrivateWelfare = PrivateWelfare;
 
 
             copy.GameComplete = this.GameComplete;

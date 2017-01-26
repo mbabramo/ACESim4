@@ -1,15 +1,9 @@
-                              	Tot          	Ent          	Try          	Spe          	Pay          	Dam          	IUt          	UUt          	Soc          
-All                           	100          	5.43         	3.17         	--           	0.2541       	0.4806       	0.9396       	0.1711       	0.857        
-SomeoneEnters                 	100          	5.43         	3.17         	--           	0.2541       	0.4806       	0.9396       	0.1711       	0.857        
-NooneEnters                   	0            	--           	--           	--           	--           	--           	--           	--           	--           
-FirstInventorEnters           	100          	5.43         	3.17         	--           	0.2541       	0.4806       	0.9396       	0.1711       	0.857        
-FirstInventorDoesntEnter      	0            	--           	--           	--           	--           	--           	--           	--           	--           
-SomeoneTries                  	71           	5.465        	4.465        	0.1389       	0.3579       	0.4806       	0.9251       	0.241        	1.207        
-NooneTries                    	29           	5.345        	0            	--           	0            	--           	0.975        	0            	0            
-FirstInventorTries            	60           	5.467        	4.917        	0.1428       	0.3862       	0.4806       	0.9171       	0.2747       	1.326        
-FirstInventorDoesntTry        	40           	5.375        	0.55         	--           	0.05602      	--           	0.9733       	0.01575      	0.1539       
-InventionOccurs               	66           	5.439        	4.561        	0.1399       	0.385        	0.4806       	0.927        	0.2593       	1.299        
-InadvertentInfringement       	3            	5            	4            	0.1391       	0.4806       	0.4806       	0.9587       	0.04011      	1.041        
-PriceAccepted                 	60           	5.45         	4.733        	0.1398       	0.3995       	--           	0.925        	0.2832       	1.365        
-IntentionalInfringement       	0            	--           	--           	--           	--           	--           	--           	--           	--           
-InventionUsed                 	63           	5.429        	4.698        	0.1397       	0.4034       	0.4806       	0.9266       	0.2716       	1.35         
+                             	Tot          	Ent          	Try          	Spe          	Pay          	Dam          	IUt          	UUt          	Soc          	Prv          
+All                          	100          	1            	0.25         	--           	0.04706      	0.7346       	0.959        	-0.002891    	0.1091       	0            
+SomeoneTries                 	25           	1            	1            	0.2521       	0.1883       	0.7346       	0.9111       	-0.01156     	0.4365       	0            
+NooneTries                   	75           	1            	0            	--           	0            	--           	0.975        	0            	0            	0            
+InventionOccurs              	20           	1            	1            	0.262        	0.2353       	0.7346       	0.9483       	-0.01445     	0.5456       	0            
+InadvertentInfringement      	2            	1            	1            	0.226        	0.7346       	0.7346       	1.484        	-0.3739      	0.7214       	0            
+PriceAccepted                	10           	1            	1            	0.3006       	0.3237       	--           	0.9981       	0.04587      	0.7392       	0            
+IntentionalInfringement      	0            	--           	--           	--           	--           	--           	--           	--           	--           	--           
+InventionUsed                	12           	1            	1            	0.2882       	0.3922       	0.7346       	1.079        	-0.02409     	0.7362       	0            

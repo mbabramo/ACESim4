@@ -15,7 +15,7 @@
             <colsGroup name="PatentDamagesColumns"></colsGroup>
           </reportCommand>
         </evolveCommand>
-        <playCommand numberIterations="100" StoreStrategiesFile="PatentDamagesStrategies" storeIterationResultsFile="PatentDamagesIterations" parallelReporting="true" savePlayedGamesInMemoryOnly="false">
+        <playCommand numberIterations="100000" StoreStrategiesFile="PatentDamagesStrategies" storeIterationResultsFile="PatentDamagesIterations" parallelReporting="true" savePlayedGamesInMemoryOnly="false">
           <changeSimulationSettings>
             <!--<setting name="Obfuscation" type="double">
                 0.0

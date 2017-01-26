@@ -26,10 +26,8 @@
                 <setting name="Name" type="text">SuccessAfterEntry</setting>
                 <setting name="Abbreviation" type="text">SucEnt</setting>
                 <setting name="InputNames" type="list">
-                  <setting name="input1" type="text">CostOfMinInvestment</setting>
                   </setting>
                 <setting name="InputAbbreviations" type="list">
-                  <setting name = "input1" type ="text">CMI</setting>
                   </setting>
                 <setting name="StrategyBounds" type="class">
                   <setting name="LowerBound" type="double">0</setting>

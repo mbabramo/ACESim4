@@ -99,6 +99,11 @@ namespace ACESim
                 if (PDInputs.FractionalEntryRandomSeed < (fractionalEntry - numEntering))
                     numEntering++;
             }
+            if (!CurrentlyEvolving || CurrentlyEvolvingDecisionIndex != (int)PatentDamagesDecision.Enter)
+            {
+                if (numEntering > PDInputs.MaxNumEntrants)
+                    numEntering = PDInputs.MaxNumEntrants;
+            }
             PDProg.NumberEntrants = numEntering;
             PDProg.MainInventorEnters = numEntering > 0;
             PDProg.InventorEntryDecisions = new List<bool>();
@@ -259,6 +264,10 @@ namespace ACESim
                     else
                         PDProg.Price = strategy.Calculate(inputs) * winnerEstimateInventionValue;
                 }
+                if (PDProg.Price > 10)
+                {
+                    var DEBUG = 0;
+                }
             }
         }
 
@@ -325,7 +334,7 @@ namespace ACESim
             if (PreparationPhase)
                 return;
             double allPrivateInvestments = 0; // includes money invested and money put to market
-            double socialBenefit = 0;
+            double socialBenefit = 0, privateBenefit = 0;
             int inventor = 0;
             double combinedWealthOfPotentialInventors = 0;
             foreach (InventorInfo inventorInfo in PDInputs.AllInventorsInfo.AllInventors())
@@ -342,13 +351,15 @@ namespace ACESim
                 double marketReturn = unspentMoney * PDInputs.MarketRateOfReturn;
                 wealth += marketReturn;
                 socialBenefit += marketReturn;
+                privateBenefit += marketReturn;
                 if (inventor == PDProg.WinnerOfPatent)
                 {
                     double spillover = PDInputs.InventionValue * PDInputs.SpilloverMultiplier; // note that spillover occurs regardless of whether invention is used
-                    socialBenefit += spillover;
+                    socialBenefit += spillover; // no effect on private benefit
                     if (PDProg.InventionUsed)
                     {
                         socialBenefit += PDInputs.InventionValue; // if user doesn't use invention, there is no social benefit from the use itself
+                        privateBenefit += PDInputs.InventionValue;
                         PDProg.UserUtility = PDInputs.InventionValue - PDProg.AmountPaid;
                         double patentRevenues = (double)PDProg.AmountPaid;
                         wealth += patentRevenues;
@@ -363,17 +374,9 @@ namespace ACESim
                 var DEBUGX = combinedWealthOfPotentialInventors;
                 if (inventor < PDProg.NumberEntrants)
                     combinedWealthOfPotentialInventors += wealth;
-                if (double.IsNaN(combinedWealthOfPotentialInventors))
-                {
-                    var DEBUG = 0;
-                }
                 inventor++;
             }
             PDProg.AverageInventorUtility = combinedWealthOfPotentialInventors / (double)PDProg.NumberEntrants;
-            if (double.IsNaN(PDProg.AverageInventorUtility))
-            {
-                var DEBUG = 0;
-            }
             PDProg.SocialWelfare = socialBenefit;
         }
 
@@ -382,10 +385,6 @@ namespace ACESim
             if (PreparationPhase || !CurrentlyEvolving)
                 return;
             var squaredDifference = (PDProg.AverageInventorUtility - PDInputs.InitialWealthOfEntrants) * (PDProg.AverageInventorUtility - PDInputs.InitialWealthOfEntrants);
-            if (double.IsNaN(squaredDifference))
-            {
-                var DEBUG = 0;
-            }
             base.Score((int)PatentDamagesDecision.Enter, squaredDifference); // we're minimizing profits
             if (PDProg.MainInventorEnters)
             {
@@ -424,7 +423,7 @@ namespace ACESim
                     inputs = new double[] { };
                     break;
                 case (int)PatentDamagesDecision.SuccessProbabilityAfterEntry:
-                    inputs = new double[] { InventorToOptimizeInfo.CostOfMinimumInvestment };
+                    inputs = new double[] { };
                     break;
                 case (int)PatentDamagesDecision.TryToInvent:
                 case (int)PatentDamagesDecision.SuccessProbabilityAfterInvestment:

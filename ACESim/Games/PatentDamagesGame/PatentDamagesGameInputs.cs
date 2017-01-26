@@ -21,6 +21,10 @@ namespace ACESim
         /// </summary>
         public double PermittedRateOfReturn;
         /// <summary>
+        /// The maximum number of entrants. If greater than the number that would eliminate profits, this will control.
+        /// </summary>
+        public int MaxNumEntrants;
+        /// <summary>
         /// The cost of entry, which is required to have a chance to decide whether to engage in investment.
         /// </summary>
         public double CostOfEntry;
