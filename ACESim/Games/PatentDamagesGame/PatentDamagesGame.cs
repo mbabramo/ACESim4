@@ -46,13 +46,15 @@ namespace ACESim
                     break;
                 case (int)PatentDamagesDecision.Price:
                     MakePricingDecision();
-                    DetermineInadvertentInfringement();
-                    DetermineOfferResponse();
-                    DetermineDamages();
-                    CalculateWelfareOutcomes();
-                    DoScoring();
                     if (!PreparationPhase)
+                    {
+                        DetermineInadvertentInfringement();
+                        DetermineOfferResponse();
+                        DetermineDamages();
+                        CalculateWelfareOutcomes();
+                        DoScoring();
                         Progress.GameComplete = true;
+                    }
                     break;
                 default:
                     throw new Exception("Unknown decision.");
