@@ -1377,6 +1377,8 @@ totalIterations, oversamplingInfo, out decisionReached, out preplayedGameProgres
         {
             // Create a list of replacementSmoothingSetInfos, consisting of all eligible points. At the point where this method is called, this should consist of all points currently in the kdTree.
             List<SmoothingSetPointInfo> replacementSmoothingSetInfos = SmoothingSetPointInfos.Where(x => x.eligible).ToList();
+            if (!replacementSmoothingSetInfos.Any())
+                throw new Exception("There are so few observations that we have been left with no smoothing set points.");
             // Now, add points from the previous strategy development IF they are outside the training range of the smoothing points developed so far. This ensures that if data is narrowed, the strategy still remembers what to do when confronted with data outside the narrowed training range, which is critical for training other strategies whose result depends on this strategy's acting sensibly.
             List<SmoothingSetPointInfo> previous = InValidationMode ? PreviousSmoothingSetPointInfosValidationSet : PreviousSmoothingSetPointInfosMainSet;
             if (previous != null && previous.Any())
