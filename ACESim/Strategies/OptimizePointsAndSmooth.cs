@@ -1353,6 +1353,8 @@ totalIterations, oversamplingInfo, out decisionReached, out preplayedGameProgres
                 if (minimumMatchesToKeepInSmoothingSet < 2)
                     minimumMatchesToKeepInSmoothingSet = 2;
             }
+            if (SmoothingSetPointInfos.Count(x => x.pointsInRunningSetCount >= minimumMatchesToKeepInSmoothingSet) <= 5)
+                minimumMatchesToKeepInSmoothingSet = 1;
 
             object lockObj = new object();
             KDTreeForInputs.ReadOnly = false;
