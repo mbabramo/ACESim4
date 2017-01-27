@@ -2,6 +2,8 @@
 [Bb]in/
 [Oo]bj/
 Reports/
+Iterations/
+Strategies/
 
 # mstest test results
 TestResults
