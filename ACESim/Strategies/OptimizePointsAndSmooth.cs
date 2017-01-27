@@ -2016,7 +2016,7 @@ totalIterations, oversamplingInfo, out decisionReached, out preplayedGameProgres
                 if (printOutSampleValues)
                 {
                     double distance = Decision.StrategyBounds.UpperBound - Decision.StrategyBounds.LowerBound;
-                    for (double val = Decision.StrategyBounds.LowerBound; val < Decision.StrategyBounds.UpperBound; val += distance / 25.0)
+                    for (double val = Decision.StrategyBounds.LowerBound; val < Decision.StrategyBounds.UpperBound; val += distance / 50.0 /* DEBUG */)
                     {
                         double result = OverallStrategy.PlaySpecificValueForSomeIterations(val, allIterations, totalIterations, GetOversamplingInfoWhereWeightsAreNeeded());
                         Debug.WriteLine(val + " --> " + result);
@@ -2030,7 +2030,7 @@ totalIterations, oversamplingInfo, out decisionReached, out preplayedGameProgres
                             valueToTest =>
                                 //OverallStrategy.PlaySpecificValueForLargeNumberOfIterations(valueToTest, iterationsToUse, totalIterations),
                                 OverallStrategy.PlaySpecificValueForSomeIterations(valueToTest, allIterations, totalIterations, GetOversamplingInfoWhereWeightsAreNeeded()),
-                            Decision.HighestIsBest, numberRangesToTestFirstCall: 5, numberRangesToTestGenerally: 3);
+                            Decision.HighestIsBest, numberRangesToTestFirstCall: 5, numberRangesToTestGenerally: 3, targetValue: Decision.ZeroDimensionalTargetValue);
             }
             OverallStrategy.UseThreadLocalScores = originalUseThreadLocalScores;
             InitialDevelopmentCompleted = true;

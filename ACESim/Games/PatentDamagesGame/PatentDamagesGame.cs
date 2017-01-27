@@ -165,13 +165,14 @@ namespace ACESim
             }
             PDProg.SomeoneTries = PDProg.InventorTryToInventDecisions.Any(x => x == true);
             PDProg.NumberTrying = PDProg.InventorTryToInventDecisions.Count(x => x == true);
+
         }
 
         private void MakeSpendDecisions()
         {
             if (PreparationPhase)
             {
-                if (!PDProg.MainInventorTries)
+                if (CurrentlyEvolving && !PDProg.MainInventorTries)
                     return;
                 GetDecisionInputs();
                 return;
@@ -194,7 +195,18 @@ namespace ACESim
                 }
                 inventor++;
             }
-            PDProg.AverageSpendingOfEntrants = PDProg.InventorSpendDecisions.Sum() / (double) PDProg.NumberTrying;
+
+            var totalSpending = PDProg.InventorSpendDecisions.Sum();
+            PDProg.AverageSpendingOfTriers = totalSpending / (double)PDProg.NumberTrying;
+            PDProg.TotalSpendingIncludingEntry = totalSpending + PDProg.NumberEntrants * PDInputs.CostOfEntry;
+
+            // Calculate the probability that each inventor wins the patent
+            PDProg.ProbabilityInventingSuccessfully = new double[PDProg.NumberEntrants];
+            double curvature = GetCurvature;
+            for (int i = 0; i < PDProg.NumberEntrants; i++)
+                PDProg.ProbabilityInventingSuccessfully[i] = GetProbabilityOfInventionSuccess(curvature, i);
+            PDProg.ProbabilityWinningPatent = ACESim.LotteryAfterIndependentProbability.GetProbabilityWinning(PDProg.ProbabilityInventingSuccessfully);
+            PDProg.ProbabilitySomeoneWins = PDProg.ProbabilityWinningPatent.Sum();
         }
 
         private void ForecastProbabilityOfSuccessAfterInvestment()
@@ -257,12 +269,44 @@ namespace ACESim
             return success;
         }
 
+        private bool InventorSucceedsAtInventing(double curvature, double inventorRandomSeed, double commonSuccessRandomSeed, double spendDecision, double costOfMinimumInvestmentMultiplier)
+        {
+            double weightedSeed, thresholdNeeded;
+            GetWeightedSeedAndThresholdNeeded(curvature, out weightedSeed, out thresholdNeeded, inventorRandomSeed, commonSuccessRandomSeed, spendDecision, costOfMinimumInvestmentMultiplier);
+            bool success = weightedSeed < thresholdNeeded;
+            return success;
+        }
+
         private void GetWeightedSeedAndThresholdNeeded(double curvature, int i, out double weightedSeed, out double thresholdNeeded)
         {
             var inventorInfo = InventorInfo(i);
-            weightedSeed = PDInputs.CommonSuccessRandomSeed * (1.0 - PDInputs.SuccessIndependence) + inventorInfo.RandomSeed * PDInputs.SuccessIndependence;
-            double multipleOfMinimumInvestment = PDProg.InventorSpendDecisions[i] / (PDInputs.CostOfMinimumInvestmentBaseline * InventorInfo(i).CostOfMinimumInvestmentMultiplier); // the spend decision has been multiplied by cost of minimum investment, so we need to divide that back out to get the multiple of minimum investment
+            var inventorRandomSeed = inventorInfo.RandomSeed;
+            var commonSuccessRandomSeed = PDInputs.CommonSuccessRandomSeed;
+            var spendDecision = PDProg.InventorSpendDecisions[i];
+            var costOfMinimumInvestmentMultiplier = inventorInfo.CostOfMinimumInvestmentMultiplier;
+            GetWeightedSeedAndThresholdNeeded(curvature, out weightedSeed, out thresholdNeeded, inventorRandomSeed, commonSuccessRandomSeed, spendDecision, costOfMinimumInvestmentMultiplier);
+        }
+
+        private void GetWeightedSeedAndThresholdNeeded(double curvature, out double weightedSeed, out double thresholdNeeded, double inventorRandomSeed, double commonSuccessRandomSeed, double spendDecision, double costOfMinimumInvestmentMultiplier)
+        {
+            weightedSeed = commonSuccessRandomSeed * (1.0 - PDInputs.SuccessIndependence) + inventorRandomSeed * PDInputs.SuccessIndependence;
+            double multipleOfMinimumInvestment = spendDecision / (PDInputs.CostOfMinimumInvestmentBaseline * costOfMinimumInvestmentMultiplier); // the spend decision has been multiplied by cost of minimum investment, so we need to divide that back out to get the multiple of minimum investment
             thresholdNeeded = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(PDInputs.SuccessProbabilityMinimumInvestment, PDInputs.SuccessProbabilityTenTimesInvestment, curvature, (multipleOfMinimumInvestment - 1.0) / 9.0);
+        }
+
+
+        private double GetProbabilitySuccessfulInvention(double curvature, double commonSuccessRandomSeed, double spendDecision, double costOfMinimumInvestmentMultiplier)
+        {
+            double multipleOfMinimumInvestment = spendDecision / (PDInputs.CostOfMinimumInvestmentBaseline * costOfMinimumInvestmentMultiplier);
+            double thresholdNeeded = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(PDInputs.SuccessProbabilityMinimumInvestment, PDInputs.SuccessProbabilityTenTimesInvestment, curvature, (multipleOfMinimumInvestment - 1.0) / 9.0);
+
+            if (PDInputs.SuccessIndependence == 0)
+                return commonSuccessRandomSeed; // it just depends on the common random seed if inventor's effort has nothing to do with it.
+            if (PDInputs.SuccessIndependence == 1)
+                return thresholdNeeded; // it's all a question of the inventor's own achievement
+            // commonSuccessRandomSeed * (1.0 - PDInputs.SuccessIndependence) + inventorRandomSeedThreshold * PDInputs.SuccessIndependence < thresholdNeeded, so...
+            double inventorRandomSeedThreshold = (thresholdNeeded - commonSuccessRandomSeed * (1.0 - PDInputs.SuccessIndependence)) / PDInputs.SuccessIndependence;
+            return inventorRandomSeedThreshold;
         }
 
         private double GetProbabilityOfInventionSuccess(double curvature, int i)
@@ -346,7 +390,7 @@ namespace ACESim
                 PDProg.HypotheticalDamages = CalculateHypotheticalDamages(InventionEstimateToUse.Court, PDProg.InadvertentInfringement);
             }
             if (PDProg.InadvertentInfringement || PDProg.IntentionalInfringement)
-                PDProg.DamagesPaid = (double) PDProg.HypotheticalDamages;
+                PDProg.DamagesPaid = (double)PDProg.HypotheticalDamages;
             else
                 PDProg.DamagesPaid = 0;
             PDProg.AmountPaid = PDProg.AgreementReached ? PDProg.AgreedOnPrice ?? 0 : PDProg.DamagesPaid;
@@ -419,7 +463,7 @@ namespace ACESim
                 if (PDProg.InventorTryToInventDecisions[inventor])
                     spending += PDProg.InventorSpendDecisions[inventor];
                 wealth -= spending;
-                double unspentMoney = wealth; // note that unspent money from those who don't even enter is considered in social welfare
+                double unspentMoney = wealth; // note that unspent money even from those who don't even enter enters into social welfare
                 double marketReturn = unspentMoney * PDInputs.MarketRateOfReturn;
                 wealth += marketReturn;
                 socialBenefit += marketReturn;
@@ -464,7 +508,7 @@ namespace ACESim
         {
             if (PreparationPhase || !CurrentlyEvolving)
                 return;
-            var squaredDifference = (PDProg.AverageInventorUtility - PDInputs.InitialWealthOfEntrants) * (PDProg.AverageInventorUtility - PDInputs.InitialWealthOfEntrants);
+            var squaredDifference = PDProg.AverageInventorUtility; // we're optimizing how close we can get the AVERAGE of all average utility scores to 1. We define this in the game definition.
             base.Score((int)PatentDamagesDecision.Enter, squaredDifference); // we're minimizing profits
             if (PDProg.MainInventorEnters)
             {

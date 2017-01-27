@@ -4,9 +4,11 @@
     <defineVariableAlternatives name="entry">
       <defineVariableAlternative name="dyn" star="true">
         <defineVariable findString="$MaxNumEntrants" replaceString="10"/>
+      <defineVariable findString="$MaxRepetitionsNumEntrantsEvolution" replaceString="9999"/>
       </defineVariableAlternative>
       <defineVariableAlternative name="sin" star="true">
         <defineVariable findString="$MaxNumEntrants" replaceString="1"/>
+      <defineVariable findString="$MaxRepetitionsNumEntrantsEvolution" replaceString="0"/>
       </defineVariableAlternative>
     </defineVariableAlternatives>
     <defineVariableAlternatives name="costplus">
@@ -68,9 +70,9 @@
       <defineVariable findString="$SuccessProbabilityTenTimesInvestment" replaceString="0.90"/>
       </defineVariableAlternative>
       <defineVariableAlternative name="easy">
-      <defineVariable findString="$SuccessProbabilityMinimumInvestment" replaceString="0.50"/>
-      <defineVariable findString="$SuccessProbabilityDoubleInvestment" replaceString="0.55"/>
-      <defineVariable findString="$SuccessProbabilityTenTimesInvestment" replaceString="0.90"/>
+      <defineVariable findString="$SuccessProbabilityMinimumInvestment" replaceString="0.95"/>
+      <defineVariable findString="$SuccessProbabilityDoubleInvestment" replaceString="0.96"/>
+      <defineVariable findString="$SuccessProbabilityTenTimesInvestment" replaceString="0.99"/>
       </defineVariableAlternative>
       <defineVariableAlternative name="hard">
       <defineVariable findString="$SuccessProbabilityMinimumInvestment" replaceString="0.15"/>
@@ -89,6 +91,15 @@
         <defineVariable findString="$InventionValueNoiseStdev" replaceString="0.20"/>
       </defineVariableAlternative>
     </defineVariableAlternatives>
-    
+    <defineVariableAlternatives name="cost">
+      <defineVariableAlternative name="clow" star="true">
+        <defineVariable findString="$CostOfMinimumInvestmentBaselineMin" replaceString="0.00"/>
+        <defineVariable findString="$CostOfMinimumInvestmentBaselineMax" replaceString="0.05"/>
+      </defineVariableAlternative>
+      <defineVariableAlternative name="cstd" star="true">
+        <defineVariable findString="$CostOfMinimumInvestmentBaselineMin" replaceString="0.00"/>
+        <defineVariable findString="$CostOfMinimumInvestmentBaselineMax" replaceString="0.15"/>
+      </defineVariableAlternative>
+    </defineVariableAlternatives>
   </singleSettingsFile>
 </ACESimMultiple>

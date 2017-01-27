@@ -223,6 +223,13 @@ namespace ACESim
         public bool ScoreRepresentsCorrectAnswer;
 
         /// <summary>
+        /// In optimizing a zero-dimensional decision, usually we try to minimize or maximize. Instead, we can try to get the value as close as posible to some target. Then, 
+        /// we will be minimizing the square of (average value - target). Note that just minimizing the average of square of (value - target) produces a different result.
+        /// </summary>
+        [OptionalSetting]
+        public double ZeroDimensionalTargetValue;
+
+        /// <summary>
         /// If true, then the Calculate method will always return 0, but oversampling analysis will still take place.
         /// </summary>
         [OptionalSetting]

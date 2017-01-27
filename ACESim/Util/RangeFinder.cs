@@ -76,12 +76,12 @@ namespace ACESim.Util
             return result;
         }
 
-        public static double OptimizeByNarrowingRanges(double lowest, double highest, double precision, Func<double, double> theTest, bool highestIsBest, int numberRangesToTestFirstCall = 10, int numberRangesToTestGenerally = 4)
+        public static double OptimizeByNarrowingRanges(double lowest, double highest, double precision, Func<double, double> theTest, bool highestIsBest, int numberRangesToTestFirstCall = 10, int numberRangesToTestGenerally = 4, double targetValue = 0)
         {
-            return Math.Max(lowest, Math.Min(highest, OptimizeHelper(ref lowest, ref highest, precision * Math.Abs(highest - lowest), numberRangesToTestFirstCall, numberRangesToTestGenerally, theTest, highestIsBest)));
+            return Math.Max(lowest, Math.Min(highest, OptimizeHelper(ref lowest, ref highest, precision * Math.Abs(highest - lowest), numberRangesToTestFirstCall, numberRangesToTestGenerally, theTest, highestIsBest, targetValue)));
         }
 
-        internal static double OptimizeHelper(ref double lowest, ref double highest, double adjPrecision, int numberRangesToTestFirstCall, int numberRangesToTestGenerally, Func<double, double> theTest, bool highestIsBest)
+        internal static double OptimizeHelper(ref double lowest, ref double highest, double adjPrecision, int numberRangesToTestFirstCall, int numberRangesToTestGenerally, Func<double, double> theTest, bool highestIsBest, double targetValue = 0)
         {
             bool printOutInfo = false;
             bool firstTimeThrough = true;
@@ -97,6 +97,8 @@ namespace ACESim.Util
                     double topOfRange = lowest + ((double)r + 1.0) * rangeSize;
                     double midpointOfRange = lowest + ((double)r + 0.5) * rangeSize;
                     double testResult = theTest(midpointOfRange);
+                    if (targetValue != 0)
+                        testResult = (testResult - targetValue) * (testResult - targetValue);
                     if (printOutInfo)
                         Debug.WriteLine(String.Format("Bottom {0} Mid {1} Top {2} ==> Result {3}", bottomOfRange, midpointOfRange, topOfRange, testResult));
 

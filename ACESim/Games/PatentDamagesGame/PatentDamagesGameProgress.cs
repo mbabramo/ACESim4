@@ -21,7 +21,11 @@ namespace ACESim
         public int NumberTrying;
         public double ForecastAfterInvestment;
         public List<double> InventorSpendDecisions;
-        public double AverageSpendingOfEntrants;
+        public double TotalSpendingIncludingEntry;
+        public double? AverageSpendingOfTriers;
+        public double[] ProbabilityInventingSuccessfully;
+        public double[] ProbabilityWinningPatent;
+        public double ProbabilitySomeoneWins;
         public List<bool> InventorSucceedsAtInvention;
         public int? WinnerOfPatent = null;
         public double FirstInventorWinsPatent = 0;
@@ -61,7 +65,11 @@ namespace ACESim
             copy.NumberTrying = NumberTrying;
             copy.ForecastAfterInvestment = ForecastAfterInvestment;
             copy.InventorSpendDecisions = InventorSpendDecisions == null ? null : InventorSpendDecisions.ToList();
-            copy.AverageSpendingOfEntrants = AverageSpendingOfEntrants;
+            copy.TotalSpendingIncludingEntry = TotalSpendingIncludingEntry;
+            copy.AverageSpendingOfTriers = AverageSpendingOfTriers;
+            copy.ProbabilityInventingSuccessfully = ProbabilityInventingSuccessfully == null ? null : ProbabilityInventingSuccessfully.ToArray();
+            copy.ProbabilityWinningPatent = ProbabilityWinningPatent == null ? null : ProbabilityWinningPatent.ToArray();
+            copy.ProbabilitySomeoneWins = ProbabilitySomeoneWins;
             copy.InventorSucceedsAtInvention = InventorSucceedsAtInvention == null ? null : InventorSucceedsAtInvention.ToList();
             copy.WinnerOfPatent = WinnerOfPatent;
             copy.FirstInventorWinsPatent = FirstInventorWinsPatent;
