@@ -58,6 +58,109 @@
         <value>true</value>
       </filter>
     </rowOrColInfo>
+  <rowOrColInfo name="AllHighValue">
+      <filter varType="bool">
+        <variableName>HighValue</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="FirstTriesHighValue">
+      <filter varType="bool">
+        <variableName>HighValue</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+      <filter varType="bool">
+        <variableName>MainInventorTries</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="SomeoneTriesHighValue">
+      <filter varType="bool">
+        <variableName>HighValue</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+      <filter varType="bool">
+        <variableName>SomeoneTries</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="NooneTriesHighValue">
+      <filter varType="bool">
+        <variableName>HighValue</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+      <filter varType="bool">
+        <variableName>SomeoneTries</variableName>
+        <operation>EQ</operation>
+        <value>false</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="InventionOccursHighValue">
+      <filter varType="bool">
+        <variableName>HighValue</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+      <filter varType="bool">
+        <variableName>InventionOccurs</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="InadvertentHighValue">
+      <filter varType="bool">
+        <variableName>HighValue</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+      <filter varType="bool">
+        <variableName>InadvertentInfringement</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="AgreementReachedHighValue">
+      <filter varType="bool">
+        <variableName>HighValue</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+      <filter varType="bool">
+        <variableName>AgreementReached</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="IntentionalInfringementHighValue">
+      <filter varType="bool">
+        <variableName>HighValue</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+      <filter varType="bool">
+        <variableName>IntentionalInfringement</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="InventionUsedHighValue">
+      <filter varType="bool">
+        <variableName>HighValue</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+      <filter varType="bool">
+        <variableName>InventionUsed</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+    </rowOrColInfo>
   </rowOrColGroup>
   <rowOrColGroup name="PatentDamagesColumns">
     <rowOrColInfo name="Tot" statistic="COUNT" />

@@ -1,9 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?> 
 <ACESimMultiple>
   <singleSettingsFile filename="PatentDamagesBaselineVariableSettings.xml">
-
     <defineVariableAlternatives name="entry">
       <defineVariableAlternative name="dyn" star="true">
+        <defineVariable findString="$MaxNumEntrants" replaceString="10"/>
       </defineVariableAlternative>
       <defineVariableAlternative name="sin" star="true">
         <defineVariable findString="$MaxNumEntrants" replaceString="1"/>
@@ -36,6 +36,7 @@
     </defineVariableAlternatives>
     <defineVariableAlternatives name="succind">
       <defineVariableAlternative name="indsucc" star="true">
+      <defineVariable findString="$SuccessIndependence" replaceString="1.0"/>
       </defineVariableAlternative>
       <defineVariableAlternative name="corsuc">
       <defineVariable findString="$SuccessIndependence" replaceString="0.5"/>
@@ -60,5 +61,34 @@
       <defineVariable findString="$PermittedRateOfReturn" replaceString="0.25"/>
       </defineVariableAlternative>
     </defineVariableAlternatives>
+    <defineVariableAlternatives name="sprob">
+      <defineVariableAlternative name="stdp" star="true">
+      <defineVariable findString="$SuccessProbabilityMinimumInvestment" replaceString="0.35"/>
+      <defineVariable findString="$SuccessProbabilityDoubleInvestment" replaceString="0.40"/>
+      <defineVariable findString="$SuccessProbabilityTenTimesInvestment" replaceString="0.90"/>
+      </defineVariableAlternative>
+      <defineVariableAlternative name="easy">
+      <defineVariable findString="$SuccessProbabilityMinimumInvestment" replaceString="0.50"/>
+      <defineVariable findString="$SuccessProbabilityDoubleInvestment" replaceString="0.55"/>
+      <defineVariable findString="$SuccessProbabilityTenTimesInvestment" replaceString="0.90"/>
+      </defineVariableAlternative>
+      <defineVariableAlternative name="hard">
+      <defineVariable findString="$SuccessProbabilityMinimumInvestment" replaceString="0.15"/>
+      <defineVariable findString="$SuccessProbabilityDoubleInvestment" replaceString="0.18"/>
+      <defineVariable findString="$SuccessProbabilityTenTimesInvestment" replaceString="0.30"/>
+      </defineVariableAlternative>
+    </defineVariableAlternatives>
+    <defineVariableAlternatives name="inois">
+      <defineVariableAlternative name="inoisst" star="true">
+        <defineVariable findString="$InventionValueNoiseStdev" replaceString="0.10"/>
+      </defineVariableAlternative>
+      <defineVariableAlternative name="inois0">
+        <defineVariable findString="$InventionValueNoiseStdev" replaceString="0.0"/>
+      </defineVariableAlternative>
+      <defineVariableAlternative name="inoishi">
+        <defineVariable findString="$InventionValueNoiseStdev" replaceString="0.20"/>
+      </defineVariableAlternative>
+    </defineVariableAlternatives>
+    
   </singleSettingsFile>
 </ACESimMultiple>

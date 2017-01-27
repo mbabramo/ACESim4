@@ -16,6 +16,8 @@ namespace ACESim
         InventorInfo InventorInfo(int i) => PDInputs.AllInventorsInfo.Inventor(i);
         int NumPotentialInventors => PDInputs.AllInventorsInfo.NumPotentialInventors;
 
+        double GetCurvature => MonotonicCurve.CalculateCurvatureForThreePoints(1.0, PDInputs.SuccessProbabilityMinimumInvestment, 2.0, PDInputs.SuccessProbabilityDoubleInvestment, 10.0, PDInputs.SuccessProbabilityTenTimesInvestment);
+
         /// <summary>
         /// <para>
         /// This method implements gameplay for the PatentDamages game.
@@ -79,6 +81,7 @@ namespace ACESim
         {
             if (PreparationPhase)
             {
+                PDProg.HighValue = PDInputs.InventionValue > 0.8;
                 CalculateInventorEstimates(PDInputs.AllInventorsInfo.AllInventors(), PDInputs.InventionValue, PDInputs.InventionValueNoiseStdev);
                 GetDecisionInputs();
                 return;
@@ -196,17 +199,13 @@ namespace ACESim
             if (PreparationPhase)
                 return;
             PDProg.InventorSucceedsAtInvention = new List<bool>();
-            double curvature = MonotonicCurve.CalculateCurvatureForThreePoints(1.0, PDInputs.SuccessProbabilityMinimumInvestment, 2.0, PDInputs.SuccessProbabilityDoubleInvestment, 10.0, PDInputs.SuccessProbabilityTenTimesInvestment);
+            double curvature = GetCurvature;
             for (int i = 0; i < NumPotentialInventors; i++)
             {
                 bool tries = PDProg.InventorTryToInventDecisions[i];
                 if (tries)
                 {
-                    var inventorInfo = InventorInfo(i);
-                    double weightedSeed = PDInputs.CommonSuccessRandomSeed * (1.0 - PDInputs.SuccessIndependence) + inventorInfo.RandomSeed * PDInputs.SuccessIndependence;
-                    double multipleOfMinimumInvestment = PDProg.InventorSpendDecisions[i] / (PDInputs.CostOfMinimumInvestmentBaseline * InventorInfo(i).CostOfMinimumInvestmentMultiplier); // the spend decision has been multiplied by cost of minimum investment, so we need to divide that back out to get the multiple of minimum investment
-                    double thresholdNeeded = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(PDInputs.SuccessProbabilityMinimumInvestment, PDInputs.SuccessProbabilityTenTimesInvestment, curvature, (multipleOfMinimumInvestment - 1.0)/9.0); 
-                    bool success = weightedSeed < thresholdNeeded;
+                    bool success = InventorSucceedsAtInventing(curvature, i);
                     PDProg.InventorSucceedsAtInvention.Add(success);
                 }
                 else
@@ -232,6 +231,29 @@ namespace ACESim
                     }
                 }
             }
+        }
+
+        private bool InventorSucceedsAtInventing(double curvature, int i)
+        {
+            double weightedSeed, thresholdNeeded;
+            GetWeightedSeedAndThresholdNeeded(curvature, i, out weightedSeed, out thresholdNeeded);
+            bool success = weightedSeed < thresholdNeeded;
+            return success;
+        }
+
+        private void GetWeightedSeedAndThresholdNeeded(double curvature, int i, out double weightedSeed, out double thresholdNeeded)
+        {
+            var inventorInfo = InventorInfo(i);
+            weightedSeed = PDInputs.CommonSuccessRandomSeed * (1.0 - PDInputs.SuccessIndependence) + inventorInfo.RandomSeed * PDInputs.SuccessIndependence;
+            double multipleOfMinimumInvestment = PDProg.InventorSpendDecisions[i] / (PDInputs.CostOfMinimumInvestmentBaseline * InventorInfo(i).CostOfMinimumInvestmentMultiplier); // the spend decision has been multiplied by cost of minimum investment, so we need to divide that back out to get the multiple of minimum investment
+            thresholdNeeded = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(PDInputs.SuccessProbabilityMinimumInvestment, PDInputs.SuccessProbabilityTenTimesInvestment, curvature, (multipleOfMinimumInvestment - 1.0) / 9.0);
+        }
+
+        private double GetProbabilityOfInventionSuccess(double curvature, int i)
+        {
+            double weightedSeed, thresholdNeeded;
+            GetWeightedSeedAndThresholdNeeded(curvature, i, out weightedSeed, out thresholdNeeded);
+            return thresholdNeeded;
         }
 
         private void DetermineInadvertentInfringement()
@@ -321,10 +343,24 @@ namespace ACESim
             Inventor
         }
 
+        private void GetForecasts(out double forecastAfterEntry, out double forecastAfterInvestment)
+        {
+            if (CurrentlyEvolving && (CurrentlyEvolvingDecisionIndex == (int)PatentDamagesDecision.TryToInvent || CurrentlyEvolvingDecisionIndex == (int)PatentDamagesDecision.Spend))
+            { // this is the tricky case. We want to be optimizing trying & spending based on damages that reflect the probability estimates (assuming that cost-plus damages are part of the calculus). Thus, we need to calculate the probabilities explciitly. We can do that in this case, because when evolving these decisions, we always have exactly 1 entrant (the main inventor). 
+                forecastAfterEntry = forecastAfterInvestment = GetProbabilityOfInventionSuccess(GetCurvature, 0 /* must be the main inventor */);
+                // improvement: forecastAfterEntry should be further multiplied by the probability that we actually try. This is tricky since we are actually multiplying by this. Note that this fix would increase goldplating, but it's plausible that we already have it artificially high anyway.
+            }
+            else
+            { // usually, we use the forecasts that we have evolved
+                forecastAfterEntry = PDProg.ForecastAfterEntry == 0 ? 1 : PDProg.ForecastAfterEntry;
+                forecastAfterInvestment = PDProg.ForecastAfterInvestment == 0 ? 1 : PDProg.ForecastAfterInvestment;
+            }
+        }
+
         private double CalculateHypotheticalDamages(InventionEstimateToUse inventionValueToUse, bool inadvertentInfringement)
         {
-            double forecastAfterEntry = PDProg.ForecastAfterEntry == 0 ? 1 : PDProg.ForecastAfterEntry;
-            double forecastAfterInvestment = PDProg.ForecastAfterInvestment == 0 ? 1 : PDProg.ForecastAfterInvestment;
+            double forecastAfterEntry, forecastAfterInvestment;
+            GetForecasts(out forecastAfterEntry, out forecastAfterInvestment);
             double riskAdjustedEntrySpending = PDInputs.CostOfEntry / forecastAfterEntry;
             double riskAdjustedInventionSpending = PDProg.InventorSpendDecisions[(int)PDProg.WinnerOfPatent] / forecastAfterInvestment;
             double costBasedDamages = (riskAdjustedEntrySpending + riskAdjustedInventionSpending) * (1.0 + PDInputs.PermittedRateOfReturn);

@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <ACESim>
   <parentSettingsFile filename="PatentDamagesLoadFiles.xml">
-      <defineVariable findString="$MaxNumEntrants" replaceString="1"/>
+      <defineVariable findString="$MaxNumEntrants" replaceString="10"/>
       <defineVariable findString="$InitialWealthOfEntrants" replaceString="1.00"/>
       <defineVariable findString="$InventionValueNoiseStdev" replaceString="0.10"/>
       <defineVariable findString="$CostOfMinimumInvestmentBaselineMin" replaceString="0.00"/>
@@ -13,12 +13,12 @@
       <defineVariable findString="$PriceMultipleMin" replaceString="0.0"/>
       <defineVariable findString="$PriceMultipleMax" replaceString="2.0"/>
       <defineVariable findString="$MarketRateOfReturn" replaceString="0.0"/>
-      <defineVariable findString="$PermittedRateOfReturn" replaceString="0.25"/>
+      <defineVariable findString="$PermittedRateOfReturn" replaceString="0.10"/>
       <defineVariable findString="$CostOfEntry" replaceString="0.025"/>
       <defineVariable findString="$InventionValueCourtNoiseStdev" replaceString="0.10"/>
       <defineVariable findString="$SpilloverMultiplier" replaceString="1.0"/>
-      <defineVariable findString="$SuccessProbabilityMinimumInvestment" replaceString="0.50"/>
-      <defineVariable findString="$SuccessProbabilityDoubleInvestment" replaceString="0.55"/>
+      <defineVariable findString="$SuccessProbabilityMinimumInvestment" replaceString="0.35"/>
+      <defineVariable findString="$SuccessProbabilityDoubleInvestment" replaceString="0.40"/>
       <defineVariable findString="$SuccessProbabilityTenTimesInvestment" replaceString="0.90"/>
       <defineVariable findString="$SuccessIndependence" replaceString="1.0"/>
       <defineVariable findString="$LitigationCostsEachParty" replaceString="0.10"/>

@@ -8,6 +8,7 @@ namespace ACESim
     [Serializable]
     public class PatentDamagesGameProgress : GameProgress
     {
+        public bool HighValue;
         public List<double> InventorEstimatesInventionValue;
         public List<bool> InventorEntryDecisions;
         public bool MainInventorEnters;
@@ -47,6 +48,7 @@ namespace ACESim
         public override GameProgress DeepCopy()
         {
             PatentDamagesGameProgress copy = new PatentDamagesGameProgress();
+            copy.HighValue = HighValue;
             copy.InventorEstimatesInventionValue = InventorEstimatesInventionValue == null ? null : InventorEstimatesInventionValue.ToList();
             copy.InventorEntryDecisions = InventorEntryDecisions == null ? null : InventorEntryDecisions.ToList();
             copy.MainInventorEnters = MainInventorEnters;
