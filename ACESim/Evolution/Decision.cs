@@ -63,6 +63,12 @@ namespace ACESim
         public bool InputsAndOccurrencesAlwaysSameAsPreviousDecision;
 
         /// <summary>
+        /// If true, then during the presmoothing step, we do not eliminate ineligible points. This can be useful to avoid errors from having too few poitns. (Experimental: Using oversampling is a better option.)
+        /// </summary>
+        [OptionalSetting]
+        public bool NeverEliminateIneligiblePoints;
+
+        /// <summary>
         /// If true, an OversamplingPlan will be developed so that we concentrate only on the portions of the input seeds range that tend to lead to this decision occurring. Weights will be produced so that oversampled observations can be devalued relative to those that produce the decision without oversampling.
         /// </summary>
         [OptionalSetting]

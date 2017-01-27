@@ -5,7 +5,7 @@
       <defineVariable findString="$InitialWealthOfEntrants" replaceString="1.00"/>
       <defineVariable findString="$InventionValueNoiseStdev" replaceString="0.10"/>
       <defineVariable findString="$CostOfMinimumInvestmentBaselineMin" replaceString="0.00"/>
-      <defineVariable findString="$CostOfMinimumInvestmentBaselineMax" replaceString="0.25"/>
+      <defineVariable findString="$CostOfMinimumInvestmentBaselineMax" replaceString="5.0"/>
       <defineVariable findString="$CostOfMinimumInvestmentMultiplierMin" replaceString="0.5"/>
       <defineVariable findString="$CostOfMinimumInvestmentMultiplierMax" replaceString="1.5"/>
       <defineVariable findString="$InvestmentMultipleMin" replaceString="1.0"/>

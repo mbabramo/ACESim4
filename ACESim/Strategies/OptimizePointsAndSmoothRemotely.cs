@@ -87,7 +87,7 @@ namespace ACESim
             info.RecoverState(ref alreadyDeserializedStrategies, ref lastOptimizePointsAndSmooth);
             if (info.Find && info.Optimize)
             {
-                OptimizePointsAndSmooth.OptimalValueResults[] chunkResult = info.Optimizer.IdentifyClosestPointsAndOptimizeChunk(((long)index) * ((long)info.ChunkSize), (long)info.ChunkSize, false, ct);
+                OptimizePointsAndSmooth.OptimalValueResults[] chunkResult = info.Optimizer.IdentifyClosestPointsAndOptimizeChunk(((long)index) * ((long)info.ChunkSize), (long)info.ChunkSize, false, ct, false);
                 output = chunkResult;
             }
             else if (info.Find && !info.Optimize)

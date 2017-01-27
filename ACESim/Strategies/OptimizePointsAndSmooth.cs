@@ -314,7 +314,7 @@ namespace ACESim
                     if (stop)
                         return;
 
-                    IdentifyClosestPointsAndOptimize(); // the heart of the algorithm
+                    IdentifyClosestPointsAndOptimize(Decision.NeverEliminateIneligiblePoints); // the heart of the algorithm
                 }
             }
 
@@ -403,7 +403,7 @@ namespace ACESim
 
         [NonSerialized]
         Strategy.StrategyState strategyContext = null;
-        private void IdentifyClosestPointsAndOptimize()
+        private void IdentifyClosestPointsAndOptimize(bool neverEliminateIneligiblePoints)
         {
             
             long smoothingGamePlayIterations = SmoothingGamePlayIterations();
@@ -431,7 +431,7 @@ namespace ACESim
                     SimulationInteraction.GetCurrentProgressStep().SetProportionOfStepComplete(1.0, true, "Develop strategy component substep " + Name);
             }
             else
-                IdentifyClosestPointsAndOptimizeChunk(0, smoothingGamePlayIterations, true, new CancellationToken()); // can ignore result, since no need to aggregate
+                IdentifyClosestPointsAndOptimizeChunk(0, smoothingGamePlayIterations, true, new CancellationToken(), neverEliminateIneligiblePoints); // can ignore result, since no need to aggregate
 
             s.Stop();
             TabbedText.WriteLine("Total time elapsed: " + s.ElapsedMilliseconds);
@@ -545,7 +545,7 @@ namespace ACESim
             long iterationsNeeded = SmoothingGamePlayIterations();
             for (int c = 0; successesSoFar < iterationsNeeded; c++)
             {
-                OptimalValueResults[] chunkResult = copyOfThis.IdentifyClosestPointsAndOptimizeChunk(((long)c) * ((long)chunkSizeForRemoting), (long)chunkSizeForRemoting, false, new CancellationToken());
+                OptimalValueResults[] chunkResult = copyOfThis.IdentifyClosestPointsAndOptimizeChunk(((long)c) * ((long)chunkSizeForRemoting), (long)chunkSizeForRemoting, false, new CancellationToken(), false);
                 successesSoFar += chunkResult.Sum(x => x.numberOfObservations);
                 if (cumulative == null)
                     cumulative = chunkResult;
@@ -662,13 +662,15 @@ namespace ACESim
             return optimalValueResults;
         }
 
-        public OptimalValueResults[] IdentifyClosestPointsAndOptimizeChunk(long skipIterations, long? fixedNumberIterations, bool executingLocallyNotRemotely, CancellationToken ct)
+        public OptimalValueResults[] IdentifyClosestPointsAndOptimizeChunk(long skipIterations, long? fixedNumberIterations, bool executingLocallyNotRemotely, CancellationToken ct, bool neverEliminateIneligiblePoints)
         {
             IdentifyClosestPoints(skipIterations, fixedNumberIterations, executingLocallyNotRemotely, ct);
 
+            //DEBUG; // make eliminateIneligiblePoints false for particular decisions. 
+
             // Complete the initialization of the smoothing set, by eliminating points with too few corresponding points in the running set and calculating nearest neighbors within the smoothing set. 
             // We shouldn't do this when this is a remote execution, or we are about to use remote execution with separate finding and optimizing (since there would then be no points to eliminate).
-            CompleteInitializationOfSmoothingSet(eliminateIneligiblePoints: executingLocallyNotRemotely && !(UseWorkerRolesForRemoting() && RemotingShouldSeparateFindingAndOptimizing()));
+            CompleteInitializationOfSmoothingSet(eliminateIneligiblePoints: !neverEliminateIneligiblePoints && executingLocallyNotRemotely && !(UseWorkerRolesForRemoting() && RemotingShouldSeparateFindingAndOptimizing()));
 
             InitialDevelopmentCompleted = true;
 
