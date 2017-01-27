@@ -38,6 +38,22 @@ namespace ACESim
                     break;
                 case (int)PatentDamagesDecision.TryToInvent:
                     MakeTryToInventDecisions();
+                    if (CurrentlyEvolving && !PreparationPhase && !PDProg.MainInventorTries)
+                    { // game is effectively complete; we don't care who else is trying because it's irrelevant to evolution. So, let's speed to end of game now.
+                        for (int i = 0; i < PDProg.InventorTryToInventDecisions.Count(); i++)
+                            PDProg.InventorTryToInventDecisions[i] = false;
+                        MakeSpendDecisions();
+                        IdentifyPatentWinner();
+                        ForecastProbabilityOfSuccessAfterInvestment();
+                        DetermineInadvertentInfringement();
+                        DetermineInventorOffer();
+                        DetermineUserOffer();
+                        ResolveNegotiation();
+                        DetermineDamages();
+                        CalculateWelfareOutcomes();
+                        DoScoring();
+                        Progress.GameComplete = true;
+                    }
                     break;
                 case (int)PatentDamagesDecision.Spend:
                     MakeSpendDecisions();

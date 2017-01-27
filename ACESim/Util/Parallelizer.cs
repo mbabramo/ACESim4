@@ -151,7 +151,7 @@ namespace ACESim
         
         public static void GoForSpecifiedNumberOfSuccessesButNoMore(bool doParallel, long numSuccessesRequired, Func<long, long, bool> actionReturningTrueUponSuccess, long firstIterationNumberToTry = 0, double? minSuccessRate = null)
         {
-            long checkMinimumSuccessRateAfter = 25000;
+            long checkMinimumSuccessRateAfter = 10000;
 
             long numStarted = 0;
             long numCompleted = 0;
