@@ -64,6 +64,8 @@
           <setting type="double" name="WeightOnCostPlusDamagesForInadvertentInfringement">$WeightOnCostPlusDamagesForInadvertentInfringement</setting>
           <setting type="double" name="WeightOnCostPlusDamagesForIntentionalInfringement">$WeightOnCostPlusDamagesForIntentionalInfringement</setting>
           <setting type="double" name="DamagesMultiplierForIntentionalInfringement">$DamagesMultiplierForIntentionalInfringement</setting>
+          <setting type="bool" name="CombineInventorsForCostPlus">$CombineInventorsForCostPlus</setting>
+          <setting type="bool" name="ExogenousCostPlus">$ExogenousCostPlus</setting>
           <setting name="AllInventorsInfo" type="class">
             <insertTemplate name="InventorInfoTemplate" find1="InventorXX" replace1="Inventor00"/>
             <insertTemplate name="InventorInfoTemplate" find1="InventorXX" replace1="Inventor01"/>

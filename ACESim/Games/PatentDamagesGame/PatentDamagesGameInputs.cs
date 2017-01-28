@@ -109,6 +109,14 @@ namespace ACESim
         /// </summary>
         public double DamagesMultiplierForIntentionalInfringement;
         /// <summary>
+        /// If true, all inventors' expenditures are aggregated together to determine allowable recovery on cost-plus damages. Meanwhile, the probability is correspondingly lower.
+        /// </summary>
+        public bool CombineInventorsForCostPlus;
+        /// <summary>
+        /// If true, inventors' expenditures are reimbursed based on the typical cost of a minimum investment and the corresponding probability thereof.
+        /// </summary>
+        public bool ExogenousCostPlus;
+        /// <summary>
         /// Information specific to each inventor.
         /// </summary>
         public AllInventorsInfo AllInventorsInfo;

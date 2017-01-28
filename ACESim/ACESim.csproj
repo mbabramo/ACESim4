@@ -662,7 +662,7 @@
     <Compile Include="Util\InverseCumulativeNormalDistributionPoints.cs" />
     <Compile Include="Util\LimitedConcurrencyLevelTaskScheduler.cs" />
     <Compile Include="Util\LitigationGameProbMagnitudeSimpleModel.cs" />
-    <Compile Include="Util\LotteryAfterIndependentProbability.cs" />
+    <Compile Include="Util\LotteryProbabilities.cs" />
     <Compile Include="Util\MD5HashGenerator.cs" />
     <Compile Include="Util\ObfuscationBruteForce.cs" />
     <Compile Include="Util\ObjectPool.cs" />

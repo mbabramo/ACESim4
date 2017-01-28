@@ -44,7 +44,6 @@ namespace ACESim
                             PDProg.InventorTryToInventDecisions[i] = false;
                         MakeSpendDecisions();
                         IdentifyPatentWinner();
-                        ForecastProbabilityOfSuccessAfterInvestment();
                         DetermineInadvertentInfringement();
                         DetermineInventorOffer();
                         DetermineUserOffer();
@@ -57,12 +56,9 @@ namespace ACESim
                     break;
                 case (int)PatentDamagesDecision.Spend:
                     MakeSpendDecisions();
-                    IdentifyPatentWinner();
-                    break;
-                case (int)PatentDamagesDecision.SuccessProbabilityAfterInvestment:
-                    ForecastProbabilityOfSuccessAfterInvestment();
                     if (!PreparationPhase)
                     {
+                        IdentifyPatentWinner();
                         DetermineInadvertentInfringement();
                         DetermineInventorOffer();
                         DetermineUserOffer();
@@ -114,11 +110,8 @@ namespace ACESim
                 if (PDInputs.FractionalEntryRandomSeed < (fractionalEntry - numEntering))
                     numEntering++;
             }
-            if (!CurrentlyEvolving || CurrentlyEvolvingDecisionIndex != (int)PatentDamagesDecision.Enter)
-            {
-                if (numEntering > PDInputs.MaxNumEntrants)
-                    numEntering = PDInputs.MaxNumEntrants;
-            }
+            if (numEntering > PDInputs.MaxNumEntrants)
+                numEntering = PDInputs.MaxNumEntrants;
             PDProg.NumberEntrants = numEntering;
             PDProg.MainInventorEnters = numEntering > 0;
             PDProg.InventorEntryDecisions = new List<bool>();
@@ -198,6 +191,7 @@ namespace ACESim
 
             var totalSpending = PDProg.InventorSpendDecisions.Sum();
             PDProg.AverageSpendingOfTriers = totalSpending / (double)PDProg.NumberTrying;
+            PDProg.TotalResearchSpending = totalSpending;
             PDProg.TotalSpendingIncludingEntry = totalSpending + PDProg.NumberEntrants * PDInputs.CostOfEntry;
 
             // Calculate the probability that each inventor wins the patent
@@ -205,27 +199,18 @@ namespace ACESim
             double curvature = GetCurvature;
             for (int i = 0; i < PDProg.NumberEntrants; i++)
                 PDProg.ProbabilityInventingSuccessfully[i] = GetProbabilityOfInventionSuccess(curvature, i);
-            PDProg.ProbabilityWinningPatent = ACESim.LotteryAfterIndependentProbability.GetProbabilityWinning(PDProg.ProbabilityInventingSuccessfully);
+            if (PDInputs.SuccessIndependence == 1.0)
+                PDProg.ProbabilityWinningPatent = ACESim.LotteryProbabilities.GetProbabilityOfBeingUltimateWinner_IndependentProbabilities(PDProg.ProbabilityInventingSuccessfully);
+            else if (PDInputs.SuccessIndependence == 0.0)
+                PDProg.ProbabilityWinningPatent = ACESim.LotteryProbabilities.GetProbabilityOfBeingUltimateWinner_DependentProbabilities(PDProg.ProbabilityInventingSuccessfully);
+            else
+                throw new NotImplementedException("Partial success independence not implemented yet. We might just average these probabilities as an approximation.");
             PDProg.ProbabilitySomeoneWins = PDProg.ProbabilityWinningPatent.Sum();
-        }
-
-        private void ForecastProbabilityOfSuccessAfterInvestment()
-        {
-            if (PDProg.MainInventorTries)
-            {
-                if (PreparationPhase)
-                {
-                    GetDecisionInputs();
-                    return;
-                }
-                PDProg.ForecastAfterInvestment = MakeDecision();
-            }
+            PDProg.ProbabilityFirstInventorWins = PDProg.ProbabilityWinningPatent[0];
         }
 
         private void IdentifyPatentWinner()
         {
-            if (PreparationPhase)
-                return;
             PDProg.InventorSucceedsAtInvention = new List<bool>();
             double curvature = GetCurvature;
             for (int i = 0; i < NumPotentialInventors; i++)
@@ -403,26 +388,18 @@ namespace ACESim
             Inventor
         }
 
-        private void GetForecasts(out double forecastAfterEntry, out double forecastAfterInvestment)
-        {
-            if (CurrentlyEvolving && (CurrentlyEvolvingDecisionIndex == (int)PatentDamagesDecision.TryToInvent || CurrentlyEvolvingDecisionIndex == (int)PatentDamagesDecision.Spend))
-            { // this is the tricky case. We want to be optimizing trying & spending based on damages that reflect the probability estimates (assuming that cost-plus damages are part of the calculus). Thus, we need to calculate the probabilities explciitly. We can do that in this case, because when evolving these decisions, we always have exactly 1 entrant (the main inventor). 
-                forecastAfterEntry = forecastAfterInvestment = GetProbabilityOfInventionSuccess(GetCurvature, 0 /* must be the main inventor */);
-                // improvement: forecastAfterEntry should be further multiplied by the probability that we actually try. This is tricky since we are actually multiplying by this. Note that this fix would increase goldplating, but it's plausible that we already have it artificially high anyway.
-            }
-            else
-            { // usually, we use the forecasts that we have evolved
-                forecastAfterEntry = PDProg.ForecastAfterEntry == 0 ? 1 : PDProg.ForecastAfterEntry;
-                forecastAfterInvestment = PDProg.ForecastAfterInvestment == 0 ? 1 : PDProg.ForecastAfterInvestment;
-            }
-        }
-
         private double CalculateHypotheticalDamages(InventionEstimateToUse inventionValueToUse, bool inadvertentInfringement)
         {
-            double forecastAfterEntry, forecastAfterInvestment;
-            GetForecasts(out forecastAfterEntry, out forecastAfterInvestment);
-            double riskAdjustedEntrySpending = PDInputs.CostOfEntry / forecastAfterEntry;
-            double riskAdjustedInventionSpending = PDProg.InventorSpendDecisions[(int)PDProg.WinnerOfPatent] / forecastAfterInvestment;
+            var winnerOfPatent = (int)PDProg.WinnerOfPatent;
+            double forecastAfterEntry = PDProg.ForecastAfterEntry; // NOTE: When optimizing effort, this will not be exactly right, but it should get to the correct value in equilibrium.
+            double forecastAfterInvestment = PDInputs.CombineInventorsForCostPlus ? PDProg.ProbabilitySomeoneWins : PDProg.ProbabilityWinningPatent[winnerOfPatent];
+            double riskAdjustedEntrySpending = (PDInputs.CostOfEntry * (double) (PDInputs.CombineInventorsForCostPlus ? PDProg.NumberEntrants : 1)) / forecastAfterEntry;
+            double riskAdjustedInventionSpending = (PDInputs.CombineInventorsForCostPlus ? PDProg.TotalResearchSpending : PDProg.InventorSpendDecisions[winnerOfPatent]) / forecastAfterInvestment;
+            if (PDInputs.ExogenousCostPlus)
+            {
+                riskAdjustedEntrySpending = 0;
+                riskAdjustedInventionSpending = PDInputs.CostOfMinimumInvestmentBaseline / PDInputs.SuccessProbabilityMinimumInvestment;
+            }
             double costBasedDamages = (riskAdjustedEntrySpending + riskAdjustedInventionSpending) * (1.0 + PDInputs.PermittedRateOfReturn);
             double inventionValue = 0;
             switch (inventionValueToUse)
@@ -434,7 +411,7 @@ namespace ACESim
                     inventionValue = GetEstimateOfInventionValue(PDInputs.InventionValueCourtNoiseStdev, PDInputs.InventionValueCourtNoise, PDInputs.InventionValue);
                     break;
                 case InventionEstimateToUse.Inventor:
-                    inventionValue = PDProg.InventorEstimatesInventionValue[(int)PDProg.WinnerOfPatent];
+                    inventionValue = PDProg.InventorEstimatesInventionValue[winnerOfPatent];
                     break;
             }
             double adjustedInventionValue = PDInputs.ProportionOfValueForStandardDamages * inventionValue; // 1.0 would be a disgorgement remedy; 0.5 would be trying to reflect what the parties would decide.
@@ -513,15 +490,15 @@ namespace ACESim
             if (PDProg.MainInventorEnters)
             {
                 Score((int)PatentDamagesDecision.TryToInvent, PDProg.MainInventorUtility);
-                bool isSuccess = PDProg.WinnerOfPatent == 0; // ALTERNATIVE -- under this approach not getting paid by some increases the amount others pay: && PDProg.AmountPaid > 0;
+                bool isSuccess = PDInputs.CombineInventorsForCostPlus ? PDProg.WinnerOfPatent != null : PDProg.WinnerOfPatent == 0; // the forecast of success probability is needed for cost-plus damages, so when we're combining all inventors, we need to adjust for this.
                 double successNumber = isSuccess ? 1.0 : 0;
                 double entrySuccessMeasure = (PDProg.ForecastAfterEntry - successNumber) * (PDProg.ForecastAfterEntry - successNumber); // we must square this, so that we're minimizing the square. That ensures an unbiased estimtae
                 Score((int)PatentDamagesDecision.SuccessProbabilityAfterEntry, entrySuccessMeasure);
                 if (PDProg.MainInventorTries)
                 {
                     Score((int)PatentDamagesDecision.Spend, PDProg.MainInventorUtility);
-                    double investmentSuccessMeasure = (PDProg.ForecastAfterInvestment - successNumber) * (PDProg.ForecastAfterInvestment - successNumber); // we must square this, so that we're minimizing the square. That ensures an unbiased estimtae
-                    Score((int)PatentDamagesDecision.SuccessProbabilityAfterInvestment, PDProg.MainInventorUtility);
+                    //double investmentSuccessMeasure = (PDProg.ForecastAfterInvestment - successNumber) * (PDProg.ForecastAfterInvestment - successNumber); // we must square this, so that we're minimizing the square. That ensures an unbiased estimtae
+                    //Score((int)PatentDamagesDecision.SuccessProbabilityAfterInvestment, PDProg.MainInventorUtility);
                 }
             }
         }
@@ -543,7 +520,6 @@ namespace ACESim
                     inputs = new double[] { };
                     break;
                 case (int)PatentDamagesDecision.TryToInvent:
-                case (int)PatentDamagesDecision.SuccessProbabilityAfterInvestment:
                 case (int)PatentDamagesDecision.Spend:
                     inputs = new double[] { PDInputs.CostOfMinimumInvestmentBaseline, InventorToOptimizeInfo.CostOfMinimumInvestmentMultiplier, PDProg.InventorEstimatesInventionValue.First() };
                     break;
@@ -566,8 +542,6 @@ namespace ACESim
                     return 0.5; 
                 case (int)PatentDamagesDecision.TryToInvent:
                     return 1.0;
-                case (int)PatentDamagesDecision.SuccessProbabilityAfterInvestment:
-                    return 0.5;
                 case (int)PatentDamagesDecision.Spend:
                     return 1.0;
                 default:

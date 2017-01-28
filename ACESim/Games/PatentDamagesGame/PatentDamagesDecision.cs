@@ -11,7 +11,6 @@ namespace ACESim
         Enter,
         SuccessProbabilityAfterEntry,
         TryToInvent,
-        Spend,
-        SuccessProbabilityAfterInvestment
+        Spend
     }
 }

@@ -176,8 +176,8 @@
     <rowOrColInfo name="SocWel" variableName="SocialWelfare" statistic="MEAN" />
     <rowOrColInfo name="PrvWel" variableName="PrivateWelfare" statistic="MEAN" />
     <rowOrColInfo name="FIW" variableName="FirstInventorWinsPatent" statistic="MEAN" />
-    <rowOrColInfo name="FAE" variableName="ForecastAfterEntry" statistic="MEAN" />
-    <rowOrColInfo name="FAI" variableName="ForecastAfterInvestment" statistic="MEAN" />
-    <rowOrColInfo name="FSW" variableName="ProbabilitySomeoneWins" statistic="MEAN" />
+    <rowOrColInfo name="FFirstWin" variableName="ForecastAfterEntry" statistic="MEAN" />
+    <rowOrColInfo name="PFirstWin" variableName="ProbabilityFirstInventorWins" statistic="MEAN" />
+    <rowOrColInfo name="PSomeWin" variableName="ProbabilitySomeoneWins" statistic="MEAN" />
   </rowOrColGroup>
 </ACESim>
