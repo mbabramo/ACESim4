@@ -1076,6 +1076,7 @@
       <SubType>Designer</SubType>
     </Content>
     <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesBaselineVariableSettings.xml" />
+    <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesChangeTemp.xml" />
     <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesChangeVariableSettings.xml" />
     <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesCommands.xml" />
     <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesGameDefinition.xml" />

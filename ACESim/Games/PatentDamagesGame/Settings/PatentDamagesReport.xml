@@ -164,8 +164,10 @@
   </rowOrColGroup>
   <rowOrColGroup name="PatentDamagesColumns">
     <rowOrColInfo name="Total" statistic="COUNT" />
+    <rowOrColInfo name="SocWel1" variableName="SocialWelfare" statistic="MEAN" />
     <rowOrColInfo name="Entrants" variableName="NumberEntrants" statistic="MEAN" />
     <rowOrColInfo name="Trying" variableName="NumberTrying" statistic="MEAN" />
+    <rowOrColInfo name="MainSpendM" variableName="MainInventorSpendMultiple" statistic="MEAN" />
     <rowOrColInfo name="TotSpend" variableName="TotalSpendingIncludingEntry" statistic="MEAN" />
     <rowOrColInfo name="AvgInv" variableName="AverageSpendingOfTriers" statistic="MEAN" />
     <rowOrColInfo name="AmtPaid" variableName="AmountPaid" statistic="MEAN" />

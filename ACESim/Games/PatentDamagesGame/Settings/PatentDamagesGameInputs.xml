@@ -28,6 +28,7 @@
                 <setting type="double" name="fromVal">$CostOfMinimumInvestmentBaselineMin</setting>
                 <setting type="double" name="toVal">$CostOfMinimumInvestmentBaselineMax</setting>
               </setting>
+          <setting type="double" name="InventionValueMultiplier">$InventionValueMultiplier</setting>
           <setting name="InventionValue" type="distribution" subtype="uniform">
             <setting type="double" name="fromVal">0.0</setting>
             <setting type="double" name="toVal">1.0</setting>
@@ -65,7 +66,8 @@
           <setting type="double" name="WeightOnCostPlusDamagesForIntentionalInfringement">$WeightOnCostPlusDamagesForIntentionalInfringement</setting>
           <setting type="double" name="DamagesMultiplierForIntentionalInfringement">$DamagesMultiplierForIntentionalInfringement</setting>
           <setting type="bool" name="CombineInventorsForCostPlus">$CombineInventorsForCostPlus</setting>
-          <setting type="bool" name="ExogenousCostPlus">$ExogenousCostPlus</setting>
+          <setting type="bool" name="UseExpectedCostForCostPlus">$UseExpectedCostForCostPlus</setting>
+          <setting type="bool" name="ExpectedCostIsSpecificToInventor">$ExpectedCostIsSpecificToInventor</setting>
           <setting type="bool" name="SociallyOptimalSpending">$SociallyOptimalSpending</setting>
           <setting name="AllInventorsInfo" type="class">
             <insertTemplate name="InventorInfoTemplate" find1="InventorXX" replace1="Inventor00"/>

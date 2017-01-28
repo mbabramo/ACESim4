@@ -33,6 +33,10 @@ namespace ACESim
         /// </summary>
         public double CostOfMinimumInvestmentBaseline;
         /// <summary>
+        /// The invention value is multiplied by this. (This allows the InventionValue to be drawn from a distribution from 0 to 1, but then multiplied to some higher number).
+        /// </summary>
+        public double InventionValueMultiplier;
+        /// <summary>
         /// The actual value of the invention to the user. The user knows this, but others can only estimate it imprecisely.
         /// </summary>
         public double InventionValue;
@@ -113,9 +117,13 @@ namespace ACESim
         /// </summary>
         public bool CombineInventorsForCostPlus;
         /// <summary>
-        /// If true, inventors' expenditures are reimbursed based on the typical cost of a minimum investment and the corresponding probability thereof.
+        /// If true, inventors' expenditures are reimbursed based on the cost of a minimum investment and the corresponding probability thereof.
         /// </summary>
-        public bool ExogenousCostPlus;
+        public bool UseExpectedCostForCostPlus;
+        /// <summary>
+        /// If true, then the expected cost takes into account the inventor's cost (rather than the typical inventor baseline cost).
+        /// </summary>
+        public bool ExpectedCostIsSpecificToInventor;
         /// <summary>
         /// The inventor spends the socially optimal amount, if true, instead of maximizing her own utility on the assumption that she will be the only inventor.
         /// </summary>

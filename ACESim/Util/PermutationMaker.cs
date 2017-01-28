@@ -20,8 +20,8 @@ namespace ACESim
             }
             do
             {
-                if (setOfLists.Count() > 10000)
-                    throw new Exception("There is a problem with the formatting of the settings file, leading to large numbers of permutations being generated.");
+                if (setOfLists.Count() > 1000000)
+                    throw new Exception("There may be a problem with the formatting of the settings file, leading to large numbers of permutations being generated. However, this may be because of many unstarred items which will be removed from the list later.");
                 setOfLists.Add(currentList.ToList());
                 done = currentList.SequenceEqual<int>(listOfNumbersToPickFrom);
                 if (!done)

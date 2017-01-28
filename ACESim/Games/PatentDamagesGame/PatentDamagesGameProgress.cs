@@ -20,6 +20,7 @@ namespace ACESim
         public bool SomeoneTries;
         public int NumberTrying;
         public List<double> InventorSpendDecisions;
+        public double MainInventorSpendMultiple;
         public double TotalSpendingIncludingEntry;
         public double TotalResearchSpending;
         public double? AverageSpendingOfTriers;
@@ -66,6 +67,7 @@ namespace ACESim
             copy.SomeoneTries = SomeoneTries;
             copy.NumberTrying = NumberTrying;
             copy.InventorSpendDecisions = InventorSpendDecisions == null ? null : InventorSpendDecisions.ToList();
+            copy.MainInventorSpendMultiple = MainInventorSpendMultiple;
             copy.TotalSpendingIncludingEntry = TotalSpendingIncludingEntry;
             copy.TotalResearchSpending = TotalResearchSpending;
             copy.AverageSpendingOfTriers = AverageSpendingOfTriers;
