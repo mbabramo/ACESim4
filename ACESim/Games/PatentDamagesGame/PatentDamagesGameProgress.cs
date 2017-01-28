@@ -45,6 +45,7 @@ namespace ACESim
         public double AmountPaid;
 
         public double AverageInventorUtility;
+        public double DeltaInventorsUtility;
         public double MainInventorUtility;
         public double UserUtility;
         public double SocialWelfare;
@@ -89,6 +90,7 @@ namespace ACESim
             copy.HypotheticalDamages = HypotheticalDamages;
             copy.AmountPaid = AmountPaid;
             copy.AverageInventorUtility = AverageInventorUtility;
+            copy.DeltaInventorsUtility = DeltaInventorsUtility;
             copy.MainInventorUtility = MainInventorUtility;
             copy.UserUtility = UserUtility;
             copy.SocialWelfare = SocialWelfare;

@@ -117,6 +117,10 @@ namespace ACESim
         /// </summary>
         public bool ExogenousCostPlus;
         /// <summary>
+        /// The inventor spends the socially optimal amount, if true, instead of maximizing her own utility on the assumption that she will be the only inventor.
+        /// </summary>
+        public bool SociallyOptimalSpending;
+        /// <summary>
         /// Information specific to each inventor.
         /// </summary>
         public AllInventorsInfo AllInventorsInfo;

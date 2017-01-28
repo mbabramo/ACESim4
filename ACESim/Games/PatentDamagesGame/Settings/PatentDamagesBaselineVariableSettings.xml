@@ -30,6 +30,7 @@
       <defineVariable findString="$DamagesMultiplierForIntentionalInfringement" replaceString="1.0"/>
       <defineVariable findString="$CombineInventorsForCostPlus" replaceString="false"/>
       <defineVariable findString="$ExogenousCostPlus" replaceString="false"/>
+      <defineVariable findString="$SociallyOptimalSpending" replaceString="false"/>
     
   </parentSettingsFile>
 </ACESim>

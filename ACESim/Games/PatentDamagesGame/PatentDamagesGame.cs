@@ -427,9 +427,9 @@ namespace ACESim
             if (PreparationPhase)
                 return;
             double allPrivateInvestments = 0; // includes money invested and money put to market
-            double socialBenefit = 0, privateBenefit = 0;
             int inventor = 0;
             double combinedWealthOfPotentialInventors = 0;
+            double spillover = 0;
             foreach (InventorInfo inventorInfo in PDInputs.AllInventorsInfo.AllInventors())
             {
                 double wealth = PDInputs.InitialWealthOfEntrants;
@@ -443,23 +443,16 @@ namespace ACESim
                 double unspentMoney = wealth; // note that unspent money even from those who don't even enter enters into social welfare
                 double marketReturn = unspentMoney * PDInputs.MarketRateOfReturn;
                 wealth += marketReturn;
-                socialBenefit += marketReturn;
-                privateBenefit += marketReturn;
                 if (inventor == PDProg.WinnerOfPatent)
                 {
-                    double spillover = PDInputs.InventionValue * PDInputs.SpilloverMultiplier; // note that spillover occurs regardless of whether invention is used
-                    socialBenefit += spillover; // no effect on private benefit
+                    spillover = PDInputs.InventionValue * PDInputs.SpilloverMultiplier; // note that spillover occurs regardless of whether invention is used
                     if (PDProg.InventionUsed)
                     {
-                        socialBenefit += PDInputs.InventionValue; // if user doesn't use invention, there is no social benefit from the use itself
-                        privateBenefit += PDInputs.InventionValue;
                         PDProg.UserUtility = PDInputs.InventionValue - PDProg.AmountPaid;
                         bool litigation = (PDProg.InadvertentInfringement || PDProg.IntentionalInfringement);
                         if (litigation)
                         {
                             wealth -= PDInputs.LitigationCostsEachParty;
-                            socialBenefit -= 2 * PDInputs.LitigationCostsEachParty;
-                            privateBenefit -= 2 * PDInputs.LitigationCostsEachParty;
                             PDProg.UserUtility -= PDInputs.LitigationCostsEachParty;
                         }
                         double patentRevenues = (double)PDProg.AmountPaid;
@@ -477,8 +470,9 @@ namespace ACESim
                 inventor++;
             }
             PDProg.AverageInventorUtility = combinedWealthOfPotentialInventors / (double)PDProg.NumberEntrants;
-            PDProg.SocialWelfare = socialBenefit;
-            PDProg.PrivateWelfare = privateBenefit;
+            PDProg.DeltaInventorsUtility = (PDProg.AverageInventorUtility - PDInputs.InitialWealthOfEntrants) * (double)PDProg.NumberEntrants;
+            PDProg.PrivateWelfare = PDProg.UserUtility + PDProg.DeltaInventorsUtility;
+            PDProg.SocialWelfare = PDProg.PrivateWelfare + spillover;
         }
 
         protected void DoScoring()
@@ -496,7 +490,7 @@ namespace ACESim
                 Score((int)PatentDamagesDecision.SuccessProbabilityAfterEntry, entrySuccessMeasure);
                 if (PDProg.MainInventorTries)
                 {
-                    Score((int)PatentDamagesDecision.Spend, PDProg.MainInventorUtility);
+                    Score((int)PatentDamagesDecision.Spend, PDInputs.SociallyOptimalSpending ? PDProg.SocialWelfare : PDProg.MainInventorUtility);
                     //double investmentSuccessMeasure = (PDProg.ForecastAfterInvestment - successNumber) * (PDProg.ForecastAfterInvestment - successNumber); // we must square this, so that we're minimizing the square. That ensures an unbiased estimtae
                     //Score((int)PatentDamagesDecision.SuccessProbabilityAfterInvestment, PDProg.MainInventorUtility);
                 }

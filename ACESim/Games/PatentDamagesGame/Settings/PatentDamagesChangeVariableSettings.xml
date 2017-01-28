@@ -124,5 +124,20 @@
       <defineVariable findString="$SuccessIndependence" replaceString="0.0"/>
       </defineVariableAlternative>
     </defineVariableAlternatives>
+    <!--
+    <defineVariableAlternatives name="soc">
+      <defineVariableAlternative name="socno" star="true">
+      <defineVariable findString="$SociallyOptimalSpending" replaceString="false"/>
+      <defineVariable findString="$SpilloverMultiplier" replaceString="0.0"/>
+      </defineVariableAlternative>
+      <defineVariableAlternative name="socpart" star="false">
+      <defineVariable findString="$SociallyOptimalSpending" replaceString="true"/>
+      <defineVariable findString="$SpilloverMultiplier" replaceString="0.0"/>
+      </defineVariableAlternative>
+      <defineVariableAlternative name="socyes" star="false">
+      <defineVariable findString="$SociallyOptimalSpending" replaceString="true"/>
+      <defineVariable findString="$SpilloverMultiplier" replaceString="1.0"/>
+      </defineVariableAlternative>
+    </defineVariableAlternatives>-->
   </singleSettingsFile>
 </ACESimMultiple>
