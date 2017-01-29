@@ -94,35 +94,6 @@
                 <setting name="HighestIsBest" type="bool">true</setting>
                 <setting name="MaxEvolveRepetitions" type="int">1</setting>
               </setting>
-              <setting name="Decision" type="class">
-                <setting name="Name" type="text">SuccessAfterInvestment</setting>
-                <setting name="Abbreviation" type="text">SucInv</setting>
-                <setting name="InputNames" type="list">
-                  <setting name="input1" type="text">CostOfMinInvestmentBaseline</setting>
-                  <setting name="input1" type="text">CostOfMinInvestmentMultiplier</setting>
-                  <setting name="input2" type="text">InventionValueEstimate</setting>
-                </setting>
-                <setting name="InputAbbreviations" type="list">
-                  <setting name="input1" type ="text">CMIB</setting>
-                  <setting name="input1" type ="text">CMIM</setting>
-                  <setting name="input2" type="text">ValEst</setting>
-                </setting>
-                <setting name="StrategyBounds" type="class">
-                  <setting name="LowerBound" type="double">0</setting>
-                  <setting name="UpperBound" type="double">1.0</setting>
-                </setting>
-                <setting name="NeverEliminateIneligiblePoints" type="bool">false</setting>
-                <setting name="UseOversampling" type="bool">true</setting>
-                <setting name="OversamplingWillAlwaysBeSameAsPreviousDecision" type="bool">false</setting>
-                <setting name="SuccessReplicationIfSuccessAttemptRatioIsBelowThis" type="double">0.01</setting>
-                <setting name="ProduceClusteringPointsEvenlyFrom0To1" type="bool">false</setting>
-                <!--<setting name="ScoreRepresentsCorrectAnswer" type="bool">true</setting>-->
-                <setting name="Bipolar" type="bool">false</setting>
-                <setting name="StrategyGraphInfos" type="list">
-                </setting>
-                <setting name="HighestIsBest" type="bool">false</setting>
-                <setting name="MaxEvolveRepetitions" type="int">99999</setting>
-              </setting>
             </setting>
           <setting name="GameModules" type="list">
       </setting>

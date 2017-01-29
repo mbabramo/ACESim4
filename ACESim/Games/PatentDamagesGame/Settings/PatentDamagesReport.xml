@@ -173,8 +173,7 @@
     <rowOrColInfo name="AmtPaid" variableName="AmountPaid" statistic="MEAN" />
     <rowOrColInfo name="HypoDam" variableName="HypotheticalDamages" statistic="MEAN" />
     <rowOrColInfo name="DamPaid" variableName="DamagesPaid" statistic="MEAN" />
-    <rowOrColInfo name="InvUt" variableName="AverageInventorUtility" statistic="MEAN" />
-    <rowOrColInfo name="InvDel" variableName="DeltaInventorsUtility" statistic="MEAN" />
+    <rowOrColInfo name="InvUt" variableName="DeltaInventorsUtility" statistic="MEAN" />
     <rowOrColInfo name="UserUt" variableName="UserUtility" statistic="MEAN" />
     <rowOrColInfo name="PrvWel" variableName="PrivateWelfare" statistic="MEAN" />
     <rowOrColInfo name="SocWel" variableName="SocialWelfare" statistic="MEAN" />

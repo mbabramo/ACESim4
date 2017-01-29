@@ -3,7 +3,8 @@
   <parentSettingsFile filename="../../SharedEvolutionSettings/EvolutionSettings.xml">
     <defineVariable findString="$NumPointsInCumulativeDistribution" replaceString="51" />
     <defineVariable findString="$NumGamePlaysForCumulativeDistribution" replaceString="100000" />
-    <defineVariable findString="$ParallelOptimization" replaceString="true" /> <!--see also below-->
+    <defineVariable findString="$ParallelOptimization" replaceString="true" />
+    <!--see also below-->
     <defineVariable findString="$StopParallelOptimizationAfterOptimizingNDecisions" replaceString="-1" />
     <defineVariable findString="$AverageInPreviousVersionsOfStrategy" replaceString="FALSE" />
     <defineVariable findString="$UseAlternatingAveraging" replaceString="FALSE" />
@@ -11,8 +12,8 @@
     <defineVariable findString="$MinSmoothingPoints" replaceString="250" />
     <defineVariable findString="$MaxSmoothingPoints" replaceString="1000" />
     <defineVariable findString="$MinIterations" replaceString="1000" />
-    <defineVariable findString="$MaxIterations" replaceString="20000" />
-    <defineVariable findString="$RepetitionsOfEntireSmoothingProcess" replaceString="15" />
+    <defineVariable findString="$MaxIterations" replaceString="10000" />
+    <defineVariable findString="$RepetitionsOfEntireSmoothingProcess" replaceString="5" />
     <defineVariable findString="$NumberPointsInCumulativeDistribution" replaceString="31" />
     <defineVariable findString="$SmoothingOptionSet" replaceString="GRNNSmoothingOptionsFast" />
     <!--<defineVariable findString="$SmoothingOptionSet" replaceString="GRNNSmoothingOptionsFastest" />-->
