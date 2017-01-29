@@ -43,35 +43,25 @@ namespace ACESim
                         for (int i = 0; i < PDProg.InventorTryToInventDecisions.Count(); i++)
                             PDProg.InventorTryToInventDecisions[i] = false;
                         MakeSpendDecisions();
-                        IdentifyPatentWinner();
-                        DetermineInadvertentInfringement();
-                        DetermineInventorOffer();
-                        DetermineUserOffer();
-                        ResolveNegotiation();
-                        DetermineDamages();
-                        CalculateWelfareOutcomes();
-                        DoScoring();
-                        Progress.GameComplete = true;
+                        ConcludeGame();
                     }
                     break;
                 case (int)PatentDamagesDecision.Spend:
                     MakeSpendDecisions();
                     if (!PreparationPhase)
-                    {
-                        IdentifyPatentWinner();
-                        DetermineInadvertentInfringement();
-                        DetermineInventorOffer();
-                        DetermineUserOffer();
-                        ResolveNegotiation();
-                        DetermineDamages();
-                        CalculateWelfareOutcomes();
-                        DoScoring();
-                        Progress.GameComplete = true;
-                    }
+                        ConcludeGame();
                     break;
                 default:
                     throw new Exception("Unknown decision.");
             }
+        }
+
+        private void ConcludeGame()
+        {
+            IdentifyPatentWinner();
+            DetermineWelfareEffects();
+            DoScoring();
+            Progress.GameComplete = true;
         }
 
         public void CalculateInventorEstimates(IEnumerable<InventorInfo> inventorInfos, double actualInventionValue, double stdDevOfNoiseDistribution)
@@ -93,8 +83,8 @@ namespace ACESim
         {
             if (PreparationPhase)
             {
-                PDProg.HighValue = PDInputs.InventionValue > 0.8;
-                CalculateInventorEstimates(PDInputs.AllInventorsInfo.AllInventors(), PDInputs.InventionValue, PDInputs.InventionValueNoiseStdev);
+                PDProg.HighValue = PDInputs.HighestInventionValue > 0.8;
+                CalculateInventorEstimates(PDInputs.AllInventorsInfo.AllInventors(), PDInputs.HighestInventionValue, PDInputs.InventionValueNoiseStdev);
                 GetDecisionInputs();
                 return;
             }
@@ -302,146 +292,59 @@ namespace ACESim
             return thresholdNeeded;
         }
 
-        private void DetermineInadvertentInfringement()
+        private void DetermineWelfareEffects()
         {
             if (PDProg.InventionOccurs)
             {
-                PDProg.InadvertentInfringement = PDInputs.InadvertentInfringementRandomSeed < PDInputs.InadvertentInfringementProbability;
+                DeterminePermittedPriceEstimates();
+                DetermineUserEffectsAndRevenues();
             }
+
+            DetermineGlobalWelfareEffects();
         }
 
-        private void DetermineInventorOffer()
+        private void DeterminePermittedPriceEstimates()
         {
-            if (PDProg.InventionOccurs)
+            PDProg.InventorSetPrice = CalculatePermittedPrice(PerspectiveToUse.Inventor);
+            PDProg.CourtSetPrice = CalculatePermittedPrice(PerspectiveToUse.Court);
+            PDProg.UserAnticipatedPrice = CalculatePermittedPrice(PerspectiveToUse.ActualUserValue);
+        }
+
+        private void DetermineUserEffectsAndRevenues()
+        {
+            // Some users may find the price too high. Other users, if any, will all do the same thing -- either accept the price or intentionally infringe. Because all users have the same cost estimate, we will not have some accepting the price and others intentinoally infringing. 
+            var adjHighestInventionValue = PDInputs.HighestInventionValue * PDInputs.HighestInventionValueMultiplier;
+            bool priceAcceptableToSome = PDProg.InventorSetPrice < adjHighestInventionValue;
+            var anticipatedCostIntentionalInfringement = PDProg.UserAnticipatedPrice + PDInputs.LitigationCostsEachParty;
+            bool intentionalInfringementBySome = PDProg.InventorSetPrice > anticipatedCostIntentionalInfringement && anticipatedCostIntentionalInfringement < adjHighestInventionValue;
+
+            ResultsBasedOnPrice awareUsersResults;
+            if (intentionalInfringementBySome)
             {
-                PDProg.FirstInventorWinsPatent = PDProg.WinnerOfPatent == 0 ? 1.0 : 0;
-                InventorInfo winnerInfo = InventorInfo((int)PDProg.WinnerOfPatent);
-                PDProg.WinnerPredictionUserWelfareChangeIntentionalInfringement = PredictWelfareChangeFromIntentionalInfringement(InventionEstimateToUse.Inventor, (int)PDProg.WinnerOfPatent);
-                // Inventor say: If I lose, then maybe user will intentionally infringe. In that case, I would receive damages - costs. So, then I should be willing to take any offer at least that great. Since Welfare Change = Value - Damages - Costs, it follows that Value - Welfare Change - 2 * costs = Value - (Value - Damages - Costs) - 2 * costs = Damages + Costs - 2 * Costs = Damages - Costs. So, Value - Welfare Change - 2 * costs is my best offer. 
-                if (PDProg.WinnerPredictionUserWelfareChangeIntentionalInfringement > 0)
-                {
-                    PDProg.InventorOffer = PDProg.InventorEstimatesInventionValue[(int)PDProg.WinnerOfPatent] * PDInputs.InventionValueMultiplier - PDProg.WinnerPredictionUserWelfareChangeIntentionalInfringement - 2 * PDInputs.LitigationCostsEachParty;
-                    if (PDProg.InventorOffer < 0)
-                        PDProg.InventorOffer = 0; // possible as a result of litigation costs -- but our model won't allow this. 
-                }
-                else
-                    PDProg.InventorOffer = 0; // it doesn't look like user would intentionally infringe, so anything inventor can get is gravy.
+                awareUsersResults = GetResultsBasedOnPrice_IntentionalInfringement((double)PDProg.UserAnticipatedPrice, (double)PDProg.CourtSetPrice);
+                PDProg.ProportionIntentionallyInfringing = awareUsersResults.ProportionUsingProduct;
             }
-        }
-
-        private void DetermineUserOffer()
-        {
-            if (PDProg.InventionOccurs && !PDProg.InadvertentInfringement)
-            {
-                // User says: What will my welfare be if negotiation fails? If I would intentionally infringe, it will be Welfare Change = Value - damages - costs. So, anticipating that, I should be willing to pay up to Damages + Costs to get the value without litigation, i.e. value - (value - damages - costs). If I would not intentionally infringe, then the most I would be willing to pay is the value itself.
-                PDProg.UserPredictedWelfareChangeIntentionalInfringement = PredictWelfareChangeFromIntentionalInfringement(InventionEstimateToUse.ActualUserValue, 0);
-                if (PDProg.UserPredictedWelfareChangeIntentionalInfringement > 0)
-                    PDProg.UserOffer = PDInputs.InventionValue * PDInputs.InventionValueMultiplier - PDProg.UserPredictedWelfareChangeIntentionalInfringement; // Constraint is: Value - Payment > Welfare Absent Payment; So, Value - Welfare > Payment. 
-                else
-                    PDProg.UserOffer = PDInputs.InventionValue * PDInputs.InventionValueMultiplier; // I won't intentionally infringe, since that would hurt me. So, most I'll pay is the value that I'll receive from use. 
-            }
-        }
-
-        private void ResolveNegotiation()
-        {
-            if (PDProg.InventionOccurs)
-            {
-                if (PDProg.UserOffer > PDProg.InventorOffer)
-                {
-                    PDProg.AgreementReached = true;
-                    PDProg.AgreedOnPrice = (PDProg.UserOffer + PDProg.InventorOffer) / 2.0;
-                }
-                else
-                {
-                    PDProg.AgreementReached = false;
-                    if (PDProg.UserPredictedWelfareChangeIntentionalInfringement > 0)
-                    {
-                        PDProg.IntentionalInfringement = true;
-                    }
-                }
-            }
-            PDProg.InventionUsed = PDProg.InadvertentInfringement || PDProg.AgreementReached || PDProg.IntentionalInfringement;
-        }
-
-        private double PredictWelfareChangeFromIntentionalInfringement(InventionEstimateToUse inventionEstimateToUse, int inventorIndex)
-        {
-            double anticipatedDamages = CalculateHypotheticalDamages(inventionEstimateToUse, false);
-            double welfareChange = GetInventionValueEstimate(inventionEstimateToUse, inventorIndex) * PDInputs.InventionValueMultiplier - anticipatedDamages - PDInputs.LitigationCostsEachParty;
-            return welfareChange;
-        }
-
-        private void DetermineDamages()
-        {
-            if (PreparationPhase)
-                return;
-
-            if (PDProg.WinnerOfPatent != null)
-            {
-                PDProg.HypotheticalDamages = CalculateHypotheticalDamages(InventionEstimateToUse.Court, PDProg.InadvertentInfringement);
-            }
-            if (PDProg.InadvertentInfringement || PDProg.IntentionalInfringement)
-                PDProg.DamagesPaid = (double)PDProg.HypotheticalDamages;
+            else if (priceAcceptableToSome)
+                awareUsersResults = GetResultsBasedOnPrice_AssumingAgreement((double)PDProg.InventorSetPrice);
             else
-                PDProg.DamagesPaid = 0;
-            PDProg.AmountPaid = PDProg.AgreementReached ? PDProg.AgreedOnPrice ?? 0 : PDProg.DamagesPaid;
+                awareUsersResults = GetResultsBasedOnPrice_NoUse();
+            awareUsersResults.SetPopulationProportion(1.0 - PDInputs.InadvertentInfringementProbability);
+
+            ResultsBasedOnPrice inadvertentInfringersResults = GetResultsBasedOnPrice_InadvertentInfringement((double)PDProg.CourtSetPrice);
+            inadvertentInfringersResults.SetPopulationProportion(PDInputs.InadvertentInfringementProbability);
+            PDProg.ProportionInadvertentlyInfringing = inadvertentInfringersResults.ProportionUsingProduct;
+
+            ResultsBasedOnPrice overall = awareUsersResults.Combine(inadvertentInfringersResults);
+            PDProg.AverageGrossUserBenefit = overall.PerUserBenefit;
+            PDProg.AverageUserCost = overall.PerUserCost;
+            PDProg.PerUserReceipts = overall.PerUserReceipts;
+            PDProg.UserUtility = overall.TotalNetUserBenefit;
+            PDProg.TotalReceipts = overall.InventorRevenues;
         }
 
-        private enum InventionEstimateToUse
+        private void DetermineGlobalWelfareEffects()
         {
-            ActualUserValue,
-            Court,
-            Inventor
-        }
-
-        private double CalculateHypotheticalDamages(InventionEstimateToUse inventionValueToUse, bool inadvertentInfringement)
-        {
-            var winnerOfPatent = (int)PDProg.WinnerOfPatent;
-            double forecastAfterEntry = PDProg.ForecastAfterEntry; // NOTE: When optimizing effort, this will not be exactly right, but it should get to the correct value in equilibrium.
-            double forecastAfterInvestment = PDInputs.CombineInventorsForCostPlus ? PDProg.ProbabilitySomeoneWins : PDProg.ProbabilityWinningPatent[winnerOfPatent];
-            double riskAdjustedEntrySpending = (PDInputs.CostOfEntry * (double)(PDInputs.CombineInventorsForCostPlus ? PDProg.NumberEntrants : 1)) / forecastAfterEntry;
-            double riskAdjustedInventionSpending = (PDInputs.CombineInventorsForCostPlus ? PDProg.TotalResearchSpending : PDProg.InventorSpendDecisions[winnerOfPatent]) / forecastAfterInvestment;
-            if (PDInputs.UseExpectedCostForCostPlus)
-            {
-                riskAdjustedEntrySpending = 0;
-                double inventionCost = PDInputs.CostOfMinimumInvestmentBaseline;
-                if (PDInputs.ExpectedCostIsSpecificToInventor)
-                    inventionCost *= InventorInfo(winnerOfPatent).CostOfMinimumInvestmentMultiplier;
-                riskAdjustedInventionSpending = inventionCost / PDInputs.SuccessProbabilityMinimumInvestment;
-            }
-            double costBasedDamages = (riskAdjustedEntrySpending + riskAdjustedInventionSpending) * (1.0 + PDInputs.PermittedRateOfReturn);
-            double inventionValue = GetInventionValueEstimate(inventionValueToUse, winnerOfPatent);
-            double adjustedInventionValue = PDInputs.ProportionOfValueForStandardDamages * inventionValue; // 1.0 would be a disgorgement remedy; 0.5 would be trying to reflect what the parties would decide.
-            adjustedInventionValue *= PDInputs.InventionValueMultiplier;
-            double weight = inadvertentInfringement ? PDInputs.WeightOnCostPlusDamagesForInadvertentInfringement : PDInputs.WeightOnCostPlusDamagesForIntentionalInfringement;
-            double weightedDamages = weight * costBasedDamages + (1.0 - weight) * adjustedInventionValue;
-            double multiplier = inadvertentInfringement ? 1.0 : PDInputs.DamagesMultiplierForIntentionalInfringement;
-            double fullDamages = weightedDamages * multiplier;
-            return fullDamages;
-        }
-
-        private double GetInventionValueEstimate(InventionEstimateToUse inventionValueToUse, int inventorIndex)
-        {
-            double inventionValue = 0;
-            switch (inventionValueToUse)
-            {
-                case InventionEstimateToUse.ActualUserValue:
-                    inventionValue = PDInputs.InventionValue;
-                    break;
-                case InventionEstimateToUse.Court:
-                    inventionValue = GetEstimateOfInventionValue(PDInputs.InventionValueCourtNoiseStdev, PDInputs.InventionValueCourtNoise, PDInputs.InventionValue);
-                    break;
-                case InventionEstimateToUse.Inventor:
-                    inventionValue = PDProg.InventorEstimatesInventionValue[inventorIndex];
-                    break;
-            }
-
-            return inventionValue;
-        }
-
-        public void CalculateWelfareOutcomes()
-        {
-            if (PreparationPhase)
-                return;
+            // now, factor in wealth effects on inventors
             double allPrivateInvestments = 0; // includes money invested and money put to market
             int inventor = 0;
             double combinedWealthOfPotentialInventors = 0;
@@ -461,23 +364,8 @@ namespace ACESim
                 wealth += marketReturn;
                 if (inventor == PDProg.WinnerOfPatent)
                 {
-                    spillover = PDInputs.InventionValue * PDInputs.InventionValueMultiplier * PDInputs.SpilloverMultiplier; // note that spillover occurs regardless of whether invention is used
-                    if (PDProg.InventionUsed)
-                    {
-                        PDProg.UserUtility = PDInputs.InventionValue * PDInputs.InventionValueMultiplier - PDProg.AmountPaid;
-                        bool litigation = (PDProg.InadvertentInfringement || PDProg.IntentionalInfringement);
-                        if (litigation)
-                        {
-                            wealth -= PDInputs.LitigationCostsEachParty;
-                            PDProg.UserUtility -= PDInputs.LitigationCostsEachParty;
-                        }
-                        double patentRevenues = (double)PDProg.AmountPaid;
-                        wealth += patentRevenues;
-                    }
-                    else
-                    {
-                        PDProg.UserUtility = 0;
-                    }
+                    spillover = PDInputs.HighestInventionValue * PDInputs.HighestInventionValueMultiplier * PDInputs.SpilloverMultiplier; // note that spillover occurs regardless of whether invention is used
+                    wealth += PDProg.TotalReceipts; // note that this is net of litigation cost
                 }
                 if (inventor == 0)
                     PDProg.MainInventorUtility = wealth;
@@ -489,10 +377,158 @@ namespace ACESim
             PDProg.DeltaInventorsUtility = (PDProg.AverageInventorUtility - PDInputs.InitialWealthOfEntrants) * (double)PDProg.NumberEntrants;
             PDProg.PrivateWelfare = PDProg.UserUtility + PDProg.DeltaInventorsUtility;
             PDProg.SocialWelfare = PDProg.PrivateWelfare + spillover;
-            if (CurrentlyEvolvingDecisionIndex == (int)PatentDamagesDecision.TryToInvent)
+        }
+
+        public class ResultsBasedOnPrice
+        {
+            public double ProportionUsingProduct;
+            public double PerUserBenefit;
+            public double PerUserCost;
+            public double PerUserReceipts;
+            public double TotalNetUserBenefit => ProportionUsingProduct * (PerUserBenefit - PerUserCost);
+            public double InventorRevenues => ProportionUsingProduct * PerUserReceipts;
+
+            public void SetPopulationProportion(double proportion) => ProportionUsingProduct *= proportion;
+
+            public ResultsBasedOnPrice Combine(ResultsBasedOnPrice other)
             {
-                var DEBUG = 0;
+                if (ProportionUsingProduct == 0)
+                    return other;
+                if (other.ProportionUsingProduct == 0)
+                    return this;
+                double weightOfThis = ProportionUsingProduct / (ProportionUsingProduct + other.ProportionUsingProduct);
+                double weightOfOther = 1.0 - weightOfThis;
+                ResultsBasedOnPrice combined = new ResultsBasedOnPrice()
+                {
+                    ProportionUsingProduct = ProportionUsingProduct + other.ProportionUsingProduct,
+                    PerUserBenefit = weightOfThis * PerUserBenefit + weightOfOther * other.PerUserBenefit,
+                    PerUserCost = weightOfThis * PerUserCost + weightOfOther * other.PerUserCost,
+                    PerUserReceipts = weightOfThis * PerUserReceipts + weightOfOther * other.PerUserReceipts
+                };
+                return combined;
             }
+
+        }
+
+        private ResultsBasedOnPrice GetResultsBasedOnPrice_AssumingAgreement(double priceSetByInventor)
+        {
+            double v = PDInputs.HighestInventionValue * PDInputs.HighestInventionValueMultiplier;
+            return new ResultsBasedOnPrice()
+            {
+                ProportionUsingProduct = (v - priceSetByInventor) / v,
+                PerUserBenefit = (v - priceSetByInventor) / 2.0,
+                PerUserCost = priceSetByInventor,
+                PerUserReceipts = priceSetByInventor
+            };
+        }
+
+        private ResultsBasedOnPrice GetResultsBasedOnPrice_IntentionalInfringement(double priceEstimatedByUser, double priceSetByCourt)
+        {
+            double v = PDInputs.HighestInventionValue * PDInputs.HighestInventionValueMultiplier;
+            double c = PDInputs.LitigationCostsEachParty;
+            return new ResultsBasedOnPrice()
+            {
+                ProportionUsingProduct = (v - (priceEstimatedByUser + c)) / v,
+                PerUserBenefit = (v - (priceEstimatedByUser + c)) / 2.0,
+                PerUserCost = priceSetByCourt + c,
+                PerUserReceipts = priceSetByCourt - c
+            };
+        }
+
+        private ResultsBasedOnPrice GetResultsBasedOnPrice_NoUse()
+        {
+            return new ResultsBasedOnPrice()
+            {
+                ProportionUsingProduct = 0,
+                PerUserBenefit = 0,
+                PerUserCost = 0,
+                PerUserReceipts = 0
+            };
+        }
+
+        private ResultsBasedOnPrice GetResultsBasedOnPrice_InadvertentInfringement(double priceSetByCourt)
+        {
+            double v = PDInputs.HighestInventionValue * PDInputs.HighestInventionValueMultiplier;
+            double c = PDInputs.LitigationCostsEachParty;
+            return new ResultsBasedOnPrice()
+            {
+                ProportionUsingProduct = 1.0,
+                PerUserBenefit = v / 2.0,
+                PerUserCost = priceSetByCourt + c,
+                PerUserReceipts = priceSetByCourt - c
+            };
+        }
+
+        private enum PerspectiveToUse
+        {
+            ActualUserValue,
+            Court,
+            Inventor
+        }
+
+        private double CalculatePermittedPrice(PerspectiveToUse perspective)
+        {
+            var winnerOfPatent = (int)PDProg.WinnerOfPatent;
+            double inventionValueEstimate = GetInventionValueEstimate(perspective, winnerOfPatent);
+
+            // Let p = price as a proportion of the maximum valuation V. Revenues = (1 - p) * pV = pV - p^2*V. This is maximized at p = 0.5 when marginal cost is zero. So, for valuation-based damages, we assume that the inventor chooses 0.5 * the inventor's estimate of maximum user's valuation. 
+            double permittedPriceStandardDamages = inventionValueEstimate / 2.0;
+            if (PDInputs.WeightOnCostPlusDamages == 0)
+                return permittedPriceStandardDamages;
+            
+            double forecastAfterEntry = PDProg.ForecastAfterEntry; // NOTE: When optimizing effort, this will not be exactly right, but it should get to the correct value in equilibrium.
+            double forecastAfterInvestment = PDInputs.CombineInventorsForCostPlus ? PDProg.ProbabilitySomeoneWins : PDProg.ProbabilityWinningPatent[winnerOfPatent];
+            double riskAdjustedEntrySpending = (PDInputs.CostOfEntry * (double)(PDInputs.CombineInventorsForCostPlus ? PDProg.NumberEntrants : 1)) / forecastAfterEntry;
+            double riskAdjustedInventionSpending = (PDInputs.CombineInventorsForCostPlus ? PDProg.TotalResearchSpending : PDProg.InventorSpendDecisions[winnerOfPatent]) / forecastAfterInvestment;
+            if (PDInputs.UseExpectedCostForCostPlus)
+            {
+                riskAdjustedEntrySpending = 0;
+                double inventionCost = PDInputs.CostOfMinimumInvestmentBaseline;
+                if (PDInputs.ExpectedCostIsSpecificToInventor)
+                    inventionCost *= InventorInfo(winnerOfPatent).CostOfMinimumInvestmentMultiplier;
+                riskAdjustedInventionSpending = inventionCost / PDInputs.SuccessProbabilityMinimumInvestment;
+            }
+            double permissibleRecovery = (riskAdjustedEntrySpending + riskAdjustedInventionSpending) * (1.0 + PDInputs.PermittedRateOfReturn);
+
+            // Now, we calculate the proportion of maximum invention value that we would need to get this permissible recovery. Continuing with the equations above, we can set pV - p^2*V = X, where X is the maximum cost recovery. We need solutions in p to -Vp^2 + Vp - X = 0. If there are two positive solutions (we could recover the amount with a tiny amount of users or with a lot of users), we take the lower price.
+            double proportionOfMaxInventionValue = GetSmallerPositiveSolutionToQuadraticEquation(0 - inventionValueEstimate, inventionValueEstimate, 0 - permissibleRecovery);
+            double permittedPriceCostPlusDamages = inventionValueEstimate * proportionOfMaxInventionValue;
+
+            double weight = PDInputs.WeightOnCostPlusDamages;
+            return weight * permittedPriceCostPlusDamages + (1 - weight) * permittedPriceStandardDamages;
+        }
+
+        private double GetSmallerPositiveSolutionToQuadraticEquation(double a, double b, double c)
+        {
+            double sqrtpart = (b * b) - (4 * a * c);
+            double answer1 = ((-1) * b + Math.Sqrt(sqrtpart)) / (2 * a);
+            double answer2 = ((-1) * b - Math.Sqrt(sqrtpart)) / (2 * a);
+            if (answer1 > 0 && answer2 > 0)
+                return Math.Min(answer1, answer2);
+            if (answer1 > 0)
+                return answer1;
+            if (answer2 > 0)
+                return answer2;
+            throw new Exception("Equation has no positive solutions");
+        }
+
+        private double GetInventionValueEstimate(PerspectiveToUse perspective, int inventorIndex)
+        {
+            double inventionValue = 0;
+            switch (perspective)
+            {
+                case PerspectiveToUse.ActualUserValue:
+                    inventionValue = PDInputs.HighestInventionValue;
+                    break;
+                case PerspectiveToUse.Court:
+                    inventionValue = GetEstimateOfInventionValue(PDInputs.InventionValueCourtNoiseStdev, PDInputs.InventionValueCourtNoise, PDInputs.HighestInventionValue);
+                    break;
+                case PerspectiveToUse.Inventor:
+                    inventionValue = PDProg.InventorEstimatesInventionValue[inventorIndex];
+                    break;
+            }
+
+            return inventionValue;
         }
 
         protected void DoScoring()

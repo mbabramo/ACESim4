@@ -35,11 +35,11 @@ namespace ACESim
         /// <summary>
         /// The invention value is multiplied by this. (This allows the InventionValue to be drawn from a distribution from 0 to 1, but then multiplied to some higher number).
         /// </summary>
-        public double InventionValueMultiplier;
+        public double HighestInventionValueMultiplier;
         /// <summary>
         /// The actual value of the invention to the user. The user knows this, but others can only estimate it imprecisely.
         /// </summary>
-        public double InventionValue;
+        public double HighestInventionValue;
         /// <summary>
         /// The standard distribution of the distribution of noise from which the noise that obfuscates the court's estimtae of InventionValue is drawn.
         /// </summary>
@@ -97,17 +97,9 @@ namespace ACESim
         /// </summary>
         public double InadvertentInfringementRandomSeed;
         /// <summary>
-        /// The weight on cost-plus damages (as opposed to estimate of private value) for inadvertent infringement.
+        /// The weight on cost-plus damages (as opposed to estimate of private value) when the user infringes.
         /// </summary>
-        public double WeightOnCostPlusDamagesForInadvertentInfringement;
-        /// <summary>
-        /// The weight on cost-plus damages (as opposed to estimate of private value) for intentional infringement.
-        /// </summary>
-        public double WeightOnCostPlusDamagesForIntentionalInfringement;
-        /// <summary>
-        /// The proportion of the user's estimated value that should be used for standard damages. A value of 0.5 suggests that the court would let the inventor and the user each keep half of the surplus from the negotiation.
-        /// </summary>
-        public double ProportionOfValueForStandardDamages;
+        public double WeightOnCostPlusDamages;
         /// <summary>
         /// A damages multiplier for intentional infringement. A multiplier of 1 means that there is no extra penalty for intentional infringement.
         /// </summary>

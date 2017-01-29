@@ -13,26 +13,22 @@
     </defineVariableAlternatives>
     <defineVariableAlternatives name="costplus">
       <defineVariableAlternative name="cpyes" star="true">
-        <defineVariable findString="$WeightOnCostPlusDamagesForInadvertentInfringement" replaceString="1.0"/>
-        <defineVariable findString="$WeightOnCostPlusDamagesForIntentionalInfringement" replaceString="1.0"/>
+        <defineVariable findString="$WeightOnCostPlusDamages" replaceString="1.0"/>
         <defineVariable findString="$PermittedRateOfReturn" replaceString="0.1"/>
         <defineVariable findString="$CombineInventorsForCostPlus" replaceString="false"/>
         <defineVariable findString="$UseExpectedCostForCostPlus" replaceString="false"/>
       </defineVariableAlternative>
       <defineVariableAlternative name="cpno" star="true">
-        <defineVariable findString="$WeightOnCostPlusDamagesForInadvertentInfringement" replaceString="0"/>
-        <defineVariable findString="$WeightOnCostPlusDamagesForIntentionalInfringement" replaceString="0"/>
+        <defineVariable findString="$WeightOnCostPlusDamages" replaceString="0"/>
       </defineVariableAlternative>
       <defineVariableAlternative name="cphyb">
-        <defineVariable findString="$WeightOnCostPlusDamagesForInadvertentInfringement" replaceString="0.5"/>
-        <defineVariable findString="$WeightOnCostPlusDamagesForIntentionalInfringement" replaceString="0.5"/>
+        <defineVariable findString="$WeightOnCostPlusDamages" replaceString="0.5"/>
         <defineVariable findString="$PermittedRateOfReturn" replaceString="0.1"/>
         <defineVariable findString="$CombineInventorsForCostPlus" replaceString="false"/>
         <defineVariable findString="$UseExpectedCostForCostPlus" replaceString="false"/>
       </defineVariableAlternative>
       <defineVariableAlternative name="cpexp">
-        <defineVariable findString="$WeightOnCostPlusDamagesForInadvertentInfringement" replaceString="1.0"/>
-        <defineVariable findString="$WeightOnCostPlusDamagesForIntentionalInfringement" replaceString="1.0"/>
+        <defineVariable findString="$WeightOnCostPlusDamages" replaceString="1.0"/>
         <defineVariable findString="$InventionValueNoiseStdev" replaceString="0.0"/>
         <defineVariable findString="$PermittedRateOfReturn" replaceString="0.1"/>
         <defineVariable findString="$LitigationCostsEachParty" replaceString="0.1"/>
@@ -40,8 +36,7 @@
         <defineVariable findString="$ExpectedCostIsSpecificToInventor" replaceString="false"/>
       </defineVariableAlternative>
       <defineVariableAlternative name="cpexphi">
-        <defineVariable findString="$WeightOnCostPlusDamagesForInadvertentInfringement" replaceString="1.0"/>
-        <defineVariable findString="$WeightOnCostPlusDamagesForIntentionalInfringement" replaceString="1.0"/>
+        <defineVariable findString="$WeightOnCostPlusDamages" replaceString="1.0"/>
         <defineVariable findString="$InventionValueNoiseStdev" replaceString="0.0"/>
         <defineVariable findString="$PermittedRateOfReturn" replaceString="0.5"/>
         <defineVariable findString="$LitigationCostsEachParty" replaceString="0.1"/>
@@ -49,8 +44,7 @@
         <defineVariable findString="$ExpectedCostIsSpecificToInventor" replaceString="false"/>
       </defineVariableAlternative>
       <defineVariableAlternative name="cpglox">
-        <defineVariable findString="$WeightOnCostPlusDamagesForInadvertentInfringement" replaceString="1.0"/>
-        <defineVariable findString="$WeightOnCostPlusDamagesForIntentionalInfringement" replaceString="1.0"/>
+        <defineVariable findString="$WeightOnCostPlusDamages" replaceString="1.0"/>
         <defineVariable findString="$InventionValueNoiseStdev" replaceString="0.0"/>
         <defineVariable findString="$InventionValueCourtNoiseStdev" replaceString="0.00"/>
         <defineVariable findString="$PermittedRateOfReturn" replaceString="0.001"/>
@@ -59,8 +53,7 @@
         <defineVariable findString="$ExpectedCostIsSpecificToInventor" replaceString="true"/>
       </defineVariableAlternative>
       <defineVariableAlternative name="combinv">
-        <defineVariable findString="$WeightOnCostPlusDamagesForInadvertentInfringement" replaceString="1.0"/>
-        <defineVariable findString="$WeightOnCostPlusDamagesForIntentionalInfringement" replaceString="1.0"/>
+        <defineVariable findString="$WeightOnCostPlusDamages" replaceString="1.0"/>
         <defineVariable findString="$PermittedRateOfReturn" replaceString="0.1"/>
         <defineVariable findString="$CombineInventorsForCostPlus" replaceString="true"/>
         <defineVariable findString="$UseExpectedCostForCostPlus" replaceString="false"/>
