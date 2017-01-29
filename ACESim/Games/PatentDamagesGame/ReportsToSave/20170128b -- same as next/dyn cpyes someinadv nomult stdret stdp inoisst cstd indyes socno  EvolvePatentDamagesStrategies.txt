@@ -1,0 +1,208 @@
+Single settings set 12 (dyn cpyes noinadv tripdam stdret stdp inoisst cstd indyes socno ) Elapsed time: 00:04:43.1263679
+Decision index 0 (Entrants) of 0..4 in Step 0... 
+     Presmoothing already computed: False Cache has values: False     
+     Optimal value for zero-dimensional decision 1.25856481481482     
+Decision index 1 (SuccessAfterEntry) of 0..4 in Step 0... 
+     Presmoothing already computed: False Cache has values: False     
+     Optimal value for zero-dimensional decision 0.326915499556865     
+Decision index 2 (TryToInvent) of 0..4 in Step 0... 
+     Presmoothing already computed: False Cache has values: False     
+     Main set     
+          Initializing...          
+          Identifying closest point for each iteration to run...          
+          Successes: 1300 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
+          Determining unsmoothed optimal value...          
+          Total time elapsed: 255          
+     Validation set     
+          Initializing...          
+          Identifying closest point for each iteration to run...          
+          Successes: 1300 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
+          Determining unsmoothed optimal value...          
+          Total time elapsed: 211          
+     Smoothing using 297 points and 1300 iterations (150 max per point)     
+     Score based on validation set: 0.94650085703109     
+     Elapsed seconds: 0.751 current time: 9:41:33 PM     
+Decision index 3 (Spend) of 0..4 in Step 0... 
+     Presmoothing already computed: False Cache has values: False     
+     Developing oversampling plan.     
+     Success replication disabled. Attempts per 1000 successes: 1219     
+     Oversampling plan: Sample 1 (observed 1, expected 1): No split ===> Cumulative 1 (observed 1, expected 1) -> Weight 1.416 Cum. ct.: 1218 Cum. %: 1 Succ. no samp.: 0.6184 Exp. succ: 0.8112Number nodes: 11 Exp. succ: 0.8112
+     
+     Main set     
+          Initializing...          
+          Identifying closest point for each iteration to run...          
+          Successes: 1068 failures: 232 successPerAttemptRatio: 0.821538461538462 attempts per 1000 successes: 1217.22846441948          
+          Determining unsmoothed optimal value...          
+          Total time elapsed: 302          
+     Validation set     
+          Initializing...          
+          Identifying closest point for each iteration to run...          
+          Successes: 1068 failures: 232 successPerAttemptRatio: 0.821538461538462 attempts per 1000 successes: 1217.22846441948          
+          Determining unsmoothed optimal value...          
+          Total time elapsed: 304          
+     Smoothing using 274 points and 1300 iterations (150 max per point)     
+     Score based on validation set: 1.13688439423267     
+     Elapsed seconds: 1.057 current time: 9:41:34 PM     
+Decision index 4 (SuccessAfterInvestment) of 0..4 in Step 0... 
+     Presmoothing already computed: False Cache has values: False     
+     Basing oversampling plan on decision 3     
+     Aborted ... too few successes.     
+     This decision was not reached, so further development of the decision was skipped.     
+     Oversampling plan: Sample 1 (observed 1, expected 1): No split ===> Cumulative 1 (observed 1, expected 1) -> Weight 1 Cum. ct.: 9988 Cum. %: 1 Succ. no samp.: 0 Exp. succ: 0Number nodes: 1 Exp. succ: 0
+     
+Decision index 0 (Entrants) of 0..4 in Step 1... 
+     Presmoothing already computed: False Cache has values: False     
+     Optimal value for zero-dimensional decision 1.09826388888889     
+Decision index 1 (SuccessAfterEntry) of 0..4 in Step 1... 
+     Presmoothing already computed: False Cache has values: False     
+     Optimal value for zero-dimensional decision 0.345311520940236     
+Decision index 2 (TryToInvent) of 0..4 in Step 1... 
+     Presmoothing already computed: False Cache has values: False     
+     Main set     
+          Initializing...          
+          Identifying closest point for each iteration to run...          
+          Successes: 26000 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
+          Determining unsmoothed optimal value...          
+          Total time elapsed: 4613          
+     Validation set     
+          Initializing...          
+          Identifying closest point for each iteration to run...          
+          Successes: 26000 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
+          Determining unsmoothed optimal value...          
+          Total time elapsed: 4573          
+     Smoothing using 1300 points and 26000 iterations (150 max per point)     
+     Score based on validation set: 0.943575945486812     
+     Elapsed seconds: 10.718 current time: 9:41:51 PM     
+Decision index 3 (Spend) of 0..4 in Step 1... 
+     Presmoothing already computed: False Cache has values: False     
+     Developing oversampling plan.     
+     Success replication disabled. Attempts per 1000 successes: 1234     
+     Oversampling plan: Sample 1 (observed 1, expected 1): No split ===> Cumulative 1 (observed 1, expected 1) -> Weight 1.641 Cum. ct.: 1234 Cum. %: 1 Succ. no samp.: 0.5368 Exp. succ: 0.7957Number nodes: 11 Exp. succ: 0.7957
+     
+     Main set     
+          Initializing...          
+          Identifying closest point for each iteration to run...          
+          Successes: 20605 failures: 5395 successPerAttemptRatio: 0.7925 attempts per 1000 successes: 1261.82965299685          
+          Determining unsmoothed optimal value...          
+          Total time elapsed: 6203          
+     Validation set     
+          Initializing...          
+          Identifying closest point for each iteration to run...          
+          Successes: 20605 failures: 5395 successPerAttemptRatio: 0.7925 attempts per 1000 successes: 1261.82965299685          
+          Determining unsmoothed optimal value...          
+          Total time elapsed: 6087          
+     Smoothing using 1309 points and 26000 iterations (150 max per point)     
+     Score based on validation set: 0.995264076401851     
+     Elapsed seconds: 14.525 current time: 9:42:06 PM     
+Decision index 4 (SuccessAfterInvestment) of 0..4 in Step 1... 
+     Presmoothing already computed: False Cache has values: False     
+     Basing oversampling plan on decision 3     
+     Aborted ... too few successes.     
+     This decision was not reached, so further development of the decision was skipped.     
+     Oversampling plan: Sample 1 (observed 1, expected 1): No split ===> Cumulative 1 (observed 1, expected 1) -> Weight 1 Cum. ct.: 9972 Cum. %: 1 Succ. no samp.: 0 Exp. succ: 0Number nodes: 1 Exp. succ: 0
+     
+Decision index 0 (Entrants) of 0..4 in Step 2... 
+     Presmoothing already computed: False Cache has values: False     
+     Optimal value for zero-dimensional decision 1.010546875     
+Decision index 1 (SuccessAfterEntry) of 0..4 in Step 2... 
+     Presmoothing already computed: False Cache has values: False     
+     Optimal value for zero-dimensional decision 0.323257520590244     
+Decision index 4 (SuccessAfterInvestment) of 0..4 in Step 2... 
+     Presmoothing already computed: False Cache has values: False     
+     Basing oversampling plan on decision 3     
+     Aborted ... too few successes.     
+     This decision was not reached, so further development of the decision was skipped.     
+     Oversampling plan: Sample 1 (observed 1, expected 1): No split ===> Cumulative 1 (observed 1, expected 1) -> Weight 1 Cum. ct.: 9976 Cum. %: 1 Succ. no samp.: 0 Exp. succ: 0Number nodes: 1 Exp. succ: 0
+     
+Decision index 0 (Entrants) of 0..4 in Step 3... 
+     Presmoothing already computed: False Cache has values: False     
+     Optimal value for zero-dimensional decision 1.015234375     
+Decision index 1 (SuccessAfterEntry) of 0..4 in Step 3... 
+     Presmoothing already computed: False Cache has values: False     
+     Optimal value for zero-dimensional decision 0.326915499556865     
+Decision index 4 (SuccessAfterInvestment) of 0..4 in Step 3... 
+     Presmoothing already computed: False Cache has values: False     
+     Basing oversampling plan on decision 3     
+     Aborted ... too few successes.     
+     This decision was not reached, so further development of the decision was skipped.     
+     Oversampling plan: Sample 1 (observed 1, expected 1): No split ===> Cumulative 1 (observed 1, expected 1) -> Weight 1 Cum. ct.: 9984 Cum. %: 1 Succ. no samp.: 0 Exp. succ: 0Number nodes: 1 Exp. succ: 0
+     
+Decision index 0 (Entrants) of 0..4 in Step 4... 
+     Presmoothing already computed: False Cache has values: False     
+     Optimal value for zero-dimensional decision 1.015234375     
+Decision index 1 (SuccessAfterEntry) of 0..4 in Step 4... 
+     Presmoothing already computed: False Cache has values: False     
+     Optimal value for zero-dimensional decision 0.326183903763541     
+Decision index 4 (SuccessAfterInvestment) of 0..4 in Step 4... 
+     Presmoothing already computed: False Cache has values: False     
+     Basing oversampling plan on decision 3     
+     Aborted ... too few successes.     
+     This decision was not reached, so further development of the decision was skipped.     
+     Oversampling plan: Sample 1 (observed 1, expected 1): No split ===> Cumulative 1 (observed 1, expected 1) -> Weight 1 Cum. ct.: 9984 Cum. %: 1 Succ. no samp.: 0 Exp. succ: 0Number nodes: 1 Exp. succ: 0
+     
+Decision index 0 (Entrants) of 0..4 in Step 5... 
+     Presmoothing already computed: False Cache has values: False     
+     Optimal value for zero-dimensional decision 1.015234375     
+Decision index 1 (SuccessAfterEntry) of 0..4 in Step 5... 
+     Presmoothing already computed: False Cache has values: False     
+     Optimal value for zero-dimensional decision 0.325118122237464     
+Decision index 4 (SuccessAfterInvestment) of 0..4 in Step 5... 
+     Presmoothing already computed: False Cache has values: False     
+     Basing oversampling plan on decision 3     
+     Aborted ... too few successes.     
+     This decision was not reached, so further development of the decision was skipped.     
+     Oversampling plan: Sample 1 (observed 1, expected 1): No split ===> Cumulative 1 (observed 1, expected 1) -> Weight 1 Cum. ct.: 9983 Cum. %: 1 Succ. no samp.: 0 Exp. succ: 0Number nodes: 1 Exp. succ: 0
+     
+Decision index 0 (Entrants) of 0..4 in Step 6... 
+     Presmoothing already computed: False Cache has values: False     
+     Optimal value for zero-dimensional decision 1.015234375     
+Decision index 1 (SuccessAfterEntry) of 0..4 in Step 6... 
+     Presmoothing already computed: False Cache has values: False     
+     Optimal value for zero-dimensional decision 0.326039391014242     
+Decision index 4 (SuccessAfterInvestment) of 0..4 in Step 6... 
+     Presmoothing already computed: False Cache has values: False     
+     Basing oversampling plan on decision 3     
+     Aborted ... too few successes.     
+     This decision was not reached, so further development of the decision was skipped.     
+     Oversampling plan: Sample 1 (observed 1, expected 1): No split ===> Cumulative 1 (observed 1, expected 1) -> Weight 1 Cum. ct.: 9985 Cum. %: 1 Succ. no samp.: 0 Exp. succ: 0Number nodes: 1 Exp. succ: 0
+     
+Decision index 0 (Entrants) of 0..4 in Step 7... 
+     Presmoothing already computed: False Cache has values: False     
+     Optimal value for zero-dimensional decision 1.015234375     
+Decision index 1 (SuccessAfterEntry) of 0..4 in Step 7... 
+     Presmoothing already computed: False Cache has values: False     
+     Optimal value for zero-dimensional decision 0.325605852766347     
+Decision index 4 (SuccessAfterInvestment) of 0..4 in Step 7... 
+     Presmoothing already computed: False Cache has values: False     
+     Basing oversampling plan on decision 3     
+     Aborted ... too few successes.     
+     This decision was not reached, so further development of the decision was skipped.     
+     Oversampling plan: Sample 1 (observed 1, expected 1): No split ===> Cumulative 1 (observed 1, expected 1) -> Weight 1 Cum. ct.: 9984 Cum. %: 1 Succ. no samp.: 0 Exp. succ: 0Number nodes: 1 Exp. succ: 0
+     
+Decision index 0 (Entrants) of 0..4 in Step 8... 
+     Presmoothing already computed: False Cache has values: False     
+     Optimal value for zero-dimensional decision 1.015234375     
+Decision index 1 (SuccessAfterEntry) of 0..4 in Step 8... 
+     Presmoothing already computed: False Cache has values: False     
+     Optimal value for zero-dimensional decision 0.325605852766347     
+Decision index 4 (SuccessAfterInvestment) of 0..4 in Step 8... 
+     Presmoothing already computed: False Cache has values: False     
+     Basing oversampling plan on decision 3     
+     Aborted ... too few successes.     
+     This decision was not reached, so further development of the decision was skipped.     
+     Oversampling plan: Sample 1 (observed 1, expected 1): No split ===> Cumulative 1 (observed 1, expected 1) -> Weight 1 Cum. ct.: 9980 Cum. %: 1 Succ. no samp.: 0 Exp. succ: 0Number nodes: 1 Exp. succ: 0
+     
+Decision index 0 (Entrants) of 0..4 in Step 9... 
+     Presmoothing already computed: False Cache has values: False     
+     Optimal value for zero-dimensional decision 1.015234375     
+Decision index 1 (SuccessAfterEntry) of 0..4 in Step 9... 
+     Presmoothing already computed: False Cache has values: False     
+     Optimal value for zero-dimensional decision 0.325605852766347     
+Decision index 4 (SuccessAfterInvestment) of 0..4 in Step 9... 
+     Presmoothing already computed: False Cache has values: False     
+     Basing oversampling plan on decision 3     
+     Aborted ... too few successes.     
+     This decision was not reached, so further development of the decision was skipped.     
+     Oversampling plan: Sample 1 (observed 1, expected 1): No split ===> Cumulative 1 (observed 1, expected 1) -> Weight 1 Cum. ct.: 9980 Cum. %: 1 Succ. no samp.: 0 Exp. succ: 0Number nodes: 1 Exp. succ: 0
+     
+Total run time 00.00:03:50 days
