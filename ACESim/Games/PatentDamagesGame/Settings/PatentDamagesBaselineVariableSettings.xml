@@ -2,7 +2,7 @@
 <ACESim>
   <parentSettingsFile filename="PatentDamagesLoadFiles.xml">
     <defineVariable findString="$MaxNumEntrants" replaceString="1"/>
-    <defineVariable findString="$MaxRepetitionsNumEntrantsEvolution" replaceString="99999"/>
+    <defineVariable findString="$MaxRepetitionsNumEntrantsEvolution" replaceString="0"/>
     <defineVariable findString="$InitialWealthOfEntrants" replaceString="1.00"/>
     <defineVariable findString="$HighestInventionValueNoiseStdev" replaceString="0.10"/>
     <defineVariable findString="$CostOfMinimumInvestmentBaselineMin" replaceString="0.00"/>
@@ -13,7 +13,6 @@
     <defineVariable findString="$InvestmentMultipleMax" replaceString="10.0"/>
     <defineVariable findString="$MarketRateOfReturn" replaceString="0.0"/>
     <defineVariable findString="$PermittedRateOfReturn" replaceString="0.1"/>
-    <defineVariable findString="$CostOfEntry" replaceString="0.0"/>
     <defineVariable findString="$HighestInventionValueMultiplier" replaceString="1.0"/>
     <defineVariable findString="$HighestInventionValueCourtNoiseStdev" replaceString="0.10"/>
     <defineVariable findString="$SpilloverMultiplier" replaceString="1.0"/>

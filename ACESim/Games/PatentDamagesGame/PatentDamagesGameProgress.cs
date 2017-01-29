@@ -21,8 +21,7 @@ namespace ACESim
         public int NumberTrying;
         public List<double> InventorSpendDecisions;
         public double MainInventorSpendMultiple;
-        public double TotalSpendingIncludingEntry;
-        public double TotalResearchSpending;
+        public double TotalSpending;
         public double? AverageSpendingOfTriers;
         public double[] ProbabilityInventingSuccessfully;
         public double[] ProbabilityWinningPatent;
@@ -69,8 +68,7 @@ namespace ACESim
             copy.NumberTrying = NumberTrying;
             copy.InventorSpendDecisions = InventorSpendDecisions == null ? null : InventorSpendDecisions.ToList();
             copy.MainInventorSpendMultiple = MainInventorSpendMultiple;
-            copy.TotalSpendingIncludingEntry = TotalSpendingIncludingEntry;
-            copy.TotalResearchSpending = TotalResearchSpending;
+            copy.TotalSpending = TotalSpending;
             copy.AverageSpendingOfTriers = AverageSpendingOfTriers;
             copy.ProbabilityInventingSuccessfully = ProbabilityInventingSuccessfully == null ? null : ProbabilityInventingSuccessfully.ToArray();
             copy.ProbabilityWinningPatent = ProbabilityWinningPatent == null ? null : ProbabilityWinningPatent.ToArray();

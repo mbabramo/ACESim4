@@ -25,10 +25,6 @@ namespace ACESim
         /// </summary>
         public int MaxNumEntrants;
         /// <summary>
-        /// The cost of entry, which is required to have a chance to decide whether to engage in investment.
-        /// </summary>
-        public double CostOfEntry;
-        /// <summary>
         /// The baseline cost of minimum investment. Individual inventors' costs will be relative to this baseline.
         /// </summary>
         public double CostOfMinimumInvestmentBaseline;

@@ -76,7 +76,7 @@
     <rowOrColInfo name="Entrants" variableName="NumberEntrants" statistic="MEAN" />
     <rowOrColInfo name="Trying" variableName="NumberTrying" statistic="MEAN" />
     <rowOrColInfo name="MainSpendM" variableName="MainInventorSpendMultiple" statistic="MEAN" />
-    <rowOrColInfo name="TotSpend" variableName="TotalSpendingIncludingEntry" statistic="MEAN" />
+    <rowOrColInfo name="TotSpend" variableName="TotalSpending" statistic="MEAN" />
     <rowOrColInfo name="AvgInv" variableName="AverageSpendingOfTriers" statistic="MEAN" />
 
     <rowOrColInfo name="ISP" variableName="InventorSetPrice" statistic="MEAN" />
