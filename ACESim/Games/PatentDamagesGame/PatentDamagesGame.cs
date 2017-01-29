@@ -469,10 +469,10 @@ namespace ACESim
         private double CalculatePermittedPrice(PerspectiveToUse perspective)
         {
             var winnerOfPatent = (int)PDProg.WinnerOfPatent;
-            double inventionValueEstimate = GetHighestInventionValueEstimate(perspective, winnerOfPatent) * PDInputs.HighestInventionValueMultiplier;
+            double highestInventionValueEstimate = GetHighestInventionValueEstimate(perspective, winnerOfPatent) * PDInputs.HighestInventionValueMultiplier;
 
             // Let p = price as a proportion of the maximum valuation V. Revenues = (1 - p) * pV = pV - p^2*V. This is maximized at p = 0.5 when marginal cost is zero. So, for valuation-based damages, we assume that the inventor chooses 0.5 * the inventor's estimate of maximum user's valuation. 
-            double permittedPriceStandardDamages = inventionValueEstimate / 2.0;
+            double permittedPriceStandardDamages = highestInventionValueEstimate / 2.0;
             if (PDInputs.WeightOnCostPlusDamages == 0)
                 return permittedPriceStandardDamages;
             
@@ -491,8 +491,8 @@ namespace ACESim
             double permissibleRecovery = (riskAdjustedEntrySpending + riskAdjustedInventionSpending) * (1.0 + PDInputs.PermittedRateOfReturn);
 
             // Now, we calculate the proportion of maximum invention value that we would need to get this permissible recovery. Continuing with the equations above, we can set pV - p^2*V = X, where X is the maximum cost recovery. We need solutions in p to -Vp^2 + Vp - X = 0. If there are two positive solutions (we could recover the amount with a tiny amount of users or with a lot of users), we take the lower price.
-            double proportionOfMaxHighestInventionValue = GetSmallerPositiveSolutionToQuadraticEquation(0 - inventionValueEstimate, inventionValueEstimate, 0 - permissibleRecovery);
-            double permittedPriceCostPlusDamages = inventionValueEstimate * proportionOfMaxHighestInventionValue;
+            double proportionOfMaxHighestInventionValue = GetSmallerPositiveSolutionToQuadraticEquation(0 - highestInventionValueEstimate, highestInventionValueEstimate, 0 - permissibleRecovery);
+            double permittedPriceCostPlusDamages = highestInventionValueEstimate * proportionOfMaxHighestInventionValue;
 
             double weight = PDInputs.WeightOnCostPlusDamages;
             return weight * permittedPriceCostPlusDamages + (1 - weight) * permittedPriceStandardDamages;
@@ -514,21 +514,21 @@ namespace ACESim
 
         private double GetHighestInventionValueEstimate(PerspectiveToUse perspective, int inventorIndex)
         {
-            double inventionValue = 0;
+            double highestInventionValue = 0;
             switch (perspective)
             {
                 case PerspectiveToUse.ActualUserValue:
-                    inventionValue = PDInputs.HighestInventionValue;
+                    highestInventionValue = PDInputs.HighestInventionValue;
                     break;
                 case PerspectiveToUse.Court:
-                    inventionValue = GetEstimateOfHighestInventionValue(PDInputs.HighestInventionValueCourtNoiseStdev, PDInputs.HighestInventionValueCourtNoise, PDInputs.HighestInventionValue);
+                    highestInventionValue = GetEstimateOfHighestInventionValue(PDInputs.HighestInventionValueCourtNoiseStdev, PDInputs.HighestInventionValueCourtNoise, PDInputs.HighestInventionValue);
                     break;
                 case PerspectiveToUse.Inventor:
-                    inventionValue = PDProg.InventorEstimatesHighestInventionValue[inventorIndex];
+                    highestInventionValue = PDProg.InventorEstimatesHighestInventionValue[inventorIndex];
                     break;
             }
 
-            return inventionValue;
+            return highestInventionValue;
         }
 
         protected void DoScoring()
