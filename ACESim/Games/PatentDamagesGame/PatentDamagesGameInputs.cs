@@ -33,7 +33,7 @@ namespace ACESim
         /// </summary>
         public double CostOfMinimumInvestmentBaseline;
         /// <summary>
-        /// The invention value is multiplied by this. (This allows the InventionValue to be drawn from a distribution from 0 to 1, but then multiplied to some higher number).
+        /// The invention value is multiplied by this. (This allows the HighestInventionValue to be drawn from a distribution from 0 to 1, but then multiplied to some higher number).
         /// </summary>
         public double HighestInventionValueMultiplier;
         /// <summary>
@@ -41,17 +41,17 @@ namespace ACESim
         /// </summary>
         public double HighestInventionValue;
         /// <summary>
-        /// The standard distribution of the distribution of noise from which the noise that obfuscates the court's estimtae of InventionValue is drawn.
+        /// The standard distribution of the distribution of noise from which the noise that obfuscates the court's estimtae of HighestInventionValue is drawn.
         /// </summary>
-        public double InventionValueCourtNoiseStdev;
+        public double HighestInventionValueCourtNoiseStdev;
         /// <summary>
-        /// The noise to be added to InventionValue to determine the court's signal of invention value. This signal is drawn from a distribution with standard deviation InventionValueCourtNoiseStdev.
+        /// The noise to be added to HighestInventionValue to determine the court's signal of invention value. This signal is drawn from a distribution with standard deviation HighestInventionValueCourtNoiseStdev.
         /// </summary>
-        public double InventionValueCourtNoise;
+        public double HighestInventionValueCourtNoise;
         /// <summary>
         /// The standard deviation of the distribution of noise for all inventors. The actual noise resulting for each inventor is in AllInventorsInfo.
         /// </summary>
-        public double InventionValueNoiseStdev; 
+        public double HighestInventionValueNoiseStdev; 
         /// <summary>
         /// The spillover multiplier. A spillover of 0.10 indicates that there is social value not captured by the user equal to 10% of the user's value.
         /// </summary>

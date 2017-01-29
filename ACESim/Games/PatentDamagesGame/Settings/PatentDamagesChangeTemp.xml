@@ -7,8 +7,8 @@
         <defineVariable findString="$MaxRepetitionsNumEntrantsEvolution" replaceString="0"/>
         <defineVariable findString="$WeightOnCostPlusDamagesForInadvertentInfringement" replaceString="1.0"/>
         <defineVariable findString="$WeightOnCostPlusDamagesForIntentionalInfringement" replaceString="1.0"/>
-        <defineVariable findString="$InventionValueNoiseStdev" replaceString="0.0"/>
-        <defineVariable findString="$InventionValueCourtNoiseStdev" replaceString="0.00"/>
+        <defineVariable findString="$HighestInventionValueNoiseStdev" replaceString="0.0"/>
+        <defineVariable findString="$HighestInventionValueCourtNoiseStdev" replaceString="0.00"/>
         <defineVariable findString="$PermittedRateOfReturn" replaceString="0.001"/>
         <defineVariable findString="$LitigationCostsEachParty" replaceString="0.0"/>
         <defineVariable findString="$UseExpectedCostForCostPlus" replaceString="true"/>
@@ -20,8 +20,8 @@
         <defineVariable findString="$MaxRepetitionsNumEntrantsEvolution" replaceString="0"/>
         <defineVariable findString="$WeightOnCostPlusDamagesForInadvertentInfringement" replaceString="0.0"/>
         <defineVariable findString="$WeightOnCostPlusDamagesForIntentionalInfringement" replaceString="0.0"/>
-        <defineVariable findString="$InventionValueNoiseStdev" replaceString="0.0"/>
-        <defineVariable findString="$InventionValueCourtNoiseStdev" replaceString="0.00"/>
+        <defineVariable findString="$HighestInventionValueNoiseStdev" replaceString="0.0"/>
+        <defineVariable findString="$HighestInventionValueCourtNoiseStdev" replaceString="0.00"/>
         <defineVariable findString="$PermittedRateOfReturn" replaceString="0.001"/>
         <defineVariable findString="$LitigationCostsEachParty" replaceString="0.0"/>
         <defineVariable findString="$UseExpectedCostForCostPlus" replaceString="true"/>
@@ -32,8 +32,8 @@
         <defineVariable findString="$MaxRepetitionsNumEntrantsEvolution" replaceString="0"/>
         <defineVariable findString="$WeightOnCostPlusDamagesForInadvertentInfringement" replaceString="1.0"/>
         <defineVariable findString="$WeightOnCostPlusDamagesForIntentionalInfringement" replaceString="1.0"/>
-        <defineVariable findString="$InventionValueNoiseStdev" replaceString="0.0"/>
-        <defineVariable findString="$InventionValueCourtNoiseStdev" replaceString="0.00"/>
+        <defineVariable findString="$HighestInventionValueNoiseStdev" replaceString="0.0"/>
+        <defineVariable findString="$HighestInventionValueCourtNoiseStdev" replaceString="0.00"/>
         <defineVariable findString="$PermittedRateOfReturn" replaceString="0.001"/>
         <defineVariable findString="$LitigationCostsEachParty" replaceString="0.1"/>
         <defineVariable findString="$UseExpectedCostForCostPlus" replaceString="true"/>
@@ -44,8 +44,8 @@
         <defineVariable findString="$MaxRepetitionsNumEntrantsEvolution" replaceString="0"/>
         <defineVariable findString="$WeightOnCostPlusDamagesForInadvertentInfringement" replaceString="1.0"/>
         <defineVariable findString="$WeightOnCostPlusDamagesForIntentionalInfringement" replaceString="1.0"/>
-        <defineVariable findString="$InventionValueNoiseStdev" replaceString="0.0"/>
-        <defineVariable findString="$InventionValueCourtNoiseStdev" replaceString="0.00"/>
+        <defineVariable findString="$HighestInventionValueNoiseStdev" replaceString="0.0"/>
+        <defineVariable findString="$HighestInventionValueCourtNoiseStdev" replaceString="0.00"/>
         <defineVariable findString="$PermittedRateOfReturn" replaceString="0.0"/>
         <defineVariable findString="$LitigationCostsEachParty" replaceString="0.0"/>
         <defineVariable findString="$UseExpectedCostForCostPlus" replaceString="true"/>
@@ -56,8 +56,8 @@
         <defineVariable findString="$MaxRepetitionsNumEntrantsEvolution" replaceString="0"/>
         <defineVariable findString="$WeightOnCostPlusDamagesForInadvertentInfringement" replaceString="1.0"/>
         <defineVariable findString="$WeightOnCostPlusDamagesForIntentionalInfringement" replaceString="1.0"/>
-        <defineVariable findString="$InventionValueNoiseStdev" replaceString="0.1"/>
-        <defineVariable findString="$InventionValueCourtNoiseStdev" replaceString="0.00"/>
+        <defineVariable findString="$HighestInventionValueNoiseStdev" replaceString="0.1"/>
+        <defineVariable findString="$HighestInventionValueCourtNoiseStdev" replaceString="0.00"/>
         <defineVariable findString="$PermittedRateOfReturn" replaceString="0.001"/>
         <defineVariable findString="$LitigationCostsEachParty" replaceString="0.0"/>
         <defineVariable findString="$UseExpectedCostForCostPlus" replaceString="true"/>

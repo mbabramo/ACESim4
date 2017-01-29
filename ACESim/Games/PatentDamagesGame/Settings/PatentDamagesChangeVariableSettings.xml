@@ -29,7 +29,7 @@
       </defineVariableAlternative>
       <defineVariableAlternative name="cpexp">
         <defineVariable findString="$WeightOnCostPlusDamages" replaceString="1.0"/>
-        <defineVariable findString="$InventionValueNoiseStdev" replaceString="0.0"/>
+        <defineVariable findString="$HighestInventionValueNoiseStdev" replaceString="0.0"/>
         <defineVariable findString="$PermittedRateOfReturn" replaceString="0.1"/>
         <defineVariable findString="$LitigationCostsEachParty" replaceString="0.1"/>
         <defineVariable findString="$UseExpectedCostForCostPlus" replaceString="true"/>
@@ -37,7 +37,7 @@
       </defineVariableAlternative>
       <defineVariableAlternative name="cpexphi">
         <defineVariable findString="$WeightOnCostPlusDamages" replaceString="1.0"/>
-        <defineVariable findString="$InventionValueNoiseStdev" replaceString="0.0"/>
+        <defineVariable findString="$HighestInventionValueNoiseStdev" replaceString="0.0"/>
         <defineVariable findString="$PermittedRateOfReturn" replaceString="0.5"/>
         <defineVariable findString="$LitigationCostsEachParty" replaceString="0.1"/>
         <defineVariable findString="$UseExpectedCostForCostPlus" replaceString="true"/>
@@ -45,8 +45,8 @@
       </defineVariableAlternative>
       <defineVariableAlternative name="cpglox">
         <defineVariable findString="$WeightOnCostPlusDamages" replaceString="1.0"/>
-        <defineVariable findString="$InventionValueNoiseStdev" replaceString="0.0"/>
-        <defineVariable findString="$InventionValueCourtNoiseStdev" replaceString="0.00"/>
+        <defineVariable findString="$HighestInventionValueNoiseStdev" replaceString="0.0"/>
+        <defineVariable findString="$HighestInventionValueCourtNoiseStdev" replaceString="0.00"/>
         <defineVariable findString="$PermittedRateOfReturn" replaceString="0.001"/>
         <defineVariable findString="$LitigationCostsEachParty" replaceString="0.0"/>
         <defineVariable findString="$UseExpectedCostForCostPlus" replaceString="true"/>
@@ -111,13 +111,13 @@
     </defineVariableAlternatives>
     <defineVariableAlternatives name="inois">
       <defineVariableAlternative name="inoisst" star="true">
-        <defineVariable findString="$InventionValueNoiseStdev" replaceString="0.10"/>
+        <defineVariable findString="$HighestInventionValueNoiseStdev" replaceString="0.10"/>
       </defineVariableAlternative>
       <defineVariableAlternative name="inois0">
-        <defineVariable findString="$InventionValueNoiseStdev" replaceString="0.0"/>
+        <defineVariable findString="$HighestInventionValueNoiseStdev" replaceString="0.0"/>
       </defineVariableAlternative>
       <defineVariableAlternative name="inoishi">
-        <defineVariable findString="$InventionValueNoiseStdev" replaceString="0.20"/>
+        <defineVariable findString="$HighestInventionValueNoiseStdev" replaceString="0.20"/>
       </defineVariableAlternative>
     </defineVariableAlternatives>
     <defineVariableAlternatives name="cost">

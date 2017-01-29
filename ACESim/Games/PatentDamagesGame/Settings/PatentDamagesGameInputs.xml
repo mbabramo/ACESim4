@@ -2,9 +2,9 @@
 <ACESim>
   <defineTemplate name="InventorInfoTemplate">
     <setting type="class" name="InventorXX">
-              <setting name="InventionValueNoise" type="distribution" subtype="normal">
+              <setting name="HighestInventionValueNoise" type="distribution" subtype="normal">
                 <setting type="double" name="mean">0.0</setting>
-                <setting type="double" name="stdev">$InventionValueNoiseStdev</setting>
+                <setting type="double" name="stdev">$HighestInventionValueNoiseStdev</setting>
               </setting>
               <setting name="CostOfMinimumInvestmentMultiplier" type="distribution" subtype="uniform">
                 <setting type="double" name="fromVal">$CostOfMinimumInvestmentMultiplierMin</setting>
@@ -19,7 +19,7 @@
     <gameInputsAll>
         <gameInputs name="PatentDamagesGameInputs" gameName="PatentDamagesGame">
           <setting type="double" name="InitialWealthOfEntrants">$InitialWealthOfEntrants</setting>
-          <setting type="double" name="InventionValueNoiseStdev">$InventionValueNoiseStdev</setting>
+          <setting type="double" name="HighestInventionValueNoiseStdev">$HighestInventionValueNoiseStdev</setting>
           <setting type="double" name="MarketRateOfReturn">$MarketRateOfReturn</setting>
           <setting type="double" name="PermittedRateOfReturn">$PermittedRateOfReturn</setting>
           <setting type="int" name="MaxNumEntrants">$MaxNumEntrants</setting>
@@ -28,15 +28,15 @@
                 <setting type="double" name="fromVal">$CostOfMinimumInvestmentBaselineMin</setting>
                 <setting type="double" name="toVal">$CostOfMinimumInvestmentBaselineMax</setting>
               </setting>
-          <setting type="double" name="InventionValueMultiplier">$InventionValueMultiplier</setting>
-          <setting name="InventionValue" type="distribution" subtype="uniform">
+          <setting type="double" name="HighestInventionValueMultiplier">$HighestInventionValueMultiplier</setting>
+          <setting name="HighestInventionValue" type="distribution" subtype="uniform">
             <setting type="double" name="fromVal">0.0</setting>
             <setting type="double" name="toVal">1.0</setting>
           </setting>
-          <setting name="InventionValueCourtNoiseStdev" type="double">$InventionValueCourtNoiseStdev</setting>
-          <setting name="InventionValueCourtNoise" type="distribution" subtype="normal">
+          <setting name="HighestInventionValueCourtNoiseStdev" type="double">$HighestInventionValueCourtNoiseStdev</setting>
+          <setting name="HighestInventionValueCourtNoise" type="distribution" subtype="normal">
             <setting type="double" name="mean">0.0</setting>
-            <setting type="double" name="stdev">$InventionValueCourtNoiseStdev</setting>
+            <setting type="double" name="stdev">$HighestInventionValueCourtNoiseStdev</setting>
           </setting>
           <setting type="double" name="SpilloverMultiplier">$SpilloverMultiplier</setting>
           <setting type="double" name="SuccessProbabilityMinimumInvestment">$SuccessProbabilityMinimumInvestment</setting>

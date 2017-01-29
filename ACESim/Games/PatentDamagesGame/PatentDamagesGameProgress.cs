@@ -9,7 +9,7 @@ namespace ACESim
     public class PatentDamagesGameProgress : GameProgress
     {
         public bool HighValue;
-        public List<double> InventorEstimatesInventionValue;
+        public List<double> InventorEstimatesHighestInventionValue;
         public List<bool> InventorEntryDecisions;
         public bool MainInventorEnters;
         public bool SomeoneEnters;
@@ -55,7 +55,7 @@ namespace ACESim
         {
             PatentDamagesGameProgress copy = new PatentDamagesGameProgress();
             copy.HighValue = HighValue;
-            copy.InventorEstimatesInventionValue = InventorEstimatesInventionValue == null ? null : InventorEstimatesInventionValue.ToList();
+            copy.InventorEstimatesHighestInventionValue = InventorEstimatesHighestInventionValue == null ? null : InventorEstimatesHighestInventionValue.ToList();
             copy.InventorEntryDecisions = InventorEntryDecisions == null ? null : InventorEntryDecisions.ToList();
             copy.MainInventorEnters = MainInventorEnters;
             copy.SomeoneEnters = SomeoneEnters;

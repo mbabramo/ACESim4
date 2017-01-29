@@ -64,19 +64,19 @@ namespace ACESim
             Progress.GameComplete = true;
         }
 
-        public void CalculateInventorEstimates(IEnumerable<InventorInfo> inventorInfos, double actualInventionValue, double stdDevOfNoiseDistribution)
+        public void CalculateInventorEstimates(IEnumerable<InventorInfo> inventorInfos, double actualHighestInventionValue, double stdDevOfNoiseDistribution)
         {
-            PDProg.InventorEstimatesInventionValue = new List<double>();
+            PDProg.InventorEstimatesHighestInventionValue = new List<double>();
             foreach (var inventorInfo in inventorInfos)
             {
-                double estimate = PatentDamagesGame.GetEstimateOfInventionValue(stdDevOfNoiseDistribution, inventorInfo.InventionValueNoise, actualInventionValue);
-                PDProg.InventorEstimatesInventionValue.Add(estimate);
+                double estimate = PatentDamagesGame.GetEstimateOfHighestInventionValue(stdDevOfNoiseDistribution, inventorInfo.HighestInventionValueNoise, actualHighestInventionValue);
+                PDProg.InventorEstimatesHighestInventionValue.Add(estimate);
             }
         }
 
-        public static double GetEstimateOfInventionValue(double stdDevOfNoiseDistribution, double drawFromNoiseDistribution, double actualInventionValue)
+        public static double GetEstimateOfHighestInventionValue(double stdDevOfNoiseDistribution, double drawFromNoiseDistribution, double actualHighestInventionValue)
         {
-            return ObfuscationGame.ObfuscationCorrectAnswer.Calculate(stdDevOfNoiseDistribution, drawFromNoiseDistribution + actualInventionValue);
+            return ObfuscationGame.ObfuscationCorrectAnswer.Calculate(stdDevOfNoiseDistribution, drawFromNoiseDistribution + actualHighestInventionValue);
         }
 
         private void MakeEntryDecisions()
@@ -84,7 +84,7 @@ namespace ACESim
             if (PreparationPhase)
             {
                 PDProg.HighValue = PDInputs.HighestInventionValue > 0.8;
-                CalculateInventorEstimates(PDInputs.AllInventorsInfo.AllInventors(), PDInputs.HighestInventionValue, PDInputs.InventionValueNoiseStdev);
+                CalculateInventorEstimates(PDInputs.AllInventorsInfo.AllInventors(), PDInputs.HighestInventionValue, PDInputs.HighestInventionValueNoiseStdev);
                 GetDecisionInputs();
                 return;
             }
@@ -141,7 +141,7 @@ namespace ACESim
                     PDProg.InventorTryToInventDecisions.Add(false);
                 else
                 {
-                    double otherInventorTryToInventDecision = strategy.Calculate(new List<double> { PDInputs.CostOfMinimumInvestmentBaseline, inventorInfo.CostOfMinimumInvestmentMultiplier, PDProg.InventorEstimatesInventionValue[inventor] }, this);
+                    double otherInventorTryToInventDecision = strategy.Calculate(new List<double> { PDInputs.CostOfMinimumInvestmentBaseline, inventorInfo.CostOfMinimumInvestmentMultiplier, PDProg.InventorEstimatesHighestInventionValue[inventor] }, this);
                     PDProg.InventorTryToInventDecisions.Add(otherInventorTryToInventDecision > 0);
                 }
                 inventor++;
@@ -173,7 +173,7 @@ namespace ACESim
                     PDProg.InventorSpendDecisions.Add(0);
                 else
                 {
-                    double otherInventorSpendDecision = strategy.Calculate(new List<double> { PDInputs.CostOfMinimumInvestmentBaseline, inventorInfo.CostOfMinimumInvestmentMultiplier, PDProg.InventorEstimatesInventionValue[inventor] }, this);
+                    double otherInventorSpendDecision = strategy.Calculate(new List<double> { PDInputs.CostOfMinimumInvestmentBaseline, inventorInfo.CostOfMinimumInvestmentMultiplier, PDProg.InventorEstimatesHighestInventionValue[inventor] }, this);
                     otherInventorSpendDecision *= PDInputs.CostOfMinimumInvestmentBaseline * inventorInfo.CostOfMinimumInvestmentMultiplier;
                     PDProg.InventorSpendDecisions.Add(otherInventorSpendDecision);
                 }
@@ -469,7 +469,7 @@ namespace ACESim
         private double CalculatePermittedPrice(PerspectiveToUse perspective)
         {
             var winnerOfPatent = (int)PDProg.WinnerOfPatent;
-            double inventionValueEstimate = GetInventionValueEstimate(perspective, winnerOfPatent) * PDInputs.HighestInventionValueMultiplier;
+            double inventionValueEstimate = GetHighestInventionValueEstimate(perspective, winnerOfPatent) * PDInputs.HighestInventionValueMultiplier;
 
             // Let p = price as a proportion of the maximum valuation V. Revenues = (1 - p) * pV = pV - p^2*V. This is maximized at p = 0.5 when marginal cost is zero. So, for valuation-based damages, we assume that the inventor chooses 0.5 * the inventor's estimate of maximum user's valuation. 
             double permittedPriceStandardDamages = inventionValueEstimate / 2.0;
@@ -491,8 +491,8 @@ namespace ACESim
             double permissibleRecovery = (riskAdjustedEntrySpending + riskAdjustedInventionSpending) * (1.0 + PDInputs.PermittedRateOfReturn);
 
             // Now, we calculate the proportion of maximum invention value that we would need to get this permissible recovery. Continuing with the equations above, we can set pV - p^2*V = X, where X is the maximum cost recovery. We need solutions in p to -Vp^2 + Vp - X = 0. If there are two positive solutions (we could recover the amount with a tiny amount of users or with a lot of users), we take the lower price.
-            double proportionOfMaxInventionValue = GetSmallerPositiveSolutionToQuadraticEquation(0 - inventionValueEstimate, inventionValueEstimate, 0 - permissibleRecovery);
-            double permittedPriceCostPlusDamages = inventionValueEstimate * proportionOfMaxInventionValue;
+            double proportionOfMaxHighestInventionValue = GetSmallerPositiveSolutionToQuadraticEquation(0 - inventionValueEstimate, inventionValueEstimate, 0 - permissibleRecovery);
+            double permittedPriceCostPlusDamages = inventionValueEstimate * proportionOfMaxHighestInventionValue;
 
             double weight = PDInputs.WeightOnCostPlusDamages;
             return weight * permittedPriceCostPlusDamages + (1 - weight) * permittedPriceStandardDamages;
@@ -512,7 +512,7 @@ namespace ACESim
             throw new Exception("Equation has no positive solutions");
         }
 
-        private double GetInventionValueEstimate(PerspectiveToUse perspective, int inventorIndex)
+        private double GetHighestInventionValueEstimate(PerspectiveToUse perspective, int inventorIndex)
         {
             double inventionValue = 0;
             switch (perspective)
@@ -521,10 +521,10 @@ namespace ACESim
                     inventionValue = PDInputs.HighestInventionValue;
                     break;
                 case PerspectiveToUse.Court:
-                    inventionValue = GetEstimateOfInventionValue(PDInputs.InventionValueCourtNoiseStdev, PDInputs.InventionValueCourtNoise, PDInputs.HighestInventionValue);
+                    inventionValue = GetEstimateOfHighestInventionValue(PDInputs.HighestInventionValueCourtNoiseStdev, PDInputs.HighestInventionValueCourtNoise, PDInputs.HighestInventionValue);
                     break;
                 case PerspectiveToUse.Inventor:
-                    inventionValue = PDProg.InventorEstimatesInventionValue[inventorIndex];
+                    inventionValue = PDProg.InventorEstimatesHighestInventionValue[inventorIndex];
                     break;
             }
 
@@ -571,7 +571,7 @@ namespace ACESim
                     break;
                 case (int)PatentDamagesDecision.TryToInvent:
                 case (int)PatentDamagesDecision.Spend:
-                    inputs = new double[] { PDInputs.CostOfMinimumInvestmentBaseline, InventorToOptimizeInfo.CostOfMinimumInvestmentMultiplier, PDProg.InventorEstimatesInventionValue.First() };
+                    inputs = new double[] { PDInputs.CostOfMinimumInvestmentBaseline, InventorToOptimizeInfo.CostOfMinimumInvestmentMultiplier, PDProg.InventorEstimatesHighestInventionValue.First() };
                     break;
                 default:
                     throw new Exception("Unknown decision.");

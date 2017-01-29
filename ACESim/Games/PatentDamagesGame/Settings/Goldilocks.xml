@@ -14,8 +14,8 @@
     <defineVariableAlternatives name="glox">
       <defineVariableAlternative name="gloxscen" star="true">
         <defineVariable findString="$WeightOnCostPlusDamages" replaceString="1.0"/>
-        <defineVariable findString="$InventionValueNoiseStdev" replaceString="0.0"/>
-        <defineVariable findString="$InventionValueCourtNoiseStdev" replaceString="0.00"/>
+        <defineVariable findString="$HighestInventionValueNoiseStdev" replaceString="0.0"/>
+        <defineVariable findString="$HighestInventionValueCourtNoiseStdev" replaceString="0.00"/>
         <defineVariable findString="$PermittedRateOfReturn" replaceString="0.001"/>
         <defineVariable findString="$UseExpectedCostForCostPlus" replaceString="true"/>
         <defineVariable findString="$ExpectedCostIsSpecificToInventor" replaceString="true"/>
@@ -23,8 +23,8 @@
       <!--Same as perfect assumptions but using the regular approach to damages. -->
       <defineVariableAlternative name="invvaluecomp" star="true">
         <defineVariable findString="$WeightOnCostPlusDamages" replaceString="0.0"/>
-        <defineVariable findString="$InventionValueNoiseStdev" replaceString="0.0"/>
-        <defineVariable findString="$InventionValueCourtNoiseStdev" replaceString="0.00"/>
+        <defineVariable findString="$HighestInventionValueNoiseStdev" replaceString="0.0"/>
+        <defineVariable findString="$HighestInventionValueCourtNoiseStdev" replaceString="0.00"/>
         <defineVariable findString="$PermittedRateOfReturn" replaceString="0.001"/>
         <defineVariable findString="$UseExpectedCostForCostPlus" replaceString="true"/>
         <defineVariable findString="$ExpectedCostIsSpecificToInventor" replaceString="true"/>
@@ -32,16 +32,16 @@
       <!--With an OK return (0.1). -->
       <defineVariableAlternative name="wokret" star="true">
         <defineVariable findString="$WeightOnCostPlusDamages" replaceString="1.0"/>
-        <defineVariable findString="$InventionValueNoiseStdev" replaceString="0.0"/>
-        <defineVariable findString="$InventionValueCourtNoiseStdev" replaceString="0.00"/>
+        <defineVariable findString="$HighestInventionValueNoiseStdev" replaceString="0.0"/>
+        <defineVariable findString="$HighestInventionValueCourtNoiseStdev" replaceString="0.00"/>
         <defineVariable findString="$PermittedRateOfReturn" replaceString="0.1"/>
         <defineVariable findString="$UseExpectedCostForCostPlus" replaceString="true"/>
         <defineVariable findString="$ExpectedCostIsSpecificToInventor" replaceString="true"/>
       </defineVariableAlternative>
       <defineVariableAlternative name="wnoise" star="true">
         <defineVariable findString="$WeightOnCostPlusDamages" replaceString="1.0"/>
-        <defineVariable findString="$InventionValueNoiseStdev" replaceString="0.1"/>
-        <defineVariable findString="$InventionValueCourtNoiseStdev" replaceString="0.10"/>
+        <defineVariable findString="$HighestInventionValueNoiseStdev" replaceString="0.1"/>
+        <defineVariable findString="$HighestInventionValueCourtNoiseStdev" replaceString="0.10"/>
         <defineVariable findString="$PermittedRateOfReturn" replaceString="0.001"/>
         <defineVariable findString="$UseExpectedCostForCostPlus" replaceString="true"/>
         <defineVariable findString="$ExpectedCostIsSpecificToInventor" replaceString="true"/>

@@ -48,7 +48,7 @@
                 <setting name="InputNames" type="list">
                   <setting name="input1" type="text">CostOfMinInvestmentBaseline</setting>
                   <setting name="input1" type="text">CostOfMinInvestmentMultiplier</setting>
-                  <setting name="input2" type="text">InventionValueEstimate</setting>
+                  <setting name="input2" type="text">HighestInventionValueEstimate</setting>
                 </setting>
                 <setting name="InputAbbreviations" type="list">
                   <setting name="input1" type ="text">CMIB</setting>
@@ -72,7 +72,7 @@
                 <setting name="InputNames" type="list">
                   <setting name="input1" type="text">CostOfMinInvestmentBaseline</setting>
                   <setting name="input1" type="text">CostOfMinInvestmentMultiplier</setting>
-                  <setting name="input2" type="text">InventionValueEstimate</setting>
+                  <setting name="input2" type="text">HighestInventionValueEstimate</setting>
                 </setting>
                 <setting name="InputAbbreviations" type="list">
                   <setting name="input1" type ="text">CMIB</setting>
