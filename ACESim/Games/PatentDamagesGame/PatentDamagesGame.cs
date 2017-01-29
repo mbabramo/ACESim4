@@ -469,7 +469,7 @@ namespace ACESim
         private double CalculatePermittedPrice(PerspectiveToUse perspective)
         {
             var winnerOfPatent = (int)PDProg.WinnerOfPatent;
-            double inventionValueEstimate = GetInventionValueEstimate(perspective, winnerOfPatent);
+            double inventionValueEstimate = GetInventionValueEstimate(perspective, winnerOfPatent) * PDInputs.HighestInventionValueMultiplier;
 
             // Let p = price as a proportion of the maximum valuation V. Revenues = (1 - p) * pV = pV - p^2*V. This is maximized at p = 0.5 when marginal cost is zero. So, for valuation-based damages, we assume that the inventor chooses 0.5 * the inventor's estimate of maximum user's valuation. 
             double permittedPriceStandardDamages = inventionValueEstimate / 2.0;
