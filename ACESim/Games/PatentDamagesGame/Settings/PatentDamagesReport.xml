@@ -1,5 +1,5 @@
 <ACESim>
-<rowOrColGroup name="PatentDamagesRows">
+  <rowOrColGroup name="PatentDamagesRows">
     <rowOrColInfo name="All">
     </rowOrColInfo>
     <rowOrColInfo name="FirstTries">
@@ -30,75 +30,32 @@
         <value>true</value>
       </filter>
     </rowOrColInfo>
-    <rowOrColInfo name="InadvertentInfringement">
+    <rowOrColInfo name="SomeUsersPay">
       <filter varType="bool">
-        <variableName>InadvertentInfringement</variableName>
+        <variableName>SomeUsersPay</variableName>
         <operation>EQ</operation>
         <value>true</value>
       </filter>
     </rowOrColInfo>
-    <rowOrColInfo name="AgreementReached">
+    <rowOrColInfo name="SomeIntentionalInfringement">
       <filter varType="bool">
-        <variableName>AgreementReached</variableName>
-        <operation>EQ</operation>
-        <value>true</value>
-      </filter>
-    </rowOrColInfo>
-    <rowOrColInfo name="IntentionalInfringement">
-      <filter varType="bool">
-        <variableName>IntentionalInfringement</variableName>
+        <variableName>SomeIntentionalInfringement</variableName>
         <operation>EQ</operation>
         <value>true</value>
       </filter>
     </rowOrColInfo>
     <rowOrColInfo name="InventionUsed">
-      <filter varType="bool">
-        <variableName>InventionUsed</variableName>
-        <operation>EQ</operation>
-        <value>true</value>
+      <filter varType="double">
+        <variableName>TotalReceipts</variableName>
+        <operation>GT</operation>
+        <value>0</value>
       </filter>
     </rowOrColInfo>
-  <rowOrColInfo name="AllHighValue">
+    <rowOrColInfo name="AllHighValue">
       <filter varType="bool">
         <variableName>HighValue</variableName>
         <operation>EQ</operation>
         <value>true</value>
-      </filter>
-    </rowOrColInfo>
-    <rowOrColInfo name="FirstTriesHighValue">
-      <filter varType="bool">
-        <variableName>HighValue</variableName>
-        <operation>EQ</operation>
-        <value>true</value>
-      </filter>
-      <filter varType="bool">
-        <variableName>MainInventorTries</variableName>
-        <operation>EQ</operation>
-        <value>true</value>
-      </filter>
-    </rowOrColInfo>
-    <rowOrColInfo name="SomeoneTriesHighValue">
-      <filter varType="bool">
-        <variableName>HighValue</variableName>
-        <operation>EQ</operation>
-        <value>true</value>
-      </filter>
-      <filter varType="bool">
-        <variableName>SomeoneTries</variableName>
-        <operation>EQ</operation>
-        <value>true</value>
-      </filter>
-    </rowOrColInfo>
-    <rowOrColInfo name="NooneTriesHighValue">
-      <filter varType="bool">
-        <variableName>HighValue</variableName>
-        <operation>EQ</operation>
-        <value>true</value>
-      </filter>
-      <filter varType="bool">
-        <variableName>SomeoneTries</variableName>
-        <operation>EQ</operation>
-        <value>false</value>
       </filter>
     </rowOrColInfo>
     <rowOrColInfo name="InventionOccursHighValue">
@@ -113,54 +70,6 @@
         <value>true</value>
       </filter>
     </rowOrColInfo>
-    <rowOrColInfo name="InadvertentHighValue">
-      <filter varType="bool">
-        <variableName>HighValue</variableName>
-        <operation>EQ</operation>
-        <value>true</value>
-      </filter>
-      <filter varType="bool">
-        <variableName>InadvertentInfringement</variableName>
-        <operation>EQ</operation>
-        <value>true</value>
-      </filter>
-    </rowOrColInfo>
-    <rowOrColInfo name="AgreementReachedHighValue">
-      <filter varType="bool">
-        <variableName>HighValue</variableName>
-        <operation>EQ</operation>
-        <value>true</value>
-      </filter>
-      <filter varType="bool">
-        <variableName>AgreementReached</variableName>
-        <operation>EQ</operation>
-        <value>true</value>
-      </filter>
-    </rowOrColInfo>
-    <rowOrColInfo name="IntentionalInfringementHighValue">
-      <filter varType="bool">
-        <variableName>HighValue</variableName>
-        <operation>EQ</operation>
-        <value>true</value>
-      </filter>
-      <filter varType="bool">
-        <variableName>IntentionalInfringement</variableName>
-        <operation>EQ</operation>
-        <value>true</value>
-      </filter>
-    </rowOrColInfo>
-    <rowOrColInfo name="InventionUsedHighValue">
-      <filter varType="bool">
-        <variableName>HighValue</variableName>
-        <operation>EQ</operation>
-        <value>true</value>
-      </filter>
-      <filter varType="bool">
-        <variableName>InventionUsed</variableName>
-        <operation>EQ</operation>
-        <value>true</value>
-      </filter>
-    </rowOrColInfo>
   </rowOrColGroup>
   <rowOrColGroup name="PatentDamagesColumns">
     <rowOrColInfo name="Total" statistic="COUNT" />
@@ -169,19 +78,19 @@
     <rowOrColInfo name="MainSpendM" variableName="MainInventorSpendMultiple" statistic="MEAN" />
     <rowOrColInfo name="TotSpend" variableName="TotalSpendingIncludingEntry" statistic="MEAN" />
     <rowOrColInfo name="AvgInv" variableName="AverageSpendingOfTriers" statistic="MEAN" />
-    
+
     <rowOrColInfo name="ISP" variableName="InventorSetPrice" statistic="MEAN" />
     <rowOrColInfo name="CSP" variableName="CourtSetPrice" statistic="MEAN" />
     <rowOrColInfo name="UAP" variableName="UserAnticipatedPrice" statistic="MEAN" />
     <rowOrColInfo name="PropUsing" variableName="ProportionUsingProduct" statistic="MEAN" />
     <rowOrColInfo name="PropInt" variableName="ProportionIntentionallyInfringing" statistic="MEAN" />
     <rowOrColInfo name="PropInad" variableName="ProportionInadvertentlyInfringing" statistic="MEAN" />
-    
+
     <rowOrColInfo name="PUB" variableName="AverageGrossUserBenefit" statistic="MEAN" />
     <rowOrColInfo name="PUC" variableName="AverageUserCost" statistic="MEAN" />
     <rowOrColInfo name="PUR" variableName="PerUserReceipts" statistic="MEAN" />
     <rowOrColInfo name="TotRec" variableName="TotalReceipts" statistic="MEAN" />
-    
+
     <rowOrColInfo name="DelInvUt" variableName="DeltaInventorsUtility" statistic="MEAN" />
     <rowOrColInfo name="MainInvUt" variableName="MainInventorUtility" statistic="MEAN" />
     <rowOrColInfo name="UserUt" variableName="UserUtility" statistic="MEAN" />

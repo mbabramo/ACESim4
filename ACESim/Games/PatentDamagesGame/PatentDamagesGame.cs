@@ -323,9 +323,15 @@ namespace ACESim
             {
                 awareUsersResults = GetResultsBasedOnPrice_IntentionalInfringement((double)PDProg.UserAnticipatedPrice, (double)PDProg.CourtSetPrice);
                 PDProg.ProportionIntentionallyInfringing = awareUsersResults.ProportionUsingProduct;
+                if (PDProg.ProportionIntentionallyInfringing > 0 && PDInputs.InadvertentInfringementProbability != 1.0)
+                    PDProg.SomeIntentionalInfringement = true;
             }
             else if (priceAcceptableToSome)
+            {
                 awareUsersResults = GetResultsBasedOnPrice_AssumingAgreement((double)PDProg.InventorSetPrice);
+                if (awareUsersResults.ProportionUsingProduct > 0 && PDInputs.InadvertentInfringementProbability != 1.0)
+                    PDProg.SomeUsersPay = true;
+            }
             else
                 awareUsersResults = GetResultsBasedOnPrice_NoUse();
             awareUsersResults.SetPopulationProportion(1.0 - PDInputs.InadvertentInfringementProbability);
@@ -473,6 +479,7 @@ namespace ACESim
 
             // Let p = price as a proportion of the maximum valuation V. Revenues = (1 - p) * pV = pV - p^2*V. This is maximized at p = 0.5 when marginal cost is zero. So, for valuation-based damages, we assume that the inventor chooses 0.5 * the inventor's estimate of maximum user's valuation. 
             double permittedPriceStandardDamages = highestInventionValueEstimate / 2.0;
+            double anticipatedRevenuesStandardDamages = (1 - 0.5) * 0.5 * highestInventionValueEstimate;
             if (PDInputs.WeightOnCostPlusDamages == 0)
                 return permittedPriceStandardDamages;
             
@@ -489,10 +496,14 @@ namespace ACESim
                 riskAdjustedInventionSpending = inventionCost / PDInputs.SuccessProbabilityMinimumInvestment;
             }
             double permissibleRecovery = (riskAdjustedEntrySpending + riskAdjustedInventionSpending) * (1.0 + PDInputs.PermittedRateOfReturn);
-
-            // Now, we calculate the proportion of maximum invention value that we would need to get this permissible recovery. Continuing with the equations above, we can set pV - p^2*V = X, where X is the maximum cost recovery. We need solutions in p to -Vp^2 + Vp - X = 0. If there are two positive solutions (we could recover the amount with a tiny amount of users or with a lot of users), we take the lower price.
-            double proportionOfMaxHighestInventionValue = GetSmallerPositiveSolutionToQuadraticEquation(0 - highestInventionValueEstimate, highestInventionValueEstimate, 0 - permissibleRecovery);
-            double permittedPriceCostPlusDamages = highestInventionValueEstimate * proportionOfMaxHighestInventionValue;
+            double proportionOfHighestInventionValue;
+            if (anticipatedRevenuesStandardDamages <= permissibleRecovery)
+                proportionOfHighestInventionValue = permittedPriceStandardDamages;
+            else
+                // Now, we calculate the proportion of maximum invention value that we would need to get this permissible recovery. Continuing with the equations above, we can set pV - p^2*V = X, where X is the maximum cost recovery. We need solutions in p to -Vp^2 + Vp - X = 0. If there are two positive solutions (we could recover the amount with a tiny amount of users or with a lot of users), we take the lower price.
+                proportionOfHighestInventionValue = GetSmallerPositiveSolutionToQuadraticEquation(0 - highestInventionValueEstimate, highestInventionValueEstimate, 0 - permissibleRecovery);
+            double permittedPriceCostPlusDamages = highestInventionValueEstimate * proportionOfHighestInventionValue;
+            double anticipatedRevenuesCostPlusDamages = (1 - proportionOfHighestInventionValue) * proportionOfHighestInventionValue * highestInventionValueEstimate; // should be less than or approx equal to permissible recovery
 
             double weight = PDInputs.WeightOnCostPlusDamages;
             return weight * permittedPriceCostPlusDamages + (1 - weight) * permittedPriceStandardDamages;

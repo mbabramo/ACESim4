@@ -39,6 +39,8 @@ namespace ACESim
         public double ProportionUsingProduct;
         public double ProportionIntentionallyInfringing;
         public double ProportionInadvertentlyInfringing;
+        public bool SomeIntentionalInfringement;
+        public bool SomeUsersPay;
         public double? AverageGrossUserBenefit;
         public double? AverageUserCost;
         public double? PerUserReceipts;
@@ -82,6 +84,10 @@ namespace ACESim
             copy.CourtSetPrice = CourtSetPrice;
             copy.UserAnticipatedPrice = UserAnticipatedPrice;
             copy.ProportionUsingProduct = ProportionUsingProduct;
+            copy.ProportionIntentionallyInfringing = ProportionIntentionallyInfringing;
+            copy.ProportionInadvertentlyInfringing = ProportionInadvertentlyInfringing;
+            copy.SomeIntentionalInfringement = SomeIntentionalInfringement;
+            copy.SomeUsersPay = SomeUsersPay;
             copy.AverageGrossUserBenefit = AverageGrossUserBenefit;
             copy.AverageUserCost = AverageUserCost;
             copy.PerUserReceipts = PerUserReceipts;
