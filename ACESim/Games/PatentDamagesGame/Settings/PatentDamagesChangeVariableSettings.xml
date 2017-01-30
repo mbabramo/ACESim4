@@ -113,7 +113,7 @@
         <defineVariable findString="$CostOfMinimumInvestmentBaselineMin" replaceString="0.00"/>
         <defineVariable findString="$CostOfMinimumInvestmentBaselineMax" replaceString="0.10"/>
       </defineVariableAlternative>
-      <defineVariableAlternative name="clow">
+      <defineVariableAlternative name="clow" star="true">
         <defineVariable findString="$CostOfMinimumInvestmentBaselineMin" replaceString="0.00"/>
         <defineVariable findString="$CostOfMinimumInvestmentBaselineMax" replaceString="0.05"/>
       </defineVariableAlternative>
