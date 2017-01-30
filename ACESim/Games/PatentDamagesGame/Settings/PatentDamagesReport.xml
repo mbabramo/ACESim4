@@ -51,6 +51,13 @@
         <value>0</value>
       </filter>
     </rowOrColInfo>
+    <rowOrColInfo name="MainInventorLoses">
+      <filter varType="bool">
+        <variableName>MainInventorLoses</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+    </rowOrColInfo>
     <rowOrColInfo name="AllHighValue">
       <filter varType="bool">
         <variableName>HighValue</variableName>
@@ -82,7 +89,7 @@
     <rowOrColInfo name="ISP" variableName="InventorSetPrice" statistic="MEAN" />
     <rowOrColInfo name="CSP" variableName="CourtSetPrice" statistic="MEAN" />
     <rowOrColInfo name="UAP" variableName="UserAnticipatedPrice" statistic="MEAN" />
-    <rowOrColInfo name="PropUsing" variableName="ProportionUsingProduct" statistic="MEAN" />
+    <rowOrColInfo name="PropUsing" variableName="ProportionAgreeingOnPrice" statistic="MEAN" />
     <rowOrColInfo name="PropInt" variableName="ProportionIntentionallyInfringing" statistic="MEAN" />
     <rowOrColInfo name="PropInad" variableName="ProportionInadvertentlyInfringing" statistic="MEAN" />
 

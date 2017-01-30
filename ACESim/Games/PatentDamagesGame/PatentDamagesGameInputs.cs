@@ -97,6 +97,10 @@ namespace ACESim
         /// </summary>
         public double WeightOnCostPlusDamages;
         /// <summary>
+        /// If true, the damages are the lesser of standard and cost-plus damages (so the weighting variable is ignored).
+        /// </summary>
+        internal bool DamagesAreLesserOfTwoApproaches;
+        /// <summary>
         /// A damages multiplier for intentional infringement. A multiplier of 1 means that there is no extra penalty for intentional infringement.
         /// </summary>
         public double DamagesMultiplierForIntentionalInfringement;
@@ -117,9 +121,12 @@ namespace ACESim
         /// </summary>
         public bool SociallyOptimalSpending;
         /// <summary>
+        /// If true, then we will calculate whether the inventor should try based on a comparison of costs and the highest invention value. This is valid (and preferable to neural networks, which won't do well when there is expected to be a very small benefit with perfect information) under certain assumptions, such as perfect information and cost-plus damages with expected costs.
+        /// </summary>
+        public bool UseExactCalculationForTryDecision;
+        /// <summary>
         /// Information specific to each inventor.
         /// </summary>
         public AllInventorsInfo AllInventorsInfo;
-        
     }
 }

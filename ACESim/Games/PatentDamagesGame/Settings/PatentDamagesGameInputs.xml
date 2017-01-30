@@ -61,11 +61,13 @@
         <setting type="double" name="toVal">1.0</setting>
       </setting>
       <setting type="double" name="WeightOnCostPlusDamages">$WeightOnCostPlusDamages</setting>
+      <setting type="bool" name="DamagesAreLesserOfTwoApproaches">$DamagesAreLesserOfTwoApproaches</setting>
       <setting type="double" name="DamagesMultiplierForIntentionalInfringement">$DamagesMultiplierForIntentionalInfringement</setting>
       <setting type="bool" name="CombineInventorsForCostPlus">$CombineInventorsForCostPlus</setting>
       <setting type="bool" name="UseExpectedCostForCostPlus">$UseExpectedCostForCostPlus</setting>
       <setting type="bool" name="ExpectedCostIsSpecificToInventor">$ExpectedCostIsSpecificToInventor</setting>
       <setting type="bool" name="SociallyOptimalSpending">$SociallyOptimalSpending</setting>
+      <setting type="bool" name="UseExactCalculationForTryDecision">$UseExactCalculationForTryDecision</setting>
       <setting name="AllInventorsInfo" type="class">
         <insertTemplate name="InventorInfoTemplate" find1="InventorXX" replace1="Inventor00"/>
         <insertTemplate name="InventorInfoTemplate" find1="InventorXX" replace1="Inventor01"/>

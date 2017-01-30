@@ -14,7 +14,6 @@ namespace ACESim
         public bool MainInventorEnters;
         public bool SomeoneEnters;
         public int NumberEntrants;
-        public double ForecastAfterEntry; 
         public List<bool> InventorTryToInventDecisions;
         public bool MainInventorTries;
         public bool SomeoneTries;
@@ -35,7 +34,7 @@ namespace ACESim
         public double? InventorSetPrice;
         public double? CourtSetPrice;
         public double? UserAnticipatedPrice;
-        public double ProportionUsingProduct;
+        public double ProportionAgreeingOnPrice;
         public double ProportionIntentionallyInfringing;
         public double ProportionInadvertentlyInfringing;
         public bool SomeIntentionalInfringement;
@@ -51,6 +50,7 @@ namespace ACESim
         public double UserUtility;
         public double SocialWelfare;
         public double PrivateWelfare;
+        public bool MainInventorLoses;
 
         public override GameProgress DeepCopy()
         {
@@ -61,7 +61,6 @@ namespace ACESim
             copy.MainInventorEnters = MainInventorEnters;
             copy.SomeoneEnters = SomeoneEnters;
             copy.NumberEntrants = NumberEntrants;
-            copy.ForecastAfterEntry = ForecastAfterEntry;
             copy.InventorTryToInventDecisions = InventorTryToInventDecisions == null ? null : InventorTryToInventDecisions.ToList();
             copy.MainInventorTries = MainInventorTries;
             copy.SomeoneTries = SomeoneTries;
@@ -81,7 +80,7 @@ namespace ACESim
             copy.InventorSetPrice = InventorSetPrice;
             copy.CourtSetPrice = CourtSetPrice;
             copy.UserAnticipatedPrice = UserAnticipatedPrice;
-            copy.ProportionUsingProduct = ProportionUsingProduct;
+            copy.ProportionAgreeingOnPrice = ProportionAgreeingOnPrice;
             copy.ProportionIntentionallyInfringing = ProportionIntentionallyInfringing;
             copy.ProportionInadvertentlyInfringing = ProportionInadvertentlyInfringing;
             copy.SomeIntentionalInfringement = SomeIntentionalInfringement;
@@ -96,7 +95,7 @@ namespace ACESim
             copy.UserUtility = UserUtility;
             copy.SocialWelfare = SocialWelfare;
             copy.PrivateWelfare = PrivateWelfare;
-
+            copy.MainInventorLoses = MainInventorLoses;
 
             copy.GameComplete = this.GameComplete;
 
