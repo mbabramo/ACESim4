@@ -15,7 +15,7 @@
     <defineVariable findString="$MaxIterations" replaceString="25000" />
     <defineVariable findString="$RepetitionsOfEntireSmoothingProcess" replaceString="5" />
     <defineVariable findString="$NumberPointsInCumulativeDistribution" replaceString="31" />
-    <defineVariable findString="$SmoothingOptionSet" replaceString="GRNNSmoothingOptionsFast" />
+    <defineVariable findString="$SmoothingOptionSet" replaceString="GRNNSmoothingOptionsFastest" />
     <!--<defineVariable findString="$SmoothingOptionSet" replaceString="GRNNSmoothingOptionsFastest" />-->
     <!--<defineVariable findString="$SmoothingOptionSet" replaceString="GRNNSmoothingOptions" />-->
     <!--<defineVariable findString="$SmoothingOptionSet" replaceString="GRNNSmoothingOptionsFiveNeighbors" />-->
