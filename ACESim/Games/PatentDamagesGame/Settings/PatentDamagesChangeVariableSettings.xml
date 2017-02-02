@@ -6,25 +6,17 @@
         <defineVariable findString="$MaxNumEntrants" replaceString="10"/>
         <defineVariable findString="$MaxRepetitionsNumEntrantsEvolution" replaceString="9999"/>
       </defineVariableAlternative>
-      <!--<defineVariableAlternative name="sin" star="true">
+      <defineVariableAlternative name="sin" star="true">
         <defineVariable findString="$MaxNumEntrants" replaceString="1"/>
         <defineVariable findString="$MaxRepetitionsNumEntrantsEvolution" replaceString="0"/>
-      </defineVariableAlternative>-->
+      </defineVariableAlternative>
     </defineVariableAlternatives>
     <defineVariableAlternatives name="costplus">
-      <!--<defineVariableAlternative name="cpno" star="true">
+      <defineVariableAlternative name="cpno" star="true">
         <defineVariable findString="$WeightOnCostPlusDamages" replaceString="0"/>
         <defineVariable findString="$DamagesAreLesserOfTwoApproaches" replaceString="false"/>
-      </defineVariableAlternative>-->
-      <defineVariableAlternative name="cp010" >
-        <defineVariable findString="$WeightOnCostPlusDamages" replaceString="1.0"/>
-        <defineVariable findString="$MarketRateOfReturn" replaceString="0.00"/>
-        <defineVariable findString="$PermittedRateOfReturn" replaceString="0.1"/>
-        <defineVariable findString="$DamagesAreLesserOfTwoApproaches" replaceString="false"/>
-        <defineVariable findString="$CombineInventorsForCostPlus" replaceString="false"/>
-        <defineVariable findString="$UseExpectedCostForCostPlus" replaceString="false"/>
       </defineVariableAlternative>
-      <defineVariableAlternative name="cp025" star="true">
+      <defineVariableAlternative name="cp025">
         <defineVariable findString="$WeightOnCostPlusDamages" replaceString="1.0"/>
         <defineVariable findString="$MarketRateOfReturn" replaceString="0.00"/>
         <defineVariable findString="$PermittedRateOfReturn" replaceString="0.25"/>
@@ -32,23 +24,47 @@
         <defineVariable findString="$CombineInventorsForCostPlus" replaceString="false"/>
         <defineVariable findString="$UseExpectedCostForCostPlus" replaceString="false"/>
       </defineVariableAlternative>
-      <defineVariableAlternative name="cp100" >
+      <defineVariableAlternative name="cp125" >
         <defineVariable findString="$WeightOnCostPlusDamages" replaceString="1.0"/>
         <defineVariable findString="$MarketRateOfReturn" replaceString="0.00"/>
-        <defineVariable findString="$PermittedRateOfReturn" replaceString="2.0"/>
+        <defineVariable findString="$PermittedRateOfReturn" replaceString="1.25"/>
         <defineVariable findString="$DamagesAreLesserOfTwoApproaches" replaceString="false"/>
         <defineVariable findString="$CombineInventorsForCostPlus" replaceString="false"/>
         <defineVariable findString="$UseExpectedCostForCostPlus" replaceString="false"/>
       </defineVariableAlternative>
-      <defineVariableAlternative name="cp200" >
+      <defineVariableAlternative name="cp225" star="true">
         <defineVariable findString="$WeightOnCostPlusDamages" replaceString="1.0"/>
         <defineVariable findString="$MarketRateOfReturn" replaceString="0.00"/>
-        <defineVariable findString="$PermittedRateOfReturn" replaceString="5.0"/>
+        <defineVariable findString="$PermittedRateOfReturn" replaceString="2.25"/>
         <defineVariable findString="$DamagesAreLesserOfTwoApproaches" replaceString="false"/>
         <defineVariable findString="$CombineInventorsForCostPlus" replaceString="false"/>
         <defineVariable findString="$UseExpectedCostForCostPlus" replaceString="false"/>
       </defineVariableAlternative>
-      <defineVariableAlternative name="cpmin">
+      <defineVariableAlternative name="cp325">
+        <defineVariable findString="$WeightOnCostPlusDamages" replaceString="1.0"/>
+        <defineVariable findString="$MarketRateOfReturn" replaceString="0.00"/>
+        <defineVariable findString="$PermittedRateOfReturn" replaceString="3.25"/>
+        <defineVariable findString="$DamagesAreLesserOfTwoApproaches" replaceString="false"/>
+        <defineVariable findString="$CombineInventorsForCostPlus" replaceString="false"/>
+        <defineVariable findString="$UseExpectedCostForCostPlus" replaceString="false"/>
+      </defineVariableAlternative>
+      <defineVariableAlternative name="cp425">
+        <defineVariable findString="$WeightOnCostPlusDamages" replaceString="1.0"/>
+        <defineVariable findString="$MarketRateOfReturn" replaceString="0.00"/>
+        <defineVariable findString="$PermittedRateOfReturn" replaceString="4.25"/>
+        <defineVariable findString="$DamagesAreLesserOfTwoApproaches" replaceString="false"/>
+        <defineVariable findString="$CombineInventorsForCostPlus" replaceString="false"/>
+        <defineVariable findString="$UseExpectedCostForCostPlus" replaceString="false"/>
+      </defineVariableAlternative>
+      <defineVariableAlternative name="cp525" >
+        <defineVariable findString="$WeightOnCostPlusDamages" replaceString="1.0"/>
+        <defineVariable findString="$MarketRateOfReturn" replaceString="0.00"/>
+        <defineVariable findString="$PermittedRateOfReturn" replaceString="5.25"/>
+        <defineVariable findString="$DamagesAreLesserOfTwoApproaches" replaceString="false"/>
+        <defineVariable findString="$CombineInventorsForCostPlus" replaceString="false"/>
+        <defineVariable findString="$UseExpectedCostForCostPlus" replaceString="false"/>
+      </defineVariableAlternative>
+      <!--<defineVariableAlternative name="cpmin200">
         <defineVariable findString="$DamagesAreLesserOfTwoApproaches" replaceString="true"/>
         <defineVariable findString="$MarketRateOfReturn" replaceString="0.00"/>
         <defineVariable findString="$PermittedRateOfReturn" replaceString="2.0"/>
@@ -78,7 +94,7 @@
         <defineVariable findString="$PermittedRateOfReturn" replaceString="2.0"/>
         <defineVariable findString="$CombineInventorsForCostPlus" replaceString="true"/>
         <defineVariable findString="$UseExpectedCostForCostPlus" replaceString="false"/>
-      </defineVariableAlternative>
+      </defineVariableAlternative>-->
     </defineVariableAlternatives>
     <defineVariableAlternatives name="inadv">
       <defineVariableAlternative name="noinadv" star="true">
