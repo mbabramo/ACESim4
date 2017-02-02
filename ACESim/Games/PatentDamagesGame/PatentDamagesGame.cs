@@ -33,16 +33,6 @@ namespace ACESim
                 case (int)PatentDamagesDecision.Enter:
                     MakeEntryDecisions();
                     break;
-                case (int)PatentDamagesDecision.TryToInvent:
-                    MakeTryToInventDecisions();
-                    if (CurrentlyEvolving && !PreparationPhase && !PDProg.MainInventorTries)
-                    { // game is effectively complete; we don't care who else is trying because it's irrelevant to evolution. So, let's speed to end of game now.
-                        for (int i = 0; i < PDProg.InventorTryToInventDecisions.Count(); i++)
-                            PDProg.InventorTryToInventDecisions[i] = false;
-                        MakeSpendDecisions();
-                        ConcludeGame();
-                    }
-                    break;
                 case (int)PatentDamagesDecision.Spend:
                     MakeSpendDecisions();
                     if (!PreparationPhase)
@@ -55,6 +45,7 @@ namespace ACESim
 
         private void ConcludeGame()
         {
+            CalculateSuccessProbabilities();
             IdentifyPatentWinner();
             DetermineWelfareEffects();
             DoScoring();
@@ -86,7 +77,7 @@ namespace ACESim
                 return;
             }
             int numEntering;
-            if (CurrentlyEvolving && (CurrentlyEvolvingDecisionIndex == (int)PatentDamagesDecision.TryToInvent || CurrentlyEvolvingDecisionIndex == (int)PatentDamagesDecision.Spend))
+            if (CurrentlyEvolving && (CurrentlyEvolvingDecisionIndex == (int)PatentDamagesDecision.Spend))
                 numEntering = 1; // we always want to evolve the decision to try and the decision to spend with a maximum of 1 inventor. Then, when we're evolving this decision (number of entrants), we make sure that there are enough entering to eliminate profits. 
             else
             {
@@ -107,7 +98,7 @@ namespace ACESim
             PDProg.SomeoneEnters = PDProg.InventorEntryDecisions.Any(x => x == true);
         }
 
-        private void MakeTryToInventDecisions()
+        private void MakeSpendDecisions()
         {
             if (PreparationPhase)
             {
@@ -115,14 +106,24 @@ namespace ACESim
                 return;
             }
             PDProg.InventorTryToInventDecisions = new List<bool>();
-            PDProg.MainInventorTries = PDProg.MainInventorEnters && MakeDecision() > 0;
-            if (!CurrentlyEvolving || CurrentlyEvolvingDecisionIndex != (int)PatentDamagesDecision.TryToInvent)
+            PDProg.InventorSpendDecisions = new List<double>();
+            double mainInventorRawDecision = MakeDecision();
+            double mainInventorSpendMultiple = mainInventorRawDecision >= 1.0 ? mainInventorRawDecision : 0; // must commit to at least minimum spend multiple to try at all
+            PDProg.MainInventorTries = PDProg.MainInventorEnters && mainInventorSpendMultiple > 0;
+            PDProg.MainInventorSpendMultiple = mainInventorSpendMultiple;
+            double mainInventorSpendLevel = mainInventorSpendMultiple * PDInputs.CostOfMinimumInvestmentBaseline * MainInventorInfo.CostOfMinimumInvestmentMultiplier;
+            PDProg.InventorSpendDecisions.Add(mainInventorSpendLevel);
+            if (!CurrentlyEvolving || CurrentlyEvolvingDecisionIndex != (int)PatentDamagesDecision.Spend)
             {
                 if (PDInputs.UseExactCalculationForTryDecision)
+                {
                     PDProg.MainInventorTries = PDInputs.CostOfMinimumInvestmentBaseline * MainInventorInfo.CostOfMinimumInvestmentMultiplier * 4.0 < PDInputs.HighestInventionValue; // special override, since neural networks won't work well for goldilocks scenario
+                    if (!PDProg.MainInventorTries)
+                        PDProg.InventorSpendDecisions[0] = 0;
+                }
             }
             PDProg.InventorTryToInventDecisions.Add(PDProg.MainInventorTries);
-            var strategy = Strategies[(int)PatentDamagesDecision.TryToInvent];
+            var strategy = Strategies[(int)PatentDamagesDecision.Spend];
             int inventor = 1;
             foreach (var inventorInfo in PDInputs.AllInventorsInfo.InventorsNotBeingOptimized())
             {
@@ -130,49 +131,25 @@ namespace ACESim
                     PDProg.InventorTryToInventDecisions.Add(false);
                 else
                 {
-                    double otherInventorTryToInventDecision = strategy.Calculate(new List<double> { PDInputs.CostOfMinimumInvestmentBaseline, inventorInfo.CostOfMinimumInvestmentMultiplier, PDProg.InventorEstimatesHighestInventionValue[inventor] }, this);
-                    PDProg.InventorTryToInventDecisions.Add(otherInventorTryToInventDecision > 0);
+                    double otherInventorRawDecision = strategy.Calculate(new List<double> { PDInputs.CostOfMinimumInvestmentBaseline, inventorInfo.CostOfMinimumInvestmentMultiplier, PDProg.InventorEstimatesHighestInventionValue[inventor] }, this);
+                    double otherInventorSpendMultiple = otherInventorRawDecision >= 1.0 ? otherInventorRawDecision : 0; // must commit to at least minimum spend multiple to try at all
+                    bool otherInventorTries = otherInventorSpendMultiple > 0;
+                    double otherInventorSpendLevel = otherInventorSpendMultiple * PDInputs.CostOfMinimumInvestmentBaseline * inventorInfo.CostOfMinimumInvestmentMultiplier;
+                    PDProg.InventorTryToInventDecisions.Add(otherInventorTries);
+                    PDProg.InventorSpendDecisions.Add(otherInventorSpendLevel);
                 }
                 inventor++;
             }
             PDProg.SomeoneTries = PDProg.InventorTryToInventDecisions.Any(x => x == true);
             PDProg.NumberTrying = PDProg.InventorTryToInventDecisions.Count(x => x == true);
-
-        }
-
-        private void MakeSpendDecisions()
-        {
-            if (PreparationPhase)
-            {
-                if (CurrentlyEvolving && !PDProg.MainInventorTries)
-                    return;
-                GetDecisionInputs();
-                return;
-            }
-            PDProg.InventorSpendDecisions = new List<double>();
-            double mainInventorSpend = PDProg.MainInventorTries ? MakeDecision() : 0;
-            PDProg.MainInventorSpendMultiple = mainInventorSpend;
-            mainInventorSpend *= PDInputs.CostOfMinimumInvestmentBaseline * MainInventorInfo.CostOfMinimumInvestmentMultiplier;
-            PDProg.InventorSpendDecisions.Add(mainInventorSpend);
-            var strategy = Strategies[(int)PatentDamagesDecision.Spend];
-            int inventor = 1;
-            foreach (var inventorInfo in PDInputs.AllInventorsInfo.InventorsNotBeingOptimized())
-            {
-                if (!PDProg.InventorTryToInventDecisions[inventor])
-                    PDProg.InventorSpendDecisions.Add(0);
-                else
-                {
-                    double otherInventorSpendDecision = strategy.Calculate(new List<double> { PDInputs.CostOfMinimumInvestmentBaseline, inventorInfo.CostOfMinimumInvestmentMultiplier, PDProg.InventorEstimatesHighestInventionValue[inventor] }, this);
-                    otherInventorSpendDecision *= PDInputs.CostOfMinimumInvestmentBaseline * inventorInfo.CostOfMinimumInvestmentMultiplier;
-                    PDProg.InventorSpendDecisions.Add(otherInventorSpendDecision);
-                }
-                inventor++;
-            }
-
             var totalSpending = PDProg.InventorSpendDecisions.Sum();
             PDProg.AverageSpendingOfTriers = totalSpending / (double)PDProg.NumberTrying;
             PDProg.TotalSpending = totalSpending;
 
+        }
+
+        private void CalculateSuccessProbabilities()
+        {
             // Calculate the probability that each inventor wins the patent
             PDProg.ProbabilityInventingSuccessfully = new double[PDProg.NumberEntrants];
             double curvature = GetCurvature;
@@ -542,13 +519,7 @@ namespace ACESim
             base.Score((int)PatentDamagesDecision.Enter, squaredDifference); // we're minimizing profits
             if (PDProg.MainInventorEnters)
             {
-                Score((int)PatentDamagesDecision.TryToInvent,  PDProg.MainInventorUtility);
-                if (PDProg.MainInventorTries)
-                {
-                    Score((int)PatentDamagesDecision.Spend, PDInputs.SociallyOptimalSpending ? PDProg.SocialWelfare : PDProg.MainInventorUtility);
-                    //double investmentSuccessMeasure = (PDProg.ForecastAfterInvestment - successNumber) * (PDProg.ForecastAfterInvestment - successNumber); // we must square this, so that we're minimizing the square. That ensures an unbiased estimtae
-                    //Score((int)PatentDamagesDecision.SuccessProbabilityAfterInvestment, PDProg.MainInventorUtility);
-                }
+                Score((int)PatentDamagesDecision.Spend, PDInputs.SociallyOptimalSpending ? PDProg.SocialWelfare : PDProg.MainInventorUtility);
             }
         }
 
@@ -565,7 +536,6 @@ namespace ACESim
                 case (int)PatentDamagesDecision.Enter:
                     inputs = new double[] { };
                     break;
-                case (int)PatentDamagesDecision.TryToInvent:
                 case (int)PatentDamagesDecision.Spend:
                     inputs = new double[] { PDInputs.CostOfMinimumInvestmentBaseline, MainInventorInfo.CostOfMinimumInvestmentMultiplier, PDProg.InventorEstimatesHighestInventionValue.First() };
                     break;
@@ -584,8 +554,6 @@ namespace ACESim
             {
                 case (int)PatentDamagesDecision.Enter:
                     return 1.0; // assume just one entrant
-                case (int)PatentDamagesDecision.TryToInvent:
-                    return 1.0;
                 case (int)PatentDamagesDecision.Spend:
                     return 1.0;
                 default:
