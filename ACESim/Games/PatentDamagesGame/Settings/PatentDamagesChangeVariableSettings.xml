@@ -22,7 +22,7 @@
         <defineVariable findString="$WeightOnCostPlusDamages" replaceString="0"/>
         <defineVariable findString="$DamagesAreLesserOfTwoApproaches" replaceString="false"/>
       </defineVariableAlternative>
-      <defineVariableAlternative name="cpmin" star="true">
+      <defineVariableAlternative name="cpmin">
         <defineVariable findString="$DamagesAreLesserOfTwoApproaches" replaceString="true"/>
         <defineVariable findString="$CombineInventorsForCostPlus" replaceString="false"/>
         <defineVariable findString="$UseExpectedCostForCostPlus" replaceString="false"/>
@@ -51,33 +51,37 @@
       <defineVariableAlternative name="noinadv" star="true">
         <defineVariable findString="$InadvertentInfringementProbability" replaceString="0.0"/>
       </defineVariableAlternative>
-      <defineVariableAlternative name="someinadv">
+      <!--<defineVariableAlternative name="someinadv">
         <defineVariable findString="$InadvertentInfringementProbability" replaceString="0.10"/>
       </defineVariableAlternative>
       <defineVariableAlternative name="allinadv">
         <defineVariable findString="$InadvertentInfringementProbability" replaceString="1.0"/>
-      </defineVariableAlternative>
+      </defineVariableAlternative>-->
     </defineVariableAlternatives>
     <defineVariableAlternatives name="dammult">
       <defineVariableAlternative name="nomult" star="true">
         <defineVariable findString="$DamagesMultiplierForIntentionalInfringement" replaceString="1.0"/>
       </defineVariableAlternative>
-      <defineVariableAlternative name="tripdam">
+      <!--<defineVariableAlternative name="tripdam">
         <defineVariable findString="$DamagesMultiplierForIntentionalInfringement" replaceString="3.0"/>
-      </defineVariableAlternative>
+      </defineVariableAlternative>-->
     </defineVariableAlternatives>
     <defineVariableAlternatives name="return">
-      <defineVariableAlternative name="stdret" star="true">
+      <!--<defineVariableAlternative name="stdret" star="true">
         <defineVariable findString="$MarketRateOfReturn" replaceString="0.0"/>
         <defineVariable findString="$PermittedRateOfReturn" replaceString="0.10"/>
       </defineVariableAlternative>
       <defineVariableAlternative name="noextra">
         <defineVariable findString="$MarketRateOfReturn" replaceString="0.05"/>
         <defineVariable findString="$PermittedRateOfReturn" replaceString="0.05"/>
-      </defineVariableAlternative>
-      <defineVariableAlternative name="bigret" star="true">
+      </defineVariableAlternative>-->
+      <!--<defineVariableAlternative name="bigret" star="true">
         <defineVariable findString="$MarketRateOfReturn" replaceString="0.00"/>
         <defineVariable findString="$PermittedRateOfReturn" replaceString="0.25"/>
+      </defineVariableAlternative>-->
+      <defineVariableAlternative name="hugeret2" star="true">
+        <defineVariable findString="$MarketRateOfReturn" replaceString="0.00"/>
+        <defineVariable findString="$PermittedRateOfReturn" replaceString="1.00"/>
       </defineVariableAlternative>
     </defineVariableAlternatives>
     <defineVariableAlternatives name="sprob">
@@ -86,6 +90,12 @@
         <defineVariable findString="$SuccessProbabilityDoubleInvestment" replaceString="0.45"/>
         <defineVariable findString="$SuccessProbabilityTenTimesInvestment" replaceString="0.90"/>
       </defineVariableAlternative>
+      <defineVariableAlternative name="flatp" star="true">
+        <defineVariable findString="$SuccessProbabilityMinimumInvestment" replaceString="0.35"/>
+        <defineVariable findString="$SuccessProbabilityDoubleInvestment" replaceString="0.38"/>
+        <defineVariable findString="$SuccessProbabilityTenTimesInvestment" replaceString="0.50"/>
+      </defineVariableAlternative>
+      <!--
       <defineVariableAlternative name="easy">
         <defineVariable findString="$SuccessProbabilityMinimumInvestment" replaceString="0.95"/>
         <defineVariable findString="$SuccessProbabilityDoubleInvestment" replaceString="0.96"/>
@@ -95,28 +105,29 @@
         <defineVariable findString="$SuccessProbabilityMinimumInvestment" replaceString="0.15"/>
         <defineVariable findString="$SuccessProbabilityDoubleInvestment" replaceString="0.18"/>
         <defineVariable findString="$SuccessProbabilityTenTimesInvestment" replaceString="0.30"/>
-      </defineVariableAlternative>
+      </defineVariableAlternative>-->
     </defineVariableAlternatives>
     <defineVariableAlternatives name="inois">
       <defineVariableAlternative name="inoisst" star="true">
         <defineVariable findString="$HighestInventionValueNoiseStdev" replaceString="0.10"/>
       </defineVariableAlternative>
+      <!--
       <defineVariableAlternative name="inois0">
         <defineVariable findString="$HighestInventionValueNoiseStdev" replaceString="0.0"/>
       </defineVariableAlternative>
       <defineVariableAlternative name="inoishi">
         <defineVariable findString="$HighestInventionValueNoiseStdev" replaceString="0.20"/>
-      </defineVariableAlternative>
+      </defineVariableAlternative>-->
     </defineVariableAlternatives>
     <defineVariableAlternatives name="cost">
       <defineVariableAlternative name="cstd" star="true">
         <defineVariable findString="$CostOfMinimumInvestmentBaselineMin" replaceString="0.00"/>
         <defineVariable findString="$CostOfMinimumInvestmentBaselineMax" replaceString="0.10"/>
       </defineVariableAlternative>
-      <defineVariableAlternative name="clow" star="true">
+      <!--<defineVariableAlternative name="clow" star="true">
         <defineVariable findString="$CostOfMinimumInvestmentBaselineMin" replaceString="0.00"/>
         <defineVariable findString="$CostOfMinimumInvestmentBaselineMax" replaceString="0.05"/>
-      </defineVariableAlternative>
+      </defineVariableAlternative>-->
     </defineVariableAlternatives>
     <defineVariableAlternatives name="succind">
       <defineVariableAlternative name="indyes" star="true">
@@ -131,14 +142,14 @@
         <defineVariable findString="$SociallyOptimalSpending" replaceString="false"/>
         <defineVariable findString="$SpilloverMultiplier" replaceString="0.0"/>
       </defineVariableAlternative>
-      <defineVariableAlternative name="socpart" star="false">
+      <!--<defineVariableAlternative name="socpart" star="false">
         <defineVariable findString="$SociallyOptimalSpending" replaceString="true"/>
         <defineVariable findString="$SpilloverMultiplier" replaceString="0.0"/>
       </defineVariableAlternative>
       <defineVariableAlternative name="socyes" star="false">
         <defineVariable findString="$SociallyOptimalSpending" replaceString="true"/>
         <defineVariable findString="$SpilloverMultiplier" replaceString="1.0"/>
-      </defineVariableAlternative>
+      </defineVariableAlternative>-->
     </defineVariableAlternatives>
   </singleSettingsFile>
 </ACESimMultiple>
