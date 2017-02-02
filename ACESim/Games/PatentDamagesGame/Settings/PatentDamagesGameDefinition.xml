@@ -26,15 +26,18 @@
               <setting name="Decision" type="class">
                 <setting name="Name" type="text">Spend</setting>
                 <setting name="Abbreviation" type="text">Spend</setting>
+                <setting name="DynamicNumberOfInputs" type="bool">true</setting>
                 <setting name="InputNames" type="list">
                   <setting name="input1" type="text">CostOfMinInvestmentBaseline</setting>
-                  <setting name="input1" type="text">CostOfMinInvestmentMultiplier</setting>
-                  <setting name="input2" type="text">HighestInventionValueEstimate</setting>
+                  <setting name="input2" type="text">CostOfMinInvestmentMultiplier</setting>
+                  <setting name="input3" type="text">HighestInventionValueEstimate</setting>
+                  <setting name="input4" type="text">NumberEntrants</setting>
                 </setting>
                 <setting name="InputAbbreviations" type="list">
                   <setting name="input1" type ="text">CMIB</setting>
-                  <setting name="input1" type ="text">CMIM</setting>
-                  <setting name="input2" type="text">ValEst</setting>
+                  <setting name="input2" type ="text">CMIM</setting>
+                  <setting name="input3" type="text">ValEst</setting>
+                  <setting name="input4" type="text">NumEnt</setting>
                 </setting>
                 <setting name="StrategyBounds" type="class">
                   <setting name="LowerBound" type="double">$InvestmentMultipleMin</setting>

@@ -6,62 +6,7 @@
         <defineVariable findString="$MaxNumEntrants" replaceString="10"/>
         <defineVariable findString="$MaxRepetitionsNumEntrantsEvolution" replaceString="9999"/>
       </defineVariableAlternative>
-      <defineVariableAlternative name="sin" star="true">
-        <defineVariable findString="$MaxNumEntrants" replaceString="1"/>
-        <defineVariable findString="$MaxRepetitionsNumEntrantsEvolution" replaceString="0"/>
-      </defineVariableAlternative>
     </defineVariableAlternatives>
-    <defineVariableAlternatives name="costplus">
-      <defineVariableAlternative name="cpmin" star="true">
-        <defineVariable findString="$DamagesAreLesserOfTwoApproaches" replaceString="true"/>
-        <defineVariable findString="$PermittedRateOfReturn" replaceString="0.25"/>
-        <defineVariable findString="$CombineInventorsForCostPlus" replaceString="false"/>
-        <defineVariable findString="$UseExpectedCostForCostPlus" replaceString="false"/>
-      </defineVariableAlternative>
-    </defineVariableAlternatives>
-    <defineVariableAlternatives name="inadv">
-      <defineVariableAlternative name="noinadv" star="true">
-        <defineVariable findString="$InadvertentInfringementProbability" replaceString="0.0"/>
-      </defineVariableAlternative>
-    </defineVariableAlternatives>
-    <defineVariableAlternatives name="dammult">
-      <defineVariableAlternative name="nomult" star="true">
-        <defineVariable findString="$DamagesMultiplierForIntentionalInfringement" replaceString="1.0"/>
-      </defineVariableAlternative>
-    </defineVariableAlternatives>
-    <defineVariableAlternatives name="return">
-      <defineVariableAlternative name="stdret" star="true">
-        <defineVariable findString="$MarketRateOfReturn" replaceString="0.0"/>
-      </defineVariableAlternative>
-    </defineVariableAlternatives>
-    <defineVariableAlternatives name="sprob">
-      <defineVariableAlternative name="stdp" star="true">
-        <defineVariable findString="$SuccessProbabilityMinimumInvestment" replaceString="0.35"/>
-        <defineVariable findString="$SuccessProbabilityDoubleInvestment" replaceString="0.45"/>
-        <defineVariable findString="$SuccessProbabilityTenTimesInvestment" replaceString="0.90"/>
-      </defineVariableAlternative>
-    </defineVariableAlternatives>
-    <defineVariableAlternatives name="inois">
-      <defineVariableAlternative name="inoisst" star="true">
-        <defineVariable findString="$HighestInventionValueNoiseStdev" replaceString="0.10"/>
-      </defineVariableAlternative>
-    </defineVariableAlternatives>
-    <defineVariableAlternatives name="cost">
-      <defineVariableAlternative name="cstd" star="true">
-        <defineVariable findString="$CostOfMinimumInvestmentBaselineMin" replaceString="0.00"/>
-        <defineVariable findString="$CostOfMinimumInvestmentBaselineMax" replaceString="0.15"/>
-      </defineVariableAlternative>
-    </defineVariableAlternatives>
-    <defineVariableAlternatives name="succind">
-      <defineVariableAlternative name="indyes" star="true">
-        <defineVariable findString="$SuccessIndependence" replaceString="1.0"/>
-      </defineVariableAlternative>
-    </defineVariableAlternatives>
-    <defineVariableAlternatives name="soc">
-      <defineVariableAlternative name="socno" star="true">
-        <defineVariable findString="$SociallyOptimalSpending" replaceString="false"/>
-        <defineVariable findString="$SpilloverMultiplier" replaceString="0.0"/>
-      </defineVariableAlternative>
-    </defineVariableAlternatives>
+    
   </singleSettingsFile>
 </ACESimMultiple>

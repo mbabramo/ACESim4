@@ -76,18 +76,17 @@ namespace ACESim
                 GetDecisionInputs();
                 return;
             }
+            double fractionalEntry;
             int numEntering;
             if (CurrentlyEvolving && (CurrentlyEvolvingDecisionIndex == (int)PatentDamagesDecision.Spend))
-                numEntering = 1; // we always want to evolve the decision to try and the decision to spend with a maximum of 1 inventor. Then, when we're evolving this decision (number of entrants), we make sure that there are enough entering to eliminate profits. 
+                fractionalEntry = 1.0 + PDInputs.EntrantsRandomSeed * ((double)PDInputs.MaxNumEntrants - 1.0); // randomize the entry while evolving the spend decision
             else
-            {
-                double fractionalEntry = MakeDecision();
-                numEntering = (int)Math.Floor(fractionalEntry);
-                if (numEntering < 1)
-                    numEntering = 1;
-                if (PDInputs.FractionalEntryRandomSeed < (fractionalEntry - numEntering))
-                    numEntering++;
-            }
+                fractionalEntry = MakeDecision();
+            numEntering = (int)Math.Floor(fractionalEntry);
+            if (numEntering < 1)
+                numEntering = 1;
+            if (PDInputs.FractionalEntryRandomSeed < (fractionalEntry - numEntering))
+                numEntering++;
             if (numEntering > PDInputs.MaxNumEntrants)
                 numEntering = PDInputs.MaxNumEntrants;
             PDProg.NumberEntrants = numEntering;
@@ -123,7 +122,7 @@ namespace ACESim
                 }
             }
             PDProg.InventorTryToInventDecisions.Add(PDProg.MainInventorTries);
-            var strategy = Strategies[(int)PatentDamagesDecision.Spend];
+            var strategy = Strategies[(int)PatentDamagesDecision.Spend].PreviousVersionOfThisStrategy ?? Strategies[(int)PatentDamagesDecision.Spend]; // use previous version of strategy or, on first iteration, assume everyone is using the same strategy
             int inventor = 1;
             foreach (var inventorInfo in PDInputs.AllInventorsInfo.InventorsNotBeingOptimized())
             {
@@ -131,7 +130,7 @@ namespace ACESim
                     PDProg.InventorTryToInventDecisions.Add(false);
                 else
                 {
-                    double otherInventorRawDecision = strategy.Calculate(new List<double> { PDInputs.CostOfMinimumInvestmentBaseline, inventorInfo.CostOfMinimumInvestmentMultiplier, PDProg.InventorEstimatesHighestInventionValue[inventor] }, this);
+                    double otherInventorRawDecision = strategy.Calculate(new List<double> { PDInputs.CostOfMinimumInvestmentBaseline, inventorInfo.CostOfMinimumInvestmentMultiplier, PDProg.InventorEstimatesHighestInventionValue[inventor], PDProg.NumberEntrants }, this);
                     double otherInventorSpendMultiple = otherInventorRawDecision >= 1.0 ? otherInventorRawDecision : 0; // must commit to at least minimum spend multiple to try at all
                     bool otherInventorTries = otherInventorSpendMultiple > 0;
                     double otherInventorSpendLevel = otherInventorSpendMultiple * PDInputs.CostOfMinimumInvestmentBaseline * inventorInfo.CostOfMinimumInvestmentMultiplier;
@@ -537,7 +536,7 @@ namespace ACESim
                     inputs = new double[] { };
                     break;
                 case (int)PatentDamagesDecision.Spend:
-                    inputs = new double[] { PDInputs.CostOfMinimumInvestmentBaseline, MainInventorInfo.CostOfMinimumInvestmentMultiplier, PDProg.InventorEstimatesHighestInventionValue.First() };
+                    inputs = new double[] { PDInputs.CostOfMinimumInvestmentBaseline, MainInventorInfo.CostOfMinimumInvestmentMultiplier, PDProg.InventorEstimatesHighestInventionValue.First(), PDProg.NumberEntrants };
                     break;
                 default:
                     throw new Exception("Unknown decision.");

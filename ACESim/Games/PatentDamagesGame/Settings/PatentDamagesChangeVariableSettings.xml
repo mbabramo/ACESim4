@@ -97,9 +97,9 @@
       </defineVariableAlternative>
       <!--
       <defineVariableAlternative name="easy">
-        <defineVariable findString="$SuccessProbabilityMinimumInvestment" replaceString="0.95"/>
-        <defineVariable findString="$SuccessProbabilityDoubleInvestment" replaceString="0.96"/>
-        <defineVariable findString="$SuccessProbabilityTenTimesInvestment" replaceString="0.99"/>
+        <defineVariable findString="$SuccessProbabilityMinimumInvestment" replaceString="1.0"/>
+        <defineVariable findString="$SuccessProbabilityDoubleInvestment" replaceString="1.0"/>
+        <defineVariable findString="$SuccessProbabilityTenTimesInvestment" replaceString="1.0"/>
       </defineVariableAlternative>
       <defineVariableAlternative name="hard">
         <defineVariable findString="$SuccessProbabilityMinimumInvestment" replaceString="0.15"/>

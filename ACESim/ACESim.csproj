@@ -1085,6 +1085,7 @@
     <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesEvolutionSettings.xml" />
     <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesLoadFiles.xml" />
     <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesReport.xml" />
+    <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesTemp.xml" />
     <Content Include="Games\PointFittingGame\Settings\Commands.xml" />
     <Content Include="Games\PointFittingGame\Settings\GameDefinitions2D.xml" />
     <Content Include="Games\PointFittingGame\Settings\GameDefinitions4D.xml" />
