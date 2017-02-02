@@ -7,7 +7,7 @@
     <defineVariable findString="$InitialWealthOfEntrants" replaceString="1.00"/>
     <defineVariable findString="$HighestInventionValueNoiseStdev" replaceString="0.10"/>
     <defineVariable findString="$CostOfMinimumInvestmentBaselineMin" replaceString="0.00"/>
-    <defineVariable findString="$CostOfMinimumInvestmentBaselineMax" replaceString="0.10"/>
+    <defineVariable findString="$CostOfMinimumInvestmentBaselineMax" replaceString="0.50"/>
     <defineVariable findString="$CostOfMinimumInvestmentMultiplierMin" replaceString="0.5"/>
     <defineVariable findString="$CostOfMinimumInvestmentMultiplierMax" replaceString="1.5"/>
     <defineVariable findString="$InvestmentMultipleMin" replaceString="0.0"/>
@@ -21,7 +21,7 @@
     <defineVariable findString="$SuccessProbabilityMinimumInvestment" replaceString="0.35"/>
     <defineVariable findString="$SuccessProbabilityDoubleInvestment" replaceString="0.36"/>
     <defineVariable findString="$SuccessProbabilityTenTimesInvestment" replaceString="0.40"/>
-    <defineVariable findString="$SuccessIndependence" replaceString="0.0"/>
+    <defineVariable findString="$SuccessIndependence" replaceString="0.5"/>
     <defineVariable findString="$LitigationCostsEachParty" replaceString="0.1"/>
     <defineVariable findString="$InadvertentInfringementProbability" replaceString="0.0"/>
     <defineVariable findString="$WeightOnCostPlusDamages" replaceString="0.0"/>

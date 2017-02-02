@@ -160,7 +160,13 @@ namespace ACESim
             else if (PDInputs.SuccessIndependence == 0.0)
                 PDProg.ProbabilityWinningPatent = ACESim.LotteryProbabilities.GetProbabilityOfBeingUltimateWinner_DependentProbabilities(PDProg.ProbabilityInventingSuccessfully);
             else
-                throw new NotImplementedException("Partial success independence not implemented yet. We might just average these probabilities as an approximation.");
+            {
+                var arrayInd = ACESim.LotteryProbabilities.GetProbabilityOfBeingUltimateWinner_IndependentProbabilities(PDProg.ProbabilityInventingSuccessfully);
+                var arrayDep = ACESim.LotteryProbabilities.GetProbabilityOfBeingUltimateWinner_DependentProbabilities(PDProg.ProbabilityInventingSuccessfully);
+                PDProg.ProbabilityWinningPatent = new double[arrayInd.Length];
+                for (int i = 0; i < arrayInd.Length; i++)
+                    PDProg.ProbabilityWinningPatent[i] = PDInputs.SuccessIndependence * arrayInd[i] + (1.0 - PDInputs.SuccessIndependence) * arrayDep[i];
+            }
             PDProg.ProbabilitySomeoneWins = PDProg.ProbabilityWinningPatent.Sum();
             PDProg.ProbabilityFirstInventorWins = PDProg.ProbabilityWinningPatent[0];
         }

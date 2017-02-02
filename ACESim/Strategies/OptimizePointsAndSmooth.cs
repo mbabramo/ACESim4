@@ -2016,7 +2016,7 @@ totalIterations, oversamplingInfo, out decisionReached, out preplayedGameProgres
                 if (printOutSampleValues)
                 {
                     double distance = Decision.StrategyBounds.UpperBound - Decision.StrategyBounds.LowerBound;
-                    for (double val = Decision.StrategyBounds.LowerBound; val < Decision.StrategyBounds.UpperBound; val += distance / 50.0 /* DEBUG */)
+                    for (double val = Decision.StrategyBounds.LowerBound; val < Decision.StrategyBounds.UpperBound; val += distance / 20.0)
                     {
                         double result = OverallStrategy.PlaySpecificValueForSomeIterations(val, allIterations, totalIterations, GetOversamplingInfoWhereWeightsAreNeeded());
                         Debug.WriteLine(val + " --> " + result);
