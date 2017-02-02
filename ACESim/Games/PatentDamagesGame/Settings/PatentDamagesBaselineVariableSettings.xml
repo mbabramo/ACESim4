@@ -2,7 +2,7 @@
 <ACESim>
   <parentSettingsFile filename="PatentDamagesLoadFiles.xml">
     <defineVariable findString="$MaxNumEntrants" replaceString="1"/>
-    <defineVariable findString="$MaxRepetitionsNumEntrantsEvolution" replaceString="3"/>
+    <defineVariable findString="$MaxRepetitionsNumEntrantsEvolution" replaceString="1"/>
     <defineVariable findString="$InitialWealthOfEntrants" replaceString="1.00"/>
     <defineVariable findString="$HighestInventionValueNoiseStdev" replaceString="0.10"/>
     <defineVariable findString="$CostOfMinimumInvestmentBaselineMin" replaceString="0.00"/>
