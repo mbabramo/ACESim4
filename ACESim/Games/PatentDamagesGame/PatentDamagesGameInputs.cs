@@ -13,6 +13,10 @@ namespace ACESim
         /// </summary>
         public double InitialWealthOfEntrants;
         /// <summary>
+        /// The cost of entry for each entrant. 
+        /// </summary>
+        public double CostOfEntry;
+        /// <summary>
         /// The market rate of return. For example, 0.05 means that money will receive 5% interest. A participant earns this on any money not used for entry and/or investment.
         /// </summary>
         public double MarketRateOfReturn;

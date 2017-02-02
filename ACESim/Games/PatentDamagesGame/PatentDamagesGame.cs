@@ -109,7 +109,8 @@ namespace ACESim
             double mainInventorRawDecision = MakeDecision();
             double mainInventorSpendMultiple = mainInventorRawDecision >= 1.0 ? mainInventorRawDecision : 0; // must commit to at least minimum spend multiple to try at all
             PDProg.MainInventorTries = PDProg.MainInventorEnters && mainInventorSpendMultiple > 0;
-            PDProg.MainInventorSpendMultiple = mainInventorSpendMultiple;
+            if (PDProg.MainInventorTries)
+                PDProg.MainInventorSpendMultiple = mainInventorSpendMultiple;
             double mainInventorSpendLevel = mainInventorSpendMultiple * PDInputs.CostOfMinimumInvestmentBaseline * MainInventorInfo.CostOfMinimumInvestmentMultiplier;
             PDProg.InventorSpendDecisions.Add(mainInventorSpendLevel);
             if (!CurrentlyEvolving || CurrentlyEvolvingDecisionIndex != (int)PatentDamagesDecision.Spend)
@@ -143,7 +144,7 @@ namespace ACESim
             PDProg.NumberTrying = PDProg.InventorTryToInventDecisions.Count(x => x == true);
             var totalSpending = PDProg.InventorSpendDecisions.Sum();
             PDProg.AverageSpendingOfTriers = totalSpending / (double)PDProg.NumberTrying;
-            PDProg.TotalSpending = totalSpending;
+            PDProg.TotalSpending = totalSpending + PDProg.NumberEntrants * PDInputs.CostOfEntry;
 
         }
 
@@ -327,6 +328,8 @@ namespace ACESim
                 double wealth = PDInputs.InitialWealthOfEntrants;
                 allPrivateInvestments += wealth;
                 double spending = 0;
+                if (PDProg.InventorEntryDecisions[inventor])
+                    spending += PDInputs.CostOfEntry;
                 if (PDProg.InventorTryToInventDecisions[inventor])
                     spending += PDProg.InventorSpendDecisions[inventor];
                 wealth -= spending;

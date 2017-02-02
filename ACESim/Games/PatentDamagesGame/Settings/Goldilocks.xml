@@ -4,7 +4,7 @@
     <defineVariableAlternatives name="entrants">
       <defineVariableAlternative name="sin" star="true">
         <defineVariable findString="$MaxNumEntrants" replaceString="1"/>
-        <defineVariable findString="$MaxRepetitionsNumEntrantsEvolution" replaceString="0"/>
+        <defineVariable findString="$MaxRepetitionsNumEntrantsEvolution" replaceString="99999"/>
       </defineVariableAlternative>
       <defineVariableAlternative name="dyn" star="true">
         <defineVariable findString="$MaxNumEntrants" replaceString="10"/>

@@ -19,7 +19,7 @@ namespace ACESim
         public bool SomeoneTries;
         public int NumberTrying;
         public List<double> InventorSpendDecisions;
-        public double MainInventorSpendMultiple;
+        public double? MainInventorSpendMultiple;
         public double TotalSpending;
         public double? AverageSpendingOfTriers;
         public double[] ProbabilityInventingSuccessfully;

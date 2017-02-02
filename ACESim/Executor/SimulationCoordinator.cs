@@ -189,6 +189,7 @@ namespace ACESim
                     (GameDefinition.GameModules != null && GameDefinition.GameModules.Any() && GameDefinition.GetOriginalGameModuleForDecisionNumber((int)x.DecisionNumber).IgnoreWhenCountingProgress) // decisions to ignore in counting progress
                     || ((doNotEvolveByDefault && strategies[(int)x.DecisionNumber].StrategyDeserializedFromDisk && !x.Decision.EvolveThisDecisionEvenWhenSkippingByDefault) || (!doNotEvolveByDefault && strategies[(int)x.DecisionNumber].StrategyDeserializedFromDisk && x.Decision.SkipThisDecisionWhenEvolvingIfAlreadyEvolved)) // decisions to skip
                     || (GameDefinition.DecisionsExecutionOrder[(int)x.DecisionNumber].MaxEvolveRepetitions < stepNumber)
+                    || (stepNumber < totalSteps - 1 && GameDefinition.DecisionsExecutionOrder[(int)x.DecisionNumber].EvolveOnlyLastStep)
                 )
                 ).Count();
             if (decisionsAffectingProgressStep > 0)
@@ -205,6 +206,8 @@ namespace ACESim
                     (GameDefinition.GameModules != null && GameDefinition.GetOriginalGameModuleForDecisionNumber((int)x.DecisionNumber).IgnoreWhenCountingProgress) // decisions to ignore in counting progress
                     || ((doNotEvolveByDefault && strategies[(int)x.DecisionNumber].StrategyDeserializedFromDisk && !x.Decision.EvolveThisDecisionEvenWhenSkippingByDefault) || (!doNotEvolveByDefault && strategies[(int)x.DecisionNumber].StrategyDeserializedFromDisk && x.Decision.SkipThisDecisionWhenEvolvingIfAlreadyEvolved)) // decisions to skip
                     || (GameDefinition.DecisionsExecutionOrder[(int)x.DecisionNumber].MaxEvolveRepetitions < stepNumber)
+                    || (stepNumber < totalSteps - 1 && GameDefinition.DecisionsExecutionOrder[(int)x.DecisionNumber].EvolveOnlyLastStep)
+
                 )
                 ).Count();
                 SimulationInteraction.GetCurrentProgressStep().SetSeveralStepsComplete(decisionsAffectingProgressStepAlreadyComplete, "DecisionsWithinExecuteEvolveStep"); 
@@ -216,7 +219,7 @@ namespace ACESim
                 if (SimulationInteraction.StopAfterOptimizingCurrentDecisionPoint)
                     break;
                 int decisionNumber = (int)dp.DecisionNumber;
-                bool skip = dpIndex < startingDPIndex || (doNotEvolveByDefault && strategies[decisionNumber].StrategyDeserializedFromDisk && !dp.Decision.EvolveThisDecisionEvenWhenSkippingByDefault) || (!doNotEvolveByDefault && strategies[decisionNumber].StrategyDeserializedFromDisk && dp.Decision.SkipThisDecisionWhenEvolvingIfAlreadyEvolved) ||(GameDefinition.DecisionsExecutionOrder[decisionNumber].MaxEvolveRepetitions < stepNumber);
+                bool skip = dpIndex < startingDPIndex || (doNotEvolveByDefault && strategies[decisionNumber].StrategyDeserializedFromDisk && !dp.Decision.EvolveThisDecisionEvenWhenSkippingByDefault) || (!doNotEvolveByDefault && strategies[decisionNumber].StrategyDeserializedFromDisk && dp.Decision.SkipThisDecisionWhenEvolvingIfAlreadyEvolved) || (GameDefinition.DecisionsExecutionOrder[decisionNumber].MaxEvolveRepetitions < stepNumber) || (stepNumber < totalSteps - 1 && GameDefinition.DecisionsExecutionOrder[decisionNumber].EvolveOnlyLastStep);
                 if (skip)
                     UpdateHighestCumulativeDistributionUpdateIndexEvolved(dp);
                 else
@@ -243,7 +246,7 @@ namespace ACESim
                     if (SimulationInteraction.StopAfterOptimizingCurrentDecisionPoint)
                         break;
                     int decisionNumber = (int)dp.DecisionNumber;
-                    bool skip = (doNotEvolveByDefault && strategies[decisionNumber].StrategyDeserializedFromDisk && !dp.Decision.EvolveThisDecisionEvenWhenSkippingByDefault) || (!doNotEvolveByDefault && strategies[decisionNumber].StrategyDeserializedFromDisk && dp.Decision.SkipThisDecisionWhenEvolvingIfAlreadyEvolved) || (GameDefinition.DecisionsExecutionOrder[decisionNumber].MaxEvolveRepetitions < stepNumber);
+                    bool skip = (doNotEvolveByDefault && strategies[decisionNumber].StrategyDeserializedFromDisk && !dp.Decision.EvolveThisDecisionEvenWhenSkippingByDefault) || (!doNotEvolveByDefault && strategies[decisionNumber].StrategyDeserializedFromDisk && dp.Decision.SkipThisDecisionWhenEvolvingIfAlreadyEvolved) || (GameDefinition.DecisionsExecutionOrder[decisionNumber].MaxEvolveRepetitions < stepNumber) || (stepNumber < totalSteps - 1 && GameDefinition.DecisionsExecutionOrder[decisionNumber].EvolveOnlyLastStep);
                     if (!skip)
                     {
                         EvolveDecision(ref evolveSettings, theBaseOutputDirectory, stepNumber, totalSteps, isLastEvolveStep, ref numDecisionsEvolved, ref stop, setBreakWhenNumDecisionsEvolvedIs, setBreakAtGameNumberWithThatDecisionEvolution, decisionsAffectingProgressStep, decisionNumber, prm);

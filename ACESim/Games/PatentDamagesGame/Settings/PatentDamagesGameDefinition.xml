@@ -21,6 +21,7 @@
                   </setting>
                   <setting name="HighestIsBest" type="bool">false</setting>
                   <setting name="ZeroDimensionalTargetValue" type="double">1.0</setting>
+                  <setting name="EvolveOnlyLastStep" type="bool">true</setting>
                   <setting name="MaxEvolveRepetitions" type="int">$MaxRepetitionsNumEntrantsEvolution</setting>
                 </setting>
               <setting name="Decision" type="class">
@@ -52,7 +53,7 @@
                 <setting name="StrategyGraphInfos" type="list">
                 </setting>
                 <setting name="HighestIsBest" type="bool">true</setting>
-                <setting name="MaxEvolveRepetitions" type="int">9999</setting>
+                <setting name="MaxEvolveRepetitions" type="int">$MaxRepetitionsEvolveSpendStep</setting>
               </setting>
             </setting>
           <setting name="GameModules" type="list">

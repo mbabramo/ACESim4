@@ -282,6 +282,12 @@ namespace ACESim
         public int MaxEvolveRepetitions;
 
         /// <summary>
+        /// If true, this decision will be evolved only on the last step (and only if permitted by MaxEvolveRepetitions).
+        /// </summary>
+        [OptionalSetting]
+        public bool EvolveOnlyLastStep;
+
+        /// <summary>
         /// Use of this feature is not currently recommended. It phases out default behavior of a module over repetitions of a module.
         /// The better feature to implement might be to phase out default behavior over evolution steps.
         /// If greater than 1, then the default behavior will receive some weight over the remaining specified repetitions of the module.

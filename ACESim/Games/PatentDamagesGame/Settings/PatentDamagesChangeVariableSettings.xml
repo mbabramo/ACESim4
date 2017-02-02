@@ -42,7 +42,6 @@
       </defineVariableAlternative>
       <defineVariableAlternative name="combinv">
         <defineVariable findString="$WeightOnCostPlusDamages" replaceString="1.0"/>
-        <defineVariable findString="$PermittedRateOfReturn" replaceString="0.1"/>
         <defineVariable findString="$CombineInventorsForCostPlus" replaceString="true"/>
         <defineVariable findString="$UseExpectedCostForCostPlus" replaceString="false"/>
       </defineVariableAlternative>
@@ -75,11 +74,15 @@
         <defineVariable findString="$MarketRateOfReturn" replaceString="0.05"/>
         <defineVariable findString="$PermittedRateOfReturn" replaceString="0.05"/>
       </defineVariableAlternative>-->
-      <!--<defineVariableAlternative name="bigret" star="true">
+      <defineVariableAlternative name="ret025" star="true">
         <defineVariable findString="$MarketRateOfReturn" replaceString="0.00"/>
         <defineVariable findString="$PermittedRateOfReturn" replaceString="0.25"/>
-      </defineVariableAlternative>-->
-      <defineVariableAlternative name="hugeret2" star="true">
+      </defineVariableAlternative>
+      <defineVariableAlternative name="ret200" star="true">
+        <defineVariable findString="$MarketRateOfReturn" replaceString="0.00"/>
+        <defineVariable findString="$PermittedRateOfReturn" replaceString="0.25"/>
+      </defineVariableAlternative>
+      <defineVariableAlternative name="ret100" star="true">
         <defineVariable findString="$MarketRateOfReturn" replaceString="0.00"/>
         <defineVariable findString="$PermittedRateOfReturn" replaceString="1.00"/>
       </defineVariableAlternative>
@@ -90,12 +93,12 @@
         <defineVariable findString="$SuccessProbabilityDoubleInvestment" replaceString="0.45"/>
         <defineVariable findString="$SuccessProbabilityTenTimesInvestment" replaceString="0.90"/>
       </defineVariableAlternative>
+      <!--
       <defineVariableAlternative name="flatp" star="true">
         <defineVariable findString="$SuccessProbabilityMinimumInvestment" replaceString="0.35"/>
         <defineVariable findString="$SuccessProbabilityDoubleInvestment" replaceString="0.38"/>
         <defineVariable findString="$SuccessProbabilityTenTimesInvestment" replaceString="0.50"/>
       </defineVariableAlternative>
-      <!--
       <defineVariableAlternative name="easy">
         <defineVariable findString="$SuccessProbabilityMinimumInvestment" replaceString="1.0"/>
         <defineVariable findString="$SuccessProbabilityDoubleInvestment" replaceString="1.0"/>
@@ -133,9 +136,9 @@
       <defineVariableAlternative name="indyes" star="true">
         <defineVariable findString="$SuccessIndependence" replaceString="1.0"/>
       </defineVariableAlternative>
-      <defineVariableAlternative name="indno">
+      <!--<defineVariableAlternative name="indno">
         <defineVariable findString="$SuccessIndependence" replaceString="0.0"/>
-      </defineVariableAlternative>
+      </defineVariableAlternative>-->
     </defineVariableAlternatives>
     <defineVariableAlternatives name="soc">
       <defineVariableAlternative name="socno" star="true">
