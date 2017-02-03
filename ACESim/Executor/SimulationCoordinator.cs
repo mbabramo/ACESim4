@@ -154,8 +154,8 @@ namespace ACESim
         {
             if (reportsToRun != null && reportsToRun.Any() && (reportsToRun.Where(x => !x.requireCumulativeDistributions).Any() || SimulationInteraction.HighestCumulativeDistributionUpdateIndexEvolved != null) /* to run the games all the way through, we need to make sure that we've had a chance to update the cumulative distributions */)
             {
-                int numObservationsForEmbeddedReports = 1000; // leave it as int so that we can change it by putting in a breakpoint for a particular report
-                Play(numObservationsForEmbeddedReports, false /* DEBUG */);
+                int numObservationsForEmbeddedReports = 100; // leave it as int so that we can change it by putting in a breakpoint for a particular report
+                Play(numObservationsForEmbeddedReports, true);
                 List<GameProgressReportable> played = SimulationInteraction.CurrentExecutionInformation.Outputs.ToList();
                 foreach (var report in reportsToRun)
                 {
