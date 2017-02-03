@@ -2030,7 +2030,7 @@ totalIterations, oversamplingInfo, out decisionReached, out preplayedGameProgres
                             valueToTest =>
                                 //OverallStrategy.PlaySpecificValueForLargeNumberOfIterations(valueToTest, iterationsToUse, totalIterations),
                                 OverallStrategy.PlaySpecificValueForSomeIterations(valueToTest, allIterations, totalIterations, GetOversamplingInfoWhereWeightsAreNeeded()),
-                            Decision.HighestIsBest, numberRangesToTestFirstCall: 5, numberRangesToTestGenerally: 3, targetValue: Decision.ZeroDimensionalTargetValue);
+                            Decision.HighestIsBest, numberRangesToTestFirstCall: 5, numberRangesToTestGenerally: 3, targetValue: Decision.ZeroDimensionalTargetValue, onlyAboveTargetValue: Decision.ZeroDimensionalTargetValueAboveOnly);
             }
             OverallStrategy.UseThreadLocalScores = originalUseThreadLocalScores;
             InitialDevelopmentCompleted = true;

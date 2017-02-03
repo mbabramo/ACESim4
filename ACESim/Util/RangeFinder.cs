@@ -76,12 +76,12 @@ namespace ACESim.Util
             return result;
         }
 
-        public static double OptimizeByNarrowingRanges(double lowest, double highest, double precision, Func<double, double> theTest, bool highestIsBest, int numberRangesToTestFirstCall = 10, int numberRangesToTestGenerally = 4, double targetValue = 0)
+        public static double OptimizeByNarrowingRanges(double lowest, double highest, double precision, Func<double, double> theTest, bool highestIsBest, int numberRangesToTestFirstCall = 10, int numberRangesToTestGenerally = 4, double targetValue = 0, bool onlyAboveTargetValue = false)
         {
-            return Math.Max(lowest, Math.Min(highest, OptimizeHelper(ref lowest, ref highest, precision * Math.Abs(highest - lowest), numberRangesToTestFirstCall, numberRangesToTestGenerally, theTest, highestIsBest, targetValue)));
+            return Math.Max(lowest, Math.Min(highest, OptimizeHelper(ref lowest, ref highest, precision * Math.Abs(highest - lowest), numberRangesToTestFirstCall, numberRangesToTestGenerally, theTest, highestIsBest, targetValue, onlyAboveTargetValue)));
         }
 
-        internal static double OptimizeHelper(ref double lowest, ref double highest, double adjPrecision, int numberRangesToTestFirstCall, int numberRangesToTestGenerally, Func<double, double> theTest, bool highestIsBest, double targetValue = 0)
+        internal static double OptimizeHelper(ref double lowest, ref double highest, double adjPrecision, int numberRangesToTestFirstCall, int numberRangesToTestGenerally, Func<double, double> theTest, bool highestIsBest, double targetValue = 0, bool onlyAboveTargetValue = false)
         {
             bool printOutInfo = false;
             bool firstTimeThrough = true;
@@ -91,6 +91,7 @@ namespace ACESim.Util
                 int bestr = -1;
                 double bestResult = 0, bestMidpoint = 0;
                 double rangeSize = (highest - lowest) / numberRangesToTest;
+                bool foundTestResultAbove = false;
                 for (int r = 0; r < numberRangesToTest; r++)
                 {
                     double bottomOfRange = lowest + ((double)r) * rangeSize;
@@ -98,7 +99,17 @@ namespace ACESim.Util
                     double midpointOfRange = lowest + ((double)r + 0.5) * rangeSize;
                     double testResult = theTest(midpointOfRange);
                     if (targetValue != 0)
+                    {
+                        double originalTestResult = testResult;
                         testResult = (testResult - targetValue) * (testResult - targetValue);
+                        if (onlyAboveTargetValue)
+                        {
+                            if (originalTestResult < targetValue)
+                                testResult *= 1000000; // make it a very high result  so that it does not get set as optimal
+                            else
+                              foundTestResultAbove = true;
+                        }
+                    }
                     if (printOutInfo)
                         Debug.WriteLine(String.Format("Bottom {0} Mid {1} Top {2} ==> Result {3}", bottomOfRange, midpointOfRange, topOfRange, testResult));
 
@@ -111,22 +122,25 @@ namespace ACESim.Util
                 }
 
                 // We will include the winning range, plus adjacent ranges up to their midpoint.
-                double bottomOfOverallRange, topOfOverallRange;
+                double bottomOfOverallRange = 0, topOfOverallRange = 0;
                 if (bestr == 0)
                 {
                     bottomOfOverallRange = lowest;
                     topOfOverallRange = lowest + 1.5 * rangeSize;
                 }
-                else if (bestr == numberRangesToTestFirstCall - 1)
-                {
+                else if (targetValue == 0 || !onlyAboveTargetValue || foundTestResultAbove)
+                { // if we are in target value mode seeking only results above and did not find a test result above, then we return the lowest range
+                    if (bestr == numberRangesToTestFirstCall - 1)
+                    {
 
-                    bottomOfOverallRange = highest - 1.5 * rangeSize;
-                    topOfOverallRange = highest;
-                }
-                else
-                {
-                    bottomOfOverallRange = lowest + ((double)bestr - 1.0 + 0.5) * rangeSize;
-                    topOfOverallRange = lowest + ((double)bestr + 1.0 + 0.5) * rangeSize;
+                        bottomOfOverallRange = highest - 1.5 * rangeSize;
+                        topOfOverallRange = highest;
+                    }
+                    else
+                    {
+                        bottomOfOverallRange = lowest + ((double)bestr - 1.0 + 0.5) * rangeSize;
+                        topOfOverallRange = lowest + ((double)bestr + 1.0 + 0.5) * rangeSize;
+                    }
                 }
 
                 lowest = bottomOfOverallRange;

@@ -21,6 +21,7 @@
                   </setting>
                   <setting name="HighestIsBest" type="bool">false</setting>
                   <setting name="ZeroDimensionalTargetValue" type="double">1.0</setting>
+                  <setting name="ZeroDimensionalTargetValueAboveOnly" type="bool">true</setting>
                   <setting name="EvolveOnlyLastStep" type="bool">true</setting>
                   <setting name="MaxEvolveRepetitions" type="int">$MaxRepetitionsNumEntrantsEvolution</setting>
                 </setting>

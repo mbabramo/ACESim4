@@ -230,6 +230,12 @@ namespace ACESim
         public double ZeroDimensionalTargetValue;
 
         /// <summary>
+        /// When using zero-dimensional target value, this specifies that only values greater than the target should be returned. If there are none, then the lowest value in the range is returned.
+        /// </summary>
+        [OptionalSetting]
+        public bool ZeroDimensionalTargetValueAboveOnly;
+
+        /// <summary>
         /// If true, then the Calculate method will always return 0, but oversampling analysis will still take place.
         /// </summary>
         [OptionalSetting]
