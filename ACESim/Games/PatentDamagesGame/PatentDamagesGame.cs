@@ -295,7 +295,7 @@ namespace ACESim
             if (intentionalInfringementBySome)
             {
                 awareUsersResults = GetResultsBasedOnPrice_IntentionalInfringement((double)PDProg.UserAnticipatedPrice, (double)PDProg.CourtSetPrice);
-                if (PDProg.ProportionIntentionallyInfringing > 0 && PDInputs.InadvertentInfringementProbability != 1.0)
+                if (awareUsersResults.ProportionUsingProduct > 0 && PDInputs.InadvertentInfringementProbability != 1.0)
                     PDProg.SomeIntentionalInfringement = true;
                 PDProg.ProportionIntentionallyInfringing = awareUsersResults.ProportionUsingProduct * (1.0 - PDInputs.InadvertentInfringementProbability);
             }
