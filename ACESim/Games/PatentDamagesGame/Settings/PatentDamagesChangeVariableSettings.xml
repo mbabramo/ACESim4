@@ -164,9 +164,9 @@
       <defineVariableAlternative name="noinadv" star="true">
         <defineVariable findString="$InadvertentInfringementProbability" replaceString="0.0"/>
       </defineVariableAlternative>
-      <defineVariableAlternative name="someinadv">
+      <!--<defineVariableAlternative name="someinadv">
         <defineVariable findString="$InadvertentInfringementProbability" replaceString="0.10"/>
-      </defineVariableAlternative>
+      </defineVariableAlternative>-->
     </defineVariableAlternatives>
     <defineVariableAlternatives name="sprob">
       <defineVariableAlternative name="easy" star="true">
@@ -217,10 +217,10 @@
       <defineVariableAlternative name="indyes" star="true">
         <defineVariable findString="$SuccessIndependence" replaceString="1.0"/>
       </defineVariableAlternative>
-      <defineVariableAlternative name="indpart" star="true">
+      <!--<defineVariableAlternative name="indpart" star="true">
         <defineVariable findString="$SuccessIndependence" replaceString="0.5"/>
       </defineVariableAlternative>
-      <!--<defineVariableAlternative name="indno">
+      <defineVariableAlternative name="indno">
         <defineVariable findString="$SuccessIndependence" replaceString="0.0"/>
       </defineVariableAlternative>-->
     </defineVariableAlternatives>
