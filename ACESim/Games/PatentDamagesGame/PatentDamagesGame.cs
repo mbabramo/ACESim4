@@ -199,6 +199,7 @@ namespace ACESim
                         {
                             PDProg.WinnerOfPatent = i;
                             PDProg.InventionOccurs = true;
+                            PDProg.InventionOccursNumeric = 1.0;
                             break;
                         }
                         else
@@ -291,12 +292,21 @@ namespace ACESim
             var anticipatedCostIntentionalInfringement = PDProg.UserAnticipatedPrice + PDInputs.LitigationCostsEachParty;
             bool intentionalInfringementBySome = PDProg.InventorSetPrice > anticipatedCostIntentionalInfringement && anticipatedCostIntentionalInfringement < adjHighestInventionValue;
 
+            var DEBUG_CourtPriceStandardDamages = GetHighestInventionValueEstimate(PerspectiveToUse.Court, (int)PDProg.WinnerOfPatent) * PDInputs.HighestInventionValueMultiplier / 2.0;
+            var DEBUG_InventorPriceStandardDamages = GetHighestInventionValueEstimate(PerspectiveToUse.Inventor, (int)PDProg.WinnerOfPatent) * PDInputs.HighestInventionValueMultiplier / 2.0;
+            var DEBUG_UserPriceStandardDamages = GetHighestInventionValueEstimate(PerspectiveToUse.ActualUserValue, (int)PDProg.WinnerOfPatent) * PDInputs.HighestInventionValueMultiplier / 2.0;
+
             ResultsBasedOnPrice awareUsersResults;
             if (intentionalInfringementBySome)
             {
                 awareUsersResults = GetResultsBasedOnPrice_IntentionalInfringement((double)PDProg.UserAnticipatedPrice, (double)PDProg.CourtSetPrice);
                 if (awareUsersResults.ProportionUsingProduct > 0 && PDInputs.InadvertentInfringementProbability != 1.0)
                     PDProg.SomeIntentionalInfringement = true;
+                var DEBUG2 = GetResultsBasedOnPrice_IntentionalInfringement(DEBUG_UserPriceStandardDamages, (double)DEBUG_CourtPriceStandardDamages);
+                if (DEBUG2.InventorRevenues < awareUsersResults.InventorRevenues)
+                {
+                    var DEBUG3 = 1;
+                }
                 PDProg.ProportionIntentionallyInfringing = awareUsersResults.ProportionUsingProduct * (1.0 - PDInputs.InadvertentInfringementProbability);
             }
             else if (priceAcceptableToSome)
@@ -304,6 +314,11 @@ namespace ACESim
                 awareUsersResults = GetResultsBasedOnPrice_AssumingAgreement((double)PDProg.InventorSetPrice);
                 if (awareUsersResults.ProportionUsingProduct > 0 && PDInputs.InadvertentInfringementProbability != 1.0)
                     PDProg.SomeUsersPay = true;
+                var DEBUG2 = GetResultsBasedOnPrice_AssumingAgreement((double)DEBUG_InventorPriceStandardDamages);
+                if (DEBUG2.InventorRevenues < awareUsersResults.InventorRevenues)
+                {
+                    var DEBUG3 = 1;
+                }
                 PDProg.ProportionAgreeingOnPrice = awareUsersResults.ProportionUsingProduct * (1.0 - PDInputs.InadvertentInfringementProbability);
             }
             else
@@ -476,6 +491,12 @@ namespace ACESim
                 proportionOfHighestInventionValue = GetSmallerPositiveSolutionToQuadraticEquation(0 - highestInventionValueEstimate, highestInventionValueEstimate, 0 - permissibleRecovery);
             double permittedPriceCostPlusDamages = highestInventionValueEstimate * proportionOfHighestInventionValue;
             double anticipatedRevenuesCostPlusDamages = (1 - proportionOfHighestInventionValue) * proportionOfHighestInventionValue * highestInventionValueEstimate; // should be less than or approx equal to permissible recovery
+
+            if (perspective == PerspectiveToUse.Inventor && permittedPriceCostPlusDamages > permittedPriceStandardDamages)
+            {
+                // The inventor's price matters only for setting a price. Since the standard damages maximizes profit, we assume that though the inventor would be permitted by a court to set higher damages, the inventor chooses the profit-maximizing level of damages.
+                permittedPriceCostPlusDamages = permittedPriceStandardDamages;
+            }
 
             if (PDInputs.DamagesAreLesserOfTwoApproaches)
             {

@@ -6,10 +6,10 @@
         <defineVariable findString="$MaxNumEntrants" replaceString="10"/>
         <defineVariable findString="$MaxRepetitionsNumEntrantsEvolution" replaceString="9999"/>
       </defineVariableAlternative>
-      <!--<defineVariableAlternative name="sin" star="true">
+      <defineVariableAlternative name="sin" star="true">
         <defineVariable findString="$MaxNumEntrants" replaceString="1"/>
         <defineVariable findString="$MaxRepetitionsNumEntrantsEvolution" replaceString="0"/>
-      </defineVariableAlternative>-->
+      </defineVariableAlternative>
     </defineVariableAlternatives>
     <defineVariableAlternatives name="costplus">
       <defineVariableAlternative name="cpno" star="true">
@@ -158,7 +158,7 @@
         <defineVariable findString="$PermittedRateOfReturn" replaceString="1.0"/>
         <defineVariable findString="$CombineInventorsForCostPlus" replaceString="true"/>
         <defineVariable findString="$UseExpectedCostForCostPlus" replaceString="false"/>
-      </defineVariableAlternative>-->
+      </defineVariableAlternative>
     </defineVariableAlternatives>
     <defineVariableAlternatives name="inadv">
       <defineVariableAlternative name="noinadv" star="true">
@@ -179,12 +179,12 @@
         <defineVariable findString="$SuccessProbabilityDoubleInvestment" replaceString="0.45"/>
         <defineVariable findString="$SuccessProbabilityTenTimesInvestment" replaceString="0.55"/>
       </defineVariableAlternative>
-      <!--<defineVariableAlternative name="flatp">
+      <defineVariableAlternative name="flatp">
         <defineVariable findString="$SuccessProbabilityMinimumInvestment" replaceString="0.35"/>
         <defineVariable findString="$SuccessProbabilityDoubleInvestment" replaceString="0.38"/>
         <defineVariable findString="$SuccessProbabilityTenTimesInvestment" replaceString="0.50"/>
       </defineVariableAlternative>
-      <defineVariableAlternative name="always">
+      <!--<defineVariableAlternative name="always">
         <defineVariable findString="$SuccessProbabilityMinimumInvestment" replaceString="1.0"/>
         <defineVariable findString="$SuccessProbabilityDoubleInvestment" replaceString="1.0"/>
         <defineVariable findString="$SuccessProbabilityTenTimesInvestment" replaceString="1.0"/>
@@ -196,9 +196,9 @@
       </defineVariableAlternative>-->
     </defineVariableAlternatives>
     <defineVariableAlternatives name="inois">
-      <!--<defineVariableAlternative name="inois00" star="true">
+      <defineVariableAlternative name="inois00" star="true">
         <defineVariable findString="$HighestInventionValueNoiseStdev" replaceString="0.0"/>
-      </defineVariableAlternative>-->
+      </defineVariableAlternative>
       <defineVariableAlternative name="inois10" star="true">
         <defineVariable findString="$HighestInventionValueNoiseStdev" replaceString="0.10"/>
       </defineVariableAlternative>

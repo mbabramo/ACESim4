@@ -1,9 +1,9 @@
-Single settings set 107 (sin cp140 noinadv hard inois00 cstd indyes socno ) Elapsed time: 00:00:35.2517691
+Single settings set 15 (sin cp140 noinadv easy inois10 cstd indyes socno ) Elapsed time: 00:00:28.7367600
 Decision index 1 (Spend) of 0..1 in Step 0... 
      Presmoothing already computed: False Cache has values: False     
      Developing oversampling plan.     
      Success replication disabled. Attempts per 1000 successes: 1000     
-     Oversampling plan: Sample 1 (observed 1, expected 1): No split ===> Cumulative 1 (observed 1, expected 1) -> Weight 1 Cum. ct.: 997 Cum. %: 1 Succ. no samp.: 1 Exp. succ: 1Number nodes: 1 Exp. succ: 1
+     Oversampling plan: Sample 1 (observed 1, expected 1): No split ===> Cumulative 1 (observed 1, expected 1) -> Weight 1 Cum. ct.: 985 Cum. %: 1 Succ. no samp.: 1 Exp. succ: 1Number nodes: 1 Exp. succ: 1
      
      Number dimensions for which value is same (and thus not counted as a dynamic input): 1 out of 4 (DDDS)     
      Main set     
@@ -11,103 +11,17 @@ Decision index 1 (Spend) of 0..1 in Step 0...
           Identifying closest point for each iteration to run...          
           Successes: 1300 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
           Determining unsmoothed optimal value...          
-          Total time elapsed: 468          
+          Total time elapsed: 329          
      Validation set     
           Initializing...          
           Identifying closest point for each iteration to run...          
           Successes: 1300 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
           Determining unsmoothed optimal value...          
-          Total time elapsed: 337          
-     Smoothing using 295 points and 1300 iterations (150 max per point)     
-     Score based on validation set: 0.517086637153798     
-     Elapsed seconds: 1.32 current time: 7:23:56 AM     
+          Total time elapsed: 322          
+     Smoothing using 288 points and 1300 iterations (150 max per point)     
+     Score based on validation set: 0.459922472183216     
+     Elapsed seconds: 0.912 current time: 7:24:42 PM     
 Decision index 1 (Spend) of 0..1 in Step 1... 
-     Presmoothing already computed: False Cache has values: False     
-     Developing oversampling plan.     
-     Success replication disabled. Attempts per 1000 successes: 1000     
-     Oversampling plan: Sample 1 (observed 1, expected 1): No split ===> Cumulative 1 (observed 1, expected 1) -> Weight 1 Cum. ct.: 999 Cum. %: 1 Succ. no samp.: 1 Exp. succ: 1Number nodes: 1 Exp. succ: 1
-     
-     Main set     
-          Initializing...          
-          Identifying closest point for each iteration to run...          
-          Successes: 1482 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
-          Determining unsmoothed optimal value...          
-          Total time elapsed: 398          
-     Validation set     
-          Initializing...          
-          Identifying closest point for each iteration to run...          
-          Successes: 1482 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
-          Determining unsmoothed optimal value...          
-          Total time elapsed: 413          
-     Smoothing using 303 points and 1482 iterations (150 max per point)     
-     Score based on validation set: 0.0678335772999388     
-     Elapsed seconds: 1.323 current time: 7:23:57 AM     
-Decision index 1 (Spend) of 0..1 in Step 2... 
-     Presmoothing already computed: False Cache has values: False     
-     Developing oversampling plan.     
-     Success replication disabled. Attempts per 1000 successes: 1000     
-     Oversampling plan: Sample 1 (observed 1, expected 1): No split ===> Cumulative 1 (observed 1, expected 1) -> Weight 1 Cum. ct.: 999 Cum. %: 1 Succ. no samp.: 1 Exp. succ: 1Number nodes: 1 Exp. succ: 1
-     
-     Main set     
-          Initializing...          
-          Identifying closest point for each iteration to run...          
-          Successes: 2030 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
-          Determining unsmoothed optimal value...          
-          Total time elapsed: 539          
-     Validation set     
-          Initializing...          
-          Identifying closest point for each iteration to run...          
-          Successes: 2030 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
-          Determining unsmoothed optimal value...          
-          Total time elapsed: 533          
-     Smoothing using 333 points and 2030 iterations (150 max per point)     
-     Score based on validation set: 0.106776519905098     
-     Elapsed seconds: 1.707 current time: 7:23:59 AM     
-Decision index 1 (Spend) of 0..1 in Step 3... 
-     Presmoothing already computed: False Cache has values: False     
-     Developing oversampling plan.     
-     Success replication disabled. Attempts per 1000 successes: 1000     
-     Oversampling plan: Sample 1 (observed 1, expected 1): No split ===> Cumulative 1 (observed 1, expected 1) -> Weight 1 Cum. ct.: 999 Cum. %: 1 Succ. no samp.: 1 Exp. succ: 1Number nodes: 1 Exp. succ: 1
-     
-     Main set     
-          Initializing...          
-          Identifying closest point for each iteration to run...          
-          Successes: 2944 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
-          Determining unsmoothed optimal value...          
-          Total time elapsed: 745          
-          Averaging results with previous strategies.          
-     Validation set     
-          Initializing...          
-          Identifying closest point for each iteration to run...          
-          Successes: 2944 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
-          Determining unsmoothed optimal value...          
-          Total time elapsed: 790          
-     Smoothing using 364 points and 2944 iterations (150 max per point)     
-     Score based on validation set: 0.334728768733203     
-     Elapsed seconds: 1.903 current time: 7:24:01 AM     
-Decision index 1 (Spend) of 0..1 in Step 4... 
-     Presmoothing already computed: False Cache has values: False     
-     Developing oversampling plan.     
-     Success replication disabled. Attempts per 1000 successes: 1000     
-     Oversampling plan: Sample 1 (observed 1, expected 1): No split ===> Cumulative 1 (observed 1, expected 1) -> Weight 1 Cum. ct.: 998 Cum. %: 1 Succ. no samp.: 1 Exp. succ: 1Number nodes: 1 Exp. succ: 1
-     
-     Main set     
-          Initializing...          
-          Identifying closest point for each iteration to run...          
-          Successes: 4225 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
-          Determining unsmoothed optimal value...          
-          Total time elapsed: 1076          
-          Averaging results with previous strategies.          
-     Validation set     
-          Initializing...          
-          Identifying closest point for each iteration to run...          
-          Successes: 4225 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
-          Determining unsmoothed optimal value...          
-          Total time elapsed: 997          
-     Smoothing using 400 points and 4225 iterations (150 max per point)     
-     Score based on validation set: 0.319010954598422     
-     Elapsed seconds: 2.506 current time: 7:24:04 AM     
-Decision index 1 (Spend) of 0..1 in Step 5... 
      Presmoothing already computed: False Cache has values: False     
      Developing oversampling plan.     
      Success replication disabled. Attempts per 1000 successes: 1000     
@@ -116,83 +30,169 @@ Decision index 1 (Spend) of 0..1 in Step 5...
      Main set     
           Initializing...          
           Identifying closest point for each iteration to run...          
+          Successes: 1482 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
+          Determining unsmoothed optimal value...          
+          Total time elapsed: 309          
+     Validation set     
+          Initializing...          
+          Identifying closest point for each iteration to run...          
+          Successes: 1482 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
+          Determining unsmoothed optimal value...          
+          Total time elapsed: 343          
+     Smoothing using 300 points and 1482 iterations (150 max per point)     
+     Score based on validation set: 0.45641696782228     
+     Elapsed seconds: 0.932 current time: 7:24:43 PM     
+Decision index 1 (Spend) of 0..1 in Step 2... 
+     Presmoothing already computed: False Cache has values: False     
+     Developing oversampling plan.     
+     Success replication disabled. Attempts per 1000 successes: 1000     
+     Oversampling plan: Sample 1 (observed 1, expected 1): No split ===> Cumulative 1 (observed 1, expected 1) -> Weight 1 Cum. ct.: 985 Cum. %: 1 Succ. no samp.: 1 Exp. succ: 1Number nodes: 1 Exp. succ: 1
+     
+     Main set     
+          Initializing...          
+          Identifying closest point for each iteration to run...          
+          Successes: 2030 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
+          Determining unsmoothed optimal value...          
+          Total time elapsed: 352          
+     Validation set     
+          Initializing...          
+          Identifying closest point for each iteration to run...          
+          Successes: 2030 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
+          Determining unsmoothed optimal value...          
+          Total time elapsed: 397          
+     Smoothing using 330 points and 2030 iterations (150 max per point)     
+     Score based on validation set: 0.376530056910467     
+     Elapsed seconds: 1.036 current time: 7:24:44 PM     
+Decision index 1 (Spend) of 0..1 in Step 3... 
+     Presmoothing already computed: False Cache has values: False     
+     Developing oversampling plan.     
+     Success replication disabled. Attempts per 1000 successes: 1000     
+     Oversampling plan: Sample 1 (observed 1, expected 1): No split ===> Cumulative 1 (observed 1, expected 1) -> Weight 1 Cum. ct.: 988 Cum. %: 1 Succ. no samp.: 1 Exp. succ: 1Number nodes: 1 Exp. succ: 1
+     
+     Main set     
+          Initializing...          
+          Identifying closest point for each iteration to run...          
+          Successes: 2944 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
+          Determining unsmoothed optimal value...          
+          Total time elapsed: 529          
+          Averaging results with previous strategies.          
+     Validation set     
+          Initializing...          
+          Identifying closest point for each iteration to run...          
+          Successes: 2944 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
+          Determining unsmoothed optimal value...          
+          Total time elapsed: 514          
+     Smoothing using 364 points and 2944 iterations (150 max per point)     
+     Score based on validation set: 0.353020626290372     
+     Elapsed seconds: 1.375 current time: 7:24:45 PM     
+Decision index 1 (Spend) of 0..1 in Step 4... 
+     Presmoothing already computed: False Cache has values: False     
+     Developing oversampling plan.     
+     Success replication disabled. Attempts per 1000 successes: 1000     
+     Oversampling plan: Sample 1 (observed 1, expected 1): No split ===> Cumulative 1 (observed 1, expected 1) -> Weight 1 Cum. ct.: 979 Cum. %: 1 Succ. no samp.: 1 Exp. succ: 1Number nodes: 1 Exp. succ: 1
+     
+     Main set     
+          Initializing...          
+          Identifying closest point for each iteration to run...          
+          Successes: 4225 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
+          Determining unsmoothed optimal value...          
+          Total time elapsed: 749          
+          Averaging results with previous strategies.          
+     Validation set     
+          Initializing...          
+          Identifying closest point for each iteration to run...          
+          Successes: 4225 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
+          Determining unsmoothed optimal value...          
+          Total time elapsed: 767          
+     Smoothing using 404 points and 4225 iterations (150 max per point)     
+     Score based on validation set: 0.415299122589057     
+     Elapsed seconds: 1.869 current time: 7:24:47 PM     
+Decision index 1 (Spend) of 0..1 in Step 5... 
+     Presmoothing already computed: False Cache has values: False     
+     Developing oversampling plan.     
+     Success replication disabled. Attempts per 1000 successes: 1000     
+     Oversampling plan: Sample 1 (observed 1, expected 1): No split ===> Cumulative 1 (observed 1, expected 1) -> Weight 1 Cum. ct.: 997 Cum. %: 1 Succ. no samp.: 1 Exp. succ: 1Number nodes: 1 Exp. succ: 1
+     
+     Main set     
+          Initializing...          
+          Identifying closest point for each iteration to run...          
           Successes: 5869 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
           Determining unsmoothed optimal value...          
-          Total time elapsed: 1461          
+          Total time elapsed: 982          
           Averaging results with previous strategies.          
      Validation set     
           Initializing...          
           Identifying closest point for each iteration to run...          
           Successes: 5869 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
           Determining unsmoothed optimal value...          
-          Total time elapsed: 1393          
-     Smoothing using 449 points and 5869 iterations (150 max per point)     
-     Score based on validation set: 0.331741094590129     
-     Elapsed seconds: 3.296 current time: 7:24:07 AM     
+          Total time elapsed: 1042          
+     Smoothing using 451 points and 5869 iterations (150 max per point)     
+     Score based on validation set: 0.377006784556756     
+     Elapsed seconds: 2.435 current time: 7:24:50 PM     
 Decision index 1 (Spend) of 0..1 in Step 6... 
      Presmoothing already computed: False Cache has values: False     
      Developing oversampling plan.     
      Success replication disabled. Attempts per 1000 successes: 1000     
-     Oversampling plan: Sample 1 (observed 1, expected 1): No split ===> Cumulative 1 (observed 1, expected 1) -> Weight 1 Cum. ct.: 999 Cum. %: 1 Succ. no samp.: 1 Exp. succ: 1Number nodes: 1 Exp. succ: 1
+     Oversampling plan: Sample 1 (observed 1, expected 1): No split ===> Cumulative 1 (observed 1, expected 1) -> Weight 1 Cum. ct.: 995 Cum. %: 1 Succ. no samp.: 1 Exp. succ: 1Number nodes: 1 Exp. succ: 1
      
      Main set     
           Initializing...          
           Identifying closest point for each iteration to run...          
           Successes: 7880 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
           Determining unsmoothed optimal value...          
-          Total time elapsed: 2008          
+          Total time elapsed: 1265          
           Averaging results with previous strategies.          
      Validation set     
           Initializing...          
           Identifying closest point for each iteration to run...          
           Successes: 7880 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
           Determining unsmoothed optimal value...          
-          Total time elapsed: 1983          
-     Smoothing using 506 points and 7880 iterations (150 max per point)     
-     Score based on validation set: 0.367356506150046     
-     Elapsed seconds: 4.496 current time: 7:24:12 AM     
+          Total time elapsed: 1215          
+     Smoothing using 505 points and 7880 iterations (150 max per point)     
+     Score based on validation set: 0.324069361653343     
+     Elapsed seconds: 2.989 current time: 7:24:53 PM     
 Decision index 1 (Spend) of 0..1 in Step 7... 
      Presmoothing already computed: False Cache has values: False     
      Developing oversampling plan.     
      Success replication disabled. Attempts per 1000 successes: 1000     
-     Oversampling plan: Sample 1 (observed 1, expected 1): No split ===> Cumulative 1 (observed 1, expected 1) -> Weight 1 Cum. ct.: 999 Cum. %: 1 Succ. no samp.: 1 Exp. succ: 1Number nodes: 1 Exp. succ: 1
+     Oversampling plan: Sample 1 (observed 1, expected 1): No split ===> Cumulative 1 (observed 1, expected 1) -> Weight 1 Cum. ct.: 990 Cum. %: 1 Succ. no samp.: 1 Exp. succ: 1Number nodes: 1 Exp. succ: 1
      
      Main set     
           Initializing...          
           Identifying closest point for each iteration to run...          
           Successes: 10257 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
           Determining unsmoothed optimal value...          
-          Total time elapsed: 2416          
+          Total time elapsed: 1880          
           Averaging results with previous strategies.          
      Validation set     
           Initializing...          
           Identifying closest point for each iteration to run...          
           Successes: 10257 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
           Determining unsmoothed optimal value...          
-          Total time elapsed: 2396          
+          Total time elapsed: 1905          
      Smoothing using 572 points and 10257 iterations (150 max per point)     
-     Score based on validation set: 0.331409151014954     
-     Elapsed seconds: 5.392 current time: 7:24:17 AM     
+     Score based on validation set: 0.325832657766301     
+     Elapsed seconds: 4.431 current time: 7:24:57 PM     
 Decision index 1 (Spend) of 0..1 in Step 8... 
      Presmoothing already computed: False Cache has values: False     
      Developing oversampling plan.     
      Success replication disabled. Attempts per 1000 successes: 1000     
-     Oversampling plan: Sample 1 (observed 1, expected 1): No split ===> Cumulative 1 (observed 1, expected 1) -> Weight 1 Cum. ct.: 998 Cum. %: 1 Succ. no samp.: 1 Exp. succ: 1Number nodes: 1 Exp. succ: 1
+     Oversampling plan: Sample 1 (observed 1, expected 1): No split ===> Cumulative 1 (observed 1, expected 1) -> Weight 1 Cum. ct.: 1000 Cum. %: 1 Succ. no samp.: 1 Exp. succ: 1Number nodes: 1 Exp. succ: 1
      
      Main set     
           Initializing...          
           Identifying closest point for each iteration to run...          
           Successes: 13000 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
           Determining unsmoothed optimal value...          
-          Total time elapsed: 3296          
+          Total time elapsed: 2433          
           Averaging results with previous strategies.          
      Validation set     
           Initializing...          
           Identifying closest point for each iteration to run...          
           Successes: 13000 failures: 0 successPerAttemptRatio: 1 attempts per 1000 successes: 1000          
           Determining unsmoothed optimal value...          
-          Total time elapsed: 3151          
+          Total time elapsed: 2182          
      Smoothing using 649 points and 13000 iterations (150 max per point)     
-     Score based on validation set: 0.34391617933355     
-     Elapsed seconds: 7.162 current time: 7:24:25 AM     
-Total run time 00.00:00:30 days
+     Score based on validation set: 0.338585445826981     
+     Elapsed seconds: 5.274 current time: 7:25:03 PM     
+Total run time 00.00:00:22 days

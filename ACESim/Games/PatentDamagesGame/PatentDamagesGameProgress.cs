@@ -30,6 +30,7 @@ namespace ACESim
         public int? WinnerOfPatent = null;
         public double FirstInventorWinsPatent = 0;
         public bool InventionOccurs;
+        public double InventionOccursNumeric;
 
         public double? InventorSetPrice;
         public double? CourtSetPrice;
@@ -77,6 +78,7 @@ namespace ACESim
             copy.WinnerOfPatent = WinnerOfPatent;
             copy.FirstInventorWinsPatent = FirstInventorWinsPatent;
             copy.InventionOccurs = InventionOccurs;
+            copy.InventionOccursNumeric = InventionOccursNumeric;
             copy.InventorSetPrice = InventorSetPrice;
             copy.CourtSetPrice = CourtSetPrice;
             copy.UserAnticipatedPrice = UserAnticipatedPrice;
