@@ -51,7 +51,11 @@ namespace ACESim
         /// <summary>
         /// The standard deviation of the distribution of noise for all inventors. The actual noise resulting for each inventor is in AllInventorsInfo.
         /// </summary>
-        public double HighestInventionValueNoiseStdev; 
+        public double HighestInventionValueNoiseStdev;
+        /// <summary>
+        /// A systematic absolute error in the probability estiamte.
+        /// </summary>
+        public double ProbabilityEstimateError;
         /// <summary>
         /// The spillover multiplier. A spillover of 0.10 indicates that there is social value not captured by the user equal to 10% of the user's value.
         /// </summary>

@@ -292,21 +292,12 @@ namespace ACESim
             var anticipatedCostIntentionalInfringement = PDProg.UserAnticipatedPrice + PDInputs.LitigationCostsEachParty;
             bool intentionalInfringementBySome = PDProg.InventorSetPrice > anticipatedCostIntentionalInfringement && anticipatedCostIntentionalInfringement < adjHighestInventionValue;
 
-            var DEBUG_CourtPriceStandardDamages = GetHighestInventionValueEstimate(PerspectiveToUse.Court, (int)PDProg.WinnerOfPatent) * PDInputs.HighestInventionValueMultiplier / 2.0;
-            var DEBUG_InventorPriceStandardDamages = GetHighestInventionValueEstimate(PerspectiveToUse.Inventor, (int)PDProg.WinnerOfPatent) * PDInputs.HighestInventionValueMultiplier / 2.0;
-            var DEBUG_UserPriceStandardDamages = GetHighestInventionValueEstimate(PerspectiveToUse.ActualUserValue, (int)PDProg.WinnerOfPatent) * PDInputs.HighestInventionValueMultiplier / 2.0;
-
             ResultsBasedOnPrice awareUsersResults;
             if (intentionalInfringementBySome)
             {
                 awareUsersResults = GetResultsBasedOnPrice_IntentionalInfringement((double)PDProg.UserAnticipatedPrice, (double)PDProg.CourtSetPrice);
                 if (awareUsersResults.ProportionUsingProduct > 0 && PDInputs.InadvertentInfringementProbability != 1.0)
                     PDProg.SomeIntentionalInfringement = true;
-                var DEBUG2 = GetResultsBasedOnPrice_IntentionalInfringement(DEBUG_UserPriceStandardDamages, (double)DEBUG_CourtPriceStandardDamages);
-                if (DEBUG2.InventorRevenues < awareUsersResults.InventorRevenues)
-                {
-                    var DEBUG3 = 1;
-                }
                 PDProg.ProportionIntentionallyInfringing = awareUsersResults.ProportionUsingProduct * (1.0 - PDInputs.InadvertentInfringementProbability);
             }
             else if (priceAcceptableToSome)
@@ -314,11 +305,6 @@ namespace ACESim
                 awareUsersResults = GetResultsBasedOnPrice_AssumingAgreement((double)PDProg.InventorSetPrice);
                 if (awareUsersResults.ProportionUsingProduct > 0 && PDInputs.InadvertentInfringementProbability != 1.0)
                     PDProg.SomeUsersPay = true;
-                var DEBUG2 = GetResultsBasedOnPrice_AssumingAgreement((double)DEBUG_InventorPriceStandardDamages);
-                if (DEBUG2.InventorRevenues < awareUsersResults.InventorRevenues)
-                {
-                    var DEBUG3 = 1;
-                }
                 PDProg.ProportionAgreeingOnPrice = awareUsersResults.ProportionUsingProduct * (1.0 - PDInputs.InadvertentInfringementProbability);
             }
             else
@@ -472,8 +458,18 @@ namespace ACESim
             double anticipatedRevenuesStandardDamages = (1 - 0.5) * 0.5 * highestInventionValueEstimate;
             if (PDInputs.WeightOnCostPlusDamages == 0 && !PDInputs.DamagesAreLesserOfTwoApproaches)
                 return permittedPriceStandardDamages;
-            
-            double forecastAfterInvestment = PDInputs.CombineInventorsForCostPlus ? PDProg.ProbabilitySomeoneWins : PDProg.ProbabilityWinningPatent[winnerOfPatent];
+
+            var probability = PDInputs.CombineInventorsForCostPlus ? PDProg.ProbabilitySomeoneWins : PDProg.ProbabilityWinningPatent[winnerOfPatent];
+            if (PDInputs.ProbabilityEstimateError != 0)
+            {
+                double weightOnExtreme = Math.Abs(PDInputs.ProbabilityEstimateError);
+                if (PDInputs.ProbabilityEstimateError > 0)
+                    probability = probability * (1.0 - weightOnExtreme) + 1.0 * weightOnExtreme;
+                else
+                    probability = probability * (1.0 - weightOnExtreme) - 1.0 * weightOnExtreme;
+            }
+
+            double forecastAfterInvestment = probability;
             double riskAdjustedInventionSpending = (PDInputs.CombineInventorsForCostPlus ? PDProg.TotalSpending : PDProg.InventorSpendDecisions[winnerOfPatent]) / forecastAfterInvestment;
             if (PDInputs.UseExpectedCostForCostPlus)
             {

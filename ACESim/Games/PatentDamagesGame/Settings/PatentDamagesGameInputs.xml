@@ -20,6 +20,10 @@
     <gameInputs name="PatentDamagesGameInputs" gameName="PatentDamagesGame">
       <setting type="double" name="InitialWealthOfEntrants">$InitialWealthOfEntrants</setting>
       <setting type="double" name="HighestInventionValueNoiseStdev">$HighestInventionValueNoiseStdev</setting>
+      <setting name="ProbabilityEstimateError" type="distribution" subtype="normal">
+        <setting type="double" name="mean">$ProbabilityEstimateErrorMin</setting>
+        <setting type="double" name="stdev">$ProbabilityEstimateErrorMax</setting>
+      </setting>
       <setting type="double" name="CostOfEntry">$CostOfEntry</setting>
       <setting type="double" name="MarketRateOfReturn">$MarketRateOfReturn</setting>
       <setting type="double" name="PermittedRateOfReturn">$PermittedRateOfReturn</setting>

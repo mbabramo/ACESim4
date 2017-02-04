@@ -6,6 +6,8 @@
     <defineVariable findString="$MaxRepetitionsNumEntrantsEvolution" replaceString="9999"/>
     <defineVariable findString="$InitialWealthOfEntrants" replaceString="1.00"/>
     <defineVariable findString="$HighestInventionValueNoiseStdev" replaceString="0.10"/>
+    <defineVariable findString="$ProbabilityEstimateErrorMin" replaceString="0.00"/>
+    <defineVariable findString="$ProbabilityEstimateErrorMax" replaceString="0.00"/>
     <defineVariable findString="$CostOfMinimumInvestmentBaselineMin" replaceString="0.00"/>
     <defineVariable findString="$CostOfMinimumInvestmentBaselineMax" replaceString="0.50"/>
     <defineVariable findString="$CostOfMinimumInvestmentMultiplierMin" replaceString="0.5"/>

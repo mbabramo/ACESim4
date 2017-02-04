@@ -1,0 +1,109 @@
+<ACESim>
+  <rowOrColGroup name="PatentDamagesRows">
+    <rowOrColInfo name="All">
+    </rowOrColInfo>
+    <rowOrColInfo name="FirstTries">
+      <filter varType="bool">
+        <variableName>MainInventorTries</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="SomeoneTries">
+      <filter varType="bool">
+        <variableName>SomeoneTries</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="NooneTries">
+      <filter varType="bool">
+        <variableName>SomeoneTries</variableName>
+        <operation>EQ</operation>
+        <value>false</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="InventionOccurs">
+      <filter varType="bool">
+        <variableName>InventionOccurs</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="SomeUsersPay">
+      <filter varType="bool">
+        <variableName>SomeUsersPay</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="SomeIntentionalInfringement">
+      <filter varType="bool">
+        <variableName>SomeIntentionalInfringement</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="InventionUsed">
+      <filter varType="double">
+        <variableName>TotalReceipts</variableName>
+        <operation>GT</operation>
+        <value>0</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="MainInventorLoses">
+      <filter varType="bool">
+        <variableName>MainInventorLoses</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="AllHighValue">
+      <filter varType="bool">
+        <variableName>HighValue</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+    </rowOrColInfo>
+    <rowOrColInfo name="InventionOccursHighValue">
+      <filter varType="bool">
+        <variableName>HighValue</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+      <filter varType="bool">
+        <variableName>InventionOccurs</variableName>
+        <operation>EQ</operation>
+        <value>true</value>
+      </filter>
+    </rowOrColInfo>
+  </rowOrColGroup>
+  <rowOrColGroup name="PatentDamagesColumns">
+    <rowOrColInfo name="Total" statistic="COUNT" />
+    <rowOrColInfo name="Entrants" variableName="NumberEntrants" statistic="MEAN" />
+    <rowOrColInfo name="Trying" variableName="NumberTrying" statistic="MEAN" />
+    <rowOrColInfo name="MainSpendM" variableName="MainInventorSpendMultiple" statistic="MEAN" />
+    <rowOrColInfo name="Invention" variableName="InventionOccursNumeric" statistic="MEAN" />
+    <rowOrColInfo name="ISP" variableName="InventorSetPrice" statistic="MEAN" />
+    <rowOrColInfo name="PropUsing" variableName="ProportionAgreeingOnPrice" statistic="MEAN" />
+    <rowOrColInfo name="UserUt" variableName="UserUtility" statistic="MEAN" />
+    <rowOrColInfo name="PrvWel" variableName="PrivateWelfare" statistic="MEAN" />
+    <rowOrColInfo name="SocWel" variableName="SocialWelfare" statistic="MEAN" />
+    
+    <rowOrColInfo name="TotSpend" variableName="TotalSpending" statistic="MEAN" />
+    <rowOrColInfo name="AvgInv" variableName="AverageSpendingOfTriers" statistic="MEAN" />
+
+    <rowOrColInfo name="CSP" variableName="CourtSetPrice" statistic="MEAN" />
+    <rowOrColInfo name="UAP" variableName="UserAnticipatedPrice" statistic="MEAN" />
+    <rowOrColInfo name="PropInt" variableName="ProportionIntentionallyInfringing" statistic="MEAN" />
+    <rowOrColInfo name="PropInad" variableName="ProportionInadvertentlyInfringing" statistic="MEAN" />
+
+    <rowOrColInfo name="PUB" variableName="AverageGrossUserBenefit" statistic="MEAN" />
+    <rowOrColInfo name="PUC" variableName="AverageUserCost" statistic="MEAN" />
+    <rowOrColInfo name="PUR" variableName="PerUserReceipts" statistic="MEAN" />
+    <rowOrColInfo name="TotRec" variableName="TotalReceipts" statistic="MEAN" />
+
+    <rowOrColInfo name="DelInvUt" variableName="DeltaInventorsUtility" statistic="MEAN" />
+    <rowOrColInfo name="MainInvUt" variableName="MainInventorUtility" statistic="MEAN" />
+  </rowOrColGroup>
+</ACESim>
