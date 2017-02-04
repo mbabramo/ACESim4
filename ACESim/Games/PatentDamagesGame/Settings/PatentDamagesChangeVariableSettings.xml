@@ -128,13 +128,6 @@
         <defineVariable findString="$CombineInventorsForCostPlus" replaceString="false"/>
         <defineVariable findString="$UseExpectedCostForCostPlus" replaceString="false"/>
       </defineVariableAlternative>
-      <defineVariableAlternative name="cpmin100">
-        <defineVariable findString="$DamagesAreLesserOfTwoApproaches" replaceString="true"/>
-        <defineVariable findString="$MarketRateOfReturn" replaceString="0.00"/>
-        <defineVariable findString="$PermittedRateOfReturn" replaceString="1.0"/>
-        <defineVariable findString="$CombineInventorsForCostPlus" replaceString="false"/>
-        <defineVariable findString="$UseExpectedCostForCostPlus" replaceString="false"/>
-      </defineVariableAlternative>
       <defineVariableAlternative name="cphyb100">
         <defineVariable findString="$WeightOnCostPlusDamages" replaceString="0.5"/>
         <defineVariable findString="$MarketRateOfReturn" replaceString="0.00"/>
@@ -179,12 +172,12 @@
         <defineVariable findString="$SuccessProbabilityDoubleInvestment" replaceString="0.45"/>
         <defineVariable findString="$SuccessProbabilityTenTimesInvestment" replaceString="0.55"/>
       </defineVariableAlternative>
-      <defineVariableAlternative name="flatp">
+      <!--<defineVariableAlternative name="flatp">
         <defineVariable findString="$SuccessProbabilityMinimumInvestment" replaceString="0.35"/>
         <defineVariable findString="$SuccessProbabilityDoubleInvestment" replaceString="0.38"/>
         <defineVariable findString="$SuccessProbabilityTenTimesInvestment" replaceString="0.50"/>
       </defineVariableAlternative>
-      <!--<defineVariableAlternative name="always">
+      <defineVariableAlternative name="always">
         <defineVariable findString="$SuccessProbabilityMinimumInvestment" replaceString="1.0"/>
         <defineVariable findString="$SuccessProbabilityDoubleInvestment" replaceString="1.0"/>
         <defineVariable findString="$SuccessProbabilityTenTimesInvestment" replaceString="1.0"/>
@@ -217,10 +210,10 @@
       <defineVariableAlternative name="indyes" star="true">
         <defineVariable findString="$SuccessIndependence" replaceString="1.0"/>
       </defineVariableAlternative>
-      <defineVariableAlternative name="indpart" star="true">
+      <!--<defineVariableAlternative name="indpart" star="true">
         <defineVariable findString="$SuccessIndependence" replaceString="0.5"/>
       </defineVariableAlternative>
-      <!--<defineVariableAlternative name="indno">
+      <defineVariableAlternative name="indno">
         <defineVariable findString="$SuccessIndependence" replaceString="0.0"/>
       </defineVariableAlternative>-->
     </defineVariableAlternatives>
