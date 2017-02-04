@@ -134,10 +134,10 @@
       </defineVariableAlternative>-->
     </defineVariableAlternatives>
     <defineVariableAlternatives name="sprob">
-      <defineVariableAlternative name="easy" star="true">
-        <defineVariable findString="$SuccessProbabilityMinimumInvestment" replaceString="0.75"/>
-        <defineVariable findString="$SuccessProbabilityDoubleInvestment" replaceString="0.80"/>
-        <defineVariable findString="$SuccessProbabilityTenTimesInvestment" replaceString="0.9"/>
+      <defineVariableAlternative name="hard" star="true">
+        <defineVariable findString="$SuccessProbabilityMinimumInvestment" replaceString="0.35"/>
+        <defineVariable findString="$SuccessProbabilityDoubleInvestment" replaceString="0.45"/>
+        <defineVariable findString="$SuccessProbabilityTenTimesInvestment" replaceString="0.55"/>
       </defineVariableAlternative>
       <!--<defineVariableAlternative name="flatp">
         <defineVariable findString="$SuccessProbabilityMinimumInvestment" replaceString="0.35"/>
@@ -181,19 +181,10 @@
         <defineVariable findString="$SuccessIndependence" replaceString="0.0"/>
       </defineVariableAlternative>-->
     </defineVariableAlternatives>
-    <defineVariableAlternatives name="presterr">
-      <defineVariableAlternative name="presterryes" star="true">
-    <defineVariable findString="$ProbabilityEstimateErrorMin" replaceString="-0.50"/>
-    <defineVariable findString="$ProbabilityEstimateErrorMax" replaceString="0.50"/>
+    <defineVariableAlternatives name="cerr">
+      <defineVariableAlternative name="cerrhi" star="true">
+    <defineVariable findString="$CostOfEntry" replaceString="0.10"/>
       </defineVariableAlternative>
-      <!--<defineVariableAlternative name="socpart" star="false">
-        <defineVariable findString="$SociallyOptimalSpending" replaceString="true"/>
-        <defineVariable findString="$SpilloverMultiplier" replaceString="0.0"/>
-      </defineVariableAlternative>
-      <defineVariableAlternative name="socyes" star="false">
-        <defineVariable findString="$SociallyOptimalSpending" replaceString="true"/>
-        <defineVariable findString="$SpilloverMultiplier" replaceString="1.0"/>
-      </defineVariableAlternative>-->
     </defineVariableAlternatives>
     <defineVariableAlternatives name="soc">
       <defineVariableAlternative name="socno" star="true">

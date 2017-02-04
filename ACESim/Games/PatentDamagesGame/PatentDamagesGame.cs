@@ -466,7 +466,7 @@ namespace ACESim
                 if (PDInputs.ProbabilityEstimateError > 0)
                     probability = probability * (1.0 - weightOnExtreme) + 1.0 * weightOnExtreme;
                 else
-                    probability = probability * (1.0 - weightOnExtreme) - 1.0 * weightOnExtreme;
+                    probability = probability * (1.0 - weightOnExtreme); // extreme is 0
             }
 
             double forecastAfterInvestment = probability;
@@ -488,7 +488,7 @@ namespace ACESim
             double permittedPriceCostPlusDamages = highestInventionValueEstimate * proportionOfHighestInventionValue;
             double anticipatedRevenuesCostPlusDamages = (1 - proportionOfHighestInventionValue) * proportionOfHighestInventionValue * highestInventionValueEstimate; // should be less than or approx equal to permissible recovery
 
-            if (perspective == PerspectiveToUse.Inventor && permittedPriceCostPlusDamages > permittedPriceStandardDamages)
+            if ((perspective == PerspectiveToUse.Inventor || perspective == PerspectiveToUse.ActualUserValue) && permittedPriceCostPlusDamages > permittedPriceStandardDamages)
             {
                 // The inventor's price matters only for setting a price. Since the standard damages maximizes profit, we assume that though the inventor would be permitted by a court to set higher damages, the inventor chooses the profit-maximizing level of damages.
                 permittedPriceCostPlusDamages = permittedPriceStandardDamages;
