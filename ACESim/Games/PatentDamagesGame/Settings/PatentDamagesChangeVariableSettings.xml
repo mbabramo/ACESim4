@@ -1,7 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ACESimMultiple>
   <singleSettingsFile filename="PatentDamagesBaselineVariableSettings.xml">
-    
     <defineVariableAlternatives name="entry">
       <defineVariableAlternative name="sin" star="true">
         <defineVariable findString="$MaxNumEntrants" replaceString="1"/>
