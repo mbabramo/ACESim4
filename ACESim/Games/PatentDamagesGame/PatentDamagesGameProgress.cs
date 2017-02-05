@@ -53,6 +53,13 @@ namespace ACESim
         public double PrivateWelfare;
         public bool MainInventorLoses;
 
+        // the following are just copies of variables in the inputs (for reporting purposes)
+        public double HighestInventionValueNoiseStdev;
+        public double WeightOnCostPlusDamages;
+        public int    MaxNumEntrants;
+        public double SuccessProbabilityMinimumInvestment;
+        public double InadvertentInfrigementProbability;
+
         public override GameProgress DeepCopy()
         {
             PatentDamagesGameProgress copy = new PatentDamagesGameProgress();
@@ -98,6 +105,12 @@ namespace ACESim
             copy.SocialWelfare = SocialWelfare;
             copy.PrivateWelfare = PrivateWelfare;
             copy.MainInventorLoses = MainInventorLoses;
+            copy.HighestInventionValueNoiseStdev = HighestInventionValueNoiseStdev;
+            copy.WeightOnCostPlusDamages = WeightOnCostPlusDamages;
+            copy.MaxNumEntrants = MaxNumEntrants;
+            copy.SuccessProbabilityMinimumInvestment = SuccessProbabilityMinimumInvestment;
+            copy.InadvertentInfrigementProbability = InadvertentInfrigementProbability;
+
 
             copy.GameComplete = this.GameComplete;
 

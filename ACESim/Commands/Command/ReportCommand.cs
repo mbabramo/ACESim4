@@ -86,10 +86,10 @@ namespace ACESim
                 {
                 }
             }
-            Debug.WriteLine("-------------------------------------------");
-            Debug.WriteLine("Report: " + storeReportResultsFile);
-            Debug.WriteLine("-------------------------------------------");
-            Debug.WriteLine(reportString);
+            TabbedText.WriteLine("-------------------------------------------");
+            TabbedText.WriteLine("Report: " + storeReportResultsFile);
+            TabbedText.WriteLine("-------------------------------------------");
+            TabbedText.WriteLine(reportString);
 
             if (!isInterimReport)
             {

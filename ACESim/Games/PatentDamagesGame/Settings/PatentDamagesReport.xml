@@ -58,7 +58,7 @@
         <value>true</value>
       </filter>
     </rowOrColInfo>
-    <rowOrColInfo name="AllHighValue">
+    <rowOrColInfo name="HighValue">
       <filter varType="bool">
         <variableName>HighValue</variableName>
         <operation>EQ</operation>
@@ -79,7 +79,6 @@
     </rowOrColInfo>
   </rowOrColGroup>
   <rowOrColGroup name="PatentDamagesColumns">
-    <rowOrColInfo name="Total" statistic="COUNT" />
     <rowOrColInfo name="Entrants" variableName="NumberEntrants" statistic="MEAN" />
     <rowOrColInfo name="Trying" variableName="NumberTrying" statistic="MEAN" />
     <rowOrColInfo name="MainSpendM" variableName="MainInventorSpendMultiple" statistic="MEAN" />
@@ -105,5 +104,13 @@
 
     <rowOrColInfo name="DelInvUt" variableName="DeltaInventorsUtility" statistic="MEAN" />
     <rowOrColInfo name="MainInvUt" variableName="MainInventorUtility" statistic="MEAN" />
+    
+    <rowOrColInfo name="Total" statistic="COUNT" />
+    <rowOrColInfo name="inois" variableName="HighestInventionValueNoiseStdev" statistic="MEAN" />
+    <rowOrColInfo name="wcp" variableName="WeightOnCostPlusDamages" statistic="MEAN" />
+    <rowOrColInfo name="mnum" variableName="MaxNumEntrants" statistic="MEAN" />
+    <rowOrColInfo name="probmin" variableName="SuccessProbabilityMinimumInvestment" statistic="MEAN" />
+    <rowOrColInfo name="inadv" variableName="InadvertentInfrigementProbability" statistic="MEAN" />
+
   </rowOrColGroup>
 </ACESim>
