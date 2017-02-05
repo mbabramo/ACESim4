@@ -9,6 +9,7 @@ namespace ACESim
     public enum PatentDamagesDecision : int
     {
         Enter,
+        Try,
         Spend
     }
 }
