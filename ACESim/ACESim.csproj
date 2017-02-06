@@ -1075,14 +1075,16 @@
     <Content Include="Games\ObfuscationGame\Settings\ObfuscationGameReport.xml">
       <SubType>Designer</SubType>
     </Content>
-    <Content Include="Games\PatentDamagesGame\Settings\Goldilocks.xml" />
     <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesBaselineVariableSettings.xml" />
-    <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesChangeTemp.xml" />
+    <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesTemp2.xml" />
     <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesChangeVariableSettings.xml" />
+    <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesCombinedRuns.xml" />
     <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesCommands.xml" />
     <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesGameDefinition.xml" />
     <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesGameInputs.xml" />
     <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesEvolutionSettings.xml" />
+    <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesHybridRuns.xml" />
+    <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesKeyRuns.xml" />
     <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesLoadFiles.xml" />
     <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesReport.xml" />
     <Content Include="Games\PatentDamagesGame\Settings\PatentDamagesTemp.xml" />

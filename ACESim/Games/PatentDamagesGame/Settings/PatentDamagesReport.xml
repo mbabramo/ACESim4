@@ -1,6 +1,6 @@
 <ACESim>
   <rowOrColGroup name="PatentDamagesRows">
-    <rowOrColInfo name="All">
+    <rowOrColInfo name="AllObs">
     </rowOrColInfo>
     <rowOrColInfo name="FirstTries">
       <filter varType="bool">

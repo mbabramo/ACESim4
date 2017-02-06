@@ -3,7 +3,7 @@
   <parentSettingsFile filename="../../SharedEvolutionSettings/EvolutionSettings.xml">
     <defineVariable findString="$NumPointsInCumulativeDistribution" replaceString="51" />
     <defineVariable findString="$NumGamePlaysForCumulativeDistribution" replaceString="100000" />
-    <defineVariable findString="$ParallelOptimization" replaceString="true" />
+    <defineVariable findString="$ParallelOptimization" replaceString="true" />    
     <!--see also below-->
     <defineVariable findString="$StopParallelOptimizationAfterOptimizingNDecisions" replaceString="-1" />
     <defineVariable findString="$AverageInPreviousVersionsOfStrategy" replaceString="TRUE" /> 
