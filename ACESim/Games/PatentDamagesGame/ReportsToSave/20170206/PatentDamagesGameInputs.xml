@@ -1,0 +1,95 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ACESim>
+  <defineTemplate name="InventorInfoTemplate">
+    <setting type="class" name="InventorXX">
+      <setting name="HighestInventionValueNoise" type="distribution" subtype="normal">
+        <setting type="double" name="mean">0.0</setting>
+        <setting type="double" name="stdev">$HighestInventionValueNoiseStdev</setting>
+      </setting>
+      <setting name="CostOfMinimumInvestmentMultiplier" type="distribution" subtype="uniform">
+        <setting type="double" name="fromVal">$CostOfMinimumInvestmentMultiplierMin</setting>
+        <setting type="double" name="toVal">$CostOfMinimumInvestmentMultiplierMax</setting>
+      </setting>
+      <setting name="RandomSeed" type="distribution" subtype="uniform">
+        <setting type="double" name="fromVal">0.0</setting>
+        <setting type="double" name="toVal">1.0</setting>
+      </setting>
+    </setting>
+  </defineTemplate>
+  <gameInputsAll>
+    <gameInputs name="PatentDamagesGameInputs" gameName="PatentDamagesGame">
+      <setting type="double" name="InitialWealthOfEntrants">$InitialWealthOfEntrants</setting>
+      <setting type="double" name="HighestInventionValueNoiseStdev">$HighestInventionValueNoiseStdev</setting>
+      <setting name="ProbabilityEstimateError" type="distribution" subtype="normal">
+        <setting type="double" name="mean">$ProbabilityEstimateErrorMin</setting>
+        <setting type="double" name="stdev">$ProbabilityEstimateErrorMax</setting>
+      </setting>
+      <setting type="double" name="CostOfEntry">$CostOfEntry</setting>
+      <setting type="double" name="MarketRateOfReturn">$MarketRateOfReturn</setting>
+      <setting type="double" name="PermittedRateOfReturn">$PermittedRateOfReturn</setting>
+      <setting type="int" name="MaxNumEntrants">$MaxNumEntrants</setting>
+      <setting name="CostOfMinimumInvestmentBaseline" type="distribution" subtype="uniform">
+        <setting type="double" name="fromVal">$CostOfMinimumInvestmentBaselineMin</setting>
+        <setting type="double" name="toVal">$CostOfMinimumInvestmentBaselineMax</setting>
+      </setting>
+      <setting type="double" name="HighestInventionValueMultiplier">$HighestInventionValueMultiplier</setting>
+      <setting name="HighestInventionValue" type="distribution" subtype="uniform">
+        <setting type="double" name="fromVal">0.0</setting>
+        <setting type="double" name="toVal">1.0</setting>
+      </setting>
+      <setting name="HighestInventionValueCourtNoiseStdev" type="double">$HighestInventionValueCourtNoiseStdev</setting>
+      <setting name="HighestInventionValueCourtNoise" type="distribution" subtype="normal">
+        <setting type="double" name="mean">0.0</setting>
+        <setting type="double" name="stdev">$HighestInventionValueCourtNoiseStdev</setting>
+      </setting>
+      <setting type="double" name="SpilloverMultiplier">$SpilloverMultiplier</setting>
+      <setting type="double" name="SuccessProbabilityMinimumInvestment">$SuccessProbabilityMinimumInvestment</setting>
+      <setting type="double" name="SuccessProbabilityDoubleInvestment">$SuccessProbabilityDoubleInvestment</setting>
+      <setting type="double" name="SuccessProbabilityTenTimesInvestment">$SuccessProbabilityTenTimesInvestment</setting>
+      <setting type="double" name="SuccessIndependence">$SuccessIndependence</setting>
+      <setting type="double" name="InadvertentInfringementProbability">$InadvertentInfringementProbability</setting>
+      <setting type="double" name="LitigationCostsEachParty">$LitigationCostsEachParty</setting>
+      <setting name="EntrantsRandomSeed" type="distribution" subtype="uniform">
+        <setting type="double" name="fromVal">0.0</setting>
+        <setting type="double" name="toVal">1.0</setting>
+      </setting>
+      <setting name="FractionalEntryRandomSeed" type="distribution" subtype="uniform">
+        <setting type="double" name="fromVal">0.0</setting>
+        <setting type="double" name="toVal">1.0</setting>
+      </setting>
+      <setting name="CommonSuccessRandomSeed" type="distribution" subtype="uniform">
+        <setting type="double" name="fromVal">0.0</setting>
+        <setting type="double" name="toVal">1.0</setting>
+      </setting>
+      <setting name="PickWinnerRandomSeed" type="distribution" subtype="uniform">
+        <setting type="double" name="fromVal">0.0</setting>
+        <setting type="double" name="toVal">1.0</setting>
+      </setting>
+      <setting name="InadvertentInfringementRandomSeed" type="distribution" subtype="uniform">
+        <setting type="double" name="fromVal">0.0</setting>
+        <setting type="double" name="toVal">1.0</setting>
+      </setting>
+      <setting type="double" name="WeightOnCostPlusDamages">$WeightOnCostPlusDamages</setting>
+      <setting type="bool" name="DamagesAreLesserOfTwoApproaches">$DamagesAreLesserOfTwoApproaches</setting>
+      <setting type="double" name="DamagesMultiplierForIntentionalInfringement">$DamagesMultiplierForIntentionalInfringement</setting>
+      <setting type="bool" name="CombineInventorsForCostPlus">$CombineInventorsForCostPlus</setting>
+      <setting type="bool" name="UseExpectedCostForCostPlus">$UseExpectedCostForCostPlus</setting>
+      <setting type="bool" name="ExpectedCostIsSpecificToInventor">$ExpectedCostIsSpecificToInventor</setting>
+      <setting type="bool" name="SociallyOptimalSpending">$SociallyOptimalSpending</setting>
+      <setting type="bool" name="UseExactCalculationForTryDecision">$UseExactCalculationForTryDecision</setting>
+      <setting name="AllInventorsInfo" type="class">
+        <insertTemplate name="InventorInfoTemplate" find1="InventorXX" replace1="Inventor00"/>
+        <insertTemplate name="InventorInfoTemplate" find1="InventorXX" replace1="Inventor01"/>
+        <insertTemplate name="InventorInfoTemplate" find1="InventorXX" replace1="Inventor02"/>
+        <insertTemplate name="InventorInfoTemplate" find1="InventorXX" replace1="Inventor03"/>
+        <insertTemplate name="InventorInfoTemplate" find1="InventorXX" replace1="Inventor04"/>
+        <insertTemplate name="InventorInfoTemplate" find1="InventorXX" replace1="Inventor05"/>
+        <insertTemplate name="InventorInfoTemplate" find1="InventorXX" replace1="Inventor06"/>
+        <insertTemplate name="InventorInfoTemplate" find1="InventorXX" replace1="Inventor07"/>
+        <insertTemplate name="InventorInfoTemplate" find1="InventorXX" replace1="Inventor08"/>
+        <insertTemplate name="InventorInfoTemplate" find1="InventorXX" replace1="Inventor09"/>
+      </setting>>
+    </gameInputs>
+  </gameInputsAll>
+
+</ACESim>

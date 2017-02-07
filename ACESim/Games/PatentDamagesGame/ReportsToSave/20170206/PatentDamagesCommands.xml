@@ -1,0 +1,34 @@
+
+<ACESim>
+  <commandSetsAll>
+    <commandSet name="EvolvePatentDamagesStrategies">
+      <multipartCommand name="EvolvePatentDamagesStrategies" gameInputsName="PatentDamagesGameInputs">
+        <!--InitializeStrategiesFile="PreevolvedStrategy"-->
+        <evolveCommand
+                    evolutionSettingsName="SimpleEvolution"
+                    storeStrategiesFile="PatentDamagesStrategies"
+                    initializeStrategiesFile="PatentDamagesStrategies"
+                    useInitializeStrategiesFile="false"
+                    evolveOnlyIfNecessary="false">
+          <!--<reportCommand name="PatentDamagesInterimReportCommand" storeIterationResultsFile="PatentDamagesInterimIterations" storeReportResultsFile="PatentDamagesInterimReport" betweenDecisions="true" parallelReporting="false" requireCumulativeDistributions="false">
+            <rowsGroup name="PatentDamagesRows"></rowsGroup>
+            <colsGroup name="PatentDamagesColumns"></colsGroup>
+          </reportCommand>-->
+        </evolveCommand>
+        <playCommand numberIterations="10000" StoreStrategiesFile="PatentDamagesStrategies" storeIterationResultsFile="PatentDamagesIterations" parallelReporting="true" savePlayedGamesInMemoryOnly="false">
+          <changeSimulationSettings>
+          </changeSimulationSettings>
+        </playCommand>
+        <reportCommand name="PatentDamagesReportCommand" storeIterationResultsFile="PatentDamagesIterations" storeReportResultsFile="$ReportPrefix Report.txt" requireCumulativeDistributions="false">
+          <rowsGroup name="PatentDamagesRows"></rowsGroup>
+          <colsGroup name="PatentDamagesColumns"></colsGroup>
+        </reportCommand>
+
+      </multipartCommand>
+    </commandSet>
+  </commandSetsAll>
+
+  <executeCommandList>
+    <executeCommandSet name="EvolvePatentDamagesStrategies"/>
+  </executeCommandList>
+</ACESim>
