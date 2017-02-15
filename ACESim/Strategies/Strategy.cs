@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -212,6 +213,12 @@ namespace ACESim
         private List<double[]> GetSampleDecisionInputs(int minSuccesses)
         {
             throw new NotImplementedException();
+        }
+
+        public void GetSerializedStrategiesPathAndFilenameBase(int numStrategyStatesSerialized, out string path, out string filenameBase)
+        {
+            path = Path.Combine(SimulationInteraction.BaseOutputDirectory, SimulationInteraction.storedStrategiesSubdirectory);
+            filenameBase = "strsta" + numStrategyStatesSerialized.ToString();
         }
     }
 }
