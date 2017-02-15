@@ -49,6 +49,11 @@ namespace ACESim
         /// </summary>
         [OptionalSetting]
         public int RepetitionsAfterFirst = 0;
+
+        /// <summary>
+        /// A file containing a version of the strategy to use before evolution.
+        /// </summary>
+        public string PreevolvedStrategyFilename;
     }
 
 }

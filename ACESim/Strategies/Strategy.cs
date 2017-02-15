@@ -40,6 +40,8 @@ namespace ACESim
 
         public bool UseBuiltInStrategy = false; // This is set to true for dummy decisions requiring no optimization, and signals the game module to use a built in strategy for the specific decision instead of calling the strategy.
 
+        public EvolutionSettings EvolutionSettings;
+
         public Strategy()
         {
 
@@ -51,6 +53,7 @@ namespace ACESim
             {
                 SimulationInteraction = SimulationInteraction,
                 Decision = Decision,
+                EvolutionSettings = EvolutionSettings,
                 DecisionNumber = DecisionNumber,
                 AllStrategies = AllStrategies.ToList(),
                 Player = null, /* do not copy -- we want the copy to create its own GamePlayer */

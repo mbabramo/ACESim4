@@ -10,15 +10,6 @@ namespace ACESim
     [Serializable]
     public class GameModuleProgress : GameProgressReportable
     {
-        [InternallyDefinedSetting]
-        [NonSerialized]
-		[System.Xml.Serialization.XmlIgnore]
-        internal List<double> TemporaryInputsStorage;
-
-        [InternallyDefinedSetting]
-        [NonSerialized]
-		[System.Xml.Serialization.XmlIgnore]
-        internal List<double> InputsOfCurrentlyEvolvingDecision;
 
         static ConcurrentQueue<GameModuleProgress> RecycledGameModuleProgressQueue = new ConcurrentQueue<GameModuleProgress>();
         
@@ -47,8 +38,6 @@ namespace ACESim
 
         public virtual void CleanAfterRecycling()
         {
-            TemporaryInputsStorage = null;
-            InputsOfCurrentlyEvolvingDecision = null;
         }
 
         public virtual GameModuleProgress DeepCopy()
@@ -61,8 +50,7 @@ namespace ACESim
 
         internal void CopyFieldInfo(GameModuleProgress copy)
         {
-            copy.TemporaryInputsStorage = TemporaryInputsStorage == null ? null : TemporaryInputsStorage.ToList();
-            copy.InputsOfCurrentlyEvolvingDecision = InputsOfCurrentlyEvolvingDecision == null ? null : InputsOfCurrentlyEvolvingDecision.ToList();
+            // copy.TemporaryInputsStorage = TemporaryInputsStorage == null ? null : TemporaryInputsStorage.ToList();
         }
     }
 }

@@ -38,10 +38,6 @@ namespace ACESim
             EvolutionSettings theEvolutionSettings = SimulationInteraction.GetEvolutionSettings();
 
             Strategy[] loadedStrategies = SimulationInteraction.LoadEvolvedStrategies(GameDefinition);
-            if (loadedStrategies != null)
-                foreach (Strategy s in loadedStrategies)
-                    if (s != null)
-                        s.StrategyDeserializedFromDisk = true;
 
             SetUpStrategies(simulationInteraction, theEvolutionSettings, loadedStrategies);
         }
@@ -103,7 +99,7 @@ namespace ACESim
             evolutionSettings = SimulationInteraction.GetEvolutionSettings();
             List<Strategy> bestStrategies = strategies;
 
-            int numRepetitions = evolutionSettings.RepetitionsOfEntireSmoothingProcess;
+            int numRepetitions = 1;
             // Actually do the evolution
             if (numRepetitions > 0)
                 SimulationInteraction.GetCurrentProgressStep().AddChildSteps(numRepetitions, "EvolveRepetitions");
@@ -181,158 +177,15 @@ namespace ACESim
             if (stop)
                 return;
 
-            int? setBreakWhenNumDecisionsEvolvedIs = null; // 33; // set this to disable parallel execution at a particular point in the evolutionary process (useful for finding problems)
             int? setBreakAtGameNumberWithThatDecisionEvolution = null; // 1097;
 
-            int decisionsAffectingProgressStep = GameDefinition.DecisionPointsEvolutionOrder.Where(x => 
-                !(
-                    (GameDefinition.GameModules != null && GameDefinition.GameModules.Any() && GameDefinition.GetOriginalGameModuleForDecisionNumber((int)x.DecisionNumber).IgnoreWhenCountingProgress) // decisions to ignore in counting progress
-                    || ((doNotEvolveByDefault && strategies[(int)x.DecisionNumber].StrategyDeserializedFromDisk && !x.Decision.EvolveThisDecisionEvenWhenSkippingByDefault) || (!doNotEvolveByDefault && strategies[(int)x.DecisionNumber].StrategyDeserializedFromDisk && x.Decision.SkipThisDecisionWhenEvolvingIfAlreadyEvolved)) // decisions to skip
-                    || (GameDefinition.DecisionsExecutionOrder[(int)x.DecisionNumber].MaxEvolveRepetitions < stepNumber)
-                    || (stepNumber < totalSteps - 1 && GameDefinition.DecisionsExecutionOrder[(int)x.DecisionNumber].EvolveOnlyLastStep)
-                )
-                ).Count();
-            if (decisionsAffectingProgressStep > 0)
-                SimulationInteraction.GetCurrentProgressStep().AddChildSteps(decisionsAffectingProgressStep, "DecisionsWithinExecuteEvolveStep");
-
-            // Before doing the evolution, go through once to update the highest cumulative distribution that has already evolved.
-            //foreach (DecisionPoint dp in GameDefinition.DecisionPointsEvolutionOrder)
-            int startingDPIndex = 0;
-            if (prm.ProgressResumptionOption == ProgressResumptionOptions.SkipToPreviousPositionThenResume)
-            { 
-                startingDPIndex = prm.Info.EvolveDecisionPointIndex;
-                int decisionsAffectingProgressStepAlreadyComplete = GameDefinition.DecisionPointsEvolutionOrder.Take(startingDPIndex).Where(x =>
-                !(
-                    (GameDefinition.GameModules != null && GameDefinition.GetOriginalGameModuleForDecisionNumber((int)x.DecisionNumber).IgnoreWhenCountingProgress) // decisions to ignore in counting progress
-                    || ((doNotEvolveByDefault && strategies[(int)x.DecisionNumber].StrategyDeserializedFromDisk && !x.Decision.EvolveThisDecisionEvenWhenSkippingByDefault) || (!doNotEvolveByDefault && strategies[(int)x.DecisionNumber].StrategyDeserializedFromDisk && x.Decision.SkipThisDecisionWhenEvolvingIfAlreadyEvolved)) // decisions to skip
-                    || (GameDefinition.DecisionsExecutionOrder[(int)x.DecisionNumber].MaxEvolveRepetitions < stepNumber)
-                    || (stepNumber < totalSteps - 1 && GameDefinition.DecisionsExecutionOrder[(int)x.DecisionNumber].EvolveOnlyLastStep)
-
-                )
-                ).Count();
-                SimulationInteraction.GetCurrentProgressStep().SetSeveralStepsComplete(decisionsAffectingProgressStepAlreadyComplete, "DecisionsWithinExecuteEvolveStep"); 
-            }
-            for (int dpIndex = 0; dpIndex < GameDefinition.DecisionPointsEvolutionOrder.Count(); dpIndex++)
-            {
-                DecisionPoint dp = GameDefinition.DecisionPointsEvolutionOrder[dpIndex];
-                SimulationInteraction.StopAfterOptimizingCurrentDecisionPoint = SimulationInteraction.CheckStopSoon();
-                if (SimulationInteraction.StopAfterOptimizingCurrentDecisionPoint)
-                    break;
-                int decisionNumber = (int)dp.DecisionNumber;
-                bool skip = dpIndex < startingDPIndex || (doNotEvolveByDefault && strategies[decisionNumber].StrategyDeserializedFromDisk && !dp.Decision.EvolveThisDecisionEvenWhenSkippingByDefault) || (!doNotEvolveByDefault && strategies[decisionNumber].StrategyDeserializedFromDisk && dp.Decision.SkipThisDecisionWhenEvolvingIfAlreadyEvolved) || (GameDefinition.DecisionsExecutionOrder[decisionNumber].MaxEvolveRepetitions < stepNumber) || (stepNumber < totalSteps - 1 && GameDefinition.DecisionsExecutionOrder[decisionNumber].EvolveOnlyLastStep);
-                if (skip)
-                    UpdateHighestCumulativeDistributionUpdateIndexEvolved(dp);
-                else
-                    strategies[decisionNumber].StrategyStillToEvolveThisEvolveStep = true;
-            }
-
-            // Now, do the evolution, and again update the highest cumulative distribution.
-            SimulationInteraction.StopAfterOptimizingCurrentDecisionPoint = SimulationInteraction.CheckStopSoon();
-            if (!SimulationInteraction.StopAfterOptimizingCurrentDecisionPoint)
-            {
-                for (int dpIndex = startingDPIndex; dpIndex < GameDefinition.DecisionPointsEvolutionOrder.Count(); dpIndex++)
-                {
-                    prm.Info.EvolveDecisionPointIndex = dpIndex;
-                    DecisionPoint dp = GameDefinition.DecisionPointsEvolutionOrder[dpIndex];
-                    foreach (Tuple<string,List<int?>> tagList in GameDefinition.AutomaticRepetitionsIndexNumbersInEvolutionOrder)
-                        if (tagList.Item2[dpIndex] != null)
-                            GameDefinition.GameModules[(int)dp.ActionGroup.ModuleNumber].UpdateBasedOnTagInfo(
-                                tagList.Item1, 
-                                (int) tagList.Item2[dpIndex], 
-                                tagList.Item2.Where(y => y != null).Max(y => (int) y), 
-                                ref dp.Decision
-                                );
-                    SimulationInteraction.StopAfterOptimizingCurrentDecisionPoint = SimulationInteraction.CheckStopSoon();
-                    if (SimulationInteraction.StopAfterOptimizingCurrentDecisionPoint)
-                        break;
-                    int decisionNumber = (int)dp.DecisionNumber;
-                    bool skip = (doNotEvolveByDefault && strategies[decisionNumber].StrategyDeserializedFromDisk && !dp.Decision.EvolveThisDecisionEvenWhenSkippingByDefault) || (!doNotEvolveByDefault && strategies[decisionNumber].StrategyDeserializedFromDisk && dp.Decision.SkipThisDecisionWhenEvolvingIfAlreadyEvolved) || (GameDefinition.DecisionsExecutionOrder[decisionNumber].MaxEvolveRepetitions < stepNumber) || (stepNumber < totalSteps - 1 && GameDefinition.DecisionsExecutionOrder[decisionNumber].EvolveOnlyLastStep);
-                    if (!skip)
-                    {
-                        EvolveDecision(ref evolveSettings, theBaseOutputDirectory, stepNumber, totalSteps, isLastEvolveStep, ref numDecisionsEvolved, ref stop, setBreakWhenNumDecisionsEvolvedIs, setBreakAtGameNumberWithThatDecisionEvolution, decisionsAffectingProgressStep, decisionNumber, prm);
-                        RunInterimReports(((EvolveCommand)SimulationInteraction.CurrentExecutionInformation.CurrentCommand).ReportsBetweenDecisions);
-                        UpdateHighestCumulativeDistributionUpdateIndexEvolved(dp);
-                    }
-                    strategies[decisionNumber].StrategyStillToEvolveThisEvolveStep = false;
-                }
-            }
-
-            foreach (var strategy in strategies)
-                strategy.CyclesStrategyDevelopmentThisEvolveStep = 0; // reset this
+            //SimulationInteraction.GetCurrentProgressStep().AddChildSteps(decisionsAffectingProgressStep, "DecisionsWithinExecuteEvolveStep");
+            
 
             if (!doNotEvolveByDefault)
                 RunInterimReports(((EvolveCommand)SimulationInteraction.CurrentExecutionInformation.CurrentCommand).ReportsAfterEvolveSteps);
         }
-
-        private void UpdateHighestCumulativeDistributionUpdateIndexEvolved(DecisionPoint dp)
-        {
-            CumulativeDistributionUpdateInfo cdUpdateInfo = dp.ActionGroup.ActionGroupSettings as CumulativeDistributionUpdateInfo;
-            if (cdUpdateInfo != null)
-                if (SimulationInteraction.HighestCumulativeDistributionUpdateIndexEvolved == null || cdUpdateInfo.UpdateIndex > SimulationInteraction.HighestCumulativeDistributionUpdateIndexEvolved)
-                    SimulationInteraction.HighestCumulativeDistributionUpdateIndexEvolved = cdUpdateInfo.UpdateIndex;
-        }
-
-        private void EvolveDecision(ref EvolutionSettings evolveSettings, string theBaseOutputDirectory, int stepNumber, int totalSteps, bool isLastEvolveStep, ref int numDecisionsEvolved, ref bool stop, int? setBreakWhenNumDecisionsEvolvedIs, int? setBreakAtGameNumberWithThatDecisionEvolution, int decisionsAffectingProgressStep, int decisionNumber, ProgressResumptionManager prm)
-        {
-            bool originalParallelOptimization = evolveSettings.ParallelOptimization;
-            if (numDecisionsEvolved == setBreakWhenNumDecisionsEvolvedIs)
-            {
-                evolveSettings.ParallelOptimization = false;
-                Game.BreakAtNumGamesPlayedDuringEvolutionOfThisDecision = setBreakAtGameNumberWithThatDecisionEvolution;
-                Game.RestartFromBeginningOfGame = true; // should facilitate tracking down problems
-            }
-            Game.NumGamesPlayedDuringEvolutionOfThisDecision = 0;
-
-            SimulationInteraction.CurrentExecutionInformation.InputSeedsSet.randomizationApproach = (GameDefinition.DecisionsExecutionOrder[decisionNumber].UseAlternativeGameInputs ? InputSeedsRandomization.useAlternate : InputSeedsRandomization.useOrdinary);
-            SimulationInteraction.CurrentExecutionInformation.InputSeedsSet.enableInputMirroring = true; // todo: make this an option; right now, we do it when optimizing, but not when playing.
-
-            SimulationInteraction.ReportDecisionNumber(decisionNumber + 1);
-            int decisionSkipIndex = decisionNumber;
-            bool skip;
-            skip = false; // The skipping now takes place in the method calling this one. (decisionsToSkip != null && decisionsToSkip.Contains(decisionSkipIndex)) || (GameDefinition.DecisionsExecutionOrder[decisionNumber].MaxEvolveRepetitions < stepNumber);
-            if (!skip)
-            {
-                EvolveDecisionNotSkipped(ref evolveSettings, theBaseOutputDirectory, stepNumber, totalSteps, isLastEvolveStep, ref stop, decisionsAffectingProgressStep, decisionNumber, evolveSettings.StopParallelOptimizationAfterOptimizingNDecisions >= 0 && numDecisionsEvolved > evolveSettings.StopParallelOptimizationAfterOptimizingNDecisions, prm);
-            }
-            numDecisionsEvolved++;
-            evolveSettings.ParallelOptimization = originalParallelOptimization;
-        }
-
-        private void EvolveDecisionNotSkipped(ref EvolutionSettings evolveSettings, string theBaseOutputDirectory, int stepNumber, int totalSteps, bool isLastEvolveStep, ref bool stop, int decisionsAffectingProgressStep, int decisionNumber, bool disableParallelOptimization, ProgressResumptionManager prm)
-        {
-            string decisionName = GameDefinition.DecisionsExecutionOrder[decisionNumber].Name + GameDefinition.DecisionPointsExecutionOrder[decisionNumber].ActionGroup.RepetitionTagString();
-            string reportString = String.Format("Decision index {0} ({1}) of 0..{2} in Step {3}... ", decisionNumber, decisionName, GameDefinition.DecisionsExecutionOrder.Count - 1, stepNumber);
-            double evolveStepPctThisDecision = (double)stepNumber / (double)Math.Min(GameDefinition.DecisionsExecutionOrder[decisionNumber].MaxEvolveRepetitions, totalSteps);
-            SimulationInteraction.ReportVariableFromProgram("EvolveStepPctThisDecision", evolveStepPctThisDecision);
-            evolveSettings = SimulationInteraction.GetEvolutionSettings(); // update settings, since changing EvolveStepPctThisDecision can change intensity of optimization
-            if (disableParallelOptimization)
-                evolveSettings.ParallelOptimization = false;
-            strategies[decisionNumber].EvolutionSettings = evolveSettings;
-            SimulationInteraction.ReportTextToUser(reportString, true);
-            TabbedText.WriteLine(reportString);
-            TabbedText.Tabs++;
-
-            // If we have been skipping past progress to resume where we left off, 
-            // when we get here, it is time to load the strategy state and continue
-            // where we left off.
-            if (prm != null && prm.ProgressResumptionOption == ProgressResumptionOptions.SkipToPreviousPositionThenResume)
-                ContinueProgressFromWhereLeftOff(decisionNumber, prm);
-            strategies[decisionNumber].DevelopStrategy(false, prm, out stop); // This is where we actually want to do the evolution
-
-            DecisionPoint dp = GameDefinition.DecisionPointForDecisionNumber(decisionNumber);
-            GameModule module = GameDefinition.GameModules == null || !GameDefinition.GameModules.Any() ? null : GameDefinition.GetOriginalGameModuleForDecisionNumber(decisionNumber);
-            if (decisionsAffectingProgressStep > 0 && (module == null || !module.IgnoreWhenCountingProgress))
-                SimulationInteraction.GetCurrentProgressStep().SetProportionOfStepComplete(1, true, "DecisionsWithinExecuteEvolveStep");
-
-            bool doAll = isLastEvolveStep || GameDefinition.DecisionsExecutionOrder[decisionNumber].MaxEvolveRepetitions == stepNumber;
-            if (strategies[decisionNumber].Decision.StrategyGraphInfos == null)
-                strategies[decisionNumber].Decision.StrategyGraphInfos = new List<StrategyGraphInfo>();
-            if (doAll || strategies[decisionNumber].Decision.StrategyGraphInfos.Any(x => x.ReportAfterEachEvolutionStep))
-                strategies[decisionNumber].Decision.AddToStrategyGraphs(theBaseOutputDirectory, true, true, strategies[decisionNumber], GameDefinition.DecisionPointsExecutionOrder[decisionNumber].ActionGroup);
-
-            TabbedText.Tabs--;
-        }
-
+        
         private void ContinueProgressFromWhereLeftOff(int decisionNumber, ProgressResumptionManager prm)
         {
             string path;
@@ -345,9 +198,7 @@ namespace ACESim
                 Strategy s = strategies[sind];
                 s.SimulationInteraction = SimulationInteraction;
                 s.EvolutionSettings = evolutionSettingsForStrategies[sind]; // makes it possible to resume progress but change the settings
-                s.IStrategyComponentsInDevelopmentOrder = s.GetIStrategyComponentsInDevelopmentOrder();
                 s.AllStrategies = strategies;
-                s.ActiveInputGroupPlus = null;
             }
             prm.ProgressResumptionOption = ProgressResumptionOptions.ProceedNormallySavingPastProgress;
         }

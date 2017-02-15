@@ -247,7 +247,6 @@
     <Compile Include="Games\LitigationGame\Modules\DummyModule\DummyModuleProgress.cs" />
     <Compile Include="Games\LitigationGame\Modules\Adjustments\ShootoutAdjustmentsModule\LitigationShootout.cs" />
     <Compile Include="Games\General\ActionPoint.cs" />
-    <Compile Include="Games\General\Forecast.cs" />
     <Compile Include="Games\General\Game.cs" />
     <Compile Include="Games\General\GameDefinition.cs" />
     <Compile Include="Games\General\GameFactoryFactory.cs" />

@@ -40,10 +40,6 @@ namespace ACESim
 
         public override void FinalProcessing()
         {
-
-            if (CurrentlyEvolving && Progress.CurrentlyEvolvingDecisionIndexReached)
-                ScoreCurrentModule();
-
             Progress.GameComplete = true;
         }
 

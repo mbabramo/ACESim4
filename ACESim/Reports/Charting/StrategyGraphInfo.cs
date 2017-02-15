@@ -134,7 +134,7 @@ namespace ACESim
 
         public void AddToReport(string baseOutputDirectory, bool newEvolveStep, Decision theDecision, Strategy theStrategy, string repetitionTagString)
         {
-            if (theStrategy.CyclesStrategyDevelopment == 0 || theDecision.InputAbbreviations == null)
+            if (theDecision.InputAbbreviations == null)
                 return;
 
             if (newEvolveStep)
@@ -152,8 +152,7 @@ namespace ACESim
                     return; 
                     //throw new Exception("The StrategyGraphInfo for report " + OutputReportFilename + " specifies a fixed input " + inputToFix.InputAbbreviation + " that does not exist in the input abbreviations for the decision.");
             }
-
-            bool[] isFilteredOut = new bool[InputsToGraph.Count()];
+            
             int iTG = 0;
             foreach (var inputToGraph in InputsToGraph)
             {
@@ -163,14 +162,7 @@ namespace ACESim
                     TabbedText.WriteLine("Input abbreviation " + inputToGraph.InputAbbreviation + " not found. Aborting.");
                     return;
                 }
-                    //throw new Exception("The StrategyGraphInfo for report " + OutputReportFilename + " specifies an input to graph " + inputToGraph.InputAbbreviation + " that does not exist in the input abbreviations for the decision.");
-                isFilteredOut[iTG] = theStrategy.Decision.DynamicNumberOfInputs && (theStrategy.DimensionFilteredOut != null && theStrategy.DimensionFilteredOut[index]);
                 iTG++;
-            }
-            if (isFilteredOut.Any(x => x == true))
-            {
-                TabbedText.WriteLine("Input to graph filtered out. Aborting.");
-                return;
             }
 
             // Set inputs that are fixed (either because the fixed value is specified or because the input is omitted, in which case we use the average value)
@@ -183,18 +175,7 @@ namespace ACESim
                 if (correspondingInputToGraph == null)
                 {
                     var correspondingInputToFix = InputsToFix.Select((item, index) => new { Item = item, Index = index }).SingleOrDefault(x => x.Item.InputAbbreviation == theDecision.InputAbbreviations[inpInd]);
-                    if (correspondingInputToFix == null)
-                    {
-                        // We must set this input to its average value
-                        int filteredIndex = theStrategy.GetFilteredInputIndex(inpInd);
-                        if (filteredIndex != -1)
-                            theInputs[inpInd] = theStrategy.FilteredInputsStatistics.Average()[inpInd];
-                    }
-                    else
-                    {
-                        // We must set this input to its fixed value
-                        theInputs[inpInd] = correspondingInputToFix.Item.Value;
-                    }
+                    theInputs[inpInd] = correspondingInputToFix.Item.Value;
                 }
             }
 
@@ -285,10 +266,7 @@ namespace ACESim
             AddFullLineTo3DReport(colHeads);
             int xvalIndex = -1, yvalIndex = -1;
             double[,] zVals = new double[xAxis.NumValues, yAxis.NumValues];
-            bool doOverlay = theDecision.Name == "ObfuscationDecision"; // do an overlay for this game only -- would be good to generalize this mechanism.
             double[,] zValsOverlay = null;
-            if (doOverlay)
-                zValsOverlay = new double[xAxis.NumValues, yAxis.NumValues]; // modify the code to produce objectively verifiable data here
             foreach (var yValue in yAxisValues)
             {
                 yvalIndex++;
@@ -300,8 +278,6 @@ namespace ACESim
                     theInputs[xindex] = xValue;
                     theInputs[yindex] = yValue;
                     zVals[xvalIndex, yvalIndex] = theStrategy.Calculate(theInputs.ToList());
-                    if (doOverlay)
-                        zValsOverlay[xvalIndex, yvalIndex] = ObfuscationGame.ObfuscationCorrectAnswer.Calculate(yValue, xValue); // put standard deviation, which is second in inputs, first
                     newRow.Add(zVals[xvalIndex, yvalIndex].ToSignificantFigures());
                 }
                 AddFullLineTo3DReport(newRow);
@@ -315,16 +291,6 @@ namespace ACESim
                     double[] pointToAdd = new double[] { xAxis.MinValue + xvalIndex * (xAxis.MaxValue - xAxis.MinValue) / (xAxis.NumValues - 1), yAxis.MinValue + yvalIndex * (yAxis.MaxValue - yAxis.MinValue) / (yAxis.NumValues - 1), zVals[xvalIndex, yvalIndex] };
                     points.Add(pointToAdd);
                     colors.Add(System.Windows.Media.Colors.Beige);
-                    if (doOverlay)
-                    {
-                        if (!double.IsNaN(zValsOverlay[xvalIndex, yvalIndex]) && !double.IsInfinity(zValsOverlay[xvalIndex, yvalIndex]))
-                        {
-                            double distance = Math.Abs(zValsOverlay[xvalIndex, yvalIndex] - zVals[xvalIndex, yvalIndex]);
-                            double[] pointToAdd2 = new double[] { xAxis.MinValue + xvalIndex * (xAxis.MaxValue - xAxis.MinValue) / (xAxis.NumValues - 1), yAxis.MinValue + yvalIndex * (yAxis.MaxValue - yAxis.MinValue) / (yAxis.NumValues - 1), zValsOverlay[xvalIndex, yvalIndex] };
-                            points.Add(pointToAdd2);
-                            colors.Add(System.Windows.Media.Colors.Cyan);
-                        }
-                    }
                 }
             // Uncomment and modify the following to put specific points in the 3d chart
             // Eventually, we should find a way to do this from the XML file.

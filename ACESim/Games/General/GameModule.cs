@@ -166,86 +166,9 @@ namespace ACESim
             throw new NotImplementedException("Either override Score for the GameModule or override GetScoreForParticularDecision.");
         }
 
-        public virtual void Score()
-        {
-            int firstDecisionToScore = (int)Game.CurrentlyEvolvingDecisionIndex;
-            int firstDecisionToScoreIndexWithinActionGroup = (int)Game.CurrentlyEvolvingDecisionIndexWithinActionGroup;
-            int subsequentDecisionsToInclude = AllStrategies[firstDecisionToScore].Decision.NumberDecisionsToEitherRecordOrCacheBeyondThisOne; // SubsequentDecisionsToRecordScoresFor;
-            for (int i = 0; i < 1 + subsequentDecisionsToInclude; i++)
-                Game.Score(firstDecisionToScore + i, GetScoreForParticularDecision(firstDecisionToScoreIndexWithinActionGroup + i));
-        }
-
         public virtual List<Tuple<string,string>> GetInputNamesAndAbbreviations(int decisionNumberWithinActionGroup)
         {
             return new List<Tuple<string, string>>();
-        }
-
-        object inputNamesLock = new object();
-        private void SetInputNamesAndAbbreviationsForCurrentDecision()
-        {
-            Decision currentDecision = Game.CurrentDecision;
-            if (currentDecision.InputAbbreviations == null)
-            {
-                lock (inputNamesLock)
-                {
-                    if (currentDecision.InputAbbreviations == null)
-                    {
-                        List<Tuple<string, string>> inputNamesAndAbbreviations = GetInputNamesAndAbbreviations((int)Game.CurrentDecisionIndexWithinActionGroup);
-                        currentDecision.InputNames = inputNamesAndAbbreviations.Select(x => x.Item1).ToList();
-                        currentDecision.InputAbbreviations = inputNamesAndAbbreviations.Select(x => x.Item2).ToList();
-                    }
-                }
-            }
-        }
-
-        public void SpecifyInputs(List<double> inputs)
-        {
-            if (Game.CurrentlyEvolvingCurrentlyExecutingDecision)
-                GameModuleProgress.InputsOfCurrentlyEvolvingDecision = inputs.ToList();
-            GameModuleProgress.TemporaryInputsStorage = inputs;
-            Game.RecordInputsIfNecessary(inputs);
-            if (GameProgressLogger.LoggingOn)
-                GameProgressLogger.Log("Inputs specified: " + String.Join(",", inputs));
-        }
-
-        public virtual double Calculate()
-        {
-            if (Game.CurrentDecisionIndex == Game.CurrentlyEvolvingDecisionIndex)
-                Game.Progress.CurrentlyEvolvingDecisionIndexReached = true;
-            bool usePreviousVersion = false;
-            bool averageThisStrategyAndPreviousVersion = false;
-            bool disableAllAveragingThisStrategy = false;
-            int currentDecisionIndexOrSubstitute = Game.CurrentDecisionPoint.SubstituteDecisionNumberInsteadOfEvolving ?? (int)Game.CurrentDecisionIndex;
-
-            if (Game.CurrentDecisionIndexWithinActionGroup != null)
-            {
-                Decision theDecision = Game.CurrentDecision;
-                
-                if (theDecision.InputAbbreviations == null)
-                    SetInputNamesAndAbbreviationsForCurrentDecision();
-                bool alwaysUsePreviousVersionWhenOptimizingOtherDecisionInModule = true;
-                if (alwaysUsePreviousVersionWhenOptimizingOtherDecisionInModule)
-                {
-                    if (Game.CurrentlyEvolvingDecisionIndex != null)
-                    {
-                        Strategy theStrategy = Game.Strategies[currentDecisionIndexOrSubstitute];
-                        Strategy theStrategyCurrentlyEvolving = Game.Strategies[(int)Game.CurrentlyEvolvingDecisionIndex];
-                        if (theStrategy != theStrategyCurrentlyEvolving && !theStrategy.Decision.AlwaysUseLatestVersion && theStrategy.CyclesStrategyDevelopmentThisEvolveStep > theStrategyCurrentlyEvolving.CyclesStrategyDevelopmentThisEvolveStep)
-                            usePreviousVersion = true;
-                    }
-
-                }
-                else if (Game.CurrentlyEvolvingModule == this && Game.CurrentlyEvolvingDecisionIndexWithinActionGroup != Game.CurrentDecisionIndexWithinActionGroup)
-                    usePreviousVersion = true;
-                bool alwaysAveragePreviousVersion = false;
-                if ((theDecision.AverageInPreviousVersion || alwaysAveragePreviousVersion) && !disableAllAveragingThisStrategy)
-                    averageThisStrategyAndPreviousVersion = true;
-            }
-
-            double returnVal = Calculate(currentDecisionIndexOrSubstitute, usePreviousVersion, false, averageThisStrategyAndPreviousVersion);
-            if (GameProgressLogger.LoggingOn)
-                GameProgressLogger.Log("Calculate result: " + returnVal);
-            return returnVal;
         }
 
         public virtual double BuiltInCalculationResult(int decisionNumberWithinActionGroup)
@@ -253,59 +176,10 @@ namespace ACESim
             return 0; // default for a built-in strategy is to just use a value we can ignore; can be overriden
         }
 
-        public double Calculate(int decisionNumber, bool usePreviousVersionOfStrategy = false, bool useVersionBeforeThat = false, bool averageThisStrategyAndPreviousVersion = false)
+        public double Calculate(int decisionNumber)
         {
             Strategy theStrategy = AllStrategies[decisionNumber];
-            int numToConsider = 0;
-            double total = 0;
-            if ((usePreviousVersionOfStrategy || averageThisStrategyAndPreviousVersion) && theStrategy.PreviousVersionOfThisStrategy == null)
-            {
-                usePreviousVersionOfStrategy = false;
-                averageThisStrategyAndPreviousVersion = false;
-            }
-            if ((!usePreviousVersionOfStrategy && !useVersionBeforeThat) || averageThisStrategyAndPreviousVersion)
-            {
-                total += CalculateStrategyWithoutUsingPreviousVersions(decisionNumber, theStrategy);
-                numToConsider++;
-            }
-            if (usePreviousVersionOfStrategy)
-            {
-                total += CalculateStrategyWithoutUsingPreviousVersions(decisionNumber, theStrategy.PreviousVersionOfThisStrategy);
-                numToConsider++;
-            }
-            if (useVersionBeforeThat)
-            {
-                total += CalculateStrategyWithoutUsingPreviousVersions(decisionNumber, theStrategy.VersionOfStrategyBeforePrevious);
-                numToConsider++;
-            }
-            //int? repetitionOfModuleForDecision = Game.DecisionPointForDecisionNumber(decisionNumber).RepetitionOfModule;
-            //int phaseOutRepetitions = Game.GameDefinition.DecisionsExecutionOrder[decisionNumber].PhaseOutDefaultBehaviorOverRepetitions;
-            //if (phaseOutRepetitions > 1 && repetitionOfModuleForDecision != null && repetitionOfModuleForDecision <= phaseOutRepetitions)
-            //{
-            //    double weightOfCalculation = ((int) repetitionOfModuleForDecision - 1) * (1.0 / (double) phaseOutRepetitions);
-            //    double weightOfDefaultBehavior = 1.0 - weightOfCalculation;
-            //    returnVal = weightOfDefaultBehavior * DefaultBehaviorBeforeEvolution(GameModuleProgress.TemporaryInputsStorage, decisionNumber) + weightOfCalculation * returnVal;
-            //}
-
-            GameModuleProgress.TemporaryInputsStorage = null;
-            double returnVal = total / (double)numToConsider;
-            return returnVal;
-        }
-
-        private double CalculateStrategyWithoutUsingPreviousVersions(int decisionNumber, Strategy theStrategy)
-        {
-            if (GameModuleProgress.TemporaryInputsStorage == null)
-                throw new Exception("Must call SpecifyInputs before calling Calculate.");
-            if (theStrategy.UseBuiltInStrategy)
-                return BuiltInCalculationResult((int)Game.CurrentDecisionIndexWithinActionGroup);
-            else if (theStrategy.GeneralOverrideValue != null)
-                return (double)theStrategy.GeneralOverrideValue;
-            else if (!theStrategy.StrategyDevelopmentInitiated)
-                return DefaultBehaviorBeforeEvolution(GameModuleProgress.TemporaryInputsStorage, decisionNumber);
-            else if (!theStrategy.DecisionReachedEnoughTimes)
-                return DefaultBehaviorWhenDecisionNotReached(GameModuleProgress.TemporaryInputsStorage, decisionNumber);
-            else
-                return theStrategy.Calculate(GameModuleProgress.TemporaryInputsStorage, this);
+            throw new NotImplementedException();
         }
 
         public virtual double DefaultBehaviorBeforeEvolution(List<double> inputs, int decisionNumber)
@@ -313,50 +187,7 @@ namespace ACESim
             StrategyBounds bounds = Game.GameDefinition.DecisionsExecutionOrder[decisionNumber].StrategyBounds;
             return (bounds.LowerBound + bounds.UpperBound) / 2.0;
         }
-
-        //public virtual double DefaultBehaviorWhenDecisionNotReached(double[] inputs, int decisionNumber)
-        //{
-        //    return DefaultBehaviorBeforeEvolution(inputs, decisionNumber);
-        //}
-
-        public virtual double DefaultBehaviorWhenDecisionNotReached(List<double> inputs, int decisionNumber)
-        {
-            ActionPoint info = Game.DecisionPointForDecisionNumber(decisionNumber); 
-            return DefaultBehaviorBeforeEvolution(inputs, decisionNumber);
-            //int? previousRepetition = info.DecisionNumberOfSameDecisionInPreviousRepetition;
-            //if (previousRepetition == null)
-            //    return DefaultBehaviorBeforeEvolution(inputs, decisionNumber);
-            //else
-            //{
-            //    double previousRepetitionApproach = Calculate((int)previousRepetition, false, false);
-            //    double noise = 0;
-            //    if (inputs.Count() > 0)
-            //    { // get a pseudo-random number by looking at the value well after the decimal point
-            //        noise = inputs[0];
-            //        while (noise < 1000)
-            //            noise *= 10.0;
-            //        noise = 2.0 * (noise - Math.Floor(noise) - 0.5); // now goes from -1 to 1
-            //    }
-            //    StrategyBounds bounds = Game.GameDefinition.DecisionsExecutionOrder[decisionNumber].StrategyBounds;
-            //    double newValue = previousRepetitionApproach + 0.05 * noise * (bounds.UpperBound - bounds.LowerBound);
-            //    newValue = ConstrainToRange.Constrain(newValue, bounds.LowerBound, bounds.UpperBound);
-            //    return newValue;
-            //}
-        }
-
-        public double CalculateWithoutAffectingEvolution(List<double> inputs, int decisionNumber, bool usePreviousVersionOfStrategy = false, bool useVersionBeforeThat = false)
-        {
-            Strategy theStrategy = AllStrategies[decisionNumber];
-            if (!theStrategy.StrategyDevelopmentInitiated || 
-                (theStrategy.CurrentlyDevelopingStrategy && theStrategy.CyclesStrategyDevelopment == 0) ||
-                ((usePreviousVersionOfStrategy || useVersionBeforeThat) && AllStrategies[decisionNumber].PreviousVersionOfThisStrategy == null))
-                return DefaultBehaviorBeforeEvolution(inputs, decisionNumber);
-            List<double> previousInputs = GameModuleProgress.TemporaryInputsStorage;
-            GameModuleProgress.TemporaryInputsStorage = inputs;
-            double result = Calculate(decisionNumber, usePreviousVersionOfStrategy, useVersionBeforeThat);
-            GameModuleProgress.TemporaryInputsStorage = previousInputs;
-            return result;
-        }
+        
 
         internal static string GetStringCodeGeneratorOption(string optionsSpecifiedByUserAndPassedToGenerateSetting, string codeGeneratorOptionName)
         {
