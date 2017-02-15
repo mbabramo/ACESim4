@@ -52,7 +52,7 @@ namespace ACESim
                 DynamicNumberOfInputs = true,
                 UseOversampling = true,
                 SuccessReplicationIfSuccessAttemptRatioIsBelowThis = 0.1,
-                InputAbbreviations = null,
+                InformationSetAbbreviations = null,
                 InputNames = null,
                 StrategyBounds = new StrategyBounds()
                 {

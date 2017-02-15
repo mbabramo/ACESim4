@@ -41,16 +41,9 @@ namespace ACESim
             }
         }
 
-        public static string ComputeHashOfOptimizePointsAndSmooth(OptimizePointsAndSmooth optimizer)
-        {
-            string theHash = ComputeHash(BinarySerialization.GetByteArray(optimizer, true));
-            return theHash;
-        }
-
         public static string ComputeHashOfSpecificStrategy(Strategy theStrategy)
         {
             string theHash = ComputeHash(BinarySerialization.GetByteArray(theStrategy, true));
-            theStrategy.UndoPreSerialize();
             return theHash;
         }
 
@@ -244,43 +237,8 @@ namespace ACESim
             mainStrategy.RecallStrategyState(ss);
             return mainStrategy;
         }
-
-        public static void RerunStrategyStep(string path, string filenameBase, bool rerandomize = false, List<Tuple<int, string>> replacementStrategies = null)
-        {
-            Strategy s = DeserializeStrategyStateFromFiles(path, filenameBase, replacementStrategies);
-            s.SimulationInteraction.CurrentExecutionInformation.UiInteraction = new Interactionless();
-            bool stop;
-            //var result = s.GetSampleDecisionInputs(1000); 
-            TabbedText.WriteLine("Rerunning " + s.Decision.Name + " from " + filenameBase);
-            TabbedText.Tabs++;
-            s.DevelopStrategy(false, null, out stop, rerandomize);
-            TabbedText.Tabs--;
-        }
-
-        public static void CompareStrategySets(string path, string filenameBaseWithoutNumber, List<int> serializedSetsToCompare)
-        {
-            List<List<Strategy>> fullListOfStrategiesForEach = new List<List<Strategy>>(); // outer list corresponds to different serialized sets; inner list corresponds to strategy within the set
-            for (int set = 0; set < serializedSetsToCompare.Count(); set++)
-            {
-                Strategy main = DeserializeStrategyStateFromFiles(path, filenameBaseWithoutNumber + serializedSetsToCompare[set].ToString().Trim());
-                main.SimulationInteraction.CurrentExecutionInformation.UiInteraction = new Interactionless();
-                foreach (Strategy s2 in main.AllStrategies)
-                    if (s2 != main)
-                        s2.RecallStrategyState(main);
-                fullListOfStrategiesForEach.Add(main.AllStrategies);
-            };
-            TabbedText.WriteLine("Comparing serialized sets: " + String.Join(", ", serializedSetsToCompare.ToArray()));
-            TabbedText.Tabs++;
-            for (int strategy = 0; strategy < fullListOfStrategiesForEach[0].Count(); strategy++)
-            {
-                List<Strategy> specificStrategiesToCompare = new List<Strategy>();
-                for (int set = 0; set < serializedSetsToCompare.Count(); set++)
-                    specificStrategiesToCompare.Add(fullListOfStrategiesForEach[set][strategy]);
-                TabbedText.Write("Strategy " + strategy);
-                StrategyComparison.DoComparison(specificStrategiesToCompare);
-            }
-            TabbedText.Tabs--;
-        }
+        
+        
     }
 
     /// <summary>

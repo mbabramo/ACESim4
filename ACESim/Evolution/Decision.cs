@@ -54,6 +54,8 @@ namespace ACESim
         /// A file containing a version of the strategy to use before evolution.
         /// </summary>
         public string PreevolvedStrategyFilename;
+        
+        public List<string> InformationSetAbbreviations { get; set; }
     }
 
 }

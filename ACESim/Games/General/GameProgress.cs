@@ -14,6 +14,7 @@ namespace ACESim
         [FieldwiseComparisonSkip]
         public GameDefinition GameDefinition;
         public List<GameModuleProgress> GameModuleProgresses;
+        public GameHistory GameHistory = new GameHistory();
         public bool GameComplete;
         public bool HaveAdvancedToFirstStep;
         public int? CurrentActionGroupNumber;
@@ -57,6 +58,7 @@ namespace ACESim
                 foreach (var gmp in GameModuleProgresses)
                     gmp.Recycle();
             GameModuleProgresses = null;
+            GameHistory.Initialize();
             GameComplete = false;
             HaveAdvancedToFirstStep = false;
             CurrentActionGroupNumber = null;
@@ -150,6 +152,7 @@ namespace ACESim
             copy.GameDefinition = GameDefinition;
             copy.GameModuleProgresses = GameModuleProgresses == null ? null : ( GameModuleProgresses.Select(x => x == null ? null : x.DeepCopy()).ToList() );
             copy.GameComplete = this.GameComplete;
+            copy.GameHistory = GameHistory.DeepCopy();
             copy.HaveAdvancedToFirstStep = this.HaveAdvancedToFirstStep;
             copy.CurrentActionGroupNumber = this.CurrentActionGroupNumber;
             copy.CurrentActionPointNumberWithinActionGroup = this.CurrentActionPointNumberWithinActionGroup;

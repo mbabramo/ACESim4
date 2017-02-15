@@ -30,27 +30,9 @@ namespace ACESim
         {
             if (Progress.GameComplete)
                 return;
-
-            Score(CurrentDecisionIndex.Value, 0.0);
+            
             Progress.GameComplete = true;
         }
-
-
-        protected override List<double> GetDecisionInputs()
-        {
-            double[] inputs = null; // set these in a real game
-            int decisionNumber = (int)CurrentDecisionIndex;
-            switch (decisionNumber)
-            {
-                case 0:
-                break;
-
-                default: throw new Exception();
-            }
-            // be sure to keep in following code so that we can keep statistics on 
-            if (CurrentDecisionIndex == RecordInputsForDecisionNumber && !PreparationPhase)
-                RecordedInputs.Add(inputs);
-            return null; // change this
-        }
+        
     }
 }

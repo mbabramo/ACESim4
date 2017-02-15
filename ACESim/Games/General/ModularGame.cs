@@ -41,6 +41,7 @@ namespace ACESim
         public override void FinalProcessing()
         {
             Progress.GameComplete = true;
+            Progress.GameHistory.MarkComplete();
         }
 
         public void CopyInputsToSpecificModules(ModularGameInputsSet mgi)

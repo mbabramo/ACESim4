@@ -96,7 +96,7 @@ namespace ACESim
                 Abbreviation="tp",
                 DecisionTypeCode = "D",
                 DynamicNumberOfInputs = true,
-                InputAbbreviations = new List<string>() {
+                InformationSetAbbreviations = new List<string>() {
                     "C", // Cost of precaution
                     "P", // Probability of injury with precaution
                     "M"  // Expected magnitude of injury that would result

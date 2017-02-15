@@ -134,7 +134,7 @@ namespace ACESim
 
         public void AddToReport(string baseOutputDirectory, bool newEvolveStep, Decision theDecision, Strategy theStrategy, string repetitionTagString)
         {
-            if (theDecision.InputAbbreviations == null)
+            if (theDecision.InformationSetAbbreviations == null)
                 return;
 
             if (newEvolveStep)
@@ -142,12 +142,12 @@ namespace ACESim
 
             if (!isInitialized)
                 InitializeReport(baseOutputDirectory);
-            int numInputs = theDecision.InputAbbreviations.Count();
+            int numInputs = theDecision.InformationSetAbbreviations.Count();
 
             // Check for an error
             foreach (var inputToFix in InputsToFix)
             {
-                int index = theDecision.InputAbbreviations.FindIndex(x => x == inputToFix.InputAbbreviation);
+                int index = theDecision.InformationSetAbbreviations.FindIndex(x => x == inputToFix.InputAbbreviation);
                 if (index == -1)
                     return; 
                     //throw new Exception("The StrategyGraphInfo for report " + OutputReportFilename + " specifies a fixed input " + inputToFix.InputAbbreviation + " that does not exist in the input abbreviations for the decision.");
@@ -156,7 +156,7 @@ namespace ACESim
             int iTG = 0;
             foreach (var inputToGraph in InputsToGraph)
             {
-                int index = theDecision.InputAbbreviations.FindIndex(x => x == inputToGraph.InputAbbreviation);
+                int index = theDecision.InformationSetAbbreviations.FindIndex(x => x == inputToGraph.InputAbbreviation);
                 if (index == -1)
                 {
                     TabbedText.WriteLine("Input abbreviation " + inputToGraph.InputAbbreviation + " not found. Aborting.");
@@ -171,10 +171,10 @@ namespace ACESim
                 theInputs.Add(0);
             for (int inpInd = 0; inpInd < numInputs; inpInd++)
             {
-                var correspondingInputToGraph = InputsToGraph.Select((item, index) => new { Item = item, Index = index }).SingleOrDefault(x => x.Item.InputAbbreviation == theDecision.InputAbbreviations[inpInd]);
+                var correspondingInputToGraph = InputsToGraph.Select((item, index) => new { Item = item, Index = index }).SingleOrDefault(x => x.Item.InputAbbreviation == theDecision.InformationSetAbbreviations[inpInd]);
                 if (correspondingInputToGraph == null)
                 {
-                    var correspondingInputToFix = InputsToFix.Select((item, index) => new { Item = item, Index = index }).SingleOrDefault(x => x.Item.InputAbbreviation == theDecision.InputAbbreviations[inpInd]);
+                    var correspondingInputToFix = InputsToFix.Select((item, index) => new { Item = item, Index = index }).SingleOrDefault(x => x.Item.InputAbbreviation == theDecision.InformationSetAbbreviations[inpInd]);
                     theInputs[inpInd] = correspondingInputToFix.Item.Value;
                 }
             }
@@ -195,7 +195,7 @@ namespace ACESim
 
         private void Prepare2dData(Decision theDecision, Strategy theStrategy, List<double> theInputs, InputValueVaryInGraph xAxis, string repetitionTagString)
         {
-            int xindex = theDecision.InputAbbreviations.FindIndex(x => x == xAxis.InputAbbreviation);
+            int xindex = theDecision.InformationSetAbbreviations.FindIndex(x => x == xAxis.InputAbbreviation);
             if (xindex == -1)
                 return;
             if (xAxis.MinValue == 0 && xAxis.MaxValue == 0)
@@ -256,8 +256,8 @@ namespace ACESim
 
         private void Prepare3dData(Decision theDecision, Strategy theStrategy, List<double> theInputs, InputValueVaryInGraph xAxis, InputValueVaryInGraph yAxis)
         {
-            int xindex = theDecision.InputAbbreviations.FindIndex(x => x == xAxis.InputAbbreviation);
-            int yindex = theDecision.InputAbbreviations.FindIndex(y => y == yAxis.InputAbbreviation);
+            int xindex = theDecision.InformationSetAbbreviations.FindIndex(x => x == xAxis.InputAbbreviation);
+            int yindex = theDecision.InformationSetAbbreviations.FindIndex(y => y == yAxis.InputAbbreviation);
             if (xindex == -1 || yindex == -1)
                 return;
             List<double> xAxisValues = Enumerable.Range(1, xAxis.NumValues).Select(w => xAxis.MinValue + (w - 1) * (xAxis.MaxValue - xAxis.MinValue) / (xAxis.NumValues - 1)).ToList();
@@ -332,7 +332,7 @@ namespace ACESim
         {
             // first find the index
 
-            int index = theDecision.InputAbbreviations.FindIndex(x => x == inputToGraph.InputAbbreviation);
+            int index = theDecision.InformationSetAbbreviations.FindIndex(x => x == inputToGraph.InputAbbreviation);
             if (index == -1)
                 throw new Exception("The StrategyGraphInfo for report " + OutputReportFilename + " specifies an input to graph " + inputToGraph.InputAbbreviation + " that does not exist in the input abbreviations for the decision.");
             // now go through each value to set the input

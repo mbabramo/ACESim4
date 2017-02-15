@@ -33,6 +33,10 @@ namespace ACESim
 
         public double? GeneralOverrideValue = null; // if non-null, a constant value will always be returned from calculate. Takes precedence over threadlocal override value.
 
+        // the following is for Strategy graphing
+        public double[] MinObservedInputs;
+        public double[] MaxObservedInputs;
+
         internal double Calculate(List<double> inputs)
         {
             throw new NotImplementedException();
@@ -193,5 +197,21 @@ namespace ACESim
             return Player.PlayStrategy(strategy, DecisionNumber, preplayedGameProgressInfos, numIterations, SimulationInteraction, gameInputsArray, iterationIDArray, returnCompletedGameProgressInfos, DecisionNumber);
         }
 
+        private void DetermineMinAndMaxObserved()
+        {
+            // This will need revision.
+            const int minSuccesses = 50;
+            List<double[]> decisionInputs = GetSampleDecisionInputs(minSuccesses);
+            var FilteredInputsStatistics = new StatCollectorArray();
+            foreach (var decisionInput in decisionInputs)
+                FilteredInputsStatistics.Add(decisionInput);
+            MinObservedInputs = FilteredInputsStatistics.StatCollectors.Select(x => x.Min).ToArray();
+                MaxObservedInputs = FilteredInputsStatistics.StatCollectors.Select(x => x.Max).ToArray();
+        }
+
+        private List<double[]> GetSampleDecisionInputs(int minSuccesses)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

@@ -161,6 +161,7 @@
     <Compile Include="Executor\ProgressResumptionManager.cs" />
     <Compile Include="Executor\ProgressResumptionManagerInfo.cs" />
     <Compile Include="Executor\ProgressResumptionOptions.cs" />
+    <Compile Include="Games\GameHistory.cs" />
     <Compile Include="Games\General\DecisionPoint.cs" />
     <Compile Include="Games\General\ActionGroup.cs" />
     <Compile Include="Games\General\ActionGroupRepetition.cs" />
@@ -573,6 +574,8 @@
     <Compile Include="Util\LitigationGameProbMagnitudeSimpleModel.cs" />
     <Compile Include="Util\LotteryProbabilities.cs" />
     <Compile Include="Util\MD5HashGenerator.cs" />
+    <Compile Include="Util\NWayTreeStorage.cs" />
+    <Compile Include="Util\NWayTreeStorageInternal.cs" />
     <Compile Include="Util\ObfuscationBruteForce.cs" />
     <Compile Include="Util\ObjectPool.cs" />
     <Compile Include="Util\ObjectPoolConcurrent.cs" />
