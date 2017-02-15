@@ -1,10 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace ACESim
 {
     public interface IStrategyComponent : ISerializationPrep
     {
-        double CalculateOutputForInputs(System.Collections.Generic.List<double> inputs);
+        double CalculateOutputForInputs(List<double> inputs);
         Decision Decision { get; set; }
         IStrategyComponent DeepCopy();
         void DevelopStrategyComponent();

@@ -18,8 +18,6 @@ namespace ACESim
         private List<bool> IsFirstRepetitionOfThisTag;
         private List<bool> IsLastRepetitionOfThisTag;
         public object ActionGroupSettings;
-        public ActionGroup CorrespondingCounterfactualActionGroup;
-        public ActionGroup CorrespondingPrecedingCounterfactualActionGroup;
         public List<ActionGroup> FirstRepetitionCorrespondingToTag;
         public List<ActionGroup> PreviousRepetitionCorrespondingToTag;
         public int? FirstDecisionNumber;
@@ -170,8 +168,6 @@ namespace ACESim
                 IsFirstRepetitionOfThisTag = IsFirstRepetitionOfThisTag == null ? null : IsFirstRepetitionOfThisTag.ToList(),
                 IsLastRepetitionOfThisTag = IsLastRepetitionOfThisTag == null ? null : IsLastRepetitionOfThisTag.ToList(),
                 ActionGroupSettings = ActionGroupSettings, // note that this is a shallow copy, since we don't know the object's type
-                CorrespondingCounterfactualActionGroup = CorrespondingCounterfactualActionGroup,
-                CorrespondingPrecedingCounterfactualActionGroup = CorrespondingPrecedingCounterfactualActionGroup,
                 FirstRepetitionCorrespondingToTag = FirstRepetitionCorrespondingToTag == null ? null : FirstRepetitionCorrespondingToTag.ToList(),
                 PreviousRepetitionCorrespondingToTag = PreviousRepetitionCorrespondingToTag == null ? null : PreviousRepetitionCorrespondingToTag.ToList()
             };
@@ -188,10 +184,6 @@ namespace ACESim
                 string asteriskForDecisionPoint = ap is DecisionPoint ? "*" : "";
                 theString += ap.Name + asteriskForDecisionPoint + " ";
             }
-            if (CorrespondingCounterfactualActionGroup != null)
-                theString += " [For following counterfactual " + CorrespondingCounterfactualActionGroup.Name + "]";
-            if (CorrespondingPrecedingCounterfactualActionGroup != null)
-                theString += " [For preceding counterfactual " + CorrespondingPrecedingCounterfactualActionGroup.Name + "]";
             return theString;
         }
 

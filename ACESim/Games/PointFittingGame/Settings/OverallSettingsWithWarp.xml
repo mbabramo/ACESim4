@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<ACESim>
-  <parentSettingsFile filename="GameDefinitions4D.xml" />
-  <parentSettingsFile filename="GameInputs4d.xml" />
-  <parentSettingsFile filename="../../SharedEvolutionSettings/EvolutionSettingsWarp.xml" />
-  <parentSettingsFile filename="ReportAverageScore.xml" />
-  <parentSettingsFile filename="Commands.xml" />
-</ACESim>

@@ -19,12 +19,6 @@ namespace ACESim
         [OptionalSetting]
         public List<int> GameModuleNumbersGameReliesOn;
 
-        /// <summary>
-        /// If true, then the execution order of action groups is initially reversed to determine evolution order, before any other changes are made.
-        /// </summary>
-        [OptionalSetting]
-        public bool ActionGroupsEvolveInOppositeOrderFromExecution;
-
         [OptionalSetting]
         public List<ActionGroupRepetition> AutomaticRepetitions;
 
@@ -35,13 +29,6 @@ namespace ACESim
         public List<ActionGroup> ExecutionOrder;
 
         /// <summary>
-        /// A list of all execution groups, in evolution order. Note that a decision that is executed only once may be included multiple times.
-        /// </summary>
-        [InternallyDefinedSetting]
-        public List<ActionGroup> EvolutionOrder;
-
-
-        /// <summary>
         /// In a nonmodular game, the game definition should set these directly. In a modular game, this will be set automatically from the decisions in ExecutionOrder. Either way, each instance in this list represents a separately evolved decision. So, if a decision is repeated in execution, a single Decision object will be included multiple times. The index into this list represents the decision number
         /// </summary>
         [OptionalSetting]
@@ -49,15 +36,6 @@ namespace ACESim
 
         [InternallyDefinedSetting]
         public List<DecisionPoint> DecisionPointsExecutionOrder;
-
-        [InternallyDefinedSetting]
-        public List<DecisionPoint> DecisionPointsEvolutionOrder;
-
-        [InternallyDefinedSetting]
-        public List<Tuple<string, List<int?>>> AutomaticRepetitionsIndexNumbersInEvolutionOrder;
-
-        [InternallyDefinedSetting]
-        public List<int> DecisionIndexForEachCumulativeDistributionsUpdate;
 
         /// <summary>
         /// The index into ExecutionOrder for each decision in DecisionPointsExecutionOrder.
@@ -117,8 +95,6 @@ namespace ACESim
             ProcessExecutionOrderList();
             // -- Duplicate the execution order list, turn it into an evolution order list, and process it.
             List<ActionGroup> executionOrderCopy = ExecutionOrder.Select(x => x.DeepCopy()).ToList();
-            EvolutionOrder = ModifyActionGroupList(executionOrderCopy, forEvolution: true);
-            ProcessEvolutionOrderList();
 
             PrintOutOrderingInformation();
         }
@@ -142,8 +118,6 @@ namespace ACESim
             ExecutionOrder = new List<ActionGroup>();
             ExecutionOrder.Add(exGroup);
             ProcessExecutionOrderList();
-            EvolutionOrder = ExecutionOrder.Select(x => x.DeepCopy()).ToList();
-            ProcessEvolutionOrderList();
         }
 
         public void SetModuleNumbers()
@@ -196,8 +170,6 @@ namespace ACESim
         private List<ActionGroup> ModifyActionGroupList(List<ActionGroup> initialActionGroupList, bool forEvolution)
         {
             List<ActionGroup> modifiedList;
-            if (ActionGroupsEvolveInOppositeOrderFromExecution && forEvolution)
-                initialActionGroupList.Reverse();
             modifiedList = OrderActionGroups(initialActionGroupList, forEvolution: forEvolution);
             if (!forEvolution)
                 AddAutomaticExecutionRepetitions(modifiedList);
@@ -207,34 +179,7 @@ namespace ACESim
 
             return modifiedList;
         }
-
-        private void IdentifySubstituteDecisions()
-        {
-            List<DecisionPoint> decisionPointsUsualOrder = DecisionPointsExecutionOrder;
-            IdentifySubstituteDecisionsOneDirection(decisionPointsUsualOrder, true);
-            List<DecisionPoint> decisionPointsReversed = DecisionPointsExecutionOrder.ToList();
-            decisionPointsReversed.Reverse();
-            IdentifySubstituteDecisionsOneDirection(decisionPointsUsualOrder, false);
-        }
-
-        private void IdentifySubstituteDecisionsOneDirection(List<DecisionPoint> decisionPointsOrdered, bool evolveOnlyFirstRepetitionRatherThanLastRepetition)
-        {
-            foreach (DecisionPoint dp in decisionPointsOrdered)
-            {
-                if ((
-                        (evolveOnlyFirstRepetitionRatherThanLastRepetition && dp.Decision.EvolveOnlyFirstRepetitionInExecutionOrder) ||
-                        (!evolveOnlyFirstRepetitionRatherThanLastRepetition && dp.Decision.EvolveOnlyLastRepetitionInExecutionOrder)
-                    )
-                    && dp.SubstituteDecisionNumberInsteadOfEvolving == null)
-                {
-                    foreach (DecisionPoint dp2 in decisionPointsOrdered)
-                    {
-                        if (dp2.Decision == dp.Decision && dp2 != dp)
-                            dp2.SubstituteDecisionNumberInsteadOfEvolving = dp.DecisionNumber;
-                    }
-                }
-            }
-        }
+        
 
         private void SetFirstAndPreviousRepetitionsForTags(List<ActionGroup> actionGroupList)
         {
@@ -244,7 +189,7 @@ namespace ACESim
         
         private void AddAutomaticExecutionRepetitions(List<ActionGroup> actionGroupList)
         {
-            foreach (ActionGroupRepetition agr in AutomaticRepetitions.Where(x => !x.IsEvolutionRepetitionOnly))
+            foreach (ActionGroupRepetition agr in AutomaticRepetitions)
             {
                 if (agr.Tag != null && agr.Tag.Trim() != "")
                 {
@@ -316,7 +261,6 @@ namespace ACESim
             DecisionPointsExecutionOrder = new List<DecisionPoint>(); // this has more information
             ExecutionOrderIndexForEachDecision = new List<int>();
             ActionPointIndexForEachDecision = new List<int>();
-            DecisionIndexForEachCumulativeDistributionsUpdate = new List<int>();
             if (GameModules == null)
                 GameModules = new List<GameModule>();
             int[] decisionsProcessedWithinModules = new int[GameModules.Count()];
@@ -339,9 +283,6 @@ namespace ACESim
                     if (ap is DecisionPoint)
                     {
                         DecisionPoint dp = ((DecisionPoint)ap);
-                        CumulativeDistributionUpdateInfo cdUpdateInfo = ag.ActionGroupSettings as CumulativeDistributionUpdateInfo;
-                        if (cdUpdateInfo != null)
-                            DecisionIndexForEachCumulativeDistributionsUpdate.Add(decisionNumber);
                         ExecutionOrderIndexForEachDecision.Add(actionGroupIndex);
                         ActionPointIndexForEachDecision.Add(actionPointIndex);
                         dp.DecisionNumber = decisionNumber;
@@ -373,139 +314,15 @@ namespace ACESim
                     if (dp != null)
                         module.FirstDecisionNumberInGameModule = dp.DecisionNumber;
                 }
-            IdentifySubstituteDecisions();
-            SetupSubsequentDecisionsShortcut();
             SetFirstAndPreviousRepetitionsForTags(ExecutionOrder);
         }
-
-        private void SetupSubsequentDecisionsShortcut()
-        {
-            int numberDecisionsAfterFirst = 0; // the first decision is the one that will record scores for subsequent decisions with same input
-            for (int d = 1; d < DecisionPointsExecutionOrder.Count(); d++)
-            {
-                Decision decision = DecisionPointsExecutionOrder[d].Decision;
-                bool isDecisionToUseShortcutFor = decision.InputsAndOccurrencesAlwaysSameAsPreviousDecision && decision.ScoreRepresentsCorrectAnswer && decision.OversamplingWillAlwaysBeSameAsPreviousDecision && !decision.DisablePrescoringForThisDecision && DecisionPointsExecutionOrder[d].DecisionNumber == DecisionPointsExecutionOrder[d - 1].DecisionNumber + 1;
-                if (isDecisionToUseShortcutFor)
-                {
-                    numberDecisionsAfterFirst++;
-                    DecisionPointsExecutionOrder[d - numberDecisionsAfterFirst].Decision.SubsequentDecisionsToRecordScoresFor = numberDecisionsAfterFirst;
-                    DecisionPointsExecutionOrder[d].Decision.ScoresRecordedByDecisionNPrevious = numberDecisionsAfterFirst;
-                }
-                else
-                    numberDecisionsAfterFirst = 0;
-            }
-            for (int d = 0; d < DecisionPointsExecutionOrder.Count(); d++)
-            {
-                int numberGroupsToCache = 0;
-                bool keepLooking = d < DecisionPointsExecutionOrder.Count() - 1 && DecisionPointsExecutionOrder[d].Decision.ScoresRecordedByDecisionNPrevious == null;
-                int indexOfFirstInLastKnownGroup = d; // first group won't count in numberGroupsToCache
-                int indexOfLastDecisionToRecordOrCache = d;
-                while (keepLooking)
-                {
-                    indexOfLastDecisionToRecordOrCache = indexOfFirstInLastKnownGroup + DecisionPointsExecutionOrder[indexOfFirstInLastKnownGroup].Decision.SubsequentDecisionsToRecordScoresFor;
-                    if (numberGroupsToCache > 0)
-                        DecisionPointsExecutionOrder[indexOfLastDecisionToRecordOrCache].Decision.DecisionIsLastInGroupOfDecisionsToCache = true;
-                    int nextIndexNotIncludedAmongSubsequentDecisions = indexOfLastDecisionToRecordOrCache + 1;
-                    if (nextIndexNotIncludedAmongSubsequentDecisions < DecisionPointsExecutionOrder.Count())
-                    {
-                        Decision possibleBeginningOfAnotherGroup = DecisionPointsExecutionOrder[nextIndexNotIncludedAmongSubsequentDecisions].Decision;
-                        if (possibleBeginningOfAnotherGroup.OversamplingWillAlwaysBeSameAsPreviousDecision && possibleBeginningOfAnotherGroup.ScoreRepresentsCorrectAnswer && !possibleBeginningOfAnotherGroup.DisableCachingForThisDecision)
-                        {
-                            possibleBeginningOfAnotherGroup.DecisionIsFirstInGroupOfDecisionsToCache = true;
-                            indexOfFirstInLastKnownGroup = nextIndexNotIncludedAmongSubsequentDecisions;
-                            numberGroupsToCache++;
-                        }
-                        else
-                            keepLooking = false;
-                    }
-                    else
-                        keepLooking = false;
-                }
-                DecisionPointsExecutionOrder[d].Decision.NumberGroupsOfDecisionsToCache = numberGroupsToCache;
-                //if (numberGroupsToCache > 0)
-                    DecisionPointsExecutionOrder[d].Decision.NumberDecisionsToEitherRecordOrCacheBeyondThisOne = indexOfLastDecisionToRecordOrCache - d;
-                Debug.WriteLine("Decision " + d + " " + String.Format("{0, -70}", DecisionPointsExecutionOrder[d].Name) + " subsequent decisions to record " + DecisionPointsExecutionOrder[d].Decision.SubsequentDecisionsToRecordScoresFor + " decision was recorded n ago " + DecisionPointsExecutionOrder[d].Decision.ScoresRecordedByDecisionNPrevious + " number groups to cache " + numberGroupsToCache + " numdecisionsbeyondthis " + DecisionPointsExecutionOrder[d].Decision.NumberDecisionsToEitherRecordOrCacheBeyondThisOne + " firstInGroup " + DecisionPointsExecutionOrder[d].Decision.DecisionIsFirstInGroupOfDecisionsToCache + " lastInGroup " + DecisionPointsExecutionOrder[d].Decision.DecisionIsLastInGroupOfDecisionsToCache);
-            }
-        }
-
-        private void ProcessEvolutionOrderList()
-        {
-            DecisionPointsEvolutionOrder = new List<DecisionPoint>();
-            for (int actionGroupIndex = 0; actionGroupIndex < EvolutionOrder.Count; actionGroupIndex++)
-            {
-                ActionGroup ag = EvolutionOrder[actionGroupIndex];
-                string repetitionTagString = ag.RepetitionTagString();
-                for (int actionPointIndex = 0; actionPointIndex < ag.ActionPoints.Count; actionPointIndex++)
-                {
-                    ActionPoint ap = ag.ActionPoints[actionPointIndex];
-                    if (ap is DecisionPoint)
-                    {
-                        DecisionPoint dp = ap as DecisionPoint;
-                        // find the corresponding decision point from execution order. That way, we can be sure that we have the same objects in the execution order and evolution order list.
-                        DecisionPoint correspondingDecisionPointInExecutionOrder = DecisionPointsExecutionOrder.FirstOrDefault(x => x.DecisionNumber == dp.DecisionNumber);
-                        if (correspondingDecisionPointInExecutionOrder == null)
-                            throw new Exception("Internal error: A decision included in evolution order was excluded from execution order.");
-                        if (dp.SubstituteDecisionNumberInsteadOfEvolving == null)
-                        {
-                            for (int i = 0; i < (dp.Decision.RepeatEvolutionNTimes ?? 1); i++)
-                                DecisionPointsEvolutionOrder.Add(correspondingDecisionPointInExecutionOrder);
-                        }
-                    }
-                }
-            }
-            SetFirstAndPreviousRepetitionsForTags(EvolutionOrder);
-            AddAutomaticRepetitionsForEvolutionOnly();
-        }
-
-        private void AddAutomaticRepetitionsForEvolutionOnly()
-        {
-            AutomaticRepetitionsIndexNumbersInEvolutionOrder = new List<Tuple<string, List<int?>>>();
-            foreach (ActionGroupRepetition evolutionRepetition in AutomaticRepetitions?.Where(x => x.IsEvolutionRepetitionOnly) ?? new List<ActionGroupRepetition>())
-            {
-                List<DecisionPoint> decisionPointsEvolutionOrderCopy = new List<DecisionPoint>();
-                int? startOfTagRange = null;
-                Func<int, bool> dpContainsTag = d => DecisionPointsEvolutionOrder[d].ActionGroup.Tags != null && DecisionPointsEvolutionOrder[d].ActionGroup.Tags.Any(x => x == evolutionRepetition.Tag);
-                for (int d = 0; d < DecisionPointsEvolutionOrder.Count(); d++)
-                {
-                    decisionPointsEvolutionOrderCopy.Add(DecisionPointsEvolutionOrder[d]); // copy in this point at least once
-                    if (startOfTagRange == null && dpContainsTag(d)) // this is the beginning of the tag range
-                        startOfTagRange = d;
-                    if (startOfTagRange != null && (d == DecisionPointsEvolutionOrder.Count() - 1 || !dpContainsTag(d + 1)))
-                    { // this is the end of the tag range
-                        // copy the range in for the remaining repetitions
-                        for (int r = 0; r < evolutionRepetition.Repetitions - 1; r++)
-                            for (int i = (int)startOfTagRange; i <= d; i++)
-                                decisionPointsEvolutionOrderCopy.Add(DecisionPointsEvolutionOrder[i]);
-                        // reset
-                        startOfTagRange = null;
-                    }
-                }
-                DecisionPointsEvolutionOrder = decisionPointsEvolutionOrderCopy;
-            }
-            foreach (ActionGroupRepetition evolutionRepetition in AutomaticRepetitions?.Where(x => x.IsEvolutionRepetitionOnly) ?? new List<ActionGroupRepetition>())
-            {
-                List<int?> tagsForRepetition = new List<int?>();
-                int matchNumber = 1;
-                foreach (var dp in DecisionPointsEvolutionOrder)
-                {
-                    if (dp.ActionGroup.Tags != null && dp.ActionGroup.Tags.Any(x => x == evolutionRepetition.Tag))
-                    {
-                        tagsForRepetition.Add(matchNumber);
-                        matchNumber++;
-                    }
-                    else
-                        tagsForRepetition.Add(null);
-                }
-                AutomaticRepetitionsIndexNumbersInEvolutionOrder.Add(new Tuple<string, List<int?>>(evolutionRepetition.Tag, tagsForRepetition));
-            }
-        }
+        
+        
 
         private void PrintOutOrderingInformation()
         {
             PrintOutOrderedDecisionPoints("Execution Order of Decisions", DecisionPointsExecutionOrder);
             PrintOutActionGroupList("Execution Order of Action Groups", ExecutionOrder);
-            PrintOutOrderedDecisionPoints("Evolution Order of Decisions", DecisionPointsEvolutionOrder);
-            PrintOutActionGroupList("Evolution Order By Action Group", EvolutionOrder);
         }
 
         private void PrintOutActionGroupList(string header, List<ActionGroup> actionGroupList)

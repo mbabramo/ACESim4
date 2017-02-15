@@ -1,7 +1,0 @@
-﻿<ACESim>
-  <parentSettingsFile filename="PresetAggressivenessOverrideModuleInputs.xml" />
-  <defineTemplate name="BargainingAggressivenessModule$AggressModNumber">
-    <setting name="PresetAggressivenessOverrideModule" type="class" subclass="PresetAggressivenessOverrideModule" codeGeneratorName="PresetAggressivenessOverrideModule" codeGeneratorOptions="AggressModNumber: $AggressModNumber" >
-    </setting>
-  </defineTemplate>
-</ACESim>

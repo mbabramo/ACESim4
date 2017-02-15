@@ -1,8 +1,0 @@
-﻿<ACESim>
-  <parentSettingsFile filename="AbandonExtremesInputs.xml" />
-  <parentSettingsFile filename="AbandonExtremesReport.xml" />
-  <defineTemplate name="$DropOrDefaultPointDropOrDefaultModule">
-    <setting name="AbandonExtremesModule" type="class" subclass="AbandonExtremesModule" codeGeneratorName="AbandonExtremesModule" codeGeneratorOptions="DropOrDefaultPoint: $DropOrDefaultPoint" >
-    </setting>
-  </defineTemplate>
-</ACESim>

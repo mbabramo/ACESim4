@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<ACESim>
-  <parentSettingsFile filename="PatentDamagesGameDefinition.xml" />
-  <parentSettingsFile filename="PatentDamagesGameInputs.xml" />
-  <parentSettingsFile filename="PatentDamagesEvolutionSettings.xml" />
-  <parentSettingsFile filename="PatentDamagesReport.xml" />
-  <parentSettingsFile filename="PatentDamagesCommands.xml" />
-</ACESim>
