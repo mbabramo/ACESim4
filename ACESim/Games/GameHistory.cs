@@ -93,7 +93,7 @@ namespace ACESim
             else
             {
                 if (playerNumber == null || playerNumber == 0 || playerNumber > NumPlayers)
-                    throw new Exception("Invalid player number. First player is 1 and last player must equal NumPlayers.");
+                    throw new Exception("Invalid player number. First player besides chance is 1 and last player must equal NumPlayers.");
                 AddToInformationSet(information, (byte)playerNumber);
             }
         }

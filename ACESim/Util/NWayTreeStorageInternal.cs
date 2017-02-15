@@ -10,7 +10,16 @@ namespace ACESim
     {
         public List<Tuple<byte, NWayTreeStorage<T>>> Storage = new List<Tuple<byte, NWayTreeStorage<T>>>();
 
-        public virtual void AddValue(IEnumerator<byte> restOfSequence, bool historyComplete, T valueToAdd)
+        public T GetValue(IEnumerator<byte> restOfSequence)
+        {
+            NWayTreeStorage<T> tree = this;
+            bool moreInSequence = restOfSequence.MoveNext();
+            while (moreInSequence)
+                tree = ((NWayTreeStorageInternal<T>)tree).Storage.First(x => x.Item1 == restOfSequence.Current).Item2;
+            return tree.StoredValue;
+        }
+
+        public void AddValue(IEnumerator<byte> restOfSequence, bool historyComplete, T valueToAdd)
         {
             byte nextInSequence = restOfSequence.Current;
             bool anotherExistsAfterNext = restOfSequence.MoveNext();
@@ -25,6 +34,9 @@ namespace ACESim
                     nextTree.StoredValue = valueToAdd;
                     return;
                 }
+                Storage.Add(new Tuple<byte, NWayTreeStorage<T>>(nextInSequence, nextTree));
+                if (Storage.Any(x => x.Item1 > nextInSequence))
+                    Storage = Storage.OrderBy(x => x.Item1).ToList(); // put back into order
             }
             if (anotherExistsAfterNext)
                 ((NWayTreeStorageInternal<T>)nextTree).AddValue(restOfSequence, historyComplete, valueToAdd);
