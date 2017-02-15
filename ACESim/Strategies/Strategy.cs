@@ -24,9 +24,13 @@ namespace ACESim
 
         public int PlayerNumber;
 
+        public bool PlayerIsChance; 
+
+        public NWayTreeStorageInternal<double> RegretsOrMoveProbabilities;
+
         public Strategy()
         {
-
+            RegretsOrMoveProbabilities = new NWayTreeStorageInternal<double>();
         }
 
         public virtual Strategy DeepCopy()
@@ -36,8 +40,9 @@ namespace ACESim
                 SimulationInteraction = SimulationInteraction,
                 EvolutionSettings = EvolutionSettings,
                 AllStrategies = AllStrategies.ToList(),
-                PlayerNumber = PlayerNumber
-                
+                PlayerNumber = PlayerNumber,
+                RegretsOrMoveProbabilities = RegretsOrMoveProbabilities // not currently a deep copy -- may not be needed
+
             };
             return theStrategy;
         }
@@ -148,12 +153,7 @@ namespace ACESim
             foreach (var s2 in AllStrategies)
                 s2.SimulationInteraction = SimulationInteraction;
         }
-
-        private List<double[]> GetSampleDecisionInputs(int minSuccesses)
-        {
-            throw new NotImplementedException();
-        }
-
+        
         public void GetSerializedStrategiesPathAndFilenameBase(int numStrategyStatesSerialized, out string path, out string filenameBase)
         {
             path = Path.Combine(SimulationInteraction.BaseOutputDirectory, SimulationInteraction.storedStrategiesSubdirectory);
