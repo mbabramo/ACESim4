@@ -130,7 +130,7 @@ namespace ACESim
         private GameProgress PlayGameFromSpecifiedPoint(GameInputs inputs, GameProgress startingProgress)
         {
             Game game = gameFactory.CreateNewGame();
-            game.PlaySetup(bestStrategies, startingProgress, inputs, null, gameDefinition, false, 1.0);
+            game.PlaySetup(bestStrategies, startingProgress, inputs, gameDefinition, false);
             game.PlayUntilComplete(null, null);
             return game.Progress;
         }
@@ -243,7 +243,7 @@ namespace ACESim
             }
 
             Game game = gameFactory.CreateNewGame();
-            game.PlaySetup(strategies, gameProgress, gameInputsArray[iteration], null, gameDefinition, saveCompletedGameProgressInfos, 1.0);
+            game.PlaySetup(strategies, gameProgress, gameInputsArray[iteration], gameDefinition, saveCompletedGameProgressInfos);
             game.PlayUntilComplete(recordInputsForDecision, currentlyEvolvingDecision, false);
 
             if (saveCompletedGameProgressInfos)

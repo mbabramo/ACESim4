@@ -29,12 +29,10 @@ namespace ACESim
             List<Strategy> strategies,
             GameProgress progress,
             GameInputs gameInputs,
-            StatCollectorArray recordedInputs,
             GameDefinition gameDefinition,
-            bool recordReportInfo,
-            double weightOfObservation)
+            bool recordReportInfo)
         {
-            base.PlaySetup(strategies, progress, gameInputs, recordedInputs, gameDefinition, recordReportInfo, weightOfObservation);
+            base.PlaySetup(strategies, progress, gameInputs, gameDefinition, recordReportInfo);
             CopyInputsToSpecificModules(gameInputs as ModularGameInputsSet);
         }
 

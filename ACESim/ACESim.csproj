@@ -267,7 +267,6 @@
     <Compile Include="Reports\Filter\FilterAnd.cs" />
     <Compile Include="Reports\Filter\FilterInt.cs" />
     <Compile Include="Reports\Filter\FilterOr.cs" />
-    <Compile Include="Reports\Charting\StrategyGraphInfo.cs" />
     <Compile Include="Executor\SimulationCoordinator.cs" />
     <Compile Include="Reports\Filter\Filter.cs" />
     <Compile Include="Reports\Filter\FilterBool.cs" />

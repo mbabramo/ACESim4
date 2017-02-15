@@ -10,7 +10,6 @@ namespace ACESim
     [Serializable]
     public class Strategy
     {
-
         [NonSerialized]
         [System.Xml.Serialization.XmlIgnore]
         internal SimulationInteraction _simulationInteraction;
@@ -18,34 +17,12 @@ namespace ACESim
 
         [NonSerialized]
         [System.Xml.Serialization.XmlIgnore]
-        public GamePlayer Player;
-
-        public Decision Decision;
-
-        public ActionGroup ActionGroup;
-
-        public int DecisionNumber;
-
-        [NonSerialized]
-        [System.Xml.Serialization.XmlIgnore]
         internal List<Strategy> _allStrategies;
         public List<Strategy> AllStrategies { get { return _allStrategies; } set { _allStrategies = value; } }
 
-
-        public double? GeneralOverrideValue = null; // if non-null, a constant value will always be returned from calculate. Takes precedence over threadlocal override value.
-
-        // the following is for Strategy graphing
-        public double[] MinObservedInputs;
-        public double[] MaxObservedInputs;
-
-        internal double Calculate(List<double> inputs)
-        {
-            throw new NotImplementedException();
-        }
-
-        public bool UseBuiltInStrategy = false; // This is set to true for dummy decisions requiring no optimization, and signals the game module to use a built in strategy for the specific decision instead of calling the strategy.
-
         public EvolutionSettings EvolutionSettings;
+
+        public int PlayerNumber;
 
         public Strategy()
         {
@@ -57,11 +34,9 @@ namespace ACESim
             Strategy theStrategy = new Strategy()
             {
                 SimulationInteraction = SimulationInteraction,
-                Decision = Decision,
                 EvolutionSettings = EvolutionSettings,
-                DecisionNumber = DecisionNumber,
                 AllStrategies = AllStrategies.ToList(),
-                Player = null, /* do not copy -- we want the copy to create its own GamePlayer */
+                PlayerNumber = PlayerNumber
                 
             };
             return theStrategy;
@@ -96,7 +71,7 @@ namespace ACESim
             s.UnserializedStrategies = new List<Strategy>(); // we'll just populate this with nulls for now
             for (int i = 0; i < AllStrategies.Count; i++)
             {
-                if (DecisionNumber == i && !serializeStrategyItself)
+                if (!serializeStrategyItself)
                     s.SerializedStrategies.Add(null);
                 else
                 {
@@ -131,7 +106,7 @@ namespace ACESim
             for (int i = 0; i < s.SerializedStrategies.Count; i++)
             {
                 Strategy toAdd = null;
-                if (DecisionNumber == i)
+                if (PlayerNumber == i)
                     toAdd = this;
                 else
                 {
@@ -156,11 +131,6 @@ namespace ACESim
 
             IGameFactory gameFactory = (IGameFactory)BinarySerialization.GetObjectFromByteArray(s.SerializedGameFactory);
             gameFactory.InitializeStrategyDevelopment(this);
-            Player = new GamePlayer(
-                AllStrategies,
-                gameFactory,
-                false,
-                (GameDefinition)BinarySerialization.GetObjectFromByteArray(s.SerializedGameDefinition));
             SimulationInteraction = (SimulationInteraction)BinarySerialization.GetObjectFromByteArray(s.SerializedSimulationInteraction);
             foreach (var s2 in AllStrategies)
             {
@@ -173,41 +143,10 @@ namespace ACESim
         public void RecallStrategyState(Strategy strategyWithStateAlreadyRecalled)
         {
             AllStrategies = strategyWithStateAlreadyRecalled.AllStrategies.ToList();
-            ;
 
-            Player = new GamePlayer(
-                AllStrategies,
-                strategyWithStateAlreadyRecalled.Player.gameFactory,
-                false,
-                strategyWithStateAlreadyRecalled.Player.gameDefinition);
             SimulationInteraction = strategyWithStateAlreadyRecalled.SimulationInteraction;
             foreach (var s2 in AllStrategies)
                 s2.SimulationInteraction = SimulationInteraction;
-        }
-
-
-        public IEnumerable<GameProgress> PlayStrategy(
-            Strategy strategy,
-            List<GameProgress> preplayedGameProgressInfos,
-            int numIterations,
-            GameInputs[] gameInputsArray,
-            IterationID[] iterationIDArray,
-            bool returnCompletedGameProgressInfos = false)
-        {
-            // We are now playing the strategy as a whole. As a result, we do not yet need to do any translating of inputs.
-            return Player.PlayStrategy(strategy, DecisionNumber, preplayedGameProgressInfos, numIterations, SimulationInteraction, gameInputsArray, iterationIDArray, returnCompletedGameProgressInfos, DecisionNumber);
-        }
-
-        private void DetermineMinAndMaxObserved()
-        {
-            // This will need revision.
-            const int minSuccesses = 50;
-            List<double[]> decisionInputs = GetSampleDecisionInputs(minSuccesses);
-            var FilteredInputsStatistics = new StatCollectorArray();
-            foreach (var decisionInput in decisionInputs)
-                FilteredInputsStatistics.Add(decisionInput);
-            MinObservedInputs = FilteredInputsStatistics.StatCollectors.Select(x => x.Min).ToArray();
-                MaxObservedInputs = FilteredInputsStatistics.StatCollectors.Select(x => x.Max).ToArray();
         }
 
         private List<double[]> GetSampleDecisionInputs(int minSuccesses)

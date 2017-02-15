@@ -46,7 +46,7 @@ namespace ACESim
         {
             if (
                 loadedStrategies != null &&
-                loadedStrategies.Length == GameDefinition.DecisionsExecutionOrder.Count
+                loadedStrategies.Length == GameDefinition.NumPlayers
                 )
             {
                 strategies = new List<Strategy>(loadedStrategies);
@@ -56,9 +56,7 @@ namespace ACESim
                         strategies[i] = new Strategy();
                     if (theEvolutionSettings != null)
                         strategies[i].EvolutionSettings = theEvolutionSettings;
-                    strategies[i].Decision = GameDefinition.DecisionsExecutionOrder[i];
-                    strategies[i].ActionGroup = GameDefinition.DecisionPointsExecutionOrder[i].ActionGroup;
-                    strategies[i].DecisionNumber = i;
+                    strategies[i].PlayerNumber = i;
                     strategies[i].AllStrategies = strategies;
                     strategies[i].SimulationInteraction = SimulationInteraction;
                 }
@@ -67,14 +65,12 @@ namespace ACESim
             {
                 // make the starter strategies empty
                 strategies = new List<Strategy>();
-                for (int i = 0; i < GameDefinition.DecisionsExecutionOrder.Count; i++)
+                for (int i = 0; i < GameDefinition.NumPlayers; i++)
                 {
                     var aStrategy = new Strategy();
                     aStrategy.EvolutionSettings = simulationInteraction.GetEvolutionSettings();
                     aStrategy.SimulationInteraction = simulationInteraction;
-                    aStrategy.Decision = GameDefinition.DecisionsExecutionOrder[i];
-                    aStrategy.ActionGroup = GameDefinition.DecisionPointsExecutionOrder[i].ActionGroup;
-                    aStrategy.DecisionNumber = i;
+                    aStrategy.PlayerNumber = i;
                     strategies.Add(aStrategy);
                 }
                 for (int i = 0; i < GameDefinition.DecisionsExecutionOrder.Count; i++)

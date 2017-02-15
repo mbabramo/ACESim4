@@ -12,7 +12,7 @@ namespace ACESim
     public class StrategySerializationInfo
     {
         public int NumStrategies;
-        public int? DecisionNumber;
+        public int? PlayerNumber;
         public List<string> HashCodes;
     }
 
@@ -61,7 +61,7 @@ namespace ACESim
                 new StrategySerializationInfo
                 {
                     NumStrategies = serializedStrategiesCount,
-                    DecisionNumber = decisionNumber,
+                    PlayerNumber = decisionNumber,
                     HashCodes = hashCodes
                 };
             const int additionalThingsToSerialize = 4;
@@ -172,7 +172,7 @@ namespace ACESim
             BinarySerialization.SerializeObject(Path.Combine(path, filenameBase) + ".sti2", 
                 new StrategySerializationInfo { 
                     NumStrategies = serializedStrategiesCount, 
-                    DecisionNumber = st.DecisionNumber, 
+                    PlayerNumber = st.PlayerNumber, 
                     HashCodes = hashCodes 
                 });
             const int additionalThingsToSerialize = 4;
@@ -233,7 +233,7 @@ namespace ACESim
                 SerializedSimulationInteraction = System.IO.File.ReadAllBytes(filename3),
                 SerializedFastPseudoRandom = System.IO.File.ReadAllBytes(filename4)
             };
-            Strategy mainStrategy = (Strategy) BinarySerialization.GetObjectFromByteArray(ss.SerializedStrategies[(int)theInfo.DecisionNumber]);
+            Strategy mainStrategy = (Strategy) BinarySerialization.GetObjectFromByteArray(ss.SerializedStrategies[(int)theInfo.PlayerNumber]);
             mainStrategy.RecallStrategyState(ss);
             return mainStrategy;
         }

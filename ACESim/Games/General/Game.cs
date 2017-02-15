@@ -23,6 +23,7 @@ namespace ACESim
 
         public DecisionPoint CurrentDecisionPoint { get { return CurrentActionPoint as DecisionPoint; } }
         public ActionGroup CurrentActionGroup { get { return CurrentActionPoint.ActionGroup; } }
+
         public int? CurrentDecisionIndex { get { if (CurrentDecisionPoint == null) return null; return CurrentDecisionPoint.DecisionNumber; } }
         public int? MostRecentDecisionIndex { get; set; }
         public int? CurrentDecisionIndexWithinActionGroup { get { if (CurrentDecisionPoint == null) return null; return CurrentDecisionPoint.DecisionNumberWithinActionGroup; } }
@@ -37,6 +38,8 @@ namespace ACESim
 
         public bool TriggerReplay; // useful to try to find bugs
 
+        public bool RecordReportInfo;
+
         public int? DecisionNumberWithinActionGroupForDecisionNumber(int decisionNumber)
         {
             return DecisionPointForDecisionNumber(decisionNumber).DecisionNumberWithinActionGroup;
@@ -48,13 +51,11 @@ namespace ACESim
         }
 
 	    public virtual void PlaySetup(
-            List<Strategy> strategies, 
-            GameProgress progress, 
-            GameInputs gameInputs, 
-            StatCollectorArray recordedInputs,
+            List<Strategy> strategies,
+            GameProgress progress,
+            GameInputs gameInputs,
             GameDefinition gameDefinition,
-            bool recordReportInfo,
-            double weightOfScoreInWeightedAverage)
+            bool recordReportInfo)
         {
             if (RestartFromBeginningOfGame && Strategies != null)
             {
@@ -66,8 +67,8 @@ namespace ACESim
             this.Progress = progress;
             this.Progress.GameDefinition = gameDefinition;
             this.GameInputs = gameInputs;
-            this.RecordedInputs = recordedInputs;
             this.GameDefinition = gameDefinition;
+            this.RecordReportInfo = recordReportInfo;
             SetUpGameModules();
         }
 
@@ -99,10 +100,17 @@ namespace ACESim
         /// </summary>
         public virtual void PrepareForOrMakeCurrentDecision()
         {
+            if (Progress.GameComplete)
+                return;
             if (PreparationPhase)
                 PrepareForCurrentDecision();
             else
                 MakeCurrentDecision();
+        }
+
+        public virtual Tuple<double, int> MakeDecision()
+        {
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -254,26 +262,6 @@ namespace ACESim
             this.CurrentActionPoint = Progress.CurrentActionGroupNumber == null ? null : GameDefinition.ExecutionOrder[(int)Progress.CurrentActionGroupNumber].ActionPoints[(int)Progress.CurrentActionPointNumberWithinActionGroup];
             if (this.CurrentDecisionIndex != null)
                 this.MostRecentDecisionIndex = this.CurrentDecisionIndex;
-        }
-        
-        /// <summary>
-        /// Calls GetDecisionInputs and Calculate, and it updates the 
-        /// decisionCompleted field of GameSettings 
-        /// </summary>
-        public double MakeDecision(List<double> inputs = null)
-        {
-            double calculation = Calculate(inputs);
-            if (double.IsNaN(calculation) || double.IsInfinity(calculation))
-                return 0; // this should ordinarily lead to the strategy getting a bad score
-            return calculation;
-        }
-
-        /// <summary>
-        /// Calls Calculate method on the strategy corresponding to the decisionNumber. 
-        /// </summary>
-        protected double Calculate(List<double> inputs)
-        {
-            return Strategies[(int) CurrentDecisionIndex].Calculate(inputs);
         }
     }
 }
