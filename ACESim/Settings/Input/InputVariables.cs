@@ -21,18 +21,18 @@ namespace ACESim
         public EvolutionSettings GetEvolutionSettings()
         {
             //return (EvolutionSettings)GetSettings(typeof(EvolutionSettings), 1, false, null, null)[0];
-            return (EvolutionSettings)GetSettings(typeof(EvolutionSettings), currentExecutionInformation.EvolutionSettingsSet.settings, 1, false, null, null, null);
+            return (EvolutionSettings)GetSettings(typeof(EvolutionSettings), currentExecutionInformation.EvolutionSettingsSet.settings, 1, false, null, null);
         }
         
         public GameDefinition GetGameDefinitionSettings(Type theType)
         {
-            return (GameDefinition)GetSettings(theType, currentExecutionInformation.GameDefinitionsSet.settings, 1, false, null, null, null);
+            return (GameDefinition)GetSettings(theType, currentExecutionInformation.GameDefinitionsSet.settings, 1, false, null, null);
         }
 
         Type lastGameInputsType = null;
-        public GameInputs GetGameInputs(Type theType, long numIterations, IterationID iterationID, CurrentExecutionInformation settings, OversamplingInfo oversamplingInfo)
+        public GameInputs GetGameInputs(Type theType, long numIterations, IterationID iterationID, CurrentExecutionInformation settings)
         {
-            object gameInputsAsObject = GetSettings(theType, currentExecutionInformation.GameInputsSet.settings, numIterations, true, oversamplingInfo, settings, null, iterationID);
+            object gameInputsAsObject = GetSettings(theType, currentExecutionInformation.GameInputsSet.settings, numIterations, true, settings, null, iterationID);
             return (GameInputs)gameInputsAsObject;
         }
 
@@ -45,7 +45,6 @@ namespace ACESim
             List<Setting> settingsSet,
             long numIterations,
             bool gameInputSettings,
-            OversamplingInfo oversamplingInfo,
             CurrentExecutionInformation currentExecutionInformation,
             SettingAndFieldInfo outerSettingAndFieldInfo,
             IterationID iterationID = null)
@@ -102,9 +101,9 @@ namespace ACESim
             bool blockCompilation = false; // change to true if there is a possible problem with compilation -- BUT currently only compilation works. 
             object result;
             if (blockCompilation || (compiledExpression == null || (currentExecutionInformation.SettingOverride != null && currentExecutionInformation.SettingOverride.groupOfSimultaneousSettingChanges.Any())))
-                result = GetSettingsWithoutCompilation(theType, numIterations, gameInputSettings, oversamplingInfo, currentExecutionInformation, outerSettingAndFieldInfo, iterationID, theSettingsAndFieldInfos, numSeeds); 
+                result = GetSettingsWithoutCompilation(theType, numIterations, gameInputSettings, currentExecutionInformation, outerSettingAndFieldInfo, iterationID, theSettingsAndFieldInfos, numSeeds); 
             else
-                result = GetSettingsThroughCompilation(numIterations, iterationID, numSeeds, oversamplingInfo, compiledExpression, flipSeed, substituteSeed);
+                result = GetSettingsThroughCompilation(numIterations, iterationID, numSeeds, compiledExpression, flipSeed, substituteSeed);
             return result;
         }
 
@@ -118,7 +117,6 @@ namespace ACESim
             long numIterations,
             IterationID iterationID,
             int numSeeds,
-            OversamplingInfo oversamplingInfo,
             Func<double[], Dictionary<string, double>, object> compiledExpression,
             bool[] flipSeed,
             int?[] substituteSeed)
@@ -128,28 +126,16 @@ namespace ACESim
             double[] inputs = new double[numSeeds];
             for (int s = 0; s < numSeeds; s++)
                 inputs[s] = theInputSeeds[s, iterationID];
-
-            double weight;
-            double oversamplingCoefficient = theInputSeeds[numSeeds, iterationID];
-            oversamplingInfo.OversamplingPlan.ApplyOversamplingPlan(inputs, oversamplingCoefficient, out weight, usingOddIterationMirroring ? flipSeed : null, usingOddIterationMirroring ? substituteSeed : null);
-            if (oversamplingInfo.StoreWeightsForAdjustmentOfScoreAverages)
-                oversamplingInfo.ReturnedWeightsToApplyToObservation.Add(weight);
-            if (oversamplingInfo.StoreInputSeedsForImprovementOfOversamplingPlan)
-            {
-                if (oversamplingInfo.ReturnedInputSeeds != null)
-                    throw new Exception("Internal error. Using same OversamplingInfo more than once when StoreInputSeedsForImprovementOfOversamplingPlan is set to true.");
-                oversamplingInfo.ReturnedInputSeeds = inputs;
-            }
+            
             object theObject = compiledExpression(inputs, currentExecutionInformation.AllVariablesFromProgram);
             return theObject;
         }
 
         internal object GetSettingsWithoutCompilation(
             Type theType,
-            long numIterations, 
-            bool gameInputSettings, 
-            OversamplingInfo oversamplingInfo,
-            CurrentExecutionInformation settingsForSimulationVariablesOverride, 
+            long numIterations,
+            bool gameInputSettings,
+            CurrentExecutionInformation settingsForSimulationVariablesOverride,
             SettingAndFieldInfo outerSettingAndFieldInfo,
             IterationID iterationID,
             List<SettingAndFieldInfo> theSettingsAndFieldInfos,
@@ -179,15 +165,15 @@ namespace ACESim
                 //        Debug.Write("   ");
                 //    Debug.WriteLine("SettingAndFieldInfo name " + theSettingAndFieldInfo.fieldInfo.Name);
                 //}
-                currentSeedNum = ProcessSettingAndFieldInfoUncompiled(theType, numIterations, gameInputSettings, settingsForSimulationVariablesOverride, outerSettingAndFieldInfo, iterationID, variableFromSettingTracker, ref objectToReturn, oversamplingInfo, currentSeedNum, theSettingAndFieldInfo);
+                currentSeedNum = ProcessSettingAndFieldInfoUncompiled(theType, numIterations, gameInputSettings, settingsForSimulationVariablesOverride, outerSettingAndFieldInfo, iterationID, variableFromSettingTracker, ref objectToReturn, currentSeedNum, theSettingAndFieldInfo);
             }
             return objectToReturn;
         }
 
-        private int ProcessSettingAndFieldInfoUncompiled(Type theType, long numIterations, bool gameInputSettings, CurrentExecutionInformation settingsForSimulationVariablesOverride, SettingAndFieldInfo outerSettingAndFieldInfo, IterationID iterationID, SettingVariableFromSettingTracker variableFromSettingTracker, ref object objectToReturn, OversamplingInfo oversamplingInfo, int currentSeedNum, SettingAndFieldInfo theSettingAndFieldInfo)
+        private int ProcessSettingAndFieldInfoUncompiled(Type theType, long numIterations, bool gameInputSettings, CurrentExecutionInformation settingsForSimulationVariablesOverride, SettingAndFieldInfo outerSettingAndFieldInfo, IterationID iterationID, SettingVariableFromSettingTracker variableFromSettingTracker, ref object objectToReturn, int currentSeedNum, SettingAndFieldInfo theSettingAndFieldInfo)
         {
             int numSeedsRequired = theSettingAndFieldInfo.setting.GetNumSeedsRequired(settingsForSimulationVariablesOverride); 
-            GetSettingValueForIteration(theType, numIterations, theSettingAndFieldInfo, gameInputSettings, oversamplingInfo, settingsForSimulationVariablesOverride, outerSettingAndFieldInfo, variableFromSettingTracker, ref objectToReturn);
+            GetSettingValueForIteration(theType, numIterations, theSettingAndFieldInfo, gameInputSettings, settingsForSimulationVariablesOverride, outerSettingAndFieldInfo, variableFromSettingTracker, ref objectToReturn);
             //objectToReturn = GetSettingValueForIteration2(theType, numIterations, iterationNum, theSettingAndFieldInfo, theInputSeeds, currentSeedNum, numSeedsRequired, gameInputSettings, oversamplingInfo, settingsForSimulationVariablesOverride, variableFromSettingTracker);
             currentSeedNum += numSeedsRequired;
             return currentSeedNum;
@@ -243,10 +229,9 @@ namespace ACESim
 
         private void GetSettingValueForIteration(
             Type theType,
-            long numIterations, 
-            SettingAndFieldInfo theSettingAndFieldInfo, 
+            long numIterations,
+            SettingAndFieldInfo theSettingAndFieldInfo,
             bool gameInputSettings,
-            OversamplingInfo oversamplingInfo,
             CurrentExecutionInformation settingsForSimulationVariablesOverride,
             SettingAndFieldInfo outerSettingAndFieldInfo,
             SettingVariableFromSettingTracker variableFromSettingTracker,
@@ -258,7 +243,7 @@ namespace ACESim
                     variableFromSettingTracker.IterationNum = 0;
                     Type externalType = theSettingAndFieldInfo.type;
                     Type internalType = externalType.GetGenericArguments()[0];
-                    GetSettings(internalType, ((SettingList)theSettingAndFieldInfo.setting).ContainedSettings, 1, gameInputSettings, oversamplingInfo, settingsForSimulationVariablesOverride, theSettingAndFieldInfo);
+                    GetSettings(internalType, ((SettingList)theSettingAndFieldInfo.setting).ContainedSettings, 1, gameInputSettings, settingsForSimulationVariablesOverride, theSettingAndFieldInfo);
                     theSettingAndFieldInfo.SetValue(ref objectToSet, theSettingAndFieldInfo.itemsForList);
                     break;
 
@@ -266,7 +251,7 @@ namespace ACESim
                     object theClass;
                     if (((SettingClass)theSettingAndFieldInfo.setting).Generator == null)
                     {
-                        theClass = GetSettings(theSettingAndFieldInfo.type, ((SettingClass) theSettingAndFieldInfo.setting).ContainedSettings, 1, gameInputSettings, oversamplingInfo, settingsForSimulationVariablesOverride, theSettingAndFieldInfo);
+                        theClass = GetSettings(theSettingAndFieldInfo.type, ((SettingClass)theSettingAndFieldInfo.setting).ContainedSettings, 1, gameInputSettings, settingsForSimulationVariablesOverride, theSettingAndFieldInfo);
                     }
                     else
                         theClass = ((SettingClass)theSettingAndFieldInfo.setting).Generator.GenerateSetting(((SettingClass)theSettingAndFieldInfo.setting).CodeGeneratorOptions);
@@ -324,22 +309,13 @@ namespace ACESim
             }
         }
 
-        public List<double> GetInputs(InputSeeds theInputSeeds, int currentSeedNum, int numSeeds, IterationID iterationID, OversamplingInfo oversamplingInfo)
+        public List<double> GetInputs(InputSeeds theInputSeeds, int currentSeedNum, int numSeeds, IterationID iterationID)
         {
             List<double> theInputs = new List<double>();
             for (int i = currentSeedNum; i < currentSeedNum + numSeeds; i++)
                 theInputs.Add(theInputSeeds[i, iterationID]);
             double weight;
             double[] inputs = theInputs.ToArray();
-            oversamplingInfo.OversamplingPlan.ApplyOversamplingPlan(inputs, theInputSeeds[currentSeedNum + numSeeds, iterationID], out weight);
-            if (oversamplingInfo.StoreWeightsForAdjustmentOfScoreAverages)
-                oversamplingInfo.ReturnedWeightsToApplyToObservation.Add(weight);
-            if (oversamplingInfo.StoreInputSeedsForImprovementOfOversamplingPlan)
-            {
-                if (oversamplingInfo.ReturnedInputSeeds != null)
-                    throw new Exception("Internal error. Using same OversamplingInfo more than once when StoreInputSeedsForImprovementOfOversamplingPlan is set to true.");
-                oversamplingInfo.ReturnedInputSeeds = inputs;
-            }
             return inputs.ToList();
         }
 

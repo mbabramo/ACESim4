@@ -60,9 +60,7 @@ namespace ACESim
         {
             if (returnCompletedGameProgressInfos)
                 CompletedGameProgresses = new ConcurrentBag<GameProgress>();
-
-            // no oversampling during the play command
-            OversamplingInfo oversamplingInfo = new OversamplingInfo() { OversamplingPlan = new OversamplingPlan(), StoreInputSeedsForImprovementOfOversamplingPlan = false, StoreWeightsForAdjustmentOfScoreAverages = false };
+            
 
             if (gameInputsArray == null)
             {
@@ -71,7 +69,7 @@ namespace ACESim
                 for (long i = 0; i < numIterations; i++)
                 {
                     iterationIDArray[i] = new IterationID(i);
-                    gameInputsArray[i] = simulationInteraction.GetGameInputs(numIterations, iterationIDArray[i], oversamplingInfo);
+                    gameInputsArray[i] = simulationInteraction.GetGameInputs(numIterations, iterationIDArray[i]);
                 }
             }
 
@@ -109,7 +107,7 @@ namespace ACESim
                         GameProgressLogger.LoggingOn = false;
                         GameProgressLogger.OutputLogMessages = false;
                     }
-                    PlayHelper(i, strategiesToPlayWith, returnCompletedGameProgressInfos, gameInputsArray, iterationIDArray,  preplayedGameProgressInfos, currentlyEvolvingDecision,  decisionNumber == currentlyEvolvingDecision ? (int?)decisionNumber : (int?)null, oversamplingInfo);
+                    PlayHelper(i, strategiesToPlayWith, returnCompletedGameProgressInfos, gameInputsArray, iterationIDArray, preplayedGameProgressInfos, currentlyEvolvingDecision, decisionNumber == currentlyEvolvingDecision ? (int?)decisionNumber : (int?)null);
                     if (runSymmetryTests)
                     {
                         bool evenIteration = i % 2 == 0;
@@ -166,7 +164,7 @@ namespace ACESim
 
         bool _disposed;
 
-        public void CheckConsistencyForSetOfIterations(long totalNumIterations, List<IterationID> iterationsToGet, SimulationInteraction simulationInteraction, OversamplingInfo oversamplingInfo)
+        public void CheckConsistencyForSetOfIterations(long totalNumIterations, List<IterationID> iterationsToGet, SimulationInteraction simulationInteraction)
         {
             List<GameInputs> gameInputsSet = new List<GameInputs>();
 
@@ -179,7 +177,7 @@ namespace ACESim
             for (int r = 0; r < repetitions; r++)
             {
                 for (int i = 0; i < iterationsToGet.Count; i++)
-                    gameInputsSet.Add(simulationInteraction.GetGameInputs(totalNumIterations, iterationsToGet[i], oversamplingInfo));
+                    gameInputsSet.Add(simulationInteraction.GetGameInputs(totalNumIterations, iterationsToGet[i]));
                 GameProgress[,] gameProgressResults = new GameProgress[numberToRunInParallelEachRepetition, 2];
                 bool useParallel = true; // In general, this should be true, in part because parallelism problems could cause some problems. But, one can then true to set this false to see if problems still occur, since it will be easier to trace problems if parallelism is not used.
                 for (int p = 0; p <= 1; p++)
@@ -232,7 +230,7 @@ namespace ACESim
         /// resulting for each iteration should be added to completedGames; that way, after evolution is complete, 
         /// the GameProgressInfo objects can be called to generate reports.
         /// </summary>
-        void PlayHelper(int iteration, List<Strategy> strategies, bool saveCompletedGameProgressInfos, GameInputs[] gameInputsArray, IterationID[] iterationIDArray, List<GameProgress> preplayedGameProgressInfos, int? currentlyEvolvingDecision, int? recordInputsForDecision, OversamplingInfo oversamplingInfo)
+        void PlayHelper(int iteration, List<Strategy> strategies, bool saveCompletedGameProgressInfos, GameInputs[] gameInputsArray, IterationID[] iterationIDArray, List<GameProgress> preplayedGameProgressInfos, int? currentlyEvolvingDecision, int? recordInputsForDecision)
         {
             GameProgress gameProgress;
             if (preplayedGameProgressInfos != null)
@@ -245,7 +243,7 @@ namespace ACESim
             }
 
             Game game = gameFactory.CreateNewGame();
-            game.PlaySetup(strategies, gameProgress, gameInputsArray[iteration], null, gameDefinition, saveCompletedGameProgressInfos, oversamplingInfo.GetWeightForObservation(iteration));
+            game.PlaySetup(strategies, gameProgress, gameInputsArray[iteration], null, gameDefinition, saveCompletedGameProgressInfos, 1.0);
             game.PlayUntilComplete(recordInputsForDecision, currentlyEvolvingDecision, false);
 
             if (saveCompletedGameProgressInfos)

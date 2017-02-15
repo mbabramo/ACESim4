@@ -176,9 +176,8 @@ namespace ACESim
             return 0; // default for a built-in strategy is to just use a value we can ignore; can be overriden
         }
 
-        public double Calculate(int decisionNumber)
+        public double Calculate()
         {
-            Strategy theStrategy = AllStrategies[decisionNumber];
             throw new NotImplementedException();
         }
 

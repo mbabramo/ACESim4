@@ -23,13 +23,10 @@ namespace ACESim
         public ValueAndErrorForecastingModule BaseProbabilityForecastingModule;
         public ValueAndErrorForecastingModule BaseDamagesForecastingModule;
         public DropOrDefaultModule BeginningDropOrDefaultModule;
-        public BargainingAggressivenessOverrideModule BargainingAggressivenessModule1;
-        public BargainingAggressivenessOverrideModule BargainingAggressivenessModule2;
         public BargainingModule BargainingModule;
         public DropOrDefaultModule MidDropOrDefaultModule;
         public DropOrDefaultModule EndDropOrDefaultModule;
         public TrialModule TrialModule;
-        public ProbabilityPWinsForecastingModule ProbabilityPWinsForecastingModule;
 
         public AdjustmentsModuleInputs AdjustmentsModuleInputs;
         public DisputeGeneratorInputs DisputeGeneratorInputs;

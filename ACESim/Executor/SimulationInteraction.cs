@@ -101,7 +101,7 @@ namespace ACESim
 
 
         InputVariables lastInputVariables = null;
-        public GameInputs GetGameInputs(long numIterations, IterationID iterationID, OversamplingInfo oversamplingInfo)
+        public GameInputs GetGameInputs(long numIterations, IterationID iterationID)
         {
             InputVariables theInputVariables = null;
             if (iterationID.IterationNumber > 0 && lastInputVariables != null)
@@ -113,7 +113,7 @@ namespace ACESim
                     lastInputVariables = theInputVariables; // store this for use in the next group of iterations
             }
             Type theType = CurrentExecutionInformation.GameFactory.GetSimulationSettingsType();
-            GameInputs returnVal = theInputVariables.GetGameInputs(theType, numIterations, iterationID, CurrentExecutionInformation, oversamplingInfo);
+            GameInputs returnVal = theInputVariables.GetGameInputs(theType, numIterations, iterationID, CurrentExecutionInformation);
             return returnVal;
         }
 

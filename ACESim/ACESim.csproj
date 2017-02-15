@@ -166,14 +166,7 @@
     <Compile Include="Games\General\ActionGroup.cs" />
     <Compile Include="Games\General\ActionGroupRepetition.cs" />
     <Compile Include="Games\General\IDefaultBehaviorBeforeEvolution.cs" />
-    <Compile Include="Games\LitigationGame\LitigationGameSimpleTwoClaimModel.cs" />
-    <Compile Include="Games\LitigationGame\LitigationGameToyModel.cs" />
-    <Compile Include="Games\LitigationGame\Modules\DropOrDefaultModules\DropOrDefaultPeriod.cs" />
-    <Compile Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostModuleProgress.cs" />
-    <Compile Include="Neural\GRNNGradient.cs" />
     <Compile Include="Neural\GRNN_Improvements.cs" />
-    <Compile Include="Neural\KDTreeFromClusterCenters.cs" />
-    <Compile Include="Neural\SimpleBackprop.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Reports\aspnet_Applications.cs">
       <DependentUpon>SimData.tt</DependentUpon>
@@ -225,28 +218,6 @@
     <Compile Include="Evolution\InputGroups.cs" />
     <Compile Include="Executor\ExecutorMultiple.cs" />
     <Compile Include="Executor\ProgressStep.cs" />
-    <Compile Include="Games\LitigationGame\Modules\Adjustments\AdjustmentsModule.cs" />
-    <Compile Include="Games\LitigationGame\Modules\Adjustments\AdjustmentsModuleInputs.cs" />
-    <Compile Include="Games\LitigationGame\Modules\Adjustments\AdjustmentsModuleProgress.cs" />
-    <Compile Include="Games\LitigationGame\Modules\Adjustments\NoAdjustmentsModule\NoAdjustmentsModule.cs" />
-    <Compile Include="Games\LitigationGame\Modules\Adjustments\NoAdjustmentsModule\NoAdjustmentsModuleInputs.cs" />
-    <Compile Include="Games\LitigationGame\Modules\Adjustments\ShootoutAdjustmentsModule\ShootoutAdjustmentsModule.cs" />
-    <Compile Include="Games\LitigationGame\Modules\Adjustments\ShootoutAdjustmentsModule\ShootoutAdjustmentsModuleInputs.cs" />
-    <Compile Include="Games\LitigationGame\Modules\Adjustments\ShootoutAdjustmentsModule\ShootoutAdjustmentsModuleProgress.cs" />
-    <Compile Include="Games\LitigationGame\Modules\Adjustments\SideBetAdjustmentsModule\LitigationSideBet.cs" />
-    <Compile Include="Games\LitigationGame\Modules\Adjustments\SideBetAdjustmentsModule\SideBetAdjustmentsModule.cs" />
-    <Compile Include="Games\LitigationGame\Modules\Adjustments\SideBetAdjustmentsModule\SideBetAdjustmentsModuleInputs.cs" />
-    <Compile Include="Games\LitigationGame\Modules\Adjustments\SideBetAdjustmentsModule\SideBetAdjustmentsModuleProgress.cs" />
-    <Compile Include="Games\LitigationGame\Modules\BargainingModules\FairBargainingModule\FairBargainingInputs.cs" />
-    <Compile Include="Games\LitigationGame\Modules\BargainingModules\FairBargainingModule\FairBargainingModule.cs" />
-    <Compile Include="Games\LitigationGame\Modules\BargainingModules\FairBargainingModule\FairBargainingModuleProgress.cs" />
-    <Compile Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ForbiddenActDisputeGenerator\ForbiddenActDisputeGeneratorInputs.cs" />
-    <Compile Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ForbiddenActDisputeGenerator\ForbiddenActDisputeGeneratorModule.cs" />
-    <Compile Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ForbiddenActDisputeGenerator\ForbiddenActDisputeGeneratorModuleProgress.cs" />
-    <Compile Include="Games\LitigationGame\Modules\DropOrDefaultModules\DropOrDefaultChoiceModule\DropInfo.cs" />
-    <Compile Include="Games\LitigationGame\Modules\DummyModule\DummyModule.cs" />
-    <Compile Include="Games\LitigationGame\Modules\DummyModule\DummyModuleProgress.cs" />
-    <Compile Include="Games\LitigationGame\Modules\Adjustments\ShootoutAdjustmentsModule\LitigationShootout.cs" />
     <Compile Include="Games\General\ActionPoint.cs" />
     <Compile Include="Games\General\Game.cs" />
     <Compile Include="Games\General\GameDefinition.cs" />
@@ -263,79 +234,6 @@
     <Compile Include="Games\General\IGameName.cs" />
     <Compile Include="Games\General\ModularGame.cs" />
     <Compile Include="Games\General\ModularGameInputs.cs" />
-    <Compile Include="Games\LitigationGame\LitigationGame.cs" />
-    <Compile Include="Games\LitigationGame\LitigationGameDefinition.cs" />
-    <Compile Include="Games\LitigationGame\LitigationGameFactory.cs" />
-    <Compile Include="Games\LitigationGame\LitigationGameInputs.cs" />
-    <Compile Include="Games\LitigationGame\LitigationGameProgress.cs" />
-    <Compile Include="Games\LitigationGame\Modules\BargainingModules\BargainingInputs.cs" />
-    <Compile Include="Games\LitigationGame\Modules\BargainingModules\BargainingModule.cs" />
-    <Compile Include="Games\LitigationGame\Modules\BargainingModules\BargainingModuleProgress.cs" />
-    <Compile Include="Games\LitigationGame\Modules\BargainingModules\NoBargainingBargainingModule\NoBargainingBargainingInputs.cs" />
-    <Compile Include="Games\LitigationGame\Modules\BargainingModules\NoBargainingBargainingModule\NoBargainingBargainingModule.cs" />
-    <Compile Include="Games\LitigationGame\Modules\BargainingModules\NoBargainingBargainingModule\NoBargainingBargainingModuleProgress.cs" />
-    <Compile Include="Games\LitigationGame\Modules\BargainingModules\OfferThresholdBargainingModule\OfferThresholdBargainingInputs.cs" />
-    <Compile Include="Games\LitigationGame\Modules\BargainingModules\OfferThresholdBargainingModule\OfferThresholdBargainingModule.cs" />
-    <Compile Include="Games\LitigationGame\Modules\BargainingModules\OfferThresholdBargainingModule\OfferThresholdBargainingModuleProgress.cs" />
-    <Compile Include="Games\LitigationGame\Modules\BargainingModules\SimplisticBargainingModule\SimplisticBargainingInputs.cs" />
-    <Compile Include="Games\LitigationGame\Modules\BargainingModules\SimplisticBargainingModule\SimplisticBargainingModule.cs" />
-    <Compile Include="Games\LitigationGame\Modules\BargainingModules\SimplisticBargainingModule\SimplisticBargainingModuleProgress.cs" />
-    <Compile Include="Games\LitigationGame\Modules\BargainingModules\SimultaneousOfferBargainingModule\SimultaneousOfferBargainingInputs.cs" />
-    <Compile Include="Games\LitigationGame\Modules\BargainingModules\SimultaneousOfferBargainingModule\SimultaneousOfferBargainingModule.cs" />
-    <Compile Include="Games\LitigationGame\Modules\BargainingModules\SimultaneousOfferBargainingModule\SimultaneousOfferBargainingModuleProgress.cs" />
-    <Compile Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ContinuousPrecautionDisputeGenerator\ContinuousPrecautionDisputeGeneratorModuleProgress.cs" />
-    <Compile Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ContinuousPrecautionDisputeGenerator\ContinuousPrecautionDisputeGeneratorInputs.cs" />
-    <Compile Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ContinuousPrecautionDisputeGenerator\ContinuousPrecautionDisputeGeneratorModule.cs" />
-    <Compile Include="Games\LitigationGame\Modules\DisputeGeneratorModules\DisputeGeneratorModule.cs" />
-    <Compile Include="Games\LitigationGame\Modules\DisputeGeneratorModules\DisputeGeneratorInputs.cs" />
-    <Compile Include="Games\LitigationGame\Modules\DisputeGeneratorModules\DisputeGeneratorModuleProgress.cs" />
-    <Compile Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ExogenousDisputeGenerator\ExogenousDisputeGeneratorInputs.cs" />
-    <Compile Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ExogenousDisputeGenerator\ExogenousDisputeGeneratorModule.cs" />
-    <Compile Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ExogenousDisputeGenerator\ExogenousDisputeGeneratorModuleProgress.cs" />
-    <Compile Include="Games\LitigationGame\Modules\DisputeGeneratorModules\NegligenceDisputeGenerator\NegligenceDisputeGeneratorInputs.cs" />
-    <Compile Include="Games\LitigationGame\Modules\DisputeGeneratorModules\NegligenceDisputeGenerator\NegligenceDisputeGeneratorModule.cs" />
-    <Compile Include="Games\LitigationGame\Modules\DisputeGeneratorModules\NegligenceDisputeGenerator\NegligenceDisputeGeneratorModuleProgress.cs" />
-    <Compile Include="Games\LitigationGame\Modules\DropOrDefaultModules\DropOrDefaultChoiceModule\DropOrDefaultChoiceInputs.cs" />
-    <Compile Include="Games\LitigationGame\Modules\DropOrDefaultModules\DropOrDefaultChoiceModule\DropOrDefaultChoiceModule.cs" />
-    <Compile Include="Games\LitigationGame\Modules\DropOrDefaultModules\DropOrDefaultChoiceModule\DropOrDefaultChoiceModuleProgress.cs" />
-    <Compile Include="Games\LitigationGame\Modules\DropOrDefaultModules\DropOrDefaultChoiceModule\DropOrDefaultChoiceModuleSettings.cs" />
-    <Compile Include="Games\LitigationGame\Modules\DropOrDefaultModules\DropOrDefaultInputs.cs" />
-    <Compile Include="Games\LitigationGame\Modules\DropOrDefaultModules\DropOrDefaultModule.cs" />
-    <Compile Include="Games\LitigationGame\Modules\DropOrDefaultModules\DropOrDefaultModuleProgress.cs" />
-    <Compile Include="Games\LitigationGame\Modules\DropOrDefaultModules\NeverGiveUpModule\NeverGiveUpInputs.cs" />
-    <Compile Include="Games\LitigationGame\Modules\DropOrDefaultModules\NeverGiveUpModule\NeverGiveUpModule.cs" />
-    <Compile Include="Games\LitigationGame\Modules\DropOrDefaultModules\NeverGiveUpModule\NeverGiveUpModuleProgress.cs" />
-    <Compile Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostEndogenousEffortModule\LitigationCostEndogenousEffortInputs.cs" />
-    <Compile Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostEndogenousEffortModule\LitigationCostEndogenousEffortModule.cs" />
-    <Compile Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostEndogenousEffortModule\LitigationCostEndogenousEffortModuleProgress.cs" />
-    <Compile Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostEndogenousEffortModule\LitigationCostEndogenousEffortModuleSettings.cs" />
-    <Compile Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostInputs.cs" />
-    <Compile Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostModule.cs" />
-    <Compile Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostStandardModule\LitigationCostStandardInputs.cs" />
-    <Compile Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostStandardModule\LitigationCostStandardModule.cs" />
-    <Compile Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostStandardModule\LitigationCostStandardModuleProgress.cs" />
-    <Compile Include="Games\LitigationGame\Modules\TrialModules\TrialInputs.cs" />
-    <Compile Include="Games\LitigationGame\Modules\TrialModules\TrialModule.cs" />
-    <Compile Include="Games\LitigationGame\Modules\TrialModules\TrialModuleProgress.cs" />
-    <Compile Include="Games\LitigationGame\Modules\TrialModules\TrialPerfectModule\TrialPerfectInputs.cs" />
-    <Compile Include="Games\LitigationGame\Modules\TrialModules\TrialPerfectModule\TrialPerfectModule.cs" />
-    <Compile Include="Games\LitigationGame\Modules\TrialModules\TrialPerfectModule\TrialPerfectModuleProgress.cs" />
-    <Compile Include="Games\LitigationGame\Modules\TrialModules\TrialStandardModule\TrialStandardInputs.cs" />
-    <Compile Include="Games\LitigationGame\Modules\TrialModules\TrialStandardModule\TrialStandardModule.cs" />
-    <Compile Include="Games\LitigationGame\Modules\TrialModules\TrialStandardModule\TrialStandardModuleProgress.cs" />
-    <Compile Include="Games\LitigationGame\Modules\UtilityCalculation\UtilityCalculation.cs" />
-    <Compile Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\IndependentEstimatesModule\IndependentEstimatesInputs.cs" />
-    <Compile Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\IndependentEstimatesModule\IndependentEstimatesModule.cs" />
-    <Compile Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\IndependentEstimatesModule\IndependentEstimatesModuleProgress.cs" />
-    <Compile Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\PerfectEstimatesModule\PerfectEstimatesInputs.cs" />
-    <Compile Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\PerfectEstimatesModule\PerfectEstimatesModule.cs" />
-    <Compile Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\PerfectEstimatesModule\PerfectEstimatesModuleProgress.cs" />
-    <Compile Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\SeparateEstimatesModule\SeparateEstimatesInputs.cs" />
-    <Compile Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\SeparateEstimatesModule\SeparateEstimatesModule.cs" />
-    <Compile Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\SeparateEstimatesModule\SeparateEstimatesModuleProgress.cs" />
-    <Compile Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\ValueAndErrorForecastingInputs.cs" />
-    <Compile Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\ValueAndErrorForecastingModule.cs" />
-    <Compile Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\ValueAndErrorForecastingModuleProgress.cs" />
     <Compile Include="Games\MyGame\MyGame.cs" />
     <Compile Include="Games\MyGame\MyGameDefinition.cs" />
     <Compile Include="Games\MyGame\MyGameFactory.cs" />
@@ -346,13 +244,8 @@
     <Compile Include="Executor\IUiInteraction.cs" />
     <Compile Include="Executor\SimulationInteraction.cs" />
     <Compile Include="Commands\ExecuteList.cs" />
-    <Compile Include="Neural\FuzzyCMeansClustering.cs" />
-    <Compile Include="Neural\GRNN.cs" />
     <Compile Include="Neural\ICalculateScoreForSpecificIteration.cs" />
-    <Compile Include="Neural\KMeansClustering.cs" />
     <Compile Include="Neural\NeuralNetworkData.cs" />
-    <Compile Include="Neural\RandomClustering.cs" />
-    <Compile Include="Neural\RBFForExactInterpolation.cs" />
     <Compile Include="Neural\TrainingInfo.cs" />
     <Compile Include="Reports\Column.cs">
       <DependentUpon>SimData.tt</DependentUpon>
@@ -468,8 +361,6 @@
     <Compile Include="Settings\Distributions\GammaDistribution.cs" />
     <Compile Include="Settings\Input\FlipInputSeedAttribute.cs" />
     <Compile Include="Settings\Input\IterationID.cs" />
-    <Compile Include="Settings\Input\OversamplingInfo.cs" />
-    <Compile Include="Settings\Input\OversamplingPlan.cs" />
     <Compile Include="Settings\Input\SwapInputSeedsAttribute.cs" />
     <Compile Include="Settings\Loading and tracking\FindReplaceVariable.cs" />
     <Compile Include="Settings\Loading and tracking\OptionalAndSkipAttributes.cs" />
@@ -565,13 +456,11 @@
     <Compile Include="Util\HeisenbugTracker.cs" />
     <Compile Include="Util\ConstrainedOrder.cs" />
     <Compile Include="Util\ConstrainToRange.cs" />
-    <Compile Include="Util\CumulativeDistribution.cs" />
     <Compile Include="Reports\Charting\Graph2DSettings.cs" />
     <Compile Include="Util\FieldwiseObjectComparison.cs" />
     <Compile Include="Util\GoldenSectionOptimizer.cs" />
     <Compile Include="Util\InverseCumulativeNormalDistributionPoints.cs" />
     <Compile Include="Util\LimitedConcurrencyLevelTaskScheduler.cs" />
-    <Compile Include="Util\LitigationGameProbMagnitudeSimpleModel.cs" />
     <Compile Include="Util\LotteryProbabilities.cs" />
     <Compile Include="Util\MD5HashGenerator.cs" />
     <Compile Include="Util\NWayTreeStorage.cs" />
@@ -580,17 +469,14 @@
     <Compile Include="Util\ObjectPool.cs" />
     <Compile Include="Util\ObjectPoolConcurrent.cs" />
     <Compile Include="Util\ObjectPoolGeneric.cs" />
-    <Compile Include="Util\OptimizeSmoothedNoisyFunction.cs" />
     <Compile Include="Util\Parabola.cs" />
     <Compile Include="Util\ProcessInAzureWorkerRole.cs" />
     <Compile Include="Util\ProcessInSeparateAppDomain.cs" />
     <Compile Include="Util\RandomSubset.cs" />
     <Compile Include="Util\Retry.cs" />
-    <Compile Include="Util\StochasticCutoffFinder.cs" />
     <Compile Include="Util\MonotonicCurve.cs" />
     <Compile Include="Util\TestableDateTime.cs" />
     <Compile Include="Util\ThreadLocalDisposables.cs" />
-    <Compile Include="Util\ValueFromSignalEstimator.cs" />
     <Compile Include="Util\FastPseudoRandom.cs" />
     <Compile Include="Util\FixedSizeQueue.cs" />
     <Compile Include="Util\HyperbolicTangentCurve.cs" />
@@ -667,203 +553,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Games\LitigationGame\Modules\Adjustments\NoAdjustmentsModule\NoAdjustmentsModule.xml" />
-    <Content Include="Games\LitigationGame\Modules\Adjustments\NoAdjustmentsModule\NoAdjustmentsModuleInputs.xml" />
-    <Content Include="Games\LitigationGame\Modules\Adjustments\ShootoutAdjustmentsModule\ShootoutAdjustmentsModule.xml" />
-    <Content Include="Games\LitigationGame\Modules\Adjustments\ShootoutAdjustmentsModule\ShootoutAdjustmentsModuleInputs.xml" />
-    <Content Include="Games\LitigationGame\Modules\Adjustments\SideBetAdjustmentsModule\SideBetAdjustmentsModule.xml" />
-    <Content Include="Games\LitigationGame\Modules\Adjustments\SideBetAdjustmentsModule\SideBetAdjustmentsModuleInputs.xml" />
-    <Content Include="Games\LitigationGame\Modules\BargainingModules\BargainingModuleReport.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Modules\BargainingModules\FairBargainingModule\FairBargainingInputs.xml" />
-    <Content Include="Games\LitigationGame\Modules\BargainingModules\FairBargainingModule\FairBargainingModule.xml" />
-    <Content Include="Games\LitigationGame\Modules\BargainingModules\FairBargainingModule\FairBargainingReport.xml" />
-    <Content Include="Games\LitigationGame\Modules\BargainingModules\NoBargainingBargainingModule\NoBargainingBargainingInputs.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Modules\BargainingModules\NoBargainingBargainingModule\NoBargainingBargainingModule.xml" />
-    <Content Include="Games\LitigationGame\Modules\BargainingModules\NoBargainingBargainingModule\NoBargainingBargainingReport.xml" />
-    <Content Include="Games\LitigationGame\Modules\BargainingModules\OfferThresholdBargainingModule\OfferThresholdBargainingInputs.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Modules\BargainingModules\OfferThresholdBargainingModule\OfferThresholdBargainingModule.xml" />
-    <Content Include="Games\LitigationGame\Modules\BargainingModules\OfferThresholdBargainingModule\OfferThresholdBargainingReport.xml" />
-    <Content Include="Games\LitigationGame\Modules\BargainingModules\SimplisticBargainingModule\SimplisticBargainingInputs.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Modules\BargainingModules\SimplisticBargainingModule\SimplisticBargainingModule.xml" />
-    <Content Include="Games\LitigationGame\Modules\BargainingModules\SimplisticBargainingModule\SimplisticBargainingReport.xml" />
-    <Content Include="Games\LitigationGame\Modules\BargainingModules\SimultaneousOfferBargainingModule\SimultaneousOfferBargainingInputs.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Modules\BargainingModules\SimultaneousOfferBargainingModule\SimultaneousOfferBargainingModule.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Modules\BargainingModules\SimultaneousOfferBargainingModule\SimultaneousOfferBargainingReport.xml" />
-    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ContinuousPrecautionDisputeGenerator\ContinuousPrecautionDisputeGeneratorModule.xml" />
-    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ContinuousPrecautionDisputeGenerator\ContinuousPrecautionDisputeGeneratorReport.xml" />
-    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ContinuousPrecautionDisputeGenerator\ContinuousPrecautionDisputeGeneratorInputs.xml" />
-    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\DisputeGeneratorReport.xml" />
-    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ExogenousDisputeGenerator\ExogenousDisputeGeneratorInputsExogenouslySpecifiedProbabilityCorrect.xml" />
-    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ExogenousDisputeGenerator\ExogenousDisputeGeneratorInputsCloseCases.xml" />
-    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ExogenousDisputeGenerator\ExogenousDisputeGeneratorInputs.xml" />
-    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ExogenousDisputeGenerator\ExogenousDisputeGeneratorModule.xml" />
-    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ExogenousDisputeGenerator\ExogenousDisputeGeneratorReport.xml" />
-    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ExogenousDisputeGenerator\ExogenousDisputeGeneratorInputsWeakPCases.xml" />
-    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ForbiddenActDisputeGenerator\ForbiddenActDisputeGeneratorModule.xml" />
-    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ForbiddenActDisputeGenerator\ForbiddenActDisputeGeneratorReport.xml" />
-    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ForbiddenActDisputeGenerator\ForbiddenActInputs.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\ForbiddenActDisputeGenerator\StrongerEvidence.xml" />
-    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\NegligenceDisputeGenerator\NegligenceDisputeGeneratorModule.xml" />
-    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\NegligenceDisputeGenerator\NegligenceInputs.xml" />
-    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\NegligenceDisputeGenerator\NegligenceDisputeGeneratorReport.xml" />
-    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\NegligenceDisputeGenerator\SimpleNegligenceInputs.xml" />
-    <Content Include="Games\LitigationGame\Modules\DisputeGeneratorModules\NegligenceDisputeGenerator\StrictLiabilityInputs.xml" />
-    <Content Include="Games\LitigationGame\Modules\DropOrDefaultModules\DropOrDefaultChoiceModule\DropOrDefaultChoiceInputs.xml" />
-    <Content Include="Games\LitigationGame\Modules\DropOrDefaultModules\DropOrDefaultChoiceModule\DropOrDefaultChoiceModule.xml" />
-    <Content Include="Games\LitigationGame\Modules\DropOrDefaultModules\DropOrDefaultChoiceModule\DropOrDefaultChoiceReport.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Modules\DropOrDefaultModules\DropOrDefaultReport.xml" />
-    <Content Include="Games\LitigationGame\Modules\DropOrDefaultModules\NeverGiveUpModule\NeverGiveUpInputs.xml" />
-    <Content Include="Games\LitigationGame\Modules\DropOrDefaultModules\NeverGiveUpModule\NeverGiveUpModule.xml" />
-    <Content Include="Games\LitigationGame\Modules\DropOrDefaultModules\NeverGiveUpModule\NeverGiveUpReport.xml" />
-    <Content Include="Games\LitigationGame\Modules\DummyModule\DummyModule.xml" />
-    <Content Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostEndogenousEffortModule\LitigationCostEndogenousEffortInputs.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostEndogenousEffortModule\LitigationCostEndogenousEffortModule.xml" />
-    <Content Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostEndogenousEffortModule\LitigationCostEndogenousEffortReport.xml" />
-    <Content Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostReport.xml" />
-    <Content Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostStandardModule\LitigationCostlessStandardInputs.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostStandardModule\LitigationCostlessStandardModule.xml" />
-    <Content Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostStandardModule\LitigationCostStandardInputs.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostStandardModule\LitigationCostStandardModule.xml" />
-    <Content Include="Games\LitigationGame\Modules\LitigationCostModules\LitigationCostStandardModule\LitigationCostStandardReport.xml" />
-    <Content Include="Games\LitigationGame\Modules\TrialModules\TrialPerfectModule\TrialPerfectInputs.xml" />
-    <Content Include="Games\LitigationGame\Modules\TrialModules\TrialPerfectModule\TrialPerfectModule.xml" />
-    <Content Include="Games\LitigationGame\Modules\TrialModules\TrialPerfectModule\TrialPerfectReport.xml" />
-    <Content Include="Games\LitigationGame\Modules\TrialModules\TrialReport.xml" />
-    <Content Include="Games\LitigationGame\Modules\TrialModules\TrialStandardModule\TrialStandardInputs.xml" />
-    <Content Include="Games\LitigationGame\Modules\TrialModules\TrialStandardModule\TrialStandardModule.xml" />
-    <Content Include="Games\LitigationGame\Modules\TrialModules\TrialStandardModule\TrialStandardReport.xml" />
-    <Content Include="Games\LitigationGame\Modules\UtilityCalculation\BothPartiesRiskAverse.xml" />
-    <Content Include="Games\LitigationGame\Modules\UtilityCalculation\BothPartiesLossAverse.xml" />
-    <Content Include="Games\LitigationGame\Modules\UtilityCalculation\BothPartiesRiskNeutral.xml" />
-    <Content Include="Games\LitigationGame\Modules\UtilityCalculation\BothPartiesLogRiskAverse.xml" />
-    <Content Include="Games\LitigationGame\Modules\UtilityCalculation\CARARiskAverseUtilityMaximizer.xml" />
-    <Content Include="Games\LitigationGame\Modules\UtilityCalculation\GeneralRiskAverseUtilityMaximizer.xml" />
-    <Content Include="Games\LitigationGame\Modules\UtilityCalculation\HeterogeneousRiskAversion.xml" />
-    <Content Include="Games\LitigationGame\Modules\UtilityCalculation\LogRiskAverseUtilityMaximizer.xml" />
-    <Content Include="Games\LitigationGame\Modules\UtilityCalculation\LossAverseUtilityMaximizer.xml" />
-    <Content Include="Games\LitigationGame\Modules\UtilityCalculation\PHighRiskAverseDNeutral.xml" />
-    <Content Include="Games\LitigationGame\Modules\UtilityCalculation\PLossAverseDNeutral.xml" />
-    <Content Include="Games\LitigationGame\Modules\UtilityCalculation\PRiskAverseDNeutral.xml" />
-    <Content Include="Games\LitigationGame\Modules\UtilityCalculation\RiskNeutralUtilityMaximizer.xml" />
-    <Content Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\IndependentEstimatesModule\IndependentEstimatesInputs.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\IndependentEstimatesModule\IndependentEstimatesModule.xml" />
-    <Content Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\IndependentEstimatesModule\IndependentEstimatesReport.xml" />
-    <Content Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\PerfectEstimatesModule\PerfectEstimatesInputs.xml" />
-    <Content Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\PerfectEstimatesModule\PerfectEstimatesModule.xml" />
-    <Content Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\PerfectEstimatesModule\PerfectEstimatesReport.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\SeparateEstimatesModule\SeparateEstimatesInputs.xml" />
-    <Content Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\SeparateEstimatesModule\SeparateEstimatesModule.xml" />
-    <Content Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\SeparateEstimatesModule\SeparateEstimatesReport.xml" />
-    <Content Include="Games\LitigationGame\Modules\ValueAndErrorForecastingModules\ValueAndErrorForecastingReport.xml" />
-    <Content Include="Games\LitigationGame\Settings\BasicAsymmetricInfo.xml" />
-    <Content Include="Games\LitigationGame\Settings\BasicRegretAversion.xml" />
-    <Content Include="Games\LitigationGame\Settings\BasicRiskAversion.xml" />
-    <Content Include="Games\LitigationGame\Settings\ChangingLitigationCosts.xml" />
-    <Content Include="Games\LitigationGame\Settings\EndogenousLitigationCosts.xml" />
-    <Content Include="Games\LitigationGame\Settings\LitigationGameCommandsInterimReports.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Settings\LitigationGameCommandsNoReports.xml" />
-    <Content Include="Games\LitigationGame\Settings\LitigationGameCommandsOneReport.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Settings\LitigationGameModuleSelector.xml" />
-    <Content Include="Games\LitigationGame\Settings\LitigationGameDefinitions.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Settings\LitigationGameEvolutionSettings.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Settings\LitigationGameCommands.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Settings\LitigationGameInputs.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Settings\LitigationGameMultipleRepetitions.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Settings\LitigationGameMultipleRunBaselineEssentials.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Settings\LitigationGameMultipleRunBaselineRiskNeutral.xml" />
-    <Content Include="Games\LitigationGame\Settings\LitigationGameMultipleRunBaselineRiskOther.xml" />
-    <Content Include="Games\LitigationGame\Settings\LitigationGameMultipleRunBaselinModRiskAv.xml" />
-    <Content Include="Games\LitigationGame\Settings\LitigationGameMultipleRunSettings.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Settings\LitigationGameMultipleRunSettingsTemp.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Settings\LitigationGameMultipleRunBaseline.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Settings\LitigationGameMultipleRunSettingsTemp2.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Settings\LitigationGameSeveringSettlements.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Settings\LitigationGameSingleRunSettings.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Settings\LitigationGameReport.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Settings\LitigationGameSingleRunSettingsTemp.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Settings\LitigationGameSmoothingOptions.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Settings\LowDamages.xml" />
-    <Content Include="Games\LitigationGame\Settings\RangeUncertaintySettings.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Settings\RangeUncertaintySettingsFast.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Settings\WithEndDrops.xml" />
-    <Content Include="Games\LitigationGame\Settings\NoEndDrops.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Settings\PerfectInformationExample.xml" />
-    <Content Include="Games\LitigationGame\Settings\SavedSettings\AggressivenessBasedOnRiskAversion.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Settings\Temp1.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Settings\Temp2.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\LitigationGame\Settings\Temp3.xml" />
     <Content Include="Games\MyGame\Settings\MyGameCommands.xml" />
     <Content Include="Games\MyGame\Settings\MyGameDefinitions.xml" />
     <Content Include="Games\MyGame\Settings\MyGameInputs.xml" />
@@ -872,11 +561,7 @@
     <Content Include="Reports\SimData.edmx.sql" />
     <Content Include="Scratch.txt" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Games\LitigationGame\Iterations\" />
-    <Folder Include="Games\LitigationGame\Reports\" />
-    <Folder Include="Games\LitigationGame\Strategies\" />
-  </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.0">
       <Visible>False</Visible>
