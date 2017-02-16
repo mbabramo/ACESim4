@@ -3,6 +3,7 @@
 [Oo]bj/
 !encog-core-cs/bin/Debug/encog-core-cs.dll
 !/encog-core-cs/bin/Debug/encog-core-cs.dll
+!ACESim/bin/Debug/*.dll
 
 # mstest test results
 TestResults
