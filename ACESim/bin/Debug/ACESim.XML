@@ -1,0 +1,1080 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>ACESim</name>
+    </assembly>
+    <members>
+        <member name="F:ACESim.ActionGroupRepetition.Tag">
+            <summary>
+            Consecutive items with this tag will be repeated.
+            </summary>
+        </member>
+        <member name="F:ACESim.ActionGroupRepetition.Repetitions">
+            <summary>
+            The number of repetitions for tagged items.
+            </summary>
+        </member>
+        <member name="F:ACESim.ActionGroupRepetition.TagToOmitFirstTime">
+            <summary>
+            An item that also has this tag will not be included in the first repetition.
+            </summary>
+        </member>
+        <member name="F:ACESim.ActionGroupRepetition.TagToOmitLastTime">
+            <summary>
+            An item that also has this tag will not be included in the last repetition.
+            </summary>
+        </member>
+        <member name="T:ACESim.CommandSet">
+            <summary>
+            The top-level container for <c>Command</c>s.  Contains <c>CommandSet</c>s, which in turn contain <c>Command</c>s.
+            </summary>
+        </member>
+        <member name="T:ACESim.Command">
+            <summary>
+            Base class for all commands, which are always contained in multipart commands
+            </summary>
+        </member>
+        <member name="F:ACESim.Command.MultiPartCommand">
+            <summary>
+            The MultiPartCommand in which this Command is contained.
+            </summary>
+        </member>
+        <member name="M:ACESim.Command.Execute(ACESim.SimulationInteraction)">
+            <param name="simulationInteraction"></param>
+        </member>
+        <member name="T:ACESim.EvolveCommand">
+            <summary>
+            A <c>Command</c> containing all the information to perform evolution.
+            </summary>
+        </member>
+        <member name="T:ACESim.MultiPartCommand">
+            <summary>
+            Contains <c>Command</c>s and contained in <c>CommandSet</c>s.
+            </summary>
+        </member>
+        <member name="T:ACESim.Decision">
+            <summary>
+            This provides information on one decision to be made in a simulation.
+            </summary>
+        </member>
+        <member name="F:ACESim.Decision.Name">
+            <summary>
+            The name of the decision (e.g., “Plaintiff settlement decision”).
+            </summary>
+        </member>
+        <member name="F:ACESim.Decision.Abbreviation">
+            <summary>
+            An abbreviation for this name (e.g., “ps”).
+            </summary>
+        </member>
+        <member name="F:ACESim.Decision.DecisionTypeCode">
+            <summary>
+            A game-specific decision type code that can be used to provide information about the type of decision. For example, this can be
+            used to determine whether the CurrentlyEvolvingDecision is of a particular type.
+            </summary>
+        </member>
+        <member name="F:ACESim.Decision.StrategyBounds">
+            <summary>
+            The bounds for the decision.
+            </summary>
+        </member>
+        <member name="F:ACESim.Decision.Bipolar">
+            <summary>
+            True if the decision can only take the value -1 or 1.
+            </summary>
+        </member>
+        <member name="F:ACESim.Decision.HighestIsBest">
+            <summary>
+            Are high scores best for this decision?
+            </summary>
+        </member>
+        <member name="F:ACESim.Decision.RepetitionsAfterFirst">
+            <summary>
+            When this is set to 1 or more, the decision will be copied multiple times into the game definition. 
+            </summary>
+        </member>
+        <member name="F:ACESim.Decision.PreevolvedStrategyFilename">
+            <summary>
+            A file containing a version of the strategy to use before evolution.
+            </summary>
+        </member>
+        <member name="T:ACESim.Game">
+            <summary>
+            This class provides the base methods for playing a game.
+            </summary>
+        </member>
+        <member name="M:ACESim.Game.PrepareForOrMakeCurrentDecision">
+            <summary>
+            This calls either the method that allows preparation for a particular decision or requires execution of that decision.
+            The subclass can either override this method, or it can override PrepareForCurrentDecision and CompleteCurrentDecision,
+            depending on whether the code is best organized by separating the prepartion steps from the execution steps.
+            If game play is completed, then Progress.Complete should be set to true. 
+            </summary>
+        </member>
+        <member name="M:ACESim.Game.MakeCurrentDecision">
+            <summary>
+            This should be handled entirely by the subclass if PrepareForOrMakeCurrentDecision is not overridden.
+            In this method, the subclass makes the decision indicated by CurrentDecisionNumber.
+            </summary>
+        </member>
+        <member name="M:ACESim.Game.PlayUntilComplete(System.Nullable{System.Int32},System.Nullable{System.Int32},System.Boolean)">
+            <summary>
+            Continue to make decisions until the game is complete.
+            </summary>
+        </member>
+        <member name="M:ACESim.Game.PlayUpTo(System.Int32,System.Nullable{System.Int32})">
+            <summary>
+            Repeatedly play the game up to the decision number, calling the Game subclass to prepare for or play each decision.
+            </summary>
+            <param name="decisionNumber"></param>
+        </member>
+        <member name="F:ACESim.GameDefinition.NumPlayers">
+            <summary>
+            The number of players in the game, including chance (if applicable).
+            </summary>
+        </member>
+        <member name="F:ACESim.GameDefinition.ExecutionOrder">
+            <summary>
+            A list of all execution groups, in execution order. Note that a single decision may be included multiple times, but if so, it must be evolved mutliple times
+            </summary>
+        </member>
+        <member name="F:ACESim.GameDefinition.DecisionsExecutionOrder">
+            <summary>
+            In a nonmodular game, the game definition should set these directly. In a modular game, this will be set automatically from the decisions in ExecutionOrder. Either way, each instance in this list represents a separately evolved decision. So, if a decision is repeated in execution, a single Decision object will be included multiple times. The index into this list represents the decision number
+            </summary>
+        </member>
+        <member name="F:ACESim.GameDefinition.ExecutionOrderIndexForEachDecision">
+            <summary>
+            The index into ExecutionOrder for each decision in DecisionPointsExecutionOrder.
+            </summary>
+        </member>
+        <member name="F:ACESim.GameDefinition.ActionPointIndexForEachDecision">
+            <summary>
+            The index into ActionPoints within the ActionGroup indexed by ActionGroupNumberForEachDecision.
+            </summary>
+        </member>
+        <member name="M:ACESim.GameDefinition.GetRangesOfConsecutiveNumbers(System.Collections.Generic.List{System.Int32})">
+            <summary>
+            Given a list of numbers, return all ranges of numbers.
+            E.g., 1, 2, 3, 5, 7, 8 ==> {1, 3}, {5, 5}, {7, 8}
+            </summary>
+            <param name="numbers"></param>
+            <returns></returns>
+        </member>
+        <member name="F:ACESim.GameModule.DecisionsCore">
+            <summary>
+            A list of decisions. This should be set in the game module xml file or in the GenerateSetting method. After this list is created, the module can override the 
+            GroupDecisions method to group the decisions into anything other than a single ActionGroup. It can also override the RelativeOrder function to determine the 
+            relative order of ActionGroups within the module and outside the module, and the ModifyActionGroups function to make further changes, such as repeating sets
+            of execution groups.
+            </summary>
+        </member>
+        <member name="F:ACESim.GameModule.ActionsAtBeginningOfModule">
+            <summary>
+            If any are listed, then the default will be to create a single ActionGroup with these actions listed at the beginning.
+            </summary>
+        </member>
+        <member name="F:ACESim.GameModule.ActionsAtEndOfModule">
+            <summary>
+            If any are listed, then the default will be to create a single ExecutionGroup with these actions listed at the end.
+            </summary>
+        </member>
+        <member name="F:ACESim.GameModule.Tags">
+            <summary>
+            When creating a default action group, these tags will automatically be added
+            </summary>
+        </member>
+        <member name="F:ACESim.GameModule.GameModuleInputs">
+            <summary>
+            Before a game module is executed, its inputs are copied here.
+            </summary>
+        </member>
+        <member name="F:ACESim.GameModule.GameModuleName">
+            <summary>
+            A name can be given to a game module, so that other modules can find it. Often, this will be the name of the superclass.
+            </summary>
+        </member>
+        <member name="F:ACESim.GameModule.ExecutionNumberOfModule">
+            <summary>
+            Modules will be evolved in the order in which they appear. Execution order by default will be the same, with the first module evolving
+            having an ExecutionNumberOfModule == 1, etc. However, a module can specify an alternative execution number here.
+            </summary>
+        </member>
+        <member name="F:ACESim.GameModule.GameModuleNamesThisModuleReliesOn">
+            <summary>
+            If a module needs to access information from other modules, then it can list their names in a comma-delimited string. The GameDefinition will then determine the corresponding game module numbers for the decisions this module relies on, and the relevant game module can then be loaded by calling GetGameModuleThisModuleReliesOn().
+            </summary>
+        </member>
+        <member name="F:ACESim.GameModule.GameModuleNumbersThisModuleReliesOn">
+            <summary>
+            This is a list of indices into the list of game modules for the game, corresponding to the game module names that this module relies on.
+            </summary>
+        </member>
+        <member name="F:ACESim.GameModule.GameModuleSettings">
+            <summary>
+            Settings of a game module that are constant for all iterations can be stored here. Ordinarily, this would be set by GenerateSettings.
+            </summary>
+        </member>
+        <member name="F:ACESim.GameModule.UpdateCumulativeDistributionsBeforeSingleActionGroup">
+            <summary>
+            If this is set, and if the default GroupDecisions is used, then a tag will be set in the only created action group indicating that cumulative distributions should be updated before it.
+            </summary>
+        </member>
+        <member name="F:ACESim.GameModule.UpdateCumulativeDistributionsAfterSingleActionGroup">
+            <summary>
+            If this is set, and if the default GroupDecisions is used, then a tag will be set in the only created action group indicating that cumulative distributions should be updated after it.
+            </summary>
+        </member>
+        <member name="F:ACESim.GameModule.WhenEvolvingMoveCumulativeDistributionsBeforeThisGroupToAfter">
+            <summary>
+            This should be set when when a cumulative distribution must occur after a set of action groups in execution and after that same set in evolution, rather than after just a single
+            action group in execution and evolution. For example, bargaining aggressiveness and bargaining are effectively a package, and so this should be set for the bargaining aggressiveness
+            module. That way, we will have a cumulative distribution that executes after bargaining aggressiveness and bargaining, and is then updated after bargaining and then bargaining aggressiveness
+            are evolved.
+            This will be imprinted on the action groups in the default GroupDecisions by adding a tag with the same name to the action group.
+            </summary>
+        </member>
+        <member name="M:ACESim.GamePlayer.PlayHelper(System.Int32,System.Collections.Generic.List{ACESim.Strategy},System.Boolean,ACESim.GameInputs[],ACESim.IterationID[],System.Collections.Generic.List{ACESim.GameProgress},System.Nullable{System.Int32},System.Nullable{System.Int32})">
+            <summary>
+            For each of the iterations referenced in playChunkInfo, call PlaySetup and then PlayUntilComplete 
+            method. Note that in calling PlaySetup, the simulationSettings should be set from the 
+            simulationSettings array corresponding to the current iteration number; theStrategies should be set 
+            to strategiesToPlayWith; and the gameProgressInfo should be set either to null or to a clone of the 
+            gameProgressInfo object from preplayedGames. If saveCompletedGames, then the gameProgressInfo 
+            resulting for each iteration should be added to completedGames; that way, after evolution is complete, 
+            the GameProgressInfo objects can be called to generate reports.
+            </summary>
+        </member>
+        <member name="M:ACESim.GameProgress.DeepCopy">
+            <summary>
+            Returns a deep copy
+            </summary>
+            <returns cref="T:ACESim.GameProgress"></returns>
+        </member>
+        <member name="T:ACESim.MyGame">
+            <summary>
+            A dummy Game subclass to show a basic Game implementation.
+            </summary>
+        </member>
+        <member name="M:ACESim.MyGameFactory.InitializeStrategyDevelopment(ACESim.Strategy)">
+            <summary>
+            Perform any general initialization. One might create information that can then be passed on to the game class.
+            </summary>
+        </member>
+        <member name="M:ACESim.MyGameFactory.CreateNewGame">
+            <summary>
+            Creates a new instance of the Game type
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:ACESim.MyGameFactory.CreateNewGameProgress(ACESim.IterationID)">
+            <summary>
+            Returns a new GameProgressInfo. Note that subclasses that keep track of settings over the course 
+            of the game will have subclassed GameProgressInfo and thus must override this method. 
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:ACESim.MyGameFactory.GetSimulationSettingsType">
+            <summary>
+            Returns the type of SimulationSettings subclass corresponding to the type of game returned by GetNewGame()
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:ACESim.MyGameFactory.GetGameDefinitionType">
+            <summary>
+            Returns the type of GameDefinition subclass corresponding to the type of game returned by GetNewGame()
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="F:ACESim.Executor.BaseOutputDirectory">
+            <summary>
+            The directory that contains all output directories, e.g., Strategies, Iterations, Reports, and Settings.
+            These directories will be created if they do not exist.
+            </summary>
+        </member>
+        <member name="M:ACESim.SimulationInteraction.ReportOutputForIteration(ACESim.GameProgressReportable)">
+            <summary>
+            ACESim's Play command should call the following to report one or more outputs from the
+            game. The game class should make sure that we are in "Play" mode rather than Evolve</summary>
+            mode before doing this.
+            <param name="output"></param>
+        </member>
+        <member name="T:ACESim.FilterAnd">
+            <summary>
+            This filter returns true only if all contained filters contain true. This is normally not necessary because
+            this is the default behavior when there are multiple filters for a table cell. However, it may be useful
+            as a subset of FilterOr.
+            </summary>
+            
+        </member>
+        <member name="T:ACESim.SimulationCoordinator">
+            <summary>
+            Manages a List of Populations for one Game, where each Population corresponds to a Decision in the Game.
+            Called by commands to effect simulation, e.g. PlayCommand and EvolveCommand.   Uses DecisionEvolver and
+            GamePlayer as helpers.
+            </summary>
+        </member>
+        <member name="F:ACESim.SimulationCoordinator.SimulationInteraction">
+            <summary>
+            A reference to interact with the simulation host
+            </summary>
+        </member>
+        <member name="M:ACESim.SimulationCoordinator.GetStrategies">
+            <summary>
+            Returns the current best strategy for each decision, eliminating zero terms where possible.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:ACESim.SimulationCoordinator.ExecuteEvolveStep(ACESim.EvolutionSettings,System.Boolean,System.String,System.Int32,System.Int32,System.Boolean,ACESim.ProgressResumptionManager,System.Int32@,System.Boolean@)">
+            <summary>
+            Executes evolve steps for all decisions except those in skip decisions.
+            </summary>
+        </member>
+        <member name="M:ACESim.ChangeSimulationSettingGenerator.#ctor(System.String,System.Double,System.Double,System.Int32,ACESim.SettingType)">
+            <summary>
+            
+            </summary>
+            <param name="originalSimulationSettingName"></param>
+            <param name="startingValue"></param>
+            <param name="increment">If numericSettingType is an integral type, then this must be an integer value.</param>
+            <param name="numValues"></param>
+            <param name="numericSettingType">One of the numeric versionsn of SettingType (SettingType.Int32 or SettingType.Single)</param>
+        </member>
+        <member name="M:ACESim.BetaDistribution.InverseBeta(System.Double,System.Double,System.Double,System.Double,System.Double)">
+            <summary>
+            Returns the inverse of the cumulative beta probability density function.
+            </summary>
+            <param name="p">Probability associated with the beta distribution.</param>
+            <param name="alpha">Parameter of the distribution.</param>
+            <param name="beta">Parameter of the distribution.</param>
+            <param name="fromVal">Optional lower bound to the interval of x.</param>
+            <param name="toVal">Optional upper bound to the interval of x.</param>
+            <returns>Inverse of the cumulative beta probability density function for a given probability</returns>
+        </member>
+        <member name="M:ACESim.SettingsLoader.CountCompleteSettingsSets(System.String)">
+            <summary>
+            Processes a settings file, which may consist of an ACESim element (which in turn may include parentSettingsFiles or direct settings), in which case a single-element CompleteSettings list is returned, or an ACESimMultiple element (which in turn consists only of singleSettingsFile elements), in which case multiple CompleteSettings elements are returned (useful when generating many reports at once).
+            </summary>
+            <param name="settingsPath">The complete path of the file</param>
+            <returns></returns>
+        </member>
+        <member name="M:ACESim.SettingsLoader.ProcessSingleSettingsFileGivenFilePath(System.String,System.Collections.Generic.List{ACESim.FindReplaceVariable})">
+            <summary>
+            Reset all information accumulated, if any, from other single settings files, and sets theCompleteSettings to a new set of CompleteSettings from the file specified.
+            </summary>
+            <param name="settingsPath"></param>
+            <param name="findReplaceVariables"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ACESim.SettingsLoader.ProcessSettings(System.Xml.Linq.XElement,ACESim.SettingsSet,System.Collections.Generic.Dictionary{System.String,System.Double},ACESim.CodeBasedSettingGeneratorFactory)">
+            <summary>
+            Adds a Setting subclass to existingSet for each subelement of settingsElement that is a "setting" element
+            </summary>
+            <param name="settingsElement"></param>
+            <param name="existingSet"></param>
+        </member>
+        <member name="M:ACESim.SettingsLoader.ProcessSetting(System.Xml.Linq.XElement,System.Collections.Generic.Dictionary{System.String,System.Double},ACESim.CodeBasedSettingGeneratorFactory)">
+            <summary>
+            Returns a Setting subclass populated with the information in settingElement
+            </summary>
+            <param name="settingElement"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ACESim.SettingCalc.#cctor">
+            <summary>
+            Initialize OperatorStringsToOperators
+            </summary>
+        </member>
+        <member name="T:ACESim.StrategyBounds">
+            <summary>
+            </summary>
+        </member>
+        <member name="T:ACESim.StrategyStateSerialization">
+            <summary>
+            This class can be used to serialize the state of everything based on a strategy at a particular step in the simulation. We can then later DevelopStrategy again, without going through loading of all the evolution steps.
+            </summary>
+        </member>
+        <member name="T:ACESim.StrategySerialization">
+            <summary>
+            This class serializes the strategies only. It does not remember the state of anything else (e.g., the game player), so if these strategies are to be used again,
+            we must rerun the entire ACESim program with the same settings files.
+            </summary>
+        </member>
+        <member name="M:ACESim.Util.CombinationMaker.CalculateCombinations(System.Int32,System.Int32,System.Boolean)">
+            <summary>
+            A front-end to CalculateCombinations
+            </summary>
+        </member>
+        <member name="M:ACESim.Util.CombinationMaker.CalculateCombinationsBackend(System.Int32,System.Int32,System.Int32,System.Collections.Generic.List{System.Int32},System.Collections.Generic.List{System.Collections.Generic.List{System.Int32}},System.Boolean)">
+            <summary>
+            Recursively calculates all the possible lists of 'numPerCombo' number of integers the absolute sum of which is less than or equal to maxComboSum.
+            </summary>
+            <param name="maxComboSum"></param>
+            <param name="numPerCombo"></param>
+            <param name="comboSum">The current absolute sum of the integers in 'currentCombo'.</param>
+            <param name="currentCombo">The current combination being tested.  Each recursion has a unique version of this.</param>
+            <param name="combinations">A running collection of all acceptable combinations.  Passed to each recursion so that if a combination is acceptable and finished, the method adds the combination to this object</param>
+        </member>
+        <member name="T:ACESim.Util.MapDelegate`1">
+            <summary>
+            A delegate to use with IList.Map.
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="input"></param>
+            <returns></returns>
+        </member>
+        <member name="T:ACESim.Util.RangeFinder.SearchStage">
+            <summary>
+            The current mode of an exponential search process.
+            </summary>
+        </member>
+        <member name="F:ACESim.Util.RangeFinder.SearchStage.Growth">
+            <summary>
+            The search is in the growth stage, where the current guess increases in magnitude from some reference value
+            (default 0.0) in either a negative or positive direction, depending on the context.
+            </summary>
+        </member>
+        <member name="F:ACESim.Util.RangeFinder.SearchStage.InwardShrink">
+            <summary>
+            The search has passed the target value and is now shrinking towards the reference value, but within
+            the boundaries established by previous growth or shrinkage.  The search should update the boundaries based upon 
+            the new guess.
+            </summary>
+        </member>
+        <member name="F:ACESim.Util.RangeFinder.SearchStage.OutwardShrink">
+            <summary>
+            The search has passed the target value and is now shrinking away from the reference value, but within
+            the boundaries established by previous growth or shrinkage.  The search should update the boundaries based upon 
+            the new guess.
+            </summary>
+        </member>
+        <member name="M:ACESim.Util.RangeFinder.UncertaintySearch(System.Double,System.Double,System.Double,System.Double,ACESim.Util.RangeFinder.Score)">
+            <summary>
+            Returns value (theValue) of the greatest magnitude that satisfies callback(theValue) >= minimumRequiredResult.
+            Performs an initial exponential growth to discover the first value that does not satisfy the constraint, and then performs
+            binary search between the last guess known to work and the guess that didn't work to find the value (to within requiredUncertainty.)
+            </summary>
+            <param name="initialGuess">A guess for the value; must satisfy the constraint (callback(guess) >= minimumRequiredResult.</param>
+            <param name="center"></param>
+            <param name="exponentialFactor">The number by which to multiply the current guess during exponential growth.  Larger values will more quickly
+            reach binary search stage, but will have a larger binary search space.</param>
+            <param name="requiredUncertainty">The precision to which to perform the binary search.</param>
+            <param name="proportionOfProportionInBounds">A callback that gets the current guess and returns the proportion of 
+            calculations that were in bounds to the required proportion of calculations in bounds (so if the proportion of calculations in bounds
+            was 0.8 and the required proportion in bounds was 0.8, would return 0.8/0.8 = 1.0.  Range: [0.0, 1.0 / requiredProportionInBouns]</param>
+            <returns></returns>
+        </member>
+        <member name="M:ACESim.LotteryProbabilities.GetProbabilityOfBeingUltimateWinner_DependentProbabilities(System.Double[])">
+            <summary>
+            If various people have some chance of achieving a result, and we know that if someone achieves a result then anyone with a higher probability also achieves the result, and there is just one winner randomly selected if the result is achieved, what is the probability of achieving the result and being selected the winner?
+            </summary>
+            <param name="dependentProbabilities"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ACESim.LotteryProbabilities.GetProbabilityOfBeingUltimateWinner_IndependentProbabilities(System.Double[])">
+            <summary>
+            If we have a set of independent probabilities of achieving a result, but only one winner is selected in the event multiple people achieve the result, then what is the probability that each achieves the result and is selected winner?
+            </summary>
+            <param name="independentProbabilities"></param>
+            <returns></returns>
+        </member>
+        <member name="T:ACESim.ObjectCopier">
+            <summary>
+            http://stackoverflow.com/questions/78536/cloning-objects-in-c
+            Reference Article http://www.codeproject.com/KB/tips/SerializedObjectCloner.aspx 
+             
+            Provides a method for performing a deep copy of an object. 
+            Binary Serialization is used to perform the copy. 
+            </summary> 
+        </member>
+        <member name="M:ACESim.ObjectCopier.Clone``1(``0)">
+            <summary> 
+            Perform a deep Copy of the object. 
+            </summary> 
+            <typeparam name="T">The type of object being copied.</typeparam> 
+            <param name="source">The object instance to copy.</param> 
+            <returns>The copied object.</returns> 
+        </member>
+        <member name="M:ACESim.RandomGenerator.Next">
+            <summary>
+            Returns a non-negative random number.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:ACESim.RandomGenerator.Next(System.Int32)">
+            <summary>
+            Returns a non-negative random number less than the specified maximum.
+            </summary>
+            <param name="maxValue"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ACESim.RandomGenerator.NextIntegerExclusiveOfSecondValue(System.Int32,System.Int32)">
+            <summary>
+            Returns a random number within a specified range. Note that the number returned is always less than the second value.
+            </summary>
+            <param name="minValue"></param>
+            <param name="maxValue"></param>
+            <returns></returns>
+        </member>
+        <member name="M:ACESim.RandomGenerator.NextDouble">
+            <summary>
+            Returns a random number between 0.0 and 1.0.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:ACESim.RandomGenerator.NextDouble(System.Double,System.Double)">
+            <summary>
+            Returns a random number within a specified range.
+            </summary>
+            <param name="low"></param>
+            <param name="high"></param>
+            <returns></returns>
+        </member>
+        <member name="T:ACESim.Properties.Resources">
+            <summary>
+              A strongly-typed resource class, for looking up localized strings, etc.
+            </summary>
+        </member>
+        <member name="P:ACESim.Properties.Resources.ResourceManager">
+            <summary>
+              Returns the cached ResourceManager instance used by this class.
+            </summary>
+        </member>
+        <member name="P:ACESim.Properties.Resources.Culture">
+            <summary>
+              Overrides the current thread's CurrentUICulture property for all
+              resource lookups using this strongly typed resource class.
+            </summary>
+        </member>
+        <member name="P:ACESim.Properties.Resources.String1">
+            <summary>
+              Looks up a localized string similar to test2.
+            </summary>
+        </member>
+        <member name="T:Microsoft.Samples.EntityDataReader.EntityDataReader`1">
+            <summary>
+            The EntityDataReader wraps a collection of CLR objects in a DbDataReader.  
+            Only "scalar" properties are projected, with the exception that Entity Framework
+            EntityObjects that have references to other EntityObjects will have key values for
+            the related entity projected.
+            
+            This is useful for doing high-speed data loads with SqlBulkCopy, and copying collections
+            of entities ot a DataTable for use with SQL Server Table-Valued parameters, or for interop
+            with older ADO.NET applciations.
+            
+            For explicit control over the fields projected by the DataReader, just wrap your collection
+            of entities in a anonymous type projection before wrapping it in an EntityDataReader.
+            
+            Instead of 
+            IEnumerable<Order/> orders;
+            ...
+            IDataReader dr = orders.AsDataReader();
+            
+            do
+            IEnumerable<Order/> orders;
+            ...
+            var q = from o in orders
+                    select new 
+                    {
+                       ID=o.ID,
+                       ShipDate=o.ShipDate,
+                       ProductName=o.Product.Name,
+                       ...
+                    }
+            IDataReader dr = q.AsDataReader();
+            
+            </summary>
+            <typeparam name="T"></typeparam>
+        </member>
+        <member name="M:Microsoft.Samples.EntityDataReader.EntityDataReader`1.Attribute.MakePropertyAccessor``2(System.Reflection.PropertyInfo)">
+            <summary>
+            Uses Lamda expressions to create a Func that invokes the given property getter.
+            The property value will be extracted and cast to type TProperty
+            </summary>
+            <typeparam name="TObject">The type of the object declaring the property.</typeparam>
+            <typeparam name="TProperty">The type to cast the property value to</typeparam>
+            <param name="pi">PropertyInfo pointing to the property to wrap</param>
+            <returns></returns>
+        </member>
+        <member name="P:Microsoft.Samples.EntityDataReader.EntityDataReaderOptions.ExposeNullableTypes">
+            <summary>
+            If true nullable value types are returned directly by the DataReader.
+            If false, the DataReader will expose non-nullable value types and return DbNull.Value
+            for null values.  
+            When loading a DataTable this option must be set to True, since DataTable does not support
+            nullable types.
+            </summary>
+        </member>
+        <member name="P:Microsoft.Samples.EntityDataReader.EntityDataReaderOptions.FlattenRelatedObjects">
+            <summary>
+            If True then the DataReader will project scalar properties from related objects in addition
+            to scalar properties from the main object.  This is especially useful for custom projecttions like
+                    var q = from od in db.SalesOrderDetail
+                    select new
+                    {
+                      od,
+                      ProductID=od.Product.ProductID,
+                      ProductName=od.Product.Name
+                    };
+            Related objects assignable to EntityKey, EntityRelation, and IEnumerable are excluded.
+            
+            If False, then only scalar properties from teh main object will be projected.         
+            </summary>
+        </member>
+        <member name="P:Microsoft.Samples.EntityDataReader.EntityDataReaderOptions.PrefixRelatedObjectColumns">
+            <summary>
+            If True columns projected from related objects will have column names prefixed by the
+            name of the relating property.  This appies to either from setting FlattenRelatedObjects to True,
+            or RecreateForeignKeysForEntityFrameworkEntities to True.
+            
+            If False columns will be created for related properties that are not prefixed.  This can lead
+            to column name collision.
+            </summary>
+        </member>
+        <member name="P:Microsoft.Samples.EntityDataReader.EntityDataReaderOptions.RecreateForeignKeysForEntityFrameworkEntities">
+            <summary>
+            If True the DataReader will create columns for the key properties of related Entities.
+            You must pass an ObjectContext and have retrieved the entity with change tracking for this to work.
+            </summary>
+        </member>
+        <member name="M:Microsoft.Samples.EntityDataReader.EntityDataReaderExtensions.AsDataReader``1(System.Collections.Generic.IEnumerable{``0})">
+            <summary>
+            Wraps the IEnumerable in a DbDataReader, having one column for each "scalar" property of the type T.  
+            The collection will be enumerated as the client calls IDataReader.Read().
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="collection"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Microsoft.Samples.EntityDataReader.EntityDataReaderExtensions.AsDataReader``1(System.Collections.Generic.IEnumerable{``0},System.Boolean,System.Boolean)">
+            <summary>
+            Wraps the IEnumerable in a DbDataReader, having one column for each "scalar" property of the type T.  
+            The collection will be enumerated as the client calls IDataReader.Read().
+            </summary>
+            <typeparam name="T"></typeparam>
+            <param name="collection"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Microsoft.Samples.EntityDataReader.EntityDataReaderExtensions.ToDataTable``1(System.Collections.Generic.IEnumerable{``0})">
+            <summary>
+            Enumerates the collection and copies the data into a DataTable.
+            </summary>
+            <typeparam name="T">The element type of the collection.</typeparam>
+            <param name="collection">The collection to copy to a DataTable</param>
+            <returns>A DataTable containing the scalar projection of the collection.</returns>
+        </member>
+        <member name="M:Microsoft.Samples.EntityDataReader.EntityDataReaderExtensions.AsDataReader``1(System.Collections.Generic.IEnumerable{``0},System.Data.Objects.ObjectContext)">
+            <summary>
+            Wraps the collection in a DataReader, but also includes columns for the key attributes of related Entities.
+            </summary>
+            <typeparam name="T">The element type of the collection.</typeparam>
+            <param name="collection">A collection to wrap in a DataReader</param>
+            <returns>A DbDataReader wrapping the collection.</returns>
+        </member>
+        <member name="M:Microsoft.Samples.EntityDataReader.EntityDataReaderExtensions.AsDataReader``1(System.Collections.Generic.IEnumerable{``0},System.Data.Objects.ObjectContext,System.Boolean,System.Boolean)">
+            <summary>
+            Wraps the collection in a DataReader, but also includes columns for the key attributes of related Entities.
+            </summary>
+            <typeparam name="T">The element type of the collectin.</typeparam>
+            <param name="collection">A collection to wrap in a DataReader</param>
+            <param name="detachObjects">Option to detach each object in the collection from the ObjectContext.  This can reduce memory usage for queries returning large numbers of objects.</param>
+            <param name="prefixRelatedObjectColumns">If True, qualify the related object keys, if False don't</param>
+            <returns>A DbDataReader wrapping the collection.</returns>
+        </member>
+        <member name="M:Microsoft.Samples.EntityDataReader.EntityDataReaderExtensions.ToDataTable``1(System.Collections.Generic.IEnumerable{``0},System.Data.Objects.ObjectContext)">
+            <summary>
+            Enumerates the collection and copies the data into a DataTable, but also includes columns for the key attributes of related Entities.
+            </summary>
+            <typeparam name="T">The element type of the collection.</typeparam>
+            <param name="collection">The collection to copy to a DataTable</param>
+            <returns>A DataTable containing the scalar projection of the collection.</returns>
+        </member>
+        <member name="T:LimitedConcurrencyLevelTaskScheduler">
+            <summary> 
+            Provides a task scheduler that ensures a maximum concurrency level while 
+            running on top of the ThreadPool. 
+            </summary> 
+        </member>
+        <member name="F:LimitedConcurrencyLevelTaskScheduler._currentThreadIsProcessingItems">
+            <summary>Whether the current thread is processing work items.</summary>
+        </member>
+        <member name="F:LimitedConcurrencyLevelTaskScheduler._tasks">
+            <summary>The list of tasks to be executed.</summary> 
+        </member>
+        <member name="F:LimitedConcurrencyLevelTaskScheduler._maxDegreeOfParallelism">
+            <summary>The maximum concurrency level allowed by this scheduler.</summary> 
+        </member>
+        <member name="F:LimitedConcurrencyLevelTaskScheduler._delegatesQueuedOrRunning">
+            <summary>Whether the scheduler is currently processing work items.</summary> 
+        </member>
+        <member name="M:LimitedConcurrencyLevelTaskScheduler.#ctor(System.Int32)">
+            <summary> 
+            Initializes an instance of the LimitedConcurrencyLevelTaskScheduler class with the 
+            specified degree of parallelism. 
+            </summary> 
+            <param name="maxDegreeOfParallelism">The maximum degree of parallelism provided by this scheduler.</param>
+        </member>
+        <member name="M:LimitedConcurrencyLevelTaskScheduler.QueueTask(System.Threading.Tasks.Task)">
+            <summary>Queues a task to the scheduler.</summary> 
+            <param name="task">The task to be queued.</param>
+        </member>
+        <member name="M:LimitedConcurrencyLevelTaskScheduler.NotifyThreadPoolOfPendingWork">
+            <summary> 
+            Informs the ThreadPool that there's work to be executed for this scheduler. 
+            </summary> 
+        </member>
+        <member name="M:LimitedConcurrencyLevelTaskScheduler.TryExecuteTaskInline(System.Threading.Tasks.Task,System.Boolean)">
+            <summary>Attempts to execute the specified task on the current thread.</summary> 
+            <param name="task">The task to be executed.</param>
+            <param name="taskWasPreviouslyQueued"></param>
+            <returns>Whether the task could be executed on the current thread.</returns> 
+        </member>
+        <member name="M:LimitedConcurrencyLevelTaskScheduler.TryDequeue(System.Threading.Tasks.Task)">
+            <summary>Attempts to remove a previously scheduled task from the scheduler.</summary> 
+            <param name="task">The task to be removed.</param>
+            <returns>Whether the task could be found and removed.</returns> 
+        </member>
+        <member name="P:LimitedConcurrencyLevelTaskScheduler.MaximumConcurrencyLevel">
+            <summary>Gets the maximum concurrency level supported by this scheduler.</summary> 
+        </member>
+        <member name="M:LimitedConcurrencyLevelTaskScheduler.GetScheduledTasks">
+            <summary>Gets an enumerable of the tasks currently scheduled on this scheduler.</summary> 
+            <returns>An enumerable of the tasks currently scheduled.</returns> 
+        </member>
+        <member name="T:MD5HashGenerator">
+            <summary>
+            This class takes an object, and generates a key to it. There are several possibilities:
+            This generator can generate keys of type integer,float,double. The generated key is not necessarly
+            unique!
+            </summary>
+        </member>
+        <member name="M:MD5HashGenerator.GenerateKey(System.Object)">
+            <summary>
+            Generates a hashed - key for an instance of a class.
+            The hash is a classic MD5 hash (e.g. BF20EB8D2C4901112179BF5D242D996B). So you can distinguish different 
+            instances of a class. Because the object is hashed on the internal state, you can also hash it, then send it to
+            someone in a serialized way. Your client can then deserialize it and check if it is in
+            the same state.
+            The method just just estimates that the object implements the ISerializable interface. What's
+            needed to save the state or so, is up to the implementer of the interface.
+            <b>The method is thread-safe!</b>
+            </summary>
+            <param name="sourceObject">The object you'd like to have a key out of it.</param>
+            <returns>An string representing a MD5 Hashkey corresponding to the object or null if the object couldn't be serialized.</returns>
+            <exception cref="T:System.ApplicationException">Will be thrown if the key cannot be generated.</exception>
+        </member>
+        <member name="M:MD5HashGenerator.ObjectToByteArray(System.Object)">
+            <summary>
+            Converts an object to an array of bytes. This array is used to hash the object.
+            </summary>
+            <param name="objectToSerialize">Just an object</param>
+            <returns>A byte - array representation of the object.</returns>
+            <exception cref="T:System.Runtime.Serialization.SerializationException">Is thrown if something went wrong during serialization.</exception>
+        </member>
+        <member name="M:MD5HashGenerator.ComputeHash(System.Byte[])">
+            <summary>
+            Generates the hashcode of an given byte-array. The byte-array can be an object. Then the
+            method "hashes" this object. The hash can then be used e.g. to identify the object.
+            </summary>
+            <param name="objectAsBytes">bytearray representation of an object.</param>
+            <returns>The MD5 hash of the object as a string or null if it couldn't be generated.</returns>
+        </member>
+        <member name="T:MSDN.Memory.ObjectPool">
+            <summary>
+            Class to support object pooling of reference types
+            </summary>
+        </member>
+        <member name="T:MSDN.Memory.ObjectPool.CreateObject">
+            <summary>
+            Represents a method the creates a new object of type t.
+            </summary>
+        </member>
+        <member name="T:MSDN.Memory.ObjectPool.UseObject">
+            <summary>
+            Represents a method that uses a given object from the pool.
+            </summary>
+        </member>
+        <member name="M:MSDN.Memory.ObjectPool.GetInstance">
+            <summary>
+            Retrieves the shared ObjectPool instance.
+            </summary>
+            <returns>the shared ObjectPool instance</returns>
+        </member>
+        <member name="M:MSDN.Memory.ObjectPool.UnregisterType(System.Type)">
+            <summary>
+            Terminate pooling for the given type
+            </summary>
+            <param name="t">pooled type</param>
+        </member>
+        <member name="M:MSDN.Memory.ObjectPool.GetObject(System.Type)">
+            <summary>
+            Get an object of the given type from the object pool
+            </summary>
+            <param name="t">type to retrieve from the pool</param>
+            <returns>object of the given type</returns>
+            <remarks>
+            Note that this returns an object from the pool, or creates a new object
+            for the pool, if possible.  If the maximum number of objects have been
+            created, then this method waits for one to become available.
+            </remarks>
+            <exception cref="T:MSDN.Memory.ObjectPoolException">A creation timeout occurred.</exception>
+        </member>
+        <member name="M:MSDN.Memory.ObjectPool.ExecuteFromPool(MSDN.Memory.ObjectPool.UseObject,System.Type,System.Object[])">
+            <summary>
+            Execute a method using an object of the requested type from the object pool.
+            </summary>
+            <param name="executeDelegate">delegate to invoke with object from pool</param>
+            <param name="t">desired type of object from pool</param>
+            <param name="args">argument to supply to delegate</param>
+            <remarks>
+            This method ensures that an object is always returned to the pool
+            after it is used, even if an exception occurs.  This alleviates the
+            programmer from having to call ReleaseObject() to return the object
+            to the pool.
+            </remarks>
+        </member>
+        <member name="M:MSDN.Memory.ObjectPool.GetObjectData(System.Type)">
+            <summary>
+            Gets the ObjectData for the given type
+            </summary>
+            <param name="t">pooled type</param>
+            <returns>ObjectData associated with given type</returns>
+        </member>
+        <member name="M:MSDN.Memory.ObjectPool.AllocateObject(MSDN.Memory.ObjectPool.ObjectData)">
+            <summary>
+            Creates a new object of the indicated type
+            </summary>
+            <param name="data">object pool data for desired type</param>
+            <returns>an object of the associated type</returns>
+        </member>
+        <member name="M:MSDN.Memory.ObjectPool.RetrieveFromPool(MSDN.Memory.ObjectPool.ObjectData)">
+            <summary>
+            Retreives an object of the indicated type
+            </summary>
+            <param name="data">object pool data for desired type</param>
+            <returns>an object of the associated type</returns>
+            <exception cref="T:MSDN.Memory.ObjectPoolException">A creation timeout occurred.</exception>
+        </member>
+        <member name="M:MSDN.Memory.ObjectPool.DequeueFromPool(MSDN.Memory.ObjectPool.ObjectData)">
+            <summary>
+            Dequeue an object from the pool.
+            </summary>
+            <param name="data"></param>
+            <returns>The first available object in the queue, or null if none is available.</returns>
+            <remarks>
+            This method assumes that the Monitor lock is held.
+            </remarks>
+        </member>
+        <member name="M:MSDN.Memory.ObjectPool.ReturnToPool(System.Object,MSDN.Memory.ObjectPool.ObjectData)">
+            <summary>
+            Returns the given object to the object pool
+            </summary>
+            <param name="obj">object to return to the pool</param>
+            <param name="data">object data asosciated with object's type</param>
+            <remarks>
+            This method queues the object into the pool.  If the minimum number
+            of objects are not available, then a reference to the object is
+            enqueued to ensure the object remains available.  If the minimum
+            number of objects are already available, then only a weak reference
+            to the object is enqueued.  This permits the garbage collector to
+            reclaim this memory so that the pool will eventually return to
+            the minimum size.  In a busy system, however, the object can be
+            reclaimed from the weak reference.
+            
+            Note that the data.inPool value only tracks strong reference in
+            the pool, so we can track the actual number of real objects.
+            </remarks>
+        </member>
+        <member name="M:SeparateAppDomain.ProcessInSeparateAppDomain.ExecuteTask(System.Object,System.String,System.Int32,System.Int32,System.Func{System.Object,System.Int32,System.Boolean},System.Boolean)">
+            <summary>
+            This function executes the specified task on the available processors, at least minimumRepetitions times, until the task is found complete.
+            </summary>
+            <param name="serializableInputObject">A binary serialization of the object to be passed to the task via the AppDomain's data in the Input object</param>
+            <param name="fullyQualifiedTaskName">The name of the task to perform</param>
+            <param name="minimumRepetitions">The minimum number of times that are anticipated to be necessary to complete the task; note that the completedTaskProcessor may still find the task to be complete on a lower number of repetitions</param>
+            <param name="completedTaskProcessor">This accepts the output data and task index and returns whether the task is complete</param>
+        </member>
+        <member name="T:PriorityQueue.PriorityQueue`2">
+            <summary>
+            Priority queue based on binary heap,
+            Elements with minimum priority dequeued first
+            </summary>
+            <typeparam name="TPriority">Type of priorities</typeparam>
+            <typeparam name="TValue">Type of values</typeparam>
+        </member>
+        <member name="M:PriorityQueue.PriorityQueue`2.#ctor">
+            <summary>
+            Initializes a new instance of priority queue with default initial capacity and default priority comparer
+            </summary>
+        </member>
+        <member name="M:PriorityQueue.PriorityQueue`2.#ctor(System.Int32,System.Int32)">
+            <summary>
+            Initializes a new instance of priority queue with specified initial capacity and default priority comparer
+            </summary>
+        </member>
+        <member name="M:PriorityQueue.PriorityQueue`2.#ctor(System.Int32,System.Int32,System.Collections.Generic.IComparer{`0})">
+            <summary>
+            Initializes a new instance of priority queue with specified initial capacity and specified priority comparer
+            </summary>
+        </member>
+        <member name="M:PriorityQueue.PriorityQueue`2.#ctor(System.Collections.Generic.IComparer{`0})">
+            <summary>
+            Initializes a new instance of priority queue with default initial capacity and specified priority comparer
+            </summary>
+            <param name="comparer">priority comparer</param>
+        </member>
+        <member name="M:PriorityQueue.PriorityQueue`2.#ctor(System.Collections.Generic.IEnumerable{System.Collections.Generic.KeyValuePair{`0,`1}})">
+            <summary>
+            Initializes a new instance of priority queue with specified data and default priority comparer
+            </summary>
+            <param name="data">data to be inserted into priority queue</param>
+        </member>
+        <member name="M:PriorityQueue.PriorityQueue`2.#ctor(System.Collections.Generic.IEnumerable{System.Collections.Generic.KeyValuePair{`0,`1}},System.Collections.Generic.IComparer{`0})">
+            <summary>
+            Initializes a new instance of priority queue with specified data and specified priority comparer
+            </summary>
+            <param name="data">data to be inserted into priority queue</param>
+            <param name="comparer">priority comparer</param>
+        </member>
+        <member name="M:PriorityQueue.PriorityQueue`2.MergeQueues(PriorityQueue.PriorityQueue{`0,`1},PriorityQueue.PriorityQueue{`0,`1})">
+            <summary>
+            Merges two priority queues
+            </summary>
+            <param name="pq1">first priority queue</param>
+            <param name="pq2">second priority queue</param>
+            <returns>resultant priority queue</returns>
+            <remarks>
+            source priority queues must have equal comparers,
+            otherwise <see cref="T:System.InvalidOperationException"/> will be thrown
+            </remarks>
+        </member>
+        <member name="M:PriorityQueue.PriorityQueue`2.MergeQueues(PriorityQueue.PriorityQueue{`0,`1},PriorityQueue.PriorityQueue{`0,`1},System.Collections.Generic.IComparer{`0})">
+            <summary>
+            Merges two priority queues and sets specified comparer for resultant priority queue
+            </summary>
+            <param name="pq1">first priority queue</param>
+            <param name="pq2">second priority queue</param>
+            <param name="comparer">comparer for resultant priority queue</param>
+            <returns>resultant priority queue</returns>
+        </member>
+        <member name="M:PriorityQueue.PriorityQueue`2.Enqueue(`0,`1,System.Boolean@)">
+            <summary>
+            Enqueues element into priority queue. Returns the lowest priority item if the queue is full.
+            If the queue is not full, it returns the default value and sets full to false.
+            </summary>
+            <param name="priority">element priority</param>
+            <param name="value">element value</param>
+        </member>
+        <member name="M:PriorityQueue.PriorityQueue`2.Dequeue">
+            <summary>
+            Dequeues element with minimum priority and return its priority and value as <see cref="T:System.Collections.Generic.KeyValuePair`2"/> 
+            </summary>
+            <returns>priority and value of the dequeued element</returns>
+            <remarks>
+            Method throws <see cref="T:System.InvalidOperationException"/> if priority queue is empty
+            </remarks>
+        </member>
+        <member name="M:PriorityQueue.PriorityQueue`2.DequeueValue">
+            <summary>
+            Dequeues element with minimum priority and return its value
+            </summary>
+            <returns>value of the dequeued element</returns>
+            <remarks>
+            Method throws <see cref="T:System.InvalidOperationException"/> if priority queue is empty
+            </remarks>
+        </member>
+        <member name="M:PriorityQueue.PriorityQueue`2.Peek">
+            <summary>
+            Returns priority and value of the element with minimun priority, without removing it from the queue
+            </summary>
+            <returns>priority and value of the element with minimum priority</returns>
+            <remarks>
+            Method throws <see cref="T:System.InvalidOperationException"/> if priority queue is empty
+            </remarks>
+        </member>
+        <member name="M:PriorityQueue.PriorityQueue`2.PeekValue">
+            <summary>
+            Returns value of the element with minimun priority, without removing it from the queue
+            </summary>
+            <returns>value of the element with minimum priority</returns>
+            <remarks>
+            Method throws <see cref="T:System.InvalidOperationException"/> if priority queue is empty
+            </remarks>
+        </member>
+        <member name="P:PriorityQueue.PriorityQueue`2.IsEmpty">
+            <summary>
+            Gets whether priority queue is empty
+            </summary>
+        </member>
+        <member name="M:PriorityQueue.PriorityQueue`2.Add(System.Collections.Generic.KeyValuePair{`0,`1})">
+            <summary>
+            Enqueus element into priority queue
+            </summary>
+            <param name="item">element to add</param>
+        </member>
+        <member name="M:PriorityQueue.PriorityQueue`2.Clear">
+            <summary>
+            Clears the collection
+            </summary>
+        </member>
+        <member name="M:PriorityQueue.PriorityQueue`2.Contains(System.Collections.Generic.KeyValuePair{`0,`1})">
+            <summary>
+            Determines whether the priority queue contains a specific element
+            </summary>
+            <param name="item">The object to locate in the priority queue</param>
+            <returns><c>true</c> if item is found in the priority queue; otherwise, <c>false.</c> </returns>
+        </member>
+        <member name="P:PriorityQueue.PriorityQueue`2.Count">
+            <summary>
+            Gets number of elements in the priority queue
+            </summary>
+        </member>
+        <member name="M:PriorityQueue.PriorityQueue`2.CopyTo(System.Collections.Generic.KeyValuePair{`0,`1}[],System.Int32)">
+            <summary>
+            Copies the elements of the priority queue to an Array, starting at a particular Array index. 
+            </summary>
+            <param name="array">The one-dimensional Array that is the destination of the elements copied from the priority queue. The Array must have zero-based indexing. </param>
+            <param name="arrayIndex">The zero-based index in array at which copying begins.</param>
+            <remarks>
+            It is not guaranteed that items will be copied in the sorted order.
+            </remarks>
+        </member>
+        <member name="P:PriorityQueue.PriorityQueue`2.IsReadOnly">
+            <summary>
+            Gets a value indicating whether the collection is read-only. 
+            </summary>
+            <remarks>
+            For priority queue this property returns <c>false</c>.
+            </remarks>
+        </member>
+        <member name="M:PriorityQueue.PriorityQueue`2.Remove(System.Collections.Generic.KeyValuePair{`0,`1})">
+            <summary>
+            Removes the first occurrence of a specific object from the priority queue. 
+            </summary>
+            <param name="item">The object to remove from the ICollection. </param>
+            <returns><c>true</c> if item was successfully removed from the priority queue.
+            This method returns false if item is not found in the collection. </returns>
+        </member>
+        <member name="M:PriorityQueue.PriorityQueue`2.GetEnumerator">
+            <summary>
+            Returns an enumerator that iterates through the collection.
+            </summary>
+            <returns>Enumerator</returns>
+            <remarks>
+            Returned enumerator does not iterate elements in sorted order.</remarks>
+        </member>
+        <member name="M:PriorityQueue.PriorityQueue`2.System#Collections#IEnumerable#GetEnumerator">
+            <summary>
+            Returns an enumerator that iterates through the collection.
+            </summary>
+            <returns>Enumerator</returns>
+            <remarks>
+            Returned enumerator does not iterate elements in sorted order.</remarks>
+        </member>
+        <member name="T:ProfileSimple">
+            <summary>
+            Summary description for ProfileSimple
+            </summary>
+        </member>
+    </members>
+</doc>

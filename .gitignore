@@ -4,6 +4,7 @@
 !encog-core-cs/bin/Debug/encog-core-cs.dll
 !/encog-core-cs/bin/Debug/encog-core-cs.dll
 !ACESim/bin/Debug/*.dll
+!ACESimWinForms/bin/Debug/WpfChartUserControl.dll
 
 # mstest test results
 TestResults
