@@ -166,7 +166,6 @@
     <Compile Include="Games\General\ActionGroup.cs" />
     <Compile Include="Games\General\ActionGroupRepetition.cs" />
     <Compile Include="Games\General\IDefaultBehaviorBeforeEvolution.cs" />
-    <Compile Include="Neural\GRNN_Improvements.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Reports\aspnet_Applications.cs">
       <DependentUpon>SimData.tt</DependentUpon>
@@ -244,9 +243,6 @@
     <Compile Include="Executor\IUiInteraction.cs" />
     <Compile Include="Executor\SimulationInteraction.cs" />
     <Compile Include="Commands\ExecuteList.cs" />
-    <Compile Include="Neural\ICalculateScoreForSpecificIteration.cs" />
-    <Compile Include="Neural\NeuralNetworkData.cs" />
-    <Compile Include="Neural\TrainingInfo.cs" />
     <Compile Include="Reports\Column.cs">
       <DependentUpon>SimData.tt</DependentUpon>
     </Compile>
@@ -431,8 +427,6 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Strategies\IStrategyComponent.cs" />
-    <Compile Include="Neural\NeuralNetworkWrapper.cs" />
-    <Compile Include="Neural\NeuralNetworkTesting.cs" />
     <Compile Include="Strategies\Strategy.cs" />
     <Compile Include="Strategies\StrategyBounds.cs" />
     <Compile Include="Strategies\StrategySerialization.cs" />
@@ -490,9 +484,6 @@
     <Compile Include="Util\PriorityQueue.cs" />
     <Compile Include="Util\ProfileSimple.cs" />
     <Compile Include="Util\RandomGenerator.cs" />
-    <Compile Include="Neural\NeuralSimulatedAnnealingGoffe.cs" />
-    <Compile Include="Neural\NeuralSimulatedAnnealingGoffeHelper.cs" />
-    <Compile Include="Neural\SimulatedAnnealingGoffe.cs" />
     <Compile Include="Util\StatCollector.cs" />
     <Compile Include="Util\SummaryStatistics.cs" />
     <Compile Include="Util\Serialization.cs" />
