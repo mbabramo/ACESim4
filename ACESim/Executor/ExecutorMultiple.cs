@@ -43,9 +43,9 @@ namespace ACESim
                 startingSetNumber = ProgressResumptionManager.Info.ExecutorMultipleSetNumber;
                 ACESimWindow.GetCurrentProgressStep().SetSeveralStepsComplete(startingSetNumber, "CompleteSettingsSet");
             }
-            if (AzureSetup.runCompleteSettingsInAzure)
-                RunAllInAzure(settingsLoader, metaReport);
-            else
+            //if (AzureSetup.runCompleteSettingsInAzure)
+            //    RunAllInAzure(settingsLoader, metaReport);
+            //else
                 RunAllSynchronously(settingsLoader, ref lastDateTime, metaReport, ref totalMemory, startingSetNumber);
             ProgressResumptionManager.Info.IsComplete = true;
             ProgressResumptionManager.SaveProgressIfSaving();
@@ -67,27 +67,7 @@ namespace ACESim
         {
             public string CompletedMetaReport;
         }
-
-        private void RunAllInAzure(SettingsLoader settingsLoader, StringBuilder metaReport)
-        {
-            var az = new ProcessInAzureWorkerRole();
-            int numberCompleted = 0;
-            string[] reportsBack = new string[NumberCompleteSettingsSets];
-            az.ExecuteTask(new ExecuteSettingsSetFileName() { SettingFileName = Path.GetFileName(SettingsPath) }, "SettingsSet", NumberCompleteSettingsSets, false, (object r, int setNum) =>
-                {
-                    ExecuteSettingsSetRemotelyResult essrr = (ExecuteSettingsSetRemotelyResult)r;
-                    numberCompleted++;
-                    reportsBack[setNum] = essrr.CompletedMetaReport;
-                    ACESimWindow.GetCurrentProgressStep().SetProportionOfStepComplete(((double)numberCompleted) / ((double)NumberCompleteSettingsSets), false, "CompleteSettingsSet");
-                    return numberCompleted == NumberCompleteSettingsSets;
-                }
-                );
-            foreach (string report in reportsBack)
-                metaReport.Append(report);
-            for (int nc = 0; nc < numberCompleted; nc++)
-                ACESimWindow.GetCurrentProgressStep().SetProportionOfStepComplete(1.0, true, "CompleteSettingsSet");
-        }
-
+        
         // This is called when running a single settings set through the Azure worker role.
         public string RunSingleSettingsSet(int setNumber)
         {

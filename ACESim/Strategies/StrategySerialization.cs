@@ -47,51 +47,6 @@ namespace ACESim
             return theHash;
         }
 
-        public static StrategySerializationInfo SerializeStrategyStateToAzure(Strategy.StrategyState ss, int? decisionNumber, string azureContainer)
-        {
-            int serializedStrategiesCount = ss.SerializedStrategies.Count();
-            List<string> hashCodes = new List<string>();
-            foreach (var stst in ss.SerializedStrategies)
-                hashCodes.Add(stst == null ? null : ComputeHash(stst)); 
-            hashCodes.Add(ComputeHash(ss.SerializedGameFactory));
-            hashCodes.Add(ComputeHash(ss.SerializedGameDefinition));
-            hashCodes.Add(ComputeHash(ss.SerializedSimulationInteraction));
-            hashCodes.Add(ComputeHash(ss.SerializedFastPseudoRandom));
-            StrategySerializationInfo ssi =
-                new StrategySerializationInfo
-                {
-                    NumStrategies = serializedStrategiesCount,
-                    PlayerNumber = decisionNumber,
-                    HashCodes = hashCodes
-                };
-            const int additionalThingsToSerialize = 4;
-            for (int s = 0; s < serializedStrategiesCount + additionalThingsToSerialize; s++)
-            {
-                string blobName = "s" + s.ToString() + (hashCodes == null || hashCodes[s] == null ? "HashNULL" : ("-Hash" + hashCodes[s].ToString() + ".stg2"));
-                try
-                {
-                    if (s < serializedStrategiesCount)
-                    {
-                        if (hashCodes[s] != null)
-                            AzureBlob.UploadSerializableObject(ss.SerializedStrategies[s], azureContainer, blobName, replace: false);
-                    }
-                    else if (s == serializedStrategiesCount)
-                        AzureBlob.UploadSerializableObject(ss.SerializedGameFactory, azureContainer, blobName, replace: false);
-                    else if (s == serializedStrategiesCount + 1)
-                        AzureBlob.UploadSerializableObject(ss.SerializedGameDefinition, azureContainer, blobName, replace: false);
-                    else if (s == serializedStrategiesCount + 2)
-                        AzureBlob.UploadSerializableObject(ss.SerializedSimulationInteraction, azureContainer, blobName, replace: false);
-                    else if (s == serializedStrategiesCount + 3)
-                        AzureBlob.UploadSerializableObject(ss.SerializedFastPseudoRandom, azureContainer, blobName, replace: false);
-                }
-                catch
-                {
-                    throw new Exception("Could not serialize strategy " + s);
-                }
-            }
-            return ssi;
-        }
-
         static IEnumerable<Tuple<string, Strategy>> Flatten(this IDictionary dict)
         {
             foreach (DictionaryEntry kvp in dict)
@@ -105,57 +60,6 @@ namespace ACESim
                 else
                     yield return Tuple.Create(kvp.Key.ToString(), kvp.Value as Strategy);
             }
-        }
-
-        public static Strategy.StrategyState DeserializeStrategyStateFromAzure(string azureContainer, StrategySerializationInfo theInfo, Dictionary<string, Strategy> alreadyDeserializedStrategies, Strategy.StrategyState existingStrategyState)
-        {
-            List<string> itemsToRemove = alreadyDeserializedStrategies.Flatten().Select(x => x.Item1).Where(x => !theInfo.HashCodes.Contains(x)).ToList();
-            foreach (string item in itemsToRemove)
-                alreadyDeserializedStrategies.Remove(item);
-            List<Byte[]> theStrategiesSerialized = new List<Byte[]>();
-            List<Strategy> theStrategiesDeserialized = new List<Strategy>();
-            for (int s = 0; s < theInfo.NumStrategies; s++)
-            {
-                if (theInfo.HashCodes[s] != null && alreadyDeserializedStrategies.ContainsKey(theInfo.HashCodes[s]))
-                {
-                    theStrategiesSerialized.Add(null); // serializing it again would be inefficient
-                    theStrategiesDeserialized.Add(alreadyDeserializedStrategies[theInfo.HashCodes[s]]);
-                }
-                else
-                {
-                    if (theInfo.HashCodes[s] == null)
-                    {
-                        theStrategiesSerialized.Add(null);
-                        theStrategiesDeserialized.Add(null);
-                    }
-                    else
-                    {
-                        string blobName = "s" + s.ToString() + ("-Hash" + theInfo.HashCodes[s].ToString() + ".stg2");
-                        theStrategiesSerialized.Add(AzureBlob.Download(azureContainer, blobName) as Byte[]); // take same strategy from some other time
-                        theStrategiesDeserialized.Add(null);
-                    }
-                }
-            }
-            string blobname1 = "s" + (theInfo.NumStrategies + 0).ToString() + "-Hash" + theInfo.HashCodes[theInfo.NumStrategies].ToString() + ".stg2";
-            string blobname2 = "s" + (theInfo.NumStrategies + 1).ToString() + "-Hash" + theInfo.HashCodes[theInfo.NumStrategies + 1].ToString() + ".stg2";
-            string blobname3 = "s" + (theInfo.NumStrategies + 2).ToString() + "-Hash" + theInfo.HashCodes[theInfo.NumStrategies + 2].ToString() + ".stg2";
-            string blobname4 = "s" + (theInfo.NumStrategies + 3).ToString() + "-Hash" + theInfo.HashCodes[theInfo.NumStrategies + 3].ToString() + ".stg2";
-            if (existingStrategyState != null)
-            {
-                existingStrategyState.SerializedStrategies = theStrategiesSerialized;
-                existingStrategyState.UnserializedStrategies = theStrategiesDeserialized;
-                return existingStrategyState;
-            }
-            Strategy.StrategyState ss = new Strategy.StrategyState
-            {
-                SerializedStrategies = theStrategiesSerialized,
-                UnserializedStrategies = theStrategiesDeserialized,
-                SerializedGameFactory = AzureBlob.Download(azureContainer, blobname1) as Byte[],
-                SerializedGameDefinition = AzureBlob.Download(azureContainer, blobname2) as Byte[],
-                SerializedSimulationInteraction = AzureBlob.Download(azureContainer, blobname3) as Byte[],
-                SerializedFastPseudoRandom = AzureBlob.Download(azureContainer, blobname4) as Byte[]
-            };
-            return ss;
         }
 
         public static void SerializeStrategyStateToFiles(Strategy st, string path, string filenameBase)

@@ -25,7 +25,7 @@ namespace ACESim
 
         public Window()
         {
-            AzureReset.Go(); // should reset now before any worker roles get started
+            //AzureReset.Go(); // should reset now before any worker roles get started
             InitializeComponent();
             RunStatus = RunStatus.Uninitialized;
         }

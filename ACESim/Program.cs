@@ -30,8 +30,8 @@ namespace ACESim
     {
         public static Thread Go(string baseOutputDirectory, string settingsPath, IUiInteraction ui, ProgressResumptionOptions progressResumptionOption)
         {
-            if (progressResumptionOption == ProgressResumptionOptions.ProceedNormallySavingPastProgress || progressResumptionOption == ProgressResumptionOptions.ProceedNormallyWithoutSavingProgress)
-                AzureReset.Go(); // will only reset if resetting is on in AzureSetup
+            //if (progressResumptionOption == ProgressResumptionOptions.ProceedNormallySavingPastProgress || progressResumptionOption == ProgressResumptionOptions.ProceedNormallyWithoutSavingProgress)
+            //    AzureReset.Go(); // will only reset if resetting is on in AzureSetup
 
             string strategiesPath = Path.Combine(baseOutputDirectory, "Strategies"); 
 
