@@ -1,6 +1,7 @@
 # Build Folders (you can keep bin if you'd like, to store dlls and pdbs)
 [Bb]in/
 [Oo]bj/
+*.exe
 !encog-core-cs/bin/Debug/encog-core-cs.dll
 !/encog-core-cs/bin/Debug/encog-core-cs.dll
 !ACESim/bin/Debug/*.dll
