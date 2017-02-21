@@ -37,11 +37,6 @@ namespace ACESim
             DoParallel = doParallel;
             this.gameDefinition = gameDefinition;
         }
-        
-        
-
-
-        static int NumSymmetryTests = -1;
 
         // On play mode, we need to be able to play one strategy for an entire iterations set. (This will be called repeatedly by the play routine.)
         // It's just one strategy that we are testing for each iteration, and we don't need to preplay.
@@ -72,20 +67,18 @@ namespace ACESim
                     gameInputsArray[i] = simulationInteraction.GetGameInputs(numIterations, iterationIDArray[i]);
                 }
             }
-
-
-
-            bool runSymmetryTests = false; // if this is true, then we can test whether flipping and swapping inputs leads to the opposite result
+            
             GameProgress evenIterationGameProgress = null;
 
             // Copy bestStrategies to play with
             List<Strategy> strategiesToPlayWith = bestStrategies.ToList();
             strategiesToPlayWith[decisionNumber] = strategy;
 
-            Parallelizer.Go(DoParallel && !runSymmetryTests, 0, numIterations, i =>
+            Parallelizer.Go(DoParallel, 0, numIterations, i =>
                 {
-                    NumSymmetryTests++; // if relying on this, be sure that we are ensuring consistent iterations and that randomization does not use date & time
                     // Remove comments from the following to log specific items
+                    GameProgressLogger.LoggingOn = false;
+                    GameProgressLogger.OutputLogMessages = false;
                     //if ((NumSymmetryTests == 5 || NumSymmetryTests == 6) && runSymmetryTests) // set this to the even iteration of a pair that failed symmetry to see why
                     //{
                     //    GameProgressLogger.LoggingOn = true;
@@ -97,29 +90,7 @@ namespace ACESim
                     //    GameProgressLogger.OutputLogMessages = false;
                     //}
                     // Remove comments from the following to log a particular iteration repeatedly. We can use this to see how changing settings affects a particular iteration.
-                    if ((i == 5) && runSymmetryTests) // set this to the even iteration of a pair that failed symmetry to see why
-                    {
-                        GameProgressLogger.LoggingOn = true;
-                        GameProgressLogger.OutputLogMessages = true;
-                    }
-                    else
-                    {
-                        GameProgressLogger.LoggingOn = false;
-                        GameProgressLogger.OutputLogMessages = false;
-                    }
                     PlayHelper(i, strategiesToPlayWith, returnCompletedGameProgressInfos, gameInputsArray, iterationIDArray, preplayedGameProgressInfos, currentlyEvolvingDecision, decisionNumber == currentlyEvolvingDecision ? (int?)decisionNumber : (int?)null);
-                    if (runSymmetryTests)
-                    {
-                        bool evenIteration = i % 2 == 0;
-                        if (evenIteration)
-                            evenIterationGameProgress = MostRecentlyCompletedGameProgress;
-                        else
-                        {
-                            bool passesSymmetry = MostRecentlyCompletedGameProgress.PassesSymmetryTest(evenIterationGameProgress);
-                            if (!passesSymmetry)
-                                Debug.WriteLine("Symmetry failed for iterations " + (i - 1) + " and " + i + " (symmetry tests " + (NumSymmetryTests - 1) + " and " + NumSymmetryTests + ")");
-                        }
-                    }
                     
                 }
             );

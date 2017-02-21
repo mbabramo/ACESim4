@@ -64,11 +64,7 @@ namespace ACESim
             CurrentActionPointNumberWithinActionGroup = null;
             PreparationForCurrentStepComplete = false;
         }
-
-        public virtual bool PassesSymmetryTest(GameProgress gameProgressWithSameInputsFlippedAndSwapped)
-        {
-            return true;
-        }
+        
 
         public bool IsFinalStep(List<ActionGroup> executionGroupsInExecutionOrder)
         {
