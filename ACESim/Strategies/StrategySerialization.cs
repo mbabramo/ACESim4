@@ -64,7 +64,7 @@ namespace ACESim
 
         public static void SerializeStrategyStateToFiles(Strategy st, string path, string filenameBase)
         {
-            Strategy.StrategyState ss = st.RememberStrategyState();
+            StrategyState ss = st.RememberStrategyState();
             int serializedStrategiesCount = ss.SerializedStrategies.Count();
             List<string> hashCodes = new List<string>();
             foreach (var stst in ss.SerializedStrategies)
@@ -129,7 +129,7 @@ namespace ACESim
             string filename2 = Path.Combine(path, "s" + (theInfo.NumStrategies + 1).ToString() + "-Hash" + theInfo.HashCodes[theInfo.NumStrategies + 1].ToString() + ".stg2");
             string filename3 = Path.Combine(path, "s" + (theInfo.NumStrategies + 2).ToString() + "-Hash" + theInfo.HashCodes[theInfo.NumStrategies + 2].ToString() + ".stg2");
             string filename4 = Path.Combine(path, "s" + (theInfo.NumStrategies + 3).ToString() + "-Hash" + theInfo.HashCodes[theInfo.NumStrategies + 3].ToString() + ".stg2");
-            Strategy.StrategyState ss = new Strategy.StrategyState
+            StrategyState ss = new StrategyState
             {
                 SerializedStrategies = theStrategies,
                 SerializedGameFactory = System.IO.File.ReadAllBytes(filename1),

@@ -9,11 +9,15 @@ namespace ACESim
     public class EvolutionSettings
     {
         public bool ParallelOptimization;
+        public int NumIterationsPerPhase;
+        public int NumPhases;
 
         public EvolutionSettings DeepCopy()
         {
             return new EvolutionSettings() {
-                ParallelOptimization = ParallelOptimization
+                ParallelOptimization = ParallelOptimization,
+                NumIterationsPerPhase = NumIterationsPerPhase,
+                NumPhases = NumPhases
             };
         }
 

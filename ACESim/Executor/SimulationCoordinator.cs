@@ -95,34 +95,34 @@ namespace ACESim
             evolutionSettings = SimulationInteraction.GetEvolutionSettings();
             List<Strategy> bestStrategies = strategies;
 
-            int numRepetitions = 1;
+            int numPhases = evolutionSettings.NumPhases;
             // Actually do the evolution
-            if (numRepetitions > 0)
-                SimulationInteraction.GetCurrentProgressStep().AddChildSteps(numRepetitions, "EvolveRepetitions");
+            if (numPhases > 0)
+                SimulationInteraction.GetCurrentProgressStep().AddChildSteps(numPhases, "EvolvePhases");
             bool stop = false;
             int numDecisionsEvolved = 0;
-            int startingRepetition = 0;
+            int startingPhase = 0;
             if (prm.ProgressResumptionOption == ProgressResumptionOptions.SkipToPreviousPositionThenResume)
             {
-                startingRepetition = prm.Info.SimulationCoordinatorRepetition;
-                SimulationInteraction.GetCurrentProgressStep().SetSeveralStepsComplete(startingRepetition, "EvolveRepetitions"); 
+                startingPhase = prm.Info.SimulationCoordinatorPhase;
+                SimulationInteraction.GetCurrentProgressStep().SetSeveralStepsComplete(startingPhase, "EvolvePhases"); 
             }
-            for (int repetition = startingRepetition; repetition < numRepetitions; repetition++)
+            for (int phase = startingPhase; phase < numPhases; phase++)
             {
-                prm.Info.SimulationCoordinatorRepetition = repetition;
-                Debug.WriteLine(String.Format("Repetition {0} of (0,{1})... ", repetition, numRepetitions - 1));
-                SimulationInteraction.ReportVariableFromProgram("EvolveStepPct", ((double)repetition) / ((double)(numRepetitions - 1)));
+                prm.Info.SimulationCoordinatorPhase = phase;
+                Debug.WriteLine(String.Format("Phase {0} of (0,{1})... ", phase, numPhases - 1));
+                SimulationInteraction.ReportVariableFromProgram("EvolveStepPct", ((double)phase) / ((double)(numPhases - 1)));
                 evolutionSettings = SimulationInteraction.GetEvolutionSettings(); // update evolution settings (in case it has changed, for example because something is dependent on EvolveStepPct)
 
-                SimulationInteraction.ReportTextToUser(String.Format(Environment.NewLine + "Repetition {0} of (0,{1})... ", repetition, numRepetitions - 1), true);
+                SimulationInteraction.ReportTextToUser(String.Format(Environment.NewLine + "Phase {0} of (0,{1})... ", phase, numPhases - 1), true);
 
-                ExecuteEvolveStep(evolutionSettings, doNotEvolveByDefault, theBaseOutputDirectory, repetition, numRepetitions, repetition == numRepetitions, prm, ref numDecisionsEvolved, out stop);
+                ExecuteEvolveStep(evolutionSettings, doNotEvolveByDefault, theBaseOutputDirectory, phase, numPhases, phase == numPhases, prm, ref numDecisionsEvolved, out stop);
                 if (stop || SimulationInteraction.StopAfterOptimizingCurrentDecisionPoint)
                     break;
 
-                SimulationInteraction.ReportVariableFromProgram(RepetitionVariableName, repetition);
+                SimulationInteraction.ReportVariableFromProgram(RepetitionVariableName, phase);
 
-                SimulationInteraction.GetCurrentProgressStep().SetProportionOfStepComplete(1, true, "EvolveRepetitions");
+                SimulationInteraction.GetCurrentProgressStep().SetProportionOfStepComplete(1, true, "EvolvePhases");
             }
             SimulationInteraction.StopAfterOptimizingCurrentDecisionPoint = false; // reset
             if (!stop)
@@ -179,7 +179,7 @@ namespace ACESim
             
 
             if (!doNotEvolveByDefault)
-                RunInterimReports(((EvolveCommand)SimulationInteraction.CurrentExecutionInformation.CurrentCommand).ReportsAfterEvolveSteps);
+                RunInterimReports(((EvolveCommand)SimulationInteraction.CurrentExecutionInformation.CurrentCommand).ReportsAfterEvolvePhases);
         }
         
         private void ContinueProgressFromWhereLeftOff(int decisionNumber, ProgressResumptionManager prm)

@@ -19,8 +19,7 @@ namespace ACESim
         public string StoreStrategiesFile;
         public bool EvolveOnlyIfNecessary;
         public string BaseOutputDirectory;
-        public List<ReportCommand> ReportsBetweenDecisions;
-        public List<ReportCommand> ReportsAfterEvolveSteps;
+        public List<ReportCommand> ReportsAfterEvolvePhases;
         [NonSerialized]
         public ProgressResumptionManager ProgressResumptionManager;
 
@@ -44,8 +43,7 @@ namespace ACESim
             UseInitializeStrategiesFile = theUseInitializeStrategiesFile;
             EvolveOnlyIfNecessary = settingEvolveOnlyIfNecessary;
             BaseOutputDirectory = theBaseOutputDirectory;
-            ReportsBetweenDecisions = theReportsBetweenDecisions;
-            ReportsAfterEvolveSteps = theReportsAfterEvolveSteps;
+            ReportsAfterEvolvePhases = theReportsAfterEvolveSteps;
         }
 
         public void SetProgressResumptionManager(ProgressResumptionManager prm)

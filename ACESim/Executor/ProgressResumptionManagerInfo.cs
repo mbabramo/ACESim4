@@ -16,6 +16,6 @@ namespace ACESim
         internal int ExecuteSingleSetCommandSet;
         internal int ExecuteSingleSetMultipartCommand;
         internal int NumStrategyStatesSerialized;
-        internal int SimulationCoordinatorRepetition;
+        internal int SimulationCoordinatorPhase;
     }
 }

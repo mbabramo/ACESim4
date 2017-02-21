@@ -165,7 +165,6 @@
     <Compile Include="Games\General\DecisionPoint.cs" />
     <Compile Include="Games\General\ActionGroup.cs" />
     <Compile Include="Games\General\ActionGroupRepetition.cs" />
-    <Compile Include="Games\General\IDefaultBehaviorBeforeEvolution.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Reports\aspnet_Applications.cs">
       <DependentUpon>SimData.tt</DependentUpon>
@@ -214,7 +213,6 @@
     <Compile Include="Evolution\Decision.cs" />
     <Compile Include="Evolution\DecisionEvolver.cs" />
     <Compile Include="Evolution\EvolutionSettings.cs" />
-    <Compile Include="Evolution\InputGroups.cs" />
     <Compile Include="Executor\ExecutorMultiple.cs" />
     <Compile Include="Executor\ProgressStep.cs" />
     <Compile Include="Games\General\ActionPoint.cs" />
@@ -360,7 +358,8 @@
     <Compile Include="Settings\Loading and tracking\FindReplaceVariable.cs" />
     <Compile Include="Settings\Loading and tracking\OptionalAndSkipAttributes.cs" />
     <Compile Include="Settings\Setting\SettingVariable.cs" />
-    <Compile Include="Strategies\PriorityQueueSmallRAMFootprint.cs" />
+    <Compile Include="Strategies\StrategyState.cs" />
+    <Compile Include="Util\PriorityQueueSmallRAMFootprint.cs" />
     <Compile Include="Settings\Distributions\MixtureDistribution.cs" />
     <Compile Include="Settings\Distributions\CurveDistribution.cs" />
     <Compile Include="Settings\Distributions\Distribution.cs" />
@@ -428,7 +427,6 @@
     </Compile>
     <Compile Include="Strategies\IStrategyComponent.cs" />
     <Compile Include="Strategies\Strategy.cs" />
-    <Compile Include="Strategies\StrategyBounds.cs" />
     <Compile Include="Strategies\StrategySerialization.cs" />
     <Compile Include="Util\ArrayFormConversionExtension.cs" />
     <Compile Include="Util\BatchExtensions.cs" />
