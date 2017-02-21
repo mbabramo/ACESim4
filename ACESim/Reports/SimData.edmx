@@ -1,41 +1,41 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<edmx:Edmx Version="3.0" xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx">
+<edmx:Edmx Version="2.0" xmlns:edmx="http://schemas.microsoft.com/ado/2008/10/edmx">
   <!-- EF Runtime content -->
   <edmx:Runtime>
     <!-- SSDL content -->
     <edmx:StorageModels>
-    <Schema Namespace="ACESIMModel.Store" Alias="Self" Provider="System.Data.SqlClient" ProviderManifestToken="2008" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
+    <Schema Namespace="ACESIMModel.Store" Alias="Self" Provider="System.Data.SqlClient" ProviderManifestToken="2008" xmlns="http://schemas.microsoft.com/ado/2009/02/edm/ssdl">
   <EntityContainer Name="ACESIMModelStoreContainer">
-    <EntitySet Name="aspnet_Applications" EntityType="ACESIMModel.Store.aspnet_Applications" store:Type="Tables" Schema="dbo" />
-    <EntitySet Name="aspnet_Membership" EntityType="ACESIMModel.Store.aspnet_Membership" store:Type="Tables" Schema="dbo" />
-    <EntitySet Name="aspnet_Profile" EntityType="ACESIMModel.Store.aspnet_Profile" store:Type="Tables" Schema="dbo" />
-    <EntitySet Name="aspnet_Roles" EntityType="ACESIMModel.Store.aspnet_Roles" store:Type="Tables" Schema="dbo" />
-    <EntitySet Name="aspnet_SchemaVersions" EntityType="ACESIMModel.Store.aspnet_SchemaVersions" store:Type="Tables" Schema="dbo" />
-    <EntitySet Name="aspnet_Users" EntityType="ACESIMModel.Store.aspnet_Users" store:Type="Tables" Schema="dbo" />
-    <EntitySet Name="ColumnLists" EntityType="ACESIMModel.Store.ColumnLists" store:Type="Tables" Schema="dbo" />
-    <EntitySet Name="ColumnListToColumns" EntityType="ACESIMModel.Store.ColumnListToColumns" store:Type="Tables" Schema="dbo" />
-    <EntitySet Name="Columns" EntityType="ACESIMModel.Store.Columns" store:Type="Tables" Schema="dbo" />
-    <EntitySet Name="DataPoints" EntityType="ACESIMModel.Store.DataPoints" store:Type="Tables" Schema="dbo" />
-    <EntitySet Name="ExecutionResultSets" EntityType="ACESIMModel.Store.ExecutionResultSets" store:Type="Tables" Schema="dbo" />
-    <EntitySet Name="ReportDefinitions" EntityType="ACESIMModel.Store.ReportDefinitions" store:Type="Tables" Schema="dbo" />
-    <EntitySet Name="ReportSnippets" EntityType="ACESIMModel.Store.ReportSnippets" store:Type="Tables" Schema="dbo" />
-    <EntitySet Name="ReportSnippetToReportDefinitions" EntityType="ACESIMModel.Store.ReportSnippetToReportDefinitions" store:Type="Tables" Schema="dbo" />
-    <EntitySet Name="RolePermissions" EntityType="ACESIMModel.Store.RolePermissions" store:Type="Tables" Schema="dbo" />
-    <EntitySet Name="RowLists" EntityType="ACESIMModel.Store.RowLists" store:Type="Tables" Schema="dbo" />
-    <EntitySet Name="RowListToRows" EntityType="ACESIMModel.Store.RowListToRows" store:Type="Tables" Schema="dbo" />
-    <EntitySet Name="Rows" EntityType="ACESIMModel.Store.Rows" store:Type="Tables" Schema="dbo" />
-    <EntitySet Name="SettingCategories" EntityType="ACESIMModel.Store.SettingCategories" store:Type="Tables" Schema="dbo" />
-    <EntitySet Name="SettingChoices" EntityType="ACESIMModel.Store.SettingChoices" store:Type="Tables" Schema="dbo" />
-    <EntitySet Name="SettingChoiceSets" EntityType="ACESIMModel.Store.SettingChoiceSets" store:Type="Tables" Schema="dbo" />
-    <EntitySet Name="SettingChoiceToExecutionResultSets" EntityType="ACESIMModel.Store.SettingChoiceToExecutionResultSets" store:Type="Tables" Schema="dbo" />
-    <EntitySet Name="SettingChoiceToSettingChoiceSets" EntityType="ACESIMModel.Store.SettingChoiceToSettingChoiceSets" store:Type="Tables" Schema="dbo" />
-    <EntitySet Name="vw_aspnet_Applications" EntityType="ACESIMModel.Store.vw_aspnet_Applications" store:Type="Tables" Schema="dbo" />
-    <EntitySet Name="vw_aspnet_MembershipUsers" EntityType="ACESIMModel.Store.vw_aspnet_MembershipUsers" store:Type="Tables" Schema="dbo" />
-    <EntitySet Name="vw_aspnet_Profiles" EntityType="ACESIMModel.Store.vw_aspnet_Profiles" store:Type="Tables" Schema="dbo" />
-    <EntitySet Name="vw_aspnet_Roles" EntityType="ACESIMModel.Store.vw_aspnet_Roles" store:Type="Tables" Schema="dbo" />
-    <EntitySet Name="vw_aspnet_Users" EntityType="ACESIMModel.Store.vw_aspnet_Users" store:Type="Tables" Schema="dbo" />
-    <EntitySet Name="vw_aspnet_UsersInRoles" EntityType="ACESIMModel.Store.vw_aspnet_UsersInRoles" store:Type="Tables" Schema="dbo" />
-    <EntitySet Name="aspnet_UsersInRoles" EntityType="ACESIMModel.Store.aspnet_UsersInRoles" store:Type="Tables" Schema="dbo" />
+    <EntitySet Name="aspnet_Applications" EntityType="ACESIMModel.Store.aspnet_Applications" store:Type="Tables" Schema="dbo" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" />
+    <EntitySet Name="aspnet_Membership" EntityType="ACESIMModel.Store.aspnet_Membership" store:Type="Tables" Schema="dbo" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" />
+    <EntitySet Name="aspnet_Profile" EntityType="ACESIMModel.Store.aspnet_Profile" store:Type="Tables" Schema="dbo" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" />
+    <EntitySet Name="aspnet_Roles" EntityType="ACESIMModel.Store.aspnet_Roles" store:Type="Tables" Schema="dbo" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" />
+    <EntitySet Name="aspnet_SchemaVersions" EntityType="ACESIMModel.Store.aspnet_SchemaVersions" store:Type="Tables" Schema="dbo" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" />
+    <EntitySet Name="aspnet_Users" EntityType="ACESIMModel.Store.aspnet_Users" store:Type="Tables" Schema="dbo" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" />
+    <EntitySet Name="ColumnLists" EntityType="ACESIMModel.Store.ColumnLists" store:Type="Tables" Schema="dbo" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" />
+    <EntitySet Name="ColumnListToColumns" EntityType="ACESIMModel.Store.ColumnListToColumns" store:Type="Tables" Schema="dbo" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" />
+    <EntitySet Name="Columns" EntityType="ACESIMModel.Store.Columns" store:Type="Tables" Schema="dbo" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" />
+    <EntitySet Name="DataPoints" EntityType="ACESIMModel.Store.DataPoints" store:Type="Tables" Schema="dbo" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" />
+    <EntitySet Name="ExecutionResultSets" EntityType="ACESIMModel.Store.ExecutionResultSets" store:Type="Tables" Schema="dbo" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" />
+    <EntitySet Name="ReportDefinitions" EntityType="ACESIMModel.Store.ReportDefinitions" store:Type="Tables" Schema="dbo" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" />
+    <EntitySet Name="ReportSnippets" EntityType="ACESIMModel.Store.ReportSnippets" store:Type="Tables" Schema="dbo" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" />
+    <EntitySet Name="ReportSnippetToReportDefinitions" EntityType="ACESIMModel.Store.ReportSnippetToReportDefinitions" store:Type="Tables" Schema="dbo" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" />
+    <EntitySet Name="RolePermissions" EntityType="ACESIMModel.Store.RolePermissions" store:Type="Tables" Schema="dbo" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" />
+    <EntitySet Name="RowLists" EntityType="ACESIMModel.Store.RowLists" store:Type="Tables" Schema="dbo" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" />
+    <EntitySet Name="RowListToRows" EntityType="ACESIMModel.Store.RowListToRows" store:Type="Tables" Schema="dbo" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" />
+    <EntitySet Name="Rows" EntityType="ACESIMModel.Store.Rows" store:Type="Tables" Schema="dbo" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" />
+    <EntitySet Name="SettingCategories" EntityType="ACESIMModel.Store.SettingCategories" store:Type="Tables" Schema="dbo" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" />
+    <EntitySet Name="SettingChoices" EntityType="ACESIMModel.Store.SettingChoices" store:Type="Tables" Schema="dbo" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" />
+    <EntitySet Name="SettingChoiceSets" EntityType="ACESIMModel.Store.SettingChoiceSets" store:Type="Tables" Schema="dbo" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" />
+    <EntitySet Name="SettingChoiceToExecutionResultSets" EntityType="ACESIMModel.Store.SettingChoiceToExecutionResultSets" store:Type="Tables" Schema="dbo" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" />
+    <EntitySet Name="SettingChoiceToSettingChoiceSets" EntityType="ACESIMModel.Store.SettingChoiceToSettingChoiceSets" store:Type="Tables" Schema="dbo" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" />
+    <EntitySet Name="vw_aspnet_Applications" EntityType="ACESIMModel.Store.vw_aspnet_Applications" store:Type="Tables" Schema="dbo" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" />
+    <EntitySet Name="vw_aspnet_MembershipUsers" EntityType="ACESIMModel.Store.vw_aspnet_MembershipUsers" store:Type="Tables" Schema="dbo" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" />
+    <EntitySet Name="vw_aspnet_Profiles" EntityType="ACESIMModel.Store.vw_aspnet_Profiles" store:Type="Tables" Schema="dbo" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" />
+    <EntitySet Name="vw_aspnet_Roles" EntityType="ACESIMModel.Store.vw_aspnet_Roles" store:Type="Tables" Schema="dbo" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" />
+    <EntitySet Name="vw_aspnet_Users" EntityType="ACESIMModel.Store.vw_aspnet_Users" store:Type="Tables" Schema="dbo" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" />
+    <EntitySet Name="vw_aspnet_UsersInRoles" EntityType="ACESIMModel.Store.vw_aspnet_UsersInRoles" store:Type="Tables" Schema="dbo" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" />
+    <EntitySet Name="aspnet_UsersInRoles" EntityType="ACESIMModel.Store.aspnet_UsersInRoles" store:Type="Tables" Schema="dbo" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" />
     <AssociationSet Name="FK__aspnet_Me__Appli__02084FDA" Association="ACESIMModel.Store.FK__aspnet_Me__Appli__02084FDA">
       <End Role="aspnet_Applications" EntitySet="aspnet_Applications" />
       <End Role="aspnet_Membership" EntitySet="aspnet_Membership" />
@@ -761,7 +761,7 @@
 </Schema></edmx:StorageModels>
     <!-- CSDL content -->
     <edmx:ConceptualModels>
-      <Schema Namespace="ACESIMModel" Alias="Self" p1:UseStrongSpatialTypes="false" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns:p1="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm">
+      <Schema Namespace="ACESIMModel" Alias="Self" xmlns="http://schemas.microsoft.com/ado/2008/09/edm" xmlns:p1="http://schemas.microsoft.com/ado/2009/02/edm/annotation">
         <EntityContainer Name="ACESIMEntities" p1:LazyLoadingEnabled="true">
           <EntitySet Name="aspnet_Applications" EntityType="ACESIMModel.aspnet_Applications" />
           <EntitySet Name="aspnet_Membership" EntityType="ACESIMModel.aspnet_Membership" />
@@ -1814,7 +1814,7 @@
     </edmx:ConceptualModels>
     <!-- C-S mapping content -->
     <edmx:Mappings>
-    <Mapping Space="C-S" xmlns="http://schemas.microsoft.com/ado/2009/11/mapping/cs">
+    <Mapping Space="C-S" xmlns="http://schemas.microsoft.com/ado/2008/09/mapping/cs">
   <EntityContainerMapping StorageEntityContainer="ACESIMModelStoreContainer" CdmEntityContainer="ACESIMEntities">
     <EntitySetMapping Name="aspnet_Applications">
       <EntityTypeMapping TypeName="IsTypeOf(ACESIMModel.aspnet_Applications)">
@@ -2141,7 +2141,7 @@
 </Mapping></edmx:Mappings>
   </edmx:Runtime>
   <!-- EF Designer content (DO NOT EDIT MANUALLY BELOW HERE) -->
-  <Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
+  <Designer xmlns="http://schemas.microsoft.com/ado/2008/10/edmx">
     <Connection>
       <DesignerInfoPropertySet>
         <DesignerProperty Name="MetadataArtifactProcessing" Value="EmbedInOutputAssembly" />
@@ -2157,6 +2157,6 @@
       </DesignerInfoPropertySet>
     </Options>
     <!-- Diagram content (shape and connector positions) -->
-    <Diagrams></Diagrams>
+    <Diagrams />
   </Designer>
 </edmx:Edmx>

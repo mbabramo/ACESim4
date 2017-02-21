@@ -54,7 +54,7 @@ namespace ACESim.Util
             {
                 _PointsInInverseNormalDistribution = Enumerable.Range(0, NumInInverseNormalDistribution)
                     .Select(x => x / (NumInInverseNormalDistribution + 1.0))
-                    .Select(x => alglib.normaldistr.invnormaldistribution(x))
+                    .Select(x => InvNormal.Calculate(x))
                     .ToArray();
             }
         }

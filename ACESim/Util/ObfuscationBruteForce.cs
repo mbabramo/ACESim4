@@ -41,7 +41,7 @@ namespace ACESim
             for (int i = 0; i < 10000000; i++)
             {
                 double actualNumber = RandomGenerator.NextDouble();
-                double obfuscation = stdev * (double)alglib.normaldistr.invnormaldistribution(RandomGenerator.NextDouble());
+                double obfuscation = stdev * (double)InvNormal.Calculate(RandomGenerator.NextDouble());
                 double obfuscated = actualNumber + obfuscation;
                 int bucket = GetBucketFromObfuscated(obfuscated);
                 if (bucket >= 0 && bucket < numBuckets)
@@ -146,7 +146,7 @@ namespace ACESim
             Parallel.For((long)0, (long)numCalculations - 1, i =>
             {
                 double actualNumber = FastPseudoRandom.GetRandom(i * 2, 0, 0);
-                double obfuscation = stdev * (double)alglib.normaldistr.invnormaldistribution(FastPseudoRandom.GetRandom(i * 2 + 1, 0, 0));
+                double obfuscation = stdev * (double)InvNormal.Calculate(FastPseudoRandom.GetRandom(i * 2 + 1, 0, 0));
                 double obfuscated = actualNumber + obfuscation;
                 int bucket = GetBucketFromActual(actualNumber);
                 if (bucket >= 0 && bucket < numBuckets)

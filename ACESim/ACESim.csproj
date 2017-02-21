@@ -10,7 +10,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>ACESim</RootNamespace>
     <AssemblyName>ACESim</AssemblyName>
-    <TargetFrameworkVersion>v4.5.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <FileUpgradeFlags>
     </FileUpgradeFlags>
@@ -60,6 +60,27 @@
   </PropertyGroup>
   <PropertyGroup>
     <StartupObject>ACESim.Program</StartupObject>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x86'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x86\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <DocumentationFile>bin\Debug\ACESim.XML</DocumentationFile>
+    <WarningLevel>2</WarningLevel>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <GenerateSerializationAssemblies>On</GenerateSerializationAssemblies>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
+    <OutputPath>bin\x86\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x86</PlatformTarget>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="encog-core-cs, Version=3.0.1.0, Culture=neutral, processorArchitecture=MSIL">
@@ -144,19 +165,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="alglib380\alglibinternal.cs" />
-    <Compile Include="alglib380\alglibmisc.cs" />
-    <Compile Include="alglib380\ap.cs" />
-    <Compile Include="alglib380\dataanalysis.cs" />
-    <Compile Include="alglib380\diffequations.cs" />
-    <Compile Include="alglib380\fasttransforms.cs" />
-    <Compile Include="alglib380\integration.cs" />
-    <Compile Include="alglib380\interpolation.cs" />
-    <Compile Include="alglib380\linalg.cs" />
-    <Compile Include="alglib380\optimization.cs" />
-    <Compile Include="alglib380\solvers.cs" />
-    <Compile Include="alglib380\specialfunctions.cs" />
-    <Compile Include="alglib380\statistics.cs" />
     <Compile Include="Executor\Interactionless.cs" />
     <Compile Include="Executor\ProgressResumptionManager.cs" />
     <Compile Include="Executor\ProgressResumptionManagerInfo.cs" />
@@ -359,6 +367,7 @@
     <Compile Include="Settings\Setting\SettingVariable.cs" />
     <Compile Include="Strategies\CRMDevelopment.cs" />
     <Compile Include="Strategies\StrategyState.cs" />
+    <Compile Include="Util\InvNormal.cs" />
     <Compile Include="Util\PriorityQueueSmallRAMFootprint.cs" />
     <Compile Include="Settings\Distributions\MixtureDistribution.cs" />
     <Compile Include="Settings\Distributions\CurveDistribution.cs" />
@@ -463,7 +472,6 @@
     <Compile Include="Util\NormalDistributionApproximation.cs" />
     <Compile Include="Util\NumberPrint.cs" />
     <Compile Include="Util\CloneExtension.cs" />
-    <Compile Include="Util\LinearRegression.cs" />
     <Compile Include="Util\Parallelizer.cs" />
     <Compile Include="Util\MathApproximate.cs" />
     <Compile Include="Util\PermutationMaker.cs" />

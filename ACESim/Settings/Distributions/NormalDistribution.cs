@@ -49,7 +49,7 @@ namespace ACESim
             double mean = GetSettingValue(theTracker.Value, "mean");
             double stdev = GetSettingValue(theTracker.Value, "stdev");
             double input = theTracker.Value.GetNextInput();
-            double returnVal = mean + stdev * alglib.normaldistr.invnormaldistribution(input);
+            double returnVal = mean + stdev * InvNormal.Calculate(input);
             return returnVal;
         }
 
@@ -63,7 +63,7 @@ namespace ACESim
                 inputVal = compiler.GetExpressionForNextInputArrayIndex();
             else
                 inputVal = inputSetting.GetExpressionForSetting(compiler);
-            Expression<Func<double, double>> invNorm = (x) => alglib.normaldistr.invnormaldistribution(x);
+            Expression<Func<double, double>> invNorm = (x) => InvNormal.Calculate(x);
             Expression invoked = Expression.Invoke(invNorm, inputVal);
             return Expression.Add(mean, Expression.Multiply(stdev, invoked));
         }

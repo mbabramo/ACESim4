@@ -32,7 +32,7 @@ namespace ACESim
             double[] points = new double[numberPoints];
             double stepSize = 1.0 / (numberPoints + 1);
             for (int i = 0; i < numberPoints; i++)
-                points[i] = alglib.normaldistr.invnormaldistribution((i + 1) * stepSize) * standardDeviationToMultiplyBy;
+                points[i] = InvNormal.Calculate((i + 1) * stepSize) * standardDeviationToMultiplyBy;
             return points;
         }
     }
