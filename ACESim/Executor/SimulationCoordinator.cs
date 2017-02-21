@@ -164,7 +164,7 @@ namespace ACESim
 
         protected void InitializeCRMDevelopment()
         {
-            CRMDeveloper = new CRMDevelopment(Strategies, EvolutionSettings, GameDefinition);
+            CRMDeveloper = new CRMDevelopment(Strategies, EvolutionSettings, GameDefinition, SimulationInteraction.CurrentExecutionInformation.GameFactory, SimulationInteraction.CurrentExecutionInformation);
         }
 
         /// <summary>

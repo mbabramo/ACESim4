@@ -14,7 +14,7 @@ namespace ACESim
     public class GamePlayer
     {
         public List<Strategy> bestStrategies;
-        public IGameFactory gameFactory;
+        public IGameFactory GameFactory;
 
         public ConcurrentBag<GameProgress> CompletedGameProgresses;
         public GameProgress MostRecentlyCompletedGameProgress;
@@ -33,7 +33,7 @@ namespace ACESim
         public GamePlayer(List<Strategy> theCurrentBestForAllPopulations, IGameFactory theGameFactory, bool doParallel, GameDefinition gameDefinition)
         {
             bestStrategies = theCurrentBestForAllPopulations;
-            gameFactory = theGameFactory;
+            GameFactory = theGameFactory;
             DoParallel = doParallel;
             this.gameDefinition = gameDefinition;
         }
@@ -41,6 +41,18 @@ namespace ACESim
         // On play mode, we need to be able to play one strategy for an entire iterations set. (This will be called repeatedly by the play routine.)
         // It's just one strategy that we are testing for each iteration, and we don't need to preplay.
         // We also need this so that  we can compare with the previous set, to determine whether we have improved things.
+
+        public IEnumerable<GameProgress> PlayStrategy(
+            List<GameProgress> preplayedGameProgressInfos,
+            int numIterations,
+            SimulationInteraction simulationInteraction,
+            GameInputs[] gameInputsArray = null,
+            IterationID[] iterationIDArray = null,
+            bool returnCompletedGameProgressInfos = false,
+            int? currentlyEvolvingDecision = null)
+        {
+            return PlayStrategy(bestStrategies[0], 0, preplayedGameProgressInfos, numIterations, simulationInteraction, gameInputsArray, iterationIDArray, returnCompletedGameProgressInfos, currentlyEvolvingDecision);
+        }
 
         public IEnumerable<GameProgress> PlayStrategy(
             Strategy strategy,
@@ -98,9 +110,33 @@ namespace ACESim
             return CompletedGameProgresses;
         }
 
+        public IEnumerable<GameProgress> PlayAllPaths(GameInputs gameInputsToUse)
+        {
+            GameProgress startingProgress = GameFactory.CreateNewGameProgress(new IterationID(1)); // iteration doesn't matter, since we're playing a particular path and thus ignoring random numbers
+            IEnumerator<byte> path = new List<byte> { }.GetEnumerator();
+            while (path != null)
+            {
+                var progressToUse = startingProgress.DeepCopy();
+                IEnumerable<byte> next = PlayPath(path, progressToUse, gameInputsToUse);
+                if (next == null)
+                    path = null;
+                else
+                    path = next.GetEnumerator();
+                yield return progressToUse;
+            }
+        }
+
+        private IEnumerable<byte> PlayPath(IEnumerator<byte> actionsToPlay, GameProgress startingProgress, GameInputs gameInputsToUse)
+        {
+            Game game = GameFactory.CreateNewGame();
+            game.PlaySetup(bestStrategies, startingProgress, gameInputsToUse, gameDefinition, false);
+            return game.PlayPath(actionsToPlay);
+        }
+
+
         private GameProgress PlayGameFromSpecifiedPoint(GameInputs inputs, GameProgress startingProgress)
         {
-            Game game = gameFactory.CreateNewGame();
+            Game game = GameFactory.CreateNewGame();
             game.PlaySetup(bestStrategies, startingProgress, inputs, gameDefinition, false);
             game.PlayUntilComplete();
             return game.Progress;
@@ -108,7 +144,7 @@ namespace ACESim
 
         public GameProgress PlayGameStartToFinish(IterationID iterationID, GameInputs inputs)
         {
-            GameProgress startingProgress = gameFactory.CreateNewGameProgress(iterationID);
+            GameProgress startingProgress = GameFactory.CreateNewGameProgress(iterationID);
             return PlayGameFromSpecifiedPoint(inputs, startingProgress);
         }
 
@@ -210,10 +246,10 @@ namespace ACESim
             }
             else
             {
-                gameProgress = gameFactory.CreateNewGameProgress(iterationIDArray == null ? null : iterationIDArray[iteration]);
+                gameProgress = GameFactory.CreateNewGameProgress(iterationIDArray == null ? null : iterationIDArray[iteration]);
             }
 
-            Game game = gameFactory.CreateNewGame();
+            Game game = GameFactory.CreateNewGame();
             game.PlaySetup(strategies, gameProgress, gameInputsArray[iteration], gameDefinition, saveCompletedGameProgressInfos);
             game.PlayUntilComplete(false);
 

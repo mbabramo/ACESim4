@@ -14,16 +14,22 @@ namespace ACESim
 
         public GameDefinition GameDefinition { get; set; }
 
+        public IGameFactory GameFactory { get; set; }
+
+        public CurrentExecutionInformation CurrentExecutionInformation { get; set; }
+
         public CRMDevelopment()
         {
 
         }
 
-        public CRMDevelopment(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition)
+        public CRMDevelopment(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition, IGameFactory gameFactory, CurrentExecutionInformation currentExecutionInformation)
         {
             Strategies = existingStrategyState;
             EvolutionSettings = evolutionSettings;
             GameDefinition = gameDefinition;
+            GameFactory = gameFactory;
+            CurrentExecutionInformation = currentExecutionInformation;
         }
 
         public IStrategiesDeveloper DeepCopy()
@@ -32,13 +38,24 @@ namespace ACESim
             {
                 Strategies = Strategies.Select(x => x.DeepCopy()).ToList(),
                 EvolutionSettings = EvolutionSettings.DeepCopy(),
-                GameDefinition = GameDefinition
+                GameDefinition = GameDefinition,
+                GameFactory = GameFactory,
+                CurrentExecutionInformation = CurrentExecutionInformation
             };
         }
 
         public void DevelopStrategies()
         {
+            GamePlayer player = new GamePlayer(Strategies, GameFactory, EvolutionSettings.ParallelOptimization, GameDefinition);
 
+            Type theType = GameFactory.GetSimulationSettingsType();
+            InputVariables inputVariables = new InputVariables(CurrentExecutionInformation);
+            GameInputs inputs = inputVariables.GetGameInputs(theType, 1, new IterationID(1), CurrentExecutionInformation);
+
+            foreach (var progress in player.PlayAllPaths(inputs))
+            {
+
+            }
         }
 
         public void PreSerialize()
