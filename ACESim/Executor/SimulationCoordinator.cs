@@ -15,15 +15,15 @@ namespace ACESim
     {
         public const string RepetitionVariableName = "Repetition";
 
-        public EvolutionSettings evolutionSettings;
+        public CRMDevelopment CRMDeveloper;
+        public EvolutionSettings EvolutionSettings;
         public GameDefinition GameDefinition;
+        private List<Strategy> Strategies;
 
         /// <summary>
         /// A reference to interact with the simulation host
         /// </summary>
         public SimulationInteraction SimulationInteraction;
-
-        private List<Strategy> strategies;
 
         public SimulationCoordinator(SimulationInteraction simulationInteraction)
         {
@@ -49,33 +49,33 @@ namespace ACESim
                 loadedStrategies.Length == GameDefinition.NumPlayers
                 )
             {
-                strategies = new List<Strategy>(loadedStrategies);
-                for (int i = 0; i < strategies.Count; i++)
+                Strategies = new List<Strategy>(loadedStrategies);
+                for (int i = 0; i < Strategies.Count; i++)
                 {
-                    if (strategies[i] == null) // loading of some strategies and not others
-                        strategies[i] = new Strategy();
+                    if (Strategies[i] == null) // loading of some strategies and not others
+                        Strategies[i] = new Strategy();
                     if (theEvolutionSettings != null)
-                        strategies[i].EvolutionSettings = theEvolutionSettings;
-                    strategies[i].PlayerNumber = i;
-                    strategies[i].AllStrategies = strategies;
-                    strategies[i].SimulationInteraction = SimulationInteraction;
+                        Strategies[i].EvolutionSettings = theEvolutionSettings;
+                    Strategies[i].PlayerInfo = GameDefinition.Players[i];
+                    Strategies[i].AllStrategies = Strategies;
+                    Strategies[i].SimulationInteraction = SimulationInteraction;
                 }
             }
             else
             {
                 // make the starter strategies empty
-                strategies = new List<Strategy>();
+                Strategies = new List<Strategy>();
                 for (int i = 0; i < GameDefinition.NumPlayers; i++)
                 {
                     var aStrategy = new Strategy();
                     aStrategy.EvolutionSettings = simulationInteraction.GetEvolutionSettings();
                     aStrategy.SimulationInteraction = simulationInteraction;
-                    aStrategy.PlayerNumber = i;
-                    strategies.Add(aStrategy);
+                    aStrategy.PlayerInfo = GameDefinition.Players[i];
+                    Strategies.Add(aStrategy);
                 }
                 for (int i = 0; i < GameDefinition.DecisionsExecutionOrder.Count; i++)
                 {
-                    strategies[i].AllStrategies = strategies;
+                    Strategies[i].AllStrategies = Strategies;
                 }
             }
         }
@@ -86,21 +86,20 @@ namespace ACESim
         /// <returns></returns>
         public List<Strategy> GetStrategies()
         {
-            return strategies;
+            return Strategies;
         }
 
 
         public void Evolve(string theBaseOutputDirectory, bool doNotEvolveByDefault, ProgressResumptionManager prm)
         {
-            evolutionSettings = SimulationInteraction.GetEvolutionSettings();
-            List<Strategy> bestStrategies = strategies;
+            EvolutionSettings = SimulationInteraction.GetEvolutionSettings();
+            List<Strategy> bestStrategies = Strategies;
 
-            int numPhases = evolutionSettings.NumPhases;
+            int numPhases = EvolutionSettings.NumPhases;
             // Actually do the evolution
             if (numPhases > 0)
                 SimulationInteraction.GetCurrentProgressStep().AddChildSteps(numPhases, "EvolvePhases");
             bool stop = false;
-            int numDecisionsEvolved = 0;
             int startingPhase = 0;
             if (prm.ProgressResumptionOption == ProgressResumptionOptions.SkipToPreviousPositionThenResume)
             {
@@ -112,11 +111,11 @@ namespace ACESim
                 prm.Info.SimulationCoordinatorPhase = phase;
                 Debug.WriteLine(String.Format("Phase {0} of (0,{1})... ", phase, numPhases - 1));
                 SimulationInteraction.ReportVariableFromProgram("EvolveStepPct", ((double)phase) / ((double)(numPhases - 1)));
-                evolutionSettings = SimulationInteraction.GetEvolutionSettings(); // update evolution settings (in case it has changed, for example because something is dependent on EvolveStepPct)
+                EvolutionSettings = SimulationInteraction.GetEvolutionSettings(); // update evolution settings (in case it has changed, for example because something is dependent on EvolveStepPct)
 
                 SimulationInteraction.ReportTextToUser(String.Format(Environment.NewLine + "Phase {0} of (0,{1})... ", phase, numPhases - 1), true);
 
-                ExecuteEvolveStep(evolutionSettings, doNotEvolveByDefault, theBaseOutputDirectory, phase, numPhases, phase == numPhases, prm, ref numDecisionsEvolved, out stop);
+                ExecuteEvolvePhase(out stop);
                 if (stop || SimulationInteraction.StopAfterOptimizingCurrentDecisionPoint)
                     break;
 
@@ -133,7 +132,7 @@ namespace ACESim
 
         public void ReportEvolvedStrategies()
         {
-            SimulationInteraction.ReportEvolvedStrategies(strategies);
+            SimulationInteraction.ReportEvolvedStrategies(Strategies);
         }
 
 
@@ -163,54 +162,58 @@ namespace ACESim
             }
         }
 
+        protected void InitializeCRMDevelopment()
+        {
+            CRMDeveloper = new CRMDevelopment(Strategies, EvolutionSettings, GameDefinition);
+        }
+
         /// <summary>
-        /// Executes evolve steps for all decisions except those in skip decisions.
+        /// Executes a development phase.
         /// </summary>
-        protected void ExecuteEvolveStep(EvolutionSettings evolveSettings, bool doNotEvolveByDefault, string theBaseOutputDirectory, int stepNumber, int totalSteps, bool isLastEvolveStep, ProgressResumptionManager prm, ref int numDecisionsEvolved, out bool stop)
+        protected void ExecuteEvolvePhase(out bool stop)
         {
             stop = false;
             SimulationInteraction.CheckStopOrPause(out stop);
             if (stop)
                 return;
 
-            int? setBreakAtGameNumberWithThatDecisionEvolution = null; // 1097;
+            if (CRMDeveloper == null)
+                InitializeCRMDevelopment();
 
-            //SimulationInteraction.GetCurrentProgressStep().AddChildSteps(decisionsAffectingProgressStep, "DecisionsWithinExecuteEvolveStep");
-            
+            CRMDeveloper.DevelopStrategies();
 
-            if (!doNotEvolveByDefault)
-                RunInterimReports(((EvolveCommand)SimulationInteraction.CurrentExecutionInformation.CurrentCommand).ReportsAfterEvolvePhases);
+            RunInterimReports(((EvolveCommand)SimulationInteraction.CurrentExecutionInformation.CurrentCommand).ReportsAfterEvolvePhases);
         }
         
         private void ContinueProgressFromWhereLeftOff(int decisionNumber, ProgressResumptionManager prm)
         {
             string path;
             string filenameBase;
-            strategies[decisionNumber].GetSerializedStrategiesPathAndFilenameBase(prm.Info.NumStrategyStatesSerialized, out path, out filenameBase); // since we're in the same place in the program, this will get the same filename base as when it was saved
-            var evolutionSettingsForStrategies = strategies.Select(x => x == null ? null : x.EvolutionSettings).ToList();
-            strategies = StrategyStateSerialization.DeserializeStrategyStateFromFiles(path, filenameBase, new List<Tuple<int, string>>()).AllStrategies;
-            for (int sind = 0; sind < strategies.Count(); sind++)
+            Strategies[decisionNumber].GetSerializedStrategiesPathAndFilenameBase(prm.Info.NumStrategyStatesSerialized, out path, out filenameBase); // since we're in the same place in the program, this will get the same filename base as when it was saved
+            var evolutionSettingsForStrategies = Strategies.Select(x => x == null ? null : x.EvolutionSettings).ToList();
+            Strategies = StrategyStateSerialization.DeserializeStrategyStateFromFiles(path, filenameBase, new List<Tuple<int, string>>()).AllStrategies;
+            for (int sind = 0; sind < Strategies.Count(); sind++)
             {
-                Strategy s = strategies[sind];
+                Strategy s = Strategies[sind];
                 s.SimulationInteraction = SimulationInteraction;
                 s.EvolutionSettings = evolutionSettingsForStrategies[sind]; // makes it possible to resume progress but change the settings
-                s.AllStrategies = strategies;
+                s.AllStrategies = Strategies;
             }
             prm.ProgressResumptionOption = ProgressResumptionOptions.ProceedNormallySavingPastProgress;
         }
 
         public IEnumerable<GameProgress> Play(int numberOfIterations, bool parallelReporting)
         {
-            evolutionSettings = SimulationInteraction.GetEvolutionSettings();
+            EvolutionSettings = SimulationInteraction.GetEvolutionSettings();
 
             IGameFactory gameFactory = SimulationInteraction.CurrentExecutionInformation.GameFactory;
-            GamePlayer player = new GamePlayer(strategies, gameFactory, parallelReporting, GameDefinition);
+            GamePlayer player = new GamePlayer(Strategies, gameFactory, parallelReporting, GameDefinition);
 
             int decisionNumber = GameDefinition.DecisionsExecutionOrder.Count - 1; // play up through last decision of the game.
 
             IEnumerable<GameProgress> completedGameProgressInfos =
                 player.PlayStrategy(
-                    strategies[decisionNumber],
+                    Strategies[decisionNumber],
                     decisionNumber,
                     null,
                     numberOfIterations,

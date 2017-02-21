@@ -106,7 +106,7 @@ namespace ACESim
             InformationSets[LastIndexAddedToInformationSets] = information;
         }
 
-        public IEnumerable<byte> GetPlayerInformation(byte playerNumber)
+        public IEnumerable<byte> GetPlayerInformation(int playerNumber)
         {
             if (LastIndexAddedToInformationSets < 0)
                 yield break;

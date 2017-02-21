@@ -22,14 +22,14 @@ namespace ACESim
         public String Abbreviation;
 
         /// <summary>
-        /// The player responsible for this decision (chance is player 0).
+        /// The player responsible for this decision.
         /// </summary>
-        public byte PlayerNumber;
+        public int PlayerNumber;
 
         /// <summary>
         /// The number of discrete actions for this decision. (The actions will be numbered 1 .. NumberActions.)
         /// </summary>
-        public byte NumberActions;
+        public int NumberActions;
 
         /// <summary>
         /// Whether the decision is bipolar (i.e., there are only two possible actions).
@@ -52,6 +52,7 @@ namespace ACESim
         /// <summary>
         /// A file containing a version of the strategy to use before evolution.
         /// </summary>
+        [OptionalSetting]
         public string PreevolvedStrategyFilename;
 
         /// <summary>

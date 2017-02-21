@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<ACESim>
+  <evolutionSettingsAll>
+    <evolutionSettings name="MyGameEvolutionSettings">
+      <setting name="ParallelOptimization" type="bool">false</setting>
+      <setting name="NumIterationsPerPhase" type="int">10000</setting>
+      <setting name="NumPhases" type="int">1</setting>
+    </evolutionSettings>
+  </evolutionSettingsAll>
+</ACESim>

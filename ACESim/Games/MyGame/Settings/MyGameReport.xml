@@ -1,6 +1,5 @@
-
 <ACESim>
-<rowOrColGroup name="MyGameRows">
+  <rowOrColGroup name="MyGameRows">
     <rowOrColInfo name="All">
     </rowOrColInfo>
   </rowOrColGroup>

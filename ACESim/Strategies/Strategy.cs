@@ -22,14 +22,7 @@ namespace ACESim
 
         public EvolutionSettings EvolutionSettings;
 
-        public int PlayerNumber;
-
-        public bool PlayerIsChance;
-
-        /// <summary>
-        /// Are high scores best for this player?
-        /// </summary>
-        public bool HighestIsBest;
+        public PlayerInfo PlayerInfo;
 
         public NWayTreeStorageInternal<double> RegretsOrMoveProbabilities;
 
@@ -45,9 +38,7 @@ namespace ACESim
                 SimulationInteraction = SimulationInteraction,
                 EvolutionSettings = EvolutionSettings,
                 AllStrategies = AllStrategies.ToList(),
-                PlayerNumber = PlayerNumber,
-                PlayerIsChance = PlayerIsChance,
-                HighestIsBest = HighestIsBest,
+                PlayerInfo = PlayerInfo,
                 RegretsOrMoveProbabilities = RegretsOrMoveProbabilities // not currently a deep copy -- may not be needed
 
             };
@@ -102,7 +93,7 @@ namespace ACESim
             for (int i = 0; i < s.SerializedStrategies.Count; i++)
             {
                 Strategy toAdd = null;
-                if (PlayerNumber == i)
+                if (PlayerInfo.PlayerNumber == i)
                     toAdd = this;
                 else
                 {

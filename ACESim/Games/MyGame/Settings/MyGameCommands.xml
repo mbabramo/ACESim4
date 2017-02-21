@@ -5,7 +5,7 @@
       <multipartCommand name="EvolveMyGameStrategies" gameInputsName="MyGameInputs">
         <!--InitializeStrategiesFile="PreevolvedStrategy"-->
         <evolveCommand
-                    evolutionSettingsName="SimpleEvolution"
+                    evolutionSettingsName="MyGameEvolutionSettings"
                     storeStrategiesFile="MyGameStrategies"
                     initializeStrategiesFile="MyGameStrategies"
                     useInitializeStrategiesFile="false"

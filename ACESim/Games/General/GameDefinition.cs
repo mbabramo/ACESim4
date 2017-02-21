@@ -9,10 +9,12 @@ namespace ACESim
     [Serializable]
     public class GameDefinition
     {
+        public List<PlayerInfo> Players;
+
         /// <summary>
         /// The number of players in the game, including chance (if applicable).
         /// </summary>
-        public int NumPlayers;
+        public int NumPlayers => Players.Count;
 
         [OptionalSetting]
         public List<GameModule> GameModules;

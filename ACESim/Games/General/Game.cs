@@ -126,7 +126,7 @@ namespace ACESim
         public virtual int ChooseAction()
         {
             Decision currentDecision = GetCurrentDecision();
-            byte playerNumber;
+            int playerNumber;
             Strategy playersStrategy;
             GetPlayerNumberAndStrategy(currentDecision, out playerNumber, out playersStrategy);
             if (Progress.ActionsToPlay == null)
@@ -150,7 +150,7 @@ namespace ACESim
             return GameInputs.RandomNumbers[Progress.RandomNumbersUsed++]; // if this produces an out-of-bounds error, then you need more random numbers in the MyGameInputs.xml folder
         }
 
-        private void GetPlayerNumberAndStrategy(Decision currentDecision, out byte playerNumber, out Strategy playersStrategy)
+        private void GetPlayerNumberAndStrategy(Decision currentDecision, out int playerNumber, out Strategy playersStrategy)
         {
             playerNumber = currentDecision.PlayerNumber;
             playersStrategy = Strategies[playerNumber];

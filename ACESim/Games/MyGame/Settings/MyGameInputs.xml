@@ -2,7 +2,7 @@
 
 <ACESim>
     <gameInputsAll>
-      <gameInputs name="MyGameV1" simulationName="MyGame">
+      <gameInputs name="MyGameInputs" gameName="MyGame">
         <setting name="RandomNumbers" type="list">
           <setting name="rand00" type="distribution" subtype="uniform">
             <setting type="double" name="fromVal">0.0</setting>
@@ -23,5 +23,4 @@
         </setting>
       </gameInputs>
     </gameInputsAll>
-    
 </ACESim>

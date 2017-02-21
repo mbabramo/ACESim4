@@ -2,7 +2,7 @@
 <ACESim>
   <parentSettingsFile filename="MyGameDefinitions.xml" />
   <parentSettingsFile filename="MyGameInputs.xml" />
-  <parentSettingsFile filename="../../SharedEvolutionSettings/EvolutionSettings.xml" />
+  <parentSettingsFile filename="MyGameEvolutionSettings.xml" />
   <parentSettingsFile filename="MyGameReport.xml" />
   <parentSettingsFile filename="MyGameCommands.xml" />
 </ACESim>

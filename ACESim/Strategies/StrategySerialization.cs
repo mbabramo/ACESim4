@@ -12,7 +12,7 @@ namespace ACESim
     public class StrategySerializationInfo
     {
         public int NumStrategies;
-        public int? PlayerNumber;
+        public int PlayerNumber;
         public List<string> HashCodes;
     }
 
@@ -76,7 +76,7 @@ namespace ACESim
             BinarySerialization.SerializeObject(Path.Combine(path, filenameBase) + ".sti2", 
                 new StrategySerializationInfo { 
                     NumStrategies = serializedStrategiesCount, 
-                    PlayerNumber = st.PlayerNumber, 
+                    PlayerNumber = st.PlayerInfo.PlayerNumber, 
                     HashCodes = hashCodes 
                 });
             const int additionalThingsToSerialize = 4;

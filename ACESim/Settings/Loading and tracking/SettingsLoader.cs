@@ -585,7 +585,7 @@ FileAccess.Read);
                 return new FilterOr(ProcessFilters(settingsToProcess));
             if (type == "and")
                 return new FilterAnd(ProcessFilters(settingsToProcess));
-            if (type != "bool" && type != "double" && type != "text" && type != "int")
+            if (type != "bool" && type != "double" && type != "text" && type != "string" && type != "int")
                 throw new FileLoaderException("Filter must be of type bool, double, int, text, or and/or.");
             XElement variableName = settingsToProcess.Element("variableName");
             if (variableName == null)
@@ -634,7 +634,7 @@ FileAccess.Read);
                 }
                 return new FilterInt(theVariableName, theOperation, theValue);
             }
-            else if (type == "text")
+            else if (type == "text" || type == "string")
             {
                 return new FilterText(theVariableName, theOperation, valueText);
             }
@@ -764,6 +764,7 @@ FileAccess.Read);
                         return new SettingInt64(name, allVariablesFromProgram, longValue);
 
                     case "text":
+                    case "string":
                         return new SettingString(name, allVariablesFromProgram, contents);
 
                     case "variableFromSetting":
