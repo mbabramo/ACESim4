@@ -351,8 +351,6 @@
     <Compile Include="Settings\CodeBasedGeneration\ICodeBasedSettingGenerator.cs" />
     <Compile Include="Settings\CodeBasedGeneration\ICodeBasedSettingGeneratorName.cs" />
     <Compile Include="Settings\Compiling\SettingCompilation.cs" />
-    <Compile Include="Settings\Distributions\BetaDistribution.cs" />
-    <Compile Include="Settings\Distributions\GammaDistribution.cs" />
     <Compile Include="Settings\Input\FlipInputSeedAttribute.cs" />
     <Compile Include="Settings\Input\IterationID.cs" />
     <Compile Include="Settings\Input\SwapInputSeedsAttribute.cs" />
