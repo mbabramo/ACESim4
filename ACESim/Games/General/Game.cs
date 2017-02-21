@@ -130,7 +130,7 @@ namespace ACESim
             Strategy playersStrategy;
             GetPlayerNumberAndStrategy(currentDecision, out playerNumber, out playersStrategy);
             if (Progress.ActionsToPlay == null)
-                return playersStrategy.ChooseAction(Progress.GameHistory.GetPlayerInformation(playerNumber));
+                return playersStrategy.ChooseAction(Progress.GameHistory.GetPlayerInformation(playerNumber), GetNextRandomNumber);
             else
             { // play according to a preset plan
                 bool anotherActionPlanned = Progress.ActionsToPlay.MoveNext();
@@ -139,6 +139,15 @@ namespace ACESim
                 else
                     return 1; // The history does not give us guidance, so we play the first available decision. When the game is complete, we can figure out the next possible game history and play that one (which may go to completion or not). 
             }
+        }
+
+        /// <summary>
+        /// Returns the next random number to use in choosing actions in the game. Random numbers are used both by chance and by other players, unless playing a best-response strategy.
+        /// </summary>
+        /// <returns></returns>
+        public virtual double GetNextRandomNumber()
+        {
+            return GameInputs.RandomNumbers[Progress.RandomNumbersUsed++]; // if this produces an out-of-bounds error, then you need more random numbers in the MyGameInputs.xml folder
         }
 
         private void GetPlayerNumberAndStrategy(Decision currentDecision, out byte playerNumber, out Strategy playersStrategy)

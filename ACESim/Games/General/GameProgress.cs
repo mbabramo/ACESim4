@@ -22,6 +22,7 @@ namespace ACESim
         public int? CurrentActionPointNumberWithinActionGroup;
         public bool PreparationForCurrentStepComplete;
         public bool IsFinalGamePath;
+        public byte RandomNumbersUsed;
 
         static ConcurrentQueue<GameProgress> RecycledGameProgressQueue = new ConcurrentQueue<GameProgress>();
         private static int NumRecycled;
@@ -58,11 +59,14 @@ namespace ACESim
                     gmp.Recycle();
             GameModuleProgresses = null;
             GameHistory.Initialize();
+            ActionsToPlay = null;
             GameComplete = false;
             HaveAdvancedToFirstStep = false;
             CurrentActionGroupNumber = null;
             CurrentActionPointNumberWithinActionGroup = null;
             PreparationForCurrentStepComplete = false;
+            IsFinalGamePath = true; // assume true until shown otherwise
+            RandomNumbersUsed = 0;
         }
         
 
@@ -141,14 +145,16 @@ namespace ACESim
         {
             copy.IterationID = IterationID;
             copy.GameDefinition = GameDefinition;
-            copy.GameModuleProgresses = GameModuleProgresses == null ? null : ( GameModuleProgresses.Select(x => x == null ? null : x.DeepCopy()).ToList() );
-            copy.GameComplete = this.GameComplete;
+            copy.GameModuleProgresses = GameModuleProgresses == null ? null : (GameModuleProgresses.Select(x => x == null ? null : x.DeepCopy()).ToList());
             copy.GameHistory = GameHistory.DeepCopy();
             copy.ActionsToPlay = ActionsToPlay; // we don't deep copy this b/c we want to play the specified decisions only once
+            copy.GameComplete = this.GameComplete;
             copy.HaveAdvancedToFirstStep = this.HaveAdvancedToFirstStep;
             copy.CurrentActionGroupNumber = this.CurrentActionGroupNumber;
             copy.CurrentActionPointNumberWithinActionGroup = this.CurrentActionPointNumberWithinActionGroup;
             copy.PreparationForCurrentStepComplete = this.PreparationForCurrentStepComplete;
+            copy.IsFinalGamePath = this.IsFinalGamePath;
+            copy.RandomNumbersUsed = this.RandomNumbersUsed;
         }
 
         public virtual void Report(SimulationInteraction interaction)
