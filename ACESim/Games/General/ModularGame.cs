@@ -49,7 +49,7 @@ namespace ACESim
                 GameModules[m].GameModuleInputs = mgi.GameModulesInputs[m];
         }
 
-        public override void PrepareForOrMakeCurrentDecision()
+        public override void PrepareForOrMakeDecision()
         {
             if (CurrentDecisionIndex != null || !PreparationPhase) // make sure that nondecision execution points execute only once
                 CurrentModule.ExecuteModule();

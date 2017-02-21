@@ -117,5 +117,42 @@ namespace ACESim
             }
         }
 
+        /// <summary>
+        /// When called on a complete game, this returns the next decision path to take. For example, if there are three decisions with three actions each, then after (1, 1, 1), it would return (1, 1, 2), then (1, 1, 3), then (1, 2). If called on (3, 3, 3), it will throw an Exception.
+        /// </summary>
+        public IEnumerable<byte> GetNextDecisionPath(GameDefinition gameDefinition)
+        {
+            if (!IsComplete())
+                throw new Exception("Can get next path to try only on a completed game.");
+            // We need to find the last decision made where there was another action that could have been taken.
+            int? lastDecisionWithAnotherAction = null;
+            for (int i = LastIndexAddedToHistory - 3; i >= 0; i -= 3)
+            {
+                int decisionNumber = History[i];
+                int playerNumber = History[i + 1];
+                int decisionReached = History[i + 2];
+                if (gameDefinition.DecisionsExecutionOrder[decisionNumber].NumberActions > decisionReached)
+                {
+                    lastDecisionWithAnotherAction = decisionNumber;
+                    break;
+                }
+            }
+            if (lastDecisionWithAnotherAction == null)
+                throw new Exception("No more decision paths to take."); // indicates that there are no more decisions to take
+            int d = 0;
+            List<byte> decisions = new List<byte>();
+            IEnumerator<byte> decisionsEnumerator = GetDecisions().GetEnumerator();
+            while (d <= lastDecisionWithAnotherAction)
+            {
+                bool another = decisionsEnumerator.MoveNext();
+                if (!another)
+                    throw new Exception("Internal error. Expected another decision to exist.");
+                if (d == lastDecisionWithAnotherAction)
+                    yield return (byte) (decisionsEnumerator.Current + (byte) 1); // this is the decision where we need to try the next path
+                else
+                    yield return decisionsEnumerator.Current; // we're still on the same path
+            }
+        }
+
     }
 }

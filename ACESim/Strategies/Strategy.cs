@@ -47,7 +47,11 @@ namespace ACESim
             return theStrategy;
         }
 
-        
+        public int ChooseAction(IEnumerable<byte> informationSet)
+        {
+            throw new NotImplementedException();
+        }
+
         [Serializable]
         public class StrategyState
         {
@@ -144,7 +148,8 @@ namespace ACESim
             }
             FastPseudoRandom.SetState(s.SerializedFastPseudoRandom);
         }
-        
+
+
         public void RecallStrategyState(Strategy strategyWithStateAlreadyRecalled)
         {
             AllStrategies = strategyWithStateAlreadyRecalled.AllStrategies.ToList();

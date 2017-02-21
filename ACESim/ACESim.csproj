@@ -445,6 +445,7 @@
     <Compile Include="Util\LimitedConcurrencyLevelTaskScheduler.cs" />
     <Compile Include="Util\LotteryProbabilities.cs" />
     <Compile Include="Util\MD5HashGenerator.cs" />
+    <Compile Include="Util\DiscreteValueSignal.cs" />
     <Compile Include="Util\NWayTreeStorage.cs" />
     <Compile Include="Util\NWayTreeStorageInternal.cs" />
     <Compile Include="Util\ObfuscationBruteForce.cs" />

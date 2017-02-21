@@ -98,33 +98,60 @@ namespace ACESim
         /// depending on whether the code is best organized by separating the prepartion steps from the execution steps.
         /// If game play is completed, then Progress.Complete should be set to true. 
         /// </summary>
-        public virtual void PrepareForOrMakeCurrentDecision()
+        public virtual void PrepareForOrMakeDecision()
         {
             if (Progress.GameComplete)
                 return;
             if (PreparationPhase)
-                PrepareForCurrentDecision();
+                PrepareForDecision();
             else
-                MakeCurrentDecision();
+            {
+                int action = ChooseAction();
+                if (Progress.IsFinalGamePath && action < GetCurrentDecision().NumberActions)
+                    Progress.IsFinalGamePath = false;
+                RespondToDecision(action);
+            }
         }
 
-        public virtual Tuple<double, int> MakeDecision()
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <summary>
-        /// This should be handled entirely by the subclass if PrepareForOrMakeCurrentDecision is not overridden.
-        /// In this method, the subclass makes the decision indicated by CurrentDecisionNumber.
-        /// </summary>
-        public virtual void MakeCurrentDecision()
+        public virtual void PrepareForDecision()
         {
             // Entirely subclass
         }
 
-        public virtual void PrepareForCurrentDecision()
+        public virtual void RespondToDecision(int action)
         {
-            // Entirely subclass
+            // Entirely subclass. 
+        }
+
+        public virtual int ChooseAction()
+        {
+            Decision currentDecision = GetCurrentDecision();
+            byte playerNumber;
+            Strategy playersStrategy;
+            GetPlayerNumberAndStrategy(currentDecision, out playerNumber, out playersStrategy);
+            if (Progress.ActionsToPlay == null)
+                return playersStrategy.ChooseAction(Progress.GameHistory.GetPlayerInformation(playerNumber));
+            else
+            { // play according to a preset plan
+                bool anotherActionPlanned = Progress.ActionsToPlay.MoveNext();
+                if (anotherActionPlanned)
+                    return Progress.ActionsToPlay.Current;
+                else
+                    return 1; // The history does not give us guidance, so we play the first available decision. When the game is complete, we can figure out the next possible game history and play that one (which may go to completion or not). 
+            }
+        }
+
+        private void GetPlayerNumberAndStrategy(Decision currentDecision, out byte playerNumber, out Strategy playersStrategy)
+        {
+            playerNumber = currentDecision.PlayerNumber;
+            playersStrategy = Strategies[playerNumber];
+        }
+
+        private Decision GetCurrentDecision()
+        {
+            int currentDecisionIndex = (int)CurrentDecisionIndex;
+            Decision currentDecision = GameDefinition.DecisionsExecutionOrder[currentDecisionIndex];
+            return currentDecision;
         }
 
         public static int NumGamesPlayedAltogether;
@@ -152,9 +179,25 @@ namespace ACESim
         public static long? LoggingOnTrigger = null;
 
         /// <summary>
+        /// Plays the game according to a particular decisionmaking path. If the path is incomplete, it plays the first possible action for each remaining decision.
+        /// </summary>
+        /// <param name="actionsToPlay"></param>
+        /// <returns>The next path of decisions to play.</returns>
+        public IEnumerable<byte> PlayPath(IEnumerator<byte> actionsToPlay)
+        {
+            if (actionsToPlay == null)
+                actionsToPlay = (new List<byte> { }).GetEnumerator();
+            Progress.ActionsToPlay = actionsToPlay;
+            PlayUntilComplete(true);
+            if (Progress.IsFinalGamePath)
+                return null;
+            return Progress.GameHistory.GetNextDecisionPath(GameDefinition);
+        }
+
+        /// <summary>
         /// Continue to make decisions until the game is complete.
         /// </summary>
-        public void PlayUntilComplete(int? recordInputsForDecision, int? currentlyEvolvingDecision, bool recycleAfterPlay = true)
+        public void PlayUntilComplete(bool recycleAfterPlay = true)
         {
             try
             {
@@ -244,7 +287,7 @@ namespace ACESim
 
             string gamePointString2 = (CurrentActionPoint?.Name ?? "") + " " + " Preparation phase: " + PreparationPhase.ToString() + "\n";
 
-            PrepareForOrMakeCurrentDecision();
+            PrepareForOrMakeDecision();
 
             if (Progress.IsFinalStep(GameDefinition.ExecutionOrder))
                 FinalProcessing();

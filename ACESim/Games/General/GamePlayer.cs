@@ -131,7 +131,7 @@ namespace ACESim
         {
             Game game = gameFactory.CreateNewGame();
             game.PlaySetup(bestStrategies, startingProgress, inputs, gameDefinition, false);
-            game.PlayUntilComplete(null, null);
+            game.PlayUntilComplete();
             return game.Progress;
         }
 
@@ -244,7 +244,7 @@ namespace ACESim
 
             Game game = gameFactory.CreateNewGame();
             game.PlaySetup(strategies, gameProgress, gameInputsArray[iteration], gameDefinition, saveCompletedGameProgressInfos);
-            game.PlayUntilComplete(recordInputsForDecision, currentlyEvolvingDecision, false);
+            game.PlayUntilComplete(false);
 
             if (saveCompletedGameProgressInfos)
             {

@@ -15,14 +15,13 @@ namespace ACESim
         public GameDefinition GameDefinition;
         public List<GameModuleProgress> GameModuleProgresses;
         public GameHistory GameHistory = new GameHistory();
+        public IEnumerator<byte> ActionsToPlay = null;
         public bool GameComplete;
         public bool HaveAdvancedToFirstStep;
         public int? CurrentActionGroupNumber;
         public int? CurrentActionPointNumberWithinActionGroup;
         public bool PreparationForCurrentStepComplete;
-        public int? HighestCumulativeDistributionUpdateIndexToBeginExecutingSoFar;
-        public double? CutoffVariable;
-        public bool CurrentlyEvolvingDecisionIndexReached;
+        public bool IsFinalGamePath;
 
         static ConcurrentQueue<GameProgress> RecycledGameProgressQueue = new ConcurrentQueue<GameProgress>();
         private static int NumRecycled;
@@ -64,9 +63,6 @@ namespace ACESim
             CurrentActionGroupNumber = null;
             CurrentActionPointNumberWithinActionGroup = null;
             PreparationForCurrentStepComplete = false;
-            HighestCumulativeDistributionUpdateIndexToBeginExecutingSoFar = null;
-            CutoffVariable = null;
-            CurrentlyEvolvingDecisionIndexReached = false;
         }
 
         public virtual bool PassesSymmetryTest(GameProgress gameProgressWithSameInputsFlippedAndSwapped)
@@ -110,7 +106,6 @@ namespace ACESim
             CurrentActionPointNumberWithinActionGroup = 0;
             HaveAdvancedToFirstStep = true;
             PreparationForCurrentStepComplete = false;
-            HighestCumulativeDistributionUpdateIndexToBeginExecutingSoFar = null;
         }
 
         private void AdvanceToNextActionPoint(List<ActionGroup> executionGroupsInExecutionOrder)
@@ -153,13 +148,11 @@ namespace ACESim
             copy.GameModuleProgresses = GameModuleProgresses == null ? null : ( GameModuleProgresses.Select(x => x == null ? null : x.DeepCopy()).ToList() );
             copy.GameComplete = this.GameComplete;
             copy.GameHistory = GameHistory.DeepCopy();
+            copy.ActionsToPlay = ActionsToPlay; // we don't deep copy this b/c we want to play the specified decisions only once
             copy.HaveAdvancedToFirstStep = this.HaveAdvancedToFirstStep;
             copy.CurrentActionGroupNumber = this.CurrentActionGroupNumber;
             copy.CurrentActionPointNumberWithinActionGroup = this.CurrentActionPointNumberWithinActionGroup;
             copy.PreparationForCurrentStepComplete = this.PreparationForCurrentStepComplete;
-            copy.HighestCumulativeDistributionUpdateIndexToBeginExecutingSoFar = HighestCumulativeDistributionUpdateIndexToBeginExecutingSoFar;
-            copy.CutoffVariable = CutoffVariable;
-            copy.CurrentlyEvolvingDecisionIndexReached = CurrentlyEvolvingDecisionIndexReached;
         }
 
         public virtual void Report(SimulationInteraction interaction)

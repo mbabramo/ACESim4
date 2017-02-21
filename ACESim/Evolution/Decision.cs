@@ -22,6 +22,16 @@ namespace ACESim
         public String Abbreviation;
 
         /// <summary>
+        /// The player responsible for this decision (chance is player 0).
+        /// </summary>
+        public byte PlayerNumber;
+
+        /// <summary>
+        /// The number of discrete actions for this decision. (The actions will be numbered 1 .. NumberActions.)
+        /// </summary>
+        public byte NumberActions;
+
+        /// <summary>
         /// A game-specific decision type code that can be used to provide information about the type of decision. For example, this can be
         /// used to determine whether the CurrentlyEvolvingDecision is of a particular type.
         /// </summary>
