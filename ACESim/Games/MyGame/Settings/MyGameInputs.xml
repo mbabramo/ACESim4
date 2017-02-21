@@ -4,6 +4,9 @@
 
     <gameInputsAll>
       <gameInputs name="MyGameV1" simulationName="MyGame">
+        <setting name="RandomNumbers" type="list">
+          
+        </setting>
       </gameInputs>
     </gameInputsAll>
     

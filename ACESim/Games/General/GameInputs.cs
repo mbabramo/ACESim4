@@ -8,6 +8,6 @@ namespace ACESim
     [Serializable]
     public class GameInputs
     {
-        // Nothing
+        public List<double> RandomNumbers;
     }
 }
