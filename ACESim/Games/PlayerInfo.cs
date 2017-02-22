@@ -15,5 +15,18 @@ namespace ACESim
         /// True if the player optimizes to obtain the highest possible score (bowling) rather than the lowest (golf).
         /// </summary>
         public bool HighestIsBest;
+
+        public PlayerInfo()
+        {
+
+        }
+
+        public PlayerInfo(string playerName, int playerNumber, bool playerIsChance, bool highestIsBest)
+        {
+            PlayerName = playerName;
+            PlayerNumber = playerNumber;
+            PlayerIsChance = playerIsChance;
+            HighestIsBest = highestIsBest;
+        }
     }
 }

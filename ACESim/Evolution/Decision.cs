@@ -29,12 +29,12 @@ namespace ACESim
         /// <summary>
         /// The number of discrete actions for this decision. (The actions will be numbered 1 .. NumberActions.)
         /// </summary>
-        public int NumberActions;
+        public int NumActions;
 
         /// <summary>
         /// Whether the decision is bipolar (i.e., there are only two possible actions).
         /// </summary>
-        public bool Bipolar => NumberActions == 2;
+        public bool Bipolar => NumActions == 2;
 
         /// <summary>
         /// A game-specific decision type code that can be used to provide information about the type of decision. For example, this can be
@@ -60,6 +60,23 @@ namespace ACESim
         /// </summary>
         [OptionalSetting]
         public List<string> InformationSetAbbreviations;
+
+        public Decision()
+        {
+
+        }
+
+        public Decision(string name, string abbreviation, int playerNumber, int numActions, string decisionTypeCode = null, int repetitionsAfterFirst = 0, string preevolvedStrategyFilename = null, List<string> informationSetAbbreviations = null)
+        {
+            Name = name;
+            Abbreviation = abbreviation;
+            PlayerNumber = playerNumber;
+            NumActions = numActions;
+            DecisionTypeCode = decisionTypeCode;
+            RepetitionsAfterFirst = repetitionsAfterFirst;
+            PreevolvedStrategyFilename = preevolvedStrategyFilename;
+            InformationSetAbbreviations = informationSetAbbreviations;
+        }
     }
 
 }

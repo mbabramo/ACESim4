@@ -107,7 +107,7 @@ namespace ACESim
             else
             {
                 int action = ChooseAction();
-                if (Progress.IsFinalGamePath && action < GetCurrentDecision().NumberActions)
+                if (Progress.IsFinalGamePath && action < GetCurrentDecision().NumActions)
                     Progress.IsFinalGamePath = false;
                 RespondToDecision(action);
             }
@@ -302,8 +302,6 @@ namespace ACESim
                 FinalProcessing();
         }
 
-        
-
         public virtual void FinalProcessing()
         {
         }
@@ -314,6 +312,11 @@ namespace ACESim
             this.CurrentActionPoint = Progress.CurrentActionGroupNumber == null ? null : GameDefinition.ExecutionOrder[(int)Progress.CurrentActionGroupNumber].ActionPoints[(int)Progress.CurrentActionPointNumberWithinActionGroup];
             if (this.CurrentDecisionIndex != null)
                 this.MostRecentDecisionIndex = this.CurrentDecisionIndex;
+        }
+
+        public virtual double Score(int playerNumber)
+        {
+            throw new NotImplementedException();
         }
     }
 }
