@@ -6,8 +6,12 @@ using System.ComponentModel.Composition;
 
 namespace ACESim
 {
-    public class MyGameDefinition : GameDefinition, ICodeBasedSettingGenerator
+    [Export(typeof(ICodeBasedSettingGenerator))]
+    [ExportMetadata("GameName", "MyGame")] // put the name of the game class here: ExportMetadata("GameName", "XXX")
+    public class MyGameDefinition : GameDefinition, ICodeBasedSettingGenerator, ICodeBasedSettingGeneratorName
     {
+        public string CodeGeneratorName => "MyGameDefinition";
+
         public enum MyGamePlayers
         {
             Chance,

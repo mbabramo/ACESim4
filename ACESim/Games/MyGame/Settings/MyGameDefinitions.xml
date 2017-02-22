@@ -2,7 +2,9 @@
 
 <ACESim>
   <gameDefinitionsAll>
-    <setting name="MyGame" type="class" subclass="MyGameDefinition" codeGeneratorName="MyGameDefinition" codeGeneratorOptions="" >
-    </setting>
+    <gameDefinition name="MyGame">
+      <setting name="MyGame" type="class" subclass="MyGameDefinition" codeGeneratorName="MyGameDefinition" codeGeneratorOptions="" >
+      </setting>
+    </gameDefinition>
   </gameDefinitionsAll>
 </ACESim>
