@@ -92,28 +92,6 @@ namespace ACESim
         [OptionalSetting]
         public bool IgnoreWhenCountingProgress;
 
-        /// <summary>
-        /// If this is set, and if the default GroupDecisions is used, then a tag will be set in the only created action group indicating that cumulative distributions should be updated before it.
-        /// </summary>
-        [OptionalSetting]
-        public bool UpdateCumulativeDistributionsBeforeSingleActionGroup;
-
-        /// <summary>
-        /// If this is set, and if the default GroupDecisions is used, then a tag will be set in the only created action group indicating that cumulative distributions should be updated after it.
-        /// </summary>
-        [OptionalSetting]
-        public bool UpdateCumulativeDistributionsAfterSingleActionGroup;
-
-        /// <summary>
-        /// This should be set when when a cumulative distribution must occur after a set of action groups in execution and after that same set in evolution, rather than after just a single
-        /// action group in execution and evolution. For example, bargaining aggressiveness and bargaining are effectively a package, and so this should be set for the bargaining aggressiveness
-        /// module. That way, we will have a cumulative distribution that executes after bargaining aggressiveness and bargaining, and is then updated after bargaining and then bargaining aggressiveness
-        /// are evolved.
-        /// This will be imprinted on the action groups in the default GroupDecisions by adding a tag with the same name to the action group.
-        /// </summary>
-        [OptionalSetting]
-        public bool WhenEvolvingMoveCumulativeDistributionsBeforeThisGroupToAfter;
-
         public virtual void CreateInstanceAndInitializeProgress(Game theGame, List<Strategy> theStrategies, object gameModuleSettings, out GameModule theGameModule, out GameModuleProgress theGameModuleProgress)
         {
             throw new NotImplementedException();
@@ -248,12 +226,6 @@ namespace ACESim
             if (DecisionsCore == null)
                 DecisionsCore = new List<Decision>();
             ActionGroup actionGroup = CreateActionGroup(DecisionsCore, ActionsAtBeginningOfModule, ActionsAtEndOfModule);
-            if (UpdateCumulativeDistributionsBeforeSingleActionGroup)
-                actionGroup.AddTag("UpdateCumulativeDistributionsBeforeActionGroup");
-            if (UpdateCumulativeDistributionsAfterSingleActionGroup)
-                actionGroup.AddTag("UpdateCumulativeDistributionsAfterActionGroup");
-            if (WhenEvolvingMoveCumulativeDistributionsBeforeThisGroupToAfter)
-                actionGroup.AddTag("WhenEvolvingMoveCumulativeDistributionsBeforeThisGroupToAfter");
             return new List<ActionGroup> { actionGroup };
         }
 

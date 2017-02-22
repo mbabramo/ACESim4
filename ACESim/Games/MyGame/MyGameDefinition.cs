@@ -6,7 +6,7 @@ using System.ComponentModel.Composition;
 
 namespace ACESim
 {
-    public class MyGameDefinition : GameDefinition, ICodeBasedSettingGenerator, ICodeBasedSettingGeneratorName
+    public class MyGameDefinition : GameDefinition, ICodeBasedSettingGenerator
     {
         public enum MyGamePlayers
         {
@@ -20,8 +20,6 @@ namespace ACESim
             POffer,
             DOffer
         }
-
-        public string CodeGeneratorName => "MyGameDefinition";
 
         public object GenerateSetting(string options)
         {
