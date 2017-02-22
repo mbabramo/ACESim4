@@ -26,6 +26,16 @@ namespace ACESim
         
         public GameDefinition GetGameDefinitionSettings(Type theType)
         {
+            if (currentExecutionInformation.GameDefinitionsSet.settings.Count() == 1)
+            { // see if this is code-generated.
+                var first = currentExecutionInformation.GameDefinitionsSet.settings.First() as SettingClass;
+                if (first.Generator != null)
+                {
+                    GameDefinition result = (GameDefinition) first.Generator.GenerateSetting(first.CodeGeneratorOptions);
+                    return result;
+                }
+            }
+            dosameabove;
             return (GameDefinition)GetSettings(theType, currentExecutionInformation.GameDefinitionsSet.settings, 1, false, null, null);
         }
 
