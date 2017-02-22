@@ -6,8 +6,8 @@ using System.ComponentModel.Composition;
 
 namespace ACESim
 {
-    [Export(typeof(ICodeBasedSettingGenerator))]
-    [ExportMetadata("GameName", "MyGame")] // put the name of the game class here: ExportMetadata("GameName", "XXX")
+    [Export(typeof(ICodeBasedSettingGenerator))] // include the export and exportmetadata attributes if we implement GenerateSetting, setting up the GameModule by code instead of in the settings file.
+    [ExportMetadata("CodeGeneratorName", "MyGameDefinition")]
     public class MyGameDefinition : GameDefinition, ICodeBasedSettingGenerator, ICodeBasedSettingGeneratorName
     {
         public string CodeGeneratorName => "MyGameDefinition";
