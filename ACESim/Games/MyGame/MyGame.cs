@@ -10,6 +10,14 @@ namespace ACESim
     /// </summary>
     public class MyGame : Game
     {
-        
+        public override void PrepareForDecision()
+        {
+            base.PrepareForDecision();
+        }
+
+        public override void RespondToAction(int action)
+        {
+            base.RespondToAction(action);
+        }
     }
 }

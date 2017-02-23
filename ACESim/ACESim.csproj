@@ -224,7 +224,7 @@
     <Compile Include="Games\MyGame\MyGameDefinition.cs" />
     <Compile Include="Games\MyGame\MyGameFactory.cs" />
     <Compile Include="Games\MyGame\MyGameInputs.cs" />
-    <Compile Include="Games\MyGame\MyGameProgressInfo.cs" />
+    <Compile Include="Games\MyGame\MyGameProgress.cs" />
     <Compile Include="Executor\CurrentExecutionInformation.cs" />
     <Compile Include="Executor\Executor.cs" />
     <Compile Include="Executor\IUiInteraction.cs" />
