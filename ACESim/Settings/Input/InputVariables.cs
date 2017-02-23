@@ -20,6 +20,16 @@ namespace ACESim
         
         public EvolutionSettings GetEvolutionSettings()
         {
+
+            if (currentExecutionInformation.EvolutionSettingsSet.settings.Count() == 1)
+            { // see if this is code-generated.
+                var first = currentExecutionInformation.EvolutionSettingsSet.settings.First() as SettingClass;
+                if (first.Generator != null)
+                {
+                    EvolutionSettings result = (EvolutionSettings)first.Generator.GenerateSetting(first.CodeGeneratorOptions);
+                    return result;
+                }
+            }
             //return (EvolutionSettings)GetSettings(typeof(EvolutionSettings), 1, false, null, null)[0];
             return (EvolutionSettings)GetSettings(typeof(EvolutionSettings), currentExecutionInformation.EvolutionSettingsSet.settings, 1, false, null, null);
         }
@@ -35,7 +45,6 @@ namespace ACESim
                     return result;
                 }
             }
-            dosameabove;
             return (GameDefinition)GetSettings(theType, currentExecutionInformation.GameDefinitionsSet.settings, 1, false, null, null);
         }
 
