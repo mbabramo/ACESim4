@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
-    public enum MyGamePlayers
+    public enum MyGamePlayers : byte
     {
         Chance,
         Plaintiff,

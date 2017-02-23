@@ -5,13 +5,19 @@ using System.Text;
 
 namespace ACESim
 {
-    class MyGameProgress : GameProgress
+    public class MyGameProgress : GameProgress
     {
         public double LitigationQuality;
-        public int PlaintiffSignal;
-        public int DefendantSignal;
-        public double PlaintiffOffer;
-        public double DefendantOffer;
+        public byte PSignal;
+        public byte DSignal;
+        public double POffer;
+        public double DOffer;
+        public bool CaseSettles;
+        public double? SettlementValue;
+        public byte CourtSignal;
+        public bool PWinsAtTrial;
+        public double PWelfare;
+        public double DWelfare;
 
         public override GameProgress DeepCopy()
         {
@@ -20,10 +26,16 @@ namespace ACESim
             // copy.GameComplete = this.GameComplete;
             base.CopyFieldInfo(copy);
             copy.LitigationQuality = LitigationQuality;
-            copy.PlaintiffSignal = PlaintiffSignal;
-            copy.DefendantSignal = DefendantSignal;
-            copy.PlaintiffOffer = PlaintiffOffer;
-            copy.DefendantOffer = DefendantOffer;
+            copy.PSignal = PSignal;
+            copy.DSignal = DSignal;
+            copy.POffer = POffer;
+            copy.DOffer = DOffer;
+            copy.CaseSettles = CaseSettles;
+            copy.SettlementValue = SettlementValue;
+            copy.CourtSignal = CourtSignal;
+            copy.PWinsAtTrial = PWinsAtTrial;
+            copy.PWelfare = PWelfare;
+            copy.DWelfare = DWelfare;
 
             return copy;
         }

@@ -42,6 +42,12 @@ namespace ACESim
         public bool Bipolar => NumActions == 2;
 
         /// <summary>
+        /// A game-specific code, often used simply to list the decisions in order.
+        /// </summary>
+        [OptionalSetting]
+        public byte DecisionByteCode;
+
+        /// <summary>
         /// A game-specific decision type code that can be used to provide information about the type of decision. For example, this can be
         /// used to determine whether the CurrentlyEvolvingDecision is of a particular type.
         /// </summary>
@@ -71,13 +77,14 @@ namespace ACESim
 
         }
 
-        public Decision(string name, string abbreviation, byte playerNumber, List<byte> playersToInform, byte numActions, string decisionTypeCode = null, int repetitionsAfterFirst = 0, string preevolvedStrategyFilename = null, List<string> informationSetAbbreviations = null)
+        public Decision(string name, string abbreviation, byte playerNumber, List<byte> playersToInform, byte numActions, byte decisionByteCode = 0, string decisionTypeCode = null, int repetitionsAfterFirst = 0, string preevolvedStrategyFilename = null, List<string> informationSetAbbreviations = null)
         {
             Name = name;
             Abbreviation = abbreviation;
             PlayerNumber = playerNumber;
             PlayersToInform = playersToInform;
             NumActions = numActions;
+            DecisionByteCode = decisionByteCode;
             DecisionTypeCode = decisionTypeCode;
             RepetitionsAfterFirst = repetitionsAfterFirst;
             PreevolvedStrategyFilename = preevolvedStrategyFilename;

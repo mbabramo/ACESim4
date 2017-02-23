@@ -88,7 +88,7 @@ namespace ACESim
                 AddToInformationSet(information, playerIndex);
         }
 
-        private void AddToInformationSet(byte information, byte playerNumber)
+        public void AddToInformationSet(byte information, byte playerNumber)
         {
             LastIndexAddedToInformationSets++;
             InformationSets[LastIndexAddedToInformationSets] = playerNumber;

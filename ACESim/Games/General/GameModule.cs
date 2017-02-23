@@ -75,12 +75,12 @@ namespace ACESim
 
         [InternallyDefinedSetting]
         [NonSerialized]
-		[System.Xml.Serialization.XmlIgnore]
+        [System.Xml.Serialization.XmlIgnore]
         internal Game Game;
 
         [InternallyDefinedSetting]
         [NonSerialized]
-		[System.Xml.Serialization.XmlIgnore]
+        [System.Xml.Serialization.XmlIgnore]
         internal List<Strategy> AllStrategies;
 
         [InternallyDefinedSetting]
@@ -144,7 +144,7 @@ namespace ACESim
             throw new NotImplementedException("Either override Score for the GameModule or override GetScoreForParticularDecision.");
         }
 
-        public virtual List<Tuple<string,string>> GetInputNamesAndAbbreviations(int decisionNumberWithinActionGroup)
+        public virtual List<Tuple<string, string>> GetInputNamesAndAbbreviations(int decisionNumberWithinActionGroup)
         {
             return new List<Tuple<string, string>>();
         }
@@ -171,6 +171,11 @@ namespace ACESim
                         optionValue = optionString.Replace(codeGeneratorOptionName + ":", "");
             }
             return optionValue == null ? null : optionValue.Trim();
+        }
+
+        internal static byte GetByteCodeGeneratorOption(string optionsSpecifiedByUserAndPassedToGenerateSetting, string codeGeneratorOptionName)
+        {
+            return (byte)GetIntCodeGeneratorOption(optionsSpecifiedByUserAndPassedToGenerateSetting, codeGeneratorOptionName);
         }
 
         internal static int GetIntCodeGeneratorOption(string optionsSpecifiedByUserAndPassedToGenerateSetting, string codeGeneratorOptionName)

@@ -7,6 +7,5 @@ namespace ACESim
 {
     public class MyGameInputs : GameInputs
     {
-
     }
 }

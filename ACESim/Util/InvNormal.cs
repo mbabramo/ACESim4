@@ -3,12 +3,21 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MathNet.Numerics.Distributions;
+using MathNet.Numerics.Random;
 
 namespace ACESim
 {
     public static class InvNormal
     {
+        static Normal normal = new Normal();
+
         public static double Calculate(double p)
+        {
+            return normal.InverseCumulativeDistribution(p);
+        }
+
+        public static double Calculate_Alt(double p)
         {
             return QNorm(p, 0, 1.0, true, false);
         }

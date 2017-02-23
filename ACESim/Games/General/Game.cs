@@ -39,6 +39,8 @@ namespace ACESim
 
         internal bool PreparationPhase;
 
+        internal bool DecisionNeeded;
+
         public bool TriggerReplay; // useful to try to find bugs
 
         public bool RecordReportInfo;
@@ -105,23 +107,24 @@ namespace ACESim
         {
             if (Progress.GameComplete)
                 return;
+            Decision currentDecision = CurrentDecision;
             if (PreparationPhase)
-                PrepareForDecision();
-            else
+                DecisionNeeded = DecisionIsNeeded(currentDecision);
+            else if (DecisionNeeded)
             {
                 int action = ChooseAction();
                 if (Progress.IsFinalGamePath && action < CurrentDecision.NumActions)
                     Progress.IsFinalGamePath = false;
-                RespondToAction(action);
+                RespondToAction(currentDecision, action);
             }
         }
 
-        public virtual void PrepareForDecision()
+        public virtual bool DecisionIsNeeded(Decision currentDecision)
         {
-            // Entirely subclass
+            return true;
         }
 
-        public virtual void RespondToAction(int action)
+        public virtual void RespondToAction(Decision currentDecision, int action)
         {
             // Entirely subclass. 
         }
@@ -146,6 +149,16 @@ namespace ACESim
         public virtual double ConvertActionToUniformDistributionDraw(int action)
         {
             return ((double) (action + 1)) / (double) (CurrentDecision.NumActions + 1);
+        }
+
+        public virtual double ConvertActionToNormalDistributionDraw(int action, double stdev)
+        {
+            return ConvertUniformDistributionDrawToNormalDraw(ConvertActionToUniformDistributionDraw(action), stdev);
+        }
+
+        public virtual double ConvertUniformDistributionDrawToNormalDraw(double uniformDistributionDraw, double stdev)
+        {
+            return InvNormal.Calculate(uniformDistributionDraw) * stdev;
         }
 
         /// <summary>
