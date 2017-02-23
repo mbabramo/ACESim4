@@ -54,8 +54,8 @@ namespace ACESim
             else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.CourtDecision)
             {
                 MyProgress.CourtSignal = GetDiscreteSignal(action, MyDefinition.CourtNoiseStdev, MyDefinition.CourtSignalParameters); // This will produce a signal of 0 in 1/10th of cases, 1 in 1/10th, etc. 
-                double courtSignal = ConvertActionToUniformDistributionDraw(MyProgress.CourtSignal); // note that we're actually converting the signal the court gets (not the original action) into a uniform distribution draw. We could try to enhance GetDiscreteSignal so that we turn this back into an estimate of the probability of a win.
-                MyProgress.PWinsAtTrial = (courtSignal > 0.5);
+                double courtSignalLocation = EquallySpaced.GetLocationOfMidpoint(MyProgress.CourtSignal - 1 /* make zero-based */, MyDefinition.NumCourtSignals); // note that we're actually converting the signal the court gets (not the original action) into a uniform distribution draw. We could try to enhance GetDiscreteSignal so that we turn this back into an estimate of the probability of a win.
+                MyProgress.PWinsAtTrial = (courtSignalLocation > 0.5);
             }
         }
 
@@ -91,7 +91,7 @@ namespace ACESim
         {
             var noise = ConvertActionToNormalDistributionDraw(action, noiseStdev);
             var valuePlusNoise = MyProgress.LitigationQuality + noise;
-            byte discreteSignal = (byte)DiscreteValueSignal.GetDiscreteSignal(valuePlusNoise, dvsp);
+            byte discreteSignal = (byte)DiscreteValueSignal.GetDiscreteSignal(valuePlusNoise, dvsp); // note that this is a 1-based signal
             return discreteSignal;
         }
     }

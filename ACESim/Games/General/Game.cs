@@ -148,7 +148,8 @@ namespace ACESim
 
         public virtual double ConvertActionToUniformDistributionDraw(int action)
         {
-            return ((double) (action + 1)) / (double) (CurrentDecision.NumActions + 1);
+            // If we have 2 actions and we draw action #1, then this is equivalent to 0.25 (= 0.5/2); if we draw action #2, then we have 0.75 (= 1.5/2). If we have 3 actions, then the three actions are 1/6, 3/6, and 5/6.
+            return EquallySpaced.GetLocationOfMidpoint(action - 1 /* make it zero-based */, CurrentDecision.NumActions);
         }
 
         public virtual double ConvertActionToNormalDistributionDraw(int action, double stdev)
@@ -306,7 +307,10 @@ namespace ACESim
             PrepareForOrMakeDecision();
 
             if (Progress.IsFinalStep(GameDefinition.ExecutionOrder))
+            {
                 FinalProcessing();
+                Progress.GameComplete = true;
+            }
         }
 
         public virtual void FinalProcessing()

@@ -3,36 +3,8 @@
 <ACESim>
   <gameDefinitionsAll>
     <gameDefinition name="MyGame">
-      <setting name="MyGameDefinition" type="class" subclass="MyGameDefinition" codeGeneratorName="MyGameDefinition" codeGeneratorOptions="" >
+      <setting name="MyGameDefinition" type="class" subclass="MyGameDefinition" codeGeneratorName="MyGameDefinition" codeGeneratorOptions="NumLitigationQualityPoints: 10; NumPlaintiffSignals: 10; NumDefendantSignals: 10; NumCourtSignals: 10; NumPlaintiffOffers: 10; NumDefendantOffers: 10; PNoiseStdev: 0.2; DNoiseStdev: 0.2; CourtNoiseStdev: 0.2; PLitigationCosts: 0.1; DLitigationCosts: 0.1" >
       </setting>
-      <!--<setting name="Players" type="list">
-        <setting name="Player" type="class">
-          <setting name="PlayerName" type="string">Chance</setting>
-          <setting name="PlayerNumber" type="int">0</setting>
-          <setting name="PlayerIsChance" type="bool">TRUE</setting>
-          <setting name="HighestIsBest" type="bool">FALSE</setting>
-        </setting>
-        <setting name="Player" type="class">
-          <setting name="PlayerName" type="string">Plaintiff</setting>
-          <setting name="PlayerNumber" type="int">1</setting>
-          <setting name="PlayerIsChance" type="bool">FALSE</setting>
-          <setting name="HighestIsBest" type="bool">TRUE</setting>
-        </setting>
-        <setting name="Player" type="class">
-          <setting name="PlayerName" type="string">Chance</setting>
-          <setting name="PlayerNumber" type="int">2</setting>
-          <setting name="PlayerIsChance" type="bool">FALSE</setting>
-          <setting name="HighestIsBest" type="bool">TRUE</setting>
-        </setting>
-      </setting>
-      <setting name="DecisionsExecutionOrder" type="list">
-        <setting name="Decision" type="class">
-          <setting name="Name" type="text">z</setting>
-          <setting name="Abbreviation" type="text">p</setting>
-          <setting name="PlayerNumber" type="int">0</setting>
-          <setting name="NumberActions" type="int">2</setting>
-        </setting>
-      </setting>-->
     </gameDefinition>
   </gameDefinitionsAll>
 </ACESim>

@@ -52,8 +52,7 @@ namespace ACESim.Util
         {
             lock (CalcLock)
             {
-                _PointsInInverseNormalDistribution = Enumerable.Range(0, NumInInverseNormalDistribution)
-                    .Select(x => x / (NumInInverseNormalDistribution + 1.0))
+                _PointsInInverseNormalDistribution = EquallySpaced.GetEquallySpacedPoints(NumInInverseNormalDistribution)
                     .Select(x => InvNormal.Calculate(x))
                     .ToArray();
             }
@@ -75,18 +74,16 @@ namespace ACESim.Util
 
         private static void CalculateCutoffs(DiscreteValueSignalParameters nsParams)
         {
-            // Midpoints from uniform distribution: Suppose that there are two points in the uniform distribution --> they will be (0.25, 0.75), because these are the midpoints of (0, 0.5) and (0.5, 1.0). If we have 10 points, we want (0.05, 0.15, ..., 0.95). So the formula for point i (starting with zero) is (i + 0.5) / 10.
+            // Midpoints from uniform distribution: 
             double[] midpoints = 
-                Enumerable.Range(0, nsParams.NumPointsInSourceUniformDistribution)
-                .Select(x => (double) (x + 0.5) / (double) nsParams.NumPointsInSourceUniformDistribution)
-                .ToArray();
+                EquallySpaced.GetMidpointsOfEquallySpacedRegions(nsParams.NumPointsInSourceUniformDistribution);
             double[] drawsFromNormalDistribution = PointsInInverseNormalDistribution.Select(x => x * nsParams.StdevOfNormalDistribution).ToArray();
             // Now, we make every combination of uniform and normal distribution draws, and add them together
             var crossProduct = midpoints
                 .SelectMany(x => drawsFromNormalDistribution, (x, y) => new { uniformDistPoint = x, normDistValue = y });
             var distinctPointsOrdered = crossProduct.Select(x => x.uniformDistPoint + x.normDistValue).OrderBy(x => x).ToArray();
-            // Now we want the cutoffs for the signals, making each cutoff equally likely. Note that if we want 2 signals, then we want 1 cutoff. (More generally, n signals -> n - 1 cutoffs). 
-            double[] percentilePoints = Enumerable.Range(1, nsParams.NumSignals - 1).Select(x => (double)x / (double)nsParams.NumSignals).ToArray();
+            // Now we want the cutoffs for the signals, making each cutoff equally likely. Note that if we want 2 signals, then we want 1 cutoff at 0.5; if there are 10 signals, we want cutoffs at .1, .2, ..., .9. (More generally, n signals -> n - 1 cutoffs). 
+            double[] percentilePoints = EquallySpaced.GetCutoffsBetweenRegions(nsParams.NumSignals);
             double[] cutoffs = percentilePoints.Select(x => Percentile(distinctPointsOrdered, x)).ToArray();
             CutoffsForStandardDeviation[nsParams] = cutoffs;
         }

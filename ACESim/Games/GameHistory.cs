@@ -11,8 +11,7 @@ namespace ACESim
         const int MaxLength = 150;
         const byte Complete = 254;
         const byte Incomplete = 255;
-
-        public byte? NumPlayers { get; set; } = null;
+        
         public byte[] History = new byte[MaxLength];
         public short LastIndexAddedToHistory = 0;
         public int NumberDecisions => (LastIndexAddedToHistory - 1) / 3;
@@ -28,7 +27,6 @@ namespace ACESim
         {
             return new ACESim.GameHistory()
             {
-                NumPlayers = NumPlayers,
                 History = History.ToArray(),
                 LastIndexAddedToHistory = LastIndexAddedToHistory,
                 InformationSets = InformationSets.ToArray(),
@@ -82,8 +80,6 @@ namespace ACESim
 
         public void AddToInformationSet(byte information, List<byte> playersToInform)
         {
-            if (NumPlayers == null)
-                throw new Exception("Must set NumPlayers.");
             foreach (byte playerIndex in playersToInform)
                 AddToInformationSet(information, playerIndex);
         }

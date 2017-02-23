@@ -352,6 +352,7 @@
     <Compile Include="Settings\Setting\SettingVariable.cs" />
     <Compile Include="Strategies\CRMDevelopment.cs" />
     <Compile Include="Strategies\StrategyState.cs" />
+    <Compile Include="Util\EquallySpaced.cs" />
     <Compile Include="Util\InvNormal.cs" />
     <Compile Include="Util\PriorityQueueSmallRAMFootprint.cs" />
     <Compile Include="Settings\Distributions\MixtureDistribution.cs" />

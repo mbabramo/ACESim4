@@ -73,7 +73,7 @@ namespace ACESim
                     aStrategy.PlayerInfo = GameDefinition.Players[i];
                     Strategies.Add(aStrategy);
                 }
-                for (int i = 0; i < GameDefinition.DecisionsExecutionOrder.Count; i++)
+                for (int i = 0; i < GameDefinition.NumPlayers; i++)
                 {
                     Strategies[i].AllStrategies = Strategies;
                 }

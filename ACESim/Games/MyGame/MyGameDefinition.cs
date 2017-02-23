@@ -24,17 +24,21 @@ namespace ACESim
         public double DLitigationCosts;
         public DiscreteValueSignalParameters PSignalParameters, DSignalParameters, CourtSignalParameters;
 
+        public MyGameDefinition() : base()
+        {
+
+        }
+
         public string CodeGeneratorName => "MyGameDefinition";
 
         public object GenerateSetting(string options)
         {
             ParseOptions(options);
 
-            return new MyGameDefinition()
-            {
-                Players = GetPlayersList(),
-                DecisionsExecutionOrder = GetDecisionsList()
-            };
+            Players = GetPlayersList();
+            DecisionsExecutionOrder = GetDecisionsList();
+
+            return this;
         }
 
         private static List<PlayerInfo> GetPlayersList()
@@ -85,7 +89,6 @@ namespace ACESim
                 StdevOfNormalDistribution = DNoiseStdev,
                 NumSignals = NumPlaintiffSignals
             };
-            DNoiseStdev = GameModule.GetDoubleCodeGeneratorOption(options, "DNoiseStdev");
             CourtSignalParameters = new DiscreteValueSignalParameters()
             {
                 NumPointsInSourceUniformDistribution = NumLitigationQualityPoints,
