@@ -34,7 +34,7 @@ namespace ACESim
         /// <summary>
         /// The number of discrete actions for this decision. (The actions will be numbered 1 .. NumberActions.)
         /// </summary>
-        public int NumActions;
+        public byte NumActions;
 
         /// <summary>
         /// Whether the decision is bipolar (i.e., there are only two possible actions).

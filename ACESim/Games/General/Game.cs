@@ -142,7 +142,7 @@ namespace ACESim
                 else
                     actionToChoose = 1; // The history does not give us guidance, so we play the first available decision. When the game is complete, we can figure out the next possible game history and play that one (which may go to completion or not). 
             }
-            Progress.GameHistory.AddToHistory((byte)CurrentDecisionIndex, CurrentPlayerNumber, actionToChoose, CurrentDecision.PlayersToInform);
+            Progress.GameHistory.AddToHistory((byte)CurrentDecisionIndex, CurrentPlayerNumber, actionToChoose, CurrentDecision.NumActions, CurrentDecision.PlayersToInform);
             return actionToChoose;
         }
 

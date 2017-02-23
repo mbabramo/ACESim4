@@ -28,7 +28,7 @@ namespace ACESim
 
         public Strategy()
         {
-            RegretsOrMoveProbabilities = new NWayTreeStorageInternal<double>();
+            // RegretsOrMoveProbabilities = new NWayTreeStorageInternal<double>();
         }
 
         public virtual Strategy DeepCopy()

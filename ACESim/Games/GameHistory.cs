@@ -14,7 +14,7 @@ namespace ACESim
         
         public byte[] History = new byte[MaxLength];
         public short LastIndexAddedToHistory = 0;
-        public int NumberDecisions => (LastIndexAddedToHistory - 1) / 3;
+        public int NumberDecisions => (LastIndexAddedToHistory - 1) / 4;
         public byte[] InformationSets = new byte[MaxLength];
         public short LastIndexAddedToInformationSets = -1;
 
@@ -41,7 +41,7 @@ namespace ACESim
             LastIndexAddedToInformationSets = -1;
         }
 
-        public void AddToHistory(byte decisionNumber, byte playerNumber, byte action, List<byte> playersToInform)
+        public void AddToHistory(byte decisionNumber, byte playerNumber, byte action, byte numPossibleActions, List<byte> playersToInform)
         {
             short i = LastIndexAddedToHistory;
             if (History[i] == Complete)
@@ -49,18 +49,32 @@ namespace ACESim
             History[i] = decisionNumber;
             History[i + 1] = playerNumber;
             History[i + 2] = action;
-            History[i + 3] = Incomplete;
-            LastIndexAddedToHistory = (short) (i + 3);
+            History[i + 3] = numPossibleActions;
+            History[i + 4] = Incomplete;
+            LastIndexAddedToHistory = (short) (i + 4);
             AddToInformationSet(decisionNumber, playersToInform);
         }
 
-        public IEnumerable<byte> GetDecisions()
+        public IEnumerable<byte> GetActions()
         {
+            int offset = 2;
             if (LastIndexAddedToHistory == 0)
                 yield break;
             for (short i = 0; i < LastIndexAddedToHistory; i++)
             {
-                if (i % 3 == 2)
+                if (i % 4 == offset)
+                    yield return History[i];
+            }
+        }
+
+        public IEnumerable<byte> GetNumPossibleActions()
+        {
+            int offset = 3;
+            if (LastIndexAddedToHistory == 0)
+                yield break;
+            for (short i = 0; i < LastIndexAddedToHistory; i++)
+            {
+                if (i % 4 == offset)
                     yield return History[i];
             }
         }
@@ -112,11 +126,12 @@ namespace ACESim
                 throw new Exception("Can get next path to try only on a completed game.");
             // We need to find the last decision made where there was another action that could have been taken.
             int? lastDecisionWithAnotherAction = null;
-            for (int i = LastIndexAddedToHistory - 3; i >= 0; i -= 3)
+            for (int i = LastIndexAddedToHistory - 4; i >= 0; i -= 4)
             {
                 int decisionNumber = History[i];
                 int playerNumber = History[i + 1];
                 int action = History[i + 2];
+                int numPossibleActions = History[i + 3];
                 if (gameDefinition.DecisionsExecutionOrder[decisionNumber].NumActions > action)
                 {
                     lastDecisionWithAnotherAction = decisionNumber;
@@ -127,7 +142,7 @@ namespace ACESim
                 throw new Exception("No more decision paths to take."); // indicates that there are no more decisions to take
             int d = 0;
             List<byte> decisions = new List<byte>();
-            IEnumerator<byte> decisionsEnumerator = GetDecisions().GetEnumerator();
+            IEnumerator<byte> decisionsEnumerator = GetActions().GetEnumerator();
             while (d <= lastDecisionWithAnotherAction)
             {
                 bool another = decisionsEnumerator.MoveNext();
