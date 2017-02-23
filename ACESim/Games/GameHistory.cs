@@ -41,14 +41,14 @@ namespace ACESim
             LastIndexAddedToInformationSets = -1;
         }
 
-        public void AddToHistory(byte decisionNumber, byte playerNumber, byte decisionReached, List<byte> playersToInform)
+        public void AddToHistory(byte decisionNumber, byte playerNumber, byte action, List<byte> playersToInform)
         {
             short i = LastIndexAddedToHistory;
             if (History[i] == Complete)
                 throw new Exception("Cannot add to history of complete game.");
             History[i] = decisionNumber;
             History[i + 1] = playerNumber;
-            History[i + 2] = decisionReached;
+            History[i + 2] = action;
             History[i + 3] = Incomplete;
             LastIndexAddedToHistory = (short) (i + 3);
             AddToInformationSet(decisionNumber, playersToInform);
@@ -60,7 +60,7 @@ namespace ACESim
                 yield break;
             for (short i = 0; i < LastIndexAddedToHistory; i++)
             {
-                if (i % 3 == 0)
+                if (i % 3 == 2)
                     yield return History[i];
             }
         }
@@ -116,8 +116,8 @@ namespace ACESim
             {
                 int decisionNumber = History[i];
                 int playerNumber = History[i + 1];
-                int decisionReached = History[i + 2];
-                if (gameDefinition.DecisionsExecutionOrder[decisionNumber].NumActions > decisionReached)
+                int action = History[i + 2];
+                if (gameDefinition.DecisionsExecutionOrder[decisionNumber].NumActions > action)
                 {
                     lastDecisionWithAnotherAction = decisionNumber;
                     break;
@@ -137,6 +137,7 @@ namespace ACESim
                     yield return (byte) (decisionsEnumerator.Current + (byte) 1); // this is the decision where we need to try the next path
                 else
                     yield return decisionsEnumerator.Current; // we're still on the same path
+                d++;
             }
         }
 

@@ -118,7 +118,9 @@ namespace ACESim
             {
                 var progressToUse = startingProgress.DeepCopy();
                 IEnumerable<byte> next = PlayPath(path, progressToUse, gameInputsToUse);
-                var DEBUG = next.ToList();
+                //var thePathEnumerated = next?.ToList();
+                //if (thePathEnumerated != null)
+                //    Debug.WriteLine($"{String.Join(",", thePathEnumerated)}");
                 if (next == null)
                     path = null;
                 else

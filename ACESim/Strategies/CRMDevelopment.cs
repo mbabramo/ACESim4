@@ -52,9 +52,10 @@ namespace ACESim
             InputVariables inputVariables = new InputVariables(CurrentExecutionInformation);
             GameInputs inputs = inputVariables.GetGameInputs(theType, 1, new IterationID(1), CurrentExecutionInformation);
 
+            int numPlayed = 0;
             foreach (var progress in player.PlayAllPaths(inputs))
             {
-
+                numPlayed++;
             }
         }
 
