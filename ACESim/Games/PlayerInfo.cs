@@ -9,7 +9,7 @@ namespace ACESim
     public class PlayerInfo
     {
         public string PlayerName;
-        public int PlayerNumber;
+        public byte PlayerNumber;
         public bool PlayerIsChance;
         /// <summary>
         /// True if the player optimizes to obtain the highest possible score (bowling) rather than the lowest (golf).
@@ -21,7 +21,7 @@ namespace ACESim
 
         }
 
-        public PlayerInfo(string playerName, int playerNumber, bool playerIsChance, bool highestIsBest)
+        public PlayerInfo(string playerName, byte playerNumber, bool playerIsChance, bool highestIsBest)
         {
             PlayerName = playerName;
             PlayerNumber = playerNumber;

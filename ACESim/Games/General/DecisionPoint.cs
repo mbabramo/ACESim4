@@ -10,10 +10,10 @@ namespace ACESim
     public class DecisionPoint : ActionPoint
     {
         public Decision Decision;
-        public int? DecisionNumber;
-        public int? DecisionNumberWithinActionGroup;
-        public int? DecisionNumberWithinModule;
-        public int? SubstituteDecisionNumberInsteadOfEvolving;
+        public byte? DecisionNumber;
+        public byte? DecisionNumberWithinActionGroup;
+        public byte? DecisionNumberWithinModule;
+        public byte? SubstituteDecisionNumberInsteadOfEvolving;
 
         public override ActionPoint DeepCopy(ActionGroup newActionGroup)
         {

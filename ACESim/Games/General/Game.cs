@@ -25,24 +25,17 @@ namespace ACESim
         public DecisionPoint CurrentDecisionPoint => CurrentActionPoint as DecisionPoint;
         public ActionGroup CurrentActionGroup => CurrentActionPoint.ActionGroup;
 
-        public int? CurrentDecisionIndex { get { if (CurrentDecisionPoint == null) return null; return CurrentDecisionPoint.DecisionNumber; } }
-        public int? CurrentDecisionIndexWithinActionGroup { get { if (CurrentDecisionPoint == null) return null; return CurrentDecisionPoint.DecisionNumberWithinActionGroup; } }
-        public int? CurrentDecisionIndexWithinModule { get { if (CurrentDecisionPoint == null) return null; return CurrentDecisionPoint.DecisionNumberWithinModule; } }
-        public int? CurrentActionGroupExecutionIndex { get { if (CurrentActionPoint == null) return null; return CurrentActionPoint.ActionGroup.ActionGroupExecutionIndex; } }
-        public int? CurrentModuleIndex { get { if (CurrentActionPoint == null) return null; return CurrentActionPoint.ActionGroup.ModuleNumber; } }
+        public byte? CurrentDecisionIndex { get { if (CurrentDecisionPoint == null) return null; return CurrentDecisionPoint.DecisionNumber; } }
+        public byte? CurrentDecisionIndexWithinActionGroup { get { if (CurrentDecisionPoint == null) return null; return CurrentDecisionPoint.DecisionNumberWithinActionGroup; } }
+        public byte? CurrentDecisionIndexWithinModule { get { if (CurrentDecisionPoint == null) return null; return CurrentDecisionPoint.DecisionNumberWithinModule; } }
+        public byte? CurrentActionGroupExecutionIndex { get { if (CurrentActionPoint == null) return null; return CurrentActionPoint.ActionGroup.ActionGroupExecutionIndex; } }
+        public byte? CurrentModuleIndex { get { if (CurrentActionPoint == null) return null; return CurrentActionPoint.ActionGroup.ModuleNumber; } }
         public Decision CurrentDecision { get { int? currentDecisionNumber = CurrentDecisionIndex; if (currentDecisionNumber == null) return null; return GameDefinition.DecisionsExecutionOrder[(int)currentDecisionNumber]; } }
         public byte CurrentPlayerNumber => CurrentDecision.PlayerNumber;
         public Strategy CurrentPlayerStrategy => Strategies[CurrentPlayerNumber];
         public GameModule CurrentModule => GameModules[(int) CurrentActionGroup.ModuleNumber];
         public string CurrentActionPointName { get { if (CurrentActionPoint == null) return null; return CurrentActionPoint.Name; } }
-
-
-
-        private void GetPlayerNumberAndStrategy(Decision currentDecision, out int playerNumber, out Strategy playersStrategy)
-        {
-            playerNumber = currentDecision.PlayerNumber;
-            playersStrategy = Strategies[playerNumber];
-        }
+        
 
         internal bool PreparationPhase;
 
@@ -117,7 +110,7 @@ namespace ACESim
             else
             {
                 int action = ChooseAction();
-                if (Progress.IsFinalGamePath && action < GetCurrentDecision().NumActions)
+                if (Progress.IsFinalGamePath && action < CurrentDecision.NumActions)
                     Progress.IsFinalGamePath = false;
                 RespondToAction(action);
             }
@@ -135,13 +128,9 @@ namespace ACESim
 
         public virtual int ChooseAction()
         {
-            Decision currentDecision = GetCurrentDecision();
-            int playerNumber;
-            Strategy playersStrategy;
-            GetPlayerNumberAndStrategy(currentDecision, out playerNumber, out playersStrategy);
-            int actionToChoose;
+            byte actionToChoose;
             if (Progress.ActionsToPlay == null)
-                actionToChoose = playersStrategy.ChooseAction(Progress.GameHistory.GetPlayerInformation(playerNumber), GetNextRandomNumber);
+                actionToChoose = CurrentPlayerStrategy.ChooseAction(Progress.GameHistory.GetPlayerInformation(CurrentPlayerNumber), GetNextRandomNumber);
             else
             { // play according to a preset plan
                 bool anotherActionPlanned = Progress.ActionsToPlay.MoveNext();
@@ -150,13 +139,13 @@ namespace ACESim
                 else
                     actionToChoose = 1; // The history does not give us guidance, so we play the first available decision. When the game is complete, we can figure out the next possible game history and play that one (which may go to completion or not). 
             }
-            Progress.GameHistory.AddToHistory((byte) CurrentDecisionIndex, )
+            Progress.GameHistory.AddToHistory((byte) CurrentDecisionIndex, CurrentPlayerNumber, actionToChoose, false);asdf
             return actionToChoose;
         }
 
         public virtual double ConvertActionToUniformDistributionDraw(int action)
         {
-
+            throw new Exception();
         }
 
         /// <summary>

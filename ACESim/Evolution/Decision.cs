@@ -24,7 +24,7 @@ namespace ACESim
         /// <summary>
         /// The player responsible for this decision.
         /// </summary>
-        public int PlayerNumber;
+        public byte PlayerNumber;
 
         /// <summary>
         /// The number of discrete actions for this decision. (The actions will be numbered 1 .. NumberActions.)
@@ -66,7 +66,7 @@ namespace ACESim
 
         }
 
-        public Decision(string name, string abbreviation, int playerNumber, int numActions, string decisionTypeCode = null, int repetitionsAfterFirst = 0, string preevolvedStrategyFilename = null, List<string> informationSetAbbreviations = null)
+        public Decision(string name, string abbreviation, byte playerNumber, byte numActions, string decisionTypeCode = null, int repetitionsAfterFirst = 0, string preevolvedStrategyFilename = null, List<string> informationSetAbbreviations = null)
         {
             Name = name;
             Abbreviation = abbreviation;

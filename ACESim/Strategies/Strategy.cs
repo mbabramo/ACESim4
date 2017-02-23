@@ -45,7 +45,7 @@ namespace ACESim
             return theStrategy;
         }
 
-        public int ChooseAction(IEnumerable<byte> informationSet, Func<double> randomNumberGenerator)
+        public byte ChooseAction(IEnumerable<byte> informationSet, Func<double> randomNumberGenerator)
         {
             throw new NotImplementedException();
         }

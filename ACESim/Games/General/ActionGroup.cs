@@ -10,8 +10,8 @@ namespace ACESim
     public class ActionGroup
     {
         public List<ActionPoint> ActionPoints;
-        public int? ActionGroupExecutionIndex;
-        public int? ModuleNumber;
+        public byte? ActionGroupExecutionIndex;
+        public byte? ModuleNumber;
         public string Name;
         public List<string> Tags;
         private List<int?> RepetitionCorrespondingToTag;
