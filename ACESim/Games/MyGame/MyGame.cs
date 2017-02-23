@@ -75,20 +75,6 @@ namespace ACESim
             base.FinalProcessing();
         }
 
-        public override double Score(int playerNumber)
-        {
-            if (playerNumber == (byte)MyGamePlayers.Plaintiff)
-            {
-                return MyProgress.PWelfare;
-            }
-            else if (playerNumber == (byte)MyGamePlayers.Defendant)
-            {
-                return MyProgress.DWelfare;
-            }
-            else
-                throw new NotImplementedException("Unexpected player to score.");
-        }
-
         private byte GetDiscreteSignal(int action, double noiseStdev, DiscreteValueSignalParameters dvsp)
         {
             var noise = ConvertActionToNormalDistributionDraw(action, noiseStdev);

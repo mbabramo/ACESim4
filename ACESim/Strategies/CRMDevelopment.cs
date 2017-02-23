@@ -18,6 +18,8 @@ namespace ACESim
 
         public CurrentExecutionInformation CurrentExecutionInformation { get; set; }
 
+        public NWayTreeStorageInternal<double[]> Utilities = new NWayTreeStorageInternal<double[]>();
+
         public CRMDevelopment()
         {
 
@@ -56,6 +58,7 @@ namespace ACESim
             foreach (var progress in player.PlayAllPaths(inputs))
             {
                 numPlayed++;
+                Utilities.AddValue(progress.GameHistory.GetDecisions().GetEnumerator(), true, progress.GetNonChancePlayerUtilities());
             }
         }
 

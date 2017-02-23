@@ -326,10 +326,5 @@ namespace ACESim
             if (this.CurrentDecisionIndex != null)
                 this.MostRecentDecisionIndex = this.CurrentDecisionIndex;
         }
-
-        public virtual double Score(int playerNumber)
-        {
-            throw new NotImplementedException();
-        }
     }
 }

@@ -21,6 +21,15 @@ namespace ACESim
 
         public void AddValue(IEnumerator<byte> restOfSequence, bool historyComplete, T valueToAdd)
         {
+            bool anyInSequence = restOfSequence.MoveNext();
+            if (!anyInSequence)
+                StoredValue = valueToAdd;
+            else
+                AddValueHelper(restOfSequence, historyComplete, valueToAdd);
+        }
+
+        private void AddValueHelper(IEnumerator<byte> restOfSequence, bool historyComplete, T valueToAdd)
+        {
             byte nextInSequence = restOfSequence.Current;
             bool anotherExistsAfterNext = restOfSequence.MoveNext();
             var nextTree = Storage.FirstOrDefault(x => x.Item1 == nextInSequence)?.Item2;

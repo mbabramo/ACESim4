@@ -215,10 +215,12 @@ namespace ACESim
                 result = GetNonFieldValueForReportFromGameModuleProgress(variableNameForReport, out found);
             return result;
         }
-
-        public virtual List<double?> GetVariablesToTrackCumulativeDistributionsOf()
+        
+        public virtual double[] GetNonChancePlayerUtilities()
         {
-            return null;
+            return new double[] { };
         }
+
+
     }
 }

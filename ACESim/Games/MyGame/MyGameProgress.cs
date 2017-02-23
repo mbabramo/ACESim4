@@ -39,5 +39,10 @@ namespace ACESim
 
             return copy;
         }
+
+        public override double[] GetNonChancePlayerUtilities()
+        {
+            return new double[] { PWelfare, DWelfare };
+        }
     }
 }
