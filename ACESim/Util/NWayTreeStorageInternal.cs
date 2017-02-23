@@ -9,17 +9,17 @@ namespace ACESim
     public class NWayTreeStorageInternal<T> : NWayTreeStorage<T>
     {
         public bool ZeroBased;
-        public NWayTreeStorage<T>[] Storage;
+        public NWayTreeStorage<T>[] Branches;
 
         public NWayTreeStorageInternal(bool zeroBased, int numBranches)
         {
             ZeroBased = zeroBased;
-            Storage = new NWayTreeStorageInternal<T>[numBranches]; // initialize to null
+            Branches = new NWayTreeStorageInternal<T>[numBranches]; // initialize to null
         }
 
         public NWayTreeStorage<T> GetChildTree(byte index)
         {
-            return Storage[index - (ZeroBased ? 0 : 1)];
+            return Branches[index - (ZeroBased ? 0 : 1)];
         }
 
         public T GetValue(IEnumerator<byte> restOfSequence)
@@ -27,7 +27,10 @@ namespace ACESim
             NWayTreeStorage<T> tree = this;
             bool moreInSequence = restOfSequence.MoveNext();
             while (moreInSequence)
+            {
+                moreInSequence = restOfSequence.MoveNext();
                 tree = ((NWayTreeStorageInternal<T>)tree).GetChildTree(restOfSequence.Current);
+            }
             return tree.StoredValue;
         }
 
@@ -39,7 +42,7 @@ namespace ACESim
                 StoredValue = valueToAdd;
             else
             {
-                if (numberBranchesSequence.Current != Storage.Length)
+                if (numberBranchesSequence.Current != Branches.Length)
                     throw new Exception("Inconsistent number of branches.");
                 AddValueHelper(restOfSequence, numberBranchesSequence, historyComplete, valueToAdd);
             }
@@ -63,10 +66,10 @@ namespace ACESim
                     nextTree.StoredValue = valueToAdd;
                     return;
                 }
-                Storage[nextInSequence - (ZeroBased ? 0 : 1)] = nextTree;
+                Branches[nextInSequence - (ZeroBased ? 0 : 1)] = nextTree;
             }
             if (anotherExistsAfterNext)
-                ((NWayTreeStorageInternal<T>)nextTree).AddValue(restOfSequence, numberBranchesSequence, historyComplete, valueToAdd);
+                ((NWayTreeStorageInternal<T>)nextTree).AddValueHelper(restOfSequence, numberBranchesSequence, historyComplete, valueToAdd);
             else
                 StoredValue = valueToAdd;
         }

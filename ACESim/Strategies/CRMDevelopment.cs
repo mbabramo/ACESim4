@@ -58,6 +58,15 @@ namespace ACESim
             InputVariables inputVariables = new InputVariables(CurrentExecutionInformation);
             GameInputs inputs = inputVariables.GetGameInputs(theType, 1, new IterationID(1), CurrentExecutionInformation);
 
+            // DEBUG
+            NWayTreeStorageInternal<float> f = new NWayTreeStorageInternal<float>(false, 5);
+            List<byte> seq = new List<byte> { 2, 3, 4 };
+            List<byte> branches = new List<byte> { 5, 6, 7 };
+            f.AddValue(seq.GetEnumerator(), branches.GetEnumerator(), true, 1.0F);
+            f.AddValue(seq.Take(2).GetEnumerator(), branches.Take(2).GetEnumerator(), false, 2.0F);
+            var v1 = f.GetValue(seq.GetEnumerator());
+            var v2 = f.GetValue(seq.Take(2).GetEnumerator());
+
             bool initializedUtilities = false;
             int numPlayed = 0;
             foreach (var progress in player.PlayAllPaths(inputs))
@@ -73,6 +82,7 @@ namespace ACESim
                 Utilities.AddValue(actionsEnumerator, numPossibleActionsEnumerator, true, progress.GetNonChancePlayerUtilities());
             }
 
+            // DEBUG
             foreach (var progress in player.PlayAllPaths(inputs))
             {
                 var path = progress.GameHistory.GetActions();
