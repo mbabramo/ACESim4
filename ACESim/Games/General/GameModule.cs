@@ -84,10 +84,10 @@ namespace ACESim
         internal List<Strategy> AllStrategies;
 
         [InternallyDefinedSetting]
-        public int? ModuleNumber;
+        public byte? ModuleNumber;
 
         [InternallyDefinedSetting]
-        public int? FirstDecisionNumberInGameModule;
+        public byte? FirstDecisionNumberInGameModule;
 
         [OptionalSetting]
         public bool IgnoreWhenCountingProgress;
@@ -244,7 +244,7 @@ namespace ACESim
             if (actionsAtBeginningOfModule != null)
                 foreach (string actionName in actionsAtBeginningOfModule)
                     actionGroup.ActionPoints.Add(new ActionPoint() { ActionGroup = actionGroup, Name = actionName });
-            int decisionNum = 0;
+            byte decisionNum = 0;
             if (decisionsForGroup != null)
                 foreach (var dec in decisionsForGroup)
                 {

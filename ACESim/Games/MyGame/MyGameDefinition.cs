@@ -24,11 +24,11 @@ namespace ACESim
                 },
                 DecisionsExecutionOrder = new List<Decision>()
                 {
-                    new Decision("LitigationQuality", "Qual", (int) MyGamePlayers.Chance, 10),
-                    new Decision("PlaintiffSignal", "PSig", (int) MyGamePlayers.Chance, 10),
-                    new Decision("DefendantSignal", "DSig", (int) MyGamePlayers.Chance, 10),
-                    new Decision("PlaintiffOffer", "PO", (int) MyGamePlayers.Plaintiff, 10),
-                    new Decision("DefendantOffer", "DO", (int) MyGamePlayers.Defendant, 10),
+                    new Decision("LitigationQuality", "Qual", (byte) MyGamePlayers.Chance, new List<byte> { }, 10),
+                    new Decision("PlaintiffSignal", "PSig", (byte) MyGamePlayers.Chance, new List<byte> { }, 10),
+                    new Decision("DefendantSignal", "DSig", (byte) MyGamePlayers.Chance, new List<byte> { }, 10),
+                    new Decision("PlaintiffOffer", "PO", (byte) MyGamePlayers.Plaintiff, new List<byte> { (byte) MyGamePlayers.Plaintiff, (byte) MyGamePlayers.Defendant }, 10),
+                    new Decision("DefendantOffer", "DO", (byte) MyGamePlayers.Defendant, new List<byte> { (byte) MyGamePlayers.Plaintiff, (byte) MyGamePlayers.Defendant }, 10),
                 }
             };
         }

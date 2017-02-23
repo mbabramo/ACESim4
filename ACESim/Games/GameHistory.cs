@@ -43,7 +43,7 @@ namespace ACESim
             LastIndexAddedToInformationSets = -1;
         }
 
-        public void AddToHistory(byte decisionNumber, byte playerNumber, byte decisionReached, bool addToAllInformationSets)
+        public void AddToHistory(byte decisionNumber, byte playerNumber, byte decisionReached, List<byte> playersToInform)
         {
             short i = LastIndexAddedToHistory;
             if (History[i] == Complete)
@@ -53,8 +53,7 @@ namespace ACESim
             History[i + 2] = decisionReached;
             History[i + 3] = Incomplete;
             LastIndexAddedToHistory = (short) (i + 3);
-            if (addToAllInformationSets)
-                AddToInformationSet(decisionNumber, true);
+            AddToInformationSet(decisionNumber, playersToInform);
         }
 
         public IEnumerable<byte> GetDecisions()
@@ -81,21 +80,12 @@ namespace ACESim
             return (History[LastIndexAddedToHistory] == Complete);
         }
 
-        public void AddToInformationSet(byte information, bool allPlayers, byte? playerNumber = null)
+        public void AddToInformationSet(byte information, List<byte> playersToInform)
         {
             if (NumPlayers == null)
                 throw new Exception("Must set NumPlayers.");
-            if (allPlayers)
-            {
-                for (byte i = 1; i <= NumPlayers; i++)
-                    AddToInformationSet(information, i);
-            }
-            else
-            {
-                if (playerNumber == null || playerNumber == 0 || playerNumber > NumPlayers)
-                    throw new Exception("Invalid player number. First player besides chance is 1 and last player must equal NumPlayers.");
-                AddToInformationSet(information, (byte)playerNumber);
-            }
+            foreach (byte playerIndex in playersToInform)
+                AddToInformationSet(information, playerIndex);
         }
 
         private void AddToInformationSet(byte information, byte playerNumber)

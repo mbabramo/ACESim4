@@ -27,6 +27,11 @@ namespace ACESim
         public byte PlayerNumber;
 
         /// <summary>
+        /// The players to be informed of this decision. For a non-chance decision, this will generally include the player itself, so that the player can remember the decision.
+        /// </summary>
+        public List<byte> PlayersToInform;
+
+        /// <summary>
         /// The number of discrete actions for this decision. (The actions will be numbered 1 .. NumberActions.)
         /// </summary>
         public int NumActions;
@@ -66,11 +71,12 @@ namespace ACESim
 
         }
 
-        public Decision(string name, string abbreviation, byte playerNumber, byte numActions, string decisionTypeCode = null, int repetitionsAfterFirst = 0, string preevolvedStrategyFilename = null, List<string> informationSetAbbreviations = null)
+        public Decision(string name, string abbreviation, byte playerNumber, List<byte> playersToInform, byte numActions, string decisionTypeCode = null, int repetitionsAfterFirst = 0, string preevolvedStrategyFilename = null, List<string> informationSetAbbreviations = null)
         {
             Name = name;
             Abbreviation = abbreviation;
             PlayerNumber = playerNumber;
+            PlayersToInform = playersToInform;
             NumActions = numActions;
             DecisionTypeCode = decisionTypeCode;
             RepetitionsAfterFirst = repetitionsAfterFirst;

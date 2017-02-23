@@ -113,7 +113,7 @@ namespace ACESim
                     Name = "GameGroup"
                 };
             exGroup.ActionPoints = new List<ActionPoint>();
-            int decisionNum = 0;
+            byte decisionNum = 0;
             foreach (var gamewideDecision in DecisionsExecutionOrder)
             {
                 exGroup.ActionPoints.Add(
@@ -128,7 +128,7 @@ namespace ACESim
 
         public void SetModuleNumbers()
         {
-            int moduleNumber = 0;
+            byte moduleNumber = 0;
             foreach (var module in GameModules)
             {
                 module.ModuleNumber = moduleNumber;
@@ -269,19 +269,19 @@ namespace ACESim
             ActionPointIndexForEachDecision = new List<int>();
             if (GameModules == null)
                 GameModules = new List<GameModule>();
-            int[] decisionsProcessedWithinModules = new int[GameModules.Count()];
+            byte[] decisionsProcessedWithinModules = new byte[GameModules.Count()];
             string[] lastRepetitionTagProcessedForModule = new string[GameModules.Count()];
             for (int m = 0; m < GameModules.Count(); m++)
             {
                 decisionsProcessedWithinModules[m] = 0;
                 lastRepetitionTagProcessedForModule[m] = null;
             }
-            int decisionNumber = 0;
-            for (int actionGroupIndex = 0; actionGroupIndex < ExecutionOrder.Count; actionGroupIndex++)
+            byte decisionNumber = 0;
+            for (byte actionGroupIndex = 0; actionGroupIndex < ExecutionOrder.Count; actionGroupIndex++)
             {
                 ActionGroup ag = ExecutionOrder[actionGroupIndex];
                 ag.ActionGroupExecutionIndex = actionGroupIndex;
-                int decisionNumberWithinActionGroup = 0;
+                byte decisionNumberWithinActionGroup = 0;
                 for (int actionPointIndex = 0; actionPointIndex < (ag.ActionPoints == null ? 0 : ag.ActionPoints.Count); actionPointIndex++)
                 {
                     ActionPoint ap = ag.ActionPoints[actionPointIndex];
