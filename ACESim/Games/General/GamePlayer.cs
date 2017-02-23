@@ -118,6 +118,7 @@ namespace ACESim
             {
                 var progressToUse = startingProgress.DeepCopy();
                 IEnumerable<byte> next = PlayPath(path, progressToUse, gameInputsToUse);
+                var DEBUG = next.ToList();
                 if (next == null)
                     path = null;
                 else

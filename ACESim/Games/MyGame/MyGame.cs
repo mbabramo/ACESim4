@@ -17,8 +17,8 @@ namespace ACESim
 
         public override bool DecisionIsNeeded(Decision currentDecision)
         {
-            if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.DOffer)
-                return MyProgress.CaseSettles;
+            if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.CourtDecision)
+                return !MyProgress.CaseSettles;
             return true;
         }
 
@@ -36,7 +36,7 @@ namespace ACESim
             else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.DSignal)
             {
                 MyProgress.DSignal = GetDiscreteSignal(action, MyDefinition.DNoiseStdev, MyDefinition.DSignalParameters);
-                Progress.GameHistory.AddToInformationSet(MyProgress.DSignal, (byte)MyGamePlayers.Plaintiff);
+                Progress.GameHistory.AddToInformationSet(MyProgress.DSignal, (byte)MyGamePlayers.Defendant);
             }
             else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.POffer)
             {
@@ -49,6 +49,7 @@ namespace ACESim
                 {
                     MyProgress.CaseSettles = true;
                     MyProgress.SettlementValue = (MyProgress.POffer + MyProgress.DOffer) / 2.0;
+                    MyProgress.GameComplete = true; // will still do FinalProcessing
                 }
             }
             else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.CourtDecision)
@@ -71,6 +72,7 @@ namespace ACESim
                 MyProgress.PWelfare = (MyProgress.PWinsAtTrial ? 1.0 : 0) - MyDefinition.PLitigationCosts;
                 MyProgress.PWelfare = (MyProgress.PWinsAtTrial ? -1.0 : 0) - MyDefinition.DLitigationCosts;
             }
+            base.FinalProcessing();
         }
 
         public override double Score(int playerNumber)

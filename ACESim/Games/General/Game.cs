@@ -205,6 +205,7 @@ namespace ACESim
             if (actionsToPlay == null)
                 actionsToPlay = (new List<byte> { }).GetEnumerator();
             Progress.ActionsToPlay = actionsToPlay;
+            Progress.IsFinalGamePath = true;
             PlayUntilComplete(true);
             if (Progress.IsFinalGamePath)
                 return null;
@@ -306,15 +307,16 @@ namespace ACESim
 
             PrepareForOrMakeDecision();
 
-            if (Progress.IsFinalStep(GameDefinition.ExecutionOrder))
+            if (Progress.IsFinalStep(GameDefinition.ExecutionOrder) || Progress.GameComplete)
             {
                 FinalProcessing();
-                Progress.GameComplete = true;
             }
         }
 
         public virtual void FinalProcessing()
         {
+            Progress.GameComplete = true; // might have already been set as a way to trigger early final processing
+            Progress.GameHistory.MarkComplete();
         }
 
         internal void SetStatusVariables()
