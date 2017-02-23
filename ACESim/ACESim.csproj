@@ -152,6 +152,7 @@
     <Compile Include="Games\General\DecisionPoint.cs" />
     <Compile Include="Games\General\ActionGroup.cs" />
     <Compile Include="Games\General\ActionGroupRepetition.cs" />
+    <Compile Include="Games\MyGame\MyGamePlayers.cs" />
     <Compile Include="Games\PlayerInfo.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Reports\aspnet_Applications.cs">

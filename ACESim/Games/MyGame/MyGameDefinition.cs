@@ -12,19 +12,6 @@ namespace ACESim
     {
         public string CodeGeneratorName => "MyGameDefinition";
 
-        public enum MyGamePlayers
-        {
-            Chance,
-            Plaintiff,
-            Defendant
-        }
-
-        public enum MyGameDecisions
-        {
-            POffer,
-            DOffer
-        }
-
         public object GenerateSetting(string options)
         {
             return new MyGameDefinition()
@@ -45,5 +32,7 @@ namespace ACESim
                 }
             };
         }
+
+        
     }
 }
