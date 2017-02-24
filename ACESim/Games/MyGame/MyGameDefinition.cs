@@ -58,8 +58,9 @@ namespace ACESim
                     new Decision("LitigationQuality", "Qual", (byte) MyGamePlayers.Chance, new List<byte> { }, NumLitigationQualityPoints, (byte) MyGameDecisions.LitigationQuality),
                     new Decision("PlaintiffSignal", "PSig", (byte) MyGamePlayers.Chance, new List<byte> { }, NumPlaintiffSignals, (byte) MyGameDecisions.PSignal),
                     new Decision("DefendantSignal", "DSig", (byte) MyGamePlayers.Chance, new List<byte> { }, NumDefendantSignals, (byte) MyGameDecisions.DSignal),
-                    new Decision("PlaintiffOffer", "PO", (byte) MyGamePlayers.Plaintiff, new List<byte> { (byte) MyGamePlayers.Plaintiff, (byte) MyGamePlayers.Defendant }, NumPlaintiffOffers, (byte) MyGameDecisions.POffer),
-                    new Decision("DefendantOffer", "DO", (byte) MyGamePlayers.Defendant, new List<byte> { (byte) MyGamePlayers.Plaintiff, (byte) MyGamePlayers.Defendant }, NumDefendantOffers, (byte) MyGameDecisions.DOffer),
+                    // initially the offers will be kept secret (TODO: Make it so that the decisions are revealed AFTER defendant makes its offer if the case is not resolved)
+                    new Decision("PlaintiffOffer", "PO", (byte) MyGamePlayers.Plaintiff, new List<byte> { (byte) MyGamePlayers.Plaintiff }, NumPlaintiffOffers, (byte) MyGameDecisions.POffer),
+                    new Decision("DefendantOffer", "DO", (byte) MyGamePlayers.Defendant, new List<byte> { (byte) MyGamePlayers.Defendant }, NumDefendantOffers, (byte) MyGameDecisions.DOffer),
                     new Decision("CourtDecision", "CD", (byte) MyGamePlayers.Chance, new List<byte> {  }, NumCourtSignals, (byte) MyGameDecisions.CourtDecision),
                 };
         }

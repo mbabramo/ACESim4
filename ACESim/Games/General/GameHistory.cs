@@ -52,7 +52,7 @@ namespace ACESim
             History[i + 3] = numPossibleActions;
             History[i + 4] = Incomplete;
             LastIndexAddedToHistory = (short) (i + 4);
-            AddToInformationSet(decisionNumber, playersToInform, decisionNumber);
+            AddToInformationSet(action, playersToInform, decisionNumber);
         }
 
         public IEnumerable<InformationSetHistory> GetInformationSetHistoryItems()
