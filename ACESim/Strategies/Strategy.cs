@@ -24,7 +24,7 @@ namespace ACESim
 
         public PlayerInfo PlayerInfo;
 
-        public NWayTreeStorageInternal<double> RegretsOrMoveProbabilities;
+        public NWayTreeStorageInternal<object> InformationSetTree;
 
         public Strategy()
         {
@@ -39,10 +39,20 @@ namespace ACESim
                 EvolutionSettings = EvolutionSettings,
                 AllStrategies = AllStrategies.ToList(),
                 PlayerInfo = PlayerInfo,
-                RegretsOrMoveProbabilities = RegretsOrMoveProbabilities // not currently a deep copy -- may not be needed
+                InformationSetTree = InformationSetTree // not currently a deep copy -- may not be needed
 
             };
             return theStrategy;
+        }
+
+        public void CreateInformationSetTree(int numInitialActions)
+        {
+            InformationSetTree = new NWayTreeStorageInternal<object>(numInitialActions);
+        }
+
+        public void SetInformationSetTreeValue(IEnumerable<byte> informationSet, IEnumerable<byte> numberBranches, bool historyComplete, object valueToSet)
+        {
+            InformationSetTree.AddValue(informationSet.GetEnumerator(), numberBranches.GetEnumerator(), historyComplete, valueToSet);
         }
 
         public byte ChooseAction(IEnumerable<byte> informationSet, Func<double> randomNumberGenerator)

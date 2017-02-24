@@ -1,4 +1,5 @@
-﻿using System;
+﻿using FluentAssertions;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -19,9 +20,18 @@ namespace ACESim
 
         public CurrentExecutionInformation CurrentExecutionInformation { get; set; }
 
-        public NWayTreeStorageInternal<double[]> Utilities;
+        /// <summary>
+        /// A game history tree. On internal nodes, the object contained is the information set of the player making the decision (or null for a chance decision). On the leaf nodes, the object contained are the players' utilities.
+        /// </summary>
+        public NWayTreeStorageInternal<object> GameHistoryTree;
 
         public bool ChancePlayerExists;
+
+        // these are for walking the game history and are not serialized
+        [NonSerialized]
+        public NWayTreeStorage<object> WalkHistoryPoint;
+        [NonSerialized]
+        public NWayTreeStorage<object>[] WalkInformationSets;
 
         public CRMDevelopment()
         {
@@ -50,6 +60,21 @@ namespace ACESim
             };
         }
 
+        public void WalkGameHistoryTrees(GameProgress gameProgress)
+        {
+            // initialize walking
+            WalkHistoryPoint = GameHistoryTree;
+            if (WalkInformationSets == null)
+                WalkInformationSets = new NWayTreeStorage<object>[Strategies.Count];
+            for (int i = 0; i < WalkInformationSets.Length; i++)
+                WalkInformationSets[i] = Strategies[i].InformationSetTree;
+
+            // Simple algorithm: First add the utilities at the end of the tree. Then walk through the game tree, and at each non-chance decision point, add a link to the information set.
+
+            GameHistory gameHistory = gameProgress.GameHistory;
+
+        }
+
         public void DevelopStrategies()
         {
             GamePlayer player = new GamePlayer(Strategies, GameFactory, EvolutionSettings.ParallelOptimization, GameDefinition);
@@ -57,29 +82,37 @@ namespace ACESim
             Type theType = GameFactory.GetSimulationSettingsType();
             InputVariables inputVariables = new InputVariables(CurrentExecutionInformation);
             GameInputs inputs = inputVariables.GetGameInputs(theType, 1, new IterationID(1), CurrentExecutionInformation);
-
-            // DEBUG
-            NWayTreeStorageInternal<float> f = new NWayTreeStorageInternal<float>(false, 5);
-            List<byte> seq = new List<byte> { 2, 3, 4 };
-            List<byte> branches = new List<byte> { 5, 6, 7 };
-            f.AddValue(seq.GetEnumerator(), branches.GetEnumerator(), true, 1.0F);
-            f.AddValue(seq.Take(2).GetEnumerator(), branches.Take(2).GetEnumerator(), false, 2.0F);
-            var v1 = f.GetValue(seq.GetEnumerator());
-            var v2 = f.GetValue(seq.Take(2).GetEnumerator());
-
-            bool initializedUtilities = false;
+            
+            // Create game trees
+            GameHistoryTree = new NWayTreeStorageInternal<object>(GameDefinition.DecisionsExecutionOrder.First().NumActions);
+            foreach (Strategy s in Strategies)
+            {
+                if (!s.PlayerInfo.PlayerIsChance)
+                    s.CreateInformationSetTree(GameDefinition.DecisionsExecutionOrder.First(x => x.PlayerNumber == s.PlayerInfo.PlayerNumber).NumActions);
+            }
+            
             int numPlayed = 0;
             foreach (var progress in player.PlayAllPaths(inputs))
             {
                 numPlayed++;
-                if (initializedUtilities == false)
-                {
-                    var numActionsForFirstDecision = progress.GameHistory.GetNumPossibleActions().First();
-                    Utilities = new NWayTreeStorageInternal<double[]>(false, numActionsForFirstDecision);
-                }
+
+                // First, add the utilities at the end of the tree.
                 var actionsEnumerator = progress.GameHistory.GetActions().GetEnumerator();
                 var numPossibleActionsEnumerator = progress.GameHistory.GetNumPossibleActions().GetEnumerator();
-                Utilities.AddValue(actionsEnumerator, numPossibleActionsEnumerator, true, progress.GetNonChancePlayerUtilities());
+                GameHistoryTree.AddValue(actionsEnumerator, numPossibleActionsEnumerator, true, progress.GetNonChancePlayerUtilities());
+
+                // Go through each non-chance decision point and make sure that the information set tree extends there.
+                foreach (var informationSetHistory in progress.GameHistory.GetInformationSetHistoryItems())
+                {
+                    if (!GameDefinition.Players[informationSetHistory.PlayerMakingDecision].PlayerIsChance)
+                    {
+                        Strategies[informationSetHistory.PlayerMakingDecision].
+                        informationSetHistory.InformationSet
+                    }
+                    WalkHistoryPoint = WalkHistoryPoint.GetChildTree(informationSetHistory.ActionChosen);
+                    if (informationSetHistory.IsTerminalAction)
+                        WalkHistoryPoint.StoredValue = progress.GameHistory.GetNonChancePlayerUtilities();
+                }
             }
 
             // DEBUG
@@ -101,7 +134,7 @@ namespace ACESim
 
         private double[] GetUtilities(IEnumerable<byte> path)
         {
-            return Utilities.GetValue(path.GetEnumerator());
+            return GameHistoryTree.GetValue(path.GetEnumerator());
         }
 
         public void PreSerialize()

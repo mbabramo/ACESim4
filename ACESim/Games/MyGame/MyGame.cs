@@ -31,12 +31,12 @@ namespace ACESim
             else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.PSignal)
             {
                 MyProgress.PSignal = GetDiscreteSignal(action, MyDefinition.PNoiseStdev, MyDefinition.PSignalParameters);
-                Progress.GameHistory.AddToInformationSet(MyProgress.PSignal, (byte)MyGamePlayers.Plaintiff);
+                Progress.GameHistory.AddToInformationSet(MyProgress.PSignal, (byte)MyGamePlayers.Plaintiff, (byte) CurrentDecisionIndex);
             }
             else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.DSignal)
             {
                 MyProgress.DSignal = GetDiscreteSignal(action, MyDefinition.DNoiseStdev, MyDefinition.DSignalParameters);
-                Progress.GameHistory.AddToInformationSet(MyProgress.DSignal, (byte)MyGamePlayers.Defendant);
+                Progress.GameHistory.AddToInformationSet(MyProgress.DSignal, (byte)MyGamePlayers.Defendant, (byte)CurrentDecisionIndex);
             }
             else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.POffer)
             {

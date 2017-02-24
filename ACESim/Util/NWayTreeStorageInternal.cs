@@ -8,16 +8,15 @@ namespace ACESim
 {
     public class NWayTreeStorageInternal<T> : NWayTreeStorage<T>
     {
-        public bool ZeroBased;
+        public const bool ZeroBased = false; // make this a constant to save space; we could alternatively store this with the tree or pass it to the methods
         public NWayTreeStorage<T>[] Branches;
 
-        public NWayTreeStorageInternal(bool zeroBased, int numBranches)
+        public NWayTreeStorageInternal(int numBranches)
         {
-            ZeroBased = zeroBased;
-            Branches = new NWayTreeStorageInternal<T>[numBranches]; // initialize to null
+            Branches = new NWayTreeStorage<T>[numBranches]; // initialize to null
         }
 
-        public NWayTreeStorage<T> GetChildTree(byte index)
+        public override NWayTreeStorage<T> GetChildTree(byte index)
         {
             return Branches[index - (ZeroBased ? 0 : 1)];
         }
@@ -28,8 +27,8 @@ namespace ACESim
             bool moreInSequence = restOfSequence.MoveNext();
             while (moreInSequence)
             {
-                moreInSequence = restOfSequence.MoveNext();
                 tree = ((NWayTreeStorageInternal<T>)tree).GetChildTree(restOfSequence.Current);
+                moreInSequence = restOfSequence.MoveNext();
             }
             return tree.StoredValue;
         }
@@ -59,19 +58,20 @@ namespace ACESim
             if (nextTree == null)
             {
                 if (anotherExistsAfterNext || !historyComplete)
-                    nextTree = new NWayTreeStorageInternal<T>(ZeroBased, numberBranchesSequence.Current);
+                    nextTree = new NWayTreeStorageInternal<T>(numberBranchesSequence.Current);
                 else
                 {
                     nextTree = new NWayTreeStorage<T>(); // leaf node for last item in history
                     nextTree.StoredValue = valueToAdd;
-                    return;
                 }
                 Branches[nextInSequence - (ZeroBased ? 0 : 1)] = nextTree;
+                if (!anotherExistsAfterNext && historyComplete)
+                    return;
             }
             if (anotherExistsAfterNext)
                 ((NWayTreeStorageInternal<T>)nextTree).AddValueHelper(restOfSequence, numberBranchesSequence, historyComplete, valueToAdd);
             else
-                StoredValue = valueToAdd;
+                nextTree.StoredValue = valueToAdd;
         }
     }
 }

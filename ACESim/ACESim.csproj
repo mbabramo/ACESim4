@@ -70,6 +70,14 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\packages\EntityFramework.4.3.1\lib\net40\EntityFramework.dll</HintPath>
     </Reference>
+    <Reference Include="FluentAssertions, Version=4.19.0.0, Culture=neutral, PublicKeyToken=33f2691a05b67b6a, processorArchitecture=MSIL">
+      <HintPath>..\packages\FluentAssertions.4.19.0\lib\net45\FluentAssertions.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="FluentAssertions.Core, Version=4.19.0.0, Culture=neutral, PublicKeyToken=33f2691a05b67b6a, processorArchitecture=MSIL">
+      <HintPath>..\packages\FluentAssertions.4.19.0\lib\net45\FluentAssertions.Core.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="MathNet.Numerics, Version=3.17.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\MathNet.Numerics.3.17.0\lib\net40\MathNet.Numerics.dll</HintPath>
       <Private>True</Private>
@@ -152,13 +160,14 @@
     <Compile Include="Executor\ProgressResumptionManager.cs" />
     <Compile Include="Executor\ProgressResumptionManagerInfo.cs" />
     <Compile Include="Executor\ProgressResumptionOptions.cs" />
-    <Compile Include="Games\GameHistory.cs" />
+    <Compile Include="Games\General\GameHistory.cs" />
     <Compile Include="Games\General\DecisionPoint.cs" />
     <Compile Include="Games\General\ActionGroup.cs" />
     <Compile Include="Games\General\ActionGroupRepetition.cs" />
+    <Compile Include="Games\General\InformationSetHistory.cs" />
     <Compile Include="Games\MyGame\MyGameDecisions.cs" />
     <Compile Include="Games\MyGame\MyGamePlayers.cs" />
-    <Compile Include="Games\PlayerInfo.cs" />
+    <Compile Include="Games\General\PlayerInfo.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Reports\aspnet_Applications.cs">
       <DependentUpon>SimData.tt</DependentUpon>

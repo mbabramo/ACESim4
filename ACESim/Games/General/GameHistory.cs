@@ -52,7 +52,25 @@ namespace ACESim
             History[i + 3] = numPossibleActions;
             History[i + 4] = Incomplete;
             LastIndexAddedToHistory = (short) (i + 4);
-            AddToInformationSet(decisionNumber, playersToInform);
+            AddToInformationSet(decisionNumber, playersToInform, decisionNumber);
+        }
+
+        public IEnumerable<InformationSetHistory> GetInformationSetHistoryItems()
+        {
+            if (LastIndexAddedToHistory == 0)
+                yield break;
+            for (short i = 0; i < LastIndexAddedToHistory; i += 4)
+            {
+                yield return new InformationSetHistory()
+                {
+                    PlayerMakingDecision = History[i + 1],
+                    DecisionIndex = History[i],
+                    InformationSet = GetPlayerInformation(History[i + 1], History[i]),
+                    ActionChosen = History[i + 2],
+                    NumPossibleActions = History[i + 3],
+                    IsTerminalAction = History[i + 4] == Complete
+                };
+            }
         }
 
         public IEnumerable<byte> GetActions()
@@ -91,29 +109,33 @@ namespace ACESim
         {
             return (History[LastIndexAddedToHistory] == Complete);
         }
-
-        public void AddToInformationSet(byte information, List<byte> playersToInform)
+        
+        public void AddToInformationSet(byte information, List<byte> playersToInform, byte decisionIndexAdded)
         {
             foreach (byte playerIndex in playersToInform)
-                AddToInformationSet(information, playerIndex);
+                AddToInformationSet(information, playerIndex, decisionIndexAdded);
         }
 
-        public void AddToInformationSet(byte information, byte playerNumber)
+        public void AddToInformationSet(byte information, byte playerNumber, byte decisionIndexAdded)
         {
-            LastIndexAddedToInformationSets++;
-            InformationSets[LastIndexAddedToInformationSets] = playerNumber;
-            LastIndexAddedToInformationSets++;
-            InformationSets[LastIndexAddedToInformationSets] = information;
+            InformationSets[++LastIndexAddedToInformationSets] = playerNumber;
+            InformationSets[++LastIndexAddedToInformationSets] = information;
+            InformationSets[++LastIndexAddedToInformationSets] = decisionIndexAdded;
         }
 
-        public IEnumerable<byte> GetPlayerInformation(int playerNumber)
+        public IEnumerable<byte> GetPlayerInformation(int playerNumber, byte? beforeDecisionIndex = null)
         {
             if (LastIndexAddedToInformationSets < 0)
                 yield break;
-            for (byte i = 0; i < LastIndexAddedToInformationSets; i += 2)
+            for (byte i = 0; i < LastIndexAddedToInformationSets; i += 3)
             {
                 if (InformationSets[i] == playerNumber)
-                    yield return InformationSets[i + 1];
+                {
+                    if (beforeDecisionIndex == null || InformationSets[i + 2] < beforeDecisionIndex)
+                        yield return InformationSets[i + 1];
+                    else
+                        yield break;
+                }
             }
         }
 
