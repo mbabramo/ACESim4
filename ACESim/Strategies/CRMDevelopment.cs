@@ -81,7 +81,6 @@ namespace ACESim
                 GameHistoryTree.SetValue(actionsEnumerator, true, progress.GetNonChancePlayerUtilities());
 
                 NWayTreeStorage<object> walkHistoryTree = GameHistoryTree;
-                List<byte> DEBUG = new List<byte>();
                 // Go through each non-chance decision point and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
                 foreach (var informationSetHistory in progress.GameHistory.GetInformationSetHistoryItems())
                 {
@@ -92,10 +91,9 @@ namespace ACESim
                         var playersStrategy = Strategies[informationSetHistory.PlayerMakingDecision];
                         if (walkHistoryTree.StoredValue == null)
                         {
-                            var DEBUG0 = informationSetHistory.InformationSet.ToList();
                             // create the information set node if necessary, within initialized tally values
                             var informationSetNode = playersStrategy.SetInformationSetTreeValueIfNotSet(
-                                DEBUG0,
+                                informationSetHistory.InformationSet,
                                 isNecessarilyLast,
                                 () =>
                                 {
@@ -103,18 +101,11 @@ namespace ACESim
                                     return nodeInfo;
                                 }
                                 );
-                            var DEBUGPlayerStrategyNode = playersStrategy.GetInformationSetTreeNode(DEBUG0);
-                            if (DEBUGPlayerStrategyNode != informationSetNode)
-                                throw new Exception("DEBUG");
                             // Now, we want to store in the game history tree a quick reference to the correct point in the information set tree.
                             walkHistoryTree.StoredValue = informationSetNode;
-                            var DEBUGGameHistoryNode = GameHistoryTree.GetNode(DEBUG.GetEnumerator());
-                            if (DEBUGGameHistoryNode.StoredValue != DEBUGPlayerStrategyNode)
-                                throw new Exception("DEBUG");
                         }
                     }
                     walkHistoryTree = walkHistoryTree.GetBranch(informationSetHistory.ActionChosen);
-                    DEBUG.Add(informationSetHistory.ActionChosen);
                 }
             }
 
