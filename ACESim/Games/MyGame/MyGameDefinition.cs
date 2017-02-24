@@ -19,10 +19,9 @@ namespace ACESim
         public byte NumDefendantOffers;
         public double PNoiseStdev;
         public double DNoiseStdev;
-        public double CourtNoiseStdev;
         public double PLitigationCosts;
         public double DLitigationCosts;
-        public DiscreteValueSignalParameters PSignalParameters, DSignalParameters, CourtSignalParameters;
+        public DiscreteValueSignalParameters PSignalParameters, DSignalParameters;
 
         public MyGameDefinition() : base()
         {
@@ -75,7 +74,6 @@ namespace ACESim
             NumDefendantOffers = GameModule.GetByteCodeGeneratorOption(options, "NumDefendantOffers");
             PNoiseStdev = GameModule.GetDoubleCodeGeneratorOption(options, "PNoiseStdev");
             DNoiseStdev = GameModule.GetDoubleCodeGeneratorOption(options, "DNoiseStdev");
-            CourtNoiseStdev = GameModule.GetDoubleCodeGeneratorOption(options, "CourtNoiseStdev");
             PLitigationCosts = GameModule.GetDoubleCodeGeneratorOption(options, "PLitigationCosts");
             DLitigationCosts = GameModule.GetDoubleCodeGeneratorOption(options, "DLitigationCosts");
             PSignalParameters = new DiscreteValueSignalParameters()
@@ -89,12 +87,6 @@ namespace ACESim
                 NumPointsInSourceUniformDistribution = NumLitigationQualityPoints,
                 StdevOfNormalDistribution = DNoiseStdev,
                 NumSignals = NumPlaintiffSignals
-            };
-            CourtSignalParameters = new DiscreteValueSignalParameters()
-            {
-                NumPointsInSourceUniformDistribution = NumLitigationQualityPoints,
-                StdevOfNormalDistribution = CourtNoiseStdev,
-                NumSignals = NumCourtSignals
             };
         }
 

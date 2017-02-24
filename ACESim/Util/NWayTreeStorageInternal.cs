@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
+    [Serializable]
     public class NWayTreeStorageInternal<T> : NWayTreeStorage<T>
     {
         public const bool ZeroBased = false; // make this a constant to save space; we could alternatively store this with the tree or pass it to the methods

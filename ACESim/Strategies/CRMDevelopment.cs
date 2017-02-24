@@ -114,7 +114,7 @@ namespace ACESim
 
         private void PrintSameGameResults(GamePlayer player, GameInputs inputs)
         {
-            double probabilityOfPrint = 0.05;
+            double probabilityOfPrint = 0.01;
             if (probabilityOfPrint == 0)
                 return;
             foreach (var progress in player.PlayAllPaths(inputs))
