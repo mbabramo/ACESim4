@@ -54,7 +54,7 @@ namespace ACESim
             {
                 tree = ((NWayTreeStorageInternal<T>)tree).GetBranch(restOfSequence.Current);
                 if (tree == null)
-                    return null; // node does not exist in tree.
+                    tree = AddBranch(restOfSequence.Current, true);
                 moreInSequence = restOfSequence.MoveNext();
             }
             return tree;
@@ -68,17 +68,14 @@ namespace ACESim
         public NWayTreeStorage<T> SetValueIfNotSet(IEnumerator<byte> restOfSequence, bool historyComplete, Func<T> setter)
         {
             NWayTreeStorage<T> node = GetNode(restOfSequence);
-            if (node == null || node.StoredValue == null || node.StoredValue.Equals(default(T)))
-            {
-                restOfSequence.Reset();
-                return SetValue(restOfSequence, historyComplete, setter());
-            }
-            else
-                return node;
+            if (node.StoredValue == null || node.StoredValue.Equals(default(T)))
+                node.StoredValue = setter();
+            return node;
         }
 
         public NWayTreeStorage<T> SetValue(IEnumerator<byte> restOfSequence, bool historyComplete, T valueToAdd)
         {
+            // the logic here is more complicated because we will use NWayTreeStorage<T> for leaf nodes if historyComplete is set.
             bool anyInSequence = restOfSequence.MoveNext();
             if (!anyInSequence)
             {
@@ -98,16 +95,8 @@ namespace ACESim
             NWayTreeStorage<T> nextTree = GetBranch(nextInSequence);
             if (nextTree == null)
             {
-                if (anotherExistsAfterNext || !historyComplete)
-                    nextTree = new NWayTreeStorageInternal<T>();
-                else
-                {
-                    nextTree = new NWayTreeStorage<T>(); // leaf node for last item in history
-                    nextTree.StoredValue = valueToAdd;
-                }
-                Branches[nextInSequence - (ZeroBased ? 0 : 1)] = nextTree;
-                if (!anotherExistsAfterNext && historyComplete)
-                    return nextTree;
+                bool mayBeInternal = anotherExistsAfterNext || !historyComplete;
+                nextTree = AddBranch(nextInSequence, mayBeInternal);
             }
             if (anotherExistsAfterNext)
                 return ((NWayTreeStorageInternal<T>)nextTree).SetValueHelper(restOfSequence, historyComplete, valueToAdd);
@@ -116,6 +105,19 @@ namespace ACESim
                 nextTree.StoredValue = valueToAdd;
                 return nextTree;
             }
+        }
+
+        private NWayTreeStorage<T> AddBranch(byte index, bool mayBeInternal)
+        {
+            NWayTreeStorage<T> nextTree;
+            if (mayBeInternal)
+                nextTree = new NWayTreeStorageInternal<T>();
+            else
+            {
+                nextTree = new NWayTreeStorage<T>(); // leaf node for last item in history; having a separate type saves space on Branches.
+            }
+            SetBranch(index, nextTree);
+            return nextTree;
         }
     }
 }
