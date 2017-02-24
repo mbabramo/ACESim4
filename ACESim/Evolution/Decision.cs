@@ -34,12 +34,18 @@ namespace ACESim
         /// <summary>
         /// The number of discrete actions for this decision. (The actions will be numbered 1 .. NumberActions.)
         /// </summary>
-        public byte NumActions;
+        public byte NumPossibleActions;
 
         /// <summary>
         /// Whether the decision is bipolar (i.e., there are only two possible actions).
         /// </summary>
-        public bool Bipolar => NumActions == 2;
+        public bool Bipolar => NumPossibleActions == 2;
+
+        /// <summary>
+        /// Indicates whether the decision is always the final decision by a player.
+        /// </summary>
+        [OptionalSetting]
+        public bool IsAlwaysPlayersLastDecision;
 
         /// <summary>
         /// A game-specific code, often used simply to list the decisions in order.
@@ -83,7 +89,7 @@ namespace ACESim
             Abbreviation = abbreviation;
             PlayerNumber = playerNumber;
             PlayersToInform = playersToInform;
-            NumActions = numActions;
+            NumPossibleActions = numActions;
             DecisionByteCode = decisionByteCode;
             DecisionTypeCode = decisionTypeCode;
             RepetitionsAfterFirst = repetitionsAfterFirst;

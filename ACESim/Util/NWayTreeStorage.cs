@@ -10,9 +10,13 @@ namespace ACESim
     {
         public T StoredValue;
 
-        public virtual NWayTreeStorage<T> GetChildTree(byte index)
+        public virtual NWayTreeStorage<T> GetBranch(byte index)
         {
             return null; // leaf node has no child; internal node overrides this
+        }
+        public virtual void SetBranch(byte index, NWayTreeStorage<T> tree)
+        {
+            throw new Exception("Cannot set branch on leaf node.");
         }
     }
 }

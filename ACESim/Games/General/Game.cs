@@ -113,7 +113,7 @@ namespace ACESim
             else if (DecisionNeeded)
             {
                 int action = ChooseAction();
-                if (Progress.IsFinalGamePath && action < CurrentDecision.NumActions)
+                if (Progress.IsFinalGamePath && action < CurrentDecision.NumPossibleActions)
                     Progress.IsFinalGamePath = false;
                 RespondToAction(currentDecision, action);
             }
@@ -142,14 +142,14 @@ namespace ACESim
                 else
                     actionToChoose = 1; // The history does not give us guidance, so we play the first available decision. When the game is complete, we can figure out the next possible game history and play that one (which may go to completion or not). 
             }
-            Progress.GameHistory.AddToHistory((byte)CurrentDecisionIndex, CurrentPlayerNumber, actionToChoose, CurrentDecision.NumActions, CurrentDecision.PlayersToInform);
+            Progress.GameHistory.AddToHistory((byte)CurrentDecisionIndex, CurrentPlayerNumber, actionToChoose, CurrentDecision.NumPossibleActions, CurrentDecision.PlayersToInform);
             return actionToChoose;
         }
 
         public virtual double ConvertActionToUniformDistributionDraw(int action)
         {
             // If we have 2 actions and we draw action #1, then this is equivalent to 0.25 (= 0.5/2); if we draw action #2, then we have 0.75 (= 1.5/2). If we have 3 actions, then the three actions are 1/6, 3/6, and 5/6.
-            return EquallySpaced.GetLocationOfMidpoint(action - 1 /* make it zero-based */, CurrentDecision.NumActions);
+            return EquallySpaced.GetLocationOfMidpoint(action - 1 /* make it zero-based */, CurrentDecision.NumPossibleActions);
         }
 
         public virtual double ConvertActionToNormalDistributionDraw(int action, double stdev)

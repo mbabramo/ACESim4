@@ -50,9 +50,19 @@ namespace ACESim
             InformationSetTree = new NWayTreeStorageInternal<object>(numInitialActions);
         }
 
-        public void SetInformationSetTreeValue(IEnumerable<byte> informationSet, IEnumerable<byte> numberBranches, bool historyComplete, object valueToSet)
+        public NWayTreeStorage<object> SetInformationSetTreeValue(IEnumerable<byte> informationSet, bool historyComplete, object valueToSet)
         {
-            InformationSetTree.AddValue(informationSet.GetEnumerator(), numberBranches.GetEnumerator(), historyComplete, valueToSet);
+            return InformationSetTree.SetValue(informationSet.GetEnumerator(), historyComplete, valueToSet);
+        }
+
+        public NWayTreeStorage<object> SetInformationSetTreeValueIfNotSet(IEnumerable<byte> informationSet, bool historyComplete, Func<object> setter)
+        {
+            return InformationSetTree.SetValueIfNotSet(informationSet.GetEnumerator(), historyComplete, setter);
+        }
+
+        public object GetInformationSetTreeValue(IEnumerable<byte> informationSet)
+        {
+            return InformationSetTree.GetValue(informationSet.GetEnumerator());
         }
 
         public byte ChooseAction(IEnumerable<byte> informationSet, Func<double> randomNumberGenerator)

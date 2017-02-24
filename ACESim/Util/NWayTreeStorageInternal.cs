@@ -11,54 +11,95 @@ namespace ACESim
         public const bool ZeroBased = false; // make this a constant to save space; we could alternatively store this with the tree or pass it to the methods
         public NWayTreeStorage<T>[] Branches;
 
-        public NWayTreeStorageInternal(int numBranches)
+        public NWayTreeStorageInternal(int numBranches = 0)
         {
-            Branches = new NWayTreeStorage<T>[numBranches]; // initialize to null
+            // Branches will automatically expand as necessary to fit. 
+            Branches = null; // initialize to null
         }
 
-        public override NWayTreeStorage<T> GetChildTree(byte index)
+        private int AdjustedIndex(byte index) => index - (ZeroBased ? 0 : 1);
+
+        public override NWayTreeStorage<T> GetBranch(byte index)
         {
-            return Branches[index - (ZeroBased ? 0 : 1)];
+            var adjustedIndex = AdjustedIndex(index);
+            ConfirmAdjustedIndex(adjustedIndex);
+            return Branches[adjustedIndex];
         }
 
-        public T GetValue(IEnumerator<byte> restOfSequence)
+        public override void SetBranch(byte index, NWayTreeStorage<T> tree)
+        {
+            var adjustedIndex = AdjustedIndex(index);
+            ConfirmAdjustedIndex(adjustedIndex);
+            Branches[adjustedIndex] = tree;
+        }
+
+        private void ConfirmAdjustedIndex(int adjustedIndex)
+        {
+            if (Branches == null)
+                Branches = new NWayTreeStorage<T>[adjustedIndex + 1];
+            else if (!(adjustedIndex < Branches.Length))
+            {
+                NWayTreeStorage<T>[] branchesReplacement = new NWayTreeStorage<T>[adjustedIndex + 1];
+                for (int i = 0; i < Branches.Length; i++)
+                    branchesReplacement[i] = Branches[i];
+                Branches = branchesReplacement;
+            }
+        }
+
+        public NWayTreeStorage<T> GetNode(IEnumerator<byte> restOfSequence)
         {
             NWayTreeStorage<T> tree = this;
             bool moreInSequence = restOfSequence.MoveNext();
             while (moreInSequence)
             {
-                tree = ((NWayTreeStorageInternal<T>)tree).GetChildTree(restOfSequence.Current);
+                tree = ((NWayTreeStorageInternal<T>)tree).GetBranch(restOfSequence.Current);
+                if (tree == null)
+                    return null; // node does not exist in tree.
                 moreInSequence = restOfSequence.MoveNext();
             }
-            return tree.StoredValue;
+            return tree;
         }
 
-        public void AddValue(IEnumerator<byte> restOfSequence, IEnumerator<byte> numberBranchesSequence, bool historyComplete, T valueToAdd)
+        public T GetValue(IEnumerator<byte> restOfSequence)
+        {
+            return GetNode(restOfSequence).StoredValue;
+        }
+
+        public NWayTreeStorage<T> SetValueIfNotSet(IEnumerator<byte> restOfSequence, bool historyComplete, Func<T> setter)
+        {
+            NWayTreeStorage<T> node = GetNode(restOfSequence);
+            if (node == null || node.StoredValue == null || node.StoredValue.Equals(default(T)))
+            {
+                restOfSequence.Reset();
+                return SetValue(restOfSequence, historyComplete, setter());
+            }
+            else
+                return node;
+        }
+
+        public NWayTreeStorage<T> SetValue(IEnumerator<byte> restOfSequence, bool historyComplete, T valueToAdd)
         {
             bool anyInSequence = restOfSequence.MoveNext();
-            bool anyInBranchSequence = numberBranchesSequence.MoveNext();
             if (!anyInSequence)
+            {
                 StoredValue = valueToAdd;
+                return this;
+            }
             else
             {
-                if (numberBranchesSequence.Current != Branches.Length)
-                    throw new Exception("Inconsistent number of branches.");
-                AddValueHelper(restOfSequence, numberBranchesSequence, historyComplete, valueToAdd);
+                return SetValueHelper(restOfSequence, historyComplete, valueToAdd);
             }
         }
 
-        private void AddValueHelper(IEnumerator<byte> restOfSequence, IEnumerator<byte> numberBranchesSequence, bool historyComplete, T valueToAdd)
+        private NWayTreeStorage<T> SetValueHelper(IEnumerator<byte> restOfSequence, bool historyComplete, T valueToAdd)
         {
             byte nextInSequence = restOfSequence.Current;
             bool anotherExistsAfterNext = restOfSequence.MoveNext();
-            bool anotherBranchesExistsAfterNext = numberBranchesSequence.MoveNext();
-            if (anotherExistsAfterNext != anotherBranchesExistsAfterNext)
-                throw new Exception("Inconsistent sequence lengths.");
-            NWayTreeStorage<T> nextTree = GetChildTree(nextInSequence);
+            NWayTreeStorage<T> nextTree = GetBranch(nextInSequence);
             if (nextTree == null)
             {
                 if (anotherExistsAfterNext || !historyComplete)
-                    nextTree = new NWayTreeStorageInternal<T>(numberBranchesSequence.Current);
+                    nextTree = new NWayTreeStorageInternal<T>();
                 else
                 {
                     nextTree = new NWayTreeStorage<T>(); // leaf node for last item in history
@@ -66,12 +107,15 @@ namespace ACESim
                 }
                 Branches[nextInSequence - (ZeroBased ? 0 : 1)] = nextTree;
                 if (!anotherExistsAfterNext && historyComplete)
-                    return;
+                    return nextTree;
             }
             if (anotherExistsAfterNext)
-                ((NWayTreeStorageInternal<T>)nextTree).AddValueHelper(restOfSequence, numberBranchesSequence, historyComplete, valueToAdd);
+                return ((NWayTreeStorageInternal<T>)nextTree).SetValueHelper(restOfSequence, historyComplete, valueToAdd);
             else
+            {
                 nextTree.StoredValue = valueToAdd;
+                return nextTree;
+            }
         }
     }
 }

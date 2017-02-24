@@ -154,7 +154,7 @@ namespace ACESim
                 int playerNumber = History[i + 1];
                 int action = History[i + 2];
                 int numPossibleActions = History[i + 3];
-                if (gameDefinition.DecisionsExecutionOrder[decisionNumber].NumActions > action)
+                if (gameDefinition.DecisionsExecutionOrder[decisionNumber].NumPossibleActions > action)
                 {
                     lastDecisionWithAnotherAction = decisionNumber;
                     break;
