@@ -61,7 +61,7 @@ namespace ACESim
             Type theType = GameFactory.GetSimulationSettingsType();
             InputVariables inputVariables = new InputVariables(CurrentExecutionInformation);
             GameInputs inputs = inputVariables.GetGameInputs(theType, 1, new IterationID(1), CurrentExecutionInformation);
-            
+
             // Create game trees
             GameHistoryTree = new NWayTreeStorageInternal<object>(GameDefinition.DecisionsExecutionOrder.First().NumPossibleActions);
             foreach (Strategy s in Strategies)
@@ -69,7 +69,7 @@ namespace ACESim
                 if (!s.PlayerInfo.PlayerIsChance)
                     s.CreateInformationSetTree(GameDefinition.DecisionsExecutionOrder.First(x => x.PlayerNumber == s.PlayerInfo.PlayerNumber).NumPossibleActions);
             }
-            
+
             int numPlayed = 0;
             foreach (var progress in player.PlayAllPaths(inputs))
             {
@@ -89,28 +89,72 @@ namespace ACESim
                         var decision = GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
                         bool isNecessarilyLast = decision.IsAlwaysPlayersLastDecision || informationSetHistory.IsTerminalAction;
                         var playersStrategy = Strategies[informationSetHistory.PlayerMakingDecision];
-                        var informationSetNode = playersStrategy.SetInformationSetTreeValueIfNotSet(
-                            informationSetHistory.InformationSet, 
-                            isNecessarilyLast, 
-                            () => 
-                            {
-                                CRMInformationSetNodeTally nodeInfo = new CRMInformationSetNodeTally(decision.NumPossibleActions);
-                                return nodeInfo;
-                            }
-                            );
-                        // Now, we want to store in the game history tree a quick reference to the correct point in the information set tree.
-                        walkHistoryTree.StoredValue = informationSetNode; 
+                        if (walkHistoryTree.StoredValue == null)
+                        {
+                            // create the information set node if necessary, within initialized tally values
+                            var informationSetNode = playersStrategy.SetInformationSetTreeValueIfNotSet(
+                                informationSetHistory.InformationSet,
+                                isNecessarilyLast,
+                                () =>
+                                {
+                                    CRMInformationSetNodeTally nodeInfo = new CRMInformationSetNodeTally(decision.NumPossibleActions);
+                                    return nodeInfo;
+                                }
+                                );
+                            // Now, we want to store in the game history tree a quick reference to the correct point in the information set tree.
+                            walkHistoryTree.StoredValue = informationSetNode;
+                        }
                     }
                     walkHistoryTree = walkHistoryTree.GetBranch(informationSetHistory.ActionChosen);
                 }
             }
 
-            // DEBUG
+            PrintSameGameResults(player, inputs);
+        }
+
+        private void PrintSameGameResults(GamePlayer player, GameInputs inputs)
+        {
+            double probabilityOfPrint = 0.05;
+            if (probabilityOfPrint == 0)
+                return;
             foreach (var progress in player.PlayAllPaths(inputs))
             {
-                var path = progress.GameHistory.GetActions();
-                var utilities = GetUtilities(path);
-                Debug.WriteLine($"Utilities: P {utilities[0]}, D {utilities[1]}");
+                if (RandomGenerator.NextDouble() < probabilityOfPrint)
+                {
+                    var path = progress.GameHistory.GetActions().ToList();
+                    var utilities = GetUtilities(path);
+                    TabbedText.WriteLine($"{String.Join(",", path)} -->  Utilities: P {utilities[0]}, D {utilities[1]}");
+                    TabbedText.Tabs++;
+                    PrintGenericGameProgress(progress);
+                    TabbedText.Tabs--;
+                }
+            }
+        }
+
+        public void PrintGenericGameProgress(GameProgress progress)
+        {
+            NWayTreeStorage<object> walkHistoryTree = GameHistoryTree;
+            // Go through each non-chance decision point 
+            foreach (var informationSetHistory in progress.GameHistory.GetInformationSetHistoryItems())
+            {
+                var decision = GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
+                TabbedText.WriteLine($"Decision {decision.Name} for player {GameDefinition.Players[decision.PlayerNumber].PlayerName}");
+                TabbedText.Tabs++;
+                TabbedText.WriteLine($"Action chosen: {informationSetHistory.ActionChosen}");
+                if (!GameDefinition.Players[informationSetHistory.PlayerMakingDecision].PlayerIsChance)
+                {
+                    var playersStrategy = Strategies[informationSetHistory.PlayerMakingDecision];
+                    var informationSet = informationSetHistory.InformationSet.ToList();
+                    TabbedText.WriteLine($"Information set: {String.Join(",", informationSet)}");
+                    var informationSetNodeReferencedInHistoryNode = ((NWayTreeStorage<object>)walkHistoryTree.StoredValue);
+                    var informationSetNode = playersStrategy.GetInformationSetTreeNode(informationSet);
+                    CRMInformationSetNodeTally tallyReferencedInHistory = (CRMInformationSetNodeTally)informationSetNodeReferencedInHistoryNode.StoredValue;
+                    CRMInformationSetNodeTally tallyStoredInInformationSet = (CRMInformationSetNodeTally) playersStrategy.GetInformationSetTreeValue(informationSet);
+                    if (tallyReferencedInHistory != tallyStoredInInformationSet)
+                        throw new Exception("Tally references do not match.");
+                }
+                walkHistoryTree = walkHistoryTree.GetBranch(informationSetHistory.ActionChosen);
+                TabbedText.Tabs--;
             }
         }
 

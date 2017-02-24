@@ -21,7 +21,7 @@ namespace ACESim
 
         private void Initialize(int numDimensions, int numPossibleActions)
         {
-            var x = new double[numDimensions, numPossibleActions];
+            NodeInformation = new double[numDimensions, numPossibleActions];
             for (int i = 0; i < numDimensions; i++)
                 for (int j = 0; j < numPossibleActions; j++)
                     NodeInformation[i, j] = 0;

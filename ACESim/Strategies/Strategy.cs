@@ -65,6 +65,11 @@ namespace ACESim
             return InformationSetTree.GetValue(informationSet.GetEnumerator());
         }
 
+        public NWayTreeStorage<object> GetInformationSetTreeNode(IEnumerable<byte> informationSet)
+        {
+            return InformationSetTree.GetNode(informationSet.GetEnumerator());
+        }
+
         public byte ChooseAction(IEnumerable<byte> informationSet, Func<double> randomNumberGenerator)
         {
             throw new NotImplementedException();
