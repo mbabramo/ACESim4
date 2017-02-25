@@ -65,15 +65,17 @@ namespace ACESim
             {
                 // make the starter strategies empty
                 Strategies = new List<Strategy>();
-                for (int i = 0; i < GameDefinition.NumPlayers; i++)
+                int numNonChancePlayers = GameDefinition.Players.Count(x => !x.PlayerIsChance);
+                bool chancePlayerExists = GameDefinition.Players.First().PlayerIsChance;
+                for (int i = 0; i < numNonChancePlayers; i++)
                 {
                     var aStrategy = new Strategy();
                     aStrategy.EvolutionSettings = simulationInteraction.GetEvolutionSettings();
                     aStrategy.SimulationInteraction = simulationInteraction;
-                    aStrategy.PlayerInfo = GameDefinition.Players[i];
+                    aStrategy.PlayerInfo = GameDefinition.Players[i + (chancePlayerExists ? 1 : 0)];
                     Strategies.Add(aStrategy);
                 }
-                for (int i = 0; i < GameDefinition.NumPlayers; i++)
+                for (int i = 0; i < numNonChancePlayers; i++)
                 {
                     Strategies[i].AllStrategies = Strategies;
                 }
