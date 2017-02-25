@@ -107,7 +107,11 @@ namespace ACESim
                 // Go through each non-chance decision point and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
                 foreach (var informationSetHistory in progress.GameHistory.GetInformationSetHistoryItems())
                 {
-                    if (!GameDefinition.Players[informationSetHistory.PlayerMakingDecision].PlayerIsChance)
+                    if (GameDefinition.Players[informationSetHistory.PlayerMakingDecision].PlayerIsChance)
+                    {
+                        walkHistoryTree.StoredValue = informationSetHistory.DecisionIndex; // for a chance decision, just store the decision index
+                    }
+                    else
                     {
                         var decision = GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
                         bool isNecessarilyLast = decision.IsAlwaysPlayersLastDecision || informationSetHistory.IsTerminalAction;
@@ -120,7 +124,7 @@ namespace ACESim
                                 isNecessarilyLast,
                                 () =>
                                 {
-                                    CRMInformationSetNodeTally nodeInfo = new CRMInformationSetNodeTally(decision.NumPossibleActions);
+                                    CRMInformationSetNodeTally nodeInfo = new CRMInformationSetNodeTally(informationSetHistory.DecisionIndex, decision.NumPossibleActions);
                                     return nodeInfo;
                                 }
                                 );
@@ -210,7 +214,7 @@ namespace ACESim
 
         public bool NodeIsChanceNode(NWayTreeStorage<object> history)
         {
-            return history.StoredValue == null;
+            return (history.StoredValue is byte);
         }
 
         public byte NumPossibleActionsAtDecision(byte decisionNum)
@@ -243,7 +247,7 @@ namespace ACESim
             return VanillaCFRPiValues[index];
         }
 
-        public void SetPlayerProbabilityContribution(byte nonChancePlayerIndex, byte decisionNum, double contribution)
+        public void SetPiValue(byte nonChancePlayerIndex, byte decisionNum, double contribution)
         {
             byte index = (byte)(decisionNum * NumNonChancePlayers + nonChancePlayerIndex);
             VanillaCFRPiValues[index] = contribution;
@@ -256,27 +260,40 @@ namespace ACESim
         }
 
 
-
-        public double VanillaCFR(NWayTreeStorage<object> history, byte decisionNum, byte nonChancePlayerIndex)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="history"></param>
+        /// <param name="decisionNum"></param>
+        /// <param name="nonChancePlayerIndex">0 for first non-chance player, etc. Note that this corresponds in Lanctot to 1, 2, etc. We are using zero-basing for player index (even though we are 1-basing actions).</param>
+        /// <returns></returns>
+        public double VanillaCFR(NWayTreeStorage<object> history, byte nonChancePlayerIndex)
         {
             if (history.IsLeaf())
                 return GetUtilityFromTerminalHistory(history, nonChancePlayerIndex);
             else
             {
-                byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
-                byte nextDecisionNum = (byte)(decisionNum + 1);
                 if (NodeIsChanceNode(history))
-                    return GetLaterRegretsAfterChance(history, decisionNum, nonChancePlayerIndex, numPossibleActions, nextDecisionNum);
-                var informationSet = GetInformationSet(history);
-                informationSet.SetRegretMatchingProbabilities(CurrentRegretMatching);
-                double currentRegretSum = 0;
-                ResetCurrentRegrets(numPossibleActions);
+                    return GetLaterRegretsAfterChance(history, nonChancePlayerIndex);
+                else
+                {
+                    var informationSet = GetInformationSet(history);
+                    byte decisionNum = informationSet.DecisionNum;
+                    byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
+                    byte nextDecisionNum = (byte)(decisionNum + 1);
+                    informationSet.SetRegretMatchingProbabilities(CurrentRegretMatching);
+                    double currentRegretSum = 0;
+                    ResetCurrentRegrets(numPossibleActions);
+                }
             }
 
         }
 
-        private double GetLaterRegretsAfterChance(NWayTreeStorage<object> history, byte decisionNum, byte nonChancePlayerIndex, byte numPossibleActions, byte nextDecisionNum)
+        private double GetLaterRegretsAfterChance(NWayTreeStorage<object> history, byte nonChancePlayerIndex)
         {
+            byte decisionNum = (byte)history.StoredValue;
+            byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
+            byte nextDecisionNum = (byte)(decisionNum + 1);
             double probabilityEachChanceAction = ProbabilityEachChanceAction[decisionNum];
             for (byte p = 0; p < NumNonChancePlayers; p++)
             {
@@ -286,7 +303,7 @@ namespace ACESim
                     nextPlayerProbabilityContribution = currentPlayerProbabilityContribution;
                 else
                     nextPlayerProbabilityContribution = currentPlayerProbabilityContribution * probabilityEachChanceAction;
-                SetPlayerProbabilityContribution(p, nextDecisionNum, nextPlayerProbabilityContribution);
+                SetPiValue(p, nextDecisionNum, nextPlayerProbabilityContribution);
             }
             double sumLaterRegrets = 0;
             for (byte action = 1; action <= numPossibleActions; action++)
@@ -313,7 +330,7 @@ namespace ACESim
             int maxNumActions = GameDefinition.DecisionsExecutionOrder.Max(x => x.NumPossibleActions);
             VanillaCFRPiValues = new double[maxPlayerContributionsHistoryLength];
             for (byte i = 0; i < NumNonChancePlayers; i++)
-                SetPlayerProbabilityContribution(i, 0, 1.0);
+                SetPiValue(i, 0, 1.0);
             CurrentRegretMatching = new double[maxNumActions];
             CurrentRegrets = new double[maxNumActions];
         }

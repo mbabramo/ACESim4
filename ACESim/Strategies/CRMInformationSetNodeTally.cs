@@ -9,14 +9,16 @@ namespace ACESim
     [Serializable]
     public class CRMInformationSetNodeTally
     {
+        public byte DecisionNum;
         double[,] NodeInformation;
 
         int NumPossibleActions => NodeInformation.GetLength(1);
         const int regretDimension = 0;
         const int cumulativeStrategyDimension = 1;
 
-        public CRMInformationSetNodeTally(int numPossibleActions)
+        public CRMInformationSetNodeTally(byte decisionNum, int numPossibleActions)
         {
+            DecisionNum = decisionNum;
             Initialize(2, numPossibleActions);
         }
 
