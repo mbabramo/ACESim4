@@ -29,6 +29,10 @@ namespace ACESim
 
         public int NumNonChancePlayers;
 
+        public byte NonChancePlayerIndexFromPlayerIndex(byte overallPlayerNum) => ChancePlayerExists ? (byte)(overallPlayerNum - 1) : overallPlayerNum;
+
+        public Strategy GetPlayerStrategyFromOverallPlayerNum(byte overallPlayerNum) => Strategies[NonChancePlayerIndexFromPlayerIndex(overallPlayerNum)];
+
         public CRMDevelopment()
         {
 
@@ -75,8 +79,7 @@ namespace ACESim
             GameHistoryTree = new NWayTreeStorageInternal<object>(GameDefinition.DecisionsExecutionOrder.First().NumPossibleActions);
             foreach (Strategy s in Strategies)
             {
-                if (!s.PlayerInfo.PlayerIsChance)
-                    s.CreateInformationSetTree(GameDefinition.DecisionsExecutionOrder.First(x => x.PlayerNumber == s.PlayerInfo.PlayerNumber).NumPossibleActions);
+                s.CreateInformationSetTree(GameDefinition.DecisionsExecutionOrder.First(x => x.PlayerNumber == s.PlayerInfo.PlayerNumber).NumPossibleActions);
             }
 
             int numPlayed = 0;
@@ -97,7 +100,7 @@ namespace ACESim
                     {
                         var decision = GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
                         bool isNecessarilyLast = decision.IsAlwaysPlayersLastDecision || informationSetHistory.IsTerminalAction;
-                        var playersStrategy = Strategies[informationSetHistory.PlayerMakingDecision];
+                        var playersStrategy = GetPlayerStrategyFromOverallPlayerNum(informationSetHistory.PlayerMakingDecision);
                         if (walkHistoryTree.StoredValue == null)
                         {
                             // create the information set node if necessary, within initialized tally values
@@ -152,7 +155,7 @@ namespace ACESim
                 TabbedText.WriteLine($"Action chosen: {informationSetHistory.ActionChosen}");
                 if (!GameDefinition.Players[informationSetHistory.PlayerMakingDecision].PlayerIsChance)
                 {
-                    var playersStrategy = Strategies[informationSetHistory.PlayerMakingDecision];
+                    var playersStrategy = GetPlayerStrategyFromOverallPlayerNum(informationSetHistory.PlayerMakingDecision);
                     var informationSet = informationSetHistory.InformationSet.ToList();
                     TabbedText.WriteLine($"Information set: {String.Join(",", informationSet)}");
                     var informationSetNodeReferencedInHistoryNode = ((NWayTreeStorage<object>)walkHistoryTree.StoredValue);
@@ -188,19 +191,10 @@ namespace ACESim
         {
         }
 
-        public double GetNonChancePlayerContribution(double[] nonChancePlayerProbabilityContributions, byte playerNum)
-        {
-            if (ChancePlayerExists)
-                return nonChancePlayerProbabilityContributions[playerNum - 1]; // i.e., first player is given index 1 but is in index 0 of array
-            return nonChancePlayerProbabilityContributions[playerNum]; // i.e., first player is given index 0 and is in index 0 of array
-        }
-
-        public double GetUtilityFromTerminalHistory(NWayTreeStorage<object> history, byte playerNum)
+        public double GetUtilityFromTerminalHistory(NWayTreeStorage<object> history, byte nonChancePlayerIndex)
         {
             double[] utilities = ((double[])history.StoredValue);
-            if (ChancePlayerExists)
-                return utilities[playerNum - 1]; // i.e., first player is given index 1 but is in index 0 of array
-            return utilities[playerNum]; // i.e., first player is given index 0 and is in index 0 of array
+            return utilities[nonChancePlayerIndex];
         }
 
         public bool NodeIsChanceNode(NWayTreeStorage<object> history)
@@ -223,15 +217,15 @@ namespace ACESim
 
         double[] VanillaCFRPlayerProbabilityContributions; // Rather than create a new array of player contributions for each recursion depth, we just store the numbers for the appropriate recursion depth in this array
 
-        public double GetPlayerProbabilityContribution(byte playerNum, byte decisionNum)
+        public double GetPlayerProbabilityContribution(byte nonChancePlayerIndex, byte decisionNum)
         {
-            byte index = (byte)(decisionNum * NumNonChancePlayers + playerNum - (ChancePlayerExists ? 1 : 0));
+            byte index = (byte)(decisionNum * NumNonChancePlayers + nonChancePlayerIndex);
             return VanillaCFRPlayerProbabilityContributions[index];
         }
 
-        public void SetPlayerProbabilityContribution(byte playerNum, byte decisionNum, double contribution)
+        public void SetPlayerProbabilityContribution(byte nonChancePlayerIndex, byte decisionNum, double contribution)
         {
-            byte index = (byte)(decisionNum * NumNonChancePlayers + playerNum - (ChancePlayerExists ? 1 : 0));
+            byte index = (byte)(decisionNum * NumNonChancePlayers + nonChancePlayerIndex);
             VanillaCFRPlayerProbabilityContributions[index] = contribution;
         }
 
@@ -241,14 +235,14 @@ namespace ACESim
                 return GetUtilityFromTerminalHistory(history, playerNum);
             else
             {
-                int numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
+                byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
                 if (NodeIsChanceNode(history))
                 {
                     double sumLaterRegrets = 0;
                     double probabilityEachChanceDecision = 1.0 / (double)numPossibleActions; // Note: Could optimize by calculating once
                     for (byte action = 1; action <= numPossibleActions; action++)
                     {
-                        double[] nextContributions = new double[nonChancePlayerProbabilityContributions.Length]; // Note: Could optimize by just having 
+                        ;
                     }
                 }
             }
