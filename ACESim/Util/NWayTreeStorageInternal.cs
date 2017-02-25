@@ -18,6 +18,11 @@ namespace ACESim
             Branches = null; // initialize to null
         }
 
+        public override bool IsLeaf()
+        {
+            return Branches == null;
+        }
+
         private int AdjustedIndex(byte index) => index - (ZeroBased ? 0 : 1);
 
         public override NWayTreeStorage<T> GetBranch(byte index)

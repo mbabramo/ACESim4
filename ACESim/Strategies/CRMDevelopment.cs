@@ -27,6 +27,8 @@ namespace ACESim
 
         public bool ChancePlayerExists;
 
+        public int NumNonChancePlayers;
+
         public CRMDevelopment()
         {
 
@@ -40,6 +42,7 @@ namespace ACESim
             GameFactory = gameFactory;
             CurrentExecutionInformation = currentExecutionInformation;
             ChancePlayerExists = GameDefinition.Players.Any(x => x.PlayerIsChance);
+            NumNonChancePlayers = GameDefinition.Players.Count(x => !x.PlayerIsChance);
         }
 
         public IStrategiesDeveloper DeepCopy()
@@ -55,6 +58,12 @@ namespace ACESim
         }
 
         public void DevelopStrategies()
+        {
+            Initialize();
+            SolveVanillaCFR();
+        }
+
+        public void Initialize()
         {
             GamePlayer player = new GamePlayer(Strategies, GameFactory, EvolutionSettings.ParallelOptimization, GameDefinition);
 
@@ -114,7 +123,7 @@ namespace ACESim
 
         private void PrintSameGameResults(GamePlayer player, GameInputs inputs)
         {
-            double probabilityOfPrint = 0.01;
+            double probabilityOfPrint = 0;
             if (probabilityOfPrint == 0)
                 return;
             foreach (var progress in player.PlayAllPaths(inputs))
@@ -177,6 +186,28 @@ namespace ACESim
 
         public void UndoPreSerialize()
         {
+        }
+
+        public double GetNonChancePlayerContribution(double[] nonChancePlayerProbabilityContributions, byte playerNum)
+        {
+            if (ChancePlayerExists)
+                return nonChancePlayerProbabilityContributions[playerNum - 1]; // i.e., first player is given index 1 but is in index 0 of array
+            return nonChancePlayerProbabilityContributions[playerNum]; // i.e., first player is given index 0 and is in index 0 of array
+        }
+
+        public double VanillaCFR(NWayTreeStorage<object> history, byte playerNum, int iteration, double[] nonChancePlayerProbabilityContributions)
+        {
+
+        }
+
+        public void SolveVanillaCFR()
+        {
+            const int numIterationsToRun = 1000000;
+            double[] playerProbabilityContributions = new double[NumNonChancePlayers];
+            for (int iteration = 0; iteration < numIterationsToRun; iteration++)
+            {
+
+            }
         }
     }
 }

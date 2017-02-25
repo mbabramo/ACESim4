@@ -19,5 +19,10 @@ namespace ACESim
         {
             throw new Exception("Cannot set branch on leaf node.");
         }
+
+        public virtual bool IsLeaf()
+        {
+            return true; // this is a leaf node if not overriden
+        }
     }
 }
