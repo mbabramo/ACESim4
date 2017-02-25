@@ -195,15 +195,74 @@ namespace ACESim
             return nonChancePlayerProbabilityContributions[playerNum]; // i.e., first player is given index 0 and is in index 0 of array
         }
 
-        public double VanillaCFR(NWayTreeStorage<object> history, byte playerNum, int iteration, double[] nonChancePlayerProbabilityContributions)
+        public double GetUtilityFromTerminalHistory(NWayTreeStorage<object> history, byte playerNum)
         {
+            double[] utilities = ((double[])history.StoredValue);
+            if (ChancePlayerExists)
+                return utilities[playerNum - 1]; // i.e., first player is given index 1 but is in index 0 of array
+            return utilities[playerNum]; // i.e., first player is given index 0 and is in index 0 of array
+        }
+
+        public bool NodeIsChanceNode(NWayTreeStorage<object> history)
+        {
+            return history.StoredValue == null;
+        }
+
+        public byte NumPossibleActionsAtDecision(byte decisionNum)
+        {
+            return GameDefinition.DecisionsExecutionOrder[decisionNum].NumPossibleActions;
+        }
+
+        public NWayTreeStorage<object> GetSubsequentHistory(NWayTreeStorage<object> history, byte action)
+        {
+            return history.GetBranch(action);
+        }
+
+
+        int VanillaCFRIteration; // controlled in SolveVanillaCFR
+
+        double[] VanillaCFRPlayerProbabilityContributions; // Rather than create a new array of player contributions for each recursion depth, we just store the numbers for the appropriate recursion depth in this array
+
+        public double GetPlayerProbabilityContribution(byte playerNum, byte decisionNum)
+        {
+            byte index = (byte)(decisionNum * NumNonChancePlayers + playerNum - (ChancePlayerExists ? 1 : 0));
+            return VanillaCFRPlayerProbabilityContributions[index];
+        }
+
+        public void SetPlayerProbabilityContribution(byte playerNum, byte decisionNum, double contribution)
+        {
+            byte index = (byte)(decisionNum * NumNonChancePlayers + playerNum - (ChancePlayerExists ? 1 : 0));
+            VanillaCFRPlayerProbabilityContributions[index] = contribution;
+        }
+
+        public double VanillaCFR(NWayTreeStorage<object> history, byte decisionNum, byte playerNum, int iteration, byte )
+        {
+            if (history.IsLeaf())
+                return GetUtilityFromTerminalHistory(history, playerNum);
+            else
+            {
+                int numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
+                if (NodeIsChanceNode(history))
+                {
+                    double sumLaterRegrets = 0;
+                    double probabilityEachChanceDecision = 1.0 / (double)numPossibleActions; // Note: Could optimize by calculating once
+                    for (byte action = 1; action <= numPossibleActions; action++)
+                    {
+                        double[] nextContributions = new double[nonChancePlayerProbabilityContributions.Length]; // Note: Could optimize by just having 
+                    }
+                }
+            }
 
         }
 
         public void SolveVanillaCFR()
         {
             const int numIterationsToRun = 1000000;
-            double[] playerProbabilityContributions = new double[NumNonChancePlayers];
+            const int maxPlayerContributionsHistoryLength = 30;
+            VanillaCFRPlayerProbabilityContributions = new double[maxPlayerContributionsHistoryLength];
+            for (byte i = 0; i < NumNonChancePlayers; i++)
+                SetPlayerProbabilityContribution();
+
             for (int iteration = 0; iteration < numIterationsToRun; iteration++)
             {
 
