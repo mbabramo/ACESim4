@@ -44,9 +44,9 @@ namespace ACESim
         {
             return new List<PlayerInfo>
                 {
-                    new PlayerInfo("C",(int) MyGamePlayers.Chance,true,false),
-                    new PlayerInfo("P",(int) MyGamePlayers.Plaintiff,false,true),
-                    new PlayerInfo("D",(int) MyGamePlayers.Defendant,false,true),
+                    new PlayerInfo("C", (int) MyGamePlayers.Chance, byte.MaxValue, true, false),
+                    new PlayerInfo("P", (int) MyGamePlayers.Plaintiff, 0, false, true),
+                    new PlayerInfo("D", (int) MyGamePlayers.Defendant, 1, false, true),
                 };
         }
 

@@ -55,6 +55,7 @@ namespace ACESim
         private void SetChanceStrategy()
         {
             // we assume that each chance action is equally likely.
+            ProbabilityEachChanceAction = new double[GameDefinition.DecisionsExecutionOrder.Count()]; // non-chance entries will be zero
             for (int i = 0; i < GameDefinition.DecisionsExecutionOrder.Count(); i++)
                 if (GameDefinition.Players[GameDefinition.DecisionsExecutionOrder[i].PlayerNumber].PlayerIsChance)
                     ProbabilityEachChanceAction[i] = 1.0 / (double)GameDefinition.DecisionsExecutionOrder[i].NumPossibleActions;
@@ -90,7 +91,7 @@ namespace ACESim
             GameHistoryTree = new NWayTreeStorageInternal<object>(GameDefinition.DecisionsExecutionOrder.First().NumPossibleActions);
             foreach (Strategy s in Strategies)
             {
-                s.CreateInformationSetTree(GameDefinition.DecisionsExecutionOrder.First(x => x.PlayerNumber == s.PlayerInfo.PlayerNumber).NumPossibleActions);
+                s.CreateInformationSetTree(GameDefinition.DecisionsExecutionOrder.First(x => x.PlayerNumber == s.PlayerInfo.PlayerNumberOverall).NumPossibleActions);
             }
 
             int numPlayed = 0;
@@ -107,7 +108,8 @@ namespace ACESim
                 // Go through each non-chance decision point and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
                 foreach (var informationSetHistory in progress.GameHistory.GetInformationSetHistoryItems())
                 {
-                    if (GameDefinition.Players[informationSetHistory.PlayerMakingDecision].PlayerIsChance)
+                    var playerInfo = GameDefinition.Players[informationSetHistory.PlayerMakingDecision];
+                    if (playerInfo.PlayerIsChance)
                     {
                         walkHistoryTree.StoredValue = informationSetHistory.DecisionIndex; // for a chance decision, just store the decision index
                     }
@@ -124,7 +126,7 @@ namespace ACESim
                                 isNecessarilyLast,
                                 () =>
                                 {
-                                    CRMInformationSetNodeTally nodeInfo = new CRMInformationSetNodeTally(informationSetHistory.DecisionIndex, decision.NumPossibleActions);
+                                    CRMInformationSetNodeTally nodeInfo = new CRMInformationSetNodeTally(informationSetHistory.DecisionIndex, playerInfo.NonChancePlayerIndex, decision.NumPossibleActions);
                                     return nodeInfo;
                                 }
                                 );
@@ -173,9 +175,7 @@ namespace ACESim
                     var playersStrategy = GetPlayerStrategyFromOverallPlayerNum(informationSetHistory.PlayerMakingDecision);
                     var informationSet = informationSetHistory.InformationSet.ToList();
                     TabbedText.WriteLine($"Information set: {String.Join(",", informationSet)}");
-                    var informationSetNodeReferencedInHistoryNode = ((NWayTreeStorage<object>)walkHistoryTree.StoredValue);
-                    var informationSetNode = playersStrategy.GetInformationSetTreeNode(informationSet);
-                    CRMInformationSetNodeTally tallyReferencedInHistory = (CRMInformationSetNodeTally)informationSetNodeReferencedInHistoryNode.StoredValue;
+                    CRMInformationSetNodeTally tallyReferencedInHistory = GetInformationSet(walkHistoryTree);
                     CRMInformationSetNodeTally tallyStoredInInformationSet = (CRMInformationSetNodeTally) playersStrategy.GetInformationSetTreeValue(informationSet);
                     if (tallyReferencedInHistory != tallyStoredInInformationSet)
                         throw new Exception("Tally references do not match.");
@@ -229,7 +229,9 @@ namespace ACESim
 
         public CRMInformationSetNodeTally GetInformationSet(NWayTreeStorage<object> history)
         {
-            return (CRMInformationSetNodeTally)history.StoredValue;
+            var informationSetNodeReferencedInHistoryNode = ((NWayTreeStorage<object>)history.StoredValue);
+            CRMInformationSetNodeTally tallyReferencedInHistory = (CRMInformationSetNodeTally)informationSetNodeReferencedInHistoryNode.StoredValue;
+            return tallyReferencedInHistory;
         }
 
         int VanillaCFRIteration; // controlled in SolveVanillaCFR
@@ -237,13 +239,22 @@ namespace ACESim
         // Rather than create a new array of player contributions for each recursion depth, we just store the numbers for the appropriate recursion depth in this array. So PiValues[0] = Pi1 in the vanilla CFR algorithm, i.e. corresponding to the first player. If the first player is the one that we are optimizing, then this represents the player's own probability contribution to the result. If the second player is the one that we are optimizing, however, then PiValues[0] represents the other player AND chance's contribution to the result. That is, it's pi(-1), i.e. everyone else's contribution.
         double[] VanillaCFRPiValues; 
 
-        double[] CurrentRegretMatching;
+        double[] ProbabilitiesFromRegretMatching;
         double[] CurrentRegrets;
 
         public double GetPiValue(byte nonChancePlayerIndex, byte decisionNum)
         {
             byte index = (byte)(decisionNum * NumNonChancePlayers + nonChancePlayerIndex);
             return VanillaCFRPiValues[index];
+        }
+
+        public double GetInversePiValue(byte nonChancePlayerIndex, byte decisionNum)
+        {
+            double product = 1.0;
+            for (byte p = 0; p < NumNonChancePlayers; p++)
+                if (p != nonChancePlayerIndex)
+                    product *= VanillaCFRPiValues[p];
+            return product;
         }
 
         public void SetPiValue(byte nonChancePlayerIndex, byte decisionNum, double contribution)
@@ -258,69 +269,85 @@ namespace ACESim
                 CurrentRegrets[a] = 0;
         }
 
-
         /// <summary>
-        /// 
+        /// Performs an iteration of vanilla counterfactual regret minimization.
         /// </summary>
-        /// <param name="history"></param>
-        /// <param name="decisionNum"></param>
+        /// <param name="recursionDepth">Recursion depth (starting at 0)</param>
+        /// <param name="history">The game tree, pointing to the particular point in the game where we are located</param>
         /// <param name="nonChancePlayerIndex">0 for first non-chance player, etc. Note that this corresponds in Lanctot to 1, 2, etc. We are using zero-basing for player index (even though we are 1-basing actions).</param>
         /// <returns></returns>
-        public double VanillaCFR(byte recursionDepth, NWayTreeStorage<object> history, byte nonChancePlayerIndex)
+        public double VanillaCRM(byte recursionDepth, NWayTreeStorage<object> history, byte nonChancePlayerIndex)
         {
             if (history.IsLeaf())
                 return GetUtilityFromTerminalHistory(history, nonChancePlayerIndex);
             else
             {
                 if (NodeIsChanceNode(history))
-                    return GetLaterRegretsAfterChance(recursionDepth, history, nonChancePlayerIndex);
+                    return VanillaCFR_ChanceNode(recursionDepth, history, nonChancePlayerIndex);
                 else
                 {
-                    var informationSet = GetInformationSet(history);
-                    byte decisionNum = informationSet.DecisionNum;
-                    byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
-                    byte nextDecisionNum = (byte)(decisionNum + 1);
-                    informationSet.SetRegretMatchingProbabilities(CurrentRegretMatching);
-                    double currentRegretSum = 0;
-                    ResetCurrentRegrets(numPossibleActions);
+                    return VanillaCFR_DecisionNode(recursionDepth, history, nonChancePlayerIndex);
                 }
             }
-
         }
 
-        private double GetLaterRegretsAfterChance(byte recursionDepth, NWayTreeStorage<object> history, byte nonChancePlayerIndex)
+        private double VanillaCFR_DecisionNode(byte recursionDepth, NWayTreeStorage<object> history, byte nonChancePlayerIndex)
+        {
+            var informationSet = GetInformationSet(history);
+            byte decisionNum = informationSet.DecisionNum;
+            byte playerMakingDecision = informationSet.NonChancePlayerIndex;
+            byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
+            byte nextRecursionDepth = (byte)(recursionDepth + 1);
+            informationSet.SetRegretMatchingProbabilities(ProbabilitiesFromRegretMatching);
+            double currentRegretSum = 0;
+            ResetCurrentRegrets(numPossibleActions);
+            for (byte action = 1; action <= numPossibleActions; action++)
+            {
+                double probabilityOfAction = ProbabilitiesFromRegretMatching[action - 1];
+                SetNextPiValues(recursionDepth, playerMakingDecision, probabilityOfAction, false);
+                CurrentRegrets[action - 1] = VanillaCRM(nextRecursionDepth, GetSubsequentHistory(history, action), nonChancePlayerIndex);
+                currentRegretSum = probabilityOfAction * CurrentRegrets[action - 1];
+            }
+            if (playerMakingDecision == nonChancePlayerIndex)
+            {
+                for (byte action = 1; action <= numPossibleActions; action++)
+                {
+                    informationSet.IncrementCumulativeRegret(action, GetInversePiValue(nonChancePlayerIndex, decisionNum) * (CurrentRegrets[action - 1] - currentRegretSum));
+                    informationSet.IncrementCumulativeStrategy(action, GetPiValue(nonChancePlayerIndex, decisionNum) * ProbabilitiesFromRegretMatching[action - 1]);
+                }
+            }
+            return currentRegretSum;
+        }
+
+        private double VanillaCFR_ChanceNode(byte recursionDepth, NWayTreeStorage<object> history, byte nonChancePlayerIndex)
         {
             byte decisionNum = (byte)history.StoredValue;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
             byte nextRecursionDepth =  (byte)(recursionDepth + 1);
             double probabilityEachChanceAction = ProbabilityEachChanceAction[decisionNum];
-            for (byte p = 0; p < NumNonChancePlayers; p++)
-            {
-                double currentPlayerProbabilityContribution = GetPiValue(p, decisionNum);
-                double nextPlayerProbabilityContribution;
-                if (p == nonChancePlayerIndex)
-                    nextPlayerProbabilityContribution = currentPlayerProbabilityContribution;
-                else
-                    nextPlayerProbabilityContribution = currentPlayerProbabilityContribution * probabilityEachChanceAction;
-                SetPiValue(p, nextRecursionDepth, nextPlayerProbabilityContribution);
-            }
+            SetNextPiValues(recursionDepth, nonChancePlayerIndex, probabilityEachChanceAction, true);
             double sumLaterRegrets = 0;
             for (byte action = 1; action <= numPossibleActions; action++)
             {
-                sumLaterRegrets += probabilityEachChanceAction * VanillaCFR(nextRecursionDepth, GetSubsequentHistory(history, action), nonChancePlayerIndex);
+                sumLaterRegrets += probabilityEachChanceAction * VanillaCRM(nextRecursionDepth, GetSubsequentHistory(history, action), nonChancePlayerIndex);
             }
 
             return sumLaterRegrets;
         }
 
-        public void SolveVanillaCFR()
+        private void SetNextPiValues(byte recursionDepth, byte nonChancePlayerIndex, double probabilityToMultiplyBy, bool changeOtherPlayers)
         {
-            const int numIterationsToRun = 1000000;
-            InitializeVanillaCFR();
-
-            for (int iteration = 0; iteration < numIterationsToRun; iteration++)
-                for (byte p = 0; p < NumNonChancePlayers; p++)
-                    VanillaCFR(0, GameHistoryTree, p);
+            byte nextRecursionDepth = (byte)(recursionDepth + 1);
+            for (byte p = 0; p < NumNonChancePlayers; p++)
+            {
+                double currentPiValue = GetPiValue(p, recursionDepth);
+                double nextPiValue;
+                if (p == nonChancePlayerIndex)
+                    nextPiValue = changeOtherPlayers ? currentPiValue : currentPiValue * probabilityToMultiplyBy;
+                else
+                    nextPiValue = changeOtherPlayers ? currentPiValue * probabilityToMultiplyBy : currentPiValue;
+                SetPiValue(p, nextRecursionDepth, nextPiValue);
+            }
         }
 
         private void InitializeVanillaCFR()
@@ -330,8 +357,18 @@ namespace ACESim
             VanillaCFRPiValues = new double[maxPlayerContributionsHistoryLength];
             for (byte i = 0; i < NumNonChancePlayers; i++)
                 SetPiValue(i, 0, 1.0);
-            CurrentRegretMatching = new double[maxNumActions];
+            ProbabilitiesFromRegretMatching = new double[maxNumActions];
             CurrentRegrets = new double[maxNumActions];
+        }
+
+        public void SolveVanillaCFR()
+        {
+            const int numIterationsToRun = 10000;
+            InitializeVanillaCFR();
+
+            for (int iteration = 0; iteration < numIterationsToRun; iteration++)
+                for (byte p = 0; p < NumNonChancePlayers; p++)
+                    VanillaCRM(0, GameHistoryTree, p);
         }
     }
 }

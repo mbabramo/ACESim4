@@ -10,15 +10,17 @@ namespace ACESim
     public class CRMInformationSetNodeTally
     {
         public byte DecisionNum;
+        public byte NonChancePlayerIndex;
         double[,] NodeInformation;
 
         int NumPossibleActions => NodeInformation.GetLength(1);
-        const int regretDimension = 0;
+        const int cumulativeRegretDimension = 0;
         const int cumulativeStrategyDimension = 1;
 
-        public CRMInformationSetNodeTally(byte decisionNum, int numPossibleActions)
+        public CRMInformationSetNodeTally(byte decisionNum, byte nonChancePlayerIndex, int numPossibleActions)
         {
             DecisionNum = decisionNum;
+            NonChancePlayerIndex = nonChancePlayerIndex;
             Initialize(2, numPossibleActions);
         }
 
@@ -30,9 +32,9 @@ namespace ACESim
                     NodeInformation[i, j] = 0;
         }
 
-        public void IncrementRegret(int action, double amount)
+        public void IncrementCumulativeRegret(int action, double amount)
         {
-            NodeInformation[regretDimension, action - 1] += amount;
+            NodeInformation[cumulativeRegretDimension, action - 1] += amount;
         }
 
         public void IncrementCumulativeStrategy(int action, double amount)
@@ -42,7 +44,7 @@ namespace ACESim
 
         public double GetPositiveCumulativeRegret(int action)
         {
-            double cumulativeRegret = NodeInformation[regretDimension, action - 1];
+            double cumulativeRegret = NodeInformation[cumulativeRegretDimension, action - 1];
             if (cumulativeRegret > 0)
                 return cumulativeRegret;
             return 0;
@@ -53,7 +55,7 @@ namespace ACESim
             double total = 0;
             for (int i = 0; i < NumPossibleActions; i++)
             {
-                double cumulativeRegret = NodeInformation[regretDimension, i];
+                double cumulativeRegret = NodeInformation[cumulativeRegretDimension, i];
                 if (cumulativeRegret > 0)
                     total += cumulativeRegret;
             }
