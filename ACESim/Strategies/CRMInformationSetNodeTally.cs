@@ -58,6 +58,22 @@ namespace ACESim
             return total;
         }
 
+        public void SetRegretMatchingProbabilities(double[] probabilitiesToSet)
+        {
+            double sumPositiveCumulativeRegrets = GetSumPositiveCumulativeRegrets();
+            if (sumPositiveCumulativeRegrets == 0)
+            {
+                double equalProbability = 1.0 / (double)NumPossibleActions;
+                for (byte a = 1; a <= NumPossibleActions; a++)
+                    probabilitiesToSet[a - 1] = equalProbability;
+            }
+            else
+            {
+                for (byte a = 1; a <= NumPossibleActions; a++)
+                    probabilitiesToSet[a - 1] = GetPositiveCumulativeRegret(a) / sumPositiveCumulativeRegrets;
+            }
+        }
+
         public int ChooseActionWithRegretMatching(double randomSeed)
         {
             double sumPositiveCumulativeRegrets = GetSumPositiveCumulativeRegrets();
