@@ -232,7 +232,6 @@ namespace ACESim
             return (CRMInformationSetNodeTally)history.StoredValue;
         }
 
-
         int VanillaCFRIteration; // controlled in SolveVanillaCFR
 
         // Rather than create a new array of player contributions for each recursion depth, we just store the numbers for the appropriate recursion depth in this array. So PiValues[0] = Pi1 in the vanilla CFR algorithm, i.e. corresponding to the first player. If the first player is the one that we are optimizing, then this represents the player's own probability contribution to the result. If the second player is the one that we are optimizing, however, then PiValues[0] represents the other player AND chance's contribution to the result. That is, it's pi(-1), i.e. everyone else's contribution.
@@ -267,14 +266,14 @@ namespace ACESim
         /// <param name="decisionNum"></param>
         /// <param name="nonChancePlayerIndex">0 for first non-chance player, etc. Note that this corresponds in Lanctot to 1, 2, etc. We are using zero-basing for player index (even though we are 1-basing actions).</param>
         /// <returns></returns>
-        public double VanillaCFR(NWayTreeStorage<object> history, byte nonChancePlayerIndex)
+        public double VanillaCFR(byte recursionDepth, NWayTreeStorage<object> history, byte nonChancePlayerIndex)
         {
             if (history.IsLeaf())
                 return GetUtilityFromTerminalHistory(history, nonChancePlayerIndex);
             else
             {
                 if (NodeIsChanceNode(history))
-                    return GetLaterRegretsAfterChance(history, nonChancePlayerIndex);
+                    return GetLaterRegretsAfterChance(recursionDepth, history, nonChancePlayerIndex);
                 else
                 {
                     var informationSet = GetInformationSet(history);
@@ -289,11 +288,11 @@ namespace ACESim
 
         }
 
-        private double GetLaterRegretsAfterChance(NWayTreeStorage<object> history, byte nonChancePlayerIndex)
+        private double GetLaterRegretsAfterChance(byte recursionDepth, NWayTreeStorage<object> history, byte nonChancePlayerIndex)
         {
             byte decisionNum = (byte)history.StoredValue;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
-            byte nextDecisionNum = (byte)(decisionNum + 1);
+            byte nextRecursionDepth =  (byte)(recursionDepth + 1);
             double probabilityEachChanceAction = ProbabilityEachChanceAction[decisionNum];
             for (byte p = 0; p < NumNonChancePlayers; p++)
             {
@@ -303,12 +302,12 @@ namespace ACESim
                     nextPlayerProbabilityContribution = currentPlayerProbabilityContribution;
                 else
                     nextPlayerProbabilityContribution = currentPlayerProbabilityContribution * probabilityEachChanceAction;
-                SetPiValue(p, nextDecisionNum, nextPlayerProbabilityContribution);
+                SetPiValue(p, nextRecursionDepth, nextPlayerProbabilityContribution);
             }
             double sumLaterRegrets = 0;
             for (byte action = 1; action <= numPossibleActions; action++)
             {
-                sumLaterRegrets += probabilityEachChanceAction * VanillaCFR(GetSubsequentHistory(history, action), nextDecisionNum, nonChancePlayerIndex);
+                sumLaterRegrets += probabilityEachChanceAction * VanillaCFR(nextRecursionDepth, GetSubsequentHistory(history, action), nonChancePlayerIndex);
             }
 
             return sumLaterRegrets;
@@ -321,7 +320,7 @@ namespace ACESim
 
             for (int iteration = 0; iteration < numIterationsToRun; iteration++)
                 for (byte p = 0; p < NumNonChancePlayers; p++)
-                    VanillaCFR(GameHistoryTree, 0, p);
+                    VanillaCFR(0, GameHistoryTree, p);
         }
 
         private void InitializeVanillaCFR()
