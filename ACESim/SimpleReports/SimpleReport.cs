@@ -16,6 +16,8 @@ namespace ACESim
             Definition = definition;
             for (int i = 0; i < Definition.TotalCells; i++)
                 StatCollectors[i] = new StatCollector();
+            if (!(definition.ColumnItems.First() is SimpleReportColumnFilter))
+                throw new Exception("First column item must be a filter that counts everything.");
         }
 
         public void ProcessGameProgress(GameProgress completedGame, double weight)
@@ -26,9 +28,12 @@ namespace ACESim
                 bool metaFilterSatisfied = metaFilter.IsInFilter(completedGame);
                 if (metaFilterSatisfied)
                 {
+                    bool isFirstRow = true;
                     foreach (SimpleReportFilter rowFilter in Definition.RowFilters)
                     {
                         bool rowFilterSatisfied = metaFilter.IsInFilter(completedGame);
+                        if (isFirstRow && !rowFilterSatisfied)
+                            throw new Exception("First row filter must always be true, so that we can calculate percentage correctly.");
                         if (rowFilterSatisfied)
                         {
                             bool isFirstColumnItem = true;
@@ -44,6 +49,7 @@ namespace ACESim
                         }
                         else
                             i += Definition.ColumnItems.Count();
+                        isFirstRow = false;
                     }
                 }
                 else
@@ -108,6 +114,7 @@ namespace ACESim
                     isFirstRowInTable = false;
                 }
             }
+            return sb.ToString();
             
         }
 
