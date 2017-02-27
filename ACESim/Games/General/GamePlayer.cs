@@ -110,22 +110,41 @@ namespace ACESim
             return CompletedGameProgresses;
         }
 
-        public IEnumerable<GameProgress> PlayAllPaths(GameInputs gameInputsToUse)
+        public IEnumerable<GameProgress> PlayAllPaths(GameInputs gameInputsToUse, Func<IEnumerable<byte>, bool> condition = null)
         {
             GameProgress startingProgress = GameFactory.CreateNewGameProgress(new IterationID(1)); // iteration doesn't matter, since we're playing a particular path and thus ignoring random numbers
             IEnumerator<byte> path = new List<byte> { }.GetEnumerator();
             while (path != null)
             {
+                bool conditionMet = true;
+                if (condition != null)
+                {
+                    var list = new List<byte>();
+                    while (path.MoveNext())
+                        list.Add(path.Current);
+                    conditionMet = condition(list);
+                    if (conditionMet)
+                        path = list.GetEnumerator();
+                }
                 var progressToUse = startingProgress.DeepCopy();
-                IEnumerable<byte> next = PlayPath(path, progressToUse, gameInputsToUse);
-                //var thePathEnumerated = next?.ToList();
-                //if (thePathEnumerated != null)
-                //    Debug.WriteLine($"{String.Join(",", thePathEnumerated)}");
-                if (next == null)
-                    path = null;
+                if (conditionMet)
+                {
+                    IEnumerable<byte> next = PlayPath(path, progressToUse, gameInputsToUse);
+                    //var thePathEnumerated = next?.ToList();
+                    //if (thePathEnumerated != null)
+                    //    Debug.WriteLine($"{String.Join(",", thePathEnumerated)}");
+                    if (next == null)
+                        path = null;
+                    else
+                        path = next.GetEnumerator();
+                    yield return progressToUse;
+                }
                 else
-                    path = next.GetEnumerator();
-                yield return progressToUse;
+                {
+                    debug; // here's the problem: how do we get the next decision path without actually playing the game? could be a bit tricky, maybe keep reusing the same GameHistory?
+                    Progress.GameHistory.GetNextDecisionPath(GameDefinition)
+                    path = GetNextPath(path);
+                }
             }
         }
 
