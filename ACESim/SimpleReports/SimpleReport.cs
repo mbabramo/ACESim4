@@ -91,13 +91,17 @@ namespace ACESim
                                 proportionItemsInRow = StatCollectors[i].Average();
                             double denominator = (cf.ReportAsPercentageOfAll ? 1.0 : proportionItemsInRow);
                             value = denominator == 0 ? null : (double?) StatCollectors[i].Average() / denominator;
-
                         }
                         else
                         {
-                            asdf;
+                            SimpleReportColumnVariable cv = (SimpleReportColumnVariable)colItem;
+                            if (StatCollectors[i].Num() == 0)
+                                value = null;
+                            else
+                                value = cv.Stdev ? StatCollectors[i].StandardDeviation() : StatCollectors[i].Average();
                         }
-                        sb.Append(FormatTableString(colItem.Name, colItem.Width, colItem == lastColumn));
+                        string valueString = value == null ? "" : value.ToSignificantFigures();
+                        sb.Append(FormatTableString(valueString, colItem.Width, colItem == lastColumn));
                         isFirstColumnInRow = false;
                         i++;
                     }
