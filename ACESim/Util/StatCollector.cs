@@ -263,6 +263,11 @@ namespace ACESim
             }
         }
 
+        public virtual double? AverageOrNull()
+        {
+            return (n > 0) ? (double?) Average() : null;
+        }
+
         public virtual double StandardDeviation()
         {
             lock (theLock)

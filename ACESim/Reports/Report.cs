@@ -161,9 +161,7 @@ namespace ACESim
             return outputValuesList;
         }
 
-
-
-        private string GetFormatStringForSpecifiedWidth(int width)
+        public static string GetFormatStringForSpecifiedWidth(int width)
         {
             return "{0,-" + (width + 3).ToString() + "}";
         }

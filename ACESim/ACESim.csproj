@@ -359,6 +359,12 @@
     <Compile Include="Settings\Loading and tracking\FindReplaceVariable.cs" />
     <Compile Include="Settings\Loading and tracking\OptionalAndSkipAttributes.cs" />
     <Compile Include="Settings\Setting\SettingVariable.cs" />
+    <Compile Include="SimpleReports\SimpleReport.cs" />
+    <Compile Include="SimpleReports\SimpleReportColumnFilter.cs" />
+    <Compile Include="SimpleReports\SimpleReportColumnItem.cs" />
+    <Compile Include="SimpleReports\SimpleReportColumnVariable.cs" />
+    <Compile Include="SimpleReports\SimpleReportDefinition.cs" />
+    <Compile Include="SimpleReports\SimpleReportFilter.cs" />
     <Compile Include="Strategies\CRMDevelopment.cs" />
     <Compile Include="Strategies\CRMInformationSetNodeTally.cs" />
     <Compile Include="Strategies\StrategyState.cs" />
