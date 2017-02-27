@@ -36,8 +36,47 @@ namespace ACESim
 
             Players = GetPlayersList();
             DecisionsExecutionOrder = GetDecisionsList();
+            SimpleReportDefinitions = GetReports();
 
             return this;
+        }
+
+        MyGameProgress MyGP(GameProgress gp) => gp as MyGameProgress;
+
+        private List<SimpleReportDefinition> GetReports()
+        {
+            return new List<SimpleReportDefinition>()
+            {
+                new SimpleReportDefinition(
+                    "MyGameReport",
+                    null,
+                    new List<SimpleReportFilter>()
+                    {
+                        new SimpleReportFilter("All", (GameProgress gp) => true),
+                        new SimpleReportFilter("Settles", (GameProgress gp) => MyGP(gp).CaseSettles),
+                        new SimpleReportFilter("Tried", (GameProgress gp) => !MyGP(gp).CaseSettles),
+                        new SimpleReportFilter("LowQuality", (GameProgress gp) => MyGP(gp).LitigationQuality <= 0.25),
+                        new SimpleReportFilter("MediumQuality", (GameProgress gp) => MyGP(gp).LitigationQuality > 0.25 && MyGP(gp).LitigationQuality < 0.75),
+                        new SimpleReportFilter("HighQuality", (GameProgress gp) => MyGP(gp).LitigationQuality >= 0.75),
+                        new SimpleReportFilter("LowPSignal", (GameProgress gp) => MyGP(gp).PSignalUniform <= 0.25),
+                        new SimpleReportFilter("LowDSignal", (GameProgress gp) => MyGP(gp).DSignalUniform <= 0.25),
+                        new SimpleReportFilter("MedPSignal", (GameProgress gp) => MyGP(gp).PSignalUniform > 0.25 && MyGP(gp).PSignalUniform < 0.75),
+                        new SimpleReportFilter("MedDSignal", (GameProgress gp) => MyGP(gp).DSignalUniform > 0.25 && MyGP(gp).DSignalUniform < 0.75),
+                        new SimpleReportFilter("HiPSignal", (GameProgress gp) => MyGP(gp).PSignalUniform >= 0.75),
+                        new SimpleReportFilter("HiDSignal", (GameProgress gp) => MyGP(gp).DSignalUniform >= 0.75),
+                    },
+                    new List<SimpleReportColumnItem>()
+                    {
+                        new SimpleReportColumnFilter("All", (GameProgress gp) => true, false),
+                        new SimpleReportColumnVariable("LitigQuality", (GameProgress gp) => MyGP(gp).LitigationQuality),
+                        new SimpleReportColumnVariable("POffer", (GameProgress gp) => MyGP(gp).POffer),
+                        new SimpleReportColumnVariable("DOffer", (GameProgress gp) => MyGP(gp).DOffer),
+                        new SimpleReportColumnVariable("SettValue", (GameProgress gp) => MyGP(gp).SettlementValue),
+                        new SimpleReportColumnVariable("PWelfare", (GameProgress gp) => MyGP(gp).PWelfare),
+                        new SimpleReportColumnVariable("DWelfare", (GameProgress gp) => MyGP(gp).DWelfare),
+                    }
+                    )
+            };
         }
 
         private static List<PlayerInfo> GetPlayersList()

@@ -10,5 +10,11 @@ namespace ACESim
     {
         public string Name;
         public Func<GameProgress, bool> IsInFilter;
+
+        public SimpleReportFilter(string name, Func<GameProgress, bool> isInFilter)
+        {
+            Name = name;
+            IsInFilter = isInFilter;
+        }
     }
 }

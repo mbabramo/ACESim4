@@ -11,7 +11,7 @@ namespace ACESim
         public Func<GameProgress, bool> Filter;
         public bool ReportAsPercentageOfAll;
 
-        public override double GetValueToRecord(GameProgress completedGame)
+        public override double? GetValueToRecord(GameProgress completedGame)
         {
             return Filter(completedGame) ? 1.0 : 0.0;
         }

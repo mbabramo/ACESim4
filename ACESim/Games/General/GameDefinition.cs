@@ -55,6 +55,8 @@ namespace ACESim
         [InternallyDefinedSetting]
         private List<int> ActionPointIndexForEachDecision;
 
+        public List<SimpleReportDefinition> SimpleReportDefinitions;
+
         public DecisionPoint DecisionPointForDecisionNumber(int decisionNumber)
         {
             return ExecutionOrder[ExecutionOrderIndexForEachDecision[decisionNumber]].ActionPoints[ActionPointIndexForEachDecision[decisionNumber]] as DecisionPoint;

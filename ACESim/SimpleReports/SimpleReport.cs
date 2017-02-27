@@ -16,8 +16,6 @@ namespace ACESim
             Definition = definition;
             for (int i = 0; i < Definition.TotalCells; i++)
                 StatCollectors[i] = new StatCollector();
-            if (!(definition.ColumnItems.First() is SimpleReportColumnFilter))
-                throw new Exception("First column item must be a filter that counts everything.");
         }
 
         public void ProcessGameProgress(GameProgress completedGame, double weight)
@@ -40,9 +38,12 @@ namespace ACESim
                             foreach (SimpleReportColumnItem colItem in Definition.ColumnItems)
                             {
                                 var v = colItem.GetValueToRecord(completedGame);
+                                if (v == null)
+                                    StatCollectors[i] = null; // this collection is invalid -- we only report stats when every item is present.
                                 if (isFirstColumnItem && v != 1.0)
                                     throw new Exception("First column item must be a filter that is always true, so that we can calculate percentage correctly.");
-                                StatCollectors[i].Add(v, weight);
+                                if (StatCollectors[i] != null)
+                                    StatCollectors[i].Add((double) v, weight);
                                 i++;
                                 isFirstColumnItem = false;
                             }
@@ -90,21 +91,26 @@ namespace ACESim
                     foreach (SimpleReportColumnItem colItem in Definition.ColumnItems)
                     {
                         double? value;
-                        if (colItem is SimpleReportColumnFilter)
-                        {
-                            SimpleReportColumnFilter cf = (SimpleReportColumnFilter) colItem;
-                            if (isFirstColumnInRow)
-                                proportionItemsInRow = StatCollectors[i].Average();
-                            double denominator = (cf.ReportAsPercentageOfAll ? 1.0 : proportionItemsInRow);
-                            value = denominator == 0 ? null : (double?) StatCollectors[i].Average() / denominator;
-                        }
+                        if (StatCollectors[i] == null)
+                            value = null;
                         else
                         {
-                            SimpleReportColumnVariable cv = (SimpleReportColumnVariable)colItem;
-                            if (StatCollectors[i].Num() == 0)
-                                value = null;
+                            if (colItem is SimpleReportColumnFilter)
+                            {
+                                SimpleReportColumnFilter cf = (SimpleReportColumnFilter)colItem;
+                                if (isFirstColumnInRow)
+                                    proportionItemsInRow = StatCollectors[i].Average();
+                                double denominator = (cf.ReportAsPercentageOfAll ? 1.0 : proportionItemsInRow);
+                                value = denominator == 0 ? null : (double?)StatCollectors[i].Average() / denominator;
+                            }
                             else
-                                value = cv.Stdev ? StatCollectors[i].StandardDeviation() : StatCollectors[i].Average();
+                            {
+                                SimpleReportColumnVariable cv = (SimpleReportColumnVariable)colItem;
+                                if (StatCollectors[i].Num() == 0)
+                                    value = null;
+                                else
+                                    value = cv.Stdev ? StatCollectors[i].StandardDeviation() : StatCollectors[i].Average();
+                            }
                         }
                         string valueString = value == null ? "" : value.ToSignificantFigures();
                         sb.Append(FormatTableString(valueString, colItem.Width, colItem == lastColumn));

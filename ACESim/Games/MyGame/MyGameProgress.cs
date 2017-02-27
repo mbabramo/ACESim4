@@ -10,6 +10,8 @@ namespace ACESim
         public double LitigationQuality;
         public byte PSignal;
         public byte DSignal;
+        public double PSignalUniform;
+        public double DSignalUniform;
         public double POffer;
         public double DOffer;
         public bool CaseSettles;
@@ -28,6 +30,8 @@ namespace ACESim
             copy.LitigationQuality = LitigationQuality;
             copy.PSignal = PSignal;
             copy.DSignal = DSignal;
+            copy.PSignalUniform = PSignalUniform;
+            copy.DSignalUniform = DSignalUniform;
             copy.POffer = POffer;
             copy.DOffer = DOffer;
             copy.CaseSettles = CaseSettles;
