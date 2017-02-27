@@ -25,8 +25,6 @@ namespace ACESim
             else
                 RowFilters = rowFilters;
             ColumnItems = columnItems;
-            if (!((ColumnItems.First() as SimpleReportColumnFilter)?.ReportAsPercentageOfAll == false))
-                throw new Exception("First column item must be a filter that counts everything in the row.");
         }
 
         public int TotalCells => MetaFilters.Count() * RowFilters.Count() * ColumnItems.Count();

@@ -82,10 +82,7 @@ namespace ACESim
         public void Initialize()
         {
             GamePlayer player = new GamePlayer(Strategies, GameFactory, EvolutionSettings.ParallelOptimization, GameDefinition);
-
-            Type theType = GameFactory.GetSimulationSettingsType();
-            InputVariables inputVariables = new InputVariables(CurrentExecutionInformation);
-            GameInputs inputs = inputVariables.GetGameInputs(theType, 1, new IterationID(1), CurrentExecutionInformation);
+            GameInputs inputs = GetGameInputs();
 
             // Create game trees
             GameHistoryTree = new NWayTreeStorageInternal<object>(GameDefinition.DecisionsExecutionOrder.First().NumPossibleActions);
@@ -139,6 +136,14 @@ namespace ACESim
             }
 
             PrintSameGameResults(player, inputs);
+        }
+
+        private GameInputs GetGameInputs()
+        {
+            Type theType = GameFactory.GetSimulationSettingsType();
+            InputVariables inputVariables = new InputVariables(CurrentExecutionInformation);
+            GameInputs inputs = inputVariables.GetGameInputs(theType, 1, new IterationID(1), CurrentExecutionInformation);
+            return inputs;
         }
 
         private void PrintSameGameResults(GamePlayer player, GameInputs inputs)
@@ -232,6 +237,63 @@ namespace ACESim
             var informationSetNodeReferencedInHistoryNode = ((NWayTreeStorage<object>)history.StoredValue);
             CRMInformationSetNodeTally tallyReferencedInHistory = (CRMInformationSetNodeTally)informationSetNodeReferencedInHistoryNode.StoredValue;
             return tallyReferencedInHistory;
+        }
+
+        public void ProcessPossiblePaths(NWayTreeStorage<object> history, List<byte> listSoFar, double probability, Action<List<byte>, double> processor)
+        {
+            // Note that this method is different from GamePlayer.PlayAllPaths, because it relies on the history storage, rather than needing to play the game to discover what the next paths are.
+            if (history.IsLeaf())
+            {
+                processor(listSoFar, probability);
+                return;
+            }
+            double[] probabilities = null;
+            int numPossibleActions;
+            if (NodeIsChanceNode(history))
+            {
+                byte decisionIndex = (byte)history.StoredValue;
+                numPossibleActions = GameDefinition.DecisionsExecutionOrder[decisionIndex].NumPossibleActions;
+                probabilities = new double[numPossibleActions];
+                for (byte action = 1; action <= numPossibleActions; action++)
+                    probabilities[action - 1] = 1.0 / (double)numPossibleActions;
+            }
+            else
+            { // not a chance node or a leaf node
+                CRMInformationSetNodeTally currentNode = GetInformationSet(history);
+                numPossibleActions = GameDefinition.DecisionsExecutionOrder[currentNode.DecisionNum].NumPossibleActions;
+                probabilities = new double[numPossibleActions];
+                currentNode.SetRegretMatchingProbabilities(probabilities); // DEBUG -- might do something else
+            }
+            for (byte action = 1; action <= numPossibleActions; action++)
+            {
+                if (probabilities[action - 1] > 0)
+                {
+                    List<byte> nextList = listSoFar.ToList();
+                    nextList.Add(action);
+                    ProcessPossiblePaths(GetSubsequentHistory(history, action), nextList, probability * probabilities[action - 1], processor);
+                }
+            }
+        }
+
+        public string GenerateReports()
+        {
+            GamePlayer player = new GamePlayer(Strategies, GameFactory, EvolutionSettings.ParallelOptimization, GameDefinition);
+            GameInputs inputs = GetGameInputs();
+            GameProgress startingProgress = GameFactory.CreateNewGameProgress(new IterationID(1));
+            StringBuilder sb = new StringBuilder();
+            foreach (var reportDefinition in GameDefinition.SimpleReportDefinitions)
+            {
+                SimpleReport report = new SimpleReport(reportDefinition);
+                ProcessPossiblePaths(GameHistoryTree, new List<byte>(), 1.0, (List<byte> actions, double probability) =>
+                    {
+                        GameProgress progress = startingProgress.DeepCopy();
+                        player.PlayPath(actions.GetEnumerator(), progress, inputs);
+                        report.ProcessGameProgress(progress, probability);
+                    }
+                    );
+                report.GetReport(sb, false);
+            }
+            return sb.ToString();
         }
 
         int VanillaCFRIteration; // controlled in SolveVanillaCFR
@@ -366,9 +428,16 @@ namespace ACESim
             const int numIterationsToRun = 10000;
             InitializeVanillaCFR();
 
+            int? reportEveryNIterations = 100;
+
             for (int iteration = 0; iteration < numIterationsToRun; iteration++)
+            {
                 for (byte p = 0; p < NumNonChancePlayers; p++)
                     VanillaCRM(0, GameHistoryTree, p);
+                if (reportEveryNIterations != null && iteration % reportEveryNIterations == 0)
+                    Debug.WriteLine(GenerateReports());
+            }
+
         }
     }
 }

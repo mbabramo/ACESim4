@@ -14,6 +14,7 @@ namespace ACESim
         public SimpleReport(SimpleReportDefinition definition)
         {
             Definition = definition;
+            StatCollectors = new StatCollector[Definition.TotalCells];
             for (int i = 0; i < Definition.TotalCells; i++)
                 StatCollectors[i] = new StatCollector();
         }
@@ -29,27 +30,28 @@ namespace ACESim
                     bool isFirstRow = true;
                     foreach (SimpleReportFilter rowFilter in Definition.RowFilters)
                     {
-                        bool rowFilterSatisfied = metaFilter.IsInFilter(completedGame);
-                        if (isFirstRow && !rowFilterSatisfied)
-                            throw new Exception("First row filter must always be true, so that we can calculate percentage correctly.");
-                        if (rowFilterSatisfied)
+                        bool rowFilterSatisfied = rowFilter.IsInFilter(completedGame);
+                        bool isFirstColumnItem = true;
+                        foreach (SimpleReportColumnItem colItem in Definition.ColumnItems)
                         {
-                            bool isFirstColumnItem = true;
-                            foreach (SimpleReportColumnItem colItem in Definition.ColumnItems)
+                            var v = colItem.GetValueToRecord(completedGame);
+                            bool recordThis;
+                            if (colItem is SimpleReportColumnVariable)
+                                recordThis = rowFilterSatisfied;
+                            else
                             {
-                                var v = colItem.GetValueToRecord(completedGame);
-                                if (v == null)
-                                    StatCollectors[i] = null; // this collection is invalid -- we only report stats when every item is present.
-                                if (isFirstColumnItem && v != 1.0)
-                                    throw new Exception("First column item must be a filter that is always true, so that we can calculate percentage correctly.");
-                                if (StatCollectors[i] != null)
-                                    StatCollectors[i].Add((double) v, weight);
-                                i++;
-                                isFirstColumnItem = false;
+                                var cf = (SimpleReportColumnFilter)colItem;
+                                recordThis = cf.ReportAsPercentageOfAll || rowFilterSatisfied;
+                                if (recordThis && !rowFilterSatisfied)
+                                    v = 0; // record this as a 0; we record as a 1 only if column and row filters are satisfied.
                             }
+                            //if (recordThis && v == null)
+                            //    StatCollectors[i] = null; // this collection is invalid -- we only report stats when every item is present.
+                            if (recordThis && StatCollectors[i] != null && v != null)
+                                StatCollectors[i].Add((double) v, weight);
+                            i++;
+                            isFirstColumnItem = false;
                         }
-                        else
-                            i += Definition.ColumnItems.Count();
                         isFirstRow = false;
                     }
                 }
@@ -58,9 +60,8 @@ namespace ACESim
             }
         }
 
-        public string GetReport(bool commaSeparated)
+        public void GetReport(StringBuilder sb, bool commaSeparated)
         {
-            StringBuilder sb = new StringBuilder();
             int? metaColumnWidth = null, rowFilterColumnWidth = null;
             if (!commaSeparated)
             {
@@ -77,6 +78,7 @@ namespace ACESim
                 sb.Append(FormatTableString(printMetaColumn ? "Filter2" : "Filter", rowFilterColumnWidth, false));
                 foreach (SimpleReportColumnItem colItem in Definition.ColumnItems)
                     sb.Append(FormatTableString(colItem.Name, colItem.Width, colItem == lastColumn));
+                sb.AppendLine();
 
                 // print rows
                 bool isFirstRowInTable = true;
@@ -91,25 +93,19 @@ namespace ACESim
                     foreach (SimpleReportColumnItem colItem in Definition.ColumnItems)
                     {
                         double? value;
-                        if (StatCollectors[i] == null)
+                        if (StatCollectors[i] == null || StatCollectors[i].Num() == 0)
                             value = null;
                         else
                         {
                             if (colItem is SimpleReportColumnFilter)
                             {
                                 SimpleReportColumnFilter cf = (SimpleReportColumnFilter)colItem;
-                                if (isFirstColumnInRow)
-                                    proportionItemsInRow = StatCollectors[i].Average();
-                                double denominator = (cf.ReportAsPercentageOfAll ? 1.0 : proportionItemsInRow);
-                                value = denominator == 0 ? null : (double?)StatCollectors[i].Average() / denominator;
+                                value = (double?)StatCollectors[i].Average();
                             }
                             else
                             {
                                 SimpleReportColumnVariable cv = (SimpleReportColumnVariable)colItem;
-                                if (StatCollectors[i].Num() == 0)
-                                    value = null;
-                                else
-                                    value = cv.Stdev ? StatCollectors[i].StandardDeviation() : StatCollectors[i].Average();
+                                value = cv.Stdev ? StatCollectors[i].StandardDeviation() : StatCollectors[i].Average();
                             }
                         }
                         string valueString = value == null ? "" : value.ToSignificantFigures();
@@ -118,10 +114,9 @@ namespace ACESim
                         i++;
                     }
                     isFirstRowInTable = false;
+                    sb.AppendLine();
                 }
             }
-            return sb.ToString();
-            
         }
 
         public static string FormatTableString(string s, int? width, bool isLastColumn)

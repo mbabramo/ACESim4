@@ -147,6 +147,25 @@ namespace ACESim
             if (!IsComplete())
                 throw new Exception("Can get next path to try only on a completed game.");
             // We need to find the last decision made where there was another action that could have been taken.
+            int? lastDecisionWithAnotherAction = GetLastDecisionWithAnotherAction(gameDefinition);
+            int d = 0;
+            List<byte> decisions = new List<byte>();
+            IEnumerator<byte> decisionsEnumerator = GetActions().GetEnumerator();
+            while (d <= lastDecisionWithAnotherAction)
+            {
+                bool another = decisionsEnumerator.MoveNext();
+                if (!another)
+                    throw new Exception("Internal error. Expected another decision to exist.");
+                if (d == lastDecisionWithAnotherAction)
+                    yield return (byte)(decisionsEnumerator.Current + (byte)1); // this is the decision where we need to try the next path
+                else
+                    yield return decisionsEnumerator.Current; // we're still on the same path
+                d++;
+            }
+        }
+
+        private int? GetLastDecisionWithAnotherAction(GameDefinition gameDefinition)
+        {
             int? lastDecisionWithAnotherAction = null;
             for (int i = LastIndexAddedToHistory - 4; i >= 0; i -= 4)
             {
@@ -162,21 +181,7 @@ namespace ACESim
             }
             if (lastDecisionWithAnotherAction == null)
                 throw new Exception("No more decision paths to take."); // indicates that there are no more decisions to take
-            int d = 0;
-            List<byte> decisions = new List<byte>();
-            IEnumerator<byte> decisionsEnumerator = GetActions().GetEnumerator();
-            while (d <= lastDecisionWithAnotherAction)
-            {
-                bool another = decisionsEnumerator.MoveNext();
-                if (!another)
-                    throw new Exception("Internal error. Expected another decision to exist.");
-                if (d == lastDecisionWithAnotherAction)
-                    yield return (byte) (decisionsEnumerator.Current + (byte) 1); // this is the decision where we need to try the next path
-                else
-                    yield return decisionsEnumerator.Current; // we're still on the same path
-                d++;
-            }
+            return lastDecisionWithAnotherAction;
         }
-
     }
 }

@@ -67,7 +67,7 @@ namespace ACESim
                     },
                     new List<SimpleReportColumnItem>()
                     {
-                        new SimpleReportColumnFilter("All", (GameProgress gp) => true, false),
+                        new SimpleReportColumnFilter("All", (GameProgress gp) => true, true),
                         new SimpleReportColumnVariable("LitigQuality", (GameProgress gp) => MyGP(gp).LitigationQuality),
                         new SimpleReportColumnVariable("POffer", (GameProgress gp) => MyGP(gp).POffer),
                         new SimpleReportColumnVariable("DOffer", (GameProgress gp) => MyGP(gp).DOffer),
