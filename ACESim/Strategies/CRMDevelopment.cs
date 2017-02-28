@@ -310,7 +310,7 @@ namespace ACESim
         double[] VanillaCFRPiValues; 
 
         double[] ActionProbabilities;
-        double[] CurrentRegrets;
+        double[] ExpectedValueOfAction;
 
         public double GetPiValue(byte nonChancePlayerIndex, byte decisionNum)
         {
@@ -336,8 +336,10 @@ namespace ACESim
         public void ResetCurrentRegrets(byte numPossibleActions)
         {
             for (byte a = 0; a < numPossibleActions; a++)
-                CurrentRegrets[a] = 0;
+                ExpectedValueOfAction[a] = 0;
         }
+
+        bool TraceVanillaCRM = false;
 
         /// <summary>
         /// Performs an iteration of vanilla counterfactual regret minimization.
@@ -369,24 +371,39 @@ namespace ACESim
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
             byte nextRecursionDepth = (byte)(recursionDepth + 1);
             informationSet.GetRegretMatchingProbabilities(ActionProbabilities);
-            double currentRegretSum = 0;
+            double expectedValue = 0;
             ResetCurrentRegrets(numPossibleActions);
             for (byte action = 1; action <= numPossibleActions; action++)
             {
+                if (nonChancePlayerIndex == 1)
+                {
+                    var DEBUG = 0;
+                }
                 double probabilityOfAction = ActionProbabilities[action - 1];
                 SetNextPiValues(recursionDepth, playerMakingDecision, probabilityOfAction, false);
-                CurrentRegrets[action - 1] = VanillaCRM(nextRecursionDepth, GetSubsequentHistory(history, action), nonChancePlayerIndex);
-                currentRegretSum += probabilityOfAction * CurrentRegrets[action - 1];
+                if (TraceVanillaCRM)
+                {
+                    TabbedText.WriteLine($"nonChancePlayerIndex {nonChancePlayerIndex} RecursionDepth {recursionDepth} playerMakingDecision {playerMakingDecision} action {action} probability {probabilityOfAction} ...");
+                    TabbedText.Tabs++;
+                }
+                ExpectedValueOfAction[action - 1] = VanillaCRM(nextRecursionDepth, GetSubsequentHistory(history, action), nonChancePlayerIndex);
+                expectedValue += probabilityOfAction * ExpectedValueOfAction[action - 1];
+
+                if (TraceVanillaCRM)
+                {
+                    TabbedText.Tabs--;
+                    TabbedText.WriteLine($"... action {action} expected value {ExpectedValueOfAction[action - 1]} cum expected value {expectedValue}");
+                }
             }
             if (playerMakingDecision == nonChancePlayerIndex)
             {
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
-                    informationSet.IncrementCumulativeRegret(action, GetInversePiValue(nonChancePlayerIndex, recursionDepth) * (CurrentRegrets[action - 1] - currentRegretSum));
+                    informationSet.IncrementCumulativeRegret(action, GetInversePiValue(nonChancePlayerIndex, recursionDepth) * (ExpectedValueOfAction[action - 1] - expectedValue));
                     informationSet.IncrementCumulativeStrategy(action, GetPiValue(nonChancePlayerIndex, recursionDepth) * ActionProbabilities[action - 1]);
                 }
             }
-            return currentRegretSum;
+            return expectedValue;
         }
 
         private double VanillaCFR_ChanceNode(byte recursionDepth, NWayTreeStorage<object> history, byte nonChancePlayerIndex)
@@ -397,15 +414,27 @@ namespace ACESim
             bool equalProbabilities = chanceNodeSettings.AllProbabilitiesEqual();
             if (equalProbabilities) // can set next probabilities once for all actions
                 SetNextPiValues(recursionDepth, nonChancePlayerIndex, chanceNodeSettings.GetActionProbability(1), true);
-            double sumLaterRegrets = 0;
+            double expectedValue = 0;
             for (byte action = 1; action <= numPossibleActions; action++)
             {
                 if (!equalProbabilities) // must set probability separately for each action we take
                     SetNextPiValues(recursionDepth, nonChancePlayerIndex, chanceNodeSettings.GetActionProbability(action), true);
-                sumLaterRegrets += chanceNodeSettings.GetActionProbability(action) * VanillaCRM(nextRecursionDepth, GetSubsequentHistory(history, action), nonChancePlayerIndex);
+                double actionProbability = chanceNodeSettings.GetActionProbability(action);
+                if (TraceVanillaCRM)
+                {
+                    TabbedText.WriteLine($"Chance RecursionDepth {recursionDepth} action {action} probability {actionProbability} ...");
+                    TabbedText.Tabs++;
+                }
+                double expectedValueParticularAction = VanillaCRM(nextRecursionDepth, GetSubsequentHistory(history, action), nonChancePlayerIndex);
+                expectedValue += actionProbability * expectedValueParticularAction;
+                if (TraceVanillaCRM)
+                {
+                    TabbedText.Tabs--;
+                    TabbedText.WriteLine($"... action {action} expectedValueParticularAction {expectedValueParticularAction} expectedValue {expectedValue}");
+                }
             }
 
-            return sumLaterRegrets;
+            return expectedValue;
         }
 
         private void SetNextPiValues(byte recursionDepth, byte nonChancePlayerIndex, double probabilityToMultiplyBy, bool changeOtherPlayers)
@@ -431,7 +460,7 @@ namespace ACESim
             for (byte i = 0; i < NumNonChancePlayers; i++)
                 SetPiValue(i, 0, 1.0);
             ActionProbabilities = new double[maxNumActions];
-            CurrentRegrets = new double[maxNumActions];
+            ExpectedValueOfAction = new double[maxNumActions];
         }
 
         public void SolveVanillaCFR()

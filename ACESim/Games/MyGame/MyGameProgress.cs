@@ -16,7 +16,6 @@ namespace ACESim
         public double DOffer;
         public bool CaseSettles;
         public double? SettlementValue;
-        public double CourtRandomSeed;
         public bool PWinsAtTrial;
         public double PWelfare;
         public double DWelfare;
@@ -36,7 +35,6 @@ namespace ACESim
             copy.DOffer = DOffer;
             copy.CaseSettles = CaseSettles;
             copy.SettlementValue = SettlementValue;
-            copy.CourtRandomSeed = CourtRandomSeed;
             copy.PWinsAtTrial = PWinsAtTrial;
             copy.PWelfare = PWelfare;
             copy.DWelfare = DWelfare;

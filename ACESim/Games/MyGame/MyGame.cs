@@ -56,8 +56,8 @@ namespace ACESim
             }
             else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.CourtDecision)
             {
-                MyProgress.CourtRandomSeed = 1.0 - EquallySpaced.GetLocationOfMidpoint(action - 1 /* make zero-based */, MyDefinition.NumCourtSignals); // by subtracting from 1.0, we make low actions good for the defendant and high actions good for the plaintiff, thus making it more similar to our offers.
-                MyProgress.PWinsAtTrial = (MyProgress.CourtRandomSeed < MyProgress.LitigationQuality); // note that if random seed is equal to litigation quality, plaintiff loses (burden of proof). We thus use an odd number of court random seeds. 
+                // note that the probability of P winning is defined in MyGameDefinition.
+                MyProgress.PWinsAtTrial = action == 2; 
             }
         }
 
