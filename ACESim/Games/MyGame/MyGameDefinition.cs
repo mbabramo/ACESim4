@@ -71,7 +71,8 @@ namespace ACESim
                         new SimpleReportColumnVariable("LitigQuality", (GameProgress gp) => MyGP(gp).LitigationQuality),
                         new SimpleReportColumnVariable("POffer", (GameProgress gp) => MyGP(gp).POffer),
                         new SimpleReportColumnVariable("DOffer", (GameProgress gp) => MyGP(gp).DOffer),
-                        new SimpleReportColumnVariable("SettValue", (GameProgress gp) => MyGP(gp).SettlementValue),
+                        new SimpleReportColumnFilter("Settles", (GameProgress gp) => MyGP(gp).SettlementValue != null, false),
+                        new SimpleReportColumnVariable("ValIfSettled", (GameProgress gp) => MyGP(gp).SettlementValue),
                         new SimpleReportColumnVariable("PWelfare", (GameProgress gp) => MyGP(gp).PWelfare),
                         new SimpleReportColumnVariable("DWelfare", (GameProgress gp) => MyGP(gp).DWelfare),
                     }

@@ -42,6 +42,15 @@ namespace ACESim
             NodeInformation[cumulativeStrategyDimension, action - 1] += amount;
         }
 
+        public void GetAverageStrategies(double[] probabilities)
+        {
+            double sum = 0;
+            for (int j = 0; j < NumPossibleActions; j++)
+                sum += NodeInformation[cumulativeStrategyDimension, j];
+            for (int j = 0; j < NumPossibleActions; j++)
+                probabilities[j] = NodeInformation[cumulativeStrategyDimension, j] / sum;
+        }
+
         public double GetPositiveCumulativeRegret(int action)
         {
             double cumulativeRegret = NodeInformation[cumulativeRegretDimension, action - 1];
@@ -62,7 +71,7 @@ namespace ACESim
             return total;
         }
 
-        public void SetRegretMatchingProbabilities(double[] probabilitiesToSet)
+        public void GetRegretMatchingProbabilities(double[] probabilitiesToSet)
         {
             double sumPositiveCumulativeRegrets = GetSumPositiveCumulativeRegrets();
             if (sumPositiveCumulativeRegrets == 0)

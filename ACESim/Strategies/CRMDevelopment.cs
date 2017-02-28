@@ -239,7 +239,14 @@ namespace ACESim
             return tallyReferencedInHistory;
         }
 
-        public void ProcessPossiblePaths(NWayTreeStorage<object> history, List<byte> listSoFar, double probability, Action<List<byte>, double> processor)
+        public enum ActionStrategies
+        {
+            RegretMatching,
+            AverageStrategy,
+            BestResponse
+        }
+
+        public void ProcessPossiblePaths(NWayTreeStorage<object> history, List<byte> listSoFar, double probability, Action<List<byte>, double> processor, ActionStrategies actionStrategy)
         {
             // Note that this method is different from GamePlayer.PlayAllPaths, because it relies on the history storage, rather than needing to play the game to discover what the next paths are.
             if (history.IsLeaf())
@@ -259,10 +266,15 @@ namespace ACESim
             }
             else
             { // not a chance node or a leaf node
-                CRMInformationSetNodeTally currentNode = GetInformationSet(history);
-                numPossibleActions = GameDefinition.DecisionsExecutionOrder[currentNode.DecisionNum].NumPossibleActions;
+                CRMInformationSetNodeTally informationSet = GetInformationSet(history);
+                numPossibleActions = GameDefinition.DecisionsExecutionOrder[informationSet.DecisionNum].NumPossibleActions;
                 probabilities = new double[numPossibleActions];
-                currentNode.SetRegretMatchingProbabilities(probabilities); // DEBUG -- might do something else
+                if (actionStrategy == ActionStrategies.RegretMatching)
+                    informationSet.GetRegretMatchingProbabilities(probabilities); // DEBUG -- might do something else
+                else if (actionStrategy == ActionStrategies.AverageStrategy)
+                    informationSet.GetAverageStrategies(probabilities);
+                else
+                    throw new NotImplementedException();
             }
             for (byte action = 1; action <= numPossibleActions; action++)
             {
@@ -270,7 +282,7 @@ namespace ACESim
                 {
                     List<byte> nextList = listSoFar.ToList();
                     nextList.Add(action);
-                    ProcessPossiblePaths(GetSubsequentHistory(history, action), nextList, probability * probabilities[action - 1], processor);
+                    ProcessPossiblePaths(GetSubsequentHistory(history, action), nextList, probability * probabilities[action - 1], processor, actionStrategy);
                 }
             }
         }
@@ -289,7 +301,8 @@ namespace ACESim
                         GameProgress progress = startingProgress.DeepCopy();
                         player.PlayPath(actions.GetEnumerator(), progress, inputs);
                         report.ProcessGameProgress(progress, probability);
-                    }
+                    },
+                    ActionStrategies.AverageStrategy
                     );
                 report.GetReport(sb, false);
             }
@@ -301,7 +314,7 @@ namespace ACESim
         // Rather than create a new array of player contributions for each recursion depth, we just store the numbers for the appropriate recursion depth in this array. So PiValues[0] = Pi1 in the vanilla CFR algorithm, i.e. corresponding to the first player. If the first player is the one that we are optimizing, then this represents the player's own probability contribution to the result. If the second player is the one that we are optimizing, however, then PiValues[0] represents the other player AND chance's contribution to the result. That is, it's pi(-1), i.e. everyone else's contribution.
         double[] VanillaCFRPiValues; 
 
-        double[] ProbabilitiesFromRegretMatching;
+        double[] ActionProbabilities;
         double[] CurrentRegrets;
 
         public double GetPiValue(byte nonChancePlayerIndex, byte decisionNum)
@@ -360,22 +373,22 @@ namespace ACESim
             byte playerMakingDecision = informationSet.NonChancePlayerIndex;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
             byte nextRecursionDepth = (byte)(recursionDepth + 1);
-            informationSet.SetRegretMatchingProbabilities(ProbabilitiesFromRegretMatching);
+            informationSet.GetRegretMatchingProbabilities(ActionProbabilities);
             double currentRegretSum = 0;
             ResetCurrentRegrets(numPossibleActions);
             for (byte action = 1; action <= numPossibleActions; action++)
             {
-                double probabilityOfAction = ProbabilitiesFromRegretMatching[action - 1];
+                double probabilityOfAction = ActionProbabilities[action - 1];
                 SetNextPiValues(recursionDepth, playerMakingDecision, probabilityOfAction, false);
                 CurrentRegrets[action - 1] = VanillaCRM(nextRecursionDepth, GetSubsequentHistory(history, action), nonChancePlayerIndex);
-                currentRegretSum = probabilityOfAction * CurrentRegrets[action - 1];
+                currentRegretSum += probabilityOfAction * CurrentRegrets[action - 1];
             }
             if (playerMakingDecision == nonChancePlayerIndex)
             {
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
                     informationSet.IncrementCumulativeRegret(action, GetInversePiValue(nonChancePlayerIndex, recursionDepth) * (CurrentRegrets[action - 1] - currentRegretSum));
-                    informationSet.IncrementCumulativeStrategy(action, GetPiValue(nonChancePlayerIndex, recursionDepth) * ProbabilitiesFromRegretMatching[action - 1]);
+                    informationSet.IncrementCumulativeStrategy(action, GetPiValue(nonChancePlayerIndex, recursionDepth) * ActionProbabilities[action - 1]);
                 }
             }
             return currentRegretSum;
@@ -423,7 +436,7 @@ namespace ACESim
             VanillaCFRPiValues = new double[maxPlayerContributionsHistoryLength];
             for (byte i = 0; i < NumNonChancePlayers; i++)
                 SetPiValue(i, 0, 1.0);
-            ProbabilitiesFromRegretMatching = new double[maxNumActions];
+            ActionProbabilities = new double[maxNumActions];
             CurrentRegrets = new double[maxNumActions];
         }
 
