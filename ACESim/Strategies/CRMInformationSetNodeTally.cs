@@ -32,9 +32,19 @@ namespace ACESim
                     NodeInformation[i, j] = 0;
         }
 
+        public double GetCumulativeRegret(int action)
+        {
+            return NodeInformation[cumulativeRegretDimension, action - 1];
+        }
+
         public void IncrementCumulativeRegret(int action, double amount)
         {
             NodeInformation[cumulativeRegretDimension, action - 1] += amount;
+        }
+
+        public double GetCumulativeStrategy(int action)
+        {
+            return NodeInformation[cumulativeStrategyDimension, action - 1];
         }
 
         public void IncrementCumulativeStrategy(int action, double amount)

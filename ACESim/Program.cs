@@ -37,7 +37,7 @@ namespace ACESim
 
             ProgressResumptionManager prm = new ProgressResumptionManager(progressResumptionOption, Path.Combine(strategiesPath, "ResumeInfo"));
 
-            string rerunFileStart = "C:\\GitHub\\ACESim\\ACESim\\Games\\CurveFittingGame\\Strategies\\strsta";  // "C:\\ACESim\\ACESim\\Games\\LitigationGame\\Strategies\\strsta
+            string rerunFileStart = "C:\\GitHub\\ACESim\\ACESim\\Games\\MyGame\\Strategies\\strsta";  // "C:\\ACESim\\ACESim\\Games\\LitigationGame\\Strategies\\strsta
             string strategyStepToReplay = "23"; // "326"; // 97
 
             // Use this to load a specific strategy and then save it again but without prior version history
@@ -286,8 +286,8 @@ namespace ACESim
                 Console.WriteLine("Running without user interface. Change startup project to run with user interface. Output is in debug window.");
                 //string baseOutputDirectory = "C:\\ACESim\\ACESim\\Games\\LitigationGame";
                 //string settingsPath = "C:\\ACESim\\ACESim\\Games\\LitigationGame\\Settings\\LitigationGameMultipleRunSettingsTemp2.xml";
-                string baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\PatentDamagesGame";
-                string settingsPath = "C:\\GitHub\\ACESim\\ACESim\\Games\\PatentDamagesGame\\Settings\\PatentDamagesBaselineVariableSettings.xml";
+                string baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\MyGame";
+                string settingsPath = "C:\\GitHub\\ACESim\\ACESim\\Games\\MyGame\\Settings\\MyGameOverallSettings.xml";
                 //string settingsPath = "C:\\GitHub\\ACESim\\ACESim\\Games\\PatentDamagesGame\\Settings\\PatentDamagesChangeVariableSettings.xml";
                 //string settingsPath = "C:\\GitHub\\ACESim\\ACESim\\Games\\LitigationGame\\Settings\\LitigationGameSingleRunSettings.xml";
                 ProgressResumptionOptions progressResumptionOption = ProgressResumptionOptions.ProceedNormallySavingPastProgress; // change this line if some other option is appropriate
