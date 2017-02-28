@@ -29,8 +29,6 @@ namespace ACESim
 
         public int NumNonChancePlayers;
 
-        public double[] ProbabilityEachChanceAction;
-
         public byte NonChancePlayerIndexFromPlayerIndex(byte overallPlayerNum) => ChancePlayerExists ? (byte)(overallPlayerNum - 1) : overallPlayerNum;
 
         public Strategy GetPlayerStrategyFromOverallPlayerNum(byte overallPlayerNum) => Strategies[NonChancePlayerIndexFromPlayerIndex(overallPlayerNum)];
@@ -49,16 +47,6 @@ namespace ACESim
             CurrentExecutionInformation = currentExecutionInformation;
             ChancePlayerExists = GameDefinition.Players.Any(x => x.PlayerIsChance);
             NumNonChancePlayers = GameDefinition.Players.Count(x => !x.PlayerIsChance);
-            SetChanceStrategy();
-        }
-
-        private void SetChanceStrategy()
-        {
-            // we assume that each chance action is equally likely.
-            ProbabilityEachChanceAction = new double[GameDefinition.DecisionsExecutionOrder.Count()]; // non-chance entries will be zero
-            for (int i = 0; i < GameDefinition.DecisionsExecutionOrder.Count(); i++)
-                if (GameDefinition.Players[GameDefinition.DecisionsExecutionOrder[i].PlayerNumber].PlayerIsChance)
-                    ProbabilityEachChanceAction[i] = 1.0 / (double)GameDefinition.DecisionsExecutionOrder[i].NumPossibleActions;
         }
 
         public IStrategiesDeveloper DeepCopy()
@@ -105,14 +93,20 @@ namespace ACESim
                 // Go through each non-chance decision point and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
                 foreach (var informationSetHistory in progress.GameHistory.GetInformationSetHistoryItems())
                 {
+                    var decision = GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
                     var playerInfo = GameDefinition.Players[informationSetHistory.PlayerMakingDecision];
                     if (playerInfo.PlayerIsChance)
                     {
-                        walkHistoryTree.StoredValue = informationSetHistory.DecisionIndex; // for a chance decision, just store the decision index
+                        if (walkHistoryTree.StoredValue == null)
+                        {
+                            if (decision.UnevenChanceActions)
+                                walkHistoryTree.StoredValue = new CRMChanceNodeSettings_UnequalProbabilities() { DecisionNum = informationSetHistory.DecisionIndex, Probabilities = GameDefinition.GetChanceActionProbabilities(informationSetHistory.DecisionIndex, progress) }; // the probabilities depend on the current state of the game
+                            else
+                                walkHistoryTree.StoredValue = new CRMChanceNodeSettings_EqualProbabilities() { DecisionNum = informationSetHistory.DecisionIndex, EachProbability = 1.0 / (double)decision.NumPossibleActions };
+                        }
                     }
                     else
                     {
-                        var decision = GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
                         bool isNecessarilyLast = decision.IsAlwaysPlayersLastDecision || informationSetHistory.IsTerminalAction;
                         var playersStrategy = GetPlayerStrategyFromOverallPlayerNum(informationSetHistory.PlayerMakingDecision);
                         if (walkHistoryTree.StoredValue == null)
@@ -219,7 +213,7 @@ namespace ACESim
 
         public bool NodeIsChanceNode(NWayTreeStorage<object> history)
         {
-            return (history.StoredValue is byte);
+            return (history.StoredValue is CRMChanceNodeSettings);
         }
 
         public byte NumPossibleActionsAtDecision(byte decisionNum)
@@ -258,11 +252,12 @@ namespace ACESim
             int numPossibleActions;
             if (NodeIsChanceNode(history))
             {
-                byte decisionIndex = (byte)history.StoredValue;
+                CRMChanceNodeSettings chanceNodeSettings = (CRMChanceNodeSettings)history.StoredValue;
+                byte decisionIndex = chanceNodeSettings.DecisionNum;
                 numPossibleActions = GameDefinition.DecisionsExecutionOrder[decisionIndex].NumPossibleActions;
                 probabilities = new double[numPossibleActions];
                 for (byte action = 1; action <= numPossibleActions; action++)
-                    probabilities[action - 1] = 1.0 / (double)numPossibleActions;
+                    probabilities[action - 1] = chanceNodeSettings.GetActionProbability(action);
             }
             else
             { // not a chance node or a leaf node
@@ -396,19 +391,18 @@ namespace ACESim
 
         private double VanillaCFR_ChanceNode(byte recursionDepth, NWayTreeStorage<object> history, byte nonChancePlayerIndex)
         {
-            byte decisionNum = (byte)history.StoredValue;
-            byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
+            CRMChanceNodeSettings chanceNodeSettings = (CRMChanceNodeSettings)history.StoredValue;
+            byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionNum);
             byte nextRecursionDepth =  (byte)(recursionDepth + 1);
-            double probabilityEachChanceAction = ProbabilityEachChanceAction[decisionNum];
-            SetNextPiValues(recursionDepth, nonChancePlayerIndex, probabilityEachChanceAction, true);
+            bool equalProbabilities = chanceNodeSettings.AllProbabilitiesEqual();
+            if (equalProbabilities) // can set next probabilities once for all actions
+                SetNextPiValues(recursionDepth, nonChancePlayerIndex, chanceNodeSettings.GetActionProbability(1), true);
             double sumLaterRegrets = 0;
             for (byte action = 1; action <= numPossibleActions; action++)
             {
-                if (action == 5 && recursionDepth == 0 && nonChancePlayerIndex == 0)
-                {
-                    var DEBUG = 0;
-                }
-                sumLaterRegrets += probabilityEachChanceAction * VanillaCRM(nextRecursionDepth, GetSubsequentHistory(history, action), nonChancePlayerIndex);
+                if (!equalProbabilities) // must set probability separately for each action we take
+                    SetNextPiValues(recursionDepth, nonChancePlayerIndex, chanceNodeSettings.GetActionProbability(action), true);
+                sumLaterRegrets += chanceNodeSettings.GetActionProbability(action) * VanillaCRM(nextRecursionDepth, GetSubsequentHistory(history, action), nonChancePlayerIndex);
             }
 
             return sumLaterRegrets;

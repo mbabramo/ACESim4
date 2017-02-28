@@ -100,7 +100,7 @@ namespace ACESim
                     // initially the offers will be kept secret (TODO: Make it so that the decisions are revealed AFTER defendant makes its offer if the case is not resolved)
                     new Decision("PlaintiffOffer", "PO", (byte) MyGamePlayers.Plaintiff, new List<byte> { (byte) MyGamePlayers.Plaintiff }, NumPlaintiffOffers, (byte) MyGameDecisions.POffer),
                     new Decision("DefendantOffer", "DO", (byte) MyGamePlayers.Defendant, new List<byte> { (byte) MyGamePlayers.Defendant }, NumDefendantOffers, (byte) MyGameDecisions.DOffer),
-                    new Decision("CourtDecision", "CD", (byte) MyGamePlayers.Chance, new List<byte> {  }, NumCourtSignals, (byte) MyGameDecisions.CourtDecision),
+                    new Decision("CourtDecision", "CD", (byte) MyGamePlayers.Chance, new List<byte> {  }, 2, (byte) MyGameDecisions.CourtDecision),
                 };
         }
 
@@ -109,7 +109,6 @@ namespace ACESim
             NumLitigationQualityPoints = GameModule.GetByteCodeGeneratorOption(options, "NumLitigationQualityPoints");
             NumPlaintiffSignals = GameModule.GetByteCodeGeneratorOption(options, "NumPlaintiffSignals");
             NumDefendantSignals = GameModule.GetByteCodeGeneratorOption(options, "NumDefendantSignals");
-            NumCourtSignals = GameModule.GetByteCodeGeneratorOption(options, "NumCourtSignals");
             NumPlaintiffOffers = GameModule.GetByteCodeGeneratorOption(options, "NumPlaintiffOffers");
             NumDefendantOffers = GameModule.GetByteCodeGeneratorOption(options, "NumDefendantOffers");
             PNoiseStdev = GameModule.GetDoubleCodeGeneratorOption(options, "PNoiseStdev");
@@ -128,6 +127,18 @@ namespace ACESim
                 StdevOfNormalDistribution = DNoiseStdev,
                 NumSignals = NumPlaintiffSignals
             };
+        }
+
+        public override double[] GetChanceActionProbabilities(byte decisionNum, GameProgress gameProgress)
+        {
+            if (decisionNum == (byte)MyGameDecisions.CourtDecision)
+            {
+                double[] probabilities = new double[2];
+                MyGameProgress myGameProgress = (MyGameProgress)gameProgress;
+                probabilities[0] = 1.0 - myGameProgress.LitigationQuality; // probability action 1 ==> rule for defendant
+                probabilities[1] = myGameProgress.LitigationQuality; // probability action 2 ==> rule for plaintiff
+            }
+            throw new NotImplementedException(); // subclass should define if needed
         }
 
     }

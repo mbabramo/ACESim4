@@ -37,12 +37,17 @@ namespace ACESim
         public byte NumPossibleActions;
 
         /// <summary>
+        /// If this is a chance decision and this is true, then the probabilities of difference chance actions will be determined based on the game progress.
+        /// </summary>
+        public bool UnevenChanceActions;
+
+        /// <summary>
         /// Whether the decision is bipolar (i.e., there are only two possible actions).
         /// </summary>
         public bool Bipolar => NumPossibleActions == 2;
 
         /// <summary>
-        /// If non-null, the decision will always result in this action.
+        /// If non-null, the decision will always result in this action. (Not yet implemented)
         /// </summary>
         [OptionalSetting]
         public int? AlwaysDoAction;
@@ -89,7 +94,7 @@ namespace ACESim
 
         }
 
-        public Decision(string name, string abbreviation, byte playerNumber, List<byte> playersToInform, byte numActions, byte decisionByteCode = 0, string decisionTypeCode = null, int repetitionsAfterFirst = 0, string preevolvedStrategyFilename = null, List<string> informationSetAbbreviations = null, int? alwaysDoAction = null)
+        public Decision(string name, string abbreviation, byte playerNumber, List<byte> playersToInform, byte numActions, byte decisionByteCode = 0, string decisionTypeCode = null, int repetitionsAfterFirst = 0, string preevolvedStrategyFilename = null, List<string> informationSetAbbreviations = null, int? alwaysDoAction = null, bool unevenChanceActions = false)
         {
             Name = name;
             Abbreviation = abbreviation;
@@ -102,6 +107,7 @@ namespace ACESim
             PreevolvedStrategyFilename = preevolvedStrategyFilename;
             InformationSetAbbreviations = informationSetAbbreviations;
             AlwaysDoAction = alwaysDoAction;
+            UnevenChanceActions = unevenChanceActions;
         }
     }
 

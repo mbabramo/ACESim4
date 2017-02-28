@@ -365,6 +365,9 @@
     <Compile Include="SimpleReports\SimpleReportColumnVariable.cs" />
     <Compile Include="SimpleReports\SimpleReportDefinition.cs" />
     <Compile Include="SimpleReports\SimpleReportFilter.cs" />
+    <Compile Include="Strategies\CRMChanceNodeSettings.cs" />
+    <Compile Include="Strategies\CRMChanceNodeSettings_EqualProbabilities.cs" />
+    <Compile Include="Strategies\CRMChanceNodeSettings_UnequalProbabilities.cs" />
     <Compile Include="Strategies\CRMDevelopment.cs" />
     <Compile Include="Strategies\CRMInformationSetNodeTally.cs" />
     <Compile Include="Strategies\StrategyState.cs" />
