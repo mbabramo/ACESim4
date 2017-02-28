@@ -374,8 +374,8 @@ namespace ACESim
             {
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
-                    informationSet.IncrementCumulativeRegret(action, GetInversePiValue(nonChancePlayerIndex, decisionNum) * (CurrentRegrets[action - 1] - currentRegretSum));
-                    informationSet.IncrementCumulativeStrategy(action, GetPiValue(nonChancePlayerIndex, decisionNum) * ProbabilitiesFromRegretMatching[action - 1]);
+                    informationSet.IncrementCumulativeRegret(action, GetInversePiValue(nonChancePlayerIndex, recursionDepth) * (CurrentRegrets[action - 1] - currentRegretSum));
+                    informationSet.IncrementCumulativeStrategy(action, GetPiValue(nonChancePlayerIndex, recursionDepth) * ProbabilitiesFromRegretMatching[action - 1]);
                 }
             }
             return currentRegretSum;
@@ -391,6 +391,10 @@ namespace ACESim
             double sumLaterRegrets = 0;
             for (byte action = 1; action <= numPossibleActions; action++)
             {
+                if (action == 5 && recursionDepth == 0 && nonChancePlayerIndex == 0)
+                {
+                    var DEBUG = 0;
+                }
                 sumLaterRegrets += probabilityEachChanceAction * VanillaCRM(nextRecursionDepth, GetSubsequentHistory(history, action), nonChancePlayerIndex);
             }
 

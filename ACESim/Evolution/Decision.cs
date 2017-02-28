@@ -42,6 +42,12 @@ namespace ACESim
         public bool Bipolar => NumPossibleActions == 2;
 
         /// <summary>
+        /// If non-null, the decision will always result in this action.
+        /// </summary>
+        [OptionalSetting]
+        public int? AlwaysDoAction;
+
+        /// <summary>
         /// Indicates whether the decision is always the final decision by a player.
         /// </summary>
         [OptionalSetting]
@@ -83,7 +89,7 @@ namespace ACESim
 
         }
 
-        public Decision(string name, string abbreviation, byte playerNumber, List<byte> playersToInform, byte numActions, byte decisionByteCode = 0, string decisionTypeCode = null, int repetitionsAfterFirst = 0, string preevolvedStrategyFilename = null, List<string> informationSetAbbreviations = null)
+        public Decision(string name, string abbreviation, byte playerNumber, List<byte> playersToInform, byte numActions, byte decisionByteCode = 0, string decisionTypeCode = null, int repetitionsAfterFirst = 0, string preevolvedStrategyFilename = null, List<string> informationSetAbbreviations = null, int? alwaysDoAction = null)
         {
             Name = name;
             Abbreviation = abbreviation;
@@ -95,6 +101,7 @@ namespace ACESim
             RepetitionsAfterFirst = repetitionsAfterFirst;
             PreevolvedStrategyFilename = preevolvedStrategyFilename;
             InformationSetAbbreviations = informationSetAbbreviations;
+            AlwaysDoAction = alwaysDoAction;
         }
     }
 
