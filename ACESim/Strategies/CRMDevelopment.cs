@@ -61,6 +61,8 @@ namespace ACESim
             };
         }
 
+        #region Initialization
+
         public void DevelopStrategies()
         {
             Initialize();
@@ -131,6 +133,10 @@ namespace ACESim
 
             PrintSameGameResults(player, inputs);
         }
+
+        #endregion
+
+        #region Utility methods
 
         private GameInputs GetGameInputs()
         {
@@ -233,6 +239,10 @@ namespace ACESim
             return tallyReferencedInHistory;
         }
 
+        #endregion
+
+        #region Game play and reporting
+
         public enum ActionStrategies
         {
             RegretMatching,
@@ -304,8 +314,9 @@ namespace ACESim
             return sb.ToString();
         }
 
-        int VanillaCFRIteration; // controlled in SolveVanillaCFR
-        
+        #endregion
+
+        #region Pi values utility methods
 
         public double GetPiValue(double[] piValues, byte nonChancePlayerIndex, byte decisionNum)
         {
@@ -321,6 +332,35 @@ namespace ACESim
             return product;
         }
 
+        private double[] GetNextPiValues(double[] currentPiValues, byte nonChancePlayerIndex, double probabilityToMultiplyBy, bool changeOtherPlayers)
+        {
+            double[] nextPiValues = new double[NumNonChancePlayers];
+            for (byte p = 0; p < NumNonChancePlayers; p++)
+            {
+                double currentPiValue = currentPiValues[p];
+                double nextPiValue;
+                if (p == nonChancePlayerIndex)
+                    nextPiValue = changeOtherPlayers ? currentPiValue : currentPiValue * probabilityToMultiplyBy;
+                else
+                    nextPiValue = changeOtherPlayers ? currentPiValue * probabilityToMultiplyBy : currentPiValue;
+                nextPiValues[p] = nextPiValue;
+            }
+            return nextPiValues;
+        }
+
+        private double[] GetInitialPiValues()
+        {
+            double[] pi = new double[NumNonChancePlayers];
+            for (byte p = 0; p < NumNonChancePlayers; p++)
+                pi[p] = 1.0;
+            return pi;
+        }
+
+        #endregion
+
+        #region Vanilla CRM
+
+        int VanillaCRMIteration; // controlled in SolveVanillaCRM
         bool TraceVanillaCRM = false;
 
         /// <summary>
@@ -337,15 +377,15 @@ namespace ACESim
             else
             {
                 if (NodeIsChanceNode(history))
-                    return VanillaCFR_ChanceNode(recursionDepth, history, nonChancePlayerIndex, piValues);
+                    return VanillaCRM_ChanceNode(recursionDepth, history, nonChancePlayerIndex, piValues);
                 else
                 {
-                    return VanillaCFR_DecisionNode(recursionDepth, history, nonChancePlayerIndex, piValues);
+                    return VanillaCRM_DecisionNode(recursionDepth, history, nonChancePlayerIndex, piValues);
                 }
             }
         }
 
-        private double VanillaCFR_DecisionNode(byte recursionDepth, NWayTreeStorage<object> history, byte nonChancePlayerIndex, double[] piValues)
+        private double VanillaCRM_DecisionNode(byte recursionDepth, NWayTreeStorage<object> history, byte nonChancePlayerIndex, double[] piValues)
         {
             double[] nextPiValues;
             var informationSet = GetInformationSet(history);
@@ -394,7 +434,7 @@ namespace ACESim
             return expectedValue;
         }
 
-        private double VanillaCFR_ChanceNode(byte recursionDepth, NWayTreeStorage<object> history, byte nonChancePlayerIndex, double[] piValues)
+        private double VanillaCRM_ChanceNode(byte recursionDepth, NWayTreeStorage<object> history, byte nonChancePlayerIndex, double[] piValues)
         {
             CRMChanceNodeSettings chanceNodeSettings = (CRMChanceNodeSettings)history.StoredValue;
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionNum);
@@ -426,30 +466,6 @@ namespace ACESim
             return expectedValue;
         }
 
-        private double[] GetNextPiValues(double[] currentPiValues, byte nonChancePlayerIndex, double probabilityToMultiplyBy, bool changeOtherPlayers)
-        {
-            double[] nextPiValues = new double[NumNonChancePlayers];
-            for (byte p = 0; p < NumNonChancePlayers; p++)
-            {
-                double currentPiValue = currentPiValues[p];
-                double nextPiValue;
-                if (p == nonChancePlayerIndex)
-                    nextPiValue = changeOtherPlayers ? currentPiValue : currentPiValue * probabilityToMultiplyBy;
-                else
-                    nextPiValue = changeOtherPlayers ? currentPiValue * probabilityToMultiplyBy : currentPiValue;
-                nextPiValues[p] = nextPiValue;
-            }
-            return nextPiValues;
-        }
-
-        private double[] GetInitialPiValues()
-        {
-            double[] pi = new double[NumNonChancePlayers];
-            for (byte p = 0; p < NumNonChancePlayers; p++)
-                pi[p] = 1.0;
-            return pi;
-        }
-
         public void SolveVanillaCFR()
         {
             const int numIterationsToRun = 10000;
@@ -465,5 +481,7 @@ namespace ACESim
             }
 
         }
+
+        #endregion
     }
 }
