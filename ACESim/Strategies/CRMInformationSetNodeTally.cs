@@ -35,14 +35,14 @@ namespace ACESim
                     NodeInformation[i, j] = 0;
         }
 
-        private void ClearBestResponseData()
+        public void ResetBestResponseData()
         {
             for (int i = bestResponseNumeratorDimension; i <= bestResponseDenominatorDimension; i++)
                 for (int j = 0; j < NumPossibleActions; j++)
                     NodeInformation[i, j] = 0;
         }
 
-        public int GetBestResponseAction()
+        public byte GetBestResponseAction()
         {
             double bestRatio = 0;
             int best = 0;
@@ -55,7 +55,7 @@ namespace ACESim
                     bestRatio = ratio;
                 }
             }
-            return best;
+            return (byte) best;
         }
 
         public void GetBestResponseProbabilities(double[] probabilities)
@@ -68,10 +68,10 @@ namespace ACESim
                     probabilities[a - 1] = 0;
         }
 
-        public void IncrementBestResponse(int action, double piInverse, double lowerValue)
+        public void IncrementBestResponse(int action, double piInverse, double expectedValue)
         {
-            NodeInformation[bestResponseNumeratorDimension, action - 1] += piInverse * lowerValue;
-            NodeInformation[bestResponseDenominatorDimension, action - 1] += piInverse * lowerValue;
+            NodeInformation[bestResponseNumeratorDimension, action - 1] += piInverse * expectedValue;
+            NodeInformation[bestResponseDenominatorDimension, action - 1] += piInverse * expectedValue;
         }
 
         public double GetCumulativeRegret(int action)
