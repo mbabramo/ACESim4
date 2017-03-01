@@ -44,7 +44,8 @@ namespace ACESim
 
         public double GetCumulativeStrategy(int action)
         {
-            return NodeInformation[cumulativeStrategyDimension, action - 1];
+            double v = NodeInformation[cumulativeStrategyDimension, action - 1];
+            return v;
         }
 
         public void IncrementCumulativeStrategy(int action, double amount)
@@ -55,10 +56,31 @@ namespace ACESim
         public void GetAverageStrategies(double[] probabilities)
         {
             double sum = 0;
-            for (int j = 0; j < NumPossibleActions; j++)
-                sum += NodeInformation[cumulativeStrategyDimension, j];
-            for (int j = 0; j < NumPossibleActions; j++)
-                probabilities[j] = NodeInformation[cumulativeStrategyDimension, j] / sum;
+            for (int a = 1; a <= NumPossibleActions; a++)
+                sum += GetCumulativeStrategy(a);
+
+            const double zeroOutBelow = 0.001;
+            bool zeroedOutSome = false;
+            for (int a = 1; a <= NumPossibleActions; a++)
+            {
+                double quotient = GetCumulativeStrategy(a) / sum;
+                if (quotient > 0 && quotient < zeroOutBelow)
+                {
+                    zeroedOutSome = true;
+                    probabilities[a - 1] = 0;
+                }
+                else
+                    probabilities[a - 1] = quotient;
+            }
+            if (zeroedOutSome)
+            {
+                sum = 0;
+                for (int a = 1; a <= NumPossibleActions; a++)
+                    sum += probabilities[a - 1];
+                for (int a = 1; a <= NumPossibleActions; a++)
+                    probabilities[a - 1] /= sum;
+            }
+
         }
 
         public double GetPositiveCumulativeRegret(int action)

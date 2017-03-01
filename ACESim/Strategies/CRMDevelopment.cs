@@ -321,7 +321,7 @@ namespace ACESim
             return product;
         }
 
-        bool TraceVanillaCRM = true;
+        bool TraceVanillaCRM = false;
 
         /// <summary>
         /// Performs an iteration of vanilla counterfactual regret minimization.
