@@ -14,14 +14,17 @@ namespace ACESim
         double[,] NodeInformation;
 
         int NumPossibleActions => NodeInformation.GetLength(1);
+        const int totalDimensions = 4;
         const int cumulativeRegretDimension = 0;
         const int cumulativeStrategyDimension = 1;
+        const int bestResponseNumeratorDimension = 2;
+        const int bestResponseDenominatorDimension = 3;
 
         public CRMInformationSetNodeTally(byte decisionNum, byte nonChancePlayerIndex, int numPossibleActions)
         {
             DecisionNum = decisionNum;
             NonChancePlayerIndex = nonChancePlayerIndex;
-            Initialize(2, numPossibleActions);
+            Initialize(totalDimensions, numPossibleActions);
         }
 
         private void Initialize(int numDimensions, int numPossibleActions)
@@ -30,6 +33,45 @@ namespace ACESim
             for (int i = 0; i < numDimensions; i++)
                 for (int j = 0; j < numPossibleActions; j++)
                     NodeInformation[i, j] = 0;
+        }
+
+        private void ClearBestResponseData()
+        {
+            for (int i = bestResponseNumeratorDimension; i <= bestResponseDenominatorDimension; i++)
+                for (int j = 0; j < NumPossibleActions; j++)
+                    NodeInformation[i, j] = 0;
+        }
+
+        public int GetBestResponseAction()
+        {
+            double bestRatio = 0;
+            int best = 0;
+            for (int a = 1; a <= NumPossibleActions; a++)
+            {
+                double ratio = NodeInformation[bestResponseNumeratorDimension, a - 1] / NodeInformation[bestResponseDenominatorDimension, a - 1];
+                if (a == 1 || ratio > bestRatio)
+                {
+                    best = a;
+                    bestRatio = ratio;
+                }
+            }
+            return best;
+        }
+
+        public void GetBestResponseProbabilities(double[] probabilities)
+        {
+            int bestResponse = GetBestResponseAction();
+            for (int a = 1; a <= NumPossibleActions; a++)
+                if (a == bestResponse)
+                    probabilities[a - 1] = 1.0;
+                else
+                    probabilities[a - 1] = 0;
+        }
+
+        public void IncrementBestResponse(int action, double piInverse, double lowerValue)
+        {
+            NodeInformation[bestResponseNumeratorDimension, action - 1] += piInverse * lowerValue;
+            NodeInformation[bestResponseDenominatorDimension, action - 1] += piInverse * lowerValue;
         }
 
         public double GetCumulativeRegret(int action)
