@@ -309,11 +309,10 @@ namespace ACESim
 
         public double GetPiValue(double[] piValues, byte nonChancePlayerIndex, byte decisionNum)
         {
-            byte index = (byte)(decisionNum * NumNonChancePlayers + nonChancePlayerIndex);
-            return piValues[index];
+            return piValues[nonChancePlayerIndex];
         }
 
-        public double GetInversePiValue(double[] piValues, byte nonChancePlayerIndex, byte decisionNum)
+        public double GetInversePiValue(double[] piValues, byte nonChancePlayerIndex)
         {
             double product = 1.0;
             for (byte p = 0; p < NumNonChancePlayers; p++)
@@ -354,6 +353,7 @@ namespace ACESim
             byte playerMakingDecision = informationSet.NonChancePlayerIndex;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
             byte nextRecursionDepth = (byte)(recursionDepth + 1);
+            // todo: stackalloc or use simple stack based array pool http://stackoverflow.com/questions/1123939/is-c-sharp-compiler-deciding-to-use-stackalloc-by-itself
             double[] actionProbabilities = new double[numPossibleActions];
             informationSet.GetRegretMatchingProbabilities(actionProbabilities);
             double[] expectedValueOfAction = new double[numPossibleActions];
@@ -380,8 +380,8 @@ namespace ACESim
             {
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
-                    double inversePi = GetInversePiValue(piValues, nonChancePlayerIndex, recursionDepth);
-                    double pi = GetPiValue(piValues, nonChancePlayerIndex, recursionDepth);
+                    double inversePi = GetInversePiValue(piValues, nonChancePlayerIndex);
+                    double pi = piValues[nonChancePlayerIndex];
                     var regret = (expectedValueOfAction[action - 1] - expectedValue);
                     informationSet.IncrementCumulativeRegret(action, inversePi * regret);
                     informationSet.IncrementCumulativeStrategy(action, pi * actionProbabilities[action - 1]);
