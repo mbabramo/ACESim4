@@ -141,7 +141,7 @@ namespace ACESim
             return copy;
         }
 
-        internal void CopyFieldInfo(GameProgress copy)
+        internal virtual void CopyFieldInfo(GameProgress copy)
         {
             copy.IterationID = IterationID;
             copy.GameDefinition = GameDefinition;
