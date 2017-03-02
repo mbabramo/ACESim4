@@ -441,7 +441,7 @@ namespace ACESim
             byte playerMakingDecision = informationSet.NonChancePlayerIndex;
             if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionNum))
             {
-                TabbedText.WriteLine($"inversePi {inversePi} Decision {decisionNum} {GameDefinition.DecisionsExecutionOrder[decisionNum].Name} player making decision {playerMakingDecision} information set {informationSet.InformationSetNumber} depthSoFar {depthSoFar} ");
+                TabbedText.WriteLine($"Decision {decisionNum} {GameDefinition.DecisionsExecutionOrder[decisionNum].Name} playerMakingDecision {playerMakingDecision} information set {informationSet.InformationSetNumber} inversePi {inversePi} depthSoFar {depthSoFar} ");
             }
             if (playerMakingDecision == nonChancePlayerIndex && depthSoFar > depthToTarget)
             {
@@ -467,13 +467,16 @@ namespace ACESim
                     if (playerMakingDecision != nonChancePlayerIndex)
                         nextInversePi *= probabilities[action - 1];
                     if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionNum))
-                        TabbedText.Tabs++;
+                    {
+                        TabbedText.WriteLine($"action {action} for playerMakingDecision {playerMakingDecision}...");
+                        TabbedText.Tabs++; 
+                    }
                     double expectedValue = GEBRPass2(history.GetBranch(action), nonChancePlayerIndex, depthToTarget, (byte)(depthSoFar + 1), nextInversePi);
                     double product = probabilities[action - 1] * expectedValue;
                     if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionNum))
                     {
                         TabbedText.Tabs--;
-                        TabbedText.WriteLine($"action {action} producing expected value {expectedValue} * probability {probabilities[action - 1]} = product {product}");
+                        TabbedText.WriteLine($"... action {action} producing expected value {expectedValue} * probability {probabilities[action - 1]} = product {product}");
                     }
                     if (playerMakingDecision != nonChancePlayerIndex)
                         expectedValueSum += product;
@@ -482,7 +485,7 @@ namespace ACESim
                         informationSet.IncrementBestResponse(action, inversePi, expectedValue);
                         if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionNum))
                         {
-                            TabbedText.WriteLine($"Incrementing best response for action {action} inversePi {inversePi} expectedValue {expectedValue}");
+                            TabbedText.WriteLine($"Incrementing best response for information set {informationSet.InformationSetNumber} for action {action} inversePi {inversePi} expectedValue {expectedValue}");
                         }
                     }
                 }
@@ -508,7 +511,7 @@ namespace ACESim
             double expectedValueSum = 0;
             for (byte action = 1; action <= numPossibleActions; action++)
             {
-                TabbedText.WriteLine($"chance action {action} by player {nonChancePlayerIndex} ... ");
+                TabbedText.WriteLine($"chance action {action} for decision {chanceNodeSettings.DecisionNum} {GameDefinition.DecisionsExecutionOrder[chanceNodeSettings.DecisionNum].Name} ... ");
                 double probability = chanceNodeSettings.GetActionProbability(action);
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNodeSettings.DecisionNum))
                     TabbedText.Tabs++;

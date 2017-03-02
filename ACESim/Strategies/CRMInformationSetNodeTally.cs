@@ -74,7 +74,7 @@ namespace ACESim
         public void IncrementBestResponse(int action, double piInverse, double expectedValue)
         {
             NodeInformation[bestResponseNumeratorDimension, action - 1] += piInverse * expectedValue;
-            NodeInformation[bestResponseDenominatorDimension, action - 1] += piInverse * expectedValue;
+            NodeInformation[bestResponseDenominatorDimension, action - 1] += piInverse;
         }
 
         public double GetCumulativeRegret(int action)
