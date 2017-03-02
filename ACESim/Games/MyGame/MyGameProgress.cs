@@ -12,6 +12,7 @@ namespace ACESim
         public byte DSignal;
         public double PSignalUniform;
         public double DSignalUniform;
+        public int BargainingRoundsComplete;
         public List<double> POffers;
         public List<bool> PResponses;
         public List<double> DOffers;
@@ -40,16 +41,21 @@ namespace ACESim
             else
                 return DOffers != null && PResponses != null && DOffers.Count() == PResponses.Count();
         }
-        public void CheckSettlement(bool playersMovingSimultaneously, bool pGoesFirstIfNotSimultaneous)
+        public void UpdateProgress(MyGameDefinition gameDefinition)
         {
+            bool playersMovingSimultaneously = gameDefinition.BargainingRoundsSimultaneous[BargainingRoundsComplete];
+            bool pGoesFirstIfNotSimultaneous = gameDefinition.BargainingRoundsPGoesFirstIfNotSimultaneous[BargainingRoundsComplete];
+            if (!RoundIsComplete(playersMovingSimultaneously, pGoesFirstIfNotSimultaneous))
+                return;
+            BargainingRoundsComplete++;
             CaseSettles = SettlementReached(playersMovingSimultaneously, pGoesFirstIfNotSimultaneous);
             if (CaseSettles)
                 SetSettlementValue(playersMovingSimultaneously, pGoesFirstIfNotSimultaneous);
+            GameComplete = CaseSettles || (BargainingRoundsComplete == gameDefinition.NumBargainingRounds);
         }
+
         private bool SettlementReached(bool playersMovingSimultaneously, bool pGoesFirstIfNotSimultaneous)
         {
-            if (!RoundIsComplete(playersMovingSimultaneously, pGoesFirstIfNotSimultaneous))
-                return false;
             if (playersMovingSimultaneously)
                 return DLastOffer > PLastOffer;
             else if (pGoesFirstIfNotSimultaneous)

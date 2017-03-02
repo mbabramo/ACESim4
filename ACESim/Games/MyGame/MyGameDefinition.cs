@@ -22,7 +22,7 @@ namespace ACESim
         public double DLitigationCosts;
         public int NumBargainingRounds;
         public List<bool> BargainingRoundsSimultaneous;
-        public List<bool> BargainingRoundsPGoesFirst; // if not simultaneous
+        public List<bool> BargainingRoundsPGoesFirstIfNotSimultaneous; // if not simultaneous
         public bool IncludeSignalsReport;
         public DiscreteValueSignalParameters PSignalParameters, DSignalParameters;
 
@@ -167,13 +167,13 @@ namespace ACESim
                 GameModule.GetBoolCodeGeneratorOption(options, "BargainingRound4Simultaneous"),
                 GameModule.GetBoolCodeGeneratorOption(options, "BargainingRound5Simultaneous"),
             };
-            BargainingRoundsPGoesFirst = new List<bool>()
+            BargainingRoundsPGoesFirstIfNotSimultaneous = new List<bool>()
             {
-                GameModule.GetBoolCodeGeneratorOption(options, "BargainingRound1PGoesFirst"),
-                GameModule.GetBoolCodeGeneratorOption(options, "BargainingRound2PGoesFirst"),
-                GameModule.GetBoolCodeGeneratorOption(options, "BargainingRound3PGoesFirst"),
-                GameModule.GetBoolCodeGeneratorOption(options, "BargainingRound4PGoesFirst"),
-                GameModule.GetBoolCodeGeneratorOption(options, "BargainingRound5PGoesFirst"),
+                GameModule.GetBoolCodeGeneratorOption(options, "BargainingRound1PGoesFirstIfNotSimultaneous"),
+                GameModule.GetBoolCodeGeneratorOption(options, "BargainingRound2PGoesFirstIfNotSimultaneous"),
+                GameModule.GetBoolCodeGeneratorOption(options, "BargainingRound3PGoesFirstIfNotSimultaneous"),
+                GameModule.GetBoolCodeGeneratorOption(options, "BargainingRound4PGoesFirstIfNotSimultaneous"),
+                GameModule.GetBoolCodeGeneratorOption(options, "BargainingRound5PGoesFirstIfNotSimultaneous"),
             };
             PSignalParameters = new DiscreteValueSignalParameters()
             {
