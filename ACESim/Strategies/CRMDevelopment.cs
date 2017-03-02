@@ -361,6 +361,9 @@ namespace ACESim
         #region Best response function
 
         // Based on Algorithm 9 in the Lanctot thesis. Since we won't be calculating best response much, adopting more efficient approaches probably isn't necessary.
+        
+        bool TraceGEBR = true;
+        List<byte> TraceGEBR_SkipDecisions = new List<byte>() { };
 
         /// <summary>
         /// This calculates the best response for a player, and it also sets up the information set so that we can then play that best response strategy.
@@ -378,9 +381,6 @@ namespace ACESim
                 bestResponseUtility = GEBRPass2(GameHistoryTree, nonChancePlayerIndex, depthToTarget, 1, 1.0);
             return bestResponseUtility;
         }
-
-        bool TraceGEBR = false;
-        List<byte> TraceGEBR_SkipDecisions = new List<byte>() { 1, 2 };
 
         public void GEBRPass1(NWayTreeStorage<object> history, byte nonChancePlayerIndex, byte depth, HashSet<byte> depthOfPlayerDecisions)
         {
@@ -442,8 +442,8 @@ namespace ACESim
                 double expectedValue = GEBRPass2(history.GetBranch(action), nonChancePlayerIndex, depthToTarget, (byte)(depthSoFar + 1), inversePi);
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionNum))
                 {
-                    TabbedText.WriteLine($"Best response action {action} producing expected value {expectedValue}");
                     TabbedText.Tabs--;
+                    TabbedText.WriteLine($"Best response action {action} producing expected value {expectedValue}");
                 }
                 return expectedValue;
             }
@@ -499,6 +499,7 @@ namespace ACESim
             double expectedValueSum = 0;
             for (byte action = 1; action <= numPossibleActions; action++)
             {
+                TabbedText.WriteLine($"chance action {action} ... ");
                 double probability = chanceNodeSettings.GetActionProbability(action);
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNodeSettings.DecisionNum))
                     TabbedText.Tabs++;
@@ -507,7 +508,7 @@ namespace ACESim
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNodeSettings.DecisionNum))
                 {
                     TabbedText.Tabs--;
-                    TabbedText.WriteLine($"chance action {action} probability {probability} * valueBelow {valueBelow} = expectedValue {expectedValue}");
+                    TabbedText.WriteLine($"... chance action {action} probability {probability} * valueBelow {valueBelow} = expectedValue {expectedValue}");
                 }
                 expectedValueSum += expectedValue;
             }
