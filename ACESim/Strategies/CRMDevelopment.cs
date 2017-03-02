@@ -372,6 +372,8 @@ namespace ACESim
         /// <returns></returns>
         public double CalculateBestResponse(byte nonChancePlayerIndex)
         {
+            if (TraceGEBR)
+                TabbedText.WriteLine($"Optimizing {nonChancePlayerIndex}: ");
             HashSet<byte> depthsOfPlayerDecisions = new HashSet<byte>();
             GEBRPass1(GameHistoryTree, nonChancePlayerIndex, 1, depthsOfPlayerDecisions); // setup counting first decision as depth 1
             List<byte> depthsOrdered = depthsOfPlayerDecisions.OrderByDescending(x => x).ToList();
@@ -432,7 +434,7 @@ namespace ACESim
             byte playerMakingDecision = informationSet.NonChancePlayerIndex;
             if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionNum))
             {
-                TabbedText.WriteLine($"Optimizing {nonChancePlayerIndex} depthToTarget {depthToTarget} depthSoFar {depthSoFar} inversePi {inversePi} Decision {decisionNum} player making decision {playerMakingDecision} {GameDefinition.DecisionsExecutionOrder[decisionNum].Name} information set {informationSet.InformationSetNumber}");
+                TabbedText.WriteLine($"inversePi {inversePi} Decision {decisionNum} {GameDefinition.DecisionsExecutionOrder[decisionNum].Name} player making decision {playerMakingDecision} information set {informationSet.InformationSetNumber} depthToTarget {depthToTarget} depthSoFar {depthSoFar} ");
             }
             if (playerMakingDecision == nonChancePlayerIndex && depthSoFar > depthToTarget)
             {
