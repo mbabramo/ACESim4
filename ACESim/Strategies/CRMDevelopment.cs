@@ -362,7 +362,7 @@ namespace ACESim
 
         // Based on Algorithm 9 in the Lanctot thesis. Since we won't be calculating best response much, adopting more efficient approaches probably isn't necessary.
         
-        bool TraceGEBR = true;
+        bool TraceGEBR = false;
         List<byte> TraceGEBR_SkipDecisions = new List<byte>() { };
 
         /// <summary>
@@ -511,7 +511,8 @@ namespace ACESim
             double expectedValueSum = 0;
             for (byte action = 1; action <= numPossibleActions; action++)
             {
-                TabbedText.WriteLine($"chance action {action} for decision {chanceNodeSettings.DecisionNum} {GameDefinition.DecisionsExecutionOrder[chanceNodeSettings.DecisionNum].Name} ... ");
+                if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNodeSettings.DecisionNum))
+                    TabbedText.WriteLine($"chance action {action} for decision {chanceNodeSettings.DecisionNum} {GameDefinition.DecisionsExecutionOrder[chanceNodeSettings.DecisionNum].Name} ... ");
                 double probability = chanceNodeSettings.GetActionProbability(action);
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNodeSettings.DecisionNum))
                     TabbedText.Tabs++;
