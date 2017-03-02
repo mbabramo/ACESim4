@@ -20,6 +20,9 @@ namespace ACESim
         public double DNoiseStdev;
         public double PLitigationCosts;
         public double DLitigationCosts;
+        public int NumBargainingRounds;
+        public List<bool> BargainingRoundsSimultaneous;
+        public List<bool> BargainingRoundsPGoesFirst; // if not simultaneous
         public bool IncludeSignalsReport;
         public DiscreteValueSignalParameters PSignalParameters, DSignalParameters;
 
@@ -46,8 +49,10 @@ namespace ACESim
         private List<SimpleReportDefinition> GetReports()
         {
             var reports = new List<SimpleReportDefinition>();
+            reports.Add(GetOverallReport());
             if (IncludeSignalsReport)
                 reports.Add(GetStrategyReport());
+            return reports;
         }
 
         private SimpleReportDefinition GetOverallReport()
@@ -153,6 +158,23 @@ namespace ACESim
             PLitigationCosts = GameModule.GetDoubleCodeGeneratorOption(options, "PLitigationCosts");
             DLitigationCosts = GameModule.GetDoubleCodeGeneratorOption(options, "DLitigationCosts");
             IncludeSignalsReport = GameModule.GetBoolCodeGeneratorOption(options, "IncludeSignalsReport");
+            NumBargainingRounds = GameModule.GetIntCodeGeneratorOption(options, "NumBargainingRounds");
+            BargainingRoundsSimultaneous = new List<bool>()
+            {
+                GameModule.GetBoolCodeGeneratorOption(options, "BargainingRound1Simultaneous"),
+                GameModule.GetBoolCodeGeneratorOption(options, "BargainingRound2Simultaneous"),
+                GameModule.GetBoolCodeGeneratorOption(options, "BargainingRound3Simultaneous"),
+                GameModule.GetBoolCodeGeneratorOption(options, "BargainingRound4Simultaneous"),
+                GameModule.GetBoolCodeGeneratorOption(options, "BargainingRound5Simultaneous"),
+            };
+            BargainingRoundsPGoesFirst = new List<bool>()
+            {
+                GameModule.GetBoolCodeGeneratorOption(options, "BargainingRound1PGoesFirst"),
+                GameModule.GetBoolCodeGeneratorOption(options, "BargainingRound2PGoesFirst"),
+                GameModule.GetBoolCodeGeneratorOption(options, "BargainingRound3PGoesFirst"),
+                GameModule.GetBoolCodeGeneratorOption(options, "BargainingRound4PGoesFirst"),
+                GameModule.GetBoolCodeGeneratorOption(options, "BargainingRound5PGoesFirst"),
+            };
             PSignalParameters = new DiscreteValueSignalParameters()
             {
                 NumPointsInSourceUniformDistribution = NumLitigationQualityPoints,

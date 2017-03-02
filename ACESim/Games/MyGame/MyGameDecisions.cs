@@ -13,6 +13,8 @@ namespace ACESim
         DSignal,
         POffer,
         DOffer,
+        PResponse,
+        DResponse,
         CourtDecision
     }
 }
