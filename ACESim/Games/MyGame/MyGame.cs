@@ -37,13 +37,13 @@ namespace ACESim
             {
                 MyProgress.PSignal = GetDiscreteSignal(action, MyDefinition.PNoiseStdev, MyDefinition.PSignalParameters);
                 Progress.GameHistory.AddToInformationSet(MyProgress.PSignal, (byte)MyGamePlayers.Plaintiff, (byte) CurrentDecisionIndex);
-                MyProgress.PSignalUniform = EquallySpaced.GetLocationOfMidpoint(MyProgress.PSignal - 1 /* make it zero-based */, MyDefinition.NumPlaintiffSignals);
+                MyProgress.PSignalUniform = EquallySpaced.GetLocationOfEquallySpacedPoint(MyProgress.PSignal - 1 /* make it zero-based */, MyDefinition.NumPlaintiffSignals);
             }
             else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.DSignal)
             {
                 MyProgress.DSignal = GetDiscreteSignal(action, MyDefinition.DNoiseStdev, MyDefinition.DSignalParameters);
                 Progress.GameHistory.AddToInformationSet(MyProgress.DSignal, (byte)MyGamePlayers.Defendant, (byte)CurrentDecisionIndex);
-                MyProgress.DSignalUniform = EquallySpaced.GetLocationOfMidpoint(MyProgress.DSignal - 1 /* make it zero-based */, MyDefinition.NumDefendantSignals);
+                MyProgress.DSignalUniform = EquallySpaced.GetLocationOfEquallySpacedPoint(MyProgress.DSignal - 1 /* make it zero-based */, MyDefinition.NumDefendantSignals);
             }
             else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.POffer)
             {
