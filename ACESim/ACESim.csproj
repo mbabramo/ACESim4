@@ -548,6 +548,7 @@
     <Content Include="Games\MyGame\Settings\MyGameEvolutionSettings.xml" />
     <Content Include="Games\MyGame\Settings\MyGameInputs.xml" />
     <Content Include="Games\MyGame\Settings\MyGameOverallSettings.xml" />
+    <Content Include="Games\MyGame\Settings\scratch.xml" />
     <Content Include="Games\MyGame\Settings\MyGameReport.xml" />
     <Content Include="Reports\SimData.edmx.sql" />
     <Content Include="Scratch.txt" />

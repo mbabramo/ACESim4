@@ -9,6 +9,8 @@ namespace ACESim
     [Serializable]
     public class CRMInformationSetNodeTally
     {
+        public static int InformationSetsSoFar = 0;
+        public int InformationSetNumber; // DEBUG -- shouldn't need this once things are working
         public byte DecisionNum;
         public byte NonChancePlayerIndex;
         double[,] NodeInformation;
@@ -25,6 +27,7 @@ namespace ACESim
             DecisionNum = decisionNum;
             NonChancePlayerIndex = nonChancePlayerIndex;
             Initialize(totalDimensions, numPossibleActions);
+            InformationSetNumber = InformationSetsSoFar++;
         }
 
         private void Initialize(int numDimensions, int numPossibleActions)

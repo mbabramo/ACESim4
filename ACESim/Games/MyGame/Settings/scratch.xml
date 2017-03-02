@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+
+<ACESim>
+  <gameDefinitionsAll>
+    <gameDefinition name="MyGame">
+      <setting name="MyGameDefinition" type="class" subclass="MyGameDefinition" codeGeneratorName="MyGameDefinition" codeGeneratorOptions="NumLitigationQualityPoints: 10; NumPlaintiffSignals: 10; NumDefendantSignals: 10; NumPlaintiffOffers: 10; NumDefendantOffers: 10; PNoiseStdev: 0.2; DNoiseStdev: 0.2; PLitigationCosts: 0.1; DLitigationCosts: 0.1" >
+      </setting>
+    </gameDefinition>
+  </gameDefinitionsAll>
+</ACESim>

@@ -370,15 +370,17 @@ namespace ACESim
         public double CalculateBestResponse(byte nonChancePlayerIndex)
         {
             HashSet<byte> depthsOfPlayerDecisions = new HashSet<byte>();
-            GEBRPass1(GameHistoryTree, nonChancePlayerIndex, 0, depthsOfPlayerDecisions);
+            GEBRPass1(GameHistoryTree, nonChancePlayerIndex, 1, depthsOfPlayerDecisions); // setup counting first decision as depth 1
             List<byte> depthsOrdered = depthsOfPlayerDecisions.OrderByDescending(x => x).ToList();
+            depthsOrdered.Add(0); // last depth to play should return outcome
             double bestResponseUtility = 0;
-            foreach (byte depth in depthsOrdered)
-            {
-                bestResponseUtility = GEBRPass2(GameHistoryTree, depth, nonChancePlayerIndex, 0, 1.0);
-            }
+            foreach (byte depthToTarget in depthsOrdered)
+                bestResponseUtility = GEBRPass2(GameHistoryTree, nonChancePlayerIndex, depthToTarget, 1, 1.0);
             return bestResponseUtility;
         }
+
+        bool TraceGEBR = true;
+        List<byte> TraceGEBR_SkipDecisions = new List<byte>() { 1, 2 };
 
         public void GEBRPass1(NWayTreeStorage<object> history, byte nonChancePlayerIndex, byte depth, HashSet<byte> depthOfPlayerDecisions)
         {
@@ -408,7 +410,7 @@ namespace ACESim
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
                     var nextHistory = history.GetBranch(action);
-                    GEBRPass1(history, nonChancePlayerIndex, (byte)(depth + 1), depthOfPlayerDecisions);
+                    GEBRPass1(nextHistory, nonChancePlayerIndex, (byte)(depth + 1), depthOfPlayerDecisions);
                 }
             }
         }
@@ -419,14 +421,31 @@ namespace ACESim
                 return GetUtilityFromTerminalHistory(history, nonChancePlayerIndex);
             else if (NodeIsChanceNode(history))
                 return GEBRPass2_ChanceNode(history, nonChancePlayerIndex, depthToTarget, depthSoFar, inversePi);
+            return GEBRPass2_DecisionNode(history, nonChancePlayerIndex, depthToTarget, depthSoFar, inversePi);
+        }
+
+        private double GEBRPass2_DecisionNode(NWayTreeStorage<object> history, byte nonChancePlayerIndex, byte depthToTarget, byte depthSoFar, double inversePi)
+        {
             var informationSet = GetInformationSet(history);
             byte decisionNum = informationSet.DecisionNum;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
             byte playerMakingDecision = informationSet.NonChancePlayerIndex;
+            if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionNum))
+            {
+                TabbedText.WriteLine($"Optimizing {nonChancePlayerIndex} depthToTarget {depthToTarget} depthSoFar {depthSoFar} inversePi {inversePi} Decision {decisionNum} player making decision {playerMakingDecision} {GameDefinition.DecisionsExecutionOrder[decisionNum].Name} information set {informationSet.InformationSetNumber}");
+            }
             if (playerMakingDecision == nonChancePlayerIndex && depthSoFar > depthToTarget)
             {
+                if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionNum))
+                    TabbedText.Tabs++;
                 byte action = informationSet.GetBestResponseAction();
-                return GEBRPass2(history.GetBranch(action), nonChancePlayerIndex, depthToTarget, (byte)(depthSoFar + 1), inversePi);
+                double expectedValue = GEBRPass2(history.GetBranch(action), nonChancePlayerIndex, depthToTarget, (byte)(depthSoFar + 1), inversePi);
+                if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionNum))
+                {
+                    TabbedText.WriteLine($"Best response action {action} producing expected value {expectedValue}");
+                    TabbedText.Tabs--;
+                }
+                return expectedValue;
             }
             else
             {
@@ -438,11 +457,32 @@ namespace ACESim
                     double nextInversePi = inversePi;
                     if (playerMakingDecision != nonChancePlayerIndex)
                         nextInversePi *= probabilities[action - 1];
+                    if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionNum))
+                        TabbedText.Tabs++;
                     double expectedValue = GEBRPass2(history.GetBranch(action), nonChancePlayerIndex, depthToTarget, (byte)(depthSoFar + 1), nextInversePi);
+                    double product = probabilities[action - 1] * expectedValue;
+                    if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionNum))
+                    {
+                        TabbedText.Tabs--;
+                        TabbedText.WriteLine($"action {action} producing expected value {expectedValue} * probability {probabilities[action - 1]} = product {product}");
+                    }
                     if (playerMakingDecision != nonChancePlayerIndex)
-                        expectedValueSum += probabilities[action - 1] * expectedValue;
+                        expectedValueSum += product;
                     else if (playerMakingDecision == nonChancePlayerIndex && depthToTarget == depthSoFar)
+                    {
                         informationSet.IncrementBestResponse(action, inversePi, expectedValue);
+                        if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionNum))
+                        {
+                            TabbedText.WriteLine($"Incrementing best response for action {action} inversePi {inversePi} expectedValue {expectedValue}");
+                        }
+                    }
+                }
+                if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionNum))
+                {
+                    if (playerMakingDecision != nonChancePlayerIndex)
+                        TabbedText.WriteLine($"Returning from other player node expectedvaluesum {expectedValueSum}");
+                    else if (playerMakingDecision == nonChancePlayerIndex && depthToTarget == depthSoFar)
+                        TabbedText.WriteLine($"Returning 0 (from own decision not yet fully developed)");
                 }
                 return expectedValueSum;
             }
@@ -452,12 +492,28 @@ namespace ACESim
         {
             CRMChanceNodeSettings chanceNodeSettings = (CRMChanceNodeSettings)history.StoredValue;
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionNum);
+            if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNodeSettings.DecisionNum))
+            {
+                TabbedText.WriteLine($"Num chance actions {numPossibleActions} for decision {chanceNodeSettings.DecisionNum} {GameDefinition.DecisionsExecutionOrder[chanceNodeSettings.DecisionNum].Name}");
+            }
             double expectedValueSum = 0;
             for (byte action = 1; action <= numPossibleActions; action++)
             {
                 double probability = chanceNodeSettings.GetActionProbability(action);
-                double expectedValue = probability * GEBRPass2(history.GetBranch(action), nonChancePlayerIndex, depthToTarget, (byte)(depthSoFar + 1), inversePi * probability);
+                if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNodeSettings.DecisionNum))
+                    TabbedText.Tabs++;
+                var valueBelow = GEBRPass2(history.GetBranch(action), nonChancePlayerIndex, depthToTarget, (byte)(depthSoFar + 1), inversePi * probability);
+                double expectedValue = probability * valueBelow;
+                if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNodeSettings.DecisionNum))
+                {
+                    TabbedText.Tabs--;
+                    TabbedText.WriteLine($"chance action {action} probability {probability} * valueBelow {valueBelow} = expectedValue {expectedValue}");
+                }
                 expectedValueSum += expectedValue;
+            }
+            if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNodeSettings.DecisionNum))
+            {
+                TabbedText.WriteLine($"Chance expected value sum {expectedValueSum}");
             }
             return expectedValueSum;
         }
