@@ -27,17 +27,11 @@ namespace ACESim
             if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.LitigationQuality)
             {
                 MyProgress.LitigationQuality = ConvertActionToUniformDistributionDraw(action);
-                // If one or both parties have perfect information, then they can get their information about litigation quality now, since they don't need a signal.
+                // If one or both parties have perfect information, then they can get their information about litigation quality now, since they don't need a signal. Note that we also specify in the game definition that the litigation quality should become part of their information set.
                 if (MyDefinition.PNoiseStdev == 0)
-                {
-                    Progress.GameHistory.AddToInformationSet(MyProgress.PSignal, (byte)MyGamePlayers.Plaintiff, (byte)CurrentDecisionIndex);
                     MyProgress.PSignalUniform = MyProgress.LitigationQuality;
-                }
                 if (MyDefinition.DNoiseStdev == 0)
-                {
-                    Progress.GameHistory.AddToInformationSet(MyProgress.DSignal, (byte)MyGamePlayers.Defendant, (byte)CurrentDecisionIndex);
                     MyProgress.DSignalUniform = MyProgress.LitigationQuality;
-                }
             }
             else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.PSignal)
             {

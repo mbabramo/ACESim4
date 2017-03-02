@@ -92,7 +92,12 @@ namespace ACESim
         private List<Decision> GetDecisionsList()
         {
             var decisions = new List<Decision>();
-            decisions.Add(new Decision("LitigationQuality", "Qual", (byte)MyGamePlayers.Chance, new List<byte> { }, NumLitigationQualityPoints, (byte)MyGameDecisions.LitigationQuality));
+            List<byte> playersKnowingLitigationQuality = new List<byte>();
+            if (PNoiseStdev == 0)
+                playersKnowingLitigationQuality.Add((byte)MyGamePlayers.Plaintiff);
+            if (DNoiseStdev == 0)
+                playersKnowingLitigationQuality.Add((byte)MyGamePlayers.Defendant);
+            decisions.Add(new Decision("LitigationQuality", "Qual", (byte)MyGamePlayers.Chance, playersKnowingLitigationQuality, NumLitigationQualityPoints, (byte)MyGameDecisions.LitigationQuality));
             if (PNoiseStdev != 0)
                 decisions.Add(new Decision("PlaintiffSignal", "PSig", (byte)MyGamePlayers.Chance, new List<byte> { }, NumPlaintiffSignals, (byte)MyGameDecisions.PSignal));
             if (DNoiseStdev != 0)
