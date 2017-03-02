@@ -372,15 +372,22 @@ namespace ACESim
         /// <returns></returns>
         public double CalculateBestResponse(byte nonChancePlayerIndex)
         {
-            if (TraceGEBR)
-                TabbedText.WriteLine($"Optimizing {nonChancePlayerIndex}: ");
             HashSet<byte> depthsOfPlayerDecisions = new HashSet<byte>();
             GEBRPass1(GameHistoryTree, nonChancePlayerIndex, 1, depthsOfPlayerDecisions); // setup counting first decision as depth 1
             List<byte> depthsOrdered = depthsOfPlayerDecisions.OrderByDescending(x => x).ToList();
             depthsOrdered.Add(0); // last depth to play should return outcome
             double bestResponseUtility = 0;
             foreach (byte depthToTarget in depthsOrdered)
+            {
+                if (TraceGEBR)
+                {
+                    TabbedText.WriteLine($"Optimizing {nonChancePlayerIndex} depthToTarget {depthToTarget}: ");
+                    TabbedText.Tabs++;
+                }
                 bestResponseUtility = GEBRPass2(GameHistoryTree, nonChancePlayerIndex, depthToTarget, 1, 1.0);
+                if (TraceGEBR)
+                    TabbedText.Tabs--;
+            }
             return bestResponseUtility;
         }
 
@@ -434,7 +441,7 @@ namespace ACESim
             byte playerMakingDecision = informationSet.NonChancePlayerIndex;
             if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionNum))
             {
-                TabbedText.WriteLine($"inversePi {inversePi} Decision {decisionNum} {GameDefinition.DecisionsExecutionOrder[decisionNum].Name} player making decision {playerMakingDecision} information set {informationSet.InformationSetNumber} depthToTarget {depthToTarget} depthSoFar {depthSoFar} ");
+                TabbedText.WriteLine($"inversePi {inversePi} Decision {decisionNum} {GameDefinition.DecisionsExecutionOrder[decisionNum].Name} player making decision {playerMakingDecision} information set {informationSet.InformationSetNumber} depthSoFar {depthSoFar} ");
             }
             if (playerMakingDecision == nonChancePlayerIndex && depthSoFar > depthToTarget)
             {
@@ -501,7 +508,7 @@ namespace ACESim
             double expectedValueSum = 0;
             for (byte action = 1; action <= numPossibleActions; action++)
             {
-                TabbedText.WriteLine($"chance action {action} ... ");
+                TabbedText.WriteLine($"chance action {action} by player {nonChancePlayerIndex} ... ");
                 double probability = chanceNodeSettings.GetActionProbability(action);
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNodeSettings.DecisionNum))
                     TabbedText.Tabs++;
