@@ -48,17 +48,12 @@ namespace ACESim
             else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.POffer)
             {
                 MyProgress.AddOffer(true, ConvertActionToUniformDistributionDraw(action));
-                MyProgress.CheckSettlement(MyDefinition.);
+                MyProgress.UpdateProgress(MyDefinition);
             }
             else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.DOffer)
             {
                 MyProgress.AddOffer(false, ConvertActionToUniformDistributionDraw(action));
-                if (MyProgress.DOffer >= MyProgress.POffer)
-                {
-                    MyProgress.CaseSettles = true;
-                    MyProgress.SettlementValue = (MyProgress.POffer + MyProgress.DOffer) / 2.0;
-                    MyProgress.GameComplete = true; // will still do FinalProcessing
-                }
+                MyProgress.UpdateProgress(MyDefinition);
             }
             else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.CourtDecision)
             {

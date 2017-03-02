@@ -41,7 +41,7 @@ namespace ACESim
                 var first = currentExecutionInformation.GameDefinitionsSet.settings.First() as SettingClass;
                 if (first.Generator != null)
                 {
-                    GameDefinition result = (GameDefinition) first.Generator.GenerateSetting(first.CodeGeneratorOptions);
+                    GameDefinition result = (GameDefinition)first.Generator.GenerateSetting(first.CodeGeneratorOptions.Replace(System.Environment.NewLine, ""));
                     return result;
                 }
             }

@@ -51,13 +51,14 @@ namespace ACESim
             CaseSettles = SettlementReached(playersMovingSimultaneously, pGoesFirstIfNotSimultaneous);
             if (CaseSettles)
                 SetSettlementValue(playersMovingSimultaneously, pGoesFirstIfNotSimultaneous);
-            GameComplete = CaseSettles || (BargainingRoundsComplete == gameDefinition.NumBargainingRounds);
+            if (CaseSettles)
+                GameComplete = true;
         }
 
         private bool SettlementReached(bool playersMovingSimultaneously, bool pGoesFirstIfNotSimultaneous)
         {
             if (playersMovingSimultaneously)
-                return DLastOffer > PLastOffer;
+                return DLastOffer >= PLastOffer;
             else if (pGoesFirstIfNotSimultaneous)
                 return DLastResponse == true;
             else
@@ -85,10 +86,10 @@ namespace ACESim
             copy.DSignal = DSignal;
             copy.PSignalUniform = PSignalUniform;
             copy.DSignalUniform = DSignalUniform;
-            copy.POffers = POffers.ToList();
-            copy.DOffers = DOffers.ToList();
-            copy.PResponses = PResponses.ToList();
-            copy.DResponses = DResponses.ToList();
+            copy.POffers = POffers == null ? null : POffers.ToList();
+            copy.DOffers = DOffers == null ? null : DOffers.ToList();
+            copy.PResponses = PResponses == null ? null : PResponses.ToList();
+            copy.DResponses = DResponses == null ? null : DResponses.ToList();
             copy.CaseSettles = CaseSettles;
             copy.SettlementValue = SettlementValue;
             copy.PWinsAtTrial = PWinsAtTrial;

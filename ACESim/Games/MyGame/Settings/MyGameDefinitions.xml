@@ -4,17 +4,17 @@
   <gameDefinitionsAll>
     <gameDefinition name="MyGame">
       <setting name="MyGameDefinition" type="class" subclass="MyGameDefinition" codeGeneratorName="MyGameDefinition" codeGeneratorOptions="
-               NumLitigationQualityPoints: 9; 
-               NumPlaintiffSignals: 9; NumDefendantSignals: 9; 
-               NumPlaintiffOffers: 9; NumDefendantOffers: 9; 
-               PNoiseStdev: 0.5; DNoiseStdev: 0.5; 
-               PLitigationCosts: 0.3; DLitigationCosts: 0.3; 
-               NumBargainingRounds: 2,
-               BargainingRound1Simultaneous: false, BargainingRound1PGoesFirstIfNotSimultaneous: true,
-               BargainingRound2Simultaneous: false, BargainingRound2PGoesFirstIfNotSimultaneous: false,
-               BargainingRound3Simultaneous: false, BargainingRound3PGoesFirstIfNotSimultaneous: true,
-               BargainingRound4Simultaneous: false, BargainingRound4PGoesFirstIfNotSimultaneous: true,
-               BargainingRound5Simultaneous: false, BargainingRound5PGoesFirstIfNotSimultaneous: true,
+               NumLitigationQualityPoints: 10; 
+               NumPlaintiffSignals: 10; NumDefendantSignals: 10; 
+               NumPlaintiffOffers: 10; NumDefendantOffers: 10; 
+               PNoiseStdev: 0.1; DNoiseStdev: 0.1; 
+               PLitigationCosts: 5.0; DLitigationCosts: 5.0; 
+               NumBargainingRounds: 1;
+               BargainingRound1Simultaneous: true; BargainingRound1PGoesFirstIfNotSimultaneous: true;
+               BargainingRound2Simultaneous: false; BargainingRound2PGoesFirstIfNotSimultaneous: false;
+               BargainingRound3Simultaneous: false; BargainingRound3PGoesFirstIfNotSimultaneous: true;
+               BargainingRound4Simultaneous: false; BargainingRound4PGoesFirstIfNotSimultaneous: true;
+               BargainingRound5Simultaneous: false; BargainingRound5PGoesFirstIfNotSimultaneous: true;
                IncludeSignalsReport: true" >
       </setting>
     </gameDefinition>
