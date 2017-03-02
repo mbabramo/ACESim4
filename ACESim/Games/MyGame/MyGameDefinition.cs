@@ -20,6 +20,7 @@ namespace ACESim
         public double DNoiseStdev;
         public double PLitigationCosts;
         public double DLitigationCosts;
+        public bool IncludeSignalsReport;
         public DiscreteValueSignalParameters PSignalParameters, DSignalParameters;
 
         public MyGameDefinition() : base()
@@ -44,13 +45,18 @@ namespace ACESim
 
         private List<SimpleReportDefinition> GetReports()
         {
-            return new List<SimpleReportDefinition>()
-            {
-                new SimpleReportDefinition(
-                    "MyGameReport",
-                    null,
-                    new List<SimpleReportFilter>()
-                    {
+            var reports = new List<SimpleReportDefinition>();
+            if (IncludeSignalsReport)
+                reports.Add(GetStrategyReport());
+        }
+
+        private SimpleReportDefinition GetOverallReport()
+        {
+            return new SimpleReportDefinition(
+                                "MyGameReport",
+                                null,
+                                new List<SimpleReportFilter>()
+                                {
                         new SimpleReportFilter("All", (GameProgress gp) => true),
                         new SimpleReportFilter("Settles", (GameProgress gp) => MyGP(gp).CaseSettles),
                         new SimpleReportFilter("Tried", (GameProgress gp) => !MyGP(gp).CaseSettles),
@@ -63,9 +69,9 @@ namespace ACESim
                         new SimpleReportFilter("MedDSignal", (GameProgress gp) => MyGP(gp).DSignalUniform > 0.25 && MyGP(gp).DSignalUniform < 0.75),
                         new SimpleReportFilter("HiPSignal", (GameProgress gp) => MyGP(gp).PSignalUniform >= 0.75),
                         new SimpleReportFilter("HiDSignal", (GameProgress gp) => MyGP(gp).DSignalUniform >= 0.75),
-                    },
-                    new List<SimpleReportColumnItem>()
-                    {
+                                },
+                                new List<SimpleReportColumnItem>()
+                                {
                         new SimpleReportColumnFilter("All", (GameProgress gp) => true, true),
                         new SimpleReportColumnVariable("LitigQuality", (GameProgress gp) => MyGP(gp).LitigationQuality),
                         new SimpleReportColumnVariable("POffer", (GameProgress gp) => MyGP(gp).POffer),
@@ -74,9 +80,36 @@ namespace ACESim
                         new SimpleReportColumnVariable("ValIfSettled", (GameProgress gp) => MyGP(gp).SettlementValue),
                         new SimpleReportColumnVariable("PWelfare", (GameProgress gp) => MyGP(gp).PWelfare),
                         new SimpleReportColumnVariable("DWelfare", (GameProgress gp) => MyGP(gp).DWelfare),
-                    }
-                    )
+                                }
+                                );
+        }
+
+        private SimpleReportDefinition GetStrategyReport()
+        {
+            List<SimpleReportFilter> filters = new List<SimpleReportFilter>()
+            {
+                new SimpleReportFilter("All", (GameProgress gp) => true)
             };
+            for (int i = 0; i < NumPlaintiffSignals; i++)
+            {
+                double signalValue = EquallySpaced.GetLocationOfEquallySpacedPoint(i, NumPlaintiffSignals);
+                filters.Add(new SimpleReportFilter("PSignal " + signalValue, (GameProgress gp) => MyGP(gp).PSignalUniform == signalValue));
+            }
+            List<SimpleReportColumnItem> columnItems = new List<SimpleReportColumnItem>()
+            {
+                new SimpleReportColumnFilter("All", (GameProgress gp) => true, true)
+            };
+            for (int i = 0; i < NumPlaintiffOffers; i++)
+            {
+                double offerValue = EquallySpaced.GetLocationOfEquallySpacedPoint(i, NumPlaintiffOffers);
+                columnItems.Add(new SimpleReportColumnFilter("POffer " + offerValue, (GameProgress gp) => MyGP(gp).POffer == offerValue, false));
+            }
+            return new SimpleReportDefinition(
+                                "MyGameStrategyReport",
+                                null,
+                                filters,
+                                columnItems
+                                );
         }
 
         private static List<PlayerInfo> GetPlayersList()
@@ -119,6 +152,7 @@ namespace ACESim
             DNoiseStdev = GameModule.GetDoubleCodeGeneratorOption(options, "DNoiseStdev");
             PLitigationCosts = GameModule.GetDoubleCodeGeneratorOption(options, "PLitigationCosts");
             DLitigationCosts = GameModule.GetDoubleCodeGeneratorOption(options, "DLitigationCosts");
+            IncludeSignalsReport = GameModule.GetBoolCodeGeneratorOption(options, "IncludeSignalsReport");
             PSignalParameters = new DiscreteValueSignalParameters()
             {
                 NumPointsInSourceUniformDistribution = NumLitigationQualityPoints,
