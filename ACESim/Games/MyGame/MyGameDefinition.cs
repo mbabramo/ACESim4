@@ -91,16 +91,16 @@ namespace ACESim
 
         private List<Decision> GetDecisionsList()
         {
-            return new List<Decision>()
-                {
-                    new Decision("LitigationQuality", "Qual", (byte) MyGamePlayers.Chance, new List<byte> { }, NumLitigationQualityPoints, (byte) MyGameDecisions.LitigationQuality),
-                    new Decision("PlaintiffSignal", "PSig", (byte) MyGamePlayers.Chance, new List<byte> { }, NumPlaintiffSignals, (byte) MyGameDecisions.PSignal),
-                    new Decision("DefendantSignal", "DSig", (byte) MyGamePlayers.Chance, new List<byte> { }, NumDefendantSignals, (byte) MyGameDecisions.DSignal),
-                    // initially the offers will be kept secret (TODO: Make it so that the decisions are revealed AFTER defendant makes its offer if the case is not resolved)
-                    new Decision("PlaintiffOffer", "PO", (byte) MyGamePlayers.Plaintiff, new List<byte> { (byte) MyGamePlayers.Plaintiff }, NumPlaintiffOffers, (byte) MyGameDecisions.POffer),
-                    new Decision("DefendantOffer", "DO", (byte) MyGamePlayers.Defendant, new List<byte> { (byte) MyGamePlayers.Defendant }, NumDefendantOffers, (byte) MyGameDecisions.DOffer),
-                    new Decision("CourtDecision", "CD", (byte) MyGamePlayers.Chance, new List<byte> {  }, 2, (byte) MyGameDecisions.CourtDecision, unevenChanceActions: true),
-                };
+            var decisions = new List<Decision>();
+            decisions.Add(new Decision("LitigationQuality", "Qual", (byte)MyGamePlayers.Chance, new List<byte> { }, NumLitigationQualityPoints, (byte)MyGameDecisions.LitigationQuality));
+            if (PNoiseStdev != 0)
+                decisions.Add(new Decision("PlaintiffSignal", "PSig", (byte)MyGamePlayers.Chance, new List<byte> { }, NumPlaintiffSignals, (byte)MyGameDecisions.PSignal));
+            if (DNoiseStdev != 0)
+                decisions.Add(new Decision("DefendantSignal", "DSig", (byte)MyGamePlayers.Chance, new List<byte> { }, NumDefendantSignals, (byte)MyGameDecisions.DSignal));
+            decisions.Add(new Decision("PlaintiffOffer", "PO", (byte)MyGamePlayers.Plaintiff, new List<byte> { (byte)MyGamePlayers.Plaintiff }, NumPlaintiffOffers, (byte)MyGameDecisions.POffer));
+            decisions.Add(new Decision("DefendantOffer", "DO", (byte)MyGamePlayers.Defendant, new List<byte> { (byte)MyGamePlayers.Defendant }, NumDefendantOffers, (byte)MyGameDecisions.DOffer));
+            decisions.Add(new Decision("CourtDecision", "CD", (byte)MyGamePlayers.Chance, new List<byte> { }, 2, (byte)MyGameDecisions.CourtDecision, unevenChanceActions: true));
+            return decisions;
         }
 
         private void ParseOptions(string options)
@@ -128,9 +128,9 @@ namespace ACESim
             };
         }
 
-        public override double[] GetChanceActionProbabilities(byte decisionNum, GameProgress gameProgress)
+        public override double[] GetChanceActionProbabilities(byte decisionByteCode, GameProgress gameProgress)
         {
-            if (decisionNum == (byte)MyGameDecisions.CourtDecision)
+            if (decisionByteCode == (byte)MyGameDecisions.CourtDecision)
             {
                 double[] probabilities = new double[2];
                 MyGameProgress myGameProgress = (MyGameProgress)gameProgress;

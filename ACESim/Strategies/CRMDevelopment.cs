@@ -102,7 +102,7 @@ namespace ACESim
                         if (walkHistoryTree.StoredValue == null)
                         {
                             if (decision.UnevenChanceActions)
-                                walkHistoryTree.StoredValue = new CRMChanceNodeSettings_UnequalProbabilities() { DecisionNum = informationSetHistory.DecisionIndex, Probabilities = GameDefinition.GetChanceActionProbabilities(informationSetHistory.DecisionIndex, progress) }; // the probabilities depend on the current state of the game
+                                walkHistoryTree.StoredValue = new CRMChanceNodeSettings_UnequalProbabilities() { DecisionNum = informationSetHistory.DecisionIndex, Probabilities = GameDefinition.GetChanceActionProbabilities(GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex].DecisionByteCode, progress) }; // the probabilities depend on the current state of the game
                             else
                                 walkHistoryTree.StoredValue = new CRMChanceNodeSettings_EqualProbabilities() { DecisionNum = informationSetHistory.DecisionIndex, EachProbability = 1.0 / (double)decision.NumPossibleActions };
                         }
@@ -379,7 +379,7 @@ namespace ACESim
             return bestResponseUtility;
         }
 
-        bool TraceGEBR = true;
+        bool TraceGEBR = false;
         List<byte> TraceGEBR_SkipDecisions = new List<byte>() { 1, 2 };
 
         public void GEBRPass1(NWayTreeStorage<object> history, byte nonChancePlayerIndex, byte depth, HashSet<byte> depthOfPlayerDecisions)
