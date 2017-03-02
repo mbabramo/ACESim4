@@ -3,7 +3,7 @@
 <ACESim>
   <gameDefinitionsAll>
     <gameDefinition name="MyGame">
-      <setting name="MyGameDefinition" type="class" subclass="MyGameDefinition" codeGeneratorName="MyGameDefinition" codeGeneratorOptions="NumLitigationQualityPoints: 2; NumPlaintiffSignals: 2; NumDefendantSignals: 2; NumPlaintiffOffers: 10; NumDefendantOffers: 10; PNoiseStdev: 20; DNoiseStdev: 20; PLitigationCosts: 0.1; DLitigationCosts: 0.1" >
+      <setting name="MyGameDefinition" type="class" subclass="MyGameDefinition" codeGeneratorName="MyGameDefinition" codeGeneratorOptions="NumLitigationQualityPoints: 9; NumPlaintiffSignals: 9; NumDefendantSignals: 9; NumPlaintiffOffers: 9; NumDefendantOffers: 9; PNoiseStdev: 0.5; DNoiseStdev: 0.5; PLitigationCosts: 0.3; DLitigationCosts: 0.3" >
       </setting>
     </gameDefinition>
   </gameDefinitionsAll>
