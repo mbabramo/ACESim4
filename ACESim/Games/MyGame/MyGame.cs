@@ -55,6 +55,16 @@ namespace ACESim
                 MyProgress.AddOffer(false, ConvertActionToUniformDistributionDraw(action));
                 MyProgress.UpdateProgress(MyDefinition);
             }
+            else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.PResponse)
+            {
+                MyProgress.AddResponse(true, action == 1); // 1 == accept, 2 == reject
+                MyProgress.UpdateProgress(MyDefinition);
+            }
+            else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.DResponse)
+            {
+                MyProgress.AddResponse(false, action == 1); // 1 == accept, 2 == reject
+                MyProgress.UpdateProgress(MyDefinition);
+            }
             else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.CourtDecision)
             {
                 // note that the probability of P winning is defined in MyGameDefinition.
