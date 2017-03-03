@@ -23,14 +23,14 @@ namespace ACESim
         public double PWelfare;
         public double DWelfare;
 
-        public double? PFirstOffer => (double?)POffers.FirstOrDefault() ?? null;
-        public double? DFirstOffer => (double?)DOffers.FirstOrDefault() ?? null;
-        public bool? PFirstResponse => (bool?)PResponses.FirstOrDefault() ?? null;
-        public bool? DFirstResponse => (bool?)DResponses.FirstOrDefault() ?? null;
-        public double? PLastOffer => (double?)POffers.LastOrDefault() ?? null;
-        public double? DLastOffer => (double?)DOffers.LastOrDefault() ?? null;
-        public bool? PLastResponse => (bool?)PResponses.LastOrDefault() ?? null;
-        public bool? DLastResponse => (bool?)DResponses.LastOrDefault() ?? null;
+        public double? PFirstOffer => (double?)POffers?.FirstOrDefault() ?? null;
+        public double? DFirstOffer => (double?)DOffers?.FirstOrDefault() ?? null;
+        public bool? PFirstResponse => (bool?)PResponses?.FirstOrDefault() ?? null;
+        public bool? DFirstResponse => (bool?)DResponses?.FirstOrDefault() ?? null;
+        public double? PLastOffer => (double?)POffers?.LastOrDefault() ?? null;
+        public double? DLastOffer => (double?)DOffers?.LastOrDefault() ?? null;
+        public bool? PLastResponse => (bool?)PResponses?.LastOrDefault() ?? null;
+        public bool? DLastResponse => (bool?)DResponses?.LastOrDefault() ?? null;
         public bool BothPlayersHaveCompletedRound => POffers?.Count() == DResponses?.Count() && DOffers?.Count() == PResponses?.Count();
         public bool RoundIsComplete(bool playersMovingSimultaneously, bool pGoesFirstIfNotSimultaneous)
         {
