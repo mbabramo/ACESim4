@@ -46,14 +46,59 @@ namespace ACESim
 
         MyGameProgress MyGP(GameProgress gp) => gp as MyGameProgress;
 
+        private static List<PlayerInfo> GetPlayersList()
+        {
+            return new List<PlayerInfo>
+                {
+                    new PlayerInfo("C", (int) MyGamePlayers.Chance, byte.MaxValue, true, false),
+                    new PlayerInfo("P", (int) MyGamePlayers.Plaintiff, 0, false, true),
+                    new PlayerInfo("D", (int) MyGamePlayers.Defendant, 1, false, true),
+                };
+        }
+
+        private List<Decision> GetDecisionsList()
+        {
+            var decisions = new List<Decision>();
+            List<byte> playersKnowingLitigationQuality = new List<byte>();
+            if (PNoiseStdev == 0)
+                playersKnowingLitigationQuality.Add((byte)MyGamePlayers.Plaintiff);
+            if (DNoiseStdev == 0)
+                playersKnowingLitigationQuality.Add((byte)MyGamePlayers.Defendant);
+            decisions.Add(new Decision("LitigationQuality", "Qual", (byte)MyGamePlayers.Chance, playersKnowingLitigationQuality, NumLitigationQualityPoints, (byte)MyGameDecisions.LitigationQuality));
+            if (PNoiseStdev != 0)
+                decisions.Add(new Decision("PlaintiffSignal", "PSig", (byte)MyGamePlayers.Chance, new List<byte> { }, NumPlaintiffSignals, (byte)MyGameDecisions.PSignal));
+            if (DNoiseStdev != 0)
+                decisions.Add(new Decision("DefendantSignal", "DSig", (byte)MyGamePlayers.Chance, new List<byte> { }, NumDefendantSignals, (byte)MyGameDecisions.DSignal));
+            for (int b = 0; b < NumBargainingRounds; b++)
+            {
+                if (BargainingRoundsSimultaneous[b])
+                { // samuelson-chaterjee bargaining
+                    decisions.Add(new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, new List<byte> { (byte)MyGamePlayers.Plaintiff }, NumPlaintiffOffers, (byte)MyGameDecisions.POffer));
+                    decisions.Add(new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, new List<byte> { (byte)MyGamePlayers.Defendant }, NumDefendantOffers, (byte)MyGameDecisions.DOffer));
+                }
+                else if (BargainingRoundsPGoesFirstIfNotSimultaneous[b])
+                {
+                    decisions.Add(new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, new List<byte> { (byte)MyGamePlayers.Plaintiff, (byte) MyGamePlayers.Defendant }, NumPlaintiffOffers, (byte)MyGameDecisions.POffer));
+                    decisions.Add(new Decision("DefendantResponse" + (b + 1), "DR" + (b + 1), (byte)MyGamePlayers.Defendant, new List<byte> { }, 2, (byte)MyGameDecisions.DResponse));
+                }
+                else
+                {
+                    decisions.Add(new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, new List<byte> { (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Plaintiff }, NumDefendantOffers, (byte)MyGameDecisions.DOffer));
+                    decisions.Add(new Decision("PlaintiffResponse" + (b + 1), "PR" + (b + 1), (byte)MyGamePlayers.Plaintiff, new List<byte> { }, 2, (byte)MyGameDecisions.PResponse));
+                }
+            }
+            decisions.Add(new Decision("CourtDecision", "CD", (byte)MyGamePlayers.Chance, new List<byte> { }, 2, (byte)MyGameDecisions.CourtDecision, unevenChanceActions: true));
+            return decisions;
+        }
+
         private List<SimpleReportDefinition> GetReports()
         {
             var reports = new List<SimpleReportDefinition>();
             reports.Add(GetOverallReport());
             if (IncludeSignalsReport)
             {
-                reports.Add(GetStrategyReport(true));
-                reports.Add(GetStrategyReport(false));
+                reports.Add(GetStrategyReport(true, false));
+                reports.Add(GetStrategyReport(false, true));
             }
             return reports;
         }
@@ -94,9 +139,14 @@ namespace ACESim
                 );
         }
 
-        private SimpleReportDefinition GetStrategyReport(bool plaintiff)
+        private SimpleReportDefinition GetStrategyReport(bool plaintiff, bool lastOffer)
         {
-            List<SimpleReportFilter> filters = new List<SimpleReportFilter>()
+            List<SimpleReportFilter> metaFilters = new List<SimpleReportFilter>();
+            if (plaintiff)
+                metaFilters.Add(new SimpleReportFilter("PMakesOffer", (GameProgress gp) => MyGP(gp).PLastOffer != null));
+            else
+                metaFilters.Add(new SimpleReportFilter("DMakesOffer", (GameProgress gp) => MyGP(gp).DLastOffer != null));
+            List<SimpleReportFilter> rowFilters = new List<SimpleReportFilter>()
             {
                 new SimpleReportFilter("All", (GameProgress gp) => true)
             };
@@ -104,73 +154,39 @@ namespace ACESim
             {
                 double signalValue = EquallySpaced.GetLocationOfEquallySpacedPoint(i, NumPlaintiffSignals);
                 if (plaintiff)
-                    filters.Add(new SimpleReportFilter("PSignal " + signalValue, (GameProgress gp) => MyGP(gp).PSignalUniform == signalValue));
+                    rowFilters.Add(new SimpleReportFilter("PSignal " + signalValue, (GameProgress gp) => MyGP(gp).PSignalUniform == signalValue));
                 else
-                    filters.Add(new SimpleReportFilter("DSignal " + signalValue, (GameProgress gp) => MyGP(gp).DSignalUniform == signalValue));
+                    rowFilters.Add(new SimpleReportFilter("DSignal " + signalValue, (GameProgress gp) => MyGP(gp).DSignalUniform == signalValue));
             }
             List<SimpleReportColumnItem> columnItems = new List<SimpleReportColumnItem>()
             {
                 new SimpleReportColumnFilter("All", (GameProgress gp) => true, true)
             };
-            for (int i = 0; i < NumPlaintiffOffers; i++)
+            var numOffers = (plaintiff ? NumPlaintiffOffers : NumDefendantOffers);
+            for (int i = 0; i < numOffers; i++)
             {
-                double offerValue = EquallySpaced.GetLocationOfEquallySpacedPoint(i, NumPlaintiffOffers);
-                if (plaintiff)
-                    columnItems.Add(new SimpleReportColumnFilter("PFirstOffer " + offerValue, (GameProgress gp) => MyGP(gp).PFirstOffer == offerValue, false));
+                double offerValue = EquallySpaced.GetLocationOfEquallySpacedPoint(i, numOffers);
+                if (lastOffer)
+                {
+                    if (plaintiff)
+                        columnItems.Add(new SimpleReportColumnFilter("PLastOffer " + offerValue, (GameProgress gp) => MyGP(gp).PLastOffer == offerValue, false));
+                    else
+                        columnItems.Add(new SimpleReportColumnFilter("DLastOffer " + offerValue, (GameProgress gp) => MyGP(gp).DLastOffer == offerValue, false));
+                }
                 else
-                    columnItems.Add(new SimpleReportColumnFilter("DFirstOffer " + offerValue, (GameProgress gp) => MyGP(gp).DFirstOffer == offerValue, false));
+                {
+                    if (plaintiff)
+                        columnItems.Add(new SimpleReportColumnFilter("PFirstOffer " + offerValue, (GameProgress gp) => MyGP(gp).PFirstOffer == offerValue, false));
+                    else
+                        columnItems.Add(new SimpleReportColumnFilter("DFirstOffer " + offerValue, (GameProgress gp) => MyGP(gp).DFirstOffer == offerValue, false));
+                }
             }
             return new SimpleReportDefinition(
                                 "MyGameStrategyReport",
-                                null,
-                                filters,
+                                metaFilters,
+                                rowFilters,
                                 columnItems
                                 );
-        }
-
-        private static List<PlayerInfo> GetPlayersList()
-        {
-            return new List<PlayerInfo>
-                {
-                    new PlayerInfo("C", (int) MyGamePlayers.Chance, byte.MaxValue, true, false),
-                    new PlayerInfo("P", (int) MyGamePlayers.Plaintiff, 0, false, true),
-                    new PlayerInfo("D", (int) MyGamePlayers.Defendant, 1, false, true),
-                };
-        }
-
-        private List<Decision> GetDecisionsList()
-        {
-            var decisions = new List<Decision>();
-            List<byte> playersKnowingLitigationQuality = new List<byte>();
-            if (PNoiseStdev == 0)
-                playersKnowingLitigationQuality.Add((byte)MyGamePlayers.Plaintiff);
-            if (DNoiseStdev == 0)
-                playersKnowingLitigationQuality.Add((byte)MyGamePlayers.Defendant);
-            decisions.Add(new Decision("LitigationQuality", "Qual", (byte)MyGamePlayers.Chance, playersKnowingLitigationQuality, NumLitigationQualityPoints, (byte)MyGameDecisions.LitigationQuality));
-            if (PNoiseStdev != 0)
-                decisions.Add(new Decision("PlaintiffSignal", "PSig", (byte)MyGamePlayers.Chance, new List<byte> { }, NumPlaintiffSignals, (byte)MyGameDecisions.PSignal));
-            if (DNoiseStdev != 0)
-                decisions.Add(new Decision("DefendantSignal", "DSig", (byte)MyGamePlayers.Chance, new List<byte> { }, NumDefendantSignals, (byte)MyGameDecisions.DSignal));
-            for (int b = 0; b < NumBargainingRounds; b++)
-            {
-                if (BargainingRoundsSimultaneous[b])
-                { // samuelson-chaterjee bargaining
-                    decisions.Add(new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, new List<byte> { (byte)MyGamePlayers.Plaintiff }, NumPlaintiffOffers, (byte)MyGameDecisions.POffer));
-                    decisions.Add(new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, new List<byte> { (byte)MyGamePlayers.Defendant }, NumDefendantOffers, (byte)MyGameDecisions.DOffer));
-                }
-                else if (BargainingRoundsPGoesFirstIfNotSimultaneous[b])
-                {
-                    decisions.Add(new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, new List<byte> { (byte)MyGamePlayers.Plaintiff, (byte) MyGamePlayers.Defendant }, NumPlaintiffOffers, (byte)MyGameDecisions.POffer));
-                    decisions.Add(new Decision("DefendantResponse" + (b + 1), "DR" + (b + 1), (byte)MyGamePlayers.Defendant, new List<byte> { (byte)MyGamePlayers.Defendant }, 2, (byte)MyGameDecisions.DResponse));
-                }
-                else
-                {
-                    decisions.Add(new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, new List<byte> { (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Plaintiff }, NumDefendantOffers, (byte)MyGameDecisions.DOffer));
-                    decisions.Add(new Decision("PlaintiffResponse" + (b + 1), "PR" + (b + 1), (byte)MyGamePlayers.Plaintiff, new List<byte> { (byte)MyGamePlayers.Plaintiff }, 2, (byte)MyGameDecisions.PResponse));
-                }
-            }
-            decisions.Add(new Decision("CourtDecision", "CD", (byte)MyGamePlayers.Chance, new List<byte> { }, 2, (byte)MyGameDecisions.CourtDecision, unevenChanceActions: true));
-            return decisions;
         }
 
         private void ParseOptions(string options)
