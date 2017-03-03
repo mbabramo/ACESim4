@@ -22,8 +22,6 @@ namespace ACESim
             return true;
         }
 
-        static byte DEBUG_LastDecisisionNum = 0;
-
         public override void RespondToAction(Decision currentDecision, int action)
         {
             if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.LitigationQuality)
@@ -59,8 +57,6 @@ namespace ACESim
             }
             else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.PResponse)
             {
-                if (MyProgress.POffers.Count() != 1 || DEBUG_LastDecisisionNum != (byte)MyGameDecisions.DOffer)
-                    throw new Exception("DEBUG");
                 MyProgress.AddResponse(true, action == 1); // 1 == accept, 2 == reject
                 MyProgress.UpdateProgress(MyDefinition);
             }
@@ -74,7 +70,6 @@ namespace ACESim
                 // note that the probability of P winning is defined in MyGameDefinition.
                 MyProgress.PWinsAtTrial = action == 2; 
             }
-            DEBUG_LastDecisisionNum = currentDecision.DecisionByteCode;
         }
 
         public override void FinalProcessing()

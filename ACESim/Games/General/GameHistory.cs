@@ -44,14 +44,6 @@ namespace ACESim
         public void AddToHistory(byte decisionNumber, byte playerNumber, byte action, byte numPossibleActions, List<byte> playersToInform)
         {
             short i = LastIndexAddedToHistory;
-            if (i == 2 && decisionNumber == 6)
-            {
-                var DEBUG = 0;
-            }
-            if (History[2] == 1 && History[6] == 1 && History[10] == 2 && History[14] == 1 && decisionNumber == 6 && GetActions().Count() != 6)
-            {
-                var DEBUG = 0;
-            }
             if (History[i] == Complete)
                 throw new Exception("Cannot add to history of complete game.");
             History[i] = decisionNumber;

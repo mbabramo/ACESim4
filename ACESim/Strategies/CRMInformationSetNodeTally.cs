@@ -28,10 +28,6 @@ namespace ACESim
             NonChancePlayerIndex = nonChancePlayerIndex;
             Initialize(totalDimensions, numPossibleActions);
             InformationSetNumber = InformationSetsSoFar++;
-            if (InformationSetNumber == 31)
-            {
-                var DEBUG = 0;
-            }
         }
 
         public override string ToString()

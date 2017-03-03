@@ -57,13 +57,8 @@ namespace ACESim
 
         public NWayTreeStorage<object> SetInformationSetTreeValueIfNotSet(IEnumerable<byte> informationSet, bool historyComplete, Func<object> setter)
         {
-            var DEBUG = GetInformationSetTreeValue(informationSet);
             var returnVal = InformationSetTree.SetValueIfNotSet(informationSet.GetEnumerator(), historyComplete, setter);
-            System.Diagnostics.Debug.WriteLine($"{String.Join(",", informationSet)}: {PlayerInfo.PlayerName} {returnVal.StoredValue}"); // DEBUG
-            if (returnVal.StoredValue.ToString().Contains("31:"))
-            {
-                var DEBUG1 = 0; // DEBUG: Problem is here. The information set [1] is now incorrectly mapping here.
-            }
+            // System.Diagnostics.Debug.WriteLine($"{String.Join(",", informationSet)}: {PlayerInfo.PlayerName} {returnVal.StoredValue}");
             return returnVal;
         }
 

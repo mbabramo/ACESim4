@@ -81,8 +81,6 @@ namespace ACESim
                 s.CreateInformationSetTree(GameDefinition.DecisionsExecutionOrder.First(x => x.PlayerNumber == s.PlayerInfo.PlayerNumberOverall).NumPossibleActions);
             }
 
-            int DEBUG_Counter = 0;
-
             int numPlayed = 0;
             foreach (var progress in player.PlayAllPaths(inputs))
             {
@@ -92,8 +90,6 @@ namespace ACESim
                 var actionsEnumerator = progress.GameHistory.GetActions().GetEnumerator();
                 var numPossibleActionsEnumerator = progress.GameHistory.GetNumPossibleActions().GetEnumerator();
                 GameHistoryTree.SetValue(actionsEnumerator, true, progress.GetNonChancePlayerUtilities());
-
-                DEBUG_Counter++;
 
                 NWayTreeStorage<object> walkHistoryTree = GameHistoryTree;
                 // Go through each non-chance decision point and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
@@ -129,14 +125,6 @@ namespace ACESim
                                 );
                             // Now, we want to store in the game history tree a quick reference to the correct point in the information set tree.
                             walkHistoryTree.StoredValue = informationSetNode;
-                        }
-                        else
-                        {
-                            // DEBUG
-                            if (GetInformationSet(walkHistoryTree).InformationSetNumber == 31 && informationSetHistory.DecisionIndex != 6)
-                            {
-                                var DEBUG = 0;
-                            }
                         }
                     }
                     walkHistoryTree = walkHistoryTree.GetBranch(informationSetHistory.ActionChosen);
@@ -301,10 +289,6 @@ namespace ACESim
                 {
                     List<byte> nextList = listSoFar.ToList();
                     nextList.Add(action);
-                    if (nextList.Count() == 4 && nextList[3] != 4)
-                    {
-                        var DEBUG = 0;
-                    }
                     ProcessPossiblePaths(GetSubsequentHistory(history, action), nextList, probability * probabilities[action - 1], processor, actionStrategy);
                 }
             }
@@ -321,10 +305,6 @@ namespace ACESim
                 SimpleReport report = new SimpleReport(reportDefinition);
                 ProcessPossiblePaths(GameHistoryTree, new List<byte>(), 1.0, (List<byte> actions, double probability) =>
                     {
-                        if (actions.Count() > 3 && actions[3] != 4)
-                        {
-                            var DEBUG = 0;
-                        }
                         GameProgress progress = startingProgress.DeepCopy();
                         player.PlayPath(actions.GetEnumerator(), progress, inputs);
                         if (probability > 0)

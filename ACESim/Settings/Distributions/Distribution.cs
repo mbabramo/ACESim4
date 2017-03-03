@@ -69,10 +69,6 @@ namespace ACESim
 
         internal List<double> PrepareToGetDoubleValue(List<double> theRandomizedInputs)
         {
-            if (theRandomizedInputs != null && theRandomizedInputs.Any())
-            {
-                var DEBUG = 0;
-            }
             theTracker.Value = new DistributionInputsTracker(theRandomizedInputs, theDistributionInputsDirectlyProvided);
             if (theRandomizedInputs == null)
                 theRandomizedInputs = new List<double>();
