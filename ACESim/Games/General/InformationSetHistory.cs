@@ -11,7 +11,8 @@ namespace ACESim
     {
         public byte PlayerMakingDecision;
         public byte DecisionIndex;
-        public IEnumerable<byte> InformationSet;
+        public List<byte> InformationSet;
+        public List<byte> DEBUGInfoSetHistory2;
         public byte ActionChosen;
         public byte NumPossibleActions;
         public bool IsTerminalAction;

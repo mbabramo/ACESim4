@@ -62,6 +62,8 @@ namespace ACESim
 
         public void GetReport(StringBuilder sb, bool commaSeparated)
         {
+            if (!commaSeparated)
+                sb.AppendLine(Definition.Name);
             int? metaColumnWidth = null, rowFilterColumnWidth = null;
             if (!commaSeparated)
             {

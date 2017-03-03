@@ -50,7 +50,7 @@ namespace ACESim
         /// If non-null, the decision will always result in this action. (Not yet implemented)
         /// </summary>
         [OptionalSetting]
-        public int? AlwaysDoAction;
+        public byte? AlwaysDoAction;
 
         /// <summary>
         /// Indicates whether the decision is always the final decision by a player.
@@ -94,7 +94,7 @@ namespace ACESim
 
         }
 
-        public Decision(string name, string abbreviation, byte playerNumber, List<byte> playersToInform, byte numActions, byte decisionByteCode = 0, string decisionTypeCode = null, int repetitionsAfterFirst = 0, string preevolvedStrategyFilename = null, List<string> informationSetAbbreviations = null, int? alwaysDoAction = null, bool unevenChanceActions = false)
+        public Decision(string name, string abbreviation, byte playerNumber, List<byte> playersToInform, byte numActions, byte decisionByteCode = 0, string decisionTypeCode = null, int repetitionsAfterFirst = 0, string preevolvedStrategyFilename = null, List<string> informationSetAbbreviations = null, byte? alwaysDoAction = null, bool unevenChanceActions = false)
         {
             Name = name;
             Abbreviation = abbreviation;

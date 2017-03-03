@@ -58,9 +58,10 @@ namespace ACESim
             bool moreInSequence = restOfSequence.MoveNext();
             while (moreInSequence)
             {
+                var previous = ((NWayTreeStorageInternal<T>)tree);
                 tree = ((NWayTreeStorageInternal<T>)tree).GetBranch(restOfSequence.Current);
                 if (tree == null)
-                    tree = AddBranch(restOfSequence.Current, true);
+                    tree = previous.AddBranch(restOfSequence.Current, true);
                 moreInSequence = restOfSequence.MoveNext();
             }
             return tree;

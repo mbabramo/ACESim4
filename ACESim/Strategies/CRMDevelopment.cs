@@ -81,6 +81,8 @@ namespace ACESim
                 s.CreateInformationSetTree(GameDefinition.DecisionsExecutionOrder.First(x => x.PlayerNumber == s.PlayerInfo.PlayerNumberOverall).NumPossibleActions);
             }
 
+            int DEBUG_Counter = 0;
+
             int numPlayed = 0;
             foreach (var progress in player.PlayAllPaths(inputs))
             {
@@ -90,6 +92,8 @@ namespace ACESim
                 var actionsEnumerator = progress.GameHistory.GetActions().GetEnumerator();
                 var numPossibleActionsEnumerator = progress.GameHistory.GetNumPossibleActions().GetEnumerator();
                 GameHistoryTree.SetValue(actionsEnumerator, true, progress.GetNonChancePlayerUtilities());
+
+                DEBUG_Counter++;
 
                 NWayTreeStorage<object> walkHistoryTree = GameHistoryTree;
                 // Go through each non-chance decision point and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
@@ -125,6 +129,14 @@ namespace ACESim
                                 );
                             // Now, we want to store in the game history tree a quick reference to the correct point in the information set tree.
                             walkHistoryTree.StoredValue = informationSetNode;
+                        }
+                        else
+                        {
+                            // DEBUG
+                            if (GetInformationSet(walkHistoryTree).InformationSetNumber == 31 && informationSetHistory.DecisionIndex != 6)
+                            {
+                                var DEBUG = 0;
+                            }
                         }
                     }
                     walkHistoryTree = walkHistoryTree.GetBranch(informationSetHistory.ActionChosen);
@@ -178,10 +190,9 @@ namespace ACESim
                 if (!GameDefinition.Players[informationSetHistory.PlayerMakingDecision].PlayerIsChance)
                 {
                     var playersStrategy = GetPlayerStrategyFromOverallPlayerNum(informationSetHistory.PlayerMakingDecision);
-                    var informationSet = informationSetHistory.InformationSet.ToList();
-                    TabbedText.WriteLine($"Information set: {String.Join(",", informationSet)}");
+                    TabbedText.WriteLine($"Information set: {String.Join(",", informationSetHistory.InformationSet)}");
                     CRMInformationSetNodeTally tallyReferencedInHistory = GetInformationSet(walkHistoryTree);
-                    CRMInformationSetNodeTally tallyStoredInInformationSet = (CRMInformationSetNodeTally) playersStrategy.GetInformationSetTreeValue(informationSet);
+                    CRMInformationSetNodeTally tallyStoredInInformationSet = (CRMInformationSetNodeTally)playersStrategy.GetInformationSetTreeValue(informationSetHistory.InformationSet);
                     if (tallyReferencedInHistory != tallyStoredInInformationSet)
                         throw new Exception("Tally references do not match.");
                 }
@@ -259,7 +270,7 @@ namespace ACESim
                 return;
             }
             double[] probabilities = null;
-            int numPossibleActions;
+            byte numPossibleActions;
             if (NodeIsChanceNode(history))
             {
                 CRMChanceNodeSettings chanceNodeSettings = (CRMChanceNodeSettings)history.StoredValue;
@@ -272,10 +283,13 @@ namespace ACESim
             else
             { // not a chance node or a leaf node
                 CRMInformationSetNodeTally informationSet = GetInformationSet(history);
-                numPossibleActions = GameDefinition.DecisionsExecutionOrder[informationSet.DecisionNum].NumPossibleActions;
+                var decision = GameDefinition.DecisionsExecutionOrder[informationSet.DecisionNum];
+                numPossibleActions = decision.NumPossibleActions;
                 probabilities = new double[numPossibleActions];
-                if (actionStrategy == ActionStrategies.RegretMatching)
-                    informationSet.GetRegretMatchingProbabilities(probabilities); // DEBUG -- might do something else
+                if (decision.AlwaysDoAction != null)
+                    SetProbabilitiesToAlwaysDoParticularAction(numPossibleActions, probabilities, (byte) decision.AlwaysDoAction);
+                else if (actionStrategy == ActionStrategies.RegretMatching)
+                    informationSet.GetRegretMatchingProbabilities(probabilities);
                 else if (actionStrategy == ActionStrategies.AverageStrategy)
                     informationSet.GetAverageStrategies(probabilities);
                 else
@@ -287,6 +301,10 @@ namespace ACESim
                 {
                     List<byte> nextList = listSoFar.ToList();
                     nextList.Add(action);
+                    if (nextList.Count() == 4 && nextList[3] != 4)
+                    {
+                        var DEBUG = 0;
+                    }
                     ProcessPossiblePaths(GetSubsequentHistory(history, action), nextList, probability * probabilities[action - 1], processor, actionStrategy);
                 }
             }
@@ -303,9 +321,14 @@ namespace ACESim
                 SimpleReport report = new SimpleReport(reportDefinition);
                 ProcessPossiblePaths(GameHistoryTree, new List<byte>(), 1.0, (List<byte> actions, double probability) =>
                     {
+                        if (actions.Count() > 3 && actions[3] != 4)
+                        {
+                            var DEBUG = 0;
+                        }
                         GameProgress progress = startingProgress.DeepCopy();
                         player.PlayPath(actions.GetEnumerator(), progress, inputs);
-                        report.ProcessGameProgress(progress, probability);
+                        if (probability > 0)
+                            report.ProcessGameProgress(progress, probability);
                     },
                     ActionStrategies.AverageStrategy
                     );
@@ -447,7 +470,7 @@ namespace ACESim
             {
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionNum))
                     TabbedText.Tabs++;
-                byte action = informationSet.GetBestResponseAction();
+                byte action = GameDefinition.DecisionsExecutionOrder[decisionNum].AlwaysDoAction ?? informationSet.GetBestResponseAction();
                 double expectedValue = GEBRPass2(history.GetBranch(action), nonChancePlayerIndex, depthToTarget, (byte)(depthSoFar + 1), inversePi);
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionNum))
                 {
@@ -458,25 +481,29 @@ namespace ACESim
             }
             else
             {
-                double[] probabilities = new double[numPossibleActions];
-                informationSet.GetAverageStrategies(probabilities);
+                double[] actionProbabilities = new double[numPossibleActions];
+                byte? alwaysDoAction = GameDefinition.DecisionsExecutionOrder[decisionNum].AlwaysDoAction;
+                if (alwaysDoAction == null)
+                    informationSet.GetAverageStrategies(actionProbabilities);
+                else
+                    SetProbabilitiesToAlwaysDoParticularAction(numPossibleActions, actionProbabilities, (byte)alwaysDoAction);
                 double expectedValueSum = 0;
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
                     double nextInversePi = inversePi;
                     if (playerMakingDecision != nonChancePlayerIndex)
-                        nextInversePi *= probabilities[action - 1];
+                        nextInversePi *= actionProbabilities[action - 1];
                     if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionNum))
                     {
                         TabbedText.WriteLine($"action {action} for playerMakingDecision {playerMakingDecision}...");
                         TabbedText.Tabs++; 
                     }
                     double expectedValue = GEBRPass2(history.GetBranch(action), nonChancePlayerIndex, depthToTarget, (byte)(depthSoFar + 1), nextInversePi);
-                    double product = probabilities[action - 1] * expectedValue;
+                    double product = actionProbabilities[action - 1] * expectedValue;
                     if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionNum))
                     {
                         TabbedText.Tabs--;
-                        TabbedText.WriteLine($"... action {action} producing expected value {expectedValue} * probability {probabilities[action - 1]} = product {product}");
+                        TabbedText.WriteLine($"... action {action} producing expected value {expectedValue} * probability {actionProbabilities[action - 1]} = product {product}");
                     }
                     if (playerMakingDecision != nonChancePlayerIndex)
                         expectedValueSum += product;
@@ -569,7 +596,11 @@ namespace ACESim
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
             // todo: stackalloc or use simple stack based array pool http://stackoverflow.com/questions/1123939/is-c-sharp-compiler-deciding-to-use-stackalloc-by-itself
             double[] actionProbabilities = new double[numPossibleActions];
-            informationSet.GetRegretMatchingProbabilities(actionProbabilities);
+            byte? alwaysDoAction = GameDefinition.DecisionsExecutionOrder[decisionNum].AlwaysDoAction;
+            if (alwaysDoAction == null)
+                informationSet.GetRegretMatchingProbabilities(actionProbabilities);
+            else
+                SetProbabilitiesToAlwaysDoParticularAction(numPossibleActions, actionProbabilities, (byte) alwaysDoAction);
             double[] expectedValueOfAction = new double[numPossibleActions];
             double expectedValue = 0;
             for (byte action = 1; action <= numPossibleActions; action++)
@@ -606,6 +637,15 @@ namespace ACESim
                 }
             }
             return expectedValue;
+        }
+
+        private static void SetProbabilitiesToAlwaysDoParticularAction(byte numPossibleActions, double[] actionProbabilities, byte alwaysDoAction)
+        {
+            for (byte action = 1; action <= numPossibleActions; action++)
+                if (action == alwaysDoAction)
+                    actionProbabilities[action - 1] = 1.0;
+                else
+                    actionProbabilities[action - 1] = 0;
         }
 
         private double VanillaCRM_ChanceNode(NWayTreeStorage<object> history, byte nonChancePlayerIndex, double[] piValues)
