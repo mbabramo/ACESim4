@@ -6,9 +6,9 @@
       <setting name="MyGameDefinition" type="class" subclass="MyGameDefinition" codeGeneratorName="MyGameDefinition" codeGeneratorOptions="
                NumLitigationQualityPoints: 5; 
                NumPlaintiffSignals: 5; NumDefendantSignals: 5; 
-               NumPlaintiffOffers: 5; NumDefendantOffers: 5; 
-               PNoiseStdev: 0.0001; DNoiseStdev: 0.0001; 
-               PLitigationCosts: 0.01; DLitigationCosts: 0.01; 
+               NumPlaintiffOffers: 10; NumDefendantOffers: 10; 
+               PNoiseStdev: 0.15; DNoiseStdev: 0.15; 
+               PLitigationCosts: 0.1; DLitigationCosts: 0.1; 
                NumBargainingRounds: 2;
                BargainingRound1Simultaneous: false; BargainingRound1PGoesFirstIfNotSimultaneous: true;
                BargainingRound2Simultaneous: false; BargainingRound2PGoesFirstIfNotSimultaneous: false;
