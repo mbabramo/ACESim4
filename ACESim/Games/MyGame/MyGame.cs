@@ -81,8 +81,11 @@ namespace ACESim
                 offer = ConvertActionToUniformDistributionDraw(action);
             else
             {
-                double previousOffer = plaintiffOffer ? (double)MyProgress.PLastOffer : (double)MyProgress.DLastOffer;
-                offer = MyDefinition.DeltaOffersCalculation.GetOfferValue(previousOffer, action);
+                double? previousOffer = plaintiffOffer ? MyProgress.PLastOffer : MyProgress.DLastOffer;
+                if (previousOffer == null)
+                    offer = ConvertActionToUniformDistributionDraw(action);
+                else
+                    offer = MyDefinition.DeltaOffersCalculation.GetOfferValue((double) previousOffer, action);
             }
             return offer;
         }

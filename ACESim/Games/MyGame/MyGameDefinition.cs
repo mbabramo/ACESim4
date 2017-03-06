@@ -265,8 +265,8 @@ namespace ACESim
             NumSignals = GameModule.GetByteCodeGeneratorOption(options, "NumSignals");
             NumOffers = GameModule.GetByteCodeGeneratorOption(options, "NumOffers");
             SubsequentOffersAreDeltas = GameModule.GetBoolCodeGeneratorOption(options, "SubsequentOffersAreDeltas");
-            DeltaStartingValue = GameModule.GetByteCodeGeneratorOption(options, "DeltaStartingValue");
-            MaxDelta = GameModule.GetByteCodeGeneratorOption(options, "MaxDelta");
+            DeltaStartingValue = GameModule.GetDoubleCodeGeneratorOption(options, "DeltaStartingValue");
+            MaxDelta = GameModule.GetDoubleCodeGeneratorOption(options, "MaxDelta");
             PNoiseStdev = GameModule.GetDoubleCodeGeneratorOption(options, "PNoiseStdev");
             DNoiseStdev = GameModule.GetDoubleCodeGeneratorOption(options, "DNoiseStdev");
             PTrialCosts = GameModule.GetDoubleCodeGeneratorOption(options, "PTrialCosts");

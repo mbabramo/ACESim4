@@ -26,13 +26,13 @@ namespace ACESim
                     Deltas[d] = Deltas[d - 1] / multiplier;
                 else if (d == totalPossibleLevels - 1)
                     Deltas[d] = 0 - myDefinition.DeltaStartingValue;
-                Deltas[totalPossibleLevels - d] = 0 - Deltas[d];
+                Deltas[Deltas.Length - 1 - d] = 0 - Deltas[d];
             }
         }
 
         public double GetOfferValue(double previousOffer, byte newOffer)
         {
-            return previousOffer + Deltas[newOffer];
+            return previousOffer + Deltas[newOffer - 1];
         }
     }
 }

@@ -4,19 +4,19 @@
   <gameDefinitionsAll>
     <gameDefinition name="MyGame">
       <setting name="MyGameDefinition" type="class" subclass="MyGameDefinition" codeGeneratorName="MyGameDefinition" codeGeneratorOptions="
-               NumLitigationQualityPoints: 10; 
+               NumLitigationQualityPoints: 5; 
                NumSignals: 5; 
-               NumOffers: 10; 
+               NumOffers: 5; 
                SubsequentOffersAreDeltas: true; DeltaStartingValue: 0.01; MaxDelta: 0.25;
                PNoiseStdev: 0.15; DNoiseStdev: 0.15; 
                PTrialCosts: 0.1; DTrialCosts: 0.1; 
-               PerPartyBargainingRoundCosts: 0.02;
+               PerPartyBargainingRoundCosts: 0.05;
                SubsequentOffersAreDeltas: true; DeltaStartingValue: 0.01; MaxDelta: 0.25;
-               NumBargainingRounds: 2;
+               NumBargainingRounds: 4;
                BargainingRound1Simultaneous: false; BargainingRound1PGoesFirstIfNotSimultaneous: true;
                BargainingRound2Simultaneous: false; BargainingRound2PGoesFirstIfNotSimultaneous: false;
                BargainingRound3Simultaneous: false; BargainingRound3PGoesFirstIfNotSimultaneous: true;
-               BargainingRound4Simultaneous: false; BargainingRound4PGoesFirstIfNotSimultaneous: true;
+               BargainingRound4Simultaneous: false; BargainingRound4PGoesFirstIfNotSimultaneous: false;
                BargainingRound5Simultaneous: false; BargainingRound5PGoesFirstIfNotSimultaneous: true;
                IncludeSignalsReport: true" >
       </setting>
