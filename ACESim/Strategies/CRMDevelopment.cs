@@ -316,22 +316,23 @@ namespace ACESim
         private void GenerateReport(GamePlayer player, GameInputs inputs, GameProgress startingProgress)
         {
             // start Task Parallel Library consumer/producer pattern
-            var buffer = new BufferBlock<Tuple<GameProgress, double>>();
-            var consumer = ConsumeAsync(buffer);
+            var resultsBuffer = new BufferBlock<Tuple<GameProgress, double>>(new DataflowBlockOptions { BoundedCapacity = 10000 });
+            var consumer = ProcessCompletedGameProgresses(resultsBuffer);
             // play each path and then asynchronously consume the result
-            ProcessPossiblePaths(GameHistoryTree, new List<byte>(), 1.0, (List<byte> actions, double probability) =>
+            ProcessPossiblePaths(GameHistoryTree, new List<byte>(), 1.0, async (List<byte> actions, double probability) =>
                 {
                     GameProgress progress = startingProgress.DeepCopy();
                     player.PlayPath(actions.GetEnumerator(), progress, inputs);
                     // consume the result
-                    buffer.Post(new Tuple<GameProgress, double>(progress, probability));
+                    await resultsBuffer.SendAsync(new Tuple<GameProgress, double>(progress, probability));
                 },
                 ActionStrategies.AverageStrategy
             );
+            resultsBuffer.Complete(); // tell consumer nothing more to be produced
             consumer.Wait(); // wait until all have been processed
         }
 
-        async Task ConsumeAsync(ISourceBlock<Tuple<GameProgress, double>> source)
+        async Task ProcessCompletedGameProgresses(ISourceBlock<Tuple<GameProgress, double>> source)
         {
             while (await source.OutputAvailableAsync())
             {
