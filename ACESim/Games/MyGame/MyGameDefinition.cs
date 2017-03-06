@@ -18,8 +18,9 @@ namespace ACESim
         public byte NumDefendantOffers;
         public double PNoiseStdev;
         public double DNoiseStdev;
-        public double PLitigationCosts;
-        public double DLitigationCosts;
+        public double PTrialCosts;
+        public double DTrialCosts;
+        public double PerPartyBargainingRoundCosts;
         public int NumBargainingRounds;
         public List<bool> BargainingRoundsSimultaneous;
         public List<bool> BargainingRoundsPGoesFirstIfNotSimultaneous; // if not simultaneous
@@ -231,9 +232,10 @@ namespace ACESim
             NumDefendantOffers = GameModule.GetByteCodeGeneratorOption(options, "NumDefendantOffers");
             PNoiseStdev = GameModule.GetDoubleCodeGeneratorOption(options, "PNoiseStdev");
             DNoiseStdev = GameModule.GetDoubleCodeGeneratorOption(options, "DNoiseStdev");
-            PLitigationCosts = GameModule.GetDoubleCodeGeneratorOption(options, "PLitigationCosts");
-            DLitigationCosts = GameModule.GetDoubleCodeGeneratorOption(options, "DLitigationCosts");
-            IncludeSignalsReport = GameModule.GetBoolCodeGeneratorOption(options, "IncludeSignalsReport");
+            PTrialCosts = GameModule.GetDoubleCodeGeneratorOption(options, "PTrialCosts");
+            DTrialCosts = GameModule.GetDoubleCodeGeneratorOption(options, "DTrialCosts");
+            PerPartyBargainingRoundCosts = GameModule.GetDoubleCodeGeneratorOption(options, "PerPartyBargainingRoundCosts"); 
+             IncludeSignalsReport = GameModule.GetBoolCodeGeneratorOption(options, "IncludeSignalsReport");
             NumBargainingRounds = GameModule.GetIntCodeGeneratorOption(options, "NumBargainingRounds");
             BargainingRoundsSimultaneous = new List<bool>()
             {

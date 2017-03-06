@@ -36,7 +36,10 @@ namespace ACESim
         {
             var adjustedIndex = AdjustedIndex(index);
             ConfirmAdjustedIndex(adjustedIndex);
-            Branches[adjustedIndex] = tree;
+            lock (this)
+            {
+                Branches[adjustedIndex] = tree;
+            }
         }
 
         private void ConfirmAdjustedIndex(int adjustedIndex)

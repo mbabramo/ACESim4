@@ -9,7 +9,19 @@ namespace ACESim
     [Serializable]
     public class NWayTreeStorage<T>
     {
-        public T StoredValue;
+        private T _StoredValue;
+        public T StoredValue
+        {
+            get
+            {
+                return _StoredValue;
+            }
+            set
+            {
+                lock (this)
+                    _StoredValue = value;
+            }
+        }
 
         public virtual NWayTreeStorage<T> GetBranch(byte index)
         {

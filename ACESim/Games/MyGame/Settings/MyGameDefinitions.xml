@@ -8,7 +8,8 @@
                NumPlaintiffSignals: 5; NumDefendantSignals: 5; 
                NumPlaintiffOffers: 10; NumDefendantOffers: 10; 
                PNoiseStdev: 0.15; DNoiseStdev: 0.15; 
-               PLitigationCosts: 0.1; DLitigationCosts: 0.1; 
+               PTrialCosts: 0.1; DTrialCosts: 0.1; 
+               PerPartyBargainingRoundCosts: 0.02;
                NumBargainingRounds: 2;
                BargainingRound1Simultaneous: false; BargainingRound1PGoesFirstIfNotSimultaneous: true;
                BargainingRound2Simultaneous: false; BargainingRound2PGoesFirstIfNotSimultaneous: false;

@@ -122,6 +122,33 @@ namespace ACESim
             //} while (!success);
         }
 
+
+        public static void GoByte(bool doParallel, int maxParallelDepth, byte start, byte stopBeforeThis, Action<byte> action)
+        {
+            if (ParallelDepth > 0 || DisableParallel)
+                doParallel = false;
+            if (doParallel)
+            {
+                IncrementParallelDepth();
+                Parallel.ForEach(Partitioner.Create(start, stopBeforeThis),
+                    (range) =>
+                    {
+                        for (byte i = (byte) range.Item1; i < range.Item2; i++)
+                        {
+                            action(i);
+                        }
+                    });
+                DecrementParallelDepth();
+            }
+            else
+            {
+                for (byte i = start; i < stopBeforeThis; i++)
+                {
+                    action(i);
+                }
+            }
+        }
+
         public static void Go(bool doParallel, long start, long stopBeforeThis, Action<long> action)
         {
             if (ParallelDepth > 0 || DisableParallel)

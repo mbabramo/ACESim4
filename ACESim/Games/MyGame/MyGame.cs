@@ -81,9 +81,12 @@ namespace ACESim
             }
             else
             {
-                MyProgress.PWelfare = (MyProgress.PWinsAtTrial ? 1.0 : 0) - MyDefinition.PLitigationCosts;
-                MyProgress.DWelfare = (MyProgress.PWinsAtTrial ? -1.0 : 0) - MyDefinition.DLitigationCosts;
+                MyProgress.PWelfare = (MyProgress.PWinsAtTrial ? 1.0 : 0) - MyDefinition.PTrialCosts;
+                MyProgress.DWelfare = (MyProgress.PWinsAtTrial ? -1.0 : 0) - MyDefinition.DTrialCosts;
             }
+            double perPartyBargainingCosts = MyDefinition.PerPartyBargainingRoundCosts * MyProgress.BargainingRoundsComplete;
+            MyProgress.PWelfare -= perPartyBargainingCosts;
+            MyProgress.DWelfare -= perPartyBargainingCosts;
             base.FinalProcessing();
         }
 

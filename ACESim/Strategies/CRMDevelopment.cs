@@ -586,7 +586,7 @@ namespace ACESim
             for (byte action = 1; action <= numPossibleActions; action++)
             {
                 double probabilityOfAction = actionProbabilities[action - 1];
-                nextPiValues = GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false);
+                nextPiValues = GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false); // reduce probability associated with player being optimized, without changing probabilities for other players
                 if (TraceVanillaCRM)
                 {
                     TabbedText.WriteLine($"decisionNum {decisionNum} optimizing player {nonChancePlayerIndex}  own decision {playerMakingDecision == nonChancePlayerIndex} action {action} probability {probabilityOfAction} ...");
@@ -632,31 +632,44 @@ namespace ACESim
         {
             CRMChanceNodeSettings chanceNodeSettings = (CRMChanceNodeSettings)history.StoredValue;
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionNum);
-            double[] nextPiValues = null;
+            double[] equalProbabilityNextPiValues = null;
             bool equalProbabilities = chanceNodeSettings.AllProbabilitiesEqual();
             if (equalProbabilities) // can set next probabilities once for all actions
-                nextPiValues = GetNextPiValues(piValues, nonChancePlayerIndex, chanceNodeSettings.GetActionProbability(1), true);
+                equalProbabilityNextPiValues = GetNextPiValues(piValues, nonChancePlayerIndex, chanceNodeSettings.GetActionProbability(1), true);
             double expectedValue = 0;
-            for (byte action = 1; action <= numPossibleActions; action++)
-            {
-                if (!equalProbabilities) // must set probability separately for each action we take
-                    nextPiValues = GetNextPiValues(piValues, nonChancePlayerIndex, chanceNodeSettings.GetActionProbability(action), true);
-                double actionProbability = chanceNodeSettings.GetActionProbability(action);
-                if (TraceVanillaCRM)
+            Parallelizer.GoByte(EvolutionSettings.ParallelOptimization, 2 /* TODO: Make this an evolution setting */, 1, (byte)(numPossibleActions + 1),
+                action =>
                 {
-                    TabbedText.WriteLine($"Chance decisionNum {chanceNodeSettings.DecisionNum} action {action} probability {actionProbability} ...");
-                    TabbedText.Tabs++;
-                }
-                double expectedValueParticularAction = VanillaCRM(GetSubsequentHistory(history, action), nonChancePlayerIndex, nextPiValues);
-                expectedValue += actionProbability * expectedValueParticularAction;
-                if (TraceVanillaCRM)
-                {
-                    TabbedText.Tabs--;
-                    TabbedText.WriteLine($"... action {action} expected value {expectedValueParticularAction} cum expected value {expectedValue}");
-                }
-            }
+                    // to do: use parallelizer or something like it for byte. But make sure that it will work at multiple tree levels.
+                    double probabilityAdjustedExpectedValueParticularAction = VanillaCRM_ChanceNode_NextAction(history, nonChancePlayerIndex, piValues, chanceNodeSettings, equalProbabilityNextPiValues, expectedValue, action);
+                    expectedValue += probabilityAdjustedExpectedValueParticularAction;
+                });
 
             return expectedValue;
+        }
+
+        private double VanillaCRM_ChanceNode_NextAction(NWayTreeStorage<object> history, byte nonChancePlayerIndex, double[] piValues, CRMChanceNodeSettings chanceNodeSettings, double[] equalProbabilityNextPiValues, double expectedValue, byte action)
+        {
+            double[] nextPiValues;
+            if (equalProbabilityNextPiValues != null)
+                nextPiValues = equalProbabilityNextPiValues;
+            else // must set probability separately for each action we take
+                nextPiValues = GetNextPiValues(piValues, nonChancePlayerIndex, chanceNodeSettings.GetActionProbability(action), true);
+            double actionProbability = chanceNodeSettings.GetActionProbability(action);
+            if (TraceVanillaCRM)
+            {
+                TabbedText.WriteLine($"Chance decisionNum {chanceNodeSettings.DecisionNum} action {action} probability {actionProbability} ...");
+                TabbedText.Tabs++;
+            }
+            double expectedValueParticularAction = VanillaCRM(GetSubsequentHistory(history, action), nonChancePlayerIndex, nextPiValues);
+            var probabilityAdjustedExpectedValueParticularAction = actionProbability * expectedValueParticularAction;
+            if (TraceVanillaCRM)
+            {
+                TabbedText.Tabs--;
+                TabbedText.WriteLine($"... action {action} expected value {expectedValueParticularAction} cum expected value {expectedValue}");
+            }
+
+            return probabilityAdjustedExpectedValueParticularAction;
         }
 
         public void SolveVanillaCFR()
