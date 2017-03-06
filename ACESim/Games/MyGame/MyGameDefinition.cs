@@ -133,10 +133,11 @@ namespace ACESim
             reports.Add(GetOverallReport());
             if (IncludeSignalsReport)
             {
-                reports.Add(GetStrategyReport(true, false, false));
-                reports.Add(GetStrategyReport(true, false, true));
-                reports.Add(GetStrategyReport(false, true, false));
-                reports.Add(GetStrategyReport(false, true, true));
+                for (int b = 1; b <= NumBargainingRounds; b++)
+                {
+                    reports.Add(GetStrategyReport(b, false));
+                    reports.Add(GetStrategyReport(b, true));
+                }
             }
             return reports;
         }
@@ -177,23 +178,26 @@ namespace ACESim
                 );
         }
 
-        private SimpleReportDefinition GetStrategyReport(bool plaintiffMakesOffer, bool lastRound, bool reportResponseToOffer)
+        private SimpleReportDefinition GetStrategyReport(int bargainingRound, bool reportResponseToOffer)
         {
-            string reportName = $"Strategies {(reportResponseToOffer ? "ResponseTo" : "")}{(plaintiffMakesOffer ? "P" : "D")} {(lastRound ? "Last" : "First")}";
+            bool plaintiffMakesOffer;
+            int offerNumber;
+            GetOfferorAndNumber(bargainingRound, reportResponseToOffer, out plaintiffMakesOffer, out offerNumber);
+            string reportName = $"Strategies {(reportResponseToOffer ? "ResponseTo" : "")}{(plaintiffMakesOffer ? "P" : "D")} {offerNumber}";
             List<SimpleReportFilter> metaFilters = new List<SimpleReportFilter>();
             if (plaintiffMakesOffer)
-                metaFilters.Add(new SimpleReportFilter("PMakesOffer", (GameProgress gp) => MyGP(gp).PLastOffer != null));
+                metaFilters.Add(new SimpleReportFilter("PMakesOffer", (GameProgress gp) => MyGP(gp).POffers.Count() >= offerNumber));
             else
-                metaFilters.Add(new SimpleReportFilter("DMakesOffer", (GameProgress gp) => MyGP(gp).DLastOffer != null));
+                metaFilters.Add(new SimpleReportFilter("DMakesOffer", (GameProgress gp) => MyGP(gp).DOffers.Count() >= offerNumber));
             List<SimpleReportFilter> rowFilters = new List<SimpleReportFilter>()
             {
                 new SimpleReportFilter("All", (GameProgress gp) => true)
             };
-            Tuple<double, double>[] regions = EquallySpaced.GetRegions(NumSignals);
+            Tuple<double, double>[] signalRegions = EquallySpaced.GetRegions(NumSignals);
             for (int i = 0; i < NumSignals; i++)
             {
-                double regionStart = regions[i].Item1;
-                double regionEnd = regions[i].Item2;
+                double regionStart = signalRegions[i].Item1;
+                double regionEnd = signalRegions[i].Item2;
                 if (plaintiffMakesOffer)
                     rowFilters.Add(new SimpleReportFilter($"PSignal {regionStart.ToSignificantFigures(2)}-{regionEnd.ToSignificantFigures(2)}", (GameProgress gp) => MyGP(gp).PSignalUniform >= regionStart && MyGP(gp).PSignalUniform < regionEnd));
                 else
@@ -203,12 +207,14 @@ namespace ACESim
             {
                 new SimpleReportColumnFilter("All", (GameProgress gp) => true, true)
             };
+            Tuple<double, double>[] offerRegions = EquallySpaced.GetRegions(NumOffers);
             for (int i = 0; i < NumOffers; i++)
             {
-                double offerValue = EquallySpaced.GetLocationOfEquallySpacedPoint(i, NumOffers);
+                double regionStart = offerRegions[i].Item1;
+                double regionEnd = offerRegions[i].Item2;
                 columnItems.Add(new SimpleReportColumnFilter(
-                    $"{(reportResponseToOffer ? "ResponseTo" : "")}{(plaintiffMakesOffer ? "P" : "D")}{(lastRound ? "LastOffer" : "FirstOffer")} {offerValue.ToSignificantFigures(2)}", 
-                    GetOfferOrResponseFilter(plaintiffMakesOffer, lastRound, reportResponseToOffer, offerValue), 
+                    $"{(reportResponseToOffer ? "To" : "")}{(plaintiffMakesOffer ? "P" : "D")}{offerNumber} {regionStart.ToSignificantFigures(2)}-{regionEnd.ToSignificantFigures(2)}",
+                    GetOfferOrResponseFilter(plaintiffMakesOffer, offerNumber, reportResponseToOffer, offerRegions[i]),
                     false
                     )
                     );
@@ -221,42 +227,50 @@ namespace ACESim
                                 );
         }
 
-        private Func<GameProgress, bool> GetOfferOrResponseFilter(bool plaintiffMakesOffer, bool lastRound, bool reportResponseToOffer, double offerValue)
+        private void GetOfferorAndNumber(int bargainingRound, bool reportResponseToOffer, out bool plaintiffMakesOffer, out int offerNumber)
+        {
+            plaintiffMakesOffer = true;
+            offerNumber = 0;
+            int earlierOffersPlaintiff = 0, earlierOffersDefendant = 0;
+            for (int b = 1; b <= bargainingRound; b++)
+            {
+                if (b < bargainingRound)
+                {
+                    if (BargainingRoundsSimultaneous[b])
+                    {
+                        earlierOffersPlaintiff++;
+                        earlierOffersDefendant++;
+                    }
+                    else
+                    {
+                        if (BargainingRoundsPGoesFirstIfNotSimultaneous[b])
+                            earlierOffersPlaintiff++;
+                        else
+                            earlierOffersDefendant++;
+                    }
+                }
+                else
+                {
+                    if (BargainingRoundsSimultaneous[b])
+                        plaintiffMakesOffer = !reportResponseToOffer;
+                    else
+                        plaintiffMakesOffer = BargainingRoundsPGoesFirstIfNotSimultaneous[b];
+                    offerNumber = plaintiffMakesOffer ? earlierOffersPlaintiff + 1 : earlierOffersDefendant + 1;
+                }
+            }
+        }
+
+        private Func<GameProgress, bool> GetOfferOrResponseFilter(bool plaintiffMakesOffer, int offerNumber, bool reportResponseToOffer, Tuple<double, double> offerRange)
         {
             if (reportResponseToOffer)
-            {
-                if (lastRound)
-                {
-                    if (plaintiffMakesOffer)
-                        return (GameProgress gp) => MyGP(gp).PLastOffer == offerValue && MyGP(gp).DLastResponse == true;
-                    else
-                        return (GameProgress gp) => MyGP(gp).DLastOffer == offerValue && MyGP(gp).PLastResponse == true;
-                }
-                else
-                {
-                    if (plaintiffMakesOffer)
-                        return (GameProgress gp) => MyGP(gp).PFirstOffer == offerValue && MyGP(gp).DFirstResponse == true;
-                    else
-                        return (GameProgress gp) => MyGP(gp).DFirstOffer == offerValue && MyGP(gp).PFirstResponse == true;
-                }
-            }
+                return (GameProgress gp) => IsInOfferRange(MyGP(gp).GetOffer(plaintiffMakesOffer, offerNumber), offerRange) && MyGP(gp).GetResponse(!plaintiffMakesOffer, offerNumber);
             else
-            {
-                if (lastRound)
-                {
-                    if (plaintiffMakesOffer)
-                        return (GameProgress gp) => MyGP(gp).PLastOffer == offerValue;
-                    else
-                        return (GameProgress gp) => MyGP(gp).DLastOffer == offerValue;
-                }
-                else
-                {
-                    if (plaintiffMakesOffer)
-                        return (GameProgress gp) => MyGP(gp).PFirstOffer == offerValue;
-                    else
-                        return (GameProgress gp) => MyGP(gp).DFirstOffer == offerValue;
-                }
-            }
+                return (GameProgress gp) => IsInOfferRange(MyGP(gp).GetOffer(plaintiffMakesOffer, offerNumber), offerRange);
+        }
+
+        private bool IsInOfferRange(double? value, Tuple<double, double> offerRange)
+        {
+            return value != null && value >= offerRange.Item1 && value < offerRange.Item2;
         }
 
         private void ParseOptions(string options)

@@ -55,6 +55,33 @@ namespace ACESim
                 GameComplete = true;
         }
 
+        public double? GetOffer(bool plaintiff, int offerNumber)
+        {
+            int offerNumberZeroBased = offerNumber - 1;
+            if (plaintiff)
+            {
+                if (POffers != null && POffers.Count() > offerNumberZeroBased)
+                    return POffers[offerNumberZeroBased];
+                else
+                    return null;
+            }
+            else
+            {
+                if (DOffers != null && DOffers.Count() > offerNumberZeroBased)
+                    return DOffers[offerNumberZeroBased];
+                else
+                    return null;
+            }
+        }
+        public bool GetResponse(bool plaintiffResponse, int offerNumber)
+        {
+            int offerNumberZeroBased = offerNumber - 1;
+            if (plaintiffResponse)
+                return PResponses[offerNumberZeroBased];
+            else
+                return DResponses[offerNumberZeroBased];
+        }
+
         private bool SettlementReached(bool playersMovingSimultaneously, bool pGoesFirstIfNotSimultaneous)
         {
             if (playersMovingSimultaneously)
