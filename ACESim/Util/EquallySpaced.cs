@@ -51,6 +51,15 @@ namespace ACESim
                 .ToArray();
         }
 
+        public static Tuple<double, double>[] GetRegions(int numRegions, double from = 0, double to = 1.0)
+        {
+            double[] cutoffs = GetCutoffsBetweenRegions(numRegions, from, to);
+            Tuple<double, double>[] regions = Enumerable.Range(0, numRegions)
+                .Select(x => new Tuple<double, double>(x == 0 ? double.MinValue : cutoffs[x-1], x == numRegions - 1 ? double.MaxValue : cutoffs[x]))
+                .ToArray();
+            return regions;
+        }
+
         // If we want 9 points, then we'll use 10 regions to generate the cutoffs.
         public static double[] GetPointsFullyEquallySpaced(int numPoints, double from = 0, double to = 1.0)
         {

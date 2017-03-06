@@ -166,6 +166,7 @@
     <Compile Include="Games\General\ActionGroupRepetition.cs" />
     <Compile Include="Games\General\InformationSetHistory.cs" />
     <Compile Include="Games\MyGame\MyGameDecisions.cs" />
+    <Compile Include="Games\MyGame\DeltaOffersCalculation.cs" />
     <Compile Include="Games\MyGame\MyGamePlayers.cs" />
     <Compile Include="Games\General\PlayerInfo.cs" />
     <Compile Include="Program.cs" />

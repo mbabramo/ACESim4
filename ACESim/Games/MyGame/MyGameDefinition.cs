@@ -12,20 +12,52 @@ namespace ACESim
     public class MyGameDefinition : GameDefinition, ICodeBasedSettingGenerator, ICodeBasedSettingGeneratorName
     {
         public byte NumLitigationQualityPoints;
-        public byte NumPlaintiffSignals;
-        public byte NumDefendantSignals;
-        public byte NumPlaintiffOffers;
-        public byte NumDefendantOffers;
+        /// <summary>
+        /// The number of discrete signals that a party can receive. For example, 10 signals would allow each party to differentiate 10 different levels of case strength.
+        /// </summary>
+        public byte NumSignals;
+        /// <summary>
+        /// The number of discrete offers a party can make at any given time. For example, 10 signals might allow offers of 0.05, 0.15, ..., 0.95, but delta offers may allow offers to get gradually more precise.
+        /// </summary>
+        public byte NumOffers;
+        /// <summary>
+        /// If true, then the second offer by a party is interpreted as a value relative to the first offer.
+        /// </summary>
+        public bool SubsequentOffersAreDeltas;
+        /// <summary>
+        /// When subsequent offers are deltas, this represents the minimum (non-zero) delta. The party making the offer can make an offer +/- this amount.
+        /// </summary>
+        public double DeltaStartingValue;
+        /// <summary>
+        /// When subsequent offers are deltas, this represents the maximum delta. The intermediate deltas will be determined relative to this. 
+        /// </summary>
+        public double MaxDelta;
+        /// <summary>
+        /// The standard deviation of the noise used to obfuscate the plaintiff's estimate of the case strength.
+        /// </summary>
         public double PNoiseStdev;
+        /// <summary>
+        /// The standard deviation of the noise used to obfuscate the defendant's estimate of the case strength.
+        /// </summary>
         public double DNoiseStdev;
+        /// <summary>
+        /// Costs that the plaintiff must pay if the case goes to trial.
+        /// </summary>
         public double PTrialCosts;
+        /// <summary>
+        /// Costs that the defendant must pay if the case goes to trial.
+        /// </summary>
         public double DTrialCosts;
+        /// <summary>
+        /// Costs that each party must pay per round of bargaining. Note that an immediate successful resolution will still produce costs.
+        /// </summary>
         public double PerPartyBargainingRoundCosts;
         public int NumBargainingRounds;
         public List<bool> BargainingRoundsSimultaneous;
         public List<bool> BargainingRoundsPGoesFirstIfNotSimultaneous; // if not simultaneous
         public bool IncludeSignalsReport;
         public DiscreteValueSignalParameters PSignalParameters, DSignalParameters;
+        public DeltaOffersCalculation DeltaOffersCalculation;
 
         public MyGameDefinition() : base()
         {
@@ -41,6 +73,9 @@ namespace ACESim
             Players = GetPlayersList();
             DecisionsExecutionOrder = GetDecisionsList();
             SimpleReportDefinitions = GetReports();
+
+            if (SubsequentOffersAreDeltas)
+                DeltaOffersCalculation = new DeltaOffersCalculation(this);
 
             return this;
         }
@@ -67,24 +102,24 @@ namespace ACESim
                 playersKnowingLitigationQuality.Add((byte)MyGamePlayers.Defendant);
             decisions.Add(new Decision("LitigationQuality", "Qual", (byte)MyGamePlayers.Chance, playersKnowingLitigationQuality, NumLitigationQualityPoints, (byte)MyGameDecisions.LitigationQuality));
             if (PNoiseStdev != 0)
-                decisions.Add(new Decision("PlaintiffSignal", "PSig", (byte)MyGamePlayers.Chance, new List<byte> { }, NumPlaintiffSignals, (byte)MyGameDecisions.PSignal));
+                decisions.Add(new Decision("PlaintiffSignal", "PSig", (byte)MyGamePlayers.Chance, new List<byte> { }, NumSignals, (byte)MyGameDecisions.PSignal));
             if (DNoiseStdev != 0)
-                decisions.Add(new Decision("DefendantSignal", "DSig", (byte)MyGamePlayers.Chance, new List<byte> { }, NumDefendantSignals, (byte)MyGameDecisions.DSignal));
+                decisions.Add(new Decision("DefendantSignal", "DSig", (byte)MyGamePlayers.Chance, new List<byte> { }, NumSignals, (byte)MyGameDecisions.DSignal));
             for (int b = 0; b < NumBargainingRounds; b++)
             {
                 if (BargainingRoundsSimultaneous[b])
                 { // samuelson-chaterjee bargaining
-                    decisions.Add(new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, new List<byte> { (byte)MyGamePlayers.Plaintiff }, NumPlaintiffOffers, (byte)MyGameDecisions.POffer) );
-                    decisions.Add(new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, new List<byte> { (byte)MyGamePlayers.Defendant }, NumDefendantOffers, (byte)MyGameDecisions.DOffer));
+                    decisions.Add(new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, new List<byte> { (byte)MyGamePlayers.Plaintiff }, NumOffers, (byte)MyGameDecisions.POffer) );
+                    decisions.Add(new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, new List<byte> { (byte)MyGamePlayers.Defendant }, NumOffers, (byte)MyGameDecisions.DOffer));
                 }
                 else if (BargainingRoundsPGoesFirstIfNotSimultaneous[b])
                 {
-                    decisions.Add(new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, new List<byte> { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant }, NumPlaintiffOffers, (byte)MyGameDecisions.POffer)); // { AlwaysDoAction = 4 /* DEBUG */});
+                    decisions.Add(new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, new List<byte> { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant }, NumOffers, (byte)MyGameDecisions.POffer)); // { AlwaysDoAction = 4 /* DEBUG */});
                     decisions.Add(new Decision("DefendantResponse" + (b + 1), "DR" + (b + 1), (byte)MyGamePlayers.Defendant, new List<byte> { (byte)MyGamePlayers.Defendant }, 2, (byte)MyGameDecisions.DResponse)); // Note: It might appear that it would not be necessary to add this to the information set tree. After all, if the response is to accept the offer ,the game ends. but we need to be able to distinguish the situation in which the defendant says "no" and then faces another decision before the plaintiff makes a move. This would occur if the first bargaining round is a plaintiff offer and the second bargaining round is a defendant offer. 
                 }
                 else
                 {
-                    decisions.Add(new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, new List<byte> { (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Plaintiff }, NumDefendantOffers, (byte)MyGameDecisions.DOffer));
+                    decisions.Add(new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, new List<byte> { (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Plaintiff }, NumOffers, (byte)MyGameDecisions.DOffer));
                     decisions.Add(new Decision("PlaintiffResponse" + (b + 1), "PR" + (b + 1), (byte)MyGamePlayers.Plaintiff, new List<byte> { (byte)MyGamePlayers.Plaintiff }, 2, (byte)MyGameDecisions.PResponse));
                 }
             }
@@ -154,22 +189,23 @@ namespace ACESim
             {
                 new SimpleReportFilter("All", (GameProgress gp) => true)
             };
-            for (int i = 0; i < NumPlaintiffSignals; i++)
+            Tuple<double, double>[] regions = EquallySpaced.GetRegions(NumSignals);
+            for (int i = 0; i < NumSignals; i++)
             {
-                double signalValue = EquallySpaced.GetLocationOfEquallySpacedPoint(i, NumPlaintiffSignals);
+                double regionStart = regions[i].Item1;
+                double regionEnd = regions[i].Item2;
                 if (plaintiffMakesOffer)
-                    rowFilters.Add(new SimpleReportFilter("PSignal " + signalValue.ToSignificantFigures(2), (GameProgress gp) => MyGP(gp).PSignalUniform == signalValue));
+                    rowFilters.Add(new SimpleReportFilter($"PSignal {regionStart.ToSignificantFigures(2)}-{regionEnd.ToSignificantFigures(2)}", (GameProgress gp) => MyGP(gp).PSignalUniform >= regionStart && MyGP(gp).PSignalUniform < regionEnd));
                 else
-                    rowFilters.Add(new SimpleReportFilter("DSignal " + signalValue.ToSignificantFigures(2), (GameProgress gp) => MyGP(gp).DSignalUniform == signalValue));
+                    rowFilters.Add(new SimpleReportFilter($"DSignal {regionStart.ToSignificantFigures(2)}-{regionEnd.ToSignificantFigures(2)}", (GameProgress gp) => MyGP(gp).DSignalUniform >= regionStart && MyGP(gp).DSignalUniform < regionEnd));
             }
             List<SimpleReportColumnItem> columnItems = new List<SimpleReportColumnItem>()
             {
                 new SimpleReportColumnFilter("All", (GameProgress gp) => true, true)
             };
-            var numOffers = (plaintiffMakesOffer ? NumPlaintiffOffers : NumDefendantOffers);
-            for (int i = 0; i < numOffers; i++)
+            for (int i = 0; i < NumOffers; i++)
             {
-                double offerValue = EquallySpaced.GetLocationOfEquallySpacedPoint(i, numOffers);
+                double offerValue = EquallySpaced.GetLocationOfEquallySpacedPoint(i, NumOffers);
                 columnItems.Add(new SimpleReportColumnFilter(
                     $"{(reportResponseToOffer ? "ResponseTo" : "")}{(plaintiffMakesOffer ? "P" : "D")}{(lastRound ? "LastOffer" : "FirstOffer")} {offerValue.ToSignificantFigures(2)}", 
                     GetOfferOrResponseFilter(plaintiffMakesOffer, lastRound, reportResponseToOffer, offerValue), 
@@ -226,10 +262,11 @@ namespace ACESim
         private void ParseOptions(string options)
         {
             NumLitigationQualityPoints = GameModule.GetByteCodeGeneratorOption(options, "NumLitigationQualityPoints");
-            NumPlaintiffSignals = GameModule.GetByteCodeGeneratorOption(options, "NumPlaintiffSignals");
-            NumDefendantSignals = GameModule.GetByteCodeGeneratorOption(options, "NumDefendantSignals");
-            NumPlaintiffOffers = GameModule.GetByteCodeGeneratorOption(options, "NumPlaintiffOffers");
-            NumDefendantOffers = GameModule.GetByteCodeGeneratorOption(options, "NumDefendantOffers");
+            NumSignals = GameModule.GetByteCodeGeneratorOption(options, "NumSignals");
+            NumOffers = GameModule.GetByteCodeGeneratorOption(options, "NumOffers");
+            SubsequentOffersAreDeltas = GameModule.GetBoolCodeGeneratorOption(options, "SubsequentOffersAreDeltas");
+            DeltaStartingValue = GameModule.GetByteCodeGeneratorOption(options, "DeltaStartingValue");
+            MaxDelta = GameModule.GetByteCodeGeneratorOption(options, "MaxDelta");
             PNoiseStdev = GameModule.GetDoubleCodeGeneratorOption(options, "PNoiseStdev");
             DNoiseStdev = GameModule.GetDoubleCodeGeneratorOption(options, "DNoiseStdev");
             PTrialCosts = GameModule.GetDoubleCodeGeneratorOption(options, "PTrialCosts");
@@ -257,13 +294,13 @@ namespace ACESim
             {
                 NumPointsInSourceUniformDistribution = NumLitigationQualityPoints,
                 StdevOfNormalDistribution = PNoiseStdev,
-                NumSignals = NumDefendantSignals
+                NumSignals = NumSignals
             };
             DSignalParameters = new DiscreteValueSignalParameters()
             {
                 NumPointsInSourceUniformDistribution = NumLitigationQualityPoints,
                 StdevOfNormalDistribution = DNoiseStdev,
-                NumSignals = NumPlaintiffSignals
+                NumSignals = NumSignals
             };
         }
 

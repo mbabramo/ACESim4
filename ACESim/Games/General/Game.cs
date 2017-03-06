@@ -112,7 +112,7 @@ namespace ACESim
                 DecisionNeeded = DecisionIsNeeded(currentDecision);
             else if (DecisionNeeded)
             {
-                int action = ChooseAction();
+                byte action = ChooseAction();
                 if (Progress.IsFinalGamePath && action < CurrentDecision.NumPossibleActions)
                     Progress.IsFinalGamePath = false;
                 RespondToAction(currentDecision, action);
@@ -124,12 +124,12 @@ namespace ACESim
             return true;
         }
 
-        public virtual void RespondToAction(Decision currentDecision, int action)
+        public virtual void RespondToAction(Decision currentDecision, byte action)
         {
             // Entirely subclass. 
         }
 
-        public virtual int ChooseAction()
+        public virtual byte ChooseAction()
         {
             byte actionToChoose;
             if (Progress.ActionsToPlay == null)

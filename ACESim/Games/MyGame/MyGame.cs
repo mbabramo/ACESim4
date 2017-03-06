@@ -22,7 +22,7 @@ namespace ACESim
             return true;
         }
 
-        public override void RespondToAction(Decision currentDecision, int action)
+        public override void RespondToAction(Decision currentDecision, byte action)
         {
             if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.LitigationQuality)
             {
@@ -37,22 +37,24 @@ namespace ACESim
             {
                 MyProgress.PSignal = GetDiscreteSignal(action, MyDefinition.PNoiseStdev, MyDefinition.PSignalParameters);
                 Progress.GameHistory.AddToInformationSet(MyProgress.PSignal, (byte)MyGamePlayers.Plaintiff, (byte) CurrentDecisionIndex);
-                MyProgress.PSignalUniform = EquallySpaced.GetLocationOfEquallySpacedPoint(MyProgress.PSignal - 1 /* make it zero-based */, MyDefinition.NumPlaintiffSignals);
+                MyProgress.PSignalUniform = EquallySpaced.GetLocationOfEquallySpacedPoint(MyProgress.PSignal - 1 /* make it zero-based */, MyDefinition.NumSignals);
             }
             else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.DSignal)
             {
                 MyProgress.DSignal = GetDiscreteSignal(action, MyDefinition.DNoiseStdev, MyDefinition.DSignalParameters);
                 Progress.GameHistory.AddToInformationSet(MyProgress.DSignal, (byte)MyGamePlayers.Defendant, (byte)CurrentDecisionIndex);
-                MyProgress.DSignalUniform = EquallySpaced.GetLocationOfEquallySpacedPoint(MyProgress.DSignal - 1 /* make it zero-based */, MyDefinition.NumDefendantSignals);
+                MyProgress.DSignalUniform = EquallySpaced.GetLocationOfEquallySpacedPoint(MyProgress.DSignal - 1 /* make it zero-based */, MyDefinition.NumSignals);
             }
             else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.POffer)
             {
-                MyProgress.AddOffer(true, ConvertActionToUniformDistributionDraw(action));
+                double offer = GetOfferBasedOnAction(action, true);
+                MyProgress.AddOffer(true, offer);
                 MyProgress.UpdateProgress(MyDefinition);
             }
             else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.DOffer)
             {
-                MyProgress.AddOffer(false, ConvertActionToUniformDistributionDraw(action));
+                double offer = GetOfferBasedOnAction(action, false);
+                MyProgress.AddOffer(false, offer);
                 MyProgress.UpdateProgress(MyDefinition);
             }
             else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.PResponse)
@@ -70,6 +72,19 @@ namespace ACESim
                 // note that the probability of P winning is defined in MyGameDefinition.
                 MyProgress.PWinsAtTrial = action == 2; 
             }
+        }
+
+        private double GetOfferBasedOnAction(byte action, bool plaintiffOffer)
+        {
+            double offer;
+            if (MyProgress.BargainingRoundsComplete == 0 || !MyDefinition.SubsequentOffersAreDeltas)
+                offer = ConvertActionToUniformDistributionDraw(action);
+            else
+            {
+                double previousOffer = plaintiffOffer ? (double)MyProgress.PLastOffer : (double)MyProgress.DLastOffer;
+                offer = MyDefinition.DeltaOffersCalculation.GetOfferValue(previousOffer, action);
+            }
+            return offer;
         }
 
         public override void FinalProcessing()
