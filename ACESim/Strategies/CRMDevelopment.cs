@@ -295,7 +295,7 @@ namespace ACESim
             }
         }
 
-        SimpleReport ReportBeingGenerated = null;
+        SimpleReport[] ReportsBeingGenerated = null;
 
         public string GenerateReports()
         {
@@ -303,17 +303,17 @@ namespace ACESim
             GameInputs inputs = GetGameInputs();
             GameProgress startingProgress = GameFactory.CreateNewGameProgress(new IterationID(1));
             StringBuilder sb = new StringBuilder();
-            foreach (var reportDefinition in GameDefinition.SimpleReportDefinitions)
-            {
-                ReportBeingGenerated = new SimpleReport(reportDefinition);
-                GenerateReport(player, inputs, startingProgress);
-                ReportBeingGenerated.GetReport(sb, false);
-            }
-            ReportBeingGenerated = null;
+            ReportsBeingGenerated = new SimpleReport[GameDefinition.SimpleReportDefinitions.Count()];
+            for (int i = 0; i < GameDefinition.SimpleReportDefinitions.Count(); i++)
+                ReportsBeingGenerated[i] = new SimpleReport(GameDefinition.SimpleReportDefinitions[i]);
+            GenerateReports_Parallel(player, inputs, startingProgress);
+            for (int i = 0; i < GameDefinition.SimpleReportDefinitions.Count(); i++)
+                ReportsBeingGenerated[i].GetReport(sb, false);
+            ReportsBeingGenerated = null;
             return sb.ToString();
         }
 
-        private void GenerateReport(GamePlayer player, GameInputs inputs, GameProgress startingProgress)
+        private void GenerateReports_Parallel(GamePlayer player, GameInputs inputs, GameProgress startingProgress)
         {
             // start Task Parallel Library consumer/producer pattern
             var resultsBuffer = new BufferBlock<Tuple<GameProgress, double>>(new DataflowBlockOptions { BoundedCapacity = 10000 });
@@ -338,7 +338,8 @@ namespace ACESim
             {
                 Tuple<GameProgress, double> toProcess = source.Receive();
                 if (toProcess.Item2 > 0) // probability
-                    ReportBeingGenerated.ProcessGameProgress(toProcess.Item1, toProcess.Item2);
+                    for (int i = 0; i < GameDefinition.SimpleReportDefinitions.Count(); i++)
+                        ReportsBeingGenerated[i].ProcessGameProgress(toProcess.Item1, toProcess.Item2);
             }
         }
 
