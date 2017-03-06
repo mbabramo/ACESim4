@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading.Tasks.Dataflow;
 
 namespace ACESim
 {
@@ -294,6 +295,8 @@ namespace ACESim
             }
         }
 
+        SimpleReport ReportBeingGenerated = null;
+
         public string GenerateReports()
         {
             GamePlayer player = new GamePlayer(Strategies, GameFactory, EvolutionSettings.ParallelOptimization, GameDefinition);
@@ -302,19 +305,40 @@ namespace ACESim
             StringBuilder sb = new StringBuilder();
             foreach (var reportDefinition in GameDefinition.SimpleReportDefinitions)
             {
-                SimpleReport report = new SimpleReport(reportDefinition);
-                ProcessPossiblePaths(GameHistoryTree, new List<byte>(), 1.0, (List<byte> actions, double probability) =>
-                    {
-                        GameProgress progress = startingProgress.DeepCopy();
-                        player.PlayPath(actions.GetEnumerator(), progress, inputs);
-                        if (probability > 0)
-                            report.ProcessGameProgress(progress, probability);
-                    },
-                    ActionStrategies.AverageStrategy
-                    );
-                report.GetReport(sb, false);
+                ReportBeingGenerated = new SimpleReport(reportDefinition);
+                GenerateReport(player, inputs, startingProgress);
+                ReportBeingGenerated.GetReport(sb, false);
             }
+            ReportBeingGenerated = null;
             return sb.ToString();
+        }
+
+        private void GenerateReport(GamePlayer player, GameInputs inputs, GameProgress startingProgress)
+        {
+            // start Task Parallel Library consumer/producer pattern
+            var buffer = new BufferBlock<Tuple<GameProgress, double>>();
+            var consumer = ConsumeAsync(buffer);
+            // play each path and then asynchronously consume the result
+            ProcessPossiblePaths(GameHistoryTree, new List<byte>(), 1.0, (List<byte> actions, double probability) =>
+                {
+                    GameProgress progress = startingProgress.DeepCopy();
+                    player.PlayPath(actions.GetEnumerator(), progress, inputs);
+                    // consume the result
+                    buffer.Post(new Tuple<GameProgress, double>(progress, probability));
+                },
+                ActionStrategies.AverageStrategy
+            );
+            consumer.Wait(); // wait until all have been processed
+        }
+
+        async Task ConsumeAsync(ISourceBlock<Tuple<GameProgress, double>> source)
+        {
+            while (await source.OutputAvailableAsync())
+            {
+                Tuple<GameProgress, double> toProcess = source.Receive();
+                if (toProcess.Item2 > 0) // probability
+                    ReportBeingGenerated.ProcessGameProgress(toProcess.Item1, toProcess.Item2);
+            }
         }
 
         #endregion
