@@ -12,8 +12,9 @@ namespace ACESim
         public List<SimpleReportFilter> MetaFilters;
         public List<SimpleReportFilter> RowFilters;
         public List<SimpleReportColumnItem> ColumnItems;
+        public bool DivideColumnFiltersByImmediatelyEarlierReport;
 
-        public SimpleReportDefinition(string name, List<SimpleReportFilter> metaFilters, List<SimpleReportFilter> rowFilters, List<SimpleReportColumnItem> columnItems)
+        public SimpleReportDefinition(string name, List<SimpleReportFilter> metaFilters, List<SimpleReportFilter> rowFilters, List<SimpleReportColumnItem> columnItems, bool divideColumnFiltersByImmediatelyEarlierReport = false)
         {
             Name = name;
             if (metaFilters == null)
@@ -25,6 +26,7 @@ namespace ACESim
             else
                 RowFilters = rowFilters;
             ColumnItems = columnItems;
+            DivideColumnFiltersByImmediatelyEarlierReport = divideColumnFiltersByImmediatelyEarlierReport;
         }
 
         public int TotalCells => MetaFilters.Count() * RowFilters.Count() * ColumnItems.Count();

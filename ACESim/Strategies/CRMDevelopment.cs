@@ -305,7 +305,7 @@ namespace ACESim
             StringBuilder sb = new StringBuilder();
             ReportsBeingGenerated = new SimpleReport[GameDefinition.SimpleReportDefinitions.Count()];
             for (int i = 0; i < GameDefinition.SimpleReportDefinitions.Count(); i++)
-                ReportsBeingGenerated[i] = new SimpleReport(GameDefinition.SimpleReportDefinitions[i]);
+                ReportsBeingGenerated[i] = new SimpleReport(GameDefinition.SimpleReportDefinitions[i], GameDefinition.SimpleReportDefinitions[i].DivideColumnFiltersByImmediatelyEarlierReport ? ReportsBeingGenerated[i - 1] : null);
             GenerateReports_Parallel(player, inputs, startingProgress);
             for (int i = 0; i < GameDefinition.SimpleReportDefinitions.Count(); i++)
                 ReportsBeingGenerated[i].GetReport(sb, false);

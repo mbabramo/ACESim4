@@ -180,9 +180,9 @@ namespace ACESim
 
         private SimpleReportDefinition GetStrategyReport(int bargainingRound, bool reportResponseToOffer)
         {
-            bool plaintiffMakesOffer;
+            bool plaintiffMakesOffer, isSimultaneous;
             int offerNumber;
-            GetOfferorAndNumber(bargainingRound, reportResponseToOffer, out plaintiffMakesOffer, out offerNumber);
+            GetOfferorAndNumber(bargainingRound, ref reportResponseToOffer, out plaintiffMakesOffer, out offerNumber, out isSimultaneous);
             string reportName = $"Round {bargainingRound} {(reportResponseToOffer ? "ResponseTo" : "")}{(plaintiffMakesOffer ? "P" : "D")} {offerNumber}";
             List<SimpleReportFilter> metaFilters = new List<SimpleReportFilter>();
             metaFilters.Add(new SimpleReportFilter("RoundOccurs", (GameProgress gp) => MyGP(gp).BargainingRoundsComplete >= bargainingRound));
@@ -220,14 +220,16 @@ namespace ACESim
                                 reportName,
                                 metaFilters,
                                 rowFilters,
-                                columnItems
+                                columnItems,
+                                reportResponseToOffer
                                 );
         }
 
-        private void GetOfferorAndNumber(int bargainingRound, bool reportResponseToOffer, out bool plaintiffMakesOffer, out int offerNumber)
+        private void GetOfferorAndNumber(int bargainingRound, ref bool reportResponseToOffer, out bool plaintiffMakesOffer, out int offerNumber, out bool isSimultaneous)
         {
             plaintiffMakesOffer = true;
             offerNumber = 0;
+            isSimultaneous = false;
             int earlierOffersPlaintiff = 0, earlierOffersDefendant = 0;
             for (int b = 1; b <= bargainingRound; b++)
             {
@@ -249,7 +251,11 @@ namespace ACESim
                 else
                 {
                     if (BargainingRoundsSimultaneous[b - 1])
+                    {
                         plaintiffMakesOffer = !reportResponseToOffer;
+                        reportResponseToOffer = false; // we want to report the offer (which may be the defendant's).
+                        isSimultaneous = false;
+                    }
                     else
                         plaintiffMakesOffer = BargainingRoundsPGoesFirstIfNotSimultaneous[b - 1];
                     offerNumber = plaintiffMakesOffer ? earlierOffersPlaintiff + 1 : earlierOffersDefendant + 1;

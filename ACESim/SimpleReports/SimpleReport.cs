@@ -9,11 +9,13 @@ namespace ACESim
     public class SimpleReport
     {
         SimpleReportDefinition Definition;
+        SimpleReport EarlierReportToDivideColumnFiltersBy;
         StatCollector[] StatCollectors;
 
-        public SimpleReport(SimpleReportDefinition definition)
+        public SimpleReport(SimpleReportDefinition definition, SimpleReport earlierReportToDivideColumnFiltersBy = null)
         {
             Definition = definition;
+            EarlierReportToDivideColumnFiltersBy = earlierReportToDivideColumnFiltersBy;
             StatCollectors = new StatCollector[Definition.TotalCells];
             for (int i = 0; i < Definition.TotalCells; i++)
                 StatCollectors[i] = new StatCollector();
@@ -103,6 +105,14 @@ namespace ACESim
                             {
                                 SimpleReportColumnFilter cf = (SimpleReportColumnFilter)colItem;
                                 value = (double?)StatCollectors[i].Average();
+                                if (EarlierReportToDivideColumnFiltersBy != null)
+                                {
+                                    double? earlierValue = EarlierReportToDivideColumnFiltersBy.StatCollectors[i].Average();
+                                    if (earlierValue == null || earlierValue == 0)
+                                        value = null;
+                                    else
+                                        value = value / earlierValue;
+                                }
                             }
                             else
                             {
