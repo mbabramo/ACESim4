@@ -183,12 +183,9 @@ namespace ACESim
             bool plaintiffMakesOffer;
             int offerNumber;
             GetOfferorAndNumber(bargainingRound, reportResponseToOffer, out plaintiffMakesOffer, out offerNumber);
-            string reportName = $"Strategies {(reportResponseToOffer ? "ResponseTo" : "")}{(plaintiffMakesOffer ? "P" : "D")} {offerNumber}";
+            string reportName = $"Round {bargainingRound} {(reportResponseToOffer ? "ResponseTo" : "")}{(plaintiffMakesOffer ? "P" : "D")} {offerNumber}";
             List<SimpleReportFilter> metaFilters = new List<SimpleReportFilter>();
-            if (plaintiffMakesOffer)
-                metaFilters.Add(new SimpleReportFilter("PMakesOffer", (GameProgress gp) => MyGP(gp).POffers.Count() >= offerNumber));
-            else
-                metaFilters.Add(new SimpleReportFilter("DMakesOffer", (GameProgress gp) => MyGP(gp).DOffers.Count() >= offerNumber));
+            metaFilters.Add(new SimpleReportFilter("RoundOccurs", (GameProgress gp) => MyGP(gp).BargainingRoundsComplete >= bargainingRound));
             List<SimpleReportFilter> rowFilters = new List<SimpleReportFilter>()
             {
                 new SimpleReportFilter("All", (GameProgress gp) => true)
@@ -213,7 +210,7 @@ namespace ACESim
                 double regionStart = offerRegions[i].Item1;
                 double regionEnd = offerRegions[i].Item2;
                 columnItems.Add(new SimpleReportColumnFilter(
-                    $"{(reportResponseToOffer ? "To" : "")}{(plaintiffMakesOffer ? "P" : "D")}{offerNumber} {regionStart.ToSignificantFigures(2)}-{regionEnd.ToSignificantFigures(2)}",
+                    $"{(reportResponseToOffer ? "To" : "")}{(plaintiffMakesOffer ? "P" : "D")}{offerNumber} {regionStart.ToSignificantFigures(2)}-{regionEnd.ToSignificantFigures(2)}{(reportResponseToOffer ? "" : "  ")}",
                     GetOfferOrResponseFilter(plaintiffMakesOffer, offerNumber, reportResponseToOffer, offerRegions[i]),
                     false
                     )
@@ -236,14 +233,14 @@ namespace ACESim
             {
                 if (b < bargainingRound)
                 {
-                    if (BargainingRoundsSimultaneous[b])
+                    if (BargainingRoundsSimultaneous[b - 1])
                     {
                         earlierOffersPlaintiff++;
                         earlierOffersDefendant++;
                     }
                     else
                     {
-                        if (BargainingRoundsPGoesFirstIfNotSimultaneous[b])
+                        if (BargainingRoundsPGoesFirstIfNotSimultaneous[b - 1])
                             earlierOffersPlaintiff++;
                         else
                             earlierOffersDefendant++;
@@ -251,10 +248,10 @@ namespace ACESim
                 }
                 else
                 {
-                    if (BargainingRoundsSimultaneous[b])
+                    if (BargainingRoundsSimultaneous[b - 1])
                         plaintiffMakesOffer = !reportResponseToOffer;
                     else
-                        plaintiffMakesOffer = BargainingRoundsPGoesFirstIfNotSimultaneous[b];
+                        plaintiffMakesOffer = BargainingRoundsPGoesFirstIfNotSimultaneous[b - 1];
                     offerNumber = plaintiffMakesOffer ? earlierOffersPlaintiff + 1 : earlierOffersDefendant + 1;
                 }
             }
