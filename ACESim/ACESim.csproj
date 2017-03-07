@@ -549,7 +549,9 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Games\MyGame\Settings\MyGameCommands.xml" />
-    <Content Include="Games\MyGame\Settings\MyGameDefinitions.xml" />
+    <Content Include="Games\MyGame\Settings\MyGameDefinitions.xml">
+      <SubType>Designer</SubType>
+    </Content>
     <Content Include="Games\MyGame\Settings\MyGameEvolutionSettings.xml" />
     <Content Include="Games\MyGame\Settings\MyGameInputs.xml" />
     <Content Include="Games\MyGame\Settings\MyGameOverallSettings.xml" />
