@@ -297,7 +297,7 @@ namespace ACESim
 
         SimpleReport[] ReportsBeingGenerated = null;
 
-        public string GenerateReports()
+        public string GenerateReports(ActionStrategies actionStrategy)
         {
             GamePlayer player = new GamePlayer(Strategies, GameFactory, EvolutionSettings.ParallelOptimization, GameDefinition);
             GameInputs inputs = GetGameInputs();
@@ -306,7 +306,7 @@ namespace ACESim
             ReportsBeingGenerated = new SimpleReport[GameDefinition.SimpleReportDefinitions.Count()];
             for (int i = 0; i < GameDefinition.SimpleReportDefinitions.Count(); i++)
                 ReportsBeingGenerated[i] = new SimpleReport(GameDefinition.SimpleReportDefinitions[i], GameDefinition.SimpleReportDefinitions[i].DivideColumnFiltersByImmediatelyEarlierReport ? ReportsBeingGenerated[i - 1] : null);
-            GenerateReports_Parallel(player, inputs, startingProgress);
+            GenerateReports_Parallel(player, inputs, startingProgress, actionStrategy);
             for (int i = 0; i < GameDefinition.SimpleReportDefinitions.Count(); i++)
                 ReportsBeingGenerated[i].GetReport(sb, false);
             ReportsBeingGenerated = null;
@@ -315,7 +315,7 @@ namespace ACESim
 
         StatCollector[] UtilityCalculations;
 
-        private void GenerateReports_Parallel(GamePlayer player, GameInputs inputs, GameProgress startingProgress)
+        private void GenerateReports_Parallel(GamePlayer player, GameInputs inputs, GameProgress startingProgress, ActionStrategies actionStrategy)
         {
             UtilityCalculations = new StatCollector[NumNonChancePlayers];
             for (int p = 0; p < NumNonChancePlayers; p++)
@@ -335,7 +335,7 @@ namespace ACESim
                     // consume the result for reports
                     await resultsBuffer.SendAsync(new Tuple<GameProgress, double>(progress, probability));
                 },
-                ActionStrategies.AverageStrategy
+                actionStrategy
             );
             resultsBuffer.Complete(); // tell consumer nothing more to be produced
             consumer.Wait(); // wait until all have been processed
@@ -408,7 +408,7 @@ namespace ACESim
         /// </summary>
         /// <param name="nonChancePlayerIndex"></param>
         /// <returns></returns>
-        public double CalculateBestResponse(byte nonChancePlayerIndex)
+        public double CalculateBestResponse(byte nonChancePlayerIndex, ActionStrategies opponentsActionStrategy)
         {
             HashSet<byte> depthsOfPlayerDecisions = new HashSet<byte>();
             GEBRPass1(GameHistoryTree, nonChancePlayerIndex, 1, depthsOfPlayerDecisions); // setup counting first decision as depth 1
@@ -422,7 +422,7 @@ namespace ACESim
                     TabbedText.WriteLine($"Optimizing {nonChancePlayerIndex} depthToTarget {depthToTarget}: ");
                     TabbedText.Tabs++;
                 }
-                bestResponseUtility = GEBRPass2(GameHistoryTree, nonChancePlayerIndex, depthToTarget, 1, 1.0);
+                bestResponseUtility = GEBRPass2(GameHistoryTree, nonChancePlayerIndex, depthToTarget, 1, 1.0, opponentsActionStrategy);
                 if (TraceGEBR)
                     TabbedText.Tabs--;
             }
@@ -462,16 +462,16 @@ namespace ACESim
             }
         }
 
-        public double GEBRPass2(NWayTreeStorage<object> history, byte nonChancePlayerIndex, byte depthToTarget, byte depthSoFar, double inversePi)
+        public double GEBRPass2(NWayTreeStorage<object> history, byte nonChancePlayerIndex, byte depthToTarget, byte depthSoFar, double inversePi, ActionStrategies opponentsActionStrategy)
         {
             if (history.IsLeaf())
                 return GetUtilityFromTerminalHistory(history, nonChancePlayerIndex);
             else if (NodeIsChanceNode(history))
-                return GEBRPass2_ChanceNode(history, nonChancePlayerIndex, depthToTarget, depthSoFar, inversePi);
-            return GEBRPass2_DecisionNode(history, nonChancePlayerIndex, depthToTarget, depthSoFar, inversePi);
+                return GEBRPass2_ChanceNode(history, nonChancePlayerIndex, depthToTarget, depthSoFar, inversePi, opponentsActionStrategy);
+            return GEBRPass2_DecisionNode(history, nonChancePlayerIndex, depthToTarget, depthSoFar, inversePi, opponentsActionStrategy);
         }
 
-        private double GEBRPass2_DecisionNode(NWayTreeStorage<object> history, byte nonChancePlayerIndex, byte depthToTarget, byte depthSoFar, double inversePi)
+        private double GEBRPass2_DecisionNode(NWayTreeStorage<object> history, byte nonChancePlayerIndex, byte depthToTarget, byte depthSoFar, double inversePi, ActionStrategies opponentsActionStrategy)
         {
             var informationSet = GetInformationSet(history);
             byte decisionNum = informationSet.DecisionNum;
@@ -486,7 +486,7 @@ namespace ACESim
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionNum))
                     TabbedText.Tabs++;
                 byte action = GameDefinition.DecisionsExecutionOrder[decisionNum].AlwaysDoAction ?? informationSet.GetBestResponseAction();
-                double expectedValue = GEBRPass2(history.GetBranch(action), nonChancePlayerIndex, depthToTarget, (byte)(depthSoFar + 1), inversePi);
+                double expectedValue = GEBRPass2(history.GetBranch(action), nonChancePlayerIndex, depthToTarget, (byte)(depthSoFar + 1), inversePi, opponentsActionStrategy);
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionNum))
                 {
                     TabbedText.Tabs--;
@@ -498,10 +498,14 @@ namespace ACESim
             {
                 double[] actionProbabilities = new double[numPossibleActions];
                 byte? alwaysDoAction = GameDefinition.DecisionsExecutionOrder[decisionNum].AlwaysDoAction;
-                if (alwaysDoAction == null)
+                if (alwaysDoAction != null)
+                    SetProbabilitiesToAlwaysDoParticularAction(numPossibleActions, actionProbabilities, (byte)alwaysDoAction);
+                else if (opponentsActionStrategy == ActionStrategies.RegretMatching)
+                    informationSet.GetRegretMatchingProbabilities(actionProbabilities);
+                else if (opponentsActionStrategy == ActionStrategies.AverageStrategy)
                     informationSet.GetAverageStrategies(actionProbabilities);
                 else
-                    SetProbabilitiesToAlwaysDoParticularAction(numPossibleActions, actionProbabilities, (byte)alwaysDoAction);
+                    throw new NotImplementedException();
                 double expectedValueSum = 0;
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
@@ -513,7 +517,7 @@ namespace ACESim
                         TabbedText.WriteLine($"action {action} for playerMakingDecision {playerMakingDecision}...");
                         TabbedText.Tabs++; 
                     }
-                    double expectedValue = GEBRPass2(history.GetBranch(action), nonChancePlayerIndex, depthToTarget, (byte)(depthSoFar + 1), nextInversePi);
+                    double expectedValue = GEBRPass2(history.GetBranch(action), nonChancePlayerIndex, depthToTarget, (byte)(depthSoFar + 1), nextInversePi, opponentsActionStrategy);
                     double product = actionProbabilities[action - 1] * expectedValue;
                     if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionNum))
                     {
@@ -542,7 +546,7 @@ namespace ACESim
             }
         }
 
-        private double GEBRPass2_ChanceNode(NWayTreeStorage<object> history, byte nonChancePlayerIndex, byte depthToTarget, byte depthSoFar, double inversePi)
+        private double GEBRPass2_ChanceNode(NWayTreeStorage<object> history, byte nonChancePlayerIndex, byte depthToTarget, byte depthSoFar, double inversePi, ActionStrategies opponentsActionStrategy)
         {
             CRMChanceNodeSettings chanceNodeSettings = (CRMChanceNodeSettings)history.StoredValue;
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionNum);
@@ -558,7 +562,7 @@ namespace ACESim
                 double probability = chanceNodeSettings.GetActionProbability(action);
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNodeSettings.DecisionNum))
                     TabbedText.Tabs++;
-                var valueBelow = GEBRPass2(history.GetBranch(action), nonChancePlayerIndex, depthToTarget, (byte)(depthSoFar + 1), inversePi * probability);
+                var valueBelow = GEBRPass2(history.GetBranch(action), nonChancePlayerIndex, depthToTarget, (byte)(depthSoFar + 1), inversePi * probability, opponentsActionStrategy);
                 double expectedValue = probability * valueBelow;
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNodeSettings.DecisionNum))
                 {
@@ -713,19 +717,19 @@ namespace ACESim
 
             int? reportEveryNIterations = 100;
 
-            double[] utilitiesUsingRegretMatching = new double[NumNonChancePlayers];
+            double[] lastUtilities = new double[NumNonChancePlayers];
 
             for (int iteration = 0; iteration < numIterationsToRun; iteration++)
             {
                 for (byte p = 0; p < NumNonChancePlayers; p++)
-                    utilitiesUsingRegretMatching[p] = VanillaCRM(GameHistoryTree, p, GetInitialPiValues());
+                    lastUtilities[p] = VanillaCRM(GameHistoryTree, p, GetInitialPiValues());
                 if (reportEveryNIterations != null && iteration % reportEveryNIterations == 0)
                 {
-                    Debug.WriteLine(GenerateReports());
+                    Debug.WriteLine(GenerateReports(ActionStrategies.RegretMatching));
                     for (byte p = 0; p < NumNonChancePlayers; p++)
                     {
-                        double bestResponseUtility = CalculateBestResponse(p);
-                        Debug.WriteLine($"Player {p} utility with regret matching {utilitiesUsingRegretMatching[p]} with average strategy {UtilityCalculations[p].Average()} using best response {bestResponseUtility} difference relative to average strategy {bestResponseUtility - UtilityCalculations[p].Average()}");
+                        double bestResponseUtility = CalculateBestResponse(p, ActionStrategies.RegretMatching);
+                        Debug.WriteLine($"Player {p} utility with regret matching {UtilityCalculations[p].Average()} using best response against regret matching {bestResponseUtility} best response improvement {bestResponseUtility - UtilityCalculations[p].Average()}");
                     }
                 }
             }
