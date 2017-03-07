@@ -103,13 +103,14 @@ namespace ACESim
             NodeInformation[cumulativeStrategyDimension, action - 1] += amount;
         }
 
+        const double zeroOutBelow = 0.001;
+
         public void GetAverageStrategies(double[] probabilities)
         {
             double sum = 0;
             for (int a = 1; a <= NumPossibleActions; a++)
                 sum += GetCumulativeStrategy(a);
 
-            const double zeroOutBelow = 0.001;
             bool zeroedOutSome = false;
             for (int a = 1; a <= NumPossibleActions; a++)
             {
@@ -153,6 +154,7 @@ namespace ACESim
             return total;
         }
 
+
         public void GetRegretMatchingProbabilities(double[] probabilitiesToSet)
         {
             double sumPositiveCumulativeRegrets = GetSumPositiveCumulativeRegrets();
@@ -166,6 +168,41 @@ namespace ACESim
             {
                 for (byte a = 1; a <= NumPossibleActions; a++)
                     probabilitiesToSet[a - 1] = GetPositiveCumulativeRegret(a) / sumPositiveCumulativeRegrets;
+            }
+        }
+
+        public void GetRegretMatchingProbabilities_WithPruning(double[] probabilitiesToSet)
+        {
+            bool zeroOutInRegretMatching = false;
+            double sumPositiveCumulativeRegrets = GetSumPositiveCumulativeRegrets();
+            if (sumPositiveCumulativeRegrets == 0)
+            {
+                double equalProbability = 1.0 / (double)NumPossibleActions;
+                for (byte a = 1; a <= NumPossibleActions; a++)
+                    probabilitiesToSet[a - 1] = equalProbability;
+            }
+            else
+            {
+                bool zeroedOutSome = false;
+                for (byte a = 1; a <= NumPossibleActions; a++)
+                {
+                    var positiveCumulativeRegret = GetPositiveCumulativeRegret(a);
+                    var quotient = positiveCumulativeRegret / sumPositiveCumulativeRegrets;
+                    if (quotient > 0 && quotient < zeroOutBelow && zeroOutInRegretMatching)
+                    {
+                        sumPositiveCumulativeRegrets -= positiveCumulativeRegret;
+                        zeroedOutSome = true;
+                    }
+                    else if (!zeroedOutSome)
+                        probabilitiesToSet[a - 1] = quotient;
+                }
+                if (zeroedOutSome)
+                    for (byte a = 1; a <= NumPossibleActions; a++)
+                    {
+                        var positiveCumulativeRegret = GetPositiveCumulativeRegret(a);
+                        var quotient = positiveCumulativeRegret / sumPositiveCumulativeRegrets;
+                        probabilitiesToSet[a - 1] = quotient;
+                    }
             }
         }
 

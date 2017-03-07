@@ -247,7 +247,8 @@ namespace ACESim
         {
             RegretMatching,
             AverageStrategy,
-            BestResponse
+            BestResponse,
+            RegretMatchingWithPruning
         }
 
         public void ProcessPossiblePaths(NWayTreeStorage<object> history, List<byte> listSoFar, double probability, Action<NWayTreeStorage<object>, List<byte>, double> processor, ActionStrategies actionStrategy)
@@ -279,6 +280,8 @@ namespace ACESim
                     SetProbabilitiesToAlwaysDoParticularAction(numPossibleActions, probabilities, (byte) decision.AlwaysDoAction);
                 else if (actionStrategy == ActionStrategies.RegretMatching)
                     informationSet.GetRegretMatchingProbabilities(probabilities);
+                else if (actionStrategy == ActionStrategies.RegretMatchingWithPruning)
+                    informationSet.GetRegretMatchingProbabilities_WithPruning(probabilities);
                 else if (actionStrategy == ActionStrategies.AverageStrategy)
                     informationSet.GetAverageStrategies(probabilities);
                 else
@@ -502,6 +505,8 @@ namespace ACESim
                     SetProbabilitiesToAlwaysDoParticularAction(numPossibleActions, actionProbabilities, (byte)alwaysDoAction);
                 else if (opponentsActionStrategy == ActionStrategies.RegretMatching)
                     informationSet.GetRegretMatchingProbabilities(actionProbabilities);
+                else if (opponentsActionStrategy == ActionStrategies.RegretMatchingWithPruning)
+                    informationSet.GetRegretMatchingProbabilities_WithPruning(actionProbabilities);
                 else if (opponentsActionStrategy == ActionStrategies.AverageStrategy)
                     informationSet.GetAverageStrategies(actionProbabilities);
                 else
@@ -591,22 +596,22 @@ namespace ACESim
         /// <param name="history">The game tree, pointing to the particular point in the game where we are located</param>
         /// <param name="nonChancePlayerIndex">0 for first non-chance player, etc. Note that this corresponds in Lanctot to 1, 2, etc. We are using zero-basing for player index (even though we are 1-basing actions).</param>
         /// <returns></returns>
-        public double VanillaCRM(NWayTreeStorage<object> history, byte nonChancePlayerIndex, double[] piValues)
+        public double VanillaCRM(NWayTreeStorage<object> history, byte nonChancePlayerIndex, double[] piValues, bool usePruning)
         {
             if (history.IsLeaf())
                 return GetUtilityFromTerminalHistory(history, nonChancePlayerIndex);
             else
             {
                 if (NodeIsChanceNode(history))
-                    return VanillaCRM_ChanceNode(history, nonChancePlayerIndex, piValues);
+                    return VanillaCRM_ChanceNode(history, nonChancePlayerIndex, piValues, usePruning);
                 else
                 {
-                    return VanillaCRM_DecisionNode(history, nonChancePlayerIndex, piValues);
+                    return VanillaCRM_DecisionNode(history, nonChancePlayerIndex, piValues, usePruning);
                 }
             }
         }
 
-        private double VanillaCRM_DecisionNode(NWayTreeStorage<object> history, byte nonChancePlayerIndex, double[] piValues)
+        private double VanillaCRM_DecisionNode(NWayTreeStorage<object> history, byte nonChancePlayerIndex, double[] piValues, bool usePruning)
         {
             double[] nextPiValues;
             var informationSet = GetInformationSet(history);
@@ -616,8 +621,10 @@ namespace ACESim
             // todo: stackalloc or use simple stack based array pool http://stackoverflow.com/questions/1123939/is-c-sharp-compiler-deciding-to-use-stackalloc-by-itself
             double[] actionProbabilities = new double[numPossibleActions];
             byte? alwaysDoAction = GameDefinition.DecisionsExecutionOrder[decisionNum].AlwaysDoAction;
-            if (alwaysDoAction == null)
+            if (alwaysDoAction == null && !usePruning)
                 informationSet.GetRegretMatchingProbabilities(actionProbabilities);
+            else if (alwaysDoAction == null && usePruning)
+                informationSet.GetRegretMatchingProbabilities_WithPruning(actionProbabilities);
             else
                 SetProbabilitiesToAlwaysDoParticularAction(numPossibleActions, actionProbabilities, (byte) alwaysDoAction);
             double[] expectedValueOfAction = new double[numPossibleActions];
@@ -631,7 +638,7 @@ namespace ACESim
                     TabbedText.WriteLine($"decisionNum {decisionNum} optimizing player {nonChancePlayerIndex}  own decision {playerMakingDecision == nonChancePlayerIndex} action {action} probability {probabilityOfAction} ...");
                     TabbedText.Tabs++;
                 }
-                expectedValueOfAction[action - 1] = VanillaCRM(GetSubsequentHistory(history, action), nonChancePlayerIndex, nextPiValues);
+                expectedValueOfAction[action - 1] = VanillaCRM(GetSubsequentHistory(history, action), nonChancePlayerIndex, nextPiValues, usePruning);
                 expectedValue += probabilityOfAction * expectedValueOfAction[action - 1];
 
                 if (TraceVanillaCRM)
@@ -667,7 +674,7 @@ namespace ACESim
                     actionProbabilities[action - 1] = 0;
         }
 
-        private double VanillaCRM_ChanceNode(NWayTreeStorage<object> history, byte nonChancePlayerIndex, double[] piValues)
+        private double VanillaCRM_ChanceNode(NWayTreeStorage<object> history, byte nonChancePlayerIndex, double[] piValues, bool usePruning)
         {
             CRMChanceNodeSettings chanceNodeSettings = (CRMChanceNodeSettings)history.StoredValue;
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionNum);
@@ -680,14 +687,14 @@ namespace ACESim
                 action =>
                 {
                     // to do: use parallelizer or something like it for byte. But make sure that it will work at multiple tree levels.
-                    double probabilityAdjustedExpectedValueParticularAction = VanillaCRM_ChanceNode_NextAction(history, nonChancePlayerIndex, piValues, chanceNodeSettings, equalProbabilityNextPiValues, expectedValue, action);
+                    double probabilityAdjustedExpectedValueParticularAction = VanillaCRM_ChanceNode_NextAction(history, nonChancePlayerIndex, piValues, chanceNodeSettings, equalProbabilityNextPiValues, expectedValue, action, usePruning);
                     expectedValue += probabilityAdjustedExpectedValueParticularAction;
                 });
 
             return expectedValue;
         }
 
-        private double VanillaCRM_ChanceNode_NextAction(NWayTreeStorage<object> history, byte nonChancePlayerIndex, double[] piValues, CRMChanceNodeSettings chanceNodeSettings, double[] equalProbabilityNextPiValues, double expectedValue, byte action)
+        private double VanillaCRM_ChanceNode_NextAction(NWayTreeStorage<object> history, byte nonChancePlayerIndex, double[] piValues, CRMChanceNodeSettings chanceNodeSettings, double[] equalProbabilityNextPiValues, double expectedValue, byte action, bool usePruning)
         {
             double[] nextPiValues;
             if (equalProbabilityNextPiValues != null)
@@ -700,7 +707,7 @@ namespace ACESim
                 TabbedText.WriteLine($"Chance decisionNum {chanceNodeSettings.DecisionNum} action {action} probability {actionProbability} ...");
                 TabbedText.Tabs++;
             }
-            double expectedValueParticularAction = VanillaCRM(GetSubsequentHistory(history, action), nonChancePlayerIndex, nextPiValues);
+            double expectedValueParticularAction = VanillaCRM(GetSubsequentHistory(history, action), nonChancePlayerIndex, nextPiValues, usePruning);
             var probabilityAdjustedExpectedValueParticularAction = actionProbability * expectedValueParticularAction;
             if (TraceVanillaCRM)
             {
@@ -719,16 +726,23 @@ namespace ACESim
 
             double[] lastUtilities = new double[NumNonChancePlayers];
 
+            DateTime startTime = DateTime.Now;
+
+            bool usePruning = true;
+            ActionStrategies actionStrategy = usePruning ? ActionStrategies.RegretMatchingWithPruning : ActionStrategies.RegretMatching;
+
             for (int iteration = 0; iteration < numIterationsToRun; iteration++)
             {
                 for (byte p = 0; p < NumNonChancePlayers; p++)
-                    lastUtilities[p] = VanillaCRM(GameHistoryTree, p, GetInitialPiValues());
+                    lastUtilities[p] = VanillaCRM(GameHistoryTree, p, GetInitialPiValues(), usePruning);
                 if (reportEveryNIterations != null && iteration % reportEveryNIterations == 0)
                 {
-                    Debug.WriteLine(GenerateReports(ActionStrategies.RegretMatching));
+                    Debug.WriteLine("");
+                    Debug.WriteLine($"Iteration {iteration} Milliseconds per iteration {((DateTime.Now - startTime).TotalMilliseconds / (double) iteration)}");
+                    Debug.WriteLine($"{GenerateReports(actionStrategy)}");
                     for (byte p = 0; p < NumNonChancePlayers; p++)
                     {
-                        double bestResponseUtility = CalculateBestResponse(p, ActionStrategies.RegretMatching);
+                        double bestResponseUtility = CalculateBestResponse(p, actionStrategy);
                         Debug.WriteLine($"Player {p} utility with regret matching {UtilityCalculations[p].Average()} using best response against regret matching {bestResponseUtility} best response improvement {bestResponseUtility - UtilityCalculations[p].Average()}");
                     }
                 }
