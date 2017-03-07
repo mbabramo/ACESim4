@@ -113,6 +113,7 @@ namespace ACESim
             copy.DSignal = DSignal;
             copy.PSignalUniform = PSignalUniform;
             copy.DSignalUniform = DSignalUniform;
+            copy.BargainingRoundsComplete = BargainingRoundsComplete;
             copy.POffers = POffers == null ? null : POffers.ToList();
             copy.DOffers = DOffers == null ? null : DOffers.ToList();
             copy.PResponses = PResponses == null ? null : PResponses.ToList();

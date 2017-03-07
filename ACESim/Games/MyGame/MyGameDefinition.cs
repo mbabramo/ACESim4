@@ -144,6 +144,27 @@ namespace ACESim
 
         private SimpleReportDefinition GetOverallReport()
         {
+
+            var colItems = new List<SimpleReportColumnItem>()
+                {
+                    new SimpleReportColumnFilter("All", (GameProgress gp) => true, true),
+                    new SimpleReportColumnVariable("LitigQuality", (GameProgress gp) => MyGP(gp).LitigationQuality),
+                    new SimpleReportColumnVariable("PFirstOffer", (GameProgress gp) => MyGP(gp).PFirstOffer),
+                    new SimpleReportColumnVariable("DFirstOffer", (GameProgress gp) => MyGP(gp).DFirstOffer),
+                    new SimpleReportColumnVariable("PLastOffer", (GameProgress gp) => MyGP(gp).PLastOffer),
+                    new SimpleReportColumnVariable("DLastOffer", (GameProgress gp) => MyGP(gp).DLastOffer),
+                    new SimpleReportColumnFilter("Settles", (GameProgress gp) => MyGP(gp).SettlementValue != null, false),
+                    new SimpleReportColumnVariable("ValIfSettled", (GameProgress gp) => MyGP(gp).SettlementValue),
+                    new SimpleReportColumnVariable("PWelfare", (GameProgress gp) => MyGP(gp).PWelfare),
+                    new SimpleReportColumnVariable("DWelfare", (GameProgress gp) => MyGP(gp).DWelfare),
+                };
+            for (int b = 1; b <= NumBargainingRounds; b++)
+            {
+                int bargainingRoundNum = b; // needed for closure -- otherwise b below will always be max value.
+                colItems.Add(
+                    new SimpleReportColumnFilter($"Settles{b}", (GameProgress gp) => MyGP(gp).SettlementValue != null && MyGP(gp).BargainingRoundsComplete == bargainingRoundNum, false)
+                    );
+            }
             return new SimpleReportDefinition(
                 "MyGameReport",
                 null,
@@ -162,19 +183,7 @@ namespace ACESim
                     new SimpleReportFilter("HiPSignal", (GameProgress gp) => MyGP(gp).PSignalUniform >= 0.75),
                     new SimpleReportFilter("HiDSignal", (GameProgress gp) => MyGP(gp).DSignalUniform >= 0.75),
                 },
-                new List<SimpleReportColumnItem>()
-                {
-                    new SimpleReportColumnFilter("All", (GameProgress gp) => true, true),
-                    new SimpleReportColumnVariable("LitigQuality", (GameProgress gp) => MyGP(gp).LitigationQuality),
-                    new SimpleReportColumnVariable("PFirstOffer", (GameProgress gp) => MyGP(gp).PFirstOffer),
-                    new SimpleReportColumnVariable("DFirstOffer", (GameProgress gp) => MyGP(gp).DFirstOffer),
-                    new SimpleReportColumnVariable("PLastOffer", (GameProgress gp) => MyGP(gp).PLastOffer),
-                    new SimpleReportColumnVariable("DLastOffer", (GameProgress gp) => MyGP(gp).DLastOffer),
-                    new SimpleReportColumnFilter("Settles", (GameProgress gp) => MyGP(gp).SettlementValue != null, false),
-                    new SimpleReportColumnVariable("ValIfSettled", (GameProgress gp) => MyGP(gp).SettlementValue),
-                    new SimpleReportColumnVariable("PWelfare", (GameProgress gp) => MyGP(gp).PWelfare),
-                    new SimpleReportColumnVariable("DWelfare", (GameProgress gp) => MyGP(gp).DWelfare),
-                }
+                colItems
                 );
         }
 
