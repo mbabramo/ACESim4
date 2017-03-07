@@ -250,12 +250,12 @@ namespace ACESim
             BestResponse
         }
 
-        public void ProcessPossiblePaths(NWayTreeStorage<object> history, List<byte> listSoFar, double probability, Action<List<byte>, double> processor, ActionStrategies actionStrategy)
+        public void ProcessPossiblePaths(NWayTreeStorage<object> history, List<byte> listSoFar, double probability, Action<NWayTreeStorage<object>, List<byte>, double> processor, ActionStrategies actionStrategy)
         {
             // Note that this method is different from GamePlayer.PlayAllPaths, because it relies on the history storage, rather than needing to play the game to discover what the next paths are.
             if (history.IsLeaf())
             {
-                processor(listSoFar, probability);
+                processor(history, listSoFar, probability);
                 return;
             }
             double[] probabilities = null;
@@ -313,17 +313,26 @@ namespace ACESim
             return sb.ToString();
         }
 
+        StatCollector[] UtilityCalculations;
+
         private void GenerateReports_Parallel(GamePlayer player, GameInputs inputs, GameProgress startingProgress)
         {
+            UtilityCalculations = new StatCollector[NumNonChancePlayers];
+            for (int p = 0; p < NumNonChancePlayers; p++)
+                UtilityCalculations[p] = new StatCollector();
             // start Task Parallel Library consumer/producer pattern
             var resultsBuffer = new BufferBlock<Tuple<GameProgress, double>>(new DataflowBlockOptions { BoundedCapacity = 10000 });
             var consumer = ProcessCompletedGameProgresses(resultsBuffer);
             // play each path and then asynchronously consume the result
-            ProcessPossiblePaths(GameHistoryTree, new List<byte>(), 1.0, async (List<byte> actions, double probability) =>
+            ProcessPossiblePaths(GameHistoryTree, new List<byte>(), 1.0, async(NWayTreeStorage<object> leafNode, List <byte> actions, double probability) =>
                 {
                     GameProgress progress = startingProgress.DeepCopy();
                     player.PlayPath(actions.GetEnumerator(), progress, inputs);
-                    // consume the result
+                    // do the simple aggregation of utilities. note that this is different from the value returned by vanilla, since that uses regret matching, instead of average strategies.
+                    double[] utilities = (double[]) leafNode.StoredValue;
+                    for (int p = 0; p < NumNonChancePlayers; p++)
+                        UtilityCalculations[p].Add(utilities[p]);
+                    // consume the result for reports
                     await resultsBuffer.SendAsync(new Tuple<GameProgress, double>(progress, probability));
                 },
                 ActionStrategies.AverageStrategy
@@ -704,19 +713,19 @@ namespace ACESim
 
             int? reportEveryNIterations = 100;
 
-            double[] utilities = new double[NumNonChancePlayers];
+            double[] utilitiesUsingRegretMatching = new double[NumNonChancePlayers];
 
             for (int iteration = 0; iteration < numIterationsToRun; iteration++)
             {
                 for (byte p = 0; p < NumNonChancePlayers; p++)
-                    utilities[p] = VanillaCRM(GameHistoryTree, p, GetInitialPiValues());
+                    utilitiesUsingRegretMatching[p] = VanillaCRM(GameHistoryTree, p, GetInitialPiValues());
                 if (reportEveryNIterations != null && iteration % reportEveryNIterations == 0)
                 {
                     Debug.WriteLine(GenerateReports());
                     for (byte p = 0; p < NumNonChancePlayers; p++)
                     {
                         double bestResponseUtility = CalculateBestResponse(p);
-                        Debug.WriteLine($"Player {p} utility {utilities[p]} using best response {bestResponseUtility} difference {bestResponseUtility - utilities[p]}");
+                        Debug.WriteLine($"Player {p} utility with regret matching {utilitiesUsingRegretMatching[p]} with average strategy {UtilityCalculations[p].Average()} using best response {bestResponseUtility} difference relative to average strategy {bestResponseUtility - UtilityCalculations[p].Average()}");
                     }
                 }
             }
