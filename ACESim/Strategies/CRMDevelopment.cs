@@ -598,6 +598,8 @@ namespace ACESim
         /// <returns></returns>
         public double VanillaCRM(NWayTreeStorage<object> history, byte nonChancePlayerIndex, double[] piValues, bool usePruning)
         {
+            if (usePruning && piValues.All(x => x == 0))
+                return 0; // this is zero probability, so the result doesn't matter
             if (history.IsLeaf())
                 return GetUtilityFromTerminalHistory(history, nonChancePlayerIndex);
             else
@@ -728,11 +730,11 @@ namespace ACESim
 
             DateTime startTime = DateTime.Now;
 
-            bool usePruning = true;
-            ActionStrategies actionStrategy = usePruning ? ActionStrategies.RegretMatchingWithPruning : ActionStrategies.RegretMatching;
 
             for (int iteration = 0; iteration < numIterationsToRun; iteration++)
             {
+                bool usePruning = iteration >= 100;
+                ActionStrategies actionStrategy = usePruning ? ActionStrategies.RegretMatchingWithPruning : ActionStrategies.RegretMatching;
                 for (byte p = 0; p < NumNonChancePlayers; p++)
                     lastUtilities[p] = VanillaCRM(GameHistoryTree, p, GetInitialPiValues(), usePruning);
                 if (reportEveryNIterations != null && iteration % reportEveryNIterations == 0)
