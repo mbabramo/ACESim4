@@ -103,7 +103,7 @@ namespace ACESim
             NodeInformation[cumulativeStrategyDimension, action - 1] += amount;
         }
 
-        const double zeroOutBelow = 0.001;
+        public static double ZeroOutBelow = 0.0001;
 
         public void GetAverageStrategies(double[] probabilities)
         {
@@ -115,7 +115,7 @@ namespace ACESim
             for (int a = 1; a <= NumPossibleActions; a++)
             {
                 double quotient = GetCumulativeStrategy(a) / sum;
-                if (quotient > 0 && quotient < zeroOutBelow)
+                if (quotient > 0 && quotient < ZeroOutBelow)
                 {
                     zeroedOutSome = true;
                     probabilities[a - 1] = 0;
@@ -188,7 +188,7 @@ namespace ACESim
                 {
                     var positiveCumulativeRegret = GetPositiveCumulativeRegret(a);
                     var quotient = positiveCumulativeRegret / sumPositiveCumulativeRegrets;
-                    if (quotient > 0 && quotient < zeroOutBelow && zeroOutInRegretMatching)
+                    if (quotient > 0 && quotient < ZeroOutBelow && zeroOutInRegretMatching)
                     {
                         sumPositiveCumulativeRegrets -= positiveCumulativeRegret;
                         zeroedOutSome = true;
