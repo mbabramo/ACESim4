@@ -189,9 +189,7 @@ namespace ACESim
 
         private SimpleReportDefinition GetStrategyReport(int bargainingRound, bool reportResponseToOffer)
         {
-            bool plaintiffMakesOffer, isSimultaneous;
-            int offerNumber;
-            GetOfferorAndNumber(bargainingRound, ref reportResponseToOffer, out plaintiffMakesOffer, out offerNumber, out isSimultaneous);
+            (bool plaintiffMakesOffer, int offerNumber, bool isSimultaneous) = GetOfferorAndNumber(bargainingRound, ref reportResponseToOffer);
             string reportName = $"Round {bargainingRound} {(reportResponseToOffer ? "ResponseTo" : "")}{(plaintiffMakesOffer ? "P" : "D")} {offerNumber}";
             List<SimpleReportFilter> metaFilters = new List<SimpleReportFilter>();
             metaFilters.Add(new SimpleReportFilter("RoundOccurs", (GameProgress gp) => MyGP(gp).BargainingRoundsComplete >= bargainingRound));
@@ -234,11 +232,11 @@ namespace ACESim
                                 );
         }
 
-        private void GetOfferorAndNumber(int bargainingRound, ref bool reportResponseToOffer, out bool plaintiffMakesOffer, out int offerNumber, out bool isSimultaneous)
+        private (bool plaintiffMakesOffer, int offerNumber, bool isSimultaneous) GetOfferorAndNumber(int bargainingRound, ref bool reportResponseToOffer)
         {
-            plaintiffMakesOffer = true;
-            offerNumber = 0;
-            isSimultaneous = false;
+            bool plaintiffMakesOffer = true;
+            int offerNumber = 0;
+            bool isSimultaneous = false;
             int earlierOffersPlaintiff = 0, earlierOffersDefendant = 0;
             for (int b = 1; b <= bargainingRound; b++)
             {
@@ -270,6 +268,7 @@ namespace ACESim
                     offerNumber = plaintiffMakesOffer ? earlierOffersPlaintiff + 1 : earlierOffersDefendant + 1;
                 }
             }
+            return (plaintiffMakesOffer, offerNumber, isSimultaneous);
         }
 
         private Func<GameProgress, bool> GetOfferOrResponseFilter(bool plaintiffMakesOffer, int offerNumber, bool reportResponseToOffer, Tuple<double, double> offerRange)
