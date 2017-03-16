@@ -187,7 +187,7 @@ namespace ACESim
                 );
         }
 
-        private SimpleReportDefinition GetStrategyReport(int bargainingRound, bool reportResponseToOffer)
+        private SimpleReportDefinition GetStrategyReport(int bargainingRound, bool reportResponseToOffer) 
         {
             (bool plaintiffMakesOffer, int offerNumber, bool isSimultaneous) = GetOfferorAndNumber(bargainingRound, ref reportResponseToOffer);
             string reportName = $"Round {bargainingRound} {(reportResponseToOffer ? "ResponseTo" : "")}{(plaintiffMakesOffer ? "P" : "D")} {offerNumber}";
