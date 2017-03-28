@@ -18,6 +18,18 @@ namespace ACESim
         public byte[] InformationSets = new byte[MaxLength];
         public short LastIndexAddedToInformationSets = -1;
 
+        private const byte History_DecisionNumber_Offset = 0;
+        private const byte History_PlayerNumber_Offset = 1;
+        private const byte History_Action_Offset = 2;
+        private const byte History_NumPossibleActions_Offset = 3;
+        private const byte History_NumPiecesOfInformation = 4;
+
+        private const byte InformationSet_PlayerNumber_Offset = 0;
+        private const byte InformationSet_Information_Offset = 1;
+        private const byte InformationSet_DecisionIndex_Offset = 2;
+        private const byte InformationSet_NumPiecesOfInformation = 3;
+
+
         public GameHistory()
         {
             Initialize();
@@ -46,12 +58,12 @@ namespace ACESim
             short i = LastIndexAddedToHistory;
             if (History[i] == Complete)
                 throw new Exception("Cannot add to history of complete game.");
-            History[i] = decisionNumber;
-            History[i + 1] = playerNumber;
-            History[i + 2] = action;
-            History[i + 3] = numPossibleActions;
-            History[i + 4] = Incomplete;
-            LastIndexAddedToHistory = (short) (i + 4);
+            History[i + History_DecisionNumber_Offset] = decisionNumber;
+            History[i + History_PlayerNumber_Offset] = playerNumber;
+            History[i + History_Action_Offset] = action;
+            History[i + History_NumPossibleActions_Offset] = numPossibleActions;
+            History[i + History_NumPiecesOfInformation] = Incomplete; // this is just one item at end of all history items
+            LastIndexAddedToHistory = (short) (i + History_NumPiecesOfInformation);
             AddToInformationSet(action, playersToInform, decisionNumber);
         }
 
@@ -59,16 +71,16 @@ namespace ACESim
         {
             if (LastIndexAddedToHistory == 0)
                 yield break;
-            for (short i = 0; i < LastIndexAddedToHistory; i += 4)
+            for (short i = 0; i < LastIndexAddedToHistory; i += History_NumPiecesOfInformation)
             {
                 yield return new InformationSetHistory()
                 {
-                    PlayerMakingDecision = History[i + 1],
-                    DecisionIndex = History[i],
-                    InformationSet = GetPlayerInformation(History[i + 1], History[i]).ToList(),
-                    ActionChosen = History[i + 2],
-                    NumPossibleActions = History[i + 3],
-                    IsTerminalAction = History[i + 4] == Complete
+                    PlayerMakingDecision = History[i + History_PlayerNumber_Offset],
+                    DecisionIndex = History[i + History_DecisionNumber_Offset],
+                    InformationSet = GetPlayerInformation(History[i + History_PlayerNumber_Offset], History[i + History_DecisionNumber_Offset]).ToList(),
+                    ActionChosen = History[i + History_Action_Offset],
+                    NumPossibleActions = History[i + History_NumPossibleActions_Offset],
+                    IsTerminalAction = History[i + History_NumPiecesOfInformation] == Complete
                 };
             }
         }
@@ -80,7 +92,7 @@ namespace ACESim
                 yield break;
             for (short i = 0; i < LastIndexAddedToHistory; i++)
             {
-                if (i % 4 == offset)
+                if (i % History_NumPiecesOfInformation == offset)
                     yield return History[i];
             }
         }
@@ -92,7 +104,7 @@ namespace ACESim
                 yield break;
             for (short i = 0; i < LastIndexAddedToHistory; i++)
             {
-                if (i % 4 == offset)
+                if (i % History_NumPiecesOfInformation == offset)
                     yield return History[i];
             }
         }
@@ -118,21 +130,24 @@ namespace ACESim
 
         public void AddToInformationSet(byte information, byte playerNumber, byte decisionIndexAdded)
         {
-            InformationSets[++LastIndexAddedToInformationSets] = playerNumber;
-            InformationSets[++LastIndexAddedToInformationSets] = information;
-            InformationSets[++LastIndexAddedToInformationSets] = decisionIndexAdded;
+            short firstIndex = (short) (LastIndexAddedToInformationSets + 1);
+            InformationSets[firstIndex + InformationSet_PlayerNumber_Offset] = playerNumber;
+            InformationSets[firstIndex + InformationSet_Information_Offset] = information;
+            InformationSets[firstIndex + InformationSet_DecisionIndex_Offset] = decisionIndexAdded;
+            LastIndexAddedToInformationSets += InformationSet_NumPiecesOfInformation;
+
         }
 
         public IEnumerable<byte> GetPlayerInformation(int playerNumber, byte? beforeDecisionIndex = null)
         {
             if (LastIndexAddedToInformationSets < 0)
                 yield break;
-            for (byte i = 0; i < LastIndexAddedToInformationSets; i += 3)
+            for (byte i = 0; i < LastIndexAddedToInformationSets; i += InformationSet_NumPiecesOfInformation)
             {
                 if (InformationSets[i] == playerNumber)
                 {
-                    if (beforeDecisionIndex == null || InformationSets[i + 2] < beforeDecisionIndex)
-                        yield return InformationSets[i + 1];
+                    if (beforeDecisionIndex == null || InformationSets[i + InformationSet_DecisionIndex_Offset] < beforeDecisionIndex)
+                        yield return InformationSets[i + InformationSet_Information_Offset];
                     else
                         yield break;
                 }
@@ -167,12 +182,12 @@ namespace ACESim
         private int? GetLastDecisionWithAnotherAction(GameDefinition gameDefinition)
         {
             int? lastDecisionWithAnotherAction = null;
-            for (int i = LastIndexAddedToHistory - 4; i >= 0; i -= 4)
+            for (int i = LastIndexAddedToHistory - History_NumPiecesOfInformation; i >= 0; i -= History_NumPiecesOfInformation)
             {
-                int decisionNumber = History[i];
-                int playerNumber = History[i + 1];
-                int action = History[i + 2];
-                int numPossibleActions = History[i + 3];
+                int decisionNumber = History[i + History_DecisionNumber_Offset];
+                int playerNumber = History[i + History_PlayerNumber_Offset];
+                int action = History[i + History_Action_Offset];
+                int numPossibleActions = History[i + History_NumPossibleActions_Offset];
                 if (gameDefinition.DecisionsExecutionOrder[decisionNumber].NumPossibleActions > action)
                 {
                     lastDecisionWithAnotherAction = decisionNumber;
