@@ -22,7 +22,8 @@ namespace ACESim
         public CurrentExecutionInformation CurrentExecutionInformation { get; set; }
 
         /// <summary>
-        /// A game history tree. On internal nodes, the object contained is the information set of the player making the decision (or null for a chance decision). On the leaf nodes, the object contained are the players' utilities.
+        /// A game history tree. On each internal node, the object contained is the information set of the player making the decision (or null for a chance decision). 
+        /// On each leaf node, the object contained is an array of the players' terminal utilities.
         /// </summary>
         public NWayTreeStorageInternal<object> GameHistoryTree;
 
@@ -83,17 +84,18 @@ namespace ACESim
             }
 
             int numPlayed = 0;
-            foreach (var progress in player.PlayAllPaths(inputs))
+            foreach (GameProgress progress in player.PlayAllPaths(inputs))
             {
                 numPlayed++;
 
-                // First, add the utilities at the end of the tree.
-                var actionsEnumerator = progress.GameHistory.GetActions().GetEnumerator();
-                var numPossibleActionsEnumerator = progress.GameHistory.GetNumPossibleActions().GetEnumerator();
+                // First, add the utilities at the end of the tree for this path.
+                IEnumerator<byte> actionsEnumerator = progress.GameHistory.GetActions().GetEnumerator();
+                IEnumerator<byte> numPossibleActionsEnumerator = progress.GameHistory.GetNumPossibleActions().GetEnumerator();
                 GameHistoryTree.SetValue(actionsEnumerator, true, progress.GetNonChancePlayerUtilities());
 
                 NWayTreeStorage<object> walkHistoryTree = GameHistoryTree;
-                // Go through each non-chance decision point and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
+
+                // Go through each non-chance decision point on this path and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
                 foreach (var informationSetHistory in progress.GameHistory.GetInformationSetHistoryItems())
                 {
                     var decision = GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
@@ -103,9 +105,17 @@ namespace ACESim
                         if (walkHistoryTree.StoredValue == null)
                         {
                             if (decision.UnevenChanceActions)
-                                walkHistoryTree.StoredValue = new CRMChanceNodeSettings_UnequalProbabilities() { DecisionNum = informationSetHistory.DecisionIndex, Probabilities = GameDefinition.GetChanceActionProbabilities(GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex].DecisionByteCode, progress) }; // the probabilities depend on the current state of the game
+                                walkHistoryTree.StoredValue = new CRMChanceNodeSettings_UnequalProbabilities()
+                                {
+                                    DecisionNum = informationSetHistory.DecisionIndex,
+                                    Probabilities = GameDefinition.GetChanceActionProbabilities(GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex].DecisionByteCode, progress) // the probabilities depend on the current state of the game
+                                }; 
                             else
-                                walkHistoryTree.StoredValue = new CRMChanceNodeSettings_EqualProbabilities() { DecisionNum = informationSetHistory.DecisionIndex, EachProbability = 1.0 / (double)decision.NumPossibleActions };
+                                walkHistoryTree.StoredValue = new CRMChanceNodeSettings_EqualProbabilities()
+                                {
+                                    DecisionNum = informationSetHistory.DecisionIndex,
+                                    EachProbability = 1.0 / (double)decision.NumPossibleActions
+                                };
                         }
                     }
                     else
@@ -114,7 +124,7 @@ namespace ACESim
                         var playersStrategy = GetPlayerStrategyFromOverallPlayerNum(informationSetHistory.PlayerMakingDecision);
                         if (walkHistoryTree.StoredValue == null)
                         {
-                            // create the information set node if necessary, within initialized tally values
+                            // create the information set node if necessary, with initialized tally values
                             var informationSetNode = playersStrategy.SetInformationSetTreeValueIfNotSet(
                                 informationSetHistory.InformationSet,
                                 isNecessarilyLast,
@@ -251,12 +261,12 @@ namespace ACESim
             RegretMatchingWithPruning
         }
 
-        public void ProcessPossiblePaths(NWayTreeStorage<object> history, List<byte> listSoFar, double probability, Action<NWayTreeStorage<object>, List<byte>, double> processor, ActionStrategies actionStrategy)
+        public void ProcessPossiblePaths(NWayTreeStorage<object> history, List<byte> historySoFar, double probability, Action<NWayTreeStorage<object>, List<byte>, double> processor, ActionStrategies actionStrategy)
         {
             // Note that this method is different from GamePlayer.PlayAllPaths, because it relies on the history storage, rather than needing to play the game to discover what the next paths are.
             if (history.IsLeaf())
             {
-                processor(history, listSoFar, probability);
+                processor(history, historySoFar, probability);
                 return;
             }
             double[] probabilities = null;
@@ -291,9 +301,9 @@ namespace ACESim
             {
                 if (probabilities[action - 1] > 0)
                 {
-                    List<byte> nextList = listSoFar.ToList();
-                    nextList.Add(action);
-                    ProcessPossiblePaths(GetSubsequentHistory(history, action), nextList, probability * probabilities[action - 1], processor, actionStrategy);
+                    List<byte> nextHistory = historySoFar.ToList();
+                    nextHistory.Add(action);
+                    ProcessPossiblePaths(GetSubsequentHistory(history, action), nextHistory, probability * probabilities[action - 1], processor, actionStrategy);
                 }
             }
         }
@@ -607,9 +617,7 @@ namespace ACESim
                 if (NodeIsChanceNode(history))
                     return VanillaCRM_ChanceNode(history, nonChancePlayerIndex, piValues, usePruning);
                 else
-                {
                     return VanillaCRM_DecisionNode(history, nonChancePlayerIndex, piValues, usePruning);
-                }
             }
         }
 

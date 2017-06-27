@@ -18,6 +18,7 @@ namespace ACESim.Util
     {
         /// <summary>
         /// Given a signal (in the form of the sum of values taken from a uniform distribution and from a normal distribution), returns a discrete signal, such that each signal will ex ante be equally likely to obtain. The lowest signal is equal to 1. 
+        /// For example, if NumSignals is 10, then one-tenth of the time, we will draw from the two distributions in a way that will produce a signal of i, for all i from 1 to 10. 
         /// </summary>
         /// <param name="signal"></param>
         /// <param name="dsParamas"></param>
