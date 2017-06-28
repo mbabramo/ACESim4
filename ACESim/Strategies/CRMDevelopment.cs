@@ -190,7 +190,7 @@ namespace ACESim
                 {
                     var playersStrategy = GetPlayerStrategyFromOverallPlayerNum(informationSetHistory.PlayerMakingDecision);
                     TabbedText.WriteLine($"Information set: {String.Join(",", informationSetHistory.InformationSet)}");
-                    CRMInformationSetNodeTally tallyReferencedInHistory = GetInformationSet(walkHistoryTree);
+                    CRMInformationSetNodeTally tallyReferencedInHistory = GetInformationSetNodeTally(walkHistoryTree);
                     CRMInformationSetNodeTally tallyStoredInInformationSet = (CRMInformationSetNodeTally)playersStrategy.GetInformationSetTreeValue(informationSetHistory.InformationSet);
                     if (tallyReferencedInHistory != tallyStoredInInformationSet)
                         throw new Exception("Tally references do not match.");
@@ -242,7 +242,7 @@ namespace ACESim
             return history.GetBranch(action);
         }
 
-        public CRMInformationSetNodeTally GetInformationSet(NWayTreeStorage<object> history)
+        public CRMInformationSetNodeTally GetInformationSetNodeTally(NWayTreeStorage<object> history)
         {
             var informationSetNodeReferencedInHistoryNode = ((NWayTreeStorage<object>)history.StoredValue);
             CRMInformationSetNodeTally tallyReferencedInHistory = (CRMInformationSetNodeTally)informationSetNodeReferencedInHistoryNode.StoredValue;
@@ -282,18 +282,18 @@ namespace ACESim
             }
             else
             { // not a chance node or a leaf node
-                CRMInformationSetNodeTally informationSet = GetInformationSet(history);
-                var decision = GameDefinition.DecisionsExecutionOrder[informationSet.DecisionNum];
+                CRMInformationSetNodeTally nodeTally = GetInformationSetNodeTally(history);
+                var decision = GameDefinition.DecisionsExecutionOrder[nodeTally.DecisionNum];
                 numPossibleActions = decision.NumPossibleActions;
                 probabilities = new double[numPossibleActions];
                 if (decision.AlwaysDoAction != null)
                     SetProbabilitiesToAlwaysDoParticularAction(numPossibleActions, probabilities, (byte) decision.AlwaysDoAction);
                 else if (actionStrategy == ActionStrategies.RegretMatching)
-                    informationSet.GetRegretMatchingProbabilities(probabilities);
+                    nodeTally.GetRegretMatchingProbabilities(probabilities);
                 else if (actionStrategy == ActionStrategies.RegretMatchingWithPruning)
-                    informationSet.GetRegretMatchingProbabilities_WithPruning(probabilities);
+                    nodeTally.GetRegretMatchingProbabilities_WithPruning(probabilities);
                 else if (actionStrategy == ActionStrategies.AverageStrategy)
-                    informationSet.GetAverageStrategies(probabilities);
+                    nodeTally.GetAverageStrategies(probabilities);
                 else
                     throw new NotImplementedException();
             }
@@ -456,7 +456,7 @@ namespace ACESim
                 }
                 else
                 {
-                    var informationSet = GetInformationSet(history);
+                    var informationSet = GetInformationSetNodeTally(history);
                     byte decisionNum = informationSet.DecisionNum;
                     numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
                     byte playerMakingDecision = informationSet.NonChancePlayerIndex;
@@ -486,7 +486,7 @@ namespace ACESim
 
         private double GEBRPass2_DecisionNode(NWayTreeStorage<object> history, byte nonChancePlayerIndex, byte depthToTarget, byte depthSoFar, double inversePi, ActionStrategies opponentsActionStrategy)
         {
-            var informationSet = GetInformationSet(history);
+            var informationSet = GetInformationSetNodeTally(history);
             byte decisionNum = informationSet.DecisionNum;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
             byte playerMakingDecision = informationSet.NonChancePlayerIndex;
@@ -624,7 +624,7 @@ namespace ACESim
         private double VanillaCRM_DecisionNode(NWayTreeStorage<object> history, byte nonChancePlayerIndex, double[] piValues, bool usePruning)
         {
             double[] nextPiValues;
-            var informationSet = GetInformationSet(history);
+            var informationSet = GetInformationSetNodeTally(history);
             byte decisionNum = informationSet.DecisionNum;
             byte playerMakingDecision = informationSet.NonChancePlayerIndex;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
