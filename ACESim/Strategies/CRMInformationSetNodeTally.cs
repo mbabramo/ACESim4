@@ -105,7 +105,7 @@ namespace ACESim
 
         public static double ZeroOutBelow = 0.0001;
 
-        public void GetAverageStrategies(double[] probabilities)
+        public unsafe void GetAverageStrategies(double* probabilities)
         {
             double sum = 0;
             for (int a = 1; a <= NumPossibleActions; a++)
@@ -155,7 +155,7 @@ namespace ACESim
         }
 
 
-        public void GetRegretMatchingProbabilities(double[] probabilitiesToSet)
+        public unsafe void GetRegretMatchingProbabilities(double* probabilitiesToSet)
         {
             double sumPositiveCumulativeRegrets = GetSumPositiveCumulativeRegrets();
             if (sumPositiveCumulativeRegrets == 0)
@@ -171,7 +171,7 @@ namespace ACESim
             }
         }
 
-        public void GetRegretMatchingProbabilities_WithPruning(double[] probabilitiesToSet)
+        public unsafe void GetRegretMatchingProbabilities_WithPruning(double* probabilitiesToSet)
         {
             bool zeroOutInRegretMatching = false;
             double sumPositiveCumulativeRegrets = GetSumPositiveCumulativeRegrets();

@@ -29,6 +29,9 @@ namespace ACESim
 
         public bool ChancePlayerExists;
 
+        public const int MaxNumPlayers = 4; // this affects fixed-size stack-allocated buffers
+        public const int MaxPossibleActions = 100; // same
+
         public int NumNonChancePlayers;
 
         public byte NonChancePlayerIndexFromPlayerIndex(byte overallPlayerNum) => ChancePlayerExists ? (byte)(overallPlayerNum - 1) : overallPlayerNum;
@@ -261,7 +264,7 @@ namespace ACESim
             RegretMatchingWithPruning
         }
 
-        public void ProcessPossiblePaths(NWayTreeStorage<object> history, List<byte> historySoFar, double probability, Action<NWayTreeStorage<object>, List<byte>, double> processor, ActionStrategies actionStrategy)
+        public unsafe void ProcessPossiblePaths(NWayTreeStorage<object> history, List<byte> historySoFar, double probability, Action<NWayTreeStorage<object>, List<byte>, double> processor, ActionStrategies actionStrategy)
         {
             // Note that this method is different from GamePlayer.PlayAllPaths, because it relies on the history storage, rather than needing to play the game to discover what the next paths are.
             if (history.IsLeaf())
@@ -269,14 +272,13 @@ namespace ACESim
                 processor(history, historySoFar, probability);
                 return;
             }
-            double[] probabilities = null;
+            double* probabilities = stackalloc double[MaxPossibleActions];
             byte numPossibleActions;
             if (NodeIsChanceNode(history))
             {
                 CRMChanceNodeSettings chanceNodeSettings = (CRMChanceNodeSettings)history.StoredValue;
                 byte decisionIndex = chanceNodeSettings.DecisionNum;
                 numPossibleActions = GameDefinition.DecisionsExecutionOrder[decisionIndex].NumPossibleActions;
-                probabilities = new double[numPossibleActions];
                 for (byte action = 1; action <= numPossibleActions; action++)
                     probabilities[action - 1] = chanceNodeSettings.GetActionProbability(action);
             }
@@ -285,7 +287,6 @@ namespace ACESim
                 CRMInformationSetNodeTally nodeTally = GetInformationSetNodeTally(history);
                 var decision = GameDefinition.DecisionsExecutionOrder[nodeTally.DecisionNum];
                 numPossibleActions = decision.NumPossibleActions;
-                probabilities = new double[numPossibleActions];
                 if (decision.AlwaysDoAction != null)
                     SetProbabilitiesToAlwaysDoParticularAction(numPossibleActions, probabilities, (byte) decision.AlwaysDoAction);
                 else if (actionStrategy == ActionStrategies.RegretMatching)
@@ -374,7 +375,7 @@ namespace ACESim
             return piValues[nonChancePlayerIndex];
         }
 
-        public double GetInversePiValue(double[] piValues, byte nonChancePlayerIndex)
+        public unsafe double GetInversePiValue(double* piValues, byte nonChancePlayerIndex)
         {
             double product = 1.0;
             for (byte p = 0; p < NumNonChancePlayers; p++)
@@ -383,9 +384,9 @@ namespace ACESim
             return product;
         }
 
-        private double[] GetNextPiValues(double[] currentPiValues, byte nonChancePlayerIndex, double probabilityToMultiplyBy, bool changeOtherPlayers)
+        private unsafe double* GetNextPiValues(double* currentPiValues, byte nonChancePlayerIndex, double probabilityToMultiplyBy, bool changeOtherPlayers)
         {
-            double[] nextPiValues = new double[NumNonChancePlayers];
+            double* nextPiValues = stackalloc double[MaxNumPlayers];
             for (byte p = 0; p < NumNonChancePlayers; p++)
             {
                 double currentPiValue = currentPiValues[p];
@@ -399,9 +400,9 @@ namespace ACESim
             return nextPiValues;
         }
 
-        private double[] GetInitialPiValues()
+        private unsafe double* GetInitialPiValues()
         {
-            double[] pi = new double[NumNonChancePlayers];
+            double* pi = stackalloc double[MaxNumPlayers];
             for (byte p = 0; p < NumNonChancePlayers; p++)
                 pi[p] = 1.0;
             return pi;
@@ -484,7 +485,7 @@ namespace ACESim
             return GEBRPass2_DecisionNode(history, nonChancePlayerIndex, depthToTarget, depthSoFar, inversePi, opponentsActionStrategy);
         }
 
-        private double GEBRPass2_DecisionNode(NWayTreeStorage<object> history, byte nonChancePlayerIndex, byte depthToTarget, byte depthSoFar, double inversePi, ActionStrategies opponentsActionStrategy)
+        private unsafe double GEBRPass2_DecisionNode(NWayTreeStorage<object> history, byte nonChancePlayerIndex, byte depthToTarget, byte depthSoFar, double inversePi, ActionStrategies opponentsActionStrategy)
         {
             var informationSet = GetInformationSetNodeTally(history);
             byte decisionNum = informationSet.DecisionNum;
@@ -509,7 +510,7 @@ namespace ACESim
             }
             else
             {
-                double[] actionProbabilities = new double[numPossibleActions];
+                double* actionProbabilities = stackalloc double[numPossibleActions];
                 byte? alwaysDoAction = GameDefinition.DecisionsExecutionOrder[decisionNum].AlwaysDoAction;
                 if (alwaysDoAction != null)
                     SetProbabilitiesToAlwaysDoParticularAction(numPossibleActions, actionProbabilities, (byte)alwaysDoAction);
@@ -606,10 +607,20 @@ namespace ACESim
         /// <param name="history">The game tree, pointing to the particular point in the game where we are located</param>
         /// <param name="nonChancePlayerIndex">0 for first non-chance player, etc. Note that this corresponds in Lanctot to 1, 2, etc. We are using zero-basing for player index (even though we are 1-basing actions).</param>
         /// <returns></returns>
-        public double VanillaCRM(NWayTreeStorage<object> history, byte nonChancePlayerIndex, double[] piValues, bool usePruning)
+        public unsafe double VanillaCRM(NWayTreeStorage<object> history, byte nonChancePlayerIndex, double* piValues, bool usePruning)
         {
-            if (usePruning && piValues.All(x => x == 0))
-                return 0; // this is zero probability, so the result doesn't matter
+            if (usePruning)
+            {
+                bool allZero = true;
+                for (int i = 0; i < NumNonChancePlayers; i++)
+                    if (*piValues != 0)
+                    {
+                        allZero = false;
+                        break;
+                    }
+                if (allZero)
+                    return 0; // this is zero probability, so the result doesn't matter
+            }
             if (history.IsLeaf())
                 return GetUtilityFromTerminalHistory(history, nonChancePlayerIndex);
             else
@@ -621,15 +632,15 @@ namespace ACESim
             }
         }
 
-        private double VanillaCRM_DecisionNode(NWayTreeStorage<object> history, byte nonChancePlayerIndex, double[] piValues, bool usePruning)
+        private unsafe double VanillaCRM_DecisionNode(NWayTreeStorage<object> history, byte nonChancePlayerIndex, double* piValues, bool usePruning)
         {
-            double[] nextPiValues;
+            double* nextPiValues;
             var informationSet = GetInformationSetNodeTally(history);
             byte decisionNum = informationSet.DecisionNum;
             byte playerMakingDecision = informationSet.NonChancePlayerIndex;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
             // todo: stackalloc or use simple stack based array pool http://stackoverflow.com/questions/1123939/is-c-sharp-compiler-deciding-to-use-stackalloc-by-itself
-            double[] actionProbabilities = new double[numPossibleActions];
+            double* actionProbabilities = stackalloc double[numPossibleActions];
             byte? alwaysDoAction = GameDefinition.DecisionsExecutionOrder[decisionNum].AlwaysDoAction;
             if (alwaysDoAction == null && !usePruning)
                 informationSet.GetRegretMatchingProbabilities(actionProbabilities);
@@ -637,7 +648,7 @@ namespace ACESim
                 informationSet.GetRegretMatchingProbabilities_WithPruning(actionProbabilities);
             else
                 SetProbabilitiesToAlwaysDoParticularAction(numPossibleActions, actionProbabilities, (byte) alwaysDoAction);
-            double[] expectedValueOfAction = new double[numPossibleActions];
+            double* expectedValueOfAction = stackalloc double[numPossibleActions];
             double expectedValue = 0;
             for (byte action = 1; action <= numPossibleActions; action++)
             {
@@ -675,7 +686,7 @@ namespace ACESim
             return expectedValue;
         }
 
-        private static void SetProbabilitiesToAlwaysDoParticularAction(byte numPossibleActions, double[] actionProbabilities, byte alwaysDoAction)
+        private static unsafe void SetProbabilitiesToAlwaysDoParticularAction(byte numPossibleActions, double* actionProbabilities, byte alwaysDoAction)
         {
             for (byte action = 1; action <= numPossibleActions; action++)
                 if (action == alwaysDoAction)
@@ -684,11 +695,11 @@ namespace ACESim
                     actionProbabilities[action - 1] = 0;
         }
 
-        private double VanillaCRM_ChanceNode(NWayTreeStorage<object> history, byte nonChancePlayerIndex, double[] piValues, bool usePruning)
+        private unsafe double VanillaCRM_ChanceNode(NWayTreeStorage<object> history, byte nonChancePlayerIndex, double* piValues, bool usePruning)
         {
             CRMChanceNodeSettings chanceNodeSettings = (CRMChanceNodeSettings)history.StoredValue;
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionNum);
-            double[] equalProbabilityNextPiValues = null;
+            double* equalProbabilityNextPiValues = null;
             bool equalProbabilities = chanceNodeSettings.AllProbabilitiesEqual();
             if (equalProbabilities) // can set next probabilities once for all actions
                 equalProbabilityNextPiValues = GetNextPiValues(piValues, nonChancePlayerIndex, chanceNodeSettings.GetActionProbability(1), true);
@@ -704,9 +715,9 @@ namespace ACESim
             return expectedValue;
         }
 
-        private double VanillaCRM_ChanceNode_NextAction(NWayTreeStorage<object> history, byte nonChancePlayerIndex, double[] piValues, CRMChanceNodeSettings chanceNodeSettings, double[] equalProbabilityNextPiValues, double expectedValue, byte action, bool usePruning)
+        private unsafe double VanillaCRM_ChanceNode_NextAction(NWayTreeStorage<object> history, byte nonChancePlayerIndex, double* piValues, CRMChanceNodeSettings chanceNodeSettings, double* equalProbabilityNextPiValues, double expectedValue, byte action, bool usePruning)
         {
-            double[] nextPiValues;
+            double* nextPiValues;
             if (equalProbabilityNextPiValues != null)
                 nextPiValues = equalProbabilityNextPiValues;
             else // must set probability separately for each action we take
@@ -728,7 +739,7 @@ namespace ACESim
             return probabilityAdjustedExpectedValueParticularAction;
         }
 
-        public void SolveVanillaCFR()
+        public unsafe void SolveVanillaCFR()
         {
             const int numIterationsToRun = 10000;
 
