@@ -14,7 +14,7 @@ namespace ACESim
         [FieldwiseComparisonSkip]
         public GameDefinition GameDefinition;
         public List<GameModuleProgress> GameModuleProgresses;
-        public GameHistory GameHistory = new GameHistory();
+        public GameHistory GameHistory = new GameHistory().Initialize();
         public IEnumerator<byte> ActionsToPlay = null;
         public bool GameComplete;
         public bool HaveAdvancedToFirstStep;

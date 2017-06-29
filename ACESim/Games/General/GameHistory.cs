@@ -6,17 +6,17 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
-    public class GameHistory
+    public struct GameHistory
     {
         const int MaxLength = 150;
         const byte Complete = 254;
         const byte Incomplete = 255;
         
-        public byte[] History = new byte[MaxLength];
-        public short LastIndexAddedToHistory = 0;
+        public byte[] History;
+        public short LastIndexAddedToHistory;
         public int NumberDecisions => (LastIndexAddedToHistory - 1) / 4;
-        public byte[] InformationSets = new byte[MaxLength];
-        public short LastIndexAddedToInformationSets = -1;
+        public byte[] InformationSets;
+        public short LastIndexAddedToInformationSets;
 
         private const byte History_DecisionNumber_Offset = 0;
         private const byte History_PlayerNumber_Offset = 1;
@@ -29,12 +29,6 @@ namespace ACESim
         private const byte InformationSet_DecisionIndex_Offset = 2;
         private const byte InformationSet_NumPiecesOfInformation = 3;
 
-
-        public GameHistory()
-        {
-            Initialize();
-        }
-
         public GameHistory DeepCopy()
         {
             return new ACESim.GameHistory()
@@ -46,11 +40,14 @@ namespace ACESim
             };
         }
 
-        public void Initialize()
+        public GameHistory Initialize()
         {
+            History = new byte[MaxLength];
+            InformationSets = new byte[MaxLength];
             History[0] = Incomplete;
             LastIndexAddedToHistory = 0;
             LastIndexAddedToInformationSets = -1;
+            return this;
         }
 
         public void AddToHistory(byte decisionNumber, byte playerNumber, byte action, byte numPossibleActions, List<byte> playersToInform)
