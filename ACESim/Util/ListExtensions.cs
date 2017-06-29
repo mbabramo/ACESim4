@@ -21,6 +21,20 @@ namespace ACESim.Util
     static class ListExtensions
     {
 
+
+        public static unsafe List<byte> GetPointerAsList(byte* r)
+        {
+            var r2 = new List<byte>();
+            int d = 0;
+            while (r[d] != 255)
+            {
+                r2.Add(r[d]);
+                d++;
+            }
+            return r2;
+        }
+
+
         ///// <summary>
         ///// Returns a copy of list with function applied to each of its members.
         ///// </summary>

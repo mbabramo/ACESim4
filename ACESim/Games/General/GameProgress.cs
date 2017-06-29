@@ -7,7 +7,7 @@ using System.Text;
 namespace ACESim
 {
     [Serializable]
-    public class GameProgress : GameProgressReportable
+    public unsafe class GameProgress : GameProgressReportable
     {
         public double DummyVariable = 1.0; // used by reporting module
         public IterationID IterationID;
@@ -15,7 +15,8 @@ namespace ACESim
         public GameDefinition GameDefinition;
         public List<GameModuleProgress> GameModuleProgresses;
         public GameHistory GameHistory = new GameHistory().Initialize();
-        public IEnumerator<byte> ActionsToPlay = null;
+        public byte* ActionsToPlay = null;
+        public int ActionsToPlayIndex;
         public bool GameComplete;
         public bool HaveAdvancedToFirstStep;
         public int? CurrentActionGroupNumber;
@@ -23,6 +24,20 @@ namespace ACESim
         public bool PreparationForCurrentStepComplete;
         public bool IsFinalGamePath;
         public byte RandomNumbersUsed;
+
+
+        public void SetActionToPlay(byte* actionsToPlay)
+        {
+            ActionsToPlay = actionsToPlay;
+            ActionsToPlayIndex = -1;
+        }
+        public byte CurrentActionToPlay => *(ActionsToPlay + ActionsToPlayIndex);
+        public bool ActionsToPlayNext()
+        {
+            ActionsToPlayIndex++;
+            return CurrentActionToPlay != 255;
+        }
+
 
         static ConcurrentQueue<GameProgress> RecycledGameProgressQueue = new ConcurrentQueue<GameProgress>();
         private static int NumRecycled;
@@ -60,6 +75,7 @@ namespace ACESim
             GameModuleProgresses = null;
             GameHistory.Initialize();
             ActionsToPlay = null;
+            ActionsToPlayIndex = -1;
             GameComplete = false;
             HaveAdvancedToFirstStep = false;
             CurrentActionGroupNumber = null;
@@ -148,6 +164,7 @@ namespace ACESim
             copy.GameModuleProgresses = GameModuleProgresses == null ? null : (GameModuleProgresses.Select(x => x == null ? null : x.DeepCopy()).ToList());
             copy.GameHistory = GameHistory.DeepCopy();
             copy.ActionsToPlay = ActionsToPlay; // we don't deep copy this b/c we want to play the specified decisions only once
+            copy.ActionsToPlayIndex = ActionsToPlayIndex;
             copy.GameComplete = this.GameComplete;
             copy.HaveAdvancedToFirstStep = this.HaveAdvancedToFirstStep;
             copy.CurrentActionGroupNumber = this.CurrentActionGroupNumber;

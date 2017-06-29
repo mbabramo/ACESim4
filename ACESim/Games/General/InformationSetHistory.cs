@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 namespace ACESim
 {
 
-    public struct InformationSetHistory
+    public unsafe struct InformationSetHistory
     {
         public byte PlayerMakingDecision;
         public byte DecisionIndex;
-        public List<byte> InformationSet;
+        public byte* InformationSet;
         public byte ActionChosen;
         public byte NumPossibleActions;
         public bool IsTerminalAction;

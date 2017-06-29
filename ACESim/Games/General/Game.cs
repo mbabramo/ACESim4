@@ -129,16 +129,16 @@ namespace ACESim
             // Entirely subclass. 
         }
 
-        public virtual byte ChooseAction()
+        public unsafe virtual byte ChooseAction()
         {
             byte actionToChoose;
             if (Progress.ActionsToPlay == null)
                 actionToChoose = CurrentPlayerStrategy.ChooseAction(Progress.GameHistory.GetPlayerInformation(CurrentPlayerNumber), GetNextRandomNumber);
             else
             { // play according to a preset plan
-                bool anotherActionPlanned = Progress.ActionsToPlay.MoveNext();
+                bool anotherActionPlanned = Progress.ActionsToPlayNext();
                 if (anotherActionPlanned)
-                    actionToChoose = Progress.ActionsToPlay.Current;
+                    actionToChoose = Progress.CurrentActionToPlay;
                 else
                     actionToChoose = 1; // The history does not give us guidance, so we play the first available decision. When the game is complete, we can figure out the next possible game history and play that one (which may go to completion or not). 
             }
@@ -200,11 +200,9 @@ namespace ACESim
         /// </summary>
         /// <param name="actionsToPlay"></param>
         /// <returns>The next path of decisions to play.</returns>
-        public IEnumerable<byte> PlayPath(IEnumerator<byte> actionsToPlay)
+        public unsafe byte* PlayPath(byte* actionsToPlay)
         {
-            if (actionsToPlay == null)
-                actionsToPlay = (new List<byte> { }).GetEnumerator();
-            Progress.ActionsToPlay = actionsToPlay;
+            Progress.SetActionToPlay(actionsToPlay);
             Progress.IsFinalGamePath = true;
             PlayUntilComplete(true);
             if (Progress.IsFinalGamePath)

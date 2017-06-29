@@ -55,27 +55,28 @@ namespace ACESim
             }
         }
 
-        public NWayTreeStorage<T> GetNode(IEnumerator<byte> restOfSequence)
+        public unsafe NWayTreeStorage<T> GetNode(byte* restOfSequence)
         {
             NWayTreeStorage<T> tree = this;
-            bool moreInSequence = restOfSequence.MoveNext();
+            bool moreInSequence = *restOfSequence == 255;
             while (moreInSequence)
             {
+                restOfSequence++;
                 var previous = ((NWayTreeStorageInternal<T>)tree);
-                tree = ((NWayTreeStorageInternal<T>)tree).GetBranch(restOfSequence.Current);
+                tree = ((NWayTreeStorageInternal<T>)tree).GetBranch(*restOfSequence);
                 if (tree == null)
-                    tree = previous.AddBranch(restOfSequence.Current, true);
-                moreInSequence = restOfSequence.MoveNext();
+                    tree = previous.AddBranch(*restOfSequence, true);
+                moreInSequence = *restOfSequence == 255;
             }
             return tree;
         }
 
-        public T GetValue(IEnumerator<byte> restOfSequence)
+        public unsafe T GetValue(byte* restOfSequence)
         {
             return GetNode(restOfSequence).StoredValue;
         }
 
-        public NWayTreeStorage<T> SetValueIfNotSet(IEnumerator<byte> restOfSequence, bool historyComplete, Func<T> setter)
+        public unsafe NWayTreeStorage<T> SetValueIfNotSet(byte* restOfSequence, bool historyComplete, Func<T> setter)
         {
             NWayTreeStorage<T> node = GetNode(restOfSequence);
             if (node.StoredValue == null || node.StoredValue.Equals(default(T)))
@@ -83,10 +84,10 @@ namespace ACESim
             return node;
         }
 
-        public NWayTreeStorage<T> SetValue(IEnumerator<byte> restOfSequence, bool historyComplete, T valueToAdd)
+        public unsafe NWayTreeStorage<T> SetValue(byte* restOfSequence, bool historyComplete, T valueToAdd)
         {
             // the logic here is more complicated because we will use NWayTreeStorage<T> for leaf nodes if historyComplete is set.
-            bool anyInSequence = restOfSequence.MoveNext();
+            bool anyInSequence = *restOfSequence != 255;
             if (!anyInSequence)
             {
                 StoredValue = valueToAdd;
@@ -98,10 +99,11 @@ namespace ACESim
             }
         }
 
-        private NWayTreeStorage<T> SetValueHelper(IEnumerator<byte> restOfSequence, bool historyComplete, T valueToAdd)
+        private unsafe NWayTreeStorage<T> SetValueHelper(byte* restOfSequence, bool historyComplete, T valueToAdd)
         {
-            byte nextInSequence = restOfSequence.Current;
-            bool anotherExistsAfterNext = restOfSequence.MoveNext();
+            byte nextInSequence = *restOfSequence;
+            restOfSequence++;
+            bool anotherExistsAfterNext = *restOfSequence != 255;
             NWayTreeStorage<T> nextTree = GetBranch(nextInSequence);
             if (nextTree == null)
             {

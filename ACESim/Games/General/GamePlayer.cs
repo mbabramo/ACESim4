@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Diagnostics;
-
+using ACESim.Util;
 
 namespace ACESim
 {
@@ -114,7 +114,7 @@ namespace ACESim
         {
             // This method plays all game paths (without having any advance knowledge of what those game paths are). 
             GameProgress startingProgress = GameFactory.CreateNewGameProgress(new IterationID(1)); // iteration doesn't matter, since we're playing a particular path and thus ignoring random numbers
-            IEnumerator<byte> path = new List<byte> { }.GetEnumerator();
+            IEnumerable<byte> path = new List<byte> { };
             while (path != null)
             {
                 var progressToUse = startingProgress.DeepCopy();
@@ -122,15 +122,37 @@ namespace ACESim
                 //var thePathEnumerated = next?.ToList();
                 //if (thePathEnumerated != null)
                 //    Debug.WriteLine($"{String.Join(",", thePathEnumerated)}");
-                if (next == null)
+                if (!next.Any())
                     path = null;
                 else
-                    path = next.GetEnumerator();
+                    path = next;
                 yield return progressToUse;
             }
         }
 
-        public IEnumerable<byte> PlayPath(IEnumerator<byte> actionsToPlay, GameProgress startingProgress, GameInputs gameInputsToUse)
+        public unsafe IEnumerable<byte> PlayPath(IEnumerable<byte> actionsToPlay, GameProgress startingProgress, GameInputs gameInputsToUse)
+        {
+            byte* actionsToPlay2 = stackalloc byte[GameHistory.MaxNumActions];
+            int d = 0;
+            foreach (byte b in actionsToPlay)
+                actionsToPlay2[d++] = b;
+            actionsToPlay2[d] = 255;
+            byte* r = PlayPath(actionsToPlay2, startingProgress, gameInputsToUse);
+            List<byte> r2 = ListExtensions.GetPointerAsList(r);
+            return r2.AsEnumerable();
+        }
+
+
+
+        public void PlayPath(CRMDevelopment.BytePointerContainer actionsToPlay, GameProgress startingProgress, GameInputs gameInputsToUse)
+        {
+            unsafe
+            {
+                PlayPath(actionsToPlay.bytes, startingProgress, gameInputsToUse);
+            }
+        }
+
+        public unsafe byte* PlayPath(byte* actionsToPlay, GameProgress startingProgress, GameInputs gameInputsToUse)
         {
             Game game = GameFactory.CreateNewGame();
             game.PlaySetup(bestStrategies, startingProgress, gameInputsToUse, gameDefinition, false);

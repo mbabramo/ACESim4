@@ -50,29 +50,29 @@ namespace ACESim
             InformationSetTree = new NWayTreeStorageInternal<object>(numInitialActions);
         }
 
-        public NWayTreeStorage<object> SetInformationSetTreeValue(IEnumerable<byte> informationSet, bool historyComplete, object valueToSet)
+        public unsafe NWayTreeStorage<object> SetInformationSetTreeValue(byte* informationSet, bool historyComplete, object valueToSet)
         {
-            return InformationSetTree.SetValue(informationSet.GetEnumerator(), historyComplete, valueToSet);
+            return InformationSetTree.SetValue(informationSet, historyComplete, valueToSet);
         }
 
-        public NWayTreeStorage<object> SetInformationSetTreeValueIfNotSet(IEnumerable<byte> informationSet, bool historyComplete, Func<object> setter)
+        public unsafe NWayTreeStorage<object> SetInformationSetTreeValueIfNotSet(byte* informationSet, bool historyComplete, Func<object> setter)
         {
-            var returnVal = InformationSetTree.SetValueIfNotSet(informationSet.GetEnumerator(), historyComplete, setter);
+            var returnVal = InformationSetTree.SetValueIfNotSet(informationSet, historyComplete, setter);
             // System.Diagnostics.Debug.WriteLine($"{String.Join(",", informationSet)}: {PlayerInfo.PlayerName} {returnVal.StoredValue}");
             return returnVal;
         }
 
-        public object GetInformationSetTreeValue(IEnumerable<byte> informationSet)
+        public unsafe object GetInformationSetTreeValue(byte* informationSet)
         {
-            return InformationSetTree.GetValue(informationSet.GetEnumerator());
+            return InformationSetTree.GetValue(informationSet);
         }
 
-        public NWayTreeStorage<object> GetInformationSetTreeNode(IEnumerable<byte> informationSet)
+        public unsafe NWayTreeStorage<object> GetInformationSetTreeNode(byte* informationSet)
         {
-            return InformationSetTree.GetNode(informationSet.GetEnumerator());
+            return InformationSetTree.GetNode(informationSet);
         }
 
-        public byte ChooseAction(IEnumerable<byte> informationSet, Func<double> randomNumberGenerator)
+        public unsafe byte ChooseAction(byte* informationSet, Func<double> randomNumberGenerator)
         {
             throw new NotImplementedException();
         }

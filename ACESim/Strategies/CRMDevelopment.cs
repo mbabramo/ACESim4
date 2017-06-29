@@ -1,4 +1,5 @@
-﻿using FluentAssertions;
+﻿using ACESim.Util;
+using FluentAssertions;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -74,7 +75,7 @@ namespace ACESim
             SolveVanillaCFR();
         }
 
-        public void Initialize()
+        public unsafe void Initialize()
         {
             GamePlayer player = new GamePlayer(Strategies, GameFactory, EvolutionSettings.ParallelOptimization, GameDefinition);
             GameInputs inputs = GetGameInputs();
@@ -92,8 +93,8 @@ namespace ACESim
                 numPlayed++;
 
                 // First, add the utilities at the end of the tree for this path.
-                IEnumerator<byte> actionsEnumerator = progress.GameHistory.GetActions().GetEnumerator();
-                IEnumerator<byte> numPossibleActionsEnumerator = progress.GameHistory.GetNumPossibleActions().GetEnumerator();
+                byte* actionsEnumerator = progress.GameHistory.GetActions();
+                byte* numPossibleActionsEnumerator = progress.GameHistory.GetNumPossibleActions();
                 GameHistoryTree.SetValue(actionsEnumerator, true, progress.GetNonChancePlayerUtilities());
 
                 NWayTreeStorage<object> walkHistoryTree = GameHistoryTree;
@@ -160,7 +161,7 @@ namespace ACESim
             return inputs;
         }
 
-        private void PrintSameGameResults(GamePlayer player, GameInputs inputs)
+        private unsafe void PrintSameGameResults(GamePlayer player, GameInputs inputs)
         {
             double probabilityOfPrint = 0;
             if (probabilityOfPrint == 0)
@@ -169,9 +170,15 @@ namespace ACESim
             {
                 if (RandomGenerator.NextDouble() < probabilityOfPrint)
                 {
-                    var path = progress.GameHistory.GetActions().ToList();
+                    var path = progress.GameHistory.GetActions();
+                    List<byte> path2 = new List<byte>();
+                    while (*path != 255)
+                    {
+                        path2.Add(*path);
+                        path++;
+                    }
                     var utilities = GetUtilities(path);
-                    TabbedText.WriteLine($"{String.Join(",", path)} -->  Utilities: P {utilities[0]}, D {utilities[1]}");
+                    TabbedText.WriteLine($"{String.Join(",", path2)} -->  Utilities: P {utilities[0]}, D {utilities[1]}");
                     TabbedText.Tabs++;
                     PrintGenericGameProgress(progress);
                     TabbedText.Tabs--;
@@ -192,18 +199,22 @@ namespace ACESim
                 if (!GameDefinition.Players[informationSetHistory.PlayerMakingDecision].PlayerIsChance)
                 {
                     var playersStrategy = GetPlayerStrategyFromOverallPlayerNum(informationSetHistory.PlayerMakingDecision);
-                    TabbedText.WriteLine($"Information set: {String.Join(",", informationSetHistory.InformationSet)}");
-                    CRMInformationSetNodeTally tallyReferencedInHistory = GetInformationSetNodeTally(walkHistoryTree);
-                    CRMInformationSetNodeTally tallyStoredInInformationSet = (CRMInformationSetNodeTally)playersStrategy.GetInformationSetTreeValue(informationSetHistory.InformationSet);
-                    if (tallyReferencedInHistory != tallyStoredInInformationSet)
-                        throw new Exception("Tally references do not match.");
+                    unsafe
+                    {
+                        var informationSetList = ListExtensions.GetPointerAsList(informationSetHistory.InformationSet);
+                        TabbedText.WriteLine($"Information set: {String.Join(",", informationSetList)}");
+                        CRMInformationSetNodeTally tallyReferencedInHistory = GetInformationSetNodeTally(walkHistoryTree);
+                        CRMInformationSetNodeTally tallyStoredInInformationSet = (CRMInformationSetNodeTally)playersStrategy.GetInformationSetTreeValue(informationSetHistory.InformationSet);
+                        if (tallyReferencedInHistory != tallyStoredInInformationSet)
+                            throw new Exception("Tally references do not match.");
+                    }
                 }
                 walkHistoryTree = walkHistoryTree.GetBranch(informationSetHistory.ActionChosen);
                 TabbedText.Tabs--;
             }
         }
 
-        public double GetUtility(IEnumerable<byte> path, byte player)
+        public unsafe double GetUtility(byte* path, byte player)
         {
             byte index = player;
             if (ChancePlayerExists)
@@ -211,9 +222,9 @@ namespace ACESim
             return GetUtilities(path)[index];
         }
 
-        private double[] GetUtilities(IEnumerable<byte> path)
+        private unsafe double[] GetUtilities(byte* path)
         {
-            return (double[]) GameHistoryTree.GetValue(path.GetEnumerator());
+            return (double[]) GameHistoryTree.GetValue(path);
         }
 
         public void PreSerialize()
@@ -264,7 +275,7 @@ namespace ACESim
             RegretMatchingWithPruning
         }
 
-        public unsafe void ProcessPossiblePaths(NWayTreeStorage<object> history, List<byte> historySoFar, double probability, Action<NWayTreeStorage<object>, List<byte>, double> processor, ActionStrategies actionStrategy)
+        public unsafe void ProcessPossiblePaths(NWayTreeStorage<object> history, BytePointerContainer historySoFar, double probability, Action<NWayTreeStorage<object>, BytePointerContainer, double> processor, ActionStrategies actionStrategy)
         {
             // Note that this method is different from GamePlayer.PlayAllPaths, because it relies on the history storage, rather than needing to play the game to discover what the next paths are.
             if (history.IsLeaf())
@@ -302,9 +313,14 @@ namespace ACESim
             {
                 if (probabilities[action - 1] > 0)
                 {
-                    List<byte> nextHistory = historySoFar.ToList();
-                    nextHistory.Add(action);
-                    ProcessPossiblePaths(GetSubsequentHistory(history, action), nextHistory, probability * probabilities[action - 1], processor, actionStrategy);
+                    byte* nextHistory = stackalloc byte[GameHistory.MaxLength];
+                    int d = 0;
+                    while (historySoFar.bytes[d] != 255)
+                        nextHistory[d++] = historySoFar.bytes[d];
+                    nextHistory[d++] = action;
+                    nextHistory[d] = 255;
+                    historySoFar.bytes = nextHistory;
+                    ProcessPossiblePaths(GetSubsequentHistory(history, action), historySoFar, probability * probabilities[action - 1], processor, actionStrategy);
                 }
             }
         }
@@ -329,6 +345,11 @@ namespace ACESim
 
         StatCollector[] UtilityCalculations;
 
+        public unsafe class BytePointerContainer
+        {
+            public byte* bytes;
+        }
+
         private void GenerateReports_Parallel(GamePlayer player, GameInputs inputs, GameProgress startingProgress, ActionStrategies actionStrategy)
         {
             UtilityCalculations = new StatCollector[NumNonChancePlayers];
@@ -338,10 +359,17 @@ namespace ACESim
             var resultsBuffer = new BufferBlock<Tuple<GameProgress, double>>(new DataflowBlockOptions { BoundedCapacity = 10000 });
             var consumer = ProcessCompletedGameProgresses(resultsBuffer);
             // play each path and then asynchronously consume the result
-            ProcessPossiblePaths(GameHistoryTree, new List<byte>(), 1.0, async(NWayTreeStorage<object> leafNode, List <byte> actions, double probability) =>
+            BytePointerContainer container;
+            unsafe
+            {
+                byte* path = stackalloc byte[GameHistory.MaxNumActions];
+                container = new BytePointerContainer() { bytes = path };
+                // we need to use the container because we can't use byte* unsafe code in async
+            }
+            ProcessPossiblePaths(GameHistoryTree, container, 1.0, async(NWayTreeStorage<object> leafNode, BytePointerContainer actions, double probability) =>
                 {
                     GameProgress progress = startingProgress.DeepCopy();
-                    player.PlayPath(actions.GetEnumerator(), progress, inputs);
+                    player.PlayPath(actions, progress, inputs);
                     // do the simple aggregation of utilities. note that this is different from the value returned by vanilla, since that uses regret matching, instead of average strategies.
                     double[] utilities = (double[]) leafNode.StoredValue;
                     for (int p = 0; p < NumNonChancePlayers; p++)
