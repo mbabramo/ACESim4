@@ -136,7 +136,7 @@ namespace ACESim
                 actionToChoose = CurrentPlayerStrategy.ChooseAction(Progress.GameHistory.GetPlayerInformation(CurrentPlayerNumber), GetNextRandomNumber);
             else
             { // play according to a preset plan
-                bool anotherActionPlanned = Progress.ActionsToPlayNext();
+                bool anotherActionPlanned = Progress.ActionsToPlay_MoveNext();
                 if (anotherActionPlanned)
                     actionToChoose = Progress.CurrentActionToPlay;
                 else

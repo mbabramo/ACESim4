@@ -32,8 +32,10 @@ namespace ACESim
             ActionsToPlayIndex = -1;
         }
         public byte CurrentActionToPlay => *(ActionsToPlay + ActionsToPlayIndex);
-        public bool ActionsToPlayNext()
+        public bool ActionsToPlay_MoveNext()
         {
+            if (CurrentActionToPlay == 255)
+                return false;
             ActionsToPlayIndex++;
             return CurrentActionToPlay != 255;
         }
