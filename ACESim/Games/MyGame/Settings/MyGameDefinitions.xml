@@ -8,11 +8,11 @@
                NumSignals: 6; 
                NumOffers: 6; 
                PNoiseStdev: 0.0; DNoiseStdev: 0.0; 
-               PTrialCosts: 0.0; DTrialCosts: 0.0; 
+               PTrialCosts: 0.05; DTrialCosts: 0.05; 
                PerPartyBargainingRoundCosts: 0.05;
                SubsequentOffersAreDeltas: true; DeltaStartingValue: 0.01; MaxDelta: 0.25;
                NumBargainingRounds: 1;
-               BargainingRound1Simultaneous: true; BargainingRound1PGoesFirstIfNotSimultaneous: true;
+               BargainingRound1Simultaneous: false; BargainingRound1PGoesFirstIfNotSimultaneous: true;
                BargainingRound2Simultaneous: true; BargainingRound2PGoesFirstIfNotSimultaneous: false;
                BargainingRound3Simultaneous: false; BargainingRound3PGoesFirstIfNotSimultaneous: true;
                BargainingRound4Simultaneous: false; BargainingRound4PGoesFirstIfNotSimultaneous: false;
