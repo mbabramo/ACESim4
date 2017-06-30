@@ -426,7 +426,7 @@ namespace ACESim
             }
         }
 
-        private unsafe void GetInitialPiValues(double *initialPiValues)
+        private unsafe void GetInitialPiValues(double* initialPiValues)
         {
             for (byte p = 0; p < NumNonChancePlayers; p++)
                 initialPiValues[p] = 1.0;
