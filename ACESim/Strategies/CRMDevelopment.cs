@@ -374,7 +374,7 @@ namespace ACESim
                 // do the simple aggregation of utilities. note that this is different from the value returned by vanilla, since that uses regret matching, instead of average strategies.
                 double[] utilities = (double[])leafNode.StoredValue;
                 for (int p = 0; p < NumNonChancePlayers; p++)
-                    UtilityCalculations[p].Add(utilities[p], probability); // important: weight by probability
+                    UtilityCalculations[p].Add(utilities[p]); // DEBUG: weight by probability?
                                                                            // consume the result for reports
                 resultsBuffer.SendAsync(new Tuple<GameProgress, double>(progress, probability));
             };
