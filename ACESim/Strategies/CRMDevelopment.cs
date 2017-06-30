@@ -627,7 +627,7 @@ namespace ACESim
         #region Vanilla CRM
 
         int VanillaCRMIteration; // controlled in SolveVanillaCRM
-        bool TraceVanillaCRM = false;
+        bool TraceVanillaCRM = true;
 
         /// <summary>
         /// Performs an iteration of vanilla counterfactual regret minimization.
@@ -712,6 +712,7 @@ namespace ACESim
                     informationSet.IncrementCumulativeStrategy(action, pi * actionProbabilities[action - 1]);
                     if (TraceVanillaCRM)
                     {
+                        TabbedText.WriteLine($"PiValues {piValues[0]} {piValues[1]}");
                         TabbedText.WriteLine($"Regrets: Action {action} regret {regret} prob-adjust {inversePi * regret} new regret {informationSet.GetCumulativeRegret(action)} strategy inc {pi * actionProbabilities[action - 1]} new cum strategy {informationSet.GetCumulativeStrategy(action)}");
                     }
                 }
