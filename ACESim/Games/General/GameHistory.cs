@@ -88,32 +88,23 @@ namespace ACESim
 
         public unsafe byte* GetActions()
         {
-            int offset = 2;
-            byte* actions = stackalloc byte[MaxNumActions];
-            int d = 0;
-            if (LastIndexAddedToHistory != 0)
-                for (short i = 0; i < LastIndexAddedToHistory; i++)
-                {
-                    if (i % History_NumPiecesOfInformation == offset)
-                        actions[d++] = GetHistoryIndex(i);
-                }
-            actions[d] = 255;
-            return actions;
+            return GetItems(History_Action_Offset);
         }
 
         public unsafe byte* GetNumPossibleActions()
         {
-            int offset = 3;
+            return GetItems(History_NumPossibleActions_Offset);
+        }
+
+        private unsafe byte* GetItems(int offset)
+        {
+            byte* items = stackalloc byte[MaxNumActions];
             int d = 0;
-            byte* actions = stackalloc byte[MaxNumActions];
             if (LastIndexAddedToHistory != 0)
-                for (short i = 0; i < LastIndexAddedToHistory; i++)
-                {
-                    if (i % History_NumPiecesOfInformation == offset)
-                        actions[d++] = GetHistoryIndex(i);
-                }
-            actions[d] = 255;
-            return actions;
+                for (short i = 0; i < LastIndexAddedToHistory; i += History_NumPiecesOfInformation)
+                    items[d++] = GetHistoryIndex(i + offset);
+            items[d] = 255;
+            return items;
         }
 
         private byte GetHistoryIndex(int i)
@@ -195,7 +186,10 @@ namespace ACESim
         }
 
         /// <summary>
-        /// When called on a complete game, this returns the next decision path to take. For example, if there are three decisions with three actions each, then after (1, 1, 1), it would return (1, 1, 2), then (1, 1, 3), then (1, 2). If called on (3, 3, 3), it will throw an Exception.
+        /// When called on a complete game, this returns the next decision path to take. 
+        /// For example, if there are three decisions with three actions each, then after (1, 1, 1), it would return (1, 1, 2), then (1, 1, 3), then (1, 2). 
+        /// Note that in this example there may be further decisions after (1, 2). 
+        /// If called on (3, 3, 3), it will throw an Exception.
         /// </summary>
         public unsafe byte* GetNextDecisionPath(GameDefinition gameDefinition)
         {
@@ -208,13 +202,14 @@ namespace ACESim
             byte* currentActions = GetActions();
             while (indexInNewDecisionPath <= lastDecisionWithAnotherAction)
             {
-                bool another = currentActions[indexInCurrentActions++] != 255;
+                bool another = currentActions[indexInCurrentActions] != 255;
                 if (!another)
                     throw new Exception("Internal error. Expected another decision to exist.");
                 if (indexInNewDecisionPath == lastDecisionWithAnotherAction)
                     nextDecisionPath[indexInNewDecisionPath] = (byte)(currentActions[indexInCurrentActions] + (byte)1); // this is the decision where we need to try the next path
                 else
                     nextDecisionPath[indexInNewDecisionPath] = currentActions[indexInCurrentActions]; // we're still on the same path
+                indexInCurrentActions++;
                 indexInNewDecisionPath++;
             }
             nextDecisionPath[indexInNewDecisionPath] = 255;

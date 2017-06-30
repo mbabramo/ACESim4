@@ -156,7 +156,8 @@ namespace ACESim
         {
             Game game = GameFactory.CreateNewGame();
             game.PlaySetup(bestStrategies, startingProgress, gameInputsToUse, gameDefinition, false);
-            return game.PlayPath(actionsToPlay);
+            byte* returnVal = game.PlayPath(actionsToPlay);
+            return returnVal;
         }
 
 
