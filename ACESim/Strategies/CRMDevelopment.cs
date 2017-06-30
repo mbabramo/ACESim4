@@ -281,14 +281,19 @@ namespace ACESim
             RegretMatchingWithPruning
         }
 
-        public unsafe void ProcessPossiblePaths(NWayTreeStorage<object> history, BytePointerContainer historySoFar, double probability, Action<NWayTreeStorage<object>, BytePointerContainer, double> processor, ActionStrategies actionStrategy)
+        public void ProcessPossiblePaths(NWayTreeStorage<object> history, List<byte> historySoFar, double probability, Action<NWayTreeStorage<object>, List<byte>, double> leafProcessor, ActionStrategies actionStrategy)
         {
             // Note that this method is different from GamePlayer.PlayAllPaths, because it relies on the history storage, rather than needing to play the game to discover what the next paths are.
             if (history.IsLeaf())
             {
-                processor(history, historySoFar, probability);
+                leafProcessor(history, historySoFar, probability);
                 return;
             }
+            ProcessPossiblePaths_Helper(history, historySoFar, probability, leafProcessor, actionStrategy);
+        }
+
+        private unsafe void ProcessPossiblePaths_Helper(NWayTreeStorage<object> history, List<byte> historySoFar, double probability, Action<NWayTreeStorage<object>, List<byte>, double> leafProcessor, ActionStrategies actionStrategy)
+        {
             double* probabilities = stackalloc double[MaxPossibleActions];
             byte numPossibleActions;
             if (NodeIsChanceNode(history))
@@ -305,7 +310,7 @@ namespace ACESim
                 var decision = GameDefinition.DecisionsExecutionOrder[nodeTally.DecisionNum];
                 numPossibleActions = decision.NumPossibleActions;
                 if (decision.AlwaysDoAction != null)
-                    SetProbabilitiesToAlwaysDoParticularAction(numPossibleActions, probabilities, (byte) decision.AlwaysDoAction);
+                    SetProbabilitiesToAlwaysDoParticularAction(numPossibleActions, probabilities, (byte)decision.AlwaysDoAction);
                 else if (actionStrategy == ActionStrategies.RegretMatching)
                     nodeTally.GetRegretMatchingProbabilities(probabilities);
                 else if (actionStrategy == ActionStrategies.RegretMatchingWithPruning)
@@ -315,20 +320,17 @@ namespace ACESim
                 else
                     throw new NotImplementedException();
             }
-            for (byte action = 1; action <= numPossibleActions; action++)
+            Parallelizer.GoByte(EvolutionSettings.ParallelOptimization, 2, 1, (byte) (numPossibleActions + 1), (action) =>
             {
                 if (probabilities[action - 1] > 0)
                 {
-                    byte* nextHistory = stackalloc byte[GameHistory.MaxLength];
-                    int d = 0;
-                    while (historySoFar.bytes[d] != 255)
-                        nextHistory[d++] = historySoFar.bytes[d];
-                    nextHistory[d++] = action;
-                    nextHistory[d] = 255;
-                    historySoFar.bytes = nextHistory;
-                    ProcessPossiblePaths(GetSubsequentHistory(history, action), historySoFar, probability * probabilities[action - 1], processor, actionStrategy);
+                    List<byte> nextHistory = new List<byte>();
+                    foreach (byte b in historySoFar)
+                        nextHistory.Add(b);
+                    nextHistory.Add(action);
+                    ProcessPossiblePaths(GetSubsequentHistory(history, action), nextHistory, probability * probabilities[action - 1], leafProcessor, actionStrategy);
                 }
-            }
+            });
         }
 
         SimpleReport[] ReportsBeingGenerated = null;
@@ -365,26 +367,18 @@ namespace ACESim
             var resultsBuffer = new BufferBlock<Tuple<GameProgress, double>>(new DataflowBlockOptions { BoundedCapacity = 10000 });
             var consumer = ProcessCompletedGameProgresses(resultsBuffer);
             // play each path and then asynchronously consume the result
-            BytePointerContainer container;
-            unsafe
+            void leafProcessor(NWayTreeStorage<object> leafNode, List<byte> actions, double probability) 
             {
-                byte* path = stackalloc byte[GameHistory.MaxNumActions];
-                container = new BytePointerContainer() { bytes = path };
-                // we need to use the container because we can't use byte* unsafe code in async
-            }
-            ProcessPossiblePaths(GameHistoryTree, container, 1.0, async(NWayTreeStorage<object> leafNode, BytePointerContainer actions, double probability) =>
-                {
-                    GameProgress progress = startingProgress.DeepCopy();
-                    player.PlayPath(actions, progress, inputs);
-                    // do the simple aggregation of utilities. note that this is different from the value returned by vanilla, since that uses regret matching, instead of average strategies.
-                    double[] utilities = (double[]) leafNode.StoredValue;
-                    for (int p = 0; p < NumNonChancePlayers; p++)
-                        UtilityCalculations[p].Add(utilities[p], probability); // important: weight by probability
-                    // consume the result for reports
-                    await resultsBuffer.SendAsync(new Tuple<GameProgress, double>(progress, probability));
-                },
-                actionStrategy
-            );
+                GameProgress progress = startingProgress.DeepCopy();
+                player.PlayPath(actions, progress, inputs);
+                // do the simple aggregation of utilities. note that this is different from the value returned by vanilla, since that uses regret matching, instead of average strategies.
+                double[] utilities = (double[])leafNode.StoredValue;
+                for (int p = 0; p < NumNonChancePlayers; p++)
+                    UtilityCalculations[p].Add(utilities[p], probability); // important: weight by probability
+                                                                           // consume the result for reports
+                resultsBuffer.SendAsync(new Tuple<GameProgress, double>(progress, probability));
+            };
+            ProcessPossiblePaths(GameHistoryTree, new List<byte>(), 1.0, leafProcessor, actionStrategy);
             resultsBuffer.Complete(); // tell consumer nothing more to be produced
             consumer.Wait(); // wait until all have been processed
         }
@@ -743,7 +737,7 @@ namespace ACESim
             if (equalProbabilities) // can set next probabilities once for all actions
                 equalProbabilityNextPiValues = GetNextPiValues(piValues, nonChancePlayerIndex, chanceNodeSettings.GetActionProbability(1), true);
             double expectedValue = 0;
-            Parallelizer.GoByte(EvolutionSettings.ParallelOptimization && false /* DEBUG */, 2 /* TODO: Make this an evolution setting */, 1, (byte)(numPossibleActions + 1),
+            Parallelizer.GoByte(EvolutionSettings.ParallelOptimization, 2 /* TODO: Make this an evolution setting */, 1, (byte)(numPossibleActions + 1),
                 action =>
                 {
                     // to do: use parallelizer or something like it for byte. But make sure that it will work at multiple tree levels.
