@@ -656,8 +656,10 @@ namespace ACESim
             }
         }
 
+        int DEBUG = 0;
         private unsafe double VanillaCRM_DecisionNode(NWayTreeStorage<object> history, byte nonChancePlayerIndex, double* piValues, bool usePruning)
         {
+            DEBUG++;
             double* nextPiValues = stackalloc double[MaxNumPlayers];
             var informationSet = GetInformationSetNodeTally(history);
             byte decisionNum = informationSet.DecisionNum;
