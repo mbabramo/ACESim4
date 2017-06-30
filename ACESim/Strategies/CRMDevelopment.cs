@@ -138,6 +138,7 @@ namespace ACESim
                                 () =>
                                 {
                                     CRMInformationSetNodeTally nodeInfo = new CRMInformationSetNodeTally(informationSetHistory.DecisionIndex, playerInfo.NonChancePlayerIndex, decision.NumPossibleActions);
+                                    TabbedText.WriteLine($"DEBUG: Information set number: {nodeInfo.InformationSetNumber}");
                                     return nodeInfo;
                                 }
                                 );
