@@ -137,6 +137,7 @@ namespace ACESim
         public double GetPositiveCumulativeRegret(int action)
         {
             double cumulativeRegret = NodeInformation[cumulativeRegretDimension, action - 1];
+            TabbedText.WriteLine($"PositiveCumulativeRegrets for action {action}: {cumulativeRegret}"); // DEBUG
             if (cumulativeRegret > 0)
                 return cumulativeRegret;
             return 0;

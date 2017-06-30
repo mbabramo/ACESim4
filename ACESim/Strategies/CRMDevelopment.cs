@@ -412,9 +412,8 @@ namespace ACESim
             return product;
         }
 
-        private unsafe double* GetNextPiValues(double* currentPiValues, byte nonChancePlayerIndex, double probabilityToMultiplyBy, bool changeOtherPlayers)
+        private unsafe void GetNextPiValues(double* currentPiValues, byte nonChancePlayerIndex, double probabilityToMultiplyBy, bool changeOtherPlayers, double* nextPiValues)
         {
-            double* nextPiValues = stackalloc double[MaxNumPlayers];
             for (byte p = 0; p < NumNonChancePlayers; p++)
             {
                 double currentPiValue = currentPiValues[p];
@@ -425,15 +424,12 @@ namespace ACESim
                     nextPiValue = changeOtherPlayers ? currentPiValue * probabilityToMultiplyBy : currentPiValue;
                 nextPiValues[p] = nextPiValue;
             }
-            return nextPiValues;
         }
 
-        private unsafe double* GetInitialPiValues()
+        private unsafe void GetInitialPiValues(double *initialPiValues)
         {
-            double* pi = stackalloc double[MaxNumPlayers];
             for (byte p = 0; p < NumNonChancePlayers; p++)
-                pi[p] = 1.0;
-            return pi;
+                initialPiValues[p] = 1.0;
         }
 
         #endregion
@@ -662,7 +658,7 @@ namespace ACESim
 
         private unsafe double VanillaCRM_DecisionNode(NWayTreeStorage<object> history, byte nonChancePlayerIndex, double* piValues, bool usePruning)
         {
-            double* nextPiValues;
+            double* nextPiValues = stackalloc double[MaxNumPlayers];
             var informationSet = GetInformationSetNodeTally(history);
             byte decisionNum = informationSet.DecisionNum;
             byte playerMakingDecision = informationSet.NonChancePlayerIndex;
@@ -681,17 +677,13 @@ namespace ACESim
             for (byte action = 1; action <= numPossibleActions; action++)
             {
                 double probabilityOfAction = actionProbabilities[action - 1];
-                nextPiValues = GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false); // reduce probability associated with player being optimized, without changing probabilities for other players
+                GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false, nextPiValues); // reduce probability associated with player being optimized, without changing probabilities for other players
                 if (TraceVanillaCRM)
                 {
                     TabbedText.WriteLine($"decisionNum {decisionNum} optimizing player {nonChancePlayerIndex}  own decision {playerMakingDecision == nonChancePlayerIndex} action {action} probability {probabilityOfAction} ...");
                     TabbedText.Tabs++;
                 }
                 NWayTreeStorage<object> nextHistory = GetSubsequentHistory(history, action);
-                if (nextHistory == null)
-                {
-                    var DEBUG = 0;
-                }
                 expectedValueOfAction[action - 1] = VanillaCRM(nextHistory, nonChancePlayerIndex, nextPiValues, usePruning);
                 expectedValue += probabilityOfAction * expectedValueOfAction[action - 1];
 
@@ -731,12 +723,12 @@ namespace ACESim
 
         private unsafe double VanillaCRM_ChanceNode(NWayTreeStorage<object> history, byte nonChancePlayerIndex, double* piValues, bool usePruning)
         {
+            double* equalProbabilityNextPiValues = stackalloc double[MaxNumPlayers];
             CRMChanceNodeSettings chanceNodeSettings = (CRMChanceNodeSettings)history.StoredValue;
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionNum);
-            double* equalProbabilityNextPiValues = null;
             bool equalProbabilities = chanceNodeSettings.AllProbabilitiesEqual();
             if (equalProbabilities) // can set next probabilities once for all actions
-                equalProbabilityNextPiValues = GetNextPiValues(piValues, nonChancePlayerIndex, chanceNodeSettings.GetActionProbability(1), true);
+                GetNextPiValues(piValues, nonChancePlayerIndex, chanceNodeSettings.GetActionProbability(1), true, equalProbabilityNextPiValues);
             double expectedValue = 0;
             Parallelizer.GoByte(EvolutionSettings.ParallelOptimization, 2 /* TODO: Make this an evolution setting */, 1, (byte)(numPossibleActions + 1),
                 action =>
@@ -751,11 +743,20 @@ namespace ACESim
 
         private unsafe double VanillaCRM_ChanceNode_NextAction(NWayTreeStorage<object> history, byte nonChancePlayerIndex, double* piValues, CRMChanceNodeSettings chanceNodeSettings, double* equalProbabilityNextPiValues, double expectedValue, byte action, bool usePruning)
         {
-            double* nextPiValues;
+            double* nextPiValues = stackalloc double[MaxNumPlayers];
             if (equalProbabilityNextPiValues != null)
-                nextPiValues = equalProbabilityNextPiValues;
+            {
+                double* locTarget = nextPiValues;
+                double* locSource = equalProbabilityNextPiValues;
+                for (int i = 0; i < MaxNumPlayers; i++)
+                {
+                    (*locTarget) = (*locSource);
+                    locTarget++;
+                    locSource++;
+                }
+            }
             else // must set probability separately for each action we take
-                nextPiValues = GetNextPiValues(piValues, nonChancePlayerIndex, chanceNodeSettings.GetActionProbability(action), true);
+                GetNextPiValues(piValues, nonChancePlayerIndex, chanceNodeSettings.GetActionProbability(action), true, nextPiValues);
             double actionProbability = chanceNodeSettings.GetActionProbability(action);
             if (TraceVanillaCRM)
             {
@@ -789,7 +790,11 @@ namespace ACESim
                 bool usePruning = iteration >= 100;
                 ActionStrategies actionStrategy = usePruning ? ActionStrategies.RegretMatchingWithPruning : ActionStrategies.RegretMatching;
                 for (byte p = 0; p < NumNonChancePlayers; p++)
-                    lastUtilities[p] = VanillaCRM(GameHistoryTree, p, GetInitialPiValues(), usePruning);
+                {
+                    double* initialPiValues = stackalloc double[MaxNumPlayers];
+                    GetInitialPiValues(initialPiValues);
+                    lastUtilities[p] = VanillaCRM(GameHistoryTree, p, initialPiValues, usePruning);
+                }
                 if (reportEveryNIterations != null && iteration % reportEveryNIterations == 0)
                 {
                     Debug.WriteLine("");
