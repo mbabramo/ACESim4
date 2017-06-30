@@ -748,7 +748,7 @@ namespace ACESim
             {
                 double* locTarget = nextPiValues;
                 double* locSource = equalProbabilityNextPiValues;
-                for (int i = 0; i < MaxNumPlayers; i++)
+                for (int i = 0; i < NumNonChancePlayers + 1; i++)
                 {
                     (*locTarget) = (*locSource);
                     locTarget++;
