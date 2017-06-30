@@ -112,6 +112,7 @@ namespace ACESim
 
         public IEnumerable<GameProgress> PlayAllPaths(GameInputs gameInputsToUse)
         {
+            int numProcessed = 0;
             // This method plays all game paths (without having any advance knowledge of what those game paths are). 
             GameProgress startingProgress = GameFactory.CreateNewGameProgress(new IterationID(1)); // iteration doesn't matter, since we're playing a particular path and thus ignoring random numbers
             IEnumerable<byte> path = new List<byte> { };
@@ -119,6 +120,7 @@ namespace ACESim
             {
                 var progressToUse = startingProgress.DeepCopy();
                 IEnumerable<byte> next = PlayPath(path, progressToUse, gameInputsToUse);
+                numProcessed++;
                 //var thePathEnumerated = next?.ToList();
                 //if (thePathEnumerated != null)
                 //    Debug.WriteLine($"{String.Join(",", thePathEnumerated)}");
@@ -132,13 +134,16 @@ namespace ACESim
 
         public unsafe IEnumerable<byte> PlayPath(IEnumerable<byte> actionsToPlay, GameProgress startingProgress, GameInputs gameInputsToUse)
         {
-            byte* actionsToPlay2 = stackalloc byte[GameHistory.MaxNumActions];
+            byte* actionsToPlay_AsPointer = stackalloc byte[GameHistory.MaxNumActions];
             int d = 0;
             foreach (byte b in actionsToPlay)
-                actionsToPlay2[d++] = b;
-            actionsToPlay2[d] = 255;
-            byte* r = PlayPath(actionsToPlay2, startingProgress, gameInputsToUse);
-            List<byte> r2 = ListExtensions.GetPointerAsList(r);
+                actionsToPlay_AsPointer[d++] = b;
+            actionsToPlay_AsPointer[d] = 255;
+            byte* nextActionsToPlay = stackalloc byte[GameHistory.MaxNumActions];
+            PlayPath(actionsToPlay_AsPointer, startingProgress, gameInputsToUse, ref nextActionsToPlay);
+            if (nextActionsToPlay == null)
+                return new List<byte>();
+            List<byte> r2 = ListExtensions.GetPointerAsList(nextActionsToPlay);
             return r2.AsEnumerable();
         }
 
@@ -148,16 +153,16 @@ namespace ACESim
         {
             unsafe
             {
-                PlayPath(actionsToPlay.bytes, startingProgress, gameInputsToUse);
+                byte* nextActionsToPlay = stackalloc byte[GameHistory.MaxNumActions];
+                PlayPath(actionsToPlay.bytes, startingProgress, gameInputsToUse, ref nextActionsToPlay);
             }
         }
 
-        public unsafe byte* PlayPath(byte* actionsToPlay, GameProgress startingProgress, GameInputs gameInputsToUse)
+        public unsafe void PlayPath(byte* actionsToPlay, GameProgress startingProgress, GameInputs gameInputsToUse, ref byte* nextActionsToPlay)
         {
             Game game = GameFactory.CreateNewGame();
             game.PlaySetup(bestStrategies, startingProgress, gameInputsToUse, gameDefinition, false);
-            byte* returnVal = game.PlayPath(actionsToPlay);
-            return returnVal;
+            game.PlayPath(actionsToPlay, ref nextActionsToPlay);
         }
 
 

@@ -73,38 +73,37 @@ namespace ACESim
             }
         }
 
-        private InformationSetHistory GetInformationSetHistory(short i)
+        public InformationSetHistory GetInformationSetHistory(short i)
         {
-            return new InformationSetHistory()
+            var informationSetHistory = new InformationSetHistory()
             {
                 PlayerMakingDecision = GetHistoryIndex(i + History_PlayerNumber_Offset),
                 DecisionIndex = GetHistoryIndex(i + History_DecisionNumber_Offset),
-                InformationSet = GetPlayerInformation(GetHistoryIndex(i + History_PlayerNumber_Offset), GetHistoryIndex(i + History_DecisionNumber_Offset)),
                 ActionChosen = GetHistoryIndex(i + History_Action_Offset),
                 NumPossibleActions = GetHistoryIndex(i + History_NumPossibleActions_Offset),
                 IsTerminalAction = GetHistoryIndex(i + History_NumPiecesOfInformation) == Complete
             };
+            GetPlayerInformation(GetHistoryIndex(i + History_PlayerNumber_Offset), GetHistoryIndex(i + History_DecisionNumber_Offset), informationSetHistory.InformationSet);
+            return informationSetHistory;
         }
 
-        public unsafe byte* GetActions()
+        public unsafe void GetActions(byte* actions)
         {
-            return GetItems(History_Action_Offset);
+            GetItems(History_Action_Offset, actions);
         }
 
-        public unsafe byte* GetNumPossibleActions()
+        public unsafe void GetNumPossibleActions(byte* numPossibleActions)
         {
-            return GetItems(History_NumPossibleActions_Offset);
+            GetItems(History_NumPossibleActions_Offset, numPossibleActions);
         }
 
-        private unsafe byte* GetItems(int offset)
+        private unsafe void GetItems(int offset, byte* items)
         {
-            byte* items = stackalloc byte[MaxNumActions];
             int d = 0;
             if (LastIndexAddedToHistory != 0)
                 for (short i = 0; i < LastIndexAddedToHistory; i += History_NumPiecesOfInformation)
                     items[d++] = GetHistoryIndex(i + offset);
             items[d] = 255;
-            return items;
         }
 
         private byte GetHistoryIndex(int i)
@@ -150,10 +149,9 @@ namespace ACESim
 
         }
 
-        public unsafe byte* GetPlayerInformation(int playerNumber, byte? beforeDecisionIndex = null)
+        public unsafe void GetPlayerInformation(int playerNumber, byte? beforeDecisionIndex, byte* playerInfoBuffer)
         {
             int d = 0;
-            byte* playerInfo = stackalloc byte[MaxNumActions];
             if (LastIndexAddedToInformationSets > 0)
                 for (byte i = 0; i < LastIndexAddedToInformationSets; i += InformationSet_NumPiecesOfInformation)
                 {
@@ -162,13 +160,12 @@ namespace ACESim
                     if (playerNumberInInformationSet == playerNumber)
                     {
                         if (beforeDecisionIndex == null || decisionIndex < beforeDecisionIndex)
-                            playerInfo[d++] = informationIndex;
+                            playerInfoBuffer[d++] = informationIndex;
                         else
                             break;
                     }
                 }
-            playerInfo[d] = 255;
-            return playerInfo;
+            playerInfoBuffer[d] = 255;
         }
 
         public (byte playerNumberInInformationSet, byte decisionIndex, byte informationIndex) GetInformationSetsInfo(int i)
@@ -191,15 +188,15 @@ namespace ACESim
         /// Note that in this example there may be further decisions after (1, 2). 
         /// If called on (3, 3, 3), it will throw an Exception.
         /// </summary>
-        public unsafe byte* GetNextDecisionPath(GameDefinition gameDefinition)
+        public unsafe void GetNextDecisionPath(GameDefinition gameDefinition, byte* nextDecisionPath)
         {
             if (!IsComplete())
                 throw new Exception("Can get next path to try only on a completed game.");
-            byte* nextDecisionPath = stackalloc byte[MaxNumActions];
             // We need to find the last decision made where there was another action that could have been taken.
             int? lastDecisionWithAnotherAction = GetLastDecisionWithAnotherAction(gameDefinition);
             int indexInNewDecisionPath = 0, indexInCurrentActions = 0;
-            byte* currentActions = GetActions();
+            byte* currentActions = stackalloc byte[MaxNumActions];
+            GetActions(currentActions);
             while (indexInNewDecisionPath <= lastDecisionWithAnotherAction)
             {
                 bool another = currentActions[indexInCurrentActions] != 255;
@@ -213,7 +210,6 @@ namespace ACESim
                 indexInNewDecisionPath++;
             }
             nextDecisionPath[indexInNewDecisionPath] = 255;
-            return nextDecisionPath;
         }
 
         private int? GetLastDecisionWithAnotherAction(GameDefinition gameDefinition)

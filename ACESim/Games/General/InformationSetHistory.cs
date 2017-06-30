@@ -11,7 +11,7 @@ namespace ACESim
     {
         public byte PlayerMakingDecision;
         public byte DecisionIndex;
-        public byte* InformationSet;
+        public fixed byte InformationSet[GameHistory.MaxNumActions];
         public byte ActionChosen;
         public byte NumPossibleActions;
         public bool IsTerminalAction;

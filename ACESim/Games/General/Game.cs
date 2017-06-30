@@ -133,7 +133,11 @@ namespace ACESim
         {
             byte actionToChoose;
             if (Progress.ActionsToPlay == null)
-                actionToChoose = CurrentPlayerStrategy.ChooseAction(Progress.GameHistory.GetPlayerInformation(CurrentPlayerNumber), GetNextRandomNumber);
+            {
+                byte* informationSet = stackalloc byte[GameHistory.MaxNumActions];
+                Progress.GameHistory.GetPlayerInformation(CurrentPlayerNumber, null, informationSet);
+                actionToChoose = CurrentPlayerStrategy.ChooseAction(informationSet, GetNextRandomNumber);
+            }
             else
             { // play according to a preset plan
                 bool anotherActionPlanned = Progress.ActionsToPlay_MoveNext();
@@ -200,14 +204,15 @@ namespace ACESim
         /// </summary>
         /// <param name="actionsToPlay"></param>
         /// <returns>The next path of decisions to play.</returns>
-        public unsafe byte* PlayPath(byte* actionsToPlay)
+        public unsafe void PlayPath(byte* actionsToPlay, ref byte* nextPath)
         {
             Progress.SetActionToPlay(actionsToPlay);
             Progress.IsFinalGamePath = true;
             PlayUntilComplete(true);
             if (Progress.IsFinalGamePath)
-                return null;
-            return Progress.GameHistory.GetNextDecisionPath(GameDefinition);
+                nextPath = null;
+            else
+                Progress.GameHistory.GetNextDecisionPath(GameDefinition, nextPath);
         }
 
         /// <summary>

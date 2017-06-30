@@ -88,13 +88,15 @@ namespace ACESim
             }
 
             int numPlayed = 0;
+            byte* actionsEnumerator = stackalloc byte[GameHistory.MaxNumActions];
+            byte* numPossibleActionsEnumerator = stackalloc byte[GameHistory.MaxNumActions];
             foreach (GameProgress progress in player.PlayAllPaths(inputs))
             {
                 numPlayed++;
 
                 // First, add the utilities at the end of the tree for this path.
-                byte* actionsEnumerator = progress.GameHistory.GetActions();
-                byte* numPossibleActionsEnumerator = progress.GameHistory.GetNumPossibleActions();
+                progress.GameHistory.GetActions(actionsEnumerator);
+                progress.GameHistory.GetNumPossibleActions(numPossibleActionsEnumerator);
                 GameHistoryTree.SetValue(actionsEnumerator, true, progress.GetNonChancePlayerUtilities());
 
                 NWayTreeStorage<object> walkHistoryTree = GameHistoryTree;
@@ -102,6 +104,7 @@ namespace ACESim
                 // Go through each non-chance decision point on this path and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
                 foreach (var informationSetHistory in progress.GameHistory.GetInformationSetHistoryItems())
                 {
+                    var informationSetHistoryCopy = informationSetHistory;
                     var decision = GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
                     var playerInfo = GameDefinition.Players[informationSetHistory.PlayerMakingDecision];
                     if (playerInfo.PlayerIsChance)
@@ -130,7 +133,7 @@ namespace ACESim
                         {
                             // create the information set node if necessary, with initialized tally values
                             var informationSetNode = playersStrategy.SetInformationSetTreeValueIfNotSet(
-                                informationSetHistory.InformationSet,
+                                informationSetHistoryCopy.InformationSet,
                                 isNecessarilyLast,
                                 () =>
                                 {
@@ -166,11 +169,12 @@ namespace ACESim
             double probabilityOfPrint = 0;
             if (probabilityOfPrint == 0)
                 return;
+            byte* path = stackalloc byte[GameHistory.MaxNumActions];
             foreach (var progress in player.PlayAllPaths(inputs))
             {
                 if (RandomGenerator.NextDouble() < probabilityOfPrint)
                 {
-                    var path = progress.GameHistory.GetActions();
+                    progress.GameHistory.GetActions(path);
                     List<byte> path2 = new List<byte>();
                     while (*path != 255)
                     {
@@ -192,6 +196,7 @@ namespace ACESim
             // Go through each non-chance decision point 
             foreach (var informationSetHistory in progress.GameHistory.GetInformationSetHistoryItems())
             {
+                var informationSetHistoryCopy = informationSetHistory;
                 var decision = GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
                 TabbedText.WriteLine($"Decision {decision.Name} for player {GameDefinition.Players[decision.PlayerNumber].PlayerName}");
                 TabbedText.Tabs++;
@@ -201,10 +206,11 @@ namespace ACESim
                     var playersStrategy = GetPlayerStrategyFromOverallPlayerNum(informationSetHistory.PlayerMakingDecision);
                     unsafe
                     {
-                        var informationSetList = ListExtensions.GetPointerAsList(informationSetHistory.InformationSet);
+                        List<byte> informationSetList;
+                        informationSetList = ListExtensions.GetPointerAsList(informationSetHistoryCopy.InformationSet);
                         TabbedText.WriteLine($"Information set: {String.Join(",", informationSetList)}");
                         CRMInformationSetNodeTally tallyReferencedInHistory = GetInformationSetNodeTally(walkHistoryTree);
-                        CRMInformationSetNodeTally tallyStoredInInformationSet = (CRMInformationSetNodeTally)playersStrategy.GetInformationSetTreeValue(informationSetHistory.InformationSet);
+                        CRMInformationSetNodeTally tallyStoredInInformationSet = (CRMInformationSetNodeTally)playersStrategy.GetInformationSetTreeValue(informationSetHistoryCopy.InformationSet);
                         if (tallyReferencedInHistory != tallyStoredInInformationSet)
                             throw new Exception("Tally references do not match.");
                     }
@@ -687,7 +693,12 @@ namespace ACESim
                     TabbedText.WriteLine($"decisionNum {decisionNum} optimizing player {nonChancePlayerIndex}  own decision {playerMakingDecision == nonChancePlayerIndex} action {action} probability {probabilityOfAction} ...");
                     TabbedText.Tabs++;
                 }
-                expectedValueOfAction[action - 1] = VanillaCRM(GetSubsequentHistory(history, action), nonChancePlayerIndex, nextPiValues, usePruning);
+                NWayTreeStorage<object> nextHistory = GetSubsequentHistory(history, action);
+                if (nextHistory == null)
+                {
+                    var DEBUG = 0;
+                }
+                expectedValueOfAction[action - 1] = VanillaCRM(nextHistory, nonChancePlayerIndex, nextPiValues, usePruning);
                 expectedValue += probabilityOfAction * expectedValueOfAction[action - 1];
 
                 if (TraceVanillaCRM)
@@ -732,7 +743,7 @@ namespace ACESim
             if (equalProbabilities) // can set next probabilities once for all actions
                 equalProbabilityNextPiValues = GetNextPiValues(piValues, nonChancePlayerIndex, chanceNodeSettings.GetActionProbability(1), true);
             double expectedValue = 0;
-            Parallelizer.GoByte(EvolutionSettings.ParallelOptimization, 2 /* TODO: Make this an evolution setting */, 1, (byte)(numPossibleActions + 1),
+            Parallelizer.GoByte(EvolutionSettings.ParallelOptimization && false /* DEBUG */, 2 /* TODO: Make this an evolution setting */, 1, (byte)(numPossibleActions + 1),
                 action =>
                 {
                     // to do: use parallelizer or something like it for byte. But make sure that it will work at multiple tree levels.
