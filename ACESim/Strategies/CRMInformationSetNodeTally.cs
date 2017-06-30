@@ -90,7 +90,7 @@ namespace ACESim
 
         public void IncrementCumulativeRegret(int action, double amount)
         {
-            TabbedText.WriteLine($"Incrementing cumulative regret for action {action} by {amount}");
+            TabbedText.WriteLine($"Incrementing cumulative regret for action {action} by {amount} in information set {this}");
             NodeInformation[cumulativeRegretDimension, action - 1] += amount;
         }
 
