@@ -170,7 +170,10 @@ namespace ACESim
             else
             {
                 for (byte a = 1; a <= NumPossibleActions; a++)
+                {
                     probabilitiesToSet[a - 1] = GetPositiveCumulativeRegret(a) / sumPositiveCumulativeRegrets;
+                    TabbedText.WriteLine($"prob for action {a}: {probabilitiesToSet[a - 1]}");
+                }
             }
         }
 
