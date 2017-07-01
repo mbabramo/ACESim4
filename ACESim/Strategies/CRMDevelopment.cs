@@ -786,8 +786,7 @@ namespace ACESim
 
             double[] lastUtilities = new double[NumNonChancePlayers];
 
-            DateTime startTime = DateTime.Now;
-
+            Stopwatch s = new Stopwatch();
 
             for (int iteration = 0; iteration < numIterationsToRun; iteration++)
             {
@@ -799,12 +798,14 @@ namespace ACESim
                     GetInitialPiValues(initialPiValues);
                     if (TraceVanillaCRM)
                         TabbedText.WriteLine($"Iteration {iteration} Player {p}");
+                    s.Start();
                     lastUtilities[p] = VanillaCRM(GameHistoryTree, p, initialPiValues, usePruning);
+                    s.Stop();
                 }
                 if (reportEveryNIterations != null && iteration % reportEveryNIterations == 0)
                 {
                     Debug.WriteLine("");
-                    Debug.WriteLine($"Iteration {iteration} Milliseconds per iteration {((DateTime.Now - startTime).TotalMilliseconds / (double) iteration)}");
+                    Debug.WriteLine($"Iteration {iteration} Milliseconds per iteration {(s.ElapsedMilliseconds / (double) iteration)}");
                     Debug.WriteLine($"{GenerateReports(actionStrategy)}");
                     for (byte p = 0; p < NumNonChancePlayers; p++)
                     {
