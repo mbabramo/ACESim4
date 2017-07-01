@@ -90,7 +90,6 @@ namespace ACESim
 
         public void IncrementCumulativeRegret(int action, double amount)
         {
-            TabbedText.WriteLine($"Incrementing cumulative regret for action {action} by {amount} in information set {this}");
             NodeInformation[cumulativeRegretDimension, action - 1] += amount;
         }
 
@@ -139,7 +138,6 @@ namespace ACESim
         public double GetPositiveCumulativeRegret(int action)
         {
             double cumulativeRegret = NodeInformation[cumulativeRegretDimension, action - 1];
-            TabbedText.WriteLine($"PositiveCumulativeRegrets for action {action}: {cumulativeRegret}"); // DEBUG
             if (cumulativeRegret > 0)
                 return cumulativeRegret;
             return 0;
@@ -172,7 +170,6 @@ namespace ACESim
                 for (byte a = 1; a <= NumPossibleActions; a++)
                 {
                     probabilitiesToSet[a - 1] = GetPositiveCumulativeRegret(a) / sumPositiveCumulativeRegrets;
-                    TabbedText.WriteLine($"prob for action {a}: {probabilitiesToSet[a - 1]}");
                 }
             }
         }

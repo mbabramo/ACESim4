@@ -100,13 +100,11 @@ namespace ACESim
                 GameHistoryTree.SetValue(actionsEnumerator, true, progress.GetNonChancePlayerUtilities());
 
                 NWayTreeStorage<object> walkHistoryTree = GameHistoryTree;
-
-                TabbedText.WriteLine($"DEBUG: About to go through information set history");
+                
                 // Go through each non-chance decision point on this path and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
                 foreach (var informationSetHistory in progress.GameHistory.GetInformationSetHistoryItems())
                 {
                     var informationSetHistoryCopy = informationSetHistory;
-                    TabbedText.WriteLine($"DEBUG: {informationSetHistoryCopy}");
                     var decision = GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
                     var playerInfo = GameDefinition.Players[informationSetHistory.PlayerMakingDecision];
                     if (playerInfo.PlayerIsChance)
@@ -140,7 +138,6 @@ namespace ACESim
                                 () =>
                                 {
                                     CRMInformationSetNodeTally nodeInfo = new CRMInformationSetNodeTally(informationSetHistory.DecisionIndex, playerInfo.NonChancePlayerIndex, decision.NumPossibleActions);
-                                    TabbedText.WriteLine($"DEBUG: Information set number: {nodeInfo.InformationSetNumber}");
                                     return nodeInfo;
                                 }
                                 );
@@ -626,7 +623,7 @@ namespace ACESim
         #region Vanilla CRM
 
         int VanillaCRMIteration; // controlled in SolveVanillaCRM
-        bool TraceVanillaCRM = true;
+        bool TraceVanillaCRM = false;
 
         /// <summary>
         /// Performs an iteration of vanilla counterfactual regret minimization.
