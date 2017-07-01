@@ -637,7 +637,7 @@ namespace ACESim
             {
                 bool allZero = true;
                 for (int i = 0; i < NumNonChancePlayers; i++)
-                    if (*piValues != 0)
+                    if (*(piValues + i) != 0)
                     {
                         allZero = false;
                         break;
