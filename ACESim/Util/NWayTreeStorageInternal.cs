@@ -58,15 +58,15 @@ namespace ACESim
         public unsafe NWayTreeStorage<T> GetNode(byte* restOfSequence)
         {
             NWayTreeStorage<T> tree = this;
-            bool moreInSequence = *restOfSequence == 255;
+            bool moreInSequence = *restOfSequence != 255;
             while (moreInSequence)
             {
-                restOfSequence++;
                 var previous = ((NWayTreeStorageInternal<T>)tree);
                 tree = ((NWayTreeStorageInternal<T>)tree).GetBranch(*restOfSequence);
                 if (tree == null)
                     tree = previous.AddBranch(*restOfSequence, true);
-                moreInSequence = *restOfSequence == 255;
+                restOfSequence++;
+                moreInSequence = *restOfSequence != 255;
             }
             return tree;
         }

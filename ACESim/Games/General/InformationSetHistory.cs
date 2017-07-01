@@ -15,5 +15,20 @@ namespace ACESim
         public byte ActionChosen;
         public byte NumPossibleActions;
         public bool IsTerminalAction;
+
+        public override string ToString()
+        {
+            StringBuilder infoSet = new StringBuilder();
+            int i = 0;
+            fixed (byte* ptr = InformationSet)
+                while (*(ptr+i) != 255)
+                {
+                    if (i != 0)
+                        infoSet.Append(",");
+                    infoSet.Append(*(ptr + i));
+                    i++;
+                }
+            return $"Player {PlayerMakingDecision} Decision {DecisionIndex} Information {infoSet.ToString()} ActionChosen {ActionChosen} NumPossible {NumPossibleActions} IsTerminal {IsTerminalAction}";
+        }
     }
 }
