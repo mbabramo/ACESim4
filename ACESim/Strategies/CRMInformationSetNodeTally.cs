@@ -207,7 +207,7 @@ namespace ACESim
                         probabilitiesToSet[a - 1] = quotient;
                     }
             }
-            TabbedText.WriteLine($"DEBUG: {probabilitiesToSet[0]}, {probabilitiesToSet[1]}");
+            TabbedText.WriteLine($"DEBUG: {probabilitiesToSet[0]},{probabilitiesToSet[1]}");
         }
 
         public int ChooseActionWithRegretMatching(double randomSeed)

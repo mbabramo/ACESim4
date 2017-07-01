@@ -731,6 +731,8 @@ namespace ACESim
             bool equalProbabilities = chanceNodeSettings.AllProbabilitiesEqual();
             if (equalProbabilities) // can set next probabilities once for all actions
                 GetNextPiValues(piValues, nonChancePlayerIndex, chanceNodeSettings.GetActionProbability(1), true, equalProbabilityNextPiValues);
+            else
+                equalProbabilityNextPiValues = null;
             double expectedValue = 0;
             Parallelizer.GoByte(EvolutionSettings.ParallelOptimization, 2 /* TODO: Make this an evolution setting */, 1, (byte)(numPossibleActions + 1),
                 action =>
