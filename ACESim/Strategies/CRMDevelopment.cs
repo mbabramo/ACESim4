@@ -623,7 +623,7 @@ namespace ACESim
         #region Vanilla CRM
 
         int VanillaCRMIteration; // controlled in SolveVanillaCRM
-        bool TraceVanillaCRM = false;
+        bool TraceVanillaCRM = true;
 
         /// <summary>
         /// Performs an iteration of vanilla counterfactual regret minimization.
@@ -778,7 +778,7 @@ namespace ACESim
 
         public unsafe void SolveVanillaCFR()
         {
-            const int numIterationsToRun = 1000;
+            const int numIterationsToRun = 2;
 
             int? reportEveryNIterations = 1; // DEBUG
 
@@ -789,7 +789,7 @@ namespace ACESim
 
             for (int iteration = 0; iteration < numIterationsToRun; iteration++)
             {
-                bool usePruning = iteration >= 100;
+                bool usePruning = iteration >= 0; // DEBUG
                 ActionStrategies actionStrategy = usePruning ? ActionStrategies.RegretMatchingWithPruning : ActionStrategies.RegretMatching;
                 for (byte p = 0; p < NumNonChancePlayers; p++)
                 {
