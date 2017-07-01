@@ -778,9 +778,9 @@ namespace ACESim
 
         public unsafe void SolveVanillaCFR()
         {
-            const int numIterationsToRun = 10000;
+            const int numIterationsToRun = 10;
 
-            int? reportEveryNIterations = 100;
+            int? reportEveryNIterations = 1; // DEBUG
 
             double[] lastUtilities = new double[NumNonChancePlayers];
 
@@ -795,6 +795,8 @@ namespace ACESim
                 {
                     double* initialPiValues = stackalloc double[MaxNumPlayers];
                     GetInitialPiValues(initialPiValues);
+                    if (TraceVanillaCRM)
+                        TabbedText.WriteLine($"Iteration {iteration} Player {p}");
                     lastUtilities[p] = VanillaCRM(GameHistoryTree, p, initialPiValues, usePruning);
                 }
                 if (reportEveryNIterations != null && iteration % reportEveryNIterations == 0)
