@@ -11,6 +11,7 @@ using System.Reflection;
 using SeparateAppDomain;
 using System.Security;
 using System.Security.Permissions;
+using Microsoft.VisualStudio.Profiler;
 
 namespace ACESim
 {

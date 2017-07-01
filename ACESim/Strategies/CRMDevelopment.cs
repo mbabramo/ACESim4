@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
+using Microsoft.VisualStudio.Profiler;
 
 namespace ACESim
 {
@@ -88,70 +89,84 @@ namespace ACESim
             }
 
             int numPlayed = 0;
-            byte* actionsEnumerator = stackalloc byte[GameHistory.MaxNumActions];
-            byte* numPossibleActionsEnumerator = stackalloc byte[GameHistory.MaxNumActions];
+            var resultsBuffer = new BufferBlock<GameProgress>(new DataflowBlockOptions { BoundedCapacity = 1000 });
+            var consumer = ProcessInitializedGameProgress(resultsBuffer);
             foreach (GameProgress progress in player.PlayAllPaths(inputs))
             {
                 numPlayed++;
-
-                // First, add the utilities at the end of the tree for this path.
-                progress.GameHistory.GetActions(actionsEnumerator);
-                progress.GameHistory.GetNumPossibleActions(numPossibleActionsEnumerator);
-                GameHistoryTree.SetValue(actionsEnumerator, true, progress.GetNonChancePlayerUtilities());
-
-                NWayTreeStorage<object> walkHistoryTree = GameHistoryTree;
-                
-                // Go through each non-chance decision point on this path and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
-                foreach (var informationSetHistory in progress.GameHistory.GetInformationSetHistoryItems())
-                {
-                    var informationSetHistoryCopy = informationSetHistory;
-                    var decision = GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
-                    var playerInfo = GameDefinition.Players[informationSetHistory.PlayerMakingDecision];
-                    if (playerInfo.PlayerIsChance)
-                    {
-                        if (walkHistoryTree.StoredValue == null)
-                        {
-                            if (decision.UnevenChanceActions)
-                                walkHistoryTree.StoredValue = new CRMChanceNodeSettings_UnequalProbabilities()
-                                {
-                                    DecisionNum = informationSetHistory.DecisionIndex,
-                                    Probabilities = GameDefinition.GetChanceActionProbabilities(GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex].DecisionByteCode, progress) // the probabilities depend on the current state of the game
-                                }; 
-                            else
-                                walkHistoryTree.StoredValue = new CRMChanceNodeSettings_EqualProbabilities()
-                                {
-                                    DecisionNum = informationSetHistory.DecisionIndex,
-                                    EachProbability = 1.0 / (double)decision.NumPossibleActions
-                                };
-                        }
-                    }
-                    else
-                    {
-                        bool isNecessarilyLast = decision.IsAlwaysPlayersLastDecision || informationSetHistory.IsTerminalAction;
-                        var playersStrategy = GetPlayerStrategyFromOverallPlayerNum(informationSetHistory.PlayerMakingDecision);
-                        if (walkHistoryTree.StoredValue == null)
-                        {
-                            // create the information set node if necessary, with initialized tally values
-                            var informationSetNode = playersStrategy.SetInformationSetTreeValueIfNotSet(
-                                informationSetHistoryCopy.InformationSet,
-                                isNecessarilyLast,
-                                () =>
-                                {
-                                    CRMInformationSetNodeTally nodeInfo = new CRMInformationSetNodeTally(informationSetHistory.DecisionIndex, playerInfo.NonChancePlayerIndex, decision.NumPossibleActions);
-                                    return nodeInfo;
-                                }
-                                );
-                            // Now, we want to store in the game history tree a quick reference to the correct point in the information set tree.
-                            walkHistoryTree.StoredValue = informationSetNode;
-                        }
-                    }
-                    walkHistoryTree = walkHistoryTree.GetBranch(informationSetHistory.ActionChosen);
-                }
+                resultsBuffer.SendAsync(progress);
             }
+            resultsBuffer.Complete(); // tell consumer nothing more to be produced
+            consumer.Wait(); // wait until all have been processed
+            TabbedText.WriteLine($"Initialized. Total paths: {numPlayed}");
 
             PrintSameGameResults(player, inputs);
         }
 
+        async Task ProcessInitializedGameProgress(ISourceBlock<GameProgress> source)
+        {
+            while (await source.OutputAvailableAsync())
+            {
+                ProcessInitializedGameProgress(source.Receive());
+            }
+        }
+
+        unsafe void ProcessInitializedGameProgress(GameProgress progress)
+        {
+            // First, add the utilities at the end of the tree for this path.
+            byte* actionsEnumerator = stackalloc byte[GameHistory.MaxNumActions];
+            progress.GameHistory.GetActions(actionsEnumerator);
+            GameHistoryTree.SetValue(actionsEnumerator, true, progress.GetNonChancePlayerUtilities());
+
+            NWayTreeStorage<object> walkHistoryTree = GameHistoryTree;
+
+            // Go through each non-chance decision point on this path and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
+            foreach (var informationSetHistory in progress.GameHistory.GetInformationSetHistoryItems())
+            {
+                var informationSetHistoryCopy = informationSetHistory;
+                var decision = GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
+                var playerInfo = GameDefinition.Players[informationSetHistory.PlayerMakingDecision];
+                if (playerInfo.PlayerIsChance)
+                {
+                    if (walkHistoryTree.StoredValue == null)
+                    {
+                        if (decision.UnevenChanceActions)
+                            walkHistoryTree.StoredValue = new CRMChanceNodeSettings_UnequalProbabilities()
+                            {
+                                DecisionNum = informationSetHistory.DecisionIndex,
+                                Probabilities = GameDefinition.GetChanceActionProbabilities(GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex].DecisionByteCode, progress) // the probabilities depend on the current state of the game
+                            };
+                        else
+                            walkHistoryTree.StoredValue = new CRMChanceNodeSettings_EqualProbabilities()
+                            {
+                                DecisionNum = informationSetHistory.DecisionIndex,
+                                EachProbability = 1.0 / (double)decision.NumPossibleActions
+                            };
+                    }
+                }
+                else
+                {
+                    bool isNecessarilyLast = decision.IsAlwaysPlayersLastDecision || informationSetHistory.IsTerminalAction;
+                    var playersStrategy = GetPlayerStrategyFromOverallPlayerNum(informationSetHistory.PlayerMakingDecision);
+                    if (walkHistoryTree.StoredValue == null)
+                    {
+                        // create the information set node if necessary, with initialized tally values
+                        var informationSetNode = playersStrategy.SetInformationSetTreeValueIfNotSet(
+                            informationSetHistoryCopy.InformationSet,
+                            isNecessarilyLast,
+                            () =>
+                            {
+                                CRMInformationSetNodeTally nodeInfo = new CRMInformationSetNodeTally(informationSetHistory.DecisionIndex, playerInfo.NonChancePlayerIndex, decision.NumPossibleActions);
+                                return nodeInfo;
+                            }
+                            );
+                        // Now, we want to store in the game history tree a quick reference to the correct point in the information set tree.
+                        walkHistoryTree.StoredValue = informationSetNode;
+                    }
+                }
+                walkHistoryTree = walkHistoryTree.GetBranch(informationSetHistory.ActionChosen);
+            }
+        }
         #endregion
 
         #region Utility methods
@@ -374,11 +389,16 @@ namespace ACESim
                 // do the simple aggregation of utilities. note that this is different from the value returned by vanilla, since that uses regret matching, instead of average strategies.
                 double[] utilities = (double[])leafNode.StoredValue;
                 for (int p = 0; p < NumNonChancePlayers; p++)
-                    UtilityCalculations[p].Add(utilities[p]); // DEBUG: weight by probability?
+                    UtilityCalculations[p].Add(utilities[p], probability);
                                                                            // consume the result for reports
                 resultsBuffer.SendAsync(new Tuple<GameProgress, double>(progress, probability));
             };
             ProcessPossiblePaths(GameHistoryTree, new List<byte>(), 1.0, leafProcessor, actionStrategy);
+
+            //for (int p = 0; p < NumNonChancePlayers; p++)
+            //    if (Math.Abs(UtilityCalculations[p].sumOfWeights - 1.0) > 0.0001)
+            //        throw new Exception("Imperfect sampling.");
+
             resultsBuffer.Complete(); // tell consumer nothing more to be produced
             consumer.Wait(); // wait until all have been processed
         }
@@ -780,9 +800,9 @@ namespace ACESim
 
         public unsafe void SolveVanillaCFR()
         {
-            const int numIterationsToRun = 10000;
+            const int numIterationsToRun = 100000;
 
-            int? reportEveryNIterations = 100;
+            int? reportEveryNIterations = 1000;
 
             double[] lastUtilities = new double[NumNonChancePlayers];
 
@@ -805,12 +825,15 @@ namespace ACESim
                 if (reportEveryNIterations != null && iteration % reportEveryNIterations == 0)
                 {
                     Debug.WriteLine("");
-                    Debug.WriteLine($"Iteration {iteration} Milliseconds per iteration {(s.ElapsedMilliseconds / (double) iteration)}");
+                    Debug.WriteLine($"Iteration {iteration} Milliseconds per iteration {(s.ElapsedMilliseconds / ((double)iteration + 1.0))}");
                     Debug.WriteLine($"{GenerateReports(actionStrategy)}");
                     for (byte p = 0; p < NumNonChancePlayers; p++)
                     {
                         double bestResponseUtility = CalculateBestResponse(p, actionStrategy);
-                        Debug.WriteLine($"Player {p} utility with regret matching {UtilityCalculations[p].Average()} using best response against regret matching {bestResponseUtility} best response improvement {bestResponseUtility - UtilityCalculations[p].Average()}");
+                        double bestResponseImprovement = bestResponseUtility - UtilityCalculations[p].Average();
+                        if (bestResponseImprovement < -1E-15)
+                            throw new Exception("Best response function worse."); // it can be slightly negative as a result of rounding errors
+                        Debug.WriteLine($"Player {p} utility with regret matching {UtilityCalculations[p].Average()} using best response against regret matching {bestResponseUtility} best response improvement {bestResponseImprovement}");
                     }
                 }
             }
