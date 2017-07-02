@@ -110,30 +110,23 @@ namespace ACESim
             return CompletedGameProgresses;
         }
 
+        List<string> DEBUG = new List<string>();
+
         public IEnumerable<GameProgress> PlayAllPaths(GameInputs gameInputsToUse)
         {
-            bool useSerial = !DoParallel;
-            if (useSerial)
+            Func<GameInputs, IEnumerable<GameProgress>> playPathsFn = DoParallel ? (Func<GameInputs,IEnumerable<GameProgress>>) PlayAllPaths_Parallel : PlayAllPaths_Serial;
+            int i = 0;
+            foreach (var x in playPathsFn(gameInputsToUse))
             {
-                int i = 0;
-                foreach (var x in PlayAllPaths_Serial(gameInputsToUse))
-                {
-                    //Debug.WriteLine($"{x.ActionsToPlayString} => {x.GameHistory.GetActionsAsListString()}");
-                    i++;
-                    yield return x;
-                }
+                //Debug.WriteLine($"{x.ActionsToPlayString} => {x.GameHistory.GetActionsAsListString()}");
+                //Debug.WriteLine($"{x.GameHistory.GetActionsAsListString()}");
+                DEBUG.Add($"{x.GameHistory.GetActionsAsListString()}");
+                i++;
+                yield return x;
             }
-            else
-            {
-                int i = 0;
-                foreach (var x in PlayAllPaths_Parallel(gameInputsToUse))
-                {
-                    //Debug.WriteLine($"{x.ActionsToPlayString} => {x.GameHistory.GetActionsAsListString()}");
-                    i++;
-                    yield return x;
-                }
-                //Debug.WriteLine(i);
-            }
+            DEBUG = DEBUG.OrderBy(x => x).ToList();
+            StringBuilder s = new StringBuilder();
+            DEBUG.ForEach(x => s.AppendLine(x));
         }
 
         public IEnumerable<GameProgress> PlayAllPaths_Serial(GameInputs gameInputsToUse)
@@ -280,8 +273,8 @@ namespace ACESim
             PlayPath(actionsToPlay_AsPointer, startingProgress, gameInputsToUse, ref nextActionsToPlay);
             if (nextActionsToPlay == null)
                 return null;
-            List<byte> r2 = ListExtensions.GetPointerAsList(nextActionsToPlay);
-            return r2.AsEnumerable();
+            List<byte> nextActionsToPlayList = ListExtensions.GetPointerAsList(nextActionsToPlay);
+            return nextActionsToPlayList.AsEnumerable();
         }
 
         public unsafe void PlayPath(byte* actionsToPlay, GameProgress startingProgress, GameInputs gameInputsToUse, ref byte* nextActionsToPlay)

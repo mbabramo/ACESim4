@@ -767,7 +767,6 @@ namespace ACESim
                     //else
                     //    for (int i = 0; i < MaxNumPlayers; i++)
                     //        *(equalProbabilityPiValuesToPass + i) = *(equalProbabilityNextPiValues + i);
-                    // to do: use parallelizer or something like it for byte. But make sure that it will work at multiple tree levels.
                     double probabilityAdjustedExpectedValueParticularAction = VanillaCRM_ChanceNode_NextAction(history, nonChancePlayerIndex, piValues, chanceNodeSettings, equalProbabilityNextPiValues, expectedValue, action, usePruning);
                     expectedValue += probabilityAdjustedExpectedValueParticularAction;
                 });

@@ -122,17 +122,14 @@ namespace ACESim
             //} while (!success);
         }
 
-
-        static int DEBUG = 0;
-
         public static void GoByte(bool doParallel, int maxParallelDepth, byte start, byte stopBeforeThis, Action<byte> action)
         {
             if (ParallelDepth > 0 || DisableParallel)
                 doParallel = false;
             if (doParallel)
             {
+                int initialParallelDepth = ParallelDepth;
                 IncrementParallelDepth();
-                DEBUG++;
                 Parallel.ForEach(Partitioner.Create(start, stopBeforeThis),
                     (range) =>
                     {
