@@ -181,7 +181,7 @@ namespace ACESim
 
         private unsafe void PrintSameGameResults(GamePlayer player, GameInputs inputs)
         {
-            double probabilityOfPrint = 0;
+            double probabilityOfPrint = 0.0;
             if (probabilityOfPrint == 0)
                 return;
             byte* path = stackalloc byte[GameHistory.MaxNumActions];
@@ -191,10 +191,11 @@ namespace ACESim
                 {
                     progress.GameHistory.GetActions(path);
                     List<byte> path2 = new List<byte>();
-                    while (*path != 255)
+                    int i = 0;
+                    while (*(path + i) != 255)
                     {
-                        path2.Add(*path);
-                        path++;
+                        path2.Add(*(path + i));
+                        i++;
                     }
                     var utilities = GetUtilities(path);
                     TabbedText.WriteLine($"{String.Join(",", path2)} -->  Utilities: P {utilities[0]}, D {utilities[1]}");
@@ -385,7 +386,7 @@ namespace ACESim
             void leafProcessor(NWayTreeStorage<object> leafNode, List<byte> actions, double probability) 
             {
                 GameProgress progress = startingProgress.DeepCopy();
-                player.PlayPath(actions, progress, inputs);
+                player.PlayPath(actions, progress, inputs, false, out int _, out int _);
                 // do the simple aggregation of utilities. note that this is different from the value returned by vanilla, since that uses regret matching, instead of average strategies.
                 double[] utilities = (double[])leafNode.StoredValue;
                 for (int p = 0; p < NumNonChancePlayers; p++)

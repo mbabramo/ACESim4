@@ -204,15 +204,19 @@ namespace ACESim
         /// </summary>
         /// <param name="actionsToPlay"></param>
         /// <returns>The next path of decisions to play.</returns>
-        public unsafe void PlayPath(byte* actionsToPlay, ref byte* nextPath)
+        public unsafe void PlayPath(byte* actionsToPlay, ref byte* nextPath, out int lastDecisionInNextPath, out int numPossibleActionsForNextPath)
         {
             Progress.SetActionToPlay(actionsToPlay);
             Progress.IsFinalGamePath = true;
             PlayUntilComplete(true);
-            if (Progress.IsFinalGamePath)
+            if (nextPath == null || Progress.IsFinalGamePath)
+            {
                 nextPath = null;
-            else
-                Progress.GameHistory.GetNextDecisionPath(GameDefinition, nextPath);
+                lastDecisionInNextPath = -1;
+                numPossibleActionsForNextPath = 0;
+                return;
+            }
+            Progress.GameHistory.GetNextDecisionPath(GameDefinition, nextPath, out lastDecisionInNextPath, out numPossibleActionsForNextPath);
         }
 
         /// <summary>

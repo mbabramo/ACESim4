@@ -92,6 +92,13 @@ namespace ACESim
             GetItems(History_Action_Offset, actions);
         }
 
+        public List<byte> GetActionsAsList()
+        {
+            byte* actions = stackalloc byte[MaxNumActions];
+            GetActions(actions);
+            return Util.ListExtensions.GetPointerAsList(actions);
+        }
+
         public unsafe void GetNumPossibleActions(byte* numPossibleActions)
         {
             GetItems(History_NumPossibleActions_Offset, numPossibleActions);
@@ -188,24 +195,29 @@ namespace ACESim
         /// Note that in this example there may be further decisions after (1, 2). 
         /// If called on (3, 3, 3), it will throw an Exception.
         /// </summary>
-        public unsafe void GetNextDecisionPath(GameDefinition gameDefinition, byte* nextDecisionPath)
+        public unsafe void GetNextDecisionPath(GameDefinition gameDefinition, byte* nextDecisionPath, out int lastDecisionInNextPath, out int numPossibleActionsForNextPath)
         {
             if (!IsComplete())
                 throw new Exception("Can get next path to try only on a completed game.");
             // We need to find the last decision made where there was another action that could have been taken.
-            int? lastDecisionWithAnotherAction = GetLastDecisionWithAnotherAction(gameDefinition);
+            lastDecisionInNextPath = GetLastDecisionWithAnotherAction(gameDefinition) ?? -1; // negative number symbolizes that there is nothing else to do
+            if (lastDecisionInNextPath != -1)
+                numPossibleActionsForNextPath = gameDefinition.DecisionsExecutionOrder[(int)lastDecisionInNextPath].NumPossibleActions;
+            else
+                numPossibleActionsForNextPath = 0;
             int indexInNewDecisionPath = 0, indexInCurrentActions = 0;
             byte* currentActions = stackalloc byte[MaxNumActions];
             GetActions(currentActions);
-            while (indexInNewDecisionPath <= lastDecisionWithAnotherAction)
+            while (indexInNewDecisionPath <= lastDecisionInNextPath)
             {
                 bool another = currentActions[indexInCurrentActions] != 255;
                 if (!another)
                     throw new Exception("Internal error. Expected another decision to exist.");
-                if (indexInNewDecisionPath == lastDecisionWithAnotherAction)
+                if (indexInNewDecisionPath == lastDecisionInNextPath)
                     nextDecisionPath[indexInNewDecisionPath] = (byte)(currentActions[indexInCurrentActions] + (byte)1); // this is the decision where we need to try the next path
                 else
                     nextDecisionPath[indexInNewDecisionPath] = currentActions[indexInCurrentActions]; // we're still on the same path
+                
                 indexInCurrentActions++;
                 indexInNewDecisionPath++;
             }

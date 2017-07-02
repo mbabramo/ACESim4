@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using ACESim.Util;
+using System.Threading.Tasks.Dataflow;
 
 namespace ACESim
 {
@@ -110,7 +111,13 @@ namespace ACESim
             return CompletedGameProgresses;
         }
 
-        public IEnumerable<GameProgress> PlayAllPaths(GameInputs gameInputsToUse)
+        private class PathInfo
+        {
+            public IEnumerable<byte> Path;
+            public bool IsLastOfSet;
+        }
+
+        public IEnumerable<GameProgress> PlayAllPaths_Serial(GameInputs gameInputsToUse)
         {
             int numProcessed = 0;
             // This method plays all game paths (without having any advance knowledge of what those game paths are). 
@@ -119,12 +126,13 @@ namespace ACESim
             while (path != null)
             {
                 var progressToUse = startingProgress.DeepCopy();
-                IEnumerable<byte> next = PlayPath(path, progressToUse, gameInputsToUse);
+                IEnumerable<byte> next = PlayPath(path, progressToUse, gameInputsToUse, true, out int _, out int _);
+                // Debug.WriteLine($"{String.Join(",", path)} => {String.Join(",", progressToUse.GameHistory.GetActionsAsList())}");
                 numProcessed++;
                 //var thePathEnumerated = next?.ToList();
                 //if (thePathEnumerated != null)
                 //    Debug.WriteLine($"{String.Join(",", thePathEnumerated)}");
-                if (!next.Any())
+                if (next == null)
                     path = null;
                 else
                     path = next;
@@ -132,7 +140,76 @@ namespace ACESim
             }
         }
 
-        public unsafe IEnumerable<byte> PlayPath(IEnumerable<byte> actionsToPlay, GameProgress startingProgress, GameInputs gameInputsToUse)
+        public IEnumerable<GameProgress> PlayAllPaths(GameInputs gameInputsToUse)
+        {
+            int numProcessed = 0;
+
+            // This method plays all game paths (without having any advance knowledge of what those game paths are). 
+            // It seeks to play them in parallel. This is a little tricky, because we only find out the next path when
+            // we actually go through and play the game. But GetNextDecisionPath tells us not just the path, but
+            // what the last changed decision index is, and thus we can identify a number of additional paths.
+            // For example, we start with () and the game plays (1, 1, 1). Assume three possible actions per decision.
+            // If GetNextDecisionPath says that the next path is (1, 1, 2) or (1, 1, 2, 1), we can post these,
+            // but we can also post (2) and (3). When we post the path, we also associate with it the last
+
+            // So, when we get the next path, we actually can figure out
+            // a number of paths, and so we post these to a buffer block right away. Only when we process the last
+            // from a set of paths do we look for more paths to process.
+
+            GameProgress startingProgress = GameFactory.CreateNewGameProgress(new IterationID(1)); // iteration doesn't matter, since we're playing a particular path and thus ignoring random numbers
+            // The buffer block takes paths as inputs.
+            int numPending = 0;
+            var bufferBlock = new BufferBlock<PathInfo>(new DataflowBlockOptions() { BoundedCapacity = 1000 });
+            // It passes the paths to a worker block that plays the game and produces a GameProgress.
+            var workerBlock = new TransformBlock<PathInfo, GameProgress>(
+                thePath => PlayHelper(thePath),
+                 new ExecutionDataflowBlockOptions
+                 {
+                     MaxDegreeOfParallelism = Environment.ProcessorCount
+                 }
+                );
+            GameProgress PlayHelper(PathInfo pathToPlay)
+            {
+                //Debug.WriteLine(String.Join(",", pathToPlay.Path));
+                var progressToUse = startingProgress.DeepCopy();
+                IEnumerable<byte> next = PlayPath(pathToPlay.Path, progressToUse, gameInputsToUse, true, out int lastDecisionInNextPath, out int numPossibleActionsForNextPath);
+                // if the next is the same length as the current path, then we've already buffered it
+                if (next != null && next.Count() != pathToPlay.Path.Count())
+                {
+                    List<byte> p = next.ToList();
+                    for (int i = p[lastDecisionInNextPath]; i <= numPossibleActionsForNextPath; i++)
+                    {
+                        p[lastDecisionInNextPath] = (byte) i;
+                        Interlocked.Increment(ref numPending);
+                        bufferBlock.Post(new PathInfo() { Path = next, IsLastOfSet = i == numPossibleActionsForNextPath });
+                    }
+                }
+                Interlocked.Decrement(ref numPending);
+                if (numPending == 0)
+                    bufferBlock.Complete();
+                return progressToUse;
+            }
+            bufferBlock.LinkTo(workerBlock, new DataflowLinkOptions()
+            {
+                PropagateCompletion = true
+            });
+
+            PathInfo startingPath = new PathInfo() { Path = new List<byte> { }, IsLastOfSet = true };
+            Interlocked.Increment(ref numPending);
+            bufferBlock.Post(startingPath);
+            bool done = false;
+            do
+            {
+                Task<bool> t = workerBlock.OutputAvailableAsync();
+                t.Wait();
+                if (t.Result)
+                    yield return workerBlock.Receive();
+                else
+                    done = true;
+            } while (!done);
+        }
+
+        public unsafe IEnumerable<byte> PlayPath(IEnumerable<byte> actionsToPlay, GameProgress startingProgress, GameInputs gameInputsToUse, bool getNextPath, out int lastDecisionInNextPath, out int numPossibleActionsForNextPath)
         {
             byte* actionsToPlay_AsPointer = stackalloc byte[GameHistory.MaxNumActions];
             int d = 0;
@@ -140,29 +217,20 @@ namespace ACESim
                 actionsToPlay_AsPointer[d++] = b;
             actionsToPlay_AsPointer[d] = 255;
             byte* nextActionsToPlay = stackalloc byte[GameHistory.MaxNumActions];
-            PlayPath(actionsToPlay_AsPointer, startingProgress, gameInputsToUse, ref nextActionsToPlay);
+            if (!getNextPath)
+                nextActionsToPlay = null;
+            PlayPath(actionsToPlay_AsPointer, startingProgress, gameInputsToUse, ref nextActionsToPlay, out lastDecisionInNextPath, out numPossibleActionsForNextPath);
             if (nextActionsToPlay == null)
-                return new List<byte>();
+                return null;
             List<byte> r2 = ListExtensions.GetPointerAsList(nextActionsToPlay);
             return r2.AsEnumerable();
         }
 
-
-
-        public void PlayPath(CRMDevelopment.BytePointerContainer actionsToPlay, GameProgress startingProgress, GameInputs gameInputsToUse)
-        {
-            unsafe
-            {
-                byte* nextActionsToPlay = stackalloc byte[GameHistory.MaxNumActions];
-                PlayPath(actionsToPlay.bytes, startingProgress, gameInputsToUse, ref nextActionsToPlay);
-            }
-        }
-
-        public unsafe void PlayPath(byte* actionsToPlay, GameProgress startingProgress, GameInputs gameInputsToUse, ref byte* nextActionsToPlay)
+        public unsafe void PlayPath(byte* actionsToPlay, GameProgress startingProgress, GameInputs gameInputsToUse, ref byte* nextActionsToPlay, out int lastDecisionInNextPath, out int numPossibleActionsForNextPath)
         {
             Game game = GameFactory.CreateNewGame();
             game.PlaySetup(bestStrategies, startingProgress, gameInputsToUse, gameDefinition, false);
-            game.PlayPath(actionsToPlay, ref nextActionsToPlay);
+            game.PlayPath(actionsToPlay, ref nextActionsToPlay, out lastDecisionInNextPath, out numPossibleActionsForNextPath);
         }
 
 
