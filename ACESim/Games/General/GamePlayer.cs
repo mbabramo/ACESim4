@@ -113,29 +113,28 @@ namespace ACESim
 
         public IEnumerable<GameProgress> PlayAllPaths(GameInputs gameInputsToUse)
         {
-            int i = 0;
-            foreach (var x in PlayAllPaths_Serial(gameInputsToUse))
+            bool useSerial = false;
+            if (useSerial)
             {
-                Debug.WriteLine($"{x.ActionsToPlayString} => {x.GameHistory.GetActionsAsListString()}");
-                i++;
-                yield return x;
-            }
-            Debug.WriteLine(i);
-            // DEBUG
-            i = 0;
-            foreach (var x in PlayAllPaths_Parallel(gameInputsToUse))
-            {
-                int actionsToPlayCount = x.ActionsToPlay.Count();
-                int actionsPlayedCount = x.GameHistory.GetActionsAsList().Count();
-                bool notRedundant = actionsToPlayCount == actionsPlayedCount || (actionsPlayedCount == actionsToPlayCount + 1 && x.GameHistory.GetActionsAsList().Last() == 1);
-                if (notRedundant)
+                int i = 0;
+                foreach (var x in PlayAllPaths_Serial(gameInputsToUse))
                 {
-                    Debug.WriteLine($"{x.ActionsToPlayString} => {x.GameHistory.GetActionsAsListString()}");
+                    //Debug.WriteLine($"{x.ActionsToPlayString} => {x.GameHistory.GetActionsAsListString()}");
                     i++;
                     yield return x;
                 }
             }
-            Debug.WriteLine(i);
+            else
+            {
+                int i = 0;
+                foreach (var x in PlayAllPaths_Parallel(gameInputsToUse))
+                {
+                    //Debug.WriteLine($"{x.ActionsToPlayString} => {x.GameHistory.GetActionsAsListString()}");
+                    i++;
+                    yield return x;
+                }
+                //Debug.WriteLine(i);
+            }
         }
 
         public IEnumerable<GameProgress> PlayAllPaths_Serial(GameInputs gameInputsToUse)
@@ -198,13 +197,25 @@ namespace ACESim
             int numPending = 0;
             var bufferBlock = new BufferBlock<PathInfo>(new DataflowBlockOptions() { BoundedCapacity = 10000000 });
             // It passes the paths to a worker block that plays the game and produces a GameProgress.
-            var workerBlock = new TransformBlock<PathInfo, GameProgress>(
-                thePath => PlayHelper(thePath),
+            var workerBlock = new TransformManyBlock<PathInfo, GameProgress>(
+                thePath => EnumerateIfNotRedundant(PlayHelper(thePath)),
                  new ExecutionDataflowBlockOptions
                  {
                      MaxDegreeOfParallelism = Environment.ProcessorCount
                  }
                 );
+            IEnumerable<GameProgress> EnumerateIfNotRedundant(GameProgress gp)
+            {
+                // The algorithm will produce some redundancy. For example,
+                // if (1,1,1,1,1) is the first completed game, it will
+                // produce the starting paths (), (1), (1,1), ... (1,1,1,1).
+                // We really only need the last of these.
+                int actionsToPlayCount = gp.ActionsToPlay.Count();
+                int actionsPlayedCount = gp.GameHistory.GetActionsAsList().Count();
+                bool notRedundant = actionsToPlayCount == actionsPlayedCount || (actionsPlayedCount == actionsToPlayCount + 1 && gp.GameHistory.GetActionsAsList().Last() == 1);
+                if (notRedundant)
+                    yield return gp;
+            }
             GameProgress PlayHelper(PathInfo pathToPlay)
             {
                 //Debug.WriteLine(String.Join(",", pathToPlay.Path));

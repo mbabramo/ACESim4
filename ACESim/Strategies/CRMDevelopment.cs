@@ -181,7 +181,7 @@ namespace ACESim
 
         private unsafe void PrintSameGameResults(GamePlayer player, GameInputs inputs)
         {
-            double probabilityOfPrint = 1.0;
+            double probabilityOfPrint = 0.0;
             if (probabilityOfPrint == 0)
                 return;
             byte* path = stackalloc byte[GameHistory.MaxNumActions];
