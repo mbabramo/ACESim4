@@ -116,17 +116,24 @@ namespace ACESim
             int i = 0;
             foreach (var x in PlayAllPaths_Serial(gameInputsToUse))
             {
+                Debug.WriteLine($"{x.ActionsToPlayString} => {x.GameHistory.GetActionsAsListString()}");
                 i++;
-                Debug.WriteLine(x.ActionsToPlayString);
                 yield return x;
             }
             Debug.WriteLine(i);
+            // DEBUG
             i = 0;
             foreach (var x in PlayAllPaths_Parallel(gameInputsToUse))
             {
-                i++;
-                Debug.WriteLine(x.ActionsToPlayString);
-                yield return x;
+                int actionsToPlayCount = x.ActionsToPlay.Count();
+                int actionsPlayedCount = x.GameHistory.GetActionsAsList().Count();
+                bool notRedundant = actionsToPlayCount == actionsPlayedCount || (actionsPlayedCount == actionsToPlayCount + 1 && x.GameHistory.GetActionsAsList().Last() == 1);
+                if (notRedundant)
+                {
+                    Debug.WriteLine($"{x.ActionsToPlayString} => {x.GameHistory.GetActionsAsListString()}");
+                    i++;
+                    yield return x;
+                }
             }
             Debug.WriteLine(i);
         }

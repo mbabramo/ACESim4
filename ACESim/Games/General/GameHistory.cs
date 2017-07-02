@@ -99,6 +99,12 @@ namespace ACESim
             return Util.ListExtensions.GetPointerAsList(actions);
         }
 
+        public string GetActionsAsListString()
+        {
+            return String.Join(",", GetActionsAsList());
+        }
+
+
         public unsafe void GetNumPossibleActions(byte* numPossibleActions)
         {
             GetItems(History_NumPossibleActions_Offset, numPossibleActions);
