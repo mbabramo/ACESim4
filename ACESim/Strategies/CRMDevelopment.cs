@@ -275,7 +275,10 @@ namespace ACESim
 
         public NWayTreeStorage<object> GetSubsequentHistory(NWayTreeStorage<object> history, byte action)
         {
-            return history.GetBranch(action);
+            var returnVal = history.GetBranch(action);
+            if (returnVal == null)
+                throw new Exception("Internal error. Missing subsequent history.");
+            return returnVal;
         }
 
         public CRMInformationSetNodeTally GetInformationSetNodeTally(NWayTreeStorage<object> history)
