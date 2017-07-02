@@ -15,10 +15,7 @@ namespace ACESim
         public GameDefinition GameDefinition;
         public List<GameModuleProgress> GameModuleProgresses;
         public GameHistory GameHistory = new GameHistory().Initialize();
-        public byte* ActionsToPlay = stackalloc byte[GameHistory.MaxNumActions];
-        public int ActionsToPlayIndex;
-        public List<byte> ActionsToPlayList => Util.ListExtensions.GetPointerAsList(ActionsToPlay);
-        public string ActionsToPlayString => String.Join(",", ActionsToPlayList);
+        public List<byte> ActionsToPlay;
         public bool GameComplete;
         public bool HaveAdvancedToFirstStep;
         public int? CurrentActionGroupNumber;
@@ -28,18 +25,26 @@ namespace ACESim
         public byte RandomNumbersUsed;
 
 
+        public int ActionsToPlayIndex;
+        public string ActionsToPlayString => String.Join(",", ActionsToPlay);
         public void SetActionToPlay(byte* actionsToPlay)
         {
-            ActionsToPlay = actionsToPlay;
+            ActionsToPlay = new List<byte>();
+            byte* a = actionsToPlay;
+            while (*a != 255)
+            {
+                ActionsToPlay.Add(*a);
+                a++;
+            }
             ActionsToPlayIndex = -1;
         }
-        public byte ActionsToPlay_CurrentAction => *(ActionsToPlay + ActionsToPlayIndex);
+        public byte ActionsToPlay_CurrentAction => ActionsToPlay[ActionsToPlayIndex];
         public bool ActionsToPlay_MoveNext()
         {
-            if (ActionsToPlay_CurrentAction == 255)
+            if (ActionsToPlayIndex + 2 > ActionsToPlay.Count())
                 return false;
             ActionsToPlayIndex++;
-            return ActionsToPlay_CurrentAction != 255;
+            return true;
         }
 
 
@@ -167,7 +172,7 @@ namespace ACESim
             copy.GameDefinition = GameDefinition;
             copy.GameModuleProgresses = GameModuleProgresses == null ? null : (GameModuleProgresses.Select(x => x == null ? null : x.DeepCopy()).ToList());
             copy.GameHistory = GameHistory.DeepCopy();
-            copy.ActionsToPlay = ActionsToPlay; // we don't deep copy this b/c we want to play the specified decisions only once
+            copy.ActionsToPlay = ActionsToPlay?.ToList(); 
             copy.ActionsToPlayIndex = ActionsToPlayIndex;
             copy.GameComplete = this.GameComplete;
             copy.HaveAdvancedToFirstStep = this.HaveAdvancedToFirstStep;
