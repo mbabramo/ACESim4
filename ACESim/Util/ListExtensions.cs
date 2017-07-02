@@ -20,7 +20,19 @@ namespace ACESim.Util
 
     static class ListExtensions
     {
-
+        public static int GetIndexOfDifference<T>(this List<T> x, List<T> y)
+        {
+            int xCount = x.Count(), yCount = y.Count();
+            int smaller = Math.Min(xCount, yCount);
+            for (int i = 0; i < smaller; i++)
+                if (!x[i].Equals(y[i]))
+                    return i;
+            // No difference detected so far.
+            if (xCount == yCount)
+                return -1; // sequences are identical
+            
+            return smaller; // for example, if x is () and y is (1), this will return 0, since the difference is at the first index of y. If x is (2) and y is (2,6,7), then it will return 1, since the difference is at the second index of y
+        }
 
         public static unsafe List<byte> GetPointerAsList(byte* r)
         {

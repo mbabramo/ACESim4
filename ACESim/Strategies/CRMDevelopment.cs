@@ -386,7 +386,7 @@ namespace ACESim
             void leafProcessor(NWayTreeStorage<object> leafNode, List<byte> actions, double probability) 
             {
                 GameProgress progress = startingProgress.DeepCopy();
-                player.PlayPath(actions, progress, inputs, false, out int _, out int _);
+                player.PlayPath(actions, progress, inputs, false);
                 // do the simple aggregation of utilities. note that this is different from the value returned by vanilla, since that uses regret matching, instead of average strategies.
                 double[] utilities = (double[])leafNode.StoredValue;
                 for (int p = 0; p < NumNonChancePlayers; p++)

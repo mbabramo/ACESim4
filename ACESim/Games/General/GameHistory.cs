@@ -195,16 +195,12 @@ namespace ACESim
         /// Note that in this example there may be further decisions after (1, 2). 
         /// If called on (3, 3, 3), it will throw an Exception.
         /// </summary>
-        public unsafe void GetNextDecisionPath(GameDefinition gameDefinition, byte* nextDecisionPath, out int lastDecisionInNextPath, out int numPossibleActionsForNextPath)
+        public unsafe void GetNextDecisionPath(GameDefinition gameDefinition, byte* nextDecisionPath)
         {
             if (!IsComplete())
                 throw new Exception("Can get next path to try only on a completed game.");
             // We need to find the last decision made where there was another action that could have been taken.
-            lastDecisionInNextPath = GetLastDecisionWithAnotherAction(gameDefinition) ?? -1; // negative number symbolizes that there is nothing else to do
-            if (lastDecisionInNextPath != -1)
-                numPossibleActionsForNextPath = gameDefinition.DecisionsExecutionOrder[(int)lastDecisionInNextPath].NumPossibleActions;
-            else
-                numPossibleActionsForNextPath = 0;
+            int? lastDecisionInNextPath = GetLastDecisionWithAnotherAction(gameDefinition) ?? -1; // negative number symbolizes that there is nothing else to do
             int indexInNewDecisionPath = 0, indexInCurrentActions = 0;
             byte* currentActions = stackalloc byte[MaxNumActions];
             GetActions(currentActions);
