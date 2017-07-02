@@ -15,8 +15,10 @@ namespace ACESim
         public GameDefinition GameDefinition;
         public List<GameModuleProgress> GameModuleProgresses;
         public GameHistory GameHistory = new GameHistory().Initialize();
-        public byte* ActionsToPlay = null;
+        public byte* ActionsToPlay = stackalloc byte[GameHistory.MaxNumActions];
         public int ActionsToPlayIndex;
+        public List<byte> ActionsToPlayList => Util.ListExtensions.GetPointerAsList(ActionsToPlay);
+        public string ActionsToPlayString => String.Join(",", ActionsToPlayList);
         public bool GameComplete;
         public bool HaveAdvancedToFirstStep;
         public int? CurrentActionGroupNumber;

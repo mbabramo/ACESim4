@@ -111,6 +111,26 @@ namespace ACESim
             return CompletedGameProgresses;
         }
 
+        public IEnumerable<GameProgress> PlayAllPaths(GameInputs gameInputsToUse)
+        {
+            int i = 0;
+            foreach (var x in PlayAllPaths_Serial(gameInputsToUse))
+            {
+                i++;
+                Debug.WriteLine(x.ActionsToPlayString);
+                yield return x;
+            }
+            Debug.WriteLine(i);
+            i = 0;
+            foreach (var x in PlayAllPaths_Parallel(gameInputsToUse))
+            {
+                i++;
+                Debug.WriteLine(x.ActionsToPlayString);
+                yield return x;
+            }
+            Debug.WriteLine(i);
+        }
+
         public IEnumerable<GameProgress> PlayAllPaths_Serial(GameInputs gameInputsToUse)
         {
             int numProcessed = 0;
@@ -148,7 +168,7 @@ namespace ACESim
         }
 
 
-        public IEnumerable<GameProgress> PlayAllPaths(GameInputs gameInputsToUse)
+        public IEnumerable<GameProgress> PlayAllPaths_Parallel(GameInputs gameInputsToUse)
         {
             int numProcessed = 0;
 
