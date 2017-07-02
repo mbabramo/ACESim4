@@ -37,22 +37,24 @@ namespace ACESim
             var adjustedIndex = AdjustedIndex(index);
             ConfirmAdjustedIndex(adjustedIndex);
             lock (this)
-            {
                 Branches[adjustedIndex] = tree;
-            }
         }
 
         private void ConfirmAdjustedIndex(int adjustedIndex)
         {
-            if (Branches == null)
-                Branches = new NWayTreeStorage<T>[adjustedIndex + 1];
-            else if (!(adjustedIndex < Branches.Length))
-            {
-                NWayTreeStorage<T>[] branchesReplacement = new NWayTreeStorage<T>[adjustedIndex + 1];
-                for (int i = 0; i < Branches.Length; i++)
-                    branchesReplacement[i] = Branches[i];
-                Branches = branchesReplacement;
-            }
+            if (Branches == null || !(adjustedIndex < Branches.Length))
+                lock (this)
+                {
+                    if (Branches == null)
+                        Branches = new NWayTreeStorage<T>[adjustedIndex + 1];
+                    else if (!(adjustedIndex < Branches.Length))
+                    {
+                        NWayTreeStorage<T>[] branchesReplacement = new NWayTreeStorage<T>[adjustedIndex + 1];
+                        for (int i = 0; i < Branches.Length; i++)
+                            branchesReplacement[i] = Branches[i];
+                        Branches = branchesReplacement;
+                    }
+                }
         }
 
         public unsafe NWayTreeStorage<T> GetNode(byte* restOfSequence)
