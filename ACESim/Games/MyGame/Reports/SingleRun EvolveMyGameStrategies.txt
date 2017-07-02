@@ -1,1 +1,2 @@
-Total run time 00.00:00:01 days
+Initialized. Total paths: 48
+Total run time 00.00:00:33 days

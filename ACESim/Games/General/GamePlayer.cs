@@ -23,7 +23,6 @@ namespace ACESim
         public GameDefinition GameDefinition;
 
         public List<double> averageInputs;
-        public EvolutionSettings evolutionsettings;
         public bool DoParallel;
 
         // parameterless constructor for serialization
@@ -113,7 +112,7 @@ namespace ACESim
 
         public IEnumerable<GameProgress> PlayAllPaths(GameInputs gameInputsToUse)
         {
-            bool useSerial = false;
+            bool useSerial = !DoParallel;
             if (useSerial)
             {
                 int i = 0;

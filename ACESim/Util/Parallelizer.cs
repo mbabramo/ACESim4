@@ -123,6 +123,8 @@ namespace ACESim
         }
 
 
+        static int DEBUG = 0;
+
         public static void GoByte(bool doParallel, int maxParallelDepth, byte start, byte stopBeforeThis, Action<byte> action)
         {
             if (ParallelDepth > 0 || DisableParallel)
@@ -130,6 +132,7 @@ namespace ACESim
             if (doParallel)
             {
                 IncrementParallelDepth();
+                DEBUG++;
                 Parallel.ForEach(Partitioner.Create(start, stopBeforeThis),
                     (range) =>
                     {

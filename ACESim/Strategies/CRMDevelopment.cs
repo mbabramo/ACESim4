@@ -758,6 +758,15 @@ namespace ACESim
             Parallelizer.GoByte(EvolutionSettings.ParallelOptimization, 2 /* TODO: Make this an evolution setting */, 1, (byte)(numPossibleActions + 1),
                 action =>
                 {
+                    //double* piValuesToPass = stackalloc double[MaxNumPlayers];
+                    //for (int i = 0; i < MaxNumPlayers; i++)
+                    //    *(piValuesToPass + i) = *(piValues + i);
+                    //double* equalProbabilityPiValuesToPass = stackalloc double[MaxNumPlayers];
+                    //if (equalProbabilityNextPiValues == null)
+                    //    equalProbabilityPiValuesToPass = null;
+                    //else
+                    //    for (int i = 0; i < MaxNumPlayers; i++)
+                    //        *(equalProbabilityPiValuesToPass + i) = *(equalProbabilityNextPiValues + i);
                     // to do: use parallelizer or something like it for byte. But make sure that it will work at multiple tree levels.
                     double probabilityAdjustedExpectedValueParticularAction = VanillaCRM_ChanceNode_NextAction(history, nonChancePlayerIndex, piValues, chanceNodeSettings, equalProbabilityNextPiValues, expectedValue, action, usePruning);
                     expectedValue += probabilityAdjustedExpectedValueParticularAction;
@@ -808,9 +817,9 @@ namespace ACESim
             double[] lastUtilities = new double[NumNonChancePlayers];
 
             Stopwatch s = new Stopwatch();
-
-            for (int iteration = 0; iteration < numIterationsToRun; iteration++)
+            unsafe void VanillaCFRIteration(int iteration)
             {
+                // NOTE: This is in a helper method because otherwise the stackallocs keep accumulating, causing a stackoverflowexception
                 bool usePruning = iteration >= 100;
                 ActionStrategies actionStrategy = usePruning ? ActionStrategies.RegretMatchingWithPruning : ActionStrategies.RegretMatching;
                 for (byte p = 0; p < NumNonChancePlayers; p++)
@@ -838,8 +847,14 @@ namespace ACESim
                     }
                 }
             }
+            for (int iteration = 0; iteration < numIterationsToRun; iteration++)
+            {
+                VanillaCFRIteration(iteration); 
+            }
 
         }
+
+        
 
         #endregion
     }
