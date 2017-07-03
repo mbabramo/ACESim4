@@ -110,9 +110,10 @@ namespace ACESim
             return CompletedGameProgresses;
         }
 
-        List<string> DEBUG = new List<string>();
+        public List<string> DEBUG = new List<string>();
+        public StringBuilder DEBUG_s;
 
-        public IEnumerable<GameProgress> PlayAllPaths(GameInputs gameInputsToUse)
+        public void PlayAllPaths(GameInputs gameInputsToUse, Action<GameProgress> actionToTake)
         {
             Func<GameInputs, IEnumerable<GameProgress>> playPathsFn = DoParallel ? (Func<GameInputs,IEnumerable<GameProgress>>) PlayAllPaths_Parallel : PlayAllPaths_Serial;
             int i = 0;
@@ -120,13 +121,27 @@ namespace ACESim
             {
                 //Debug.WriteLine($"{x.ActionsToPlayString} => {x.GameHistory.GetActionsAsListString()}");
                 //Debug.WriteLine($"{x.GameHistory.GetActionsAsListString()}");
-                DEBUG.Add($"{x.GameHistory.GetActionsAsListString()}");
+                string actionsAsListString = x.GameHistory.GetActionsAsListString();
+                DEBUG.Add($"{actionsAsListString}");
+                //string DEBUG2 = null;
+                //foreach (byte b in x.GameHistory.GetActionsAsList())
+                //{
+                //    if (DEBUG2 == null)
+                //        DEBUG2 = b.ToString();
+                //    else
+                //        DEBUG2 += "," + b.ToString();
+                //    bool contains = NWayTreeStorageInternal<object>.DEBUG_HS.Contains(DEBUG2);
+                //    if (!contains)
+                //    {
+                //        var DEBUG = 0;
+                //    }
+                //}
                 i++;
-                yield return x;
+                actionToTake(x);
             }
             DEBUG = DEBUG.OrderBy(x => x).ToList();
-            StringBuilder s = new StringBuilder();
-            DEBUG.ForEach(x => s.AppendLine(x));
+            DEBUG_s = new StringBuilder();
+            DEBUG.ForEach(x => DEBUG_s.AppendLine(x));
         }
 
         public IEnumerable<GameProgress> PlayAllPaths_Serial(GameInputs gameInputsToUse)
@@ -194,7 +209,7 @@ namespace ACESim
                 thePath => EnumerateIfNotRedundant(ConvertPathInfoToGameProgress(thePath)),
                  new ExecutionDataflowBlockOptions
                  {
-                     MaxDegreeOfParallelism = Environment.ProcessorCount
+                     MaxDegreeOfParallelism = 1 // DEBUG Environment.ProcessorCount
                  }
                 );
             IEnumerable<GameProgress> EnumerateIfNotRedundant(GameProgress gp)
@@ -214,35 +229,38 @@ namespace ACESim
             }
             GameProgress ConvertPathInfoToGameProgress(PathInfo pathToPlay)
             {
-                //Debug.WriteLine(String.Join(",", pathToPlay.Path));
-                var progressToUse = startingProgress.DeepCopy();
-                //Debug.WriteLine($"Playing {String.Join(",", pathToPlay.Path)}");
-                List<byte> next = PlayPath(pathToPlay.Path, progressToUse, gameInputsToUse, true)?.ToList();
-                if (next != null)
+                lock (NWayTreeStorage<object>.treelock) // DEBUG
                 {
-                    int differentialIndex = pathToPlay.Path.GetIndexOfDifference(next);
-                    bool alreadyPosted = differentialIndex <= pathToPlay.LastPathAlreadyExpanded;
-                    if (!alreadyPosted)
+                    //Debug.WriteLine(String.Join(",", pathToPlay.Path));
+                    var progressToUse = startingProgress.DeepCopy();
+                    //Debug.WriteLine($"Playing {String.Join(",", pathToPlay.Path)}");
+                    List<byte> next = PlayPath(pathToPlay.Path, progressToUse, gameInputsToUse, true)?.ToList();
+                    if (next != null)
                     {
-                        int pathToExpand = pathToPlay.LastPathAlreadyExpanded + 1;
-                        byte startingValue = next[pathToExpand];
-                        byte endingValue = GameDefinition.DecisionsExecutionOrder[pathToExpand].NumPossibleActions;
-                        for (byte i = startingValue; i <= endingValue; i++)
+                        int differentialIndex = pathToPlay.Path.GetIndexOfDifference(next);
+                        bool alreadyPosted = differentialIndex <= pathToPlay.LastPathAlreadyExpanded;
+                        if (!alreadyPosted)
                         {
-                            Interlocked.Increment(ref numPending);
-                            List<byte> next2 = new List<byte>();
-                            for (int j = 0; j < pathToExpand; j++)
-                                next2.Add(next[j]);
-                            next2.Add(i);
-                            //Debug.WriteLine($"{String.Join(",", pathToPlay.Path)} => {String.Join(",", next2)}");
-                            bufferBlock.Post(new PathInfo(next2, pathToExpand));
+                            int pathToExpand = pathToPlay.LastPathAlreadyExpanded + 1;
+                            byte startingValue = next[pathToExpand];
+                            byte endingValue = GameDefinition.DecisionsExecutionOrder[pathToExpand].NumPossibleActions;
+                            for (byte i = startingValue; i <= endingValue; i++)
+                            {
+                                Interlocked.Increment(ref numPending);
+                                List<byte> next2 = new List<byte>();
+                                for (int j = 0; j < pathToExpand; j++)
+                                    next2.Add(next[j]);
+                                next2.Add(i);
+                                //Debug.WriteLine($"{String.Join(",", pathToPlay.Path)} => {String.Join(",", next2)}");
+                                bufferBlock.Post(new PathInfo(next2, pathToExpand));
+                            }
                         }
                     }
+                    Interlocked.Decrement(ref numPending);
+                    if (numPending == 0)
+                        bufferBlock.Complete();
+                    return progressToUse;
                 }
-                Interlocked.Decrement(ref numPending);
-                if (numPending == 0)
-                    bufferBlock.Complete(); 
-                return progressToUse;
             }
             bufferBlock.LinkTo(transformBlock, new DataflowLinkOptions()
             {

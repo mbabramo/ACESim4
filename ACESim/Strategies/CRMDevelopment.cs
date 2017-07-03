@@ -78,6 +78,9 @@ namespace ACESim
 
         public unsafe void Initialize()
         {
+
+            NWayTreeStorageInternal<object>.DEBUG_BlockAdd = false;
+
             GamePlayer player = new GamePlayer(Strategies, GameFactory, EvolutionSettings.ParallelOptimization, GameDefinition);
             GameInputs inputs = GetGameInputs();
 
@@ -91,82 +94,98 @@ namespace ACESim
             int numPlayed = 0;
             var resultsBuffer = new BufferBlock<GameProgress>(new DataflowBlockOptions { BoundedCapacity = 1000 });
             var consumer = ProcessInitializedGameProgress(resultsBuffer);
+            player.PlayAllPaths(inputs, ProcessInitializedGameProgress);
             foreach (GameProgress progress in player.PlayAllPaths(inputs))
             {
                 numPlayed++;
                 resultsBuffer.SendAsync(progress);
             }
-            resultsBuffer.Complete(); // tell consumer nothing more to be produced
+            //resultsBuffer.Complete(); // tell consumer nothing more to be produced
             consumer.Wait(); // wait until all have been processed
-            TabbedText.WriteLine($"Initialized. Total paths: {numPlayed}");
+            Debug.WriteLine($"Initialized. Total paths: {numPlayed}");
 
+            int DEBUG_HS_Count = NWayTreeStorageInternal<object>.DEBUG_HS.Count();
+            Debug.WriteLine($"nodes added to hash: {DEBUG_HS_Count} numplayed {numPlayed} numprocessed {DEBUG_numProcessed}");
+            if (DEBUG_HS_Count < 14376)
+            {
+                var DEBUG = 0;
+            }
             NWayTreeStorageInternal<object>.DEBUG_BlockAdd = true;
-
+            var DEBUG_s = player.DEBUG_s.ToString();
             PrintSameGameResults(player, inputs);
         }
 
+        int DEBUG_numProcessed = 0;
         async Task ProcessInitializedGameProgress(ISourceBlock<GameProgress> source)
         {
+            DEBUG_numProcessed = 0;
             while (await source.OutputAvailableAsync())
             {
-                ProcessInitializedGameProgress(source.Receive());
+                GameProgress gameProgress = source.Receive();
+                ProcessInitializedGameProgress(gameProgress);
+                System.Threading.Interlocked.Increment(ref DEBUG_numProcessed);
+                TabbedText.EnableOutput = false; // DEBUG
+                //PrintGenericGameProgress(gameProgress); // DEBUG
             }
         }
 
         unsafe void ProcessInitializedGameProgress(GameProgress progress)
         {
-            // First, add the utilities at the end of the tree for this path.
-            byte* actionsEnumerator = stackalloc byte[GameHistory.MaxNumActions];
-            progress.GameHistory.GetActions(actionsEnumerator);
-            GameHistoryTree.SetValue(actionsEnumerator, true, progress.GetNonChancePlayerUtilities());
-
-            NWayTreeStorage<object> walkHistoryTree = GameHistoryTree;
-
-            // Go through each non-chance decision point on this path and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
-            foreach (var informationSetHistory in progress.GameHistory.GetInformationSetHistoryItems())
+            lock (NWayTreeStorage<object>.treelock)
             {
-                var informationSetHistoryCopy = informationSetHistory;
-                var decision = GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
-                var playerInfo = GameDefinition.Players[informationSetHistory.PlayerMakingDecision];
-                if (playerInfo.PlayerIsChance)
+                // First, add the utilities at the end of the tree for this path.
+                byte* actionsEnumerator = stackalloc byte[GameHistory.MaxNumActions];
+                progress.GameHistory.GetActions(actionsEnumerator);
+                GameHistoryTree.SetValue(actionsEnumerator, true, progress.GetNonChancePlayerUtilities());
+
+                NWayTreeStorage<object> walkHistoryTree = GameHistoryTree;
+
+                // Go through each non-chance decision point on this path and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
+                foreach (var informationSetHistory in progress.GameHistory.GetInformationSetHistoryItems())
                 {
-                    if (walkHistoryTree.StoredValue == null)
+                    var informationSetHistoryCopy = informationSetHistory;
+                    var decision = GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
+                    var playerInfo = GameDefinition.Players[informationSetHistory.PlayerMakingDecision];
+                    if (playerInfo.PlayerIsChance)
                     {
-                        if (decision.UnevenChanceActions)
-                            walkHistoryTree.StoredValue = new CRMChanceNodeSettings_UnequalProbabilities()
-                            {
-                                DecisionNum = informationSetHistory.DecisionIndex,
-                                Probabilities = GameDefinition.GetChanceActionProbabilities(GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex].DecisionByteCode, progress) // the probabilities depend on the current state of the game
-                            };
-                        else
-                            walkHistoryTree.StoredValue = new CRMChanceNodeSettings_EqualProbabilities()
-                            {
-                                DecisionNum = informationSetHistory.DecisionIndex,
-                                EachProbability = 1.0 / (double)decision.NumPossibleActions
-                            };
+                        if (walkHistoryTree.StoredValue == null)
+                        {
+                            if (decision.UnevenChanceActions)
+                                walkHistoryTree.StoredValue = new CRMChanceNodeSettings_UnequalProbabilities()
+                                {
+                                    DecisionNum = informationSetHistory.DecisionIndex,
+                                    Probabilities = GameDefinition.GetChanceActionProbabilities(GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex].DecisionByteCode, progress) // the probabilities depend on the current state of the game
+                                };
+                            else
+                                walkHistoryTree.StoredValue = new CRMChanceNodeSettings_EqualProbabilities()
+                                {
+                                    DecisionNum = informationSetHistory.DecisionIndex,
+                                    EachProbability = 1.0 / (double)decision.NumPossibleActions
+                                };
+                        }
                     }
-                }
-                else
-                {
-                    bool isNecessarilyLast = decision.IsAlwaysPlayersLastDecision || informationSetHistory.IsTerminalAction;
-                    var playersStrategy = GetPlayerStrategyFromOverallPlayerNum(informationSetHistory.PlayerMakingDecision);
-                    if (walkHistoryTree.StoredValue == null)
+                    else
                     {
-                        // create the information set node if necessary, with initialized tally values
-                        var informationSetNode = playersStrategy.SetInformationSetTreeValueIfNotSet(
-                            informationSetHistoryCopy.InformationSet,
-                            isNecessarilyLast,
-                            () =>
-                            {
-                                CRMInformationSetNodeTally nodeInfo = new CRMInformationSetNodeTally(informationSetHistory.DecisionIndex, playerInfo.NonChancePlayerIndex, decision.NumPossibleActions);
-                                return nodeInfo;
-                            }
-                            );
-                        // Now, we want to store in the game history tree a quick reference to the correct point in the information set tree.
-                        walkHistoryTree.StoredValue = informationSetNode;
+                        bool isNecessarilyLast = decision.IsAlwaysPlayersLastDecision || informationSetHistory.IsTerminalAction;
+                        var playersStrategy = GetPlayerStrategyFromOverallPlayerNum(informationSetHistory.PlayerMakingDecision);
+                        if (walkHistoryTree.StoredValue == null)
+                        {
+                            // create the information set node if necessary, with initialized tally values
+                            var informationSetNode = playersStrategy.SetInformationSetTreeValueIfNotSet(
+                                informationSetHistoryCopy.InformationSet,
+                                isNecessarilyLast,
+                                () =>
+                                {
+                                    CRMInformationSetNodeTally nodeInfo = new CRMInformationSetNodeTally(informationSetHistory.DecisionIndex, playerInfo.NonChancePlayerIndex, decision.NumPossibleActions);
+                                    return nodeInfo;
+                                }
+                                );
+                            // Now, we want to store in the game history tree a quick reference to the correct point in the information set tree.
+                            walkHistoryTree.StoredValue = informationSetNode;
+                        }
                     }
+                    walkHistoryTree = walkHistoryTree.GetBranch(informationSetHistory.ActionChosen);
                 }
-                walkHistoryTree = walkHistoryTree.GetBranch(informationSetHistory.ActionChosen);
             }
         }
         #endregion
@@ -181,40 +200,39 @@ namespace ACESim
             return inputs;
         }
 
+        double probabilityOfPrint = 0;
         private unsafe void PrintSameGameResults(GamePlayer player, GameInputs inputs)
         {
-            TabbedText.EnableOutput = false; // DEBUG
-            double probabilityOfPrint = 1.0; // 0.00001; // DEBUG
             if (probabilityOfPrint == 0)
                 return;
-            TabbedText.WriteLine("-------------------------");
+            player.PlayAllPaths(inputs, PrintGameProbabilistically);
+        }
+
+        private unsafe void PrintGameProbabilistically(GameProgress progress)
+        {
             byte* path = stackalloc byte[GameHistory.MaxNumActions];
-            foreach (var progress in player.PlayAllPaths(inputs))
+            bool overridePrint = false;
+            string actionsList = progress.GameHistory.GetActionsAsListString();
+            if (actionsList == "1,1,2,3,2,1,2,2,2,1,2,2" || actionsList == "1,1,1,1,2,1,2,1,2,1,2,2" || actionsList == "3,1,1,1,2,1,2,1,2,1,2,2" || actionsList == "1,1,1,3,2,1,2,1,2,1,2,2")
             {
-                bool overridePrint = false;
-                string actionsList = progress.GameHistory.GetActionsAsListString();
-                if (actionsList == "1,1,2,3,2,1,2,2,2,1,2,2" || actionsList ==  "1,1,1,1,2,1,2,1,2,1,2,2" || actionsList ==  "3,1,1,1,2,1,2,1,2,1,2,2" || actionsList ==  "1,1,1,3,2,1,2,1,2,1,2,2")
-                {
-                    overridePrint = true;
-                }
-                if (overridePrint || RandomGenerator.NextDouble() < probabilityOfPrint)
-                {
-                    progress.GameHistory.GetActions(path);
-                    List<byte> path2 = new List<byte>();
-                    int i = 0;
-                    while (*(path + i) != 255)
-                    {
-                        path2.Add(*(path + i));
-                        i++;
-                    }
-                    var utilities = GetUtilities(path);
-                    TabbedText.WriteLine($"{String.Join(",", path2)} -->  Utilities: P {utilities[0]}, D {utilities[1]}");
-                    TabbedText.Tabs++;
-                    PrintGenericGameProgress(progress);
-                    TabbedText.Tabs--;
-                }
+                overridePrint = true;
             }
-            TabbedText.WriteLine("-------------------------");
+            if (overridePrint || RandomGenerator.NextDouble() < probabilityOfPrint)
+            {
+                progress.GameHistory.GetActions(path);
+                List<byte> path2 = new List<byte>();
+                int i = 0;
+                while (*(path + i) != 255)
+                {
+                    path2.Add(*(path + i));
+                    i++;
+                }
+                var utilities = GetUtilities(path);
+                TabbedText.WriteLine($"{String.Join(",", path2)} -->  Utilities: P {utilities[0]}, D {utilities[1]}");
+                TabbedText.Tabs++;
+                PrintGenericGameProgress(progress);
+                TabbedText.Tabs--;
+            }
         }
 
         public void PrintGenericGameProgress(GameProgress progress)
