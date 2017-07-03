@@ -20,63 +20,46 @@ namespace ACESim
 
         public override List<byte> GetActionSequence(NWayTreeStorage<T> child = null)
         {
-            lock (treelock)
+            List<byte> p = base.GetActionSequence(child);
+            if (child != null)
             {
-                List<byte> p = base.GetActionSequence(child);
-                if (child != null)
-                {
-                    for (int i = 0; i < Branches.Length; i++)
-                        if (Branches[i] == child)
-                            p.Add((byte)(i + 1));
-                }
-                return p;
+                for (int i = 0; i < Branches.Length; i++)
+                    if (Branches[i] == child)
+                        p.Add((byte)(i + 1));
             }
+            return p;
         }
 
         public override bool IsLeaf()
         {
-            lock (treelock)
-            {
-                return Branches == null;
-            }
+            return Branches == null;
         }
 
         private int AdjustedIndex(byte index) => index - (ZeroBased ? 0 : 1);
 
         public override NWayTreeStorage<T> GetBranch(byte index)
         {
-            lock (treelock)
-            {
-                var adjustedIndex = AdjustedIndex(index);
-                ConfirmAdjustedIndex(adjustedIndex);
-                return Branches[adjustedIndex];
-            }
+            var adjustedIndex = AdjustedIndex(index);
+            ConfirmAdjustedIndex(adjustedIndex);
+            return Branches[adjustedIndex];
         }
 
         public override void SetBranch(byte index, NWayTreeStorage<T> tree)
         {
-            lock (treelock)
-            {
-                var adjustedIndex = AdjustedIndex(index);
-                ConfirmAdjustedIndex(adjustedIndex);
-                Branches[adjustedIndex] = tree;
-            }
+            var adjustedIndex = AdjustedIndex(index);
+            ConfirmAdjustedIndex(adjustedIndex);
+            Branches[adjustedIndex] = tree;
         }
-
-        public static HashSet<string> DEBUG_HS = new HashSet<string>();
+        
         public static bool DEBUG_BlockAdd = false;
         private void ConfirmAdjustedIndex(int adjustedIndex)
         {
-            lock (treelock)
+            if (Branches == null || !(adjustedIndex < Branches.Length))
             {
-                if (Branches == null || !(adjustedIndex < Branches.Length))
+                lock (this)
                 {
-                    string DEBUGstring = ActionSequenceString + "," + (adjustedIndex + 1).ToString();
-                    bool DEBUG_done = DEBUG_HS.Contains(DEBUGstring);
                     if (DEBUG_BlockAdd)
                         throw new Exception();
-                    lock (DEBUG_HS)
-                        DEBUG_HS.Add(DEBUGstring);
                     if (Branches == null)
                         Branches = new NWayTreeStorage<T>[adjustedIndex + 1];
                     else if (!(adjustedIndex < Branches.Length))
@@ -92,95 +75,79 @@ namespace ACESim
 
         public unsafe NWayTreeStorage<T> GetNode(byte* restOfSequence)
         {
-            lock (treelock)
+            NWayTreeStorage<T> tree = this;
+            bool moreInSequence = *restOfSequence != 255;
+            while (moreInSequence)
             {
-                NWayTreeStorage<T> tree = this;
-                bool moreInSequence = *restOfSequence != 255;
-                while (moreInSequence)
-                {
-                    var previous = ((NWayTreeStorageInternal<T>)tree);
-                    tree = ((NWayTreeStorageInternal<T>)tree).GetBranch(*restOfSequence);
-                    if (tree == null)
-                        tree = previous.AddBranch(*restOfSequence, true);
-                    restOfSequence++;
-                    moreInSequence = *restOfSequence != 255;
-                }
-                return tree;
+                var previous = ((NWayTreeStorageInternal<T>)tree);
+                tree = ((NWayTreeStorageInternal<T>)tree).GetBranch(*restOfSequence);
+                if (tree == null)
+                    tree = previous.AddBranch(*restOfSequence, true);
+                restOfSequence++;
+                moreInSequence = *restOfSequence != 255;
             }
+            return tree;
         }
 
         public unsafe T GetValue(byte* restOfSequence)
         {
-            lock (treelock)
-                return GetNode(restOfSequence).StoredValue;
+            return GetNode(restOfSequence).StoredValue;
         }
 
         public unsafe NWayTreeStorage<T> SetValueIfNotSet(byte* restOfSequence, bool historyComplete, Func<T> setter)
         {
-            lock (treelock)
-            {
-                NWayTreeStorage<T> node = GetNode(restOfSequence);
-                if (node.StoredValue == null || node.StoredValue.Equals(default(T)))
-                    node.StoredValue = setter();
-                return node;
-            }
+            NWayTreeStorage<T> node = GetNode(restOfSequence);
+            if (node.StoredValue == null || node.StoredValue.Equals(default(T)))
+                node.StoredValue = setter();
+            return node;
         }
 
         public unsafe NWayTreeStorage<T> SetValue(byte* restOfSequence, bool historyComplete, T valueToAdd)
         {
-            lock (treelock)
+            // the logic here is more complicated because we will use NWayTreeStorage<T> for leaf nodes if historyComplete is set.
+            bool anyInSequence = *restOfSequence != 255;
+            if (!anyInSequence)
             {
-                // the logic here is more complicated because we will use NWayTreeStorage<T> for leaf nodes if historyComplete is set.
-                bool anyInSequence = *restOfSequence != 255;
-                if (!anyInSequence)
-                {
-                    StoredValue = valueToAdd;
-                    return this;
-                }
-                else
-                {
-                    return SetValueHelper(restOfSequence, historyComplete, valueToAdd);
-                }
+                StoredValue = valueToAdd;
+                return this;
+            }
+            else
+            {
+                return SetValueHelper(restOfSequence, historyComplete, valueToAdd);
             }
         }
 
         private unsafe NWayTreeStorage<T> SetValueHelper(byte* restOfSequence, bool historyComplete, T valueToAdd)
         {
-            lock (treelock)
+            byte nextInSequence = *restOfSequence;
+            restOfSequence++;
+            bool anotherExistsAfterNext = *restOfSequence != 255;
+            NWayTreeStorage<T> nextTree = GetBranch(nextInSequence);
+            if (nextTree == null)
             {
-                byte nextInSequence = *restOfSequence;
-                restOfSequence++;
-                bool anotherExistsAfterNext = *restOfSequence != 255;
-                NWayTreeStorage<T> nextTree = GetBranch(nextInSequence);
-                if (nextTree == null)
-                {
-                    bool mayBeInternal = anotherExistsAfterNext || !historyComplete;
-                    nextTree = AddBranch(nextInSequence, mayBeInternal);
-                }
-                if (anotherExistsAfterNext)
-                    return ((NWayTreeStorageInternal<T>)nextTree).SetValueHelper(restOfSequence, historyComplete, valueToAdd);
-                else
-                {
-                    nextTree.StoredValue = valueToAdd;
-                    return nextTree;
-                }
+                bool mayBeInternal = anotherExistsAfterNext || !historyComplete;
+                nextTree = AddBranch(nextInSequence, mayBeInternal);
+            }
+            if (anotherExistsAfterNext)
+                return ((NWayTreeStorageInternal<T>)nextTree).SetValueHelper(restOfSequence, historyComplete, valueToAdd);
+            else
+            {
+                nextTree.StoredValue = valueToAdd;
+                return nextTree;
             }
         }
 
         private NWayTreeStorage<T> AddBranch(byte index, bool mayBeInternal)
         {
-            lock (treelock)
+            NWayTreeStorage<T> nextTree;
+            if (mayBeInternal)
+                nextTree = new NWayTreeStorageInternal<T>(this);
+            else
             {
-                NWayTreeStorage<T> nextTree;
-                if (mayBeInternal)
-                    nextTree = new NWayTreeStorageInternal<T>(this);
-                else
-                {
-                    nextTree = new NWayTreeStorage<T>(this); // leaf node for last item in history; having a separate type saves space on Branches.
-                }
-                SetBranch(index, nextTree);
-                return nextTree;
+                nextTree = new NWayTreeStorage<T>(this); // leaf node for last item in history; having a separate type saves space on Branches.
             }
+            SetBranch(index, nextTree);
+            return nextTree;
         }
     }
 }

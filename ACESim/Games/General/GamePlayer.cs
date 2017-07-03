@@ -229,38 +229,35 @@ namespace ACESim
             }
             GameProgress ConvertPathInfoToGameProgress(PathInfo pathToPlay)
             {
-                lock (NWayTreeStorage<object>.treelock) // DEBUG
+                //Debug.WriteLine(String.Join(",", pathToPlay.Path));
+                var progressToUse = startingProgress.DeepCopy();
+                //Debug.WriteLine($"Playing {String.Join(",", pathToPlay.Path)}");
+                List<byte> next = PlayPath(pathToPlay.Path, progressToUse, gameInputsToUse, true)?.ToList();
+                if (next != null)
                 {
-                    //Debug.WriteLine(String.Join(",", pathToPlay.Path));
-                    var progressToUse = startingProgress.DeepCopy();
-                    //Debug.WriteLine($"Playing {String.Join(",", pathToPlay.Path)}");
-                    List<byte> next = PlayPath(pathToPlay.Path, progressToUse, gameInputsToUse, true)?.ToList();
-                    if (next != null)
+                    int differentialIndex = pathToPlay.Path.GetIndexOfDifference(next);
+                    bool alreadyPosted = differentialIndex <= pathToPlay.LastPathAlreadyExpanded;
+                    if (!alreadyPosted)
                     {
-                        int differentialIndex = pathToPlay.Path.GetIndexOfDifference(next);
-                        bool alreadyPosted = differentialIndex <= pathToPlay.LastPathAlreadyExpanded;
-                        if (!alreadyPosted)
+                        int pathToExpand = pathToPlay.LastPathAlreadyExpanded + 1;
+                        byte startingValue = next[pathToExpand];
+                        byte endingValue = GameDefinition.DecisionsExecutionOrder[pathToExpand].NumPossibleActions;
+                        for (byte i = startingValue; i <= endingValue; i++)
                         {
-                            int pathToExpand = pathToPlay.LastPathAlreadyExpanded + 1;
-                            byte startingValue = next[pathToExpand];
-                            byte endingValue = GameDefinition.DecisionsExecutionOrder[pathToExpand].NumPossibleActions;
-                            for (byte i = startingValue; i <= endingValue; i++)
-                            {
-                                Interlocked.Increment(ref numPending);
-                                List<byte> next2 = new List<byte>();
-                                for (int j = 0; j < pathToExpand; j++)
-                                    next2.Add(next[j]);
-                                next2.Add(i);
-                                //Debug.WriteLine($"{String.Join(",", pathToPlay.Path)} => {String.Join(",", next2)}");
-                                bufferBlock.Post(new PathInfo(next2, pathToExpand));
-                            }
+                            Interlocked.Increment(ref numPending);
+                            List<byte> next2 = new List<byte>();
+                            for (int j = 0; j < pathToExpand; j++)
+                                next2.Add(next[j]);
+                            next2.Add(i);
+                            //Debug.WriteLine($"{String.Join(",", pathToPlay.Path)} => {String.Join(",", next2)}");
+                            bufferBlock.Post(new PathInfo(next2, pathToExpand));
                         }
                     }
-                    Interlocked.Decrement(ref numPending);
-                    if (numPending == 0)
-                        bufferBlock.Complete();
-                    return progressToUse;
                 }
+                Interlocked.Decrement(ref numPending);
+                if (numPending == 0)
+                    bufferBlock.Complete();
+                return progressToUse;
             }
             bufferBlock.LinkTo(transformBlock, new DataflowLinkOptions()
             {

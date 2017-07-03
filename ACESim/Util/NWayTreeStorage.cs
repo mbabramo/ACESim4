@@ -9,8 +9,7 @@ namespace ACESim
     [Serializable]
     public class NWayTreeStorage<T>
     {
-
-        public static object treelock = new object(); // DEBUG
+        
 
         public NWayTreeStorageInternal<T> Parent;
 
@@ -19,34 +18,25 @@ namespace ACESim
         {
             get
             {
-                lock (treelock)
+                lock (this)
                     return _StoredValue;
             }
             set
             {
-                lock (treelock)
+                lock (this)
                     _StoredValue = value;
             }
         }
 
-        public static int DEBUGCount;
-
         public NWayTreeStorage(NWayTreeStorageInternal<T> parent)
         {
-            lock (treelock)
-            {
-                Parent = parent;
-                System.Threading.Interlocked.Increment(ref DEBUGCount);
-            }
+            Parent = parent;
         }
 
         public virtual List<byte> GetActionSequence(NWayTreeStorage<T> child = null)
         {
-            lock (treelock)
-            {
-                List<byte> p = Parent?.GetActionSequence(this) ?? new List<byte>();
-                return p;
-            }
+            List<byte> p = Parent?.GetActionSequence(this) ?? new List<byte>();
+            return p;
         }
 
         public string ActionSequenceString => String.Join(",", GetActionSequence());
