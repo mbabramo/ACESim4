@@ -76,6 +76,7 @@ namespace ACESim
             SolveVanillaCFR();
         }
 
+        int NumPathsPlayed;
         public unsafe void Initialize()
         {
 
@@ -90,43 +91,18 @@ namespace ACESim
             {
                 s.CreateInformationSetTree(GameDefinition.DecisionsExecutionOrder.First(x => x.PlayerNumber == s.PlayerInfo.PlayerNumberOverall).NumPossibleActions);
             }
-
-            int numPlayed = 0;
-            var resultsBuffer = new BufferBlock<GameProgress>(new DataflowBlockOptions { BoundedCapacity = 1000 });
-            var consumer = ProcessInitializedGameProgress(resultsBuffer);
+            
             player.PlayAllPaths(inputs, ProcessInitializedGameProgress);
-            foreach (GameProgress progress in player.PlayAllPaths(inputs))
-            {
-                numPlayed++;
-                resultsBuffer.SendAsync(progress);
-            }
-            //resultsBuffer.Complete(); // tell consumer nothing more to be produced
-            consumer.Wait(); // wait until all have been processed
-            Debug.WriteLine($"Initialized. Total paths: {numPlayed}");
+            Debug.WriteLine($"Initialized. Total paths: {NumPathsPlayed}");
 
             int DEBUG_HS_Count = NWayTreeStorageInternal<object>.DEBUG_HS.Count();
-            Debug.WriteLine($"nodes added to hash: {DEBUG_HS_Count} numplayed {numPlayed} numprocessed {DEBUG_numProcessed}");
+            Debug.WriteLine($"nodes added to hash: {DEBUG_HS_Count} numplayed {NumPathsPlayed}");
             if (DEBUG_HS_Count < 14376)
             {
                 var DEBUG = 0;
             }
             NWayTreeStorageInternal<object>.DEBUG_BlockAdd = true;
-            var DEBUG_s = player.DEBUG_s.ToString();
             PrintSameGameResults(player, inputs);
-        }
-
-        int DEBUG_numProcessed = 0;
-        async Task ProcessInitializedGameProgress(ISourceBlock<GameProgress> source)
-        {
-            DEBUG_numProcessed = 0;
-            while (await source.OutputAvailableAsync())
-            {
-                GameProgress gameProgress = source.Receive();
-                ProcessInitializedGameProgress(gameProgress);
-                System.Threading.Interlocked.Increment(ref DEBUG_numProcessed);
-                TabbedText.EnableOutput = false; // DEBUG
-                //PrintGenericGameProgress(gameProgress); // DEBUG
-            }
         }
 
         unsafe void ProcessInitializedGameProgress(GameProgress progress)
