@@ -110,9 +110,6 @@ namespace ACESim
             return CompletedGameProgresses;
         }
 
-        public List<string> DEBUG = new List<string>();
-        public StringBuilder DEBUG_s;
-
         public void PlayAllPaths(GameInputs gameInputsToUse, Action<GameProgress> actionToTake)
         {
             Func<GameInputs, IEnumerable<GameProgress>> playPathsFn = DoParallel ? (Func<GameInputs,IEnumerable<GameProgress>>) PlayAllPaths_Parallel : PlayAllPaths_Serial;
@@ -122,26 +119,9 @@ namespace ACESim
                 //Debug.WriteLine($"{x.ActionsToPlayString} => {x.GameHistory.GetActionsAsListString()}");
                 //Debug.WriteLine($"{x.GameHistory.GetActionsAsListString()}");
                 string actionsAsListString = x.GameHistory.GetActionsAsListString();
-                DEBUG.Add($"{actionsAsListString}");
-                //string DEBUG2 = null;
-                //foreach (byte b in x.GameHistory.GetActionsAsList())
-                //{
-                //    if (DEBUG2 == null)
-                //        DEBUG2 = b.ToString();
-                //    else
-                //        DEBUG2 += "," + b.ToString();
-                //    bool contains = NWayTreeStorageInternal<object>.DEBUG_HS.Contains(DEBUG2);
-                //    if (!contains)
-                //    {
-                //        var DEBUG = 0;
-                //    }
-                //}
                 i++;
                 actionToTake(x);
             }
-            DEBUG = DEBUG.OrderBy(x => x).ToList();
-            DEBUG_s = new StringBuilder();
-            DEBUG.ForEach(x => DEBUG_s.AppendLine(x));
         }
 
         public IEnumerable<GameProgress> PlayAllPaths_Serial(GameInputs gameInputsToUse)
