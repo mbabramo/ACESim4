@@ -181,7 +181,7 @@ namespace ACESim
             string theString = Name + repetitionInfo + ": ";
             foreach (ActionPoint ap in ActionPoints)
             {
-                string asteriskForDecisionPoint = ap is DecisionPoint ? "*" : "";
+                string asteriskForDecisionPoint = ap.Decision != null ? "*" : "";
                 theString += ap.Name + asteriskForDecisionPoint + " ";
             }
             return theString;

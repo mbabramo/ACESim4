@@ -22,7 +22,7 @@ namespace ACESim
         internal ActionPoint CurrentActionPoint;
         internal int? MostRecentDecisionIndex;
 
-        public DecisionPoint CurrentDecisionPoint => CurrentActionPoint as DecisionPoint;
+        public ActionPoint CurrentDecisionPoint => CurrentActionPoint as ActionPoint;
         public ActionGroup CurrentActionGroup => CurrentActionPoint.ActionGroup;
 
         public byte? CurrentDecisionIndex { get { if (CurrentDecisionPoint == null) return null; return CurrentDecisionPoint.DecisionNumber; } }
@@ -50,7 +50,7 @@ namespace ACESim
             return DecisionPointForDecisionNumber(decisionNumber).DecisionNumberWithinActionGroup;
         }
 
-        public DecisionPoint DecisionPointForDecisionNumber(int decisionNumber)
+        public ActionPoint DecisionPointForDecisionNumber(int decisionNumber)
         {
             return GameDefinition.DecisionPointForDecisionNumber(decisionNumber);
         }

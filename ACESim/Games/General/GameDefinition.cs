@@ -41,7 +41,7 @@ namespace ACESim
         public List<Decision> DecisionsExecutionOrder;
 
         [InternallyDefinedSetting]
-        public List<DecisionPoint> DecisionPointsExecutionOrder;
+        public List<ActionPoint> DecisionPointsExecutionOrder;
 
         /// <summary>
         /// The index into ExecutionOrder for each decision in DecisionPointsExecutionOrder.
@@ -57,14 +57,14 @@ namespace ACESim
 
         public List<SimpleReportDefinition> SimpleReportDefinitions;
 
-        public DecisionPoint DecisionPointForDecisionNumber(int decisionNumber)
+        public ActionPoint DecisionPointForDecisionNumber(int decisionNumber)
         {
-            return ExecutionOrder[ExecutionOrderIndexForEachDecision[decisionNumber]].ActionPoints[ActionPointIndexForEachDecision[decisionNumber]] as DecisionPoint;
+            return ExecutionOrder[ExecutionOrderIndexForEachDecision[decisionNumber]].ActionPoints[ActionPointIndexForEachDecision[decisionNumber]] as ActionPoint;
         }
 
         public GameModule GetOriginalGameModuleForDecisionNumber(int decisionNumber)
         {
-            DecisionPoint dp = DecisionPointForDecisionNumber(decisionNumber);
+            ActionPoint dp = DecisionPointForDecisionNumber(decisionNumber);
             return GameModules[(int) dp.ActionGroup.ModuleNumber];
         }
 
@@ -119,7 +119,7 @@ namespace ACESim
             foreach (var gamewideDecision in DecisionsExecutionOrder)
             {
                 exGroup.ActionPoints.Add(
-                    new DecisionPoint() { DecisionNumber = decisionNum, DecisionNumberWithinActionGroup = decisionNum, Name = gamewideDecision.Name, Decision = DecisionsExecutionOrder[decisionNum], ActionGroup = exGroup }
+                    new ActionPoint() { DecisionNumber = decisionNum, DecisionNumberWithinActionGroup = decisionNum, Name = gamewideDecision.Name, Decision = DecisionsExecutionOrder[decisionNum], ActionGroup = exGroup }
                 );
                 decisionNum++;
             }
@@ -266,7 +266,7 @@ namespace ACESim
         private void ProcessExecutionOrderList()
         {
             DecisionsExecutionOrder = new List<Decision>(); // we have a list of just Decisions since that was easier to put in xml files for gamewide decisions, but we'll rebuild it here
-            DecisionPointsExecutionOrder = new List<DecisionPoint>(); // this has more information
+            DecisionPointsExecutionOrder = new List<ActionPoint>(); // this has more information
             ExecutionOrderIndexForEachDecision = new List<int>();
             ActionPointIndexForEachDecision = new List<int>();
             if (GameModules == null)
@@ -288,9 +288,9 @@ namespace ACESim
                 {
                     ActionPoint ap = ag.ActionPoints[actionPointIndex];
                     ap.ActionPointIndex = actionPointIndex;
-                    if (ap is DecisionPoint)
+                    if (ap.Decision != null)
                     {
-                        DecisionPoint dp = ((DecisionPoint)ap);
+                        ActionPoint dp = ((ActionPoint)ap);
                         ExecutionOrderIndexForEachDecision.Add(actionGroupIndex);
                         ActionPointIndexForEachDecision.Add(actionPointIndex);
                         dp.DecisionNumber = decisionNumber;
@@ -318,7 +318,7 @@ namespace ACESim
             if (GameModules != null)
                 foreach (var module in GameModules)
                 {
-                    DecisionPoint dp = DecisionPointsExecutionOrder.FirstOrDefault(x => x.ActionGroup.ModuleNumber == module.ModuleNumber);
+                    ActionPoint dp = DecisionPointsExecutionOrder.FirstOrDefault(x => x.ActionGroup.ModuleNumber == module.ModuleNumber);
                     if (dp != null)
                         module.FirstDecisionNumberInGameModule = dp.DecisionNumber;
                 }
@@ -342,12 +342,12 @@ namespace ACESim
             TabbedText.Tabs--;
         }
 
-        private static void PrintOutOrderedDecisionPoints(string heading, List<DecisionPoint> decisionPointsToPrint)
+        private static void PrintOutOrderedDecisionPoints(string heading, List<ActionPoint> decisionPointsToPrint)
         {
             TabbedText.WriteLine("");
             TabbedText.WriteLine(heading);
             TabbedText.Tabs++;
-            foreach (DecisionPoint dp in decisionPointsToPrint)
+            foreach (ActionPoint dp in decisionPointsToPrint)
             {
                 string repetitionTag = dp.ActionGroup.RepetitionTagString();
                 if (repetitionTag != "")

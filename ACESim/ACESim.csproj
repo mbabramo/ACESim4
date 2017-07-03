@@ -173,7 +173,7 @@
     <Compile Include="Executor\ProgressResumptionManagerInfo.cs" />
     <Compile Include="Executor\ProgressResumptionOptions.cs" />
     <Compile Include="Games\General\GameHistory.cs" />
-    <Compile Include="Games\General\DecisionPoint.cs" />
+    <Compile Include="Games\General\ActionPoint.cs" />
     <Compile Include="Games\General\ActionGroup.cs" />
     <Compile Include="Games\General\ActionGroupRepetition.cs" />
     <Compile Include="Games\General\InformationSetHistory.cs" />
@@ -231,7 +231,6 @@
     <Compile Include="Evolution\EvolutionSettings.cs" />
     <Compile Include="Executor\ExecutorMultiple.cs" />
     <Compile Include="Executor\ProgressStep.cs" />
-    <Compile Include="Games\General\ActionPoint.cs" />
     <Compile Include="Games\General\Game.cs" />
     <Compile Include="Games\General\GameDefinition.cs" />
     <Compile Include="Games\General\GameFactoryFactory.cs" />

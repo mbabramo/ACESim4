@@ -254,7 +254,7 @@ namespace ACESim
                 foreach (var dec in decisionsForGroup)
                 {
                     actionGroup.ActionPoints.Add(
-                        new DecisionPoint() { DecisionNumberWithinActionGroup = decisionNum, Name = dec.Name, Decision = decisionsForGroup[decisionNum], ActionGroup = actionGroup }
+                        new ActionPoint() { DecisionNumberWithinActionGroup = decisionNum, Name = dec.Name, Decision = decisionsForGroup[decisionNum], ActionGroup = actionGroup }
                     );
                     decisionNum++;
                 }

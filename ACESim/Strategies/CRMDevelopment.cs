@@ -808,7 +808,8 @@ namespace ACESim
         {
             const int numIterationsToRun = 100000;
 
-            int? reportEveryNIterations = 1000;
+            int? reportEveryNIterations = 100;
+            int? bestResponseEveryMIterations = 1000;
 
             double[] lastUtilities = new double[NumNonChancePlayers];
 
@@ -833,14 +834,16 @@ namespace ACESim
                     Debug.WriteLine("");
                     Debug.WriteLine($"Iteration {iteration} Milliseconds per iteration {(s.ElapsedMilliseconds / ((double)iteration + 1.0))}");
                     Debug.WriteLine($"{GenerateReports(actionStrategy)}");
-                    for (byte p = 0; p < NumNonChancePlayers; p++)
-                    {
-                        double bestResponseUtility = CalculateBestResponse(p, actionStrategy);
-                        double bestResponseImprovement = bestResponseUtility - UtilityCalculations[p].Average();
-                        if (bestResponseImprovement < -1E-15)
-                            throw new Exception("Best response function worse."); // it can be slightly negative as a result of rounding errors
-                        Debug.WriteLine($"Player {p} utility with regret matching {UtilityCalculations[p].Average()} using best response against regret matching {bestResponseUtility} best response improvement {bestResponseImprovement}");
-                    }
+
+                    if (bestResponseEveryMIterations != null && iteration % bestResponseEveryMIterations == 0)
+                        for (byte p = 0; p < NumNonChancePlayers; p++)
+                        {
+                            double bestResponseUtility = CalculateBestResponse(p, actionStrategy);
+                            double bestResponseImprovement = bestResponseUtility - UtilityCalculations[p].Average();
+                            if (bestResponseImprovement < -1E-15)
+                                throw new Exception("Best response function worse."); // it can be slightly negative as a result of rounding errors
+                            Debug.WriteLine($"Player {p} utility with regret matching {UtilityCalculations[p].Average()} using best response against regret matching {bestResponseUtility} best response improvement {bestResponseImprovement}");
+                        }
                 }
             }
             for (int iteration = 0; iteration < numIterationsToRun; iteration++)
