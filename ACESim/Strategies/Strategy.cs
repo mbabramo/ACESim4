@@ -47,7 +47,7 @@ namespace ACESim
 
         public void CreateInformationSetTree(int numInitialActions)
         {
-            InformationSetTree = new NWayTreeStorageInternal<object>(numInitialActions);
+            InformationSetTree = new NWayTreeStorageInternal<object>(null, numInitialActions);
         }
 
         public unsafe NWayTreeStorage<object> SetInformationSetTreeValue(byte* informationSet, bool historyComplete, object valueToSet)

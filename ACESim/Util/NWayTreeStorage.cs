@@ -9,6 +9,9 @@ namespace ACESim
     [Serializable]
     public class NWayTreeStorage<T>
     {
+
+        public NWayTreeStorageInternal<T> Parent;
+
         private T _StoredValue;
         public T StoredValue
         {
@@ -22,6 +25,22 @@ namespace ACESim
                     _StoredValue = value;
             }
         }
+
+        public static int DEBUGCount;
+
+        public NWayTreeStorage(NWayTreeStorageInternal<T> parent)
+        {
+            Parent = parent;
+            System.Threading.Interlocked.Increment(ref DEBUGCount);
+        }
+
+        public virtual List<byte> GetActionSequence(NWayTreeStorage<T> child = null)
+        {
+            List<byte> p = Parent?.GetActionSequence(this) ?? new List<byte>();
+            return p;
+        }
+
+        public string ActionSequenceString => String.Join(",", GetActionSequence());
 
         public virtual NWayTreeStorage<T> GetBranch(byte index)
         {

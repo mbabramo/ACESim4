@@ -82,7 +82,7 @@ namespace ACESim
             GameInputs inputs = GetGameInputs();
 
             // Create game trees
-            GameHistoryTree = new NWayTreeStorageInternal<object>(GameDefinition.DecisionsExecutionOrder.First().NumPossibleActions);
+            GameHistoryTree = new NWayTreeStorageInternal<object>(null, GameDefinition.DecisionsExecutionOrder.First().NumPossibleActions);
             foreach (Strategy s in Strategies)
             {
                 s.CreateInformationSetTree(GameDefinition.DecisionsExecutionOrder.First(x => x.PlayerNumber == s.PlayerInfo.PlayerNumberOverall).NumPossibleActions);
@@ -99,6 +99,8 @@ namespace ACESim
             resultsBuffer.Complete(); // tell consumer nothing more to be produced
             consumer.Wait(); // wait until all have been processed
             TabbedText.WriteLine($"Initialized. Total paths: {numPlayed}");
+
+            NWayTreeStorageInternal<object>.DEBUG_BlockAdd = true;
 
             PrintSameGameResults(player, inputs);
         }
@@ -181,13 +183,21 @@ namespace ACESim
 
         private unsafe void PrintSameGameResults(GamePlayer player, GameInputs inputs)
         {
-            double probabilityOfPrint = 0.0;
+            TabbedText.EnableOutput = false; // DEBUG
+            double probabilityOfPrint = 1.0; // 0.00001; // DEBUG
             if (probabilityOfPrint == 0)
                 return;
+            TabbedText.WriteLine("-------------------------");
             byte* path = stackalloc byte[GameHistory.MaxNumActions];
             foreach (var progress in player.PlayAllPaths(inputs))
             {
-                if (RandomGenerator.NextDouble() < probabilityOfPrint)
+                bool overridePrint = false;
+                string actionsList = progress.GameHistory.GetActionsAsListString();
+                if (actionsList == "1,1,2,3,2,1,2,2,2,1,2,2" || actionsList ==  "1,1,1,1,2,1,2,1,2,1,2,2" || actionsList ==  "3,1,1,1,2,1,2,1,2,1,2,2" || actionsList ==  "1,1,1,3,2,1,2,1,2,1,2,2")
+                {
+                    overridePrint = true;
+                }
+                if (overridePrint || RandomGenerator.NextDouble() < probabilityOfPrint)
                 {
                     progress.GameHistory.GetActions(path);
                     List<byte> path2 = new List<byte>();
@@ -204,6 +214,7 @@ namespace ACESim
                     TabbedText.Tabs--;
                 }
             }
+            TabbedText.WriteLine("-------------------------");
         }
 
         public void PrintGenericGameProgress(GameProgress progress)

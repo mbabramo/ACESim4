@@ -11,11 +11,23 @@ namespace ACESim
     {
         public const bool ZeroBased = false; // make this a constant to save space; we could alternatively store this with the tree or pass it to the methods
         public NWayTreeStorage<T>[] Branches;
-
-        public NWayTreeStorageInternal(int numBranches = 0)
+        
+        public NWayTreeStorageInternal(NWayTreeStorageInternal<T> parent, int numBranches = 0) : base(parent)
         {
             // Branches will automatically expand as necessary to fit. 
             Branches = null; // initialize to null
+        }
+
+        public override List<byte> GetActionSequence(NWayTreeStorage<T> child = null)
+        {
+            List<byte> p = base.GetActionSequence(child);
+            if (child != null)
+            {
+                for (int i = 0; i < Branches.Length; i++)
+                    if (Branches[i] == child)
+                        p.Add((byte) (i + 1));
+            }
+            return p;
         }
 
         public override bool IsLeaf()
@@ -40,11 +52,14 @@ namespace ACESim
                 Branches[adjustedIndex] = tree;
         }
 
+        public static bool DEBUG_BlockAdd = false;
         private void ConfirmAdjustedIndex(int adjustedIndex)
         {
             if (Branches == null || !(adjustedIndex < Branches.Length))
                 lock (this)
                 {
+                    if (DEBUG_BlockAdd)
+                        throw new Exception();
                     if (Branches == null)
                         Branches = new NWayTreeStorage<T>[adjustedIndex + 1];
                     else if (!(adjustedIndex < Branches.Length))
@@ -125,10 +140,10 @@ namespace ACESim
         {
             NWayTreeStorage<T> nextTree;
             if (mayBeInternal)
-                nextTree = new NWayTreeStorageInternal<T>();
+                nextTree = new NWayTreeStorageInternal<T>(this);
             else
             {
-                nextTree = new NWayTreeStorage<T>(); // leaf node for last item in history; having a separate type saves space on Branches.
+                nextTree = new NWayTreeStorage<T>(this); // leaf node for last item in history; having a separate type saves space on Branches.
             }
             SetBranch(index, nextTree);
             return nextTree;
