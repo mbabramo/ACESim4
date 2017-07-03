@@ -168,7 +168,8 @@ namespace ACESim
             if (LastIndexAddedToInformationSets > 0)
                 for (byte i = 0; i < LastIndexAddedToInformationSets; i += InformationSet_NumPiecesOfInformation)
                 {
-                    (byte playerNumberInInformationSet, byte decisionIndex, byte informationIndex) = GetInformationSetsInfo(i);
+                    byte playerNumberInInformationSet, decisionIndex, informationIndex;
+                    GetInformationSetsInfo(i, out playerNumberInInformationSet, out decisionIndex, out informationIndex);
 
                     if (playerNumberInInformationSet == playerNumber)
                     {
@@ -181,18 +182,19 @@ namespace ACESim
             playerInfoBuffer[d] = 255;
         }
 
-        public (byte playerNumberInInformationSet, byte decisionIndex, byte informationIndex) GetInformationSetsInfo(int i)
+        public void GetInformationSetsInfo(int i, out byte playerNumberInInformationSet, out byte decisionIndex, out byte informationIndex)
         {
-            byte playerNumberInInformationSet;
-            byte decisionIndex;
-            byte informationIndex;
             fixed (byte* informationSetsPtr = InformationSets)
             {
-                playerNumberInInformationSet = *(informationSetsPtr + i);
-                decisionIndex = *(informationSetsPtr + i + InformationSet_DecisionIndex_Offset);
-                informationIndex = *(informationSetsPtr + i + InformationSet_Information_Offset);
+                byte* b = informationSetsPtr;
+                b += i;
+                playerNumberInInformationSet = *b;
+                b += InformationSet_DecisionIndex_Offset;
+                decisionIndex = *b;
+                b -= InformationSet_DecisionIndex_Offset;
+                b += InformationSet_Information_Offset;
+                informationIndex = *b;
             }
-            return (playerNumberInInformationSet, decisionIndex, informationIndex);
         }
 
         /// <summary>

@@ -75,8 +75,7 @@ namespace ACESim
             Initialize();
             SolveVanillaCFR();
         }
-
-        int NumPathsPlayed;
+        
         public unsafe void Initialize()
         {
 
@@ -92,8 +91,8 @@ namespace ACESim
                 s.CreateInformationSetTree(GameDefinition.DecisionsExecutionOrder.First(x => x.PlayerNumber == s.PlayerInfo.PlayerNumberOverall).NumPossibleActions);
             }
             
-            player.PlayAllPaths(inputs, ProcessInitializedGameProgress);
-            Debug.WriteLine($"Initialized. Total paths: {NumPathsPlayed}");
+            int numPathsPlayed = player.PlayAllPaths(inputs, ProcessInitializedGameProgress);
+            Debug.WriteLine($"Initialized. Total paths: {numPathsPlayed}");
             NWayTreeStorageInternal<object>.DEBUG_BlockAdd = true;
             PrintSameGameResults(player, inputs);
         }
@@ -179,7 +178,7 @@ namespace ACESim
             byte* path = stackalloc byte[GameHistory.MaxNumActions];
             bool overridePrint = false;
             string actionsList = progress.GameHistory.GetActionsAsListString();
-            if (actionsList == "1,1,2,3,2,1,2,2,2,1,2,2" || actionsList == "1,1,1,1,2,1,2,1,2,1,2,2" || actionsList == "3,1,1,1,2,1,2,1,2,1,2,2" || actionsList == "1,1,1,3,2,1,2,1,2,1,2,2")
+            if (actionsList == "INSERT_LIST_HERE")
             {
                 overridePrint = true;
             }

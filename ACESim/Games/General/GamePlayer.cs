@@ -110,23 +110,20 @@ namespace ACESim
             return CompletedGameProgresses;
         }
 
-        public void PlayAllPaths(GameInputs gameInputsToUse, Action<GameProgress> actionToTake)
+        public int PlayAllPaths(GameInputs gameInputsToUse, Action<GameProgress> actionToTake)
         {
-            Func<GameInputs, IEnumerable<GameProgress>> playPathsFn = DoParallel ? (Func<GameInputs,IEnumerable<GameProgress>>) PlayAllPaths_Parallel : PlayAllPaths_Serial;
-            int i = 0;
-            foreach (var x in playPathsFn(gameInputsToUse))
-            {
-                //Debug.WriteLine($"{x.ActionsToPlayString} => {x.GameHistory.GetActionsAsListString()}");
-                //Debug.WriteLine($"{x.GameHistory.GetActionsAsListString()}");
-                string actionsAsListString = x.GameHistory.GetActionsAsListString();
-                i++;
-                actionToTake(x);
-            }
+            Stopwatch s = new Stopwatch();
+            s.Start();
+            Action<GameInputs, Action<GameProgress>> playPathsFn = DoParallel ? (Action<GameInputs, Action<GameProgress>>) PlayAllPaths_Parallel : PlayAllPaths_Serial;
+            int numPathsPlayed = 0;
+            playPathsFn(gameInputsToUse, gp => { actionToTake(gp); Interlocked.Increment(ref numPathsPlayed); }) ;
+            s.Stop();
+            Debug.WriteLine("PlayAllPathsTime " + s.ElapsedMilliseconds);
+            return numPathsPlayed;
         }
 
-        public IEnumerable<GameProgress> PlayAllPaths_Serial(GameInputs gameInputsToUse)
+        public void PlayAllPaths_Serial(GameInputs gameInputsToUse, Action<GameProgress> processor)
         {
-            int numProcessed = 0;
             // This method plays all game paths (without having any advance knowledge of what those game paths are). 
             GameProgress startingProgress = GameFactory.CreateNewGameProgress(new IterationID(1)); // iteration doesn't matter, since we're playing a particular path and thus ignoring random numbers
             IEnumerable<byte> path = new List<byte> { };
@@ -135,7 +132,6 @@ namespace ACESim
                 var progressToUse = startingProgress.DeepCopy();
                 IEnumerable<byte> next = PlayPath(path, progressToUse, gameInputsToUse, true);
                 // Debug.WriteLine($"{String.Join(",", path)} => {String.Join(",", progressToUse.GameHistory.GetActionsAsList())}");
-                numProcessed++;
                 //var thePathEnumerated = next?.ToList();
                 //if (thePathEnumerated != null)
                 //    Debug.WriteLine($"{String.Join(",", thePathEnumerated)}");
@@ -143,7 +139,7 @@ namespace ACESim
                     path = null;
                 else
                     path = next;
-                yield return progressToUse;
+                processor(progressToUse);
             }
         }
 
@@ -159,12 +155,9 @@ namespace ACESim
                 LastPathAlreadyExpanded = lastPathAlreadyExpanded ?? -1;
             }
         }
-
-
-        public IEnumerable<GameProgress> PlayAllPaths_Parallel(GameInputs gameInputsToUse)
+        
+        public void PlayAllPaths_Parallel(GameInputs gameInputsToUse, Action<GameProgress> processor)
         {
-            int numProcessed = 0;
-            int numYielded = 0;
 
             // This method plays all game paths (without having any advance knowledge of what those game paths are). 
             // It seeks to play them in parallel. This is a little tricky, because we only find out the next path when
@@ -189,9 +182,14 @@ namespace ACESim
                 thePath => EnumerateIfNotRedundant(ConvertPathInfoToGameProgress(thePath)),
                  new ExecutionDataflowBlockOptions
                  {
-                     MaxDegreeOfParallelism = 1 // DEBUG Environment.ProcessorCount
+                     MaxDegreeOfParallelism = Environment.ProcessorCount
                  }
                 );
+            var actionBlock = new ActionBlock<GameProgress>(processor,
+                 new ExecutionDataflowBlockOptions
+                 {
+                     MaxDegreeOfParallelism = Environment.ProcessorCount
+                 });
             IEnumerable<GameProgress> EnumerateIfNotRedundant(GameProgress gp)
             {
                 // The algorithm will produce some redundancy. For example,
@@ -204,7 +202,6 @@ namespace ACESim
                 if (notRedundant)
                 {
                     yield return gp;
-                    Interlocked.Increment(ref numYielded);
                 }
             }
             GameProgress ConvertPathInfoToGameProgress(PathInfo pathToPlay)
@@ -243,27 +240,33 @@ namespace ACESim
             {
                 PropagateCompletion = true
             });
+            transformBlock.LinkTo(actionBlock, new DataflowLinkOptions()
+            {
+                PropagateCompletion = true
+            });
 
             PathInfo startingPath = new PathInfo(new List<byte> { }, -1);
             Interlocked.Increment(ref numPending);
             bufferBlock.Post(startingPath);
-            int numYielded2 = 0;
-            bool done = false;
-            do
-            {
-                Task<bool> t = transformBlock.OutputAvailableAsync();
-                t.Wait();
-                if (t.Result)
-                {
-                    yield return transformBlock.Receive();
-                    numYielded2++;
-                }
-                else
-                    done = true;
-            } while (!done);
-            if (numYielded != numYielded2)
-                throw new Exception("Internal error. Parallel processing did not yield all results!");
-            Debug.WriteLine($"Yielded: {numYielded} {numYielded2}");
+            Task.WaitAll(bufferBlock.Completion, transformBlock.Completion, actionBlock.Completion);
+            //
+            //int numYielded2 = 0;
+            //bool done = false;
+            //do
+            //{
+            //    Task<bool> t = transformBlock.OutputAvailableAsync();
+            //    t.Wait();
+            //    if (t.Result)
+            //    {
+            //        yield return transformBlock.Receive();
+            //        numYielded2++;
+            //    }
+            //    else
+            //        done = true;
+            //} while (!done);
+            //if (numYielded != numYielded2)
+            //    throw new Exception("Internal error. Parallel processing did not yield all results!");
+            //Debug.WriteLine($"Yielded: {numYielded} {numYielded2}");
         }
 
         public unsafe IEnumerable<byte> PlayPath(IEnumerable<byte> actionsToPlay, GameProgress startingProgress, GameInputs gameInputsToUse, bool getNextPath)

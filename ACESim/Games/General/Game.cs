@@ -308,8 +308,6 @@ namespace ACESim
                 GameProgressLogger.Log(gamePointString);
             }
 
-            string gamePointString2 = (CurrentActionPoint?.Name ?? "") + " " + " Preparation phase: " + PreparationPhase.ToString() + "\n";
-
             PrepareForOrMakeDecision();
 
             if (Progress.IsFinalStep(GameDefinition.ExecutionOrder) || Progress.GameComplete)
