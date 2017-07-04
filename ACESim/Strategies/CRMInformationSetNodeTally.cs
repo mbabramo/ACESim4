@@ -104,7 +104,7 @@ namespace ACESim
             NodeInformation[cumulativeStrategyDimension, action - 1] += amount;
         }
 
-        public static double ZeroOutBelow = 0.0001;
+        public static double ZeroOutBelow = 0.01;
 
         public unsafe void GetAverageStrategies(double* probabilities)
         {
