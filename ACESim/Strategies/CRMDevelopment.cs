@@ -105,13 +105,13 @@ namespace ACESim
             // DEBUG: Problem is in next line -- it doesn't cause any problem when within the lock (which we should delete once we fix this problem)
             GameHistoryTree.SetValue(actionsEnumerator, true, progress.GetNonChancePlayerUtilities());
             // Go through each non-chance decision point on this path and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
-            lock (GameHistoryTree) // DEBUG
+            //lock (GameHistoryTree) // DEBUG
             {
                 NWayTreeStorage<object> walkHistoryTree = GameHistoryTree;
                 foreach (var informationSetHistory in progress.GameHistory.GetInformationSetHistoryItems())
                 {
                     var informationSetHistoryCopy = informationSetHistory;
-                    DEBUG_trace.AppendLine($"{(DEBUG_first ? "Start" : "")} {informationSetHistoryCopy}"); // DEBUG
+                    //DEBUG_trace.AppendLine($"{(DEBUG_first ? "Start" : "")} {informationSetHistoryCopy}"); // DEBUG
                     DEBUG_first = false;
                     var decision = GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
                     var playerInfo = GameDefinition.Players[informationSetHistory.PlayerMakingDecision];
@@ -682,11 +682,9 @@ namespace ACESim
                     return VanillaCRM_DecisionNode(history, nonChancePlayerIndex, piValues, usePruning);
             }
         }
-
-        int DEBUG = 0;
+        
         private unsafe double VanillaCRM_DecisionNode(NWayTreeStorage<object> history, byte nonChancePlayerIndex, double* piValues, bool usePruning)
         {
-            DEBUG++;
             double* nextPiValues = stackalloc double[MaxNumPlayers];
             var informationSet = GetInformationSetNodeTally(history);
             byte decisionNum = informationSet.DecisionNum;

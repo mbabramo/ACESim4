@@ -120,24 +120,28 @@ namespace ACESim
 
         private unsafe NWayTreeStorage<T> SetValueHelper(byte* restOfSequence, bool historyComplete, T valueToAdd)
         {
-            lock (this)
+            byte nextInSequence = *restOfSequence;
+            restOfSequence++;
+            bool anotherExistsAfterNext = *restOfSequence != 255;
+            NWayTreeStorage<T> nextTree = GetBranch(nextInSequence);
+            if (nextTree == null)
             {
-                byte nextInSequence = *restOfSequence;
-                restOfSequence++;
-                bool anotherExistsAfterNext = *restOfSequence != 255;
-                NWayTreeStorage<T> nextTree = GetBranch(nextInSequence);
-                if (nextTree == null)
+                lock (this)
                 {
-                    bool mayBeInternal = anotherExistsAfterNext || !historyComplete;
-                    nextTree = AddBranch(nextInSequence, mayBeInternal);
+                    nextTree = GetBranch(nextInSequence); // check again, now that we're in the lock
+                    if (nextTree == null)
+                    {
+                        bool mayBeInternal = anotherExistsAfterNext || !historyComplete;
+                        nextTree = AddBranch(nextInSequence, mayBeInternal);
+                    }
                 }
-                if (anotherExistsAfterNext)
-                    return ((NWayTreeStorageInternal<T>)nextTree).SetValueHelper(restOfSequence, historyComplete, valueToAdd);
-                else
-                {
-                    nextTree.StoredValue = valueToAdd;
-                    return nextTree;
-                }
+            }
+            if (anotherExistsAfterNext)
+                return ((NWayTreeStorageInternal<T>)nextTree).SetValueHelper(restOfSequence, historyComplete, valueToAdd);
+            else
+            {
+                nextTree.StoredValue = valueToAdd;
+                return nextTree;
             }
         }
 
