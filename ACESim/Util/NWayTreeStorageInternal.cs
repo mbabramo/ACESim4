@@ -58,8 +58,6 @@ namespace ACESim
             {
                 lock (this)
                 {
-                    if (DEBUG_BlockAdd)
-                        throw new Exception();
                     if (Branches == null)
                         Branches = new NWayTreeStorage<T>[adjustedIndex + 1];
                     else if (!(adjustedIndex < Branches.Length))

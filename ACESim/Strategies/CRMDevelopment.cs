@@ -78,9 +78,6 @@ namespace ACESim
         
         public unsafe void Initialize()
         {
-
-            NWayTreeStorageInternal<object>.DEBUG_BlockAdd = false;
-
             GamePlayer player = new GamePlayer(Strategies, GameFactory, EvolutionSettings.ParallelOptimization, GameDefinition);
             GameInputs inputs = GetGameInputs();
 
@@ -93,7 +90,6 @@ namespace ACESim
             
             int numPathsPlayed = player.PlayAllPaths(inputs, ProcessInitializedGameProgress);
             Debug.WriteLine($"Initialized. Total paths: {numPathsPlayed}");
-            NWayTreeStorageInternal<object>.DEBUG_BlockAdd = true;
             PrintSameGameResults(player, inputs);
         }
 
