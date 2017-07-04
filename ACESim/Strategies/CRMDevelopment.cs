@@ -30,15 +30,10 @@ namespace ACESim
         public NWayTreeStorageInternal<object> GameHistoryTree;
 
         public bool ChancePlayerExists;
+        public int NumNonChancePlayers;
 
         public const int MaxNumPlayers = 4; // this affects fixed-size stack-allocated buffers
         public const int MaxPossibleActions = 100; // same
-
-        public int NumNonChancePlayers;
-
-        public byte NonChancePlayerIndexFromPlayerIndex(byte overallPlayerNum) => ChancePlayerExists ? (byte)(overallPlayerNum - 1) : overallPlayerNum;
-
-        public Strategy GetPlayerStrategyFromOverallPlayerNum(byte overallPlayerNum) => Strategies[NonChancePlayerIndexFromPlayerIndex(overallPlayerNum)];
 
         public CRMDevelopment()
         {
@@ -85,7 +80,7 @@ namespace ACESim
             GameHistoryTree = new NWayTreeStorageInternal<object>(null, GameDefinition.DecisionsExecutionOrder.First().NumPossibleActions);
             foreach (Strategy s in Strategies)
             {
-                s.CreateInformationSetTree(GameDefinition.DecisionsExecutionOrder.First(x => x.PlayerNumber == s.PlayerInfo.PlayerNumberOverall).NumPossibleActions);
+                s.CreateInformationSetTree(GameDefinition.DecisionsExecutionOrder.First(x => x.PlayerNumber == s.PlayerInfo.PlayerIndex).NumPossibleActions);
             }
             
             int numPathsPlayed = player.PlayAllPaths(inputs, ProcessInitializedGameProgress);
@@ -108,7 +103,7 @@ namespace ACESim
             {
                 var informationSetHistoryCopy = informationSetHistory;
                 var decision = GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
-                var playerInfo = GameDefinition.Players[informationSetHistory.PlayerMakingDecision];
+                var playerInfo = GameDefinition.Players[informationSetHistory.PlayerIndex];
                 if (playerInfo.PlayerIsChance)
                 {
                     if (historyPoint.StoredValue == null)
@@ -130,7 +125,7 @@ namespace ACESim
                 else
                 {
                     bool isNecessarilyLast = decision.IsAlwaysPlayersLastDecision || informationSetHistory.IsTerminalAction;
-                    var playersStrategy = GetPlayerStrategyFromOverallPlayerNum(informationSetHistory.PlayerMakingDecision);
+                    var playersStrategy = Strategies[informationSetHistory.PlayerIndex];
                     if (historyPoint.StoredValue == null)
                     {
                         // create the information set node if necessary, with initialized tally values
@@ -139,7 +134,7 @@ namespace ACESim
                             isNecessarilyLast,
                             () =>
                             {
-                                CRMInformationSetNodeTally nodeInfo = new CRMInformationSetNodeTally(informationSetHistory.DecisionIndex, playerInfo.NonChancePlayerIndex, decision.NumPossibleActions);
+                                CRMInformationSetNodeTally nodeInfo = new CRMInformationSetNodeTally(informationSetHistory.DecisionIndex, playerInfo.PlayerIndex, decision.NumPossibleActions);
                                 return nodeInfo;
                             }
                             );
@@ -162,7 +157,7 @@ namespace ACESim
             return inputs;
         }
 
-        double probabilityOfPrint = 0;
+        double probabilityOfPrint = 1;
         private unsafe void PrintSameGameResults(GamePlayer player, GameInputs inputs)
         {
             if (probabilityOfPrint == 0)
@@ -181,19 +176,23 @@ namespace ACESim
             }
             if (overridePrint || RandomGenerator.NextDouble() < probabilityOfPrint)
             {
-                progress.GameHistory.GetActions(path);
-                List<byte> path2 = new List<byte>();
-                int i = 0;
-                while (*(path + i) != 255)
+                lock (this)
                 {
-                    path2.Add(*(path + i));
-                    i++;
+
+                    progress.GameHistory.GetActions(path);
+                    List<byte> path2 = new List<byte>();
+                    int i = 0;
+                    while (*(path + i) != 255)
+                    {
+                        path2.Add(*(path + i));
+                        i++;
+                    }
+                    var utilities = GetUtilities(path);
+                    TabbedText.WriteLine($"{String.Join(",", path2)} -->  Utilities: P {utilities[0]}, D {utilities[1]}");
+                    TabbedText.Tabs++;
+                    PrintGenericGameProgress(progress);
+                    TabbedText.Tabs--;
                 }
-                var utilities = GetUtilities(path);
-                TabbedText.WriteLine($"{String.Join(",", path2)} -->  Utilities: P {utilities[0]}, D {utilities[1]}");
-                TabbedText.Tabs++;
-                PrintGenericGameProgress(progress);
-                TabbedText.Tabs--;
             }
         }
 
@@ -208,9 +207,9 @@ namespace ACESim
                 TabbedText.WriteLine($"Decision {decision.Name} for player {GameDefinition.Players[decision.PlayerNumber].PlayerName}");
                 TabbedText.Tabs++;
                 TabbedText.WriteLine($"Action chosen: {informationSetHistory.ActionChosen}");
-                if (!GameDefinition.Players[informationSetHistory.PlayerMakingDecision].PlayerIsChance)
+                if (!GameDefinition.Players[informationSetHistory.PlayerIndex].PlayerIsChance)
                 {
-                    var playersStrategy = GetPlayerStrategyFromOverallPlayerNum(informationSetHistory.PlayerMakingDecision);
+                    var playersStrategy = Strategies[informationSetHistory.PlayerIndex];
                     unsafe
                     {
                         List<byte> informationSetList;
@@ -227,9 +226,9 @@ namespace ACESim
             }
         }
 
-        public unsafe double GetUtility(byte* path, byte player)
+        public unsafe double GetUtility(byte* path, byte playerIndex)
         {
-            byte index = player;
+            byte index = playerIndex;
             if (ChancePlayerExists)
                 index--;
             return GetUtilities(path)[index];
@@ -240,18 +239,21 @@ namespace ACESim
             return (double[]) GameHistoryTree.GetValue(path);
         }
 
+        public double GetUtilityFromTerminalHistory(NWayTreeStorage<object> history, byte playerIndex)
+        {
+            double[] utilities = ((double[])history.StoredValue);
+            byte index = playerIndex;
+            if (ChancePlayerExists)
+                index--;
+            return utilities[index];
+        }
+
         public void PreSerialize()
         {
         }
 
         public void UndoPreSerialize()
         {
-        }
-
-        public double GetUtilityFromTerminalHistory(NWayTreeStorage<object> history, byte nonChancePlayerIndex)
-        {
-            double[] utilities = ((double[])history.StoredValue);
-            return utilities[nonChancePlayerIndex];
         }
 
         public bool NodeIsChanceNode(NWayTreeStorage<object> history)
@@ -413,27 +415,33 @@ namespace ACESim
 
         #region Pi values utility methods
 
-        public double GetPiValue(double[] piValues, byte nonChancePlayerIndex, byte decisionNum)
+        public double GetPiValue(double[] piValues, byte playerIndex, byte decisionNum)
         {
-            return piValues[nonChancePlayerIndex];
+            if (ChancePlayerExists)
+                playerIndex--;
+            return piValues[playerIndex];
         }
 
-        public unsafe double GetInversePiValue(double* piValues, byte nonChancePlayerIndex)
+        public unsafe double GetInversePiValue(double* piValues, byte playerIndex)
         {
+            if (ChancePlayerExists)
+                playerIndex--;
             double product = 1.0;
             for (byte p = 0; p < NumNonChancePlayers; p++)
-                if (p != nonChancePlayerIndex)
+                if (p != playerIndex)
                     product *= piValues[p];
             return product;
         }
 
-        private unsafe void GetNextPiValues(double* currentPiValues, byte nonChancePlayerIndex, double probabilityToMultiplyBy, bool changeOtherPlayers, double* nextPiValues)
+        private unsafe void GetNextPiValues(double* currentPiValues, byte playerIndex, double probabilityToMultiplyBy, bool changeOtherPlayers, double* nextPiValues)
         {
+            if (ChancePlayerExists)
+                playerIndex--;
             for (byte p = 0; p < NumNonChancePlayers; p++)
             {
                 double currentPiValue = currentPiValues[p];
                 double nextPiValue;
-                if (p == nonChancePlayerIndex)
+                if (p == playerIndex)
                     nextPiValue = changeOtherPlayers ? currentPiValue : currentPiValue * probabilityToMultiplyBy;
                 else
                     nextPiValue = changeOtherPlayers ? currentPiValue * probabilityToMultiplyBy : currentPiValue;
@@ -459,12 +467,12 @@ namespace ACESim
         /// <summary>
         /// This calculates the best response for a player, and it also sets up the information set so that we can then play that best response strategy.
         /// </summary>
-        /// <param name="nonChancePlayerIndex"></param>
+        /// <param name="playerIndex"></param>
         /// <returns></returns>
-        public double CalculateBestResponse(byte nonChancePlayerIndex, ActionStrategies opponentsActionStrategy)
+        public double CalculateBestResponse(byte playerIndex, ActionStrategies opponentsActionStrategy)
         {
             HashSet<byte> depthsOfPlayerDecisions = new HashSet<byte>();
-            GEBRPass1(GameHistoryTree, nonChancePlayerIndex, 1, depthsOfPlayerDecisions); // setup counting first decision as depth 1
+            GEBRPass1(GameHistoryTree, playerIndex, 1, depthsOfPlayerDecisions); // setup counting first decision as depth 1
             List<byte> depthsOrdered = depthsOfPlayerDecisions.OrderByDescending(x => x).ToList();
             depthsOrdered.Add(0); // last depth to play should return outcome
             double bestResponseUtility = 0;
@@ -472,17 +480,17 @@ namespace ACESim
             {
                 if (TraceGEBR)
                 {
-                    TabbedText.WriteLine($"Optimizing {nonChancePlayerIndex} depthToTarget {depthToTarget}: ");
+                    TabbedText.WriteLine($"Optimizing {playerIndex} depthToTarget {depthToTarget}: ");
                     TabbedText.Tabs++;
                 }
-                bestResponseUtility = GEBRPass2(GameHistoryTree, nonChancePlayerIndex, depthToTarget, 1, 1.0, opponentsActionStrategy);
+                bestResponseUtility = GEBRPass2(GameHistoryTree, playerIndex, depthToTarget, 1, 1.0, opponentsActionStrategy);
                 if (TraceGEBR)
                     TabbedText.Tabs--;
             }
             return bestResponseUtility;
         }
 
-        public void GEBRPass1(NWayTreeStorage<object> historyPoint, byte nonChancePlayerIndex, byte depth, HashSet<byte> depthOfPlayerDecisions)
+        public void GEBRPass1(NWayTreeStorage<object> historyPoint, byte playerIndex, byte depth, HashSet<byte> depthOfPlayerDecisions)
         {
             if (historyPoint.IsLeaf())
                 return;
@@ -499,8 +507,8 @@ namespace ACESim
                     var informationSet = GetInformationSetNodeTally(historyPoint);
                     byte decisionNum = informationSet.DecisionNum;
                     numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
-                    byte playerMakingDecision = informationSet.NonChancePlayerIndex;
-                    if (playerMakingDecision == nonChancePlayerIndex)
+                    byte playerMakingDecision = informationSet.PlayerIndex;
+                    if (playerMakingDecision == playerIndex)
                     {
                         if (!depthOfPlayerDecisions.Contains(depth))
                             depthOfPlayerDecisions.Add(depth);
@@ -510,36 +518,36 @@ namespace ACESim
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
                     var nextHistory = historyPoint.GetBranch(action);
-                    GEBRPass1(nextHistory, nonChancePlayerIndex, (byte)(depth + 1), depthOfPlayerDecisions);
+                    GEBRPass1(nextHistory, playerIndex, (byte)(depth + 1), depthOfPlayerDecisions);
                 }
             }
         }
 
-        public double GEBRPass2(NWayTreeStorage<object> historyPoint, byte nonChancePlayerIndex, byte depthToTarget, byte depthSoFar, double inversePi, ActionStrategies opponentsActionStrategy)
+        public double GEBRPass2(NWayTreeStorage<object> historyPoint, byte playerIndex, byte depthToTarget, byte depthSoFar, double inversePi, ActionStrategies opponentsActionStrategy)
         {
             if (historyPoint.IsLeaf())
-                return GetUtilityFromTerminalHistory(historyPoint, nonChancePlayerIndex);
+                return GetUtilityFromTerminalHistory(historyPoint, playerIndex);
             else if (NodeIsChanceNode(historyPoint))
-                return GEBRPass2_ChanceNode(historyPoint, nonChancePlayerIndex, depthToTarget, depthSoFar, inversePi, opponentsActionStrategy);
-            return GEBRPass2_DecisionNode(historyPoint, nonChancePlayerIndex, depthToTarget, depthSoFar, inversePi, opponentsActionStrategy);
+                return GEBRPass2_ChanceNode(historyPoint, playerIndex, depthToTarget, depthSoFar, inversePi, opponentsActionStrategy);
+            return GEBRPass2_DecisionNode(historyPoint, playerIndex, depthToTarget, depthSoFar, inversePi, opponentsActionStrategy);
         }
 
-        private unsafe double GEBRPass2_DecisionNode(NWayTreeStorage<object> historyPoint, byte nonChancePlayerIndex, byte depthToTarget, byte depthSoFar, double inversePi, ActionStrategies opponentsActionStrategy)
+        private unsafe double GEBRPass2_DecisionNode(NWayTreeStorage<object> historyPoint, byte playerIndex, byte depthToTarget, byte depthSoFar, double inversePi, ActionStrategies opponentsActionStrategy)
         {
             var informationSet = GetInformationSetNodeTally(historyPoint);
             byte decisionNum = informationSet.DecisionNum;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
-            byte playerMakingDecision = informationSet.NonChancePlayerIndex;
+            byte playerMakingDecision = informationSet.PlayerIndex;
             if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionNum))
             {
                 TabbedText.WriteLine($"Decision {decisionNum} {GameDefinition.DecisionsExecutionOrder[decisionNum].Name} playerMakingDecision {playerMakingDecision} information set {informationSet.InformationSetNumber} inversePi {inversePi} depthSoFar {depthSoFar} ");
             }
-            if (playerMakingDecision == nonChancePlayerIndex && depthSoFar > depthToTarget)
+            if (playerMakingDecision == playerIndex && depthSoFar > depthToTarget)
             {
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionNum))
                     TabbedText.Tabs++;
                 byte action = GameDefinition.DecisionsExecutionOrder[decisionNum].AlwaysDoAction ?? informationSet.GetBestResponseAction();
-                double expectedValue = GEBRPass2(historyPoint.GetBranch(action), nonChancePlayerIndex, depthToTarget, (byte)(depthSoFar + 1), inversePi, opponentsActionStrategy);
+                double expectedValue = GEBRPass2(historyPoint.GetBranch(action), playerIndex, depthToTarget, (byte)(depthSoFar + 1), inversePi, opponentsActionStrategy);
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionNum))
                 {
                     TabbedText.Tabs--;
@@ -565,23 +573,23 @@ namespace ACESim
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
                     double nextInversePi = inversePi;
-                    if (playerMakingDecision != nonChancePlayerIndex)
+                    if (playerMakingDecision != playerIndex)
                         nextInversePi *= actionProbabilities[action - 1];
                     if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionNum))
                     {
                         TabbedText.WriteLine($"action {action} for playerMakingDecision {playerMakingDecision}...");
                         TabbedText.Tabs++; 
                     }
-                    double expectedValue = GEBRPass2(historyPoint.GetBranch(action), nonChancePlayerIndex, depthToTarget, (byte)(depthSoFar + 1), nextInversePi, opponentsActionStrategy);
+                    double expectedValue = GEBRPass2(historyPoint.GetBranch(action), playerIndex, depthToTarget, (byte)(depthSoFar + 1), nextInversePi, opponentsActionStrategy);
                     double product = actionProbabilities[action - 1] * expectedValue;
                     if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionNum))
                     {
                         TabbedText.Tabs--;
                         TabbedText.WriteLine($"... action {action} producing expected value {expectedValue} * probability {actionProbabilities[action - 1]} = product {product}");
                     }
-                    if (playerMakingDecision != nonChancePlayerIndex)
+                    if (playerMakingDecision != playerIndex)
                         expectedValueSum += product;
-                    else if (playerMakingDecision == nonChancePlayerIndex && depthToTarget == depthSoFar)
+                    else if (playerMakingDecision == playerIndex && depthToTarget == depthSoFar)
                     {
                         informationSet.IncrementBestResponse(action, inversePi, expectedValue);
                         if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionNum))
@@ -592,16 +600,16 @@ namespace ACESim
                 }
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionNum))
                 {
-                    if (playerMakingDecision != nonChancePlayerIndex)
+                    if (playerMakingDecision != playerIndex)
                         TabbedText.WriteLine($"Returning from other player node expectedvaluesum {expectedValueSum}");
-                    else if (playerMakingDecision == nonChancePlayerIndex && depthToTarget == depthSoFar)
+                    else if (playerMakingDecision == playerIndex && depthToTarget == depthSoFar)
                         TabbedText.WriteLine($"Returning 0 (from own decision not yet fully developed)");
                 }
                 return expectedValueSum;
             }
         }
 
-        private double GEBRPass2_ChanceNode(NWayTreeStorage<object> historyPoint, byte nonChancePlayerIndex, byte depthToTarget, byte depthSoFar, double inversePi, ActionStrategies opponentsActionStrategy)
+        private double GEBRPass2_ChanceNode(NWayTreeStorage<object> historyPoint, byte playerIndex, byte depthToTarget, byte depthSoFar, double inversePi, ActionStrategies opponentsActionStrategy)
         {
             CRMChanceNodeSettings chanceNodeSettings = (CRMChanceNodeSettings)historyPoint.StoredValue;
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionNum);
@@ -617,7 +625,7 @@ namespace ACESim
                 double probability = chanceNodeSettings.GetActionProbability(action);
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNodeSettings.DecisionNum))
                     TabbedText.Tabs++;
-                var valueBelow = GEBRPass2(historyPoint.GetBranch(action), nonChancePlayerIndex, depthToTarget, (byte)(depthSoFar + 1), inversePi * probability, opponentsActionStrategy);
+                var valueBelow = GEBRPass2(historyPoint.GetBranch(action), playerIndex, depthToTarget, (byte)(depthSoFar + 1), inversePi * probability, opponentsActionStrategy);
                 double expectedValue = probability * valueBelow;
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNodeSettings.DecisionNum))
                 {
@@ -644,9 +652,9 @@ namespace ACESim
         /// Performs an iteration of vanilla counterfactual regret minimization.
         /// </summary>
         /// <param name="historyPoint">The game tree, pointing to the particular point in the game where we are located</param>
-        /// <param name="nonChancePlayerIndex">0 for first non-chance player, etc. Note that this corresponds in Lanctot to 1, 2, etc. We are using zero-basing for player index (even though we are 1-basing actions).</param>
+        /// <param name="playerIndex">0 for first player, etc. Note that this corresponds in Lanctot to 1, 2, etc. We are using zero-basing for player index (even though we are 1-basing actions).</param>
         /// <returns></returns>
-        public unsafe double VanillaCRM(NWayTreeStorage<object> historyPoint, byte nonChancePlayerIndex, double* piValues, bool usePruning)
+        public unsafe double VanillaCRM(NWayTreeStorage<object> historyPoint, byte playerIndex, double* piValues, bool usePruning)
         {
             if (usePruning)
             {
@@ -661,22 +669,22 @@ namespace ACESim
                     return 0; // this is zero probability, so the result doesn't matter
             }
             if (historyPoint.IsLeaf())
-                return GetUtilityFromTerminalHistory(historyPoint, nonChancePlayerIndex);
+                return GetUtilityFromTerminalHistory(historyPoint, playerIndex);
             else
             {
                 if (NodeIsChanceNode(historyPoint))
-                    return VanillaCRM_ChanceNode(historyPoint, nonChancePlayerIndex, piValues, usePruning);
+                    return VanillaCRM_ChanceNode(historyPoint, playerIndex, piValues, usePruning);
                 else
-                    return VanillaCRM_DecisionNode(historyPoint, nonChancePlayerIndex, piValues, usePruning);
+                    return VanillaCRM_DecisionNode(historyPoint, playerIndex, piValues, usePruning);
             }
         }
         
-        private unsafe double VanillaCRM_DecisionNode(NWayTreeStorage<object> historyPoint, byte nonChancePlayerIndex, double* piValues, bool usePruning)
+        private unsafe double VanillaCRM_DecisionNode(NWayTreeStorage<object> historyPoint, byte playerIndex, double* piValues, bool usePruning)
         {
             double* nextPiValues = stackalloc double[MaxNumPlayers];
             var informationSet = GetInformationSetNodeTally(historyPoint);
             byte decisionNum = informationSet.DecisionNum;
-            byte playerMakingDecision = informationSet.NonChancePlayerIndex;
+            byte playerMakingDecision = informationSet.PlayerIndex;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
             // todo: stackalloc or use simple stack based array pool http://stackoverflow.com/questions/1123939/is-c-sharp-compiler-deciding-to-use-stackalloc-by-itself
             double* actionProbabilities = stackalloc double[numPossibleActions];
@@ -695,11 +703,11 @@ namespace ACESim
                 GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false, nextPiValues); // reduce probability associated with player being optimized, without changing probabilities for other players
                 if (TraceVanillaCRM)
                 {
-                    TabbedText.WriteLine($"decisionNum {decisionNum} optimizing player {nonChancePlayerIndex}  own decision {playerMakingDecision == nonChancePlayerIndex} action {action} probability {probabilityOfAction} ...");
+                    TabbedText.WriteLine($"decisionNum {decisionNum} optimizing player {playerIndex}  own decision {playerMakingDecision == playerIndex} action {action} probability {probabilityOfAction} ...");
                     TabbedText.Tabs++;
                 }
                 NWayTreeStorage<object> nextHistoryPoint = GetSubsequentHistory(historyPoint, action);
-                expectedValueOfAction[action - 1] = VanillaCRM(nextHistoryPoint, nonChancePlayerIndex, nextPiValues, usePruning);
+                expectedValueOfAction[action - 1] = VanillaCRM(nextHistoryPoint, playerIndex, nextPiValues, usePruning);
                 expectedValue += probabilityOfAction * expectedValueOfAction[action - 1];
 
                 if (TraceVanillaCRM)
@@ -708,12 +716,12 @@ namespace ACESim
                     TabbedText.WriteLine($"... action {action} expected value {expectedValueOfAction[action - 1]} cum expected value {expectedValue}");
                 }
             }
-            if (playerMakingDecision == nonChancePlayerIndex)
+            if (playerMakingDecision == playerIndex)
             {
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
-                    double inversePi = GetInversePiValue(piValues, nonChancePlayerIndex);
-                    double pi = piValues[nonChancePlayerIndex];
+                    double inversePi = GetInversePiValue(piValues, playerIndex);
+                    double pi = piValues[playerIndex];
                     var regret = (expectedValueOfAction[action - 1] - expectedValue);
                     informationSet.IncrementCumulativeRegret(action, inversePi * regret);
                     informationSet.IncrementCumulativeStrategy(action, pi * actionProbabilities[action - 1]);
@@ -736,14 +744,14 @@ namespace ACESim
                     actionProbabilities[action - 1] = 0;
         }
 
-        private unsafe double VanillaCRM_ChanceNode(NWayTreeStorage<object> historyPoint, byte nonChancePlayerIndex, double* piValues, bool usePruning)
+        private unsafe double VanillaCRM_ChanceNode(NWayTreeStorage<object> historyPoint, byte playerIndex, double* piValues, bool usePruning)
         {
             double* equalProbabilityNextPiValues = stackalloc double[MaxNumPlayers];
             CRMChanceNodeSettings chanceNodeSettings = (CRMChanceNodeSettings)historyPoint.StoredValue;
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionNum);
             bool equalProbabilities = chanceNodeSettings.AllProbabilitiesEqual();
             if (equalProbabilities) // can set next probabilities once for all actions
-                GetNextPiValues(piValues, nonChancePlayerIndex, chanceNodeSettings.GetActionProbability(1), true, equalProbabilityNextPiValues);
+                GetNextPiValues(piValues, playerIndex, chanceNodeSettings.GetActionProbability(1), true, equalProbabilityNextPiValues);
             else
                 equalProbabilityNextPiValues = null;
             double expectedValue = 0;
@@ -759,21 +767,21 @@ namespace ACESim
                     //else
                     //    for (int i = 0; i < MaxNumPlayers; i++)
                     //        *(equalProbabilityPiValuesToPass + i) = *(equalProbabilityNextPiValues + i);
-                    double probabilityAdjustedExpectedValueParticularAction = VanillaCRM_ChanceNode_NextAction(historyPoint, nonChancePlayerIndex, piValues, chanceNodeSettings, equalProbabilityNextPiValues, expectedValue, action, usePruning);
+                    double probabilityAdjustedExpectedValueParticularAction = VanillaCRM_ChanceNode_NextAction(historyPoint, playerIndex, piValues, chanceNodeSettings, equalProbabilityNextPiValues, expectedValue, action, usePruning);
                     expectedValue += probabilityAdjustedExpectedValueParticularAction;
                 });
 
             return expectedValue;
         }
 
-        private unsafe double VanillaCRM_ChanceNode_NextAction(NWayTreeStorage<object> historyPoint, byte nonChancePlayerIndex, double* piValues, CRMChanceNodeSettings chanceNodeSettings, double* equalProbabilityNextPiValues, double expectedValue, byte action, bool usePruning)
+        private unsafe double VanillaCRM_ChanceNode_NextAction(NWayTreeStorage<object> historyPoint, byte playerIndex, double* piValues, CRMChanceNodeSettings chanceNodeSettings, double* equalProbabilityNextPiValues, double expectedValue, byte action, bool usePruning)
         {
             double* nextPiValues = stackalloc double[MaxNumPlayers];
             if (equalProbabilityNextPiValues != null)
             {
                 double* locTarget = nextPiValues;
                 double* locSource = equalProbabilityNextPiValues;
-                for (int i = 0; i < NumNonChancePlayers + 1; i++)
+                for (int i = 0; i < NumNonChancePlayers + 1; i++) // DEBUG -- do we need + 1?
                 {
                     (*locTarget) = (*locSource);
                     locTarget++;
@@ -781,14 +789,14 @@ namespace ACESim
                 }
             }
             else // must set probability separately for each action we take
-                GetNextPiValues(piValues, nonChancePlayerIndex, chanceNodeSettings.GetActionProbability(action), true, nextPiValues);
+                GetNextPiValues(piValues, playerIndex, chanceNodeSettings.GetActionProbability(action), true, nextPiValues);
             double actionProbability = chanceNodeSettings.GetActionProbability(action);
             if (TraceVanillaCRM)
             {
                 TabbedText.WriteLine($"Chance decisionNum {chanceNodeSettings.DecisionNum} action {action} probability {actionProbability} ...");
                 TabbedText.Tabs++;
             }
-            double expectedValueParticularAction = VanillaCRM(GetSubsequentHistory(historyPoint, action), nonChancePlayerIndex, nextPiValues, usePruning);
+            double expectedValueParticularAction = VanillaCRM(GetSubsequentHistory(historyPoint, action), playerIndex, nextPiValues, usePruning);
             var probabilityAdjustedExpectedValueParticularAction = actionProbability * expectedValueParticularAction;
             if (TraceVanillaCRM)
             {
@@ -821,7 +829,8 @@ namespace ACESim
                     if (TraceVanillaCRM)
                         TabbedText.WriteLine($"Iteration {iteration} Player {p}");
                     s.Start();
-                    lastUtilities[p] = VanillaCRM(GameHistoryTree, p, initialPiValues, usePruning);
+                    byte overallPlayerIndex = (byte)(p + (ChancePlayerExists ? 1 : 0));
+                    lastUtilities[p] = VanillaCRM(GameHistoryTree, overallPlayerIndex, initialPiValues, usePruning);
                     s.Stop();
                 }
                 if (reportEveryNIterations != null && iteration % reportEveryNIterations == 0)
@@ -833,7 +842,8 @@ namespace ACESim
                     if (bestResponseEveryMIterations != null && iteration % bestResponseEveryMIterations == 0)
                         for (byte p = 0; p < NumNonChancePlayers; p++)
                         {
-                            double bestResponseUtility = CalculateBestResponse(p, actionStrategy);
+                            byte overallPlayerIndex = (byte)(p + (ChancePlayerExists ? 1 : 0));
+                            double bestResponseUtility = CalculateBestResponse(overallPlayerIndex, actionStrategy);
                             double bestResponseImprovement = bestResponseUtility - UtilityCalculations[p].Average();
                             if (bestResponseImprovement < -1E-15)
                                 throw new Exception("Best response function worse."); // it can be slightly negative as a result of rounding errors

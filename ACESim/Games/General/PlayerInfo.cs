@@ -10,8 +10,7 @@ namespace ACESim
     public class PlayerInfo
     {
         public string PlayerName;
-        public byte PlayerNumberOverall;
-        public byte NonChancePlayerIndex; // the index of the player excluding chance -- first nonchance player is 1.
+        public byte PlayerIndex;
         public bool PlayerIsChance;
         /// <summary>
         /// True if the player optimizes to obtain the highest possible score (bowling) rather than the lowest (golf).
@@ -23,11 +22,10 @@ namespace ACESim
 
         }
 
-        public PlayerInfo(string playerName, byte playerNumber, byte nonChancePlayerIndex, bool playerIsChance, bool highestIsBest)
+        public PlayerInfo(string playerName, byte playerNumber, bool playerIsChance, bool highestIsBest)
         {
             PlayerName = playerName;
-            PlayerNumberOverall = playerNumber;
-            NonChancePlayerIndex = nonChancePlayerIndex;
+            PlayerIndex = playerNumber;
             PlayerIsChance = playerIsChance;
             HighestIsBest = highestIsBest;
         }

@@ -9,7 +9,7 @@ namespace ACESim
 
     public unsafe struct InformationSetHistory
     {
-        public byte PlayerMakingDecision;
+        public byte PlayerIndex;
         public byte DecisionIndex;
         public fixed byte InformationSet[GameHistory.MaxNumActions];
         public byte ActionChosen;
@@ -28,7 +28,7 @@ namespace ACESim
                     infoSet.Append(*(ptr + i));
                     i++;
                 }
-            return $"Player {PlayerMakingDecision} Decision {DecisionIndex} Information {infoSet.ToString()} ActionChosen {ActionChosen} NumPossible {NumPossibleActions} IsTerminal {IsTerminalAction}";
+            return $"Player {PlayerIndex} Decision {DecisionIndex} Information {infoSet.ToString()} ActionChosen {ActionChosen} NumPossible {NumPossibleActions} IsTerminal {IsTerminalAction}";
         }
     }
 }

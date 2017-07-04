@@ -77,7 +77,7 @@ namespace ACESim
         {
             var informationSetHistory = new InformationSetHistory()
             {
-                PlayerMakingDecision = GetHistoryIndex(i + History_PlayerNumber_Offset),
+                PlayerIndex = GetHistoryIndex(i + History_PlayerNumber_Offset),
                 DecisionIndex = GetHistoryIndex(i + History_DecisionNumber_Offset),
                 ActionChosen = GetHistoryIndex(i + History_Action_Offset),
                 NumPossibleActions = GetHistoryIndex(i + History_NumPossibleActions_Offset),

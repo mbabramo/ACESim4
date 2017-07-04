@@ -1,2 +1,280 @@
-Initialized. Total paths: 48
-Total run time 00.00:00:33 days
+1,1,1 -->  Utilities: P 0.2, D -0.3
+     Decision LitigationQuality for player C     
+          Action chosen: 1          
+     Decision PlaintiffOffer1 for player P     
+          Action chosen: 1          
+          Information set: 1          
+     Decision DefendantResponse1 for player D     
+          Action chosen: 1          
+          Information set: 1,1          
+2,1,1 -->  Utilities: P 0.2, D -0.3
+     Decision LitigationQuality for player C     
+          Action chosen: 2          
+     Decision PlaintiffOffer1 for player P     
+          Action chosen: 1          
+          Information set: 2          
+     Decision DefendantResponse1 for player D     
+          Action chosen: 1          
+          Information set: 2,1          
+1,3,1 -->  Utilities: P 0.7, D -0.8
+     Decision LitigationQuality for player C     
+          Action chosen: 1          
+     Decision PlaintiffOffer1 for player P     
+          Action chosen: 3          
+          Information set: 1          
+     Decision DefendantResponse1 for player D     
+          Action chosen: 1          
+          Information set: 1,3          
+2,3,1 -->  Utilities: P 0.7, D -0.8
+     Decision LitigationQuality for player C     
+          Action chosen: 2          
+     Decision PlaintiffOffer1 for player P     
+          Action chosen: 3          
+          Information set: 2          
+     Decision DefendantResponse1 for player D     
+          Action chosen: 1          
+          Information set: 2,3          
+3,1,1 -->  Utilities: P 0.2, D -0.3
+     Decision LitigationQuality for player C     
+          Action chosen: 3          
+     Decision PlaintiffOffer1 for player P     
+          Action chosen: 1          
+          Information set: 3          
+     Decision DefendantResponse1 for player D     
+          Action chosen: 1          
+          Information set: 3,1          
+3,2,1 -->  Utilities: P 0.45, D -0.55
+     Decision LitigationQuality for player C     
+          Action chosen: 3          
+     Decision PlaintiffOffer1 for player P     
+          Action chosen: 2          
+          Information set: 3          
+     Decision DefendantResponse1 for player D     
+          Action chosen: 1          
+          Information set: 3,2          
+3,3,1 -->  Utilities: P 0.7, D -0.8
+     Decision LitigationQuality for player C     
+          Action chosen: 3          
+     Decision PlaintiffOffer1 for player P     
+          Action chosen: 3          
+          Information set: 3          
+     Decision DefendantResponse1 for player D     
+          Action chosen: 1          
+          Information set: 3,3          
+1,1,2,1 -->  Utilities: P -0.15, D -0.15
+     Decision LitigationQuality for player C     
+          Action chosen: 1          
+     Decision PlaintiffOffer1 for player P     
+          Action chosen: 1          
+          Information set: 1          
+     Decision DefendantResponse1 for player D     
+          Action chosen: 2          
+          Information set: 1,1          
+     Decision CourtDecision for player C     
+          Action chosen: 1          
+1,2,2,1 -->  Utilities: P -0.15, D -0.15
+     Decision LitigationQuality for player C     
+          Action chosen: 1          
+     Decision PlaintiffOffer1 for player P     
+          Action chosen: 2          
+          Information set: 1          
+     Decision DefendantResponse1 for player D     
+          Action chosen: 2          
+          Information set: 1,2          
+     Decision CourtDecision for player C     
+          Action chosen: 1          
+1,3,2,1 -->  Utilities: P -0.15, D -0.15
+     Decision LitigationQuality for player C     
+          Action chosen: 1          
+     Decision PlaintiffOffer1 for player P     
+          Action chosen: 3          
+          Information set: 1          
+     Decision DefendantResponse1 for player D     
+          Action chosen: 2          
+          Information set: 1,3          
+     Decision CourtDecision for player C     
+          Action chosen: 1          
+2,1,2,1 -->  Utilities: P -0.15, D -0.15
+     Decision LitigationQuality for player C     
+          Action chosen: 2          
+     Decision PlaintiffOffer1 for player P     
+          Action chosen: 1          
+          Information set: 2          
+     Decision DefendantResponse1 for player D     
+          Action chosen: 2          
+          Information set: 2,1          
+     Decision CourtDecision for player C     
+          Action chosen: 1          
+2,2,2,1 -->  Utilities: P -0.15, D -0.15
+     Decision LitigationQuality for player C     
+          Action chosen: 2          
+     Decision PlaintiffOffer1 for player P     
+          Action chosen: 2          
+          Information set: 2          
+     Decision DefendantResponse1 for player D     
+          Action chosen: 2          
+          Information set: 2,2          
+     Decision CourtDecision for player C     
+          Action chosen: 1          
+2,3,2,1 -->  Utilities: P -0.15, D -0.15
+     Decision LitigationQuality for player C     
+          Action chosen: 2          
+     Decision PlaintiffOffer1 for player P     
+          Action chosen: 3          
+          Information set: 2          
+     Decision DefendantResponse1 for player D     
+          Action chosen: 2          
+          Information set: 2,3          
+     Decision CourtDecision for player C     
+          Action chosen: 1          
+3,1,2,1 -->  Utilities: P -0.15, D -0.15
+     Decision LitigationQuality for player C     
+          Action chosen: 3          
+     Decision PlaintiffOffer1 for player P     
+          Action chosen: 1          
+          Information set: 3          
+     Decision DefendantResponse1 for player D     
+          Action chosen: 2          
+          Information set: 3,1          
+     Decision CourtDecision for player C     
+          Action chosen: 1          
+3,2,2,1 -->  Utilities: P -0.15, D -0.15
+     Decision LitigationQuality for player C     
+          Action chosen: 3          
+     Decision PlaintiffOffer1 for player P     
+          Action chosen: 2          
+          Information set: 3          
+     Decision DefendantResponse1 for player D     
+          Action chosen: 2          
+          Information set: 3,2          
+     Decision CourtDecision for player C     
+          Action chosen: 1          
+3,3,2,1 -->  Utilities: P -0.15, D -0.15
+     Decision LitigationQuality for player C     
+          Action chosen: 3          
+     Decision PlaintiffOffer1 for player P     
+          Action chosen: 3          
+          Information set: 3          
+     Decision DefendantResponse1 for player D     
+          Action chosen: 2          
+          Information set: 3,3          
+     Decision CourtDecision for player C     
+          Action chosen: 1          
+1,1,2,2 -->  Utilities: P 0.85, D -1.15
+     Decision LitigationQuality for player C     
+          Action chosen: 1          
+     Decision PlaintiffOffer1 for player P     
+          Action chosen: 1          
+          Information set: 1          
+     Decision DefendantResponse1 for player D     
+          Action chosen: 2          
+          Information set: 1,1          
+     Decision CourtDecision for player C     
+          Action chosen: 2          
+1,2,2,2 -->  Utilities: P 0.85, D -1.15
+     Decision LitigationQuality for player C     
+          Action chosen: 1          
+     Decision PlaintiffOffer1 for player P     
+          Action chosen: 2          
+          Information set: 1          
+     Decision DefendantResponse1 for player D     
+          Action chosen: 2          
+          Information set: 1,2          
+     Decision CourtDecision for player C     
+          Action chosen: 2          
+1,3,2,2 -->  Utilities: P 0.85, D -1.15
+     Decision LitigationQuality for player C     
+          Action chosen: 1          
+     Decision PlaintiffOffer1 for player P     
+          Action chosen: 3          
+          Information set: 1          
+     Decision DefendantResponse1 for player D     
+          Action chosen: 2          
+          Information set: 1,3          
+     Decision CourtDecision for player C     
+          Action chosen: 2          
+2,2,2,2 -->  Utilities: P 0.85, D -1.15
+     Decision LitigationQuality for player C     
+          Action chosen: 2          
+     Decision PlaintiffOffer1 for player P     
+          Action chosen: 2          
+          Information set: 2          
+     Decision DefendantResponse1 for player D     
+          Action chosen: 2          
+          Information set: 2,2          
+     Decision CourtDecision for player C     
+          Action chosen: 2          
+2,1,2,2 -->  Utilities: P 0.85, D -1.15
+     Decision LitigationQuality for player C     
+          Action chosen: 2          
+     Decision PlaintiffOffer1 for player P     
+          Action chosen: 1          
+          Information set: 2          
+     Decision DefendantResponse1 for player D     
+          Action chosen: 2          
+          Information set: 2,1          
+     Decision CourtDecision for player C     
+          Action chosen: 2          
+3,1,2,2 -->  Utilities: P 0.85, D -1.15
+     Decision LitigationQuality for player C     
+          Action chosen: 3          
+     Decision PlaintiffOffer1 for player P     
+          Action chosen: 1          
+          Information set: 3          
+     Decision DefendantResponse1 for player D     
+          Action chosen: 2          
+          Information set: 3,1          
+     Decision CourtDecision for player C     
+          Action chosen: 2          
+3,2,2,2 -->  Utilities: P 0.85, D -1.15
+     Decision LitigationQuality for player C     
+          Action chosen: 3          
+     Decision PlaintiffOffer1 for player P     
+          Action chosen: 2          
+          Information set: 3          
+     Decision DefendantResponse1 for player D     
+          Action chosen: 2          
+          Information set: 3,2          
+     Decision CourtDecision for player C     
+          Action chosen: 2          
+2,3,2,2 -->  Utilities: P 0.85, D -1.15
+     Decision LitigationQuality for player C     
+          Action chosen: 2          
+     Decision PlaintiffOffer1 for player P     
+          Action chosen: 3          
+          Information set: 2          
+     Decision DefendantResponse1 for player D     
+          Action chosen: 2          
+          Information set: 2,3          
+     Decision CourtDecision for player C     
+          Action chosen: 2          
+3,3,2,2 -->  Utilities: P 0.85, D -1.15
+     Decision LitigationQuality for player C     
+          Action chosen: 3          
+     Decision PlaintiffOffer1 for player P     
+          Action chosen: 3          
+          Information set: 3          
+     Decision DefendantResponse1 for player D     
+          Action chosen: 2          
+          Information set: 3,3          
+     Decision CourtDecision for player C     
+          Action chosen: 2          
+2,2,1 -->  Utilities: P 0.45, D -0.55
+     Decision LitigationQuality for player C     
+          Action chosen: 2          
+     Decision PlaintiffOffer1 for player P     
+          Action chosen: 2          
+          Information set: 2          
+     Decision DefendantResponse1 for player D     
+          Action chosen: 1          
+          Information set: 2,2          
+1,2,1 -->  Utilities: P 0.45, D -0.55
+     Decision LitigationQuality for player C     
+          Action chosen: 1          
+     Decision PlaintiffOffer1 for player P     
+          Action chosen: 2          
+          Information set: 1          
+     Decision DefendantResponse1 for player D     
+          Action chosen: 1          
+          Information set: 1,2          
+Total run time 00.00:01:15 days

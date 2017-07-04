@@ -13,7 +13,7 @@ namespace ACESim
         public static int InformationSetsSoFar = 0;
         public int InformationSetNumber; // could delete this once things are working, but may be useful in testing scenarios
         public byte DecisionNum;
-        public byte NonChancePlayerIndex;
+        public byte PlayerIndex;
         double[,] NodeInformation;
 
         int NumPossibleActions => NodeInformation.GetLength(1);
@@ -23,17 +23,17 @@ namespace ACESim
         const int bestResponseNumeratorDimension = 2;
         const int bestResponseDenominatorDimension = 3;
 
-        public CRMInformationSetNodeTally(byte decisionNum, byte nonChancePlayerIndex, int numPossibleActions)
+        public CRMInformationSetNodeTally(byte decisionNum, byte playerIndex, int numPossibleActions)
         {
             DecisionNum = decisionNum;
-            NonChancePlayerIndex = nonChancePlayerIndex;
+            PlayerIndex = playerIndex;
             Initialize(totalDimensions, numPossibleActions);
             InformationSetNumber = InformationSetsSoFar++;
         }
 
         public override string ToString()
         {
-            return $"{InformationSetNumber}: Decision {DecisionNum} NonChancePlayerIndex {NonChancePlayerIndex}";
+            return $"{InformationSetNumber}: Decision {DecisionNum} PlayerIndex {PlayerIndex}";
         }
 
         private void Initialize(int numDimensions, int numPossibleActions)

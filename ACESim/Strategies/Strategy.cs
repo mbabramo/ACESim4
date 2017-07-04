@@ -120,7 +120,7 @@ namespace ACESim
             for (int i = 0; i < s.SerializedStrategies.Count; i++)
             {
                 Strategy toAdd = null;
-                if (PlayerInfo.PlayerNumberOverall == i)
+                if (PlayerInfo.PlayerIndex == i)
                     toAdd = this;
                 else
                 {

@@ -76,7 +76,7 @@ namespace ACESim
             BinarySerialization.SerializeObject(Path.Combine(path, filenameBase) + ".sti2", 
                 new StrategySerializationInfo { 
                     NumStrategies = serializedStrategiesCount, 
-                    PlayerNumber = st.PlayerInfo.PlayerNumberOverall, 
+                    PlayerNumber = st.PlayerInfo.PlayerIndex, 
                     HashCodes = hashCodes 
                 });
             const int additionalThingsToSerialize = 4;
