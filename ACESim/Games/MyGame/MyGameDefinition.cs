@@ -114,7 +114,7 @@ namespace ACESim
                 }
                 else if (BargainingRoundsPGoesFirstIfNotSimultaneous[b])
                 {
-                    decisions.Add(new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, new List<byte> { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant }, NumOffers, (byte)MyGameDecisions.POffer)); // { AlwaysDoAction = 4 /* DEBUG */});
+                    decisions.Add(new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, new List<byte> { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant }, NumOffers, (byte)MyGameDecisions.POffer)); // { AlwaysDoAction = 4});
                     decisions.Add(new Decision("DefendantResponse" + (b + 1), "DR" + (b + 1), (byte)MyGamePlayers.Defendant, new List<byte> { (byte)MyGamePlayers.Defendant }, 2, (byte)MyGameDecisions.DResponse)); // Note: It might appear that it would not be necessary to add this to the information set tree. After all, if the response is to accept the offer ,the game ends. but we need to be able to distinguish the situation in which the defendant says "no" and then faces another decision before the plaintiff makes a move. This would occur if the first bargaining round is a plaintiff offer and the second bargaining round is a defendant offer. 
                 }
                 else

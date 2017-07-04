@@ -11,7 +11,7 @@ namespace ACESim
     public class CRMInformationSetNodeTally
     {
         public static int InformationSetsSoFar = 0;
-        public int InformationSetNumber; // DEBUG -- shouldn't need this once things are working
+        public int InformationSetNumber; // could delete this once things are working, but may be useful in testing scenarios
         public byte DecisionNum;
         public byte NonChancePlayerIndex;
         double[,] NodeInformation;

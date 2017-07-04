@@ -54,7 +54,6 @@ namespace ACESim
             }
         }
         
-        public static bool DEBUG_BlockAdd = false;
         private void ConfirmAdjustedIndex(int adjustedIndex)
         {
             if (Branches == null || !(adjustedIndex < Branches.Length))
