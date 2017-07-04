@@ -182,7 +182,7 @@ namespace ACESim
                 thePath => EnumerateIfNotRedundant(ConvertPathInfoToGameProgress(thePath)),
                  new ExecutionDataflowBlockOptions
                  {
-                     MaxDegreeOfParallelism = 1 // very simple task
+                     MaxDegreeOfParallelism = Environment.ProcessorCount
                  }
                 );
             var actionBlock = new ActionBlock<GameProgress>(processor,
