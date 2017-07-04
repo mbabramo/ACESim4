@@ -166,35 +166,31 @@ namespace ACESim
         {
             int d = 0;
             if (LastIndexAddedToInformationSets > 0)
-                for (byte i = 0; i < LastIndexAddedToInformationSets; i += InformationSet_NumPiecesOfInformation)
+            {
+                fixed (byte* informationSetsPtr = InformationSets)
                 {
-                    byte playerNumberInInformationSet, decisionIndex, informationIndex;
-                    GetInformationSetsInfo(i, out playerNumberInInformationSet, out decisionIndex, out informationIndex);
-
-                    if (playerNumberInInformationSet == playerNumber)
+                    for (byte i = 0; i < LastIndexAddedToInformationSets; i += InformationSet_NumPiecesOfInformation)
                     {
-                        if (beforeDecisionIndex == null || decisionIndex < beforeDecisionIndex)
-                            playerInfoBuffer[d++] = informationIndex;
-                        else
-                            break;
+                        byte* b = informationSetsPtr + i;
+                        byte playerNumberInInformationSet, decisionIndex, informationIndex;
+                        playerNumberInInformationSet = *b;
+                        b += InformationSet_DecisionIndex_Offset;
+                        decisionIndex = *b;
+                        b -= InformationSet_DecisionIndex_Offset;
+                        b += InformationSet_Information_Offset;
+                        informationIndex = *b;
+
+                        if (playerNumberInInformationSet == playerNumber)
+                        {
+                            if (beforeDecisionIndex == null || decisionIndex < beforeDecisionIndex)
+                                playerInfoBuffer[d++] = informationIndex;
+                            else
+                                break;
+                        }
                     }
                 }
-            playerInfoBuffer[d] = 255;
-        }
-
-        public void GetInformationSetsInfo(int i, out byte playerNumberInInformationSet, out byte decisionIndex, out byte informationIndex)
-        {
-            fixed (byte* informationSetsPtr = InformationSets)
-            {
-                byte* b = informationSetsPtr;
-                b += i;
-                playerNumberInInformationSet = *b;
-                b += InformationSet_DecisionIndex_Offset;
-                decisionIndex = *b;
-                b -= InformationSet_DecisionIndex_Offset;
-                b += InformationSet_Information_Offset;
-                informationIndex = *b;
             }
+            playerInfoBuffer[d] = 255;
         }
 
         /// <summary>

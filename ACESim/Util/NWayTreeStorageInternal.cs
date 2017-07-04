@@ -46,9 +46,12 @@ namespace ACESim
 
         public override void SetBranch(byte index, NWayTreeStorage<T> tree)
         {
-            var adjustedIndex = AdjustedIndex(index);
-            ConfirmAdjustedIndex(adjustedIndex);
-            Branches[adjustedIndex] = tree;
+            lock (this)
+            {
+                var adjustedIndex = AdjustedIndex(index);
+                ConfirmAdjustedIndex(adjustedIndex);
+                Branches[adjustedIndex] = tree;
+            }
         }
         
         public static bool DEBUG_BlockAdd = false;
@@ -117,21 +120,24 @@ namespace ACESim
 
         private unsafe NWayTreeStorage<T> SetValueHelper(byte* restOfSequence, bool historyComplete, T valueToAdd)
         {
-            byte nextInSequence = *restOfSequence;
-            restOfSequence++;
-            bool anotherExistsAfterNext = *restOfSequence != 255;
-            NWayTreeStorage<T> nextTree = GetBranch(nextInSequence);
-            if (nextTree == null)
+            lock (this)
             {
-                bool mayBeInternal = anotherExistsAfterNext || !historyComplete;
-                nextTree = AddBranch(nextInSequence, mayBeInternal);
-            }
-            if (anotherExistsAfterNext)
-                return ((NWayTreeStorageInternal<T>)nextTree).SetValueHelper(restOfSequence, historyComplete, valueToAdd);
-            else
-            {
-                nextTree.StoredValue = valueToAdd;
-                return nextTree;
+                byte nextInSequence = *restOfSequence;
+                restOfSequence++;
+                bool anotherExistsAfterNext = *restOfSequence != 255;
+                NWayTreeStorage<T> nextTree = GetBranch(nextInSequence);
+                if (nextTree == null)
+                {
+                    bool mayBeInternal = anotherExistsAfterNext || !historyComplete;
+                    nextTree = AddBranch(nextInSequence, mayBeInternal);
+                }
+                if (anotherExistsAfterNext)
+                    return ((NWayTreeStorageInternal<T>)nextTree).SetValueHelper(restOfSequence, historyComplete, valueToAdd);
+                else
+                {
+                    nextTree.StoredValue = valueToAdd;
+                    return nextTree;
+                }
             }
         }
 
