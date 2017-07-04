@@ -103,7 +103,7 @@ namespace ACESim
             GameHistoryTree.SetValue(actionsEnumerator, true, progress.GetNonChancePlayerUtilities());
             // Go through each non-chance decision point on this path and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
             
-            NWayTreeStorage<object> walkHistoryTree = GameHistoryTree;
+            NWayTreeStorage<object> historyPoint = GameHistoryTree;
             foreach (var informationSetHistory in progress.GameHistory.GetInformationSetHistoryItems())
             {
                 var informationSetHistoryCopy = informationSetHistory;
@@ -111,16 +111,16 @@ namespace ACESim
                 var playerInfo = GameDefinition.Players[informationSetHistory.PlayerMakingDecision];
                 if (playerInfo.PlayerIsChance)
                 {
-                    if (walkHistoryTree.StoredValue == null)
+                    if (historyPoint.StoredValue == null)
                     {
                         if (decision.UnevenChanceActions)
-                            walkHistoryTree.StoredValue = new CRMChanceNodeSettings_UnequalProbabilities()
+                            historyPoint.StoredValue = new CRMChanceNodeSettings_UnequalProbabilities()
                             {
                                 DecisionNum = informationSetHistory.DecisionIndex,
                                 Probabilities = GameDefinition.GetChanceActionProbabilities(GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex].DecisionByteCode, progress) // the probabilities depend on the current state of the game
                             };
                         else
-                            walkHistoryTree.StoredValue = new CRMChanceNodeSettings_EqualProbabilities()
+                            historyPoint.StoredValue = new CRMChanceNodeSettings_EqualProbabilities()
                             {
                                 DecisionNum = informationSetHistory.DecisionIndex,
                                 EachProbability = 1.0 / (double)decision.NumPossibleActions
@@ -131,7 +131,7 @@ namespace ACESim
                 {
                     bool isNecessarilyLast = decision.IsAlwaysPlayersLastDecision || informationSetHistory.IsTerminalAction;
                     var playersStrategy = GetPlayerStrategyFromOverallPlayerNum(informationSetHistory.PlayerMakingDecision);
-                    if (walkHistoryTree.StoredValue == null)
+                    if (historyPoint.StoredValue == null)
                     {
                         // create the information set node if necessary, with initialized tally values
                         var informationSetNode = playersStrategy.SetInformationSetTreeValueIfNotSet(
@@ -144,10 +144,10 @@ namespace ACESim
                             }
                             );
                         // Now, we want to store in the game history tree a quick reference to the correct point in the information set tree.
-                        walkHistoryTree.StoredValue = informationSetNode;
+                        historyPoint.StoredValue = informationSetNode;
                     }
                 }
-                walkHistoryTree = walkHistoryTree.GetBranch(informationSetHistory.ActionChosen);
+                historyPoint = historyPoint.GetBranch(informationSetHistory.ActionChosen);
             }
         }
         #endregion
@@ -698,8 +698,8 @@ namespace ACESim
                     TabbedText.WriteLine($"decisionNum {decisionNum} optimizing player {nonChancePlayerIndex}  own decision {playerMakingDecision == nonChancePlayerIndex} action {action} probability {probabilityOfAction} ...");
                     TabbedText.Tabs++;
                 }
-                NWayTreeStorage<object> nextHistory = GetSubsequentHistory(historyPoint, action);
-                expectedValueOfAction[action - 1] = VanillaCRM(nextHistory, nonChancePlayerIndex, nextPiValues, usePruning);
+                NWayTreeStorage<object> nextHistoryPoint = GetSubsequentHistory(historyPoint, action);
+                expectedValueOfAction[action - 1] = VanillaCRM(nextHistoryPoint, nonChancePlayerIndex, nextPiValues, usePruning);
                 expectedValue += probabilityOfAction * expectedValueOfAction[action - 1];
 
                 if (TraceVanillaCRM)
