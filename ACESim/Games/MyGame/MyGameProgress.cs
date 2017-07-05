@@ -7,9 +7,10 @@ namespace ACESim
 {
     public class MyGameProgress : GameProgress
     {
-        public double LitigationQuality;
-        public byte PSignal;
-        public byte DSignal;
+        public byte LitigationQualityDiscrete;
+        public double LitigationQualityUniform;
+        public byte PSignalDiscrete;
+        public byte DSignalDiscrete;
         public double PSignalUniform;
         public double DSignalUniform;
         public int BargainingRoundsComplete;
@@ -108,9 +109,10 @@ namespace ACESim
 
             // copy.GameComplete = this.GameComplete;
             base.CopyFieldInfo(copy);
-            copy.LitigationQuality = LitigationQuality;
-            copy.PSignal = PSignal;
-            copy.DSignal = DSignal;
+            copy.LitigationQualityDiscrete = LitigationQualityDiscrete;
+            copy.PSignalDiscrete = PSignalDiscrete;
+            copy.DSignalDiscrete = DSignalDiscrete;
+            copy.LitigationQualityUniform = LitigationQualityUniform;
             copy.PSignalUniform = PSignalUniform;
             copy.DSignalUniform = DSignalUniform;
             copy.BargainingRoundsComplete = BargainingRoundsComplete;

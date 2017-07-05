@@ -34,8 +34,14 @@ namespace ACESim.Util
         /// <returns></returns>
         public static double GetProbabilityOfDiscreteSignal(int actualUniformDistributionValue, int discreteSignal, DiscreteValueSignalParameters dsParams)
         {
+            return GetProbabilitiesOfDiscreteSignals(actualUniformDistributionValue, dsParams)[discreteSignal - 1];
+        }
+
+
+        public static double[] GetProbabilitiesOfDiscreteSignals(int actualUniformDistributionValue, DiscreteValueSignalParameters dsParams)
+        {
             double[][] probabilities = GetProbabilitiesOfSignalGivenSourceLitigationQuality(dsParams);
-            return probabilities[actualUniformDistributionValue - 1][discreteSignal - 1];
+            return probabilities[actualUniformDistributionValue - 1];
         }
 
         private static Dictionary<DiscreteValueSignalParameters, double[]> CutoffsForStandardDeviation = new Dictionary<DiscreteValueSignalParameters, double[]>();

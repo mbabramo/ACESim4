@@ -101,11 +101,10 @@ namespace ACESim
             if (DNoiseStdev == 0)
                 playersKnowingLitigationQuality.Add((byte)MyGamePlayers.Defendant);
             decisions.Add(new Decision("LitigationQuality", "Qual", (byte)MyGamePlayers.Chance, playersKnowingLitigationQuality, NumLitigationQualityPoints, (byte)MyGameDecisions.LitigationQuality));
-            change // DEBUG -- we should change this so that we have unequal probability decisions. 
             if (PNoiseStdev != 0)
-                decisions.Add(new Decision("PlaintiffSignal", "PSig", (byte)MyGamePlayers.Chance, new List<byte> { }, NumSignals, (byte)MyGameDecisions.PSignal));
+                decisions.Add(new Decision("PlaintiffSignal", "PSig", (byte)MyGamePlayers.Chance, new List<byte> { }, NumSignals, (byte)MyGameDecisions.PSignal, unevenChanceActions: true));
             if (DNoiseStdev != 0)
-                decisions.Add(new Decision("DefendantSignal", "DSig", (byte)MyGamePlayers.Chance, new List<byte> { }, NumSignals, (byte)MyGameDecisions.DSignal));
+                decisions.Add(new Decision("DefendantSignal", "DSig", (byte)MyGamePlayers.Chance, new List<byte> { }, NumSignals, (byte)MyGameDecisions.DSignal, unevenChanceActions: true));
             for (int b = 0; b < NumBargainingRounds; b++)
             {
                 if (BargainingRoundsSimultaneous[b])
@@ -149,7 +148,7 @@ namespace ACESim
             var colItems = new List<SimpleReportColumnItem>()
                 {
                     new SimpleReportColumnFilter("All", (GameProgress gp) => true, true),
-                    new SimpleReportColumnVariable("LitigQuality", (GameProgress gp) => MyGP(gp).LitigationQuality),
+                    new SimpleReportColumnVariable("LitigQuality", (GameProgress gp) => MyGP(gp).LitigationQualityUniform),
                     new SimpleReportColumnVariable("PFirstOffer", (GameProgress gp) => MyGP(gp).PFirstOffer),
                     new SimpleReportColumnVariable("DFirstOffer", (GameProgress gp) => MyGP(gp).DFirstOffer),
                     new SimpleReportColumnVariable("PLastOffer", (GameProgress gp) => MyGP(gp).PLastOffer),
@@ -174,9 +173,9 @@ namespace ACESim
                     new SimpleReportFilter("All", (GameProgress gp) => true),
                     new SimpleReportFilter("Settles", (GameProgress gp) => MyGP(gp).CaseSettles),
                     new SimpleReportFilter("Tried", (GameProgress gp) => !MyGP(gp).CaseSettles),
-                    new SimpleReportFilter("LowQuality", (GameProgress gp) => MyGP(gp).LitigationQuality <= 0.25),
-                    new SimpleReportFilter("MediumQuality", (GameProgress gp) => MyGP(gp).LitigationQuality > 0.25 && MyGP(gp).LitigationQuality < 0.75),
-                    new SimpleReportFilter("HighQuality", (GameProgress gp) => MyGP(gp).LitigationQuality >= 0.75),
+                    new SimpleReportFilter("LowQuality", (GameProgress gp) => MyGP(gp).LitigationQualityUniform <= 0.25),
+                    new SimpleReportFilter("MediumQuality", (GameProgress gp) => MyGP(gp).LitigationQualityUniform > 0.25 && MyGP(gp).LitigationQualityUniform < 0.75),
+                    new SimpleReportFilter("HighQuality", (GameProgress gp) => MyGP(gp).LitigationQualityUniform >= 0.75),
                     new SimpleReportFilter("LowPSignal", (GameProgress gp) => MyGP(gp).PSignalUniform <= 0.25),
                     new SimpleReportFilter("LowDSignal", (GameProgress gp) => MyGP(gp).DSignalUniform <= 0.25),
                     new SimpleReportFilter("MedPSignal", (GameProgress gp) => MyGP(gp).PSignalUniform > 0.25 && MyGP(gp).PSignalUniform < 0.75),
@@ -332,12 +331,22 @@ namespace ACESim
 
         public override double[] GetChanceActionProbabilities(byte decisionByteCode, GameProgress gameProgress)
         {
-            if (decisionByteCode == (byte)MyGameDecisions.CourtDecision)
+            if (decisionByteCode == (byte)MyGameDecisions.PSignal)
+            {
+                MyGameProgress myGameProgress = (MyGameProgress)gameProgress;
+                return DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(myGameProgress.LitigationQualityDiscrete, PSignalParameters);
+            }
+            else if (decisionByteCode == (byte)MyGameDecisions.DSignal)
+            {
+                MyGameProgress myGameProgress = (MyGameProgress)gameProgress;
+                return DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(myGameProgress.LitigationQualityDiscrete, DSignalParameters);
+            }
+            else if (decisionByteCode == (byte)MyGameDecisions.CourtDecision)
             {
                 double[] probabilities = new double[2];
                 MyGameProgress myGameProgress = (MyGameProgress)gameProgress;
-                probabilities[0] = 1.0 - myGameProgress.LitigationQuality; // probability action 1 ==> rule for defendant
-                probabilities[1] = myGameProgress.LitigationQuality; // probability action 2 ==> rule for plaintiff
+                probabilities[0] = 1.0 - myGameProgress.LitigationQualityUniform; // probability action 1 ==> rule for defendant
+                probabilities[1] = myGameProgress.LitigationQualityUniform; // probability action 2 ==> rule for plaintiff
                 return probabilities;
             }
             else

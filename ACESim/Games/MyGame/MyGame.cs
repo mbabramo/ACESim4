@@ -26,27 +26,26 @@ namespace ACESim
         {
             if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.LitigationQuality)
             {
-                MyProgress.LitigationQuality = ConvertActionToUniformDistributionDraw(action);
+                MyProgress.LitigationQualityDiscrete = action;
+                MyProgress.LitigationQualityUniform = ConvertActionToUniformDistributionDraw(action);
                 // If one or both parties have perfect information, then they can get their information about litigation quality now, since they don't need a signal. Note that we also specify in the game definition that the litigation quality should become part of their information set.
                 if (MyDefinition.PNoiseStdev == 0)
-                    MyProgress.PSignalUniform = MyProgress.LitigationQuality;
+                    MyProgress.PSignalUniform = MyProgress.LitigationQualityUniform;
                 if (MyDefinition.DNoiseStdev == 0)
-                    MyProgress.DSignalUniform = MyProgress.LitigationQuality;
+                    MyProgress.DSignalUniform = MyProgress.LitigationQualityUniform;
             }
             else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.PSignal)
             {
-                // Note that each action is equally likely at any time in the game. The action amounts to the noise that obfuscates the original 
-                // value. The signals are equally likely ex ante, but not equally likely ex post.
-                problem(); // here's the problem with this approach. We add to the information set the signal rather than the action. That is then hard to deal with we are not really playing the game but are just simulating game play. In the alternative approach, the number of possible actions is always equal to the number of signals. (This is a change.) Suppose it's 2. So we then calculate the probability that the source value is between 0.0 - 0.5, given the actual value + noise; and the probability that the source value is between 0.5 and 1.0, given the same. Thus, we might say "if we started with a value between 0.0 and 0.5, what's the probability that we would end up with a signal in the given range"? Similarly, we consider every other start value. 
-                MyProgress.PSignal = GetDiscreteSignal(action, MyDefinition.PNoiseStdev, MyDefinition.PSignalParameters);
-                Progress.GameHistory.AddToInformationSet(MyProgress.PSignal, (byte)MyGamePlayers.Plaintiff, (byte) CurrentDecisionIndex);
-                MyProgress.PSignalUniform = EquallySpaced.GetLocationOfEquallySpacedPoint(MyProgress.PSignal - 1 /* make it zero-based */, MyDefinition.NumSignals);
+                // Note: This is an unequal probabilities chance decision. The action IS the discrete signal. The game definition then calculates the probability that we would get this signal, given the uniform distribution draw. In other words, this is like a weighted die, where the die is heavily weighted toward signal values that are close to the litigation quality values.
+                MyProgress.PSignalDiscrete = action;
+                Progress.GameHistory.AddToInformationSet(MyProgress.PSignalDiscrete, (byte)MyGamePlayers.Plaintiff, (byte) CurrentDecisionIndex);
+                MyProgress.PSignalUniform = EquallySpaced.GetLocationOfEquallySpacedPoint(MyProgress.PSignalDiscrete - 1 /* make it zero-based */, MyDefinition.NumSignals);
             }
             else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.DSignal)
             {
-                MyProgress.DSignal = GetDiscreteSignal(action, MyDefinition.DNoiseStdev, MyDefinition.DSignalParameters);
-                Progress.GameHistory.AddToInformationSet(MyProgress.DSignal, (byte)MyGamePlayers.Defendant, (byte)CurrentDecisionIndex);
-                MyProgress.DSignalUniform = EquallySpaced.GetLocationOfEquallySpacedPoint(MyProgress.DSignal - 1 /* make it zero-based */, MyDefinition.NumSignals);
+                MyProgress.DSignalDiscrete = action;
+                Progress.GameHistory.AddToInformationSet(MyProgress.DSignalDiscrete, (byte)MyGamePlayers.Defendant, (byte)CurrentDecisionIndex);
+                MyProgress.DSignalUniform = EquallySpaced.GetLocationOfEquallySpacedPoint(MyProgress.DSignalDiscrete - 1 /* make it zero-based */, MyDefinition.NumSignals);
             }
             else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.POffer)
             {
@@ -114,7 +113,7 @@ namespace ACESim
         private byte GetDiscreteSignal(int action, double noiseStdev, DiscreteValueSignalParameters dvsp)
         {
             var noise = ConvertActionToNormalDistributionDraw(action, noiseStdev);
-            var valuePlusNoise = MyProgress.LitigationQuality + noise;
+            var valuePlusNoise = MyProgress.LitigationQualityUniform + noise;
             byte discreteSignal = (byte)DiscreteValueSignal.GetDiscreteSignal(valuePlusNoise, dvsp); // note that this is a 1-based signal
             return discreteSignal;
         }
