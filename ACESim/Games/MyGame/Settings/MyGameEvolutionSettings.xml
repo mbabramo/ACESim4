@@ -3,7 +3,7 @@
 <ACESim>
   <evolutionSettingsAll>
     <evolutionSettings name="MyGameEvolutionSettings">
-      <setting name="ParallelOptimization" type="bool">true</setting>
+      <setting name="ParallelOptimization" type="bool" DEBUG="CHANGE">false</setting>
       <setting name="NumIterationsPerPhase" type="int">10000</setting>
       <setting name="NumPhases" type="int">1</setting>
     </evolutionSettings>

@@ -35,6 +35,9 @@ namespace ACESim
             }
             else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.PSignal)
             {
+                // Note that each action is equally likely at any time in the game. The action amounts to the noise that obfuscates the original 
+                // value. The signals are equally likely ex ante, but not equally likely ex post.
+                problem(); // here's the problem with this approach. We add to the information set the signal rather than the action. That is then hard to deal with we are not really playing the game but are just simulating game play. In the alternative approach, the number of possible actions is always equal to the number of signals. (This is a change.) Suppose it's 2. So we then calculate the probability that the source value is between 0.0 - 0.5, given the actual value + noise; and the probability that the source value is between 0.5 and 1.0, given the same. Thus, we might say "if we started with a value between 0.0 and 0.5, what's the probability that we would end up with a signal in the given range"? Similarly, we consider every other start value. 
                 MyProgress.PSignal = GetDiscreteSignal(action, MyDefinition.PNoiseStdev, MyDefinition.PSignalParameters);
                 Progress.GameHistory.AddToInformationSet(MyProgress.PSignal, (byte)MyGamePlayers.Plaintiff, (byte) CurrentDecisionIndex);
                 MyProgress.PSignalUniform = EquallySpaced.GetLocationOfEquallySpacedPoint(MyProgress.PSignal - 1 /* make it zero-based */, MyDefinition.NumSignals);

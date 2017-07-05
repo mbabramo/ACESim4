@@ -101,6 +101,7 @@ namespace ACESim
             if (DNoiseStdev == 0)
                 playersKnowingLitigationQuality.Add((byte)MyGamePlayers.Defendant);
             decisions.Add(new Decision("LitigationQuality", "Qual", (byte)MyGamePlayers.Chance, playersKnowingLitigationQuality, NumLitigationQualityPoints, (byte)MyGameDecisions.LitigationQuality));
+            change // DEBUG -- we should change this so that we have unequal probability decisions. 
             if (PNoiseStdev != 0)
                 decisions.Add(new Decision("PlaintiffSignal", "PSig", (byte)MyGamePlayers.Chance, new List<byte> { }, NumSignals, (byte)MyGameDecisions.PSignal));
             if (DNoiseStdev != 0)

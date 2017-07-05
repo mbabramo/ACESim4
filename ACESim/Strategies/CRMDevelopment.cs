@@ -104,43 +104,41 @@ namespace ACESim
                 var informationSetHistoryCopy = informationSetHistory;
                 var decision = GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
                 var playerInfo = GameDefinition.Players[informationSetHistory.PlayerIndex];
-                if (playerInfo.PlayerIsChance)
+                bool isNecessarilyLast = decision.IsAlwaysPlayersLastDecision || informationSetHistory.IsTerminalAction;
+                var playersStrategy = Strategies[informationSetHistory.PlayerIndex];
+                if (historyPoint.StoredValue == null)
                 {
-                    if (historyPoint.StoredValue == null)
-                    {
-                        if (decision.UnevenChanceActions)
-                            historyPoint.StoredValue = new CRMChanceNodeSettings_UnequalProbabilities()
-                            {
-                                DecisionNum = informationSetHistory.DecisionIndex,
-                                Probabilities = GameDefinition.GetChanceActionProbabilities(GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex].DecisionByteCode, progress) // the probabilities depend on the current state of the game
-                            };
-                        else
-                            historyPoint.StoredValue = new CRMChanceNodeSettings_EqualProbabilities()
-                            {
-                                DecisionNum = informationSetHistory.DecisionIndex,
-                                EachProbability = 1.0 / (double)decision.NumPossibleActions
-                            };
-                    }
-                }
-                else
-                {
-                    bool isNecessarilyLast = decision.IsAlwaysPlayersLastDecision || informationSetHistory.IsTerminalAction;
-                    var playersStrategy = Strategies[informationSetHistory.PlayerIndex];
-                    if (historyPoint.StoredValue == null)
-                    {
-                        // create the information set node if necessary, with initialized tally values
-                        var informationSetNode = playersStrategy.SetInformationSetTreeValueIfNotSet(
+                     
+                    NWayTreeStorage<object> informationSetNode = playersStrategy.SetInformationSetTreeValueIfNotSet(
                             informationSetHistoryCopy.InformationSet,
                             isNecessarilyLast,
                             () =>
                             {
-                                CRMInformationSetNodeTally nodeInfo = new CRMInformationSetNodeTally(informationSetHistory.DecisionIndex, playerInfo.PlayerIndex, decision.NumPossibleActions);
-                                return nodeInfo;
+                                if (playerInfo.PlayerIsChance)
+                                {
+                                    CRMChanceNodeSettings chanceNodeSettings;
+                                    if (decision.UnevenChanceActions)
+                                        chanceNodeSettings = new CRMChanceNodeSettings_UnequalProbabilities()
+                                        {
+                                            DecisionNum = informationSetHistory.DecisionIndex,
+                                            Probabilities = GameDefinition.GetChanceActionProbabilities(decision.DecisionByteCode, progress) // the probabilities depend on the current state of the game
+                                        };
+                                    else
+                                        chanceNodeSettings = new CRMChanceNodeSettings_EqualProbabilities()
+                                        {
+                                            DecisionNum = informationSetHistory.DecisionIndex,
+                                            EachProbability = 1.0 / (double)decision.NumPossibleActions
+                                        };
+                                    return chanceNodeSettings;
+                                }
+                                else
+                                {
+                                    CRMInformationSetNodeTally nodeInfo = new CRMInformationSetNodeTally(informationSetHistory.DecisionIndex, playerInfo.PlayerIndex, decision.NumPossibleActions);
+                                    return nodeInfo;
+                                }
                             }
                             );
-                        // Now, we want to store in the game history tree a quick reference to the correct point in the information set tree.
-                        historyPoint.StoredValue = informationSetNode;
-                    }
+                    historyPoint.StoredValue = informationSetNode;
                 }
                 historyPoint = historyPoint.GetBranch(informationSetHistory.ActionChosen);
             }
@@ -157,7 +155,7 @@ namespace ACESim
             return inputs;
         }
 
-        double probabilityOfPrint = 1;
+        double probabilityOfPrint = 0;
         private unsafe void PrintSameGameResults(GamePlayer player, GameInputs inputs)
         {
             if (probabilityOfPrint == 0)
@@ -207,8 +205,8 @@ namespace ACESim
                 TabbedText.WriteLine($"Decision {decision.Name} for player {GameDefinition.Players[decision.PlayerNumber].PlayerName}");
                 TabbedText.Tabs++;
                 TabbedText.WriteLine($"Action chosen: {informationSetHistory.ActionChosen}");
-                if (!GameDefinition.Players[informationSetHistory.PlayerIndex].PlayerIsChance)
-                {
+                //if (!GameDefinition.Players[informationSetHistory.PlayerIndex].PlayerIsChance)
+                //{
                     var playersStrategy = Strategies[informationSetHistory.PlayerIndex];
                     unsafe
                     {
@@ -220,7 +218,7 @@ namespace ACESim
                         if (tallyReferencedInHistory != tallyStoredInInformationSet)
                             throw new Exception("Tally references do not match.");
                     }
-                }
+                //}
                 walkHistoryTree = walkHistoryTree.GetBranch(informationSetHistory.ActionChosen);
                 TabbedText.Tabs--;
             }
@@ -256,11 +254,6 @@ namespace ACESim
         {
         }
 
-        public bool NodeIsChanceNode(NWayTreeStorage<object> history)
-        {
-            return (history.StoredValue is CRMChanceNodeSettings);
-        }
-
         public byte NumPossibleActionsAtDecision(byte decisionNum)
         {
             return GameDefinition.DecisionsExecutionOrder[decisionNum].NumPossibleActions;
@@ -274,10 +267,24 @@ namespace ACESim
             return returnVal;
         }
 
+        public bool NodeIsChanceNode(NWayTreeStorage<object> history)
+        {
+            var informationSetNodeReferencedInHistoryNode = ((NWayTreeStorage<object>)history.StoredValue);
+            return (informationSetNodeReferencedInHistoryNode.StoredValue is CRMChanceNodeSettings);
+        }
+
         public CRMInformationSetNodeTally GetInformationSetNodeTally(NWayTreeStorage<object> history)
         {
             var informationSetNodeReferencedInHistoryNode = ((NWayTreeStorage<object>)history.StoredValue);
             CRMInformationSetNodeTally tallyReferencedInHistory = (CRMInformationSetNodeTally)informationSetNodeReferencedInHistoryNode.StoredValue;
+            return tallyReferencedInHistory;
+        }
+
+
+        public CRMChanceNodeSettings GetInformationSetChanceSettings(NWayTreeStorage<object> history)
+        {
+            var informationSetNodeReferencedInHistoryNode = ((NWayTreeStorage<object>)history.StoredValue);
+            CRMChanceNodeSettings tallyReferencedInHistory = (CRMChanceNodeSettings)informationSetNodeReferencedInHistoryNode.StoredValue;
             return tallyReferencedInHistory;
         }
 
@@ -304,13 +311,13 @@ namespace ACESim
             ProcessPossiblePaths_Helper(history, historySoFar, probability, leafProcessor, actionStrategy);
         }
 
-        private unsafe void ProcessPossiblePaths_Helper(NWayTreeStorage<object> history, List<byte> historySoFar, double probability, Action<NWayTreeStorage<object>, List<byte>, double> leafProcessor, ActionStrategies actionStrategy)
+        private unsafe void ProcessPossiblePaths_Helper(NWayTreeStorage<object> historyPoint, List<byte> historySoFar, double probability, Action<NWayTreeStorage<object>, List<byte>, double> leafProcessor, ActionStrategies actionStrategy)
         {
             double* probabilities = stackalloc double[MaxPossibleActions];
             byte numPossibleActions;
-            if (NodeIsChanceNode(history))
+            if (NodeIsChanceNode(historyPoint))
             {
-                CRMChanceNodeSettings chanceNodeSettings = (CRMChanceNodeSettings)history.StoredValue;
+                CRMChanceNodeSettings chanceNodeSettings = GetInformationSetChanceSettings(historyPoint);
                 byte decisionIndex = chanceNodeSettings.DecisionNum;
                 numPossibleActions = GameDefinition.DecisionsExecutionOrder[decisionIndex].NumPossibleActions;
                 for (byte action = 1; action <= numPossibleActions; action++)
@@ -318,7 +325,7 @@ namespace ACESim
             }
             else
             { // not a chance node or a leaf node
-                CRMInformationSetNodeTally nodeTally = GetInformationSetNodeTally(history);
+                CRMInformationSetNodeTally nodeTally = GetInformationSetNodeTally(historyPoint);
                 var decision = GameDefinition.DecisionsExecutionOrder[nodeTally.DecisionNum];
                 numPossibleActions = decision.NumPossibleActions;
                 if (decision.AlwaysDoAction != null)
@@ -340,7 +347,7 @@ namespace ACESim
                     foreach (byte b in historySoFar)
                         nextHistory.Add(b);
                     nextHistory.Add(action);
-                    ProcessPossiblePaths(GetSubsequentHistory(history, action), nextHistory, probability * probabilities[action - 1], leafProcessor, actionStrategy);
+                    ProcessPossiblePaths(GetSubsequentHistory(historyPoint, action), nextHistory, probability * probabilities[action - 1], leafProcessor, actionStrategy);
                 }
             });
         }
@@ -499,7 +506,7 @@ namespace ACESim
                 byte numPossibleActions;
                 if (NodeIsChanceNode(historyPoint))
                 {
-                    CRMChanceNodeSettings chanceNodeSettings = (CRMChanceNodeSettings)historyPoint.StoredValue;
+                    CRMChanceNodeSettings chanceNodeSettings = GetInformationSetChanceSettings(historyPoint);
                     numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionNum);
                 }
                 else
@@ -611,7 +618,7 @@ namespace ACESim
 
         private double GEBRPass2_ChanceNode(NWayTreeStorage<object> historyPoint, byte playerIndex, byte depthToTarget, byte depthSoFar, double inversePi, ActionStrategies opponentsActionStrategy)
         {
-            CRMChanceNodeSettings chanceNodeSettings = (CRMChanceNodeSettings)historyPoint.StoredValue;
+            CRMChanceNodeSettings chanceNodeSettings = GetInformationSetChanceSettings(historyPoint); 
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionNum);
             if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNodeSettings.DecisionNum))
             {
@@ -747,7 +754,7 @@ namespace ACESim
         private unsafe double VanillaCRM_ChanceNode(NWayTreeStorage<object> historyPoint, byte playerIndex, double* piValues, bool usePruning)
         {
             double* equalProbabilityNextPiValues = stackalloc double[MaxNumPlayers];
-            CRMChanceNodeSettings chanceNodeSettings = (CRMChanceNodeSettings)historyPoint.StoredValue;
+            CRMChanceNodeSettings chanceNodeSettings = GetInformationSetChanceSettings(historyPoint);
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionNum);
             bool equalProbabilities = chanceNodeSettings.AllProbabilitiesEqual();
             if (equalProbabilities) // can set next probabilities once for all actions
