@@ -66,29 +66,57 @@ namespace ACESim.Util
             }
         }
 
+        // We are going to store last values returned for a particular parameters to avoid having to go to the dictionary unnecessarily.
+        private static double[] CachedCutoffsValue;
+        private static double[][] CachedProbabilitiesValue;
+        private static DiscreteValueSignalParameters CachedParamsValue;
+
         private static double[] GetSignalCutoffs(DiscreteValueSignalParameters nsParams)
+        {
+            double[] returnVal;
+            if (CachedParamsValue.Equals(nsParams))
+            {
+                returnVal = CachedCutoffsValue;
+                if (CachedParamsValue.Equals(nsParams)) // make sure it hasn't changed!
+                {
+                    return CachedCutoffsValue;
+                }
+            }
+            CalculateCutoffsIfNecessary(nsParams);
+            returnVal = CutoffsForStandardDeviation[nsParams];
+            CachedParamsValue = nsParams; // must change this first so that we can be sure to detect the change
+            CachedCutoffsValue = returnVal;
+            return returnVal;
+        }
+
+        private static void CalculateCutoffsIfNecessary(DiscreteValueSignalParameters nsParams)
         {
             if (!CutoffsForStandardDeviation.ContainsKey(nsParams))
             {
                 lock (CalcLock)
                 {
-                    CalculateCutoffs(nsParams);
+                    if (!CutoffsForStandardDeviation.ContainsKey(nsParams))
+                        CalculateCutoffs(nsParams);
                 }
             }
-            return CutoffsForStandardDeviation[nsParams];
         }
 
         private static double[][] GetProbabilitiesOfSignalGivenSourceLitigationQuality(DiscreteValueSignalParameters nsParams)
         {
-
-            if (!ProbabilitiesOfSignalGivenSourceLitigationQualityForStandardDeviation.ContainsKey(nsParams))
+            double[][] returnVal;
+            if (CachedParamsValue.Equals(nsParams))
             {
-                lock (CalcLock)
+                returnVal = CachedProbabilitiesValue;
+                if (CachedParamsValue.Equals(nsParams)) // make sure it hasn't changed!
                 {
-                    CalculateCutoffs(nsParams);
+                    return CachedProbabilitiesValue;
                 }
             }
-            return ProbabilitiesOfSignalGivenSourceLitigationQualityForStandardDeviation[nsParams];
+            CalculateCutoffsIfNecessary(nsParams);
+            returnVal = ProbabilitiesOfSignalGivenSourceLitigationQualityForStandardDeviation[nsParams];
+            CachedParamsValue = nsParams; // must change this first so that we can be sure to detect the change
+            CachedProbabilitiesValue = returnVal;
+            return returnVal;
         }
 
         private static void CalculateCutoffs(DiscreteValueSignalParameters nsParams)
