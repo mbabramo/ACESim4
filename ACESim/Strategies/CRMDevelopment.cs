@@ -29,8 +29,8 @@ namespace ACESim
         /// </summary>
         public NWayTreeStorageInternal<object> GameHistoryTree;
 
-        public bool ChancePlayerExists;
         public int NumNonChancePlayers;
+        public int NumChancePlayers; // note that chance players MUST be indexed after nonchance players in the player list
 
         public const int MaxNumPlayers = 4; // this affects fixed-size stack-allocated buffers
         public const int MaxPossibleActions = 100; // same
@@ -47,8 +47,8 @@ namespace ACESim
             GameDefinition = gameDefinition;
             GameFactory = gameFactory;
             CurrentExecutionInformation = currentExecutionInformation;
-            ChancePlayerExists = GameDefinition.Players.Any(x => x.PlayerIsChance);
             NumNonChancePlayers = GameDefinition.Players.Count(x => !x.PlayerIsChance);
+            NumChancePlayers = GameDefinition.Players.Count(x => x.PlayerIsChance);
         }
 
         public IStrategiesDeveloper DeepCopy()
@@ -155,10 +155,10 @@ namespace ACESim
             return inputs;
         }
 
-        double probabilityOfPrint = 0;
+        double printProbability = 1;
         private unsafe void PrintSameGameResults(GamePlayer player, GameInputs inputs)
         {
-            if (probabilityOfPrint == 0)
+            if (printProbability == 0)
                 return;
             player.PlayAllPaths(inputs, PrintGameProbabilistically);
         }
@@ -172,7 +172,7 @@ namespace ACESim
             {
                 overridePrint = true;
             }
-            if (overridePrint || RandomGenerator.NextDouble() < probabilityOfPrint)
+            if (overridePrint || RandomGenerator.NextDouble() < printProbability)
             {
                 lock (this)
                 {
@@ -196,7 +196,7 @@ namespace ACESim
 
         public void PrintGenericGameProgress(GameProgress progress)
         {
-            NWayTreeStorage<object> walkHistoryTree = GameHistoryTree;
+            NWayTreeStorage<object> historyPoint = GameHistoryTree;
             // Go through each non-chance decision point 
             foreach (var informationSetHistory in progress.GameHistory.GetInformationSetHistoryItems())
             {
@@ -205,21 +205,29 @@ namespace ACESim
                 TabbedText.WriteLine($"Decision {decision.Name} for player {GameDefinition.Players[decision.PlayerNumber].PlayerName}");
                 TabbedText.Tabs++;
                 TabbedText.WriteLine($"Action chosen: {informationSetHistory.ActionChosen}");
-                //if (!GameDefinition.Players[informationSetHistory.PlayerIndex].PlayerIsChance)
-                //{
-                    var playersStrategy = Strategies[informationSetHistory.PlayerIndex];
-                    unsafe
+                bool playerIsChance = GameDefinition.Players[informationSetHistory.PlayerIndex].PlayerIsChance;
+                var playersStrategy = Strategies[informationSetHistory.PlayerIndex];
+                unsafe
+                {
+                    List<byte> informationSetList;
+                    informationSetList = ListExtensions.GetPointerAsList(informationSetHistoryCopy.InformationSet);
+                    TabbedText.WriteLine($"Information set: {String.Join(",", informationSetList)}");
+                    if (playerIsChance)
                     {
-                        List<byte> informationSetList;
-                        informationSetList = ListExtensions.GetPointerAsList(informationSetHistoryCopy.InformationSet);
-                        TabbedText.WriteLine($"Information set: {String.Join(",", informationSetList)}");
-                        CRMInformationSetNodeTally tallyReferencedInHistory = GetInformationSetNodeTally(walkHistoryTree);
+                        CRMChanceNodeSettings chanceNodeSettingsInHistory = GetInformationSetChanceSettings(historyPoint);
+                        CRMChanceNodeSettings chanceNodeSettingsInInformationSet = (CRMChanceNodeSettings)playersStrategy.GetInformationSetTreeValue(informationSetHistoryCopy.InformationSet);
+                        if (chanceNodeSettingsInHistory != chanceNodeSettingsInInformationSet)
+                            throw new Exception("Chance node settings do not match");
+                    }
+                    else
+                    {
+                        CRMInformationSetNodeTally tallyReferencedInHistory = GetInformationSetNodeTally(historyPoint);
                         CRMInformationSetNodeTally tallyStoredInInformationSet = (CRMInformationSetNodeTally)playersStrategy.GetInformationSetTreeValue(informationSetHistoryCopy.InformationSet);
                         if (tallyReferencedInHistory != tallyStoredInInformationSet)
                             throw new Exception("Tally references do not match.");
                     }
-                //}
-                walkHistoryTree = walkHistoryTree.GetBranch(informationSetHistory.ActionChosen);
+                }
+                historyPoint = historyPoint.GetBranch(informationSetHistory.ActionChosen);
                 TabbedText.Tabs--;
             }
         }
@@ -227,8 +235,6 @@ namespace ACESim
         public unsafe double GetUtility(byte* path, byte playerIndex)
         {
             byte index = playerIndex;
-            if (ChancePlayerExists)
-                index--;
             return GetUtilities(path)[index];
         }
 
@@ -241,8 +247,6 @@ namespace ACESim
         {
             double[] utilities = ((double[])history.StoredValue);
             byte index = playerIndex;
-            if (ChancePlayerExists)
-                index--;
             return utilities[index];
         }
 
@@ -424,15 +428,11 @@ namespace ACESim
 
         public double GetPiValue(double[] piValues, byte playerIndex, byte decisionNum)
         {
-            if (ChancePlayerExists)
-                playerIndex--;
             return piValues[playerIndex];
         }
 
         public unsafe double GetInversePiValue(double* piValues, byte playerIndex)
         {
-            if (ChancePlayerExists)
-                playerIndex--;
             double product = 1.0;
             for (byte p = 0; p < NumNonChancePlayers; p++)
                 if (p != playerIndex)
@@ -442,8 +442,6 @@ namespace ACESim
 
         private unsafe void GetNextPiValues(double* currentPiValues, byte playerIndex, double probabilityToMultiplyBy, bool changeOtherPlayers, double* nextPiValues)
         {
-            if (ChancePlayerExists)
-                playerIndex--;
             for (byte p = 0; p < NumNonChancePlayers; p++)
             {
                 double currentPiValue = currentPiValues[p];
@@ -829,15 +827,14 @@ namespace ACESim
                 // NOTE: This is in a helper method because otherwise the stackallocs keep accumulating, causing a stackoverflowexception
                 bool usePruning = iteration >= 100;
                 ActionStrategies actionStrategy = usePruning ? ActionStrategies.RegretMatchingWithPruning : ActionStrategies.RegretMatching;
-                for (byte p = 0; p < NumNonChancePlayers; p++)
+                for (byte playerIndex = 0; playerIndex < NumNonChancePlayers; playerIndex++)
                 {
                     double* initialPiValues = stackalloc double[MaxNumPlayers];
                     GetInitialPiValues(initialPiValues);
                     if (TraceVanillaCRM)
-                        TabbedText.WriteLine($"Iteration {iteration} Player {p}");
+                        TabbedText.WriteLine($"Iteration {iteration} Player {playerIndex}");
                     s.Start();
-                    byte overallPlayerIndex = (byte)(p + (ChancePlayerExists ? 1 : 0));
-                    lastUtilities[p] = VanillaCRM(GameHistoryTree, overallPlayerIndex, initialPiValues, usePruning);
+                    lastUtilities[playerIndex] = VanillaCRM(GameHistoryTree, playerIndex, initialPiValues, usePruning);
                     s.Stop();
                 }
                 if (reportEveryNIterations != null && iteration % reportEveryNIterations == 0)
@@ -847,14 +844,13 @@ namespace ACESim
                     Debug.WriteLine($"{GenerateReports(actionStrategy)}");
 
                     if (bestResponseEveryMIterations != null && iteration % bestResponseEveryMIterations == 0)
-                        for (byte p = 0; p < NumNonChancePlayers; p++)
+                        for (byte playerIndex = 0; playerIndex < NumNonChancePlayers; playerIndex++)
                         {
-                            byte overallPlayerIndex = (byte)(p + (ChancePlayerExists ? 1 : 0));
-                            double bestResponseUtility = CalculateBestResponse(overallPlayerIndex, actionStrategy);
-                            double bestResponseImprovement = bestResponseUtility - UtilityCalculations[p].Average();
+                            double bestResponseUtility = CalculateBestResponse(playerIndex, actionStrategy);
+                            double bestResponseImprovement = bestResponseUtility - UtilityCalculations[playerIndex].Average();
                             if (bestResponseImprovement < -1E-15)
                                 throw new Exception("Best response function worse."); // it can be slightly negative as a result of rounding errors
-                            Debug.WriteLine($"Player {p} utility with regret matching {UtilityCalculations[p].Average()} using best response against regret matching {bestResponseUtility} best response improvement {bestResponseImprovement}");
+                            Debug.WriteLine($"Player {playerIndex} utility with regret matching {UtilityCalculations[playerIndex].Average()} using best response against regret matching {bestResponseUtility} best response improvement {bestResponseImprovement}");
                         }
                 }
             }

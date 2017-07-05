@@ -8,8 +8,11 @@ namespace ACESim
 {
     public enum MyGamePlayers : byte
     {
-        Chance,
+        // NOTE: Chance players must be listed last
         Plaintiff,
-        Defendant
+        Defendant,
+        QualityChance,
+        SignalChance,
+        CourtChance
     }
 }

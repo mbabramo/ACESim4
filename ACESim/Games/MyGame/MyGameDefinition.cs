@@ -82,48 +82,82 @@ namespace ACESim
 
         MyGameProgress MyGP(GameProgress gp) => gp as MyGameProgress;
 
+        static string PlaintiffName = "P";
+        static string DefendantName = "D";
+        static string LitigationQualityChanceName = "QC";
+        static string SignalChanceName = "SC";
+        static string CourtChanceName = "CC";
+
         private static List<PlayerInfo> GetPlayersList()
         {
+            // IMPORTANT: Chance players MUST be listed after other players.
             return new List<PlayerInfo>
                 {
-                    new PlayerInfo("C", (int) MyGamePlayers.Chance, true, false),
-                    new PlayerInfo("P", (int) MyGamePlayers.Plaintiff, false, true),
-                    new PlayerInfo("D", (int) MyGamePlayers.Defendant, false, true),
+                    new PlayerInfo(PlaintiffName, (int) MyGamePlayers.Plaintiff, false, true),
+                    new PlayerInfo(DefendantName, (int) MyGamePlayers.Defendant, false, true),
+                    new PlayerInfo(LitigationQualityChanceName, (int) MyGamePlayers.QualityChance, true, false),
+                    new PlayerInfo(SignalChanceName, (int) MyGamePlayers.SignalChance, true, false),
+                    new PlayerInfo(CourtChanceName, (int) MyGamePlayers.CourtChance, true, false),
                 };
         }
 
         private List<Decision> GetDecisionsList()
         {
+            bool addPlayersOwnDecisionsToInformationSet = true;
+            // TODO: if above is FALSE, always add decision number to information set (to avoid possible confusion about which decision we're doing) -- although sometimes we might want something other than the decision number itself, if we are repeating a decision multiple times.
             var decisions = new List<Decision>();
-            List<byte> playersKnowingLitigationQuality = new List<byte>();
+            // Litigation Quality. This is not known by a player unless the player has perfect information. 
+            // The SignalChance player relies on this information in calculating the probabilities of different signals
+            List<byte> playersKnowingLitigationQuality = new List<byte>() { (byte) MyGamePlayers.SignalChance };
             if (PNoiseStdev == 0)
                 playersKnowingLitigationQuality.Add((byte)MyGamePlayers.Plaintiff);
             if (DNoiseStdev == 0)
                 playersKnowingLitigationQuality.Add((byte)MyGamePlayers.Defendant);
-            decisions.Add(new Decision("LitigationQuality", "Qual", (byte)MyGamePlayers.Chance, playersKnowingLitigationQuality, NumLitigationQualityPoints, (byte)MyGameDecisions.LitigationQuality));
+            decisions.Add(new Decision("LitigationQuality", "Qual", (byte)MyGamePlayers.QualityChance, playersKnowingLitigationQuality, NumLitigationQualityPoints, (byte)MyGameDecisions.LitigationQuality));
+            // Plaintiff and defendant signals. If a player has perfect information, then no signal is needed.
             if (PNoiseStdev != 0)
-                decisions.Add(new Decision("PlaintiffSignal", "PSig", (byte)MyGamePlayers.Chance, new List<byte> { }, NumSignals, (byte)MyGameDecisions.PSignal, unevenChanceActions: true));
+                decisions.Add(new Decision("PlaintiffSignal", "PSig", (byte)MyGamePlayers.SignalChance, new List<byte> { (byte)MyGamePlayers.Plaintiff }, NumSignals, (byte)MyGameDecisions.PSignal, unevenChanceActions: true));
             if (DNoiseStdev != 0)
-                decisions.Add(new Decision("DefendantSignal", "DSig", (byte)MyGamePlayers.Chance, new List<byte> { }, NumSignals, (byte)MyGameDecisions.DSignal, unevenChanceActions: true));
+                decisions.Add(new Decision("DefendantSignal", "DSig", (byte)MyGamePlayers.SignalChance, new List<byte> { (byte)MyGamePlayers.Defendant }, NumSignals, (byte)MyGameDecisions.DSignal, unevenChanceActions: true));
             for (int b = 0; b < NumBargainingRounds; b++)
             {
+                List<byte> informationSetsToAddPlaintiffMoveTo = new List<byte>();
+                List<byte> informationSetsToAddDefendantMoveTo = new List<byte>();
+                if (addPlayersOwnDecisionsToInformationSet)
+                {
+                    informationSetsToAddPlaintiffMoveTo.Add((byte)MyGamePlayers.Plaintiff);
+                    informationSetsToAddDefendantMoveTo.Add((byte)MyGamePlayers.Defendant);
+                }
                 if (BargainingRoundsSimultaneous[b])
                 { // samuelson-chaterjee bargaining
-                    decisions.Add(new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, new List<byte> { (byte)MyGamePlayers.Plaintiff }, NumOffers, (byte)MyGameDecisions.POffer) );
-                    decisions.Add(new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, new List<byte> { (byte)MyGamePlayers.Defendant }, NumOffers, (byte)MyGameDecisions.DOffer));
-                }
-                else if (BargainingRoundsPGoesFirstIfNotSimultaneous[b])
-                {
-                    decisions.Add(new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, new List<byte> { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant }, NumOffers, (byte)MyGameDecisions.POffer)); // { AlwaysDoAction = 4});
-                    decisions.Add(new Decision("DefendantResponse" + (b + 1), "DR" + (b + 1), (byte)MyGamePlayers.Defendant, new List<byte> { (byte)MyGamePlayers.Defendant }, 2, (byte)MyGameDecisions.DResponse)); // Note: It might appear that it would not be necessary to add this to the information set tree. After all, if the response is to accept the offer ,the game ends. but we need to be able to distinguish the situation in which the defendant says "no" and then faces another decision before the plaintiff makes a move. This would occur if the first bargaining round is a plaintiff offer and the second bargaining round is a defendant offer. 
+                    // TODO: Make this an option
+                    bool eachPlayerFindsOutAboutOthersOffer = true;
+                    if (eachPlayerFindsOutAboutOthersOffer)
+                    {
+                        informationSetsToAddPlaintiffMoveTo.Add((byte)MyGamePlayers.Defendant);
+                        informationSetsToAddDefendantMoveTo.Add((byte)MyGamePlayers.Plaintiff);
+                    }
+                    decisions.Add(new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, informationSetsToAddPlaintiffMoveTo, NumOffers, (byte)MyGameDecisions.POffer));
+                    decisions.Add(new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, informationSetsToAddDefendantMoveTo, NumOffers, (byte)MyGameDecisions.DOffer));
                 }
                 else
-                {
-                    decisions.Add(new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, new List<byte> { (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Plaintiff }, NumOffers, (byte)MyGameDecisions.DOffer));
-                    decisions.Add(new Decision("PlaintiffResponse" + (b + 1), "PR" + (b + 1), (byte)MyGamePlayers.Plaintiff, new List<byte> { (byte)MyGamePlayers.Plaintiff }, 2, (byte)MyGameDecisions.PResponse));
+                { // offer-response bargaining
+                    // the response may be irrelevant but no harm adding it to information set
+                    informationSetsToAddPlaintiffMoveTo.Add((byte)MyGamePlayers.Defendant);
+                    informationSetsToAddDefendantMoveTo.Add((byte)MyGamePlayers.Plaintiff); 
+                    if (BargainingRoundsPGoesFirstIfNotSimultaneous[b])
+                    {
+                        decisions.Add(new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, informationSetsToAddPlaintiffMoveTo, NumOffers, (byte)MyGameDecisions.POffer)); // { AlwaysDoAction = 4});
+                        decisions.Add(new Decision("DefendantResponse" + (b + 1), "DR" + (b + 1), (byte)MyGamePlayers.Defendant, informationSetsToAddDefendantMoveTo, 2, (byte)MyGameDecisions.DResponse));
+                    }
+                    else
+                    {
+                        decisions.Add(new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, informationSetsToAddDefendantMoveTo, NumOffers, (byte)MyGameDecisions.DOffer));
+                        decisions.Add(new Decision("PlaintiffResponse" + (b + 1), "PR" + (b + 1), (byte)MyGamePlayers.Plaintiff, informationSetsToAddPlaintiffMoveTo, 2, (byte)MyGameDecisions.PResponse));
+                    }
                 }
             }
-            decisions.Add(new Decision("CourtDecision", "CD", (byte)MyGamePlayers.Chance, new List<byte> { }, 2, (byte)MyGameDecisions.CourtDecision, unevenChanceActions: true));
+            decisions.Add(new Decision("CourtDecision", "CD", (byte)MyGamePlayers.CourtChance, new List<byte> { }, 2 /* for plaintiff or for defendant */, (byte)MyGameDecisions.CourtDecision, unevenChanceActions: true));
             return decisions;
         }
 

@@ -133,7 +133,7 @@ namespace ACESim.Util
             double[] drawsFromNormalDistribution = PointsInInverseNormalDistribution.Select(x => x * nsParams.StdevOfNormalDistribution).ToArray();
             // Now, we make every combination of uniform and normal distribution draws, and add them together
             var crossProduct = midpoints
-                .SelectMany(x => drawsFromNormalDistribution, (x, y) => new { uniformDistPoint = x, normDistValue = y });
+                .SelectMany(x => drawsFromNormalDistribution, (x, y) => new { uniformDistPoint = x, normDistValue = y }).ToArray();
             var distinctPointsOrdered = crossProduct.Select(x => x.uniformDistPoint + x.normDistValue).OrderBy(x => x).ToArray();
             // Now we want the cutoffs for the signals, making each signal equally likely. Note that if we want 2 signals, then we want 1 cutoff at 0.5 (i.e., 50th percentiles); if there are 10 signals, we want cutoffs at percentiles corresponding to .1, .2, ..., .9. 
             // (More generally, n signals -> n - 1 percentile cutoffs). After we have the percentile cutoffs, we can divide the signals into 
@@ -147,7 +147,7 @@ namespace ACESim.Util
             {
                 int[] numValuesAtEachSignal = new int[nsParams.NumSignals];
                 double uniformDistributionPoint = midpoints[u];
-                var crossProductFromThisUniformDistributionPoint = crossProduct.Where(x => x.uniformDistPoint == u).ToArray();
+                var crossProductFromThisUniformDistributionPoint = crossProduct.Where(x => x.uniformDistPoint == uniformDistributionPoint).ToArray();
                 int totalNumberForUniformDistributionPoint = 0;
                 foreach (var point in crossProductFromThisUniformDistributionPoint)
                 {
@@ -160,6 +160,7 @@ namespace ACESim.Util
             }
             // Assign to dictionary.
             CutoffsForStandardDeviation[nsParams] = signalValueCutoffs;
+            ProbabilitiesOfSignalGivenSourceLitigationQualityForStandardDeviation[nsParams] = probabilitiesOfSignalGivenSourceLitigationQuality;
         }
 
         private static int GetBandForSignalValue(double signalValue, double[] signalValueCutoffs)
