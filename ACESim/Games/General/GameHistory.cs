@@ -8,27 +8,30 @@ namespace ACESim
 {
     public unsafe struct GameHistory
     {
-        public const int MaxLength = 150;
+        public const int MaxHistoryLength = 100;
+        public const int MaxInformationSetLength = 220; // MUST equal MaxInformationSetLengthPerPlayer * MaxNumPlayers. 
+        public const int MaxInformationSetLengthPerPlayer = 20;
+        public const int MaxNumPlayers = 10;
         public const int MaxNumActions = 20;
         const byte Complete = 254;
         const byte Incomplete = 255;
-        
-        public fixed byte History[MaxLength];
+
+        byte NumPlayers;
+
+        public fixed byte History[MaxHistoryLength];
         public short LastIndexAddedToHistory;
         public int NumberDecisions => (LastIndexAddedToHistory - 1) / 4;
-        public fixed byte InformationSets[MaxLength];
-        public short LastIndexAddedToInformationSets;
+        public fixed byte InformationSets[MaxInformationSetLength]; // a buffer for each player, terminated by 255
 
         private const byte History_DecisionNumber_Offset = 0;
         private const byte History_PlayerNumber_Offset = 1;
         private const byte History_Action_Offset = 2;
         private const byte History_NumPossibleActions_Offset = 3;
-        private const byte History_NumPiecesOfInformation = 4;
-
-        private const byte InformationSet_PlayerNumber_Offset = 0;
-        private const byte InformationSet_Information_Offset = 1;
-        private const byte InformationSet_DecisionIndex_Offset = 2;
-        private const byte InformationSet_NumPiecesOfInformation = 3;
+        private const byte History_NumPiecesOfInformation = 4; // the total number of pieces of information above (i.e., 0, 1, 2, and 3)
+        
+        private const byte InformationSet_Information_Offset = 0;
+        private const byte InformationSet_DecisionIndex_Offset = 1;
+        private const byte InformationSet_NumPiecesOfInformation = 2;
 
         public GameHistory DeepCopy()
         {
@@ -37,12 +40,15 @@ namespace ACESim
             return b;
         }
 
-        public GameHistory Initialize()
+        public GameHistory Initialize(byte numPlayers)
         {
+            NumPlayers = numPlayers;
             fixed (byte* historyPtr = History)
                 *(historyPtr + 0) = Incomplete;
+            fixed (byte* ptr = InformationSets)
+                for (int p = 0; p < NumPlayers; p++)
+                    *(ptr + MaxInformationSetLengthPerPlayer * p) = 255;
             LastIndexAddedToHistory = 0;
-            LastIndexAddedToInformationSets = -1;
             return this;
         }
 
@@ -73,17 +79,19 @@ namespace ACESim
             }
         }
 
-        public InformationSetHistory GetInformationSetHistory(short i)
+        private InformationSetHistory GetInformationSetHistory(short i)
         {
+            byte playerIndex = GetHistoryIndex(i + History_PlayerNumber_Offset);
+            byte decisionIndex = GetHistoryIndex(i + History_DecisionNumber_Offset);
             var informationSetHistory = new InformationSetHistory()
             {
-                PlayerIndex = GetHistoryIndex(i + History_PlayerNumber_Offset),
-                DecisionIndex = GetHistoryIndex(i + History_DecisionNumber_Offset),
+                PlayerIndex = playerIndex,
+                DecisionIndex = decisionIndex,
                 ActionChosen = GetHistoryIndex(i + History_Action_Offset),
                 NumPossibleActions = GetHistoryIndex(i + History_NumPossibleActions_Offset),
                 IsTerminalAction = GetHistoryIndex(i + History_NumPiecesOfInformation) == Complete
             };
-            GetPlayerInformation(GetHistoryIndex(i + History_PlayerNumber_Offset), GetHistoryIndex(i + History_DecisionNumber_Offset), informationSetHistory.InformationSet);
+            GetPlayerInformation(playerIndex, decisionIndex, informationSetHistory.InformationSet);
             return informationSetHistory;
         }
 
@@ -96,7 +104,7 @@ namespace ACESim
         {
             byte* actions = stackalloc byte[MaxNumActions];
             GetActions(actions);
-            return Util.ListExtensions.GetPointerAsList(actions);
+            return Util.ListExtensions.GetPointerAsList_255Terminated(actions);
         }
 
         public string GetActionsAsListString()
@@ -151,46 +159,40 @@ namespace ACESim
 
         public void AddToInformationSet(byte information, byte playerNumber, byte decisionIndexAdded)
         {
-            short firstIndex = (short) (LastIndexAddedToInformationSets + 1);
+            if (playerNumber >= MaxNumPlayers)
+                throw new Exception("Invalid player index. Must increase MaxNumPlayers.");
             fixed (byte* informationSetsPtr = InformationSets)
             {
-                *(informationSetsPtr + firstIndex + InformationSet_PlayerNumber_Offset) = playerNumber;
-                *(informationSetsPtr + firstIndex + InformationSet_Information_Offset) = information;
-                *(informationSetsPtr + firstIndex + InformationSet_DecisionIndex_Offset) = decisionIndexAdded;
+                byte* playerPointer = informationSetsPtr + playerNumber * MaxInformationSetLengthPerPlayer;
+                bool atEnd = *playerPointer == 255;
+                while (!atEnd)
+                {
+                    playerPointer += InformationSet_NumPiecesOfInformation;
+                    atEnd = *playerPointer == 255;
+                }
+                *playerPointer = information;
+                playerPointer++;
+                *playerPointer = decisionIndexAdded;
+                playerPointer++;
+                *playerPointer = 255; // terminator
             }
-            LastIndexAddedToInformationSets += InformationSet_NumPiecesOfInformation;
-
         }
 
         public unsafe void GetPlayerInformation(int playerNumber, byte? beforeDecisionIndex, byte* playerInfoBuffer)
         {
-            int d = 0;
-            if (LastIndexAddedToInformationSets > 0)
+            fixed (byte* informationSetsPtr = InformationSets)
             {
-                fixed (byte* informationSetsPtr = InformationSets)
+                byte* playerPointer = informationSetsPtr + playerNumber * MaxInformationSetLengthPerPlayer;
+                bool atEnd = *playerPointer == 255;
+                while (!atEnd)
                 {
-                    for (byte i = 0; i < LastIndexAddedToInformationSets; i += InformationSet_NumPiecesOfInformation)
-                    {
-                        byte* b = informationSetsPtr + i;
-                        byte playerNumberInInformationSet, decisionIndex, informationIndex;
-                        playerNumberInInformationSet = *b;
-                        b += InformationSet_DecisionIndex_Offset;
-                        decisionIndex = *b;
-                        b -= InformationSet_DecisionIndex_Offset;
-                        b += InformationSet_Information_Offset;
-                        informationIndex = *b;
-
-                        if (playerNumberInInformationSet == playerNumber)
-                        {
-                            if (beforeDecisionIndex == null || decisionIndex < beforeDecisionIndex)
-                                playerInfoBuffer[d++] = informationIndex;
-                            else
-                                break;
-                        }
-                    }
+                    *playerInfoBuffer = *(playerPointer + InformationSet_Information_Offset);
+                    playerPointer += InformationSet_NumPiecesOfInformation;
+                    atEnd = *playerPointer == 255;
+                    playerInfoBuffer++;
                 }
+                *playerInfoBuffer = 255;
             }
-            playerInfoBuffer[d] = 255;
         }
 
         /// <summary>

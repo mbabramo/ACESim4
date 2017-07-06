@@ -14,7 +14,7 @@ namespace ACESim
         [FieldwiseComparisonSkip]
         public GameDefinition GameDefinition;
         public List<GameModuleProgress> GameModuleProgresses;
-        public GameHistory GameHistory = new GameHistory().Initialize();
+        public GameHistory GameHistory;
         public List<byte> ActionsToPlay;
         public bool GameComplete;
         public bool HaveAdvancedToFirstStep;
@@ -82,7 +82,7 @@ namespace ACESim
                 foreach (var gmp in GameModuleProgresses)
                     gmp.Recycle();
             GameModuleProgresses = null;
-            GameHistory.Initialize();
+            //GameHistory.Initialize(0);
             ActionsToPlay = null;
             ActionsToPlayIndex = -1;
             GameComplete = false;

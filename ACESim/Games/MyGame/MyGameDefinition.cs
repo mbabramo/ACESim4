@@ -71,6 +71,7 @@ namespace ACESim
             ParseOptions(options);
 
             Players = GetPlayersList();
+            NumPlayers = (byte) Players.Count();
             DecisionsExecutionOrder = GetDecisionsList();
             SimpleReportDefinitions = GetReports();
 
@@ -108,7 +109,7 @@ namespace ACESim
             var decisions = new List<Decision>();
             // Litigation Quality. This is not known by a player unless the player has perfect information. 
             // The SignalChance player relies on this information in calculating the probabilities of different signals
-            List<byte> playersKnowingLitigationQuality = new List<byte>() { (byte) MyGamePlayers.SignalChance };
+            List<byte> playersKnowingLitigationQuality = new List<byte>() { (byte) MyGamePlayers.SignalChance, (byte) MyGamePlayers.CourtChance };
             if (PNoiseStdev == 0)
                 playersKnowingLitigationQuality.Add((byte)MyGamePlayers.Plaintiff);
             if (DNoiseStdev == 0)

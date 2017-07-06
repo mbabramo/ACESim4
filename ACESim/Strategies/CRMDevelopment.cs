@@ -94,8 +94,9 @@ namespace ACESim
             byte* actionsEnumerator = stackalloc byte[GameHistory.MaxNumActions];
             progress.GameHistory.GetActions(actionsEnumerator);
 
-            
-            GameHistoryTree.SetValue(actionsEnumerator, true, progress.GetNonChancePlayerUtilities());
+
+            double[] playerUtilities = progress.GetNonChancePlayerUtilities();
+            GameHistoryTree.SetValue(actionsEnumerator, true, playerUtilities);
             // Go through each non-chance decision point on this path and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
             
             NWayTreeStorage<object> historyPoint = GameHistoryTree;
@@ -108,7 +109,6 @@ namespace ACESim
                 var playersStrategy = Strategies[informationSetHistory.PlayerIndex];
                 if (historyPoint.StoredValue == null)
                 {
-                     
                     NWayTreeStorage<object> informationSetNode = playersStrategy.SetInformationSetTreeValueIfNotSet(
                             informationSetHistoryCopy.InformationSet,
                             isNecessarilyLast,
@@ -155,7 +155,7 @@ namespace ACESim
             return inputs;
         }
 
-        double printProbability = 1;
+        double printProbability = 0.00;
         private unsafe void PrintSameGameResults(GamePlayer player, GameInputs inputs)
         {
             if (printProbability == 0)
@@ -210,25 +210,30 @@ namespace ACESim
                 unsafe
                 {
                     List<byte> informationSetList;
-                    informationSetList = ListExtensions.GetPointerAsList(informationSetHistoryCopy.InformationSet);
+                    informationSetList = ListExtensions.GetPointerAsList_255Terminated(informationSetHistoryCopy.InformationSet);
                     TabbedText.WriteLine($"Information set: {String.Join(",", informationSetList)}");
-                    if (playerIsChance)
-                    {
-                        CRMChanceNodeSettings chanceNodeSettingsInHistory = GetInformationSetChanceSettings(historyPoint);
-                        CRMChanceNodeSettings chanceNodeSettingsInInformationSet = (CRMChanceNodeSettings)playersStrategy.GetInformationSetTreeValue(informationSetHistoryCopy.InformationSet);
-                        if (chanceNodeSettingsInHistory != chanceNodeSettingsInInformationSet)
-                            throw new Exception("Chance node settings do not match");
-                    }
-                    else
-                    {
-                        CRMInformationSetNodeTally tallyReferencedInHistory = GetInformationSetNodeTally(historyPoint);
-                        CRMInformationSetNodeTally tallyStoredInInformationSet = (CRMInformationSetNodeTally)playersStrategy.GetInformationSetTreeValue(informationSetHistoryCopy.InformationSet);
-                        if (tallyReferencedInHistory != tallyStoredInInformationSet)
-                            throw new Exception("Tally references do not match.");
-                    }
+                    VerifyInformationSetMatchesExpectation(historyPoint, playerIsChance, playersStrategy, informationSetHistoryCopy);
                 }
                 historyPoint = historyPoint.GetBranch(informationSetHistory.ActionChosen);
                 TabbedText.Tabs--;
+            }
+        }
+
+        private unsafe void VerifyInformationSetMatchesExpectation(NWayTreeStorage<object> historyPoint, bool playerIsChance, Strategy playersStrategy, InformationSetHistory informationSetHistory)
+        {
+            if (playerIsChance)
+            {
+                CRMChanceNodeSettings chanceNodeSettingsInHistory = GetInformationSetChanceSettings(historyPoint);
+                CRMChanceNodeSettings chanceNodeSettingsInInformationSet = (CRMChanceNodeSettings)playersStrategy.GetInformationSetTreeValue(informationSetHistory.InformationSet);
+                if (chanceNodeSettingsInHistory != chanceNodeSettingsInInformationSet)
+                    throw new Exception("Chance node settings do not match");
+            }
+            else
+            {
+                CRMInformationSetNodeTally tallyReferencedInHistory = GetInformationSetNodeTally(historyPoint);
+                CRMInformationSetNodeTally tallyStoredInInformationSet = (CRMInformationSetNodeTally)playersStrategy.GetInformationSetTreeValue(informationSetHistory.InformationSet);
+                if (tallyReferencedInHistory != tallyStoredInInformationSet)
+                    throw new Exception("Tally references do not match.");
             }
         }
 
@@ -816,7 +821,7 @@ namespace ACESim
         {
             const int numIterationsToRun = 100000;
 
-            int? reportEveryNIterations = 100;
+            int? reportEveryNIterations = 1000;
             int? bestResponseEveryMIterations = 1000;
 
             double[] lastUtilities = new double[NumNonChancePlayers];

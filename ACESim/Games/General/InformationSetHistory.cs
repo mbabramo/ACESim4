@@ -19,15 +19,19 @@ namespace ACESim
         public override string ToString()
         {
             StringBuilder infoSet = new StringBuilder();
-            int i = 0;
             fixed (byte* ptr = InformationSet)
-                while (*(ptr+i) != 255)
+            {
+                byte* ptr2 = ptr;
+                byte numItems = *ptr2;
+                ptr2++;
+                for (byte b = 0; b < numItems; b++)
                 {
-                    if (i != 0)
+                    if (b != 0)
                         infoSet.Append(",");
-                    infoSet.Append(*(ptr + i));
-                    i++;
+                    infoSet.Append(*ptr2);
+                    ptr2++; // move to next information -- note that decision indices are not included
                 }
+            }
             return $"Player {PlayerIndex} Decision {DecisionIndex} Information {infoSet.ToString()} ActionChosen {ActionChosen} NumPossible {NumPossibleActions} IsTerminal {IsTerminalAction}";
         }
     }

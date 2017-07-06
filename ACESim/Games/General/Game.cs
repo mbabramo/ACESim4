@@ -71,6 +71,7 @@ namespace ACESim
             this.Strategies = strategies;
             this.Progress = progress;
             this.Progress.GameDefinition = gameDefinition;
+            this.Progress.GameHistory = new GameHistory().Initialize(gameDefinition.NumPlayers);
             this.GameInputs = gameInputs;
             this.GameDefinition = gameDefinition;
             this.RecordReportInfo = recordReportInfo;
@@ -134,9 +135,10 @@ namespace ACESim
             byte actionToChoose;
             if (Progress.ActionsToPlay == null)
             {
-                byte* informationSet = stackalloc byte[GameHistory.MaxNumActions];
-                Progress.GameHistory.GetPlayerInformation(CurrentPlayerNumber, null, informationSet);
-                actionToChoose = CurrentPlayerStrategy.ChooseAction(informationSet, GetNextRandomNumber);
+                throw new NotImplementedException();
+                //byte* informationSet = stackalloc byte[GameHistory.MaxNumActions];
+                //Progress.GameHistory.GetPlayerInformation(CurrentPlayerNumber, null, informationSet);
+                //actionToChoose = CurrentPlayerStrategy.ChooseAction(informationSet, GetNextRandomNumber);
             }
             else
             { // play according to a preset plan
