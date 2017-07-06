@@ -75,17 +75,17 @@ namespace ACESim
             }
         }
 
-        private InformationSetHistory GetInformationSetHistory(short i)
+        private InformationSetHistory GetInformationSetHistory(short index)
         {
-            byte playerIndex = GetHistoryIndex(i + History_PlayerNumber_Offset);
-            byte decisionIndex = GetHistoryIndex(i + History_DecisionNumber_Offset);
+            byte playerIndex = GetHistoryIndex(index + History_PlayerNumber_Offset);
+            byte decisionIndex = GetHistoryIndex(index + History_DecisionNumber_Offset);
             var informationSetHistory = new InformationSetHistory()
             {
                 PlayerIndex = playerIndex,
                 DecisionIndex = decisionIndex,
-                ActionChosen = GetHistoryIndex(i + History_Action_Offset),
-                NumPossibleActions = GetHistoryIndex(i + History_NumPossibleActions_Offset),
-                IsTerminalAction = GetHistoryIndex(i + History_NumPiecesOfInformation) == Complete
+                ActionChosen = GetHistoryIndex(index + History_Action_Offset),
+                NumPossibleActions = GetHistoryIndex(index + History_NumPossibleActions_Offset),
+                IsTerminalAction = GetHistoryIndex(index + History_NumPiecesOfInformation) == Complete
             };
             GetPlayerInformation(playerIndex, informationSetHistory.InformationSet);
             return informationSetHistory;
@@ -147,6 +147,8 @@ namespace ACESim
                 return (*(historyPtr + LastIndexAddedToHistory) == Complete);
         }
         
+
+
         public void AddToInformationSet(byte information, List<byte> playersToInform)
         {
             fixed (byte* informationSetsPtr = InformationSets)
@@ -158,6 +160,32 @@ namespace ACESim
         {
             fixed (byte* informationSetsPtr = InformationSets)
                 AddToInformationSet(information, playerIndex, informationSetsPtr);
+        }
+
+        public byte CountItemsInInformationSet(byte playerIndex)
+        {
+            byte b = 0;
+            fixed (byte* informationSetsPtr = InformationSets)
+            {
+                byte* ptr = informationSetsPtr;
+                while (*ptr != 255)
+                {
+                    ptr++;
+                    b++;
+                }
+            }
+            return b;
+        }
+
+        public void ReduceItemsInInformationSet(byte playerIndex, byte numItems)
+        {
+            // NOTE: This does not check to ensure that there are more than numItems in the set.
+            byte b = 0;
+            fixed (byte* informationSetsPtr = InformationSets)
+            {
+                byte* ptr = informationSetsPtr + numItems;
+                *ptr = 255;
+            }
         }
 
         private void AddToInformationSet(byte information, byte playerNumber, byte* informationSetsPtr)

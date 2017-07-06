@@ -96,9 +96,14 @@ namespace ACESim
 
 
             double[] playerUtilities = progress.GetNonChancePlayerUtilities();
-            GameHistoryTree.SetValue(actionsEnumerator, true, playerUtilities);
+            // We are going to save this information in the GameHistoryTree, if applicable, and always in the resolution set's resolution tree.
+            GameHistoryTree.SetValue(actionsEnumerator, true, playerUtilities); 
+            var resolutionStrategy = Strategies[GameDefinition.PlayerIndex_ResolutionPlayer];
+            byte* resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerPlayer];
+            progress.GameHistory.GetPlayerInformation(GameDefinition.PlayerIndex_ResolutionPlayer, resolutionInformationSet);
+            resolutionStrategy.SetInformationSetTreeValueIfNotSet(resolutionInformationSet, true, () => playerUtilities);
+
             // Go through each non-chance decision point on this path and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
-            
             NWayTreeStorage<object> historyPoint = GameHistoryTree;
             foreach (var informationSetHistory in progress.GameHistory.GetInformationSetHistoryItems())
             {
@@ -185,8 +190,7 @@ namespace ACESim
                         path2.Add(*(path + i));
                         i++;
                     }
-                    var utilities = GetUtilities(path);
-                    TabbedText.WriteLine($"{String.Join(",", path2)} -->  Utilities: P {utilities[0]}, D {utilities[1]}");
+                    TabbedText.WriteLine($"{String.Join(",", path2)}");
                     TabbedText.Tabs++;
                     PrintGenericGameProgress(progress);
                     TabbedText.Tabs--;
@@ -217,6 +221,25 @@ namespace ACESim
                 historyPoint = historyPoint.GetBranch(informationSetHistory.ActionChosen);
                 TabbedText.Tabs--;
             }
+            double[] utilitiesStoredInTree = (double[])historyPoint.StoredValue;
+            VerifyUtilitiesMatchExpectation(progress.GameHistory, utilitiesStoredInTree);
+            TabbedText.WriteLine($"--> Utilities: { String.Join(",", utilitiesStoredInTree)}");
+        }
+
+        private unsafe void VerifyUtilitiesMatchExpectation(GameHistory gameHistory, double[] utilities)
+        {
+            double[] utilitiesInInformationSet = GetUtilitiesFromResolutionSet(gameHistory);
+            if (utilitiesInInformationSet.Length != utilities.Length || !utilities.SequenceEqual(utilitiesInInformationSet))
+                throw new Exception("Internal error. Resolution set is not adequately defined. Utilities failed to match expectation.");
+        }
+
+        private unsafe double[] GetUtilitiesFromResolutionSet(GameHistory gameHistory)
+        {
+            byte* resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerPlayer];
+            gameHistory.GetPlayerInformation(GameDefinition.PlayerIndex_ResolutionPlayer, resolutionInformationSet);
+            Strategy resolutionStrategy = Strategies[GameDefinition.PlayerIndex_ResolutionPlayer];
+            double[] utilitiesInInformationSet = (double[])resolutionStrategy.GetInformationSetTreeValue(resolutionInformationSet);
+            return utilitiesInInformationSet;
         }
 
         private unsafe void VerifyInformationSetMatchesExpectation(NWayTreeStorage<object> historyPoint, bool playerIsChance, Strategy playersStrategy, InformationSetHistory informationSetHistory)

@@ -162,12 +162,34 @@ namespace ACESim
                     }
                 }
             }
-            decisions.Add(new Decision("CourtDecision", "CD", (byte)MyGamePlayers.CourtChance, new List<byte> { }, 2 /* for plaintiff or for defendant */, (byte)MyGameDecisions.CourtDecision, unevenChanceActions: true));
+            decisions.Add(new Decision("CourtDecision", "CD", (byte)MyGamePlayers.CourtChance, new List<byte> { (byte)MyGamePlayers.Resolution }, 2 /* for plaintiff or for defendant */, (byte)MyGameDecisions.CourtDecision, unevenChanceActions: true));
             return decisions;
         }
 
         public override void CustomInformationSetManipulation(Decision currentDecision, byte action, GameHistory gameHistory)
         {
+            // Resolution information set. We need an information set that uniquely identifies each distinct resolution. We have added the court decision 
+            // to the resolution set above, but also need information about whether we have reached some kind of offer.
+            // We only need to put the LAST offer and response in the information set. This could, of course, be the first offer and response if it is accepted. 
+            // We will also need information on the nature of the offer and response, since different bargaining rounds may have different structures,
+            // and since the number of bargaining rounds that has occurred may affect the parties' payoffs.
+            // For example, a response of 2 may mean something different if we have simultaneous bargaining or if plaintiff or defendant is responding.
+            // So, we would like our resolution information set to have the decision number of the last offer (which may be the first of two simultaneous offers)
+            // and the actions of both players. Thus, if there is nothing in the resolution information set, then we add the decision byte code and the action.
+            // If there are two items, then we add the decision byte code and the action. If there are three, we delete everything and then there are zero, so
+            // we respond accordingly. 
+            if (currentDecision.DecisionByteCode >= (byte)MyGameDecisions.POffer && currentDecision.DecisionByteCode <= (byte)MyGameDecisions.DResponse)
+            {
+                byte numItems = gameHistory.CountItemsInInformationSet((byte)MyGamePlayers.Resolution);
+                if (numItems == 3)
+                {
+                    numItems = 0;
+                    gameHistory.ReduceItemsInInformationSet((byte)MyGamePlayers.Resolution, numItems);
+                }
+                if (numItems == 0)
+                    gameHistory.AddToInformationSet((byte)gameHistory.LastIndexAddedToHistory, (byte)MyGamePlayers.Resolution); // we indicate the point in the game based on how big the history set is. Note that if LastIndexAddedToHistory could be > 255, we'd have a problem
+                gameHistory.AddToInformationSet(action, (byte)MyGamePlayers.Resolution);
+            }
         }
 
 
