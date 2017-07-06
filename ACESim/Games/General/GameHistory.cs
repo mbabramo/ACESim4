@@ -149,23 +149,21 @@ namespace ACESim
         
         public void AddToInformationSet(byte information, List<byte> playersToInform)
         {
-            foreach (byte playerIndex in playersToInform)
-                AddToInformationSet(information, playerIndex);
+            fixed (byte* informationSetsPtr = InformationSets)
+                foreach (byte playerIndex in playersToInform)
+                    AddToInformationSet(information, playerIndex, informationSetsPtr);
         }
 
-        public void AddToInformationSet(byte information, byte playerNumber)
+        public void AddToInformationSet(byte information, byte playerNumber, byte* informationSetsPtr)
         {
             if (playerNumber >= MaxNumPlayers)
                 throw new Exception("Invalid player index. Must increase MaxNumPlayers.");
-            fixed (byte* informationSetsPtr = InformationSets)
-            {
-                byte* playerPointer = informationSetsPtr + playerNumber * MaxInformationSetLengthPerPlayer;
-                while (*playerPointer != 255)
-                    playerPointer++;
-                *playerPointer = information;
+            byte* playerPointer = informationSetsPtr + playerNumber * MaxInformationSetLengthPerPlayer;
+            while (*playerPointer != 255)
                 playerPointer++;
-                *playerPointer = 255; // terminator
-            }
+            *playerPointer = information;
+            playerPointer++;
+            *playerPointer = 255; // terminator
         }
 
         public unsafe void GetPlayerInformation(int playerNumber, byte* playerInfoBuffer)

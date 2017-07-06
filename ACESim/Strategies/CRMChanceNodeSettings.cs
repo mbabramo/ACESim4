@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
+    [Serializable]
     public abstract class CRMChanceNodeSettings
     {
         public byte DecisionNum;
