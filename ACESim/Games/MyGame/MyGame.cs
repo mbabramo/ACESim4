@@ -38,13 +38,13 @@ namespace ACESim
             {
                 // Note: This is an unequal probabilities chance decision. The action IS the discrete signal. The game definition then calculates the probability that we would get this signal, given the uniform distribution draw. In other words, this is like a weighted die, where the die is heavily weighted toward signal values that are close to the litigation quality values.
                 MyProgress.PSignalDiscrete = action;
-                Progress.GameHistory.AddToInformationSet(MyProgress.PSignalDiscrete, (byte)MyGamePlayers.Plaintiff, (byte) CurrentDecisionIndex);
+                Progress.GameHistory.AddToInformationSet(MyProgress.PSignalDiscrete, (byte)MyGamePlayers.Plaintiff);
                 MyProgress.PSignalUniform = EquallySpaced.GetLocationOfEquallySpacedPoint(MyProgress.PSignalDiscrete - 1 /* make it zero-based */, MyDefinition.NumSignals);
             }
             else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.DSignal)
             {
                 MyProgress.DSignalDiscrete = action;
-                Progress.GameHistory.AddToInformationSet(MyProgress.DSignalDiscrete, (byte)MyGamePlayers.Defendant, (byte)CurrentDecisionIndex);
+                Progress.GameHistory.AddToInformationSet(MyProgress.DSignalDiscrete, (byte)MyGamePlayers.Defendant);
                 MyProgress.DSignalUniform = EquallySpaced.GetLocationOfEquallySpacedPoint(MyProgress.DSignalDiscrete - 1 /* make it zero-based */, MyDefinition.NumSignals);
             }
             else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.POffer)

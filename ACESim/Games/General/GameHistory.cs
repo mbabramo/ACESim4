@@ -28,10 +28,6 @@ namespace ACESim
         private const byte History_Action_Offset = 2;
         private const byte History_NumPossibleActions_Offset = 3;
         private const byte History_NumPiecesOfInformation = 4; // the total number of pieces of information above (i.e., 0, 1, 2, and 3)
-        
-        private const byte InformationSet_Information_Offset = 0;
-        private const byte InformationSet_DecisionIndex_Offset = 1;
-        private const byte InformationSet_NumPiecesOfInformation = 2;
 
         public GameHistory DeepCopy()
         {
@@ -66,7 +62,7 @@ namespace ACESim
                 *(historyPtr + i + History_NumPiecesOfInformation) = Incomplete; // this is just one item at end of all history items
             }
             LastIndexAddedToHistory = (short) (i + History_NumPiecesOfInformation);
-            AddToInformationSet(action, playersToInform, decisionNumber);
+            AddToInformationSet(action, playersToInform);
         }
 
         public IEnumerable<InformationSetHistory> GetInformationSetHistoryItems()
@@ -91,7 +87,7 @@ namespace ACESim
                 NumPossibleActions = GetHistoryIndex(i + History_NumPossibleActions_Offset),
                 IsTerminalAction = GetHistoryIndex(i + History_NumPiecesOfInformation) == Complete
             };
-            GetPlayerInformation(playerIndex, decisionIndex, informationSetHistory.InformationSet);
+            GetPlayerInformation(playerIndex, informationSetHistory.InformationSet);
             return informationSetHistory;
         }
 
@@ -151,47 +147,40 @@ namespace ACESim
                 return (*(historyPtr + LastIndexAddedToHistory) == Complete);
         }
         
-        public void AddToInformationSet(byte information, List<byte> playersToInform, byte decisionIndexAdded)
+        public void AddToInformationSet(byte information, List<byte> playersToInform)
         {
             foreach (byte playerIndex in playersToInform)
-                AddToInformationSet(information, playerIndex, decisionIndexAdded);
+                AddToInformationSet(information, playerIndex);
         }
 
-        public void AddToInformationSet(byte information, byte playerNumber, byte decisionIndexAdded)
+        public void AddToInformationSet(byte information, byte playerNumber)
         {
             if (playerNumber >= MaxNumPlayers)
                 throw new Exception("Invalid player index. Must increase MaxNumPlayers.");
             fixed (byte* informationSetsPtr = InformationSets)
             {
                 byte* playerPointer = informationSetsPtr + playerNumber * MaxInformationSetLengthPerPlayer;
-                bool atEnd = *playerPointer == 255;
-                while (!atEnd)
-                {
-                    playerPointer += InformationSet_NumPiecesOfInformation;
-                    atEnd = *playerPointer == 255;
-                }
+                while (*playerPointer != 255)
+                    playerPointer++;
                 *playerPointer = information;
-                playerPointer++;
-                *playerPointer = decisionIndexAdded;
                 playerPointer++;
                 *playerPointer = 255; // terminator
             }
         }
 
-        public unsafe void GetPlayerInformation(int playerNumber, byte? beforeDecisionIndex, byte* playerInfoBuffer)
+        public unsafe void GetPlayerInformation(int playerNumber, byte* playerInfoBuffer)
         {
             fixed (byte* informationSetsPtr = InformationSets)
             {
                 byte* playerPointer = informationSetsPtr + playerNumber * MaxInformationSetLengthPerPlayer;
-                bool atEnd = *playerPointer == 255;
-                while (!atEnd)
+                bool done = false;
+                do
                 {
-                    *playerInfoBuffer = *(playerPointer + InformationSet_Information_Offset);
-                    playerPointer += InformationSet_NumPiecesOfInformation;
-                    atEnd = *playerPointer == 255;
+                    *playerInfoBuffer = *playerPointer;
+                    done = *playerPointer == 255;
                     playerInfoBuffer++;
-                }
-                *playerInfoBuffer = 255;
+                    playerPointer++;
+                } while (!done);
             }
         }
 

@@ -16,6 +16,8 @@ namespace ACESim
         /// </summary>
         public byte NumPlayers;
 
+        public virtual byte PlayerIndex_ResolutionPlayer => throw new NotImplementedException();
+
         [OptionalSetting]
         public List<GameModule> GameModules;
 

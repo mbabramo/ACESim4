@@ -88,6 +88,7 @@ namespace ACESim
         static string LitigationQualityChanceName = "QC";
         static string SignalChanceName = "SC";
         static string CourtChanceName = "CC";
+        static string ResolutionPlayerName = "R";
 
         private static List<PlayerInfo> GetPlayersList()
         {
@@ -99,8 +100,11 @@ namespace ACESim
                     new PlayerInfo(LitigationQualityChanceName, (int) MyGamePlayers.QualityChance, true, false),
                     new PlayerInfo(SignalChanceName, (int) MyGamePlayers.SignalChance, true, false),
                     new PlayerInfo(CourtChanceName, (int) MyGamePlayers.CourtChance, true, false),
+                    new PlayerInfo(ResolutionPlayerName, (int) MyGamePlayers.Resolution, true, false),
                 };
         }
+
+        public override byte PlayerIndex_ResolutionPlayer => (byte) MyGamePlayers.Resolution;
 
         private List<Decision> GetDecisionsList()
         {
