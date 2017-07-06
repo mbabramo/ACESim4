@@ -154,7 +154,13 @@ namespace ACESim
                     AddToInformationSet(information, playerIndex, informationSetsPtr);
         }
 
-        public void AddToInformationSet(byte information, byte playerNumber, byte* informationSetsPtr)
+        public void AddToInformationSet(byte information, byte playerIndex)
+        {
+            fixed (byte* informationSetsPtr = InformationSets)
+                AddToInformationSet(information, playerIndex, informationSetsPtr);
+        }
+
+        private void AddToInformationSet(byte information, byte playerNumber, byte* informationSetsPtr)
         {
             if (playerNumber >= MaxNumPlayers)
                 throw new Exception("Invalid player index. Must increase MaxNumPlayers.");

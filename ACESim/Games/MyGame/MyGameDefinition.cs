@@ -166,6 +166,11 @@ namespace ACESim
             return decisions;
         }
 
+        public override void CustomInformationSetManipulation(Decision currentDecision, byte action, GameHistory gameHistory)
+        {
+        }
+
+
         private List<SimpleReportDefinition> GetReports()
         {
             var reports = new List<SimpleReportDefinition>();

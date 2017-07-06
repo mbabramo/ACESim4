@@ -117,17 +117,13 @@ namespace ACESim
                 if (Progress.IsFinalGamePath && action < CurrentDecision.NumPossibleActions)
                     Progress.IsFinalGamePath = false;
                 RespondToAction(currentDecision, action);
+                GameDefinition.CustomInformationSetManipulation(currentDecision, action, Progress.GameHistory);
             }
         }
 
         public virtual bool DecisionIsNeeded(Decision currentDecision)
         {
             return true;
-        }
-
-        public virtual void RespondToAction(Decision currentDecision, byte action)
-        {
-            // Entirely subclass. 
         }
 
         public unsafe virtual byte ChooseAction()
@@ -150,6 +146,10 @@ namespace ACESim
             }
             Progress.GameHistory.AddToHistory((byte)CurrentDecisionIndex, CurrentPlayerNumber, actionToChoose, CurrentDecision.NumPossibleActions, CurrentDecision.PlayersToInform);
             return actionToChoose;
+        }
+
+        public virtual void RespondToAction(Decision currentDecision, byte action)
+        {
         }
 
         public virtual double ConvertActionToUniformDistributionDraw(int action)
