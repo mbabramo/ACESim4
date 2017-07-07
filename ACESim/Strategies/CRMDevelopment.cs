@@ -160,10 +160,11 @@ namespace ACESim
             return inputs;
         }
 
-        double printProbability = 1.00;
+        double printProbability = 0.0;
+        bool processIfNotPrinting = true;
         private unsafe void PrintSameGameResults(GamePlayer player, GameInputs inputs)
         {
-            if (printProbability == 0)
+            if (printProbability == 0 && !processIfNotPrinting)
                 return;
             player.PlayAllPaths(inputs, PrintGameProbabilistically);
         }
