@@ -382,6 +382,8 @@
     <Compile Include="Strategies\CRMChanceNodeSettings_UnequalProbabilities.cs" />
     <Compile Include="Strategies\CRMDevelopment.cs" />
     <Compile Include="Strategies\CRMInformationSetNodeTally.cs" />
+    <Compile Include="Strategies\HistoryPoint.cs" />
+    <Compile Include="Strategies\InformationSetLookupApproach.cs" />
     <Compile Include="Strategies\StrategyState.cs" />
     <Compile Include="Util\DiscreteValueSignalParameters.cs" />
     <Compile Include="Util\EquallySpaced.cs" />

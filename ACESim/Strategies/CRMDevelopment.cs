@@ -23,9 +23,12 @@ namespace ACESim
 
         public CurrentExecutionInformation CurrentExecutionInformation { get; set; }
 
+        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.Both;
+
         /// <summary>
-        /// A game history tree. On each internal node, the object contained is the information set of the player making the decision (or null for a chance decision). 
+        /// A game history tree. On each internal node, the object contained is the information set of the player making the decision, including the information set of the chance player at that game point. 
         /// On each leaf node, the object contained is an array of the players' terminal utilities.
+        /// The game history tree is not used if LookupApproach == Strategies
         /// </summary>
         public NWayTreeStorageInternal<object> GameHistoryTree;
 
@@ -93,15 +96,7 @@ namespace ACESim
             // First, add the utilities at the end of the tree for this path.
             byte* actionsEnumerator = stackalloc byte[GameHistory.MaxNumActions];
             progress.GameHistory.GetActions(actionsEnumerator);
-
-
-            double[] playerUtilities = progress.GetNonChancePlayerUtilities();
-            // We are going to save this information in the GameHistoryTree, if applicable, and always in the resolution set's resolution tree.
-            GameHistoryTree.SetValue(actionsEnumerator, true, playerUtilities); 
-            var resolutionStrategy = Strategies[GameDefinition.PlayerIndex_ResolutionPlayer];
-            byte* resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerPlayer];
-            progress.GameHistory.GetPlayerInformation(GameDefinition.PlayerIndex_ResolutionPlayer, null /* get entire resolution set */, resolutionInformationSet);
-            resolutionStrategy.SetInformationSetTreeValueIfNotSet(resolutionInformationSet, true, () => playerUtilities);
+            SaveFinalUtilities(progress, actionsEnumerator);
 
             // Go through each non-chance decision point on this path and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
             NWayTreeStorage<object> historyPoint = GameHistoryTree;
@@ -147,6 +142,17 @@ namespace ACESim
                 }
                 historyPoint = historyPoint.GetBranch(informationSetHistory.ActionChosen);
             }
+        }
+
+        private unsafe void SaveFinalUtilities(GameProgress progress, byte* actionsEnumerator)
+        {
+            double[] playerUtilities = progress.GetNonChancePlayerUtilities();
+            // We are going to save this information in the GameHistoryTree, if applicable, and always in the resolution set's resolution tree.
+            GameHistoryTree.SetValue(actionsEnumerator, true, playerUtilities);
+            var resolutionStrategy = Strategies[GameDefinition.PlayerIndex_ResolutionPlayer];
+            byte* resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerPlayer];
+            progress.GameHistory.GetPlayerInformation(GameDefinition.PlayerIndex_ResolutionPlayer, null /* get entire resolution set */, resolutionInformationSet);
+            resolutionStrategy.SetInformationSetTreeValueIfNotSet(resolutionInformationSet, true, () => playerUtilities);
         }
         #endregion
 
