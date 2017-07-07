@@ -110,14 +110,16 @@ namespace ACESim
                 return;
             Decision currentDecision = CurrentDecision;
             if (PreparationPhase)
+            {
                 DecisionNeeded = DecisionIsNeeded(currentDecision);
+            }
             else if (DecisionNeeded)
             {
                 byte action = ChooseAction();
                 if (Progress.IsFinalGamePath && action < CurrentDecision.NumPossibleActions)
                     Progress.IsFinalGamePath = false;
                 RespondToAction(currentDecision, action);
-                GameDefinition.CustomInformationSetManipulation(currentDecision, action, Progress.GameHistory);
+                GameDefinition.CustomInformationSetManipulation(currentDecision, action, ref Progress.GameHistory);
             }
         }
 

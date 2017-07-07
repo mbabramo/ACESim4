@@ -9,25 +9,28 @@ namespace ACESim
     public unsafe struct GameHistory
     {
         public const int MaxHistoryLength = 100;
-        public const int MaxInformationSetLength = 220; // MUST equal MaxInformationSetLengthPerPlayer * MaxNumPlayers. 
-        public const int MaxInformationSetLengthPerPlayer = 20;
+        public const int MaxInformationSetLength = 500; // MUST equal MaxInformationSetLengthPerPlayer * MaxNumPlayers. 
+        public const int MaxInformationSetLengthPerPlayer = 50; // DEBUG -- too high
         public const int MaxNumPlayers = 10;
         public const int MaxNumActions = 20;
-        const byte Complete = 254;
-        const byte Incomplete = 255;
+        const byte HistoryComplete = 254;
+        const byte HistoryIncomplete = 255;
 
         byte NumPlayers;
 
         public fixed byte History[MaxHistoryLength];
         public short LastIndexAddedToHistory;
         public int NumberDecisions => (LastIndexAddedToHistory - 1) / 4;
-        public fixed byte InformationSets[MaxInformationSetLength]; // a buffer for each player, terminated by 255
+
+        // Information set structure. We have an information set buffer for each player. We need to be able to remove information from the information set for a player, but still to remember that it was there as of a particular point in time, so that we can figure out what the information set was as of a particular decision. (This is needed for reconstructing the game play.) We thus store information in pairs. The first byte consists of the decision byte code after which we are making changes. The second byte either consists of an item to add, or 254, indicating that we are removing an item from the information set. All of this is internal. When we get the information set, we get it as of a certain point, and thus we skip decision byte codes and automatically process deletions. 
+        public fixed byte InformationSets[MaxInformationSetLength]; // a buffer for each player, terminated by 255.
+        const byte RemoveItemFromInformationSet = 254;
 
         private const byte History_DecisionNumber_Offset = 0;
         private const byte History_PlayerNumber_Offset = 1;
         private const byte History_Action_Offset = 2;
         private const byte History_NumPossibleActions_Offset = 3;
-        private const byte History_NumPiecesOfInformation = 4; // the total number of pieces of information above (i.e., 0, 1, 2, and 3)
+        private const byte History_NumPiecesOfInformation = 4; // the total number of pieces of information above, so that we know how much to skip (i.e., 0, 1, 2, and 3)
 
         public GameHistory DeepCopy()
         {
@@ -40,7 +43,7 @@ namespace ACESim
         {
             NumPlayers = numPlayers;
             fixed (byte* historyPtr = History)
-                *(historyPtr + 0) = Incomplete;
+                *(historyPtr + 0) = HistoryIncomplete;
             fixed (byte* ptr = InformationSets)
                 for (int p = 0; p < NumPlayers; p++)
                     *(ptr + MaxInformationSetLengthPerPlayer * p) = 255;
@@ -53,16 +56,16 @@ namespace ACESim
             short i = LastIndexAddedToHistory;
             fixed (byte* historyPtr = History)
             {
-                if (*(historyPtr + i) == Complete)
+                if (*(historyPtr + i) == HistoryComplete)
                     throw new Exception("Cannot add to history of complete game.");
                 *(historyPtr + i + History_DecisionNumber_Offset) = decisionNumber;
                 *(historyPtr + i + History_PlayerNumber_Offset) = playerNumber;
                 *(historyPtr + i + History_Action_Offset) = action;
                 *(historyPtr + i + History_NumPossibleActions_Offset) = numPossibleActions;
-                *(historyPtr + i + History_NumPiecesOfInformation) = Incomplete; // this is just one item at end of all history items
+                *(historyPtr + i + History_NumPiecesOfInformation) = HistoryIncomplete; // this is just one item at end of all history items
             }
             LastIndexAddedToHistory = (short) (i + History_NumPiecesOfInformation);
-            AddToInformationSet(action, playersToInform);
+            AddToInformationSet(action, decisionNumber, playersToInform);
         }
 
         public IEnumerable<InformationSetHistory> GetInformationSetHistoryItems()
@@ -85,9 +88,9 @@ namespace ACESim
                 DecisionIndex = decisionIndex,
                 ActionChosen = GetHistoryIndex(index + History_Action_Offset),
                 NumPossibleActions = GetHistoryIndex(index + History_NumPossibleActions_Offset),
-                IsTerminalAction = GetHistoryIndex(index + History_NumPiecesOfInformation) == Complete
+                IsTerminalAction = GetHistoryIndex(index + History_NumPiecesOfInformation) == HistoryComplete
             };
-            GetPlayerInformation(playerIndex, informationSetHistory.InformationSet);
+            GetPlayerInformation(playerIndex, decisionIndex, informationSetHistory.InformationSet);
             return informationSetHistory;
         }
 
@@ -135,86 +138,105 @@ namespace ACESim
             short i = LastIndexAddedToHistory;
             fixed (byte* historyPtr = History)
             {
-                if (*(historyPtr + i) == Complete)
+                if (*(historyPtr + i) == HistoryComplete)
                     throw new Exception("Game is already complete.");
-                *(historyPtr + i) = Complete;
+                *(historyPtr + i) = HistoryComplete;
             }
         }
 
         public bool IsComplete()
         {
             fixed (byte* historyPtr = History)
-                return (*(historyPtr + LastIndexAddedToHistory) == Complete);
+                return (*(historyPtr + LastIndexAddedToHistory) == HistoryComplete);
         }
-        
 
+        #region Player information sets
 
-        public void AddToInformationSet(byte information, List<byte> playersToInform)
+        public void AddToInformationSet(byte information, byte followingDecision, List<byte> playersToInform)
         {
             fixed (byte* informationSetsPtr = InformationSets)
                 foreach (byte playerIndex in playersToInform)
-                    AddToInformationSet(information, playerIndex, informationSetsPtr);
+                    AddToInformationSet(information, followingDecision, playerIndex, informationSetsPtr);
         }
 
-        public void AddToInformationSet(byte information, byte playerIndex)
+        public void AddToInformationSet(byte information, byte followingDecision, byte playerIndex)
         {
             fixed (byte* informationSetsPtr = InformationSets)
-                AddToInformationSet(information, playerIndex, informationSetsPtr);
+                AddToInformationSet(information, followingDecision, playerIndex, informationSetsPtr);
         }
 
-        public byte CountItemsInInformationSet(byte playerIndex)
+        private void AddToInformationSet(byte information, byte followingDecision, byte playerNumber, byte* informationSetsPtr)
         {
-            byte b = 0;
-            fixed (byte* informationSetsPtr = InformationSets)
-            {
-                byte* ptr = informationSetsPtr;
-                while (*ptr != 255)
-                {
-                    ptr++;
-                    b++;
-                }
-            }
-            return b;
-        }
-
-        public void ReduceItemsInInformationSet(byte playerIndex, byte numItems)
-        {
-            // NOTE: This does not check to ensure that there are more than numItems in the set.
-            byte b = 0;
-            fixed (byte* informationSetsPtr = InformationSets)
-            {
-                byte* ptr = informationSetsPtr + numItems;
-                *ptr = 255;
-            }
-        }
-
-        private void AddToInformationSet(byte information, byte playerNumber, byte* informationSetsPtr)
-        {
+            //Debug.WriteLine($"Adding information {information} following decision {followingDecision} for Player number {playerNumber}");
             if (playerNumber >= MaxNumPlayers)
                 throw new Exception("Invalid player index. Must increase MaxNumPlayers.");
             byte* playerPointer = informationSetsPtr + playerNumber * MaxInformationSetLengthPerPlayer;
+            var DEBUG = informationSetsPtr;
+            // advance to the end of the information set
             while (*playerPointer != 255)
-                playerPointer++;
+                playerPointer += 2;
+            // now record the information
+            *playerPointer = followingDecision; // we must record the decision
+            playerPointer++;
             *playerPointer = information;
             playerPointer++;
             *playerPointer = 255; // terminator
         }
 
-        public unsafe void GetPlayerInformation(int playerNumber, byte* playerInfoBuffer)
+        public unsafe void GetPlayerInformation(int playerNumber, byte? upToDecision, byte* playerInfoBuffer)
         {
             fixed (byte* informationSetsPtr = InformationSets)
             {
                 byte* playerPointer = informationSetsPtr + playerNumber * MaxInformationSetLengthPerPlayer;
-                bool done = false;
-                do
+                while (*playerPointer != 255)
                 {
-                    *playerInfoBuffer = *playerPointer;
-                    done = *playerPointer == 255;
-                    playerInfoBuffer++;
+                    if (*playerPointer >= upToDecision)
+                        break;
                     playerPointer++;
-                } while (!done);
+                    if (*playerPointer == RemoveItemFromInformationSet)
+                        playerInfoBuffer--; // delete an item
+                    else
+                    {
+                        *playerInfoBuffer = *playerPointer;
+                        playerInfoBuffer++;
+                    }
+                    playerPointer++;
+                }
+                *playerInfoBuffer = 255;
             }
         }
+
+        public byte CountItemsInInformationSet(byte playerNumber)
+        {
+            byte b = 0;
+            fixed (byte* informationSetsPtr = InformationSets)
+            {
+                byte* ptr = informationSetsPtr + playerNumber * MaxInformationSetLengthPerPlayer;
+                while (*ptr != 255)
+                {
+                    ptr++; // skip the decision code
+                    if (*ptr == RemoveItemFromInformationSet)
+                        b--;
+                    else
+                        b++;
+                    ptr++; // now move past the information
+                }
+            }
+            return b;
+        }
+
+        public void ReduceItemsInInformationSet(byte playerIndex, byte followingDecision, byte numItems)
+        {
+            for (byte b = 0; b < numItems; b++)
+            {
+                AddToInformationSet(RemoveItemFromInformationSet, followingDecision, playerIndex);
+                // We could make this more efficient by going to the end of the information ste and then adding all the removals. 
+            }
+        }
+
+        #endregion
+
+        #region Decision paths
 
         /// <summary>
         /// When called on a complete game, this returns the next decision path to take. 
@@ -268,5 +290,7 @@ namespace ACESim
                 throw new Exception("No more decision paths to take."); // indicates that there are no more decisions to take
             return lastDecisionWithAnotherAction;
         }
+
+        #endregion
     }
 }

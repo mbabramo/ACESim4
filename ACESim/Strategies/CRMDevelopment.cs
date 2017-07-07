@@ -100,7 +100,7 @@ namespace ACESim
             GameHistoryTree.SetValue(actionsEnumerator, true, playerUtilities); 
             var resolutionStrategy = Strategies[GameDefinition.PlayerIndex_ResolutionPlayer];
             byte* resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerPlayer];
-            progress.GameHistory.GetPlayerInformation(GameDefinition.PlayerIndex_ResolutionPlayer, resolutionInformationSet);
+            progress.GameHistory.GetPlayerInformation(GameDefinition.PlayerIndex_ResolutionPlayer, null /* get entire resolution set */, resolutionInformationSet);
             resolutionStrategy.SetInformationSetTreeValueIfNotSet(resolutionInformationSet, true, () => playerUtilities);
 
             // Go through each non-chance decision point on this path and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
@@ -160,7 +160,7 @@ namespace ACESim
             return inputs;
         }
 
-        double printProbability = 0.00;
+        double printProbability = 1.00;
         private unsafe void PrintSameGameResults(GamePlayer player, GameInputs inputs)
         {
             if (printProbability == 0)
@@ -236,7 +236,7 @@ namespace ACESim
         private unsafe double[] GetUtilitiesFromResolutionSet(GameHistory gameHistory)
         {
             byte* resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerPlayer];
-            gameHistory.GetPlayerInformation(GameDefinition.PlayerIndex_ResolutionPlayer, resolutionInformationSet);
+            gameHistory.GetPlayerInformation(GameDefinition.PlayerIndex_ResolutionPlayer, null /* get entire resolution set */, resolutionInformationSet);
             Strategy resolutionStrategy = Strategies[GameDefinition.PlayerIndex_ResolutionPlayer];
             double[] utilitiesInInformationSet = (double[])resolutionStrategy.GetInformationSetTreeValue(resolutionInformationSet);
             return utilitiesInInformationSet;
@@ -844,7 +844,7 @@ namespace ACESim
         {
             const int numIterationsToRun = 100000;
 
-            int? reportEveryNIterations = 1000;
+            int? reportEveryNIterations = 100;
             int? bestResponseEveryMIterations = 1000;
 
             double[] lastUtilities = new double[NumNonChancePlayers];

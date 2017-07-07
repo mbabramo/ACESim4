@@ -166,8 +166,9 @@ namespace ACESim
             return decisions;
         }
 
-        public override void CustomInformationSetManipulation(Decision currentDecision, byte action, GameHistory gameHistory)
+        public override void CustomInformationSetManipulation(Decision currentDecision, byte action, ref GameHistory gameHistory)
         {
+            byte decisionByteCode = currentDecision.DecisionByteCode;
             // Resolution information set. We need an information set that uniquely identifies each distinct resolution. We have added the court decision 
             // to the resolution set above, but also need information about whether we have reached some kind of offer.
             // We only need to put the LAST offer and response in the information set. This could, of course, be the first offer and response if it is accepted. 
@@ -178,17 +179,17 @@ namespace ACESim
             // and the actions of both players. Thus, if there is nothing in the resolution information set, then we add the decision byte code and the action.
             // If there are two items, then we add the decision byte code and the action. If there are three, we delete everything and then there are zero, so
             // we respond accordingly. 
-            if (currentDecision.DecisionByteCode >= (byte)MyGameDecisions.POffer && currentDecision.DecisionByteCode <= (byte)MyGameDecisions.DResponse)
+            if (decisionByteCode >= (byte)MyGameDecisions.POffer && decisionByteCode <= (byte)MyGameDecisions.DResponse)
             {
                 byte numItems = gameHistory.CountItemsInInformationSet((byte)MyGamePlayers.Resolution);
                 if (numItems == 3)
                 {
                     numItems = 0;
-                    gameHistory.ReduceItemsInInformationSet((byte)MyGamePlayers.Resolution, numItems);
+                    gameHistory.ReduceItemsInInformationSet((byte)MyGamePlayers.Resolution, decisionByteCode, numItems);
                 }
                 if (numItems == 0)
-                    gameHistory.AddToInformationSet((byte)gameHistory.LastIndexAddedToHistory, (byte)MyGamePlayers.Resolution); // we indicate the point in the game based on how big the history set is. Note that if LastIndexAddedToHistory could be > 255, we'd have a problem
-                gameHistory.AddToInformationSet(action, (byte)MyGamePlayers.Resolution);
+                    gameHistory.AddToInformationSet(decisionByteCode, decisionByteCode, (byte)MyGamePlayers.Resolution); // note that the decisionByteCode will be stored in the information set twice in a row. But that's because we will strip out the first of these when getting information back, and we need this information to differentiate resolution sets.
+                gameHistory.AddToInformationSet(action, decisionByteCode, (byte)MyGamePlayers.Resolution);
             }
         }
 
