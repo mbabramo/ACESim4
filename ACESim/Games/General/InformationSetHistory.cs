@@ -9,9 +9,10 @@ namespace ACESim
 
     public unsafe struct InformationSetHistory
     {
+        public fixed byte InformationSetForPlayer[GameHistory.MaxInformationSetLengthPerPlayer];
         public byte PlayerIndex;
+        public byte DecisionByteCode;
         public byte DecisionIndex;
-        public fixed byte InformationSet[GameHistory.MaxNumActions];
         public byte ActionChosen;
         public byte NumPossibleActions;
         public bool IsTerminalAction;
@@ -19,7 +20,7 @@ namespace ACESim
         public override string ToString()
         {
             StringBuilder infoSet = new StringBuilder();
-            fixed (byte* ptr = InformationSet)
+            fixed (byte* ptr = InformationSetForPlayer)
             {
                 byte* ptr2 = ptr;
                 byte numItems = *ptr2;
@@ -32,7 +33,7 @@ namespace ACESim
                     ptr2++; // move to next information -- note that decision indices are not included
                 }
             }
-            return $"Player {PlayerIndex} Decision {DecisionIndex} Information {infoSet.ToString()} ActionChosen {ActionChosen} NumPossible {NumPossibleActions} IsTerminal {IsTerminalAction}";
+            return $"Player {PlayerIndex} Decision {DecisionByteCode} (index {DecisionIndex}) Information {infoSet.ToString()} ActionChosen {ActionChosen} NumPossible {NumPossibleActions} IsTerminal {IsTerminalAction}";
         }
     }
 }

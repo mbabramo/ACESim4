@@ -110,6 +110,18 @@ namespace ACESim
             return CompletedGameProgresses;
         }
 
+        public void PlaySinglePath(string path, GameInputs gameInputsToUse)
+        {
+            IEnumerable<byte> path2 = path.Split(',').Select(x => Convert.ToByte(x)).ToList();
+            PlaySinglePath(gameInputsToUse, path2);
+        }
+
+        public void PlaySinglePath(GameInputs gameInputsToUse, IEnumerable<byte> path)
+        {
+            GameProgress startingProgress = GameFactory.CreateNewGameProgress(new IterationID(1)); // iteration doesn't matter, since we're playing a particular path and thus ignoring random numbers
+            IEnumerable<byte> next = PlayPath(path, startingProgress, gameInputsToUse, true);
+        }
+
         public int PlayAllPaths(GameInputs gameInputsToUse, Action<GameProgress> actionToTake)
         {
             Stopwatch s = new Stopwatch();
@@ -131,15 +143,19 @@ namespace ACESim
             {
                 var progressToUse = startingProgress.DeepCopy();
                 IEnumerable<byte> next = PlayPath(path, progressToUse, gameInputsToUse, true);
+                if ("1,1,1,1,2,1,1" == String.Join(",", progressToUse.GameHistory.GetActionsAsList()))
+                {
+                    var DEBUG = 0;
+                }
                 // Debug.WriteLine($"{String.Join(",", path)} => {String.Join(",", progressToUse.GameHistory.GetActionsAsList())}");
                 //var thePathEnumerated = next?.ToList();
                 //if (thePathEnumerated != null)
                 //    Debug.WriteLine($"{String.Join(",", thePathEnumerated)}");
+                processor(progressToUse);
                 if (next == null)
                     path = null;
                 else
                     path = next;
-                processor(progressToUse);
             }
         }
 

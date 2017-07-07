@@ -12,7 +12,8 @@ namespace ACESim
         Plaintiff,
         Defendant,
         QualityChance,
-        SignalChance,
+        PSignalChance,
+        DSignalChance,
         CourtChance,
         Resolution
     }

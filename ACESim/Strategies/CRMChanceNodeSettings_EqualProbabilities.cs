@@ -20,5 +20,10 @@ namespace ACESim
         {
             return true;
         }
+
+        public override string ToString()
+        {
+            return $"Chance player {PlayerNum} for decision {DecisionByteCode} => Equal probabilities {EachProbability}";
+        }
     }
 }

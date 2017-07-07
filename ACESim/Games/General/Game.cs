@@ -71,7 +71,7 @@ namespace ACESim
             this.Strategies = strategies;
             this.Progress = progress;
             this.Progress.GameDefinition = gameDefinition;
-            this.Progress.GameHistory = new GameHistory().Initialize(gameDefinition.NumPlayers);
+            this.Progress.GameHistory = new GameHistory().Initialize();
             this.GameInputs = gameInputs;
             this.GameDefinition = gameDefinition;
             this.RecordReportInfo = recordReportInfo;
@@ -119,7 +119,7 @@ namespace ACESim
                 if (Progress.IsFinalGamePath && action < CurrentDecision.NumPossibleActions)
                     Progress.IsFinalGamePath = false;
                 RespondToAction(currentDecision, action);
-                GameDefinition.CustomInformationSetManipulation(currentDecision, action, ref Progress.GameHistory);
+                GameDefinition.CustomInformationSetManipulation(currentDecision, (byte) CurrentDecisionIndex, action, ref Progress.GameHistory);
             }
         }
 
@@ -146,7 +146,7 @@ namespace ACESim
                 else
                     actionToChoose = 1; // The history does not give us guidance, so we play the first available decision. When the game is complete, we can figure out the next possible game history and play that one (which may go to completion or not). 
             }
-            Progress.GameHistory.AddToHistory((byte)CurrentDecisionIndex, CurrentPlayerNumber, actionToChoose, CurrentDecision.NumPossibleActions, CurrentDecision.PlayersToInform);
+            Progress.GameHistory.AddToHistory(CurrentDecision.DecisionByteCode, (byte) CurrentDecisionIndex, CurrentPlayerNumber, actionToChoose, CurrentDecision.NumPossibleActions, CurrentDecision.PlayersToInform);
             return actionToChoose;
         }
 

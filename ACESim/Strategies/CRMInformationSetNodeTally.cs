@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ACESim
@@ -12,7 +13,8 @@ namespace ACESim
     {
         public static int InformationSetsSoFar = 0;
         public int InformationSetNumber; // could delete this once things are working, but may be useful in testing scenarios
-        public byte DecisionNum;
+        public byte DecisionByteCode;
+        public byte DecisionIndex;
         public byte PlayerIndex;
         double[,] NodeInformation;
 
@@ -23,17 +25,19 @@ namespace ACESim
         const int bestResponseNumeratorDimension = 2;
         const int bestResponseDenominatorDimension = 3;
 
-        public CRMInformationSetNodeTally(byte decisionNum, byte playerIndex, int numPossibleActions)
+        public CRMInformationSetNodeTally(byte decisionByteCode, byte decisionIndex, byte playerIndex, int numPossibleActions)
         {
-            DecisionNum = decisionNum;
+            DecisionByteCode = decisionByteCode;
+            DecisionIndex = decisionIndex;
             PlayerIndex = playerIndex;
             Initialize(totalDimensions, numPossibleActions);
-            InformationSetNumber = InformationSetsSoFar++;
+            InformationSetNumber = InformationSetsSoFar;
+            Interlocked.Increment(ref InformationSetsSoFar);
         }
 
         public override string ToString()
         {
-            return $"{InformationSetNumber}: Decision {DecisionNum} PlayerIndex {PlayerIndex}";
+            return $"Information set {InformationSetNumber}: DecisionByteCode {DecisionByteCode} (index {DecisionIndex}) PlayerIndex {PlayerIndex}";
         }
 
         private void Initialize(int numDimensions, int numPossibleActions)

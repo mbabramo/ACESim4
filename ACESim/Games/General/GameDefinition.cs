@@ -364,12 +364,32 @@ namespace ACESim
             throw new NotImplementedException(); // subclass should define if needed
         }
 
+        public virtual bool ShouldMarkGameHistoryComplete(Decision currentDecision, GameHistory gameHistory)
+        {
+            // Entirely subclass. During full game play, the game marks the game complete as necessary, and this automatically calls
+            // the game history. But during cached game play (without using a game tree), we must determine whether the game is complete
+            // solely by looking at the game history.
+            return false;
+        }
 
-        public virtual void CustomInformationSetManipulation(Decision currentDecision, byte action, ref GameHistory gameHistory)
+        public virtual void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte action, ref GameHistory gameHistory)
         {
             // Entirely subclass. This method allow one to chance information sets in ways other than mechanically adding items to an information set.
             // It is defined in the GameDefinition, rather than in the Game, because it needs to be called when playing a cached game (i.e., going through 
             // the game tree without creating Game or GameProgress objects).
+        }
+
+        public virtual (Decision decision, byte index) GetNextDecision(GameHistory gameHistory)
+        {
+            // This can be overriden, for example if we sometimes skip a decision as a result of previous
+            // occurrences in a game.
+            if (gameHistory.IsComplete())
+                return (null, 255);
+            byte? lastDecisionIndex = gameHistory.LastDecisionIndex();
+            byte nextDecisionIndex = 0;
+            if (lastDecisionIndex != null)
+                nextDecisionIndex = (byte) (((byte) lastDecisionIndex) + (byte)1);
+            return (DecisionsExecutionOrder[nextDecisionIndex], nextDecisionIndex);
         }
     }
 }

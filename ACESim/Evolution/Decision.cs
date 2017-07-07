@@ -59,6 +59,12 @@ namespace ACESim
         public bool IsAlwaysPlayersLastDecision;
 
         /// <summary>
+        /// Indicates whether it is possible that the decision will terminate the game. This is needed so that we can identify decisions that may require that the GameHistory be marked as complete.
+        /// </summary>
+        [OptionalSetting]
+        public bool CanTerminateGame;
+
+        /// <summary>
         /// A game-specific code, often used simply to list the decisions in order.
         /// </summary>
         [OptionalSetting]

@@ -15,7 +15,7 @@ namespace ACESim
         /// <summary>
         /// There will be no complete game tree. The information sets will be stored only in the individual players' strategies, including a resolution information set. This approach should be faster to initialize but take more time to execute. It is preferable when the game tree is too large to initialize efficiently.
         /// </summary>
-        Strategies,
+        GameHistory,
         /// <summary>
         /// The game tree will be used to find the applicable information sets, but this information will be cross-checked against the information sets stored in the players' strategies. This is useful only to verify that the algorithm is working correctly.
         /// </summary>

@@ -86,7 +86,8 @@ namespace ACESim
         static string PlaintiffName = "P";
         static string DefendantName = "D";
         static string LitigationQualityChanceName = "QC";
-        static string SignalChanceName = "SC";
+        static string PlaintiffSignalChanceName = "PSC";
+        static string DefendantSignalChanceName = "DSC";
         static string CourtChanceName = "CC";
         static string ResolutionPlayerName = "R";
 
@@ -98,7 +99,8 @@ namespace ACESim
                     new PlayerInfo(PlaintiffName, (int) MyGamePlayers.Plaintiff, false, true),
                     new PlayerInfo(DefendantName, (int) MyGamePlayers.Defendant, false, true),
                     new PlayerInfo(LitigationQualityChanceName, (int) MyGamePlayers.QualityChance, true, false),
-                    new PlayerInfo(SignalChanceName, (int) MyGamePlayers.SignalChance, true, false),
+                    new PlayerInfo(PlaintiffSignalChanceName, (int) MyGamePlayers.PSignalChance, true, false),
+                    new PlayerInfo(DefendantSignalChanceName, (int) MyGamePlayers.DSignalChance, true, false),
                     new PlayerInfo(CourtChanceName, (int) MyGamePlayers.CourtChance, true, false),
                     new PlayerInfo(ResolutionPlayerName, (int) MyGamePlayers.Resolution, true, false),
                 };
@@ -113,7 +115,7 @@ namespace ACESim
             var decisions = new List<Decision>();
             // Litigation Quality. This is not known by a player unless the player has perfect information. 
             // The SignalChance player relies on this information in calculating the probabilities of different signals
-            List<byte> playersKnowingLitigationQuality = new List<byte>() { (byte) MyGamePlayers.SignalChance, (byte) MyGamePlayers.CourtChance };
+            List<byte> playersKnowingLitigationQuality = new List<byte>() { (byte) MyGamePlayers.PSignalChance, (byte)MyGamePlayers.DSignalChance, (byte) MyGamePlayers.CourtChance };
             if (PNoiseStdev == 0)
                 playersKnowingLitigationQuality.Add((byte)MyGamePlayers.Plaintiff);
             if (DNoiseStdev == 0)
@@ -121,9 +123,9 @@ namespace ACESim
             decisions.Add(new Decision("LitigationQuality", "Qual", (byte)MyGamePlayers.QualityChance, playersKnowingLitigationQuality, NumLitigationQualityPoints, (byte)MyGameDecisions.LitigationQuality));
             // Plaintiff and defendant signals. If a player has perfect information, then no signal is needed.
             if (PNoiseStdev != 0)
-                decisions.Add(new Decision("PlaintiffSignal", "PSig", (byte)MyGamePlayers.SignalChance, new List<byte> { (byte)MyGamePlayers.Plaintiff }, NumSignals, (byte)MyGameDecisions.PSignal, unevenChanceActions: true));
+                decisions.Add(new Decision("PlaintiffSignal", "PSig", (byte)MyGamePlayers.PSignalChance, new List<byte> { (byte)MyGamePlayers.Plaintiff }, NumSignals, (byte)MyGameDecisions.PSignal, unevenChanceActions: true));
             if (DNoiseStdev != 0)
-                decisions.Add(new Decision("DefendantSignal", "DSig", (byte)MyGamePlayers.SignalChance, new List<byte> { (byte)MyGamePlayers.Defendant }, NumSignals, (byte)MyGameDecisions.DSignal, unevenChanceActions: true));
+                decisions.Add(new Decision("DefendantSignal", "DSig", (byte)MyGamePlayers.DSignalChance, new List<byte> { (byte)MyGamePlayers.Defendant }, NumSignals, (byte)MyGameDecisions.DSignal, unevenChanceActions: true));
             for (int b = 0; b < NumBargainingRounds; b++)
             {
                 List<byte> informationSetsToAddPlaintiffMoveTo = new List<byte>();
@@ -143,7 +145,7 @@ namespace ACESim
                         informationSetsToAddDefendantMoveTo.Add((byte)MyGamePlayers.Plaintiff);
                     }
                     decisions.Add(new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, informationSetsToAddPlaintiffMoveTo, NumOffers, (byte)MyGameDecisions.POffer));
-                    decisions.Add(new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, informationSetsToAddDefendantMoveTo, NumOffers, (byte)MyGameDecisions.DOffer));
+                    decisions.Add(new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, informationSetsToAddDefendantMoveTo, NumOffers, (byte)MyGameDecisions.DOffer) { CanTerminateGame = true });
                 }
                 else
                 { // offer-response bargaining
@@ -153,20 +155,20 @@ namespace ACESim
                     if (BargainingRoundsPGoesFirstIfNotSimultaneous[b])
                     {
                         decisions.Add(new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, informationSetsToAddPlaintiffMoveTo, NumOffers, (byte)MyGameDecisions.POffer)); // { AlwaysDoAction = 4});
-                        decisions.Add(new Decision("DefendantResponse" + (b + 1), "DR" + (b + 1), (byte)MyGamePlayers.Defendant, informationSetsToAddDefendantMoveTo, 2, (byte)MyGameDecisions.DResponse));
+                        decisions.Add(new Decision("DefendantResponse" + (b + 1), "DR" + (b + 1), (byte)MyGamePlayers.Defendant, informationSetsToAddDefendantMoveTo, 2, (byte)MyGameDecisions.DResponse) { CanTerminateGame = true });
                     }
                     else
                     {
                         decisions.Add(new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, informationSetsToAddDefendantMoveTo, NumOffers, (byte)MyGameDecisions.DOffer));
-                        decisions.Add(new Decision("PlaintiffResponse" + (b + 1), "PR" + (b + 1), (byte)MyGamePlayers.Plaintiff, informationSetsToAddPlaintiffMoveTo, 2, (byte)MyGameDecisions.PResponse));
+                        decisions.Add(new Decision("PlaintiffResponse" + (b + 1), "PR" + (b + 1), (byte)MyGamePlayers.Plaintiff, informationSetsToAddPlaintiffMoveTo, 2, (byte)MyGameDecisions.PResponse) { CanTerminateGame = true });
                     }
                 }
             }
-            decisions.Add(new Decision("CourtDecision", "CD", (byte)MyGamePlayers.CourtChance, new List<byte> { (byte)MyGamePlayers.Resolution }, 2 /* for plaintiff or for defendant */, (byte)MyGameDecisions.CourtDecision, unevenChanceActions: true));
+            decisions.Add(new Decision("CourtDecision", "CD", (byte)MyGamePlayers.CourtChance, new List<byte> { (byte)MyGamePlayers.Resolution }, 2 /* for plaintiff or for defendant */, (byte)MyGameDecisions.CourtDecision, unevenChanceActions: true) { CanTerminateGame = true });
             return decisions;
         }
 
-        public override void CustomInformationSetManipulation(Decision currentDecision, byte action, ref GameHistory gameHistory)
+        public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, ref GameHistory gameHistory)
         {
             byte decisionByteCode = currentDecision.DecisionByteCode;
             // Resolution information set. We need an information set that uniquely identifies each distinct resolution. We have added the court decision 
@@ -188,9 +190,39 @@ namespace ACESim
                     gameHistory.ReduceItemsInInformationSet((byte)MyGamePlayers.Resolution, decisionByteCode, numItems);
                 }
                 if (numItems == 0)
-                    gameHistory.AddToInformationSet(decisionByteCode, decisionByteCode, (byte)MyGamePlayers.Resolution); // note that the decisionByteCode will be stored in the information set twice in a row. But that's because we will strip out the first of these when getting information back, and we need this information to differentiate resolution sets.
-                gameHistory.AddToInformationSet(action, decisionByteCode, (byte)MyGamePlayers.Resolution);
+                    gameHistory.AddToInformationSet(decisionByteCode, currentDecisionIndex, (byte)MyGamePlayers.Resolution); 
+                gameHistory.AddToInformationSet(actionChosen, decisionByteCode, (byte)MyGamePlayers.Resolution);
             }
+        }
+
+        public override bool ShouldMarkGameHistoryComplete(Decision currentDecision, GameHistory gameHistory)
+        {
+            if (!currentDecision.CanTerminateGame)
+                return false;
+            byte decisionByteCode = currentDecision.DecisionByteCode;
+            if (decisionByteCode == (byte)MyGameDecisions.CourtDecision)
+                return true;
+            if (decisionByteCode == (byte)MyGameDecisions.DResponse || decisionByteCode == (byte)MyGameDecisions.PResponse)
+            {
+                var lastTwoActions = gameHistory.GetLastTwoActions();
+                if (lastTwoActions.mostRecentAction == 1) // offer was accepted
+                    return true;
+            }
+            else if (decisionByteCode == (byte)MyGameDecisions.DOffer)
+            {
+                // this is simultaneous bargaining with plaintiff offer first. 
+                (byte plaintiffAction, byte defendantAction) = gameHistory.GetLastTwoActions();
+                if (defendantAction >= plaintiffAction)
+                    return true;
+            }
+            else if (decisionByteCode == (byte)MyGameDecisions.POffer)
+            {
+                // this is simultaneous bargaining with plaintiff offer first. 
+                (byte defendantAction, byte plaintiffAction) = gameHistory.GetLastTwoActions();
+                if (defendantAction >= plaintiffAction)
+                    return true;
+            }
+            return false;
         }
 
 

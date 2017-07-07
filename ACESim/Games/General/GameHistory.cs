@@ -1,5 +1,7 @@
-﻿using System;
+﻿using ACESim.Util;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -16,8 +18,6 @@ namespace ACESim
         const byte HistoryComplete = 254;
         const byte HistoryIncomplete = 255;
 
-        byte NumPlayers;
-
         public fixed byte History[MaxHistoryLength];
         public short LastIndexAddedToHistory;
         public int NumberDecisions => (LastIndexAddedToHistory - 1) / 4;
@@ -26,11 +26,14 @@ namespace ACESim
         public fixed byte InformationSets[MaxInformationSetLength]; // a buffer for each player, terminated by 255.
         const byte RemoveItemFromInformationSet = 254;
 
-        private const byte History_DecisionNumber_Offset = 0;
-        private const byte History_PlayerNumber_Offset = 1;
-        private const byte History_Action_Offset = 2;
-        private const byte History_NumPossibleActions_Offset = 3;
-        private const byte History_NumPiecesOfInformation = 4; // the total number of pieces of information above, so that we know how much to skip (i.e., 0, 1, 2, and 3)
+        private const byte History_DecisionByteCode_Offset = 0;
+        private const byte History_DecisionIndex_Offset = 1; // the decision index reflects the order of the decision in the decisions list. A decision with the same byte code could correspond to multiple decision indices.
+        private const byte History_PlayerNumber_Offset = 2;
+        private const byte History_Action_Offset = 3;
+        private const byte History_NumPossibleActions_Offset = 4;
+        private const byte History_NumPiecesOfInformation = 5; // the total number of pieces of information above, so that we know how much to skip (i.e., 0, 1, 2, and 3)
+
+        #region Construction and adding information
 
         public GameHistory DeepCopy()
         {
@@ -39,33 +42,100 @@ namespace ACESim
             return b;
         }
 
-        public GameHistory Initialize(byte numPlayers)
+        public GameHistory Initialize()
         {
-            NumPlayers = numPlayers;
             fixed (byte* historyPtr = History)
                 *(historyPtr + 0) = HistoryIncomplete;
             fixed (byte* ptr = InformationSets)
-                for (int p = 0; p < NumPlayers; p++)
+                for (int p = 0; p < MaxNumPlayers; p++)
                     *(ptr + MaxInformationSetLengthPerPlayer * p) = 255;
             LastIndexAddedToHistory = 0;
             return this;
         }
 
-        public void AddToHistory(byte decisionNumber, byte playerNumber, byte action, byte numPossibleActions, List<byte> playersToInform)
+        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerNumber, byte action, byte numPossibleActions, List<byte> playersToInform)
         {
             short i = LastIndexAddedToHistory;
             fixed (byte* historyPtr = History)
             {
                 if (*(historyPtr + i) == HistoryComplete)
                     throw new Exception("Cannot add to history of complete game.");
-                *(historyPtr + i + History_DecisionNumber_Offset) = decisionNumber;
+                *(historyPtr + i + History_DecisionByteCode_Offset) = decisionByteCode;
+                *(historyPtr + i + History_DecisionIndex_Offset) = decisionIndex;
                 *(historyPtr + i + History_PlayerNumber_Offset) = playerNumber;
                 *(historyPtr + i + History_Action_Offset) = action;
                 *(historyPtr + i + History_NumPossibleActions_Offset) = numPossibleActions;
                 *(historyPtr + i + History_NumPiecesOfInformation) = HistoryIncomplete; // this is just one item at end of all history items
             }
             LastIndexAddedToHistory = (short) (i + History_NumPiecesOfInformation);
-            AddToInformationSet(action, decisionNumber, playersToInform);
+            AddToInformationSet(action, decisionIndex, playersToInform);
+        }
+
+        /// <summary>
+        /// Gets an earlier version of the GameHistory, including everything up to but not including the specified decision.
+        /// </summary>
+        /// <param name="upToDecisionIndex"></param>
+        /// <returns></returns>
+        public GameHistory BackInTime(byte upToDecisionIndex)
+        {
+            GameHistory next = this;
+            if (LastIndexAddedToHistory != 0)
+            {
+                if (upToDecisionIndex == 0)
+                    next.Initialize();
+                else
+                {
+                    byte* historyPtr = next.History;
+                    for (short i = 0; i < LastIndexAddedToHistory; i += History_NumPiecesOfInformation)
+                    {
+                        byte decisionIndex = *(historyPtr + i + History_DecisionIndex_Offset);
+                        if (decisionIndex >= upToDecisionIndex)
+                        {
+                            *(historyPtr + i - 1) = HistoryIncomplete;
+                            break;
+                        }
+                    }
+                    byte* informationSetsPtr = next.InformationSets;
+                    for (byte p = 0; p < MaxNumPlayers; p++)
+                    {
+                        byte* playerPointer = informationSetsPtr + p * MaxInformationSetLengthPerPlayer;
+                        while (*playerPointer != 255)
+                        {
+                            if (*playerPointer >= upToDecisionIndex)
+                            {
+                                *playerPointer = 255;
+                                break;
+                            }
+                            playerPointer += 2;
+                        }
+                    }
+                }
+            }
+            return next;
+        }
+
+        #endregion
+        
+        public byte? LastDecisionIndex()
+        {
+            short i = LastIndexAddedToHistory;
+            if (i == 0)
+                return null; // no decisions processed yet
+            fixed (byte* historyPtr = History)
+            {
+                return *(historyPtr + i - History_NumPiecesOfInformation + History_DecisionIndex_Offset);
+            }
+        }
+
+        public (byte mostRecentAction, byte actionBeforeThat) GetLastTwoActions()
+        {
+            if (LastIndexAddedToHistory < History_NumPiecesOfInformation * 2)
+                throw new Exception("Internal error. Two actinos have not occurred");
+            fixed (byte* historyPtr = History)
+            {
+                byte* mostRecentPointer = (historyPtr + LastIndexAddedToHistory - History_NumPiecesOfInformation + History_Action_Offset);
+                return (*mostRecentPointer, *(mostRecentPointer - History_NumPiecesOfInformation));
+            }
         }
 
         public IEnumerable<InformationSetHistory> GetInformationSetHistoryItems()
@@ -81,16 +151,18 @@ namespace ACESim
         private InformationSetHistory GetInformationSetHistory(short index)
         {
             byte playerIndex = GetHistoryIndex(index + History_PlayerNumber_Offset);
-            byte decisionIndex = GetHistoryIndex(index + History_DecisionNumber_Offset);
+            byte decisionByteCode = GetHistoryIndex(index + History_DecisionByteCode_Offset);
+            byte decisionIndex = GetHistoryIndex(index + History_DecisionIndex_Offset);
             var informationSetHistory = new InformationSetHistory()
             {
                 PlayerIndex = playerIndex,
+                DecisionByteCode = decisionByteCode,
                 DecisionIndex = decisionIndex,
                 ActionChosen = GetHistoryIndex(index + History_Action_Offset),
                 NumPossibleActions = GetHistoryIndex(index + History_NumPossibleActions_Offset),
                 IsTerminalAction = GetHistoryIndex(index + History_NumPiecesOfInformation) == HistoryComplete
             };
-            GetPlayerInformation(playerIndex, decisionIndex, informationSetHistory.InformationSet);
+            GetPlayerInformation(playerIndex, decisionIndex, informationSetHistory.InformationSetForPlayer);
             return informationSetHistory;
         }
 
@@ -152,31 +224,30 @@ namespace ACESim
 
         #region Player information sets
 
-        public void AddToInformationSet(byte information, byte followingDecision, List<byte> playersToInform)
+        public void AddToInformationSet(byte information, byte followingDecisionIndex, List<byte> playersToInform)
         {
             fixed (byte* informationSetsPtr = InformationSets)
                 foreach (byte playerIndex in playersToInform)
-                    AddToInformationSet(information, followingDecision, playerIndex, informationSetsPtr);
+                    AddToInformationSet(information, followingDecisionIndex, playerIndex, informationSetsPtr);
         }
 
-        public void AddToInformationSet(byte information, byte followingDecision, byte playerIndex)
+        public void AddToInformationSet(byte information, byte followingDecisionIndex, byte playerIndex)
         {
             fixed (byte* informationSetsPtr = InformationSets)
-                AddToInformationSet(information, followingDecision, playerIndex, informationSetsPtr);
+                AddToInformationSet(information, followingDecisionIndex, playerIndex, informationSetsPtr);
         }
 
-        private void AddToInformationSet(byte information, byte followingDecision, byte playerNumber, byte* informationSetsPtr)
+        private void AddToInformationSet(byte information, byte followingDecisionIndex, byte playerNumber, byte* informationSetsPtr)
         {
             //Debug.WriteLine($"Adding information {information} following decision {followingDecision} for Player number {playerNumber}");
             if (playerNumber >= MaxNumPlayers)
                 throw new Exception("Invalid player index. Must increase MaxNumPlayers.");
             byte* playerPointer = informationSetsPtr + playerNumber * MaxInformationSetLengthPerPlayer;
-            var DEBUG = informationSetsPtr;
             // advance to the end of the information set
             while (*playerPointer != 255)
                 playerPointer += 2;
             // now record the information
-            *playerPointer = followingDecision; // we must record the decision
+            *playerPointer = followingDecisionIndex; // we must record the decision
             playerPointer++;
             *playerPointer = information;
             playerPointer++;
@@ -204,6 +275,14 @@ namespace ACESim
                 }
                 *playerInfoBuffer = 255;
             }
+        }
+
+        public unsafe string GetPlayerInformationString(int playerNumber, byte? upToDecision)
+        {
+            byte* playerInfoBuffer = stackalloc byte[MaxInformationSetLengthPerPlayer];
+            GetPlayerInformation(playerNumber, upToDecision, playerInfoBuffer);
+            List<byte> informationSetList = ListExtensions.GetPointerAsList_255Terminated(playerInfoBuffer);
+            return String.Join(",", informationSetList);
         }
 
         public byte CountItemsInInformationSet(byte playerNumber)
@@ -249,7 +328,7 @@ namespace ACESim
             if (!IsComplete())
                 throw new Exception("Can get next path to try only on a completed game.");
             // We need to find the last decision made where there was another action that could have been taken.
-            int? lastDecisionInNextPath = GetLastDecisionWithAnotherAction(gameDefinition) ?? -1; // negative number symbolizes that there is nothing else to do
+            int? lastDecisionInNextPath = GetIndexOfLastDecisionWithAnotherAction(gameDefinition) ?? -1; // negative number symbolizes that there is nothing else to do
             int indexInNewDecisionPath = 0, indexInCurrentActions = 0;
             byte* currentActions = stackalloc byte[MaxNumActions];
             GetActions(currentActions);
@@ -269,20 +348,21 @@ namespace ACESim
             nextDecisionPath[indexInNewDecisionPath] = 255;
         }
 
-        private int? GetLastDecisionWithAnotherAction(GameDefinition gameDefinition)
+        private int? GetIndexOfLastDecisionWithAnotherAction(GameDefinition gameDefinition)
         {
             int? lastDecisionWithAnotherAction = null;
 
             fixed (byte* historyPtr = History)
                 for (int i = LastIndexAddedToHistory - History_NumPiecesOfInformation; i >= 0; i -= History_NumPiecesOfInformation)
                 {
-                    int decisionNumber = *(historyPtr + i + History_DecisionNumber_Offset);
+                    int decisionByteCode = *(historyPtr + i + History_DecisionByteCode_Offset);
+                    int decisionIndex = *(historyPtr + i + History_DecisionIndex_Offset);
                     int playerNumber = *(historyPtr + i + History_PlayerNumber_Offset);
                     int action = *(historyPtr + i + History_Action_Offset);
                     int numPossibleActions = *(historyPtr + i + History_NumPossibleActions_Offset);
-                    if (gameDefinition.DecisionsExecutionOrder[decisionNumber].NumPossibleActions > action)
+                    if (gameDefinition.DecisionsExecutionOrder[decisionIndex].NumPossibleActions > action)
                     {
-                        lastDecisionWithAnotherAction = decisionNumber;
+                        lastDecisionWithAnotherAction = decisionIndex;
                         break;
                     }
                 }

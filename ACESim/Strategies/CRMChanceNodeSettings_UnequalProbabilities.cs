@@ -20,5 +20,10 @@ namespace ACESim
         {
             return false;
         }
+
+        public override string ToString()
+        {
+            return $"Chance player {PlayerNum} for decision {DecisionByteCode} => probabilities {String.Join(",", Probabilities)}";
+        }
     }
 }

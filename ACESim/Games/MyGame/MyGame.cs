@@ -70,7 +70,7 @@ namespace ACESim
             else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.CourtDecision)
             {
                 // note that the probability of P winning is defined in MyGameDefinition.
-                MyProgress.PWinsAtTrial = action == 2; 
+                MyProgress.PWinsAtTrial = action == 2;
             }
         }
 
