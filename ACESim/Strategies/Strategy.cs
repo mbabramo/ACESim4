@@ -67,11 +67,6 @@ namespace ACESim
             return InformationSetTree.GetValue(informationSet);
         }
 
-        public unsafe NWayTreeStorage<object> GetInformationSetTreeNode(byte* informationSet)
-        {
-            return InformationSetTree.GetNode(informationSet);
-        }
-
         public unsafe byte ChooseAction(byte* informationSet, Func<double> randomNumberGenerator)
         {
             throw new NotImplementedException();

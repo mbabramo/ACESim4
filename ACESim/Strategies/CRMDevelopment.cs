@@ -103,7 +103,10 @@ namespace ACESim
 
             // Go through each non-chance decision point on this path and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
 
-            HistoryPoint historyPoint = new HistoryPoint(GameHistoryTree, new GameHistory());
+            GameHistory gameHistory = new GameHistory();
+            if (Navigation.LookupApproach != InformationSetLookupApproach.GameTree)
+                gameHistory.Initialize();
+            HistoryPoint historyPoint = new HistoryPoint(Navigation.LookupApproach != InformationSetLookupApproach.GameHistory ? GameHistoryTree : null, gameHistory);
 
             foreach (var informationSetHistory in gameProgress.GameHistory.GetInformationSetHistoryItems())
             {

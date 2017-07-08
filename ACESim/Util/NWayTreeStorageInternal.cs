@@ -73,7 +73,7 @@ namespace ACESim
             }
         }
 
-        public unsafe NWayTreeStorage<T> GetNode(byte* restOfSequence)
+        public unsafe NWayTreeStorage<T> GetNode(byte* restOfSequence, bool createIfNecessary)
         {
             NWayTreeStorage<T> tree = this;
             bool moreInSequence = *restOfSequence != 255;
@@ -82,7 +82,12 @@ namespace ACESim
                 var previous = ((NWayTreeStorageInternal<T>)tree);
                 tree = ((NWayTreeStorageInternal<T>)tree).GetBranch(*restOfSequence);
                 if (tree == null)
-                    tree = previous.AddBranch(*restOfSequence, true);
+                {
+                    if (createIfNecessary)
+                        tree = previous.AddBranch(*restOfSequence, true);
+                    else
+                        return null;
+                }
                 restOfSequence++;
                 moreInSequence = *restOfSequence != 255;
             }
@@ -91,12 +96,15 @@ namespace ACESim
 
         public unsafe T GetValue(byte* restOfSequence)
         {
-            return GetNode(restOfSequence).StoredValue;
+            var node = GetNode(restOfSequence, false);
+            if (node == null)
+                return default(T);
+            return node.StoredValue;
         }
 
         public unsafe NWayTreeStorage<T> SetValueIfNotSet(byte* restOfSequence, bool historyComplete, Func<T> setter)
         {
-            NWayTreeStorage<T> node = GetNode(restOfSequence);
+            NWayTreeStorage<T> node = GetNode(restOfSequence, true);
             if (node.StoredValue == null || node.StoredValue.Equals(default(T)))
                 node.StoredValue = setter();
             return node;

@@ -50,7 +50,11 @@ namespace ACESim
                     else
                         equals = gameStateFromGameTree == gameStateFromGameHistory; // this should be the same object (not just equal), because the game tree points to the information set tree
                     if (!equals)
+                    {
+                        if (gameStateFromGameTree == null)
+                            return null; // the game tree hasn't been set yet, so no need to throw; just indicate this
                         throw new Exception("Different value from two different approaches.");
+                    }
                 }
                 return gameStateFromGameTree;
             }
