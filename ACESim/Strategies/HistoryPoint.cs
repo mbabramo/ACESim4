@@ -99,6 +99,55 @@ namespace ACESim
             }
         }
 
-        
+        public unsafe void SetInformationIfNotSet(HistoryNavigationInfo navigation, GameProgress gameProgress, InformationSetHistory informationSetHistory)
+        {
+            if (GetGameStateForCurrentPlayer(navigation) == null)
+                SetInformationAtPoint(navigation, gameProgress, informationSetHistory);
+        }
+
+        public unsafe void SetInformationAtPoint(HistoryNavigationInfo navigation, GameProgress gameProgress, InformationSetHistory informationSetHistory)
+        {
+            var decision = navigation.GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
+            var playerInfo = navigation.GameDefinition.Players[informationSetHistory.PlayerIndex];
+            var playersStrategy = navigation.Strategies[informationSetHistory.PlayerIndex];
+            bool isNecessarilyLast = decision.IsAlwaysPlayersLastDecision || informationSetHistory.IsTerminalAction;
+            var informationSetHistoryCopy = informationSetHistory;
+            NWayTreeStorage<object> informationSetNode = playersStrategy.SetInformationSetTreeValueIfNotSet(
+                        informationSetHistoryCopy.InformationSetForPlayer,
+                        isNecessarilyLast,
+                        () =>
+                        {
+                            if (playerInfo.PlayerIsChance)
+                            {
+                                CRMChanceNodeSettings chanceNodeSettings;
+                                if (decision.UnevenChanceActions)
+                                    chanceNodeSettings = new CRMChanceNodeSettings_UnequalProbabilities()
+                                    {
+                                        DecisionByteCode = informationSetHistory.DecisionIndex,
+                                        PlayerNum = informationSetHistory.PlayerIndex,
+                                        Probabilities = navigation.GameDefinition.GetChanceActionProbabilities(decision.DecisionByteCode, gameProgress) // the probabilities depend on the current state of the game
+                                    };
+                                else
+                                    chanceNodeSettings = new CRMChanceNodeSettings_EqualProbabilities()
+                                    {
+                                        DecisionByteCode = informationSetHistory.DecisionIndex,
+                                        PlayerNum = informationSetHistory.PlayerIndex,
+                                        EachProbability = 1.0 / (double)decision.NumPossibleActions
+                                    };
+                                return chanceNodeSettings;
+                            }
+                            else
+                            {
+                                CRMInformationSetNodeTally nodeInfo = new CRMInformationSetNodeTally(informationSetHistory.DecisionByteCode, informationSetHistory.DecisionIndex, playerInfo.PlayerIndex, decision.NumPossibleActions);
+                                return nodeInfo;
+                            }
+                        }
+                        );
+            if (navigation.LookupApproach == InformationSetLookupApproach.GameTree || navigation.LookupApproach == InformationSetLookupApproach.Both)
+                TreePoint.StoredValue = informationSetNode;
+        }
+
+
+
     }
 }

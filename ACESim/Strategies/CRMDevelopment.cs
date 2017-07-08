@@ -94,58 +94,21 @@ namespace ACESim
             PrintSameGameResults(player, inputs);
         }
 
-        unsafe void ProcessInitializedGameProgress(GameProgress progress)
+        unsafe void ProcessInitializedGameProgress(GameProgress gameProgress)
         {
             // First, add the utilities at the end of the tree for this path.
             byte* actionsEnumerator = stackalloc byte[GameHistory.MaxNumActions];
-            progress.GameHistory.GetActions(actionsEnumerator);
-            SaveFinalUtilities(progress, actionsEnumerator);
+            gameProgress.GameHistory.GetActions(actionsEnumerator);
+            SaveFinalUtilities(gameProgress, actionsEnumerator);
 
             // Go through each non-chance decision point on this path and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
-            NWayTreeStorage<object> historyPoint = GameHistoryTree;
-            foreach (var informationSetHistory in progress.GameHistory.GetInformationSetHistoryItems())
+
+            HistoryPoint historyPoint = new HistoryPoint(GameHistoryTree, new GameHistory());
+
+            foreach (var informationSetHistory in gameProgress.GameHistory.GetInformationSetHistoryItems())
             {
-                var informationSetHistoryCopy = informationSetHistory;
-                var decision = GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
-                var playerInfo = GameDefinition.Players[informationSetHistory.PlayerIndex];
-                bool isNecessarilyLast = decision.IsAlwaysPlayersLastDecision || informationSetHistory.IsTerminalAction;
-                var playersStrategy = Strategies[informationSetHistory.PlayerIndex];
-                if (historyPoint.StoredValue == null)
-                {
-                    NWayTreeStorage<object> informationSetNode = playersStrategy.SetInformationSetTreeValueIfNotSet(
-                            informationSetHistoryCopy.InformationSetForPlayer,
-                            isNecessarilyLast,
-                            () =>
-                            {
-                                if (playerInfo.PlayerIsChance)
-                                {
-                                    CRMChanceNodeSettings chanceNodeSettings;
-                                    if (decision.UnevenChanceActions)
-                                        chanceNodeSettings = new CRMChanceNodeSettings_UnequalProbabilities()
-                                        {
-                                            DecisionByteCode = informationSetHistory.DecisionIndex,
-                                            PlayerNum = informationSetHistory.PlayerIndex,
-                                            Probabilities = GameDefinition.GetChanceActionProbabilities(decision.DecisionByteCode, progress) // the probabilities depend on the current state of the game
-                                        };
-                                    else
-                                        chanceNodeSettings = new CRMChanceNodeSettings_EqualProbabilities()
-                                        {
-                                            DecisionByteCode = informationSetHistory.DecisionIndex,
-                                            PlayerNum = informationSetHistory.PlayerIndex,
-                                            EachProbability = 1.0 / (double)decision.NumPossibleActions
-                                        };
-                                    return chanceNodeSettings;
-                                }
-                                else
-                                {
-                                    CRMInformationSetNodeTally nodeInfo = new CRMInformationSetNodeTally(informationSetHistory.DecisionByteCode, informationSetHistory.DecisionIndex, playerInfo.PlayerIndex, decision.NumPossibleActions);
-                                    return nodeInfo;
-                                }
-                            }
-                            );
-                    historyPoint.StoredValue = informationSetNode;
-                }
-                historyPoint = historyPoint.GetBranch(informationSetHistory.ActionChosen);
+                historyPoint.SetInformationIfNotSet(Navigation, gameProgress, informationSetHistory);
+                historyPoint = historyPoint.GetBranch(Navigation, informationSetHistory.ActionChosen);
             }
         }
 
