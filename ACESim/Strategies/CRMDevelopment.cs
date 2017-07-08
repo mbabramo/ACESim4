@@ -79,6 +79,9 @@ namespace ACESim
         
         public unsafe void Initialize()
         {
+            if (Navigation.LookupApproach == InformationSetLookupApproach.GameHistoryOnly)
+                return; // no initialization needed (that's the purpose of using GameHistory)
+
             GamePlayer player = new GamePlayer(Strategies, GameFactory, EvolutionSettings.ParallelOptimization, GameDefinition);
             GameInputs inputs = GetGameInputs();
 
@@ -103,11 +106,7 @@ namespace ACESim
 
             // Go through each non-chance decision point on this path and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
 
-            GameHistory gameHistory = new GameHistory();
-            if (Navigation.LookupApproach != InformationSetLookupApproach.GameTree)
-                gameHistory.Initialize();
-            HistoryPoint historyPoint = new HistoryPoint(Navigation.LookupApproach != InformationSetLookupApproach.GameHistory ? GameHistoryTree : null, gameHistory);
-
+            HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
             foreach (var informationSetHistory in gameProgress.GameHistory.GetInformationSetHistoryItems())
             {
                 historyPoint.SetInformationIfNotSet(Navigation, gameProgress, informationSetHistory);
@@ -115,35 +114,37 @@ namespace ACESim
             }
         }
 
-        private unsafe void SaveFinalUtilities(GameProgress progress, byte* actionsEnumerator)
+        private unsafe void SaveFinalUtilities(GameProgress gameProgress, byte* actionsEnumerator)
         {
-            double[] playerUtilities = progress.GetNonChancePlayerUtilities();
             // We are going to save this information in the GameHistoryTree, if applicable, and always in the resolution set's resolution tree.
-            GameHistoryTree.SetValue(actionsEnumerator, true, playerUtilities);
-            var resolutionStrategy = Strategies[GameDefinition.PlayerIndex_ResolutionPlayer];
-            byte* resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerPlayer];
-            progress.GameHistory.GetPlayerInformation(GameDefinition.PlayerIndex_ResolutionPlayer, null /* get entire resolution set */, resolutionInformationSet);
-            var DEBUG_actions = ListExtensions.GetPointerAsList_255Terminated(actionsEnumerator);
-            var DEBUG_resolutions = ListExtensions.GetPointerAsList_255Terminated(resolutionInformationSet);
-            resolutionStrategy.SetInformationSetTreeValueIfNotSet(resolutionInformationSet, true, () => playerUtilities);
+            // Note, however, that this is a bit different from what we do when we put intermediate progress points in the tree. 
+            // First, there is no InformationSetHistory for the final resolution, because it is not a move by a player, but just the result of the game.
+            // There is, however, an information set for the "resolution player," which is just a fiction we use to make it easy to save the information set tree for that player.
+            // Second, the game history tree stores the final utilities in the leaf, not in the node. 
+            // These considerations explain why we do the saving here rather than in HistoryPoint. 
+            // We can still use the final history point to get the utilities by calling GetGameStateForCurrentPlayer on the final history point.
+            double[] playerUtilities = gameProgress.GetNonChancePlayerUtilities();
+            if (Navigation.LookupApproach != InformationSetLookupApproach.GameHistoryOnly)
+                GameHistoryTree.SetValue(actionsEnumerator, true, playerUtilities);
+            if (Navigation.LookupApproach != InformationSetLookupApproach.GameTreeOnly)
+            {
+                var resolutionStrategy = Strategies[GameDefinition.PlayerIndex_ResolutionPlayer];
+                byte* resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerPlayer];
+                gameProgress.GameHistory.GetPlayerInformation(GameDefinition.PlayerIndex_ResolutionPlayer, null /* get entire resolution set */, resolutionInformationSet);
+                var DEBUG_actions = ListExtensions.GetPointerAsList_255Terminated(actionsEnumerator);
+                var DEBUG_resolutions = ListExtensions.GetPointerAsList_255Terminated(resolutionInformationSet);
+                resolutionStrategy.SetInformationSetTreeValueIfNotSet(resolutionInformationSet, true, () => playerUtilities);
+            }
         }
         #endregion
 
-        #region Utility methods
-
-        private GameInputs GetGameInputs()
-        {
-            Type theType = GameFactory.GetSimulationSettingsType();
-            InputVariables inputVariables = new InputVariables(CurrentExecutionInformation);
-            GameInputs inputs = inputVariables.GetGameInputs(theType, 1, new IterationID(1), CurrentExecutionInformation);
-            return inputs;
-        }
+        #region Printing
 
         double printProbability = 0.0;
         bool processIfNotPrinting = false;
         private unsafe void PrintSameGameResults(GamePlayer player, GameInputs inputs)
         {
-            //player.PlaySinglePath("1,1,1,1,2,1,1", inputs); // DEBUG
+            //player.PlaySinglePath("1,1,1,1,2,1,1", inputs); // use this to trace through a single path
             if (printProbability == 0 && !processIfNotPrinting)
                 return;
             player.PlayAllPaths(inputs, PrintGameProbabilistically);
@@ -154,7 +155,7 @@ namespace ACESim
             byte* path = stackalloc byte[GameHistory.MaxNumActions];
             bool overridePrint = false;
             string actionsList = progress.GameHistory.GetActionsAsListString();
-            if (actionsList == "INSERT_LIST_HERE")
+            if (actionsList == "INSERT_PATH_HERE") // use this to print a single path
             {
                 overridePrint = true;
             }
@@ -181,7 +182,7 @@ namespace ACESim
 
         public void PrintGenericGameProgress(GameProgress progress)
         {
-            HistoryPoint historyPoint = new HistoryPoint(GameHistoryTree, new GameHistory().Initialize());
+            HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
             // Go through each non-chance decision point 
             foreach (var informationSetHistory in progress.GameHistory.GetInformationSetHistoryItems())
             {
@@ -197,63 +198,55 @@ namespace ACESim
                     TabbedText.WriteLine($"Information set before action: {String.Join(",", informationSetList)}");
                     object gameState = historyPoint.GetGameStateForCurrentPlayer(Navigation);
                     TabbedText.WriteLine($"Game state before action: {gameState}");
-                    // VerifyInformationSetMatchesExpectation(historyPoint, playerIsChance, playersStrategy, informationSetHistoryCopy);
                 }
                 TabbedText.WriteLine($"==> Action chosen: {informationSetHistory.ActionChosen}");
                 TabbedText.Tabs--;
                 historyPoint = historyPoint.GetBranch(Navigation, informationSetHistory.ActionChosen);
             }
             double[] utilitiesStoredInTree = (double[])historyPoint.GetGameStateForCurrentPlayer(Navigation);
-            // DEBUG -- not needed VerifyUtilitiesMatchExpectation(progress.GameHistory, utilitiesStoredInTree);
             TabbedText.WriteLine($"--> Utilities: { String.Join(",", utilitiesStoredInTree)}");
         }
 
-        private unsafe void VerifyUtilitiesMatchExpectation(GameHistory gameHistory, double[] utilities)
+        #endregion
+
+        #region Utility methods
+
+        private GameInputs GetGameInputs()
         {
-            double[] utilitiesInInformationSet = GetUtilitiesFromResolutionSet(gameHistory);
-            if (utilitiesInInformationSet.Length != utilities.Length || !utilities.SequenceEqual(utilitiesInInformationSet))
-                throw new Exception("Internal error. Resolution set is not adequately defined. Utilities failed to match expectation.");
+            Type theType = GameFactory.GetSimulationSettingsType();
+            InputVariables inputVariables = new InputVariables(CurrentExecutionInformation);
+            GameInputs inputs = inputVariables.GetGameInputs(theType, 1, new IterationID(1), CurrentExecutionInformation);
+            return inputs;
         }
 
-        private unsafe double[] GetUtilitiesFromResolutionSet(GameHistory gameHistory)
+        private unsafe HistoryPoint GetStartOfGameHistoryPoint()
         {
-            byte* resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerPlayer];
-            gameHistory.GetPlayerInformation(GameDefinition.PlayerIndex_ResolutionPlayer, null /* get entire resolution set */, resolutionInformationSet);
-            Strategy resolutionStrategy = Strategies[GameDefinition.PlayerIndex_ResolutionPlayer];
-            double[] utilitiesInInformationSet = (double[])resolutionStrategy.GetInformationSetTreeValue(resolutionInformationSet);
-            return utilitiesInInformationSet;
+            GameHistory gameHistory = new GameHistory();
+            if (Navigation.LookupApproach != InformationSetLookupApproach.GameTreeOnly)
+                gameHistory.Initialize();
+            HistoryPoint historyPoint = new HistoryPoint(Navigation.LookupApproach != InformationSetLookupApproach.GameHistoryOnly ? GameHistoryTree : null, gameHistory);
+            return historyPoint;
         }
 
-        // DEBUG -- delete this
-        private unsafe void VerifyInformationSetMatchesExpectation(NWayTreeStorage<object> historyPoint, bool playerIsChance, Strategy playersStrategy, InformationSetHistory informationSetHistory)
+        private unsafe HistoryPoint GetHistoryPointBasedOnProgress(GameProgress gameProgress)
         {
-            if (playerIsChance)
+            if (Navigation.LookupApproach == InformationSetLookupApproach.GameHistoryOnly)
+                return new HistoryPoint(null, gameProgress.GameHistory);
+            HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
+            foreach (var informationSetHistory in gameProgress.GameHistory.GetInformationSetHistoryItems())
             {
-                CRMChanceNodeSettings chanceNodeSettingsInHistory = GetInformationSetChanceSettings(historyPoint);
-                CRMChanceNodeSettings chanceNodeSettingsInInformationSet = (CRMChanceNodeSettings)playersStrategy.GetInformationSetTreeValue(informationSetHistory.InformationSetForPlayer);
-                if (chanceNodeSettingsInHistory != chanceNodeSettingsInInformationSet)
-                    throw new Exception("Chance node settings do not match");
+                historyPoint = historyPoint.GetBranch(Navigation, informationSetHistory.ActionChosen);
             }
-            else
-            {
-                CRMInformationSetNodeTally tallyReferencedInHistory = GetInformationSetNodeTally(historyPoint);
-                CRMInformationSetNodeTally tallyStoredInInformationSet = (CRMInformationSetNodeTally)playersStrategy.GetInformationSetTreeValue(informationSetHistory.InformationSetForPlayer);
-                if (tallyReferencedInHistory != tallyStoredInInformationSet)
-                    throw new Exception("Tally references do not match.");
-            }
+            return historyPoint;
         }
 
-        public unsafe double GetUtility(byte* path, byte playerIndex)
+        public double GetUtilityFromTerminalHistory(HistoryPoint historyPoint, byte playerIndex)
         {
-            byte index = playerIndex;
-            return GetUtilities(path)[index];
+            double[] utilities = (double[])historyPoint.GetGameStateForCurrentPlayer(Navigation);
+            return utilities[playerIndex];
         }
 
-        private unsafe double[] GetUtilities(byte* path)
-        {
-            return (double[]) GameHistoryTree.GetValue(path);
-        }
-
+        // DEBUG -- should delete once we convert to HistoryPoint
         public double GetUtilityFromTerminalHistory(NWayTreeStorage<object> history, byte playerIndex)
         {
             double[] utilities = ((double[])history.StoredValue);
@@ -274,6 +267,14 @@ namespace ACESim
             return GameDefinition.DecisionsExecutionOrder[decisionNum].NumPossibleActions;
         }
 
+        // DEBUG -- replace with GetBranch call directly
+        public HistoryPoint GetSubsequentHistory(HistoryPoint historyPoint, byte action)
+        {
+            var returnVal = historyPoint.GetBranch(Navigation, action);
+            return returnVal;
+        }
+
+        // DEBUG -- eliminate
         public NWayTreeStorage<object> GetSubsequentHistory(NWayTreeStorage<object> history, byte action)
         {
             var returnVal = history.GetBranch(action);
@@ -282,19 +283,30 @@ namespace ACESim
             return returnVal;
         }
 
+        public bool NodeIsChanceNode(HistoryPoint history)
+        {
+            return history.GetGameStateForCurrentPlayer(Navigation) is CRMChanceNodeSettings;
+        }
+
+        // DEBUG -- delete.
         public bool NodeIsChanceNode(NWayTreeStorage<object> history)
         {
             var informationSetNodeReferencedInHistoryNode = ((NWayTreeStorage<object>)history.StoredValue);
             return (informationSetNodeReferencedInHistoryNode.StoredValue is CRMChanceNodeSettings);
         }
 
+        public CRMInformationSetNodeTally GetInformationSetNodeTally(HistoryPoint history)
+        {
+            return history.GetGameStateForCurrentPlayer(Navigation) as CRMInformationSetNodeTally;
+        }
+
+        // DEBUG -- delete
         public CRMInformationSetNodeTally GetInformationSetNodeTally(NWayTreeStorage<object> history)
         {
             var informationSetNodeReferencedInHistoryNode = ((NWayTreeStorage<object>)history.StoredValue);
             CRMInformationSetNodeTally tallyReferencedInHistory = (CRMInformationSetNodeTally)informationSetNodeReferencedInHistoryNode.StoredValue;
             return tallyReferencedInHistory;
         }
-
 
         public CRMChanceNodeSettings GetInformationSetChanceSettings(NWayTreeStorage<object> history)
         {
@@ -317,7 +329,7 @@ namespace ACESim
 
         public void ProcessPossiblePaths(NWayTreeStorage<object> history, List<byte> historySoFar, double probability, Action<NWayTreeStorage<object>, List<byte>, double> leafProcessor, ActionStrategies actionStrategy)
         {
-            // Note that this method is different from GamePlayer.PlayAllPaths, because it relies on the history storage, rather than needing to play the game to discover what the next paths are.
+            // Note that this method is different from GamePlayer.PlayAllPaths, because it relies on the cached history, rather than needing to play the game to discover what the next paths are.
             if (history.IsLeaf())
             {
                 leafProcessor(history, historySoFar, probability);

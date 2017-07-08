@@ -25,7 +25,7 @@ namespace ACESim
         public unsafe object GetGameStateForCurrentPlayer(HistoryNavigationInfo navigation)
         {
             object gameStateFromGameHistory = null;
-            if (navigation.LookupApproach == InformationSetLookupApproach.GameHistory || navigation.LookupApproach == InformationSetLookupApproach.Both)
+            if (navigation.LookupApproach == InformationSetLookupApproach.GameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.Both)
             {
                 (Decision nextDecision, byte nextDecisionIndex) = navigation.GameDefinition.GetNextDecision(HistoryToPoint);
                 byte nextPlayer = nextDecision?.PlayerNumber ?? navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
@@ -35,7 +35,7 @@ namespace ACESim
                 var DEBUG = Util.ListExtensions.GetPointerAsList_255Terminated(informationSetsPtr);
                 gameStateFromGameHistory = navigation.Strategies[nextPlayer].InformationSetTree.GetValue(informationSetsPtr);
             }
-            if (navigation.LookupApproach == InformationSetLookupApproach.GameTree || navigation.LookupApproach == InformationSetLookupApproach.Both)
+            if (navigation.LookupApproach == InformationSetLookupApproach.GameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.Both)
             {
                 object gameStateFromGameTree = null;
                 if (TreePoint.StoredValue is NWayTreeStorage<object> informationSetNodeReferencedInHistoryNode)
@@ -66,7 +66,7 @@ namespace ACESim
         {
             HistoryPoint next = new HistoryPoint();
 
-            if (navigation.LookupApproach == InformationSetLookupApproach.GameHistory || navigation.LookupApproach == InformationSetLookupApproach.Both)
+            if (navigation.LookupApproach == InformationSetLookupApproach.GameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.Both)
             {
                 (Decision nextDecision, byte nextDecisionIndex) = navigation.GameDefinition.GetNextDecision(HistoryToPoint);
                 next.HistoryToPoint = HistoryToPoint; // struct is copied
@@ -75,14 +75,14 @@ namespace ACESim
                 if (nextDecision.CanTerminateGame && navigation.GameDefinition.ShouldMarkGameHistoryComplete(nextDecision, next.HistoryToPoint))
                     next.HistoryToPoint.MarkComplete();
             }
-            if (navigation.LookupApproach == InformationSetLookupApproach.GameTree || navigation.LookupApproach == InformationSetLookupApproach.Both)
+            if (navigation.LookupApproach == InformationSetLookupApproach.GameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.Both)
                 next.TreePoint = TreePoint.GetBranch(actionChosen);
             return next;
         }
 
         public byte GetNextPlayer(HistoryNavigationInfo navigation)
         {
-            if (navigation.LookupApproach == InformationSetLookupApproach.GameHistory)
+            if (navigation.LookupApproach == InformationSetLookupApproach.GameHistoryOnly)
             {
                 switch (TreePoint.StoredValue)
                 {
@@ -147,11 +147,26 @@ namespace ACESim
                             }
                         }
                         );
-            if (navigation.LookupApproach == InformationSetLookupApproach.GameTree || navigation.LookupApproach == InformationSetLookupApproach.Both)
+            if (navigation.LookupApproach == InformationSetLookupApproach.GameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.Both)
                 TreePoint.StoredValue = informationSetNode;
         }
 
 
+        public unsafe void SetInformationAtPoint(HistoryNavigationInfo navigation, InformationSetHistory informationSetHistory, double[] finalUtilities)
+        {
+            var decision = navigation.GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
+            var playerInfo = navigation.GameDefinition.Players[informationSetHistory.PlayerIndex];
+            var playersStrategy = navigation.Strategies[informationSetHistory.PlayerIndex];
+            bool isNecessarilyLast = decision.IsAlwaysPlayersLastDecision || informationSetHistory.IsTerminalAction;
+            var informationSetHistoryCopy = informationSetHistory;
+            NWayTreeStorage<object> informationSetNode = playersStrategy.SetInformationSetTreeValueIfNotSet(
+                        informationSetHistoryCopy.InformationSetForPlayer,
+                        isNecessarilyLast,
+                        () => finalUtilities
+                        );
+            if (navigation.LookupApproach == InformationSetLookupApproach.GameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.Both)
+                TreePoint.StoredValue = informationSetNode;
+        }
 
     }
 }
