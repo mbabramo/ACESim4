@@ -23,7 +23,7 @@ namespace ACESim
 
         public CurrentExecutionInformation CurrentExecutionInformation { get; set; }
 
-        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.Both;
+        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.GameHistoryOnly;
 
         public HistoryNavigationInfo Navigation;
 
@@ -79,8 +79,9 @@ namespace ACESim
         
         public unsafe void Initialize()
         {
-            if (Navigation.LookupApproach == InformationSetLookupApproach.GameHistoryOnly)
-                return; // no initialization needed (that's the purpose of using GameHistory)
+            // DEBUG -- we will do this but not yet
+            //if (Navigation.LookupApproach == InformationSetLookupApproach.GameHistoryOnly)
+            //    return; // no initialization needed (that's the purpose of using GameHistory)
 
             GamePlayer player = new GamePlayer(Strategies, GameFactory, EvolutionSettings.ParallelOptimization, GameDefinition);
             GameInputs inputs = GetGameInputs();
