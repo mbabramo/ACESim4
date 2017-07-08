@@ -33,13 +33,13 @@ namespace ACESim
             Parent = parent;
         }
 
-        public virtual List<byte> GetActionSequence(NWayTreeStorage<T> child = null)
+        public virtual List<byte> GetSequenceToHere(NWayTreeStorage<T> child = null)
         {
-            List<byte> p = Parent?.GetActionSequence(this) ?? new List<byte>();
+            List<byte> p = Parent?.GetSequenceToHere(this) ?? new List<byte>();
             return p;
         }
 
-        public string ActionSequenceString => String.Join(",", GetActionSequence());
+        public string SequenceToHereString => String.Join(",", GetSequenceToHere());
 
         public virtual NWayTreeStorage<T> GetBranch(byte index)
         {

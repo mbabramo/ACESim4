@@ -18,9 +18,9 @@ namespace ACESim
             Branches = null; // initialize to null
         }
 
-        public override List<byte> GetActionSequence(NWayTreeStorage<T> child = null)
+        public override List<byte> GetSequenceToHere(NWayTreeStorage<T> child = null)
         {
-            List<byte> p = base.GetActionSequence(child);
+            List<byte> p = base.GetSequenceToHere(child);
             if (child != null)
             {
                 for (int i = 0; i < Branches.Length; i++)

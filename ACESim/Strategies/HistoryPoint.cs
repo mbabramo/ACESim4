@@ -17,6 +17,20 @@ namespace ACESim
             HistoryToPoint = historyToPoint;
         }
 
+        public bool IsComplete(HistoryNavigationInfo navigation)
+        {
+            if (navigation.LookupApproach == InformationSetLookupApproach.GameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.Both)
+                return HistoryToPoint.IsComplete();
+            return TreePoint.IsLeaf();
+        }
+
+        public List<byte> GetActionsToHere(HistoryNavigationInfo navigation)
+        {
+            if (navigation.LookupApproach == InformationSetLookupApproach.GameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.Both)
+                return HistoryToPoint.GetActionsAsList();
+            return TreePoint.GetSequenceToHere();
+        }
+
         /// <summary>
         /// Returns the game state, e.g. a node tally for a non-chance player, the chance node settings for a chance player, or the utilities if the game is complete.
         /// </summary>
