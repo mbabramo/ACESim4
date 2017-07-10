@@ -295,25 +295,39 @@ namespace ACESim
             byte* nextActionsToPlay = stackalloc byte[GameHistory.MaxNumActions];
             if (!getNextPath)
                 nextActionsToPlay = null;
-            PlayPath(actionsToPlay_AsPointer, startingProgress, gameInputsToUse, ref nextActionsToPlay);
+            PlayPathAndKeepGoing(actionsToPlay_AsPointer, startingProgress, gameInputsToUse, ref nextActionsToPlay);
             if (nextActionsToPlay == null)
                 return null;
             List<byte> nextActionsToPlayList = ListExtensions.GetPointerAsList_255Terminated(nextActionsToPlay);
             return nextActionsToPlayList.AsEnumerable();
         }
 
-        public unsafe void PlayPath(byte* actionsToPlay, GameProgress startingProgress, GameInputs gameInputsToUse, ref byte* nextActionsToPlay)
+        public unsafe void ContinuePathWithAction(byte actionToPlay, GameProgress startingProgress, GameInputs gameInputsToUse)
         {
             Game game = GameFactory.CreateNewGame();
-            game.PlaySetup(bestStrategies, startingProgress, gameInputsToUse, GameDefinition, false);
-            game.PlayPath(actionsToPlay, ref nextActionsToPlay);
+            game.PlaySetup(bestStrategies, startingProgress, gameInputsToUse, GameDefinition, false, false);
+            game.ContinuePathWithAction(actionToPlay);
+        }
+
+        public unsafe void PlayPathAndStop(List<byte> actionsToPlay, GameProgress startingProgress, GameInputs gameInputsToUse, ref byte* nextActionsToPlay)
+        {
+            Game game = GameFactory.CreateNewGame();
+            game.PlaySetup(bestStrategies, startingProgress, gameInputsToUse, GameDefinition, false, true);
+            game.PlayPathAndStop(actionsToPlay);
+        }
+
+        public unsafe void PlayPathAndKeepGoing(byte* actionsToPlay, GameProgress startingProgress, GameInputs gameInputsToUse, ref byte* nextActionsToPlay)
+        {
+            Game game = GameFactory.CreateNewGame();
+            game.PlaySetup(bestStrategies, startingProgress, gameInputsToUse, GameDefinition, false, true);
+            game.PlayPathAndKeepGoing(actionsToPlay, ref nextActionsToPlay);
         }
 
 
         private GameProgress PlayGameFromSpecifiedPoint(GameInputs inputs, GameProgress startingProgress)
         {
             Game game = GameFactory.CreateNewGame();
-            game.PlaySetup(bestStrategies, startingProgress, inputs, GameDefinition, false);
+            game.PlaySetup(bestStrategies, startingProgress, inputs, GameDefinition, false, false);
             game.PlayUntilComplete();
             return game.Progress;
         }
@@ -426,8 +440,8 @@ namespace ACESim
             }
 
             Game game = GameFactory.CreateNewGame();
-            game.PlaySetup(strategies, gameProgress, gameInputsArray[iteration], GameDefinition, saveCompletedGameProgressInfos);
-            game.PlayUntilComplete(false);
+            game.PlaySetup(strategies, gameProgress, gameInputsArray[iteration], GameDefinition, saveCompletedGameProgressInfos, false);
+            game.PlayUntilComplete();
 
             if (saveCompletedGameProgressInfos)
             {

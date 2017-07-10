@@ -15,7 +15,7 @@ namespace ACESim
         public GameDefinition GameDefinition;
         public List<GameModuleProgress> GameModuleProgresses;
         public GameHistory GameHistory;
-        public List<byte> ActionsToPlay;
+        public List<byte> ActionsToPlay = new List<byte>();
         public bool GameComplete;
         public bool HaveAdvancedToFirstStep;
         public int? CurrentActionGroupNumber;
@@ -27,7 +27,14 @@ namespace ACESim
 
         public int ActionsToPlayIndex;
         public string ActionsToPlayString => String.Join(",", ActionsToPlay);
-        public void SetActionToPlay(byte* actionsToPlay)
+        public void SetActionsToPlay(List<byte> actionsToPlay)
+        {
+            ActionsToPlay = actionsToPlay;
+            ActionsToPlayIndex = -1;
+        }
+
+        public bool ActionsToPlayCompleted => ActionsToPlayIndex + 2 > ActionsToPlay.Count();
+        public void SetActionsToPlay(byte* actionsToPlay)
         {
             ActionsToPlay = new List<byte>();
             byte* a = actionsToPlay;
@@ -41,10 +48,18 @@ namespace ACESim
         public byte ActionsToPlay_CurrentAction => ActionsToPlay[ActionsToPlayIndex];
         public bool ActionsToPlay_MoveNext()
         {
-            if (ActionsToPlayIndex + 2 > ActionsToPlay.Count())
+            if (ActionsToPlayCompleted)
                 return false;
             ActionsToPlayIndex++;
             return true;
+        }
+
+        public List<byte> ActionsPlayed()
+        {
+            List<byte> actionsPlayed = new List<byte>();
+            for (byte b = 0; b < ActionsToPlayIndex; b++)
+                actionsPlayed.Add(ActionsToPlay[b]);
+            return actionsPlayed;
         }
 
 
@@ -82,7 +97,7 @@ namespace ACESim
                 foreach (var gmp in GameModuleProgresses)
                     gmp.Recycle();
             GameModuleProgresses = null;
-            //GameHistory.Initialize(0);
+            GameHistory.Initialize();
             ActionsToPlay = null;
             ActionsToPlayIndex = -1;
             GameComplete = false;

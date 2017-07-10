@@ -23,6 +23,7 @@ namespace ACESim
         public int NumberDecisions => (LastIndexAddedToHistory - 1) / 4;
 
         // Information set structure. We have an information set buffer for each player. We need to be able to remove information from the information set for a player, but still to remember that it was there as of a particular point in time, so that we can figure out what the information set was as of a particular decision. (This is needed for reconstructing the game play.) We thus store information in pairs. The first byte consists of the decision byte code after which we are making changes. The second byte either consists of an item to add, or 254, indicating that we are removing an item from the information set. All of this is internal. When we get the information set, we get it as of a certain point, and thus we skip decision byte codes and automatically process deletions. 
+        public bool Initialized;
         public fixed byte InformationSets[MaxInformationSetLength]; // a buffer for each player, terminated by 255.
         const byte RemoveItemFromInformationSet = 254;
 
@@ -50,11 +51,14 @@ namespace ACESim
                 for (int p = 0; p < MaxNumPlayers; p++)
                     *(ptr + MaxInformationSetLengthPerPlayer * p) = 255;
             LastIndexAddedToHistory = 0;
+            Initialized = true;
             return this;
         }
 
         public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerNumber, byte action, byte numPossibleActions, List<byte> playersToInform)
         {
+            if (!Initialized)
+                throw new Exception("Uninitialized game history.");
             short i = LastIndexAddedToHistory;
             fixed (byte* historyPtr = History)
             {
@@ -140,6 +144,8 @@ namespace ACESim
 
         public IEnumerable<InformationSetHistory> GetInformationSetHistoryItems()
         {
+            if (!Initialized)
+                throw new Exception("Uninitialized game history.");
             if (LastIndexAddedToHistory == 0)
                 yield break;
             for (short i = 0; i < LastIndexAddedToHistory; i += History_NumPiecesOfInformation)
@@ -239,6 +245,8 @@ namespace ACESim
 
         private void AddToInformationSet(byte information, byte followingDecisionIndex, byte playerNumber, byte* informationSetsPtr)
         {
+            if (!Initialized)
+                throw new Exception("Uninitialized game history.");
             //Debug.WriteLine($"Adding information {information} following decision {followingDecision} for Player number {playerNumber}");
             if (playerNumber >= MaxNumPlayers)
                 throw new Exception("Invalid player index. Must increase MaxNumPlayers.");

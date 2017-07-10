@@ -23,7 +23,7 @@ namespace ACESim
 
         public CurrentExecutionInformation CurrentExecutionInformation { get; set; }
 
-        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.GameHistoryOnly;
+        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.PlayUnderlyingGame;
 
         public HistoryNavigationInfo Navigation;
 
@@ -54,7 +54,6 @@ namespace ACESim
             CurrentExecutionInformation = currentExecutionInformation;
             NumNonChancePlayers = GameDefinition.Players.Count(x => !x.PlayerIsChance);
             NumChancePlayers = GameDefinition.Players.Count(x => x.PlayerIsChance);
-            Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition);
         }
 
         public IStrategiesDeveloper DeepCopy()
@@ -79,12 +78,14 @@ namespace ACESim
         
         public unsafe void Initialize()
         {
+            GameInputs inputs = GetGameInputs();
+            Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, inputs);
+
             // DEBUG -- we will do this but not yet
             //if (Navigation.LookupApproach == InformationSetLookupApproach.GameHistoryOnly)
             //    return; // no initialization needed (that's the purpose of using GameHistory)
 
             GamePlayer player = new GamePlayer(Strategies, GameFactory, EvolutionSettings.ParallelOptimization, GameDefinition);
-            GameInputs inputs = GetGameInputs();
 
             // Create game trees
             GameHistoryTree = new NWayTreeStorageInternal<object>(null, GameDefinition.DecisionsExecutionOrder.First().NumPossibleActions);
@@ -108,8 +109,11 @@ namespace ACESim
             // Go through each non-chance decision point on this path and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
 
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
-            foreach (var informationSetHistory in gameProgress.GameHistory.GetInformationSetHistoryItems())
+            IEnumerable<InformationSetHistory> informationSetHistories = gameProgress.GameHistory.GetInformationSetHistoryItems();
+            foreach (var informationSetHistory in informationSetHistories)
             {
+                var DEBUG = informationSetHistory.ToString();
+                var DEBUG2 = informationSetHistories.ToList();
                 historyPoint.SetInformationIfNotSet(Navigation, gameProgress, informationSetHistory);
                 historyPoint = historyPoint.GetBranch(Navigation, informationSetHistory.ActionChosen);
             }
@@ -125,9 +129,9 @@ namespace ACESim
             // These considerations explain why we do the saving here rather than in HistoryPoint. 
             // We can still use the final history point to get the utilities by calling GetGameStateForCurrentPlayer on the final history point.
             double[] playerUtilities = gameProgress.GetNonChancePlayerUtilities();
-            if (Navigation.LookupApproach != InformationSetLookupApproach.GameHistoryOnly)
+            if (Navigation.LookupApproach != InformationSetLookupApproach.CachedGameHistoryOnly)
                 GameHistoryTree.SetValue(actionsEnumerator, true, playerUtilities);
-            if (Navigation.LookupApproach != InformationSetLookupApproach.GameTreeOnly)
+            if (Navigation.LookupApproach != InformationSetLookupApproach.CachedGameTreeOnly)
             {
                 var resolutionStrategy = Strategies[GameDefinition.PlayerIndex_ResolutionPlayer];
                 byte* resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerPlayer];
@@ -141,7 +145,7 @@ namespace ACESim
 
         #region Printing
 
-        double printProbability = 0.0;
+        double printProbability = 0;
         bool processIfNotPrinting = false;
         private unsafe void PrintSameGameResults(GamePlayer player, GameInputs inputs)
         {
@@ -223,16 +227,31 @@ namespace ACESim
         private unsafe HistoryPoint GetStartOfGameHistoryPoint()
         {
             GameHistory gameHistory = new GameHistory();
-            if (Navigation.LookupApproach != InformationSetLookupApproach.GameTreeOnly)
+            if (Navigation.LookupApproach != InformationSetLookupApproach.CachedGameTreeOnly)
                 gameHistory.Initialize();
-            HistoryPoint historyPoint = new HistoryPoint(Navigation.LookupApproach != InformationSetLookupApproach.GameHistoryOnly ? GameHistoryTree : null, gameHistory);
-            return historyPoint;
+            switch (Navigation.LookupApproach)
+            {
+                case InformationSetLookupApproach.PlayUnderlyingGame:
+                    GameProgress startingProgress = GameFactory.CreateNewGameProgress(new IterationID(1));
+                    startingProgress.GameHistory.Initialize(); // usually initialized by the game, but here we're not yet playing the game
+                    return new HistoryPoint(null, startingProgress.GameHistory, startingProgress);
+                case InformationSetLookupApproach.CachedGameTreeOnly:
+                    return new HistoryPoint(GameHistoryTree, new GameHistory() /* won't even initialize, since won't be used */, null);
+                case InformationSetLookupApproach.CachedGameHistoryOnly:
+                    return new HistoryPoint(null, new GameHistory().Initialize(), null);
+                case InformationSetLookupApproach.CachedBothMethods:
+                    return new HistoryPoint(GameHistoryTree, new GameHistory().Initialize(), null);
+                default:
+                    throw new Exception(); // unexpected lookup approach -- won't be called
+            }
         }
 
         private unsafe HistoryPoint GetHistoryPointBasedOnProgress(GameProgress gameProgress)
         {
-            if (Navigation.LookupApproach == InformationSetLookupApproach.GameHistoryOnly)
-                return new HistoryPoint(null, gameProgress.GameHistory);
+            if (Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)
+                return new HistoryPoint(null, gameProgress.GameHistory, gameProgress);
+            if (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly)
+                return new HistoryPoint(null, gameProgress.GameHistory, null);
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
             foreach (var informationSetHistory in gameProgress.GameHistory.GetInformationSetHistoryItems())
             {
@@ -346,6 +365,7 @@ namespace ACESim
         {
             GamePlayer player = new GamePlayer(Strategies, GameFactory, EvolutionSettings.ParallelOptimization, GameDefinition);
             GameInputs inputs = GetGameInputs();
+            Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, inputs);
             GameProgress startingProgress = GameFactory.CreateNewGameProgress(new IterationID(1));
             StringBuilder sb = new StringBuilder();
             ReportsBeingGenerated = new SimpleReport[GameDefinition.SimpleReportDefinitions.Count()];
@@ -642,9 +662,9 @@ namespace ACESim
         /// Performs an iteration of vanilla counterfactual regret minimization.
         /// </summary>
         /// <param name="historyPoint">The game tree, pointing to the particular point in the game where we are located</param>
-        /// <param name="playerIndex">0 for first player, etc. Note that this corresponds in Lanctot to 1, 2, etc. We are using zero-basing for player index (even though we are 1-basing actions).</param>
+        /// <param name="playerBeingOptimized">0 for first player, etc. Note that this corresponds in Lanctot to 1, 2, etc. We are using zero-basing for player index (even though we are 1-basing actions).</param>
         /// <returns></returns>
-        public unsafe double VanillaCRM(HistoryPoint historyPoint, byte playerIndex, double* piValues, bool usePruning)
+        public unsafe double VanillaCRM(HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues, bool usePruning)
         {
             if (usePruning)
             {
@@ -659,19 +679,21 @@ namespace ACESim
                     return 0; // this is zero probability, so the result doesn't matter
             }
             if (historyPoint.IsComplete(Navigation))
-                return GetUtilityFromTerminalHistory(historyPoint, playerIndex);
+                return GetUtilityFromTerminalHistory(historyPoint, playerBeingOptimized);
             else
             {
                 if (NodeIsChanceNode(historyPoint))
-                    return VanillaCRM_ChanceNode(historyPoint, playerIndex, piValues, usePruning);
+                    return VanillaCRM_ChanceNode(historyPoint, playerBeingOptimized, piValues, usePruning);
                 else
-                    return VanillaCRM_DecisionNode(historyPoint, playerIndex, piValues, usePruning);
+                    return VanillaCRM_DecisionNode(historyPoint, playerBeingOptimized, piValues, usePruning);
             }
         }
         
-        private unsafe double VanillaCRM_DecisionNode(HistoryPoint historyPoint, byte playerIndex, double* piValues, bool usePruning)
+        private unsafe double VanillaCRM_DecisionNode(HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues, bool usePruning)
         {
             double* nextPiValues = stackalloc double[MaxNumPlayers];
+            var DEBUG = historyPoint.GetActionsToHere(Navigation);
+            var DEBUG2 = historyPoint.ToString();
             var informationSet = GetInformationSetNodeTally(historyPoint);
             byte decisionNum = informationSet.DecisionIndex;
             byte playerMakingDecision = informationSet.PlayerIndex;
@@ -693,11 +715,12 @@ namespace ACESim
                 GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false, nextPiValues); // reduce probability associated with player being optimized, without changing probabilities for other players
                 if (TraceVanillaCRM)
                 {
-                    TabbedText.WriteLine($"decisionNum {decisionNum} optimizing player {playerIndex}  own decision {playerMakingDecision == playerIndex} action {action} probability {probabilityOfAction} ...");
+                    TabbedText.WriteLine($"History point: {historyPoint}"); // DEBUG
+                    TabbedText.WriteLine($"decisionNum {decisionNum} optimizing player {playerBeingOptimized}  own decision {playerMakingDecision == playerBeingOptimized} action {action} probability {probabilityOfAction} ...");
                     TabbedText.Tabs++;
                 }
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
-                expectedValueOfAction[action - 1] = VanillaCRM(nextHistoryPoint, playerIndex, nextPiValues, usePruning);
+                expectedValueOfAction[action - 1] = VanillaCRM(nextHistoryPoint, playerBeingOptimized, nextPiValues, usePruning);
                 expectedValue += probabilityOfAction * expectedValueOfAction[action - 1];
 
                 if (TraceVanillaCRM)
@@ -706,12 +729,12 @@ namespace ACESim
                     TabbedText.WriteLine($"... action {action} expected value {expectedValueOfAction[action - 1]} cum expected value {expectedValue}");
                 }
             }
-            if (playerMakingDecision == playerIndex)
+            if (playerMakingDecision == playerBeingOptimized)
             {
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
-                    double inversePi = GetInversePiValue(piValues, playerIndex);
-                    double pi = piValues[playerIndex];
+                    double inversePi = GetInversePiValue(piValues, playerBeingOptimized);
+                    double pi = piValues[playerBeingOptimized];
                     var regret = (expectedValueOfAction[action - 1] - expectedValue);
                     informationSet.IncrementCumulativeRegret(action, inversePi * regret);
                     informationSet.IncrementCumulativeStrategy(action, pi * actionProbabilities[action - 1]);
@@ -734,14 +757,14 @@ namespace ACESim
                     actionProbabilities[action - 1] = 0;
         }
 
-        private unsafe double VanillaCRM_ChanceNode(HistoryPoint historyPoint, byte playerIndex, double* piValues, bool usePruning)
+        private unsafe double VanillaCRM_ChanceNode(HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues, bool usePruning)
         {
             double* equalProbabilityNextPiValues = stackalloc double[MaxNumPlayers];
             CRMChanceNodeSettings chanceNodeSettings = GetInformationSetChanceSettings(historyPoint);
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionByteCode);
             bool equalProbabilities = chanceNodeSettings.AllProbabilitiesEqual();
             if (equalProbabilities) // can set next probabilities once for all actions
-                GetNextPiValues(piValues, playerIndex, chanceNodeSettings.GetActionProbability(1), true, equalProbabilityNextPiValues);
+                GetNextPiValues(piValues, playerBeingOptimized, chanceNodeSettings.GetActionProbability(1), true, equalProbabilityNextPiValues);
             else
                 equalProbabilityNextPiValues = null;
             double expectedValue = 0;
@@ -757,14 +780,14 @@ namespace ACESim
                     //else
                     //    for (int i = 0; i < MaxNumPlayers; i++)
                     //        *(equalProbabilityPiValuesToPass + i) = *(equalProbabilityNextPiValues + i);
-                    double probabilityAdjustedExpectedValueParticularAction = VanillaCRM_ChanceNode_NextAction(historyPoint, playerIndex, piValues, chanceNodeSettings, equalProbabilityNextPiValues, expectedValue, action, usePruning);
+                    double probabilityAdjustedExpectedValueParticularAction = VanillaCRM_ChanceNode_NextAction(historyPoint, playerBeingOptimized, piValues, chanceNodeSettings, equalProbabilityNextPiValues, expectedValue, action, usePruning);
                     expectedValue += probabilityAdjustedExpectedValueParticularAction;
                 });
 
             return expectedValue;
         }
 
-        private unsafe double VanillaCRM_ChanceNode_NextAction(HistoryPoint historyPoint, byte playerIndex, double* piValues, CRMChanceNodeSettings chanceNodeSettings, double* equalProbabilityNextPiValues, double expectedValue, byte action, bool usePruning)
+        private unsafe double VanillaCRM_ChanceNode_NextAction(HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues, CRMChanceNodeSettings chanceNodeSettings, double* equalProbabilityNextPiValues, double expectedValue, byte action, bool usePruning)
         {
             double* nextPiValues = stackalloc double[MaxNumPlayers];
             if (equalProbabilityNextPiValues != null)
@@ -779,14 +802,17 @@ namespace ACESim
                 }
             }
             else // must set probability separately for each action we take
-                GetNextPiValues(piValues, playerIndex, chanceNodeSettings.GetActionProbability(action), true, nextPiValues);
+                GetNextPiValues(piValues, playerBeingOptimized, chanceNodeSettings.GetActionProbability(action), true, nextPiValues);
             double actionProbability = chanceNodeSettings.GetActionProbability(action);
+            HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
             if (TraceVanillaCRM)
             {
+                TabbedText.WriteLine($"History point: {historyPoint}"); // DEBUG
+                TabbedText.WriteLine($"Next history point: {nextHistoryPoint}"); // DEBUG
                 TabbedText.WriteLine($"Chance decisionNum {chanceNodeSettings.DecisionByteCode} action {action} probability {actionProbability} ...");
                 TabbedText.Tabs++;
             }
-            double expectedValueParticularAction = VanillaCRM(historyPoint.GetBranch(Navigation, action), playerIndex, nextPiValues, usePruning);
+            double expectedValueParticularAction = VanillaCRM(nextHistoryPoint, playerBeingOptimized, nextPiValues, usePruning);
             var probabilityAdjustedExpectedValueParticularAction = actionProbability * expectedValueParticularAction;
             if (TraceVanillaCRM)
             {
@@ -812,14 +838,14 @@ namespace ACESim
                 // NOTE: This is in a helper method because otherwise the stackallocs keep accumulating, causing a stackoverflowexception
                 bool usePruning = iteration >= 100;
                 ActionStrategies actionStrategy = usePruning ? ActionStrategies.RegretMatchingWithPruning : ActionStrategies.RegretMatching;
-                for (byte playerIndex = 0; playerIndex < NumNonChancePlayers; playerIndex++)
+                for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
                 {
                     double* initialPiValues = stackalloc double[MaxNumPlayers];
                     GetInitialPiValues(initialPiValues);
                     if (TraceVanillaCRM)
-                        TabbedText.WriteLine($"Iteration {iteration} Player {playerIndex}");
+                        TabbedText.WriteLine($"Iteration {iteration} Player {playerBeingOptimized}");
                     s.Start();
-                    lastUtilities[playerIndex] = VanillaCRM(GetStartOfGameHistoryPoint(), playerIndex, initialPiValues, usePruning);
+                    lastUtilities[playerBeingOptimized] = VanillaCRM(GetStartOfGameHistoryPoint(), playerBeingOptimized, initialPiValues, usePruning);
                     s.Stop();
                 }
                 if (reportEveryNIterations != null && iteration % reportEveryNIterations == 0)
@@ -829,13 +855,13 @@ namespace ACESim
                     Debug.WriteLine($"{GenerateReports(actionStrategy)}");
 
                     if (bestResponseEveryMIterations != null && iteration % bestResponseEveryMIterations == 0)
-                        for (byte playerIndex = 0; playerIndex < NumNonChancePlayers; playerIndex++)
+                        for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
                         {
-                            double bestResponseUtility = CalculateBestResponse(playerIndex, actionStrategy);
-                            double bestResponseImprovement = bestResponseUtility - UtilityCalculations[playerIndex].Average();
+                            double bestResponseUtility = CalculateBestResponse(playerBeingOptimized, actionStrategy);
+                            double bestResponseImprovement = bestResponseUtility - UtilityCalculations[playerBeingOptimized].Average();
                             if (bestResponseImprovement < -1E-15)
                                 throw new Exception("Best response function worse."); // it can be slightly negative as a result of rounding errors
-                            Debug.WriteLine($"Player {playerIndex} utility with regret matching {UtilityCalculations[playerIndex].Average()} using best response against regret matching {bestResponseUtility} best response improvement {bestResponseImprovement}");
+                            Debug.WriteLine($"Player {playerBeingOptimized} utility with regret matching {UtilityCalculations[playerBeingOptimized].Average()} using best response against regret matching {bestResponseUtility} best response improvement {bestResponseImprovement}");
                         }
                 }
             }

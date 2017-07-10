@@ -22,12 +22,13 @@ namespace ACESim
             StringBuilder infoSet = new StringBuilder();
             fixed (byte* ptr = InformationSetForPlayer)
             {
+                bool first = true;
                 byte* ptr2 = ptr;
-                byte numItems = *ptr2;
-                ptr2++;
-                for (byte b = 0; b < numItems; b++)
+                while (*ptr2 != 255)
                 {
-                    if (b != 0)
+                    if (first)
+                        first = false;
+                    else
                         infoSet.Append(",");
                     infoSet.Append(*ptr2);
                     ptr2++; // move to next information -- note that decision indices are not included

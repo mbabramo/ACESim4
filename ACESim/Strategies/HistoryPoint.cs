@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,23 +11,36 @@ namespace ACESim
     {
         NWayTreeStorage<object> TreePoint;
         GameHistory HistoryToPoint;
+        GameProgress GameProgress;
 
-        public HistoryPoint(NWayTreeStorage<object> treePoint, GameHistory historyToPoint)
+        public HistoryPoint(NWayTreeStorage<object> treePoint, GameHistory historyToPoint, GameProgress gameProgress)
         {
             TreePoint = treePoint;
             HistoryToPoint = historyToPoint;
+            GameProgress = gameProgress;
+        }
+
+        public override string ToString()
+        {
+            if (HistoryToPoint.LastIndexAddedToHistory > 0)
+                return String.Join(",", HistoryToPoint.GetInformationSetHistoryItems());
+            return "HistoryPoint";
         }
 
         public bool IsComplete(HistoryNavigationInfo navigation)
         {
-            if (navigation.LookupApproach == InformationSetLookupApproach.GameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.Both)
+            if (navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)
+                return GameProgress.GameComplete;
+            if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
                 return HistoryToPoint.IsComplete();
             return TreePoint.IsLeaf();
         }
 
         public List<byte> GetActionsToHere(HistoryNavigationInfo navigation)
         {
-            if (navigation.LookupApproach == InformationSetLookupApproach.GameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.Both)
+            if (navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)
+                return GameProgress.ActionsPlayed();
+            if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
                 return HistoryToPoint.GetActionsAsList();
             return TreePoint.GetSequenceToHere();
         }
@@ -39,24 +53,33 @@ namespace ACESim
         public unsafe object GetGameStateForCurrentPlayer(HistoryNavigationInfo navigation)
         {
             object gameStateFromGameHistory = null;
-            if (navigation.LookupApproach == InformationSetLookupApproach.GameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.Both)
+            if (navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)
             {
+                if (GameProgress.GameComplete)
+                    return GameProgress.GetNonChancePlayerUtilities();
+                // Otherwise, when playing the actual game, we use the GameHistory object, so we'll set this object as the "cached" object even though it's cached.
+                navigation.LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
+                HistoryToPoint = GameProgress.GameHistory;
+            }
+            if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
+            {
+                var DEBUG = HistoryToPoint.GetInformationSetHistoryItems().Select(x => x.ToString());
                 (Decision nextDecision, byte nextDecisionIndex) = navigation.GameDefinition.GetNextDecision(HistoryToPoint);
                 byte nextPlayer = nextDecision?.PlayerNumber ?? navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
                 byte* informationSetsPtr = stackalloc byte[GameHistory.MaxInformationSetLengthPerPlayer];
                 // string playerInformationString = HistoryToPoint.GetPlayerInformationString(currentPlayer, nextDecision?.DecisionByteCode);
                 HistoryToPoint.GetPlayerInformation(nextPlayer, null, informationSetsPtr);
-                var DEBUG = Util.ListExtensions.GetPointerAsList_255Terminated(informationSetsPtr);
+                var DEBUG2 = Util.ListExtensions.GetPointerAsList_255Terminated(informationSetsPtr);
                 gameStateFromGameHistory = navigation.Strategies[nextPlayer].InformationSetTree.GetValue(informationSetsPtr);
             }
-            if (navigation.LookupApproach == InformationSetLookupApproach.GameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.Both)
+            if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
                 object gameStateFromGameTree = null;
                 if (TreePoint.StoredValue is NWayTreeStorage<object> informationSetNodeReferencedInHistoryNode)
                     gameStateFromGameTree = informationSetNodeReferencedInHistoryNode.StoredValue;
                 else if (TreePoint.StoredValue is double[])
                     gameStateFromGameTree = TreePoint.StoredValue;
-                if (navigation.LookupApproach == InformationSetLookupApproach.Both)
+                if (navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
                 {
                     bool equals;
                     if (gameStateFromGameTree is double[])
@@ -79,8 +102,19 @@ namespace ACESim
         public HistoryPoint GetBranch(HistoryNavigationInfo navigation, byte actionChosen)
         {
             HistoryPoint next = new HistoryPoint();
-
-            if (navigation.LookupApproach == InformationSetLookupApproach.GameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.Both)
+            if (navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)
+            {
+                var DEBUG = GameProgress.GameHistory.GetActionsAsListString();
+                GameProgress nextProgress = GameProgress.DeepCopy();
+                var DEBUG2 = GameProgress.GameHistory.GetActionsAsListString();
+                IGameFactory gameFactory = navigation.Strategies[0].SimulationInteraction.CurrentExecutionInformation.GameFactory;
+                GamePlayer player = new GamePlayer(navigation.Strategies, gameFactory, false, navigation.GameDefinition);
+                player.ContinuePathWithAction(actionChosen, nextProgress, navigation.GameInputs);
+                next.HistoryToPoint = nextProgress.GameHistory;
+                next.GameProgress = nextProgress;
+                return next;
+            }
+            if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
                 (Decision nextDecision, byte nextDecisionIndex) = navigation.GameDefinition.GetNextDecision(HistoryToPoint);
                 next.HistoryToPoint = HistoryToPoint; // struct is copied
@@ -89,14 +123,14 @@ namespace ACESim
                 if (nextDecision.CanTerminateGame && navigation.GameDefinition.ShouldMarkGameHistoryComplete(nextDecision, next.HistoryToPoint))
                     next.HistoryToPoint.MarkComplete();
             }
-            if (navigation.LookupApproach == InformationSetLookupApproach.GameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.Both)
+            if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
                 next.TreePoint = TreePoint.GetBranch(actionChosen);
             return next;
         }
 
         public byte GetNextPlayer(HistoryNavigationInfo navigation)
         {
-            if (navigation.LookupApproach == InformationSetLookupApproach.GameHistoryOnly)
+            if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly)
             {
                 switch (TreePoint.StoredValue)
                 {
@@ -110,7 +144,7 @@ namespace ACESim
                         throw new NotImplementedException();
                 }
             }
-            else
+            else // may be actual game or cached game history -- either way, we'll use the game history
             {
                 (Decision nextDecision, byte nextDecisionIndex) = navigation.GameDefinition.GetNextDecision(HistoryToPoint);
                 return nextDecision.PlayerNumber;
@@ -119,6 +153,7 @@ namespace ACESim
 
         public unsafe void SetInformationIfNotSet(HistoryNavigationInfo navigation, GameProgress gameProgress, InformationSetHistory informationSetHistory)
         {
+            var DEBUG = informationSetHistory.ToString();
             if (GetGameStateForCurrentPlayer(navigation) == null)
                 SetInformationAtPoint(navigation, gameProgress, informationSetHistory);
         }
@@ -161,7 +196,7 @@ namespace ACESim
                             }
                         }
                         );
-            if (navigation.LookupApproach == InformationSetLookupApproach.GameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.Both)
+            if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
                 TreePoint.StoredValue = informationSetNode;
         }
 
@@ -178,7 +213,7 @@ namespace ACESim
                         isNecessarilyLast,
                         () => finalUtilities
                         );
-            if (navigation.LookupApproach == InformationSetLookupApproach.GameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.Both)
+            if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
                 TreePoint.StoredValue = informationSetNode;
         }
 

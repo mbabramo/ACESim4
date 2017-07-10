@@ -60,7 +60,6 @@ namespace ACESim
         {
             if (LoggingOn)
             {
-                Game.RestartFromBeginningOfGame = true;
                 lock (lockObj)
                 {
                     GameProgressStep step = new GameProgressStep() { GameProgress = currentProgress.DeepCopy(), StepPoint = stepPoint };

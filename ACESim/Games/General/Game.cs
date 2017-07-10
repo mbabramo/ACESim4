@@ -60,18 +60,21 @@ namespace ACESim
             GameProgress progress,
             GameInputs gameInputs,
             GameDefinition gameDefinition,
-            bool recordReportInfo)
+            bool recordReportInfo,
+            bool restartFromBeginningOfGame
+            )
         {
-            if (RestartFromBeginningOfGame && Strategies != null)
+            if (restartFromBeginningOfGame && Strategies != null)
             {
                 IGameFactory gameFactory = Strategies[0].SimulationInteraction.CurrentExecutionInformation.GameFactory;
                 progress = gameFactory.CreateNewGameProgress(progress.IterationID);
             }
+            if (restartFromBeginningOfGame)
+                progress.GameHistory = new GameHistory().Initialize();
 
             this.Strategies = strategies;
             this.Progress = progress;
             this.Progress.GameDefinition = gameDefinition;
-            this.Progress.GameHistory = new GameHistory().Initialize();
             this.GameInputs = gameInputs;
             this.GameDefinition = gameDefinition;
             this.RecordReportInfo = recordReportInfo;
@@ -146,6 +149,7 @@ namespace ACESim
                 else
                     actionToChoose = 1; // The history does not give us guidance, so we play the first available decision. When the game is complete, we can figure out the next possible game history and play that one (which may go to completion or not). 
             }
+
             Progress.GameHistory.AddToHistory(CurrentDecision.DecisionByteCode, (byte) CurrentDecisionIndex, CurrentPlayerNumber, actionToChoose, CurrentDecision.NumPossibleActions, CurrentDecision.PlayersToInform);
             return actionToChoose;
         }
@@ -183,7 +187,6 @@ namespace ACESim
         public static int NumGamesPlayedDuringEvolutionOfThisDecision;
         public static int? BreakAtNumGamesPlayedAltogether = null; 
         public static int? BreakAtNumGamesPlayedDuringEvolutionOfThisDecision = null;
-        public static bool RestartFromBeginningOfGame = false; // Change this to true in development to see the game from the beginning; it's also automatically changed when breaking at a particular point
 
         public void RegisterGamePlayed()
         {
@@ -203,16 +206,32 @@ namespace ACESim
 
         public static long? LoggingOnTrigger = null;
 
+        public void ContinuePathWithAction(byte actionToPlay)
+        {
+            if (!Progress.ActionsToPlay.Any())
+                Progress.ActionsToPlayIndex = -1;
+            Progress.ActionsToPlay.Add(actionToPlay);
+            while (!Progress.ActionsToPlayCompleted)
+                AdvanceToOrCompleteNextStep();
+        }
+
+        public void PlayPathAndStop(List<byte> actionsToPlay)
+        {
+            Progress.SetActionsToPlay(actionsToPlay);
+            while (Progress.ActionsToPlayIndex < actionsToPlay.Count() - 1)
+                AdvanceToOrCompleteNextStep();
+        }
+
         /// <summary>
         /// Plays the game according to a particular decisionmaking path. If the path is incomplete, it plays the first possible action for each remaining decision.
         /// </summary>
         /// <param name="actionsToPlay"></param>
         /// <returns>The next path of decisions to play.</returns>
-        public unsafe void PlayPath(byte* actionsToPlay, ref byte* nextPath)
+        public unsafe void PlayPathAndKeepGoing(byte* actionsToPlay, ref byte* nextPath)
         {
-            Progress.SetActionToPlay(actionsToPlay);
+            Progress.SetActionsToPlay(actionsToPlay);
             Progress.IsFinalGamePath = true;
-            PlayUntilComplete(true);
+            PlayUntilComplete();
             if (nextPath == null || Progress.IsFinalGamePath)
             {
                 nextPath = null;
@@ -224,7 +243,7 @@ namespace ACESim
         /// <summary>
         /// Continue to make decisions until the game is complete.
         /// </summary>
-        public void PlayUntilComplete(bool recycleAfterPlay = true)
+        public void PlayUntilComplete()
         {
             try
             {
@@ -254,11 +273,7 @@ namespace ACESim
                     GameProgressLogger.Log("Iteration: " + Progress.IterationID.ToString());
                 RegisterGamePlayed();
                 while (!Progress.GameComplete)
-                    AdvanceToAndCompleteNextStep();
-                if (recycleAfterPlay)
-                {
-                    Progress.Recycle();
-                }
+                    AdvanceToOrCompleteNextStep();
             }
             catch (Exception ex)
             {
@@ -284,7 +299,7 @@ namespace ACESim
                 {
                     done = CurrentDecisionIndex == decisionNumber && PreparationPhase;
                     if (!done)
-                        AdvanceToAndCompleteNextStep();
+                        AdvanceToOrCompleteNextStep();
                 }
                 CurrentlyPlayingUpToADecisionInsteadOfCompletingGame = false;
             }
@@ -295,7 +310,7 @@ namespace ACESim
 
         }
 
-        private void AdvanceToAndCompleteNextStep()
+        public void AdvanceToOrCompleteNextStep()
         {
             // We track the information about step status in the Progress object, because
             // we may later continue a game that's progressed with a different Game object.

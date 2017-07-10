@@ -30,9 +30,10 @@ namespace ACESim
             GameProgress progress,
             GameInputs gameInputs,
             GameDefinition gameDefinition,
-            bool recordReportInfo)
+            bool recordReportInfo,
+            bool restartFromBeginningOfGame)
         {
-            base.PlaySetup(strategies, progress, gameInputs, gameDefinition, recordReportInfo);
+            base.PlaySetup(strategies, progress, gameInputs, gameDefinition, recordReportInfo, restartFromBeginningOfGame);
             CopyInputsToSpecificModules(gameInputs as ModularGameInputsSet);
         }
 
