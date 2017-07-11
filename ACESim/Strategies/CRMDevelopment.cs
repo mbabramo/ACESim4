@@ -309,7 +309,7 @@ namespace ACESim
             RegretMatchingWithPruning
         }
 
-        public void ProcessPossiblePaths(HistoryPoint history, double probability, Action<HistoryPoint, double> completedGameProcessor, ActionStrategies actionStrategy)
+        public void ProcessAllPaths(HistoryPoint history, double probability, Action<HistoryPoint, double> completedGameProcessor, ActionStrategies actionStrategy)
         {
             // Note that this method is different from GamePlayer.PlayAllPaths, because it relies on the cached history, rather than needing to play the game to discover what the next paths are.
             if (history.IsComplete(Navigation))
@@ -317,10 +317,10 @@ namespace ACESim
                 completedGameProcessor(history, probability);
                 return;
             }
-            ProcessPossiblePaths_Helper(history, probability, completedGameProcessor, actionStrategy);
+            ProcessAllPaths_Helper(history, probability, completedGameProcessor, actionStrategy);
         }
 
-        private unsafe void ProcessPossiblePaths_Helper(HistoryPoint historyPoint, double probability, Action<HistoryPoint, double> completedGameProcessor, ActionStrategies actionStrategy)
+        private unsafe void ProcessAllPaths_Helper(HistoryPoint historyPoint, double probability, Action<HistoryPoint, double> completedGameProcessor, ActionStrategies actionStrategy)
         {
             double* probabilities = stackalloc double[MaxPossibleActions];
             byte numPossibleActions;
@@ -352,7 +352,7 @@ namespace ACESim
             {
                 if (probabilities[action - 1] > 0)
                 {
-                    ProcessPossiblePaths(historyPoint.GetBranch(Navigation, action), probability * probabilities[action - 1], completedGameProcessor, actionStrategy);
+                    ProcessAllPaths(historyPoint.GetBranch(Navigation, action), probability * probabilities[action - 1], completedGameProcessor, actionStrategy);
                 }
             });
         }
@@ -389,32 +389,32 @@ namespace ACESim
             for (int p = 0; p < NumNonChancePlayers; p++)
                 UtilityCalculations[p] = new StatCollector();
             // start Task Parallel Library consumer/producer pattern
-            var resultsBuffer = new BufferBlock<Tuple<GameProgress, double>>(new DataflowBlockOptions { BoundedCapacity = 10000 });
-            var consumer = ProcessCompletedGameProgresses(resultsBuffer);
-            // DEBUG -- can we just use PlayAllPaths?
-            // play each path and then asynchronously consume the result
-            void completedGameProcessor(HistoryPoint completedGame, double probability) 
+            // we'll set up step1, step2, and step3 (but not in that order, since step 1 triggers step 2)
+            var step2_buffer = new BufferBlock<Tuple<GameProgress, double>>(new DataflowBlockOptions { BoundedCapacity = 10000 });
+            var step3_consumer = AddGameProgressToReport(step2_buffer);
+            void step1_playPath(HistoryPoint completedGame, double probabilityOfPath)
             {
+                // play each path and then asynchronously consume the result, including the probability of the game path
                 List<byte> actions = completedGame.GetActionsToHere(Navigation);
                 (GameProgress progress, _) = player.PlayPath(actions, inputs, false);
                 // do the simple aggregation of utilities. note that this is different from the value returned by vanilla, since that uses regret matching, instead of average strategies.
                 double[] utilities = GetUtilities(completedGame);
                 for (int p = 0; p < NumNonChancePlayers; p++)
-                    UtilityCalculations[p].Add(utilities[p], probability);
-                                                                           // consume the result for reports
-                resultsBuffer.SendAsync(new Tuple<GameProgress, double>(progress, probability));
+                    UtilityCalculations[p].Add(utilities[p], probabilityOfPath);
+                // consume the result for reports
+                step2_buffer.SendAsync(new Tuple<GameProgress, double>(progress, probabilityOfPath));
             };
-            ProcessPossiblePaths(GetStartOfGameHistoryPoint(), 1.0, completedGameProcessor, actionStrategy);
+            // Now, we have to send the paths through all of these steps and make sure that step 3 is completely finished.
+            ProcessAllPaths(GetStartOfGameHistoryPoint(), 1.0, step1_playPath, actionStrategy);
+            step2_buffer.Complete(); // tell consumer nothing more to be produced
+            step3_consumer.Wait(); // wait until all have been processed
 
             //for (int p = 0; p < NumNonChancePlayers; p++)
             //    if (Math.Abs(UtilityCalculations[p].sumOfWeights - 1.0) > 0.0001)
             //        throw new Exception("Imperfect sampling.");
-
-            resultsBuffer.Complete(); // tell consumer nothing more to be produced
-            consumer.Wait(); // wait until all have been processed
         }
 
-        async Task ProcessCompletedGameProgresses(ISourceBlock<Tuple<GameProgress, double>> source)
+        async Task AddGameProgressToReport(ISourceBlock<Tuple<GameProgress, double>> source)
         {
             while (await source.OutputAvailableAsync())
             {
