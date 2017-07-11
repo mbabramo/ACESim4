@@ -69,7 +69,6 @@ namespace ACESim
         {
             if (returnCompletedGameProgressInfos)
                 CompletedGameProgresses = new ConcurrentBag<GameProgress>();
-            
 
             if (gameInputsArray == null)
             {
@@ -313,7 +312,7 @@ namespace ACESim
             Game game = GameFactory.CreateNewGame();
             GameProgress gameProgress = StartingProgress.DeepCopy();
             game.PlaySetup(bestStrategies, gameProgress, gameInputsToUse, GameDefinition, false, true);
-            game.PlayPathAndKeepGoing(actionsToPlay, ref nextActionsToPlay);
+            game.PlayPathAndContinueWithDefaultAction(actionsToPlay, ref nextActionsToPlay);
             return gameProgress;
         }
 

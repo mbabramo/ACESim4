@@ -45,6 +45,8 @@ namespace ACESim
 
         public bool RecordReportInfo;
 
+        public bool ChooseDefaultActionIfNoneChosen;
+
         public int? DecisionNumberWithinActionGroupForDecisionNumber(int decisionNumber)
         {
             return DecisionPointForDecisionNumber(decisionNumber).DecisionNumberWithinActionGroup;
@@ -135,20 +137,14 @@ namespace ACESim
         {
             byte actionToChoose;
             if (Progress.ActionsToPlay == null)
-            {
-                throw new NotImplementedException();
-                //byte* informationSet = stackalloc byte[GameHistory.MaxNumActions];
-                //Progress.GameHistory.GetPlayerInformation(CurrentPlayerNumber, null, informationSet);
-                //actionToChoose = CurrentPlayerStrategy.ChooseAction(informationSet, GetNextRandomNumber);
-            }
+                Progress.ActionsToPlay = new List<byte>();
+            bool anotherActionPlanned = Progress.ActionsToPlay_MoveNext();
+            if (anotherActionPlanned)
+                actionToChoose = Progress.ActionsToPlay_CurrentAction;
+            else if (ChooseDefaultActionIfNoneChosen)
+                actionToChoose = 1; // The history does not give us guidance, so we play the first available decision. When the game is complete, we can figure out the next possible game history and play that one (which may go to completion or not). 
             else
-            { // play according to a preset plan
-                bool anotherActionPlanned = Progress.ActionsToPlay_MoveNext();
-                if (anotherActionPlanned)
-                    actionToChoose = Progress.ActionsToPlay_CurrentAction;
-                else
-                    actionToChoose = 1; // The history does not give us guidance, so we play the first available decision. When the game is complete, we can figure out the next possible game history and play that one (which may go to completion or not). 
-            }
+                throw new NotImplementedException();
 
             Progress.GameHistory.AddToHistory(CurrentDecision.DecisionByteCode, (byte) CurrentDecisionIndex, CurrentPlayerNumber, actionToChoose, CurrentDecision.NumPossibleActions, CurrentDecision.PlayersToInform);
             return actionToChoose;
@@ -227,8 +223,9 @@ namespace ACESim
         /// </summary>
         /// <param name="actionsToPlay"></param>
         /// <returns>The next path of decisions to play.</returns>
-        public unsafe void PlayPathAndKeepGoing(byte* actionsToPlay, ref byte* nextPath)
+        public unsafe void PlayPathAndContinueWithDefaultAction(byte* actionsToPlay, ref byte* nextPath)
         {
+            ChooseDefaultActionIfNoneChosen = true;
             Progress.SetActionsToPlay(actionsToPlay);
             Progress.IsFinalGamePath = true;
             PlayUntilComplete();
@@ -238,6 +235,7 @@ namespace ACESim
                 return;
             }
             Progress.GameHistory.GetNextDecisionPath(GameDefinition, nextPath);
+            ChooseDefaultActionIfNoneChosen = false;
         }
 
         /// <summary>

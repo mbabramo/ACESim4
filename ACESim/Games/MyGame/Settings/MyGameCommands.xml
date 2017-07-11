@@ -10,11 +10,11 @@
                     initializeStrategiesFile="MyGameStrategies"
                     useInitializeStrategiesFile="false"
                     evolveOnlyIfNecessary="false" />
-        <!--<playCommand numberIterations="100" StoreStrategiesFile="MyGameStrategies" storeIterationResultsFile="MyGameIterations" parallelReporting="true" savePlayedGamesInMemoryOnly="false">
+        <playCommand numberIterations="100" StoreStrategiesFile="MyGameStrategies" storeIterationResultsFile="MyGameIterations" parallelReporting="true" savePlayedGamesInMemoryOnly="false">
           <changeSimulationSettings>
           </changeSimulationSettings>
         </playCommand>
-        <reportCommand name="MyGameReportCommand" storeIterationResultsFile="MyGameIterations" storeReportResultsFile="MyGameReport" requireCumulativeDistributions="false">
+        <!--<reportCommand name="MyGameReportCommand" storeIterationResultsFile="MyGameIterations" storeReportResultsFile="MyGameReport" requireCumulativeDistributions="false">
           <rowsGroup name="MyGameRows"></rowsGroup>
           <colsGroup name="MyGameColumns"></colsGroup>
         </reportCommand>-->

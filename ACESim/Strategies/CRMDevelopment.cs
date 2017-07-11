@@ -297,32 +297,26 @@ namespace ACESim
             return history.GetGameStateForCurrentPlayer(Navigation) as CRMChanceNodeSettings;
         }
 
-        #endregion
-
-        #region Game play and reporting
-
-        public enum ActionStrategies
+        private (byte numPossibleActions, double[] probabilities) GetActionProbabilitiesAtHistoryPoint(HistoryPoint historyPoint, ActionStrategies actionStrategy)
         {
-            RegretMatching,
-            AverageStrategy,
-            BestResponse,
-            RegretMatchingWithPruning
+            double[] probabilities;
+            byte numPossibleActions;
+            GetActionProbabilitiesAtHistoryPoint_Helper(historyPoint, actionStrategy, out probabilities, out numPossibleActions);
+            return (numPossibleActions, probabilities);
+
         }
 
-        public void ProcessAllPaths(HistoryPoint history, double probability, Action<HistoryPoint, double> completedGameProcessor, ActionStrategies actionStrategy)
+        private unsafe void GetActionProbabilitiesAtHistoryPoint_Helper(HistoryPoint historyPoint, ActionStrategies actionStrategy, out double[] probabilities, out byte numPossibleActions)
         {
-            // Note that this method is different from GamePlayer.PlayAllPaths, because it relies on the cached history, rather than needing to play the game to discover what the next paths are.
-            if (history.IsComplete(Navigation))
-            {
-                completedGameProcessor(history, probability);
-                return;
-            }
-            ProcessAllPaths_Helper(history, probability, completedGameProcessor, actionStrategy);
+            probabilities = new double[MaxPossibleActions];
+            double* probabilitiesBuffer = stackalloc double[MaxPossibleActions];
+            numPossibleActions = GetActionProbabilitiesAtHistoryPoint(historyPoint, actionStrategy, probabilitiesBuffer);
+            for (byte a = 0; a < MaxPossibleActions; a++)
+                probabilities[a] = probabilitiesBuffer[a];
         }
 
-        private unsafe void ProcessAllPaths_Helper(HistoryPoint historyPoint, double probability, Action<HistoryPoint, double> completedGameProcessor, ActionStrategies actionStrategy)
+        private unsafe byte GetActionProbabilitiesAtHistoryPoint(HistoryPoint historyPoint, ActionStrategies actionStrategy, double* probabilities)
         {
-            double* probabilities = stackalloc double[MaxPossibleActions];
             byte numPossibleActions;
             if (NodeIsChanceNode(historyPoint))
             {
@@ -348,11 +342,48 @@ namespace ACESim
                 else
                     throw new NotImplementedException();
             }
-            Parallelizer.GoByte(EvolutionSettings.ParallelOptimization, 2, 1, (byte) (numPossibleActions + 1), (action) =>
+
+            return numPossibleActions;
+        }
+
+        #endregion
+
+        #region Game play and reporting
+
+        public enum ActionStrategies
+        {
+            RegretMatching,
+            AverageStrategy,
+            BestResponse,
+            RegretMatchingWithPruning
+        }
+
+        public void ProcessAllPaths(HistoryPoint history, Action<HistoryPoint, double> pathPlayer, ActionStrategies actionStrategy)
+        {
+            ProcessAllPaths_Recursive(history, pathPlayer, actionStrategy, 1.0);
+        }
+
+        private void ProcessAllPaths_Recursive(HistoryPoint history, Action<HistoryPoint, double> pathPlayer, ActionStrategies actionStrategy, double probability)
+        {
+            // Note that this method is different from GamePlayer.PlayAllPaths, because it relies on the cached history, rather than needing to play the game to discover what the next paths are.
+            if (history.IsComplete(Navigation))
+            {
+                pathPlayer(history, probability);
+                return;
+            }
+            ProcessAllPaths_Helper(history, probability, pathPlayer, actionStrategy);
+        }
+
+        private unsafe void ProcessAllPaths_Helper(HistoryPoint historyPoint, double probability, Action<HistoryPoint, double> completedGameProcessor, ActionStrategies actionStrategy)
+        {
+            double* probabilities = stackalloc double[MaxPossibleActions];
+            byte numPossibleActions;
+            numPossibleActions = GetActionProbabilitiesAtHistoryPoint(historyPoint, actionStrategy, probabilities);
+            Parallelizer.GoByte(EvolutionSettings.ParallelOptimization, 2, 1, (byte)(numPossibleActions + 1), (action) =>
             {
                 if (probabilities[action - 1] > 0)
                 {
-                    ProcessAllPaths(historyPoint.GetBranch(Navigation, action), probability * probabilities[action - 1], completedGameProcessor, actionStrategy);
+                    ProcessAllPaths_Recursive(historyPoint.GetBranch(Navigation, action), completedGameProcessor, actionStrategy, probability * probabilities[action - 1]);
                 }
             });
         }
@@ -364,12 +395,11 @@ namespace ACESim
             GamePlayer player = new GamePlayer(Strategies, GameFactory, EvolutionSettings.ParallelOptimization, GameDefinition);
             GameInputs inputs = GetGameInputs();
             Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, inputs);
-            GameProgress startingProgress = GameFactory.CreateNewGameProgress(new IterationID(1));
             StringBuilder sb = new StringBuilder();
             ReportsBeingGenerated = new SimpleReport[GameDefinition.SimpleReportDefinitions.Count()];
             for (int i = 0; i < GameDefinition.SimpleReportDefinitions.Count(); i++)
                 ReportsBeingGenerated[i] = new SimpleReport(GameDefinition.SimpleReportDefinitions[i], GameDefinition.SimpleReportDefinitions[i].DivideColumnFiltersByImmediatelyEarlierReport ? ReportsBeingGenerated[i - 1] : null);
-            GenerateReports_Parallel(player, inputs, startingProgress, actionStrategy);
+            GenerateReports_Parallel(player, inputs, actionStrategy);
             for (int i = 0; i < GameDefinition.SimpleReportDefinitions.Count(); i++)
                 ReportsBeingGenerated[i].GetReport(sb, false);
             ReportsBeingGenerated = null;
@@ -378,12 +408,7 @@ namespace ACESim
 
         StatCollector[] UtilityCalculations;
 
-        public unsafe class BytePointerContainer
-        {
-            public byte* bytes;
-        }
-
-        private void GenerateReports_Parallel(GamePlayer player, GameInputs inputs, GameProgress startingProgress, ActionStrategies actionStrategy)
+        private void GenerateReports_Parallel(GamePlayer player, GameInputs inputs, ActionStrategies actionStrategy)
         {
             UtilityCalculations = new StatCollector[NumNonChancePlayers];
             for (int p = 0; p < NumNonChancePlayers; p++)
@@ -405,7 +430,7 @@ namespace ACESim
                 step2_buffer.SendAsync(new Tuple<GameProgress, double>(progress, probabilityOfPath));
             };
             // Now, we have to send the paths through all of these steps and make sure that step 3 is completely finished.
-            ProcessAllPaths(GetStartOfGameHistoryPoint(), 1.0, step1_playPath, actionStrategy);
+            ProcessAllPaths(GetStartOfGameHistoryPoint(), step1_playPath, actionStrategy);
             step2_buffer.Complete(); // tell consumer nothing more to be produced
             step3_consumer.Wait(); // wait until all have been processed
 
@@ -823,7 +848,7 @@ namespace ACESim
 
         public unsafe void SolveVanillaCFR()
         {
-            const int numIterationsToRun = 100000;
+            const int numIterationsToRun = 1000;
 
             int? reportEveryNIterations = 100;
             int? bestResponseEveryMIterations = 1000;
