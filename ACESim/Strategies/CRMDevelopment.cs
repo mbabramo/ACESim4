@@ -287,6 +287,29 @@ namespace ACESim
 
         #region Game play and reporting
 
+        public List<GameProgress> GetRandomCompleteGames(GamePlayer player, int numIterations)
+        {
+            return player.PlayStrategy(null, numIterations, (SimulationInteraction)CurrentExecutionInformation.UiInteraction).ToList();
+        }
+
+        bool UseRandomPaths = true;
+
+        private void GenerateReports_RandomPaths(GamePlayer player)
+        {
+            var gameProgresses = GetRandomCompleteGames(player, 10000);
+            UtilityCalculations = new StatCollector[NumNonChancePlayers];
+            for (int p = 0; p < NumNonChancePlayers; p++)
+                UtilityCalculations[p] = new StatCollector();
+            // start Task Parallel Library consumer/producer pattern
+            // we'll set up step1, step2, and step3 (but not in that order, since step 1 triggers step 2)
+            var step2_buffer = new BufferBlock<Tuple<GameProgress, double>>(new DataflowBlockOptions { BoundedCapacity = 10000 });
+            var step3_consumer = AddGameProgressToReport(step2_buffer);
+            foreach (var gameProgress in gameProgresses)
+                step2_buffer.SendAsync(new Tuple<GameProgress, double>(gameProgress, 1.0));
+            step2_buffer.Complete(); // tell consumer nothing more to be produced
+            step3_consumer.Wait(); // wait until all have been processed
+        }
+
         public void ProcessAllPaths(HistoryPoint history, Action<HistoryPoint, double> pathPlayer, ActionStrategies actionStrategy)
         {
             ProcessAllPaths_Recursive(history, pathPlayer, actionStrategy, 1.0);
@@ -330,7 +353,10 @@ namespace ACESim
             ReportsBeingGenerated = new SimpleReport[simpleReportDefinitionsCount];
             for (int i = 0; i < simpleReportDefinitionsCount; i++)
                 ReportsBeingGenerated[i] = new SimpleReport(simpleReportDefinitions[i], simpleReportDefinitions[i].DivideColumnFiltersByImmediatelyEarlierReport ? ReportsBeingGenerated[i - 1] : null);
-            GenerateReports_Parallel(player, inputs, actionStrategy);
+            if (UseRandomPaths)
+                GenerateReports_RandomPaths(player);
+            else
+                GenerateReports_AllPaths(player, inputs, actionStrategy);
             for (int i = 0; i < simpleReportDefinitionsCount; i++)
                 ReportsBeingGenerated[i].GetReport(sb, false);
             ReportsBeingGenerated = null;
@@ -339,7 +365,9 @@ namespace ACESim
 
         StatCollector[] UtilityCalculations;
 
-        private void GenerateReports_Parallel(GamePlayer player, GameInputs inputs, ActionStrategies actionStrategy)
+
+
+        private void GenerateReports_AllPaths(GamePlayer player, GameInputs inputs, ActionStrategies actionStrategy)
         {
             UtilityCalculations = new StatCollector[NumNonChancePlayers];
             for (int p = 0; p < NumNonChancePlayers; p++)
