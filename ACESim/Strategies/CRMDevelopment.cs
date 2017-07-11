@@ -297,12 +297,26 @@ namespace ACESim
             return history.GetGameStateForCurrentPlayer(Navigation) as CRMChanceNodeSettings;
         }
 
+        private byte ChooseActionBasedOnRandomNumber(GameProgress gameProgress, double randomNumber, ActionStrategies actionStrategy)
+        {
+            HistoryPoint historyPoint = new HistoryPoint(null, gameProgress.GameHistory, gameProgress);
+            (byte numPossibleActions, double[] probabilities) = GetActionProbabilitiesAtHistoryPoint(historyPoint, actionStrategy);
+            double cumTotal = 0;
+            for (byte a = 0; a < numPossibleActions; a++)
+            {
+                cumTotal += probabilities[a];
+                if (cumTotal >= randomNumber)
+                    return (byte) (a + 1); // actions are one-based
+            }
+            return numPossibleActions;
+        }
+
         private (byte numPossibleActions, double[] probabilities) GetActionProbabilitiesAtHistoryPoint(HistoryPoint historyPoint, ActionStrategies actionStrategy)
         {
             double[] probabilities;
             byte numPossibleActions;
             GetActionProbabilitiesAtHistoryPoint_Helper(historyPoint, actionStrategy, out probabilities, out numPossibleActions);
-            return (numPossibleActions, probabilities);
+            return (numPossibleActions, probabilities.Take(numPossibleActions).ToArray());
 
         }
 
