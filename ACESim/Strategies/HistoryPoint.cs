@@ -153,7 +153,8 @@ namespace ACESim
 
         public unsafe void SetInformationIfNotSet(HistoryNavigationInfo navigation, GameProgress gameProgress, InformationSetHistory informationSetHistory)
         {
-            var DEBUG = informationSetHistory.ToString();
+            //var DEBUG = informationSetHistory.ToString();
+            //TabbedText.WriteLine($"Setting information {DEBUG}");
             if (GetGameStateForCurrentPlayer(navigation) == null)
                 SetInformationAtPoint(navigation, gameProgress, informationSetHistory);
         }

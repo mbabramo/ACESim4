@@ -38,7 +38,8 @@ namespace ACESim
         /// <returns></returns>
         public GameProgress CreateNewGameProgress(IterationID iterationID)
         {
-            return new MyGameProgress()  { IterationID = iterationID };
+            GameProgress gameProgress = new MyGameProgress()  { IterationID = iterationID };
+            return gameProgress;
         }
 
         /// <summary>

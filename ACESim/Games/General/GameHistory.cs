@@ -43,7 +43,19 @@ namespace ACESim
             return b;
         }
 
-        public GameHistory Initialize()
+        private void Initialize()
+        {
+            if (Initialized)
+                return;
+            Initialize_Helper();
+        }
+
+        public void Reinitialize()
+        {
+            Initialize_Helper();
+        }
+
+        private void Initialize_Helper()
         {
             fixed (byte* historyPtr = History)
                 *(historyPtr + 0) = HistoryIncomplete;
@@ -52,13 +64,12 @@ namespace ACESim
                     *(ptr + MaxInformationSetLengthPerPlayer * p) = 255;
             LastIndexAddedToHistory = 0;
             Initialized = true;
-            return this;
         }
 
         public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerNumber, byte action, byte numPossibleActions, List<byte> playersToInform)
         {
             if (!Initialized)
-                throw new Exception("Uninitialized game history.");
+                Initialize();
             short i = LastIndexAddedToHistory;
             fixed (byte* historyPtr = History)
             {
@@ -82,11 +93,13 @@ namespace ACESim
         /// <returns></returns>
         public GameHistory BackInTime(byte upToDecisionIndex)
         {
+            if (!Initialized)
+                Initialize();
             GameHistory next = this;
             if (LastIndexAddedToHistory != 0)
             {
                 if (upToDecisionIndex == 0)
-                    next.Initialize();
+                    next.Reinitialize();
                 else
                 {
                     byte* historyPtr = next.History;
@@ -122,6 +135,8 @@ namespace ACESim
         
         public byte? LastDecisionIndex()
         {
+            if (!Initialized)
+                Initialize();
             short i = LastIndexAddedToHistory;
             if (i == 0)
                 return null; // no decisions processed yet
@@ -145,7 +160,7 @@ namespace ACESim
         public IEnumerable<InformationSetHistory> GetInformationSetHistoryItems()
         {
             if (!Initialized)
-                throw new Exception("Uninitialized game history.");
+                Initialize();
             if (LastIndexAddedToHistory == 0)
                 yield break;
             for (short i = 0; i < LastIndexAddedToHistory; i += History_NumPiecesOfInformation)
@@ -156,6 +171,8 @@ namespace ACESim
 
         private InformationSetHistory GetInformationSetHistory(short index)
         {
+            if (!Initialized)
+                Initialize();
             byte playerIndex = GetHistoryIndex(index + History_PlayerNumber_Offset);
             byte decisionByteCode = GetHistoryIndex(index + History_DecisionByteCode_Offset);
             byte decisionIndex = GetHistoryIndex(index + History_DecisionIndex_Offset);
@@ -174,6 +191,8 @@ namespace ACESim
 
         public unsafe void GetActions(byte* actions)
         {
+            if (!Initialized)
+                Initialize();
             GetItems(History_Action_Offset, actions);
         }
 
@@ -197,6 +216,8 @@ namespace ACESim
 
         private unsafe void GetItems(int offset, byte* items)
         {
+            if (!Initialized)
+                Initialize();
             int d = 0;
             if (LastIndexAddedToHistory != 0)
                 for (short i = 0; i < LastIndexAddedToHistory; i += History_NumPiecesOfInformation)
@@ -213,6 +234,8 @@ namespace ACESim
 
         public void MarkComplete()
         {
+            if (!Initialized)
+                Initialize();
             short i = LastIndexAddedToHistory;
             fixed (byte* historyPtr = History)
             {
@@ -224,6 +247,8 @@ namespace ACESim
 
         public bool IsComplete()
         {
+            if (!Initialized)
+                return false;
             fixed (byte* historyPtr = History)
                 return (*(historyPtr + LastIndexAddedToHistory) == HistoryComplete);
         }
@@ -246,7 +271,7 @@ namespace ACESim
         private void AddToInformationSet(byte information, byte followingDecisionIndex, byte playerNumber, byte* informationSetsPtr)
         {
             if (!Initialized)
-                throw new Exception("Uninitialized game history.");
+                Initialize();
             //Debug.WriteLine($"Adding information {information} following decision {followingDecision} for Player number {playerNumber}");
             if (playerNumber >= MaxNumPlayers)
                 throw new Exception("Invalid player index. Must increase MaxNumPlayers.");
@@ -264,6 +289,8 @@ namespace ACESim
 
         public unsafe void GetPlayerInformation(int playerNumber, byte? upToDecision, byte* playerInfoBuffer)
         {
+            if (!Initialized)
+                Initialize();
             fixed (byte* informationSetsPtr = InformationSets)
             {
                 byte* playerPointer = informationSetsPtr + playerNumber * MaxInformationSetLengthPerPlayer;
@@ -295,6 +322,8 @@ namespace ACESim
 
         public byte CountItemsInInformationSet(byte playerNumber)
         {
+            if (!Initialized)
+                Initialize();
             byte b = 0;
             fixed (byte* informationSetsPtr = InformationSets)
             {
@@ -314,6 +343,8 @@ namespace ACESim
 
         public void ReduceItemsInInformationSet(byte playerIndex, byte followingDecision, byte numItems)
         {
+            if (!Initialized)
+                Initialize();
             for (byte b = 0; b < numItems; b++)
             {
                 AddToInformationSet(RemoveItemFromInformationSet, followingDecision, playerIndex);
@@ -333,6 +364,8 @@ namespace ACESim
         /// </summary>
         public unsafe void GetNextDecisionPath(GameDefinition gameDefinition, byte* nextDecisionPath)
         {
+            if (!Initialized)
+                Initialize();
             if (!IsComplete())
                 throw new Exception("Can get next path to try only on a completed game.");
             // We need to find the last decision made where there was another action that could have been taken.
@@ -358,6 +391,8 @@ namespace ACESim
 
         private int? GetIndexOfLastDecisionWithAnotherAction(GameDefinition gameDefinition)
         {
+            if (!Initialized)
+                Initialize();
             int? lastDecisionWithAnotherAction = null;
 
             fixed (byte* historyPtr = History)

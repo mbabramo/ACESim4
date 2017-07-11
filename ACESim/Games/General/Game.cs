@@ -70,7 +70,7 @@ namespace ACESim
                 progress = gameFactory.CreateNewGameProgress(progress.IterationID);
             }
             if (restartFromBeginningOfGame)
-                progress.GameHistory = new GameHistory().Initialize();
+                progress.GameHistory.Reinitialize();
 
             this.Strategies = strategies;
             this.Progress = progress;

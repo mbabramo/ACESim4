@@ -23,7 +23,7 @@ namespace ACESim
 
         public CurrentExecutionInformation CurrentExecutionInformation { get; set; }
 
-        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.PlayUnderlyingGame;
+        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
 
         public HistoryNavigationInfo Navigation;
 
@@ -104,6 +104,7 @@ namespace ACESim
             // First, add the utilities at the end of the tree for this path.
             byte* actionsEnumerator = stackalloc byte[GameHistory.MaxNumActions];
             gameProgress.GameHistory.GetActions(actionsEnumerator);
+            var DEBUG3 = ListExtensions.GetPointerAsList_255Terminated(actionsEnumerator);
             SaveFinalUtilities(gameProgress, actionsEnumerator);
 
             // Go through each non-chance decision point on this path and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
@@ -227,20 +228,17 @@ namespace ACESim
         private unsafe HistoryPoint GetStartOfGameHistoryPoint()
         {
             GameHistory gameHistory = new GameHistory();
-            if (Navigation.LookupApproach != InformationSetLookupApproach.CachedGameTreeOnly)
-                gameHistory.Initialize();
             switch (Navigation.LookupApproach)
             {
                 case InformationSetLookupApproach.PlayUnderlyingGame:
                     GameProgress startingProgress = GameFactory.CreateNewGameProgress(new IterationID(1));
-                    startingProgress.GameHistory.Initialize(); // usually initialized by the game, but here we're not yet playing the game
                     return new HistoryPoint(null, startingProgress.GameHistory, startingProgress);
                 case InformationSetLookupApproach.CachedGameTreeOnly:
                     return new HistoryPoint(GameHistoryTree, new GameHistory() /* won't even initialize, since won't be used */, null);
                 case InformationSetLookupApproach.CachedGameHistoryOnly:
-                    return new HistoryPoint(null, new GameHistory().Initialize(), null);
+                    return new HistoryPoint(null, new GameHistory(), null);
                 case InformationSetLookupApproach.CachedBothMethods:
-                    return new HistoryPoint(GameHistoryTree, new GameHistory().Initialize(), null);
+                    return new HistoryPoint(GameHistoryTree, new GameHistory(), null);
                 default:
                     throw new Exception(); // unexpected lookup approach -- won't be called
             }
@@ -393,12 +391,12 @@ namespace ACESim
             // start Task Parallel Library consumer/producer pattern
             var resultsBuffer = new BufferBlock<Tuple<GameProgress, double>>(new DataflowBlockOptions { BoundedCapacity = 10000 });
             var consumer = ProcessCompletedGameProgresses(resultsBuffer);
+            // DEBUG -- can we just use PlayAllPaths?
             // play each path and then asynchronously consume the result
             void completedGameProcessor(HistoryPoint completedGame, double probability) 
             {
-                GameProgress progress = startingProgress.DeepCopy();
                 List<byte> actions = completedGame.GetActionsToHere(Navigation);
-                player.PlayPath(actions, progress, inputs, false);
+                (GameProgress progress, _) = player.PlayPath(actions, inputs, false);
                 // do the simple aggregation of utilities. note that this is different from the value returned by vanilla, since that uses regret matching, instead of average strategies.
                 double[] utilities = GetUtilities(completedGame);
                 for (int p = 0; p < NumNonChancePlayers; p++)
@@ -715,7 +713,7 @@ namespace ACESim
                 GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false, nextPiValues); // reduce probability associated with player being optimized, without changing probabilities for other players
                 if (TraceVanillaCRM)
                 {
-                    TabbedText.WriteLine($"History point: {historyPoint}"); // DEBUG
+                    //TabbedText.WriteLine($"History point: {historyPoint}"); // DEBUG
                     TabbedText.WriteLine($"decisionNum {decisionNum} optimizing player {playerBeingOptimized}  own decision {playerMakingDecision == playerBeingOptimized} action {action} probability {probabilityOfAction} ...");
                     TabbedText.Tabs++;
                 }
@@ -807,8 +805,8 @@ namespace ACESim
             HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
             if (TraceVanillaCRM)
             {
-                TabbedText.WriteLine($"History point: {historyPoint}"); // DEBUG
-                TabbedText.WriteLine($"Next history point: {nextHistoryPoint}"); // DEBUG
+                //TabbedText.WriteLine($"History point: {historyPoint}"); // DEBUG
+                //TabbedText.WriteLine($"Next history point: {nextHistoryPoint}"); // DEBUG
                 TabbedText.WriteLine($"Chance decisionNum {chanceNodeSettings.DecisionByteCode} action {action} probability {actionProbability} ...");
                 TabbedText.Tabs++;
             }

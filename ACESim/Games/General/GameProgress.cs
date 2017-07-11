@@ -97,7 +97,7 @@ namespace ACESim
                 foreach (var gmp in GameModuleProgresses)
                     gmp.Recycle();
             GameModuleProgresses = null;
-            GameHistory.Initialize();
+            GameHistory.Reinitialize();
             ActionsToPlay = null;
             ActionsToPlayIndex = -1;
             GameComplete = false;
