@@ -151,6 +151,29 @@ namespace ACESim
             }
         }
 
+        public byte GetNextDecisionIndex(HistoryNavigationInfo navigation)
+        {
+            if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly)
+            {
+                switch (TreePoint.StoredValue)
+                {
+                    case CRMInformationSetNodeTally nt:
+                        return nt.DecisionIndex;
+                    case CRMChanceNodeSettings cn:
+                        return cn.DecisionIndex;
+                    case double[] utils:
+                        throw new NotImplementedException();
+                    default:
+                        throw new NotImplementedException();
+                }
+            }
+            else // may be actual game or cached game history -- either way, we'll use the game history
+            {
+                (Decision nextDecision, byte nextDecisionIndex) = navigation.GameDefinition.GetNextDecision(HistoryToPoint);
+                return nextDecisionIndex;
+            }
+        }
+
         public unsafe void SetInformationIfNotSet(HistoryNavigationInfo navigation, GameProgress gameProgress, InformationSetHistory informationSetHistory)
         {
             //var DEBUG = informationSetHistory.ToString();
@@ -177,14 +200,16 @@ namespace ACESim
                                 if (decision.UnevenChanceActions)
                                     chanceNodeSettings = new CRMChanceNodeSettings_UnequalProbabilities()
                                     {
-                                        DecisionByteCode = informationSetHistory.DecisionIndex,
+                                        DecisionByteCode = informationSetHistory.DecisionByteCode,
+                                        DecisionIndex = informationSetHistory.DecisionIndex,
                                         PlayerNum = informationSetHistory.PlayerIndex,
                                         Probabilities = navigation.GameDefinition.GetChanceActionProbabilities(decision.DecisionByteCode, gameProgress) // the probabilities depend on the current state of the game
                                     };
                                 else
                                     chanceNodeSettings = new CRMChanceNodeSettings_EqualProbabilities()
                                     {
-                                        DecisionByteCode = informationSetHistory.DecisionIndex,
+                                        DecisionByteCode = informationSetHistory.DecisionByteCode,
+                                        DecisionIndex = informationSetHistory.DecisionIndex,
                                         PlayerNum = informationSetHistory.PlayerIndex,
                                         EachProbability = 1.0 / (double)decision.NumPossibleActions
                                     };
@@ -216,6 +241,21 @@ namespace ACESim
                         );
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
                 TreePoint.StoredValue = informationSetNode;
+        }
+
+        public bool NodeIsChanceNode(HistoryNavigationInfo navigation)
+        {
+            return GetGameStateForCurrentPlayer(navigation) is CRMChanceNodeSettings;
+        }
+
+        public CRMInformationSetNodeTally GetInformationSetNodeTally(HistoryNavigationInfo navigation)
+        {
+            return GetGameStateForCurrentPlayer(navigation) as CRMInformationSetNodeTally;
+        }
+
+        public CRMChanceNodeSettings GetInformationSetChanceSettings(HistoryNavigationInfo navigation)
+        {
+            return GetGameStateForCurrentPlayer(navigation) as CRMChanceNodeSettings;
         }
 
     }

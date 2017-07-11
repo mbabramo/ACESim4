@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
+    [Serializable]
     public class SimpleReportColumnFilter : SimpleReportColumnItem
     {
         public Func<GameProgress, bool> Filter;

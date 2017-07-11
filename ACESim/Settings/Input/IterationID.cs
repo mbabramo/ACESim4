@@ -19,6 +19,15 @@ namespace ACESim
             IterationNumber = iterationNumber;
         }
 
+        public double GetRandomNumberBasedOnIterationID(byte randomIndex)
+        {
+            unchecked
+            {
+                Random r = new Random((int)(179425399 * randomIndex + IterationNumber)); // use a large prime so that we don't repeat
+                return r.NextDouble();
+            }
+        }
+
         public virtual long GetIterationNumber(int seedIndex)
         {
             return IterationNumber;

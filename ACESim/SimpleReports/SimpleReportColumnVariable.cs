@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
+    [Serializable]
     public class SimpleReportColumnVariable : SimpleReportColumnItem
     {
         public bool Stdev; // if false, report the mean

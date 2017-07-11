@@ -11,6 +11,7 @@ namespace ACESim
     {
         public byte PlayerNum;
         public byte DecisionByteCode;
+        public byte DecisionIndex;
         public abstract double GetActionProbability(int action);
 
         public abstract bool AllProbabilitiesEqual();

@@ -5,6 +5,7 @@ using System.Text;
 
 namespace ACESim
 {
+    [Serializable]
     public class MyGameInputs : GameInputs
     {
     }

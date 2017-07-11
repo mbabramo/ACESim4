@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ACESim.Util
 {
-
+    [Serializable]
     public struct DiscreteValueSignalParameters
     {
         public int NumPointsInSourceUniformDistribution;

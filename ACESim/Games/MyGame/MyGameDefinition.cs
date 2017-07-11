@@ -7,6 +7,7 @@ using ACESim.Util;
 
 namespace ACESim
 {
+    [Serializable]
     [Export(typeof(ICodeBasedSettingGenerator))] // include the export and exportmetadata attributes if we implement GenerateSetting, setting up the GameModule by code instead of in the settings file.
     [ExportMetadata("CodeGeneratorName", "MyGameDefinition")]
     public class MyGameDefinition : GameDefinition, ICodeBasedSettingGenerator, ICodeBasedSettingGeneratorName
@@ -73,7 +74,6 @@ namespace ACESim
             Players = GetPlayersList();
             NumPlayers = (byte) Players.Count();
             DecisionsExecutionOrder = GetDecisionsList();
-            SimpleReportDefinitions = GetReports();
 
             if (SubsequentOffersAreDeltas)
                 DeltaOffersCalculation = new DeltaOffersCalculation(this);
@@ -226,7 +226,7 @@ namespace ACESim
         }
 
 
-        private List<SimpleReportDefinition> GetReports()
+        public override List<SimpleReportDefinition> GetSimpleReportDefinitions()
         {
             var reports = new List<SimpleReportDefinition>();
             reports.Add(GetOverallReport());
@@ -243,7 +243,6 @@ namespace ACESim
 
         private SimpleReportDefinition GetOverallReport()
         {
-
             var colItems = new List<SimpleReportColumnItem>()
                 {
                     new SimpleReportColumnFilter("All", (GameProgress gp) => true, true),

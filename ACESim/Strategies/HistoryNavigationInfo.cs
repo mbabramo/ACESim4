@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
+    [Serializable]
     public struct HistoryNavigationInfo
     {
         public InformationSetLookupApproach LookupApproach;

@@ -3,12 +3,14 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace ACESim
 {
-    public unsafe struct GameHistory
+    [Serializable]
+    public unsafe struct GameHistory : ISerializable
     {
         public const int MaxHistoryLength = 100;
         public const int MaxInformationSetLength = 500; // MUST equal MaxInformationSetLengthPerPlayer * MaxNumPlayers. 
@@ -18,13 +20,6 @@ namespace ACESim
         const byte HistoryComplete = 254;
         const byte HistoryIncomplete = 255;
 
-        public fixed byte History[MaxHistoryLength];
-        public short LastIndexAddedToHistory;
-        public int NumberDecisions => (LastIndexAddedToHistory - 1) / 4;
-
-        // Information set structure. We have an information set buffer for each player. We need to be able to remove information from the information set for a player, but still to remember that it was there as of a particular point in time, so that we can figure out what the information set was as of a particular decision. (This is needed for reconstructing the game play.) We thus store information in pairs. The first byte consists of the decision byte code after which we are making changes. The second byte either consists of an item to add, or 254, indicating that we are removing an item from the information set. All of this is internal. When we get the information set, we get it as of a certain point, and thus we skip decision byte codes and automatically process deletions. 
-        public bool Initialized;
-        public fixed byte InformationSets[MaxInformationSetLength]; // a buffer for each player, terminated by 255.
         const byte RemoveItemFromInformationSet = 254;
 
         private const byte History_DecisionByteCode_Offset = 0;
@@ -33,6 +28,50 @@ namespace ACESim
         private const byte History_Action_Offset = 3;
         private const byte History_NumPossibleActions_Offset = 4;
         private const byte History_NumPiecesOfInformation = 5; // the total number of pieces of information above, so that we know how much to skip (i.e., 0, 1, 2, and 3)
+
+        public fixed byte History[MaxHistoryLength];
+        public short LastIndexAddedToHistory;
+        public int NumberDecisions => (LastIndexAddedToHistory - 1) / 4;
+
+        // Information set structure. We have an information set buffer for each player. We need to be able to remove information from the information set for a player, but still to remember that it was there as of a particular point in time, so that we can figure out what the information set was as of a particular decision. (This is needed for reconstructing the game play.) We thus store information in pairs. The first byte consists of the decision byte code after which we are making changes. The second byte either consists of an item to add, or 254, indicating that we are removing an item from the information set. All of this is internal. When we get the information set, we get it as of a certain point, and thus we skip decision byte codes and automatically process deletions. 
+        public bool Initialized;
+        public fixed byte InformationSets[MaxInformationSetLength]; // a buffer for each player, terminated by 255.
+                                                                    // Implement this method to serialize data. The method is called 
+                                                                    // on serialization.
+
+        public void GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            // Use the AddValue method to specify serialized values.
+            byte[] history = new byte[MaxHistoryLength];
+            fixed (byte* ptr = History)
+                for (int b = 0; b < MaxHistoryLength; b++)
+                    history[b] = *(ptr + b);
+            byte[] informationSets = new byte[MaxInformationSetLength];
+            fixed (byte* ptr = InformationSets)
+                for (int b = 0; b < MaxInformationSetLength; b++)
+                    informationSets[b] = *(ptr + b);
+
+            info.AddValue("history", history, typeof(byte[]));
+            info.AddValue("informationSets", informationSets, typeof(byte[]));
+            info.AddValue("LastIndexAddedToHistory", LastIndexAddedToHistory, typeof(short));
+            info.AddValue("Initialized", Initialized, typeof(bool));
+
+        }
+
+        // The special constructor is used to deserialize values.
+        public GameHistory(SerializationInfo info, StreamingContext context)
+        {
+            byte[] history = (byte[])info.GetValue("history", typeof(byte[]));
+            byte[] informationSets = (byte[])info.GetValue("informationSets", typeof(byte[]));
+            fixed (byte* ptr = History)
+                for (int b = 0; b < MaxHistoryLength; b++)
+                    *(ptr + b) = history[b];
+            fixed (byte* ptr = InformationSets)
+                for (int b = 0; b < MaxInformationSetLength; b++)
+                    *(ptr + b) = informationSets[b];
+            LastIndexAddedToHistory = (short)info.GetValue("LastIndexAddedToHistory", typeof(short));
+            Initialized = (bool)info.GetValue("Initialized", typeof(bool));
+        }
 
         #region Construction and adding information
 

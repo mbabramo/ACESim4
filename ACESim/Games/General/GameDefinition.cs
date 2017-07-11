@@ -57,8 +57,6 @@ namespace ACESim
         [InternallyDefinedSetting]
         private List<int> ActionPointIndexForEachDecision;
 
-        public List<SimpleReportDefinition> SimpleReportDefinitions;
-
         public ActionPoint DecisionPointForDecisionNumber(int decisionNumber)
         {
             return ExecutionOrder[ExecutionOrderIndexForEachDecision[decisionNumber]].ActionPoints[ActionPointIndexForEachDecision[decisionNumber]] as ActionPoint;
@@ -390,6 +388,10 @@ namespace ACESim
             if (lastDecisionIndex != null)
                 nextDecisionIndex = (byte) (((byte) lastDecisionIndex) + (byte)1);
             return (DecisionsExecutionOrder[nextDecisionIndex], nextDecisionIndex);
+        }
+        public virtual List<SimpleReportDefinition> GetSimpleReportDefinitions()
+        {
+            return new List<SimpleReportDefinition>();
         }
     }
 }
