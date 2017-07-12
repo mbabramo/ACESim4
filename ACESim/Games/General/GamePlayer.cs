@@ -48,12 +48,11 @@ namespace ACESim
             List<GameProgress> preplayedGameProgressInfos,
             int numIterations,
             IUiInteraction simulationInteraction,
-            GameInputs[] gameInputsArray = null,
             IterationID[] iterationIDArray = null,
             bool returnCompletedGameProgressInfos = false,
             int? currentlyEvolvingDecision = null)
         {
-            return PlayStrategy(bestStrategies[0], 0, preplayedGameProgressInfos, numIterations, simulationInteraction, gameInputsArray, iterationIDArray, returnCompletedGameProgressInfos, currentlyEvolvingDecision);
+            return PlayStrategy(bestStrategies[0], 0, preplayedGameProgressInfos, numIterations, simulationInteraction, iterationIDArray, returnCompletedGameProgressInfos, currentlyEvolvingDecision);
         }
 
         public IEnumerable<GameProgress> PlayStrategy(
@@ -62,25 +61,18 @@ namespace ACESim
             List<GameProgress> preplayedGameProgressInfos,
             int numIterations,
             IUiInteraction simulationInteraction,
-            GameInputs[] gameInputsArray = null,
             IterationID[] iterationIDArray = null,
             bool returnCompletedGameProgressInfos = false, 
             int? currentlyEvolvingDecision = null)
         {
             if (returnCompletedGameProgressInfos)
                 CompletedGameProgresses = new ConcurrentBag<GameProgress>();
-            simulationInteraction.CurrentExecutionInformation.GameFactory = GameFactory;
-
-            if (gameInputsArray == null)
-            {
-                gameInputsArray = new GameInputs[numIterations];
+            
                 iterationIDArray = new IterationID[numIterations];
                 for (long i = 0; i < numIterations; i++)
                 {
                     iterationIDArray[i] = new IterationID(i);
-                    gameInputsArray[i] = simulationInteraction.GetGameInputs(numIterations, iterationIDArray[i]);
                 }
-            }
             
             GameProgress evenIterationGameProgress = null;
 
@@ -104,7 +96,7 @@ namespace ACESim
                     //    GameProgressLogger.OutputLogMessages = false;
                     //}
                     // Remove comments from the following to log a particular iteration repeatedly. We can use this to see how changing settings affects a particular iteration.
-                    PlayHelper(i, strategiesToPlayWith, returnCompletedGameProgressInfos, gameInputsArray, iterationIDArray, preplayedGameProgressInfos, currentlyEvolvingDecision, decisionNumber == currentlyEvolvingDecision ? (int?)decisionNumber : (int?)null);
+                    PlayHelper(i, strategiesToPlayWith, returnCompletedGameProgressInfos, iterationIDArray, preplayedGameProgressInfos, currentlyEvolvingDecision, decisionNumber == currentlyEvolvingDecision ? (int?)decisionNumber : (int?)null);
                     
                 }
             );
@@ -112,36 +104,36 @@ namespace ACESim
             return CompletedGameProgresses;
         }
 
-        public void PlaySinglePath(string path, GameInputs gameInputsToUse)
+        public void PlaySinglePath(string path)
         {
             IEnumerable<byte> path2 = path.Split(',').Select(x => Convert.ToByte(x)).ToList();
-            PlaySinglePath(gameInputsToUse, path2);
+            PlaySinglePath(path2);
         }
 
-        public void PlaySinglePath(GameInputs gameInputsToUse, IEnumerable<byte> path)
+        public void PlaySinglePath(IEnumerable<byte> path)
         {
-            (GameProgress gameProgress, IEnumerable<byte> next) = PlayPath(path, gameInputsToUse, true);
+            (GameProgress gameProgress, IEnumerable<byte> next) = PlayPath(path, true);
         }
 
-        public int PlayAllPaths(GameInputs gameInputsToUse, Action<GameProgress> actionToTake)
+        public int PlayAllPaths(Action<GameProgress> actionToTake)
         {
             Stopwatch s = new Stopwatch();
             s.Start();
-            Action<GameInputs, Action<GameProgress>> playPathsFn = DoParallel ? (Action<GameInputs, Action<GameProgress>>) PlayAllPaths_Parallel : PlayAllPaths_Serial;
+            Action<Action<GameProgress>> playPathsFn = DoParallel ? (Action<Action<GameProgress>>) PlayAllPaths_Parallel : PlayAllPaths_Serial;
             int numPathsPlayed = 0;
-            playPathsFn(gameInputsToUse, gp => { actionToTake(gp); Interlocked.Increment(ref numPathsPlayed); }) ;
+            playPathsFn(gp => { actionToTake(gp); Interlocked.Increment(ref numPathsPlayed); }) ;
             s.Stop();
             Debug.WriteLine("PlayAllPathsTime " + s.ElapsedMilliseconds);
             return numPathsPlayed;
         }
 
-        public void PlayAllPaths_Serial(GameInputs gameInputsToUse, Action<GameProgress> processor)
+        public void PlayAllPaths_Serial(Action<GameProgress> processor)
         {
             // This method plays all game paths (without having any advance knowledge of what those game paths are). 
             IEnumerable<byte> path = new List<byte> { };
             while (path != null)
             {
-                (GameProgress gameProgress, IEnumerable<byte> next) = PlayPath(path, gameInputsToUse, true);
+                (GameProgress gameProgress, IEnumerable<byte> next) = PlayPath(path, true);
                 if ("1,1,1,1,2,1,1" == String.Join(",", gameProgress.GameHistory.GetActionsAsList()))
                 {
                     var DEBUG = 0;
@@ -171,7 +163,7 @@ namespace ACESim
             }
         }
         
-        public void PlayAllPaths_Parallel(GameInputs gameInputsToUse, Action<GameProgress> processor)
+        public void PlayAllPaths_Parallel(Action<GameProgress> processor)
         {
 
             // This method plays all game paths (without having any advance knowledge of what those game paths are). 
@@ -221,7 +213,7 @@ namespace ACESim
             GameProgress ConvertPathInfoToGameProgressAndPlanNextPath(PathInfo pathToPlay)
             {
                 //Debug.WriteLine($"Playing {String.Join(",", pathToPlay.Path)}");
-                (GameProgress gameProgress, IEnumerable<byte> nextAsEnumerable) = PlayPath(pathToPlay.Path, gameInputsToUse, true);
+                (GameProgress gameProgress, IEnumerable<byte> nextAsEnumerable) = PlayPath(pathToPlay.Path, true);
                 List<byte> next = nextAsEnumerable?.ToList();
                 if (next != null)
                 {
@@ -282,7 +274,7 @@ namespace ACESim
             //Debug.WriteLine($"Yielded: {numYielded} {numYielded2}");
         }
 
-        public unsafe (GameProgress progress, IEnumerable<byte> next) PlayPath(IEnumerable<byte> actionsToPlay, GameInputs gameInputsToUse, bool getNextPath)
+        public unsafe (GameProgress progress, IEnumerable<byte> next) PlayPath(IEnumerable<byte> actionsToPlay, bool getNextPath)
         {
             byte* actionsToPlay_AsPointer = stackalloc byte[GameHistory.MaxNumActions];
             int d = 0;
@@ -292,57 +284,57 @@ namespace ACESim
             byte* nextActionsToPlay = stackalloc byte[GameHistory.MaxNumActions];
             if (!getNextPath)
                 nextActionsToPlay = null;
-            GameProgress progress = PlayPathAndKeepGoing(actionsToPlay_AsPointer, gameInputsToUse, ref nextActionsToPlay);
+            GameProgress progress = PlayPathAndKeepGoing(actionsToPlay_AsPointer, ref nextActionsToPlay);
             if (nextActionsToPlay == null)
                 return (progress, null);
             List<byte> nextActionsToPlayList = ListExtensions.GetPointerAsList_255Terminated(nextActionsToPlay);
             return (progress, nextActionsToPlayList.AsEnumerable());
         }
 
-        public unsafe GameProgress PlayPathAndStop(List<byte> actionsToPlay, GameInputs gameInputsToUse, ref byte* nextActionsToPlay)
+        public unsafe GameProgress PlayPathAndStop(List<byte> actionsToPlay, ref byte* nextActionsToPlay)
         {
             Game game = GameFactory.CreateNewGame();
             GameProgress gameProgress = StartingProgress.DeepCopy();
-            game.PlaySetup(bestStrategies, gameProgress, gameInputsToUse, GameDefinition, false, true);
+            game.PlaySetup(bestStrategies, gameProgress, GameDefinition, false, true);
             game.PlayPathAndStop(actionsToPlay);
             return gameProgress;
         }
 
-        public unsafe GameProgress PlayPathAndKeepGoing(byte* actionsToPlay, GameInputs gameInputsToUse, ref byte* nextActionsToPlay)
+        public unsafe GameProgress PlayPathAndKeepGoing(byte* actionsToPlay, ref byte* nextActionsToPlay)
         {
             Game game = GameFactory.CreateNewGame();
             GameProgress gameProgress = StartingProgress.DeepCopy();
-            game.PlaySetup(bestStrategies, gameProgress, gameInputsToUse, GameDefinition, false, true);
+            game.PlaySetup(bestStrategies, gameProgress, GameDefinition, false, true);
             game.PlayPathAndContinueWithDefaultAction(actionsToPlay, ref nextActionsToPlay);
             return gameProgress;
         }
 
 
-        private GameProgress PlayGameFromSpecifiedPoint(GameInputs inputs, GameProgress currentState)
+        private GameProgress PlayGameFromSpecifiedPoint(GameProgress currentState)
         {
             Game game = GameFactory.CreateNewGame();
-            game.PlaySetup(bestStrategies, currentState, inputs, GameDefinition, false, false);
+            game.PlaySetup(bestStrategies, currentState, GameDefinition, false, false);
             game.PlayUntilComplete();
             return game.Progress;
         }
 
-        public unsafe void ContinuePathWithAction(byte actionToPlay, GameProgress currentGameState, GameInputs gameInputsToUse)
+        public unsafe void ContinuePathWithAction(byte actionToPlay, GameProgress currentGameState)
         {
             Game game = GameFactory.CreateNewGame();
-            game.PlaySetup(bestStrategies, currentGameState, gameInputsToUse, GameDefinition, false, false);
+            game.PlaySetup(bestStrategies, currentGameState, GameDefinition, false, false);
             game.ContinuePathWithAction(actionToPlay);
         }
 
-        public GameProgress PlaySpecificIterationStartToFinish(IterationID iterationID, GameInputs inputs)
+        public GameProgress PlaySpecificIterationStartToFinish(IterationID iterationID)
         {
             GameProgress initialGameState = StartingProgress.DeepCopy();
-            return PlayGameFromSpecifiedPoint(inputs, initialGameState);
+            return PlayGameFromSpecifiedPoint(initialGameState);
         }
 
-        public GameProgress DuplicateProgressAndCompleteGame(GameProgress progress, GameInputs inputs)
+        public GameProgress DuplicateProgressAndCompleteGame(GameProgress progress)
         {
             var p2 = progress.DeepCopy();
-            return PlayGameFromSpecifiedPoint(inputs, p2);
+            return PlayGameFromSpecifiedPoint(p2);
         }
 
         // We need to be able to play a subset of a very large number of iterations for a particular number (i.e., not using
@@ -351,7 +343,6 @@ namespace ACESim
         ThreadLocal<int> lastDecisionNumber = new ThreadLocal<int>();
         ThreadLocal<long> lastNumIterations = new ThreadLocal<long>();
         // If we bring back the code to dispose of thread local, we must add true as a parameter to each of these constructors
-        ThreadLocal<List<GameInputs>> lastGameInputsSet = new ThreadLocal<List<GameInputs>>();
         ThreadLocal<List<IterationID>> lastIterationsToGet = new ThreadLocal<List<IterationID>>();
         ThreadLocal<List<GameProgress>> lastPreplayedGames = new ThreadLocal<List<GameProgress>>();
         ThreadLocal<List<double>> lastDecisionInputs = new ThreadLocal<List<double>>();
@@ -363,7 +354,6 @@ namespace ACESim
 
         public void CheckConsistencyForSetOfIterations(long totalNumIterations, List<IterationID> iterationsToGet, SimulationInteraction simulationInteraction)
         {
-            List<GameInputs> gameInputsSet = new List<GameInputs>();
 
             int repetitions = 1; // Should set to 1 (to do all iterations to get once) unless iterationToPlayOverride is non-null, in which case a large number may be desirable
             bool runAllIterationsReached = true; // Should set to iterationsToGet.Count unless you want to try over smaller number
@@ -373,8 +363,6 @@ namespace ACESim
             int? heisenbugTrackingIterNum = null;
             for (int r = 0; r < repetitions; r++)
             {
-                for (int i = 0; i < iterationsToGet.Count; i++)
-                    gameInputsSet.Add(simulationInteraction.GetGameInputs(totalNumIterations, iterationsToGet[i]));
                 GameProgress[,] gameProgressResults = new GameProgress[numberToRunInParallelEachRepetition, 2];
                 bool useParallel = true; // In general, this should be true, in part because parallelism problems could cause some problems. But, one can then true to set this false to see if problems still occur, since it will be easier to trace problems if parallelism is not used.
                 for (int p = 0; p <= 1; p++)
@@ -382,7 +370,7 @@ namespace ACESim
                         {
                             // We'll go in opposite order the second time through with parallelism, to maximize the chance that we get different results with parallelism
                             int iterationToUse = p == 0 || !useParallel || numberToRunInParallelEachRepetition != iterationsToGet.Count ? iterNum : iterationsToGet.Count - iterNum - 1;
-                            gameProgressResults[iterationToUse, p] = PlaySpecificIterationStartToFinish(iterationsToGet[iterationToPlayOverride ?? iterationToUse], gameInputsSet[iterationToPlayOverride ?? iterationToUse]);
+                            gameProgressResults[iterationToUse, p] = PlaySpecificIterationStartToFinish(iterationsToGet[iterationToPlayOverride ?? iterationToUse]);
                         }
                     );
                 object lockObj = new object();
@@ -411,7 +399,7 @@ namespace ACESim
             if (doHeisenbugTracking)
             {
                 HeisenbugTracker.KeepTryingRandomSchedulesUntilProblemIsFound_ThenRunScheduleRepeatedly(
-                    x => (object)PlaySpecificIterationStartToFinish(iterationsToGet[(int)x], gameInputsSet[(int)x]),
+                    x => (object)PlaySpecificIterationStartToFinish(iterationsToGet[(int)x]),
                     (int)heisenbugTrackingIterNum,
                     (int)heisenbugTrackingIterNum, 
                     (x, y) => !FieldwiseObjectComparison.AreEqual((GameProgress)x, (GameProgress)y, false, false));
@@ -427,7 +415,7 @@ namespace ACESim
         /// resulting for each iteration should be added to completedGames; that way, after evolution is complete, 
         /// the GameProgressInfo objects can be called to generate reports.
         /// </summary>
-        void PlayHelper(int iteration, List<Strategy> strategies, bool saveCompletedGameProgressInfos, GameInputs[] gameInputsArray, IterationID[] iterationIDArray, List<GameProgress> preplayedGameProgressInfos, int? currentlyEvolvingDecision, int? recordInputsForDecision)
+        void PlayHelper(int iteration, List<Strategy> strategies, bool saveCompletedGameProgressInfos, IterationID[] iterationIDArray, List<GameProgress> preplayedGameProgressInfos, int? currentlyEvolvingDecision, int? recordInputsForDecision)
         {
             GameProgress gameProgress;
             if (preplayedGameProgressInfos != null)
@@ -440,7 +428,7 @@ namespace ACESim
             }
 
             Game game = GameFactory.CreateNewGame();
-            game.PlaySetup(strategies, gameProgress, gameInputsArray[iteration], GameDefinition, saveCompletedGameProgressInfos, false);
+            game.PlaySetup(strategies, gameProgress, GameDefinition, saveCompletedGameProgressInfos, false);
             game.PlayUntilComplete();
 
             if (saveCompletedGameProgressInfos)

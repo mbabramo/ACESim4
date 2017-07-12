@@ -79,8 +79,7 @@ namespace ACESim
         
         public unsafe void Initialize()
         {
-            GameInputs inputs = GetGameInputs();
-            Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, inputs);
+            Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition);
 
             // DEBUG -- we will do this but not yet
             //if (Navigation.LookupApproach == InformationSetLookupApproach.GameHistoryOnly)
@@ -95,9 +94,9 @@ namespace ACESim
                 s.CreateInformationSetTree(GameDefinition.DecisionsExecutionOrder.FirstOrDefault(x => x.PlayerNumber == s.PlayerInfo.PlayerIndex)?.NumPossibleActions ?? (byte) 1);
             }
             
-            int numPathsPlayed = player.PlayAllPaths(inputs, ProcessInitializedGameProgress);
+            int numPathsPlayed = player.PlayAllPaths(ProcessInitializedGameProgress);
             Debug.WriteLine($"Initialized. Total paths: {numPathsPlayed}");
-            PrintSameGameResults(player, inputs);
+            PrintSameGameResults(player);
         }
 
         unsafe void ProcessInitializedGameProgress(GameProgress gameProgress)
@@ -149,12 +148,12 @@ namespace ACESim
 
         double printProbability = 0;
         bool processIfNotPrinting = false;
-        private unsafe void PrintSameGameResults(GamePlayer player, GameInputs inputs)
+        private unsafe void PrintSameGameResults(GamePlayer player)
         {
             //player.PlaySinglePath("1,1,1,1,2,1,1", inputs); // use this to trace through a single path
             if (printProbability == 0 && !processIfNotPrinting)
                 return;
-            player.PlayAllPaths(inputs, PrintGameProbabilistically);
+            player.PlayAllPaths(PrintGameProbabilistically);
         }
 
         private unsafe void PrintGameProbabilistically(GameProgress progress)
@@ -217,14 +216,7 @@ namespace ACESim
         #endregion
 
         #region Utility methods
-
-        private GameInputs GetGameInputs()
-        {
-            Type theType = GameFactory.GetSimulationSettingsType();
-            InputVariables inputVariables = new InputVariables(CurrentExecutionInformation);
-            GameInputs inputs = inputVariables.GetGameInputs(theType, 1, new IterationID(1), CurrentExecutionInformation);
-            return inputs;
-        }
+        
 
         private unsafe HistoryPoint GetStartOfGameHistoryPoint()
         {
@@ -292,7 +284,7 @@ namespace ACESim
             return player.PlayStrategy(null, numIterations, CurrentExecutionInformation.UiInteraction).ToList();
         }
 
-        bool UseRandomPaths = true;
+        bool UseRandomPaths = false;
 
         private void GenerateReports_RandomPaths(GamePlayer player)
         {
@@ -345,8 +337,7 @@ namespace ACESim
         public string GenerateReports(ActionStrategies actionStrategy)
         {
             GamePlayer player = new GamePlayer(Strategies, GameFactory, EvolutionSettings.ParallelOptimization, GameDefinition);
-            GameInputs inputs = GetGameInputs();
-            Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, inputs);
+            Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition);
             StringBuilder sb = new StringBuilder();
             var simpleReportDefinitions = GameDefinition.GetSimpleReportDefinitions();
             int simpleReportDefinitionsCount = simpleReportDefinitions.Count();
@@ -356,7 +347,7 @@ namespace ACESim
             if (UseRandomPaths)
                 GenerateReports_RandomPaths(player);
             else
-                GenerateReports_AllPaths(player, inputs, actionStrategy);
+                GenerateReports_AllPaths(player, actionStrategy);
             for (int i = 0; i < simpleReportDefinitionsCount; i++)
                 ReportsBeingGenerated[i].GetReport(sb, false);
             ReportsBeingGenerated = null;
@@ -367,7 +358,7 @@ namespace ACESim
 
 
 
-        private void GenerateReports_AllPaths(GamePlayer player, GameInputs inputs, ActionStrategies actionStrategy)
+        private void GenerateReports_AllPaths(GamePlayer player, ActionStrategies actionStrategy)
         {
             UtilityCalculations = new StatCollector[NumNonChancePlayers];
             for (int p = 0; p < NumNonChancePlayers; p++)
@@ -380,7 +371,7 @@ namespace ACESim
             {
                 // play each path and then asynchronously consume the result, including the probability of the game path
                 List<byte> actions = completedGame.GetActionsToHere(Navigation);
-                (GameProgress progress, _) = player.PlayPath(actions, inputs, false);
+                (GameProgress progress, _) = player.PlayPath(actions, false);
                 // do the simple aggregation of utilities. note that this is different from the value returned by vanilla, since that uses regret matching, instead of average strategies.
                 double[] utilities = GetUtilities(completedGame);
                 for (int p = 0; p < NumNonChancePlayers; p++)

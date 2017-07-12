@@ -513,10 +513,5 @@ namespace ACESim
             if (resumeProgress.Checked)
                 saveProgress.Checked = true;
         }
-
-        public GameInputs GetGameInputs(long numIterations, IterationID iterationID)
-        {
-            throw new NotImplementedException();
-        }
     }
 }

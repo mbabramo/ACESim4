@@ -48,15 +48,6 @@ namespace ACESim
             return (GameDefinition)GetSettings(theType, CurrentExecutionInformation.GameDefinitionsSet.settings, 1, false, null, null);
         }
 
-        Type lastGameInputsType = null;
-        public GameInputs GetGameInputs(Type theType, long numIterations, IterationID iterationID, CurrentExecutionInformation settings)
-        {
-            here(); // consider deleting everything about GameInputs.
-
-            object gameInputsAsObject = GetSettings(theType, CurrentExecutionInformation.GameInputsSet.settings, numIterations, true, settings, null, iterationID);
-            return (GameInputs)gameInputsAsObject;
-        }
-
         InputSeeds lastInputSeeds = null;
 
         static object storedSettingsInfoLock = new object();

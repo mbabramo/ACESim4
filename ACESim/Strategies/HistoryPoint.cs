@@ -109,7 +109,7 @@ namespace ACESim
                 var DEBUG2 = GameProgress.GameHistory.GetActionsAsListString();
                 IGameFactory gameFactory = navigation.Strategies[0].SimulationInteraction.CurrentExecutionInformation.GameFactory;
                 GamePlayer player = new GamePlayer(navigation.Strategies, gameFactory, false, navigation.GameDefinition);
-                player.ContinuePathWithAction(actionChosen, nextProgress, navigation.GameInputs);
+                player.ContinuePathWithAction(actionChosen, nextProgress);
                 next.HistoryToPoint = nextProgress.GameHistory;
                 next.GameProgress = nextProgress;
                 return next;

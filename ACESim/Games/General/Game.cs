@@ -15,7 +15,6 @@ namespace ACESim
         public GameProgress Progress;
 
         internal List<Strategy> Strategies;
-        internal GameInputs GameInputs;
         internal StatCollectorArray RecordedInputs;
         internal GameDefinition GameDefinition;
         internal List<GameModule> GameModules;
@@ -60,7 +59,6 @@ namespace ACESim
 	    public virtual void PlaySetup(
             List<Strategy> strategies,
             GameProgress progress,
-            GameInputs gameInputs,
             GameDefinition gameDefinition,
             bool recordReportInfo,
             bool restartFromBeginningOfGame
@@ -77,7 +75,6 @@ namespace ACESim
             this.Strategies = strategies;
             this.Progress = progress;
             this.Progress.GameDefinition = gameDefinition;
-            this.GameInputs = gameInputs;
             this.GameDefinition = gameDefinition;
             this.RecordReportInfo = recordReportInfo;
             SetUpGameModules();
@@ -169,15 +166,6 @@ namespace ACESim
         public virtual double ConvertUniformDistributionDrawToNormalDraw(double uniformDistributionDraw, double stdev)
         {
             return InvNormal.Calculate(uniformDistributionDraw) * stdev;
-        }
-
-        /// <summary>
-        /// Returns the next random number to use in choosing actions in the game. Random numbers are used both by chance and by other players, unless playing a best-response strategy.
-        /// </summary>
-        /// <returns></returns>
-        public virtual double GetNextRandomNumber()
-        {
-            return GameInputs.RandomNumbers[Progress.RandomNumbersUsed++]; // if this produces an out-of-bounds error, then you need more random numbers in the MyGameInputs.xml folder
         }
 
         public static int NumGamesPlayedAltogether;

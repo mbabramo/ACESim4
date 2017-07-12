@@ -8,7 +8,6 @@ namespace ACESim
     public interface IGameFactory
     {
         Game CreateNewGame();
-        Type GetSimulationSettingsType();
         Type GetGameDefinitionType();
         GameProgress CreateNewGameProgress(IterationID iterationID);
         void InitializeStrategyDevelopment(Strategy strategy);

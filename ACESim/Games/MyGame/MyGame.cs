@@ -12,7 +12,6 @@ namespace ACESim
     public class MyGame : Game
     {
         public MyGameDefinition MyDefinition => (MyGameDefinition)GameDefinition;
-        public MyGameInputs MyInputs => (MyGameInputs)GameInputs;
         public MyGameProgress MyProgress => (MyGameProgress)Progress;
 
         public override bool DecisionIsNeeded(Decision currentDecision)

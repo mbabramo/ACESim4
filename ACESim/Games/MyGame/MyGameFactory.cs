@@ -44,15 +44,6 @@ namespace ACESim
         }
 
         /// <summary>
-        /// Returns the type of SimulationSettings subclass corresponding to the type of game returned by GetNewGame()
-        /// </summary>
-        /// <returns></returns>
-        public Type GetSimulationSettingsType()
-        {
-            return typeof(MyGameInputs);
-        }
-
-        /// <summary>
         /// Returns the type of GameDefinition subclass corresponding to the type of game returned by GetNewGame()
         /// </summary>
         /// <returns></returns>

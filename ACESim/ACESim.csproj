@@ -234,8 +234,6 @@
     <Compile Include="Games\General\Game.cs" />
     <Compile Include="Games\General\GameDefinition.cs" />
     <Compile Include="Games\General\GameFactoryFactory.cs" />
-    <Compile Include="Games\General\GameInputs.cs" />
-    <Compile Include="Games\General\GameInputsModule.cs" />
     <Compile Include="Games\General\GameModule.cs" />
     <Compile Include="Games\General\GameModuleProgress.cs" />
     <Compile Include="Games\General\GamePlayer.cs" />
@@ -245,11 +243,9 @@
     <Compile Include="Games\General\IGameFactory.cs" />
     <Compile Include="Games\General\IGameName.cs" />
     <Compile Include="Games\General\ModularGame.cs" />
-    <Compile Include="Games\General\ModularGameInputs.cs" />
     <Compile Include="Games\MyGame\MyGame.cs" />
     <Compile Include="Games\MyGame\MyGameDefinition.cs" />
     <Compile Include="Games\MyGame\MyGameFactory.cs" />
-    <Compile Include="Games\MyGame\MyGameInputs.cs" />
     <Compile Include="Games\MyGame\MyGameProgress.cs" />
     <Compile Include="Executor\CurrentExecutionInformation.cs" />
     <Compile Include="Executor\Executor.cs" />

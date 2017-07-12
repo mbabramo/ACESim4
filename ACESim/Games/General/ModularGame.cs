@@ -8,8 +8,6 @@ namespace ACESim
 {
     public class ModularGame : Game
     {
-        ModularGameInputsSet InputsSet;
-
         public GameModule GetModule(int indexOfModuleInListOfModulesGameReliesOn)
         {
             return GameModules[GetModuleIndexFromIndexOfModuleInListOfModulesGameReliesOn(indexOfModuleInListOfModulesGameReliesOn)];
@@ -28,20 +26,11 @@ namespace ACESim
         public override void PlaySetup(
             List<Strategy> strategies,
             GameProgress progress,
-            GameInputs gameInputs,
             GameDefinition gameDefinition,
             bool recordReportInfo,
             bool restartFromBeginningOfGame)
         {
-            base.PlaySetup(strategies, progress, gameInputs, gameDefinition, recordReportInfo, restartFromBeginningOfGame);
-            CopyInputsToSpecificModules(gameInputs as ModularGameInputsSet);
-        }
-
-        public void CopyInputsToSpecificModules(ModularGameInputsSet mgi)
-        {
-            InputsSet = mgi;
-            for (int m = 0; m < mgi.GameModulesInputs.Count; m++)
-                GameModules[m].GameModuleInputs = mgi.GameModulesInputs[m];
+            base.PlaySetup(strategies, progress, gameDefinition, recordReportInfo, restartFromBeginningOfGame);
         }
 
         public override void PrepareForOrMakeDecision()

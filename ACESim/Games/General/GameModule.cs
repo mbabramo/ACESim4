@@ -38,12 +38,6 @@ namespace ACESim
         public List<string> Tags;
 
         /// <summary>
-        /// Before a game module is executed, its inputs are copied here.
-        /// </summary>
-        [InternallyDefinedSetting]
-        public GameModuleInputs GameModuleInputs;
-
-        /// <summary>
         /// A name can be given to a game module, so that other modules can find it. Often, this will be the name of the superclass.
         /// </summary>
         [OptionalSetting]

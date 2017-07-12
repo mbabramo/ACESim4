@@ -100,23 +100,7 @@ namespace ACESim
         }
 
 
-
-        InputVariables lastInputVariables = null;
-        public GameInputs GetGameInputs(long numIterations, IterationID iterationID)
-        {
-            InputVariables theInputVariables = null;
-            if (iterationID.IterationNumber > 0 && lastInputVariables != null)
-                theInputVariables = lastInputVariables; // use stored input variables
-            else
-            {
-                theInputVariables = new InputVariables(CurrentExecutionInformation);
-                if (numIterations != 1)
-                    lastInputVariables = theInputVariables; // store this for use in the next group of iterations
-            }
-            Type theType = CurrentExecutionInformation.GameFactory.GetSimulationSettingsType();
-            GameInputs returnVal = theInputVariables.GetGameInputs(theType, numIterations, iterationID, CurrentExecutionInformation);
-            return returnVal;
-        }
+        
 
         public void ReportVariableFromProgram(string name, double value)
         {
