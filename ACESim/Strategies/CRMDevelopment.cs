@@ -299,24 +299,11 @@ namespace ACESim
         }
 
         bool UseRandomPaths = false;
-        int NumIterationsForRandomPaths = 100000;
+        int NumIterationsForRandomPaths = 10000;
 
         private void GenerateReports_RandomPaths(GamePlayer player)
         {
             var gameProgresses = GetRandomCompleteGames(player, NumIterationsForRandomPaths);
-            var DEBUG = new Dictionary<string, int>();
-            for (int i = 0; i < NumIterationsForRandomPaths; i++)
-            {
-                GameProgress gameProgress1 = gameProgresses[i];
-                string gameActions = gameProgress1.GameHistory.GetActionsAsListString();
-                if (!DEBUG.ContainsKey(gameActions))
-                    DEBUG[gameActions] = 1;
-                else
-                    DEBUG[gameActions] = DEBUG[gameActions] + 1;
-                //Debug.WriteLine($"{gameActions} {gameProgress1.GetNonChancePlayerUtilities()[0]}");
-            }
-            foreach (var item in DEBUG.AsEnumerable().OrderBy(x => x.Key))
-                Debug.WriteLine($"{item.Key} => {((double)item.Value) / (double)NumIterationsForRandomPaths}");
             UtilityCalculations = new StatCollector[NumNonChancePlayers];
             for (int p = 0; p < NumNonChancePlayers; p++)
                 UtilityCalculations[p] = new StatCollector();
@@ -328,6 +315,24 @@ namespace ACESim
                 step2_buffer.SendAsync(new Tuple<GameProgress, double>(gameProgress, 1.0));
             step2_buffer.Complete(); // tell consumer nothing more to be produced
             step3_consumer.Wait(); // wait until all have been processed
+        }
+
+        private void CountPaths(List<GameProgress> gameProgresses)
+        {
+            // this is just for testing
+            var CountPaths = new Dictionary<string, int>();
+            for (int i = 0; i < NumIterationsForRandomPaths; i++)
+            {
+                GameProgress gameProgress1 = gameProgresses[i];
+                string gameActions = gameProgress1.GameHistory.GetActionsAsListString();
+                if (!CountPaths.ContainsKey(gameActions))
+                    CountPaths[gameActions] = 1;
+                else
+                    CountPaths[gameActions] = CountPaths[gameActions] + 1;
+                //Debug.WriteLine($"{gameActions} {gameProgress1.GetNonChancePlayerUtilities()[0]}");
+            }
+            foreach (var item in CountPaths.AsEnumerable().OrderBy(x => x.Key))
+                Debug.WriteLine($"{item.Key} => {((double)item.Value) / (double)NumIterationsForRandomPaths}");
         }
 
         public void ProcessAllPaths(HistoryPoint history, Action<HistoryPoint, double> pathPlayer)
