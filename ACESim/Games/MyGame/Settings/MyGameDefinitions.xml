@@ -4,11 +4,11 @@
   <gameDefinitionsAll>
     <gameDefinition name="MyGame">
       <setting name="MyGameDefinition" type="class" subclass="MyGameDefinition" codeGeneratorName="MyGameDefinition" codeGeneratorOptions="
-               NumLitigationQualityPoints: 5; 
-               NumSignals: 5; 
-               NumOffers: 5; 
+               NumLitigationQualityPoints: 3; 
+               NumSignals: 3; 
+               NumOffers: 3; 
                PNoiseStdev: 0.1; DNoiseStdev: 0.1; 
-               PTrialCosts: 0.20; DTrialCosts: 0.20; 
+               PTrialCosts: 0.10; DTrialCosts: 0.10; 
                PerPartyBargainingRoundCosts: 0.05;
                SubsequentOffersAreDeltas: false; DeltaStartingValue: 0.01; MaxDelta: 0.25;
                NumBargainingRounds: 1;

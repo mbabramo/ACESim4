@@ -28,6 +28,17 @@ namespace ACESim
 
         public HistoryNavigationInfo Navigation;
 
+        public ActionStrategies _ActionStrategy;
+        public ActionStrategies ActionStrategy
+        {
+            get => _ActionStrategy;
+            set
+            {
+                _ActionStrategy = value;
+                Strategies.ForEach(x => x.ActionStrategy = value);
+            }
+        }
+
         /// <summary>
         /// A game history tree. On each internal node, the object contained is the information set of the player making the decision, including the information set of the chance player at that game point. 
         /// On each leaf node, the object contained is an array of the players' terminal utilities.
@@ -286,8 +297,8 @@ namespace ACESim
             return player.PlayStrategy(null, numIterations, CurrentExecutionInformation.UiInteraction).ToList();
         }
 
-        bool UseRandomPaths = true;
-        int NumIterationsForRandomPaths = 100000;
+        bool UseRandomPaths = false;
+        int NumIterationsForRandomPaths = 10000;
 
         private void GenerateReports_RandomPaths(GamePlayer player)
         {
@@ -305,9 +316,9 @@ namespace ACESim
             step3_consumer.Wait(); // wait until all have been processed
         }
 
-        public void ProcessAllPaths(HistoryPoint history, Action<HistoryPoint, double> pathPlayer, ActionStrategies actionStrategy)
+        public void ProcessAllPaths(HistoryPoint history, Action<HistoryPoint, double> pathPlayer)
         {
-            ProcessAllPaths_Recursive(history, pathPlayer, actionStrategy, 1.0);
+            ProcessAllPaths_Recursive(history, pathPlayer, ActionStrategy, 1.0);
         }
 
         private void ProcessAllPaths_Recursive(HistoryPoint history, Action<HistoryPoint, double> pathPlayer, ActionStrategies actionStrategy, double probability)
@@ -337,7 +348,7 @@ namespace ACESim
 
         SimpleReport[] ReportsBeingGenerated = null;
 
-        public string GenerateReports(ActionStrategies actionStrategy)
+        public string GenerateReports(Action<GamePlayer> generator)
         {
             GamePlayer player = new GamePlayer(Strategies, GameFactory, EvolutionSettings.ParallelOptimization, GameDefinition);
             Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition);
@@ -347,10 +358,7 @@ namespace ACESim
             ReportsBeingGenerated = new SimpleReport[simpleReportDefinitionsCount];
             for (int i = 0; i < simpleReportDefinitionsCount; i++)
                 ReportsBeingGenerated[i] = new SimpleReport(simpleReportDefinitions[i], simpleReportDefinitions[i].DivideColumnFiltersByImmediatelyEarlierReport ? ReportsBeingGenerated[i - 1] : null);
-            if (UseRandomPaths)
-                GenerateReports_RandomPaths(player);
-            else
-                GenerateReports_AllPaths(player, actionStrategy);
+            generator(player);
             for (int i = 0; i < simpleReportDefinitionsCount; i++)
                 ReportsBeingGenerated[i].GetReport(sb, false);
             ReportsBeingGenerated = null;
@@ -361,7 +369,7 @@ namespace ACESim
 
 
 
-        private void GenerateReports_AllPaths(GamePlayer player, ActionStrategies actionStrategy)
+        private void GenerateReports_AllPaths(GamePlayer player)
         {
             UtilityCalculations = new StatCollector[NumNonChancePlayers];
             for (int p = 0; p < NumNonChancePlayers; p++)
@@ -383,7 +391,7 @@ namespace ACESim
                 step2_buffer.SendAsync(new Tuple<GameProgress, double>(progress, probabilityOfPath));
             };
             // Now, we have to send the paths through all of these steps and make sure that step 3 is completely finished.
-            ProcessAllPaths(GetStartOfGameHistoryPoint(), step1_playPath, actionStrategy);
+            ProcessAllPaths(GetStartOfGameHistoryPoint(), step1_playPath);
             step2_buffer.Complete(); // tell consumer nothing more to be produced
             step3_consumer.Wait(); // wait until all have been processed
 
@@ -806,7 +814,7 @@ namespace ACESim
             {
                 // NOTE: This is in a helper method because otherwise the stackallocs keep accumulating, causing a stackoverflowexception
                 bool usePruning = iteration >= 100;
-                ActionStrategies actionStrategy = usePruning ? ActionStrategies.RegretMatchingWithPruning : ActionStrategies.RegretMatching;
+                ActionStrategy = usePruning ? ActionStrategies.RegretMatchingWithPruning : ActionStrategies.RegretMatching;
                 for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
                 {
                     double* initialPiValues = stackalloc double[MaxNumPlayers];
@@ -821,12 +829,18 @@ namespace ACESim
                 {
                     Debug.WriteLine("");
                     Debug.WriteLine($"Iteration {iteration} Milliseconds per iteration {(s.ElapsedMilliseconds / ((double)iteration + 1.0))}");
-                    Debug.WriteLine($"{GenerateReports(actionStrategy)}");
+
+                    Action<GamePlayer, ActionStrategies> reportGenerator;
+                    Debug.WriteLine($"Random paths");
+                    Debug.WriteLine($"{GenerateReports(GenerateReports_RandomPaths)}");
+                    Debug.WriteLine($"All paths");
+                    Debug.WriteLine($"{GenerateReports(GenerateReports_AllPaths)}");
+
 
                     if (bestResponseEveryMIterations != null && iteration % bestResponseEveryMIterations == 0)
                         for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
                         {
-                            double bestResponseUtility = CalculateBestResponse(playerBeingOptimized, actionStrategy);
+                            double bestResponseUtility = CalculateBestResponse(playerBeingOptimized, ActionStrategy);
                             double bestResponseImprovement = bestResponseUtility - UtilityCalculations[playerBeingOptimized].Average();
                             if (!UseRandomPaths && bestResponseImprovement < -1E-15)
                                 throw new Exception("Best response function worse."); // it can be slightly negative as a result of rounding error or if we are using random paths as a result of sampling error

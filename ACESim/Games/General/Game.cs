@@ -132,7 +132,6 @@ namespace ACESim
 
         public unsafe virtual byte ChooseAction()
         {
-            byte currentDecisionIndex = (byte)CurrentDecisionIndex;
             byte actionToChoose;
             if (Progress.ActionsToPlay == null)
                 Progress.ActionsToPlay = new List<byte>();
@@ -142,9 +141,9 @@ namespace ACESim
             else if (ChooseDefaultActionIfNoneChosen)
                 actionToChoose = 1; // The history does not give us guidance, so we play the first available decision. When the game is complete, we can figure out the next possible game history and play that one (which may go to completion or not). 
             else
-                actionToChoose = Strategies[currentDecisionIndex].ChooseActionBasedOnRandomNumber(Progress, Progress.IterationID.GetRandomNumberBasedOnIterationID(currentDecisionIndex), CurrentDecision.NumPossibleActions);
+                actionToChoose = CurrentPlayerStrategy.ChooseActionBasedOnRandomNumber(Progress, Progress.IterationID.GetRandomNumberBasedOnIterationID((byte)CurrentDecisionIndex), CurrentDecision.NumPossibleActions);
 
-            Progress.GameHistory.AddToHistory(CurrentDecision.DecisionByteCode, currentDecisionIndex, CurrentPlayerNumber, actionToChoose, CurrentDecision.NumPossibleActions, CurrentDecision.PlayersToInform);
+            Progress.GameHistory.AddToHistory(CurrentDecision.DecisionByteCode, (byte)CurrentDecisionIndex, CurrentPlayerNumber, actionToChoose, CurrentDecision.NumPossibleActions, CurrentDecision.PlayersToInform);
             return actionToChoose;
         }
 

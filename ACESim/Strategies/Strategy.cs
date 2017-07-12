@@ -26,10 +26,11 @@ namespace ACESim
 
         public NWayTreeStorageInternal<object> InformationSetTree;
         public HistoryNavigationInfo Navigation;
+        public ActionStrategies ActionStrategy;
 
         public byte ChooseActionBasedOnRandomNumber(GameProgress gameProgress, double randomNumber, byte numPossibleActions)
         {
-            return CRMActionProbabilities.ChooseActionBasedOnRandomNumber(gameProgress, randomNumber, ActionStrategies.AverageStrategy, numPossibleActions, null, Navigation);
+            return CRMActionProbabilities.ChooseActionBasedOnRandomNumber(gameProgress, randomNumber, ActionStrategy, numPossibleActions, null, Navigation);
         }
 
         public Strategy()
