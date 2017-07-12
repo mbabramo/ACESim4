@@ -69,7 +69,7 @@ namespace ACESim
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
                 var DEBUG = HistoryToPoint.GetInformationSetHistoryItems().Select(x => x.ToString());
-                (Decision nextDecision, byte nextDecisionIndex) = navigation.GameDefinition.GetNextDecision(HistoryToPoint);
+                (Decision nextDecision, byte nextDecisionIndex) = navigation.GameDefinition.GetNextDecision(ref HistoryToPoint);
                 byte nextPlayer = nextDecision?.PlayerNumber ?? navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
                 byte* informationSetsPtr = stackalloc byte[GameHistory.MaxInformationSetLengthPerPlayer];
                 // string playerInformationString = HistoryToPoint.GetPlayerInformationString(currentPlayer, nextDecision?.DecisionByteCode);
@@ -121,11 +121,11 @@ namespace ACESim
             }
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
-                (Decision nextDecision, byte nextDecisionIndex) = navigation.GameDefinition.GetNextDecision(HistoryToPoint);
+                (Decision nextDecision, byte nextDecisionIndex) = navigation.GameDefinition.GetNextDecision(ref HistoryToPoint);
                 next.HistoryToPoint = HistoryToPoint; // struct is copied
                 next.HistoryToPoint.AddToHistory(nextDecision.DecisionByteCode, nextDecisionIndex, nextDecision.PlayerNumber, actionChosen, nextDecision.NumPossibleActions, nextDecision.PlayersToInform);
                 navigation.GameDefinition.CustomInformationSetManipulation(nextDecision, nextDecisionIndex, actionChosen, ref next.HistoryToPoint);
-                if (nextDecision.CanTerminateGame && navigation.GameDefinition.ShouldMarkGameHistoryComplete(nextDecision, next.HistoryToPoint))
+                if (nextDecision.CanTerminateGame && navigation.GameDefinition.ShouldMarkGameHistoryComplete(nextDecision, ref next.HistoryToPoint))
                     next.HistoryToPoint.MarkComplete();
             }
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
@@ -151,7 +151,7 @@ namespace ACESim
             }
             else // may be actual game or cached game history -- either way, we'll use the game history
             {
-                (Decision nextDecision, byte nextDecisionIndex) = navigation.GameDefinition.GetNextDecision(HistoryToPoint);
+                (Decision nextDecision, byte nextDecisionIndex) = navigation.GameDefinition.GetNextDecision(ref HistoryToPoint);
                 return nextDecision.PlayerNumber;
             }
         }
@@ -174,7 +174,7 @@ namespace ACESim
             }
             else // may be actual game or cached game history -- either way, we'll use the game history
             {
-                (Decision nextDecision, byte nextDecisionIndex) = navigation.GameDefinition.GetNextDecision(HistoryToPoint);
+                (Decision nextDecision, byte nextDecisionIndex) = navigation.GameDefinition.GetNextDecision(ref HistoryToPoint);
                 return nextDecision.DecisionByteCode;
             }
         }
@@ -197,7 +197,7 @@ namespace ACESim
             }
             else // may be actual game or cached game history -- either way, we'll use the game history
             {
-                (Decision nextDecision, byte nextDecisionIndex) = navigation.GameDefinition.GetNextDecision(HistoryToPoint);
+                (Decision nextDecision, byte nextDecisionIndex) = navigation.GameDefinition.GetNextDecision(ref HistoryToPoint);
                 return nextDecisionIndex;
             }
         }

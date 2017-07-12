@@ -160,7 +160,7 @@ namespace ACESim
 
         #region Printing
 
-        double printProbability = 1.0;
+        double printProbability = 0.0;
         bool processIfNotPrinting = false;
         private unsafe void PrintSameGameResults(GamePlayer player)
         {
@@ -183,7 +183,6 @@ namespace ACESim
             {
                 lock (this)
                 {
-
                     progress.GameHistory.GetActions(path);
                     List<byte> path2 = new List<byte>();
                     int i = 0;
@@ -688,13 +687,13 @@ namespace ACESim
             else
             {
                 if (historyPoint.NodeIsChanceNode(Navigation))
-                    return VanillaCRM_ChanceNode(historyPoint, playerBeingOptimized, piValues, usePruning);
+                    return VanillaCRM_ChanceNode(ref historyPoint, playerBeingOptimized, piValues, usePruning);
                 else
-                    return VanillaCRM_DecisionNode(historyPoint, playerBeingOptimized, piValues, usePruning);
+                    return VanillaCRM_DecisionNode(ref historyPoint, playerBeingOptimized, piValues, usePruning);
             }
         }
         
-        private unsafe double VanillaCRM_DecisionNode(HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues, bool usePruning)
+        private unsafe double VanillaCRM_DecisionNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues, bool usePruning)
         {
             double* nextPiValues = stackalloc double[MaxNumPlayers];
             var DEBUG = historyPoint.GetActionsToHere(Navigation);
@@ -753,7 +752,7 @@ namespace ACESim
             return expectedValue;
         }
 
-        private unsafe double VanillaCRM_ChanceNode(HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues, bool usePruning)
+        private unsafe double VanillaCRM_ChanceNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues, bool usePruning)
         {
             double* equalProbabilityNextPiValues = stackalloc double[MaxNumPlayers];
             CRMChanceNodeSettings chanceNodeSettings = historyPoint.GetInformationSetChanceSettings(Navigation);
@@ -764,6 +763,7 @@ namespace ACESim
             else
                 equalProbabilityNextPiValues = null;
             double expectedValue = 0;
+            
             Parallelizer.GoByte(EvolutionSettings.ParallelOptimization, 2 /* TODO: Make this an evolution setting */, 1, (byte)(numPossibleActions + 1),
                 action =>
                 {

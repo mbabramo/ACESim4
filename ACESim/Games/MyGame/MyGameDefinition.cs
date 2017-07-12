@@ -195,7 +195,7 @@ namespace ACESim
             }
         }
 
-        public override bool ShouldMarkGameHistoryComplete(Decision currentDecision, GameHistory gameHistory)
+        public override bool ShouldMarkGameHistoryComplete(Decision currentDecision, ref GameHistory gameHistory)
         {
             if (!currentDecision.CanTerminateGame)
                 return false;
