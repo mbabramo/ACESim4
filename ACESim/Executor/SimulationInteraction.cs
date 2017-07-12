@@ -35,7 +35,8 @@ namespace ACESim
         
         public int? HighestCumulativeDistributionUpdateIndexEvolved;
 
-        public CurrentExecutionInformation CurrentExecutionInformation;
+        public CurrentExecutionInformation CurrentExecutionInformation
+        { get; set; }
 
         public StringBuilder metaReport;
         public List<string> namesOfVariableSetsChosen;

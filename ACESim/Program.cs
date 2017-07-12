@@ -291,7 +291,10 @@ namespace ACESim
                 //string settingsPath = "C:\\GitHub\\ACESim\\ACESim\\Games\\PatentDamagesGame\\Settings\\PatentDamagesChangeVariableSettings.xml";
                 //string settingsPath = "C:\\GitHub\\ACESim\\ACESim\\Games\\LitigationGame\\Settings\\LitigationGameSingleRunSettings.xml";
                 ProgressResumptionOptions progressResumptionOption = ProgressResumptionOptions.ProceedNormallySavingPastProgress; // change this line if some other option is appropriate
-                StartRunning.Go(baseOutputDirectory, settingsPath, new Interactionless(), progressResumptionOption);
+                var consoleWindow = new Interactionless();
+                var currentExecutionInformation = new CurrentExecutionInformation(null, null, null, null, null, null, null);
+                consoleWindow.CurrentExecutionInformation = currentExecutionInformation;
+                StartRunning.Go(baseOutputDirectory, settingsPath, consoleWindow, progressResumptionOption);
             }
         }
 

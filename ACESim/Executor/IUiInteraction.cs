@@ -20,5 +20,7 @@ namespace ACESim
         void Create2DPlot(List<double[]> points, Graph2DSettings graph2DSettings, string repetitionTagString);
         void ExportAll2DCharts();
         void CloseAllCharts();
+        GameInputs GetGameInputs(long numIterations, IterationID iterationID);
+        CurrentExecutionInformation CurrentExecutionInformation { get; set; }
     }
 }

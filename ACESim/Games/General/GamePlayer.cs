@@ -47,7 +47,7 @@ namespace ACESim
         public IEnumerable<GameProgress> PlayStrategy(
             List<GameProgress> preplayedGameProgressInfos,
             int numIterations,
-            SimulationInteraction simulationInteraction,
+            IUiInteraction simulationInteraction,
             GameInputs[] gameInputsArray = null,
             IterationID[] iterationIDArray = null,
             bool returnCompletedGameProgressInfos = false,
@@ -61,7 +61,7 @@ namespace ACESim
             int decisionNumber,
             List<GameProgress> preplayedGameProgressInfos,
             int numIterations,
-            SimulationInteraction simulationInteraction,
+            IUiInteraction simulationInteraction,
             GameInputs[] gameInputsArray = null,
             IterationID[] iterationIDArray = null,
             bool returnCompletedGameProgressInfos = false, 
@@ -69,6 +69,7 @@ namespace ACESim
         {
             if (returnCompletedGameProgressInfos)
                 CompletedGameProgresses = new ConcurrentBag<GameProgress>();
+            simulationInteraction.CurrentExecutionInformation.GameFactory = GameFactory;
 
             if (gameInputsArray == null)
             {
@@ -357,6 +358,8 @@ namespace ACESim
         ThreadLocal<List<double>> lastOversamplingWeights = new ThreadLocal<List<double>>();
 
         bool _disposed;
+
+
 
         public void CheckConsistencyForSetOfIterations(long totalNumIterations, List<IterationID> iterationsToGet, SimulationInteraction simulationInteraction)
         {

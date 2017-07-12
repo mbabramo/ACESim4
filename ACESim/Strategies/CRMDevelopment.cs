@@ -289,7 +289,7 @@ namespace ACESim
 
         public List<GameProgress> GetRandomCompleteGames(GamePlayer player, int numIterations)
         {
-            return player.PlayStrategy(null, numIterations, (SimulationInteraction)CurrentExecutionInformation.UiInteraction).ToList();
+            return player.PlayStrategy(null, numIterations, CurrentExecutionInformation.UiInteraction).ToList();
         }
 
         bool UseRandomPaths = true;

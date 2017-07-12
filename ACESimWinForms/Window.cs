@@ -23,6 +23,9 @@ namespace ACESim
         double proportionComplete;
         string outputText;
 
+        public CurrentExecutionInformation CurrentExecutionInformation
+        { get; set; }
+
         public Window()
         {
             //AzureReset.Go(); // should reset now before any worker roles get started
@@ -511,5 +514,9 @@ namespace ACESim
                 saveProgress.Checked = true;
         }
 
+        public GameInputs GetGameInputs(long numIterations, IterationID iterationID)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

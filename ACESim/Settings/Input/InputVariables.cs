@@ -11,19 +11,19 @@ namespace ACESim
     [Serializable]
     public class InputVariables
     {
-        CurrentExecutionInformation currentExecutionInformation;
+        CurrentExecutionInformation CurrentExecutionInformation;
 
         public InputVariables(CurrentExecutionInformation currentExecutionInformation)
         {
-            this.currentExecutionInformation = currentExecutionInformation;
+            this.CurrentExecutionInformation = currentExecutionInformation;
         }
         
         public EvolutionSettings GetEvolutionSettings()
         {
 
-            if (currentExecutionInformation.EvolutionSettingsSet.settings.Count() == 1)
+            if (CurrentExecutionInformation.EvolutionSettingsSet.settings.Count() == 1)
             { // see if this is code-generated.
-                var first = currentExecutionInformation.EvolutionSettingsSet.settings.First() as SettingClass;
+                var first = CurrentExecutionInformation.EvolutionSettingsSet.settings.First() as SettingClass;
                 if (first.Generator != null)
                 {
                     EvolutionSettings result = (EvolutionSettings)first.Generator.GenerateSetting(first.CodeGeneratorOptions);
@@ -31,27 +31,29 @@ namespace ACESim
                 }
             }
             //return (EvolutionSettings)GetSettings(typeof(EvolutionSettings), 1, false, null, null)[0];
-            return (EvolutionSettings)GetSettings(typeof(EvolutionSettings), currentExecutionInformation.EvolutionSettingsSet.settings, 1, false, null, null);
+            return (EvolutionSettings)GetSettings(typeof(EvolutionSettings), CurrentExecutionInformation.EvolutionSettingsSet.settings, 1, false, null, null);
         }
         
         public GameDefinition GetGameDefinitionSettings(Type theType)
         {
-            if (currentExecutionInformation.GameDefinitionsSet.settings.Count() == 1)
+            if (CurrentExecutionInformation.GameDefinitionsSet.settings.Count() == 1)
             { // see if this is code-generated.
-                var first = currentExecutionInformation.GameDefinitionsSet.settings.First() as SettingClass;
+                var first = CurrentExecutionInformation.GameDefinitionsSet.settings.First() as SettingClass;
                 if (first.Generator != null)
                 {
                     GameDefinition result = (GameDefinition)first.Generator.GenerateSetting(first.CodeGeneratorOptions.Replace(System.Environment.NewLine, ""));
                     return result;
                 }
             }
-            return (GameDefinition)GetSettings(theType, currentExecutionInformation.GameDefinitionsSet.settings, 1, false, null, null);
+            return (GameDefinition)GetSettings(theType, CurrentExecutionInformation.GameDefinitionsSet.settings, 1, false, null, null);
         }
 
         Type lastGameInputsType = null;
         public GameInputs GetGameInputs(Type theType, long numIterations, IterationID iterationID, CurrentExecutionInformation settings)
         {
-            object gameInputsAsObject = GetSettings(theType, currentExecutionInformation.GameInputsSet.settings, numIterations, true, settings, null, iterationID);
+            here(); // consider deleting everything about GameInputs.
+
+            object gameInputsAsObject = GetSettings(theType, CurrentExecutionInformation.GameInputsSet.settings, numIterations, true, settings, null, iterationID);
             return (GameInputs)gameInputsAsObject;
         }
 
@@ -146,7 +148,7 @@ namespace ACESim
             for (int s = 0; s < numSeeds; s++)
                 inputs[s] = theInputSeeds[s, iterationID];
             
-            object theObject = compiledExpression(inputs, currentExecutionInformation.AllVariablesFromProgram);
+            object theObject = compiledExpression(inputs, CurrentExecutionInformation.AllVariablesFromProgram);
             return theObject;
         }
 
@@ -205,7 +207,7 @@ namespace ACESim
             int?[] substituteSeed)
         {
             InputSeeds theInputSeeds = null;
-            theInputSeeds = currentExecutionInformation.InputSeedsSet.GetInputSeeds(numSeeds, numIterations, false, true, flipSeed, substituteSeed);
+            theInputSeeds = CurrentExecutionInformation.InputSeedsSet.GetInputSeeds(numSeeds, numIterations, false, true, flipSeed, substituteSeed);
             return theInputSeeds;
         }
 
@@ -282,7 +284,7 @@ namespace ACESim
                 case SettingType.VariableFromProgram:
                 case SettingType.VariableFromSetting:
                     variableFromSettingTracker.IterationNum = 0;
-                    double theValue = theSettingAndFieldInfo.setting.GetDoubleValueOrOverride(null, currentExecutionInformation);
+                    double theValue = theSettingAndFieldInfo.setting.GetDoubleValueOrOverride(null, CurrentExecutionInformation);
                     theSettingAndFieldInfo.SetValue(ref objectToSet, theValue);
                     break;
 
@@ -319,7 +321,7 @@ namespace ACESim
 
                 case SettingType.Calc:
                     variableFromSettingTracker.IterationNum = 0;
-                    object objectValue = ((SettingCalc)theSettingAndFieldInfo.setting).GetValue(null, currentExecutionInformation);
+                    object objectValue = ((SettingCalc)theSettingAndFieldInfo.setting).GetValue(null, CurrentExecutionInformation);
                     theSettingAndFieldInfo.SetValue(ref objectToSet, objectValue);
                     break;
 
@@ -364,7 +366,7 @@ namespace ACESim
                         Setting theSetting;
                         if (outerSettingAndFieldInfo == null)
                         {
-                            theSetting = currentExecutionInformation.GetSetting(field.Name, optional);
+                            theSetting = CurrentExecutionInformation.GetSetting(field.Name, optional);
                             if (theSetting != null)
                                 ConfirmSettingType(field, theSetting);
                         }
