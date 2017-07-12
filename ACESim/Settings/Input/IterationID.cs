@@ -21,11 +21,18 @@ namespace ACESim
 
         public double GetRandomNumberBasedOnIterationID(byte randomIndex)
         {
-            unchecked
-            {
-                Random r = new Random((int)(179425399 * randomIndex + IterationNumber)); // use a large prime so that we don't repeat
-                return r.NextDouble();
-            }
+            //return RandomGenerator.NextDouble();
+            return FastPseudoRandom.GetRandom(IterationNumber, (int)randomIndex);
+            // Note: We found that the following didn't produce truly randomly distributed numbers. Using the same Random instance per thread works, but that doesn't produce predictable, consistent results.
+            //int seed = (IterationNumber * 1000 + randomIndex).GetHashCode();
+            //return GetRandomDoubleFromRandomSeed(seed);
+        }
+
+        private static double GetRandomDoubleFromRandomSeed(int seed)
+        {
+            Random r = new Random(seed); // use a large prime so that we don't repeat
+            double rand = r.NextDouble();
+            return rand;
         }
 
         public virtual long GetIterationNumber(int seedIndex)

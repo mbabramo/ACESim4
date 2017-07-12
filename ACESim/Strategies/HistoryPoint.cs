@@ -36,6 +36,11 @@ namespace ACESim
             return TreePoint.IsLeaf();
         }
 
+        public string GetActionsToHereString(HistoryNavigationInfo navigation)
+        {
+            return String.Join(",", GetActionsToHere(navigation));
+        }
+
         public List<byte> GetActionsToHere(HistoryNavigationInfo navigation)
         {
             if (navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)
@@ -148,6 +153,29 @@ namespace ACESim
             {
                 (Decision nextDecision, byte nextDecisionIndex) = navigation.GameDefinition.GetNextDecision(HistoryToPoint);
                 return nextDecision.PlayerNumber;
+            }
+        }
+
+        public byte GetNextDecisionByteCode(HistoryNavigationInfo navigation)
+        {
+            if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly)
+            {
+                switch (TreePoint.StoredValue)
+                {
+                    case CRMInformationSetNodeTally nt:
+                        return nt.DecisionByteCode;
+                    case CRMChanceNodeSettings cn:
+                        return cn.DecisionByteCode;
+                    case double[] utils:
+                        throw new NotImplementedException();
+                    default:
+                        throw new NotImplementedException();
+                }
+            }
+            else // may be actual game or cached game history -- either way, we'll use the game history
+            {
+                (Decision nextDecision, byte nextDecisionIndex) = navigation.GameDefinition.GetNextDecision(HistoryToPoint);
+                return nextDecision.DecisionByteCode;
             }
         }
 

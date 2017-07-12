@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -18,9 +19,13 @@ namespace ACESim
             {
                 cumTotal += probabilities[a];
                 if (cumTotal >= randomNumber)
-                    return (byte)(a + 1); // actions are one-based
+                {
+                    //Debug.WriteLine($"DecisionCode {historyPoint.GetNextDecisionByteCode(navigation)}");
+                    //Debug.WriteLine($"Actions {historyPoint.GetActionsToHereString(navigation)}\n probabilities {String.Join(",", probabilities)} random number {randomNumber} result {(byte)(a + 1)}"); // DEBUG
+                    return (byte)(a + 1); // actions are one-based}
+                }
             }
-            return numPossibleActions;
+            return numPossibleActions; // indicates a rare rounding error
         }
 
         public static  double[] GetActionProbabilitiesAtHistoryPoint(HistoryPoint historyPoint, ActionStrategies actionStrategy, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation)

@@ -1,1 +1,301 @@
-Total run time 00.00:00:10 days
+1,1,1
+     Decision LitigationQuality (0) for player QC (2)     
+          Information set before action:           
+          Game state before action: Chance player 2 for decision 0 => Equal probabilities 0.333333333333333          
+          ==> Action chosen: 1          
+     Decision PlaintiffOffer1 (3) for player P (0)     
+          Information set before action: 1          
+          Game state before action: Information set 0: DecisionByteCode 3 (index 1) PlayerIndex 0          
+          ==> Action chosen: 1          
+     Decision DefendantResponse1 (6) for player D (1)     
+          Information set before action: 1,1          
+          Game state before action: Information set 4: DecisionByteCode 6 (index 2) PlayerIndex 1          
+          ==> Action chosen: 1          
+     --> Utilities: 0.2,-0.3     
+2,2,1
+     Decision LitigationQuality (0) for player QC (2)     
+          Information set before action:           
+          Game state before action: Chance player 2 for decision 0 => Equal probabilities 0.333333333333333          
+          ==> Action chosen: 2          
+     Decision PlaintiffOffer1 (3) for player P (0)     
+          Information set before action: 2          
+          Game state before action: Information set 5: DecisionByteCode 3 (index 1) PlayerIndex 0          
+          ==> Action chosen: 2          
+     Decision DefendantResponse1 (6) for player D (1)     
+          Information set before action: 2,2          
+          Game state before action: Information set 6: DecisionByteCode 6 (index 2) PlayerIndex 1          
+          ==> Action chosen: 1          
+     --> Utilities: 0.7,-0.8     
+3,1,1
+     Decision LitigationQuality (0) for player QC (2)     
+          Information set before action:           
+          Game state before action: Chance player 2 for decision 0 => Equal probabilities 0.333333333333333          
+          ==> Action chosen: 3          
+     Decision PlaintiffOffer1 (3) for player P (0)     
+          Information set before action: 3          
+          Game state before action: Information set 7: DecisionByteCode 3 (index 1) PlayerIndex 0          
+          ==> Action chosen: 1          
+     Decision DefendantResponse1 (6) for player D (1)     
+          Information set before action: 3,1          
+          Game state before action: Information set 9: DecisionByteCode 6 (index 2) PlayerIndex 1          
+          ==> Action chosen: 1          
+     --> Utilities: 0.2,-0.3     
+3,2,1
+     Decision LitigationQuality (0) for player QC (2)     
+          Information set before action:           
+          Game state before action: Chance player 2 for decision 0 => Equal probabilities 0.333333333333333          
+          ==> Action chosen: 3          
+     Decision PlaintiffOffer1 (3) for player P (0)     
+          Information set before action: 3          
+          Game state before action: Information set 7: DecisionByteCode 3 (index 1) PlayerIndex 0          
+          ==> Action chosen: 2          
+     Decision DefendantResponse1 (6) for player D (1)     
+          Information set before action: 3,2          
+          Game state before action: Information set 8: DecisionByteCode 6 (index 2) PlayerIndex 1          
+          ==> Action chosen: 1          
+     --> Utilities: 0.7,-0.8     
+1,1,2,1
+     Decision LitigationQuality (0) for player QC (2)     
+          Information set before action:           
+          Game state before action: Chance player 2 for decision 0 => Equal probabilities 0.333333333333333          
+          ==> Action chosen: 1          
+     Decision PlaintiffOffer1 (3) for player P (0)     
+          Information set before action: 1          
+          Game state before action: Information set 0: DecisionByteCode 3 (index 1) PlayerIndex 0          
+          ==> Action chosen: 1          
+     Decision DefendantResponse1 (6) for player D (1)     
+          Information set before action: 1,1          
+          Game state before action: Information set 4: DecisionByteCode 6 (index 2) PlayerIndex 1          
+          ==> Action chosen: 2          
+     Decision CourtDecision (7) for player CC (5)     
+          Information set before action: 1          
+          Game state before action: Chance player 5 for decision 7 => probabilities 0.75,0.25          
+          ==> Action chosen: 1          
+     --> Utilities: -0.15,-0.15     
+2,1,2,1
+     Decision LitigationQuality (0) for player QC (2)     
+          Information set before action:           
+          Game state before action: Chance player 2 for decision 0 => Equal probabilities 0.333333333333333          
+          ==> Action chosen: 2          
+     Decision PlaintiffOffer1 (3) for player P (0)     
+          Information set before action: 2          
+          Game state before action: Information set 5: DecisionByteCode 3 (index 1) PlayerIndex 0          
+          ==> Action chosen: 1          
+     Decision DefendantResponse1 (6) for player D (1)     
+          Information set before action: 2,1          
+          Game state before action: Information set 3: DecisionByteCode 6 (index 2) PlayerIndex 1          
+          ==> Action chosen: 2          
+     Decision CourtDecision (7) for player CC (5)     
+          Information set before action: 2          
+          Game state before action: Chance player 5 for decision 7 => probabilities 0.5,0.5          
+          ==> Action chosen: 1          
+     --> Utilities: -0.15,-0.15     
+1,2,2,1
+     Decision LitigationQuality (0) for player QC (2)     
+          Information set before action:           
+          Game state before action: Chance player 2 for decision 0 => Equal probabilities 0.333333333333333          
+          ==> Action chosen: 1          
+     Decision PlaintiffOffer1 (3) for player P (0)     
+          Information set before action: 1          
+          Game state before action: Information set 0: DecisionByteCode 3 (index 1) PlayerIndex 0          
+          ==> Action chosen: 2          
+     Decision DefendantResponse1 (6) for player D (1)     
+          Information set before action: 1,2          
+          Game state before action: Information set 1: DecisionByteCode 6 (index 2) PlayerIndex 1          
+          ==> Action chosen: 2          
+     Decision CourtDecision (7) for player CC (5)     
+          Information set before action: 1          
+          Game state before action: Chance player 5 for decision 7 => probabilities 0.75,0.25          
+          ==> Action chosen: 1          
+     --> Utilities: -0.15,-0.15     
+2,2,2,1
+     Decision LitigationQuality (0) for player QC (2)     
+          Information set before action:           
+          Game state before action: Chance player 2 for decision 0 => Equal probabilities 0.333333333333333          
+          ==> Action chosen: 2          
+     Decision PlaintiffOffer1 (3) for player P (0)     
+          Information set before action: 2          
+          Game state before action: Information set 5: DecisionByteCode 3 (index 1) PlayerIndex 0          
+          ==> Action chosen: 2          
+     Decision DefendantResponse1 (6) for player D (1)     
+          Information set before action: 2,2          
+          Game state before action: Information set 6: DecisionByteCode 6 (index 2) PlayerIndex 1          
+          ==> Action chosen: 2          
+     Decision CourtDecision (7) for player CC (5)     
+          Information set before action: 2          
+          Game state before action: Chance player 5 for decision 7 => probabilities 0.5,0.5          
+          ==> Action chosen: 1          
+     --> Utilities: -0.15,-0.15     
+3,1,2,1
+     Decision LitigationQuality (0) for player QC (2)     
+          Information set before action:           
+          Game state before action: Chance player 2 for decision 0 => Equal probabilities 0.333333333333333          
+          ==> Action chosen: 3          
+     Decision PlaintiffOffer1 (3) for player P (0)     
+          Information set before action: 3          
+          Game state before action: Information set 7: DecisionByteCode 3 (index 1) PlayerIndex 0          
+          ==> Action chosen: 1          
+     Decision DefendantResponse1 (6) for player D (1)     
+          Information set before action: 3,1          
+          Game state before action: Information set 9: DecisionByteCode 6 (index 2) PlayerIndex 1          
+          ==> Action chosen: 2          
+     Decision CourtDecision (7) for player CC (5)     
+          Information set before action: 3          
+          Game state before action: Chance player 5 for decision 7 => probabilities 0.25,0.75          
+          ==> Action chosen: 1          
+     --> Utilities: -0.15,-0.15     
+3,2,2,1
+     Decision LitigationQuality (0) for player QC (2)     
+          Information set before action:           
+          Game state before action: Chance player 2 for decision 0 => Equal probabilities 0.333333333333333          
+          ==> Action chosen: 3          
+     Decision PlaintiffOffer1 (3) for player P (0)     
+          Information set before action: 3          
+          Game state before action: Information set 7: DecisionByteCode 3 (index 1) PlayerIndex 0          
+          ==> Action chosen: 2          
+     Decision DefendantResponse1 (6) for player D (1)     
+          Information set before action: 3,2          
+          Game state before action: Information set 8: DecisionByteCode 6 (index 2) PlayerIndex 1          
+          ==> Action chosen: 2          
+     Decision CourtDecision (7) for player CC (5)     
+          Information set before action: 3          
+          Game state before action: Chance player 5 for decision 7 => probabilities 0.25,0.75          
+          ==> Action chosen: 1          
+     --> Utilities: -0.15,-0.15     
+1,1,2,2
+     Decision LitigationQuality (0) for player QC (2)     
+          Information set before action:           
+          Game state before action: Chance player 2 for decision 0 => Equal probabilities 0.333333333333333          
+          ==> Action chosen: 1          
+     Decision PlaintiffOffer1 (3) for player P (0)     
+          Information set before action: 1          
+          Game state before action: Information set 0: DecisionByteCode 3 (index 1) PlayerIndex 0          
+          ==> Action chosen: 1          
+     Decision DefendantResponse1 (6) for player D (1)     
+          Information set before action: 1,1          
+          Game state before action: Information set 4: DecisionByteCode 6 (index 2) PlayerIndex 1          
+          ==> Action chosen: 2          
+     Decision CourtDecision (7) for player CC (5)     
+          Information set before action: 1          
+          Game state before action: Chance player 5 for decision 7 => probabilities 0.75,0.25          
+          ==> Action chosen: 2          
+     --> Utilities: 0.85,-1.15     
+2,1,2,2
+     Decision LitigationQuality (0) for player QC (2)     
+          Information set before action:           
+          Game state before action: Chance player 2 for decision 0 => Equal probabilities 0.333333333333333          
+          ==> Action chosen: 2          
+     Decision PlaintiffOffer1 (3) for player P (0)     
+          Information set before action: 2          
+          Game state before action: Information set 5: DecisionByteCode 3 (index 1) PlayerIndex 0          
+          ==> Action chosen: 1          
+     Decision DefendantResponse1 (6) for player D (1)     
+          Information set before action: 2,1          
+          Game state before action: Information set 3: DecisionByteCode 6 (index 2) PlayerIndex 1          
+          ==> Action chosen: 2          
+     Decision CourtDecision (7) for player CC (5)     
+          Information set before action: 2          
+          Game state before action: Chance player 5 for decision 7 => probabilities 0.5,0.5          
+          ==> Action chosen: 2          
+     --> Utilities: 0.85,-1.15     
+1,2,2,2
+     Decision LitigationQuality (0) for player QC (2)     
+          Information set before action:           
+          Game state before action: Chance player 2 for decision 0 => Equal probabilities 0.333333333333333          
+          ==> Action chosen: 1          
+     Decision PlaintiffOffer1 (3) for player P (0)     
+          Information set before action: 1          
+          Game state before action: Information set 0: DecisionByteCode 3 (index 1) PlayerIndex 0          
+          ==> Action chosen: 2          
+     Decision DefendantResponse1 (6) for player D (1)     
+          Information set before action: 1,2          
+          Game state before action: Information set 1: DecisionByteCode 6 (index 2) PlayerIndex 1          
+          ==> Action chosen: 2          
+     Decision CourtDecision (7) for player CC (5)     
+          Information set before action: 1          
+          Game state before action: Chance player 5 for decision 7 => probabilities 0.75,0.25          
+          ==> Action chosen: 2          
+     --> Utilities: 0.85,-1.15     
+2,2,2,2
+     Decision LitigationQuality (0) for player QC (2)     
+          Information set before action:           
+          Game state before action: Chance player 2 for decision 0 => Equal probabilities 0.333333333333333          
+          ==> Action chosen: 2          
+     Decision PlaintiffOffer1 (3) for player P (0)     
+          Information set before action: 2          
+          Game state before action: Information set 5: DecisionByteCode 3 (index 1) PlayerIndex 0          
+          ==> Action chosen: 2          
+     Decision DefendantResponse1 (6) for player D (1)     
+          Information set before action: 2,2          
+          Game state before action: Information set 6: DecisionByteCode 6 (index 2) PlayerIndex 1          
+          ==> Action chosen: 2          
+     Decision CourtDecision (7) for player CC (5)     
+          Information set before action: 2          
+          Game state before action: Chance player 5 for decision 7 => probabilities 0.5,0.5          
+          ==> Action chosen: 2          
+     --> Utilities: 0.85,-1.15     
+3,1,2,2
+     Decision LitigationQuality (0) for player QC (2)     
+          Information set before action:           
+          Game state before action: Chance player 2 for decision 0 => Equal probabilities 0.333333333333333          
+          ==> Action chosen: 3          
+     Decision PlaintiffOffer1 (3) for player P (0)     
+          Information set before action: 3          
+          Game state before action: Information set 7: DecisionByteCode 3 (index 1) PlayerIndex 0          
+          ==> Action chosen: 1          
+     Decision DefendantResponse1 (6) for player D (1)     
+          Information set before action: 3,1          
+          Game state before action: Information set 9: DecisionByteCode 6 (index 2) PlayerIndex 1          
+          ==> Action chosen: 2          
+     Decision CourtDecision (7) for player CC (5)     
+          Information set before action: 3          
+          Game state before action: Chance player 5 for decision 7 => probabilities 0.25,0.75          
+          ==> Action chosen: 2          
+     --> Utilities: 0.85,-1.15     
+3,2,2,2
+     Decision LitigationQuality (0) for player QC (2)     
+          Information set before action:           
+          Game state before action: Chance player 2 for decision 0 => Equal probabilities 0.333333333333333          
+          ==> Action chosen: 3          
+     Decision PlaintiffOffer1 (3) for player P (0)     
+          Information set before action: 3          
+          Game state before action: Information set 7: DecisionByteCode 3 (index 1) PlayerIndex 0          
+          ==> Action chosen: 2          
+     Decision DefendantResponse1 (6) for player D (1)     
+          Information set before action: 3,2          
+          Game state before action: Information set 8: DecisionByteCode 6 (index 2) PlayerIndex 1          
+          ==> Action chosen: 2          
+     Decision CourtDecision (7) for player CC (5)     
+          Information set before action: 3          
+          Game state before action: Chance player 5 for decision 7 => probabilities 0.25,0.75          
+          ==> Action chosen: 2          
+     --> Utilities: 0.85,-1.15     
+1,2,1
+     Decision LitigationQuality (0) for player QC (2)     
+          Information set before action:           
+          Game state before action: Chance player 2 for decision 0 => Equal probabilities 0.333333333333333          
+          ==> Action chosen: 1          
+     Decision PlaintiffOffer1 (3) for player P (0)     
+          Information set before action: 1          
+          Game state before action: Information set 0: DecisionByteCode 3 (index 1) PlayerIndex 0          
+          ==> Action chosen: 2          
+     Decision DefendantResponse1 (6) for player D (1)     
+          Information set before action: 1,2          
+          Game state before action: Information set 1: DecisionByteCode 6 (index 2) PlayerIndex 1          
+          ==> Action chosen: 1          
+     --> Utilities: 0.7,-0.8     
+2,1,1
+     Decision LitigationQuality (0) for player QC (2)     
+          Information set before action:           
+          Game state before action: Chance player 2 for decision 0 => Equal probabilities 0.333333333333333          
+          ==> Action chosen: 2          
+     Decision PlaintiffOffer1 (3) for player P (0)     
+          Information set before action: 2          
+          Game state before action: Information set 5: DecisionByteCode 3 (index 1) PlayerIndex 0          
+          ==> Action chosen: 1          
+     Decision DefendantResponse1 (6) for player D (1)     
+          Information set before action: 2,1          
+          Game state before action: Information set 3: DecisionByteCode 6 (index 2) PlayerIndex 1          
+          ==> Action chosen: 1          
+     --> Utilities: 0.2,-0.3     
+Total run time 00.00:00:22 days
