@@ -80,6 +80,8 @@ namespace ACESim
         public unsafe void Initialize()
         {
             Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition);
+            foreach (Strategy strategy in Strategies)
+                strategy.Navigation = Navigation;
 
             // DEBUG -- we will do this but not yet
             //if (Navigation.LookupApproach == InformationSetLookupApproach.GameHistoryOnly)
@@ -284,11 +286,12 @@ namespace ACESim
             return player.PlayStrategy(null, numIterations, CurrentExecutionInformation.UiInteraction).ToList();
         }
 
-        bool UseRandomPaths = false;
+        bool UseRandomPaths = true;
+        int NumIterationsForRandomPaths = 100000;
 
         private void GenerateReports_RandomPaths(GamePlayer player)
         {
-            var gameProgresses = GetRandomCompleteGames(player, 10000);
+            var gameProgresses = GetRandomCompleteGames(player, NumIterationsForRandomPaths);
             UtilityCalculations = new StatCollector[NumNonChancePlayers];
             for (int p = 0; p < NumNonChancePlayers; p++)
                 UtilityCalculations[p] = new StatCollector();
@@ -825,8 +828,8 @@ namespace ACESim
                         {
                             double bestResponseUtility = CalculateBestResponse(playerBeingOptimized, actionStrategy);
                             double bestResponseImprovement = bestResponseUtility - UtilityCalculations[playerBeingOptimized].Average();
-                            if (bestResponseImprovement < -1E-15)
-                                throw new Exception("Best response function worse."); // it can be slightly negative as a result of rounding errors
+                            if (!UseRandomPaths && bestResponseImprovement < -1E-15)
+                                throw new Exception("Best response function worse."); // it can be slightly negative as a result of rounding error or if we are using random paths as a result of sampling error
                             Debug.WriteLine($"Player {playerBeingOptimized} utility with regret matching {UtilityCalculations[playerBeingOptimized].Average()} using best response against regret matching {bestResponseUtility} best response improvement {bestResponseImprovement}");
                         }
                 }
@@ -835,8 +838,6 @@ namespace ACESim
             {
                 VanillaCFRIteration(iteration); 
             }
-            foreach (Strategy strategy in Strategies)
-                strategy.Navigation = Navigation;
 
         }
 

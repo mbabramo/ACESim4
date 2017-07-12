@@ -40,45 +40,41 @@ namespace ACESim
             this.GameDefinition = gameDefinition;
         }
 
-        // On play mode, we need to be able to play one strategy for an entire iterations set. (This will be called repeatedly by the play routine.)
-        // It's just one strategy that we are testing for each iteration, and we don't need to preplay.
-        // We also need this so that  we can compare with the previous set, to determine whether we have improved things.
-
         public IEnumerable<GameProgress> PlayStrategy(
             List<GameProgress> preplayedGameProgressInfos,
             int numIterations,
             IUiInteraction simulationInteraction,
             IterationID[] iterationIDArray = null,
-            bool returnCompletedGameProgressInfos = false,
+            bool returnCompletedGameProgressInfos = true,
             int? currentlyEvolvingDecision = null)
         {
-            return PlayStrategy(bestStrategies[0], 0, preplayedGameProgressInfos, numIterations, simulationInteraction, iterationIDArray, returnCompletedGameProgressInfos, currentlyEvolvingDecision);
+            return PlayStrategy(bestStrategies[0], 0, preplayedGameProgressInfos, numIterations, simulationInteraction, iterationIDArray, returnCompletedGameProgressInfos);
         }
 
         public IEnumerable<GameProgress> PlayStrategy(
-            Strategy strategy,
-            int decisionNumber,
+            Strategy strategyToSubstitute,
+            int decisionNumberOfStrategyToSubstitute,
             List<GameProgress> preplayedGameProgressInfos,
             int numIterations,
             IUiInteraction simulationInteraction,
             IterationID[] iterationIDArray = null,
-            bool returnCompletedGameProgressInfos = false, 
-            int? currentlyEvolvingDecision = null)
+            bool returnCompletedGameProgressInfos = false)
         {
             if (returnCompletedGameProgressInfos)
                 CompletedGameProgresses = new ConcurrentBag<GameProgress>();
             
+            if (iterationIDArray == null)
+            {
                 iterationIDArray = new IterationID[numIterations];
                 for (long i = 0; i < numIterations; i++)
                 {
                     iterationIDArray[i] = new IterationID(i);
                 }
-            
-            GameProgress evenIterationGameProgress = null;
+            }
 
             // Copy bestStrategies to play with
             List<Strategy> strategiesToPlayWith = bestStrategies.ToList();
-            strategiesToPlayWith[decisionNumber] = strategy;
+            strategiesToPlayWith[decisionNumberOfStrategyToSubstitute] = strategyToSubstitute;
 
             Parallelizer.Go(DoParallel, 0, numIterations, i =>
                 {
@@ -96,7 +92,7 @@ namespace ACESim
                     //    GameProgressLogger.OutputLogMessages = false;
                     //}
                     // Remove comments from the following to log a particular iteration repeatedly. We can use this to see how changing settings affects a particular iteration.
-                    PlayHelper(i, strategiesToPlayWith, returnCompletedGameProgressInfos, iterationIDArray, preplayedGameProgressInfos, currentlyEvolvingDecision, decisionNumber == currentlyEvolvingDecision ? (int?)decisionNumber : (int?)null);
+                    PlayHelper(i, strategiesToPlayWith, returnCompletedGameProgressInfos, iterationIDArray, preplayedGameProgressInfos);
                     
                 }
             );
@@ -415,7 +411,7 @@ namespace ACESim
         /// resulting for each iteration should be added to completedGames; that way, after evolution is complete, 
         /// the GameProgressInfo objects can be called to generate reports.
         /// </summary>
-        void PlayHelper(int iteration, List<Strategy> strategies, bool saveCompletedGameProgressInfos, IterationID[] iterationIDArray, List<GameProgress> preplayedGameProgressInfos, int? currentlyEvolvingDecision, int? recordInputsForDecision)
+        void PlayHelper(int iteration, List<Strategy> strategies, bool saveCompletedGameProgressInfos, IterationID[] iterationIDArray, List<GameProgress> preplayedGameProgressInfos)
         {
             GameProgress gameProgress;
             if (preplayedGameProgressInfos != null)
