@@ -84,13 +84,13 @@ namespace ACESim
                 object gameStateFromGameTree = null;
                 if (TreePoint.StoredValue is NWayTreeStorage<object> informationSetNodeReferencedInHistoryNode)
                     gameStateFromGameTree = informationSetNodeReferencedInHistoryNode.StoredValue;
-                else if (TreePoint.StoredValue is double[])
+                else if (TreePoint.StoredValue is CRMFinalUtilities)
                     gameStateFromGameTree = TreePoint.StoredValue;
                 if (navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
                 {
                     bool equals;
-                    if (gameStateFromGameTree is double[])
-                        equals = ((double[])gameStateFromGameTree).SequenceEqual((double[])gameStateFromGameHistory); // The game tree may store a resolution that corresponds to a single resolution sets many places, because many sets of actions can lead to the same result.
+                    if (gameStateFromGameTree is CRMFinalUtilities finalUtilities)
+                        equals = (finalUtilities.Utilities).SequenceEqual(((CRMFinalUtilities)gameStateFromGameHistory).Utilities); // The game tree may store a resolution that corresponds to a single resolution sets many places, because many sets of actions can lead to the same result.
                     else
                         equals = gameStateFromGameTree == gameStateFromGameHistory; // this should be the same object (not just equal), because the game tree points to the information set tree
                     if (!equals)
@@ -145,7 +145,7 @@ namespace ACESim
                         return nt.PlayerIndex;
                     case CRMChanceNodeSettings cn:
                         return cn.PlayerNum;
-                    case double[] utils:
+                    case CRMFinalUtilities utils:
                         return navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
                     default:
                         throw new NotImplementedException();
@@ -168,7 +168,7 @@ namespace ACESim
                         return nt.DecisionByteCode;
                     case CRMChanceNodeSettings cn:
                         return cn.DecisionByteCode;
-                    case double[] utils:
+                    case CRMFinalUtilities utils:
                         throw new NotImplementedException();
                     default:
                         throw new NotImplementedException();
@@ -191,7 +191,7 @@ namespace ACESim
                         return nt.DecisionIndex;
                     case CRMChanceNodeSettings cn:
                         return cn.DecisionIndex;
-                    case double[] utils:
+                    case CRMFinalUtilities utils:
                         throw new NotImplementedException();
                     default:
                         throw new NotImplementedException();
@@ -259,6 +259,7 @@ namespace ACESim
 
         public unsafe void SetInformationAtPoint(HistoryNavigationInfo navigation, InformationSetHistory informationSetHistory, double[] finalUtilities)
         {
+            throw new Exception("This doesn't seem to be used DEBUG");
             var decision = navigation.GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
             var playerInfo = navigation.GameDefinition.Players[informationSetHistory.PlayerIndex];
             var playersStrategy = navigation.Strategies[informationSetHistory.PlayerIndex];

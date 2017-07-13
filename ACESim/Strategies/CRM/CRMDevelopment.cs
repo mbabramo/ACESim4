@@ -143,7 +143,7 @@ namespace ACESim
             // Second, the game history tree stores the final utilities in the leaf, not in the node. 
             // These considerations explain why we do the saving here rather than in HistoryPoint. 
             // We can still use the final history point to get the utilities by calling GetGameStateForCurrentPlayer on the final history point.
-            double[] playerUtilities = gameProgress.GetNonChancePlayerUtilities();
+            CRMFinalUtilities playerUtilities = new CRMFinalUtilities(gameProgress.GetNonChancePlayerUtilities());
             if (Navigation.LookupApproach != InformationSetLookupApproach.CachedGameHistoryOnly)
                 GameHistoryTree.SetValue(actionsEnumerator, true, playerUtilities);
             if (Navigation.LookupApproach != InformationSetLookupApproach.CachedGameTreeOnly)
@@ -223,7 +223,7 @@ namespace ACESim
                 TabbedText.Tabs--;
                 historyPoint = historyPoint.GetBranch(Navigation, informationSetHistory.ActionChosen);
             }
-            double[] utilitiesStoredInTree = (double[])historyPoint.GetGameStateForCurrentPlayer(Navigation);
+            double[] utilitiesStoredInTree = ((CRMFinalUtilities)historyPoint.GetGameStateForCurrentPlayer(Navigation)).Utilities;
             TabbedText.WriteLine($"--> Utilities: { String.Join(",", utilitiesStoredInTree)}");
         }
 
@@ -273,7 +273,7 @@ namespace ACESim
 
         public double[] GetUtilities(HistoryPoint completedGame)
         {
-            return (double[])completedGame.GetGameStateForCurrentPlayer(Navigation);
+            return ((CRMFinalUtilities)completedGame.GetGameStateForCurrentPlayer(Navigation)).Utilities;
         }
 
         public void PreSerialize()
