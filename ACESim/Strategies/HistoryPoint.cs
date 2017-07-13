@@ -102,6 +102,21 @@ namespace ACESim
                 return gameStateFromGameHistory;
         }
 
+        public bool NodeIsChanceNode(ICRMGameState gameStateForCurrentPlayer)
+        {
+            return gameStateForCurrentPlayer is CRMChanceNodeSettings;
+        }
+
+        public CRMInformationSetNodeTally GetInformationSetNodeTally(ICRMGameState gameStateForCurrentPlayer)
+        {
+            return gameStateForCurrentPlayer as CRMInformationSetNodeTally;
+        }
+
+        public CRMChanceNodeSettings GetInformationSetChanceSettings(ICRMGameState gameStateForCurrentPlayer)
+        {
+            return gameStateForCurrentPlayer as CRMChanceNodeSettings;
+        }
+
         public HistoryPoint GetBranch(HistoryNavigationInfo navigation, byte actionChosen)
         {
             HistoryPoint next = new HistoryPoint();
@@ -202,13 +217,11 @@ namespace ACESim
 
         public unsafe void SetInformationIfNotSet(HistoryNavigationInfo navigation, GameProgress gameProgress, InformationSetHistory informationSetHistory)
         {
-            //var DEBUG = informationSetHistory.ToString();
-            //TabbedText.WriteLine($"Setting information {DEBUG}");
             if (GetGameStateForCurrentPlayer(navigation) == null)
                 SetInformationAtPoint(navigation, gameProgress, informationSetHistory);
         }
 
-        public unsafe void SetInformationAtPoint(HistoryNavigationInfo navigation, GameProgress gameProgress, InformationSetHistory informationSetHistory)
+        private unsafe void SetInformationAtPoint(HistoryNavigationInfo navigation, GameProgress gameProgress, InformationSetHistory informationSetHistory)
         {
             var decision = navigation.GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
             var playerInfo = navigation.GameDefinition.Players[informationSetHistory.PlayerIndex];
@@ -250,21 +263,6 @@ namespace ACESim
                         );
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
                 TreePoint.StoredValue = informationSetNode.StoredValue;
-        }
-
-        public bool NodeIsChanceNode(ICRMGameState gameStateForCurrentPlayer)
-        {
-            return gameStateForCurrentPlayer is CRMChanceNodeSettings;
-        }
-
-        public CRMInformationSetNodeTally GetInformationSetNodeTally(ICRMGameState gameStateForCurrentPlayer)
-        {
-            return gameStateForCurrentPlayer as CRMInformationSetNodeTally;
-        }
-
-        public CRMChanceNodeSettings GetInformationSetChanceSettings(ICRMGameState gameStateForCurrentPlayer)
-        {
-            return gameStateForCurrentPlayer as CRMChanceNodeSettings;
         }
 
     }

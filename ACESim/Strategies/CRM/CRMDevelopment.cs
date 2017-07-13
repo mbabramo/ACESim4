@@ -25,7 +25,7 @@ namespace ACESim
 
         public CurrentExecutionInformation CurrentExecutionInformation { get; set; }
 
-        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.PlayUnderlyingGame;
+        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedBothMethods;
 
         public HistoryNavigationInfo Navigation;
 
