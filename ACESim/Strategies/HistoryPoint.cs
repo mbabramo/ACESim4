@@ -75,13 +75,13 @@ namespace ACESim
             }
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
-                var DEBUG = HistoryToPoint.GetInformationSetHistoryItems().Select(x => x.ToString());
+                //var informationSetHistories = HistoryToPoint.GetInformationSetHistoryItems().Select(x => x.ToString());
                 (Decision nextDecision, byte nextDecisionIndex) = navigation.GameDefinition.GetNextDecision(HistoryToPoint);
                 byte nextPlayer = nextDecision?.PlayerNumber ?? navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
                 byte* informationSetsPtr = stackalloc byte[GameHistory.MaxInformationSetLengthPerPlayer];
                 // string playerInformationString = HistoryToPoint.GetPlayerInformationString(currentPlayer, nextDecision?.DecisionByteCode);
                 HistoryToPoint.GetPlayerInformation(nextPlayer, null, informationSetsPtr);
-                var DEBUG2 = Util.ListExtensions.GetPointerAsList_255Terminated(informationSetsPtr);
+                //var informationSetList = Util.ListExtensions.GetPointerAsList_255Terminated(informationSetsPtr);
                 gameStateFromGameHistory = navigation.Strategies[nextPlayer].InformationSetTree?.GetValue(informationSetsPtr);
                 if (gameStateFromGameHistory == null && navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly)
                     return null; // we haven't initialized, so we need to do so and then try again.
@@ -111,9 +111,7 @@ namespace ACESim
             HistoryPoint next = new HistoryPoint();
             if (navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)
             {
-                var DEBUG = GameProgress.GameHistory.GetActionsAsListString();
                 GameProgress nextProgress = GameProgress.DeepCopy();
-                var DEBUG2 = GameProgress.GameHistory.GetActionsAsListString();
                 IGameFactory gameFactory = navigation.Strategies[0].SimulationInteraction.CurrentExecutionInformation.GameFactory;
                 GamePlayer player = new GamePlayer(navigation.Strategies, gameFactory, false, navigation.GameDefinition);
                 player.ContinuePathWithAction(actionChosen, nextProgress);
@@ -255,8 +253,8 @@ namespace ACESim
 
         public unsafe void SetInformationIfNotSet(HistoryNavigationInfo navigation, GameProgress gameProgress, InformationSetHistory informationSetHistory)
         {
-            var DEBUG = informationSetHistory.ToString();
-            var DEBUG2 = GetActionsToHereString(navigation);
+            //var informationSetString = informationSetHistory.ToString();
+            //var actionsToHere = GetActionsToHereString(navigation);
             ICRMGameState gameState = GetGameStateForCurrentPlayer(navigation);
             if (gameState == null)
                 SetInformationAtPoint(navigation, gameProgress, informationSetHistory);

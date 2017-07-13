@@ -50,8 +50,6 @@ namespace ACESim
             {
                 var adjustedIndex = AdjustedIndex(index);
                 ConfirmAdjustedIndex(adjustedIndex);
-                if (Branches[adjustedIndex] != null)
-                    throw new Exception("DEBUG");
                 Branches[adjustedIndex] = tree;
             }
         }

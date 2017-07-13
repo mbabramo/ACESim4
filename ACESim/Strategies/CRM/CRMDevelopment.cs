@@ -129,19 +129,18 @@ namespace ACESim
             // First, add the utilities at the end of the tree for this path.
             byte* actionsEnumerator = stackalloc byte[GameHistory.MaxNumActions];
             gameProgress.GameHistory.GetActions(actionsEnumerator);
-            var DEBUG3 = ListExtensions.GetPointerAsList_255Terminated(actionsEnumerator);
+            //var actionsAsList = ListExtensions.GetPointerAsList_255Terminated(actionsEnumerator);
 
             // Go through each non-chance decision point on this path and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
 
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
             IEnumerable<InformationSetHistory> informationSetHistories = gameProgress.GameHistory.GetInformationSetHistoryItems();
-            var DEBUG2 = informationSetHistories.ToList();
             foreach (var informationSetHistory in informationSetHistories)
             {
-                var DEBUG = informationSetHistory.ToString();
+                //var informationSetHistoryString = informationSetHistory.ToString();
                 historyPoint.SetInformationIfNotSet(Navigation, gameProgress, informationSetHistory);
                 historyPoint = historyPoint.GetBranch(Navigation, informationSetHistory.ActionChosen);
-                var DEBUG_Actions = historyPoint.GetActionsToHereString(Navigation);
+                //var actionsToHere = historyPoint.GetActionsToHereString(Navigation);
             }
             historyPoint.SetFinalUtilitiesAtPoint(Navigation, gameProgress);
         }
@@ -704,8 +703,8 @@ namespace ACESim
         private unsafe double VanillaCRM_DecisionNode(HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues, bool usePruning)
         {
             double* nextPiValues = stackalloc double[MaxNumPlayers];
-            var DEBUG = historyPoint.GetActionsToHere(Navigation);
-            var DEBUG2 = historyPoint.ToString();
+            //var actionsToHere = historyPoint.GetActionsToHere(Navigation);
+            //var historyPointString = historyPoint.ToString();
 
             ICRMGameState gameStateForCurrentPlayer = GetGameState(historyPoint);
             var informationSet = (CRMInformationSetNodeTally) gameStateForCurrentPlayer;
@@ -800,7 +799,7 @@ namespace ACESim
             {
                 double* locTarget = nextPiValues;
                 double* locSource = equalProbabilityNextPiValues;
-                for (int i = 0; i < NumNonChancePlayers + 1; i++) // DEBUG -- do we need + 1?
+                for (int i = 0; i < NumNonChancePlayers; i++) // DEBUG -- do we need + 1?
                 {
                     (*locTarget) = (*locSource);
                     locTarget++;

@@ -14,7 +14,7 @@ namespace ACESim
     {
         public const int MaxHistoryLength = 100;
         public const int MaxInformationSetLength = 500; // MUST equal MaxInformationSetLengthPerPlayer * MaxNumPlayers. 
-        public const int MaxInformationSetLengthPerPlayer = 50; // DEBUG -- too high
+        public const int MaxInformationSetLengthPerPlayer = 50; 
         public const int MaxNumPlayers = 10;
         public const int MaxNumActions = 20;
         const byte HistoryComplete = 254;
