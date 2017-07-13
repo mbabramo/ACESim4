@@ -248,7 +248,7 @@ namespace ACESim
             double[] utilitiesFromCachedGameHistory = null;
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
                 utilitiesFromGameTree = ((CRMFinalUtilities)TreePoint.StoredValue).Utilities;
-            if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
+            if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
                 byte resolutionPlayer = navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
                 var strategy = navigation.Strategies[resolutionPlayer];
