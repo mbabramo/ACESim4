@@ -12,12 +12,14 @@ namespace ACESim
         NWayTreeStorage<ICRMGameState> TreePoint;
         GameHistory HistoryToPoint;
         GameProgress GameProgress;
+        ICRMGameState GameState;
 
         public HistoryPoint(NWayTreeStorage<ICRMGameState> treePoint, GameHistory historyToPoint, GameProgress gameProgress)
         {
             TreePoint = treePoint;
             HistoryToPoint = historyToPoint;
             GameProgress = gameProgress;
+            GameState = null;
         }
 
         public override string ToString()
@@ -57,11 +59,16 @@ namespace ACESim
         /// <returns></returns>
         public unsafe ICRMGameState GetGameStateForCurrentPlayer(HistoryNavigationInfo navigation)
         {
+            if (GameState != null)
+                return GameState;
             ICRMGameState gameStateFromGameHistory = null;
             if (navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)
             {
                 if (GameProgress.GameComplete)
-                    return new CRMFinalUtilities(GameProgress.GetNonChancePlayerUtilities());
+                {
+                    GameState = new CRMFinalUtilities(GameProgress.GetNonChancePlayerUtilities());
+                    return GameState;
+                }
                 // Otherwise, when playing the actual game, we use the GameHistory object, so we'll set this object as the "cached" object even though it's cached.
                 navigation.LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
                 HistoryToPoint = GameProgress.GameHistory;
@@ -92,10 +99,11 @@ namespace ACESim
                         throw new Exception("Different value from two different approaches.");
                     }
                 }
-                return gameStateFromGameTree;
+                GameState = gameStateFromGameTree;
             }
             else
-                return gameStateFromGameHistory;
+                GameState = gameStateFromGameHistory;
+            return GameState;
         }
 
         public bool NodeIsChanceNode(ICRMGameState gameStateForCurrentPlayer)

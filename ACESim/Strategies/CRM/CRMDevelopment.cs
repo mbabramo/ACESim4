@@ -25,14 +25,14 @@ namespace ACESim
 
         public CurrentExecutionInformation CurrentExecutionInformation { get; set; }
 
-        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameTreeOnly;
+        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedBothMethods;
+        bool allowSkipEveryPermutationInitialization = false;
+        public bool SkipEveryPermutationInitialization => (allowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame));
 
         public HistoryNavigationInfo Navigation;
 
         public int NumInitializedGamePaths = 0;
         public int NumRandomIterationsForReporting = 1000;
-        bool allowSkipEveryPermutationInitialization = false;
-        public bool SkipEveryPermutationInitialization => (allowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame));
 
         public ActionStrategies _ActionStrategy;
         public ActionStrategies ActionStrategy
