@@ -69,7 +69,7 @@ namespace ACESim
             return returnVal;
         }
 
-        public unsafe object GetInformationSetTreeValue(byte* informationSet)
+        public unsafe ICRMGameState GetInformationSetTreeValue(byte* informationSet)
         {
             return InformationSetTree.GetValue(informationSet);
         }

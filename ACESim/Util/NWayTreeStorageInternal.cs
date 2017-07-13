@@ -152,7 +152,7 @@ namespace ACESim
             }
         }
 
-        private NWayTreeStorage<T> AddBranch(byte index, bool mayBeInternal)
+        public NWayTreeStorage<T> AddBranch(byte index, bool mayBeInternal)
         {
             NWayTreeStorage<T> nextTree;
             if (mayBeInternal)

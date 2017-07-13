@@ -81,14 +81,10 @@ namespace ACESim
             }
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
-                ICRMGameState gameStateFromGameTree = TreePoint.StoredValue;
+                ICRMGameState gameStateFromGameTree = TreePoint?.StoredValue;
                 if (navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
                 {
-                    bool equals;
-                    if (gameStateFromGameTree is CRMFinalUtilities finalUtilities)
-                        equals = (finalUtilities.Utilities).SequenceEqual(((CRMFinalUtilities)gameStateFromGameHistory).Utilities); // The game tree may store a resolution that corresponds to a single resolution sets many places, because many sets of actions can lead to the same result.
-                    else
-                        equals = gameStateFromGameTree == gameStateFromGameHistory; // this should be the same object (not just equal), because the game tree points to the information set tree
+                    bool equals = gameStateFromGameTree == gameStateFromGameHistory; // this should be the same object (not just equal), because the game tree points to the information set tree
                     if (!equals)
                     {
                         if (gameStateFromGameTree == null)
@@ -117,6 +113,11 @@ namespace ACESim
             return gameStateForCurrentPlayer as CRMChanceNodeSettings;
         }
 
+        public CRMFinalUtilities GetFinalUtilities(ICRMGameState gameStateForCurrentPlayer)
+        {
+            return gameStateForCurrentPlayer as CRMFinalUtilities;
+        }
+
         public HistoryPoint GetBranch(HistoryNavigationInfo navigation, byte actionChosen)
         {
             HistoryPoint next = new HistoryPoint();
@@ -142,7 +143,12 @@ namespace ACESim
                     next.HistoryToPoint.MarkComplete();
             }
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
-                next.TreePoint = TreePoint.GetBranch(actionChosen);
+            {
+                NWayTreeStorage<ICRMGameState> branch = TreePoint.GetBranch(actionChosen);
+                if (branch == null)
+                    branch = ((NWayTreeStorageInternal<ICRMGameState>)TreePoint).AddBranch(actionChosen, true);
+                next.TreePoint = branch;
+            }
             return next;
         }
 
@@ -215,6 +221,49 @@ namespace ACESim
             }
         }
 
+        public unsafe void SetFinalUtilitiesAtPoint(HistoryNavigationInfo navigation, GameProgress gameProgress)
+        {
+            if (!gameProgress.GameComplete)
+                throw new Exception("Game is not complete.");
+            byte resolutionPlayer = navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
+            var strategy = navigation.Strategies[resolutionPlayer];
+            byte* resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerPlayer];
+            gameProgress.GameHistory.GetPlayerInformation(resolutionPlayer, null, resolutionInformationSet);
+            NWayTreeStorage<ICRMGameState> informationSetNode = strategy.SetInformationSetTreeValueIfNotSet(
+                        resolutionInformationSet,
+                        true,
+                        () => new CRMFinalUtilities(gameProgress.GetNonChancePlayerUtilities())
+                        );
+            if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
+                TreePoint.StoredValue = informationSetNode.StoredValue;
+        }
+
+        public unsafe double[] GetFinalUtilities(HistoryNavigationInfo navigation)
+        {
+            if (!IsComplete(navigation))
+                throw new Exception("Game is not complete.");
+            if (navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)
+                return GameProgress.GetNonChancePlayerUtilities();
+            double[] utilitiesFromGameTree = null;
+            double[] utilitiesFromCachedGameHistory = null;
+            if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
+                utilitiesFromGameTree = ((CRMFinalUtilities)TreePoint.StoredValue).Utilities;
+            if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
+            {
+                byte resolutionPlayer = navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
+                var strategy = navigation.Strategies[resolutionPlayer];
+                byte* resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerPlayer];
+                HistoryToPoint.GetPlayerInformation(resolutionPlayer, null, resolutionInformationSet);
+                CRMFinalUtilities finalUtilities = (CRMFinalUtilities) strategy.GetInformationSetTreeValue(resolutionInformationSet);
+                utilitiesFromCachedGameHistory = finalUtilities.Utilities;
+            }
+            if (navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods && !utilitiesFromGameTree.SequenceEqual(utilitiesFromCachedGameHistory))
+                throw new Exception("Internal error. Caching mechanisms don't match.");
+            return utilitiesFromGameTree ?? utilitiesFromCachedGameHistory;
+        }
+
+
+
         public unsafe void SetInformationIfNotSet(HistoryNavigationInfo navigation, GameProgress gameProgress, InformationSetHistory informationSetHistory)
         {
             if (GetGameStateForCurrentPlayer(navigation) == null)
@@ -226,7 +275,7 @@ namespace ACESim
             var decision = navigation.GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
             var playerInfo = navigation.GameDefinition.Players[informationSetHistory.PlayerIndex];
             var playersStrategy = navigation.Strategies[informationSetHistory.PlayerIndex];
-            bool isNecessarilyLast = decision.IsAlwaysPlayersLastDecision || informationSetHistory.IsTerminalAction;
+            bool isNecessarilyLast = false; // Not relevant now that we are storing final utilities decision.IsAlwaysPlayersLastDecision || informationSetHistory.IsTerminalAction;
             var informationSetHistoryCopy = informationSetHistory;
             NWayTreeStorage<ICRMGameState> informationSetNode = playersStrategy.SetInformationSetTreeValueIfNotSet(
                         informationSetHistoryCopy.InformationSetForPlayer,

@@ -127,43 +127,21 @@ namespace ACESim
             byte* actionsEnumerator = stackalloc byte[GameHistory.MaxNumActions];
             gameProgress.GameHistory.GetActions(actionsEnumerator);
             var DEBUG3 = ListExtensions.GetPointerAsList_255Terminated(actionsEnumerator);
-            SaveFinalUtilities(gameProgress, actionsEnumerator);
 
             // Go through each non-chance decision point on this path and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
 
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
             IEnumerable<InformationSetHistory> informationSetHistories = gameProgress.GameHistory.GetInformationSetHistoryItems();
+            var DEBUG2 = informationSetHistories.ToList();
             foreach (var informationSetHistory in informationSetHistories)
             {
                 var DEBUG = informationSetHistory.ToString();
-                var DEBUG2 = informationSetHistories.ToList();
                 historyPoint.SetInformationIfNotSet(Navigation, gameProgress, informationSetHistory);
                 historyPoint = historyPoint.GetBranch(Navigation, informationSetHistory.ActionChosen);
             }
+            historyPoint.SetFinalUtilitiesAtPoint(Navigation, gameProgress);
         }
 
-        private unsafe void SaveFinalUtilities(GameProgress gameProgress, byte* actionsEnumerator)
-        {
-            // We are going to save this information in the GameHistoryTree, if applicable, and always in the resolution set's resolution tree.
-            // Note, however, that this is a bit different from what we do when we put intermediate progress points in the tree. 
-            // First, there is no InformationSetHistory for the final resolution, because it is not a move by a player, but just the result of the game.
-            // There is, however, an information set for the "resolution player," which is just a fiction we use to make it easy to save the information set tree for that player.
-            // Second, the game history tree stores the final utilities in the leaf, not in the node. 
-            // These considerations explain why we do the saving here rather than in HistoryPoint. 
-            // We can still use the final history point to get the utilities by calling GetGameStateForCurrentPlayer on the final history point.
-            CRMFinalUtilities playerUtilities = new CRMFinalUtilities(gameProgress.GetNonChancePlayerUtilities());
-            if (Navigation.LookupApproach != InformationSetLookupApproach.CachedGameHistoryOnly)
-                GameHistoryTree.SetValue(actionsEnumerator, true, playerUtilities);
-            if (Navigation.LookupApproach != InformationSetLookupApproach.CachedGameTreeOnly)
-            {
-                var resolutionStrategy = Strategies[GameDefinition.PlayerIndex_ResolutionPlayer];
-                byte* resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerPlayer];
-                gameProgress.GameHistory.GetPlayerInformation(GameDefinition.PlayerIndex_ResolutionPlayer, null /* get entire resolution set */, resolutionInformationSet);
-                var DEBUG_actions = ListExtensions.GetPointerAsList_255Terminated(actionsEnumerator);
-                var DEBUG_resolutions = ListExtensions.GetPointerAsList_255Terminated(resolutionInformationSet);
-                resolutionStrategy.SetInformationSetTreeValueIfNotSet(resolutionInformationSet, true, () => playerUtilities);
-            }
-        }
         #endregion
 
         #region Printing
@@ -231,8 +209,8 @@ namespace ACESim
                 TabbedText.Tabs--;
                 historyPoint = historyPoint.GetBranch(Navigation, informationSetHistory.ActionChosen);
             }
-            double[] utilitiesStoredInTree = ((CRMFinalUtilities)historyPoint.GetGameStateForCurrentPlayer(Navigation)).Utilities;
-            TabbedText.WriteLine($"--> Utilities: { String.Join(",", utilitiesStoredInTree)}");
+            double[] finalUtilities = historyPoint.GetFinalUtilities(Navigation);
+            TabbedText.WriteLine($"--> Utilities: { String.Join(",", finalUtilities)}");
         }
 
         #endregion
@@ -281,7 +259,7 @@ namespace ACESim
 
         public double[] GetUtilities(HistoryPoint completedGame)
         {
-            return ((CRMFinalUtilities)completedGame.GetGameStateForCurrentPlayer(Navigation)).Utilities;
+            return completedGame.GetFinalUtilities(Navigation);
         }
 
         public void PreSerialize()
