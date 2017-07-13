@@ -97,7 +97,7 @@ namespace ACESim
 
             // DEBUG -- we will do this but not yet
             //if (Navigation.LookupApproach == InformationSetLookupApproach.GameHistoryOnly)
-            //    return; // no initialization needed (that's the purpose of using GameHistory)
+            //    return; // no initialization needed (that's a purpose of using GameHistory)
 
             GamePlayer player = new GamePlayer(Strategies, GameFactory, EvolutionSettings.ParallelOptimization, GameDefinition);
 
@@ -160,7 +160,7 @@ namespace ACESim
 
         #region Printing
 
-        double printProbability = 1.0;
+        double printProbability = 0.0;
         bool processIfNotPrinting = false;
         private unsafe void PrintSameGameResults(GamePlayer player)
         {
@@ -356,7 +356,7 @@ namespace ACESim
             double* probabilities = stackalloc double[GameHistory.MaxNumActions];
             byte numPossibleActions = NumPossibleActionsAtDecision(historyPoint.GetNextDecisionIndex(Navigation));
             CRMActionProbabilities.GetActionProbabilitiesAtHistoryPoint(historyPoint, actionStrategy, probabilities, numPossibleActions, null, Navigation);
-            Parallelizer.GoByte(EvolutionSettings.ParallelOptimization, 2, 1, (byte)(numPossibleActions + 1), (action) =>
+            Parallelizer.GoByte(EvolutionSettings.ParallelOptimization, EvolutionSettings.MaxParallelDepth, 1, (byte)(numPossibleActions + 1), (action) =>
             {
                 if (probabilities[action - 1] > 0)
                 {
@@ -764,7 +764,7 @@ namespace ACESim
             else
                 equalProbabilityNextPiValues = null;
             double expectedValue = 0;
-            Parallelizer.GoByte(EvolutionSettings.ParallelOptimization, 2 /* TODO: Make this an evolution setting */, 1, (byte)(numPossibleActions + 1),
+            Parallelizer.GoByte(EvolutionSettings.ParallelOptimization, EvolutionSettings.MaxParallelDepth, 1, (byte)(numPossibleActions + 1),
                 action =>
                 {
                     //double* piValuesToPass = stackalloc double[MaxNumPlayers];

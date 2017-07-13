@@ -9,6 +9,7 @@ namespace ACESim
     public class EvolutionSettings
     {
         public bool ParallelOptimization;
+        public int MaxParallelDepth;
         public int NumIterationsPerPhase;
         public int NumPhases;
 
@@ -16,6 +17,7 @@ namespace ACESim
         {
             return new EvolutionSettings() {
                 ParallelOptimization = ParallelOptimization,
+                MaxParallelDepth = MaxParallelDepth,
                 NumIterationsPerPhase = NumIterationsPerPhase,
                 NumPhases = NumPhases
             };
@@ -24,6 +26,9 @@ namespace ACESim
         public void CopyFrom(EvolutionSettings copy)
         {
             this.ParallelOptimization = copy.ParallelOptimization;
+            this.MaxParallelDepth = copy.MaxParallelDepth;
+            this.NumIterationsPerPhase = copy.NumIterationsPerPhase;
+            this.NumPhases = copy.NumPhases;
         }
     }
 }
