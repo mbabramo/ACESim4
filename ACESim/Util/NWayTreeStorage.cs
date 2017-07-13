@@ -9,8 +9,6 @@ namespace ACESim
     [Serializable]
     public class NWayTreeStorage<T>
     {
-        
-
         public NWayTreeStorageInternal<T> Parent;
 
         private T _StoredValue;
@@ -24,7 +22,10 @@ namespace ACESim
             set
             {
                 lock (this)
-                    _StoredValue = value;
+                {
+                    if (_StoredValue == null || _StoredValue.Equals(default(T)))
+                        _StoredValue = value;
+                }
             }
         }
 

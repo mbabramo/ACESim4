@@ -146,7 +146,8 @@ namespace ACESim
             {
                 NWayTreeStorage<ICRMGameState> branch = TreePoint.GetBranch(actionChosen);
                 if (branch == null)
-                    branch = ((NWayTreeStorageInternal<ICRMGameState>)TreePoint).AddBranch(actionChosen, true);
+                    lock (TreePoint)
+                        branch = ((NWayTreeStorageInternal<ICRMGameState>)TreePoint).AddBranch(actionChosen, true);
                 next.TreePoint = branch;
             }
             return next;
