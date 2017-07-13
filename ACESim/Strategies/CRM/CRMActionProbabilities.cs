@@ -16,7 +16,10 @@ namespace ACESim
             HistoryPoint historyPoint = new HistoryPoint(null, gameProgress.GameHistory, gameProgress);
             HistoryNavigationInfo navigateDuringActualGamePlay = navigation;
             navigateDuringActualGamePlay.LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
-            double[] probabilities = GetActionProbabilitiesAtHistoryPoint(historyPoint, actionStrategy, numPossibleActions, alwaysDoAction, navigateDuringActualGamePlay);
+            ICRMGameState gameStateForCurrentPlayer = historyPoint.GetGameStateForCurrentPlayer(navigation);
+            if (gameStateForCurrentPlayer == null)
+                throw new Exception("Internal error. This action has not been initialized.");
+            double[] probabilities = GetActionProbabilitiesAtHistoryPoint(gameStateForCurrentPlayer, actionStrategy, numPossibleActions, alwaysDoAction, navigateDuringActualGamePlay);
             double cumTotal = 0;
             for (byte a = 0; a < numPossibleActions; a++)
             {
@@ -31,36 +34,34 @@ namespace ACESim
             return numPossibleActions; // indicates a rare rounding error
         }
 
-        public static  double[] GetActionProbabilitiesAtHistoryPoint(HistoryPoint historyPoint, ActionStrategies actionStrategy, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation)
+        public static  double[] GetActionProbabilitiesAtHistoryPoint(ICRMGameState gameStateForCurrentPlayer, ActionStrategies actionStrategy, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation)
         {
             double[] probabilities;
-            GetActionProbabilitiesAtHistoryPoint_Helper(historyPoint, actionStrategy, numPossibleActions, alwaysDoAction, navigation, out probabilities);
+            GetActionProbabilitiesAtHistoryPoint_Helper(gameStateForCurrentPlayer, actionStrategy, numPossibleActions, alwaysDoAction, navigation, out probabilities);
             return probabilities.Take(numPossibleActions).ToArray();
 
         }
 
-        public static unsafe void GetActionProbabilitiesAtHistoryPoint_Helper(HistoryPoint historyPoint, ActionStrategies actionStrategy, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation, out double[] probabilities)
+        public static unsafe void GetActionProbabilitiesAtHistoryPoint_Helper(ICRMGameState gameStateForCurrentPlayer, ActionStrategies actionStrategy, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation, out double[] probabilities)
         {
             probabilities = new double[GameHistory.MaxNumActions];
             double* probabilitiesBuffer = stackalloc double[GameHistory.MaxNumActions];
-            GetActionProbabilitiesAtHistoryPoint(historyPoint, actionStrategy, probabilitiesBuffer, numPossibleActions, alwaysDoAction, navigation);
+            GetActionProbabilitiesAtHistoryPoint(gameStateForCurrentPlayer, actionStrategy, probabilitiesBuffer, numPossibleActions, alwaysDoAction, navigation);
             for (byte a = 0; a < GameHistory.MaxNumActions; a++)
                 probabilities[a] = probabilitiesBuffer[a];
         }
 
-        public static unsafe void GetActionProbabilitiesAtHistoryPoint(HistoryPoint historyPoint, ActionStrategies actionStrategy, double* probabilities, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation)
+        public static unsafe void GetActionProbabilitiesAtHistoryPoint(ICRMGameState gameStateForCurrentPlayer, ActionStrategies actionStrategy, double* probabilities, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation)
         {
-            ICRMGameState gameStateForCurrentPlayer = historyPoint.GetGameStateForCurrentPlayer(navigation);
-            if (historyPoint.NodeIsChanceNode(gameStateForCurrentPlayer))
+            if (gameStateForCurrentPlayer is CRMChanceNodeSettings chanceNodeSettings)
             {
-                CRMChanceNodeSettings chanceNodeSettings = historyPoint.GetInformationSetChanceSettings(gameStateForCurrentPlayer);
                 byte decisionIndex = chanceNodeSettings.DecisionIndex;
                 for (byte action = 1; action <= numPossibleActions; action++)
                     probabilities[action - 1] = chanceNodeSettings.GetActionProbability(action);
             }
             else
             { // not a chance node or a leaf node
-                CRMInformationSetNodeTally nodeTally = historyPoint.GetInformationSetNodeTally(gameStateForCurrentPlayer);
+                CRMInformationSetNodeTally nodeTally = (CRMInformationSetNodeTally)gameStateForCurrentPlayer; 
                 if (alwaysDoAction != null)
                     SetProbabilitiesToAlwaysDoParticularAction(numPossibleActions, probabilities, (byte)alwaysDoAction);
                 else if (actionStrategy == ActionStrategies.RegretMatching)

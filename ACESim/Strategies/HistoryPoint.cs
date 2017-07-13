@@ -106,26 +106,6 @@ namespace ACESim
             return GameState;
         }
 
-        public bool NodeIsChanceNode(ICRMGameState gameStateForCurrentPlayer)
-        {
-            return gameStateForCurrentPlayer is CRMChanceNodeSettings;
-        }
-
-        public CRMInformationSetNodeTally GetInformationSetNodeTally(ICRMGameState gameStateForCurrentPlayer)
-        {
-            return gameStateForCurrentPlayer as CRMInformationSetNodeTally;
-        }
-
-        public CRMChanceNodeSettings GetInformationSetChanceSettings(ICRMGameState gameStateForCurrentPlayer)
-        {
-            return gameStateForCurrentPlayer as CRMChanceNodeSettings;
-        }
-
-        public CRMFinalUtilities GetFinalUtilities(ICRMGameState gameStateForCurrentPlayer)
-        {
-            return gameStateForCurrentPlayer as CRMFinalUtilities;
-        }
-
         public HistoryPoint GetBranch(HistoryNavigationInfo navigation, byte actionChosen)
         {
             HistoryPoint next = new HistoryPoint();
