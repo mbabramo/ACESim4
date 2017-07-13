@@ -252,24 +252,6 @@ namespace ACESim
                 TreePoint.StoredValue = informationSetNode.StoredValue;
         }
 
-
-        public unsafe void SetInformationAtPoint(HistoryNavigationInfo navigation, InformationSetHistory informationSetHistory, double[] finalUtilities)
-        {
-            throw new Exception("This doesn't seem to be used DEBUG");
-            var decision = navigation.GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
-            var playerInfo = navigation.GameDefinition.Players[informationSetHistory.PlayerIndex];
-            var playersStrategy = navigation.Strategies[informationSetHistory.PlayerIndex];
-            bool isNecessarilyLast = decision.IsAlwaysPlayersLastDecision || informationSetHistory.IsTerminalAction;
-            var informationSetHistoryCopy = informationSetHistory;
-            NWayTreeStorage<ICRMGameState> informationSetNode = playersStrategy.SetInformationSetTreeValueIfNotSet(
-                        informationSetHistoryCopy.InformationSetForPlayer,
-                        isNecessarilyLast,
-                        () => new CRMFinalUtilities(finalUtilities)
-                        );
-            if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
-                TreePoint.StoredValue = informationSetNode.StoredValue;
-        }
-
         public bool NodeIsChanceNode(ICRMGameState gameStateForCurrentPlayer)
         {
             return gameStateForCurrentPlayer is CRMChanceNodeSettings;
