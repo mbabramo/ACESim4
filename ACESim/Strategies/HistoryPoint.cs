@@ -255,7 +255,10 @@ namespace ACESim
 
         public unsafe void SetInformationIfNotSet(HistoryNavigationInfo navigation, GameProgress gameProgress, InformationSetHistory informationSetHistory)
         {
-            if (GetGameStateForCurrentPlayer(navigation) == null)
+            var DEBUG = informationSetHistory.ToString();
+            var DEBUG2 = GetActionsToHereString(navigation);
+            ICRMGameState gameState = GetGameStateForCurrentPlayer(navigation);
+            if (gameState == null)
                 SetInformationAtPoint(navigation, gameProgress, informationSetHistory);
         }
 

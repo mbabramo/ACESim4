@@ -56,6 +56,8 @@ namespace ACESim
 
         public List<byte> ActionsPlayed()
         {
+            if (ActionsToPlayCompleted)
+                return ActionsToPlay.ToList();
             List<byte> actionsPlayed = new List<byte>();
             for (byte b = 0; b < ActionsToPlayIndex; b++)
                 actionsPlayed.Add(ActionsToPlay[b]);

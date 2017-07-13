@@ -28,7 +28,7 @@ namespace ACESim
         public CurrentExecutionInformation CurrentExecutionInformation { get; set; }
 
         public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
-        bool allowSkipEveryPermutationInitialization = false;
+        bool allowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => (allowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame));
 
         public HistoryNavigationInfo Navigation;
@@ -60,8 +60,8 @@ namespace ACESim
         public const int MaxNumPlayers = 4; // this affects fixed-size stack-allocated buffers
         public const int MaxPossibleActions = 100; // same
 
-        const int TotalVanillaCFRIterations = 1000;
-        int? ReportEveryNIterations = 100;
+        const int TotalVanillaCFRIterations = 25;
+        int? ReportEveryNIterations = 5;
         int? BestResponseEveryMIterations = 1000;
 
         public CRMDevelopment()
@@ -108,15 +108,16 @@ namespace ACESim
 
             GamePlayer = new GamePlayer(Strategies, GameFactory, EvolutionSettings.ParallelOptimization, GameDefinition);
 
+            foreach (Strategy s in Strategies)
+            {
+                s.CreateInformationSetTree(GameDefinition.DecisionsExecutionOrder.FirstOrDefault(x => x.PlayerNumber == s.PlayerInfo.PlayerIndex)?.NumPossibleActions ?? (byte)1);
+            }
+
             if (SkipEveryPermutationInitialization)
                 return; // no initialization needed (that's a benefit of using GameHistory -- we can initialize information sets on the fly, which may be much faster than playing every game permutation)
 
             // Create game trees
             GameHistoryTree = new NWayTreeStorageInternal<ICRMGameState>(null, GameDefinition.DecisionsExecutionOrder.First().NumPossibleActions);
-            foreach (Strategy s in Strategies)
-            {
-                s.CreateInformationSetTree(GameDefinition.DecisionsExecutionOrder.FirstOrDefault(x => x.PlayerNumber == s.PlayerInfo.PlayerIndex)?.NumPossibleActions ?? (byte) 1);
-            }
             
             NumInitializedGamePaths = GamePlayer.PlayAllPaths(ProcessInitializedGameProgress);
             Debug.WriteLine($"Initialized. Total paths: {NumInitializedGamePaths}");
@@ -140,6 +141,7 @@ namespace ACESim
                 var DEBUG = informationSetHistory.ToString();
                 historyPoint.SetInformationIfNotSet(Navigation, gameProgress, informationSetHistory);
                 historyPoint = historyPoint.GetBranch(Navigation, informationSetHistory.ActionChosen);
+                var DEBUG_Actions = historyPoint.GetActionsToHereString(Navigation);
             }
             historyPoint.SetFinalUtilitiesAtPoint(Navigation, gameProgress);
         }
@@ -147,8 +149,16 @@ namespace ACESim
         public ICRMGameState GetGameState(HistoryPoint historyPoint)
         {
             var gameState = historyPoint.GetGameStateForCurrentPlayer(Navigation);
+            if (gameState == null)
+            {
+                List<byte> actionsSoFar = historyPoint.GetActionsToHere(Navigation);
+                (GameProgress progress, _) = GamePlayer.PlayPath(actionsSoFar, false);
+                ProcessInitializedGameProgress(progress);
+                gameState = historyPoint.GetGameStateForCurrentPlayer(Navigation);
+                if (gameState == null)
+                    throw new Exception("Internal error.");
+            }
             return gameState;
-            // DEBUG -- initialize if necessary
         }
 
         #endregion
@@ -682,16 +692,13 @@ namespace ACESim
                 if (allZero)
                     return 0; // this is zero probability, so the result doesn't matter
             }
-            if (historyPoint.IsComplete(Navigation))
-                return GetUtilityFromTerminalHistory(historyPoint, playerBeingOptimized);
+            ICRMGameState gameStateForCurrentPlayer = GetGameState(historyPoint);
+            if (gameStateForCurrentPlayer is CRMFinalUtilities finalUtilities)
+                return finalUtilities.Utilities[playerBeingOptimized];
+            else if (gameStateForCurrentPlayer is CRMChanceNodeSettings)
+                return VanillaCRM_ChanceNode(historyPoint, playerBeingOptimized, piValues, usePruning);
             else
-            {
-                ICRMGameState gameStateForCurrentPlayer = GetGameState(historyPoint);
-                if (gameStateForCurrentPlayer is CRMChanceNodeSettings)
-                    return VanillaCRM_ChanceNode(historyPoint, playerBeingOptimized, piValues, usePruning);
-                else
-                    return VanillaCRM_DecisionNode(historyPoint, playerBeingOptimized, piValues, usePruning);
-            }
+                return VanillaCRM_DecisionNode(historyPoint, playerBeingOptimized, piValues, usePruning);
         }
         
         private unsafe double VanillaCRM_DecisionNode(HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues, bool usePruning)
