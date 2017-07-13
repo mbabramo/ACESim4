@@ -12,8 +12,11 @@ namespace ACESim
     {
         public static byte ChooseActionBasedOnRandomNumber(GameProgress gameProgress, double randomNumber, ActionStrategies actionStrategy, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation)
         {
+            // We're not necessarily using the same navigation approach as is used during CRMDevelopment, because the game tree may not be set up at the time this is called.
             HistoryPoint historyPoint = new HistoryPoint(null, gameProgress.GameHistory, gameProgress);
-            double[] probabilities = GetActionProbabilitiesAtHistoryPoint(historyPoint, actionStrategy, numPossibleActions, alwaysDoAction, navigation);
+            HistoryNavigationInfo navigateDuringActualGamePlay = navigation;
+            navigateDuringActualGamePlay.LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
+            double[] probabilities = GetActionProbabilitiesAtHistoryPoint(historyPoint, actionStrategy, numPossibleActions, alwaysDoAction, navigateDuringActualGamePlay);
             double cumTotal = 0;
             for (byte a = 0; a < numPossibleActions; a++)
             {
