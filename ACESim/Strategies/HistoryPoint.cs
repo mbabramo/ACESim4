@@ -9,11 +9,11 @@ namespace ACESim
 {
     public struct HistoryPoint
     {
-        NWayTreeStorage<object> TreePoint;
+        NWayTreeStorage<ICRMGameState> TreePoint;
         GameHistory HistoryToPoint;
         GameProgress GameProgress;
 
-        public HistoryPoint(NWayTreeStorage<object> treePoint, GameHistory historyToPoint, GameProgress gameProgress)
+        public HistoryPoint(NWayTreeStorage<ICRMGameState> treePoint, GameHistory historyToPoint, GameProgress gameProgress)
         {
             TreePoint = treePoint;
             HistoryToPoint = historyToPoint;
@@ -81,11 +81,7 @@ namespace ACESim
             }
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
-                ICRMGameState gameStateFromGameTree = null;
-                if (TreePoint.StoredValue is NWayTreeStorage<ICRMGameState> informationSetNodeReferencedInHistoryNode)
-                    gameStateFromGameTree = informationSetNodeReferencedInHistoryNode.StoredValue;
-                else if (TreePoint.StoredValue is CRMFinalUtilities storedFinalUtilities)
-                    gameStateFromGameTree = storedFinalUtilities;
+                ICRMGameState gameStateFromGameTree = TreePoint.StoredValue;
                 if (navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
                 {
                     bool equals;
@@ -253,7 +249,7 @@ namespace ACESim
                         }
                         );
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
-                TreePoint.StoredValue = informationSetNode;
+                TreePoint.StoredValue = informationSetNode.StoredValue;
         }
 
 
@@ -271,7 +267,7 @@ namespace ACESim
                         () => new CRMFinalUtilities(finalUtilities)
                         );
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
-                TreePoint.StoredValue = informationSetNode;
+                TreePoint.StoredValue = informationSetNode.StoredValue;
         }
 
         public bool NodeIsChanceNode(ICRMGameState gameStateForCurrentPlayer)

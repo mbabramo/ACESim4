@@ -210,16 +210,11 @@ namespace ACESim
             IGameFactory gameFactory = SimulationInteraction.CurrentExecutionInformation.GameFactory;
             GamePlayer player = new GamePlayer(Strategies, gameFactory, parallelReporting, GameDefinition);
 
-            int decisionNumber = GameDefinition.DecisionsExecutionOrder.Count - 1; // play up through last decision of the game.
-
             IEnumerable<GameProgress> completedGameProgressInfos =
-                player.PlayStrategy(
-                    Strategies[decisionNumber],
-                    decisionNumber,
+                player.PlayMultipleIterations(
                     null,
                     numberOfIterations,
-                    SimulationInteraction,
-                    returnCompletedGameProgressInfos: true);
+                    SimulationInteraction);
             foreach (var completedProgress in completedGameProgressInfos)
             {
                 completedProgress.Report(SimulationInteraction);

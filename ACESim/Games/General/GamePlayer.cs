@@ -14,7 +14,7 @@ namespace ACESim
     [Serializable]
     public class GamePlayer
     {
-        public List<Strategy> bestStrategies;
+        public List<Strategy> Strategies;
         public IGameFactory GameFactory;
 
         public ConcurrentBag<GameProgress> CompletedGameProgresses;
@@ -31,74 +31,15 @@ namespace ACESim
         {
         }
 
-        public GamePlayer(List<Strategy> theCurrentBestForAllPopulations, IGameFactory theGameFactory, bool doParallel, GameDefinition gameDefinition)
+        public GamePlayer(List<Strategy> strategies, IGameFactory theGameFactory, bool doParallel, GameDefinition gameDefinition)
         {
-            bestStrategies = theCurrentBestForAllPopulations;
+            Strategies = strategies;
             GameFactory = theGameFactory;
             StartingProgress = GameFactory.CreateNewGameProgress(new IterationID(1));
             DoParallel = doParallel;
             this.GameDefinition = gameDefinition;
         }
-
-        public IEnumerable<GameProgress> PlayStrategy(
-            List<GameProgress> preplayedGameProgressInfos,
-            int numIterations,
-            IUiInteraction simulationInteraction,
-            IterationID[] iterationIDArray = null,
-            bool returnCompletedGameProgressInfos = true,
-            int? currentlyEvolvingDecision = null)
-        {
-            return PlayStrategy(bestStrategies[0], 0, preplayedGameProgressInfos, numIterations, simulationInteraction, iterationIDArray, returnCompletedGameProgressInfos);
-        }
-
-        public IEnumerable<GameProgress> PlayStrategy(
-            Strategy strategyToSubstitute,
-            int decisionNumberOfStrategyToSubstitute,
-            List<GameProgress> preplayedGameProgressInfos,
-            int numIterations,
-            IUiInteraction simulationInteraction,
-            IterationID[] iterationIDArray = null,
-            bool returnCompletedGameProgressInfos = false)
-        {
-            if (returnCompletedGameProgressInfos)
-                CompletedGameProgresses = new ConcurrentBag<GameProgress>();
-            
-            if (iterationIDArray == null)
-            {
-                iterationIDArray = new IterationID[numIterations];
-                for (long i = 0; i < numIterations; i++)
-                {
-                    iterationIDArray[i] = new IterationID(i);
-                }
-            }
-
-            // Copy bestStrategies to play with
-            List<Strategy> strategiesToPlayWith = bestStrategies.ToList();
-            strategiesToPlayWith[decisionNumberOfStrategyToSubstitute] = strategyToSubstitute;
-
-            Parallelizer.Go(DoParallel, 0, numIterations, i =>
-                {
-                    // Remove comments from the following to log specific items
-                    GameProgressLogger.LoggingOn = false;
-                    GameProgressLogger.OutputLogMessages = false;
-                    //if ((NumSymmetryTests == 5 || NumSymmetryTests == 6) && runSymmetryTests) // set this to the even iteration of a pair that failed symmetry to see why
-                    //{
-                    //    GameProgressLogger.LoggingOn = true;
-                    //    GameProgressLogger.OutputLogMessages = true;
-                    //}
-                    //else
-                    //{
-                    //    GameProgressLogger.LoggingOn = false;
-                    //    GameProgressLogger.OutputLogMessages = false;
-                    //}
-                    // Remove comments from the following to log a particular iteration repeatedly. We can use this to see how changing settings affects a particular iteration.
-                    PlayHelper(i, strategiesToPlayWith, returnCompletedGameProgressInfos, iterationIDArray, preplayedGameProgressInfos);
-                    
-                }
-            );
-
-            return CompletedGameProgresses;
-        }
+        
 
         public void PlaySinglePath(string path)
         {
@@ -291,7 +232,7 @@ namespace ACESim
         {
             Game game = GameFactory.CreateNewGame();
             GameProgress gameProgress = StartingProgress.DeepCopy();
-            game.PlaySetup(bestStrategies, gameProgress, GameDefinition, false, true);
+            game.PlaySetup(Strategies, gameProgress, GameDefinition, false, true);
             game.PlayPathAndStop(actionsToPlay);
             return gameProgress;
         }
@@ -300,7 +241,7 @@ namespace ACESim
         {
             Game game = GameFactory.CreateNewGame();
             GameProgress gameProgress = StartingProgress.DeepCopy();
-            game.PlaySetup(bestStrategies, gameProgress, GameDefinition, false, true);
+            game.PlaySetup(Strategies, gameProgress, GameDefinition, false, true);
             game.PlayPathAndContinueWithDefaultAction(actionsToPlay, ref nextActionsToPlay);
             return gameProgress;
         }
@@ -309,7 +250,7 @@ namespace ACESim
         private GameProgress PlayGameFromSpecifiedPoint(GameProgress currentState)
         {
             Game game = GameFactory.CreateNewGame();
-            game.PlaySetup(bestStrategies, currentState, GameDefinition, false, false);
+            game.PlaySetup(Strategies, currentState, GameDefinition, false, false);
             game.PlayUntilComplete();
             return game.Progress;
         }
@@ -317,7 +258,7 @@ namespace ACESim
         public unsafe void ContinuePathWithAction(byte actionToPlay, GameProgress currentGameState)
         {
             Game game = GameFactory.CreateNewGame();
-            game.PlaySetup(bestStrategies, currentGameState, GameDefinition, false, false);
+            game.PlaySetup(Strategies, currentGameState, GameDefinition, false, false);
             game.ContinuePathWithAction(actionToPlay);
         }
 
@@ -400,6 +341,51 @@ namespace ACESim
                     (int)heisenbugTrackingIterNum, 
                     (x, y) => !FieldwiseObjectComparison.AreEqual((GameProgress)x, (GameProgress)y, false, false));
             }
+        }
+
+
+        public IEnumerable<GameProgress> PlayMultipleIterations(
+            List<GameProgress> preplayedGameProgressInfos,
+            int numIterations,
+            IUiInteraction simulationInteraction,
+            IterationID[] iterationIDArray = null)
+        {
+            CompletedGameProgresses = new ConcurrentBag<GameProgress>();
+
+            if (iterationIDArray == null)
+            {
+                iterationIDArray = new IterationID[numIterations];
+                for (long i = 0; i < numIterations; i++)
+                {
+                    iterationIDArray[i] = new IterationID(i);
+                }
+            }
+
+            // Copy bestStrategies to play with
+            List<Strategy> strategiesToPlayWith = Strategies.ToList();
+
+            Parallelizer.Go(DoParallel, 0, numIterations, i =>
+            {
+                // Remove comments from the following to log specific items
+                GameProgressLogger.LoggingOn = false;
+                GameProgressLogger.OutputLogMessages = false;
+                //if ((NumSymmetryTests == 5 || NumSymmetryTests == 6) && runSymmetryTests) // set this to the even iteration of a pair that failed symmetry to see why
+                //{
+                //    GameProgressLogger.LoggingOn = true;
+                //    GameProgressLogger.OutputLogMessages = true;
+                //}
+                //else
+                //{
+                //    GameProgressLogger.LoggingOn = false;
+                //    GameProgressLogger.OutputLogMessages = false;
+                //}
+                // Remove comments from the following to log a particular iteration repeatedly. We can use this to see how changing settings affects a particular iteration.
+                PlayHelper(i, strategiesToPlayWith, true, iterationIDArray, preplayedGameProgressInfos);
+
+            }
+            );
+
+            return CompletedGameProgresses;
         }
 
         /// <summary>

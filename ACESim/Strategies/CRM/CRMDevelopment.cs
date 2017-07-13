@@ -25,9 +25,14 @@ namespace ACESim
 
         public CurrentExecutionInformation CurrentExecutionInformation { get; set; }
 
-        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameTreeOnly;
+        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.PlayUnderlyingGame;
 
         public HistoryNavigationInfo Navigation;
+
+        public int NumInitializedGamePaths = 0;
+        public int NumRandomIterationsForReporting = 1000;
+        bool allowSkipEveryPermutationInitialization = false;
+        public bool SkipEveryPermutationInitialization => (allowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame));
 
         public ActionStrategies _ActionStrategy;
         public ActionStrategies ActionStrategy
@@ -45,13 +50,17 @@ namespace ACESim
         /// On each leaf node, the object contained is an array of the players' terminal utilities.
         /// The game history tree is not used if LookupApproach == Strategies
         /// </summary>
-        public NWayTreeStorageInternal<object> GameHistoryTree;
+        public NWayTreeStorageInternal<ICRMGameState> GameHistoryTree;
 
         public int NumNonChancePlayers;
         public int NumChancePlayers; // note that chance players MUST be indexed after nonchance players in the player list
 
         public const int MaxNumPlayers = 4; // this affects fixed-size stack-allocated buffers
         public const int MaxPossibleActions = 100; // same
+
+        const int TotalVanillaCFRIterations = 1000;
+        int? ReportEveryNIterations = 100;
+        int? BestResponseEveryMIterations = 1000;
 
         public CRMDevelopment()
         {
@@ -94,22 +103,21 @@ namespace ACESim
             Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition);
             foreach (Strategy strategy in Strategies)
                 strategy.Navigation = Navigation;
-
-            bool allowSkipEveryPermutationInitialization = true;
-            if (allowSkipEveryPermutationInitialization = false && Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)
+            
+            if (SkipEveryPermutationInitialization)
                 return; // no initialization needed (that's a benefit of using GameHistory -- we can initialize information sets on the fly, which may be much faster than playing every game permutation)
 
             GamePlayer player = new GamePlayer(Strategies, GameFactory, EvolutionSettings.ParallelOptimization, GameDefinition);
 
             // Create game trees
-            GameHistoryTree = new NWayTreeStorageInternal<object>(null, GameDefinition.DecisionsExecutionOrder.First().NumPossibleActions);
+            GameHistoryTree = new NWayTreeStorageInternal<ICRMGameState>(null, GameDefinition.DecisionsExecutionOrder.First().NumPossibleActions);
             foreach (Strategy s in Strategies)
             {
                 s.CreateInformationSetTree(GameDefinition.DecisionsExecutionOrder.FirstOrDefault(x => x.PlayerNumber == s.PlayerInfo.PlayerIndex)?.NumPossibleActions ?? (byte) 1);
             }
             
-            int numPathsPlayed = player.PlayAllPaths(ProcessInitializedGameProgress);
-            Debug.WriteLine($"Initialized. Total paths: {numPathsPlayed}");
+            NumInitializedGamePaths = player.PlayAllPaths(ProcessInitializedGameProgress);
+            Debug.WriteLine($"Initialized. Total paths: {NumInitializedGamePaths}");
             PrintSameGameResults(player);
         }
 
@@ -295,15 +303,12 @@ namespace ACESim
 
         public List<GameProgress> GetRandomCompleteGames(GamePlayer player, int numIterations)
         {
-            return player.PlayStrategy(null, numIterations, CurrentExecutionInformation.UiInteraction).ToList();
+            return player.PlayMultipleIterations(null, numIterations, CurrentExecutionInformation.UiInteraction).ToList();
         }
-
-        bool UseRandomPaths = false;
-        int NumIterationsForRandomPaths = 10000;
 
         private void GenerateReports_RandomPaths(GamePlayer player)
         {
-            var gameProgresses = GetRandomCompleteGames(player, NumIterationsForRandomPaths);
+            var gameProgresses = GetRandomCompleteGames(player, NumRandomIterationsForReporting);
             UtilityCalculations = new StatCollector[NumNonChancePlayers];
             for (int p = 0; p < NumNonChancePlayers; p++)
                 UtilityCalculations[p] = new StatCollector();
@@ -321,7 +326,7 @@ namespace ACESim
         {
             // this is just for testing
             var CountPaths = new Dictionary<string, int>();
-            for (int i = 0; i < NumIterationsForRandomPaths; i++)
+            for (int i = 0; i < NumRandomIterationsForReporting; i++)
             {
                 GameProgress gameProgress1 = gameProgresses[i];
                 string gameActions = gameProgress1.GameHistory.GetActionsAsListString();
@@ -332,7 +337,7 @@ namespace ACESim
                 //Debug.WriteLine($"{gameActions} {gameProgress1.GetNonChancePlayerUtilities()[0]}");
             }
             foreach (var item in CountPaths.AsEnumerable().OrderBy(x => x.Key))
-                Debug.WriteLine($"{item.Key} => {((double)item.Value) / (double)NumIterationsForRandomPaths}");
+                Debug.WriteLine($"{item.Key} => {((double)item.Value) / (double)NumRandomIterationsForReporting}");
         }
 
         public void ProcessAllPaths(HistoryPoint history, Action<HistoryPoint, double> pathPlayer)
@@ -830,62 +835,80 @@ namespace ACESim
             return probabilityAdjustedExpectedValueParticularAction;
         }
 
+
         public unsafe void SolveVanillaCFR()
         {
-            const int numIterationsToRun = 1000;
 
-            int? reportEveryNIterations = 100;
-            int? bestResponseEveryMIterations = 1000;
-
-            double[] lastUtilities = new double[NumNonChancePlayers];
-
-            Stopwatch s = new Stopwatch();
-            unsafe void VanillaCFRIteration(int iteration)
-            {
-                // NOTE: This is in a helper method because otherwise the stackallocs keep accumulating, causing a stackoverflowexception
-                bool usePruning = iteration >= 100;
-                ActionStrategy = usePruning ? ActionStrategies.RegretMatchingWithPruning : ActionStrategies.RegretMatching;
-                for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
-                {
-                    double* initialPiValues = stackalloc double[MaxNumPlayers];
-                    GetInitialPiValues(initialPiValues);
-                    if (TraceVanillaCRM)
-                        TabbedText.WriteLine($"Iteration {iteration} Player {playerBeingOptimized}");
-                    s.Start();
-                    lastUtilities[playerBeingOptimized] = VanillaCRM(GetStartOfGameHistoryPoint(), playerBeingOptimized, initialPiValues, usePruning);
-                    s.Stop();
-                }
-                if (reportEveryNIterations != null && iteration % reportEveryNIterations == 0)
-                {
-                    Debug.WriteLine("");
-                    Debug.WriteLine($"Iteration {iteration} Milliseconds per iteration {(s.ElapsedMilliseconds / ((double)iteration + 1.0))}");
-
-                    Action<GamePlayer, ActionStrategies> reportGenerator;
-                    Debug.WriteLine($"Random paths");
-                    Debug.WriteLine($"{GenerateReports(GenerateReports_RandomPaths)}");
-                    Debug.WriteLine($"All paths");
-                    Debug.WriteLine($"{GenerateReports(GenerateReports_AllPaths)}");
-
-
-                    if (bestResponseEveryMIterations != null && iteration % bestResponseEveryMIterations == 0)
-                        for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
-                        {
-                            double bestResponseUtility = CalculateBestResponse(playerBeingOptimized, ActionStrategy);
-                            double bestResponseImprovement = bestResponseUtility - UtilityCalculations[playerBeingOptimized].Average();
-                            if (!UseRandomPaths && bestResponseImprovement < -1E-15)
-                                throw new Exception("Best response function worse."); // it can be slightly negative as a result of rounding error or if we are using random paths as a result of sampling error
-                            Debug.WriteLine($"Player {playerBeingOptimized} utility with regret matching {UtilityCalculations[playerBeingOptimized].Average()} using best response against regret matching {bestResponseUtility} best response improvement {bestResponseImprovement}");
-                        }
-                }
-            }
-            for (int iteration = 0; iteration < numIterationsToRun; iteration++)
+            for (int iteration = 0; iteration < TotalVanillaCFRIterations; iteration++)
             {
                 VanillaCFRIteration(iteration); 
             }
 
         }
+        unsafe void VanillaCFRIteration(int iteration)
+        {
 
-        
+            Stopwatch s = new Stopwatch();
+            double[] lastUtilities = new double[NumNonChancePlayers];
+
+            bool usePruning = iteration >= 100;
+            ActionStrategy = usePruning ? ActionStrategies.RegretMatchingWithPruning : ActionStrategies.RegretMatching;
+            for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
+            {
+                double* initialPiValues = stackalloc double[MaxNumPlayers];
+                GetInitialPiValues(initialPiValues);
+                if (TraceVanillaCRM)
+                    TabbedText.WriteLine($"Iteration {iteration} Player {playerBeingOptimized}");
+                s.Start();
+                HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
+                lastUtilities[playerBeingOptimized] = VanillaCRM(historyPoint, playerBeingOptimized, initialPiValues, usePruning);
+                s.Stop();
+            }
+            GenerateReports(iteration, s);
+        }
+
+        private unsafe void GenerateReports(int iteration, Stopwatch s)
+        {
+            if (ReportEveryNIterations != null && iteration % ReportEveryNIterations == 0)
+            {
+                bool useRandomPaths = SkipEveryPermutationInitialization || NumInitializedGamePaths > NumRandomIterationsForReporting;
+                Debug.WriteLine("");
+                Debug.WriteLine($"Iteration {iteration} Milliseconds per iteration {(s.ElapsedMilliseconds / ((double)iteration + 1.0))}");
+                MainReport(useRandomPaths);
+                CompareBestResponse(iteration, useRandomPaths);
+            }
+        }
+
+        private unsafe void MainReport(bool useRandomPaths)
+        {
+            Action<GamePlayer> reportGenerator;
+            if (useRandomPaths)
+            {
+                Debug.WriteLine($"Result using {NumRandomIterationsForReporting} randomly chosen paths");
+                reportGenerator = GenerateReports_RandomPaths;
+            }
+            else
+            {
+                Debug.WriteLine($"Result using all paths");
+                reportGenerator = GenerateReports_AllPaths;
+            }
+            Debug.WriteLine($"{GenerateReports(reportGenerator)}");
+        }
+
+        private unsafe void CompareBestResponse(int iteration, bool useRandomPaths)
+        {
+            if (BestResponseEveryMIterations != null && iteration % BestResponseEveryMIterations == 0)
+                for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
+                {
+                    double bestResponseUtility = CalculateBestResponse(playerBeingOptimized, ActionStrategy);
+                    double bestResponseImprovement = bestResponseUtility - UtilityCalculations[playerBeingOptimized].Average();
+                    if (!useRandomPaths && bestResponseImprovement < -1E-15)
+                        throw new Exception("Best response function worse."); // it can be slightly negative as a result of rounding error or if we are using random paths as a result of sampling error
+                    Debug.WriteLine($"Player {playerBeingOptimized} utility with regret matching {UtilityCalculations[playerBeingOptimized].Average()} using best response against regret matching {bestResponseUtility} best response improvement {bestResponseImprovement}");
+                }
+        }
+
+
 
         #endregion
     }
