@@ -75,7 +75,9 @@ namespace ACESim
                 // string playerInformationString = HistoryToPoint.GetPlayerInformationString(currentPlayer, nextDecision?.DecisionByteCode);
                 HistoryToPoint.GetPlayerInformation(nextPlayer, null, informationSetsPtr);
                 var DEBUG2 = Util.ListExtensions.GetPointerAsList_255Terminated(informationSetsPtr);
-                gameStateFromGameHistory = navigation.Strategies[nextPlayer].InformationSetTree.GetValue(informationSetsPtr);
+                gameStateFromGameHistory = navigation.Strategies[nextPlayer].InformationSetTree?.GetValue(informationSetsPtr);
+                if (gameStateFromGameHistory == null && navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly)
+                    return null; // we haven't initialized, so we need to do so and then try again.
             }
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
@@ -271,19 +273,19 @@ namespace ACESim
                 TreePoint.StoredValue = informationSetNode;
         }
 
-        public bool NodeIsChanceNode(HistoryNavigationInfo navigation)
+        public bool NodeIsChanceNode(object gameStateForCurrentPlayer)
         {
-            return GetGameStateForCurrentPlayer(navigation) is CRMChanceNodeSettings;
+            return gameStateForCurrentPlayer is CRMChanceNodeSettings;
         }
 
-        public CRMInformationSetNodeTally GetInformationSetNodeTally(HistoryNavigationInfo navigation)
+        public CRMInformationSetNodeTally GetInformationSetNodeTally(object gameStateForCurrentPlayer)
         {
-            return GetGameStateForCurrentPlayer(navigation) as CRMInformationSetNodeTally;
+            return gameStateForCurrentPlayer as CRMInformationSetNodeTally;
         }
 
-        public CRMChanceNodeSettings GetInformationSetChanceSettings(HistoryNavigationInfo navigation)
+        public CRMChanceNodeSettings GetInformationSetChanceSettings(object gameStateForCurrentPlayer)
         {
-            return GetGameStateForCurrentPlayer(navigation) as CRMChanceNodeSettings;
+            return gameStateForCurrentPlayer as CRMChanceNodeSettings;
         }
 
     }

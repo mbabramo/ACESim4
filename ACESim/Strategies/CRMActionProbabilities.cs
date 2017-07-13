@@ -47,16 +47,17 @@ namespace ACESim
 
         public static unsafe void GetActionProbabilitiesAtHistoryPoint(HistoryPoint historyPoint, ActionStrategies actionStrategy, double* probabilities, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation)
         {
-            if (historyPoint.NodeIsChanceNode(navigation))
+            object gameStateForCurrentPlayer = historyPoint.GetGameStateForCurrentPlayer(navigation);
+            if (historyPoint.NodeIsChanceNode(gameStateForCurrentPlayer))
             {
-                CRMChanceNodeSettings chanceNodeSettings = historyPoint.GetInformationSetChanceSettings(navigation);
+                CRMChanceNodeSettings chanceNodeSettings = historyPoint.GetInformationSetChanceSettings(gameStateForCurrentPlayer);
                 byte decisionIndex = chanceNodeSettings.DecisionIndex;
                 for (byte action = 1; action <= numPossibleActions; action++)
                     probabilities[action - 1] = chanceNodeSettings.GetActionProbability(action);
             }
             else
             { // not a chance node or a leaf node
-                CRMInformationSetNodeTally nodeTally = historyPoint.GetInformationSetNodeTally(navigation);
+                CRMInformationSetNodeTally nodeTally = historyPoint.GetInformationSetNodeTally(gameStateForCurrentPlayer);
                 if (alwaysDoAction != null)
                     SetProbabilitiesToAlwaysDoParticularAction(numPossibleActions, probabilities, (byte)alwaysDoAction);
                 else if (actionStrategy == ActionStrategies.RegretMatching)
