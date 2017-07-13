@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace ACESim
 {
     [Serializable]
-    public class CRMInformationSetNodeTally
+    public class CRMInformationSetNodeTally : ICRMGameState
     {
         public static int InformationSetsSoFar = 0;
         public int InformationSetNumber; // could delete this once things are working, but may be useful in testing scenarios

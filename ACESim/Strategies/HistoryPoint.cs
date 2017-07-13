@@ -55,13 +55,13 @@ namespace ACESim
         /// </summary>
         /// <param name="navigation">The navigation settings. If the LookupApproach is both, this method will verify that both return the same value.</param>
         /// <returns></returns>
-        public unsafe object GetGameStateForCurrentPlayer(HistoryNavigationInfo navigation)
+        public unsafe ICRMGameState GetGameStateForCurrentPlayer(HistoryNavigationInfo navigation)
         {
-            object gameStateFromGameHistory = null;
+            ICRMGameState gameStateFromGameHistory = null;
             if (navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)
             {
                 if (GameProgress.GameComplete)
-                    return GameProgress.GetNonChancePlayerUtilities();
+                    return new CRMFinalUtilities(GameProgress.GetNonChancePlayerUtilities());
                 // Otherwise, when playing the actual game, we use the GameHistory object, so we'll set this object as the "cached" object even though it's cached.
                 navigation.LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
                 HistoryToPoint = GameProgress.GameHistory;
@@ -81,11 +81,11 @@ namespace ACESim
             }
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
-                object gameStateFromGameTree = null;
-                if (TreePoint.StoredValue is NWayTreeStorage<object> informationSetNodeReferencedInHistoryNode)
+                ICRMGameState gameStateFromGameTree = null;
+                if (TreePoint.StoredValue is NWayTreeStorage<ICRMGameState> informationSetNodeReferencedInHistoryNode)
                     gameStateFromGameTree = informationSetNodeReferencedInHistoryNode.StoredValue;
-                else if (TreePoint.StoredValue is CRMFinalUtilities)
-                    gameStateFromGameTree = TreePoint.StoredValue;
+                else if (TreePoint.StoredValue is CRMFinalUtilities storedFinalUtilities)
+                    gameStateFromGameTree = storedFinalUtilities;
                 if (navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
                 {
                     bool equals;
@@ -219,7 +219,7 @@ namespace ACESim
             var playersStrategy = navigation.Strategies[informationSetHistory.PlayerIndex];
             bool isNecessarilyLast = decision.IsAlwaysPlayersLastDecision || informationSetHistory.IsTerminalAction;
             var informationSetHistoryCopy = informationSetHistory;
-            NWayTreeStorage<object> informationSetNode = playersStrategy.SetInformationSetTreeValueIfNotSet(
+            NWayTreeStorage<ICRMGameState> informationSetNode = playersStrategy.SetInformationSetTreeValueIfNotSet(
                         informationSetHistoryCopy.InformationSetForPlayer,
                         isNecessarilyLast,
                         () =>
@@ -265,26 +265,26 @@ namespace ACESim
             var playersStrategy = navigation.Strategies[informationSetHistory.PlayerIndex];
             bool isNecessarilyLast = decision.IsAlwaysPlayersLastDecision || informationSetHistory.IsTerminalAction;
             var informationSetHistoryCopy = informationSetHistory;
-            NWayTreeStorage<object> informationSetNode = playersStrategy.SetInformationSetTreeValueIfNotSet(
+            NWayTreeStorage<ICRMGameState> informationSetNode = playersStrategy.SetInformationSetTreeValueIfNotSet(
                         informationSetHistoryCopy.InformationSetForPlayer,
                         isNecessarilyLast,
-                        () => finalUtilities
+                        () => new CRMFinalUtilities(finalUtilities)
                         );
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
                 TreePoint.StoredValue = informationSetNode;
         }
 
-        public bool NodeIsChanceNode(object gameStateForCurrentPlayer)
+        public bool NodeIsChanceNode(ICRMGameState gameStateForCurrentPlayer)
         {
             return gameStateForCurrentPlayer is CRMChanceNodeSettings;
         }
 
-        public CRMInformationSetNodeTally GetInformationSetNodeTally(object gameStateForCurrentPlayer)
+        public CRMInformationSetNodeTally GetInformationSetNodeTally(ICRMGameState gameStateForCurrentPlayer)
         {
             return gameStateForCurrentPlayer as CRMInformationSetNodeTally;
         }
 
-        public CRMChanceNodeSettings GetInformationSetChanceSettings(object gameStateForCurrentPlayer)
+        public CRMChanceNodeSettings GetInformationSetChanceSettings(ICRMGameState gameStateForCurrentPlayer)
         {
             return gameStateForCurrentPlayer as CRMChanceNodeSettings;
         }

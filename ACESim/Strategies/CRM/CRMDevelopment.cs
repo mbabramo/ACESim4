@@ -216,7 +216,7 @@ namespace ACESim
                 {
                     List<byte> informationSetList = ListExtensions.GetPointerAsList_255Terminated(informationSetHistoryCopy.InformationSetForPlayer);
                     TabbedText.WriteLine($"Information set before action: {String.Join(",", informationSetList)}");
-                    object gameState = historyPoint.GetGameStateForCurrentPlayer(Navigation);
+                    ICRMGameState gameState = historyPoint.GetGameStateForCurrentPlayer(Navigation);
                     TabbedText.WriteLine($"Game state before action: {gameState}");
                 }
                 TabbedText.WriteLine($"==> Action chosen: {informationSetHistory.ActionChosen}");
@@ -512,7 +512,7 @@ namespace ACESim
             else
             {
                 byte numPossibleActions;
-                object gameStateForCurrentPlayer = historyPoint.GetGameStateForCurrentPlayer(Navigation);
+                ICRMGameState gameStateForCurrentPlayer = historyPoint.GetGameStateForCurrentPlayer(Navigation);
                 if (historyPoint.NodeIsChanceNode(gameStateForCurrentPlayer))
                 {
                     CRMChanceNodeSettings chanceNodeSettings = historyPoint.GetInformationSetChanceSettings(gameStateForCurrentPlayer);
@@ -545,7 +545,7 @@ namespace ACESim
                 return GetUtilityFromTerminalHistory(historyPoint, playerIndex);
             else
             {
-                object gameStateForCurrentPlayer = historyPoint.GetGameStateForCurrentPlayer(Navigation);
+                ICRMGameState gameStateForCurrentPlayer = historyPoint.GetGameStateForCurrentPlayer(Navigation);
                 if (historyPoint.NodeIsChanceNode(gameStateForCurrentPlayer))
                     return GEBRPass2_ChanceNode(historyPoint, playerIndex, depthToTarget, depthSoFar, inversePi, opponentsActionStrategy);
             }
@@ -554,7 +554,7 @@ namespace ACESim
 
         private unsafe double GEBRPass2_DecisionNode(HistoryPoint historyPoint, byte playerIndex, byte depthToTarget, byte depthSoFar, double inversePi, ActionStrategies opponentsActionStrategy)
         {
-            object gameStateForCurrentPlayer = historyPoint.GetGameStateForCurrentPlayer(Navigation);
+            ICRMGameState gameStateForCurrentPlayer = historyPoint.GetGameStateForCurrentPlayer(Navigation);
             var informationSet = historyPoint.GetInformationSetNodeTally(gameStateForCurrentPlayer);
             byte decisionIndex = informationSet.DecisionIndex;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionIndex);
@@ -632,7 +632,7 @@ namespace ACESim
 
         private double GEBRPass2_ChanceNode(HistoryPoint historyPoint, byte playerIndex, byte depthToTarget, byte depthSoFar, double inversePi, ActionStrategies opponentsActionStrategy)
         {
-            object gameStateForCurrentPlayer = historyPoint.GetGameStateForCurrentPlayer(Navigation);
+            ICRMGameState gameStateForCurrentPlayer = historyPoint.GetGameStateForCurrentPlayer(Navigation);
             CRMChanceNodeSettings chanceNodeSettings = historyPoint.GetInformationSetChanceSettings(gameStateForCurrentPlayer); 
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
             if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNodeSettings.DecisionIndex))
@@ -694,7 +694,7 @@ namespace ACESim
                 return GetUtilityFromTerminalHistory(historyPoint, playerBeingOptimized);
             else
             {
-                object gameStateForCurrentPlayer = historyPoint.GetGameStateForCurrentPlayer(Navigation);
+                ICRMGameState gameStateForCurrentPlayer = historyPoint.GetGameStateForCurrentPlayer(Navigation);
                 if (historyPoint.NodeIsChanceNode(gameStateForCurrentPlayer))
                     return VanillaCRM_ChanceNode(historyPoint, playerBeingOptimized, piValues, usePruning);
                 else
@@ -708,7 +708,7 @@ namespace ACESim
             var DEBUG = historyPoint.GetActionsToHere(Navigation);
             var DEBUG2 = historyPoint.ToString();
 
-            object gameStateForCurrentPlayer = historyPoint.GetGameStateForCurrentPlayer(Navigation);
+            ICRMGameState gameStateForCurrentPlayer = historyPoint.GetGameStateForCurrentPlayer(Navigation);
             var informationSet = historyPoint.GetInformationSetNodeTally(gameStateForCurrentPlayer);
             byte decisionNum = informationSet.DecisionIndex;
             byte playerMakingDecision = informationSet.PlayerIndex;
@@ -766,7 +766,7 @@ namespace ACESim
         private unsafe double VanillaCRM_ChanceNode(HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues, bool usePruning)
         {
             double* equalProbabilityNextPiValues = stackalloc double[MaxNumPlayers];
-            object gameStateForCurrentPlayer = historyPoint.GetGameStateForCurrentPlayer(Navigation);
+            ICRMGameState gameStateForCurrentPlayer = historyPoint.GetGameStateForCurrentPlayer(Navigation);
             CRMChanceNodeSettings chanceNodeSettings = historyPoint.GetInformationSetChanceSettings(gameStateForCurrentPlayer);
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
             bool equalProbabilities = chanceNodeSettings.AllProbabilitiesEqual();

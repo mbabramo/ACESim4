@@ -47,7 +47,7 @@ namespace ACESim
 
         public static unsafe void GetActionProbabilitiesAtHistoryPoint(HistoryPoint historyPoint, ActionStrategies actionStrategy, double* probabilities, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation)
         {
-            object gameStateForCurrentPlayer = historyPoint.GetGameStateForCurrentPlayer(navigation);
+            ICRMGameState gameStateForCurrentPlayer = historyPoint.GetGameStateForCurrentPlayer(navigation);
             if (historyPoint.NodeIsChanceNode(gameStateForCurrentPlayer))
             {
                 CRMChanceNodeSettings chanceNodeSettings = historyPoint.GetInformationSetChanceSettings(gameStateForCurrentPlayer);

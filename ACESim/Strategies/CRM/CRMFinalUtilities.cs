@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace ACESim
 {
     [Serializable]
-    public class CRMFinalUtilities
+    public class CRMFinalUtilities : ICRMGameState
     {
         public double[] Utilities;
 

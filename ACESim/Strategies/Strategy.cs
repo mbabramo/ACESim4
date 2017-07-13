@@ -24,7 +24,7 @@ namespace ACESim
 
         public PlayerInfo PlayerInfo;
 
-        public NWayTreeStorageInternal<object> InformationSetTree;
+        public NWayTreeStorageInternal<ICRMGameState> InformationSetTree;
         public HistoryNavigationInfo Navigation;
         public ActionStrategies ActionStrategy;
 
@@ -54,15 +54,15 @@ namespace ACESim
 
         public void CreateInformationSetTree(int numInitialActions)
         {
-            InformationSetTree = new NWayTreeStorageInternal<object>(null, numInitialActions);
+            InformationSetTree = new NWayTreeStorageInternal<ICRMGameState>(null, numInitialActions);
         }
 
-        public unsafe NWayTreeStorage<object> SetInformationSetTreeValue(byte* informationSet, bool historyComplete, object valueToSet)
+        public unsafe NWayTreeStorage<ICRMGameState> SetInformationSetTreeValue(byte* informationSet, bool historyComplete, ICRMGameState valueToSet)
         {
             return InformationSetTree.SetValue(informationSet, historyComplete, valueToSet);
         }
 
-        public unsafe NWayTreeStorage<object> SetInformationSetTreeValueIfNotSet(byte* informationSet, bool historyComplete, Func<object> setter)
+        public unsafe NWayTreeStorage<ICRMGameState> SetInformationSetTreeValueIfNotSet(byte* informationSet, bool historyComplete, Func<ICRMGameState> setter)
         {
             var returnVal = InformationSetTree.SetValueIfNotSet(informationSet, historyComplete, setter);
             // System.Diagnostics.Debug.WriteLine($"{String.Join(",", informationSet)}: {PlayerInfo.PlayerName} {returnVal.StoredValue}");
