@@ -13,6 +13,7 @@ using System.Runtime.Serialization;
 using System.Diagnostics;
 using Microsoft.WindowsAzure.Storage.Table;
 using Microsoft.WindowsAzure.Storage.Queue;
+using ACESim.Util;
 
 namespace ACESim
 {
@@ -301,7 +302,117 @@ namespace ACESim
 
         static void Main(string[] args)
         {
-            new RunWithoutUI();
+            //new RunWithoutUI();
+            const double initialWealth = 2000000;
+            const double damagesSought = 10000;
+            const double N = 100;
+            const double probAdjudication = 1.0 / N;
+            const double probNoAdjudication = 1.0 - probAdjudication;
+            const int numCoverageRanges = 11; // first coverage range is 0 coverage
+            double dollarsPerCoverageLevel = damagesSought / (double)(numCoverageRanges - 1.0);
+            const int numLiabilityProbabilityLevels = 100;
+            const int numNoiseLevels = 100;
+            const int numParties = numLiabilityProbabilityLevels * numNoiseLevels;
+            const double noiseStdev = 0.20;
+            const int numDiscreteSignals = 10;
+            int numPartiesPerDiscreteSignal = numParties / numDiscreteSignals;
+            double[] liabilityProbabilities = new double[numParties];
+            double[] continuousSignals = new double[numParties];
+            double[] liabilityProbabilityLevels = EquallySpaced.GetEquallySpacedPoints(numLiabilityProbabilityLevels);
+            double[] noiseLevels = EquallySpaced.GetEquallySpacedPoints(numNoiseLevels).Select(x => noiseStdev * InvNormal.Calculate(x)).ToArray();
+            for (int liabilityProbabilityLevel = 0; liabilityProbabilityLevel < numLiabilityProbabilityLevels; liabilityProbabilityLevel++)
+                for (int noiseLevel = 0; noiseLevel < numNoiseLevels; noiseLevel++)
+                {
+                    int index = liabilityProbabilityLevel * numNoiseLevels + noiseLevel;
+                    liabilityProbabilities[index] = liabilityProbabilityLevels[liabilityProbabilityLevel];
+                    continuousSignals[index] = liabilityProbabilityLevels[liabilityProbabilityLevel] + noiseLevels[noiseLevel];
+                }
+
+            double[] continuousSignalsOrdered = continuousSignals.OrderBy(x => x).ToArray();
+            int[] discreteSignals = new int[numParties];
+            for (int s = 0; s < numDiscreteSignals; s++)
+            {
+                int lowerBoundIndex = s * numPartiesPerDiscreteSignal;
+                double lowerBound = continuousSignalsOrdered[lowerBoundIndex];
+                for (int p = 0; p < numParties; p++)
+                    if (continuousSignals[p] >= lowerBound)
+                        discreteSignals[p] = s;
+            }
+            double[,] price = new double[numDiscreteSignals, numCoverageRanges];
+            double[,] insurerUtility = new double[numDiscreteSignals, numCoverageRanges];
+            double[] coveragePurchased = new double[numParties];
+
+            for (int s = 0; s < numDiscreteSignals; s++)
+            {
+                // initialize price to lowest value for each coverage range
+                for (int c = 0; c < numCoverageRanges; c++)
+                    if (c == 0)
+                        price[s, c] = 0;
+                    else
+                        price[s, c] = dollarsPerCoverageLevel;
+                bool equilibriumReached = false;
+                int cycle = 0;
+                while (!equilibriumReached)
+                {
+                    cycle++;
+                    for (int c = 0; c < numCoverageRanges; c++)
+                        insurerUtility[s, c] = 0;
+                    for (int p = 0; p < numParties; p++)
+                    {
+                        double[] utility = new double[numCoverageRanges];
+                        if (discreteSignals[p] == s)
+                        // find all parties with the matching signal
+                        {
+                            int bestC = 0;
+                            double bestUtility = 0;
+                            double insurerUtilityInBestScenariForInsured = 0;
+                            // calculate utility at each price
+                            for (int c = 0; c < numCoverageRanges; c++)
+                            {
+                                double dollarsCovered = dollarsPerCoverageLevel * c;
+                                double dollarsRemaining = damagesSought - dollarsCovered;
+                                double damagesIfAdjudicationAndLiability = dollarsRemaining * N;
+                                double probabilityAdjudicationAndLiability = probAdjudication * liabilityProbabilities[p];
+                                double utilityIfAllGoesWell = Math.Log(initialWealth - price[s, c]);
+                                double utilityIfAllGoesBadly = Math.Log(initialWealth - price[s, c] - damagesIfAdjudicationAndLiability);
+                                utility[c] = (1.0 - probabilityAdjudicationAndLiability) * utilityIfAllGoesWell + probabilityAdjudicationAndLiability * utilityIfAllGoesBadly;
+                                double insurerUtilityIfAllGoesWell = price[s, c];
+                                double insurerUtilityIfAllGoesBadly = price[s, c] - dollarsCovered * N;
+                                double insurerUtilityForThisContract = (1.0 - probabilityAdjudicationAndLiability) * insurerUtilityIfAllGoesWell + probabilityAdjudicationAndLiability * insurerUtilityIfAllGoesBadly;
+                                if (c == 0)
+                                    bestUtility = utility[c];
+                                else if (utility[c] > bestUtility)
+                                {
+                                    bestC = c;
+                                    bestUtility = utility[c];
+                                    insurerUtilityInBestScenariForInsured = insurerUtilityForThisContract;
+                                }
+                            }
+                            if (coveragePurchased[p] < bestC)
+                            {
+                                var DEBUG = 0;
+                            }
+                            coveragePurchased[p] = bestC;
+                            insurerUtility[s, bestC] += insurerUtilityInBestScenariForInsured;
+                        }
+                    }
+                    equilibriumReached = true; // assume for now
+                    for (int c = 1; c < numCoverageRanges; c++)
+                    {
+                        if (insurerUtility[s, c] < 0)
+                        {
+                            equilibriumReached = false;
+                            price[s, c] += dollarsPerCoverageLevel * 0.1;
+                        }
+                        // must be at least as expensive
+                        if (c > 1 && price[s, c] < price[s, c - 1])
+                            price[s, c] = price[s, c - 1];
+                        if (!equilibriumReached)
+                            break;
+                    }
+                }
+            }
+
         }
     }
 }
