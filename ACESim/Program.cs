@@ -310,8 +310,8 @@ namespace ACESim
             const double probNoAdjudication = 1.0 - probAdjudication;
             const int numCoverageRanges = 11; // first coverage range is 0 coverage
             double dollarsPerCoverageLevel = damagesSought / (double)(numCoverageRanges - 1.0);
-            const int numLiabilityProbabilityLevels = 100;
-            const int numNoiseLevels = 100;
+            const int numLiabilityProbabilityLevels = 10;
+            const int numNoiseLevels = 10;
             const int numParties = numLiabilityProbabilityLevels * numNoiseLevels;
             const double noiseStdev = 0.20;
             const int numDiscreteSignals = 10;
@@ -338,8 +338,9 @@ namespace ACESim
                     if (continuousSignals[p] >= lowerBound)
                         discreteSignals[p] = s;
             }
-            double[,] price = new double[numDiscreteSignals, numCoverageRanges];
+            double[,] prices = new double[numDiscreteSignals, numCoverageRanges];
             double[,] insurerUtility = new double[numDiscreteSignals, numCoverageRanges];
+            int[,] totalPurchases = new int[numDiscreteSignals, numCoverageRanges];
             double[] coveragePurchased = new double[numParties];
 
             for (int s = 0; s < numDiscreteSignals; s++)
@@ -347,16 +348,20 @@ namespace ACESim
                 // initialize price to lowest value for each coverage range
                 for (int c = 0; c < numCoverageRanges; c++)
                     if (c == 0)
-                        price[s, c] = 0;
+                        prices[s, c] = 0;
                     else
-                        price[s, c] = dollarsPerCoverageLevel;
+                        prices[s, c] = dollarsPerCoverageLevel;
+                HashSet<string> hashes = new HashSet<string>();
                 bool equilibriumReached = false;
                 int cycle = 0;
                 while (!equilibriumReached)
                 {
                     cycle++;
                     for (int c = 0; c < numCoverageRanges; c++)
+                    {
                         insurerUtility[s, c] = 0;
+                        totalPurchases[s, c] = 0;
+                    }
                     for (int p = 0; p < numParties; p++)
                     {
                         double[] utility = new double[numCoverageRanges];
@@ -373,11 +378,11 @@ namespace ACESim
                                 double dollarsRemaining = damagesSought - dollarsCovered;
                                 double damagesIfAdjudicationAndLiability = dollarsRemaining * N;
                                 double probabilityAdjudicationAndLiability = probAdjudication * liabilityProbabilities[p];
-                                double utilityIfAllGoesWell = Math.Log(initialWealth - price[s, c]);
-                                double utilityIfAllGoesBadly = Math.Log(initialWealth - price[s, c] - damagesIfAdjudicationAndLiability);
+                                double utilityIfAllGoesWell = Math.Log(initialWealth - prices[s, c]);
+                                double utilityIfAllGoesBadly = Math.Log(initialWealth - prices[s, c] - damagesIfAdjudicationAndLiability);
                                 utility[c] = (1.0 - probabilityAdjudicationAndLiability) * utilityIfAllGoesWell + probabilityAdjudicationAndLiability * utilityIfAllGoesBadly;
-                                double insurerUtilityIfAllGoesWell = price[s, c];
-                                double insurerUtilityIfAllGoesBadly = price[s, c] - dollarsCovered * N;
+                                double insurerUtilityIfAllGoesWell = prices[s, c];
+                                double insurerUtilityIfAllGoesBadly = prices[s, c] - dollarsCovered * N;
                                 double insurerUtilityForThisContract = (1.0 - probabilityAdjudicationAndLiability) * insurerUtilityIfAllGoesWell + probabilityAdjudicationAndLiability * insurerUtilityIfAllGoesBadly;
                                 if (c == 0)
                                     bestUtility = utility[c];
@@ -388,31 +393,105 @@ namespace ACESim
                                     insurerUtilityInBestScenariForInsured = insurerUtilityForThisContract;
                                 }
                             }
-                            if (coveragePurchased[p] < bestC)
-                            {
-                                var DEBUG = 0;
-                            }
                             coveragePurchased[p] = bestC;
                             insurerUtility[s, bestC] += insurerUtilityInBestScenariForInsured;
+                            totalPurchases[s, bestC]++;
                         }
                     }
-                    equilibriumReached = true; // assume for now
+                    if (s == numDiscreteSignals - 1)
+                        PrintCoverageTable(numCoverageRanges, numDiscreteSignals, prices, totalPurchases, insurerUtility, numDiscreteSignals);
+                    equilibriumReached = true;
+                    bool[] priceAffected = new bool[numCoverageRanges];
                     for (int c = 1; c < numCoverageRanges; c++)
                     {
+                        if (priceAffected[c])
+                            continue;
                         if (insurerUtility[s, c] < 0)
                         {
+                            prices[s, c] += dollarsPerCoverageLevel * 0.1;
+                            priceAffected[c] = true;
+                            // any product that is better and cheaper should also be increased in price
+                            for (int c2 = c + 1; c2 < numCoverageRanges; c2++)
+                                if (prices[s, c2] < prices[s, c] && !priceAffected[c])
+                                    prices[s, c2] = prices[s, c];
                             equilibriumReached = false;
-                            price[s, c] += dollarsPerCoverageLevel * 0.1;
                         }
-                        // must be at least as expensive
-                        if (c > 1 && price[s, c] < price[s, c - 1])
-                            price[s, c] = price[s, c - 1];
-                        if (!equilibriumReached)
-                            break;
+                        else if (insurerUtility[s, c] > 0)
+                        {
+                            prices[s, c] -= dollarsPerCoverageLevel * 0.1;
+                            priceAffected[c] = true;
+                            // any product that is worse and more expensive should also be decreased in price
+                            for (int c2 = c - 1; c2 >= 0; c2--)
+                                if (prices[s, c2] > prices[s, c] && !priceAffected[c])
+                                    prices[s, c2] = prices[s, c];
+                            equilibriumReached = false;
+                        }
                     }
+                    if (!equilibriumReached && cycle > 1000)
+                    {
+                        string hashKey = MD5HashGenerator.GenerateKey(prices);
+                        if (hashes.Contains(hashKey))
+                            equilibriumReached = true; // no change since some previous iteration
+                        else
+                            hashes.Add(hashKey);
+                    }
+                    //equilibriumReached = true; // assume for now
+                    //for (int c = 1; c < numCoverageRanges; c++)
+                    //{
+                    //    if (insurerUtility[s, c] < 0)
+                    //    {
+                    //        equilibriumReached = false;
+                    //        prices[s, c] += dollarsPerCoverageLevel * 0.1;
+                    //    }
+                    //    // must be at least as expensive
+                    //    if (c > 1 && prices[s, c] < prices[s, c - 1])
+                    //        prices[s, c] = prices[s, c - 1];
+                    //    if (!equilibriumReached)
+                    //        break;
+                    //    MD5HashGenerator.GenerateKey(prices);
+                    //}
                 }
             }
+            PrintCoverageTable(numCoverageRanges, numDiscreteSignals, prices, totalPurchases, insurerUtility);
 
+        }
+
+        private static void PrintCoverageTable(int numCoverageRanges, int numDiscreteSignals, double[,] prices, int[,] totalPurchases, double[,] insurerUtility, int? limitToSignal = null)
+        {
+            int grandTotalPurchases = 0;
+
+            if (limitToSignal == null)
+            {
+                string headingRowIntro = "Coverage ";
+                Debug.Write(String.Format("{0,-23}", headingRowIntro));
+                for (int c = 0; c < numCoverageRanges; c++)
+                {
+                    string columnHeading = c.ToString() + "/10";
+                    if (c == 0)
+                        columnHeading = "No coverage";
+                    else if (c == numCoverageRanges - 1)
+                        columnHeading = "Full coverage";
+                    Debug.Write(String.Format("{0,-23}", columnHeading));
+                }
+                Debug.Write(Environment.NewLine);
+            }
+            for (int s = 0; s < numDiscreteSignals; s++)
+            {
+                if (limitToSignal == null || limitToSignal == s + 1)
+                {
+                    string rowHeading = "Signal range " + (s + 1).ToString();
+                    Debug.Write(String.Format("{0,-23}", rowHeading));
+                    for (int c = 0; c < numCoverageRanges; c++)
+                    {
+                        double insurerUtilityPerPolicy = (insurerUtility[s, c] / totalPurchases[s, c]);
+                        string insurerUtilityPerPolicyString = String.Format("{0:0.0}", insurerUtilityPerPolicy);
+                        string info = $"${prices[s, c]} ({totalPurchases[s, c]} => {insurerUtilityPerPolicyString}) ";
+                        grandTotalPurchases += totalPurchases[s, c];
+                        Debug.Write(String.Format("{0,-23}", info));
+                    }
+                    Debug.Write(Environment.NewLine);
+                }
+            }
         }
     }
 }
