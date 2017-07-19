@@ -303,18 +303,19 @@ namespace ACESim
         static void Main(string[] args)
         {
             //new RunWithoutUI();
+            bool useQuadraticUtilityWithInitialWealthAsMax = true;
             const double initialWealth = 2000000;
             const double damagesSought = 10000;
-            const double N = 100;
+            const double N = 1000;
             const double probAdjudication = 1.0 / N;
             const double probNoAdjudication = 1.0 - probAdjudication;
-            const int numCoverageRanges = 11; // first coverage range is 0 coverage
+            const int numCoverageRanges = 6; // first coverage range is 0 coverage
             double dollarsPerCoverageLevel = damagesSought / (double)(numCoverageRanges - 1.0);
             const int numLiabilityProbabilityLevels = 10;
             const int numNoiseLevels = 100;
             const int numParties = numLiabilityProbabilityLevels * numNoiseLevels;
             const double noiseStdev = 0.20;
-            const int numDiscreteSignals = 10;
+            const int numDiscreteSignals = 5;
             int numPartiesPerDiscreteSignal = numParties / numDiscreteSignals;
             double[] liabilityProbabilities = new double[numParties];
             double[] continuousSignals = new double[numParties];
@@ -366,42 +367,20 @@ namespace ACESim
                         }
                         for (int p = 0; p < numParties; p++)
                         {
-                            double[] utility = new double[numCoverageRanges];
                             if (discreteSignals[p] == s)
                             // find all parties with the matching signal
                             {
-                                int bestC = 0;
-                                double bestUtility = 0;
-                                double insurerUtilityInBestScenariForInsured = 0;
-                                // calculate utility at each price
-                                for (int c = 0; c < numCoverageRanges; c++)
-                                {
-                                    double dollarsCovered = dollarsPerCoverageLevel * c;
-                                    double dollarsRemaining = damagesSought - dollarsCovered;
-                                    double damagesIfAdjudicationAndLiability = dollarsRemaining * N;
-                                    double probabilityAdjudicationAndLiability = probAdjudication * liabilityProbabilities[p];
-                                    double utilityIfAllGoesWell = Math.Log(initialWealth - prices[s, c]);
-                                    double utilityIfAllGoesBadly = Math.Log(initialWealth - prices[s, c] - damagesIfAdjudicationAndLiability);
-                                    utility[c] = (1.0 - probabilityAdjudicationAndLiability) * utilityIfAllGoesWell + probabilityAdjudicationAndLiability * utilityIfAllGoesBadly;
-                                    double insurerUtilityIfAllGoesWell = prices[s, c];
-                                    double insurerUtilityIfAllGoesBadly = prices[s, c] - dollarsCovered * N;
-                                    double insurerUtilityForThisContract = (1.0 - probabilityAdjudicationAndLiability) * insurerUtilityIfAllGoesWell + probabilityAdjudicationAndLiability * insurerUtilityIfAllGoesBadly;
-                                    if (c == 0)
-                                        bestUtility = utility[c];
-                                    else if (utility[c] > bestUtility)
-                                    {
-                                        bestC = c;
-                                        bestUtility = utility[c];
-                                        insurerUtilityInBestScenariForInsured = insurerUtilityForThisContract;
-                                    }
-                                }
+                                int bestC;
+                                double insurerUtilityInBestScenariForInsured;
+                                DeterminePartysCoverageDecision(useQuadraticUtilityWithInitialWealthAsMax, initialWealth, damagesSought, N, probAdjudication, numCoverageRanges, dollarsPerCoverageLevel, liabilityProbabilities[p], prices, s, out bestC, out insurerUtilityInBestScenariForInsured);
                                 coveragePurchased[p] = bestC;
                                 insurerUtility[s, bestC] += insurerUtilityInBestScenariForInsured;
                                 totalPurchases[s, bestC]++;
                             }
                         }
-                        if (s == numDiscreteSignals - 1)
-                            PrintCoverageTable(numCoverageRanges, numDiscreteSignals, prices, totalPurchases, insurerUtility, numDiscreteSignals);
+                        // uncomment here if you want to see the evolution of prices for a particular signal
+                        //if (s == numDiscreteSignals - 1)
+                        //    PrintCoverageTable(numCoverageRanges, numDiscreteSignals, prices, totalPurchases, insurerUtility, numDiscreteSignals, true);
                         equilibriumReached = true;
                         bool[] priceAffected = new bool[numCoverageRanges];
                         for (int c = 1; c < numCoverageRanges; c++)
@@ -414,8 +393,11 @@ namespace ACESim
                                 priceAffected[c] = true;
                                 // any product that is better and cheaper should also be increased in price
                                 for (int c2 = c + 1; c2 < numCoverageRanges; c2++)
-                                    if (prices[s, c2] < prices[s, c] && !priceAffected[c])
+                                    if (prices[s, c2] < prices[s, c])
+                                    {
                                         prices[s, c2] = prices[s, c];
+                                        priceAffected[c2] = true;
+                                    }
                                 equilibriumReached = false;
                             }
                             else if (insurerUtility[s, c] > 0)
@@ -424,8 +406,11 @@ namespace ACESim
                                 priceAffected[c] = true;
                                 // any product that is worse and more expensive should also be decreased in price
                                 for (int c2 = c - 1; c2 >= 0; c2--)
-                                    if (prices[s, c2] > prices[s, c] && !priceAffected[c])
+                                    if (prices[s, c2] > prices[s, c])
+                                    {
                                         prices[s, c2] = prices[s, c];
+                                        priceAffected[c2] = true;
+                                    }
                                 equilibriumReached = false;
                             }
                         }
@@ -444,6 +429,47 @@ namespace ACESim
 
         }
 
+        private static void DeterminePartysCoverageDecision(bool useQuadraticUtilityWithInitialWealthAsMax, double initialWealth, double damagesSought, double N, double probAdjudication, int numCoverageRanges, double dollarsPerCoverageLevel, double liabilityProbability, double[,] prices, int s, out int bestC, out double insurerUtilityInBestScenarioForInsured)
+        {
+            double[] utilityAtCoverageRange = new double[numCoverageRanges];
+            bestC = 0;
+            double bestUtility = 0;
+            insurerUtilityInBestScenarioForInsured = 0;
+            // calculate utility at each price and find optimal price
+            for (int c = 0; c < numCoverageRanges; c++)
+            {
+                double dollarsCovered = dollarsPerCoverageLevel * c;
+                double dollarsRemaining = damagesSought - dollarsCovered;
+                double damagesIfAdjudicationAndLiability = dollarsRemaining * N;
+                double probabilityAdjudicationAndLiability = probAdjudication * liabilityProbability;
+                double wealthIfAllGoesWell = initialWealth - prices[s, c];
+                double wealthIfFoundLiableAtTrial = initialWealth - prices[s, c] - damagesIfAdjudicationAndLiability;
+                double utilityIfAllGoesWell, utilityIfFoundLiableAtTrial;
+                if (useQuadraticUtilityWithInitialWealthAsMax)
+                {
+                    utilityIfAllGoesWell = 0 - Math.Pow(initialWealth - wealthIfAllGoesWell, 2);
+                    utilityIfFoundLiableAtTrial = 0 - Math.Pow(initialWealth - wealthIfFoundLiableAtTrial, 2);
+                }
+                else
+                {
+                    utilityIfAllGoesWell = Math.Log(wealthIfAllGoesWell);
+                    utilityIfFoundLiableAtTrial = Math.Log(wealthIfFoundLiableAtTrial);
+                }
+                utilityAtCoverageRange[c] = (1.0 - probabilityAdjudicationAndLiability) * utilityIfAllGoesWell + probabilityAdjudicationAndLiability * utilityIfFoundLiableAtTrial;
+                double insurerUtilityIfAllGoesWell = prices[s, c];
+                double insurerUtilityIfLiabilityFoundAtTrial = prices[s, c] - dollarsCovered * N;
+                double insurerUtilityForThisContract = (1.0 - probabilityAdjudicationAndLiability) * insurerUtilityIfAllGoesWell + probabilityAdjudicationAndLiability * insurerUtilityIfLiabilityFoundAtTrial;
+                if (c == 0)
+                    bestUtility = utilityAtCoverageRange[c];
+                else if (utilityAtCoverageRange[c] > bestUtility)
+                {
+                    bestC = c;
+                    bestUtility = utilityAtCoverageRange[c];
+                    insurerUtilityInBestScenarioForInsured = insurerUtilityForThisContract;
+                }
+            }
+        }
+
         private static void PrintCoverageTable(int numCoverageRanges, int numDiscreteSignals, double[,] prices, int[,] totalPurchases, double[,] insurerUtility, int? limitToSignal = null, bool reportInsurerProfit = false)
         {
             int grandTotalPurchases = 0;
@@ -454,7 +480,7 @@ namespace ACESim
                 Debug.Write(String.Format("{0,-23}", headingRowIntro));
                 for (int c = 0; c < numCoverageRanges; c++)
                 {
-                    string columnHeading = c.ToString() + "/10";
+                    string columnHeading = c.ToString() + "/" + (numCoverageRanges - 1).ToString();
                     if (c == 0)
                         columnHeading = "No coverage";
                     else if (c == numCoverageRanges - 1)
