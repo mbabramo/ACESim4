@@ -178,6 +178,19 @@ namespace ACESim
             }
         }
 
+        /// <summary>
+        /// Get regret matching adjusted probabilities, but adjusted so that unlikely actions are sometimes sampled.
+        /// </summary>
+        /// <param name="probabilitiesToSet">A pointer to the probabilities to set, one per action.</param>
+        /// <param name="epsilon">The weight (from 0 to 1) on equal probabilities rather than on regret-matching probabilities.</param>
+        public unsafe void GetEpsilonAdjustedRegretMatchingProbabilities(double* probabilitiesToSet, double epsilon)
+        {
+            GetRegretMatchingProbabilities(probabilitiesToSet);
+            double equalProbabilities = 1.0 / NumPossibleActions;
+            for (byte a = 1; a <= NumPossibleActions; a++)
+                probabilitiesToSet[a - 1] = epsilon * equalProbabilities + (1.0 - epsilon) * probabilitiesToSet[a - 1];
+        }
+
         public unsafe void GetRegretMatchingProbabilities_WithPruning(double* probabilitiesToSet)
         {
             bool zeroOutInRegretMatching = false;

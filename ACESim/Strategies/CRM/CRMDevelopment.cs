@@ -666,9 +666,129 @@ namespace ACESim
 
         #endregion
 
+        #region ProbingCRM
+
+        bool TraceProbingCRM = true;
+        int TotalProbingCFRIterations = 100000;
+
+        public unsafe double Probe(HistoryPoint historyPoint, byte playerIndex)
+        {
+            ICRMGameState gameStateForCurrentPlayer = GetGameState(historyPoint);
+            if (gameStateForCurrentPlayer is CRMFinalUtilities finalUtilities)
+                return finalUtilities.Utilities[playerIndex];
+            else if (gameStateForCurrentPlayer is CRMChanceNodeSettings chanceNodeSettings)
+            {
+                byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
+                byte sampledChanceAction = chanceNodeSettings.SampleAction(numPossibleActions, RandomGenerator.NextDouble());
+                HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledChanceAction);
+                return Probe(nextHistoryPoint, playerIndex);
+            }
+            else if (gameStateForCurrentPlayer is CRMInformationSetNodeTally informationSet)
+            {
+                byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
+                double* actionProbabilities = stackalloc double[numPossibleActions];
+                informationSet.GetRegretMatchingProbabilities(actionProbabilities);
+                byte sampledAction = SampleAction(actionProbabilities, numPossibleActions, RandomGenerator.NextDouble());
+                HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction);
+                return Probe(nextHistoryPoint, playerIndex);
+            }
+            else throw new NotImplementedException();
+        }
+
+        public unsafe double Probe_WalkTree(HistoryPoint historyPoint, byte playerBeingOptimized, double sampleProbabilityQ)
+        {
+            ICRMGameState gameStateForCurrentPlayer = GetGameState(historyPoint);
+            if (gameStateForCurrentPlayer is CRMFinalUtilities finalUtilities)
+                return finalUtilities.Utilities[playerBeingOptimized];
+            else if (gameStateForCurrentPlayer is CRMChanceNodeSettings chanceNodeSettings)
+            {
+                byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
+                byte chanceAction = chanceNodeSettings.SampleAction(numPossibleActions, RandomGenerator.NextDouble());
+                HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, chanceAction);
+                return Probe_WalkTree(nextHistoryPoint, playerBeingOptimized, sampleProbabilityQ);
+            }
+            else if (gameStateForCurrentPlayer is CRMInformationSetNodeTally informationSet)
+            {
+                byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
+                double* actionProbabilities = stackalloc double[numPossibleActions];
+                informationSet.GetRegretMatchingProbabilities(actionProbabilities);
+                byte playerAtPoint = informationSet.PlayerIndex;
+                byte sampledAction = 0;
+                if (playerAtPoint != playerBeingOptimized)
+                {
+                    for (byte action = 1; action <= numPossibleActions; action++)
+                        informationSet.IncrementCumulativeStrategy(action, actionProbabilities[action - 1] / sampleProbabilityQ);
+                    sampledAction = SampleAction(actionProbabilities, numPossibleActions, RandomGenerator.NextDouble());
+                    HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction);
+                    return Probe_WalkTree(nextHistoryPoint, playerBeingOptimized, sampleProbabilityQ);
+                }
+                double* samplingProbabilities = stackalloc double[numPossibleActions];
+                const double epsilon = 0.5;
+                informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(samplingProbabilities, epsilon);
+                sampledAction = SampleAction(samplingProbabilities, numPossibleActions, RandomGenerator.NextDouble());
+                double* counterfactualValues = stackalloc double[numPossibleActions];
+                double summation = 0;
+                for (byte action = 1; action <= numPossibleActions; action++)
+                {
+                    HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction);
+                    if (action == sampledAction)
+                    {
+                        sampleProbabilityQ *= samplingProbabilities[action - 1];
+                        counterfactualValues[action - 1] = Probe_WalkTree(nextHistoryPoint, playerBeingOptimized, sampleProbabilityQ);
+                    }
+                    else
+                        counterfactualValues[action - 1] = Probe(nextHistoryPoint, playerBeingOptimized);
+                    summation += actionProbabilities[action - 1] * counterfactualValues[action - 1];
+                }
+                for (byte action = 1; action <= numPossibleActions; action++)
+                    informationSet.IncrementCumulativeRegret(action, (1.0 / sampleProbabilityQ) * (counterfactualValues[action - 1] * summation));
+                return summation;
+            }
+            else
+                throw new NotImplementedException();
+        }
+
+        private unsafe byte SampleAction(double* actionProbabilities, byte numPossibleActions, double randomNumber)
+        {
+
+            double cumulative = 0;
+            byte action = 1;
+            do
+            {
+                cumulative += actionProbabilities[action - 1];
+                if (cumulative >= randomNumber || action == numPossibleActions)
+                    return action;
+                else
+                    action++;
+            }
+            while (true);
+        }
+
+        public void ProbingCFRIteration(int iteration)
+        {
+
+            for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
+            {
+                HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
+                Probe_WalkTree(historyPoint, playerBeingOptimized, 1.0);
+            }
+        }
+
+        public unsafe void SolveProbingCFR()
+        {
+            if (NumNonChancePlayers > 2)
+                throw new Exception("Internal error. Must implement extra code from Gibson algorithm 2 for more than 2 players.");
+            ActionStrategy = ActionStrategies.RegretMatching;
+            for (int iteration = 0; iteration < TotalProbingCFRIterations; iteration++)
+            {
+                ProbingCFRIteration(iteration);
+            }
+        }
+
+        #endregion
+
         #region Vanilla CRM
 
-        int VanillaCRMIteration; // controlled in SolveVanillaCRM
         bool TraceVanillaCRM = false;
 
         /// <summary>
@@ -836,8 +956,8 @@ namespace ACESim
             {
                 VanillaCFRIteration(iteration); 
             }
-
         }
+
         unsafe void VanillaCFRIteration(int iteration)
         {
 
