@@ -12,6 +12,7 @@ namespace ACESim
         public InformationSetLookupApproach LookupApproach;
         public List<Strategy> Strategies;
         public GameDefinition GameDefinition;
+        
 
         public HistoryNavigationInfo(InformationSetLookupApproach lookupApproach, List<Strategy> strategies, GameDefinition gameDefinition)
         {

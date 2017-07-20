@@ -60,7 +60,15 @@ namespace ACESim
         public const int MaxNumPlayers = 4; // this affects fixed-size stack-allocated buffers
         public const int MaxPossibleActions = 100; // same
 
-        const int TotalVanillaCFRIterations = 25;
+        public enum CRMAlgorithm
+        {
+            Vanilla,
+            Probing
+        }
+
+        CRMAlgorithm Algorithm = CRMAlgorithm.Probing;
+        const int TotalProbingCFRIterations = 100000;
+        const int TotalVanillaCFRIterations = 1000;
         int? ReportEveryNIterations = 5;
         int? BestResponseEveryMIterations = 1000;
 
@@ -97,7 +105,17 @@ namespace ACESim
         public void DevelopStrategies()
         {
             Initialize();
-            SolveVanillaCFR();
+            switch (Algorithm)
+            {
+                case CRMAlgorithm.Probing:
+                    SolveProbingCRM();
+                    break;
+                case CRMAlgorithm.Vanilla:
+                    SolveVanillaCRM();
+                    break;
+                default:
+                    throw new NotImplementedException();
+            }
         }
 
         public unsafe void Initialize()
@@ -669,7 +687,6 @@ namespace ACESim
         #region ProbingCRM
 
         bool TraceProbingCRM = true;
-        int TotalProbingCFRIterations = 100000;
 
         public unsafe double Probe(HistoryPoint historyPoint, byte playerIndex)
         {
@@ -766,15 +783,18 @@ namespace ACESim
 
         public void ProbingCFRIteration(int iteration)
         {
-
+            Stopwatch s = new Stopwatch();
+            s.Start();
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
                 HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
                 Probe_WalkTree(historyPoint, playerBeingOptimized, 1.0);
             }
+            s.Stop();
+            GenerateReports(iteration, s);
         }
 
-        public unsafe void SolveProbingCFR()
+        public unsafe void SolveProbingCRM()
         {
             if (NumNonChancePlayers > 2)
                 throw new Exception("Internal error. Must implement extra code from Gibson algorithm 2 for more than 2 players.");
@@ -949,9 +969,8 @@ namespace ACESim
         }
 
 
-        public unsafe void SolveVanillaCFR()
+        public unsafe void SolveVanillaCRM()
         {
-
             for (int iteration = 0; iteration < TotalVanillaCFRIterations; iteration++)
             {
                 VanillaCFRIteration(iteration); 
