@@ -67,7 +67,7 @@ namespace ACESim
         }
 
         CRMAlgorithm Algorithm = CRMAlgorithm.Probing;
-        const int TotalProbingCFRIterations = 10000000;
+        const int TotalProbingCFRIterations = 1000000;
         const int TotalVanillaCFRIterations = 100000;
         int? ReportEveryNIterations = 10000;
         int? BestResponseEveryMIterations = 10000;
