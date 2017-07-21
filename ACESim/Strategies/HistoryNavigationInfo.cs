@@ -12,13 +12,15 @@ namespace ACESim
         public InformationSetLookupApproach LookupApproach;
         public List<Strategy> Strategies;
         public GameDefinition GameDefinition;
-        
+        [NonSerialized]
+        public Func<HistoryPoint, ICRMGameState> GetGameStateFn;
 
-        public HistoryNavigationInfo(InformationSetLookupApproach lookupApproach, List<Strategy> strategies, GameDefinition gameDefinition)
+        public HistoryNavigationInfo(InformationSetLookupApproach lookupApproach, List<Strategy> strategies, GameDefinition gameDefinition, Func<HistoryPoint, ICRMGameState> getGameStateFn)
         {
             LookupApproach = lookupApproach;
             Strategies = strategies;
             GameDefinition = gameDefinition;
+            GetGameStateFn = getGameStateFn;
         }
     }
 }

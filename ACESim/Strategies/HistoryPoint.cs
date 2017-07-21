@@ -242,6 +242,11 @@ namespace ACESim
                 byte* resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerPlayer];
                 HistoryToPoint.GetPlayerInformation(resolutionPlayer, null, resolutionInformationSet);
                 CRMFinalUtilities finalUtilities = (CRMFinalUtilities) strategy.GetInformationSetTreeValue(resolutionInformationSet);
+                if (finalUtilities == null)
+                {
+                    navigation.GetGameStateFn(this);
+                    finalUtilities = (CRMFinalUtilities)strategy.GetInformationSetTreeValue(resolutionInformationSet);
+                }
                 utilitiesFromCachedGameHistory = finalUtilities.Utilities;
             }
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods && !utilitiesFromGameTree.SequenceEqual(utilitiesFromCachedGameHistory))

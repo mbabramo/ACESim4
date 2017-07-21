@@ -67,14 +67,16 @@ namespace ACESim
         }
 
         CRMAlgorithm Algorithm = CRMAlgorithm.Probing;
-        const int TotalProbingCFRIterations = 100000;
-        const int TotalVanillaCFRIterations = 1000;
-        int? ReportEveryNIterations = 5;
-        int? BestResponseEveryMIterations = 1000;
+        const int TotalProbingCFRIterations = 10000000;
+        const int TotalVanillaCFRIterations = 100000;
+        int? ReportEveryNIterations = 10000;
+        int? BestResponseEveryMIterations = 10000;
+
+        #region Construction
 
         public CRMDevelopment()
         {
-
+            Navigation.GetGameStateFn = GetGameState;
         }
 
         public CRMDevelopment(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition, IGameFactory gameFactory, CurrentExecutionInformation currentExecutionInformation)
@@ -96,9 +98,14 @@ namespace ACESim
                 EvolutionSettings = EvolutionSettings.DeepCopy(),
                 GameDefinition = GameDefinition,
                 GameFactory = GameFactory,
-                CurrentExecutionInformation = CurrentExecutionInformation
+                CurrentExecutionInformation = CurrentExecutionInformation,
+                Navigation = Navigation,
+                Algorithm = Algorithm,
+                LookupApproach = LookupApproach
             };
         }
+
+        #endregion
 
         #region Initialization
 
@@ -120,7 +127,7 @@ namespace ACESim
 
         public unsafe void Initialize()
         {
-            Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition);
+            Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, GetGameState);
             foreach (Strategy strategy in Strategies)
                 strategy.Navigation = Navigation;
 
@@ -389,7 +396,7 @@ namespace ACESim
 
         public string GenerateReports(Action<GamePlayer> generator)
         {
-            Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition);
+            Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, GetGameState);
             StringBuilder sb = new StringBuilder();
             var simpleReportDefinitions = GameDefinition.GetSimpleReportDefinitions();
             int simpleReportDefinitionsCount = simpleReportDefinitions.Count();
@@ -686,79 +693,161 @@ namespace ACESim
 
         #region ProbingCRM
 
-        bool TraceProbingCRM = true;
+        bool TraceProbingCRM = false;
 
-        public unsafe double Probe(HistoryPoint historyPoint, byte playerIndex)
+        public unsafe double Probe(HistoryPoint historyPoint, byte playerBeingOptimized)
         {
             ICRMGameState gameStateForCurrentPlayer = GetGameState(historyPoint);
+            //if (TraceProbingCRM)
+            //    TabbedText.WriteLine($"Probe optimizing player {playerBeingOptimized}");
             if (gameStateForCurrentPlayer is CRMFinalUtilities finalUtilities)
-                return finalUtilities.Utilities[playerIndex];
-            else if (gameStateForCurrentPlayer is CRMChanceNodeSettings chanceNodeSettings)
             {
-                byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
-                byte sampledChanceAction = chanceNodeSettings.SampleAction(numPossibleActions, RandomGenerator.NextDouble());
-                HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledChanceAction);
-                return Probe(nextHistoryPoint, playerIndex);
+                var utility = finalUtilities.Utilities[playerBeingOptimized];
+                if (TraceProbingCRM)
+                    TabbedText.WriteLine($"Utility returned {utility}");
+                return utility;
             }
-            else if (gameStateForCurrentPlayer is CRMInformationSetNodeTally informationSet)
+            else
             {
-                byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
-                double* actionProbabilities = stackalloc double[numPossibleActions];
-                informationSet.GetRegretMatchingProbabilities(actionProbabilities);
-                byte sampledAction = SampleAction(actionProbabilities, numPossibleActions, RandomGenerator.NextDouble());
+                byte sampledAction = 0;
+                if (gameStateForCurrentPlayer is CRMChanceNodeSettings chanceNodeSettings)
+                {
+                    byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
+                    if (chanceNodeSettings.DecisionIndex != 0 && playerBeingOptimized == 0)
+                    {
+                        var DEBUG = 0;
+                    }
+                    sampledAction = chanceNodeSettings.SampleAction(numPossibleActions, RandomGenerator.NextDouble());
+                    if (TraceProbingCRM)
+                        TabbedText.WriteLine($"{sampledAction}: Sampled chance action {sampledAction} of {numPossibleActions} with probability {chanceNodeSettings.GetActionProbability(sampledAction)}");
+                }
+                else if (gameStateForCurrentPlayer is CRMInformationSetNodeTally informationSet)
+                {
+                    byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
+                    double* actionProbabilities = stackalloc double[numPossibleActions];
+                    informationSet.GetRegretMatchingProbabilities(actionProbabilities);
+                    sampledAction = SampleAction(actionProbabilities, numPossibleActions, RandomGenerator.NextDouble());
+                    if (TraceProbingCRM)
+                        TabbedText.WriteLine($"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {informationSet.PlayerIndex}");
+                }
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction);
-                return Probe(nextHistoryPoint, playerIndex);
+                if (TraceProbingCRM)
+                    TabbedText.Tabs++;
+                double probeResult = Probe(nextHistoryPoint, playerBeingOptimized);
+                if (TraceProbingCRM)
+                {
+                    TabbedText.Tabs--;
+                    TabbedText.WriteLine($"Returning probe result {probeResult}");
+                }
+                return probeResult;
             }
-            else throw new NotImplementedException();
         }
 
-        public unsafe double Probe_WalkTree(HistoryPoint historyPoint, byte playerBeingOptimized, double sampleProbabilityQ)
+        public unsafe double Probe_WalkTree(HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ)
         {
+            if (TraceProbingCRM)
+                TabbedText.WriteLine($"WalkTree sampling probability {samplingProbabilityQ}");
             ICRMGameState gameStateForCurrentPlayer = GetGameState(historyPoint);
+            byte sampledAction = 0;
             if (gameStateForCurrentPlayer is CRMFinalUtilities finalUtilities)
-                return finalUtilities.Utilities[playerBeingOptimized];
+            {
+                var utility = finalUtilities.Utilities[playerBeingOptimized];
+                if (TraceProbingCRM)
+                    TabbedText.WriteLine($"Utility returned {utility}");
+                return utility;
+            }
             else if (gameStateForCurrentPlayer is CRMChanceNodeSettings chanceNodeSettings)
             {
                 byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
-                byte chanceAction = chanceNodeSettings.SampleAction(numPossibleActions, RandomGenerator.NextDouble());
-                HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, chanceAction);
-                return Probe_WalkTree(nextHistoryPoint, playerBeingOptimized, sampleProbabilityQ);
+                sampledAction = chanceNodeSettings.SampleAction(numPossibleActions, RandomGenerator.NextDouble());
+                if (TraceProbingCRM)
+                    TabbedText.WriteLine($"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} for chance decision {chanceNodeSettings.DecisionIndex}");
+                HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction);
+                if (TraceProbingCRM)
+                    TabbedText.Tabs++;
+                double walkTreeValue = Probe_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ);
+                if (TraceProbingCRM)
+                {
+                    TabbedText.Tabs--;
+                    TabbedText.WriteLine($"Returning walk tree result {walkTreeValue}");
+                }
+                return walkTreeValue;
             }
             else if (gameStateForCurrentPlayer is CRMInformationSetNodeTally informationSet)
             {
                 byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
-                double* actionProbabilities = stackalloc double[numPossibleActions];
-                informationSet.GetRegretMatchingProbabilities(actionProbabilities);
+                double* sigma_regretMatchedActionProbabilities = stackalloc double[numPossibleActions];
+                informationSet.GetRegretMatchingProbabilities(sigma_regretMatchedActionProbabilities);
                 byte playerAtPoint = informationSet.PlayerIndex;
-                byte sampledAction = 0;
                 if (playerAtPoint != playerBeingOptimized)
                 {
                     for (byte action = 1; action <= numPossibleActions; action++)
-                        informationSet.IncrementCumulativeStrategy(action, actionProbabilities[action - 1] / sampleProbabilityQ);
-                    sampledAction = SampleAction(actionProbabilities, numPossibleActions, RandomGenerator.NextDouble());
+                    {
+                        double cumulativeStrategyIncrement = sigma_regretMatchedActionProbabilities[action - 1] / samplingProbabilityQ;
+                        informationSet.IncrementCumulativeStrategy(action, cumulativeStrategyIncrement);
+                        if (TraceProbingCRM)
+                            TabbedText.WriteLine($"Incrementing cumulative strategy for {action} by {cumulativeStrategyIncrement} to {informationSet.GetCumulativeStrategy(action)}");
+                    }
+                    sampledAction = SampleAction(sigma_regretMatchedActionProbabilities, numPossibleActions, RandomGenerator.NextDouble());
+                    if (TraceProbingCRM)
+                        TabbedText.WriteLine($"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {playerAtPoint} decision {informationSet.DecisionIndex} with regret-matched prob {sigma_regretMatchedActionProbabilities[sampledAction - 1]}");
                     HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction);
-                    return Probe_WalkTree(nextHistoryPoint, playerBeingOptimized, sampleProbabilityQ);
+                    if (TraceProbingCRM)
+                        TabbedText.Tabs++;
+                    double walkTreeValue = Probe_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ);
+                    if (TraceProbingCRM)
+                    {
+                        TabbedText.Tabs--;
+                        TabbedText.WriteLine($"Returning walk tree result {walkTreeValue}");
+                    }
+                    return walkTreeValue;
                 }
                 double* samplingProbabilities = stackalloc double[numPossibleActions];
                 const double epsilon = 0.5;
                 informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(samplingProbabilities, epsilon);
                 sampledAction = SampleAction(samplingProbabilities, numPossibleActions, RandomGenerator.NextDouble());
+                if (TraceProbingCRM)
+                    TabbedText.WriteLine($"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {playerAtPoint} decision {informationSet.DecisionIndex} with regret-matched prob {sigma_regretMatchedActionProbabilities[sampledAction - 1]}");
                 double* counterfactualValues = stackalloc double[numPossibleActions];
                 double summation = 0;
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
-                    HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction);
+                    HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
                     if (action == sampledAction)
                     {
-                        sampleProbabilityQ *= samplingProbabilities[action - 1];
-                        counterfactualValues[action - 1] = Probe_WalkTree(nextHistoryPoint, playerBeingOptimized, sampleProbabilityQ);
+                        if (TraceProbingCRM)
+                            TabbedText.WriteLine($"{action}: Sampling selected action {action} for player {informationSet.PlayerIndex} decision {informationSet.DecisionIndex}");
+                        if (TraceProbingCRM)
+                            TabbedText.Tabs++;
+                        double samplingProbabilityQPrime = samplingProbabilityQ * samplingProbabilities[action - 1];
+                        counterfactualValues[action - 1] = Probe_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQPrime);
                     }
                     else
+                    {
+                        if (TraceProbingCRM)
+                            TabbedText.WriteLine($"{action}: Probing unselected action {action} for player {informationSet.PlayerIndex}decision {informationSet.DecisionIndex}");
+                        if (TraceProbingCRM)
+                            TabbedText.Tabs++;
                         counterfactualValues[action - 1] = Probe(nextHistoryPoint, playerBeingOptimized);
-                    summation += actionProbabilities[action - 1] * counterfactualValues[action - 1];
+                    }
+                    double summationDelta = sigma_regretMatchedActionProbabilities[action - 1] * counterfactualValues[action - 1];
+                    summation += summationDelta;
+                    if (TraceProbingCRM)
+                    {
+                        TabbedText.Tabs--;
+                        TabbedText.WriteLine($"Counterfactual value for action {action} is {counterfactualValues[action - 1]} => increment summation by {sigma_regretMatchedActionProbabilities[action - 1]} * {counterfactualValues[action - 1]} = {summationDelta} to {summation}");
+                    }
                 }
+                double inverseSamplingProbabilityQ = (1.0 / samplingProbabilityQ);
                 for (byte action = 1; action <= numPossibleActions; action++)
-                    informationSet.IncrementCumulativeRegret(action, (1.0 / sampleProbabilityQ) * (counterfactualValues[action - 1] * summation));
+                {
+                    double cumulativeRegretIncrement = inverseSamplingProbabilityQ * (counterfactualValues[action - 1] - summation);
+                    informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement);
+                    if (TraceProbingCRM)
+                    {
+                        TabbedText.WriteLine($"Increasing cumulative regret for action {action} by {inverseSamplingProbabilityQ} * {(counterfactualValues[action - 1])} - {summation} = {cumulativeRegretIncrement} to {informationSet.GetCumulativeRegret(action)}");
+                    }
+                }
                 return summation;
             }
             else
@@ -788,7 +877,14 @@ namespace ACESim
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
                 HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
+                if (TraceProbingCRM)
+                {
+                    TabbedText.WriteLine($"Optimize player {playerBeingOptimized}");
+                    TabbedText.Tabs++;
+                }
                 Probe_WalkTree(historyPoint, playerBeingOptimized, 1.0);
+                if (TraceProbingCRM)
+                    TabbedText.Tabs--;
             }
             s.Stop();
             GenerateReports(iteration, s);

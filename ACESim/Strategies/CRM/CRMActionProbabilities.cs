@@ -16,9 +16,9 @@ namespace ACESim
             HistoryPoint historyPoint = new HistoryPoint(null, gameProgress.GameHistory, gameProgress);
             HistoryNavigationInfo navigateDuringActualGamePlay = navigation;
             navigateDuringActualGamePlay.LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
-            ICRMGameState gameStateForCurrentPlayer = historyPoint.GetGameStateForCurrentPlayer(navigateDuringActualGamePlay);
+            ICRMGameState gameStateForCurrentPlayer = navigation.GetGameStateFn(historyPoint);
             if (gameStateForCurrentPlayer == null)
-                throw new Exception("Internal error. This action has not been initialized.");
+                throw new Exception("Internal error. This action has not been initialized but should be by GetGameStateFn.");
             double[] probabilities = GetActionProbabilitiesAtHistoryPoint(gameStateForCurrentPlayer, actionStrategy, numPossibleActions, alwaysDoAction, navigateDuringActualGamePlay);
             double cumTotal = 0;
             for (byte a = 0; a < numPossibleActions; a++)
@@ -37,6 +37,10 @@ namespace ACESim
         public static  double[] GetActionProbabilitiesAtHistoryPoint(ICRMGameState gameStateForCurrentPlayer, ActionStrategies actionStrategy, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation)
         {
             double[] probabilities;
+            if (gameStateForCurrentPlayer is CRMInformationSetNodeTally DEBUG && DEBUG.PlayerIndex == 0)
+            {
+                var DEBUG2 = 0;
+            }
             GetActionProbabilitiesAtHistoryPoint_Helper(gameStateForCurrentPlayer, actionStrategy, numPossibleActions, alwaysDoAction, navigation, out probabilities);
             return probabilities.Take(numPossibleActions).ToArray();
 
