@@ -33,9 +33,6 @@ namespace ACESim
 
         public HistoryNavigationInfo Navigation;
 
-        public int NumInitializedGamePaths = 0;
-        public int NumRandomIterationsForReporting = 1000;
-
         public ActionStrategies _ActionStrategy;
         public ActionStrategies ActionStrategy
         {
@@ -67,10 +64,13 @@ namespace ACESim
         }
 
         CRMAlgorithm Algorithm = CRMAlgorithm.Probing;
-        const int TotalProbingCFRIterations = 1000000;
+        const int TotalProbingCFRIterations = 100000000;
         const int TotalVanillaCFRIterations = 100000;
-        int? ReportEveryNIterations = 10000;
+        int? ReportEveryNIterations = 100000;
         int? BestResponseEveryMIterations = 10000;
+        public int NumRandomIterationsForReporting = 1000;
+
+        public int NumInitializedGamePaths = 0;
 
         #region Construction
 
@@ -1095,15 +1095,20 @@ namespace ACESim
             GenerateReports(iteration, s);
         }
 
+        bool alwaysUseAverageStrategyInReporting = true; // DEBUG
+
         private unsafe void GenerateReports(int iteration, Stopwatch s)
         {
             if (ReportEveryNIterations != null && iteration % ReportEveryNIterations == 0)
             {
+                ActionStrategies previous = ActionStrategy;
                 bool useRandomPaths = SkipEveryPermutationInitialization || NumInitializedGamePaths > NumRandomIterationsForReporting;
                 Debug.WriteLine("");
                 Debug.WriteLine($"Iteration {iteration} Milliseconds per iteration {(s.ElapsedMilliseconds / ((double)iteration + 1.0))}");
                 MainReport(useRandomPaths);
                 CompareBestResponse(iteration, useRandomPaths);
+                if (alwaysUseAverageStrategyInReporting)
+                    ActionStrategy = previous;
             }
         }
 

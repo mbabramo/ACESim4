@@ -37,10 +37,6 @@ namespace ACESim
         public static  double[] GetActionProbabilitiesAtHistoryPoint(ICRMGameState gameStateForCurrentPlayer, ActionStrategies actionStrategy, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation)
         {
             double[] probabilities;
-            if (gameStateForCurrentPlayer is CRMInformationSetNodeTally DEBUG && DEBUG.PlayerIndex == 0)
-            {
-                var DEBUG2 = 0;
-            }
             GetActionProbabilitiesAtHistoryPoint_Helper(gameStateForCurrentPlayer, actionStrategy, numPossibleActions, alwaysDoAction, navigation, out probabilities);
             return probabilities.Take(numPossibleActions).ToArray();
 

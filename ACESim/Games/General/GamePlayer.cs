@@ -343,6 +343,8 @@ namespace ACESim
             }
         }
 
+        static int MinIterationID = 0;
+        static bool AlwaysPlaySameIterations = false; // DEBUG
 
         public IEnumerable<GameProgress> PlayMultipleIterations(
             List<GameProgress> preplayedGameProgressInfos,
@@ -357,8 +359,10 @@ namespace ACESim
                 iterationIDArray = new IterationID[numIterations];
                 for (long i = 0; i < numIterations; i++)
                 {
-                    iterationIDArray[i] = new IterationID(i);
+                    iterationIDArray[i] = new IterationID(i + MinIterationID);
                 }
+                if (!AlwaysPlaySameIterations)
+                    MinIterationID += numIterations;
             }
 
             // Copy bestStrategies to play with
