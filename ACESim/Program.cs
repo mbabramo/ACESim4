@@ -299,215 +299,197 @@ namespace ACESim
             }
         }
 
+        public class TwoType
+        {
+
+            bool useQuadraticUtilityWithInitialWealthAsMax = true;
+            const double initialWealth = 2000000;
+            const double DamagesSought = 10000;
+            double N = 0;
+            public double probAdjudication => 1.0 / N;
+            public double probNoAdjudication => 1.0 - probAdjudication;
+            const double goodTypeProportionOfPopulation = 0.5;
+            double badTypeProportionOfPopulation = 1.0 - goodTypeProportionOfPopulation;
+            double goodTypeLiabilityProbability = 0.25;
+            double badTypeLiabilityProbability = 0.75;
+            public double maxExposure => DamagesSought / N;
+            static Func<double, double> UtilityFn = (double wealth) => Math.Log(wealth);
+
+            // 1. Bad type buys full coverage.
+            // 2. For a particular (PricePerUnit, CoverageLevel), we must satisfy the following conditions:
+            // a. The good type would not prefer to buy more or less at this price.
+            // b. Neither the good type nor the bad type would prefer the other's contract.
+            // c. The insurer must at least break even.
+            // 3. Among the contracts meeting these criteria, if there is a contract that is better for the insured, that will be preferred. Meanwhile, if there is a contract that is worse for the insurer, that will be preferred. (In other words, we seek zero economic profits but allow for profits if needed to maintain the separating equilibrium.)
+
+            // ==> Algorithm. 
+            // The price must be at least break even for the insurer for a unit of coverage for the good type. 
+            // See if a unit will be bought at that price (without destroying separation). If not, no coverge. If so, see how much coverage will be purchased. Keep increasing the coverage so long as it will not destroy adverse selection and is better for the insured than the other policy.
+            // Once we have a policy at one price, keep looking at higher prices. See if there are any policies that are at least as good for the insured.
+
+            const double unitsBundle = 1000;
+
+            public TwoType(double n)
+            {
+                N = n;
+                Contract result = FindGoodTypeContract();
+                Debug.WriteLine($"N: {N} --> {result}");
+            }
+
+            public Contract FindGoodTypeContract()
+            {
+                Contract badTypeContract = new Contract(badTypeLiabilityProbability / N, DamagesSought * N, badTypeLiabilityProbability, N);
+                Contract minimumContractForInsurer = FindMinimumContractGoodForInsurer();
+                if (minimumContractForInsurer == null)
+                    return null;
+                Contract bestContractYet = null;
+                double priceToCheck = minimumContractForInsurer.PricePerUnit;
+                Contract separatingContract;
+                do
+                {
+                    separatingContract = FindGoodTypeCoverageForPrice(priceToCheck, badTypeContract, bestContractYet);
+                    priceToCheck *= 1.001;
+                }
+                while (separatingContract != null);
+                return separatingContract;
+            }
+
+            public Contract FindMinimumContractGoodForInsurer()
+            {
+                double initialPrice = 0.000001;
+                Contract proposedContract = new Contract(initialPrice, unitsBundle, goodTypeLiabilityProbability, N);
+                if (proposedContract.IsBetterForInsurerThanNothing())
+                    return proposedContract;
+                return new Contract(initialPrice * proposedContract.MultiplyPremiumForInsurerToBreakEven(), unitsBundle, goodTypeLiabilityProbability, N);
+            }
+
+            public Contract FindGoodTypeCoverageForPrice(double pricePerUnit, Contract badTypeContract, Contract alternativeGoodTypeContract)
+            {
+                double units = unitsBundle;
+                bool coverageIsBetter = false;
+                Contract bestContractYet = null;
+                do
+                {
+                    Contract goodTypeContractToConsider = new Contract(pricePerUnit, units, goodTypeLiabilityProbability, N);
+                    coverageIsBetter = BetterThanAlternativesSoFar(goodTypeContractToConsider, badTypeContract, alternativeGoodTypeContract);
+                    if (coverageIsBetter)
+                    {
+                        bestContractYet = goodTypeContractToConsider;
+                        units += unitsBundle;
+                    }
+                }
+                while (coverageIsBetter);
+                return bestContractYet;
+            }
+
+            private bool BetterThanAlternativesSoFar(Contract goodTypeContractToConsider, Contract badTypeContract, Contract alternativeGoodTypeContract)
+            {
+                bool isOKForInsurer = goodTypeContractToConsider.IsBetterForInsurerThanNothing();
+                if (!isOKForInsurer)
+                    return false;
+                bool isGoodForGoodType;
+                if (alternativeGoodTypeContract == null)
+                    isGoodForGoodType = goodTypeContractToConsider.IsBetterForInsuredThanNothing();
+                else
+                    isGoodForGoodType = goodTypeContractToConsider.IsBetterForInsuredThanAlternative(alternativeGoodTypeContract);
+                if (!isGoodForGoodType)
+                    return false;
+                bool badTypeWillDefect = badTypeContract.IsBetterForInsuredThan_OtherPartysContract(goodTypeContractToConsider);
+                return !badTypeWillDefect;
+            }
+
+            public class Contract
+            {
+                public double PricePerUnit;
+                public double Units;
+                public double ProbabilityLiability;
+                public double N;
+
+                public double Premium, ProbabilityAdjudicatedAndLiable, ProbabilityNotAdjudicatedOrNotLiable, DamagesIfAdjudicatedAndLiable, PayoutIfLiability, WealthWithInsurance_NoLiability, WealthWithInsurance_Liability, WealthNoInsurance_NoLiability, WealthNoInsurance_Liability, UtilityWithInsurance_NoLiability, UtilityWithInsurance_Liability, UtilityNoInsurance_NoLiability, UtilityNoInsurance_Liability, ExpectedUtility_WithInsurance, ExpectedUtility_NotInsured, ExpectedPayout, ExpectedInsurerProfit;
+
+                public override string ToString()
+                {
+                    return $"Price {PricePerUnit} * Units {Units} = {Premium}. Utility {ExpectedUtility_WithInsurance} (without: {ExpectedUtility_NotInsured})";
+                }
+
+                public Contract(double pricePerUnit, double units, double probabilityLiability, double n)
+                {
+                    PricePerUnit = pricePerUnit;
+                    Units = units;
+                    ProbabilityLiability = probabilityLiability;
+                    N = n;
+
+                    Premium = PricePerUnit * Units;
+                    ProbabilityAdjudicatedAndLiable = ProbabilityLiability / N;
+                    ProbabilityNotAdjudicatedOrNotLiable = 1.0 - ProbabilityAdjudicatedAndLiable;
+                    DamagesIfAdjudicatedAndLiable = DamagesSought * N;
+                    PayoutIfLiability = Math.Min(DamagesIfAdjudicatedAndLiable, Units);
+                    WealthWithInsurance_NoLiability = initialWealth - Premium;
+                    WealthWithInsurance_Liability = WealthWithInsurance_NoLiability - DamagesIfAdjudicatedAndLiable + PayoutIfLiability;
+                    WealthNoInsurance_NoLiability = initialWealth;
+                    WealthNoInsurance_Liability = initialWealth - DamagesIfAdjudicatedAndLiable;
+                    UtilityWithInsurance_NoLiability = UtilityFn(WealthWithInsurance_NoLiability);
+                    UtilityWithInsurance_Liability = UtilityFn(WealthWithInsurance_Liability);
+                    UtilityNoInsurance_NoLiability = UtilityFn(WealthNoInsurance_NoLiability);
+                    UtilityNoInsurance_Liability = UtilityFn(WealthNoInsurance_Liability);
+                    ExpectedUtility_WithInsurance = ProbabilityAdjudicatedAndLiable * UtilityWithInsurance_Liability + ProbabilityNotAdjudicatedOrNotLiable * UtilityWithInsurance_NoLiability;
+                    ExpectedUtility_NotInsured = ProbabilityAdjudicatedAndLiable * UtilityNoInsurance_Liability + ProbabilityNotAdjudicatedOrNotLiable * UtilityNoInsurance_NoLiability;
+                    ExpectedInsurerProfit = Premium - ProbabilityAdjudicatedAndLiable * PayoutIfLiability;
+                }
+
+                public double MultiplyPremiumForInsurerToBreakEven()
+                {
+                    return ProbabilityAdjudicatedAndLiable * PayoutIfLiability / Premium;
+                }
+
+                public bool IsBetterForInsurerThan(Contract other)
+                {
+                    return ExpectedInsurerProfit > other.ExpectedInsurerProfit;
+                }
+
+                public bool IsBetterForInsurerThanNothing()
+                {
+                    return ExpectedInsurerProfit >= 0;
+                }
+
+                public bool NeitherPartyWillDefect(Contract otherPartysContract)
+                {
+                    return IsBetterForInsuredThan_OtherPartysContract(otherPartysContract) && otherPartysContract.IsBetterForInsuredThan_OtherPartysContract(this);
+                }
+
+                public bool IsBetterForInsuredThanNothing()
+                {
+                    return ExpectedUtility_WithInsurance > ExpectedUtility_NotInsured;
+                }
+
+                public bool IsBetterForInsuredThan_OtherPartysContract(Contract otherPartysContract)
+                {
+                    Contract thisPartysAlternative = new Contract(otherPartysContract.PricePerUnit, otherPartysContract.Units, ProbabilityLiability, N);
+                    return IsBetterForInsuredThanAlternative(thisPartysAlternative);
+                }
+
+                public bool IsBetterForInsuredThanAlternative(Contract thisPartysAlternative)
+                {
+                    return ExpectedUtility_WithInsurance > thisPartysAlternative.ExpectedUtility_WithInsurance;
+                }
+
+                public bool IsRightCoverageLevel(double precision)
+                {
+                    Contract lowerAlternative = new Contract(PricePerUnit, Units - precision, ProbabilityLiability, N);
+                    Contract higherAlternative = new Contract(PricePerUnit, Units + precision, ProbabilityLiability, N);
+                    return ExpectedUtility_WithInsurance >= lowerAlternative.ExpectedUtility_WithInsurance && ExpectedUtility_WithInsurance >= higherAlternative.ExpectedUtility_WithInsurance;
+                }
+            }
+        }
+
 
         static void Main(string[] args)
         {
             //new RunWithoutUI();
-            bool useQuadraticUtilityWithInitialWealthAsMax = true;
-            const double initialWealth = 2000000;
-            const double damagesSought = 10000;
-            const double N = 100;
-            const double probAdjudication = 1.0 / N;
-            const double probNoAdjudication = 1.0 - probAdjudication;
-            const int numCoverageRanges = 2; // first coverage range is 0 coverage
-            double dollarsPerCoverageLevel = damagesSought / (double)(numCoverageRanges - 1.0);
-            const int numLiabilityProbabilityLevels = 2;
-            const int numNoiseLevels = 100;
-            const int numParties = numLiabilityProbabilityLevels * numNoiseLevels;
-            const double noiseStdev = 0.20;
-            const int numDiscreteSignals = 2;
-            int numPartiesPerDiscreteSignal = numParties / numDiscreteSignals;
-            double[] liabilityProbabilities = new double[numParties];
-            double[] continuousSignals = new double[numParties];
-            double[] liabilityProbabilityLevels = EquallySpaced.GetEquallySpacedPoints(numLiabilityProbabilityLevels);
-            double[] noiseLevels = EquallySpaced.GetEquallySpacedPoints(numNoiseLevels).Select(x => noiseStdev * InvNormal.Calculate(x)).ToArray();
-            for (int liabilityProbabilityLevel = 0; liabilityProbabilityLevel < numLiabilityProbabilityLevels; liabilityProbabilityLevel++)
-                for (int noiseLevel = 0; noiseLevel < numNoiseLevels; noiseLevel++)
-                {
-                    int index = liabilityProbabilityLevel * numNoiseLevels + noiseLevel;
-                    liabilityProbabilities[index] = liabilityProbabilityLevels[liabilityProbabilityLevel];
-                    continuousSignals[index] = liabilityProbabilityLevels[liabilityProbabilityLevel] + noiseLevels[noiseLevel];
-                }
 
-            double[] continuousSignalsOrdered = continuousSignals.OrderBy(x => x).ToArray();
-            int[] discreteSignals = new int[numParties];
-            for (int s = 0; s < numDiscreteSignals; s++)
-            {
-                int lowerBoundIndex = s * numPartiesPerDiscreteSignal;
-                double lowerBound = continuousSignalsOrdered[lowerBoundIndex];
-                for (int p = 0; p < numParties; p++)
-                    if (continuousSignals[p] >= lowerBound)
-                        discreteSignals[p] = s;
-            }
-            double[,] prices = new double[numDiscreteSignals, numCoverageRanges];
-            double[,] insurerUtility = new double[numDiscreteSignals, numCoverageRanges];
-            int[,] totalPurchases = new int[numDiscreteSignals, numCoverageRanges];
-            double[] coveragePurchased = new double[numParties];
-
-            for (int s = 0; s < numDiscreteSignals; s++)
-            {
-                // initialize price to lowest value for each coverage range
-                for (int c = 0; c < numCoverageRanges; c++)
-                    if (c == 0)
-                        prices[s, c] = 0;
-                    else
-                        prices[s, c] = dollarsPerCoverageLevel;
-                foreach (double priceDelta in new double[] { dollarsPerCoverageLevel * 1.0, dollarsPerCoverageLevel * 0.5, dollarsPerCoverageLevel * 0.2, dollarsPerCoverageLevel * 0.1, dollarsPerCoverageLevel * 0.05, dollarsPerCoverageLevel * 0.02, dollarsPerCoverageLevel * 0.01, dollarsPerCoverageLevel * 0.001 })
-                { 
-                    HashSet<string> hashes = new HashSet<string>();
-                    bool equilibriumReached = false;
-                    int cycle = 0;
-                    while (!equilibriumReached)
-                    {
-                        cycle++;
-                        for (int c = 0; c < numCoverageRanges; c++)
-                        {
-                            insurerUtility[s, c] = 0;
-                            totalPurchases[s, c] = 0;
-                        }
-                        for (int p = 0; p < numParties; p++)
-                        {
-                            if (discreteSignals[p] == s)
-                            // find all parties with the matching signal
-                            {
-                                int bestC;
-                                double insurerUtilityInBestScenariForInsured;
-                                DeterminePartysCoverageDecision(useQuadraticUtilityWithInitialWealthAsMax, initialWealth, damagesSought, N, probAdjudication, numCoverageRanges, dollarsPerCoverageLevel, liabilityProbabilities[p], prices, s, out bestC, out insurerUtilityInBestScenariForInsured);
-                                coveragePurchased[p] = bestC;
-                                insurerUtility[s, bestC] += insurerUtilityInBestScenariForInsured;
-                                totalPurchases[s, bestC]++;
-                            }
-                        }
-                        // uncomment here if you want to see the evolution of prices for a particular signal
-                        //if (s == numDiscreteSignals - 1)
-                        //    PrintCoverageTable(numCoverageRanges, numDiscreteSignals, prices, totalPurchases, insurerUtility, numDiscreteSignals, true);
-                        equilibriumReached = true;
-                        bool[] priceAffected = new bool[numCoverageRanges];
-                        for (int c = 1; c < numCoverageRanges; c++)
-                        {
-                            if (priceAffected[c])
-                                continue;
-                            if (insurerUtility[s, c] < 0)
-                            {
-                                prices[s, c] += priceDelta;
-                                priceAffected[c] = true;
-                                // any product that is better and cheaper should also be increased in price
-                                for (int c2 = c + 1; c2 < numCoverageRanges; c2++)
-                                    if (prices[s, c2] < prices[s, c])
-                                    {
-                                        prices[s, c2] = prices[s, c];
-                                        priceAffected[c2] = true;
-                                    }
-                                equilibriumReached = false;
-                            }
-                            else if (insurerUtility[s, c] > 0)
-                            {
-                                prices[s, c] -= priceDelta;
-                                priceAffected[c] = true;
-                                // any product that is worse and more expensive should also be decreased in price
-                                for (int c2 = c - 1; c2 >= 0; c2--)
-                                    if (prices[s, c2] > prices[s, c])
-                                    {
-                                        prices[s, c2] = prices[s, c];
-                                        priceAffected[c2] = true;
-                                    }
-                                equilibriumReached = false;
-                            }
-                        }
-                        if (!equilibriumReached)
-                        {
-                            string hashKey = MD5HashGenerator.GenerateKey(prices);
-                            if (hashes.Contains(hashKey))
-                                equilibriumReached = true; // no change since some previous iteration
-                            else
-                                hashes.Add(hashKey);
-                        }
-                    }
-                }
-            }
-            PrintCoverageTable(numCoverageRanges, numDiscreteSignals, prices, totalPurchases, insurerUtility);
+            
 
         }
-
-        private static void DeterminePartysCoverageDecision(bool useQuadraticUtilityWithInitialWealthAsMax, double initialWealth, double damagesSought, double N, double probAdjudication, int numCoverageRanges, double dollarsPerCoverageLevel, double liabilityProbability, double[,] prices, int s, out int bestC, out double insurerUtilityInBestScenarioForInsured)
-        {
-            double[] utilityAtCoverageRange = new double[numCoverageRanges];
-            bestC = 0;
-            double bestUtility = 0;
-            insurerUtilityInBestScenarioForInsured = 0;
-            // calculate utility at each price and find optimal price
-            for (int c = 0; c < numCoverageRanges; c++)
-            {
-                double dollarsCovered = dollarsPerCoverageLevel * c;
-                double dollarsRemaining = damagesSought - dollarsCovered;
-                double damagesIfAdjudicationAndLiability = dollarsRemaining * N;
-                double probabilityAdjudicationAndLiability = probAdjudication * liabilityProbability;
-                double wealthIfAllGoesWell = initialWealth - prices[s, c];
-                double wealthIfFoundLiableAtTrial = initialWealth - prices[s, c] - damagesIfAdjudicationAndLiability;
-                double utilityIfAllGoesWell, utilityIfFoundLiableAtTrial;
-                if (useQuadraticUtilityWithInitialWealthAsMax)
-                {
-                    utilityIfAllGoesWell = 0 - Math.Pow(initialWealth - wealthIfAllGoesWell, 2);
-                    utilityIfFoundLiableAtTrial = 0 - Math.Pow(initialWealth - wealthIfFoundLiableAtTrial, 2);
-                }
-                else
-                {
-                    utilityIfAllGoesWell = Math.Log(wealthIfAllGoesWell);
-                    utilityIfFoundLiableAtTrial = Math.Log(wealthIfFoundLiableAtTrial);
-                }
-                utilityAtCoverageRange[c] = (1.0 - probabilityAdjudicationAndLiability) * utilityIfAllGoesWell + probabilityAdjudicationAndLiability * utilityIfFoundLiableAtTrial;
-                double insurerUtilityIfAllGoesWell = prices[s, c];
-                double insurerUtilityIfLiabilityFoundAtTrial = prices[s, c] - dollarsCovered * N;
-                double insurerUtilityForThisContract = (1.0 - probabilityAdjudicationAndLiability) * insurerUtilityIfAllGoesWell + probabilityAdjudicationAndLiability * insurerUtilityIfLiabilityFoundAtTrial;
-                if (c == 0)
-                    bestUtility = utilityAtCoverageRange[c];
-                else if (utilityAtCoverageRange[c] > bestUtility)
-                {
-                    bestC = c;
-                    bestUtility = utilityAtCoverageRange[c];
-                    insurerUtilityInBestScenarioForInsured = insurerUtilityForThisContract;
-                }
-            }
-        }
-
-        private static void PrintCoverageTable(int numCoverageRanges, int numDiscreteSignals, double[,] prices, int[,] totalPurchases, double[,] insurerUtility, int? limitToSignal = null, bool reportInsurerProfit = false)
-        {
-            int grandTotalPurchases = 0;
-
-            if (limitToSignal == null)
-            {
-                string headingRowIntro = "Coverage ";
-                Debug.Write(String.Format("{0,-23}", headingRowIntro));
-                for (int c = 0; c < numCoverageRanges; c++)
-                {
-                    string columnHeading = c.ToString() + "/" + (numCoverageRanges - 1).ToString();
-                    if (c == 0)
-                        columnHeading = "No coverage";
-                    else if (c == numCoverageRanges - 1)
-                        columnHeading = "Full coverage";
-                    Debug.Write(String.Format("{0,-23}", columnHeading));
-                }
-                Debug.Write(Environment.NewLine);
-            }
-            for (int s = 0; s < numDiscreteSignals; s++)
-            {
-                if (limitToSignal == null || limitToSignal == s + 1)
-                {
-                    string rowHeading = "Signal range " + (s + 1).ToString();
-                    Debug.Write(String.Format("{0,-23}", rowHeading));
-                    for (int c = 0; c < numCoverageRanges; c++)
-                    {
-                        double insurerUtilityPerPolicy = (insurerUtility[s, c] / totalPurchases[s, c]);
-                        string insurerUtilityPerPolicyString = " => " + String.Format("{0:0.0}", insurerUtilityPerPolicy);
-                        if (!reportInsurerProfit)
-                            insurerUtilityPerPolicyString = "";
-                        string info = $"${prices[s, c]} ({totalPurchases[s, c]}{insurerUtilityPerPolicyString}) ";
-                        grandTotalPurchases += totalPurchases[s, c];
-                        Debug.Write(String.Format("{0,-23}", info));
-                    }
-                    Debug.Write(Environment.NewLine);
-                }
-            }
-        }
+        
     }
 }
