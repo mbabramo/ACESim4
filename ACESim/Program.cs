@@ -485,10 +485,7 @@ namespace ACESim
 
         static void Main(string[] args)
         {
-            //new RunWithoutUI();
-
-            
-
+            new TwoType(5);
         }
         
     }
