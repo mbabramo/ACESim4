@@ -303,17 +303,18 @@ namespace ACESim
         {
 
             bool useQuadraticUtilityWithInitialWealthAsMax = true;
-            const double initialWealth = 2000000;
+            const double initialWealth = 1000001;
             const double DamagesSought = 10000;
             double N = 0;
             public double probAdjudication => 1.0 / N;
             public double probNoAdjudication => 1.0 - probAdjudication;
-            const double goodTypeProportionOfPopulation = 0.5;
+            const double goodTypeProportionOfPopulation = 0.20;
             double badTypeProportionOfPopulation = 1.0 - goodTypeProportionOfPopulation;
             double goodTypeLiabilityProbability = 0.25;
             double badTypeLiabilityProbability = 0.75;
             public double maxExposure => DamagesSought / N;
-            static Func<double, double> UtilityFn = (double wealth) => Math.Log(wealth);
+            static Func<double, double> UtilityFn = (double wealth) => Math.Log10(wealth);
+            //static Func<double, double> UtilityFn = (double wealth) => 0 - (initialWealth - wealth) * (initialWealth - wealth);
 
             // 1. Bad type buys full coverage.
             // 2. For a particular (PricePerUnit, CoverageLevel), we must satisfy the following conditions:
@@ -327,13 +328,42 @@ namespace ACESim
             // See if a unit will be bought at that price (without destroying separation). If not, no coverge. If so, see how much coverage will be purchased. Keep increasing the coverage so long as it will not destroy adverse selection and is better for the insured than the other policy.
             // Once we have a policy at one price, keep looking at higher prices. See if there are any policies that are at least as good for the insured.
 
-            const double unitsBundle = 1000;
+            const double unitsBundle = 10;
+
+            const double costOfMarketAdjudication = 1000;
+            const double costOfRealAdjudication = 1000;
+            double expectedCostOfRealAdjudication => costOfRealAdjudication / N;
+            double expectedCostOfMarketAdjudication => costOfMarketAdjudication + expectedCostOfRealAdjudication;
+            double extraCostOfMarketAdjudication => expectedCostOfMarketAdjudication - expectedCostOfRealAdjudication;
 
             public TwoType(double n)
             {
                 N = n;
-                Contract result = FindGoodTypeContract();
-                Debug.WriteLine($"N: {N} --> {result}");
+                //Contract result = FindGoodTypeContract(); // this allows for separating equilibrium
+                //Debug.WriteLine($"N: {N} --> {result}");
+                (Contract result, bool willInsure) = CheckWhetherGoodTypeWillInsure();  // this ensures full insurance is required
+                if (willInsure)
+                    Debug.WriteLine($"N: {N} --> {result}");
+                else
+                    Debug.WriteLine($"N: {N} --> No insurance (utility {result.ExpectedUtility_NotInsured}");
+            }
+
+            public (Contract pooled, bool willInsure) CheckWhetherGoodTypeWillInsure()
+            {
+                // In this version, we assume that one can obtain either a full
+                // insurance contract or no insurance at all, for example as a result
+                // of a governmental rule preventing partial sales of claims.
+                // (We could also imagine less extreme variants to encourage continued participation by defendants.)
+                // Thus, we figure out what the pooling equilibrium would be and determine whether the good type
+                // is better off simply not buying the contract.
+                double pooledProbabilityOfPayout = (goodTypeProportionOfPopulation * goodTypeLiabilityProbability + badTypeProportionOfPopulation * badTypeLiabilityProbability) / N;
+                double numUnits = DamagesSought * N;
+                double totalPrice = numUnits * pooledProbabilityOfPayout;
+                double pricePerUnit = totalPrice / numUnits; // i.e., == pooledProbabilityOfPayout
+                Contract pooled = new Contract(pricePerUnit, numUnits, goodTypeLiabilityProbability, N);
+
+                bool willInsure = (pooled.IsBetterForInsuredThanNothing());
+                return (pooled, willInsure);
             }
 
             public Contract FindGoodTypeContract()
@@ -343,15 +373,17 @@ namespace ACESim
                 if (minimumContractForInsurer == null)
                     return null;
                 Contract bestContractYet = null;
-                double priceToCheck = minimumContractForInsurer.PricePerUnit;
+                double priceToCheck = 0.0001; // DEBUG minimumContractForInsurer.PricePerUnit;
                 Contract separatingContract;
                 do
                 {
                     separatingContract = FindGoodTypeCoverageForPrice(priceToCheck, badTypeContract, bestContractYet);
-                    priceToCheck *= 1.001;
+                    if (separatingContract != null)
+                        bestContractYet = separatingContract;
+                    priceToCheck += 0.0001;
                 }
-                while (separatingContract != null);
-                return separatingContract;
+                while (priceToCheck <= badTypeContract.PricePerUnit);
+                return bestContractYet;
             }
 
             public Contract FindMinimumContractGoodForInsurer()
@@ -366,36 +398,39 @@ namespace ACESim
             public Contract FindGoodTypeCoverageForPrice(double pricePerUnit, Contract badTypeContract, Contract alternativeGoodTypeContract)
             {
                 double units = unitsBundle;
+                if (alternativeGoodTypeContract != null)
+                    units = alternativeGoodTypeContract.Units; // once we have found a contract that is good for the good type, there will never be a contract with a higher price and fewer units that is good for the good type
                 bool coverageIsBetter = false;
+                bool badTypeWillNotDefect = true;
                 Contract bestContractYet = null;
                 do
                 {
                     Contract goodTypeContractToConsider = new Contract(pricePerUnit, units, goodTypeLiabilityProbability, N);
-                    coverageIsBetter = BetterThanAlternativesSoFar(goodTypeContractToConsider, badTypeContract, alternativeGoodTypeContract);
+                    
+                    (coverageIsBetter, badTypeWillNotDefect) = BetterThanAlternativesSoFar(goodTypeContractToConsider, badTypeContract, bestContractYet ?? alternativeGoodTypeContract);
                     if (coverageIsBetter)
-                    {
                         bestContractYet = goodTypeContractToConsider;
-                        units += unitsBundle;
-                    }
+                    units += unitsBundle;
                 }
-                while (coverageIsBetter);
+                while ((coverageIsBetter || badTypeWillNotDefect) && units <= DamagesSought * N); // keep looking for acceptable contracts so long as the bad type will not defect
                 return bestContractYet;
             }
 
-            private bool BetterThanAlternativesSoFar(Contract goodTypeContractToConsider, Contract badTypeContract, Contract alternativeGoodTypeContract)
+            bool TraceReasoning = false;
+
+            private (bool betterThanAlternative, bool badTypeWillNotDefect) BetterThanAlternativesSoFar(Contract goodTypeContractToConsider, Contract badTypeContract, Contract alternativeGoodTypeContract)
             {
                 bool isOKForInsurer = goodTypeContractToConsider.IsBetterForInsurerThanNothing();
-                if (!isOKForInsurer)
-                    return false;
-                bool isGoodForGoodType;
+                bool isBetterForGoodType;
                 if (alternativeGoodTypeContract == null)
-                    isGoodForGoodType = goodTypeContractToConsider.IsBetterForInsuredThanNothing();
+                    isBetterForGoodType = goodTypeContractToConsider.IsBetterForInsuredThanNothing();
                 else
-                    isGoodForGoodType = goodTypeContractToConsider.IsBetterForInsuredThanAlternative(alternativeGoodTypeContract);
-                if (!isGoodForGoodType)
-                    return false;
-                bool badTypeWillDefect = badTypeContract.IsBetterForInsuredThan_OtherPartysContract(goodTypeContractToConsider);
-                return !badTypeWillDefect;
+                    isBetterForGoodType = goodTypeContractToConsider.IsBetterForInsuredThanAlternative(alternativeGoodTypeContract);
+                bool badTypeWillNotDefect = badTypeContract.IsBetterForInsuredThan_OtherPartysContract(goodTypeContractToConsider);
+                bool betterThanAlternative = isOKForInsurer && isBetterForGoodType && badTypeWillNotDefect;
+                if (TraceReasoning)
+                    Debug.WriteLine($"{(betterThanAlternative ? "Adopting" : "Rejecting")} {goodTypeContractToConsider} OKForInsurer: {isOKForInsurer} BetterForGoodType: {isBetterForGoodType} BadTypeWillNotDefect: {badTypeWillNotDefect}");
+                return (betterThanAlternative, badTypeWillNotDefect);
             }
 
             public class Contract
@@ -409,7 +444,7 @@ namespace ACESim
 
                 public override string ToString()
                 {
-                    return $"Price {PricePerUnit} * Units {Units} = {Premium}. Utility {ExpectedUtility_WithInsurance} (without: {ExpectedUtility_NotInsured})";
+                    return $"Price {PricePerUnit} * Units {Units} = {Premium} of max {DamagesIfAdjudicatedAndLiable} ({Premium / DamagesIfAdjudicatedAndLiable}). Utility {ExpectedUtility_WithInsurance} (without: {ExpectedUtility_NotInsured})";
                 }
 
                 public Contract(double pricePerUnit, double units, double probabilityLiability, double n)
@@ -449,7 +484,7 @@ namespace ACESim
 
                 public bool IsBetterForInsurerThanNothing()
                 {
-                    return ExpectedInsurerProfit >= 0;
+                    return ExpectedInsurerProfit >= -0.00000001; // this compensates for contracts being rejected because of rounding errors
                 }
 
                 public bool NeitherPartyWillDefect(Contract otherPartysContract)
@@ -485,7 +520,8 @@ namespace ACESim
 
         static void Main(string[] args)
         {
-            new TwoType(5);
+            for (int i = 1; i <= 100; i += 1)
+                new TwoType(i);
         }
         
     }
