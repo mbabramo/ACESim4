@@ -13,7 +13,7 @@ namespace ACESim
     public class SimpleGameDefinition : GameDefinition, ICodeBasedSettingGenerator, ICodeBasedSettingGeneratorName
     {
 
-        public double ProbabilityChanceDecision1 = 2.0 / 3.0;
+        public double ProbabilityChanceDecision1 = 0.99;
 
         public SimpleGameDefinition() : base()
         {
@@ -86,20 +86,20 @@ namespace ACESim
         {
             var colItems = new List<SimpleReportColumnItem>()
                 {
-                    new SimpleReportColumnFilter("All", (GameProgress gp) => true, true),
-                    new SimpleReportColumnVariable("P1Action1", (GameProgress gp) => (MyGP(gp).P1Decision == 1 ? 1.0 : 0.0)),
-                    new SimpleReportColumnVariable("P1Action2", (GameProgress gp) => (MyGP(gp).P1Decision == 2 ? 1.0 : 0.0)),
+                    //new SimpleReportColumnFilter("All", (GameProgress gp) => true, true),
+                    //new SimpleReportColumnVariable("P1Action1", (GameProgress gp) => (MyGP(gp).P1Decision == 1 ? 1.0 : 0.0)),
+                    //new SimpleReportColumnVariable("P1Action2", (GameProgress gp) => (MyGP(gp).P1Decision == 2 ? 1.0 : 0.0)),
                     new SimpleReportColumnVariable("P2Action1", (GameProgress gp) => (MyGP(gp).P2Decision == 1 ? 1.0 : 0.0)),
                     new SimpleReportColumnVariable("P2Action2", (GameProgress gp) => (MyGP(gp).P2Decision == 2 ? 1.0 : 0.0)),
                 };
 
             var rowItems = new List<SimpleReportFilter>()
                 {
-                    new SimpleReportFilter("All", (GameProgress gp) => true),
+                    //new SimpleReportFilter("All", (GameProgress gp) => true),
                     new SimpleReportFilter("P1Action1", (GameProgress gp) => (MyGP(gp).P1Decision == 1)),
                     new SimpleReportFilter("P1Action2", (GameProgress gp) => (MyGP(gp).P1Decision == 2)),
-                    new SimpleReportFilter("P2Action1", (GameProgress gp) => (MyGP(gp).P2Decision == 1)),
-                    new SimpleReportFilter("P2Action2", (GameProgress gp) => (MyGP(gp).P2Decision == 2)),
+                    //new SimpleReportFilter("P2Action1", (GameProgress gp) => (MyGP(gp).P2Decision == 1)),
+                    //new SimpleReportFilter("P2Action2", (GameProgress gp) => (MyGP(gp).P2Decision == 2)),
                 };
             return new SimpleReportDefinition(
                 "SimpleGameReport",
