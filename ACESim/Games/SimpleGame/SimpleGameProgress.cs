@@ -39,7 +39,7 @@ namespace ACESim
                 | P1=1 | (2,2) | (0,1) |
                 | P1=2 | (0,0) | (0,1) |
                 +------+-------+-------+
-                Note that top-left cell is the Nash equilibrium.
+                Note that top-left cell is the Nash equilibrium. 
              */
             if (ChanceDecision == 1)
             {
