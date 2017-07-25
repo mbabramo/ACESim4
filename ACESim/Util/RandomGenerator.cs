@@ -97,7 +97,7 @@ namespace ACESim
     {
         public static bool useDateTime = false; // if setting this to false to ensure consistent results, should also set EnsureConsistentIterationNumbers in Parallelizer to true
         static int seedFromDateTime = unchecked((int)DateTime.Now.Ticks);
-        static int arbitrarySeed = 9; // use this to get the same result every time, as long as parallel processing is not enabled and we restart after each evolution
+        static int arbitrarySeed = 5; // use this to get the same result every time, as long as parallel processing is not enabled and we restart after each evolution
         private static Random _global = new Random(useDateTime ? seedFromDateTime : arbitrarySeed);
         [ThreadStatic]
         private static Random _local;

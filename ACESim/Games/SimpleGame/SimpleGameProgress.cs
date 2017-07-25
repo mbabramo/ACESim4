@@ -31,10 +31,20 @@ namespace ACESim
 
         public override double[] GetNonChancePlayerUtilities()
         {
+            /*
+             * We generate the following expected utilities (because chance decision == 1 happens with p = 2/3):
+                +------+-------+-------+
+                |      | P2=1  | P2=2  |
+                +------+-------+-------+
+                | P1=1 | (2,2) | (0,1) |
+                | P1=2 | (0,0) | (0,1) |
+                +------+-------+-------+
+                Note that top-left cell is the Nash equilibrium.
+             */
             if (ChanceDecision == 1)
             {
                 if (P1Decision == 1 && P2Decision == 1)
-                    return new double[] { 1.0, 1.0 };
+                    return new double[] { 3.0, 3.0 };
                 if (P1Decision == 2 && P2Decision == 1)
                     return new double[] { 0.0, 0.0 };
                 if (P1Decision == 1 && P2Decision == 2)
@@ -47,11 +57,11 @@ namespace ACESim
                 if (P1Decision == 1 && P2Decision == 1)
                     return new double[] { 0.0, 0.0 };
                 if (P1Decision == 2 && P2Decision == 1)
-                    return new double[] { 1.0, 1.0 };
+                    return new double[] { 0.0, 0.0 };
                 if (P1Decision == 1 && P2Decision == 2)
-                    return new double[] { 1.0, 1.0 };
+                    return new double[] { 0.0, 3.0 };
                 if (P1Decision == 2 && P2Decision == 2)
-                    return new double[] { 1.0, 1.0 };
+                    return new double[] { 0.0, 3.0 };
             }
             throw new NotImplementedException();
         }

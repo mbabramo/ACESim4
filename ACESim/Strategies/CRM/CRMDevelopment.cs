@@ -25,7 +25,7 @@ namespace ACESim
             AverageStrategySampling
         }
 
-        CRMAlgorithm Algorithm = CRMAlgorithm.Vanilla;
+        CRMAlgorithm Algorithm = CRMAlgorithm.AverageStrategySampling;
         const int TotalAvgStrategySamplingCFRIterations = 100000000;
         const int TotalProbingCFRIterations = 100000000;
         const int TotalVanillaCFRIterations = 100000;
@@ -33,7 +33,7 @@ namespace ACESim
         bool TraceProbingCRM = false;
         bool TraceAverageStrategySampling = false;
 
-        int? ReportEveryNIterations = 10000;
+        int? ReportEveryNIterations = 10;
         int? BestResponseEveryMIterations = 50000;
         public int NumRandomIterationsForReporting = 10000;
         bool PrintGameTreeAfterReport = false;
