@@ -286,8 +286,8 @@ namespace ACESim
                 Console.WriteLine("Running without user interface. Change startup project to run with user interface. Output is in debug window.");
                 //string baseOutputDirectory = "C:\\ACESim\\ACESim\\Games\\LitigationGame";
                 //string settingsPath = "C:\\ACESim\\ACESim\\Games\\LitigationGame\\Settings\\LitigationGameMultipleRunSettingsTemp2.xml";
-                string baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\MyGame";
-                string settingsPath = "C:\\GitHub\\ACESim\\ACESim\\Games\\MyGame\\Settings\\MyGameOverallSettings.xml";
+                string baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\SimpleGame";
+                string settingsPath = "C:\\GitHub\\ACESim\\ACESim\\Games\\SimpleGame\\Settings\\SimpleGameOverallSettings.xml";
                 //string settingsPath = "C:\\GitHub\\ACESim\\ACESim\\Games\\PatentDamagesGame\\Settings\\PatentDamagesChangeVariableSettings.xml";
                 //string settingsPath = "C:\\GitHub\\ACESim\\ACESim\\Games\\LitigationGame\\Settings\\LitigationGameSingleRunSettings.xml";
                 ProgressResumptionOptions progressResumptionOption = ProgressResumptionOptions.ProceedNormallySavingPastProgress; // change this line if some other option is appropriate

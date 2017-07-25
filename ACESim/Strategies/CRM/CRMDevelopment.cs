@@ -15,6 +15,29 @@ namespace ACESim
     [Serializable]
     public class CRMDevelopment : IStrategiesDeveloper
     {
+        public const int MaxNumPlayers = 4; // this affects fixed-size stack-allocated buffers
+        public const int MaxPossibleActions = 100; // same
+
+        public enum CRMAlgorithm
+        {
+            Vanilla,
+            Probing,
+            AverageStrategySampling
+        }
+
+        CRMAlgorithm Algorithm = CRMAlgorithm.Vanilla;
+        const int TotalAvgStrategySamplingCFRIterations = 100000000;
+        const int TotalProbingCFRIterations = 100000000;
+        const int TotalVanillaCFRIterations = 100000;
+        bool TraceVanillaCRM = false;
+        bool TraceProbingCRM = false;
+        bool TraceAverageStrategySampling = false;
+
+        int? ReportEveryNIterations = 10000;
+        int? BestResponseEveryMIterations = 50000;
+        public int NumRandomIterationsForReporting = 10000;
+        bool PrintGameTreeAfterReport = false;
+
         public List<Strategy> Strategies { get; set; }
 
         public EvolutionSettings EvolutionSettings { get; set; }
@@ -27,7 +50,7 @@ namespace ACESim
 
         public CurrentExecutionInformation CurrentExecutionInformation { get; set; }
 
-        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
+        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameTreeOnly;
         bool allowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => (allowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame));
 
@@ -53,26 +76,6 @@ namespace ACESim
 
         public int NumNonChancePlayers;
         public int NumChancePlayers; // note that chance players MUST be indexed after nonchance players in the player list
-
-        public const int MaxNumPlayers = 4; // this affects fixed-size stack-allocated buffers
-        public const int MaxPossibleActions = 100; // same
-
-        public enum CRMAlgorithm
-        {
-            Vanilla,
-            Probing,
-            AverageStrategySampling
-        }
-
-        CRMAlgorithm Algorithm = CRMAlgorithm.AverageStrategySampling;
-        const int TotalAvgStrategySamplingCFRIterations = 100000000;
-        const int TotalProbingCFRIterations = 100000000;
-        const int TotalVanillaCFRIterations = 100000;
-
-        int? ReportEveryNIterations = 10000;
-        int? BestResponseEveryMIterations = 50000;
-        public int NumRandomIterationsForReporting = 1000;
-        bool PrintGameTreeAfterReport = false;
 
         public int NumInitializedGamePaths = 0;
 
@@ -747,8 +750,6 @@ namespace ACESim
 
         #region ProbingCRM
 
-        bool TraceProbingCRM = false;
-
         public unsafe double Probe(HistoryPoint historyPoint, byte playerBeingOptimized)
         {
             ICRMGameState gameStateForCurrentPlayer = GetGameState(historyPoint);
@@ -869,7 +870,6 @@ namespace ACESim
                     TabbedText.WriteLine($"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {playerAtPoint} decision {informationSet.DecisionIndex} with regret-matched prob {sigma_regretMatchedActionProbabilities[sampledAction - 1]}");
                 double* counterfactualValues = stackalloc double[numPossibleActions];
                 double summation = 0;
-                bool DEBUG = informationSet.PlayerIndex == 1; // && historyPoint.GetActionsToHere(Navigation).Last() == 1; // plaintiff has played 1
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
                     HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
@@ -903,9 +903,9 @@ namespace ACESim
                 {
                     double cumulativeRegretIncrement = inverseSamplingProbabilityQ * (counterfactualValues[action - 1] - summation);
                     informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement);
-                    if (TraceProbingCRM || DEBUG)
+                    if (TraceProbingCRM)
                     {
-                        TabbedText.WriteLine($"Optimizing {playerBeingOptimized} Iteration {ProbingCFRIterationNum} Actions to here {historyPoint.GetActionsToHereString(Navigation)}");
+                        //TabbedText.WriteLine($"Optimizing {playerBeingOptimized} Iteration {ProbingCFRIterationNum} Actions to here {historyPoint.GetActionsToHereString(Navigation)}");
                         TabbedText.WriteLine($"Increasing cumulative regret for action {action} by {inverseSamplingProbabilityQ} * {(counterfactualValues[action - 1])} - {summation} = {cumulativeRegretIncrement} to {informationSet.GetCumulativeRegret(action)}");
                     }
                 }
@@ -969,7 +969,6 @@ namespace ACESim
 
         // http://papers.nips.cc/paper/4569-efficient-monte-carlo-counterfactual-regret-minimization-in-games-with-many-player-actions.pdf
 
-        bool TraceAverageStrategySampling = false;
         double epsilon = 0.05, beta = 1000000, tau = 1000; // note that beta will keep sampling even at first, but becomes less important later on. Epsilon ensures some exploration, and tau weights things later on toward the best strategies
 
         public unsafe double AvgStrategySampling_WalkTree(HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ)
@@ -1118,8 +1117,6 @@ namespace ACESim
         #endregion
 
         #region Vanilla CRM
-
-        bool TraceVanillaCRM = false;
 
         /// <summary>
         /// Performs an iteration of vanilla counterfactual regret minimization.

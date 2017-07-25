@@ -105,7 +105,7 @@ namespace ACESim
             Initialized = true;
         }
 
-        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerNumber, byte action, byte numPossibleActions, List<byte> playersToInform)
+        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerNumber, byte action, byte numPossibleActions, List<byte> playersToInform, bool informOnlyThatDecisionOccurred)
         {
             if (!Initialized)
                 Initialize();
@@ -122,7 +122,7 @@ namespace ACESim
                 *(historyPtr + i + History_NumPiecesOfInformation) = HistoryIncomplete; // this is just one item at end of all history items
             }
             LastIndexAddedToHistory = (short) (i + History_NumPiecesOfInformation);
-            AddToInformationSet(action, decisionIndex, playersToInform);
+            AddToInformationSet(informOnlyThatDecisionOccurred ? (byte) 1 : action, decisionIndex, playersToInform);
         }
 
         /// <summary>

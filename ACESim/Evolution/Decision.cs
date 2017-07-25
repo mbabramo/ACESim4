@@ -32,6 +32,11 @@ namespace ACESim
         public List<byte> PlayersToInform;
 
         /// <summary>
+        /// If true, the decision itself is hidden; the other players will know only that the decision occurred.
+        /// </summary>
+        public bool InformOnlyThatDecisionOccurred;
+
+        /// <summary>
         /// The number of discrete actions for this decision. (The actions will be numbered 1 .. NumberActions.)
         /// </summary>
         public byte NumPossibleActions;
@@ -100,7 +105,7 @@ namespace ACESim
 
         }
 
-        public Decision(string name, string abbreviation, byte playerNumber, List<byte> playersToInform, byte numActions, byte decisionByteCode = 0, string decisionTypeCode = null, int repetitionsAfterFirst = 0, string preevolvedStrategyFilename = null, List<string> informationSetAbbreviations = null, byte? alwaysDoAction = null, bool unevenChanceActions = false)
+        public Decision(string name, string abbreviation, byte playerNumber, List<byte> playersToInform, byte numActions, byte decisionByteCode = 0, string decisionTypeCode = null, int repetitionsAfterFirst = 0, string preevolvedStrategyFilename = null, List<string> informationSetAbbreviations = null, byte? alwaysDoAction = null, bool unevenChanceActions = false, bool informOnlyThatDecisionOccurred = false)
         {
             Name = name;
             Abbreviation = abbreviation;
@@ -114,6 +119,7 @@ namespace ACESim
             InformationSetAbbreviations = informationSetAbbreviations;
             AlwaysDoAction = alwaysDoAction;
             UnevenChanceActions = unevenChanceActions;
+            InformOnlyThatDecisionOccurred = informOnlyThatDecisionOccurred;
         }
     }
 

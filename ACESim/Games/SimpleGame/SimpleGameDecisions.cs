@@ -8,13 +8,8 @@ namespace ACESim
 {
     public enum SimpleGameDecisions : byte
     {
-        LitigationQuality,
-        PSignal,
-        DSignal,
-        POffer,
-        DOffer,
-        PResponse,
-        DResponse,
-        CourtDecision
+        P1Decision,
+        P2Decision,
+        Chance
     }
 }

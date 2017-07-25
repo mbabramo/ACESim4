@@ -143,7 +143,7 @@ namespace ACESim
             else
                 actionToChoose = CurrentPlayerStrategy.ChooseActionBasedOnRandomNumber(Progress, Progress.IterationID.GetRandomNumberBasedOnIterationID((byte)CurrentDecisionIndex), CurrentDecision.NumPossibleActions);
 
-            Progress.GameHistory.AddToHistory(CurrentDecision.DecisionByteCode, (byte)CurrentDecisionIndex, CurrentPlayerNumber, actionToChoose, CurrentDecision.NumPossibleActions, CurrentDecision.PlayersToInform);
+            Progress.GameHistory.AddToHistory(CurrentDecision.DecisionByteCode, (byte)CurrentDecisionIndex, CurrentPlayerNumber, actionToChoose, CurrentDecision.NumPossibleActions, CurrentDecision.PlayersToInform, CurrentDecision.InformOnlyThatDecisionOccurred);
             return actionToChoose;
         }
 

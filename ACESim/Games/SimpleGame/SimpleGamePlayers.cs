@@ -9,12 +9,9 @@ namespace ACESim
     public enum SimpleGamePlayers : byte
     {
         // NOTE: Chance players must be listed after real players, and Resolution player must be listed last.
-        Plaintiff,
-        Defendant,
-        QualityChance,
-        PSignalChance,
-        DSignalChance,
-        CourtChance,
+        Player1,
+        Player2, 
+        Chance,
         Resolution
     }
 }
