@@ -69,10 +69,10 @@ namespace ACESim
         const int TotalProbingCFRIterations = 100000000;
         const int TotalVanillaCFRIterations = 100000;
 
-        int? ReportEveryNIterations = 1000000;
-        int? BestResponseEveryMIterations = 10000;
+        int? ReportEveryNIterations = 10000;
+        int? BestResponseEveryMIterations = 50000;
         public int NumRandomIterationsForReporting = 1000;
-        bool PrintGameTreeAfterReport = true; // DEBUG
+        bool PrintGameTreeAfterReport = false;
 
         public int NumInitializedGamePaths = 0;
 
@@ -1023,7 +1023,7 @@ namespace ACESim
                     HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction);
                     if (TraceAverageStrategySampling)
                         TabbedText.Tabs++;
-                    double walkTreeValue = Probe_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ);
+                    double walkTreeValue = AvgStrategySampling_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ);
                     if (TraceAverageStrategySampling)
                     {
                         TabbedText.Tabs--;
