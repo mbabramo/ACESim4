@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ACESim>
+  <parentSettingsFile filename="SimpleGameDefinitions.xml" />
+  <parentSettingsFile filename="SimpleGameInputs.xml" />
+  <parentSettingsFile filename="SimpleGameEvolutionSettings.xml" />
+  <parentSettingsFile filename="SimpleGameReport.xml" />
+  <parentSettingsFile filename="SimpleGameCommands.xml" />
+</ACESim>

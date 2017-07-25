@@ -181,6 +181,12 @@
     <Compile Include="Games\MyGame\DeltaOffersCalculation.cs" />
     <Compile Include="Games\MyGame\MyGamePlayers.cs" />
     <Compile Include="Games\General\PlayerInfo.cs" />
+    <Compile Include="Games\SimpleGame\SimpleGame.cs" />
+    <Compile Include="Games\SimpleGame\SimpleGameDecisions.cs" />
+    <Compile Include="Games\SimpleGame\SimpleGameDefinition.cs" />
+    <Compile Include="Games\SimpleGame\SimpleGameFactory.cs" />
+    <Compile Include="Games\SimpleGame\SimpleGamePlayers.cs" />
+    <Compile Include="Games\SimpleGame\SimpleGameProgress.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Reports\aspnet_Applications.cs">
       <DependentUpon>SimData.tt</DependentUpon>
@@ -568,10 +574,22 @@
     <Content Include="Games\MyGame\Settings\MyGameOverallSettings.xml" />
     <Content Include="Games\MyGame\Settings\scratch.xml" />
     <Content Include="Games\MyGame\Settings\MyGameReport.xml" />
+    <Content Include="Games\SimpleGame\SimpleGameInputs.xml" />
+    <Content Include="Games\SimpleGame\Reports\simple game results.txt" />
+    <Content Include="Games\SimpleGame\Settings\SimpleGameCommands.xml" />
+    <Content Include="Games\SimpleGame\Settings\SimpleGameDefinitions.xml" />
+    <Content Include="Games\SimpleGame\Settings\SimpleGameEvolutionSettings.xml" />
+    <Content Include="Games\SimpleGame\Settings\SimpleGameInputs.xml" />
+    <Content Include="Games\SimpleGame\Settings\SimpleGameOverallSettings.xml" />
+    <Content Include="Games\SimpleGame\Settings\SimpleGameReport.xml" />
+    <Content Include="Games\SimpleGame\Settings\scratch.xml" />
     <Content Include="Reports\SimData.edmx.sql" />
     <Content Include="Scratch.txt" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Games\SimpleGame\Iterations\" />
+    <Folder Include="Games\SimpleGame\Strategies\" />
+  </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.0">
       <Visible>False</Visible>

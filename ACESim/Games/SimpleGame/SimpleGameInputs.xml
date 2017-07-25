@@ -1,0 +1,121 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+
+<ACESim>
+
+    <simulationSettingsAll>
+      <simulationSettings name="SimpleGameV1" simulationName="SimpleGame">
+        <setting name="simFloatSetting" type="double">
+          12
+        </setting>
+        <setting name="simBoolSetting" type="bool">
+          true
+        </setting>
+        <setting name="simUniformDistSetting" type="distribution" subtype="uniform">
+          <setting name="fromVal" type="double">0</setting>
+          <setting name="toVal" type ="double">100</setting>
+        </setting>
+        <setting name="simNormalDistSetting" type="distribution" subtype="normal">
+          <setting name="mean" type="double">
+            42
+          </setting>
+          <setting name="stdev" variableName="simNormalDistStdev" type="distribution" subtype="uniform">
+            <setting name ="fromVal" type="double">10</setting>
+            <setting name ="toVal" type ="variable">simFloatSetting</setting>
+          </setting>
+        </setting>
+        <setting name="simNormalDistStdev" type="variable">simNormalDistStdev</setting>
+        <setting name="simSubsettings" type="class">
+          <setting name="simSubfloat" type="double">
+            18.1
+          </setting>
+          <setting name="simSubsubsettings" type="class">
+            <setting name="simSubsubfloat" type="double">85.5</setting>
+            <setting name="simSubsubfloatlist" type="list">
+              <setting name="simFloat" type="double">
+                1
+              </setting>
+              <setting name="simFloat" type="double">
+                2
+              </setting>
+              <setting name="simFloat" type="double">
+                3
+              </setting>
+            </setting>
+          </setting>
+          <setting name="simSubdistribution" type="distribution" subtype="uniform">
+            <setting name="fromVal" type="double">-1000</setting>
+            <setting name="toVal" type ="double">1000</setting>
+          </setting>
+          <setting name="simSubdistribution2" type="distribution" subtype="normal">
+            <setting name="mean" type="double">100</setting>
+            <setting name="stdev" type ="double">10</setting>
+          </setting>
+        </setting>
+        <setting name="simListOfFloats" type="list">
+          <setting name="simFloatSetting2" type="distribution" subtype="normal">
+            <setting name="mean" type="double">50</setting>
+            <setting name="stdev" type ="double">20</setting>
+          </setting>
+          <setting name="simFloatSetting2" type="distribution" subtype="normal">
+            <setting name="mean" type="double">150</setting>
+            <setting name="stdev" type ="distribution" subtype="uniform">
+              <setting name="fromVal" type="double">25</setting>
+              <setting name="toVal" type ="double">35</setting>
+            </setting>
+          </setting>
+          <setting name="simFloatSetting2" type="distribution" subtype="normal">
+            <setting name="mean" type="double">250</setting>
+            <setting name="stdev" type ="double">40</setting>
+            <setting name="input" type="double">0.6</setting>
+          </setting>
+        </setting>
+        <setting name="simListOfFloats2" type="list">
+          <setting name="simFloatSetting2" type="double">
+            14.5
+          </setting>
+          <setting name="simFloatSetting2" type="double">
+            15.5
+          </setting>
+        </setting>
+        <setting name="simListOfClasses" type="list">
+          <setting name="simClassInList" type="class">
+            <setting name="simFloat" type="double">20</setting>
+            <setting name="simFloat2" type="double">2001</setting>
+          </setting>
+          <setting name="simClassInList" type="class">
+            <setting name="simFloat" type="double">30</setting>
+            <setting name="simFloat2" type="double">2002</setting>
+          </setting>
+          <setting name="simClassInList" type="class">
+            <setting name="simFloat" type="double">40</setting>
+            <setting name="simFloat2" type="double">5001</setting>
+          </setting>
+        </setting>
+        <setting name="simListOfListOfFloats" type="list">
+          <setting name="simListOfFloats2" type="list">
+            <setting name="simFloat" type="double">
+              1
+            </setting>
+            <setting name="simFloat" type="double">
+              2
+            </setting>
+            <setting name="simFloat" type="double">
+              3
+            </setting>
+          </setting>
+          <setting name="simListOfFloats2" type="list">
+            <setting name="simFloat" type="double">
+              4
+            </setting>
+            <setting name="simFloat" type="double">
+              5
+            </setting>
+            <setting name="simFloat" type="double">
+              6
+            </setting>
+          </setting>
+        </setting>
+      </simulationSettings>
+    </simulationSettingsAll>
+    
+</ACESim>
