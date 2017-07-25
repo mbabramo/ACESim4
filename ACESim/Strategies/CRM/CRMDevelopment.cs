@@ -60,15 +60,19 @@ namespace ACESim
         public enum CRMAlgorithm
         {
             Vanilla,
-            Probing
+            Probing,
+            AverageStrategySampling
         }
 
-        CRMAlgorithm Algorithm = CRMAlgorithm.Probing;
+        CRMAlgorithm Algorithm = CRMAlgorithm.AverageStrategySampling;
+        const int TotalAvgStrategySamplingCFRIterations = 100000000;
         const int TotalProbingCFRIterations = 100000000;
         const int TotalVanillaCFRIterations = 100000;
-        int? ReportEveryNIterations = 100000;
+
+        int? ReportEveryNIterations = 1000000;
         int? BestResponseEveryMIterations = 10000;
         public int NumRandomIterationsForReporting = 1000;
+        bool PrintGameTreeAfterReport = true; // DEBUG
 
         public int NumInitializedGamePaths = 0;
 
@@ -114,6 +118,9 @@ namespace ACESim
             Initialize();
             switch (Algorithm)
             {
+                case CRMAlgorithm.AverageStrategySampling:
+                    SolveAvgStrategySamplingCRM();
+                    break;
                 case CRMAlgorithm.Probing:
                     SolveProbingCRM();
                     break;
@@ -188,6 +195,53 @@ namespace ACESim
         #endregion
 
         #region Printing
+
+
+
+        public void PrintGameTree()
+        {
+            PrintGameTree_Helper(GetStartOfGameHistoryPoint());
+        }
+
+        public unsafe void PrintGameTree_Helper(HistoryPoint historyPoint)
+        {
+            ICRMGameState gameStateForCurrentPlayer = GetGameState(historyPoint);
+            //if (TraceProbingCRM)
+            //    TabbedText.WriteLine($"Probe optimizing player {playerBeingOptimized}");
+            if (gameStateForCurrentPlayer is CRMFinalUtilities finalUtilities)
+            {
+                TabbedText.WriteLine($"--> {String.Join(",", finalUtilities.Utilities)}");
+            }
+            else
+            {
+                if (gameStateForCurrentPlayer is CRMChanceNodeSettings chanceNodeSettings)
+                {
+                    byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
+                    for (byte action = 1; action <= numPossibleActions; action++)
+                    {
+                        TabbedText.WriteLine($"{action} (C): {chanceNodeSettings.GetActionProbability(action)}");
+                        HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
+                        TabbedText.Tabs++;
+                        PrintGameTree_Helper(nextHistoryPoint);
+                        TabbedText.Tabs--;
+                    }
+                }
+                else if (gameStateForCurrentPlayer is CRMInformationSetNodeTally informationSet)
+                {
+                    byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
+                    double* actionProbabilities = stackalloc double[numPossibleActions];
+                    informationSet.GetRegretMatchingProbabilities(actionProbabilities);
+                    for (byte action = 1; action <= numPossibleActions; action++)
+                    {
+                        TabbedText.WriteLine($"{action} ({informationSet.PlayerIndex}): {actionProbabilities[action - 1]}");
+                        HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
+                        TabbedText.Tabs++;
+                        PrintGameTree_Helper(nextHistoryPoint);
+                        TabbedText.Tabs--;
+                    }
+                }
+            }
+        }
 
         double printProbability = 0.0;
         bool processIfNotPrinting = false;
@@ -788,6 +842,11 @@ namespace ACESim
                         if (TraceProbingCRM)
                             TabbedText.WriteLine($"Incrementing cumulative strategy for {action} by {cumulativeStrategyIncrement} to {informationSet.GetCumulativeStrategy(action)}");
                     }
+                    if (playerBeingOptimized == 1 && historyPoint.GetActionsToHereString(Navigation) == "1,1,1")
+                    {
+                        Debug.WriteLine($"Player {playerAtPoint} at {historyPoint.GetActionsToHereString(Navigation)} Regret matching A1: {sigma_regretMatchedActionProbabilities[0]} A2: {sigma_regretMatchedActionProbabilities[1]} A3: {sigma_regretMatchedActionProbabilities[2]} "); // DEBUG
+                        // DEBUG: OK, so player 0's strategy when receiving signal 1 is being set fairly quickly to action 2. But we knew that; the question is why. We need to look at what happens when we are optimizing player 0 and we have the information set {1}. We then try different actions. Shouldn't we get to experience all of them and eventually converge to the correct value? Is the problem that player 0 and player 1 have their strategies fixed early? A player will vary its own strategies but the other player is played on policy. Maybe problem is statement "qi(I) > 0) for all I element Ii" (prop 1), but I think that is met.
+                    }
                     sampledAction = SampleAction(sigma_regretMatchedActionProbabilities, numPossibleActions, RandomGenerator.NextDouble());
                     if (TraceProbingCRM)
                         TabbedText.WriteLine($"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {playerAtPoint} decision {informationSet.DecisionIndex} with regret-matched prob {sigma_regretMatchedActionProbabilities[sampledAction - 1]}");
@@ -810,6 +869,7 @@ namespace ACESim
                     TabbedText.WriteLine($"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {playerAtPoint} decision {informationSet.DecisionIndex} with regret-matched prob {sigma_regretMatchedActionProbabilities[sampledAction - 1]}");
                 double* counterfactualValues = stackalloc double[numPossibleActions];
                 double summation = 0;
+                bool DEBUG = informationSet.PlayerIndex == 1; // && historyPoint.GetActionsToHere(Navigation).Last() == 1; // plaintiff has played 1
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
                     HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
@@ -843,8 +903,9 @@ namespace ACESim
                 {
                     double cumulativeRegretIncrement = inverseSamplingProbabilityQ * (counterfactualValues[action - 1] - summation);
                     informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement);
-                    if (TraceProbingCRM)
+                    if (TraceProbingCRM || DEBUG)
                     {
+                        TabbedText.WriteLine($"Optimizing {playerBeingOptimized} Iteration {ProbingCFRIterationNum} Actions to here {historyPoint.GetActionsToHereString(Navigation)}");
                         TabbedText.WriteLine($"Increasing cumulative regret for action {action} by {inverseSamplingProbabilityQ} * {(counterfactualValues[action - 1])} - {summation} = {cumulativeRegretIncrement} to {informationSet.GetCumulativeRegret(action)}");
                     }
                 }
@@ -890,17 +951,170 @@ namespace ACESim
             GenerateReports(iteration, s);
         }
 
+        int ProbingCFRIterationNum;
         public unsafe void SolveProbingCRM()
         {
             if (NumNonChancePlayers > 2)
                 throw new Exception("Internal error. Must implement extra code from Gibson algorithm 2 for more than 2 players.");
             ActionStrategy = ActionStrategies.RegretMatching;
-            for (int iteration = 0; iteration < TotalProbingCFRIterations; iteration++)
+            for (ProbingCFRIterationNum = 0; ProbingCFRIterationNum < TotalProbingCFRIterations; ProbingCFRIterationNum++)
             {
-                ProbingCFRIteration(iteration);
+                ProbingCFRIteration(ProbingCFRIterationNum);
             }
         }
 
+        #endregion
+
+        #region Average Strategy Sampling
+
+        // http://papers.nips.cc/paper/4569-efficient-monte-carlo-counterfactual-regret-minimization-in-games-with-many-player-actions.pdf
+
+        bool TraceAverageStrategySampling = false;
+        double epsilon = 0.05, beta = 1000000, tau = 1000; // note that beta will keep sampling even at first, but becomes less important later on. Epsilon ensures some exploration, and tau weights things later on toward the best strategies
+
+        public unsafe double AvgStrategySampling_WalkTree(HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ)
+        {
+            if (TraceAverageStrategySampling)
+                TabbedText.WriteLine($"WalkTree sampling probability {samplingProbabilityQ}");
+            ICRMGameState gameStateForCurrentPlayer = GetGameState(historyPoint);
+            byte sampledAction = 0;
+            if (gameStateForCurrentPlayer is CRMFinalUtilities finalUtilities)
+            {
+                var utility = finalUtilities.Utilities[playerBeingOptimized];
+                if (TraceAverageStrategySampling)
+                    TabbedText.WriteLine($"Utility returned {utility}");
+                return utility / samplingProbabilityQ;
+            }
+            else if (gameStateForCurrentPlayer is CRMChanceNodeSettings chanceNodeSettings)
+            {
+                byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
+                sampledAction = chanceNodeSettings.SampleAction(numPossibleActions, RandomGenerator.NextDouble());
+                if (TraceAverageStrategySampling)
+                    TabbedText.WriteLine($"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} for chance decision {chanceNodeSettings.DecisionIndex}");
+                HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction);
+                if (TraceAverageStrategySampling)
+                    TabbedText.Tabs++;
+                double walkTreeValue = AvgStrategySampling_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ);
+                if (TraceAverageStrategySampling)
+                {
+                    TabbedText.Tabs--;
+                    TabbedText.WriteLine($"Returning walk tree result {walkTreeValue}");
+                }
+                return walkTreeValue;
+            }
+            else if (gameStateForCurrentPlayer is CRMInformationSetNodeTally informationSet)
+            {
+                byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
+                double* sigma_regretMatchedActionProbabilities = stackalloc double[numPossibleActions];
+                informationSet.GetRegretMatchingProbabilities(sigma_regretMatchedActionProbabilities);
+                byte playerAtPoint = informationSet.PlayerIndex;
+                if (playerAtPoint != playerBeingOptimized)
+                {
+                    for (byte action = 1; action <= numPossibleActions; action++)
+                    {
+                        double cumulativeStrategyIncrement = sigma_regretMatchedActionProbabilities[action - 1] / samplingProbabilityQ;
+                        informationSet.IncrementCumulativeStrategy(action, cumulativeStrategyIncrement);
+                        if (TraceProbingCRM)
+                            TabbedText.WriteLine($"Incrementing cumulative strategy for {action} by {cumulativeStrategyIncrement} to {informationSet.GetCumulativeStrategy(action)}");
+                    }
+                    sampledAction = SampleAction(sigma_regretMatchedActionProbabilities, numPossibleActions, RandomGenerator.NextDouble());
+                    if (TraceAverageStrategySampling)
+                        TabbedText.WriteLine($"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {playerAtPoint} decision {informationSet.DecisionIndex} with regret-matched prob {sigma_regretMatchedActionProbabilities[sampledAction - 1]}");
+                    HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction);
+                    if (TraceAverageStrategySampling)
+                        TabbedText.Tabs++;
+                    double walkTreeValue = Probe_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ);
+                    if (TraceAverageStrategySampling)
+                    {
+                        TabbedText.Tabs--;
+                        TabbedText.WriteLine($"Returning walk tree result {walkTreeValue}");
+                    }
+                    return walkTreeValue;
+                }
+                // player being optimized is player at this information set
+                double sumCumulativeStrategies = 0;
+                double* cumulativeStrategies = stackalloc double[numPossibleActions];
+                for (byte action = 1; action <= numPossibleActions; action++)
+                {
+                    double cumulativeStrategy = informationSet.GetCumulativeStrategy(action);
+                    cumulativeStrategies[action - 1] = cumulativeStrategy;
+                    sumCumulativeStrategies += cumulativeStrategy;
+                }
+                double* counterfactualValues = stackalloc double[numPossibleActions];
+                double counterfactualSummation = 0;
+                for (byte action = 1; action <= numPossibleActions; action++)
+                {
+                    // Note that we may sample multiple actions here.
+                    double rho = Math.Max(epsilon, (beta + tau * cumulativeStrategies[action - 1]) / (beta + sumCumulativeStrategies));
+                    double rnd = RandomGenerator.NextDouble();
+                    bool explore = rnd < rho;
+                    if (TraceAverageStrategySampling)
+                    {
+                        TabbedText.WriteLine($"action {action}: {(explore ? "Explore" : "Do not explore")} rnd: {rnd} rho: {rho}");
+                    }
+                    if (explore)
+                    {
+                        if (TraceAverageStrategySampling)
+                            TabbedText.Tabs++;
+                        HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
+                        counterfactualValues[action - 1] = AvgStrategySampling_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ * Math.Min(1.0, rho));
+                        counterfactualSummation += sigma_regretMatchedActionProbabilities[action - 1] * counterfactualValues[action - 1];
+                        if (TraceAverageStrategySampling)
+                            TabbedText.Tabs--;
+                    }
+                    else
+                        counterfactualValues[action - 1] = 0;
+                }
+                for (byte action = 1; action <= numPossibleActions; action++)
+                {
+                    double cumulativeRegretIncrement = counterfactualValues[action - 1] - counterfactualSummation;
+                    informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement);
+                    if (TraceAverageStrategySampling)
+                    {
+                        TabbedText.WriteLine($"Increasing cumulative regret for action {action} by {(counterfactualValues[action - 1])} - {counterfactualSummation} = {cumulativeRegretIncrement} to {informationSet.GetCumulativeRegret(action)}");
+                    }
+                }
+                if (TraceAverageStrategySampling)
+                {
+                    TabbedText.WriteLine($"Returning {counterfactualSummation}");
+                }
+                return counterfactualSummation;
+            }
+            else
+                throw new NotImplementedException();
+        }
+
+        public void AvgStrategySamplingCFRIteration(int iteration)
+        {
+            Stopwatch s = new Stopwatch();
+            s.Start();
+            for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
+            {
+                HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
+                if (TraceAverageStrategySampling)
+                {
+                    TabbedText.WriteLine($"Optimize player {playerBeingOptimized}");
+                    TabbedText.Tabs++;
+                }
+                AvgStrategySampling_WalkTree(historyPoint, playerBeingOptimized, 1.0);
+                if (TraceAverageStrategySampling)
+                    TabbedText.Tabs--;
+            }
+            s.Stop();
+            GenerateReports(iteration, s);
+        }
+
+        int AvgStrategySamplingCFRIterationNum;
+        public unsafe void SolveAvgStrategySamplingCRM()
+        {
+            if (NumNonChancePlayers > 2)
+                throw new Exception("Internal error. Must implement extra code from Gibson algorithm 2 for more than 2 players.");
+            ActionStrategy = ActionStrategies.RegretMatching;
+            for (AvgStrategySamplingCFRIterationNum = 0; AvgStrategySamplingCFRIterationNum < TotalAvgStrategySamplingCFRIterations; AvgStrategySamplingCFRIterationNum++)
+            {
+                AvgStrategySamplingCFRIteration(AvgStrategySamplingCFRIterationNum);
+            }
+        }
         #endregion
 
         #region Vanilla CRM
@@ -964,7 +1178,6 @@ namespace ACESim
                 GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false, nextPiValues); // reduce probability associated with player being optimized, without changing probabilities for other players
                 if (TraceVanillaCRM)
                 {
-                    //TabbedText.WriteLine($"History point: {historyPoint}"); // DEBUG
                     TabbedText.WriteLine($"decisionNum {decisionNum} optimizing player {playerBeingOptimized}  own decision {playerMakingDecision == playerBeingOptimized} action {action} probability {probabilityOfAction} ...");
                     TabbedText.Tabs++;
                 }
@@ -1109,6 +1322,8 @@ namespace ACESim
                 CompareBestResponse(iteration, useRandomPaths);
                 if (alwaysUseAverageStrategyInReporting)
                     ActionStrategy = previous;
+                if (PrintGameTreeAfterReport)
+                    PrintGameTree();
             }
         }
 
