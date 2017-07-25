@@ -13,7 +13,7 @@ namespace ACESim
     public class SimpleGameDefinition : GameDefinition, ICodeBasedSettingGenerator, ICodeBasedSettingGeneratorName
     {
 
-        public double ProbabilityChanceDecision1 = 0.99;
+        public double ProbabilityChanceDecision1 = 2.0 / 3.0;
 
         public SimpleGameDefinition() : base()
         {

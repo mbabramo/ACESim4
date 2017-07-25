@@ -32,20 +32,20 @@ namespace ACESim
         public override double[] GetNonChancePlayerUtilities()
         {
             /*
-             * 99% of the time, the payoff is a prisoner's dilemma as follows:
+             * 99% of the time, the payoff is as follows:
             +------+---------+---------+
             |      |  P2=1   |  P2=2   |
             +------+---------+---------+
-            | P1=1 | (-4,-4) | (-1,-8) |
-            | P1=2 | (-8,-1) | (-3,-3) |
+            | P1=1 | (2,2)   | (0,0)   |
+            | P1=2 | (0,0)   | (1,1)   |
             +------+---------+---------+
 
-            Both parties should play 1. But 1% of the time, we have a prisoner's dilemma where both parties should play 2.
+            Both parties should play 1. But 1% of the time, we have the reverse where both parties should play 2.
             +------+---------+---------+
             |      |  P2=1   |  P2=2   |
             +------+---------+---------+
-            | P1=1 | (-3,-3) | (-8,-1) |
-            | P1=2 | (-1,-8) | (-4,-4) |
+            | P1=1 | (1,1)   | (0,0)   |
+            | P1=2 | (0,0)   | (2,2)   |
             +------+---------+---------+
 
             In expected value terms, both parties should still play 1.
@@ -53,24 +53,24 @@ namespace ACESim
             if (ChanceDecision == 1)
             {
                 if (P1Decision == 1 && P2Decision == 1)
-                    return new double[] { -4, -4 };
+                    return new double[] { 2, 2 };
                 if (P1Decision == 2 && P2Decision == 1)
-                    return new double[] { -8, -1 };
+                    return new double[] { 0, 0 };
                 if (P1Decision == 1 && P2Decision == 2)
-                    return new double[] { -1, -8 };
+                    return new double[] { 0, 0 };
                 if (P1Decision == 2 && P2Decision == 2)
-                    return new double[] { -3, -3 };
+                    return new double[] { 1, 1 };
             }
             else
             {
                 if (P1Decision == 1 && P2Decision == 1)
-                    return new double[] { -3, -3 };
+                    return new double[] { 1, 1 };
                 if (P1Decision == 2 && P2Decision == 1)
-                    return new double[] { -1, -8 };
+                    return new double[] { 0, 0 };
                 if (P1Decision == 1 && P2Decision == 2)
-                    return new double[] { -8, -1 };
+                    return new double[] { 0, 0 };
                 if (P1Decision == 2 && P2Decision == 2)
-                    return new double[] { -4, -4 };
+                    return new double[] { 2, 2 };
             }
             throw new NotImplementedException();
         }

@@ -14,7 +14,7 @@ namespace ACESim
         public byte DecisionIndex;
         public abstract double GetActionProbability(int action);
 
-        bool DEBUG = true;
+        bool DEBUG = false;
 
         public byte SampleAction(byte numPossibleActions, double randomNumber)
         {
