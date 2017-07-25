@@ -25,7 +25,7 @@ namespace ACESim
             AverageStrategySampling
         }
 
-        CRMAlgorithm Algorithm = CRMAlgorithm.Probing;
+        CRMAlgorithm Algorithm = CRMAlgorithm.AverageStrategySampling;
         const int TotalAvgStrategySamplingCFRIterations = 100000000;
         const int TotalProbingCFRIterations = 100000000;
         const int TotalVanillaCFRIterations = 100000;

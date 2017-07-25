@@ -53,9 +53,12 @@ namespace ACESim
         private List<Decision> GetDecisionsList()
         {
             List<byte> playersToInform = new List<byte>(){(byte)SimpleGamePlayers.Resolution};
+            bool P1InformsP2 = true; // DEBUG
+            List<byte> playersWithP1Informing = playersToInform.ToList();
+            playersWithP1Informing.Add((byte)SimpleGamePlayers.Player2);
             var decisions = new List<Decision>();
             decisions.Add(new Decision("P1", "P1", (byte)SimpleGamePlayers.Player1, playersToInform, 2, (byte)SimpleGameDecisions.P1Decision));
-            decisions.Add(new Decision("P2", "P2", (byte)SimpleGamePlayers.Player2, playersToInform, 2, (byte)SimpleGameDecisions.P2Decision));
+            decisions.Add(new Decision("P2", "P2", (byte)SimpleGamePlayers.Player2, P1InformsP2 ? playersWithP1Informing : playersToInform, 2, (byte)SimpleGameDecisions.P2Decision));
             decisions.Add(new Decision("C", "C", (byte)SimpleGamePlayers.Chance, playersToInform, 2, (byte)SimpleGameDecisions.Chance, unevenChanceActions: true) { CanTerminateGame = true });
             return decisions;
         }
