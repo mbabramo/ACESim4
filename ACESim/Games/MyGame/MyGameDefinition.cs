@@ -130,21 +130,21 @@ namespace ACESim
                 // bargaining -- note that we will do all information set manipulation in CustomInformationSetManipulation below.
                 if (BargainingRoundsSimultaneous[b])
                 { // samuelson-chaterjee bargaining
-                    decisions.Add(new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, null, NumOffers, (byte)MyGameDecisions.POffer));
-                    decisions.Add(new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, null, NumOffers, (byte)MyGameDecisions.DOffer) { CanTerminateGame = true });
+                    decisions.Add(new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, null, NumOffers, (byte)MyGameDecisions.POffer) { CustomByte = (byte)(b + 1), CustomInformationSetManipulationOnly = true });
+                    decisions.Add(new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, null, NumOffers, (byte)MyGameDecisions.DOffer) { CanTerminateGame = true, CustomByte = (byte)(b + 1), CustomInformationSetManipulationOnly = true });
                 }
                 else
                 { // offer-response bargaining
                     // the response may be irrelevant but no harm adding it to information set
                     if (BargainingRoundsPGoesFirstIfNotSimultaneous[b])
                     {
-                        decisions.Add(new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, null, NumOffers, (byte)MyGameDecisions.POffer) { CustomByte = (byte)b, CustomInformationSetManipulationOnly = true }); // { AlwaysDoAction = 4});
-                        decisions.Add(new Decision("DefendantResponse" + (b + 1), "DR" + (b + 1), (byte)MyGamePlayers.Defendant, null, 2, (byte)MyGameDecisions.DResponse) { CanTerminateGame = true, CustomByte = (byte)b, CustomInformationSetManipulationOnly = true });
+                        decisions.Add(new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, null, NumOffers, (byte)MyGameDecisions.POffer) { CustomByte = (byte)(b + 1), CustomInformationSetManipulationOnly = true }); // { AlwaysDoAction = 4});
+                        decisions.Add(new Decision("DefendantResponse" + (b + 1), "DR" + (b + 1), (byte)MyGamePlayers.Defendant, null, 2, (byte)MyGameDecisions.DResponse) { CanTerminateGame = true, CustomByte = (byte)(b + 1), CustomInformationSetManipulationOnly = true });
                     }
                     else
                     {
-                        decisions.Add(new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, null, NumOffers, (byte)MyGameDecisions.DOffer) { CustomByte = (byte)b, CustomInformationSetManipulationOnly = true });
-                        decisions.Add(new Decision("PlaintiffResponse" + (b + 1), "PR" + (b + 1), (byte)MyGamePlayers.Plaintiff, null, 2, (byte)MyGameDecisions.PResponse) { CanTerminateGame = true, CustomByte = (byte)b, CustomInformationSetManipulationOnly = true });
+                        decisions.Add(new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, null, NumOffers, (byte)MyGameDecisions.DOffer) { CustomByte = (byte)(b + 1), CustomInformationSetManipulationOnly = true });
+                        decisions.Add(new Decision("PlaintiffResponse" + (b + 1), "PR" + (b + 1), (byte)MyGamePlayers.Plaintiff, null, 2, (byte)MyGameDecisions.PResponse) { CanTerminateGame = true, CustomByte = (byte)(b + 1), CustomInformationSetManipulationOnly = true });
                     }
                 }
             }
@@ -154,21 +154,25 @@ namespace ACESim
 
         public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, ref GameHistory gameHistory)
         {
+            bool partiesForgetEarlierBargaining = true;
+            debug; // something's wrong -- the above isn't making a difference
             byte decisionByteCode = currentDecision.DecisionByteCode;
             if (decisionByteCode >= (byte)MyGameDecisions.POffer && decisionByteCode <= (byte)MyGameDecisions.DResponse)
             {
                 byte bargainingRound = currentDecision.CustomByte;
+                byte bargainingRoundIndex = (byte)(bargainingRound - 1);
                 byte currentPlayer = currentDecision.PlayerNumber;
                 // Players information sets. We are going to use custom information set manipulation to add the players' information sets. This gives us the 
                 // flexibility to remove information about old bargaining rounds. 
-                if (BargainingRoundsSimultaneous[bargainingRound])
+                if (BargainingRoundsSimultaneous[bargainingRoundIndex])
                 { // samuelson-chaterjee bargaining
                     if (currentPlayer == (byte) MyGamePlayers.Defendant)
                     {
                         // We have completed this round of bargaining. Only now should we add the information to the plaintiff and defendant information sets. 
+                        // Note that the plaintiff and defendant will both have made their decisions based on the decisions in the prior round.
                         // We don't want to add the plaintiff's decision before the defendant has actually made a decision.
                         // If this is not the first round, then we should remove the last piece of information from both. 
-                        if (bargainingRound > 1)
+                        if (partiesForgetEarlierBargaining && bargainingRound > 1)
                         {
                             gameHistory.ReduceItemsInInformationSet((byte)MyGamePlayers.Plaintiff, decisionByteCode, 1);
                             gameHistory.ReduceItemsInInformationSet((byte)MyGamePlayers.Defendant, decisionByteCode, 1);
@@ -187,14 +191,15 @@ namespace ACESim
                 else
                 { // offer-response bargaining
                     // the response may be irrelevant but no harm adding it to information set
-                    byte partyGoingFirst = (BargainingRoundsPGoesFirstIfNotSimultaneous[bargainingRound]) ? (byte)MyGamePlayers.Plaintiff : (byte)MyGamePlayers.Defendant;
-                    byte partyGoingSecond = (BargainingRoundsPGoesFirstIfNotSimultaneous[bargainingRound]) ? (byte)MyGamePlayers.Defendant : (byte)MyGamePlayers.Plaintiff;
+                    byte partyGoingFirst = (BargainingRoundsPGoesFirstIfNotSimultaneous[bargainingRoundIndex]) ? (byte)MyGamePlayers.Plaintiff : (byte)MyGamePlayers.Defendant;
+                    byte partyGoingSecond = (BargainingRoundsPGoesFirstIfNotSimultaneous[bargainingRoundIndex]) ? (byte)MyGamePlayers.Defendant : (byte)MyGamePlayers.Plaintiff;
                     {
                         if (currentPlayer == partyGoingFirst)
                         {
                             // Starting a round after the first. Let's remove the old items in the plaintiff's and defendant's information sets (keeping the stubs, so that they know where they are).
-                            if (bargainingRound > 1)
+                            if (partiesForgetEarlierBargaining && bargainingRound > 1)
                             {
+                                // Note that the party going first has already chosen at this point. So that party will at the time of its decision know its previous offer. But the party going second will only find out about the most recent offer. 
                                 gameHistory.ReduceItemsInInformationSet((byte)MyGamePlayers.Plaintiff, decisionByteCode, 1);
                                 gameHistory.ReduceItemsInInformationSet((byte)MyGamePlayers.Defendant, decisionByteCode, 1);
                             }

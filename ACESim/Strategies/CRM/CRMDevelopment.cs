@@ -59,8 +59,8 @@ namespace ACESim
         public CurrentExecutionInformation CurrentExecutionInformation { get; set; }
 
         public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
-        bool allowSkipEveryPermutationInitialization = true;
-        public bool SkipEveryPermutationInitialization => (allowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame));
+        bool AllowSkipEveryPermutationInitialization = false; // DEBUG
+        public bool SkipEveryPermutationInitialization => (AllowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame));
 
         public HistoryNavigationInfo Navigation;
 
