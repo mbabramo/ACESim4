@@ -25,7 +25,7 @@ namespace ACESim
             AverageStrategySampling
         }
 
-        CRMAlgorithm Algorithm = CRMAlgorithm.AverageStrategySampling;
+        CRMAlgorithm Algorithm = CRMAlgorithm.Probing;
         const int TotalAvgStrategySamplingCFRIterations = 100000000;
         const int TotalProbingCFRIterations = 100000000;
         const int TotalVanillaCFRIterations = 100000;
@@ -44,6 +44,7 @@ namespace ACESim
         int? BestResponseEveryMIterations = 50000;
         public int NumRandomIterationsForReporting = 10000;
         bool PrintGameTreeAfterReport = true;
+        bool AlwaysUseAverageStrategyInReporting = true;
 
         public List<Strategy> Strategies { get; set; }
 
@@ -792,10 +793,6 @@ namespace ACESim
                 if (gameStateForCurrentPlayer is CRMChanceNodeSettings chanceNodeSettings)
                 {
                     byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
-                    if (chanceNodeSettings.DecisionIndex != 0 && playerBeingOptimized == 0)
-                    {
-                        var DEBUG = 0;
-                    }
                     sampledAction = chanceNodeSettings.SampleAction(numPossibleActions, RandomGenerator.NextDouble());
                     if (TraceProbingCRM)
                         TabbedText.WriteLine($"{sampledAction}: Sampled chance action {sampledAction} of {numPossibleActions} with probability {chanceNodeSettings.GetActionProbability(sampledAction)}");
@@ -804,7 +801,11 @@ namespace ACESim
                 {
                     byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
                     double* actionProbabilities = stackalloc double[numPossibleActions];
-                    informationSet.GetRegretMatchingProbabilities(actionProbabilities);
+                    // the use of epsilon-on-policy for early iterations of opponent's strategy is a deviation from Gibson.
+                    if (UseEpsilonOnPolicyForOpponent && AvgStrategySamplingCFRIterationNum <= LastOpponentEpsilonIteration)
+                        informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(actionProbabilities, CurrentEpsilonValue);
+                    else
+                        informationSet.GetRegretMatchingProbabilities(actionProbabilities);
                     sampledAction = SampleAction(actionProbabilities, numPossibleActions, RandomGenerator.NextDouble());
                     if (TraceProbingCRM)
                         TabbedText.WriteLine($"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {informationSet.PlayerIndex}");
@@ -860,17 +861,17 @@ namespace ACESim
                 byte playerAtPoint = informationSet.PlayerIndex;
                 if (playerAtPoint != playerBeingOptimized)
                 {
+                    // the use of epsilon-on-policy for early iterations of opponent's strategy is a deviation from Gibson.
+                    if (UseEpsilonOnPolicyForOpponent && AvgStrategySamplingCFRIterationNum <= LastOpponentEpsilonIteration)
+                        informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(sigma_regretMatchedActionProbabilities, CurrentEpsilonValue);
+                    else
+                        informationSet.GetRegretMatchingProbabilities(sigma_regretMatchedActionProbabilities);
                     for (byte action = 1; action <= numPossibleActions; action++)
                     {
                         double cumulativeStrategyIncrement = sigma_regretMatchedActionProbabilities[action - 1] / samplingProbabilityQ;
                         informationSet.IncrementCumulativeStrategy(action, cumulativeStrategyIncrement);
                         if (TraceProbingCRM)
                             TabbedText.WriteLine($"Incrementing cumulative strategy for {action} by {cumulativeStrategyIncrement} to {informationSet.GetCumulativeStrategy(action)}");
-                    }
-                    if (playerBeingOptimized == 1 && historyPoint.GetActionsToHereString(Navigation) == "1,1,1")
-                    {
-                        Debug.WriteLine($"Player {playerAtPoint} at {historyPoint.GetActionsToHereString(Navigation)} Regret matching A1: {sigma_regretMatchedActionProbabilities[0]} A2: {sigma_regretMatchedActionProbabilities[1]} A3: {sigma_regretMatchedActionProbabilities[2]} "); // DEBUG
-                        // DEBUG: OK, so player 0's strategy when receiving signal 1 is being set fairly quickly to action 2. But we knew that; the question is why. We need to look at what happens when we are optimizing player 0 and we have the information set {1}. We then try different actions. Shouldn't we get to experience all of them and eventually converge to the correct value? Is the problem that player 0 and player 1 have their strategies fixed early? A player will vary its own strategies but the other player is played on policy. Maybe problem is statement "qi(I) > 0) for all I element Ii" (prop 1), but I think that is met.
                     }
                     sampledAction = SampleAction(sigma_regretMatchedActionProbabilities, numPossibleActions, RandomGenerator.NextDouble());
                     if (TraceProbingCRM)
@@ -959,6 +960,7 @@ namespace ACESim
         {
             Stopwatch s = new Stopwatch();
             s.Start();
+            CurrentEpsilonValue = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(FirstOpponentEpsilonValue, LastOpponentEpsilonValue, 0.75, (double)iteration / (double)TotalProbingCFRIterations);
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
                 HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
@@ -1276,7 +1278,7 @@ namespace ACESim
             {
                 double* locTarget = nextPiValues;
                 double* locSource = equalProbabilityNextPiValues;
-                for (int i = 0; i < NumNonChancePlayers; i++) // DEBUG -- do we need + 1?
+                for (int i = 0; i < NumNonChancePlayers; i++)
                 {
                     (*locTarget) = (*locSource);
                     locTarget++;
@@ -1289,8 +1291,6 @@ namespace ACESim
             HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
             if (TraceVanillaCRM)
             {
-                //TabbedText.WriteLine($"History point: {historyPoint}"); // DEBUG
-                //TabbedText.WriteLine($"Next history point: {nextHistoryPoint}"); // DEBUG
                 TabbedText.WriteLine($"Chance decisionNum {chanceNodeSettings.DecisionByteCode} action {action} probability {actionProbability} ...");
                 TabbedText.Tabs++;
             }
@@ -1336,8 +1336,6 @@ namespace ACESim
             GenerateReports(iteration, s);
         }
 
-        bool alwaysUseAverageStrategyInReporting = true; // DEBUG
-
         private unsafe void GenerateReports(int iteration, Stopwatch s)
         {
             if (ReportEveryNIterations != null && iteration % ReportEveryNIterations == 0)
@@ -1348,7 +1346,7 @@ namespace ACESim
                 Debug.WriteLine($"Iteration {iteration} Milliseconds per iteration {(s.ElapsedMilliseconds / ((double)iteration + 1.0))}");
                 MainReport(useRandomPaths);
                 CompareBestResponse(iteration, useRandomPaths);
-                if (alwaysUseAverageStrategyInReporting)
+                if (AlwaysUseAverageStrategyInReporting)
                     ActionStrategy = previous;
                 if (PrintGameTreeAfterReport)
                     PrintGameTree();
