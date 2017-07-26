@@ -16,7 +16,7 @@ namespace ACESim
             HistoryPoint historyPoint = new HistoryPoint(null, gameProgress.GameHistory, gameProgress);
             HistoryNavigationInfo navigateDuringActualGamePlay = navigation;
             navigateDuringActualGamePlay.LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
-            ICRMGameState gameStateForCurrentPlayer = navigation.GetGameStateFn(historyPoint);
+            ICRMGameState gameStateForCurrentPlayer = navigateDuringActualGamePlay.GetGameStateFn(historyPoint);
             if (gameStateForCurrentPlayer == null)
                 throw new Exception("Internal error. This action has not been initialized but should be by GetGameStateFn.");
             double[] probabilities = GetActionProbabilitiesAtHistoryPoint(gameStateForCurrentPlayer, actionStrategy, numPossibleActions, alwaysDoAction, navigateDuringActualGamePlay);

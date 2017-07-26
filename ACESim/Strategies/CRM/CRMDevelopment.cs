@@ -409,8 +409,11 @@ namespace ACESim
             return player.PlayMultipleIterations(null, numIterations, CurrentExecutionInformation.UiInteraction).ToList();
         }
 
+        static int DEBUGNumComplete = 0;
+
         private void GenerateReports_RandomPaths(GamePlayer player)
         {
+            Interlocked.Increment(ref DEBUGNumComplete);
             var gameProgresses = GetRandomCompleteGames(player, NumRandomIterationsForReporting);
             UtilityCalculations = new StatCollector[NumNonChancePlayers];
             for (int p = 0; p < NumNonChancePlayers; p++)
