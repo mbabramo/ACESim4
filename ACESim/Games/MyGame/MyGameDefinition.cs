@@ -110,8 +110,7 @@ namespace ACESim
 
         private List<Decision> GetDecisionsList()
         {
-            bool addPlayersOwnDecisionsToInformationSet = true;
-            // TODO: if above is FALSE, always add decision number to information set (to avoid possible confusion about which decision we're doing) -- although sometimes we might want something other than the decision number itself, if we are repeating a decision multiple times.
+            bool addPlayersOwnDecisionsToInformationSet = false; // When this is false, an action of 1 will always be added to the information set to signify that the decision has occurred. 
             var decisions = new List<Decision>();
             // Litigation Quality. This is not known by a player unless the player has perfect information. 
             // The SignalChance player relies on this information in calculating the probabilities of different signals

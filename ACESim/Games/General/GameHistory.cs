@@ -122,7 +122,7 @@ namespace ACESim
                 *(historyPtr + i + History_NumPiecesOfInformation) = HistoryIncomplete; // this is just one item at end of all history items
             }
             LastIndexAddedToHistory = (short) (i + History_NumPiecesOfInformation);
-            AddToInformationSet(informOnlyThatDecisionOccurred ? (byte) 1 : action, decisionIndex, playersToInform);
+            AddToInformationSet(informOnlyThatDecisionOccurred ? (byte) 1 : action, decisionIndex, playerNumber, playersToInform);
         }
 
         /// <summary>
@@ -294,11 +294,21 @@ namespace ACESim
 
         #region Player information sets
 
-        public void AddToInformationSet(byte information, byte followingDecisionIndex, List<byte> playersToInform)
+        public void AddToInformationSet(byte information, byte followingDecisionIndex, byte playerNumber, List<byte> playersToInform)
         {
+            bool playerInformedOfOwnDecision = false;
             fixed (byte* informationSetsPtr = InformationSets)
+            {
                 foreach (byte playerIndex in playersToInform)
+                {
+                    if (playerIndex == playerNumber)
+                        playerInformedOfOwnDecision = true;
                     AddToInformationSet(information, followingDecisionIndex, playerIndex, informationSetsPtr);
+                }
+                // make sure that a player at least remembers that he has made the decision, even if the player doesn't remember what it was
+                if (!playerInformedOfOwnDecision)
+                    AddToInformationSet(1, followingDecisionIndex, playerNumber, informationSetsPtr);
+            }
         }
 
         public void AddToInformationSet(byte information, byte followingDecisionIndex, byte playerIndex)
@@ -380,14 +390,14 @@ namespace ACESim
             return b;
         }
 
-        public void ReduceItemsInInformationSet(byte playerIndex, byte followingDecision, byte numItems)
+        public void ReduceItemsInInformationSet(byte playerIndex, byte followingDecision, byte numItemsToRemove)
         {
             if (!Initialized)
                 Initialize();
-            for (byte b = 0; b < numItems; b++)
+            for (byte b = 0; b < numItemsToRemove; b++)
             {
                 AddToInformationSet(RemoveItemFromInformationSet, followingDecision, playerIndex);
-                // We could make this more efficient by going to the end of the information ste and then adding all the removals. 
+                // We could make this more efficient by going to the end of the information set and then adding all the removals. 
             }
         }
 
