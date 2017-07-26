@@ -33,10 +33,10 @@ namespace ACESim
         bool TraceProbingCRM = false;
         bool TraceAverageStrategySampling = false;
 
-        int? ReportEveryNIterations = 1;
+        int? ReportEveryNIterations = 10000;
         int? BestResponseEveryMIterations = 50000;
         public int NumRandomIterationsForReporting = 10000;
-        bool PrintGameTreeAfterReport = false;
+        bool PrintGameTreeAfterReport = true;
 
         public List<Strategy> Strategies { get; set; }
 
@@ -206,44 +206,61 @@ namespace ACESim
             PrintGameTree_Helper(GetStartOfGameHistoryPoint());
         }
 
-        public unsafe void PrintGameTree_Helper(HistoryPoint historyPoint)
+        public unsafe double[] PrintGameTree_Helper(HistoryPoint historyPoint)
         {
             ICRMGameState gameStateForCurrentPlayer = GetGameState(historyPoint);
             //if (TraceProbingCRM)
             //    TabbedText.WriteLine($"Probe optimizing player {playerBeingOptimized}");
             if (gameStateForCurrentPlayer is CRMFinalUtilities finalUtilities)
             {
-                TabbedText.WriteLine($"--> {String.Join(",", finalUtilities.Utilities)}");
+                TabbedText.WriteLine($"--> {String.Join(",", finalUtilities.Utilities.Select(x => $"{x:N2}"))}");
+                return finalUtilities.Utilities;
             }
             else
             {
                 if (gameStateForCurrentPlayer is CRMChanceNodeSettings chanceNodeSettings)
                 {
                     byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
+                    double[] cumUtilities = null;
                     for (byte action = 1; action <= numPossibleActions; action++)
                     {
-                        TabbedText.WriteLine($"{action} (C): {chanceNodeSettings.GetActionProbability(action)}");
+                        double chanceProbability = chanceNodeSettings.GetActionProbability(action);
+                        TabbedText.WriteLine($"{action} (C): p={chanceProbability:N2}");
                         HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
                         TabbedText.Tabs++;
-                        PrintGameTree_Helper(nextHistoryPoint);
+                        double[] utilitiesAtNextHistoryPoint = PrintGameTree_Helper(nextHistoryPoint);
                         TabbedText.Tabs--;
+                        if (cumUtilities == null)
+                            cumUtilities = new double[utilitiesAtNextHistoryPoint.Length];
+                        for (int i = 0; i < cumUtilities.Length; i++)
+                            cumUtilities[i] += utilitiesAtNextHistoryPoint[i] * chanceProbability;
                     }
+                    TabbedText.WriteLine($"--> {String.Join(",", cumUtilities.Select(x => $"{x:N2}"))}");
+                    return cumUtilities;
                 }
                 else if (gameStateForCurrentPlayer is CRMInformationSetNodeTally informationSet)
                 {
                     byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
+                    double[] cumUtilities = null;
                     double* actionProbabilities = stackalloc double[numPossibleActions];
                     informationSet.GetRegretMatchingProbabilities(actionProbabilities);
                     for (byte action = 1; action <= numPossibleActions; action++)
                     {
-                        TabbedText.WriteLine($"{action} ({informationSet.PlayerIndex}): {actionProbabilities[action - 1]}");
+                        TabbedText.WriteLine($"{action} (P{informationSet.PlayerIndex}): p={actionProbabilities[action - 1]:N2} (from regrets {informationSet.GetCumulativeRegretsString()})");
                         HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
                         TabbedText.Tabs++;
-                        PrintGameTree_Helper(nextHistoryPoint);
+                        double[] utilitiesAtNextHistoryPoint = PrintGameTree_Helper(nextHistoryPoint);
                         TabbedText.Tabs--;
+                        if (cumUtilities == null)
+                            cumUtilities = new double[utilitiesAtNextHistoryPoint.Length];
+                        for (int i = 0; i < cumUtilities.Length; i++)
+                            cumUtilities[i] += utilitiesAtNextHistoryPoint[i] * actionProbabilities[action - 1];
                     }
+                    TabbedText.WriteLine($"--> {String.Join(",", cumUtilities.Select(x => $"{x:N2}"))}");
+                    return cumUtilities;
                 }
             }
+            throw new NotImplementedException();
         }
 
         double printProbability = 0.0;
@@ -1070,6 +1087,7 @@ namespace ACESim
                     informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement);
                     if (TraceAverageStrategySampling)
                     {
+                        // v(a) is set to 0 for many of the a E A(I).The key to understanding this is that we're multiplying the utilities we get back by 1/q. So if there is a 1/3 probability of sampling, then we multiply the utility by 3. So, when we don't sample, we're adding 0 to the regrets; and when we sample, we're adding 3 * counterfactual value.Thus, v(a) is an unbiased predictor of value.Meanwhile, we're always subtracting the regret-matched probability-adjusted counterfactual values. 
                         TabbedText.WriteLine($"Increasing cumulative regret for action {action} by {(counterfactualValues[action - 1])} - {counterfactualSummation} = {cumulativeRegretIncrement} to {informationSet.GetCumulativeRegret(action)}");
                     }
                 }
@@ -1189,14 +1207,20 @@ namespace ACESim
                     else
                         counterfactualValues[action - 1] = 0;
                 }
+                double DEBUG3 = 0;
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
                     double cumulativeRegretIncrement = counterfactualValues[action - 1] - counterfactualSummation;
+                    DEBUG3 += counterfactualValues[action - 1];
                     informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement);
                     if (TraceAverageStrategySampling)
                     {
                         TabbedText.WriteLine($"Increasing cumulative regret for action {action} by {(counterfactualValues[action - 1])} - {counterfactualSummation} = {cumulativeRegretIncrement} to {informationSet.GetCumulativeRegret(action)}");
                     }
+                }
+                if (Math.Abs(DEBUG3 - counterfactualSummation) > 0.001)
+                {
+                    var DEBUG2 = 0;
                 }
                 if (TraceAverageStrategySampling)
                 {

@@ -147,12 +147,12 @@ namespace ACESim
             return 0;
         }
 
-        public double GetSumPositiveCumulativeRegrets()
+        public double GetSumPositiveCumulativeRegrets(double addToEachRegret = 0)
         {
             double total = 0;
             for (int i = 0; i < NumPossibleActions; i++)
             {
-                double cumulativeRegret = NodeInformation[cumulativeRegretDimension, i];
+                double cumulativeRegret = NodeInformation[cumulativeRegretDimension, i] + addToEachRegret;
                 if (cumulativeRegret > 0)
                     total += cumulativeRegret;
             }
@@ -160,9 +160,9 @@ namespace ACESim
         }
 
 
-        public unsafe void GetRegretMatchingProbabilities(double* probabilitiesToSet)
+        public unsafe void GetRegretMatchingProbabilities(double* probabilitiesToSet, double addToEachRegret = 0)
         {
-            double sumPositiveCumulativeRegrets = GetSumPositiveCumulativeRegrets();
+            double sumPositiveCumulativeRegrets = GetSumPositiveCumulativeRegrets(addToEachRegret);
             if (sumPositiveCumulativeRegrets == 0)
             {
                 double equalProbability = 1.0 / (double)NumPossibleActions;
@@ -173,9 +173,38 @@ namespace ACESim
             {
                 for (byte a = 1; a <= NumPossibleActions; a++)
                 {
-                    probabilitiesToSet[a - 1] = GetPositiveCumulativeRegret(a) / sumPositiveCumulativeRegrets;
+                    probabilitiesToSet[a - 1] = (GetPositiveCumulativeRegret(a) + addToEachRegret) / sumPositiveCumulativeRegrets;
                 }
             }
+        }
+
+        public unsafe string GetCumulativeRegretsString(double addToEachRegret = 0)
+        {
+            List<double> probs = new List<double>();
+            for (byte a = 1; a <= NumPossibleActions; a++)
+                probs.Add(NodeInformation[cumulativeRegretDimension, a - 1]);
+            return String.Join(",", probs.Select(x => $"{x:N2}"));
+        }
+
+        public unsafe string GetRegretMatchingProbabilitiesString(double addToEachRegret = 0)
+        {
+            List<double> probs = new List<double>();
+            double* probabilitiesToSet = stackalloc double[NumPossibleActions];
+            double sumPositiveCumulativeRegrets = GetSumPositiveCumulativeRegrets(addToEachRegret);
+            if (sumPositiveCumulativeRegrets == 0)
+            {
+                double equalProbability = 1.0 / (double)NumPossibleActions;
+                for (byte a = 1; a <= NumPossibleActions; a++)
+                    probs.Add(equalProbability);
+            }
+            else
+            {
+                for (byte a = 1; a <= NumPossibleActions; a++)
+                {
+                    probs.Add((GetPositiveCumulativeRegret(a) + addToEachRegret) / sumPositiveCumulativeRegrets);
+                }
+            }
+            return String.Join(",", probs);
         }
 
         /// <summary>
