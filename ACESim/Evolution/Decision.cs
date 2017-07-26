@@ -100,6 +100,18 @@ namespace ACESim
         [OptionalSetting]
         public List<string> InformationSetAbbreviations;
 
+        /// <summary>
+        /// If true, then information will never be automatically added to information sets. 
+        /// </summary>
+        [OptionalSetting]
+        public bool CustomInformationSetManipulationOnly;
+
+        /// <summary>
+        /// This can be used to store some additional information about a decision.
+        /// </summary>
+        [OptionalSetting]
+        public byte CustomByte;
+
         public Decision()
         {
 

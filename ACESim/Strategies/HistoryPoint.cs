@@ -123,7 +123,7 @@ namespace ACESim
             {
                 (Decision nextDecision, byte nextDecisionIndex) = navigation.GameDefinition.GetNextDecision(HistoryToPoint);
                 next.HistoryToPoint = HistoryToPoint; // struct is copied
-                next.HistoryToPoint.AddToHistory(nextDecision.DecisionByteCode, nextDecisionIndex, nextDecision.PlayerNumber, actionChosen, nextDecision.NumPossibleActions, nextDecision.PlayersToInform, nextDecision.InformOnlyThatDecisionOccurred);
+                next.HistoryToPoint.AddToHistory(nextDecision.DecisionByteCode, nextDecisionIndex, nextDecision.PlayerNumber, actionChosen, nextDecision.NumPossibleActions, nextDecision.PlayersToInform, nextDecision.InformOnlyThatDecisionOccurred, nextDecision.CustomInformationSetManipulationOnly);
                 navigation.GameDefinition.CustomInformationSetManipulation(nextDecision, nextDecisionIndex, actionChosen, ref next.HistoryToPoint);
                 if (nextDecision.CanTerminateGame && navigation.GameDefinition.ShouldMarkGameHistoryComplete(nextDecision, next.HistoryToPoint))
                     next.HistoryToPoint.MarkComplete();

@@ -127,39 +127,24 @@ namespace ACESim
                 decisions.Add(new Decision("DefendantSignal", "DSig", (byte)MyGamePlayers.DSignalChance, new List<byte> { (byte)MyGamePlayers.Defendant }, NumSignals, (byte)MyGameDecisions.DSignal, unevenChanceActions: true));
             for (int b = 0; b < NumBargainingRounds; b++)
             {
-                List<byte> informationSetsToAddPlaintiffMoveTo = new List<byte>();
-                List<byte> informationSetsToAddDefendantMoveTo = new List<byte>();
-                if (addPlayersOwnDecisionsToInformationSet)
-                {
-                    informationSetsToAddPlaintiffMoveTo.Add((byte)MyGamePlayers.Plaintiff);
-                    informationSetsToAddDefendantMoveTo.Add((byte)MyGamePlayers.Defendant);
-                }
+                // bargaining -- note that we will do all information set manipulation in CustomInformationSetManipulation below.
                 if (BargainingRoundsSimultaneous[b])
                 { // samuelson-chaterjee bargaining
-                    // TODO: Make this an option
-                    bool eachPlayerFindsOutAboutOthersOffer = true;
-                    if (eachPlayerFindsOutAboutOthersOffer)
-                    {
-                        informationSetsToAddPlaintiffMoveTo.Add((byte)MyGamePlayers.Defendant);
-                        informationSetsToAddDefendantMoveTo.Add((byte)MyGamePlayers.Plaintiff);
-                    }
-                    decisions.Add(new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, informationSetsToAddPlaintiffMoveTo, NumOffers, (byte)MyGameDecisions.POffer));
-                    decisions.Add(new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, informationSetsToAddDefendantMoveTo, NumOffers, (byte)MyGameDecisions.DOffer) { CanTerminateGame = true });
+                    decisions.Add(new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, null, NumOffers, (byte)MyGameDecisions.POffer));
+                    decisions.Add(new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, null, NumOffers, (byte)MyGameDecisions.DOffer) { CanTerminateGame = true });
                 }
                 else
                 { // offer-response bargaining
                     // the response may be irrelevant but no harm adding it to information set
-                    informationSetsToAddPlaintiffMoveTo.Add((byte)MyGamePlayers.Defendant);
-                    informationSetsToAddDefendantMoveTo.Add((byte)MyGamePlayers.Plaintiff); 
                     if (BargainingRoundsPGoesFirstIfNotSimultaneous[b])
                     {
-                        decisions.Add(new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, informationSetsToAddPlaintiffMoveTo, NumOffers, (byte)MyGameDecisions.POffer)); // { AlwaysDoAction = 4});
-                        decisions.Add(new Decision("DefendantResponse" + (b + 1), "DR" + (b + 1), (byte)MyGamePlayers.Defendant, informationSetsToAddDefendantMoveTo, 2, (byte)MyGameDecisions.DResponse) { CanTerminateGame = true });
+                        decisions.Add(new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, null, NumOffers, (byte)MyGameDecisions.POffer) { CustomByte = (byte)b, CustomInformationSetManipulationOnly = true }); // { AlwaysDoAction = 4});
+                        decisions.Add(new Decision("DefendantResponse" + (b + 1), "DR" + (b + 1), (byte)MyGamePlayers.Defendant, null, 2, (byte)MyGameDecisions.DResponse) { CanTerminateGame = true, CustomByte = (byte)b, CustomInformationSetManipulationOnly = true });
                     }
                     else
                     {
-                        decisions.Add(new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, informationSetsToAddDefendantMoveTo, NumOffers, (byte)MyGameDecisions.DOffer));
-                        decisions.Add(new Decision("PlaintiffResponse" + (b + 1), "PR" + (b + 1), (byte)MyGamePlayers.Plaintiff, informationSetsToAddPlaintiffMoveTo, 2, (byte)MyGameDecisions.PResponse) { CanTerminateGame = true });
+                        decisions.Add(new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, null, NumOffers, (byte)MyGameDecisions.DOffer) { CustomByte = (byte)b, CustomInformationSetManipulationOnly = true });
+                        decisions.Add(new Decision("PlaintiffResponse" + (b + 1), "PR" + (b + 1), (byte)MyGamePlayers.Plaintiff, null, 2, (byte)MyGameDecisions.PResponse) { CanTerminateGame = true, CustomByte = (byte)b, CustomInformationSetManipulationOnly = true });
                     }
                 }
             }
@@ -170,18 +155,71 @@ namespace ACESim
         public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, ref GameHistory gameHistory)
         {
             byte decisionByteCode = currentDecision.DecisionByteCode;
-            // Resolution information set. We need an information set that uniquely identifies each distinct resolution. We have added the court decision 
-            // to the resolution set above, but also need information about whether we have reached some kind of offer.
-            // We only need to put the LAST offer and response in the information set. This could, of course, be the first offer and response if it is accepted. 
-            // We will also need information on the nature of the offer and response, since different bargaining rounds may have different structures,
-            // and since the number of bargaining rounds that has occurred may affect the parties' payoffs.
-            // For example, a response of 2 may mean something different if we have simultaneous bargaining or if plaintiff or defendant is responding.
-            // So, we would like our resolution information set to have the decision number of the last offer (which may be the first of two simultaneous offers)
-            // and the actions of both players. Thus, if there is nothing in the resolution information set, then we add the decision byte code and the action.
-            // If there are two items, then we add the decision byte code and the action. If there are three, we delete everything and then there are zero, so
-            // we respond accordingly. 
             if (decisionByteCode >= (byte)MyGameDecisions.POffer && decisionByteCode <= (byte)MyGameDecisions.DResponse)
             {
+                byte bargainingRound = currentDecision.CustomByte;
+                byte currentPlayer = currentDecision.PlayerNumber;
+                // Players information sets. We are going to use custom information set manipulation to add the players' information sets. This gives us the 
+                // flexibility to remove information about old bargaining rounds. 
+                if (BargainingRoundsSimultaneous[bargainingRound])
+                { // samuelson-chaterjee bargaining
+                    if (currentPlayer == (byte) MyGamePlayers.Defendant)
+                    {
+                        // We have completed this round of bargaining. Only now should we add the information to the plaintiff and defendant information sets. 
+                        // We don't want to add the plaintiff's decision before the defendant has actually made a decision.
+                        // If this is not the first round, then we should remove the last piece of information from both. 
+                        if (bargainingRound > 1)
+                        {
+                            gameHistory.ReduceItemsInInformationSet((byte)MyGamePlayers.Plaintiff, decisionByteCode, 1);
+                            gameHistory.ReduceItemsInInformationSet((byte)MyGamePlayers.Defendant, decisionByteCode, 1);
+                        }
+                        // Now add the information -- a stub for the player about their own decision and the actual decision for the other player.
+                        // This way, when we remove the decision in a later bargaining round (if we indeed do so), we'll still know precisely what round we're in.
+                        // But what did the plaintiff actually offer? To figure that out, we need to look at the GameHistory. This will be two decisions ago.
+                        (_, byte previousActionChosen) = gameHistory.GetLastTwoActions();
+                        gameHistory.AddToInformationSet(1, currentDecisionIndex, (byte)MyGamePlayers.Plaintiff);
+                        gameHistory.AddToInformationSet(actionChosen, currentDecisionIndex, (byte)MyGamePlayers.Plaintiff); // defendant's decision conveyed to plaintiff
+                        gameHistory.AddToInformationSet(1, currentDecisionIndex, (byte)MyGamePlayers.Defendant);
+                        gameHistory.AddToInformationSet(previousActionChosen, currentDecisionIndex, (byte)MyGamePlayers.Defendant); // plaintiff's decision conveyed to defendant
+
+                    }
+                }
+                else
+                { // offer-response bargaining
+                    // the response may be irrelevant but no harm adding it to information set
+                    byte partyGoingFirst = (BargainingRoundsPGoesFirstIfNotSimultaneous[bargainingRound]) ? (byte)MyGamePlayers.Plaintiff : (byte)MyGamePlayers.Defendant;
+                    byte partyGoingSecond = (BargainingRoundsPGoesFirstIfNotSimultaneous[bargainingRound]) ? (byte)MyGamePlayers.Defendant : (byte)MyGamePlayers.Plaintiff;
+                    {
+                        if (currentPlayer == partyGoingFirst)
+                        {
+                            // Starting a round after the first. Let's remove the old items in the plaintiff's and defendant's information sets (keeping the stubs, so that they know where they are).
+                            if (bargainingRound > 1)
+                            {
+                                gameHistory.ReduceItemsInInformationSet((byte)MyGamePlayers.Plaintiff, decisionByteCode, 1);
+                                gameHistory.ReduceItemsInInformationSet((byte)MyGamePlayers.Defendant, decisionByteCode, 1);
+                            }
+                            gameHistory.AddToInformationSet(1, currentDecisionIndex, (byte)MyGamePlayers.Plaintiff); // stub to remember decision has been made
+                            gameHistory.AddToInformationSet(1, currentDecisionIndex, (byte)MyGamePlayers.Defendant); // stub to remember decision has been made
+                            gameHistory.AddToInformationSet(actionChosen, currentDecisionIndex, partyGoingSecond); // offeror's decision coveyed
+                        }
+                        else
+                        {
+                            // stub already exists, so all we need is to add the defendant's decision.
+                            gameHistory.AddToInformationSet(actionChosen, currentDecisionIndex, partyGoingFirst); // offeree's decision conveyed
+                        }
+                    }
+                }
+
+                // Resolution information set. We need an information set that uniquely identifies each distinct resolution. We have added the court decision 
+                // to the resolution set above, but also need information about whether we have reached some kind of offer.
+                // We only need to put the LAST offer and response in the information set. This could, of course, be the first offer and response if it is accepted. 
+                // We will also need information on the nature of the offer and response, since different bargaining rounds may have different structures,
+                // and since the number of bargaining rounds that has occurred may affect the parties' payoffs.
+                // For example, a response of 2 may mean something different if we have simultaneous bargaining or if plaintiff or defendant is responding.
+                // So, we would like our resolution information set to have the decision number of the last offer (which may be the first of two simultaneous offers)
+                // and the actions of both players. Thus, if there is nothing in the resolution information set, then we add the decision byte code and the action.
+                // If there are two items, then we add the decision byte code and the action. If there are three, we delete everything and then there are zero, so
+                // we respond accordingly. 
                 byte numItems = gameHistory.CountItemsInInformationSet((byte)MyGamePlayers.Resolution);
                 if (numItems == 3)
                 {
