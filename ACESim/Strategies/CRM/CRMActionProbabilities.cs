@@ -15,7 +15,7 @@ namespace ACESim
             // We're not necessarily using the same navigation approach as is used during CRMDevelopment, because the game tree may not be set up at the time this is called.
             HistoryPoint historyPoint = new HistoryPoint(null, gameProgress.GameHistory, gameProgress);
             HistoryNavigationInfo navigateDuringActualGamePlay = navigation;
-            navigateDuringActualGamePlay.LookupApproach = InformationSetLookupApproach.CachedBothMethods;
+            navigateDuringActualGamePlay.LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
             ICRMGameState gameStateForCurrentPlayer = navigation.GetGameStateFn(historyPoint);
             if (gameStateForCurrentPlayer == null)
                 throw new Exception("Internal error. This action has not been initialized but should be by GetGameStateFn.");

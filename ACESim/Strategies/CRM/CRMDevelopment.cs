@@ -25,10 +25,10 @@ namespace ACESim
             AverageStrategySampling
         }
 
-        CRMAlgorithm Algorithm = CRMAlgorithm.Probing;
+        CRMAlgorithm Algorithm = CRMAlgorithm.AverageStrategySampling;
         const int TotalAvgStrategySamplingCFRIterations = 100000000;
         const int TotalProbingCFRIterations = 100000000;
-        const int TotalVanillaCFRIterations = 100000;
+        const int TotalVanillaCFRIterations = 100000000;
         bool TraceVanillaCRM = false;
         bool TraceProbingCRM = false;
         bool TraceAverageStrategySampling = false;
@@ -40,10 +40,10 @@ namespace ACESim
         int LastOpponentEpsilonIteration = 10000;
         double CurrentEpsilonValue; // set in algorithm.
 
-        int? ReportEveryNIterations = 1000;
-        int? BestResponseEveryMIterations = 50000;
+        int? ReportEveryNIterations => Algorithm == CRMAlgorithm.Vanilla ? 10000 : 100000;
+        int? BestResponseEveryMIterations => Algorithm == CRMAlgorithm.Vanilla ? 30000 : 500000;
         public int NumRandomIterationsForReporting = 10000;
-        bool PrintGameTreeAfterReport = true;
+        bool PrintGameTreeAfterReport = false;
         bool AlwaysUseAverageStrategyInReporting = true;
 
         public List<Strategy> Strategies { get; set; }
