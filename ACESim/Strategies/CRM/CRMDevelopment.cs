@@ -91,7 +91,7 @@ namespace ACESim
 
         public CRMDevelopment()
         {
-            Navigation.GetGameStateFn = GetGameState;
+            Navigation.SetGameStateFn(GetGameState);
         }
 
         public CRMDevelopment(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition, IGameFactory gameFactory, CurrentExecutionInformation currentExecutionInformation)
@@ -188,15 +188,17 @@ namespace ACESim
             historyPoint.SetFinalUtilitiesAtPoint(Navigation, gameProgress);
         }
 
-        public ICRMGameState GetGameState(HistoryPoint historyPoint)
+        public ICRMGameState GetGameState(HistoryPoint historyPoint, HistoryNavigationInfo? navigation = null)
         {
-            var gameState = historyPoint.GetGameStateForCurrentPlayer(Navigation);
+            if (navigation == null)
+                navigation = Navigation;
+            var gameState = historyPoint.GetGameStateForCurrentPlayer((HistoryNavigationInfo) navigation);
             if (gameState == null)
             {
-                List<byte> actionsSoFar = historyPoint.GetActionsToHere(Navigation);
+                List<byte> actionsSoFar = historyPoint.GetActionsToHere((HistoryNavigationInfo)navigation);
                 (GameProgress progress, _) = GamePlayer.PlayPath(actionsSoFar, false);
                 ProcessInitializedGameProgress(progress);
-                gameState = historyPoint.GetGameStateForCurrentPlayer(Navigation);
+                gameState = historyPoint.GetGameStateForCurrentPlayer((HistoryNavigationInfo)navigation);
                 if (gameState == null)
                     throw new Exception("Internal error.");
             }

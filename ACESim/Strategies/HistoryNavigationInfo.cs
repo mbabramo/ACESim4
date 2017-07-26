@@ -13,14 +13,24 @@ namespace ACESim
         public List<Strategy> Strategies;
         public GameDefinition GameDefinition;
         [NonSerialized]
-        public Func<HistoryPoint, ICRMGameState> GetGameStateFn;
+        private Func<HistoryPoint, HistoryNavigationInfo?, ICRMGameState> GetGameStateFn;
 
-        public HistoryNavigationInfo(InformationSetLookupApproach lookupApproach, List<Strategy> strategies, GameDefinition gameDefinition, Func<HistoryPoint, ICRMGameState> getGameStateFn)
+        public HistoryNavigationInfo(InformationSetLookupApproach lookupApproach, List<Strategy> strategies, GameDefinition gameDefinition, Func<HistoryPoint, HistoryNavigationInfo?, ICRMGameState> getGameStateFn)
         {
             LookupApproach = lookupApproach;
             Strategies = strategies;
             GameDefinition = gameDefinition;
             GetGameStateFn = getGameStateFn;
+        }
+
+        public void SetGameStateFn(Func<HistoryPoint, HistoryNavigationInfo?, ICRMGameState> getGameStateFn)
+        {
+            GetGameStateFn = getGameStateFn;
+        }
+
+        public ICRMGameState GetGameState(HistoryPoint historyPoint)
+        {
+            return GetGameStateFn(historyPoint, this);
         }
     }
 }

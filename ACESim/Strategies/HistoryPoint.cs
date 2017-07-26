@@ -244,7 +244,7 @@ namespace ACESim
                 CRMFinalUtilities finalUtilities = (CRMFinalUtilities) strategy.GetInformationSetTreeValue(resolutionInformationSet);
                 if (finalUtilities == null)
                 {
-                    navigation.GetGameStateFn(this);
+                    navigation.GetGameState(this); // make sure that point is initialized up to here
                     finalUtilities = (CRMFinalUtilities)strategy.GetInformationSetTreeValue(resolutionInformationSet);
                 }
                 utilitiesFromCachedGameHistory = finalUtilities.Utilities;
