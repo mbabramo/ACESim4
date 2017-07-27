@@ -15,5 +15,10 @@ namespace ACESim
         {
             Utilities = utilities;
         }
+
+        public override string ToString()
+        {
+            return $"Utilities: {String.Join(",", Utilities.Select(x => $"{x:N2}"))}";
+        }
     }
 }

@@ -321,6 +321,10 @@ namespace ACESim
 
         private void AddToInformationSet(byte information, byte followingDecisionIndex, byte playerNumber, byte* informationSetsPtr)
         {
+            if (playerNumber == 6)
+            {
+                var DEBUG = 0;
+            }
             if (!Initialized)
                 Initialize();
             //Debug.WriteLine($"Adding information {information} following decision {followingDecision} for Player number {playerNumber}");
@@ -392,13 +396,13 @@ namespace ACESim
             return b;
         }
 
-        public void ReduceItemsInInformationSet(byte playerIndex, byte followingDecision, byte numItemsToRemove)
+        public void ReduceItemsInInformationSet(byte playerIndex, byte followingDecisionIndex, byte numItemsToRemove)
         {
             if (!Initialized)
                 Initialize();
             for (byte b = 0; b < numItemsToRemove; b++)
             {
-                AddToInformationSet(RemoveItemFromInformationSet, followingDecision, playerIndex);
+                AddToInformationSet(RemoveItemFromInformationSet, followingDecisionIndex, playerIndex);
                 // We could make this more efficient by going to the end of the information set and then adding all the removals. 
             }
         }

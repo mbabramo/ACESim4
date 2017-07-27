@@ -18,8 +18,6 @@ namespace ACESim
         public const int MaxNumPlayers = 4; // this affects fixed-size stack-allocated buffers
         public const int MaxPossibleActions = 100; // same
 
-        Debug; // we should add feature to count or maybe print information sets for each player. That way, we can see if this is working properly and reflecting the information that we think it should be.
-
         public enum CRMAlgorithm
         {
             Vanilla,
@@ -49,7 +47,8 @@ namespace ACESim
         int? ReportEveryNIterations => Algorithm == CRMAlgorithm.Vanilla ? 10000 : 100000;
         int? BestResponseEveryMIterations => Algorithm == CRMAlgorithm.Vanilla ? 30000 : 500000;
         public int NumRandomIterationsForReporting = 10000;
-        bool PrintGameTreeAfterReport = true;
+        bool PrintGameTreeAfterReport = false;
+        bool PrintInformationSetsAfterReport = false;
         bool AlwaysUseAverageStrategyInReporting = true;
 
         public List<Strategy> Strategies { get; set; }
@@ -188,7 +187,6 @@ namespace ACESim
                 //var actionsToHere = historyPoint.GetActionsToHereString(Navigation);
             }
             historyPoint.SetFinalUtilitiesAtPoint(Navigation, gameProgress);
-            Debug.WriteLine($"DEBUG: {historyPoint.GetActionsToHereString(Navigation)}");
         }
 
         public ICRMGameState GetGameState(HistoryPoint historyPoint, HistoryNavigationInfo? navigation = null)
@@ -212,7 +210,20 @@ namespace ACESim
 
         #region Printing
 
+        public void PrintInformationSets()
+        {
+            foreach (Strategy s in Strategies)
+            {
+                Debug.WriteLine($"{s.PlayerInfo}");
+                string tree = s.InformationSetTree.ToTreeString();
+                Debug.WriteLine(tree);
+            }
+        }
 
+        private void PrintInformationSets(NWayTreeStorageInternal<ICRMGameState> informationSetTree)
+        {
+            throw new NotImplementedException();
+        }
 
         public void PrintGameTree()
         {
@@ -414,11 +425,8 @@ namespace ACESim
             return player.PlayMultipleIterations(null, numIterations, CurrentExecutionInformation.UiInteraction).ToList();
         }
 
-        static int DEBUGNumComplete = 0;
-
         private void GenerateReports_RandomPaths(GamePlayer player)
         {
-            Interlocked.Increment(ref DEBUGNumComplete);
             var gameProgresses = GetRandomCompleteGames(player, NumRandomIterationsForReporting);
             UtilityCalculations = new StatCollector[NumNonChancePlayers];
             for (int p = 0; p < NumNonChancePlayers; p++)
@@ -1358,6 +1366,8 @@ namespace ACESim
                     ActionStrategy = previous;
                 if (PrintGameTreeAfterReport)
                     PrintGameTree();
+                if (PrintInformationSetsAfterReport)
+                    PrintInformationSets();
             }
         }
 

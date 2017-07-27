@@ -37,7 +37,7 @@ namespace ACESim
 
         public override string ToString()
         {
-            return $"Information set {InformationSetNumber}: DecisionByteCode {DecisionByteCode} (index {DecisionIndex}) PlayerIndex {PlayerIndex}";
+            return $"Information set {InformationSetNumber}: DecisionByteCode {DecisionByteCode} (index {DecisionIndex}) PlayerIndex {PlayerIndex} Probabilities {GetRegretMatchingProbabilitiesString()} Regrets {GetCumulativeRegretsString()} Strategies {GetCumulativeStrategiesString()}";
         }
 
         private void Initialize(int numDimensions, int numPossibleActions)
@@ -147,12 +147,12 @@ namespace ACESim
             return 0;
         }
 
-        public double GetSumPositiveCumulativeRegrets(double addToEachRegret = 0)
+        public double GetSumPositiveCumulativeRegrets()
         {
             double total = 0;
             for (int i = 0; i < NumPossibleActions; i++)
             {
-                double cumulativeRegret = NodeInformation[cumulativeRegretDimension, i] + addToEachRegret;
+                double cumulativeRegret = NodeInformation[cumulativeRegretDimension, i];
                 if (cumulativeRegret > 0)
                     total += cumulativeRegret;
             }
@@ -160,9 +160,9 @@ namespace ACESim
         }
 
 
-        public unsafe void GetRegretMatchingProbabilities(double* probabilitiesToSet, double addToEachRegret = 0)
+        public unsafe void GetRegretMatchingProbabilities(double* probabilitiesToSet)
         {
-            double sumPositiveCumulativeRegrets = GetSumPositiveCumulativeRegrets(addToEachRegret);
+            double sumPositiveCumulativeRegrets = GetSumPositiveCumulativeRegrets();
             if (sumPositiveCumulativeRegrets == 0)
             {
                 double equalProbability = 1.0 / (double)NumPossibleActions;
@@ -173,12 +173,20 @@ namespace ACESim
             {
                 for (byte a = 1; a <= NumPossibleActions; a++)
                 {
-                    probabilitiesToSet[a - 1] = (GetPositiveCumulativeRegret(a) + addToEachRegret) / sumPositiveCumulativeRegrets;
+                    probabilitiesToSet[a - 1] = (GetPositiveCumulativeRegret(a)) / sumPositiveCumulativeRegrets;
                 }
             }
         }
 
-        public unsafe string GetCumulativeRegretsString(double addToEachRegret = 0)
+        public unsafe string GetCumulativeStrategiesString()
+        {
+            List<double> probs = new List<double>();
+            for (byte a = 1; a <= NumPossibleActions; a++)
+                probs.Add(NodeInformation[cumulativeStrategyDimension, a - 1]);
+            return String.Join(",", probs.Select(x => $"{x:N2}"));
+        }
+
+        public unsafe string GetCumulativeRegretsString()
         {
             List<double> probs = new List<double>();
             for (byte a = 1; a <= NumPossibleActions; a++)
@@ -186,11 +194,11 @@ namespace ACESim
             return String.Join(",", probs.Select(x => $"{x:N2}"));
         }
 
-        public unsafe string GetRegretMatchingProbabilitiesString(double addToEachRegret = 0)
+        public unsafe string GetRegretMatchingProbabilitiesString()
         {
             List<double> probs = new List<double>();
             double* probabilitiesToSet = stackalloc double[NumPossibleActions];
-            double sumPositiveCumulativeRegrets = GetSumPositiveCumulativeRegrets(addToEachRegret);
+            double sumPositiveCumulativeRegrets = GetSumPositiveCumulativeRegrets();
             if (sumPositiveCumulativeRegrets == 0)
             {
                 double equalProbability = 1.0 / (double)NumPossibleActions;
@@ -201,10 +209,10 @@ namespace ACESim
             {
                 for (byte a = 1; a <= NumPossibleActions; a++)
                 {
-                    probs.Add((GetPositiveCumulativeRegret(a) + addToEachRegret) / sumPositiveCumulativeRegrets);
+                    probs.Add((GetPositiveCumulativeRegret(a)) / sumPositiveCumulativeRegrets);
                 }
             }
-            return String.Join(",", probs);
+            return String.Join(",", probs.Select(x => $"{x:N2}"));
         }
 
         /// <summary>

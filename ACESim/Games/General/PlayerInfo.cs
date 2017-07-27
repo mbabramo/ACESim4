@@ -29,5 +29,10 @@ namespace ACESim
             PlayerIsChance = playerIsChance;
             HighestIsBest = highestIsBest;
         }
+
+        public override string ToString()
+        {
+            return $"Player {PlayerName} ({PlayerIndex}) {(PlayerIsChance ? "Chance" : "")}";
+        }
     }
 }

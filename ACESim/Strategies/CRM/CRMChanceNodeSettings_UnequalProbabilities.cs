@@ -25,5 +25,6 @@ namespace ACESim
         {
             return $"Chance player {PlayerNum} for decision {DecisionByteCode} => probabilities {String.Join(",", Probabilities)}";
         }
+
     }
 }

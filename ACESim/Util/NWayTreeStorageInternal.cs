@@ -178,5 +178,17 @@ namespace ACESim
                 return nextTree;
             }
         }
+
+        internal override void ToTreeString(StringBuilder s, int? branch, int level)
+        {
+            base.ToTreeString(s, branch, level);
+            if (Branches != null)
+                for (int branch2 = 1; branch2 <= Branches.Length; branch2++)
+                {
+                    if (Branches[branch2 - 1] != null && !Branches[branch2 - 1].Equals(default(T)))
+                        Branches[branch2 - 1].ToTreeString(s, branch2, level + 1);
+                }
+
+        }
     }
 }

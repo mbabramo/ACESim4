@@ -55,5 +55,25 @@ namespace ACESim
         {
             return true; // this is a leaf node if not overriden
         }
+
+        public string ToTreeString()
+        {
+            StringBuilder s = new StringBuilder();
+            ToTreeString(s, null, 0);
+            return s.ToString();
+        }
+
+        internal virtual void ToTreeString(StringBuilder s, int? branch, int level)
+        {
+            for (int i = 0; i < level * 5; i++)
+                s.Append(" ");
+            if (branch == null)
+                s.Append("Root");
+            else
+                s.Append(branch);
+            s.Append(": ");
+            s.Append($"{StoredValue}");
+            s.Append(Environment.NewLine);
+        }
     }
 }

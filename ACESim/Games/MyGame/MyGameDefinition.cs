@@ -154,7 +154,7 @@ namespace ACESim
 
         public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, ref GameHistory gameHistory)
         {
-            bool partiesForgetEarlierBargaining = false;
+            bool partiesForgetEarlierBargaining = true;
             byte decisionByteCode = currentDecision.DecisionByteCode;
             if (decisionByteCode >= (byte)MyGameDecisions.POffer && decisionByteCode <= (byte)MyGameDecisions.DResponse)
             {
@@ -190,25 +190,25 @@ namespace ACESim
                 else
                 { // offer-response bargaining
                     bool pGoesFirst = BargainingRoundsPGoesFirstIfNotSimultaneous[bargainingRoundIndex];
-                    //byte partyGoingFirst = pGoesFirst ? (byte)MyGamePlayers.Plaintiff : (byte)MyGamePlayers.Defendant;
-                    //byte partyGoingSecond = pGoesFirst ? (byte)MyGamePlayers.Defendant : (byte)MyGamePlayers.Plaintiff;
+                    byte partyGoingFirst = pGoesFirst ? (byte)MyGamePlayers.Plaintiff : (byte)MyGamePlayers.Defendant;
+                    byte partyGoingSecond = pGoesFirst ? (byte)MyGamePlayers.Defendant : (byte)MyGamePlayers.Plaintiff;
                     byte otherPlayer = currentPlayer == (byte)MyGamePlayers.Plaintiff ? (byte)MyGamePlayers.Defendant : (byte)MyGamePlayers.Plaintiff;
+                    
+                    if (partiesForgetEarlierBargaining && currentPlayer == partyGoingSecond)
                     {
-                        if (partiesForgetEarlierBargaining)
-                        {
-                            // Whenever a player makes a decision, we insert a stub (which indicates that the decision has occurred) and for the other party an indication of what the decision is. 
-                            // When we make a decision a separate time, we'll remove the previous indication of what the decision was, but we'll still have a stub for each decision.
-                            // Because a stub only has one value, it doesn't increase the number of paths, so there's no harm in adding it to the information set, even if it may sometimes be redundant.
-                            if (bargainingRound > 1)
-                                gameHistory.ReduceItemsInInformationSet(otherPlayer, decisionByteCode, 1); // remove this party's previous move from the other party's information set (but not the previous stub)
-                            gameHistory.AddToInformationSet(GameHistory.StubToIndicateDecisionOccurred, currentDecisionIndex, otherPlayer); // stub will never be removed
-                            gameHistory.AddToInformationSet(actionChosen, currentDecisionIndex, otherPlayer);
-                        }
-                        else
-                        {
-                            gameHistory.AddToInformationSet(actionChosen, currentDecisionIndex, currentPlayer); // remember own decision
-                            gameHistory.AddToInformationSet(actionChosen, currentDecisionIndex, otherPlayer); // convey decision
-                        }
+                        // Based on code below, both information sets contain information about this round. But now it turns out that we want to forget this round.
+                        // We're now at a point where the second party has made its decision. We need to make sure that in the NEXT round,
+                        // the parties do not remember their decisions. 
+                        gameHistory.ReduceItemsInInformationSet(currentPlayer, currentDecisionIndex, 1);
+                        gameHistory.ReduceItemsInInformationSet(otherPlayer, currentDecisionIndex, 1);
+                        // But we do need to remember that the decision has occurred, to enable distinguishing between decisions in different rounds.
+                        gameHistory.AddToInformationSet(GameHistory.StubToIndicateDecisionOccurred, currentDecisionIndex, currentPlayer);
+                        gameHistory.AddToInformationSet(GameHistory.StubToIndicateDecisionOccurred, currentDecisionIndex, otherPlayer);
+                    }
+                    else
+                    {
+                        gameHistory.AddToInformationSet(actionChosen, currentDecisionIndex, currentPlayer); // remember own decision
+                        gameHistory.AddToInformationSet(actionChosen, currentDecisionIndex, otherPlayer); // convey decision
                     }
                 }
 
@@ -229,7 +229,7 @@ namespace ACESim
                     gameHistory.ReduceItemsInInformationSet((byte)MyGamePlayers.Resolution, decisionByteCode, numItems);
                 }
                 if (numItems == 0)
-                    gameHistory.AddToInformationSet(decisionByteCode, currentDecisionIndex, (byte)MyGamePlayers.Resolution); 
+                    gameHistory.AddToInformationSet(currentDecisionIndex, currentDecisionIndex, (byte)MyGamePlayers.Resolution); // in effect, just note the decision leading to resolution
                 gameHistory.AddToInformationSet(actionChosen, decisionByteCode, (byte)MyGamePlayers.Resolution);
             }
         }
