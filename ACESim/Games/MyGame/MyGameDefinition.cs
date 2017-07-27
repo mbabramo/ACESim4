@@ -154,8 +154,7 @@ namespace ACESim
 
         public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, ref GameHistory gameHistory)
         {
-            bool partiesForgetEarlierBargaining = true;
-            debug; // something's wrong -- the above isn't making a difference
+            bool partiesForgetEarlierBargaining = false;
             byte decisionByteCode = currentDecision.DecisionByteCode;
             if (decisionByteCode >= (byte)MyGameDecisions.POffer && decisionByteCode <= (byte)MyGameDecisions.DResponse)
             {
@@ -170,7 +169,7 @@ namespace ACESim
                     {
                         // We have completed this round of bargaining. Only now should we add the information to the plaintiff and defendant information sets. 
                         // Note that the plaintiff and defendant will both have made their decisions based on the decisions in the prior round.
-                        // We don't want to add the plaintiff's decision before the defendant has actually made a decision.
+                        // We don't want to add the plaintiff's decision before the defendant has actually made a decision, so that's why we add both decisions now.
                         // If this is not the first round, then we should remove the last piece of information from both. 
                         if (partiesForgetEarlierBargaining && bargainingRound > 1)
                         {
@@ -178,39 +177,37 @@ namespace ACESim
                             gameHistory.ReduceItemsInInformationSet((byte)MyGamePlayers.Defendant, decisionByteCode, 1);
                         }
                         // Now add the information -- a stub for the player about their own decision and the actual decision for the other player.
-                        // This way, when we remove the decision in a later bargaining round (if we indeed do so), we'll still know precisely what round we're in.
+                        // This way, when we remove the decision in a later bargaining round (if we indeed do so), the information set will still distinguish
+                        // between bargaining rounds.
                         // But what did the plaintiff actually offer? To figure that out, we need to look at the GameHistory. This will be two decisions ago.
                         (_, byte previousActionChosen) = gameHistory.GetLastTwoActions();
-                        gameHistory.AddToInformationSet(1, currentDecisionIndex, (byte)MyGamePlayers.Plaintiff);
+                        gameHistory.AddToInformationSet(GameHistory.StubToIndicateDecisionOccurred, currentDecisionIndex, (byte)MyGamePlayers.Plaintiff);
                         gameHistory.AddToInformationSet(actionChosen, currentDecisionIndex, (byte)MyGamePlayers.Plaintiff); // defendant's decision conveyed to plaintiff
-                        gameHistory.AddToInformationSet(1, currentDecisionIndex, (byte)MyGamePlayers.Defendant);
+                        gameHistory.AddToInformationSet(GameHistory.StubToIndicateDecisionOccurred, currentDecisionIndex, (byte)MyGamePlayers.Defendant);
                         gameHistory.AddToInformationSet(previousActionChosen, currentDecisionIndex, (byte)MyGamePlayers.Defendant); // plaintiff's decision conveyed to defendant
-
                     }
                 }
                 else
                 { // offer-response bargaining
-                    // the response may be irrelevant but no harm adding it to information set
-                    byte partyGoingFirst = (BargainingRoundsPGoesFirstIfNotSimultaneous[bargainingRoundIndex]) ? (byte)MyGamePlayers.Plaintiff : (byte)MyGamePlayers.Defendant;
-                    byte partyGoingSecond = (BargainingRoundsPGoesFirstIfNotSimultaneous[bargainingRoundIndex]) ? (byte)MyGamePlayers.Defendant : (byte)MyGamePlayers.Plaintiff;
+                    bool pGoesFirst = BargainingRoundsPGoesFirstIfNotSimultaneous[bargainingRoundIndex];
+                    //byte partyGoingFirst = pGoesFirst ? (byte)MyGamePlayers.Plaintiff : (byte)MyGamePlayers.Defendant;
+                    //byte partyGoingSecond = pGoesFirst ? (byte)MyGamePlayers.Defendant : (byte)MyGamePlayers.Plaintiff;
+                    byte otherPlayer = currentPlayer == (byte)MyGamePlayers.Plaintiff ? (byte)MyGamePlayers.Defendant : (byte)MyGamePlayers.Plaintiff;
                     {
-                        if (currentPlayer == partyGoingFirst)
+                        if (partiesForgetEarlierBargaining)
                         {
-                            // Starting a round after the first. Let's remove the old items in the plaintiff's and defendant's information sets (keeping the stubs, so that they know where they are).
-                            if (partiesForgetEarlierBargaining && bargainingRound > 1)
-                            {
-                                // Note that the party going first has already chosen at this point. So that party will at the time of its decision know its previous offer. But the party going second will only find out about the most recent offer. 
-                                gameHistory.ReduceItemsInInformationSet((byte)MyGamePlayers.Plaintiff, decisionByteCode, 1);
-                                gameHistory.ReduceItemsInInformationSet((byte)MyGamePlayers.Defendant, decisionByteCode, 1);
-                            }
-                            gameHistory.AddToInformationSet(1, currentDecisionIndex, (byte)MyGamePlayers.Plaintiff); // stub to remember decision has been made
-                            gameHistory.AddToInformationSet(1, currentDecisionIndex, (byte)MyGamePlayers.Defendant); // stub to remember decision has been made
-                            gameHistory.AddToInformationSet(actionChosen, currentDecisionIndex, partyGoingSecond); // offeror's decision coveyed
+                            // Whenever a player makes a decision, we insert a stub (which indicates that the decision has occurred) and for the other party an indication of what the decision is. 
+                            // When we make a decision a separate time, we'll remove the previous indication of what the decision was, but we'll still have a stub for each decision.
+                            // Because a stub only has one value, it doesn't increase the number of paths, so there's no harm in adding it to the information set, even if it may sometimes be redundant.
+                            if (bargainingRound > 1)
+                                gameHistory.ReduceItemsInInformationSet(otherPlayer, decisionByteCode, 1); // remove this party's previous move from the other party's information set (but not the previous stub)
+                            gameHistory.AddToInformationSet(GameHistory.StubToIndicateDecisionOccurred, currentDecisionIndex, otherPlayer); // stub will never be removed
+                            gameHistory.AddToInformationSet(actionChosen, currentDecisionIndex, otherPlayer);
                         }
                         else
                         {
-                            // stub already exists, so all we need is to add the defendant's decision.
-                            gameHistory.AddToInformationSet(actionChosen, currentDecisionIndex, partyGoingFirst); // offeree's decision conveyed
+                            gameHistory.AddToInformationSet(actionChosen, currentDecisionIndex, currentPlayer); // remember own decision
+                            gameHistory.AddToInformationSet(actionChosen, currentDecisionIndex, otherPlayer); // convey decision
                         }
                     }
                 }

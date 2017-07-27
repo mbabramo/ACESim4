@@ -18,6 +18,8 @@ namespace ACESim
         public const int MaxNumPlayers = 4; // this affects fixed-size stack-allocated buffers
         public const int MaxPossibleActions = 100; // same
 
+        Debug; // we should add feature to count or maybe print information sets for each player. That way, we can see if this is working properly and reflecting the information that we think it should be.
+
         public enum CRMAlgorithm
         {
             Vanilla,
@@ -40,10 +42,14 @@ namespace ACESim
         int LastOpponentEpsilonIteration = 10000;
         double CurrentEpsilonValue; // set in algorithm.
 
+        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
+        bool AllowSkipEveryPermutationInitialization = true;
+        public bool SkipEveryPermutationInitialization => (AllowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame));
+
         int? ReportEveryNIterations => Algorithm == CRMAlgorithm.Vanilla ? 10000 : 100000;
         int? BestResponseEveryMIterations => Algorithm == CRMAlgorithm.Vanilla ? 30000 : 500000;
         public int NumRandomIterationsForReporting = 10000;
-        bool PrintGameTreeAfterReport = false;
+        bool PrintGameTreeAfterReport = true;
         bool AlwaysUseAverageStrategyInReporting = true;
 
         public List<Strategy> Strategies { get; set; }
@@ -57,10 +63,6 @@ namespace ACESim
         public GamePlayer GamePlayer { get; set; }
 
         public CurrentExecutionInformation CurrentExecutionInformation { get; set; }
-
-        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
-        bool AllowSkipEveryPermutationInitialization = false; // DEBUG
-        public bool SkipEveryPermutationInitialization => (AllowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame));
 
         public HistoryNavigationInfo Navigation;
 
@@ -186,19 +188,20 @@ namespace ACESim
                 //var actionsToHere = historyPoint.GetActionsToHereString(Navigation);
             }
             historyPoint.SetFinalUtilitiesAtPoint(Navigation, gameProgress);
+            Debug.WriteLine($"DEBUG: {historyPoint.GetActionsToHereString(Navigation)}");
         }
 
         public ICRMGameState GetGameState(HistoryPoint historyPoint, HistoryNavigationInfo? navigation = null)
         {
-            if (navigation == null)
-                navigation = Navigation;
-            var gameState = historyPoint.GetGameStateForCurrentPlayer((HistoryNavigationInfo) navigation);
+            HistoryNavigationInfo navigationSettings = navigation ?? Navigation;
+            var gameState = historyPoint.GetGameStateForCurrentPlayer(navigationSettings);
             if (gameState == null)
             {
-                List<byte> actionsSoFar = historyPoint.GetActionsToHere((HistoryNavigationInfo)navigation);
+                List<byte> actionsSoFar = historyPoint.GetActionsToHere(navigationSettings);
                 (GameProgress progress, _) = GamePlayer.PlayPath(actionsSoFar, false);
                 ProcessInitializedGameProgress(progress);
-                gameState = historyPoint.GetGameStateForCurrentPlayer((HistoryNavigationInfo)navigation);
+                NumInitializedGamePaths++; // Note: This may not be exact if we initialize the same game path twice
+                gameState = historyPoint.GetGameStateForCurrentPlayer(navigationSettings);
                 if (gameState == null)
                     throw new Exception("Internal error.");
             }
@@ -1372,6 +1375,7 @@ namespace ACESim
                 reportGenerator = GenerateReports_AllPaths;
             }
             Debug.WriteLine($"{GenerateReports(reportGenerator)}");
+            Debug.WriteLine($"Number initialized game paths: {NumInitializedGamePaths}");
         }
 
         private unsafe void CompareBestResponse(int iteration, bool useRandomPaths)
