@@ -62,8 +62,6 @@ namespace ACESim
             {
                 actionToTake(gp);
                 Interlocked.Increment(ref numPathsPlayed);
-                if (numPathsPlayed == 3)
-                    Br.eak.Add("Prob");
             }) ;
             s.Stop();
             Debug.WriteLine("PlayAllPathsTime " + s.ElapsedMilliseconds);

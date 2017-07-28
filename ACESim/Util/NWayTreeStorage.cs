@@ -56,6 +56,11 @@ namespace ACESim
             return true; // this is a leaf node if not overriden
         }
 
+        public virtual void WalkTree(Action<NWayTreeStorage<T>> action)
+        {
+            action(this);
+        }
+
         public string ToTreeString()
         {
             StringBuilder s = new StringBuilder();

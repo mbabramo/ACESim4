@@ -22,10 +22,13 @@ namespace ACESim
         {
             Vanilla,
             Probing,
-            AverageStrategySampling
+            AverageStrategySampling,
+            PureStrategyFinder
         }
 
-        CRMAlgorithm Algorithm = CRMAlgorithm.AverageStrategySampling;
+
+
+        CRMAlgorithm Algorithm = CRMAlgorithm.PureStrategyFinder;
         const int TotalAvgStrategySamplingCFRIterations = 100000000;
         const int TotalProbingCFRIterations = 100000000;
         const int TotalVanillaCFRIterations = 100000000;
@@ -42,7 +45,7 @@ namespace ACESim
 
         public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameTreeOnly;
         bool AllowSkipEveryPermutationInitialization = true;
-        public bool SkipEveryPermutationInitialization => (AllowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame));
+        public bool SkipEveryPermutationInitialization => (AllowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)) && Algorithm != CRMAlgorithm.PureStrategyFinder;
 
         int? ReportEveryNIterations => Algorithm == CRMAlgorithm.Vanilla ? 10000 : 100000;
         int? BestResponseEveryMIterations => Algorithm == CRMAlgorithm.Vanilla ? 30000 : 5000000;
@@ -139,6 +142,9 @@ namespace ACESim
                 case CRMAlgorithm.Vanilla:
                     SolveVanillaCRM();
                     break;
+                case CRMAlgorithm.PureStrategyFinder:
+                    FindPureStrategies();
+                    break;
                 default:
                     throw new NotImplementedException();
             }
@@ -162,7 +168,7 @@ namespace ACESim
 
             // Create game trees
             GameHistoryTree = new NWayTreeStorageInternal<ICRMGameState>(null, GameDefinition.DecisionsExecutionOrder.First().NumPossibleActions);
-            
+
             NumInitializedGamePaths = GamePlayer.PlayAllPaths(ProcessInitializedGameProgress);
             Debug.WriteLine($"Initialized. Total paths: {NumInitializedGamePaths}");
             PrintSameGameResults();
@@ -357,7 +363,7 @@ namespace ACESim
         #endregion
 
         #region Utility methods
-        
+
 
         private unsafe HistoryPoint GetStartOfGameHistoryPoint()
         {
@@ -419,6 +425,56 @@ namespace ACESim
         #endregion
 
         #region Game play and reporting
+
+        private unsafe void GenerateReports(int iteration, Func<string> prefaceFn)
+        {
+            if (ReportEveryNIterations != null && iteration % ReportEveryNIterations == 0)
+            {
+                ActionStrategies previous = ActionStrategy;
+                bool useRandomPaths = SkipEveryPermutationInitialization || NumInitializedGamePaths > NumRandomIterationsForReporting;
+                Debug.WriteLine("");
+                Debug.WriteLine(prefaceFn());
+                MainReport(useRandomPaths);
+                CompareBestResponse(iteration, useRandomPaths);
+                if (AlwaysUseAverageStrategyInReporting)
+                    ActionStrategy = previous;
+                if (PrintGameTreeAfterReport)
+                    PrintGameTree();
+                if (PrintInformationSetsAfterReport)
+                    PrintInformationSets();
+            }
+        }
+
+        private unsafe void MainReport(bool useRandomPaths)
+        {
+            Action<GamePlayer> reportGenerator;
+            if (useRandomPaths)
+            {
+                Debug.WriteLine($"Result using {NumRandomIterationsForReporting} randomly chosen paths");
+                reportGenerator = GenerateReports_RandomPaths;
+            }
+            else
+            {
+                Debug.WriteLine($"Result using all paths");
+                reportGenerator = GenerateReports_AllPaths;
+            }
+            Debug.WriteLine($"{GenerateReports(reportGenerator)}");
+            //Debug.WriteLine($"Number initialized game paths: {NumInitializedGamePaths}");
+        }
+
+        private unsafe void CompareBestResponse(int iteration, bool useRandomPaths)
+        {
+            if (BestResponseEveryMIterations != null && iteration % BestResponseEveryMIterations == 0)
+                for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
+                {
+                    double bestResponseUtility = CalculateBestResponse(playerBeingOptimized, ActionStrategy);
+                    double bestResponseImprovement = bestResponseUtility - UtilityCalculations[playerBeingOptimized].Average();
+                    if (!useRandomPaths && bestResponseImprovement < -1E-15)
+                        throw new Exception("Best response function worse."); // it can be slightly negative as a result of rounding error or if we are using random paths as a result of sampling error
+                    Debug.WriteLine($"Player {playerBeingOptimized} utility with regret matching {UtilityCalculations[playerBeingOptimized].Average()} using best response against regret matching {bestResponseUtility} best response improvement {bestResponseImprovement}");
+                }
+        }
+
 
         public List<GameProgress> GetRandomCompleteGames(GamePlayer player, int numIterations)
         {
@@ -490,6 +546,46 @@ namespace ACESim
             });
         }
 
+        public double[] GetAverageUtilities()
+        {
+            double[] cumulated = new double[NumNonChancePlayers];
+            GetAverageUtilities_Helper(cumulated, 1.0);
+            return cumulated;
+        }
+
+        public unsafe void GetAverageUtilities_Helper(double[] cumulated, double prob)
+        {
+            Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, GetGameState);
+            HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
+            ICRMGameState gameState = historyPoint.GetGameStateForCurrentPlayer(Navigation);
+            if (gameState is CRMFinalUtilities finalUtilities)
+            {
+                for (byte p = 0; p < NumNonChancePlayers; p++)
+                    cumulated[p] += finalUtilities.Utilities[p] * prob;
+            }
+            else if (gameState is CRMChanceNodeSettings chanceNode)
+            {
+                byte numPossibilities = GameDefinition.DecisionsExecutionOrder[chanceNode.DecisionIndex].NumPossibleActions;
+                for (byte a = 1; a <= numPossibilities; a++)
+                {
+                    double actionProb = chanceNode.GetActionProbability(a);
+                    if (actionProb > 0)
+                        GetAverageUtilities_Helper(cumulated, prob * actionProb);
+                }
+            }
+            else if (gameState is CRMInformationSetNodeTally nodeTally)
+            {
+                byte numPossibilities = GameDefinition.DecisionsExecutionOrder[nodeTally.DecisionIndex].NumPossibleActions;
+                double* actionProbabilities = stackalloc double[numPossibilities];
+                nodeTally.GetRegretMatchingProbabilities(actionProbabilities);
+                for (byte a = 1; a <= numPossibilities; a++)
+                {
+                    if (actionProbabilities[a - 1] > 0)
+                        GetAverageUtilities_Helper(cumulated, prob * actionProbabilities[a - 1]);
+                }
+            }
+        }
+
         SimpleReport[] ReportsBeingGenerated = null;
 
         public string GenerateReports(Action<GamePlayer> generator)
@@ -509,8 +605,6 @@ namespace ACESim
         }
 
         StatCollector[] UtilityCalculations;
-
-
 
         private void GenerateReports_AllPaths(GamePlayer player)
         {
@@ -1370,56 +1464,56 @@ namespace ACESim
             GenerateReports(iteration, () => $"Iteration {iteration} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)iteration + 1.0)))}");
         }
 
-        private unsafe void GenerateReports(int iteration, Func<string> prefaceFn)
-        {
-            if (ReportEveryNIterations != null && iteration % ReportEveryNIterations == 0)
-            {
-                ActionStrategies previous = ActionStrategy;
-                bool useRandomPaths = SkipEveryPermutationInitialization || NumInitializedGamePaths > NumRandomIterationsForReporting;
-                Debug.WriteLine("");
-                Debug.WriteLine(prefaceFn());
-                MainReport(useRandomPaths);
-                CompareBestResponse(iteration, useRandomPaths);
-                if (AlwaysUseAverageStrategyInReporting)
-                    ActionStrategy = previous;
-                if (PrintGameTreeAfterReport)
-                    PrintGameTree();
-                if (PrintInformationSetsAfterReport)
-                    PrintInformationSets();
-            }
-        }
 
-        private unsafe void MainReport(bool useRandomPaths)
-        {
-            Action<GamePlayer> reportGenerator;
-            if (useRandomPaths)
-            {
-                Debug.WriteLine($"Result using {NumRandomIterationsForReporting} randomly chosen paths");
-                reportGenerator = GenerateReports_RandomPaths;
-            }
-            else
-            {
-                Debug.WriteLine($"Result using all paths");
-                reportGenerator = GenerateReports_AllPaths;
-            }
-            Debug.WriteLine($"{GenerateReports(reportGenerator)}");
-            //Debug.WriteLine($"Number initialized game paths: {NumInitializedGamePaths}");
-        }
+        #endregion
 
-        private unsafe void CompareBestResponse(int iteration, bool useRandomPaths)
+        #region Pure strategy finder
+
+        // Find pure equilibria:
+        // 1. Fully initialize game tree
+        // 2. For (P, D), enumerate information sets. Define a global strategy index that specifies a pure strategy in each information set for each player. 
+        // 3. For each pair of information sets, set the pure strategy for each player, playing all chance strategies. Record the average resulting utilities.
+        // 4. Using the matrix, eliminated dominated strategies. That is, for each column A, look to see if there is another column B that is always at least as good for column player. If so, eliminate A. Do same for rows (for row player). Repeat until a cycle produces no changes.
+
+        public void FindPureStrategies()
         {
-            if (BestResponseEveryMIterations != null && iteration % BestResponseEveryMIterations == 0)
-                for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
+            if (NumNonChancePlayers != 2)
+                throw new NotImplementedException();
+            List<(CRMInformationSetNodeTally, int)> player0InformationSets = Strategies[0].GetTallyNodes(GameDefinition);
+            List<(CRMInformationSetNodeTally, int)> player1InformationSets = Strategies[0].GetTallyNodes(GameDefinition);
+            int player0Permutations = player0InformationSets.Aggregate(1, (acc, val) => acc * val.Item2);
+            int player1Permutations = player1InformationSets.Aggregate(1, (acc, val) => acc * val.Item2);
+            double[,] player0Utilities = new double[player0Permutations, player1Permutations];
+            double[,] player1Utilities = new double[player0Permutations, player1Permutations];
+            for (int player0StrategyIndex = 0; player0StrategyIndex < player0Permutations; player0StrategyIndex++)
+            {
+                SetPureStrategyBasedOnIndex(player0InformationSets, player0StrategyIndex, player0Permutations);
+                for (int player1StrategyIndex = 0; player1StrategyIndex < player1Permutations; player1StrategyIndex++)
                 {
-                    double bestResponseUtility = CalculateBestResponse(playerBeingOptimized, ActionStrategy);
-                    double bestResponseImprovement = bestResponseUtility - UtilityCalculations[playerBeingOptimized].Average();
-                    if (!useRandomPaths && bestResponseImprovement < -1E-15)
-                        throw new Exception("Best response function worse."); // it can be slightly negative as a result of rounding error or if we are using random paths as a result of sampling error
-                    Debug.WriteLine($"Player {playerBeingOptimized} utility with regret matching {UtilityCalculations[playerBeingOptimized].Average()} using best response against regret matching {bestResponseUtility} best response improvement {bestResponseImprovement}");
+                    SetPureStrategyBasedOnIndex(player1InformationSets, player1StrategyIndex, player1Permutations);
+                    double[] utils = GetAverageUtilities();
+                    player0Utilities[player0StrategyIndex, player1StrategyIndex] = utils[0];
+                    player1Utilities[player0StrategyIndex, player1StrategyIndex] = utils[1];
                 }
+            }
         }
 
-
+        private void SetPureStrategyBasedOnIndex(List<(CRMInformationSetNodeTally tally, int numPossible)> tallies, int strategyIndex, int totalStrategyPermutations)
+        {
+            int cumulative = 1;
+            foreach (var tally in tallies)
+            {
+                cumulative *= tally.numPossible;
+                int q = totalStrategyPermutations / cumulative;
+                int indexForThisDecision = 0;
+                while (strategyIndex >= q)
+                {
+                    strategyIndex -= q;
+                    indexForThisDecision++;
+                }
+                tally.tally.SetActionToCertaintyInRegretMatching((byte)(indexForThisDecision - 1), (byte) tally.numPossible);
+            }
+        }
 
         #endregion
     }

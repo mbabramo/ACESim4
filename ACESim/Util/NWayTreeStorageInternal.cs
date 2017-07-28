@@ -179,6 +179,17 @@ namespace ACESim
             }
         }
 
+        public override void WalkTree(Action<NWayTreeStorage<T>> action)
+        {
+            action(this);
+            if (Branches != null)
+                for (int branch = 1; branch <= Branches.Length; branch++)
+                {
+                    if (Branches[branch - 1] != null && !Branches[branch - 1].Equals(default(T)))
+                        Branches[branch - 1].WalkTree(action);
+                }
+        }
+
         internal override void ToTreeString(StringBuilder s, int? branch, int level)
         {
             base.ToTreeString(s, branch, level);

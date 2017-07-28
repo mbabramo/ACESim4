@@ -171,5 +171,17 @@ namespace ACESim
             path = Path.Combine(SimulationInteraction.BaseOutputDirectory, SimulationInteraction.storedStrategiesSubdirectory);
             filenameBase = "strsta" + numStrategyStatesSerialized.ToString();
         }
+
+        public List<(CRMInformationSetNodeTally, int)> GetTallyNodes(GameDefinition gameDefinition)
+        {
+            List<(CRMInformationSetNodeTally, int)> informationSets = new List<(CRMInformationSetNodeTally, int)>();
+            InformationSetTree.WalkTree((NWayTreeStorage<ICRMGameState> tree) =>
+             {
+                 ICRMGameState gameState = tree.StoredValue;
+                 if (gameState != null && gameState is CRMInformationSetNodeTally tally)
+                     informationSets.Add((tally, gameDefinition.DecisionsExecutionOrder[tally.DecisionIndex].NumPossibleActions));
+             });
+             return informationSets;
+        }
     }
 }
