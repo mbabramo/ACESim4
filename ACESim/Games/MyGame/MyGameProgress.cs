@@ -21,6 +21,7 @@ namespace ACESim
         public List<bool> DResponses;
         public bool CaseSettles;
         public double? SettlementValue;
+        public bool TrialOccurs;
         public bool PWinsAtTrial;
         public double PWelfare;
         public double DWelfare;
@@ -123,6 +124,7 @@ namespace ACESim
             copy.DResponses = DResponses == null ? null : DResponses.ToList();
             copy.CaseSettles = CaseSettles;
             copy.SettlementValue = SettlementValue;
+            copy.TrialOccurs = TrialOccurs;
             copy.PWinsAtTrial = PWinsAtTrial;
             copy.PWelfare = PWelfare;
             copy.DWelfare = DWelfare;

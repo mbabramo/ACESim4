@@ -68,6 +68,7 @@ namespace ACESim
             }
             else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.CourtDecision)
             {
+                MyProgress.TrialOccurs = true;
                 // note that the probability of P winning is defined in MyGameDefinition.
                 MyProgress.PWinsAtTrial = action == 2;
             }

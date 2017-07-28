@@ -187,7 +187,7 @@ namespace ACESim
             }
         }
 
-        public (byte mostRecentAction, byte actionBeforeThat) GetLastTwoActions()
+        public (byte mostRecentAction, byte actionBeforeThat) GetLastActionAndActionBeforeThat()
         {
             if (LastIndexAddedToHistory < History_NumPiecesOfInformation * 2)
                 throw new Exception("Internal error. Two actinos have not occurred");

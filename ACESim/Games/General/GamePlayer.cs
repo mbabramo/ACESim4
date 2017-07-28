@@ -71,14 +71,6 @@ namespace ACESim
             while (path != null)
             {
                 (GameProgress gameProgress, IEnumerable<byte> next) = PlayPath(path, true);
-                if ("1,1,1,1,2,1,1" == String.Join(",", gameProgress.GameHistory.GetActionsAsList()))
-                {
-                    var DEBUG = 0;
-                }
-                // Debug.WriteLine($"{String.Join(",", path)} => {String.Join(",", progressToUse.GameHistory.GetActionsAsList())}");
-                //var thePathEnumerated = next?.ToList();
-                //if (thePathEnumerated != null)
-                //    Debug.WriteLine($"{String.Join(",", thePathEnumerated)}");
                 processor(gameProgress);
                 if (next == null)
                     path = null;

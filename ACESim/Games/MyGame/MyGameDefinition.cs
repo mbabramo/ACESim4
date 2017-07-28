@@ -154,7 +154,7 @@ namespace ACESim
 
         public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, ref GameHistory gameHistory)
         {
-            bool partiesForgetEarlierBargaining = true;
+            bool partiesForgetEarlierBargaining = false;
             byte decisionByteCode = currentDecision.DecisionByteCode;
             if (decisionByteCode >= (byte)MyGameDecisions.POffer && decisionByteCode <= (byte)MyGameDecisions.DResponse)
             {
@@ -180,11 +180,11 @@ namespace ACESim
                         // This way, when we remove the decision in a later bargaining round (if we indeed do so), the information set will still distinguish
                         // between bargaining rounds.
                         // But what did the plaintiff actually offer? To figure that out, we need to look at the GameHistory. This will be two decisions ago.
-                        (_, byte previousActionChosen) = gameHistory.GetLastTwoActions();
+                        (_, byte plaintiffsActionChosen) = gameHistory.GetLastActionAndActionBeforeThat();
                         gameHistory.AddToInformationSet(GameHistory.StubToIndicateDecisionOccurred, currentDecisionIndex, (byte)MyGamePlayers.Plaintiff);
                         gameHistory.AddToInformationSet(actionChosen, currentDecisionIndex, (byte)MyGamePlayers.Plaintiff); // defendant's decision conveyed to plaintiff
                         gameHistory.AddToInformationSet(GameHistory.StubToIndicateDecisionOccurred, currentDecisionIndex, (byte)MyGamePlayers.Defendant);
-                        gameHistory.AddToInformationSet(previousActionChosen, currentDecisionIndex, (byte)MyGamePlayers.Defendant); // plaintiff's decision conveyed to defendant
+                        gameHistory.AddToInformationSet(plaintiffsActionChosen, currentDecisionIndex, (byte)MyGamePlayers.Defendant); // plaintiff's decision conveyed to defendant
                     }
                 }
                 else
@@ -243,21 +243,16 @@ namespace ACESim
                 return true;
             if (decisionByteCode == (byte)MyGameDecisions.DResponse || decisionByteCode == (byte)MyGameDecisions.PResponse)
             {
-                var lastTwoActions = gameHistory.GetLastTwoActions();
+                var lastTwoActions = gameHistory.GetLastActionAndActionBeforeThat();
                 if (lastTwoActions.mostRecentAction == 1) // offer was accepted
                     return true;
             }
             else if (decisionByteCode == (byte)MyGameDecisions.DOffer)
             {
-                // this is simultaneous bargaining with plaintiff offer first. 
-                (byte plaintiffAction, byte defendantAction) = gameHistory.GetLastTwoActions();
-                if (defendantAction >= plaintiffAction)
-                    return true;
-            }
-            else if (decisionByteCode == (byte)MyGameDecisions.POffer)
-            {
-                // this is simultaneous bargaining with plaintiff offer first. 
-                (byte defendantAction, byte plaintiffAction) = gameHistory.GetLastTwoActions();
+                // this is simultaneous bargaining (plaintiff offer is always first). 
+                if (!BargainingRoundsSimultaneous[currentDecision.CustomByte - 1])
+                    throw new Exception("Internal error."); // DEBUG -- should be able to delete this
+                (byte defendantAction, byte plaintiffAction) = gameHistory.GetLastActionAndActionBeforeThat();
                 if (defendantAction >= plaintiffAction)
                     return true;
             }
