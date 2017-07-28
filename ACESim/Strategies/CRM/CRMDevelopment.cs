@@ -549,14 +549,14 @@ namespace ACESim
         public double[] GetAverageUtilities()
         {
             double[] cumulated = new double[NumNonChancePlayers];
-            GetAverageUtilities_Helper(cumulated, 1.0);
+            Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, GetGameState);
+            HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
+            GetAverageUtilities_Helper(historyPoint, cumulated, 1.0);
             return cumulated;
         }
 
-        public unsafe void GetAverageUtilities_Helper(double[] cumulated, double prob)
+        public unsafe void GetAverageUtilities_Helper(HistoryPoint historyPoint, double[] cumulated, double prob)
         {
-            Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, GetGameState);
-            HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
             ICRMGameState gameState = historyPoint.GetGameStateForCurrentPlayer(Navigation);
             if (gameState is CRMFinalUtilities finalUtilities)
             {
@@ -566,11 +566,14 @@ namespace ACESim
             else if (gameState is CRMChanceNodeSettings chanceNode)
             {
                 byte numPossibilities = GameDefinition.DecisionsExecutionOrder[chanceNode.DecisionIndex].NumPossibleActions;
-                for (byte a = 1; a <= numPossibilities; a++)
+                for (byte action = 1; action <= numPossibilities; action++)
                 {
-                    double actionProb = chanceNode.GetActionProbability(a);
+                    double actionProb = chanceNode.GetActionProbability(action);
                     if (actionProb > 0)
-                        GetAverageUtilities_Helper(cumulated, prob * actionProb);
+                    {
+                        HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
+                        GetAverageUtilities_Helper(nextHistoryPoint, cumulated, prob * actionProb);
+                    }
                 }
             }
             else if (gameState is CRMInformationSetNodeTally nodeTally)
@@ -578,10 +581,13 @@ namespace ACESim
                 byte numPossibilities = GameDefinition.DecisionsExecutionOrder[nodeTally.DecisionIndex].NumPossibleActions;
                 double* actionProbabilities = stackalloc double[numPossibilities];
                 nodeTally.GetRegretMatchingProbabilities(actionProbabilities);
-                for (byte a = 1; a <= numPossibilities; a++)
+                for (byte action = 1; action <= numPossibilities; action++)
                 {
-                    if (actionProbabilities[a - 1] > 0)
-                        GetAverageUtilities_Helper(cumulated, prob * actionProbabilities[a - 1]);
+                    if (actionProbabilities[action - 1] > 0)
+                    {
+                        HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
+                        GetAverageUtilities_Helper(nextHistoryPoint, cumulated, prob * actionProbabilities[action - 1]);
+                    }
                 }
             }
         }

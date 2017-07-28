@@ -106,7 +106,7 @@ namespace ACESim
         public void SetActionToCertaintyInRegretMatching(byte action, byte numPossibleActions)
         {
             for (byte a = 1; a <= numPossibleActions; a++)
-                NodeInformation[cumulativeRegretDimension, action - 1] = (a == action) ? 1.0 : 0;
+                NodeInformation[cumulativeRegretDimension, a - 1] = (a == action) ? 1.0 : 0;
         }
 
         public double GetCumulativeStrategy(int action)
