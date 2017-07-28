@@ -92,6 +92,12 @@ namespace ACESim
             return NodeInformation[cumulativeRegretDimension, action - 1];
         }
 
+        public void IncrementCumulativeRegret_Parallel(int action, double amount)
+        {
+            lock (this)
+                NodeInformation[cumulativeRegretDimension, action - 1] += amount;
+        }
+
         public void IncrementCumulativeRegret(int action, double amount)
         {
             NodeInformation[cumulativeRegretDimension, action - 1] += amount;
@@ -101,6 +107,12 @@ namespace ACESim
         {
             double v = NodeInformation[cumulativeStrategyDimension, action - 1];
             return v;
+        }
+
+        public void IncrementCumulativeStrategy_Parallel(int action, double amount)
+        {
+            lock (this)
+                NodeInformation[cumulativeStrategyDimension, action - 1] += amount;
         }
 
         public void IncrementCumulativeStrategy(int action, double amount)

@@ -40,12 +40,12 @@ namespace ACESim
         int LastOpponentEpsilonIteration = 10000;
         double CurrentEpsilonValue; // set in algorithm.
 
-        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
+        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameTreeOnly;
         bool AllowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => (AllowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame));
 
-        int? ReportEveryNIterations => Algorithm == CRMAlgorithm.Vanilla ? 10000 : 10000;
-        int? BestResponseEveryMIterations => Algorithm == CRMAlgorithm.Vanilla ? 30000 : 500000;
+        int? ReportEveryNIterations => Algorithm == CRMAlgorithm.Vanilla ? 10000 : 100000;
+        int? BestResponseEveryMIterations => Algorithm == CRMAlgorithm.Vanilla ? 30000 : 5000000;
         public int NumRandomIterationsForReporting = 10000;
         bool PrintGameTreeAfterReport = false;
         bool PrintInformationSetsAfterReport = false;
@@ -974,8 +974,6 @@ namespace ACESim
 
         public void ProbingCFRIteration(int iteration)
         {
-            Stopwatch s = new Stopwatch();
-            s.Start();
             CurrentEpsilonValue = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(FirstOpponentEpsilonValue, LastOpponentEpsilonValue, 0.75, (double)iteration / (double)TotalProbingCFRIterations);
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
@@ -989,19 +987,21 @@ namespace ACESim
                 if (TraceProbingCRM)
                     TabbedText.Tabs--;
             }
-            s.Stop();
-            GenerateReports(iteration, s);
         }
 
         int ProbingCFRIterationNum;
         public unsafe void SolveProbingCRM()
         {
+            Stopwatch s = new Stopwatch();
             if (NumNonChancePlayers > 2)
                 throw new Exception("Internal error. Must implement extra code from Gibson algorithm 2 for more than 2 players.");
             ActionStrategy = ActionStrategies.RegretMatching;
             for (ProbingCFRIterationNum = 0; ProbingCFRIterationNum < TotalProbingCFRIterations; ProbingCFRIterationNum++)
             {
+                s.Start();
                 ProbingCFRIteration(ProbingCFRIterationNum);
+                s.Stop();
+                GenerateReports(ProbingCFRIterationNum, () => $"Iteration {ProbingCFRIterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)(ProbingCFRIterationNum + 1))))}");
             }
         }
 
@@ -1059,7 +1059,10 @@ namespace ACESim
                     for (byte action = 1; action <= numPossibleActions; action++)
                     {
                         double cumulativeStrategyIncrement = sigma_regretMatchedActionProbabilities[action - 1] / samplingProbabilityQ;
-                        informationSet.IncrementCumulativeStrategy(action, cumulativeStrategyIncrement);
+                        if (EvolutionSettings.ParallelOptimization)
+                            informationSet.IncrementCumulativeStrategy_Parallel(action, cumulativeStrategyIncrement);
+                        else
+                            informationSet.IncrementCumulativeStrategy(action, cumulativeStrategyIncrement);
                         if (TraceProbingCRM)
                             TabbedText.WriteLine($"Incrementing cumulative strategy for {action} by {cumulativeStrategyIncrement} to {informationSet.GetCumulativeStrategy(action)}");
                     }
@@ -1114,7 +1117,10 @@ namespace ACESim
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
                     double cumulativeRegretIncrement = counterfactualValues[action - 1] - counterfactualSummation;
-                    informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement);
+                    if (EvolutionSettings.ParallelOptimization)
+                        informationSet.IncrementCumulativeRegret_Parallel(action, cumulativeRegretIncrement);
+                    else
+                        informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement);
                     if (TraceAverageStrategySampling)
                     {
                         // v(a) is set to 0 for many of the a E A(I).The key to understanding this is that we're multiplying the utilities we get back by 1/q. So if there is a 1/3 probability of sampling, then we multiply the utility by 3. So, when we don't sample, we're adding 0 to the regrets; and when we sample, we're adding 3 * counterfactual value.Thus, v(a) is an unbiased predictor of value.Meanwhile, we're always subtracting the regret-matched probability-adjusted counterfactual values. 
@@ -1133,8 +1139,6 @@ namespace ACESim
         
         public void AvgStrategySamplingCFRIteration(int iteration)
         {
-            Stopwatch s = new Stopwatch();
-            s.Start();
             CurrentEpsilonValue = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(FirstOpponentEpsilonValue, LastOpponentEpsilonValue, 0.75, (double)iteration / (double)TotalAvgStrategySamplingCFRIterations);
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
@@ -1148,8 +1152,6 @@ namespace ACESim
                 if (TraceAverageStrategySampling)
                     TabbedText.Tabs--;
             }
-            s.Stop();
-            GenerateReports(iteration, s);
         }
 
         int AvgStrategySamplingCFRIterationNum;
@@ -1158,10 +1160,25 @@ namespace ACESim
             if (NumNonChancePlayers > 2)
                 throw new Exception("Internal error. Must implement extra code from Gibson algorithm 2 for more than 2 players.");
             ActionStrategy = ActionStrategies.RegretMatching;
-            for (AvgStrategySamplingCFRIterationNum = 0; AvgStrategySamplingCFRIterationNum < TotalAvgStrategySamplingCFRIterations; AvgStrategySamplingCFRIterationNum++)
+            AvgStrategySamplingCFRIterationNum = -1;
+            int reportingGroupSize = ReportEveryNIterations ?? TotalAvgStrategySamplingCFRIterations;
+            Stopwatch s = new Stopwatch();
+            for (int iterationGrouper = 0; iterationGrouper < TotalAvgStrategySamplingCFRIterations; iterationGrouper += reportingGroupSize)
             {
-                AvgStrategySamplingCFRIteration(AvgStrategySamplingCFRIterationNum);
+                s.Reset();
+                s.Start();
+                Parallelizer.Go(EvolutionSettings.ParallelOptimization, iterationGrouper, iterationGrouper + reportingGroupSize, i =>
+                {
+                    Interlocked.Increment(ref AvgStrategySamplingCFRIterationNum);
+                    AvgStrategySamplingCFRIteration(AvgStrategySamplingCFRIterationNum);
+                });
+                s.Stop();
+                GenerateReports(iterationGrouper, () => $"Iteration {iterationGrouper} Milliseconds per iteration {((s.ElapsedMilliseconds / ((double)reportingGroupSize)))}");
             }
+            //for (AvgStrategySamplingCFRIterationNum = 0; AvgStrategySamplingCFRIterationNum < TotalAvgStrategySamplingCFRIterations; AvgStrategySamplingCFRIterationNum++)
+            //{
+            //    AvgStrategySamplingCFRIteration(AvgStrategySamplingCFRIterationNum);
+            //}
         }
         #endregion
 
@@ -1349,17 +1366,18 @@ namespace ACESim
                 lastUtilities[playerBeingOptimized] = VanillaCRM(historyPoint, playerBeingOptimized, initialPiValues, usePruning);
                 s.Stop();
             }
-            GenerateReports(iteration, s);
+            
+            GenerateReports(iteration, () => $"Iteration {iteration} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)iteration + 1.0)))}");
         }
 
-        private unsafe void GenerateReports(int iteration, Stopwatch s)
+        private unsafe void GenerateReports(int iteration, Func<string> prefaceFn)
         {
             if (ReportEveryNIterations != null && iteration % ReportEveryNIterations == 0)
             {
                 ActionStrategies previous = ActionStrategy;
                 bool useRandomPaths = SkipEveryPermutationInitialization || NumInitializedGamePaths > NumRandomIterationsForReporting;
                 Debug.WriteLine("");
-                Debug.WriteLine($"Iteration {iteration} Milliseconds per iteration {(s.ElapsedMilliseconds / ((double)iteration + 1.0))}");
+                Debug.WriteLine(prefaceFn());
                 MainReport(useRandomPaths);
                 CompareBestResponse(iteration, useRandomPaths);
                 if (AlwaysUseAverageStrategyInReporting)
@@ -1385,7 +1403,7 @@ namespace ACESim
                 reportGenerator = GenerateReports_AllPaths;
             }
             Debug.WriteLine($"{GenerateReports(reportGenerator)}");
-            Debug.WriteLine($"Number initialized game paths: {NumInitializedGamePaths}");
+            //Debug.WriteLine($"Number initialized game paths: {NumInitializedGamePaths}");
         }
 
         private unsafe void CompareBestResponse(int iteration, bool useRandomPaths)
