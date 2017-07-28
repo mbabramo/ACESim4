@@ -1486,11 +1486,41 @@ namespace ACESim
             if (NumNonChancePlayers != 2)
                 throw new NotImplementedException();
             List<(CRMInformationSetNodeTally, int)> player0InformationSets = Strategies[0].GetTallyNodes(GameDefinition);
-            List<(CRMInformationSetNodeTally, int)> player1InformationSets = Strategies[0].GetTallyNodes(GameDefinition);
-            int player0Permutations = player0InformationSets.Aggregate(1, (acc, val) => acc * val.Item2);
-            int player1Permutations = player1InformationSets.Aggregate(1, (acc, val) => acc * val.Item2);
-            double[,] player0Utilities = new double[player0Permutations, player1Permutations];
-            double[,] player1Utilities = new double[player0Permutations, player1Permutations];
+            List<(CRMInformationSetNodeTally, int)> player1InformationSets = Strategies[1].GetTallyNodes(GameDefinition);
+            int player0Permutations, player1Permutations;
+            double[,] player0Utilities, player1Utilities;
+            GetUtilitiesForStrategyCombinations(player0InformationSets, player1InformationSets, out player0Permutations, out player1Permutations, out player0Utilities, out player1Utilities);
+            bool[] player0StrategyEliminated = new bool[player0Permutations];
+            bool[] player1StrategyEliminated = new bool[player1Permutations];
+            EliminateDominatedStrategies(player0Permutations, player1Permutations, player0Utilities, player1Utilities, player0StrategyEliminated, player1StrategyEliminated);
+            PrintAllEquilibriumStrategies(player0InformationSets, player1InformationSets, player0Permutations, player1Permutations, player0StrategyEliminated, player1StrategyEliminated);
+        }
+
+        private void PrintAllEquilibriumStrategies(List<(CRMInformationSetNodeTally, int)> player0InformationSets, List<(CRMInformationSetNodeTally, int)> player1InformationSets, int player0Permutations, int player1Permutations, bool[] player0StrategyEliminated, bool[] player1StrategyEliminated)
+        {
+            for (int player0StrategyIndex = 0; player0StrategyIndex < player0Permutations; player0StrategyIndex++)
+            {
+                if (player0StrategyEliminated[player0StrategyIndex])
+                    continue;
+                SetPureStrategyBasedOnIndex(player0InformationSets, player0StrategyIndex, player0Permutations);
+                for (int player1StrategyIndex = 0; player1StrategyIndex < player1Permutations; player1StrategyIndex++)
+                {
+                    if (player1StrategyEliminated[player1StrategyIndex])
+                        continue;
+                    SetPureStrategyBasedOnIndex(player1InformationSets, player1StrategyIndex, player1Permutations);
+                    GenerateReports(0, () => "");
+                    PrintGameTree();
+                    Debug.WriteLine("");
+                }
+            }
+        }
+
+        private void GetUtilitiesForStrategyCombinations(List<(CRMInformationSetNodeTally, int)> player0InformationSets, List<(CRMInformationSetNodeTally, int)> player1InformationSets, out int player0Permutations, out int player1Permutations, out double[,] player0Utilities, out double[,] player1Utilities)
+        {
+            player0Permutations = player0InformationSets.Aggregate(1, (acc, val) => acc * val.Item2);
+            player1Permutations = player1InformationSets.Aggregate(1, (acc, val) => acc * val.Item2);
+            player0Utilities = new double[player0Permutations, player1Permutations];
+            player1Utilities = new double[player0Permutations, player1Permutations];
             for (int player0StrategyIndex = 0; player0StrategyIndex < player0Permutations; player0StrategyIndex++)
             {
                 SetPureStrategyBasedOnIndex(player0InformationSets, player0StrategyIndex, player0Permutations);
@@ -1504,9 +1534,57 @@ namespace ACESim
             }
         }
 
+        private static void EliminateDominatedStrategies(int player0Permutations, int player1Permutations, double[,] player0Utilities, double[,] player1Utilities, bool[] player0StrategyEliminated, bool[] player1StrategyEliminated)
+        {
+            bool atLeastOneEliminated = true;
+            while (atLeastOneEliminated)
+            {
+                atLeastOneEliminated = EliminateDominateStrategies(player0Permutations, player1Permutations, (player0Index, player1Index) => player0Utilities[player0Index, player1Index], player0StrategyEliminated);
+                atLeastOneEliminated = atLeastOneEliminated | EliminateDominateStrategies(player1Permutations, player0Permutations, (player1Index, player0Index) => player1Utilities[player0Index, player1Index], player1StrategyEliminated);
+            }
+        }
+
+        private static bool EliminateDominateStrategies(int thisPlayerPemutations, int otherPlayerPermutations, Func<int, int, double> getUtilityFn, bool[] thisPlayerStrategyEliminated)
+        {
+            bool atLeastOneEliminated = false;
+            // compare pairs of strategies by this player to see if one dominates the other
+            for (int thisPlayerStrategyIndex1 = 0; thisPlayerStrategyIndex1 < thisPlayerPemutations; thisPlayerStrategyIndex1++)
+                for (int thisPlayerStrategyIndex2 = 0; thisPlayerStrategyIndex2 < thisPlayerPemutations; thisPlayerStrategyIndex2++)
+                {
+                    if (thisPlayerStrategyIndex1 == thisPlayerStrategyIndex2 || thisPlayerStrategyEliminated[thisPlayerStrategyIndex1] || thisPlayerStrategyEliminated[thisPlayerStrategyIndex2])
+                        continue; // go to next pair to compare
+                    bool index1SometimesBetter = false, index2SometimesBetter = false;
+                    for (int opponentStrategyIndex = 0; opponentStrategyIndex < otherPlayerPermutations; opponentStrategyIndex++)
+                    {
+                        double thisPlayerStrategyIndex1Utility = getUtilityFn(thisPlayerStrategyIndex1, opponentStrategyIndex);
+                        double thisPlayerStrategyIndex2Utility = getUtilityFn(thisPlayerStrategyIndex2, opponentStrategyIndex);
+                        if (thisPlayerStrategyIndex1Utility == thisPlayerStrategyIndex2Utility)
+                            continue;
+                        if (thisPlayerStrategyIndex1Utility > thisPlayerStrategyIndex2Utility)
+                            index1SometimesBetter = true;
+                        else
+                            index2SometimesBetter = true;
+                        if (index1SometimesBetter && index2SometimesBetter)
+                            break;
+                    }
+                    if (index1SometimesBetter && !index2SometimesBetter)
+                    {
+                        thisPlayerStrategyEliminated[thisPlayerStrategyIndex2] = true;
+                        atLeastOneEliminated = true;
+                    }
+                    else if (!index1SometimesBetter && index2SometimesBetter)
+                    {
+                        atLeastOneEliminated = true;
+                        thisPlayerStrategyEliminated[thisPlayerStrategyIndex1] = true;
+                    }
+                }
+            return atLeastOneEliminated;
+        }
+
         private void SetPureStrategyBasedOnIndex(List<(CRMInformationSetNodeTally tally, int numPossible)> tallies, int strategyIndex, int totalStrategyPermutations)
         {
             int cumulative = 1;
+            List<int> DEBUG = new List<int>();
             foreach (var tally in tallies)
             {
                 cumulative *= tally.numPossible;
@@ -1517,8 +1595,11 @@ namespace ACESim
                     strategyIndex -= q;
                     indexForThisDecision++;
                 }
-                tally.tally.SetActionToCertaintyInRegretMatching((byte)(indexForThisDecision - 1), (byte) tally.numPossible);
+                byte action = (byte)(indexForThisDecision + 1);
+                tally.tally.SetActionToCertainty(action, (byte) tally.numPossible);
+                DEBUG.Add(action);
             }
+            Debug.WriteLine(String.Join(",", DEBUG));
         }
 
         #endregion
