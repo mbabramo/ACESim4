@@ -392,6 +392,7 @@
     <Compile Include="Strategies\HistoryPoint.cs" />
     <Compile Include="Strategies\InformationSetLookupApproach.cs" />
     <Compile Include="Strategies\StrategyState.cs" />
+    <Compile Include="Util\Br.cs" />
     <Compile Include="Util\DiscreteValueSignalParameters.cs" />
     <Compile Include="Util\EquallySpaced.cs" />
     <Compile Include="Util\InvNormal.cs" />

@@ -40,7 +40,7 @@ namespace ACESim
         int LastOpponentEpsilonIteration = 10000;
         double CurrentEpsilonValue; // set in algorithm.
 
-        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedBothMethods;
+        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
         bool AllowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => (AllowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame));
 

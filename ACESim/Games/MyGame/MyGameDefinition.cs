@@ -154,7 +154,7 @@ namespace ACESim
 
         public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, ref GameHistory gameHistory)
         {
-            bool partiesForgetEarlierBargaining = false;
+            bool partiesForgetEarlierBargaining = true;
             byte decisionByteCode = currentDecision.DecisionByteCode;
             if (decisionByteCode >= (byte)MyGameDecisions.POffer && decisionByteCode <= (byte)MyGameDecisions.DResponse)
             {
@@ -173,8 +173,8 @@ namespace ACESim
                         // If this is not the first round, then we should remove the last piece of information from both. 
                         if (partiesForgetEarlierBargaining && bargainingRound > 1)
                         {
-                            gameHistory.ReduceItemsInInformationSet((byte)MyGamePlayers.Plaintiff, decisionByteCode, 1);
-                            gameHistory.ReduceItemsInInformationSet((byte)MyGamePlayers.Defendant, decisionByteCode, 1);
+                            gameHistory.ReduceItemsInInformationSet((byte)MyGamePlayers.Plaintiff, currentDecisionIndex, 1);
+                            gameHistory.ReduceItemsInInformationSet((byte)MyGamePlayers.Defendant, currentDecisionIndex, 1);
                         }
                         // Now add the information -- a stub for the player about their own decision and the actual decision for the other player.
                         // This way, when we remove the decision in a later bargaining round (if we indeed do so), the information set will still distinguish
@@ -226,7 +226,7 @@ namespace ACESim
                 if (numItems == 3)
                 {
                     numItems = 0;
-                    gameHistory.ReduceItemsInInformationSet((byte)MyGamePlayers.Resolution, decisionByteCode, numItems);
+                    gameHistory.ReduceItemsInInformationSet((byte)MyGamePlayers.Resolution, currentDecisionIndex, numItems);
                 }
                 if (numItems == 0)
                     gameHistory.AddToInformationSet(currentDecisionIndex, currentDecisionIndex, (byte)MyGamePlayers.Resolution); // in effect, just note the decision leading to resolution

@@ -58,7 +58,13 @@ namespace ACESim
             s.Start();
             Action<Action<GameProgress>> playPathsFn = DoParallel ? (Action<Action<GameProgress>>) PlayAllPaths_Parallel : PlayAllPaths_Serial;
             int numPathsPlayed = 0;
-            playPathsFn(gp => { actionToTake(gp); Interlocked.Increment(ref numPathsPlayed); }) ;
+            playPathsFn(gp => 
+            {
+                actionToTake(gp);
+                Interlocked.Increment(ref numPathsPlayed);
+                if (numPathsPlayed == 3)
+                    Br.eak.Add("Prob");
+            }) ;
             s.Stop();
             Debug.WriteLine("PlayAllPathsTime " + s.ElapsedMilliseconds);
             return numPathsPlayed;
