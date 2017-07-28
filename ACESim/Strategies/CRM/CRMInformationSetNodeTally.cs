@@ -181,10 +181,35 @@ namespace ACESim
             return total;
         }
 
+        public (double,int) GetSumPositiveCumulativeRegrets_AndNumberPositive()
+        {
+            double total = 0;
+            int numPositive = 0;
+            for (int i = 0; i < NumPossibleActions; i++)
+            {
+                double cumulativeRegret = NodeInformation[cumulativeRegretDimension, i];
+                if (cumulativeRegret > 0)
+                {
+                    total += cumulativeRegret;
+                    numPositive++;
+                }
+            }
+            return (total, numPositive);
+        }
+
 
         public unsafe void GetRegretMatchingProbabilities(double* probabilitiesToSet)
         {
-            double sumPositiveCumulativeRegrets = GetSumPositiveCumulativeRegrets();
+            (double sumPositiveCumulativeRegrets, int numPositive) = GetSumPositiveCumulativeRegrets_AndNumberPositive();
+            if (numPositive == 1)
+            {
+                for (byte a = 1; a <= NumPossibleActions; a++)
+                    if (NodeInformation[cumulativeRegretDimension, a - 1] > 0)
+                        probabilitiesToSet[a - 1] = 1.0;
+                    else
+                        probabilitiesToSet[a - 1] = 0.0;
+                return;
+            }
             if (sumPositiveCumulativeRegrets == 0)
             {
                 double equalProbability = 1.0 / (double)NumPossibleActions;

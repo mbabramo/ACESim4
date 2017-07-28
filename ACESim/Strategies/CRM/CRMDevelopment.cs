@@ -1513,6 +1513,7 @@ namespace ACESim
 
         private void PrintAllEquilibriumStrategies(List<(CRMInformationSetNodeTally, int)> player0InformationSets, List<(CRMInformationSetNodeTally, int)> player1InformationSets, int player0Permutations, int player1Permutations, bool[] player0StrategyEliminated, bool[] player1StrategyEliminated)
         {
+            int numPrinted = 0;
             for (int player0StrategyIndex = 0; player0StrategyIndex < player0Permutations; player0StrategyIndex++)
             {
                 if (player0StrategyEliminated[player0StrategyIndex])
@@ -1523,11 +1524,14 @@ namespace ACESim
                     if (player1StrategyEliminated[player1StrategyIndex])
                         continue;
                     SetPureStrategyBasedOnIndex(player1InformationSets, player1StrategyIndex, player1Permutations);
-                    GenerateReports(0, () => "");
-                    PrintGameTree();
+                    Debug.WriteLine($"Player0StrategyIndex {player0StrategyIndex} Player1StrategyIndex {player1StrategyIndex}");
+                    //DEBUGGenerateReports(0, () => "");
+                    //PrintGameTree();
                     Debug.WriteLine("");
+                    numPrinted++;
                 }
             }
+            Debug.WriteLine($"Total equilibria: {numPrinted}");
         }
 
         private void GetUtilitiesForStrategyCombinations(List<(CRMInformationSetNodeTally, int)> player0InformationSets, List<(CRMInformationSetNodeTally, int)> player1InformationSets, out int player0Permutations, out int player1Permutations, out double[,] player0Utilities, out double[,] player1Utilities)
@@ -1559,12 +1563,12 @@ namespace ACESim
             }
         }
 
-        private static bool EliminateDominateStrategies(int thisPlayerPemutations, int otherPlayerPermutations, Func<int, int, double> getUtilityFn, bool[] thisPlayerStrategyEliminated, bool[] otherPlayerStrategyEliminated)
+        private static bool EliminateDominateStrategies(int thisPlayerPermutations, int otherPlayerPermutations, Func<int, int, double> getUtilityFn, bool[] thisPlayerStrategyEliminated, bool[] otherPlayerStrategyEliminated)
         {
             bool atLeastOneEliminated = false;
             // compare pairs of strategies by this player to see if one dominates the other
-            for (int thisPlayerStrategyIndex1 = 0; thisPlayerStrategyIndex1 < thisPlayerPemutations; thisPlayerStrategyIndex1++)
-                for (int thisPlayerStrategyIndex2 = 0; thisPlayerStrategyIndex2 < thisPlayerPemutations; thisPlayerStrategyIndex2++)
+            for (int thisPlayerStrategyIndex1 = 0; thisPlayerStrategyIndex1 < thisPlayerPermutations; thisPlayerStrategyIndex1++)
+                for (int thisPlayerStrategyIndex2 = 0; thisPlayerStrategyIndex2 < thisPlayerPermutations; thisPlayerStrategyIndex2++)
                 {
                     if (thisPlayerStrategyIndex1 == thisPlayerStrategyIndex2 || thisPlayerStrategyEliminated[thisPlayerStrategyIndex1] || thisPlayerStrategyEliminated[thisPlayerStrategyIndex2])
                         continue; // go to next pair to compare
@@ -1613,7 +1617,6 @@ namespace ACESim
                 }
                 byte action = (byte)(indexForThisDecision + 1);
                 tally.tally.SetActionToCertainty(action, (byte) tally.numPossible);
-                DEBUG.Add(action);
             }
         }
 
