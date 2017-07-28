@@ -1496,6 +1496,21 @@ namespace ACESim
             PrintAllEquilibriumStrategies(player0InformationSets, player1InformationSets, player0Permutations, player1Permutations, player0StrategyEliminated, player1StrategyEliminated);
         }
 
+        private void PrintMatrix(double[,] arr)
+        {
+            int rowLength = arr.GetLength(0);
+            int colLength = arr.GetLength(1);
+
+            for (int i = 0; i < rowLength; i++)
+            {
+                for (int j = 0; j < colLength; j++)
+                {
+                    Debug.Write(string.Format("{0:N2} ", arr[i, j]));
+                }
+                Debug.Write(Environment.NewLine + Environment.NewLine);
+            }
+        }
+
         private void PrintAllEquilibriumStrategies(List<(CRMInformationSetNodeTally, int)> player0InformationSets, List<(CRMInformationSetNodeTally, int)> player1InformationSets, int player0Permutations, int player1Permutations, bool[] player0StrategyEliminated, bool[] player1StrategyEliminated)
         {
             for (int player0StrategyIndex = 0; player0StrategyIndex < player0Permutations; player0StrategyIndex++)
@@ -1539,12 +1554,12 @@ namespace ACESim
             bool atLeastOneEliminated = true;
             while (atLeastOneEliminated)
             {
-                atLeastOneEliminated = EliminateDominateStrategies(player0Permutations, player1Permutations, (player0Index, player1Index) => player0Utilities[player0Index, player1Index], player0StrategyEliminated);
-                atLeastOneEliminated = atLeastOneEliminated | EliminateDominateStrategies(player1Permutations, player0Permutations, (player1Index, player0Index) => player1Utilities[player0Index, player1Index], player1StrategyEliminated);
+                atLeastOneEliminated = EliminateDominateStrategies(player0Permutations, player1Permutations, (player0Index, player1Index) => player0Utilities[player0Index, player1Index], player0StrategyEliminated, player1StrategyEliminated);
+                atLeastOneEliminated = atLeastOneEliminated | EliminateDominateStrategies(player1Permutations, player0Permutations, (player1Index, player0Index) => player1Utilities[player0Index, player1Index], player1StrategyEliminated, player0StrategyEliminated);
             }
         }
 
-        private static bool EliminateDominateStrategies(int thisPlayerPemutations, int otherPlayerPermutations, Func<int, int, double> getUtilityFn, bool[] thisPlayerStrategyEliminated)
+        private static bool EliminateDominateStrategies(int thisPlayerPemutations, int otherPlayerPermutations, Func<int, int, double> getUtilityFn, bool[] thisPlayerStrategyEliminated, bool[] otherPlayerStrategyEliminated)
         {
             bool atLeastOneEliminated = false;
             // compare pairs of strategies by this player to see if one dominates the other
@@ -1556,6 +1571,8 @@ namespace ACESim
                     bool index1SometimesBetter = false, index2SometimesBetter = false;
                     for (int opponentStrategyIndex = 0; opponentStrategyIndex < otherPlayerPermutations; opponentStrategyIndex++)
                     {
+                        if (otherPlayerStrategyEliminated[opponentStrategyIndex])
+                            continue;
                         double thisPlayerStrategyIndex1Utility = getUtilityFn(thisPlayerStrategyIndex1, opponentStrategyIndex);
                         double thisPlayerStrategyIndex2Utility = getUtilityFn(thisPlayerStrategyIndex2, opponentStrategyIndex);
                         if (thisPlayerStrategyIndex1Utility == thisPlayerStrategyIndex2Utility)
@@ -1584,7 +1601,6 @@ namespace ACESim
         private void SetPureStrategyBasedOnIndex(List<(CRMInformationSetNodeTally tally, int numPossible)> tallies, int strategyIndex, int totalStrategyPermutations)
         {
             int cumulative = 1;
-            List<int> DEBUG = new List<int>();
             foreach (var tally in tallies)
             {
                 cumulative *= tally.numPossible;
@@ -1599,7 +1615,6 @@ namespace ACESim
                 tally.tally.SetActionToCertainty(action, (byte) tally.numPossible);
                 DEBUG.Add(action);
             }
-            Debug.WriteLine(String.Join(",", DEBUG));
         }
 
         #endregion
