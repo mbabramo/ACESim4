@@ -120,8 +120,13 @@ namespace ACESim
                 byte action = ChooseAction();
                 if (Progress.IsFinalGamePath && action < CurrentDecision.NumPossibleActions)
                     Progress.IsFinalGamePath = false;
-                RespondToAction(currentDecision, action);
-                GameDefinition.CustomInformationSetManipulation(currentDecision, (byte) CurrentDecisionIndex, action, ref Progress.GameHistory);
+                if (currentDecision.Subdividable_IsSubdivision)
+                    HandleSubdivisionDecision(currentDecision, (byte) CurrentDecisionIndex, action);
+                else
+                {
+                    RespondToAction(currentDecision.DecisionByteCode, action);
+                    GameDefinition.CustomInformationSetManipulation(currentDecision, (byte)CurrentDecisionIndex, action, ref Progress.GameHistory);
+                }
             }
         }
 
@@ -147,8 +152,27 @@ namespace ACESim
             return actionToChoose;
         }
 
-        public virtual void RespondToAction(Decision currentDecision, byte action)
+        public virtual void RespondToAction(byte currentDecisionByteCode, byte action)
         {
+        }
+
+        /// <summary>
+        /// This handles each decision for a subdivision decision. For the first such decision, we add a stub to the player's own information set indicating that the subdivision is starting; this distinguishes the information sets for the player. For other decisions, we add each individual subdecision. For the last decision, we aggregate all the previous decisions and then respond to the action, so the effect is the same as just processing the regular decision.
+        /// </summary>
+        /// <param name="currentDecision"></param>
+        /// <param name="currentDecisionIndex"></param>
+        /// <param name="action"></param>
+        public virtual void HandleSubdivisionDecision(Decision currentDecision, byte currentDecisionIndex, byte action)
+        {
+            if (currentDecision.Subdividable_IsSubdivision_First)
+                Progress.GameHistory.AddToInformationSet(GameHistory.StubToIndicateSubdividingInProgress, currentDecisionIndex, currentDecision.PlayerNumber);
+            Progress.GameHistory.AddToInformationSet(action, currentDecisionIndex, currentDecision.PlayerNumber);
+            if (currentDecision.Subdividable_IsSubdivision_Last)
+            { 
+                byte aggregatedAction = Progress.GameHistory.AggregateSubdividable(currentDecision.PlayerNumber, currentDecision.Subdividable_NumOptionsPerBranch, currentDecision.Subdividable_NumLevels);
+                RespondToAction(currentDecision.Subdividable_CorrespondingDecisionByteCode, aggregatedAction);
+                GameDefinition.CustomInformationSetManipulation(currentDecision, (byte)CurrentDecisionIndex, action, ref Progress.GameHistory);
+            }
         }
 
         public virtual double ConvertActionToUniformDistributionDraw(int action)

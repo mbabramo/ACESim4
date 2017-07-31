@@ -18,8 +18,9 @@ namespace ACESim
         public const int MaxNumPlayers = 10;
         public const int MaxNumActions = 20;
         const byte HistoryComplete = 254;
-        const byte HistoryIncomplete = 255;
+        const byte HistoryTerminator = 255;
 
+        const byte InformationSetTerminator = 255;
         const byte RemoveItemFromInformationSet = 254;
         public const byte StubToIndicateDecisionOccurred = 253;
         /// <summary>
@@ -102,10 +103,10 @@ namespace ACESim
         private void Initialize_Helper()
         {
             fixed (byte* historyPtr = History)
-                *(historyPtr + 0) = HistoryIncomplete;
+                *(historyPtr + 0) = HistoryTerminator;
             fixed (byte* ptr = InformationSets)
                 for (int p = 0; p < MaxNumPlayers; p++)
-                    *(ptr + MaxInformationSetLengthPerPlayer * p) = 255;
+                    *(ptr + MaxInformationSetLengthPerPlayer * p) = InformationSetTerminator;
             LastIndexAddedToHistory = 0;
             Initialized = true;
         }
@@ -124,7 +125,7 @@ namespace ACESim
                 *(historyPtr + i + History_PlayerNumber_Offset) = playerNumber;
                 *(historyPtr + i + History_Action_Offset) = action;
                 *(historyPtr + i + History_NumPossibleActions_Offset) = numPossibleActions;
-                *(historyPtr + i + History_NumPiecesOfInformation) = HistoryIncomplete; // this is just one item at end of all history items
+                *(historyPtr + i + History_NumPiecesOfInformation) = HistoryTerminator; // this is just one item at end of all history items
             }
             LastIndexAddedToHistory = (short) (i + History_NumPiecesOfInformation);
             if (!customInformationSetManipulationOnly)
@@ -153,7 +154,7 @@ namespace ACESim
                         byte decisionIndex = *(historyPtr + i + History_DecisionIndex_Offset);
                         if (decisionIndex >= upToDecisionIndex)
                         {
-                            *(historyPtr + i - 1) = HistoryIncomplete;
+                            *(historyPtr + i - 1) = HistoryTerminator;
                             break;
                         }
                     }
@@ -161,11 +162,11 @@ namespace ACESim
                     for (byte p = 0; p < MaxNumPlayers; p++)
                     {
                         byte* playerPointer = informationSetsPtr + p * MaxInformationSetLengthPerPlayer;
-                        while (*playerPointer != 255)
+                        while (*playerPointer != InformationSetTerminator)
                         {
                             if (*playerPointer >= upToDecisionIndex)
                             {
-                                *playerPointer = 255;
+                                *playerPointer = InformationSetTerminator;
                                 break;
                             }
                             playerPointer += 2;
@@ -267,7 +268,7 @@ namespace ACESim
             if (LastIndexAddedToHistory != 0)
                 for (short i = 0; i < LastIndexAddedToHistory; i += History_NumPiecesOfInformation)
                     items[d++] = GetHistoryIndex(i + offset);
-            items[d] = 255;
+            items[d] = HistoryTerminator;
         }
 
         private byte GetHistoryIndex(int i)
@@ -287,6 +288,7 @@ namespace ACESim
                 if (*(historyPtr + i) == HistoryComplete)
                     throw new Exception("Game is already complete.");
                 *(historyPtr + i) = HistoryComplete;
+                *(historyPtr + i + 1) = HistoryTerminator;
             }
         }
 
@@ -325,10 +327,6 @@ namespace ACESim
 
         private void AddToInformationSet(byte information, byte followingDecisionIndex, byte playerNumber, byte* informationSetsPtr)
         {
-            if (playerNumber == 6)
-            {
-                var DEBUG = 0;
-            }
             if (!Initialized)
                 Initialize();
             //Debug.WriteLine($"Adding information {information} following decision {followingDecision} for Player number {playerNumber}");
@@ -336,14 +334,31 @@ namespace ACESim
                 throw new Exception("Invalid player index. Must increase MaxNumPlayers.");
             byte* playerPointer = informationSetsPtr + playerNumber * MaxInformationSetLengthPerPlayer;
             // advance to the end of the information set
-            while (*playerPointer != 255)
+            while (*playerPointer != InformationSetTerminator)
                 playerPointer += 2;
             // now record the information
             *playerPointer = followingDecisionIndex; // we must record the decision
             playerPointer++;
             *playerPointer = information;
             playerPointer++;
-            *playerPointer = 255; // terminator
+            *playerPointer = InformationSetTerminator; // terminator
+        }
+
+        public byte AggregateSubdividable(byte playerNumber, byte numOptionsPerBranch, byte numLevels)
+        {
+            fixed (byte* informationSetsPtr = InformationSets)
+            {
+                byte* valuePtr = informationSetsPtr;
+                byte accumulator = *valuePtr;
+                for (byte level = 1; level < numLevels; level++)
+                {
+                    valuePtr--;
+                    accumulator = (byte) (accumulator * numOptionsPerBranch + *valuePtr);
+                }
+                valuePtr--;
+                *valuePtr = InformationSetTerminator; // delete the stub and everything following it
+                return accumulator;
+            }
         }
 
         public unsafe void GetPlayerInformation(int playerNumber, byte? upToDecision, byte* playerInfoBuffer)
@@ -353,7 +368,7 @@ namespace ACESim
             fixed (byte* informationSetsPtr = InformationSets)
             {
                 byte* playerPointer = informationSetsPtr + playerNumber * MaxInformationSetLengthPerPlayer;
-                while (*playerPointer != 255)
+                while (*playerPointer != InformationSetTerminator)
                 {
                     if (*playerPointer >= upToDecision)
                         break;
@@ -367,7 +382,7 @@ namespace ACESim
                     }
                     playerPointer++;
                 }
-                *playerInfoBuffer = 255;
+                *playerInfoBuffer = InformationSetTerminator;
             }
         }
 
@@ -387,7 +402,7 @@ namespace ACESim
             fixed (byte* informationSetsPtr = InformationSets)
             {
                 byte* ptr = informationSetsPtr + playerNumber * MaxInformationSetLengthPerPlayer;
-                while (*ptr != 255)
+                while (*ptr != InformationSetTerminator)
                 {
                     ptr++; // skip the decision code
                     if (*ptr == RemoveItemFromInformationSet)
@@ -434,7 +449,7 @@ namespace ACESim
             GetActions(currentActions);
             while (indexInNewDecisionPath <= lastDecisionInNextPath)
             {
-                bool another = currentActions[indexInCurrentActions] != 255;
+                bool another = currentActions[indexInCurrentActions] != InformationSetTerminator;
                 if (!another)
                     throw new Exception("Internal error. Expected another decision to exist.");
                 if (indexInNewDecisionPath == lastDecisionInNextPath)
@@ -445,7 +460,7 @@ namespace ACESim
                 indexInCurrentActions++;
                 indexInNewDecisionPath++;
             }
-            nextDecisionPath[indexInNewDecisionPath] = 255;
+            nextDecisionPath[indexInNewDecisionPath] = InformationSetTerminator;
         }
 
         private int? GetIndexOfLastDecisionWithAnotherAction(GameDefinition gameDefinition)

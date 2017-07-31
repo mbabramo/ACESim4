@@ -19,13 +19,13 @@ namespace ACESim
             return true;
         }
 
-        public override void RespondToAction(Decision currentDecision, byte action)
+        public override void RespondToAction(byte currentDecisionByteCode, byte action)
         {
-            if (currentDecision.DecisionByteCode == (byte)SimpleGameDecisions.P1Decision)
+            if (currentDecisionByteCode == (byte)SimpleGameDecisions.P1Decision)
                 MyProgress.P1Decision = action;
-            else if (currentDecision.DecisionByteCode == (byte)SimpleGameDecisions.P2Decision)
+            else if (currentDecisionByteCode == (byte)SimpleGameDecisions.P2Decision)
                 MyProgress.P2Decision = action;
-            else if (currentDecision.DecisionByteCode == (byte)SimpleGameDecisions.Chance)
+            else if (currentDecisionByteCode == (byte)SimpleGameDecisions.Chance)
                 MyProgress.ChanceDecision = action;
         }
 

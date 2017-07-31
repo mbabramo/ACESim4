@@ -393,5 +393,22 @@ namespace ACESim
         {
             return new List<SimpleReportDefinition>();
         }
+
+        public void AddPotentiallySubdividableDecision(List<Decision> decisionsList, Decision decision, bool subdivide, byte subdivisionDecisionByteCode, byte numOptionsPerBranch, byte aggregateNumPossibleActions)
+        {
+            if (subdivide)
+            {
+                decision.Subdividable = true;
+                decision.Subdividable_CorrespondingDecisionByteCode = subdivisionDecisionByteCode;
+                decision.Subdividable_NumOptionsPerBranch = numOptionsPerBranch;
+                int n = aggregateNumPossibleActions;
+                while (n > 1)
+                {
+                    n /= 2;
+                    decision.Subdividable_NumLevels++;
+                }
+            }
+            decision.AddDecisionOrSubdivisions(decisionsList);
+        }
     }
 }

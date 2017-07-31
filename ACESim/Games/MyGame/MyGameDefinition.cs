@@ -61,6 +61,11 @@ namespace ACESim
         /// The number of bargaining rounds
         /// </summary>
         public int NumBargainingRounds;
+        /// <summary>
+        /// Subdivide a single offer decision into a series of binary decisions.
+        /// </summary>
+        public bool SubdivideOffers;
+
         public List<bool> BargainingRoundsSimultaneous;
         public List<bool> BargainingRoundsPGoesFirstIfNotSimultaneous; // if not simultaneous
         public bool IncludeSignalsReport;
@@ -137,26 +142,36 @@ namespace ACESim
                 // bargaining -- note that we will do all information set manipulation in CustomInformationSetManipulation below.
                 if (BargainingRoundsSimultaneous[b])
                 { // samuelson-chaterjee bargaining
-                    decisions.Add(new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, null, NumOffers, (byte)MyGameDecisions.POffer) { CustomByte = (byte)(b + 1), CustomInformationSetManipulationOnly = true });
-                    decisions.Add(new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, null, NumOffers, (byte)MyGameDecisions.DOffer) { CanTerminateGame = true, CustomByte = (byte)(b + 1), CustomInformationSetManipulationOnly = true });
+                    var pOffer = new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, null, NumOffers, (byte)MyGameDecisions.POffer) { CustomByte = (byte)(b + 1), CustomInformationSetManipulationOnly = true };
+                    AddOfferDecisionOrSubdivisions(decisions, pOffer);
+                    var dOffer = new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, null, NumOffers, (byte)MyGameDecisions.DOffer) { CanTerminateGame = true, CustomByte = (byte)(b + 1), CustomInformationSetManipulationOnly = true };
+                    AddOfferDecisionOrSubdivisions(decisions, dOffer);
+
                 }
                 else
                 { // offer-response bargaining
                     // the response may be irrelevant but no harm adding it to information set
                     if (BargainingRoundsPGoesFirstIfNotSimultaneous[b])
                     {
-                        decisions.Add(new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, null, NumOffers, (byte)MyGameDecisions.POffer) { CustomByte = (byte)(b + 1), CustomInformationSetManipulationOnly = true }); // { AlwaysDoAction = 4});
+                        var pOffer = new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, null, NumOffers, (byte)MyGameDecisions.POffer) { CustomByte = (byte)(b + 1), CustomInformationSetManipulationOnly = true }; // { AlwaysDoAction = 4});
+                        AddOfferDecisionOrSubdivisions(decisions, pOffer);
                         decisions.Add(new Decision("DefendantResponse" + (b + 1), "DR" + (b + 1), (byte)MyGamePlayers.Defendant, null, 2, (byte)MyGameDecisions.DResponse) { CanTerminateGame = true, CustomByte = (byte)(b + 1), CustomInformationSetManipulationOnly = true });
                     }
                     else
                     {
-                        decisions.Add(new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, null, NumOffers, (byte)MyGameDecisions.DOffer) { CustomByte = (byte)(b + 1), CustomInformationSetManipulationOnly = true });
+                        var dOffer = new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, null, NumOffers, (byte)MyGameDecisions.DOffer) { CustomByte = (byte)(b + 1), CustomInformationSetManipulationOnly = true };
+                        AddOfferDecisionOrSubdivisions(decisions, dOffer);
                         decisions.Add(new Decision("PlaintiffResponse" + (b + 1), "PR" + (b + 1), (byte)MyGamePlayers.Plaintiff, null, 2, (byte)MyGameDecisions.PResponse) { CanTerminateGame = true, CustomByte = (byte)(b + 1), CustomInformationSetManipulationOnly = true });
                     }
                 }
             }
             decisions.Add(new Decision("CourtDecision", "CD", (byte)MyGamePlayers.CourtChance, new List<byte> { (byte)MyGamePlayers.Resolution }, 2 /* for plaintiff or for defendant */, (byte)MyGameDecisions.CourtDecision, unevenChanceActions: true) { CanTerminateGame = true });
             return decisions;
+        }
+
+        private void AddOfferDecisionOrSubdivisions(List<Decision> decisions, Decision offerDecision)
+        {
+            AddPotentiallySubdividableDecision(decisions, offerDecision, SubdivideOffers, (byte)MyGameDecisions.SubdividableOffer, 2, NumOffers);
         }
 
         public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, ref GameHistory gameHistory)
@@ -435,6 +450,7 @@ namespace ACESim
             PTrialCosts = GameModule.GetDoubleCodeGeneratorOption(options, "PTrialCosts");
             DTrialCosts = GameModule.GetDoubleCodeGeneratorOption(options, "DTrialCosts");
             ForgetEarlierBargainingRounds = GameModule.GetBoolCodeGeneratorOption(options, "ForgetEarlierBargainingRounds");
+            SubdivideOffers = GameModule.GetBoolCodeGeneratorOption(options, "SubdivideOffers");
             PerPartyBargainingRoundCosts = GameModule.GetDoubleCodeGeneratorOption(options, "PerPartyBargainingRoundCosts"); 
              IncludeSignalsReport = GameModule.GetBoolCodeGeneratorOption(options, "IncludeSignalsReport");
             NumBargainingRounds = GameModule.GetIntCodeGeneratorOption(options, "NumBargainingRounds");

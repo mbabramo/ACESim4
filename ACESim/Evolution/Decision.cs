@@ -124,7 +124,7 @@ namespace ACESim
         public byte Subdividable_NumOptionsPerBranch;
 
         /// <summary>
-        /// The number of levels to be used for subdividing. For example, if the actions are 1-128 and there are two options per branch, this should be set to 2. 
+        /// The number of levels to be used for subdividing. For example, if the actions are 1-128 and there are two options per branch, this should be set to 2.
         /// </summary>
         public byte Subdividable_NumLevels;
 
@@ -137,13 +137,20 @@ namespace ACESim
         /// When a decision is subdividable, it is duplicated into multiple subdivision decisions.
         /// </summary>
         [OptionalSetting]
-        public bool IsSubdivision;
+        public bool Subdividable_IsSubdivision;
+
+
+        /// <summary>
+        /// Indicates for a subdivision whether this is the first subdivision. If so, a stub will be inserted in the party's own information set.
+        /// </summary>
+        [OptionalSetting]
+        public bool Subdividable_IsSubdivision_First;
 
         /// <summary>
         /// Indicates for a subdivision whether this is the last subdivision. If this is true, then after the player makes its move, all of the items accumulating for each subdivision level in the information set will be removed and replaced by the aggregated decision.
         /// </summary>
         [OptionalSetting]
-        public bool IsSubdivision_Last;
+        public bool Subdividable_IsSubdivision_Last;
 
         public Decision()
         {
@@ -169,7 +176,41 @@ namespace ACESim
 
         public Decision Clone()
         {
-            Decision d = new Decision(Name, Abbreviation, PlayerNumber, PlayersToInform.ToList(), NumPossibleActions, DecisionByteCode, DecisionTypeCode, RepetitionsAfterFirst, PreevolvedStrategyFilename, InformationSetAbbreviations, AlwaysDoAction, UnevenChanceActions, InformOnlyThatDecisionOccurred) { IsAlwaysPlayersLastDecision = IsAlwaysPlayersLastDecision, CanTerminateGame = CanTerminateGame, CustomInformationSetManipulationOnly = CustomInformationSetManipulationOnly, CustomByte = CustomByte, Subdividable = Subdividable, Subdividable_NumLevels = Subdividable_NumLevels, Subdividable_NumOptionsPerBranch = Subdividable_NumOptionsPerBranch, Subdividable_CorrespondingDecisionByteCode = Subdividable_CorrespondingDecisionByteCode, IsSubdivision = IsSubdivision, IsSubdivision_Last = IsSubdivision_Last };
+            Decision d = new Decision(Name, Abbreviation, PlayerNumber, PlayersToInform.ToList(), NumPossibleActions, DecisionByteCode, DecisionTypeCode, RepetitionsAfterFirst, PreevolvedStrategyFilename, InformationSetAbbreviations, AlwaysDoAction, UnevenChanceActions, InformOnlyThatDecisionOccurred) { IsAlwaysPlayersLastDecision = IsAlwaysPlayersLastDecision, CanTerminateGame = CanTerminateGame, CustomInformationSetManipulationOnly = CustomInformationSetManipulationOnly, CustomByte = CustomByte, Subdividable = Subdividable, Subdividable_NumLevels = Subdividable_NumLevels, Subdividable_NumOptionsPerBranch = Subdividable_NumOptionsPerBranch, Subdividable_CorrespondingDecisionByteCode = Subdividable_CorrespondingDecisionByteCode, Subdividable_IsSubdivision = Subdividable_IsSubdivision, Subdividable_IsSubdivision_Last = Subdividable_IsSubdivision_Last, Subdividable_IsSubdivision_First = Subdividable_IsSubdivision_First };
+            return d;
+        }
+
+        public void AddDecisionOrSubdivisions(List<Decision> currentDecisionList)
+        {
+            if (!Subdividable)
+                currentDecisionList.Add(this);
+            else
+                currentDecisionList.AddRange(ConvertToSubdivisionDecisions());
+        }
+
+        public List<Decision> ConvertToSubdivisionDecisions()
+        {
+            if (!Subdividable)
+                throw new Exception("Only subdividable decisions can be converted");
+            int totalActions = (int)Math.Pow(Subdividable_NumOptionsPerBranch, Subdividable_NumLevels);
+            if (totalActions != NumPossibleActions)
+                throw new Exception("Subdivision not set up correctly.");
+            List<Decision> decisions = new List<Decision>();
+            for (int i = 0; i < Subdividable_NumLevels; i++)
+            {
+                Decision subdivisionDecision = Clone();
+                subdivisionDecision.DecisionByteCode = Subdividable_CorrespondingDecisionByteCode;
+                subdivisionDecision.Subdividable_CorrespondingDecisionByteCode = DecisionByteCode;
+                subdivisionDecision.Subdividable = false;
+                subdivisionDecision.Subdividable_IsSubdivision = true;
+                subdivisionDecision.CustomInformationSetManipulationOnly = false;
+                if (i == 0)
+                    subdivisionDecision.Subdividable_IsSubdivision_First = true;
+                else if (i == Subdividable_NumLevels - 1)
+                    subdivisionDecision.Subdividable_IsSubdivision_Last = true;
+                decisions.Add(subdivisionDecision);
+            }
+            return decisions;
         }
     }
 
