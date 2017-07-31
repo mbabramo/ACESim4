@@ -23,7 +23,8 @@ namespace ACESim
 
         public override void RespondToAction(Decision currentDecision, byte action)
         {
-            if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.LitigationQuality)
+            byte decisionByteCode = currentDecision.DecisionByteCode;
+            if (decisionByteCode == (byte)MyGameDecisions.LitigationQuality)
             {
                 MyProgress.LitigationQualityDiscrete = action;
                 MyProgress.LitigationQualityUniform = ConvertActionToUniformDistributionDraw(action);
@@ -33,40 +34,40 @@ namespace ACESim
                 if (MyDefinition.DNoiseStdev == 0)
                     MyProgress.DSignalUniform = MyProgress.LitigationQualityUniform;
             }
-            else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.PSignal)
+            else if (decisionByteCode == (byte)MyGameDecisions.PSignal)
             {
                 // Note: This is an unequal probabilities chance decision. The action IS the discrete signal. The game definition then calculates the probability that we would get this signal, given the uniform distribution draw. In other words, this is like a weighted die, where the die is heavily weighted toward signal values that are close to the litigation quality values.
                 MyProgress.PSignalDiscrete = action;
                 MyProgress.PSignalUniform = EquallySpaced.GetLocationOfEquallySpacedPoint(MyProgress.PSignalDiscrete - 1 /* make it zero-based */, MyDefinition.NumSignals);
             }
-            else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.DSignal)
+            else if (decisionByteCode == (byte)MyGameDecisions.DSignal)
             {
                 MyProgress.DSignalDiscrete = action;
                 MyProgress.DSignalUniform = EquallySpaced.GetLocationOfEquallySpacedPoint(MyProgress.DSignalDiscrete - 1 /* make it zero-based */, MyDefinition.NumSignals);
             }
-            else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.POffer)
+            else if (decisionByteCode == (byte)MyGameDecisions.POffer)
             {
                 double offer = GetOfferBasedOnAction(action, true);
                 MyProgress.AddOffer(true, offer);
                 MyProgress.UpdateProgress(MyDefinition);
             }
-            else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.DOffer)
+            else if (decisionByteCode == (byte)MyGameDecisions.DOffer)
             {
                 double offer = GetOfferBasedOnAction(action, false);
                 MyProgress.AddOffer(false, offer);
                 MyProgress.UpdateProgress(MyDefinition);
             }
-            else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.PResponse)
+            else if (decisionByteCode == (byte)MyGameDecisions.PResponse)
             {
                 MyProgress.AddResponse(true, action == 1); // 1 == accept, 2 == reject
                 MyProgress.UpdateProgress(MyDefinition);
             }
-            else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.DResponse)
+            else if (decisionByteCode == (byte)MyGameDecisions.DResponse)
             {
                 MyProgress.AddResponse(false, action == 1); // 1 == accept, 2 == reject
                 MyProgress.UpdateProgress(MyDefinition);
             }
-            else if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.CourtDecision)
+            else if (decisionByteCode == (byte)MyGameDecisions.CourtDecision)
             {
                 MyProgress.TrialOccurs = true;
                 // note that the probability of P winning is defined in MyGameDefinition.

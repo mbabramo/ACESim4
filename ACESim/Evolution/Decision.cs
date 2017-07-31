@@ -112,6 +112,39 @@ namespace ACESim
         [OptionalSetting]
         public byte CustomByte;
 
+        /// <summary>
+        /// This may be set for continuous actions, where a single decision should be broken up into multiple nodes. For example, if the choices are numbers 1-128, the first decision might be to choose between 1 and 64, the second between 65 and 128, etc. 
+        /// </summary>
+        [OptionalSetting]
+        public bool Subdividable;
+
+        /// <summary>
+        /// The number of options per branch. For example, this would be set to 2 for a binary division.
+        /// </summary>
+        public byte Subdividable_NumOptionsPerBranch;
+
+        /// <summary>
+        /// The number of levels to be used for subdividing. For example, if the actions are 1-128 and there are two options per branch, this should be set to 2. 
+        /// </summary>
+        public byte Subdividable_NumLevels;
+
+        /// <summary>
+        /// For a subdividable decision, this represents the decision byte code to be used for each level of the substitutable decision. For the subdivision itself, this represents the decision byte code of the subdivided decision.
+        /// </summary>
+        public byte Subdividable_CorrespondingDecisionByteCode;
+
+        /// <summary>
+        /// When a decision is subdividable, it is duplicated into multiple subdivision decisions.
+        /// </summary>
+        [OptionalSetting]
+        public bool IsSubdivision;
+
+        /// <summary>
+        /// Indicates for a subdivision whether this is the last subdivision. If this is true, then after the player makes its move, all of the items accumulating for each subdivision level in the information set will be removed and replaced by the aggregated decision.
+        /// </summary>
+        [OptionalSetting]
+        public bool IsSubdivision_Last;
+
         public Decision()
         {
 
@@ -132,6 +165,11 @@ namespace ACESim
             AlwaysDoAction = alwaysDoAction;
             UnevenChanceActions = unevenChanceActions;
             InformOnlyThatDecisionOccurred = informOnlyThatDecisionOccurred;
+        }
+
+        public Decision Clone()
+        {
+            Decision d = new Decision(Name, Abbreviation, PlayerNumber, PlayersToInform.ToList(), NumPossibleActions, DecisionByteCode, DecisionTypeCode, RepetitionsAfterFirst, PreevolvedStrategyFilename, InformationSetAbbreviations, AlwaysDoAction, UnevenChanceActions, InformOnlyThatDecisionOccurred) { IsAlwaysPlayersLastDecision = IsAlwaysPlayersLastDecision, CanTerminateGame = CanTerminateGame, CustomInformationSetManipulationOnly = CustomInformationSetManipulationOnly, CustomByte = CustomByte, Subdividable = Subdividable, Subdividable_NumLevels = Subdividable_NumLevels, Subdividable_NumOptionsPerBranch = Subdividable_NumOptionsPerBranch, Subdividable_CorrespondingDecisionByteCode = Subdividable_CorrespondingDecisionByteCode, IsSubdivision = IsSubdivision, IsSubdivision_Last = IsSubdivision_Last };
         }
     }
 

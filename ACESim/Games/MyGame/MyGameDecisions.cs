@@ -15,6 +15,7 @@ namespace ACESim
         DOffer,
         PResponse,
         DResponse,
-        CourtDecision
+        CourtDecision,
+        SubdividableOffer,
     }
 }

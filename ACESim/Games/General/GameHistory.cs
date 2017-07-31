@@ -22,6 +22,10 @@ namespace ACESim
 
         const byte RemoveItemFromInformationSet = 254;
         public const byte StubToIndicateDecisionOccurred = 253;
+        /// <summary>
+        /// When going through the steps of a subdividable decision, we will add each decision to the player's own information set. Then, we will remove these 
+        /// </summary>
+        public const byte StubToIndicateSubdividingInProgress = 252;
 
         private const byte History_DecisionByteCode_Offset = 0;
         private const byte History_DecisionIndex_Offset = 1; // the decision index reflects the order of the decision in the decisions list. A decision with the same byte code could correspond to multiple decision indices.
