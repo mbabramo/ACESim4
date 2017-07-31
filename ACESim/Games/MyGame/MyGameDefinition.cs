@@ -53,6 +53,13 @@ namespace ACESim
         /// Costs that each party must pay per round of bargaining. Note that an immediate successful resolution will still produce costs.
         /// </summary>
         public double PerPartyBargainingRoundCosts;
+        /// <summary>
+        /// If true, this is a partial recall game, in which players do not remember earlier bargaining rounds.
+        /// </summary>
+        public bool ForgetEarlierBargainingRounds;
+        /// <summary>
+        /// The number of bargaining rounds
+        /// </summary>
         public int NumBargainingRounds;
         public List<bool> BargainingRoundsSimultaneous;
         public List<bool> BargainingRoundsPGoesFirstIfNotSimultaneous; // if not simultaneous
@@ -154,7 +161,6 @@ namespace ACESim
 
         public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, ref GameHistory gameHistory)
         {
-            bool partiesForgetEarlierBargaining = true;
             byte decisionByteCode = currentDecision.DecisionByteCode;
             if (decisionByteCode >= (byte)MyGameDecisions.POffer && decisionByteCode <= (byte)MyGameDecisions.DResponse)
             {
@@ -171,7 +177,7 @@ namespace ACESim
                         // Note that the plaintiff and defendant will both have made their decisions based on the decisions in the prior round.
                         // We don't want to add the plaintiff's decision before the defendant has actually made a decision, so that's why we add both decisions now.
                         // If this is not the first round, then we should remove the last piece of information from both. 
-                        if (partiesForgetEarlierBargaining && bargainingRound > 1)
+                        if (ForgetEarlierBargainingRounds && bargainingRound > 1)
                         {
                             gameHistory.ReduceItemsInInformationSet((byte)MyGamePlayers.Plaintiff, currentDecisionIndex, 1);
                             gameHistory.ReduceItemsInInformationSet((byte)MyGamePlayers.Defendant, currentDecisionIndex, 1);
@@ -194,7 +200,7 @@ namespace ACESim
                     byte partyGoingSecond = pGoesFirst ? (byte)MyGamePlayers.Defendant : (byte)MyGamePlayers.Plaintiff;
                     byte otherPlayer = currentPlayer == (byte)MyGamePlayers.Plaintiff ? (byte)MyGamePlayers.Defendant : (byte)MyGamePlayers.Plaintiff;
                     
-                    if (partiesForgetEarlierBargaining && currentPlayer == partyGoingSecond)
+                    if (ForgetEarlierBargainingRounds && currentPlayer == partyGoingSecond)
                     {
                         // Based on code below, both information sets contain information about this round. But now it turns out that we want to forget this round.
                         // We're now at a point where the second party has made its decision. We need to make sure that in the NEXT round,
@@ -428,6 +434,7 @@ namespace ACESim
             DNoiseStdev = GameModule.GetDoubleCodeGeneratorOption(options, "DNoiseStdev");
             PTrialCosts = GameModule.GetDoubleCodeGeneratorOption(options, "PTrialCosts");
             DTrialCosts = GameModule.GetDoubleCodeGeneratorOption(options, "DTrialCosts");
+            ForgetEarlierBargainingRounds = GameModule.GetBoolCodeGeneratorOption(options, "ForgetEarlierBargainingRounds");
             PerPartyBargainingRoundCosts = GameModule.GetDoubleCodeGeneratorOption(options, "PerPartyBargainingRoundCosts"); 
              IncludeSignalsReport = GameModule.GetBoolCodeGeneratorOption(options, "IncludeSignalsReport");
             NumBargainingRounds = GameModule.GetIntCodeGeneratorOption(options, "NumBargainingRounds");

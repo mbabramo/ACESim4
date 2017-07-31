@@ -332,6 +332,10 @@ namespace ACESim
             }
         }
 
+        public GameStateTypeEnum GetGameStateType()
+        {
+            return GameStateTypeEnum.Tally;
+        }
 
     }
 }

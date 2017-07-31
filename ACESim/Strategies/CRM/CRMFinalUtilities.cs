@@ -20,5 +20,10 @@ namespace ACESim
         {
             return $"Utilities: {String.Join(",", Utilities.Select(x => $"{x:N2}"))}";
         }
+
+        public GameStateTypeEnum GetGameStateType()
+        {
+            return GameStateTypeEnum.FinalUtilities;
+        }
     }
 }

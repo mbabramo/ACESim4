@@ -30,5 +30,10 @@ namespace ACESim
         }
 
         public abstract bool AllProbabilitiesEqual();
+
+        public GameStateTypeEnum GetGameStateType()
+        {
+            return GameStateTypeEnum.Chance;
+        }
     }
 }

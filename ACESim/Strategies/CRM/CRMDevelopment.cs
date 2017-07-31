@@ -28,7 +28,7 @@ namespace ACESim
 
 
 
-        CRMAlgorithm Algorithm = CRMAlgorithm.PureStrategyFinder;
+        CRMAlgorithm Algorithm = CRMAlgorithm.AverageStrategySampling;
         const int TotalAvgStrategySamplingCFRIterations = 100000000;
         const int TotalProbingCFRIterations = 100000000;
         const int TotalVanillaCFRIterations = 100000000;
@@ -43,12 +43,13 @@ namespace ACESim
         int LastOpponentEpsilonIteration = 10000;
         double CurrentEpsilonValue; // set in algorithm.
 
-        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameTreeOnly;
+        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
         bool AllowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => (AllowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)) && Algorithm != CRMAlgorithm.PureStrategyFinder;
 
-        int? ReportEveryNIterations => Algorithm == CRMAlgorithm.Vanilla ? 10000 : 100000;
-        int? BestResponseEveryMIterations => Algorithm == CRMAlgorithm.Vanilla ? 30000 : 5000000;
+        int? ReportEveryNIterations => Algorithm == CRMAlgorithm.Vanilla ? 10000 : 10000;
+        const int EffectivelyNever = 999999999;
+        int? BestResponseEveryMIterations => EffectivelyNever; // For now, don't do it. This takes most of the time when dealing with partial recall games.
         public int NumRandomIterationsForReporting = 10000;
         bool PrintGameTreeAfterReport = false;
         bool PrintInformationSetsAfterReport = false;
@@ -464,7 +465,7 @@ namespace ACESim
 
         private unsafe void CompareBestResponse(int iteration, bool useRandomPaths)
         {
-            if (BestResponseEveryMIterations != null && iteration % BestResponseEveryMIterations == 0)
+            if (BestResponseEveryMIterations != null && iteration % BestResponseEveryMIterations == 0 && BestResponseEveryMIterations != EffectivelyNever)
                 for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
                 {
                     double bestResponseUtility = CalculateBestResponse(playerBeingOptimized, ActionStrategy);
@@ -896,8 +897,10 @@ namespace ACESim
             ICRMGameState gameStateForCurrentPlayer = GetGameState(historyPoint);
             //if (TraceProbingCRM)
             //    TabbedText.WriteLine($"Probe optimizing player {playerBeingOptimized}");
-            if (gameStateForCurrentPlayer is CRMFinalUtilities finalUtilities)
+            GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
+            if (gameStateType == GameStateTypeEnum.FinalUtilities)
             {
+                CRMFinalUtilities finalUtilities = (CRMFinalUtilities)gameStateForCurrentPlayer;
                 var utility = finalUtilities.Utilities[playerBeingOptimized];
                 if (TraceProbingCRM)
                     TabbedText.WriteLine($"Utility returned {utility}");
@@ -906,15 +909,17 @@ namespace ACESim
             else
             {
                 byte sampledAction = 0;
-                if (gameStateForCurrentPlayer is CRMChanceNodeSettings chanceNodeSettings)
+                if (gameStateType == GameStateTypeEnum.Chance)
                 {
+                    CRMChanceNodeSettings chanceNodeSettings = (CRMChanceNodeSettings)gameStateForCurrentPlayer;
                     byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
                     sampledAction = chanceNodeSettings.SampleAction(numPossibleActions, RandomGenerator.NextDouble());
                     if (TraceProbingCRM)
                         TabbedText.WriteLine($"{sampledAction}: Sampled chance action {sampledAction} of {numPossibleActions} with probability {chanceNodeSettings.GetActionProbability(sampledAction)}");
                 }
-                else if (gameStateForCurrentPlayer is CRMInformationSetNodeTally informationSet)
+                else if (gameStateType == GameStateTypeEnum.Tally)
                 {
+                    CRMInformationSetNodeTally informationSet = (CRMInformationSetNodeTally)gameStateForCurrentPlayer;
                     byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
                     double* actionProbabilities = stackalloc double[numPossibleActions];
                     // the use of epsilon-on-policy for early iterations of opponent's strategy is a deviation from Gibson.
@@ -1114,21 +1119,24 @@ namespace ACESim
         double epsilon = 0.05, beta = 1000000, tau = 1000; // note that beta will keep sampling even at first, but becomes less important later on. Epsilon ensures some exploration, and tau weights things later on toward the best strategies
 
 
-        public unsafe double AvgStrategySampling_WalkTree(HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ)
+        public unsafe double AverageStrategySampling_WalkTree(HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ)
         {
             if (TraceAverageStrategySampling)
                 TabbedText.WriteLine($"WalkTree sampling probability {samplingProbabilityQ}");
             ICRMGameState gameStateForCurrentPlayer = GetGameState(historyPoint);
             byte sampledAction = 0;
-            if (gameStateForCurrentPlayer is CRMFinalUtilities finalUtilities)
+            GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
+            if (gameStateType == GameStateTypeEnum.FinalUtilities)
             {
+                CRMFinalUtilities finalUtilities = (CRMFinalUtilities)gameStateForCurrentPlayer;
                 var utility = finalUtilities.Utilities[playerBeingOptimized];
                 if (TraceAverageStrategySampling)
                     TabbedText.WriteLine($"Utility returned {utility}");
                 return utility / samplingProbabilityQ;
             }
-            else if (gameStateForCurrentPlayer is CRMChanceNodeSettings chanceNodeSettings)
+            else if (gameStateType == GameStateTypeEnum.Chance)
             {
+                CRMChanceNodeSettings chanceNodeSettings = (CRMChanceNodeSettings)gameStateForCurrentPlayer;
                 byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
                 sampledAction = chanceNodeSettings.SampleAction(numPossibleActions, RandomGenerator.NextDouble());
                 if (TraceAverageStrategySampling)
@@ -1136,7 +1144,7 @@ namespace ACESim
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction);
                 if (TraceAverageStrategySampling)
                     TabbedText.Tabs++;
-                double walkTreeValue = AvgStrategySampling_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ);
+                double walkTreeValue = AverageStrategySampling_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ);
                 if (TraceAverageStrategySampling)
                 {
                     TabbedText.Tabs--;
@@ -1144,8 +1152,9 @@ namespace ACESim
                 }
                 return walkTreeValue;
             }
-            else if (gameStateForCurrentPlayer is CRMInformationSetNodeTally informationSet)
+            else if (gameStateType == GameStateTypeEnum.Tally)
             {
+                CRMInformationSetNodeTally informationSet = (CRMInformationSetNodeTally)gameStateForCurrentPlayer;
                 byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
                 double* sigma_regretMatchedActionProbabilities = stackalloc double[numPossibleActions];
                 // the use of epsilon-on-policy for early iterations of opponent's strategy is a deviation from Gibson.
@@ -1172,7 +1181,7 @@ namespace ACESim
                     HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction);
                     if (TraceAverageStrategySampling)
                         TabbedText.Tabs++;
-                    double walkTreeValue = AvgStrategySampling_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ);
+                    double walkTreeValue = AverageStrategySampling_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ);
                     if (TraceAverageStrategySampling)
                     {
                         TabbedText.Tabs--;
@@ -1206,7 +1215,7 @@ namespace ACESim
                         if (TraceAverageStrategySampling)
                             TabbedText.Tabs++;
                         HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
-                        counterfactualValues[action - 1] = AvgStrategySampling_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ * Math.Min(1.0, rho));
+                        counterfactualValues[action - 1] = AverageStrategySampling_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ * Math.Min(1.0, rho));
                         counterfactualSummation += sigma_regretMatchedActionProbabilities[action - 1] * counterfactualValues[action - 1];
                         if (TraceAverageStrategySampling)
                             TabbedText.Tabs--;
@@ -1248,7 +1257,7 @@ namespace ACESim
                     TabbedText.WriteLine($"Optimize player {playerBeingOptimized}");
                     TabbedText.Tabs++;
                 }
-                AvgStrategySampling_WalkTree(historyPoint, playerBeingOptimized, 1.0);
+                AverageStrategySampling_WalkTree(historyPoint, playerBeingOptimized, 1.0);
                 if (TraceAverageStrategySampling)
                     TabbedText.Tabs--;
             }
@@ -1305,10 +1314,17 @@ namespace ACESim
                     return 0; // this is zero probability, so the result doesn't matter
             }
             ICRMGameState gameStateForCurrentPlayer = GetGameState(historyPoint);
-            if (gameStateForCurrentPlayer is CRMFinalUtilities finalUtilities)
+            GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
+            if (gameStateType == GameStateTypeEnum.FinalUtilities)
+            {
+                CRMFinalUtilities finalUtilities = (CRMFinalUtilities)gameStateForCurrentPlayer;
                 return finalUtilities.Utilities[playerBeingOptimized];
-            else if (gameStateForCurrentPlayer is CRMChanceNodeSettings)
+            }
+            else if (gameStateType == GameStateTypeEnum.Chance)
+            {
+                CRMChanceNodeSettings chanceNodeSettings = (CRMChanceNodeSettings)gameStateForCurrentPlayer;
                 return VanillaCRM_ChanceNode(historyPoint, playerBeingOptimized, piValues, usePruning);
+            }
             else
                 return VanillaCRM_DecisionNode(historyPoint, playerBeingOptimized, piValues, usePruning);
         }
