@@ -118,16 +118,24 @@ namespace ACESim
             else if (DecisionNeeded)
             {
                 byte action = ChooseAction();
-                if (Progress.IsFinalGamePath && action < CurrentDecision.NumPossibleActions)
-                    Progress.IsFinalGamePath = false;
                 if (currentDecision.Subdividable_IsSubdivision)
                     HandleSubdivisionDecision(currentDecision, (byte) CurrentDecisionIndex, action);
                 else
                 {
-                    RespondToAction(currentDecision.DecisionByteCode, action);
-                    GameDefinition.CustomInformationSetManipulation(currentDecision, (byte)CurrentDecisionIndex, action, ref Progress.GameHistory);
+                    byte numPossibleActions = CurrentDecision.NumPossibleActions;
+                    ProcessActionChosen(currentDecision, action, numPossibleActions);
                 }
             }
+        }
+
+        private void ProcessActionChosen(Decision currentDecision, byte action, byte numPossibleActions)
+        {
+            byte decisionByteCode = currentDecision.Subdividable_IsSubdivision ? currentDecision.Subdividable_CorrespondingDecisionByteCode : currentDecision.DecisionByteCode;
+            Progress.GameHistory.AddToHistory(decisionByteCode, (byte)CurrentDecisionIndex, CurrentPlayerNumber, action, numPossibleActions, currentDecision.PlayersToInform, currentDecision.InformOnlyThatDecisionOccurred, currentDecision.CustomInformationSetManipulationOnly);
+            if (Progress.IsFinalGamePath && action < numPossibleActions)
+                Progress.IsFinalGamePath = false;
+            RespondToAction(decisionByteCode, action);
+            GameDefinition.CustomInformationSetManipulation(currentDecision, (byte)CurrentDecisionIndex, action, ref Progress.GameHistory);
         }
 
         public virtual bool DecisionIsNeeded(Decision currentDecision)
@@ -148,7 +156,6 @@ namespace ACESim
             else
                 actionToChoose = CurrentPlayerStrategy.ChooseActionBasedOnRandomNumber(Progress, Progress.IterationID.GetRandomNumberBasedOnIterationID((byte)CurrentDecisionIndex), CurrentDecision.NumPossibleActions);
 
-            Progress.GameHistory.AddToHistory(CurrentDecision.DecisionByteCode, (byte)CurrentDecisionIndex, CurrentPlayerNumber, actionToChoose, CurrentDecision.NumPossibleActions, CurrentDecision.PlayersToInform, CurrentDecision.InformOnlyThatDecisionOccurred, CurrentDecision.CustomInformationSetManipulationOnly);
             return actionToChoose;
         }
 
@@ -164,15 +171,17 @@ namespace ACESim
         /// <param name="action"></param>
         public virtual void HandleSubdivisionDecision(Decision currentDecision, byte currentDecisionIndex, byte action)
         {
+            var DEBUG = Progress.GameHistory.GetPlayerInformationString(currentDecision.PlayerNumber, null);
             if (currentDecision.Subdividable_IsSubdivision_First)
                 Progress.GameHistory.AddToInformationSet(GameHistory.StubToIndicateSubdividingInProgress, currentDecisionIndex, currentDecision.PlayerNumber);
             Progress.GameHistory.AddToInformationSet(action, currentDecisionIndex, currentDecision.PlayerNumber);
             if (currentDecision.Subdividable_IsSubdivision_Last)
             { 
                 byte aggregatedAction = Progress.GameHistory.AggregateSubdividable(currentDecision.PlayerNumber, currentDecision.Subdividable_NumOptionsPerBranch, currentDecision.Subdividable_NumLevels);
-                RespondToAction(currentDecision.Subdividable_CorrespondingDecisionByteCode, aggregatedAction);
-                GameDefinition.CustomInformationSetManipulation(currentDecision, (byte)CurrentDecisionIndex, action, ref Progress.GameHistory);
+                DEBUG = Progress.GameHistory.GetPlayerInformationString(currentDecision.PlayerNumber, null);
+                ProcessActionChosen(currentDecision, action, currentDecision.Subdividable_OriginalNumPossibleActions);
             }
+            DEBUG = Progress.GameHistory.GetPlayerInformationString(currentDecision.PlayerNumber, null);
         }
 
         public virtual double ConvertActionToUniformDistributionDraw(int action)

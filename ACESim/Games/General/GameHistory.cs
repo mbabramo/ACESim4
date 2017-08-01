@@ -348,16 +348,22 @@ namespace ACESim
         {
             fixed (byte* informationSetsPtr = InformationSets)
             {
-                byte* valuePtr = informationSetsPtr;
-                byte accumulator = *valuePtr;
+                byte* playerPointer = informationSetsPtr + playerNumber * MaxInformationSetLengthPerPlayer;
+                // advance to the end of the information set
+                while (*playerPointer != InformationSetTerminator)
+                    playerPointer += 2;
+                playerPointer--;
+                byte accumulator = (byte) (*playerPointer - 1); // spot before terminator
                 for (byte level = 1; level < numLevels; level++)
                 {
-                    valuePtr--;
-                    accumulator = (byte) (accumulator * numOptionsPerBranch + *valuePtr);
+                    playerPointer--; // go back to decision index
+                    playerPointer--; // go back to previous decision
+                    accumulator = (byte) (accumulator * numOptionsPerBranch + (*playerPointer - 1));
                 }
-                valuePtr--;
-                *valuePtr = InformationSetTerminator; // delete the stub and everything following it
-                return accumulator;
+                playerPointer--;
+                playerPointer--;
+                *playerPointer = InformationSetTerminator; // delete the stub and everything following it
+                return (byte) (accumulator + 1);
             }
         }
 

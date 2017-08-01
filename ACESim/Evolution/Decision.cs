@@ -129,6 +129,11 @@ namespace ACESim
         public byte Subdividable_NumLevels;
 
         /// <summary>
+        /// The number of options per branch raised to the number of levels.
+        /// </summary>
+        public byte Subdividable_OriginalNumPossibleActions;
+
+        /// <summary>
         /// For a subdividable decision, this represents the decision byte code to be used for each level of the substitutable decision. For the subdivision itself, this represents the decision byte code of the subdivided decision.
         /// </summary>
         public byte Subdividable_CorrespondingDecisionByteCode;
@@ -176,7 +181,7 @@ namespace ACESim
 
         public Decision Clone()
         {
-            Decision d = new Decision(Name, Abbreviation, PlayerNumber, PlayersToInform.ToList(), NumPossibleActions, DecisionByteCode, DecisionTypeCode, RepetitionsAfterFirst, PreevolvedStrategyFilename, InformationSetAbbreviations, AlwaysDoAction, UnevenChanceActions, InformOnlyThatDecisionOccurred) { IsAlwaysPlayersLastDecision = IsAlwaysPlayersLastDecision, CanTerminateGame = CanTerminateGame, CustomInformationSetManipulationOnly = CustomInformationSetManipulationOnly, CustomByte = CustomByte, Subdividable = Subdividable, Subdividable_NumLevels = Subdividable_NumLevels, Subdividable_NumOptionsPerBranch = Subdividable_NumOptionsPerBranch, Subdividable_CorrespondingDecisionByteCode = Subdividable_CorrespondingDecisionByteCode, Subdividable_IsSubdivision = Subdividable_IsSubdivision, Subdividable_IsSubdivision_Last = Subdividable_IsSubdivision_Last, Subdividable_IsSubdivision_First = Subdividable_IsSubdivision_First };
+            Decision d = new Decision(Name, Abbreviation, PlayerNumber, PlayersToInform?.ToList() ?? new List<byte>(), NumPossibleActions, DecisionByteCode, DecisionTypeCode, RepetitionsAfterFirst, PreevolvedStrategyFilename, InformationSetAbbreviations, AlwaysDoAction, UnevenChanceActions, InformOnlyThatDecisionOccurred) { IsAlwaysPlayersLastDecision = IsAlwaysPlayersLastDecision, CanTerminateGame = CanTerminateGame, CustomInformationSetManipulationOnly = CustomInformationSetManipulationOnly, CustomByte = CustomByte, Subdividable = Subdividable, Subdividable_NumLevels = Subdividable_NumLevels, Subdividable_NumOptionsPerBranch = Subdividable_NumOptionsPerBranch, Subdividable_CorrespondingDecisionByteCode = Subdividable_CorrespondingDecisionByteCode, Subdividable_IsSubdivision = Subdividable_IsSubdivision, Subdividable_IsSubdivision_Last = Subdividable_IsSubdivision_Last, Subdividable_IsSubdivision_First = Subdividable_IsSubdivision_First, Subdividable_OriginalNumPossibleActions = Subdividable_OriginalNumPossibleActions };
             return d;
         }
 
@@ -202,6 +207,8 @@ namespace ACESim
                 subdivisionDecision.DecisionByteCode = Subdividable_CorrespondingDecisionByteCode;
                 subdivisionDecision.Subdividable_CorrespondingDecisionByteCode = DecisionByteCode;
                 subdivisionDecision.Subdividable = false;
+                subdivisionDecision.Subdividable_OriginalNumPossibleActions = NumPossibleActions;
+                subdivisionDecision.NumPossibleActions = Subdividable_NumOptionsPerBranch;
                 subdivisionDecision.Subdividable_IsSubdivision = true;
                 subdivisionDecision.CustomInformationSetManipulationOnly = false;
                 if (i == 0)
