@@ -13,8 +13,8 @@ namespace ACESim
     public unsafe struct GameHistory : ISerializable
     {
         public const int MaxHistoryLength = 100;
-        public const int MaxInformationSetLength = 500; // MUST equal MaxInformationSetLengthPerPlayer * MaxNumPlayers. 
-        public const int MaxInformationSetLengthPerPlayer = 50; 
+        public const int MaxInformationSetLength = 750; // MUST equal MaxInformationSetLengthPerPlayer * MaxNumPlayers. 
+        public const int MaxInformationSetLengthPerPlayer = 75; 
         public const int MaxNumPlayers = 10;
         public const int MaxNumActions = 20;
         const byte HistoryComplete = 254;
@@ -111,7 +111,7 @@ namespace ACESim
             Initialized = true;
         }
 
-        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerNumber, byte action, byte numPossibleActions, List<byte> playersToInform, bool informOnlyThatDecisionOccurred, bool customInformationSetManipulationOnly)
+        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerNumber, byte action, byte numPossibleActions, List<byte> playersToInform, bool informOnlyThatDecisionOccurred, bool skipAddToInformationSet)
         {
             if (!Initialized)
                 Initialize();
@@ -128,7 +128,7 @@ namespace ACESim
                 *(historyPtr + i + History_NumPiecesOfInformation) = HistoryTerminator; // this is just one item at end of all history items
             }
             LastIndexAddedToHistory = (short) (i + History_NumPiecesOfInformation);
-            if (!customInformationSetManipulationOnly)
+            if (!skipAddToInformationSet)
                 AddToInformationSet(informOnlyThatDecisionOccurred ? StubToIndicateDecisionOccurred : action, decisionIndex, playerNumber, playersToInform);
         }
 
@@ -307,12 +307,13 @@ namespace ACESim
             bool playerInformedOfOwnDecision = false;
             fixed (byte* informationSetsPtr = InformationSets)
             {
-                foreach (byte playerIndex in playersToInform)
-                {
-                    if (playerIndex == playerNumber)
-                        playerInformedOfOwnDecision = true;
-                    AddToInformationSet(information, followingDecisionIndex, playerIndex, informationSetsPtr);
-                }
+                if (playersToInform != null)
+                    foreach (byte playerIndex in playersToInform)
+                    {
+                        if (playerIndex == playerNumber)
+                            playerInformedOfOwnDecision = true;
+                        AddToInformationSet(information, followingDecisionIndex, playerIndex, informationSetsPtr);
+                    }
                 // make sure that a player at least remembers that he has made the decision, even if the player doesn't remember what it was
                 if (!playerInformedOfOwnDecision)
                     AddToInformationSet(1, followingDecisionIndex, playerNumber, informationSetsPtr);
@@ -344,7 +345,7 @@ namespace ACESim
             *playerPointer = InformationSetTerminator; // terminator
         }
 
-        public byte AggregateSubdividable(byte playerNumber, byte numOptionsPerBranch, byte numLevels)
+        public byte AggregateSubdividable(byte playerNumber, byte decisionIndex, byte numOptionsPerBranch, byte numLevels)
         {
             fixed (byte* informationSetsPtr = InformationSets)
             {
@@ -360,9 +361,7 @@ namespace ACESim
                     playerPointer--; // go back to previous decision
                     accumulator = (byte) (accumulator * numOptionsPerBranch + (*playerPointer - 1));
                 }
-                playerPointer--;
-                playerPointer--;
-                *playerPointer = InformationSetTerminator; // delete the stub and everything following it
+                RemoveItemsInInformationSet(playerNumber, decisionIndex, (byte) (numLevels + 1) /* each level plus a stub */);
                 return (byte) (accumulator + 1);
             }
         }
@@ -421,14 +420,15 @@ namespace ACESim
             return b;
         }
 
-        public void ReduceItemsInInformationSet(byte playerIndex, byte followingDecisionIndex, byte numItemsToRemove)
+        public void RemoveItemsInInformationSet(byte playerIndex, byte followingDecisionIndex, byte numItemsToRemove)
         {
+            // This takes the approach of keeping the information set as append-only storage. That is, we add a notation that we're removing an item from the information set. 
             if (!Initialized)
                 Initialize();
             for (byte b = 0; b < numItemsToRemove; b++)
             {
                 AddToInformationSet(RemoveItemFromInformationSet, followingDecisionIndex, playerIndex);
-                // We could make this more efficient by going to the end of the information set and then adding all the removals. 
+                // TODO: We could make this more efficient by going to the end of the information set and then adding all the removals. Otherwise, we're going back through our list for each item we're removing.
             }
         }
 

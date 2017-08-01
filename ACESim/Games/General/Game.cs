@@ -174,12 +174,21 @@ namespace ACESim
             var DEBUG = Progress.GameHistory.GetPlayerInformationString(currentDecision.PlayerNumber, null);
             if (currentDecision.Subdividable_IsSubdivision_First)
                 Progress.GameHistory.AddToInformationSet(GameHistory.StubToIndicateSubdividingInProgress, currentDecisionIndex, currentDecision.PlayerNumber);
-            Progress.GameHistory.AddToInformationSet(action, currentDecisionIndex, currentDecision.PlayerNumber);
-            if (currentDecision.Subdividable_IsSubdivision_Last)
+            Progress.GameHistory.AddToHistory(currentDecision.DecisionByteCode, (byte)CurrentDecisionIndex, CurrentPlayerNumber, action, currentDecision.Subdividable_NumOptionsPerBranch, null, currentDecision.InformOnlyThatDecisionOccurred, false); // this will add the decision to history and to the information set
+            if (Progress.IsFinalGamePath && action < currentDecision.Subdividable_NumOptionsPerBranch)
+                Progress.IsFinalGamePath = false;
+            if (!currentDecision.Subdividable_IsSubdivision_Last)
+            {
+            }
+            else
             { 
-                byte aggregatedAction = Progress.GameHistory.AggregateSubdividable(currentDecision.PlayerNumber, currentDecision.Subdividable_NumOptionsPerBranch, currentDecision.Subdividable_NumLevels);
+                byte aggregatedAction = Progress.GameHistory.AggregateSubdividable(currentDecision.PlayerNumber, currentDecisionIndex, currentDecision.Subdividable_NumOptionsPerBranch, currentDecision.Subdividable_NumLevels);
+                // We don't 
                 DEBUG = Progress.GameHistory.GetPlayerInformationString(currentDecision.PlayerNumber, null);
-                ProcessActionChosen(currentDecision, action, currentDecision.Subdividable_OriginalNumPossibleActions);
+
+                Progress.GameHistory.AddToHistory(decisionByteCode, (byte)CurrentDecisionIndex, CurrentPlayerNumber, action, numPossibleActions, currentDecision.PlayersToInform, currentDecision.InformOnlyThatDecisionOccurred, currentDecision.CustomInformationSetManipulationOnly);
+                RespondToAction(currentDecision.Subdividable_CorrespondingDecisionByteCode, action);
+                GameDefinition.CustomInformationSetManipulation(currentDecision, (byte)CurrentDecisionIndex, action, ref Progress.GameHistory);
             }
             DEBUG = Progress.GameHistory.GetPlayerInformationString(currentDecision.PlayerNumber, null);
         }

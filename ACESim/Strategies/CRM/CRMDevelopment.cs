@@ -26,8 +26,6 @@ namespace ACESim
             PureStrategyFinder
         }
 
-
-
         CRMAlgorithm Algorithm = CRMAlgorithm.AverageStrategySampling;
         const int TotalAvgStrategySamplingCFRIterations = 100000000;
         const int TotalProbingCFRIterations = 100000000;
@@ -43,16 +41,16 @@ namespace ACESim
         int LastOpponentEpsilonIteration = 10000;
         double CurrentEpsilonValue; // set in algorithm.
 
-        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
+        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameTreeOnly;
         bool AllowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => (AllowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)) && Algorithm != CRMAlgorithm.PureStrategyFinder;
 
-        int? ReportEveryNIterations => Algorithm == CRMAlgorithm.Vanilla ? 10000 : 10000;
+        int? ReportEveryNIterations => 1; // DEBUG Algorithm == CRMAlgorithm.Vanilla ? 10000 : 10000;
         const int EffectivelyNever = 999999999;
         int? BestResponseEveryMIterations => EffectivelyNever; // For now, don't do it. This takes most of the time when dealing with partial recall games.
         public int NumRandomIterationsForReporting = 10000;
         bool PrintGameTreeAfterReport = false;
-        bool PrintInformationSetsAfterReport = false;
+        bool PrintInformationSetsAfterReport = true;
         bool AlwaysUseAverageStrategyInReporting = true;
 
         public List<Strategy> Strategies { get; set; }

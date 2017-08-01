@@ -194,8 +194,8 @@ namespace ACESim
                         // If this is not the first round, then we should remove the last piece of information from both. 
                         if (ForgetEarlierBargainingRounds && bargainingRound > 1)
                         {
-                            gameHistory.ReduceItemsInInformationSet((byte)MyGamePlayers.Plaintiff, currentDecisionIndex, 1);
-                            gameHistory.ReduceItemsInInformationSet((byte)MyGamePlayers.Defendant, currentDecisionIndex, 1);
+                            gameHistory.RemoveItemsInInformationSet((byte)MyGamePlayers.Plaintiff, currentDecisionIndex, 1);
+                            gameHistory.RemoveItemsInInformationSet((byte)MyGamePlayers.Defendant, currentDecisionIndex, 1);
                         }
                         // Now add the information -- a stub for the player about their own decision and the actual decision for the other player.
                         // This way, when we remove the decision in a later bargaining round (if we indeed do so), the information set will still distinguish
@@ -220,8 +220,8 @@ namespace ACESim
                         // Based on code below, both information sets contain information about this round. But now it turns out that we want to forget this round.
                         // We're now at a point where the second party has made its decision. We need to make sure that in the NEXT round,
                         // the parties do not remember their decisions. 
-                        gameHistory.ReduceItemsInInformationSet(currentPlayer, currentDecisionIndex, 1);
-                        gameHistory.ReduceItemsInInformationSet(otherPlayer, currentDecisionIndex, 1);
+                        gameHistory.RemoveItemsInInformationSet(currentPlayer, currentDecisionIndex, 1);
+                        gameHistory.RemoveItemsInInformationSet(otherPlayer, currentDecisionIndex, 1);
                         // But we do need to remember that the decision has occurred, to enable distinguishing between decisions in different rounds.
                         gameHistory.AddToInformationSet(GameHistory.StubToIndicateDecisionOccurred, currentDecisionIndex, currentPlayer);
                         gameHistory.AddToInformationSet(GameHistory.StubToIndicateDecisionOccurred, currentDecisionIndex, otherPlayer);
@@ -247,7 +247,7 @@ namespace ACESim
                 if (numItems == 3)
                 {
                     numItems = 0;
-                    gameHistory.ReduceItemsInInformationSet((byte)MyGamePlayers.Resolution, currentDecisionIndex, numItems);
+                    gameHistory.RemoveItemsInInformationSet((byte)MyGamePlayers.Resolution, currentDecisionIndex, numItems);
                 }
                 if (numItems == 0)
                     gameHistory.AddToInformationSet(currentDecisionIndex, currentDecisionIndex, (byte)MyGamePlayers.Resolution); // in effect, just note the decision leading to resolution
