@@ -118,24 +118,40 @@ namespace ACESim
             else if (DecisionNeeded)
             {
                 byte action = ChooseAction();
-                if (currentDecision.Subdividable_IsSubdivision)
-                    HandleSubdivisionDecision(currentDecision, (byte) CurrentDecisionIndex, action);
+                byte numPossibleActions = CurrentDecision.NumPossibleActions;
+                if (Progress.IsFinalGamePath && action < numPossibleActions)
+                    Progress.IsFinalGamePath = false;
+                GameHistory gameHistory = Progress.GameHistory;
+                byte decisionIndex = (byte)CurrentDecisionIndex;
+                byte playerNumber = CurrentPlayerNumber;
+                byte aggregatedActionOrZero = UpdateGameHistory(gameHistory, GameDefinition, currentDecision, decisionIndex, action);
+                if (aggregatedActionOrZero != 0)
+                    UpdateGameProgressFollowingAction(currentDecision.Subdividable_CorrespondingDecisionByteCode, aggregatedActionOrZero); // this is last decision for a subdivision, so we update the game progress for the underlying decision based on the aggregated action
                 else
-                {
-                    byte numPossibleActions = CurrentDecision.NumPossibleActions;
-                    ProcessActionChosen(currentDecision, action, numPossibleActions);
-                }
+                    UpdateGameProgressFollowingAction(currentDecision.DecisionByteCode, action);
             }
         }
 
-        private void ProcessActionChosen(Decision currentDecision, byte action, byte numPossibleActions)
+        public static byte UpdateGameHistory(GameHistory gameHistory, GameDefinition gameDefinition, Decision decision, byte decisionIndex, byte action)
         {
-            if (Progress.IsFinalGamePath && action < numPossibleActions)
-                Progress.IsFinalGamePath = false;
-            byte decisionByteCode = currentDecision.Subdividable_IsSubdivision ? currentDecision.Subdividable_CorrespondingDecisionByteCode : currentDecision.DecisionByteCode;
-            Progress.GameHistory.AddToHistory(decisionByteCode, (byte)CurrentDecisionIndex, CurrentPlayerNumber, action, numPossibleActions, currentDecision.PlayersToInform, currentDecision.InformOnlyThatDecisionOccurred, currentDecision.CustomInformationSetManipulationOnly);
-            GameDefinition.CustomInformationSetManipulation(currentDecision, (byte)CurrentDecisionIndex, action, ref Progress.GameHistory);
-            RespondToAction(decisionByteCode, action);
+            byte aggregatedAction = 0;
+            if (decision.Subdividable_IsSubdivision)
+            {
+                // For subdivision decisions, we initially add only to the player's own information set, starting with a stub to distinguish the individual levels from the eventual decision.
+                if (decision.Subdividable_IsSubdivision_First)
+                    gameHistory.AddToInformationSet(GameHistory.StubToIndicateSubdividingInProgress, decisionIndex, decision.PlayerNumber);
+                gameHistory.AddToInformationSet(action, decisionIndex, decision.PlayerNumber);
+                if (decision.Subdividable_IsSubdivision_Last)
+                {
+                    aggregatedAction = gameHistory.AggregateSubdividable(decision.PlayerNumber, decisionIndex, decision.Subdividable_NumOptionsPerBranch, decision.Subdividable_NumLevels); // removes items from information set
+                    // now, we add to the history as if this were the regular decision. 
+                    gameHistory.AddToHistory(decision.Subdividable_CorrespondingDecisionByteCode, decisionIndex, decision.PlayerNumber, action, decision.Subdividable_AggregateNumPossibleActions, decision.PlayersToInform, decision.InformOnlyThatDecisionOccurred, decision.CustomInformationSetManipulationOnly);
+                }
+            }
+            else
+                gameHistory.AddToHistory(decision.DecisionByteCode, decisionIndex, decision.PlayerNumber, action, decision.NumPossibleActions, decision.PlayersToInform, decision.InformOnlyThatDecisionOccurred, decision.CustomInformationSetManipulationOnly);
+            gameDefinition.CustomInformationSetManipulation(decision, decisionIndex, action, ref gameHistory);
+            return aggregatedAction; // should be ignored when this is not the current decision.
         }
 
         public virtual bool DecisionIsNeeded(Decision currentDecision)
@@ -159,40 +175,8 @@ namespace ACESim
             return actionToChoose;
         }
 
-        public virtual void RespondToAction(byte currentDecisionByteCode, byte action)
+        public virtual void UpdateGameProgressFollowingAction(byte currentDecisionByteCode, byte action)
         {
-        }
-
-        /// <summary>
-        /// This handles each decision for a subdivision decision. For the first such decision, we add a stub to the player's own information set indicating that the subdivision is starting; this distinguishes the information sets for the player. For other decisions, we add each individual subdecision. For the last decision, we aggregate all the previous decisions and then respond to the action, so the effect is the same as just processing the regular decision.
-        /// </summary>
-        /// <param name="currentDecision"></param>
-        /// <param name="currentDecisionIndex"></param>
-        /// <param name="action"></param>
-        public virtual void HandleSubdivisionDecision(Decision currentDecision, byte currentDecisionIndex, byte action)
-        {
-            var DEBUG = Progress.GameHistory.GetPlayerInformationString(currentDecision.PlayerNumber, null);
-            if (currentDecision.Subdividable_IsSubdivision_First)
-                Progress.GameHistory.AddToInformationSet(GameHistory.StubToIndicateSubdividingInProgress, currentDecisionIndex, currentDecision.PlayerNumber);
-            Progress.GameHistory.AddToHistory(currentDecision.DecisionByteCode, (byte)CurrentDecisionIndex, CurrentPlayerNumber, action, currentDecision.Subdividable_NumOptionsPerBranch, null, currentDecision.InformOnlyThatDecisionOccurred, false); // this will add the decision to history and to the information set for this player, but NOT for other players who are to be informed eventually
-            if (Progress.IsFinalGamePath && action < currentDecision.Subdividable_NumOptionsPerBranch)
-                Progress.IsFinalGamePath = false;
-            if (currentDecision.Subdividable_IsSubdivision_Last)
-            {
-                // Each individual subdivision action has been added to the history. We need to leave that as is, so that history can be replayed based on our record of it.
-                // Each individual subdivision action has also been added to the information set of the player. We need to aggregate all of this information and then change the information set so that the stub and the earlier actions are noted as deleted (without actually deleting the record).
-                byte aggregatedAction = Progress.GameHistory.AggregateSubdividable(currentDecision.PlayerNumber, currentDecisionIndex, currentDecision.Subdividable_NumOptionsPerBranch, currentDecision.Subdividable_NumLevels);
-                // Now we need to determine whether this should be added to the information set. 
-                if (!currentDecision.CustomInformationSetManipulationOnly)
-                {
-                    Progress.GameHistory.AddToInformationSet(currentDecision.InformOnlyThatDecisionOccurred ? GameHistory.StubToIndicateDecisionOccurred : aggregatedAction, currentDecisionIndex, currentDecision.PlayerNumber, currentDecision.PlayersToInform);
-                    if (!currentDecision.PlayersToInform.Any(x => x == currentDecision.PlayerNumber))
-                        Progress.GameHistory.AddToInformationSet(currentDecision.InformOnlyThatDecisionOccurred ? GameHistory.StubToIndicateDecisionOccurred : aggregatedAction, currentDecisionIndex, currentDecision.PlayerNumber); // inform player of own decision
-                }
-                GameDefinition.CustomInformationSetManipulation(currentDecision, (byte)CurrentDecisionIndex, action, ref Progress.GameHistory);
-                RespondToAction(currentDecision.Subdividable_CorrespondingDecisionByteCode, action);
-            }
-            DEBUG = Progress.GameHistory.GetPlayerInformationString(currentDecision.PlayerNumber, null);
         }
 
         public virtual double ConvertActionToUniformDistributionDraw(int action)

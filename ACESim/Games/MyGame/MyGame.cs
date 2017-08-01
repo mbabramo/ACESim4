@@ -21,7 +21,7 @@ namespace ACESim
             return true;
         }
 
-        public override void RespondToAction(byte currentDecisionByteCode, byte action)
+        public override void UpdateGameProgressFollowingAction(byte currentDecisionByteCode, byte action)
         {
             if (currentDecisionByteCode == (byte)MyGameDecisions.LitigationQuality)
             {

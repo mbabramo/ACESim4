@@ -195,7 +195,7 @@ namespace ACESim
         public (byte mostRecentAction, byte actionBeforeThat) GetLastActionAndActionBeforeThat()
         {
             if (LastIndexAddedToHistory < History_NumPiecesOfInformation * 2)
-                throw new Exception("Internal error. Two actinos have not occurred");
+                throw new Exception("Internal error. Two actions have not occurred");
             fixed (byte* historyPtr = History)
             {
                 byte* mostRecentPointer = (historyPtr + LastIndexAddedToHistory - History_NumPiecesOfInformation + History_Action_Offset);
