@@ -45,7 +45,7 @@ namespace ACESim
         bool AllowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => (AllowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)) && Algorithm != CRMAlgorithm.PureStrategyFinder;
 
-        int? ReportEveryNIterations => Algorithm == CRMAlgorithm.Vanilla ? 1000 : 1000;
+        int? ReportEveryNIterations => Algorithm == CRMAlgorithm.Vanilla ? 100000 : 100000;
         const int EffectivelyNever = 999999999;
         int? BestResponseEveryMIterations => EffectivelyNever; // For now, don't do it. This takes most of the time when dealing with partial recall games.
         public int NumRandomIterationsForReporting = 10000;
@@ -1128,59 +1128,23 @@ namespace ACESim
             ICRMGameState gameStateForCurrentPlayer = GetGameState(historyPoint);
             byte sampledAction = 0;
             GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
-            if (gameStateType == GameStateTypeEnum.FinalUtilities)
+            HistoryPoint nextHistoryPoint;
+            byte numPossibleActions;
+            switch (gameStateType)
             {
-                CRMFinalUtilities finalUtilities = (CRMFinalUtilities)gameStateForCurrentPlayer;
-                var utility = finalUtilities.Utilities[playerBeingOptimized];
-                if (TraceAverageStrategySampling)
-                    TabbedText.WriteLine($"Utility returned {utility}");
-                return utility / samplingProbabilityQ;
-            }
-            else if (gameStateType == GameStateTypeEnum.Chance)
-            {
-                CRMChanceNodeSettings chanceNodeSettings = (CRMChanceNodeSettings)gameStateForCurrentPlayer;
-                byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
-                sampledAction = chanceNodeSettings.SampleAction(numPossibleActions, RandomGenerator.NextDouble());
-                if (TraceAverageStrategySampling)
-                    TabbedText.WriteLine($"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} for chance decision {chanceNodeSettings.DecisionIndex}");
-                HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction);
-                if (TraceAverageStrategySampling)
-                    TabbedText.Tabs++;
-                double walkTreeValue = AverageStrategySampling_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ);
-                if (TraceAverageStrategySampling)
-                {
-                    TabbedText.Tabs--;
-                    TabbedText.WriteLine($"Returning walk tree result {walkTreeValue}");
-                }
-                return walkTreeValue;
-            }
-            else if (gameStateType == GameStateTypeEnum.Tally)
-            {
-                CRMInformationSetNodeTally informationSet = (CRMInformationSetNodeTally)gameStateForCurrentPlayer;
-                byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
-                double* sigma_regretMatchedActionProbabilities = stackalloc double[numPossibleActions];
-                // the use of epsilon-on-policy for early iterations of opponent's strategy is a deviation from Gibson.
-                if (UseEpsilonOnPolicyForOpponent && AvgStrategySamplingCFRIterationNum <= LastOpponentEpsilonIteration)
-                    informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(sigma_regretMatchedActionProbabilities, CurrentEpsilonValue);
-                else
-                    informationSet.GetRegretMatchingProbabilities(sigma_regretMatchedActionProbabilities);
-                byte playerAtPoint = informationSet.PlayerIndex;
-                if (playerAtPoint != playerBeingOptimized)
-                {
-                    for (byte action = 1; action <= numPossibleActions; action++)
-                    {
-                        double cumulativeStrategyIncrement = sigma_regretMatchedActionProbabilities[action - 1] / samplingProbabilityQ;
-                        if (EvolutionSettings.ParallelOptimization)
-                            informationSet.IncrementCumulativeStrategy_Parallel(action, cumulativeStrategyIncrement);
-                        else
-                            informationSet.IncrementCumulativeStrategy(action, cumulativeStrategyIncrement);
-                        if (TraceProbingCRM)
-                            TabbedText.WriteLine($"Incrementing cumulative strategy for {action} by {cumulativeStrategyIncrement} to {informationSet.GetCumulativeStrategy(action)}");
-                    }
-                    sampledAction = SampleAction(sigma_regretMatchedActionProbabilities, numPossibleActions, RandomGenerator.NextDouble());
+                case GameStateTypeEnum.FinalUtilities:
+                    CRMFinalUtilities finalUtilities = (CRMFinalUtilities)gameStateForCurrentPlayer;
+                    var utility = finalUtilities.Utilities[playerBeingOptimized];
                     if (TraceAverageStrategySampling)
-                        TabbedText.WriteLine($"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {playerAtPoint} decision {informationSet.DecisionIndex} with regret-matched prob {sigma_regretMatchedActionProbabilities[sampledAction - 1]}");
-                    HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction);
+                        TabbedText.WriteLine($"Utility returned {utility}");
+                    return utility / samplingProbabilityQ;
+                case GameStateTypeEnum.Chance:
+                    CRMChanceNodeSettings chanceNodeSettings = (CRMChanceNodeSettings)gameStateForCurrentPlayer;
+                    numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
+                    sampledAction = chanceNodeSettings.SampleAction(numPossibleActions, RandomGenerator.NextDouble());
+                    if (TraceAverageStrategySampling)
+                        TabbedText.WriteLine($"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} for chance decision {chanceNodeSettings.DecisionIndex}");
+                    nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction);
                     if (TraceAverageStrategySampling)
                         TabbedText.Tabs++;
                     double walkTreeValue = AverageStrategySampling_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ);
@@ -1190,62 +1154,97 @@ namespace ACESim
                         TabbedText.WriteLine($"Returning walk tree result {walkTreeValue}");
                     }
                     return walkTreeValue;
-                }
-                // player being optimized is player at this information set
-                double sumCumulativeStrategies = 0;
-                double* cumulativeStrategies = stackalloc double[numPossibleActions];
-                for (byte action = 1; action <= numPossibleActions; action++)
-                {
-                    double cumulativeStrategy = informationSet.GetCumulativeStrategy(action);
-                    cumulativeStrategies[action - 1] = cumulativeStrategy;
-                    sumCumulativeStrategies += cumulativeStrategy;
-                }
-                double* counterfactualValues = stackalloc double[numPossibleActions];
-                double counterfactualSummation = 0;
-                for (byte action = 1; action <= numPossibleActions; action++)
-                {
-                    // Note that we may sample multiple actions here.
-                    double rho = Math.Max(epsilon, (beta + tau * cumulativeStrategies[action - 1]) / (beta + sumCumulativeStrategies));
-                    double rnd = RandomGenerator.NextDouble();
-                    bool explore = rnd < rho;
-                    if (TraceAverageStrategySampling)
+                case GameStateTypeEnum.Tally:
+                    CRMInformationSetNodeTally informationSet = (CRMInformationSetNodeTally)gameStateForCurrentPlayer;
+                    numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
+                    double* sigma_regretMatchedActionProbabilities = stackalloc double[numPossibleActions];
+                    // the use of epsilon-on-policy for early iterations of opponent's strategy is a deviation from Gibson.
+                    if (UseEpsilonOnPolicyForOpponent && AvgStrategySamplingCFRIterationNum <= LastOpponentEpsilonIteration)
+                        informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(sigma_regretMatchedActionProbabilities, CurrentEpsilonValue);
+                    else
+                        informationSet.GetRegretMatchingProbabilities(sigma_regretMatchedActionProbabilities);
+                    byte playerAtPoint = informationSet.PlayerIndex;
+                    if (playerAtPoint != playerBeingOptimized)
                     {
-                        TabbedText.WriteLine($"action {action}: {(explore ? "Explore" : "Do not explore")} rnd: {rnd} rho: {rho}");
-                    }
-                    if (explore)
-                    {
+                        for (byte action = 1; action <= numPossibleActions; action++)
+                        {
+                            double cumulativeStrategyIncrement = sigma_regretMatchedActionProbabilities[action - 1] / samplingProbabilityQ;
+                            if (EvolutionSettings.ParallelOptimization)
+                                informationSet.IncrementCumulativeStrategy_Parallel(action, cumulativeStrategyIncrement);
+                            else
+                                informationSet.IncrementCumulativeStrategy(action, cumulativeStrategyIncrement);
+                            if (TraceProbingCRM)
+                                TabbedText.WriteLine($"Incrementing cumulative strategy for {action} by {cumulativeStrategyIncrement} to {informationSet.GetCumulativeStrategy(action)}");
+                        }
+                        sampledAction = SampleAction(sigma_regretMatchedActionProbabilities, numPossibleActions, RandomGenerator.NextDouble());
+                        if (TraceAverageStrategySampling)
+                            TabbedText.WriteLine($"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {playerAtPoint} decision {informationSet.DecisionIndex} with regret-matched prob {sigma_regretMatchedActionProbabilities[sampledAction - 1]}");
+                        nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction);
                         if (TraceAverageStrategySampling)
                             TabbedText.Tabs++;
-                        HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
-                        counterfactualValues[action - 1] = AverageStrategySampling_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ * Math.Min(1.0, rho));
-                        counterfactualSummation += sigma_regretMatchedActionProbabilities[action - 1] * counterfactualValues[action - 1];
+                        double walkTreeValue2 = AverageStrategySampling_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ);
                         if (TraceAverageStrategySampling)
+                        {
                             TabbedText.Tabs--;
+                            TabbedText.WriteLine($"Returning walk tree result {walkTreeValue2}");
+                        }
+                        return walkTreeValue2;
                     }
-                    else
-                        counterfactualValues[action - 1] = 0;
-                }
-                for (byte action = 1; action <= numPossibleActions; action++)
-                {
-                    double cumulativeRegretIncrement = counterfactualValues[action - 1] - counterfactualSummation;
-                    if (EvolutionSettings.ParallelOptimization)
-                        informationSet.IncrementCumulativeRegret_Parallel(action, cumulativeRegretIncrement);
-                    else
-                        informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement);
+                    // player being optimized is player at this information set
+                    double sumCumulativeStrategies = 0;
+                    double* cumulativeStrategies = stackalloc double[numPossibleActions];
+                    for (byte action = 1; action <= numPossibleActions; action++)
+                    {
+                        double cumulativeStrategy = informationSet.GetCumulativeStrategy(action);
+                        cumulativeStrategies[action - 1] = cumulativeStrategy;
+                        sumCumulativeStrategies += cumulativeStrategy;
+                    }
+                    double* counterfactualValues = stackalloc double[numPossibleActions];
+                    double counterfactualSummation = 0;
+                    for (byte action = 1; action <= numPossibleActions; action++)
+                    {
+                        // Note that we may sample multiple actions here.
+                        double rho = Math.Max(epsilon, (beta + tau * cumulativeStrategies[action - 1]) / (beta + sumCumulativeStrategies));
+                        double rnd = RandomGenerator.NextDouble();
+                        bool explore = rnd < rho;
+                        if (TraceAverageStrategySampling)
+                        {
+                            TabbedText.WriteLine($"action {action}: {(explore ? "Explore" : "Do not explore")} rnd: {rnd} rho: {rho}");
+                        }
+                        if (explore)
+                        {
+                            if (TraceAverageStrategySampling)
+                                TabbedText.Tabs++;
+                            nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
+                            counterfactualValues[action - 1] = AverageStrategySampling_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ * Math.Min(1.0, rho));
+                            counterfactualSummation += sigma_regretMatchedActionProbabilities[action - 1] * counterfactualValues[action - 1];
+                            if (TraceAverageStrategySampling)
+                                TabbedText.Tabs--;
+                        }
+                        else
+                            counterfactualValues[action - 1] = 0;
+                    }
+                    for (byte action = 1; action <= numPossibleActions; action++)
+                    {
+                        double cumulativeRegretIncrement = counterfactualValues[action - 1] - counterfactualSummation;
+                        if (EvolutionSettings.ParallelOptimization)
+                            informationSet.IncrementCumulativeRegret_Parallel(action, cumulativeRegretIncrement);
+                        else
+                            informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement);
+                        if (TraceAverageStrategySampling)
+                        {
+                            // v(a) is set to 0 for many of the a E A(I).The key to understanding this is that we're multiplying the utilities we get back by 1/q. So if there is a 1/3 probability of sampling, then we multiply the utility by 3. So, when we don't sample, we're adding 0 to the regrets; and when we sample, we're adding 3 * counterfactual value.Thus, v(a) is an unbiased predictor of value.Meanwhile, we're always subtracting the regret-matched probability-adjusted counterfactual values. 
+                            TabbedText.WriteLine($"Increasing cumulative regret for action {action} by {(counterfactualValues[action - 1])} - {counterfactualSummation} = {cumulativeRegretIncrement} to {informationSet.GetCumulativeRegret(action)}");
+                        }
+                    }
                     if (TraceAverageStrategySampling)
                     {
-                        // v(a) is set to 0 for many of the a E A(I).The key to understanding this is that we're multiplying the utilities we get back by 1/q. So if there is a 1/3 probability of sampling, then we multiply the utility by 3. So, when we don't sample, we're adding 0 to the regrets; and when we sample, we're adding 3 * counterfactual value.Thus, v(a) is an unbiased predictor of value.Meanwhile, we're always subtracting the regret-matched probability-adjusted counterfactual values. 
-                        TabbedText.WriteLine($"Increasing cumulative regret for action {action} by {(counterfactualValues[action - 1])} - {counterfactualSummation} = {cumulativeRegretIncrement} to {informationSet.GetCumulativeRegret(action)}");
+                        TabbedText.WriteLine($"Returning {counterfactualSummation}");
                     }
-                }
-                if (TraceAverageStrategySampling)
-                {
-                    TabbedText.WriteLine($"Returning {counterfactualSummation}");
-                }
-                return counterfactualSummation;
+                    return counterfactualSummation;
+                default:
+                    throw new NotImplementedException();
             }
-            else
-                throw new NotImplementedException();
         }
         
         public void AvgStrategySamplingCFRIteration(int iteration)
