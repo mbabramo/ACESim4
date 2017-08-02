@@ -356,19 +356,13 @@ namespace ACESim
 
         public void AddToInformationSet(byte information, byte followingDecisionIndex, byte playerNumber, List<byte> playersToInform)
         {
-            bool playerInformedOfOwnDecision = false;
             fixed (byte* informationSetsPtr = InformationSets)
             {
                 if (playersToInform != null)
                     foreach (byte playerIndex in playersToInform)
                     {
-                        if (playerIndex == playerNumber)
-                            playerInformedOfOwnDecision = true;
                         AddToInformationSet(information, followingDecisionIndex, playerIndex, informationSetsPtr);
                     }
-                // make sure that a player at least remembers that he has made the decision, even if the player doesn't remember what it was
-                if (!playerInformedOfOwnDecision)
-                    AddToInformationSet(StubToIndicateDecisionOccurred, followingDecisionIndex, playerNumber, informationSetsPtr);
             }
         }
 

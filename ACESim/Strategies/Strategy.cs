@@ -24,7 +24,8 @@ namespace ACESim
 
         public PlayerInfo PlayerInfo;
 
-        public NWayTreeStorageInternal<ICRMGameState> InformationSetTree;
+        private NWayTreeStorageInternal<ICRMGameState> InformationSetTree;
+        public string GetInformationSetTreeString() => InformationSetTree.ToTreeString();
         public HistoryNavigationInfo Navigation;
         public ActionStrategies ActionStrategy;
 
@@ -57,9 +58,13 @@ namespace ACESim
             InformationSetTree = new NWayTreeStorageInternal<ICRMGameState>(null, numInitialActions);
         }
 
-        public unsafe NWayTreeStorage<ICRMGameState> SetInformationSetTreeValue(byte* informationSet, bool historyComplete, ICRMGameState valueToSet)
+        // NOTE: Sometimes we preface the information set with a decisionIndex, so we have dedicated methods for this.
+
+        public unsafe NWayTreeStorage<ICRMGameState> SetInformationSetTreeValueIfNotSet(byte decisionIndex, byte* informationSet, bool historyComplete, Func<ICRMGameState> setter)
         {
-            return InformationSetTree.SetValue(informationSet, historyComplete, valueToSet);
+            var returnVal = InformationSetTree.SetValueIfNotSet(decisionIndex, informationSet, historyComplete, setter);
+            // System.Diagnostics.Debug.WriteLine($"{String.Join(",", informationSet)}: {PlayerInfo.PlayerName} {returnVal.StoredValue}");
+            return returnVal;
         }
 
         public unsafe NWayTreeStorage<ICRMGameState> SetInformationSetTreeValueIfNotSet(byte* informationSet, bool historyComplete, Func<ICRMGameState> setter)
@@ -69,9 +74,14 @@ namespace ACESim
             return returnVal;
         }
 
+        public unsafe ICRMGameState GetInformationSetTreeValue(byte decisionIndex, byte* informationSet)
+        {
+            return InformationSetTree?.GetValue(decisionIndex, informationSet);
+        }
+
         public unsafe ICRMGameState GetInformationSetTreeValue(byte* informationSet)
         {
-            return InformationSetTree.GetValue(informationSet);
+            return InformationSetTree?.GetValue(informationSet);
         }
 
         public unsafe byte ChooseAction(byte* informationSet, Func<double> randomNumberGenerator)

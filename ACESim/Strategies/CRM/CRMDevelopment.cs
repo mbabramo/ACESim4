@@ -221,7 +221,7 @@ namespace ACESim
             foreach (Strategy s in Strategies)
             {
                 Debug.WriteLine($"{s.PlayerInfo}");
-                string tree = s.InformationSetTree.ToTreeString();
+                string tree = s.GetInformationSetTreeString();
                 Debug.WriteLine(tree);
             }
         }

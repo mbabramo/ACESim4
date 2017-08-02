@@ -225,9 +225,6 @@ namespace ACESim
                         // the parties do not remember their decisions. 
                         gameHistory.RemoveItemsInInformationSet(currentPlayer, currentDecisionIndex, 1);
                         gameHistory.RemoveItemsInInformationSet(otherPlayer, currentDecisionIndex, 1);
-                        // But we do need to remember that the decision has occurred, to enable distinguishing between decisions in different rounds.
-                        gameHistory.AddToInformationSet(GameHistory.StubToIndicateDecisionOccurred, currentDecisionIndex, currentPlayer);
-                        gameHistory.AddToInformationSet(GameHistory.StubToIndicateDecisionOccurred, currentDecisionIndex, otherPlayer);
                     }
                     else
                     {
