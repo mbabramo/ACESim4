@@ -41,11 +41,11 @@ namespace ACESim
         int LastOpponentEpsilonIteration = 10000;
         double CurrentEpsilonValue; // set in algorithm.
 
-        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedBothMethods;
+        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedBothMethods; // DEBUG
         bool AllowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => (AllowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)) && Algorithm != CRMAlgorithm.PureStrategyFinder;
 
-        int? ReportEveryNIterations => Algorithm == CRMAlgorithm.Vanilla ? 10000 : 10000;
+        int? ReportEveryNIterations => 1; //DEBUG Algorithm == CRMAlgorithm.Vanilla ? 10000 : 10000;
         const int EffectivelyNever = 999999999;
         int? BestResponseEveryMIterations => EffectivelyNever; // For now, don't do it. This takes most of the time when dealing with partial recall games.
         public int NumRandomIterationsForReporting = 10000;
@@ -186,7 +186,7 @@ namespace ACESim
             IEnumerable<InformationSetHistory> informationSetHistories = gameProgress.GameHistory.GetInformationSetHistoryItems();
             foreach (var informationSetHistory in informationSetHistories)
             {
-                //var informationSetHistoryString = informationSetHistory.ToString();
+                var informationSetHistoryString = informationSetHistory.ToString(); // DEBUG
                 historyPoint.SetInformationIfNotSet(Navigation, gameProgress, informationSetHistory);
                 historyPoint = historyPoint.GetBranch(Navigation, informationSetHistory.ActionChosen);
                 //var actionsToHere = historyPoint.GetActionsToHereString(Navigation);
@@ -201,6 +201,7 @@ namespace ACESim
             if (gameState == null)
             {
                 List<byte> actionsSoFar = historyPoint.GetActionsToHere(navigationSettings);
+                var DEBUG = historyPoint.HistoryToPoint.GetInformationSetHistoryItems();
                 (GameProgress progress, _) = GamePlayer.PlayPath(actionsSoFar, false);
                 ProcessInitializedGameProgress(progress);
                 NumInitializedGamePaths++; // Note: This may not be exact if we initialize the same game path twice

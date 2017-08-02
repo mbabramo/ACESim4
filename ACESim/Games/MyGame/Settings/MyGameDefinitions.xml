@@ -13,7 +13,7 @@
                SubsequentOffersAreDeltas: false; DeltaStartingValue: 0.01; MaxDelta: 0.25;
                NumBargainingRounds: 1;
                ForgetEarlierBargainingRounds: true;
-               SubdivideOffers: false;
+               SubdivideOffers: true;
                BargainingRound1Simultaneous: true; BargainingRound1PGoesFirstIfNotSimultaneous: true;
                BargainingRound2Simultaneous: true; BargainingRound2PGoesFirstIfNotSimultaneous: false;
                BargainingRound3Simultaneous: false; BargainingRound3PGoesFirstIfNotSimultaneous: true;

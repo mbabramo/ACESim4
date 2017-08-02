@@ -9,10 +9,10 @@ namespace ACESim
 {
     public struct HistoryPoint
     {
-        NWayTreeStorage<ICRMGameState> TreePoint;
-        GameHistory HistoryToPoint;
-        GameProgress GameProgress;
-        ICRMGameState GameState;
+        public NWayTreeStorage<ICRMGameState> TreePoint;
+        public GameHistory HistoryToPoint;
+        public GameProgress GameProgress;
+        public ICRMGameState GameState;
 
         public HistoryPoint(NWayTreeStorage<ICRMGameState> treePoint, GameHistory historyToPoint, GameProgress gameProgress)
         {
@@ -122,8 +122,8 @@ namespace ACESim
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
                 (Decision nextDecision, byte nextDecisionIndex) = navigation.GameDefinition.GetNextDecision(HistoryToPoint);
-                next.HistoryToPoint = HistoryToPoint; // struct is copied
-                Game.UpdateGameHistory(next.HistoryToPoint, navigation.GameDefinition, nextDecision, nextDecisionIndex, actionChosen);
+                next.HistoryToPoint = HistoryToPoint; // struct is copied. We then use a ref to change the copy, since otherwise it would be copied again.
+                Game.UpdateGameHistory(ref next.HistoryToPoint, navigation.GameDefinition, nextDecision, nextDecisionIndex, actionChosen);
                 if (nextDecision.CanTerminateGame && navigation.GameDefinition.ShouldMarkGameHistoryComplete(nextDecision, next.HistoryToPoint))
                     next.HistoryToPoint.MarkComplete();
             }

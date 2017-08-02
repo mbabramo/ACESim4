@@ -37,6 +37,10 @@ namespace ACESim
 
         public fixed byte History[MaxHistoryLength];
         public short LastIndexAddedToHistory;
+
+        public fixed byte HistoryActionsOnly[MaxNumActions];
+        public byte NextIndexInHistoryActionsOnly;
+
         public int NumberDecisions => (LastIndexAddedToHistory - 1) / 4;
 
         // Information set structure. We have an information set buffer for each player. We need to be able to remove information from the information set for a player, but still to remember that it was there as of a particular point in time, so that we can figure out what the information set was as of a particular decision. (This is needed for reconstructing the game play.) We thus store information in pairs. The first byte consists of the decision byte code after which we are making changes. The second byte either consists of an item to add, or 254, indicating that we are removing an item from the information set. All of this is internal. When we get the information set, we get it as of a certain point, and thus we skip decision byte codes and automatically process deletions. 
@@ -76,6 +80,7 @@ namespace ACESim
                 for (int b = 0; b < MaxInformationSetLength; b++)
                     *(ptr + b) = informationSets[b];
             LastIndexAddedToHistory = (short)info.GetValue("LastIndexAddedToHistory", typeof(short));
+            NextIndexInHistoryActionsOnly = 0;
             Initialized = (bool)info.GetValue("Initialized", typeof(bool));
         }
 
@@ -111,25 +116,37 @@ namespace ACESim
             Initialized = true;
         }
 
-        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerNumber, byte action, byte numPossibleActions, List<byte> playersToInform, bool informOnlyThatDecisionOccurred, bool skipAddToInformationSet)
+        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerNumber, byte action, byte numPossibleActions, List<byte> playersToInform, bool informOnlyThatDecisionOccurred, bool skipAddToInformationSet, bool skipAddToHistory)
         {
             if (!Initialized)
                 Initialize();
-            short i = LastIndexAddedToHistory;
-            fixed (byte* historyPtr = History)
+            if (!skipAddToHistory)
             {
-                if (*(historyPtr + i) == HistoryComplete)
-                    throw new Exception("Cannot add to history of complete game.");
-                *(historyPtr + i + History_DecisionByteCode_Offset) = decisionByteCode;
-                *(historyPtr + i + History_DecisionIndex_Offset) = decisionIndex;
-                *(historyPtr + i + History_PlayerNumber_Offset) = playerNumber;
-                *(historyPtr + i + History_Action_Offset) = action;
-                *(historyPtr + i + History_NumPossibleActions_Offset) = numPossibleActions;
-                *(historyPtr + i + History_NumPiecesOfInformation) = HistoryTerminator; // this is just one item at end of all history items
+                short i = LastIndexAddedToHistory;
+                fixed (byte* historyPtr = History)
+                {
+                    if (*(historyPtr + i) == HistoryComplete)
+                        throw new Exception("Cannot add to history of complete game.");
+                    *(historyPtr + i + History_DecisionByteCode_Offset) = decisionByteCode;
+                    *(historyPtr + i + History_DecisionIndex_Offset) = decisionIndex;
+                    *(historyPtr + i + History_PlayerNumber_Offset) = playerNumber;
+                    *(historyPtr + i + History_Action_Offset) = action;
+                    *(historyPtr + i + History_NumPossibleActions_Offset) = numPossibleActions;
+                    *(historyPtr + i + History_NumPiecesOfInformation) = HistoryTerminator; // this is just one item at end of all history items
+                }
+                LastIndexAddedToHistory = (short)(i + History_NumPiecesOfInformation);
             }
-            LastIndexAddedToHistory = (short) (i + History_NumPiecesOfInformation);
             if (!skipAddToInformationSet)
                 AddToInformationSet(informOnlyThatDecisionOccurred ? StubToIndicateDecisionOccurred : action, decisionIndex, playerNumber, playersToInform);
+        }
+
+        public void AddToSimpleActionsList(byte action)
+        {
+            fixed (byte* historyPtr = HistoryActionsOnly)
+            {
+                *(historyPtr + NextIndexInHistoryActionsOnly) = action;
+                NextIndexInHistoryActionsOnly++;
+            }
         }
 
         /// <summary>
@@ -192,16 +209,55 @@ namespace ACESim
             }
         }
 
+        //public (byte mostRecentAction, byte actionBeforeThat) GetLastActionAndActionBeforeThat()
+        //{
+        //    if (LastIndexAddedToHistory < History_NumPiecesOfInformation * 2)
+        //        throw new Exception("Internal error. Two actions have not occurred");
+        //    fixed (byte* historyPtr = History)
+        //    {
+        //        byte* mostRecentPointer = (historyPtr + LastIndexAddedToHistory - History_NumPiecesOfInformation + History_Action_Offset);
+        //        return (*mostRecentPointer, *(mostRecentPointer - History_NumPiecesOfInformation));
+        //    }
+        //}
+
         public (byte mostRecentAction, byte actionBeforeThat) GetLastActionAndActionBeforeThat()
         {
-            if (LastIndexAddedToHistory < History_NumPiecesOfInformation * 2)
+            // Note that we're using the simple actions list here. That means that when we have decisions with subdivisions, we ignore the subdivisions and count only the final decision.
+            if (NextIndexInHistoryActionsOnly < 2)
                 throw new Exception("Internal error. Two actions have not occurred");
-            fixed (byte* historyPtr = History)
+            fixed (byte* historyPtr = HistoryActionsOnly)
             {
-                byte* mostRecentPointer = (historyPtr + LastIndexAddedToHistory - History_NumPiecesOfInformation + History_Action_Offset);
-                return (*mostRecentPointer, *(mostRecentPointer - History_NumPiecesOfInformation));
+                return (*(historyPtr + NextIndexInHistoryActionsOnly - 1), *(historyPtr + NextIndexInHistoryActionsOnly - 2));
             }
         }
+
+        //public (byte mostRecentAction, byte actionBeforeThat) GetLastActionAndActionBeforeThat_WithSubdivisions(bool useSubdivisions, int subdivision_ActionsPerLevel, int subdivision_NumLevels)
+        //{
+        //    if (!useSubdivisions)
+        //        return GetLastActionAndActionBeforeThat();
+        //    if (LastIndexAddedToHistory < History_NumPiecesOfInformation * 2)
+        //        throw new Exception("Internal error. Two actions have not occurred");
+        //    fixed (byte* historyPtr = History)
+        //    {
+        //        byte* pointer = (historyPtr + LastIndexAddedToHistory - History_NumPiecesOfInformation + History_Action_Offset);
+        //        byte mostRecentAction = (byte) (*pointer - 1);
+        //        for (int level = 1; level < subdivision_NumLevels; level++)
+        //        {
+        //            pointer -= History_NumPiecesOfInformation;
+        //            mostRecentAction = (byte) (mostRecentAction * subdivision_ActionsPerLevel + *pointer - 1);
+        //        }
+        //        mostRecentAction++;
+        //        pointer -= History_NumPiecesOfInformation;
+        //        byte actionBeforeThat = (byte)(*pointer - 1);
+        //        for (int level = 1; level < subdivision_NumLevels; level++)
+        //        {
+        //            pointer -= History_NumPiecesOfInformation;
+        //            actionBeforeThat = (byte)(actionBeforeThat * subdivision_ActionsPerLevel + *pointer - 1);
+        //        }
+        //        actionBeforeThat++;
+        //        return (mostRecentAction, actionBeforeThat);
+        //    }
+        //}
 
         public IEnumerable<InformationSetHistory> GetInformationSetHistoryItems()
         {

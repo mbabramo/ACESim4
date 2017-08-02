@@ -191,12 +191,17 @@ namespace ACESim
                         // We have completed this round of bargaining. Only now should we add the information to the plaintiff and defendant information sets. 
                         // Note that the plaintiff and defendant will both have made their decisions based on the decisions in the prior round.
                         // We don't want to add the plaintiff's decision before the defendant has actually made a decision, so that's why we add both decisions now.
+
                         // If this is not the first round, then we should remove the last piece of information from both. 
                         if (ForgetEarlierBargainingRounds && bargainingRound > 1)
                         {
                             gameHistory.RemoveItemsInInformationSet((byte)MyGamePlayers.Plaintiff, currentDecisionIndex, 1);
                             gameHistory.RemoveItemsInInformationSet((byte)MyGamePlayers.Defendant, currentDecisionIndex, 1);
                         }
+
+                        // Note that in this context, we interpret forgetting earlier bargaining rounds as meaning that we remember the most recent bargaining round,
+                        // but no bargaining rounds before that.
+
                         // Now add the information -- a stub for the player about their own decision and the actual decision for the other player.
                         // This way, when we remove the decision in a later bargaining round (if we indeed do so), the information set will still distinguish
                         // between bargaining rounds.
@@ -259,23 +264,36 @@ namespace ACESim
         {
             if (!currentDecision.CanTerminateGame)
                 return false;
-            byte decisionByteCode = currentDecision.DecisionByteCode;
-            if (decisionByteCode == (byte)MyGameDecisions.CourtDecision)
-                return true;
-            if (decisionByteCode == (byte)MyGameDecisions.DResponse || decisionByteCode == (byte)MyGameDecisions.PResponse)
+
+            byte decisionByteCode;
+            if (currentDecision.Subdividable_IsSubdivision)
             {
-                var lastTwoActions = gameHistory.GetLastActionAndActionBeforeThat();
-                if (lastTwoActions.mostRecentAction == 1) // offer was accepted
-                    return true;
+                if (currentDecision.Subdividable_IsSubdivision_Last)
+                    decisionByteCode = currentDecision.Subdividable_CorrespondingDecisionByteCode;
+                else
+                    return false; // must get to the last subdivision before considering this
             }
-            else if (decisionByteCode == (byte)MyGameDecisions.DOffer)
+            else
+                decisionByteCode = currentDecision.DecisionByteCode;
+
+            switch (decisionByteCode)
             {
-                // this is simultaneous bargaining (plaintiff offer is always first). 
-                if (!BargainingRoundsSimultaneous[currentDecision.CustomByte - 1])
-                    throw new Exception("Internal error."); // DEBUG -- should be able to delete this
-                (byte defendantAction, byte plaintiffAction) = gameHistory.GetLastActionAndActionBeforeThat();
-                if (defendantAction >= plaintiffAction)
+                case (byte)MyGameDecisions.CourtDecision:
                     return true;
+                case (byte)MyGameDecisions.DResponse:
+                case (byte)MyGameDecisions.PResponse:
+                    var lastTwoActions = gameHistory.GetLastActionAndActionBeforeThat();
+                    if (lastTwoActions.mostRecentAction == 1) // offer was accepted
+                        return true;
+                    break;
+                case (byte)MyGameDecisions.DOffer:
+                    // this is simultaneous bargaining (plaintiff offer is always first). 
+                    if (!BargainingRoundsSimultaneous[currentDecision.CustomByte - 1])
+                        throw new Exception("Internal error."); // DEBUG -- should be able to delete this
+                    (byte defendantAction, byte plaintiffAction) = gameHistory.GetLastActionAndActionBeforeThat();
+                    if (defendantAction >= plaintiffAction)
+                        return true;
+                    break;
             }
             return false;
         }
