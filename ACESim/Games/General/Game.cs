@@ -139,24 +139,29 @@ namespace ACESim
                 // For subdivision decisions, we initially add only to the player's own information set, starting with a stub to distinguish the individual levels from the eventual decision.
                 // Start by adding to history -- but without informing any players. We're treating the history the same as always.
                 gameHistory.AddToHistory(decision.DecisionByteCode, decisionIndex, decision.PlayerNumber, action, decision.NumPossibleActions, null, decision.InformOnlyThatDecisionOccurred, true, false);
-                if (decision.Subdividable_IsSubdivision_First)
-                    gameHistory.AddToInformationSet(GameHistory.StubToIndicateSubdividingInProgress, decisionIndex, decision.PlayerNumber);
                 gameHistory.AddToInformationSet(action, decisionIndex, decision.PlayerNumber);
                 if (decision.Subdividable_IsSubdivision_Last)
                 {
+                    var DEBUG1 = gameHistory.GetPlayerInformationString(decision.PlayerNumber, null);
+                    // Aggregate the subdivisions and remove the subactions from the player's own information set.
                     aggregatedAction = gameHistory.AggregateSubdividable(decision.PlayerNumber, decisionIndex, decision.Subdividable_NumOptionsPerBranch, decision.Subdividable_NumLevels); // removes items from information set
-                    // now, we add to the information sets that we would have added to, but we don't add to the history itself, since this is not a separate history action.
-                    gameHistory.AddToHistory(decision.Subdividable_CorrespondingDecisionByteCode, decisionIndex, decision.PlayerNumber, action, decision.Subdividable_AggregateNumPossibleActions, decision.PlayersToInform, decision.InformOnlyThatDecisionOccurred, decision.CustomInformationSetManipulationOnly, true /* don't add this to history */);
+                    // Add to the player's information set an indication that the subdivision aggregation is now complete. This will allow the player to distinguish this from other situations.
+                    var DEBUG2 = gameHistory.GetPlayerInformationString(decision.PlayerNumber, null);
+                    gameHistory.AddToInformationSet((byte) (decision.Subdividable_NumOptionsPerBranch + 1), decisionIndex, decision.PlayerNumber);
+                    // now, we add the aggregated decision to the information sets that we would have added to, but we don't add to the history itself, since this is not a separate history action.
+                    gameHistory.AddToHistory(decision.Subdividable_CorrespondingDecisionByteCode, decisionIndex, decision.PlayerNumber, aggregatedAction, decision.Subdividable_AggregateNumPossibleActions, decision.PlayersToInform, decision.InformOnlyThatDecisionOccurred, decision.CustomInformationSetManipulationOnly, true /* don't add this to history */);
                     // We do want to add the aggregated action to the simple actions list, so that we can look to see what the most recent decisions were.
                     gameHistory.AddToSimpleActionsList(aggregatedAction);
+                    // And do any custom information set manipulation, using the aggregated action. Note that this is NOT called for earlier subdivisions
+                    gameDefinition.CustomInformationSetManipulation(decision, decisionIndex, aggregatedAction, ref gameHistory);
                 }
             }
             else
             {
                 gameHistory.AddToHistory(decision.DecisionByteCode, decisionIndex, decision.PlayerNumber, action, decision.NumPossibleActions, decision.PlayersToInform, decision.InformOnlyThatDecisionOccurred, decision.CustomInformationSetManipulationOnly, false);
                 gameHistory.AddToSimpleActionsList(action);
+                gameDefinition.CustomInformationSetManipulation(decision, decisionIndex, action, ref gameHistory);
             }
-            gameDefinition.CustomInformationSetManipulation(decision, decisionIndex, action, ref gameHistory);
             return aggregatedAction; // should be ignored when this is not the current decision.
         }
 

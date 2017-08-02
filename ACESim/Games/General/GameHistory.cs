@@ -23,10 +23,6 @@ namespace ACESim
         const byte InformationSetTerminator = 255;
         const byte RemoveItemFromInformationSet = 254;
         public const byte StubToIndicateDecisionOccurred = 253;
-        /// <summary>
-        /// When going through the steps of a subdividable decision, we will add each decision to the player's own information set. Then, we will remove these 
-        /// </summary>
-        public const byte StubToIndicateSubdividingInProgress = 252;
 
         private const byte History_DecisionByteCode_Offset = 0;
         private const byte History_DecisionIndex_Offset = 1; // the decision index reflects the order of the decision in the decisions list. A decision with the same byte code could correspond to multiple decision indices.
@@ -372,7 +368,7 @@ namespace ACESim
                     }
                 // make sure that a player at least remembers that he has made the decision, even if the player doesn't remember what it was
                 if (!playerInformedOfOwnDecision)
-                    AddToInformationSet(1, followingDecisionIndex, playerNumber, informationSetsPtr);
+                    AddToInformationSet(StubToIndicateDecisionOccurred, followingDecisionIndex, playerNumber, informationSetsPtr);
             }
         }
 
@@ -417,7 +413,7 @@ namespace ACESim
                     playerPointer--; // go back to previous decision
                     accumulator = (byte) (accumulator * numOptionsPerBranch + (*playerPointer - 1));
                 }
-                RemoveItemsInInformationSet(playerNumber, decisionIndex, (byte) (numLevels + 1) /* each level plus a stub */);
+                RemoveItemsInInformationSet(playerNumber, decisionIndex, (byte) numLevels);
                 return (byte) (accumulator + 1);
             }
         }

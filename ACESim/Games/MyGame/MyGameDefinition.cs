@@ -202,19 +202,17 @@ namespace ACESim
                         // Note that in this context, we interpret forgetting earlier bargaining rounds as meaning that we remember the most recent bargaining round,
                         // but no bargaining rounds before that.
 
-                        // Now add the information -- a stub for the player about their own decision and the actual decision for the other player.
-                        // This way, when we remove the decision in a later bargaining round (if we indeed do so), the information set will still distinguish
-                        // between bargaining rounds.
+                        // Now add the information -- the actual decision for the other player. 
+                        // Note that when a player goes, we will automatically have inserted a stub so that the player knows it has made a decision (but without the decision itself, since the player will know all the information that led to that decision). This will help the players keep track of which bargaining round they are in.
                         // But what did the plaintiff actually offer? To figure that out, we need to look at the GameHistory. This will be two decisions ago.
-                        (_, byte plaintiffsActionChosen) = gameHistory.GetLastActionAndActionBeforeThat();
-                        gameHistory.AddToInformationSet(GameHistory.StubToIndicateDecisionOccurred, currentDecisionIndex, (byte)MyGamePlayers.Plaintiff);
-                        gameHistory.AddToInformationSet(actionChosen, currentDecisionIndex, (byte)MyGamePlayers.Plaintiff); // defendant's decision conveyed to plaintiff
-                        gameHistory.AddToInformationSet(GameHistory.StubToIndicateDecisionOccurred, currentDecisionIndex, (byte)MyGamePlayers.Defendant);
+                        (byte defendantsActionChosen, byte plaintiffsActionChosen) = gameHistory.GetLastActionAndActionBeforeThat();
+                        gameHistory.AddToInformationSet(defendantsActionChosen, currentDecisionIndex, (byte)MyGamePlayers.Plaintiff); // defendant's decision conveyed to plaintiff
                         gameHistory.AddToInformationSet(plaintiffsActionChosen, currentDecisionIndex, (byte)MyGamePlayers.Defendant); // plaintiff's decision conveyed to defendant
                     }
                 }
                 else
                 { // offer-response bargaining
+                    throw new NotImplementedException(); // DEBUG
                     bool pGoesFirst = BargainingRoundsPGoesFirstIfNotSimultaneous[bargainingRoundIndex];
                     byte partyGoingFirst = pGoesFirst ? (byte)MyGamePlayers.Plaintiff : (byte)MyGamePlayers.Defendant;
                     byte partyGoingSecond = pGoesFirst ? (byte)MyGamePlayers.Defendant : (byte)MyGamePlayers.Plaintiff;
