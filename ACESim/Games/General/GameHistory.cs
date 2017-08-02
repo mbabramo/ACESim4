@@ -12,7 +12,7 @@ namespace ACESim
     [Serializable]
     public unsafe struct GameHistory : ISerializable
     {
-        public const int MaxHistoryLength = 100;
+        public const int MaxHistoryLength = 150;
         public const int MaxInformationSetLength = 750; // MUST equal MaxInformationSetLengthPerPlayer * MaxNumPlayers. 
         public const int MaxInformationSetLengthPerPlayer = 75; 
         public const int MaxNumPlayers = 10;
@@ -130,6 +130,8 @@ namespace ACESim
                     *(historyPtr + i + History_NumPiecesOfInformation) = HistoryTerminator; // this is just one item at end of all history items
                 }
                 LastIndexAddedToHistory = (short)(i + History_NumPiecesOfInformation);
+                if (LastIndexAddedToHistory >= MaxHistoryLength - 2) // must account for terminator characters
+                    throw new Exception("Internal error. Must increase history length.");
             }
             if (!skipAddToInformationSet)
                 AddToInformationSet(action, decisionIndex, playerNumber, playersToInform);
@@ -141,6 +143,8 @@ namespace ACESim
             {
                 *(historyPtr + NextIndexInHistoryActionsOnly) = action;
                 NextIndexInHistoryActionsOnly++;
+                if (NextIndexInHistoryActionsOnly >= MaxNumActions)
+                    throw new Exception("Internal error. Must increase MaxNumActions.");
             }
         }
 
@@ -225,34 +229,6 @@ namespace ACESim
                 return (*(historyPtr + NextIndexInHistoryActionsOnly - 1), *(historyPtr + NextIndexInHistoryActionsOnly - 2));
             }
         }
-
-        //public (byte mostRecentAction, byte actionBeforeThat) GetLastActionAndActionBeforeThat_WithSubdivisions(bool useSubdivisions, int subdivision_ActionsPerLevel, int subdivision_NumLevels)
-        //{
-        //    if (!useSubdivisions)
-        //        return GetLastActionAndActionBeforeThat();
-        //    if (LastIndexAddedToHistory < History_NumPiecesOfInformation * 2)
-        //        throw new Exception("Internal error. Two actions have not occurred");
-        //    fixed (byte* historyPtr = History)
-        //    {
-        //        byte* pointer = (historyPtr + LastIndexAddedToHistory - History_NumPiecesOfInformation + History_Action_Offset);
-        //        byte mostRecentAction = (byte) (*pointer - 1);
-        //        for (int level = 1; level < subdivision_NumLevels; level++)
-        //        {
-        //            pointer -= History_NumPiecesOfInformation;
-        //            mostRecentAction = (byte) (mostRecentAction * subdivision_ActionsPerLevel + *pointer - 1);
-        //        }
-        //        mostRecentAction++;
-        //        pointer -= History_NumPiecesOfInformation;
-        //        byte actionBeforeThat = (byte)(*pointer - 1);
-        //        for (int level = 1; level < subdivision_NumLevels; level++)
-        //        {
-        //            pointer -= History_NumPiecesOfInformation;
-        //            actionBeforeThat = (byte)(actionBeforeThat * subdivision_ActionsPerLevel + *pointer - 1);
-        //        }
-        //        actionBeforeThat++;
-        //        return (mostRecentAction, actionBeforeThat);
-        //    }
-        //}
 
         public IEnumerable<InformationSetHistory> GetInformationSetHistoryItems()
         {
@@ -379,6 +355,7 @@ namespace ACESim
             if (playerNumber >= MaxNumPlayers)
                 throw new Exception("Invalid player index. Must increase MaxNumPlayers.");
             byte* playerPointer = informationSetsPtr + playerNumber * MaxInformationSetLengthPerPlayer;
+            byte* nextPlayerPointer = playerPointer + MaxInformationSetLengthPerPlayer;
             // advance to the end of the information set
             while (*playerPointer != InformationSetTerminator)
                 playerPointer += 2;
@@ -388,6 +365,8 @@ namespace ACESim
             *playerPointer = information;
             playerPointer++;
             *playerPointer = InformationSetTerminator; // terminator
+            if (playerPointer >= nextPlayerPointer)
+                throw new Exception("Internal error. Must increase size of information set.");
         }
 
         public byte AggregateSubdividable(byte playerNumber, byte decisionIndex, byte numOptionsPerBranch, byte numLevels)
