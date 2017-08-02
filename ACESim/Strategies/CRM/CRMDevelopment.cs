@@ -51,6 +51,7 @@ namespace ACESim
         public int NumRandomIterationsForReporting = 10000;
         bool PrintGameTreeAfterReport = false;
         bool PrintInformationSetsAfterReport = false;
+        bool PrintNonChanceInformationSetsOnly = true;
         bool AlwaysUseAverageStrategyInReporting = true;
 
         public List<Strategy> Strategies { get; set; }
@@ -220,9 +221,12 @@ namespace ACESim
         {
             foreach (Strategy s in Strategies)
             {
-                Debug.WriteLine($"{s.PlayerInfo}");
-                string tree = s.GetInformationSetTreeString();
-                Debug.WriteLine(tree);
+                if (!s.PlayerInfo.PlayerIsChance || !PrintNonChanceInformationSetsOnly)
+                {
+                    Debug.WriteLine($"{s.PlayerInfo}");
+                    string tree = s.GetInformationSetTreeString();
+                    Debug.WriteLine(tree);
+                }
             }
         }
 

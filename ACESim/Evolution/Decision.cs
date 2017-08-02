@@ -128,6 +128,8 @@ namespace ACESim
         /// </summary>
         public byte Subdividable_AggregateNumPossibleActions;
 
+        public byte AggregateNumPossibleActions => Subdividable_IsSubdivision ? Subdividable_AggregateNumPossibleActions : NumPossibleActions;
+
         /// <summary>
         /// For a subdividable decision, this represents the decision byte code to be used for each level of the substitutable decision. For the subdivision itself, this represents the decision byte code of the subdivided decision.
         /// </summary>

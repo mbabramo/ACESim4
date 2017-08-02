@@ -392,21 +392,23 @@ namespace ACESim
 
         public byte AggregateSubdividable(byte playerNumber, byte decisionIndex, byte numOptionsPerBranch, byte numLevels)
         {
+            var DEBUG = GetPlayerInformationString(playerNumber, null); 
             fixed (byte* informationSetsPtr = InformationSets)
             {
                 byte* playerPointer = informationSetsPtr + playerNumber * MaxInformationSetLengthPerPlayer;
                 // advance to the end of the information set
                 while (*playerPointer != InformationSetTerminator)
                     playerPointer += 2;
-                playerPointer--;
-                byte accumulator = (byte) (*playerPointer - 1); // spot before terminator
+                playerPointer--; // spot before terminator
+                byte accumulator = (byte) (*playerPointer - 1); // one less than value pointed to (not changing the pointer itself)
+                byte columnValue = 1; // this is the units column
                 for (byte level = 1; level < numLevels; level++)
                 {
+                    columnValue = (byte) (columnValue * numOptionsPerBranch); // for example, when level = 1, if numOptionsPerBranch is 10, then an action of 1 is worth 0, an action of 2 is worth 10, etc.
                     playerPointer--; // go back to decision index
                     playerPointer--; // go back to previous decision
-                    accumulator = (byte) (accumulator * numOptionsPerBranch + (*playerPointer - 1));
+                    accumulator = (byte) (accumulator + columnValue * (*playerPointer - 1));
                 }
-                RemoveItemsInInformationSet(playerNumber, decisionIndex, (byte) numLevels);
                 return (byte) (accumulator + 1);
             }
         }

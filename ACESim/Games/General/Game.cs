@@ -144,7 +144,8 @@ namespace ACESim
                 {
                     var DEBUG1 = gameHistory.GetPlayerInformationString(decision.PlayerNumber, null);
                     // Aggregate the subdivisions and remove the subactions from the player's own information set.
-                    aggregatedAction = gameHistory.AggregateSubdividable(decision.PlayerNumber, decisionIndex, decision.Subdividable_NumOptionsPerBranch, decision.Subdividable_NumLevels); // removes items from information set
+                    aggregatedAction = gameHistory.AggregateSubdividable(decision.PlayerNumber, decisionIndex, decision.Subdividable_NumOptionsPerBranch, decision.Subdividable_NumLevels);
+                    gameHistory.RemoveItemsInInformationSet(decision.PlayerNumber, decisionIndex, decision.Subdividable_NumLevels);
                     // now, we add the aggregated decision to the information sets that we would have added to, but we don't add to the history itself, since this is not a separate history action.
                     gameHistory.AddToHistory(decision.Subdividable_CorrespondingDecisionByteCode, decisionIndex, decision.PlayerNumber, aggregatedAction, decision.Subdividable_AggregateNumPossibleActions, decision.PlayersToInform, decision.CustomInformationSetManipulationOnly, true /* don't add this to history */);
                     // We do want to add the aggregated action to the simple actions list, so that we can look to see what the most recent decisions were.
@@ -190,7 +191,8 @@ namespace ACESim
         public virtual double ConvertActionToUniformDistributionDraw(int action)
         {
             // If we have 2 actions and we draw action #1, then this is equivalent to 0.25 (= 0.5/2); if we draw action #2, then we have 0.75 (= 1.5/2). If we have 3 actions, then the three actions are 1/6, 3/6, and 5/6.
-            return EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, CurrentDecision.NumPossibleActions);
+            byte numPossibleActions;
+            return EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, CurrentDecision.AggregateNumPossibleActions);
         }
 
         public virtual double ConvertActionToNormalDistributionDraw(int action, double stdev)
