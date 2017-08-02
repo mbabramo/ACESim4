@@ -12,9 +12,9 @@ namespace ACESim
     [Serializable]
     public unsafe struct GameHistory : ISerializable
     {
-        public const int MaxHistoryLength = 150;
-        public const int MaxInformationSetLength = 750; // MUST equal MaxInformationSetLengthPerPlayer * MaxNumPlayers. 
-        public const int MaxInformationSetLengthPerPlayer = 75; 
+        public const int MaxHistoryLength = 200;
+        public const int MaxInformationSetLength = 1000; // MUST equal MaxInformationSetLengthPerPlayer * MaxNumPlayers. 
+        public const int MaxInformationSetLengthPerPlayer = 100; 
         public const int MaxNumPlayers = 10;
         public const int MaxNumActions = 20;
         const byte HistoryComplete = 254;
@@ -371,7 +371,6 @@ namespace ACESim
 
         public byte AggregateSubdividable(byte playerNumber, byte decisionIndex, byte numOptionsPerBranch, byte numLevels)
         {
-            var DEBUG = GetPlayerInformationString(playerNumber, null); 
             fixed (byte* informationSetsPtr = InformationSets)
             {
                 byte* playerPointer = informationSetsPtr + playerNumber * MaxInformationSetLengthPerPlayer;

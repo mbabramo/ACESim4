@@ -279,7 +279,7 @@ namespace ACESim
                 case (byte)MyGameDecisions.DOffer:
                     // this is simultaneous bargaining (plaintiff offer is always first). 
                     if (!BargainingRoundsSimultaneous[currentDecision.CustomByte - 1])
-                        throw new Exception("Internal error."); // DEBUG -- should be able to delete this
+                        throw new Exception("Internal error.");
                     (byte defendantAction, byte plaintiffAction) = gameHistory.GetLastActionAndActionBeforeThat();
                     if (defendantAction >= plaintiffAction)
                         return true;

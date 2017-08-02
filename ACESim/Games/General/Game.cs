@@ -142,7 +142,6 @@ namespace ACESim
                 gameHistory.AddToInformationSet(action, decisionIndex, decision.PlayerNumber);
                 if (decision.Subdividable_IsSubdivision_Last)
                 {
-                    var DEBUG1 = gameHistory.GetPlayerInformationString(decision.PlayerNumber, null);
                     // Aggregate the subdivisions and remove the subactions from the player's own information set.
                     aggregatedAction = gameHistory.AggregateSubdividable(decision.PlayerNumber, decisionIndex, decision.Subdividable_NumOptionsPerBranch, decision.Subdividable_NumLevels);
                     gameHistory.RemoveItemsInInformationSet(decision.PlayerNumber, decisionIndex, decision.Subdividable_NumLevels);

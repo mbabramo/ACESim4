@@ -53,7 +53,7 @@ namespace ACESim
         private List<Decision> GetDecisionsList()
         {
             List<byte> playersToInform = new List<byte>(){(byte)SimpleGamePlayers.Resolution};
-            bool P1InformsP2 = true; // DEBUG
+            bool P1InformsP2 = false; 
             List<byte> playersWithP1Informing = playersToInform.ToList();
             playersWithP1Informing.Add((byte)SimpleGamePlayers.Player2);
             var decisions = new List<Decision>();
