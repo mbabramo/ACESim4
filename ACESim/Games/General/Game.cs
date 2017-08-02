@@ -145,9 +145,6 @@ namespace ACESim
                     var DEBUG1 = gameHistory.GetPlayerInformationString(decision.PlayerNumber, null);
                     // Aggregate the subdivisions and remove the subactions from the player's own information set.
                     aggregatedAction = gameHistory.AggregateSubdividable(decision.PlayerNumber, decisionIndex, decision.Subdividable_NumOptionsPerBranch, decision.Subdividable_NumLevels); // removes items from information set
-                    // Add to the player's information set an indication that the subdivision aggregation is now complete. This will allow the player to distinguish this from other situations.
-                    var DEBUG2 = gameHistory.GetPlayerInformationString(decision.PlayerNumber, null);
-                    gameHistory.AddToInformationSet((byte) (decision.Subdividable_NumOptionsPerBranch + 1), decisionIndex, decision.PlayerNumber);
                     // now, we add the aggregated decision to the information sets that we would have added to, but we don't add to the history itself, since this is not a separate history action.
                     gameHistory.AddToHistory(decision.Subdividable_CorrespondingDecisionByteCode, decisionIndex, decision.PlayerNumber, aggregatedAction, decision.Subdividable_AggregateNumPossibleActions, decision.PlayersToInform, decision.CustomInformationSetManipulationOnly, true /* don't add this to history */);
                     // We do want to add the aggregated action to the simple actions list, so that we can look to see what the most recent decisions were.
