@@ -188,26 +188,21 @@ namespace ACESim
                 { // samuelson-chaterjee bargaining
                     if (currentPlayer == (byte) MyGamePlayers.Defendant)
                     {
-                        // We have completed this round of bargaining. Only now should we add the information to the plaintiff and defendant information sets. 
-                        // Note that the plaintiff and defendant will both have made their decisions based on the decisions in the prior round.
-                        // We don't want to add the plaintiff's decision before the defendant has actually made a decision, so that's why we add both decisions now.
-
-                        // If this is not the first round, then we should remove the last piece of information from both. 
-                        if (ForgetEarlierBargainingRounds && bargainingRound > 1)
+                        // If we are forgetting bargaining rounds, then we don't need to add this to either players' information set. 
+                        // We'll still add the offers to the resolution set below.
+                        if (!ForgetEarlierBargainingRounds)
                         {
-                            gameHistory.RemoveItemsInInformationSet((byte)MyGamePlayers.Plaintiff, currentDecisionIndex, 1);
-                            gameHistory.RemoveItemsInInformationSet((byte)MyGamePlayers.Defendant, currentDecisionIndex, 1);
+                            // We have completed this round of bargaining. Only now should we add the information to the plaintiff and defendant information sets. 
+                            // Note that the plaintiff and defendant will both have made their decisions based on whatever information was available from before this round.
+                            // We don't want to add the plaintiff's decision before the defendant has actually made a decision, so that's why we add both decisions now.
+
+                            // Now add the information -- the actual decision for the other player. 
+                            // But what did each party actually offer? To figure that out, we need to look at the GameHistory. Because these decisions may be subdivided, 
+                            // GameHistory will look specifically at the simple actions list, which includes the aggregated decisions but not the subdivision decision.
+                            (byte defendantsActionChosen, byte plaintiffsActionChosen) = gameHistory.GetLastActionAndActionBeforeThat();
+                            gameHistory.AddToInformationSet(defendantsActionChosen, currentDecisionIndex, (byte)MyGamePlayers.Plaintiff); // defendant's decision conveyed to plaintiff
+                            gameHistory.AddToInformationSet(plaintiffsActionChosen, currentDecisionIndex, (byte)MyGamePlayers.Defendant); // plaintiff's decision conveyed to defendant
                         }
-
-                        // Note that in this context, we interpret forgetting earlier bargaining rounds as meaning that we remember the most recent bargaining round,
-                        // but no bargaining rounds before that.
-
-                        // Now add the information -- the actual decision for the other player. 
-                        // Note that when a player goes, we will automatically have inserted a stub so that the player knows it has made a decision (but without the decision itself, since the player will know all the information that led to that decision). This will help the players keep track of which bargaining round they are in.
-                        // But what did the plaintiff actually offer? To figure that out, we need to look at the GameHistory. This will be two decisions ago.
-                        (byte defendantsActionChosen, byte plaintiffsActionChosen) = gameHistory.GetLastActionAndActionBeforeThat();
-                        gameHistory.AddToInformationSet(defendantsActionChosen, currentDecisionIndex, (byte)MyGamePlayers.Plaintiff); // defendant's decision conveyed to plaintiff
-                        gameHistory.AddToInformationSet(plaintiffsActionChosen, currentDecisionIndex, (byte)MyGamePlayers.Defendant); // plaintiff's decision conveyed to defendant
                     }
                 }
                 else

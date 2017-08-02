@@ -12,8 +12,8 @@
                PerPartyBargainingRoundCosts: 0.05;
                SubsequentOffersAreDeltas: false; DeltaStartingValue: 0.01; MaxDelta: 0.25;
                NumBargainingRounds: 2;
-               ForgetEarlierBargainingRounds: false;
-               SubdivideOffers: true;
+               ForgetEarlierBargainingRounds: true;
+               SubdivideOffers: false;
                BargainingRound1Simultaneous: true; BargainingRound1PGoesFirstIfNotSimultaneous: true;
                BargainingRound2Simultaneous: true; BargainingRound2PGoesFirstIfNotSimultaneous: false;
                BargainingRound3Simultaneous: true; BargainingRound3PGoesFirstIfNotSimultaneous: true;
