@@ -32,11 +32,6 @@ namespace ACESim
         public List<byte> PlayersToInform;
 
         /// <summary>
-        /// If true, the decision itself is hidden; the other players will know only that the decision occurred.
-        /// </summary>
-        public bool InformOnlyThatDecisionOccurred;
-
-        /// <summary>
         /// The number of discrete actions for this decision. (The actions will be numbered 1 .. NumberActions.)
         /// </summary>
         public byte NumPossibleActions;
@@ -162,7 +157,7 @@ namespace ACESim
 
         }
 
-        public Decision(string name, string abbreviation, byte playerNumber, List<byte> playersToInform, byte numActions, byte decisionByteCode = 0, string decisionTypeCode = null, int repetitionsAfterFirst = 0, string preevolvedStrategyFilename = null, List<string> informationSetAbbreviations = null, byte? alwaysDoAction = null, bool unevenChanceActions = false, bool informOnlyThatDecisionOccurred = false)
+        public Decision(string name, string abbreviation, byte playerNumber, List<byte> playersToInform, byte numActions, byte decisionByteCode = 0, string decisionTypeCode = null, int repetitionsAfterFirst = 0, string preevolvedStrategyFilename = null, List<string> informationSetAbbreviations = null, byte? alwaysDoAction = null, bool unevenChanceActions = false)
         {
             Name = name;
             Abbreviation = abbreviation;
@@ -176,12 +171,11 @@ namespace ACESim
             InformationSetAbbreviations = informationSetAbbreviations;
             AlwaysDoAction = alwaysDoAction;
             UnevenChanceActions = unevenChanceActions;
-            InformOnlyThatDecisionOccurred = informOnlyThatDecisionOccurred;
         }
 
         public Decision Clone()
         {
-            Decision d = new Decision(Name, Abbreviation, PlayerNumber, PlayersToInform?.ToList() ?? new List<byte>(), NumPossibleActions, DecisionByteCode, DecisionTypeCode, RepetitionsAfterFirst, PreevolvedStrategyFilename, InformationSetAbbreviations, AlwaysDoAction, UnevenChanceActions, InformOnlyThatDecisionOccurred) { IsAlwaysPlayersLastDecision = IsAlwaysPlayersLastDecision, CanTerminateGame = CanTerminateGame, CustomInformationSetManipulationOnly = CustomInformationSetManipulationOnly, CustomByte = CustomByte, Subdividable = Subdividable, Subdividable_NumLevels = Subdividable_NumLevels, Subdividable_NumOptionsPerBranch = Subdividable_NumOptionsPerBranch, Subdividable_CorrespondingDecisionByteCode = Subdividable_CorrespondingDecisionByteCode, Subdividable_IsSubdivision = Subdividable_IsSubdivision, Subdividable_IsSubdivision_Last = Subdividable_IsSubdivision_Last, Subdividable_IsSubdivision_First = Subdividable_IsSubdivision_First, Subdividable_AggregateNumPossibleActions = Subdividable_AggregateNumPossibleActions };
+            Decision d = new Decision(Name, Abbreviation, PlayerNumber, PlayersToInform?.ToList() ?? new List<byte>(), NumPossibleActions, DecisionByteCode, DecisionTypeCode, RepetitionsAfterFirst, PreevolvedStrategyFilename, InformationSetAbbreviations, AlwaysDoAction, UnevenChanceActions) { IsAlwaysPlayersLastDecision = IsAlwaysPlayersLastDecision, CanTerminateGame = CanTerminateGame, CustomInformationSetManipulationOnly = CustomInformationSetManipulationOnly, CustomByte = CustomByte, Subdividable = Subdividable, Subdividable_NumLevels = Subdividable_NumLevels, Subdividable_NumOptionsPerBranch = Subdividable_NumOptionsPerBranch, Subdividable_CorrespondingDecisionByteCode = Subdividable_CorrespondingDecisionByteCode, Subdividable_IsSubdivision = Subdividable_IsSubdivision, Subdividable_IsSubdivision_Last = Subdividable_IsSubdivision_Last, Subdividable_IsSubdivision_First = Subdividable_IsSubdivision_First, Subdividable_AggregateNumPossibleActions = Subdividable_AggregateNumPossibleActions };
             return d;
         }
 

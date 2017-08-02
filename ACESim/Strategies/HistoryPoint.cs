@@ -82,7 +82,10 @@ namespace ACESim
                 // string playerInformationString = HistoryToPoint.GetPlayerInformationString(currentPlayer, nextDecision?.DecisionByteCode);
                 HistoryToPoint.GetPlayerInformation(nextPlayer, null, informationSetsPtr);
                 //var informationSetList = Util.ListExtensions.GetPointerAsList_255Terminated(informationSetsPtr);
-                gameStateFromGameHistory = navigation.Strategies[nextPlayer].GetInformationSetTreeValue(nextDecisionIndex, informationSetsPtr);
+                if (nextDecision != null)
+                    gameStateFromGameHistory = navigation.Strategies[nextPlayer].GetInformationSetTreeValue(nextDecisionIndex, informationSetsPtr);
+                else
+                    gameStateFromGameHistory = navigation.Strategies[nextPlayer].GetInformationSetTreeValue(informationSetsPtr); // resolution player -- we don't use the decision index
                 if (gameStateFromGameHistory == null && navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly)
                     return null; // we haven't initialized, so we need to do so and then try again.
             }

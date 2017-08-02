@@ -22,7 +22,6 @@ namespace ACESim
 
         const byte InformationSetTerminator = 255;
         const byte RemoveItemFromInformationSet = 254;
-        public const byte StubToIndicateDecisionOccurred = 253;
 
         private const byte History_DecisionByteCode_Offset = 0;
         private const byte History_DecisionIndex_Offset = 1; // the decision index reflects the order of the decision in the decisions list. A decision with the same byte code could correspond to multiple decision indices.
@@ -112,7 +111,7 @@ namespace ACESim
             Initialized = true;
         }
 
-        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerNumber, byte action, byte numPossibleActions, List<byte> playersToInform, bool informOnlyThatDecisionOccurred, bool skipAddToInformationSet, bool skipAddToHistory)
+        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerNumber, byte action, byte numPossibleActions, List<byte> playersToInform, bool skipAddToInformationSet, bool skipAddToHistory)
         {
             if (!Initialized)
                 Initialize();
@@ -133,7 +132,7 @@ namespace ACESim
                 LastIndexAddedToHistory = (short)(i + History_NumPiecesOfInformation);
             }
             if (!skipAddToInformationSet)
-                AddToInformationSet(informOnlyThatDecisionOccurred ? StubToIndicateDecisionOccurred : action, decisionIndex, playerNumber, playersToInform);
+                AddToInformationSet(action, decisionIndex, playerNumber, playersToInform);
         }
 
         public void AddToSimpleActionsList(byte action)

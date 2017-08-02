@@ -75,16 +75,15 @@ namespace ACESim
             }
         }
 
-        public unsafe NWayTreeStorage<T> GetNode(byte prefaceByte, byte* restOfSequence, bool createIfNecessary)
+        public unsafe NWayTreeStorage<T> GetNode(byte prefaceByte, byte* restOfSequence, bool createRestIfNecessary)
         {
-            NWayTreeStorageInternal<T> tree = this;
-            tree = (NWayTreeStorageInternal<T>)tree.GetBranch(prefaceByte);
-            if (tree == null && createIfNecessary)
+            NWayTreeStorageInternal<T> tree = (NWayTreeStorageInternal<T>)GetBranch(prefaceByte);
+            if (tree == null)
             {
                 AddBranch(prefaceByte, true);
-                tree = (NWayTreeStorageInternal<T>)tree.GetBranch(prefaceByte);
+                tree = (NWayTreeStorageInternal<T>)GetBranch(prefaceByte);
             }
-            return tree.GetNode(restOfSequence, createIfNecessary);
+            return tree.GetNode(restOfSequence, createRestIfNecessary);
         }
 
         public unsafe NWayTreeStorage<T> GetNode(byte* restOfSequence, bool createIfNecessary)
