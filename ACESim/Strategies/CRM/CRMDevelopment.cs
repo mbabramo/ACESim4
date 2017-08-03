@@ -198,17 +198,19 @@ namespace ACESim
         public ICRMGameState GetGameState(HistoryPoint historyPoint, HistoryNavigationInfo? navigation = null)
         {
             HistoryNavigationInfo navigationSettings = navigation ?? Navigation;
-            var gameState = historyPoint.GetGameStateForCurrentPlayer(navigationSettings);
+            return historyPoint.GetGameStateForCurrentPlayer(navigationSettings) ?? GetGameStateByPlayingUnderlyingGame(historyPoint, navigationSettings);
+        }
+
+        private ICRMGameState GetGameStateByPlayingUnderlyingGame(HistoryPoint historyPoint, HistoryNavigationInfo navigationSettings)
+        {
+            ICRMGameState gameState;
+            List<byte> actionsSoFar = historyPoint.GetActionsToHere(navigationSettings);
+            (GameProgress progress, _) = GamePlayer.PlayPath(actionsSoFar, false);
+            ProcessInitializedGameProgress(progress);
+            NumInitializedGamePaths++; // Note: This may not be exact if we initialize the same game path twice
+            gameState = historyPoint.GetGameStateForCurrentPlayer(navigationSettings);
             if (gameState == null)
-            {
-                List<byte> actionsSoFar = historyPoint.GetActionsToHere(navigationSettings);
-                (GameProgress progress, _) = GamePlayer.PlayPath(actionsSoFar, false);
-                ProcessInitializedGameProgress(progress);
-                NumInitializedGamePaths++; // Note: This may not be exact if we initialize the same game path twice
-                gameState = historyPoint.GetGameStateForCurrentPlayer(navigationSettings);
-                if (gameState == null)
-                    throw new Exception("Internal error.");
-            }
+                throw new Exception("Internal error.");
             return gameState;
         }
 

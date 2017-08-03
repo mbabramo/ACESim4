@@ -391,6 +391,7 @@
     <Compile Include="Strategies\CRM\ICRMGameState.cs" />
     <Compile Include="Strategies\HistoryNavigationInfo.cs" />
     <Compile Include="Strategies\HistoryPoint.cs" />
+    <Compile Include="Strategies\HistoryPoint_CachedGameHistoryOnly.cs" />
     <Compile Include="Strategies\InformationSetLookupApproach.cs" />
     <Compile Include="Strategies\StrategyState.cs" />
     <Compile Include="Util\Br.cs" />
