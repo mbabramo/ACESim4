@@ -110,7 +110,7 @@ namespace ACESim
                         );
         }
 
-        public unsafe double[] GetFinalUtilities(GameDefinition gameDefinition, List<Strategy> strategies, )
+        public unsafe double[] GetFinalUtilities(GameDefinition gameDefinition, List<Strategy> strategies)
         {
             if (!IsComplete())
                 throw new Exception("Game is not complete.");
