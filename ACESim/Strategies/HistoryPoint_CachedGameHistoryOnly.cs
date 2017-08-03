@@ -12,7 +12,7 @@ namespace ACESim
         public GameHistory HistoryToPoint;
         public ICRMGameState GameState;
 
-        public HistoryPoint_CachedGameHistoryOnly(NWayTreeStorage<ICRMGameState> treePoint, GameHistory historyToPoint, GameProgress gameProgress)
+        public HistoryPoint_CachedGameHistoryOnly(GameHistory historyToPoint)
         {
             HistoryToPoint = historyToPoint;
             GameState = null;
@@ -110,22 +110,21 @@ namespace ACESim
                         );
         }
 
-        public unsafe double[] GetFinalUtilities(GameDefinition gameDefinition, List<Strategy> strategies)
+        public unsafe double[] GetFinalUtilities(HistoryNavigationInfo navigation)
         {
             if (!IsComplete())
                 throw new Exception("Game is not complete.");
             double[] utilitiesFromGameTree = null;
             double[] utilitiesFromCachedGameHistory = null;
-            byte resolutionPlayer = gameDefinition.PlayerIndex_ResolutionPlayer;
-            var strategy = strategies[resolutionPlayer];
+            byte resolutionPlayer = navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
+            var strategy = navigation.Strategies[resolutionPlayer];
             byte* resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerPlayer];
             HistoryToPoint.GetPlayerInformation(resolutionPlayer, null, resolutionInformationSet);
             CRMFinalUtilities finalUtilities = (CRMFinalUtilities)strategy.GetInformationSetTreeValue(resolutionInformationSet);
             if (finalUtilities == null)
             {
-                throw new NotImplementedException(); // DEBUG
-                // DEBUG navigation.GetGameState(this); // make sure that point is initialized up to here
-                // DEBUG finalUtilities = (CRMFinalUtilities)strategy.GetInformationSetTreeValue(resolutionInformationSet);
+                navigation.GetGameState(new HistoryPoint(null, HistoryToPoint, null)); // make sure that point is initialized up to here
+                finalUtilities = (CRMFinalUtilities)strategy.GetInformationSetTreeValue(resolutionInformationSet);
             }
             utilitiesFromCachedGameHistory = finalUtilities.Utilities;
             return utilitiesFromGameTree ?? utilitiesFromCachedGameHistory;
