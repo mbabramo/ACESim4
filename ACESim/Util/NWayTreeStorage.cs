@@ -56,6 +56,16 @@ namespace ACESim
             return true; // this is a leaf node if not overriden
         }
 
+        public List<(T storedValue, List<byte> sequenceToHere)> GetAllTreeNodes()
+        {
+            List<(T storedValue, List<byte> sequenceToHere)> l = new List<(T storedValue, List<byte> sequenceToHere)>();
+            WalkTree(t =>
+            {
+                l.Add((t.StoredValue, t.GetSequenceToHere()));
+            });
+            return l;
+        }
+
         public virtual void WalkTree(Action<NWayTreeStorage<T>> action)
         {
             action(this);

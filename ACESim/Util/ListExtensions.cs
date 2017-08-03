@@ -46,6 +46,15 @@ namespace ACESim.Util
             return r2;
         }
 
+        public static unsafe List<double> GetPointerAsList(double* r, int size)
+        {
+            var r2 = new List<double>();
+            int d = 0;
+            for (int i = 0; i < size; i++)
+                r2.Add(r[i]);
+            return r2;
+        }
+
         public static unsafe List<byte> GetPointerAsList_NumItemsPrefix(byte* r)
         {
             var r2 = new List<byte>();

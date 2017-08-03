@@ -198,6 +198,14 @@ namespace ACESim
         }
 
 
+        public unsafe List<double> GetRegretMatchingProbabilities()
+        {
+            double* probabilitiesToSet = stackalloc double[NumPossibleActions];
+            GetRegretMatchingProbabilities(probabilitiesToSet);
+            return Util.ListExtensions.GetPointerAsList(probabilitiesToSet, NumPossibleActions);
+
+        }
+
         public unsafe void GetRegretMatchingProbabilities(double* probabilitiesToSet)
         {
             (double sumPositiveCumulativeRegrets, int numPositive) = GetSumPositiveCumulativeRegrets_AndNumberPositive();

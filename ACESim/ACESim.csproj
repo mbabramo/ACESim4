@@ -395,9 +395,11 @@
     <Compile Include="Strategies\InformationSetLookupApproach.cs" />
     <Compile Include="Strategies\StrategyState.cs" />
     <Compile Include="Util\Br.cs" />
+    <Compile Include="Util\ConsistentRandomSequenceProducer.cs" />
     <Compile Include="Util\DiscreteValueSignalParameters.cs" />
     <Compile Include="Util\EquallySpaced.cs" />
     <Compile Include="Util\InvNormal.cs" />
+    <Compile Include="Util\IRandomProducer.cs" />
     <Compile Include="Util\PriorityQueueSmallRAMFootprint.cs" />
     <Compile Include="Settings\Distributions\MixtureDistribution.cs" />
     <Compile Include="Settings\Distributions\CurveDistribution.cs" />
@@ -491,6 +493,7 @@
     <Compile Include="Util\ObjectPoolGeneric.cs" />
     <Compile Include="Util\Parabola.cs" />
     <Compile Include="Util\ProcessInSeparateAppDomain.cs" />
+    <Compile Include="Util\RandomProducer.cs" />
     <Compile Include="Util\RandomSubset.cs" />
     <Compile Include="Util\Retry.cs" />
     <Compile Include="Util\MonotonicCurve.cs" />

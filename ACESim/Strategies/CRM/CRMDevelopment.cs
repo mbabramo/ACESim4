@@ -34,6 +34,9 @@ namespace ACESim
         bool TraceProbingCRM = false;
         bool TraceAverageStrategySampling = false;
 
+        bool ShouldEstimateImprovementOverTime = false;
+        const int NumRandomGamePlaysForEstimatingImprovement = 1000;
+
         // The following apply to probing and average strategy sampling. The MCCFR algorithm is not guaranteed to visit all information sets.
         bool UseEpsilonOnPolicyForOpponent = true;
         double FirstOpponentEpsilonValue = 0.5;
@@ -45,9 +48,9 @@ namespace ACESim
         bool AllowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => (AllowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)) && Algorithm != CRMAlgorithm.PureStrategyFinder;
 
-        int? ReportEveryNIterations => Algorithm == CRMAlgorithm.Vanilla ? 10000 : 10000;
+        int? ReportEveryNIterations => Algorithm == CRMAlgorithm.Vanilla ? 10000 : 1000;
         const int EffectivelyNever = 999999999;
-        int? BestResponseEveryMIterations => 20_000; // DEBUG EffectivelyNever; // For now, don't do it. This takes most of the time when dealing with partial recall games.
+        int? BestResponseEveryMIterations => EffectivelyNever; // For now, don't do it. This takes most of the time when dealing with partial recall games.
         public int NumRandomIterationsForReporting = 10000;
         bool PrintGameTreeAfterReport = false;
         bool PrintInformationSetsAfterReport = false;
@@ -450,6 +453,9 @@ namespace ACESim
                 Debug.WriteLine($"{DEBUG_NumExplorations / (double) ReportEveryNIterations}");
                 DEBUG_NumExplorations = 0;
                 MainReport(useRandomPaths);
+                MeasureRegretMatchingChanges();
+                if (ShouldEstimateImprovementOverTime)
+                    ReportEstimatedImprovementsOverTime();
                 if (doBestResponse)
                     CompareBestResponse(iteration, useRandomPaths);
                 if (AlwaysUseAverageStrategyInReporting)
@@ -906,8 +912,17 @@ namespace ACESim
 
         #region ProbingCRM
 
-        public unsafe double Probe(HistoryPoint historyPoint, byte playerBeingOptimized)
+        RandomProducer StandardRandomProducer = new RandomProducer();
+
+        public unsafe double Probe(HistoryPoint historyPoint, byte playerBeingOptimized, IRandomProducer randomProducer = null)
         {
+            return Probe(historyPoint, randomProducer)[playerBeingOptimized];
+        }
+
+        public unsafe double[] Probe(HistoryPoint historyPoint, IRandomProducer randomProducer = null)
+        {
+            if (randomProducer == null)
+                randomProducer = StandardRandomProducer;
             ICRMGameState gameStateForCurrentPlayer = GetGameState(historyPoint);
             //if (TraceProbingCRM)
             //    TabbedText.WriteLine($"Probe optimizing player {playerBeingOptimized}");
@@ -915,7 +930,7 @@ namespace ACESim
             if (gameStateType == GameStateTypeEnum.FinalUtilities)
             {
                 CRMFinalUtilities finalUtilities = (CRMFinalUtilities)gameStateForCurrentPlayer;
-                var utility = finalUtilities.Utilities[playerBeingOptimized];
+                var utility = finalUtilities.Utilities;
                 if (TraceProbingCRM)
                     TabbedText.WriteLine($"Utility returned {utility}");
                 return utility;
@@ -927,7 +942,7 @@ namespace ACESim
                 {
                     CRMChanceNodeSettings chanceNodeSettings = (CRMChanceNodeSettings)gameStateForCurrentPlayer;
                     byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
-                    sampledAction = chanceNodeSettings.SampleAction(numPossibleActions, RandomGenerator.NextDouble());
+                    sampledAction = chanceNodeSettings.SampleAction(numPossibleActions, randomProducer.NextDouble());
                     if (TraceProbingCRM)
                         TabbedText.WriteLine($"{sampledAction}: Sampled chance action {sampledAction} of {numPossibleActions} with probability {chanceNodeSettings.GetActionProbability(sampledAction)}");
                 }
@@ -937,18 +952,18 @@ namespace ACESim
                     byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
                     double* actionProbabilities = stackalloc double[numPossibleActions];
                     // the use of epsilon-on-policy for early iterations of opponent's strategy is a deviation from Gibson.
-                    if (UseEpsilonOnPolicyForOpponent && ProbingCFRIterationNum <= LastOpponentEpsilonIteration)
+                    if (!EstimatingImprovementOverTimeMode && UseEpsilonOnPolicyForOpponent && ProbingCFRIterationNum <= LastOpponentEpsilonIteration)
                         informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(actionProbabilities, CurrentEpsilonValue);
                     else
                         informationSet.GetRegretMatchingProbabilities(actionProbabilities);
-                    sampledAction = SampleAction(actionProbabilities, numPossibleActions, RandomGenerator.NextDouble());
+                    sampledAction = SampleAction(actionProbabilities, numPossibleActions, randomProducer.NextDouble());
                     if (TraceProbingCRM)
                         TabbedText.WriteLine($"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {informationSet.PlayerIndex}");
                 }
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction);
                 if (TraceProbingCRM)
                     TabbedText.Tabs++;
-                double probeResult = Probe(nextHistoryPoint, playerBeingOptimized);
+                double[] probeResult = Probe(nextHistoryPoint);
                 if (TraceProbingCRM)
                 {
                     TabbedText.Tabs--;
@@ -1355,6 +1370,8 @@ namespace ACESim
             CurrentEpsilonValue = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(FirstOpponentEpsilonValue, LastOpponentEpsilonValue, 0.75, (double)iteration / (double)TotalAvgStrategySamplingCFRIterations);
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
+                if (ShouldEstimateImprovementOverTime)
+                    PrepareForImprovementOverTimeEstimation(playerBeingOptimized);
                 if (LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly && !TraceAverageStrategySampling)
                 {
                     HistoryPoint_CachedGameHistoryOnly historyPoint = new HistoryPoint_CachedGameHistoryOnly(new GameHistory());
@@ -1372,6 +1389,8 @@ namespace ACESim
                     if (TraceAverageStrategySampling)
                         TabbedText.Tabs--;
                 }
+                if (ShouldEstimateImprovementOverTime)
+                    UpdateImprovementOverTimeEstimation(playerBeingOptimized, iteration);
             }
         }
 
@@ -1383,6 +1402,8 @@ namespace ACESim
             ActionStrategy = ActionStrategies.RegretMatching;
             AvgStrategySamplingCFRIterationNum = -1;
             int reportingGroupSize = ReportEveryNIterations ?? TotalAvgStrategySamplingCFRIterations;
+            if (ShouldEstimateImprovementOverTime)
+                InitializeImprovementOverTimeEstimation();
             Stopwatch s = new Stopwatch();
             for (int iterationGrouper = 0; iterationGrouper < TotalAvgStrategySamplingCFRIterations; iterationGrouper += reportingGroupSize)
             {
@@ -1600,6 +1621,132 @@ namespace ACESim
             GenerateReports(iteration, () => $"Iteration {iteration} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)iteration + 1.0)))}");
         }
 
+
+        #endregion
+
+        #region Estimate improvement over time
+
+        double[] MostRecentUtilities;
+        Queue<double>[] MostRecentImprovements;
+        double[] AggregateRecentImprovements;
+        const int SizeOfMovingAverage = 100;
+        long PseudorandomSpot = 1;
+        bool EstimatingImprovementOverTimeMode = false;
+
+        public double[] GetUtilitiesFromRandomGamePlay(int repetitions)
+        {
+            double[] aggregatedUtilities = new double[NumNonChancePlayers];
+            for (int r = 0; r < repetitions; r++)
+            {
+                double[] utilities = GetUtilitiesFromRandomGamePlay(new ConsistentRandomSequenceProducer((PseudorandomSpot + r) * 1000));
+                for (int i = 0; i < NumNonChancePlayers; i++)
+                {
+                    aggregatedUtilities[i] += utilities[i];
+                    if (r == repetitions - 1)
+                        aggregatedUtilities[i] /= (double)NumRandomGamePlaysForEstimatingImprovement;
+                }
+            }
+            return aggregatedUtilities;
+        }
+
+        public double[] GetUtilitiesFromRandomGamePlay(IRandomProducer randomProducer)
+        {
+            EstimatingImprovementOverTimeMode = true;
+            double[] returnVal = Probe(GetStartOfGameHistoryPoint(), randomProducer);
+            EstimatingImprovementOverTimeMode = false;
+            return returnVal;
+        }
+
+        public void InitializeImprovementOverTimeEstimation()
+        {
+            AggregateRecentImprovements = new double[NumNonChancePlayers];
+            MostRecentImprovements = new Queue<double>[NumNonChancePlayers];
+            for (int p = 0; p < NumNonChancePlayers; p++)
+                MostRecentImprovements[p] = new Queue<double>();
+        }
+
+        public void PrepareForImprovementOverTimeEstimation(byte playerAboutToBeOptimized)
+        {
+            MostRecentUtilities = GetUtilitiesFromRandomGamePlay(NumRandomGamePlaysForEstimatingImprovement);
+        }
+
+        public void UpdateImprovementOverTimeEstimation(byte playerJustOptimized, int iteration)
+        {
+            double[] previousMostRecentUtilities = MostRecentUtilities;
+            MostRecentUtilities = GetUtilitiesFromRandomGamePlay(NumRandomGamePlaysForEstimatingImprovement);
+            double improvement = MostRecentUtilities[playerJustOptimized] - previousMostRecentUtilities[playerJustOptimized];
+            MostRecentImprovements[playerJustOptimized].Enqueue(improvement);
+            UpdateAggregateRecentImprovements(playerJustOptimized, improvement, true);
+            if (iteration >= SizeOfMovingAverage)
+            {
+                double oldImprovement = MostRecentImprovements[playerJustOptimized].Dequeue();
+                UpdateAggregateRecentImprovements(playerJustOptimized, oldImprovement, false);
+            }
+            PseudorandomSpot += NumRandomGamePlaysForEstimatingImprovement * 1000;
+        }
+
+        private void UpdateAggregateRecentImprovements(byte playerJustOptimized, double improvement, bool add)
+        {
+            if (add)
+                AggregateRecentImprovements[playerJustOptimized] += improvement;
+            else
+                AggregateRecentImprovements[playerJustOptimized] -= improvement;
+        }
+
+        private void ReportEstimatedImprovementsOverTime()
+        {
+            for (int p = 0; p < NumNonChancePlayers; p++)
+            {
+                double numItems = MostRecentImprovements[p].Count();
+                Debug.WriteLine($"Estimated average improvement per iteration over last {SizeOfMovingAverage} iterations for player {p}: {AggregateRecentImprovements[p]/numItems}");
+            }
+        }
+
+        #endregion
+
+        #region Measure change sizes
+
+        NWayTreeStorage<List<double>>[] PreviousRegretMatchingState;
+
+        public void MeasureRegretMatchingChanges()
+        {
+            NWayTreeStorage<List<double>>[] newRegretMatchingState = new NWayTreeStorage<List<double>>[NumNonChancePlayers];
+            for (int p = 0; p < NumNonChancePlayers; p++)
+            {
+                newRegretMatchingState[p] = Strategies[p].GetRegretMatchingTree();
+                if (PreviousRegretMatchingState != null)
+                {
+                    double change = MeasureRegretMatchingChange(PreviousRegretMatchingState[p], newRegretMatchingState[p]);
+                    Debug.WriteLine($"Change size for player {p} change {change}");
+                }
+            }
+            PreviousRegretMatchingState = newRegretMatchingState;
+        }
+
+        private double MeasureRegretMatchingChange(NWayTreeStorage<List<double>> previous, NWayTreeStorage<List<double>> replacement)
+        {
+            double total = 0;
+            previous.WalkTree(node =>
+            {
+                if (node.StoredValue != null)
+                {
+                    var sequenceToHere = node.GetSequenceToHere();
+                    NWayTreeStorage<List<double>> corresponding = replacement;
+                    int i = 0;
+                    while (corresponding != null && i < sequenceToHere.Count())
+                        corresponding = corresponding.GetBranch(sequenceToHere[i++]);
+                    if (corresponding.StoredValue != null)
+                    {
+                        for (i = 0; i < node.StoredValue.Count(); i++)
+                        {
+                            total += Math.Abs(corresponding.StoredValue[i] - node.StoredValue[i]);
+                        }
+                    }
+                }
+            }
+            );
+            return total;
+        }
 
         #endregion
 

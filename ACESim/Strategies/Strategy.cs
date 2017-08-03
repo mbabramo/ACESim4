@@ -58,6 +58,24 @@ namespace ACESim
             InformationSetTree = new NWayTreeStorageInternal<ICRMGameState>(null, numInitialActions);
         }
 
+        public unsafe NWayTreeStorage<List<double>> GetRegretMatchingTree()
+        {
+            var regretMatchingTree = new NWayTreeStorageInternal<List<double>>(null, InformationSetTree.Branches.Length);
+            var nodes = InformationSetTree.GetAllTreeNodes();
+            foreach (var node in nodes)
+            {
+                if (node.storedValue is CRMInformationSetNodeTally tallyNode)
+                {
+                    byte* sequencePointer = stackalloc byte[node.sequenceToHere.Count() + 1];
+                    for (int i = 0; i < node.sequenceToHere.Count(); i++)
+                        sequencePointer[i] = node.sequenceToHere[i];
+                    sequencePointer[node.sequenceToHere.Count()] = 255;
+                    regretMatchingTree.SetValueIfNotSet(sequencePointer, false, () => tallyNode.GetRegretMatchingProbabilities());
+                }
+            }
+            return regretMatchingTree;
+        }
+
         // NOTE: Sometimes we preface the information set with a decisionIndex, so we have dedicated methods for this.
 
         public unsafe NWayTreeStorage<ICRMGameState> SetInformationSetTreeValueIfNotSet(byte decisionIndex, byte* informationSet, bool historyComplete, Func<ICRMGameState> setter)
