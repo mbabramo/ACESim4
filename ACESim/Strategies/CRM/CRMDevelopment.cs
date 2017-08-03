@@ -47,7 +47,7 @@ namespace ACESim
 
         int? ReportEveryNIterations => Algorithm == CRMAlgorithm.Vanilla ? 10000 : 10000;
         const int EffectivelyNever = 999999999;
-        int? BestResponseEveryMIterations => EffectivelyNever; // For now, don't do it. This takes most of the time when dealing with partial recall games.
+        int? BestResponseEveryMIterations => 20_000; // DEBUG EffectivelyNever; // For now, don't do it. This takes most of the time when dealing with partial recall games.
         public int NumRandomIterationsForReporting = 10000;
         bool PrintGameTreeAfterReport = false;
         bool PrintInformationSetsAfterReport = false;
@@ -442,12 +442,16 @@ namespace ACESim
             {
                 ActionStrategies previous = ActionStrategy;
                 bool useRandomPaths = SkipEveryPermutationInitialization || NumInitializedGamePaths > NumRandomIterationsForReporting;
+                bool doBestResponse = (BestResponseEveryMIterations != null && iteration % BestResponseEveryMIterations == 0 && BestResponseEveryMIterations != EffectivelyNever && iteration != 0);
+                if (doBestResponse)
+                    useRandomPaths = false;
                 Debug.WriteLine("");
                 Debug.WriteLine(prefaceFn());
                 Debug.WriteLine($"{DEBUG_NumExplorations / (double) ReportEveryNIterations}");
                 DEBUG_NumExplorations = 0;
                 MainReport(useRandomPaths);
-                CompareBestResponse(iteration, useRandomPaths);
+                if (doBestResponse)
+                    CompareBestResponse(iteration, useRandomPaths);
                 if (AlwaysUseAverageStrategyInReporting)
                     ActionStrategy = previous;
                 if (PrintGameTreeAfterReport)
@@ -476,15 +480,14 @@ namespace ACESim
 
         private unsafe void CompareBestResponse(int iteration, bool useRandomPaths)
         {
-            if (BestResponseEveryMIterations != null && iteration % BestResponseEveryMIterations == 0 && BestResponseEveryMIterations != EffectivelyNever)
-                for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
-                {
-                    double bestResponseUtility = CalculateBestResponse(playerBeingOptimized, ActionStrategy);
-                    double bestResponseImprovement = bestResponseUtility - UtilityCalculations[playerBeingOptimized].Average();
-                    if (!useRandomPaths && bestResponseImprovement < -1E-15)
-                        throw new Exception("Best response function worse."); // it can be slightly negative as a result of rounding error or if we are using random paths as a result of sampling error
-                    Debug.WriteLine($"Player {playerBeingOptimized} utility with regret matching {UtilityCalculations[playerBeingOptimized].Average()} using best response against regret matching {bestResponseUtility} best response improvement {bestResponseImprovement}");
-                }
+            for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
+            {
+                double bestResponseUtility = CalculateBestResponse(playerBeingOptimized, ActionStrategy);
+                double bestResponseImprovement = bestResponseUtility - UtilityCalculations[playerBeingOptimized].Average();
+                if (!useRandomPaths && bestResponseImprovement < -1E-15)
+                    throw new Exception("Best response function worse."); // it can be slightly negative as a result of rounding error or if we are using random paths as a result of sampling error
+                Debug.WriteLine($"Player {playerBeingOptimized} utility with regret matching {UtilityCalculations[playerBeingOptimized].Average()} using best response against regret matching {bestResponseUtility} best response improvement {bestResponseImprovement}");
+            }
         }
 
 
@@ -934,7 +937,7 @@ namespace ACESim
                     byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
                     double* actionProbabilities = stackalloc double[numPossibleActions];
                     // the use of epsilon-on-policy for early iterations of opponent's strategy is a deviation from Gibson.
-                    if (UseEpsilonOnPolicyForOpponent && AvgStrategySamplingCFRIterationNum <= LastOpponentEpsilonIteration)
+                    if (UseEpsilonOnPolicyForOpponent && ProbingCFRIterationNum <= LastOpponentEpsilonIteration)
                         informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(actionProbabilities, CurrentEpsilonValue);
                     else
                         informationSet.GetRegretMatchingProbabilities(actionProbabilities);
@@ -1127,8 +1130,8 @@ namespace ACESim
 
         // http://papers.nips.cc/paper/4569-efficient-monte-carlo-counterfactual-regret-minimization-in-games-with-many-player-actions.pdf
 
-        double epsilon = 0.05, beta = 1000000, tau = 1000; // note that beta will keep sampling even at first, but becomes less important later on. Epsilon ensures some exploration, and tau weights things later on toward the best strategies
-
+        double epsilon = 0.05, beta = 1000000, tau = 1000; // note that beta will keep sampling even at first, but becomes less important later on. Epsilon ensures some exploration, and larger tau weights things later toward low-probability strategies
+        //double epsilon = 0.05, beta = 100, tau = 1; // note that beta will keep sampling even at first, but becomes less important later on. Epsilon ensures some exploration, and larger tau weights things later toward low-probability strategies
 
         public unsafe double AverageStrategySampling_WalkTree(HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ)
         {
@@ -1393,7 +1396,7 @@ namespace ACESim
                     AvgStrategySamplingCFRIteration(AvgStrategySamplingCFRIterationNum);
                 });
                 s.Stop();
-                GenerateReports(iterationGrouper + reportingGroupSize, () => $"Iteration {iterationGrouper} Milliseconds per iteration {((s.ElapsedMilliseconds / ((double)reportingGroupSize)))}");
+                GenerateReports(iterationGrouper + reportingGroupSize, () => $"Iteration {iterationGrouper + reportingGroupSize} Milliseconds per iteration {((s.ElapsedMilliseconds / ((double)reportingGroupSize)))}");
             }
             //for (AvgStrategySamplingCFRIterationNum = 0; AvgStrategySamplingCFRIterationNum < TotalAvgStrategySamplingCFRIterations; AvgStrategySamplingCFRIterationNum++)
             //{
