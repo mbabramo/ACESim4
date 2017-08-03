@@ -444,6 +444,8 @@ namespace ACESim
                 bool useRandomPaths = SkipEveryPermutationInitialization || NumInitializedGamePaths > NumRandomIterationsForReporting;
                 Debug.WriteLine("");
                 Debug.WriteLine(prefaceFn());
+                Debug.WriteLine($"{DEBUG_NumExplorations / (double) ReportEveryNIterations}");
+                DEBUG_NumExplorations = 0;
                 MainReport(useRandomPaths);
                 CompareBestResponse(iteration, useRandomPaths);
                 if (AlwaysUseAverageStrategyInReporting)
@@ -1254,13 +1256,14 @@ namespace ACESim
             }
         }
 
+        long DEBUG_NumExplorations = 0;
 
         public unsafe double AverageStrategySampling_WalkTree_CachedGameHistoryOnly(HistoryPoint_CachedGameHistoryOnly historyPoint, byte playerBeingOptimized, double samplingProbabilityQ)
         {
             ICRMGameState gameStateForCurrentPlayer = GetGameState(historyPoint);
             byte sampledAction = 0;
             GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
-            HistoryPoint nextHistoryPoint;
+            HistoryPoint_CachedGameHistoryOnly nextHistoryPoint;
             byte numPossibleActions;
             switch (gameStateType)
             {
@@ -1273,7 +1276,8 @@ namespace ACESim
                     numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
                     sampledAction = chanceNodeSettings.SampleAction(numPossibleActions, RandomGenerator.NextDouble());
                     nextHistoryPoint = historyPoint.GetBranch(Navigation.GameDefinition, sampledAction);
-                    double walkTreeValue = AverageStrategySampling_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ);
+                    // DEBUG historyPoint.SwitchToBranch(Navigation.GameDefinition, sampledAction);
+                    double walkTreeValue = AverageStrategySampling_WalkTree_CachedGameHistoryOnly(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ);
                     return walkTreeValue;
                 case GameStateTypeEnum.Tally:
                     CRMInformationSetNodeTally informationSet = (CRMInformationSetNodeTally)gameStateForCurrentPlayer;
@@ -1297,7 +1301,8 @@ namespace ACESim
                         }
                         sampledAction = SampleAction(sigma_regretMatchedActionProbabilities, numPossibleActions, RandomGenerator.NextDouble());
                         nextHistoryPoint = historyPoint.GetBranch(Navigation.GameDefinition, sampledAction);
-                        double walkTreeValue2 = AverageStrategySampling_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ);
+                        // DEBUG historyPoint.SwitchToBranch(Navigation.GameDefinition, sampledAction);
+                        double walkTreeValue2 = AverageStrategySampling_WalkTree_CachedGameHistoryOnly(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ);
                         return walkTreeValue2;
                     }
                     // player being optimized is player at this information set
@@ -1319,8 +1324,10 @@ namespace ACESim
                         bool explore = rnd < rho;
                         if (explore)
                         {
+                            DEBUG_NumExplorations++;
                             nextHistoryPoint = historyPoint.GetBranch(Navigation.GameDefinition, action);
-                            counterfactualValues[action - 1] = AverageStrategySampling_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ * Math.Min(1.0, rho));
+                            // DEBUG historyPoint.SwitchToBranch(Navigation.GameDefinition, action);
+                            counterfactualValues[action - 1] = AverageStrategySampling_WalkTree_CachedGameHistoryOnly(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ * Math.Min(1.0, rho));
                             counterfactualSummation += sigma_regretMatchedActionProbabilities[action - 1] * counterfactualValues[action - 1];
                         }
                         else
@@ -1345,7 +1352,7 @@ namespace ACESim
             CurrentEpsilonValue = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(FirstOpponentEpsilonValue, LastOpponentEpsilonValue, 0.75, (double)iteration / (double)TotalAvgStrategySamplingCFRIterations);
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
-                if (LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly && !TraceAverageStrategySampling && false)
+                if (LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly && !TraceAverageStrategySampling)
                 {
                     HistoryPoint_CachedGameHistoryOnly historyPoint = new HistoryPoint_CachedGameHistoryOnly(new GameHistory());
                     AverageStrategySampling_WalkTree_CachedGameHistoryOnly(historyPoint, playerBeingOptimized, 1.0);
@@ -1376,6 +1383,8 @@ namespace ACESim
             Stopwatch s = new Stopwatch();
             for (int iterationGrouper = 0; iterationGrouper < TotalAvgStrategySamplingCFRIterations; iterationGrouper += reportingGroupSize)
             {
+                if (iterationGrouper == 0)
+                    GenerateReports(0, () => $"Iteration 0");
                 s.Reset();
                 s.Start();
                 Parallelizer.Go(EvolutionSettings.ParallelOptimization, iterationGrouper, iterationGrouper + reportingGroupSize, i =>
@@ -1384,7 +1393,7 @@ namespace ACESim
                     AvgStrategySamplingCFRIteration(AvgStrategySamplingCFRIterationNum);
                 });
                 s.Stop();
-                GenerateReports(iterationGrouper, () => $"Iteration {iterationGrouper} Milliseconds per iteration {((s.ElapsedMilliseconds / ((double)reportingGroupSize)))}");
+                GenerateReports(iterationGrouper + reportingGroupSize, () => $"Iteration {iterationGrouper} Milliseconds per iteration {((s.ElapsedMilliseconds / ((double)reportingGroupSize)))}");
             }
             //for (AvgStrategySamplingCFRIterationNum = 0; AvgStrategySamplingCFRIterationNum < TotalAvgStrategySamplingCFRIterations; AvgStrategySamplingCFRIterationNum++)
             //{

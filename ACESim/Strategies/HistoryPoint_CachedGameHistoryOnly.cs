@@ -64,17 +64,22 @@ namespace ACESim
             return GameState;
         }
 
-        public HistoryPoint GetBranch(GameDefinition gameDefinition, byte actionChosen)
+        public HistoryPoint_CachedGameHistoryOnly GetBranch(GameDefinition gameDefinition, byte actionChosen)
         {
-            HistoryPoint next = new HistoryPoint();
-            
+            HistoryPoint_CachedGameHistoryOnly next = new HistoryPoint_CachedGameHistoryOnly(HistoryToPoint);
             (Decision nextDecision, byte nextDecisionIndex) = gameDefinition.GetNextDecision(HistoryToPoint);
-            next.HistoryToPoint = HistoryToPoint; // struct is copied. We then use a ref to change the copy, since otherwise it would be copied again.
             Game.UpdateGameHistory(ref next.HistoryToPoint, gameDefinition, nextDecision, nextDecisionIndex, actionChosen);
             if (nextDecision.CanTerminateGame && gameDefinition.ShouldMarkGameHistoryComplete(nextDecision, next.HistoryToPoint))
                 next.HistoryToPoint.MarkComplete();
-            
             return next;
+        }
+
+        public void SwitchToBranch(GameDefinition gameDefinition, byte actionChosen)
+        {
+            (Decision nextDecision, byte nextDecisionIndex) = gameDefinition.GetNextDecision(HistoryToPoint);
+            Game.UpdateGameHistory(ref HistoryToPoint, gameDefinition, nextDecision, nextDecisionIndex, actionChosen);
+            if (nextDecision.CanTerminateGame && gameDefinition.ShouldMarkGameHistoryComplete(nextDecision, HistoryToPoint))
+                HistoryToPoint.MarkComplete();
         }
 
         public byte GetNextPlayer(GameDefinition gameDefinition)
