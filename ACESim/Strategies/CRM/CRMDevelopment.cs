@@ -1263,7 +1263,6 @@ namespace ACESim
             ICRMGameState gameStateForCurrentPlayer = GetGameState(historyPoint);
             byte sampledAction = 0;
             GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
-            HistoryPoint_CachedGameHistoryOnly nextHistoryPoint;
             byte numPossibleActions;
             switch (gameStateType)
             {
@@ -1275,9 +1274,8 @@ namespace ACESim
                     CRMChanceNodeSettings chanceNodeSettings = (CRMChanceNodeSettings)gameStateForCurrentPlayer;
                     numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
                     sampledAction = chanceNodeSettings.SampleAction(numPossibleActions, RandomGenerator.NextDouble());
-                    nextHistoryPoint = historyPoint.GetBranch(Navigation.GameDefinition, sampledAction);
-                    // DEBUG historyPoint.SwitchToBranch(Navigation.GameDefinition, sampledAction);
-                    double walkTreeValue = AverageStrategySampling_WalkTree_CachedGameHistoryOnly(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ);
+                    historyPoint.SwitchToBranch(Navigation.GameDefinition, sampledAction);
+                    double walkTreeValue = AverageStrategySampling_WalkTree_CachedGameHistoryOnly(historyPoint, playerBeingOptimized, samplingProbabilityQ);
                     return walkTreeValue;
                 case GameStateTypeEnum.Tally:
                     CRMInformationSetNodeTally informationSet = (CRMInformationSetNodeTally)gameStateForCurrentPlayer;
@@ -1300,9 +1298,8 @@ namespace ACESim
                                 informationSet.IncrementCumulativeStrategy(action, cumulativeStrategyIncrement);
                         }
                         sampledAction = SampleAction(sigma_regretMatchedActionProbabilities, numPossibleActions, RandomGenerator.NextDouble());
-                        nextHistoryPoint = historyPoint.GetBranch(Navigation.GameDefinition, sampledAction);
-                        // DEBUG historyPoint.SwitchToBranch(Navigation.GameDefinition, sampledAction);
-                        double walkTreeValue2 = AverageStrategySampling_WalkTree_CachedGameHistoryOnly(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ);
+                        historyPoint.SwitchToBranch(Navigation.GameDefinition, sampledAction);
+                        double walkTreeValue2 = AverageStrategySampling_WalkTree_CachedGameHistoryOnly(historyPoint, playerBeingOptimized, samplingProbabilityQ);
                         return walkTreeValue2;
                     }
                     // player being optimized is player at this information set
@@ -1325,9 +1322,8 @@ namespace ACESim
                         if (explore)
                         {
                             DEBUG_NumExplorations++;
-                            nextHistoryPoint = historyPoint.GetBranch(Navigation.GameDefinition, action);
-                            // DEBUG historyPoint.SwitchToBranch(Navigation.GameDefinition, action);
-                            counterfactualValues[action - 1] = AverageStrategySampling_WalkTree_CachedGameHistoryOnly(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ * Math.Min(1.0, rho));
+                            historyPoint.SwitchToBranch(Navigation.GameDefinition, action);
+                            counterfactualValues[action - 1] = AverageStrategySampling_WalkTree_CachedGameHistoryOnly(historyPoint, playerBeingOptimized, samplingProbabilityQ * Math.Min(1.0, rho));
                             counterfactualSummation += sigma_regretMatchedActionProbabilities[action - 1] * counterfactualValues[action - 1];
                         }
                         else
