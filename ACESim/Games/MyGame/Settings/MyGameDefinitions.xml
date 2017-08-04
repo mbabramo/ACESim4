@@ -11,9 +11,9 @@
                PTrialCosts: 0.1; DTrialCosts: 0.1; 
                PerPartyBargainingRoundCosts: 0.05;
                SubsequentOffersAreDeltas: false; DeltaStartingValue: 0.01; MaxDelta: 0.25;
-               NumBargainingRounds: 3;
+               NumBargainingRounds: 4;
                ForgetEarlierBargainingRounds: true;
-               SubdivideOffers: false;
+               SubdivideOffers: true;
                BargainingRound1Simultaneous: true; BargainingRound1PGoesFirstIfNotSimultaneous: true;
                BargainingRound2Simultaneous: true; BargainingRound2PGoesFirstIfNotSimultaneous: false;
                BargainingRound3Simultaneous: true; BargainingRound3PGoesFirstIfNotSimultaneous: true;

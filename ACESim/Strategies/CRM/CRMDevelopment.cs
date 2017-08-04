@@ -48,14 +48,17 @@ namespace ACESim
         bool AllowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => (AllowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)) && Algorithm != CRMAlgorithm.PureStrategyFinder;
 
-        int? ReportEveryNIterations => Algorithm == CRMAlgorithm.Vanilla ? 10000 : 1000;
+        int? ReportEveryNIterations => Algorithm == CRMAlgorithm.Vanilla ? 10000 : 10000;
         const int EffectivelyNever = 999999999;
         int? BestResponseEveryMIterations => EffectivelyNever; // For now, don't do it. This takes most of the time when dealing with partial recall games.
-        public int NumRandomIterationsForReporting = 10000;
+        public int NumRandomIterationsForReporting = 1000;
         bool PrintGameTreeAfterReport = false;
         bool PrintInformationSetsAfterReport = false;
         bool PrintNonChanceInformationSetsOnly = true;
         bool AlwaysUseAverageStrategyInReporting = true;
+
+        //double epsilon = 0.05, beta = 1000000, tau = 1000; // note that beta will keep sampling even at first, but becomes less important later on. Epsilon ensures some exploration, and larger tau weights things later toward low-probability strategies
+        double epsilon = 0.05, beta = 100, tau = 1; // note that beta will keep sampling even at first, but becomes less important later on. Epsilon ensures some exploration, and larger tau weights things later toward low-probability strategies
 
         public List<Strategy> Strategies { get; set; }
 
@@ -450,8 +453,9 @@ namespace ACESim
                     useRandomPaths = false;
                 Debug.WriteLine("");
                 Debug.WriteLine(prefaceFn());
-                Debug.WriteLine($"{DEBUG_NumExplorations / (double) ReportEveryNIterations}");
-                DEBUG_NumExplorations = 0;
+                if (Algorithm == CRMAlgorithm.AverageStrategySampling)
+                    Debug.WriteLine($"{NumberAverageStrategySamplingExplorations / (double) ReportEveryNIterations}");
+                NumberAverageStrategySamplingExplorations = 0;
                 MainReport(useRandomPaths);
                 MeasureRegretMatchingChanges();
                 if (ShouldEstimateImprovementOverTime)
@@ -1038,8 +1042,8 @@ namespace ACESim
                     return walkTreeValue;
                 }
                 double* samplingProbabilities = stackalloc double[numPossibleActions];
-                const double epsilon = 0.5;
-                informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(samplingProbabilities, epsilon);
+                const double epsilonForProbeWalk = 0.5;
+                informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(samplingProbabilities, epsilonForProbeWalk);
                 sampledAction = SampleAction(samplingProbabilities, numPossibleActions, RandomGenerator.NextDouble());
                 if (TraceProbingCRM)
                     TabbedText.WriteLine($"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {playerAtPoint} decision {informationSet.DecisionIndex} with regret-matched prob {sigma_regretMatchedActionProbabilities[sampledAction - 1]}");
@@ -1144,9 +1148,6 @@ namespace ACESim
         #region Average Strategy Sampling
 
         // http://papers.nips.cc/paper/4569-efficient-monte-carlo-counterfactual-regret-minimization-in-games-with-many-player-actions.pdf
-
-        double epsilon = 0.05, beta = 1000000, tau = 1000; // note that beta will keep sampling even at first, but becomes less important later on. Epsilon ensures some exploration, and larger tau weights things later toward low-probability strategies
-        //double epsilon = 0.05, beta = 100, tau = 1; // note that beta will keep sampling even at first, but becomes less important later on. Epsilon ensures some exploration, and larger tau weights things later toward low-probability strategies
 
         public unsafe double AverageStrategySampling_WalkTree(HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ)
         {
@@ -1274,7 +1275,7 @@ namespace ACESim
             }
         }
 
-        long DEBUG_NumExplorations = 0;
+        long NumberAverageStrategySamplingExplorations = 0;
 
         public unsafe double AverageStrategySampling_WalkTree_CachedGameHistoryOnly(HistoryPoint_CachedGameHistoryOnly historyPoint, byte playerBeingOptimized, double samplingProbabilityQ)
         {
@@ -1342,7 +1343,7 @@ namespace ACESim
                         bool explore = rnd < rho;
                         if (explore)
                         {
-                            DEBUG_NumExplorations++;
+                            NumberAverageStrategySamplingExplorations++;
                             nextHistoryPoint = historyPoint.GetBranch(Navigation.GameDefinition, action);
                             // DEBUG historyPoint.SwitchToBranch(Navigation.GameDefinition, action);
                             counterfactualValues[action - 1] = AverageStrategySampling_WalkTree_CachedGameHistoryOnly(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ * Math.Min(1.0, rho));
@@ -1716,16 +1717,18 @@ namespace ACESim
                 newRegretMatchingState[p] = Strategies[p].GetRegretMatchingTree();
                 if (PreviousRegretMatchingState != null)
                 {
-                    double change = MeasureRegretMatchingChange(PreviousRegretMatchingState[p], newRegretMatchingState[p]);
-                    Debug.WriteLine($"Change size for player {p} change {change}");
+                    (double totalChange, double proportionMixed) = MeasureRegretMatchingChange(PreviousRegretMatchingState[p], newRegretMatchingState[p]);
+                    Debug.WriteLine($"Change size for player {p} change {totalChange} proportion mixed {proportionMixed}");
                 }
             }
             PreviousRegretMatchingState = newRegretMatchingState;
         }
 
-        private double MeasureRegretMatchingChange(NWayTreeStorage<List<double>> previous, NWayTreeStorage<List<double>> replacement)
+        private (double totalChange, double proportionMixed) MeasureRegretMatchingChange(NWayTreeStorage<List<double>> previous, NWayTreeStorage<List<double>> replacement)
         {
             double total = 0;
+            int nodesCount = 0;
+            int mixedStrategyNodesCount = 0;
             previous.WalkTree(node =>
             {
                 if (node.StoredValue != null)
@@ -1741,11 +1744,14 @@ namespace ACESim
                         {
                             total += Math.Abs(corresponding.StoredValue[i] - node.StoredValue[i]);
                         }
+                        nodesCount++;
+                        if (node.StoredValue.Where(x => x > 0).Count() >= 2)
+                            mixedStrategyNodesCount++;
                     }
                 }
             }
             );
-            return total;
+            return (total, (double) mixedStrategyNodesCount / (double) nodesCount);
         }
 
         #endregion
