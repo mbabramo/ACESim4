@@ -1186,12 +1186,12 @@ namespace ACESim
                     CRMInformationSetNodeTally informationSet = (CRMInformationSetNodeTally)gameStateForCurrentPlayer;
                     numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
                     double* sigma_regretMatchedActionProbabilities = stackalloc double[numPossibleActions];
-                    // the use of epsilon-on-policy for early iterations of opponent's strategy is a deviation from Gibson.
-                    if (UseEpsilonOnPolicyForOpponent && AvgStrategySamplingCFRIterationNum <= LastOpponentEpsilonIteration)
+                    // the following use of epsilon-on-policy for early iterations of opponent's strategy is a deviation from Gibson.
+                    byte playerAtPoint = informationSet.PlayerIndex;
+                    if (playerAtPoint != playerBeingOptimized && UseEpsilonOnPolicyForOpponent && AvgStrategySamplingCFRIterationNum <= LastOpponentEpsilonIteration)
                         informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(sigma_regretMatchedActionProbabilities, CurrentEpsilonValue);
                     else
                         informationSet.GetRegretMatchingProbabilities(sigma_regretMatchedActionProbabilities);
-                    byte playerAtPoint = informationSet.PlayerIndex;
                     if (playerAtPoint != playerBeingOptimized)
                     {
                         for (byte action = 1; action <= numPossibleActions; action++)
@@ -1302,12 +1302,12 @@ namespace ACESim
                     CRMInformationSetNodeTally informationSet = (CRMInformationSetNodeTally)gameStateForCurrentPlayer;
                     numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
                     double* sigma_regretMatchedActionProbabilities = stackalloc double[numPossibleActions];
-                    // the use of epsilon-on-policy for early iterations of opponent's strategy is a deviation from Gibson.
-                    if (UseEpsilonOnPolicyForOpponent && AvgStrategySamplingCFRIterationNum <= LastOpponentEpsilonIteration)
+                    // the following use of epsilon-on-policy for early iterations of opponent's strategy is a deviation from Gibson.
+                    byte playerAtPoint = informationSet.PlayerIndex;
+                    if (playerAtPoint != playerBeingOptimized && UseEpsilonOnPolicyForOpponent && AvgStrategySamplingCFRIterationNum <= LastOpponentEpsilonIteration)
                         informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(sigma_regretMatchedActionProbabilities, CurrentEpsilonValue);
                     else
                         informationSet.GetRegretMatchingProbabilities(sigma_regretMatchedActionProbabilities);
-                    byte playerAtPoint = informationSet.PlayerIndex;
                     if (playerAtPoint != playerBeingOptimized)
                     {
                         for (byte action = 1; action <= numPossibleActions; action++)
