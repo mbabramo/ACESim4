@@ -15,6 +15,9 @@ namespace ACESim
     [Serializable]
     public class CRMDevelopment : IStrategiesDeveloper
     {
+
+        #region Options
+
         public const int MaxNumPlayers = 4; // this affects fixed-size stack-allocated buffers
         public const int MaxPossibleActions = 100; // same
 
@@ -32,7 +35,7 @@ namespace ACESim
         const int TotalVanillaCFRIterations = 100000000;
         bool TraceVanillaCRM = false;
         bool TraceProbingCRM = false;
-        bool TraceAverageStrategySampling = false;
+        bool TraceAverageStrategySampling = true;
 
         bool ShouldEstimateImprovementOverTime = false;
         const int NumRandomGamePlaysForEstimatingImprovement = 1000;
@@ -59,6 +62,10 @@ namespace ACESim
 
         //double epsilon = 0.05, beta = 1000000, tau = 1000; // note that beta will keep sampling even at first, but becomes less important later on. Epsilon ensures some exploration, and larger tau weights things later toward low-probability strategies
         double epsilon = 0.05, beta = 100, tau = 1; // note that beta will keep sampling even at first, but becomes less important later on. Epsilon ensures some exploration, and larger tau weights things later toward low-probability strategies
+
+        #endregion
+
+        #region Class variables
 
         public List<Strategy> Strategies { get; set; }
 
@@ -96,6 +103,8 @@ namespace ACESim
         public int NumChancePlayers; // note that chance players MUST be indexed after nonchance players in the player list
 
         public int NumInitializedGamePaths = 0;
+
+        #endregion
 
         #region Construction
 
@@ -1149,7 +1158,7 @@ namespace ACESim
 
         // http://papers.nips.cc/paper/4569-efficient-monte-carlo-counterfactual-regret-minimization-in-games-with-many-player-actions.pdf
 
-        public unsafe double AverageStrategySampling_WalkTree(HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ)
+        public unsafe double AverageStrategySampling_WalkTree(HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, CRMSubdivisionRegretMatchPath? regretMatchPath = null)
         {
             if (TraceAverageStrategySampling)
                 TabbedText.WriteLine($"WalkTree sampling probability {samplingProbabilityQ}");
@@ -1218,51 +1227,102 @@ namespace ACESim
                         }
                         return walkTreeValue2;
                     }
-                    // player being optimized is player at this information set
-                    double sumCumulativeStrategies = 0;
-                    double* cumulativeStrategies = stackalloc double[numPossibleActions];
-                    for (byte action = 1; action <= numPossibleActions; action++)
-                    {
-                        double cumulativeStrategy = informationSet.GetCumulativeStrategy(action);
-                        cumulativeStrategies[action - 1] = cumulativeStrategy;
-                        sumCumulativeStrategies += cumulativeStrategy;
-                    }
-                    double* counterfactualValues = stackalloc double[numPossibleActions];
                     double counterfactualSummation = 0;
-                    for (byte action = 1; action <= numPossibleActions; action++)
+                    // player being optimized is player at this information set
+                    if (informationSet.BinarySubdivisionLevels != null)
                     {
-                        // Note that we may sample multiple actions here.
-                        double rho = Math.Max(epsilon, (beta + tau * cumulativeStrategies[action - 1]) / (beta + sumCumulativeStrategies));
-                        double rnd = RandomGenerator.NextDouble();
-                        bool explore = rnd < rho;
+                        if (regretMatchPath == null)
+                            // This is the first of multiple binary decisions. We need to get a regret match path.
+                            regretMatchPath = informationSet.GetSubdivisionRegretMatchPath(historyPoint, Navigation);
+                        CRMSubdivisionRegretMatchPath regretMatchPathNonnullable = (CRMSubdivisionRegretMatchPath)regretMatchPath;
+                        CRMSubdivisionRegretMatchPath mainPathToExplore = new CRMSubdivisionRegretMatchPath();
+                        CRMSubdivisionRegretMatchPath secondPathToExplore = new CRMSubdivisionRegretMatchPath();
+                        byte mainActionToExplore;
+                        bool alsoExploreActionTwo;
+                        bool moreBinarySubdivisionLevels = regretMatchPathNonnullable.Level == 0;
+                        if (moreBinarySubdivisionLevels)
+                            (mainActionToExplore, alsoExploreActionTwo) = regretMatchPathNonnullable.GetActionToExplore();
+                        else
+                            (mainPathToExplore, secondPathToExplore, mainActionToExplore, alsoExploreActionTwo) = regretMatchPathNonnullable.GetPathsToExplore();
                         if (TraceAverageStrategySampling)
                         {
-                            TabbedText.WriteLine($"action {action}: {(explore ? "Explore" : "Do not explore")} rnd: {rnd} rho: {rho}");
+                            TabbedText.WriteLine($"binary subdivision level {regretMatchPathNonnullable.Level} main action to explore {mainActionToExplore}; also explore action two {alsoExploreActionTwo}");
+                            TabbedText.Tabs++;
+                            TabbedText.WriteLine($"Exploring action {mainActionToExplore}");
                         }
-                        if (explore)
+                        nextHistoryPoint = historyPoint.GetBranch(Navigation, mainActionToExplore);
+                        double mainActionResult = AverageStrategySampling_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ, moreBinarySubdivisionLevels ? (CRMSubdivisionRegretMatchPath?) mainPathToExplore : (CRMSubdivisionRegretMatchPath?) null);
+                        if (alsoExploreActionTwo)
                         {
-                            if (TraceAverageStrategySampling)
-                                TabbedText.Tabs++;
-                            nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
-                            counterfactualValues[action - 1] = AverageStrategySampling_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ * Math.Min(1.0, rho));
-                            counterfactualSummation += sigma_regretMatchedActionProbabilities[action - 1] * counterfactualValues[action - 1];
+                            nextHistoryPoint = historyPoint.GetBranch(Navigation, 2);
+                            double actionTwoResult = AverageStrategySampling_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ, moreBinarySubdivisionLevels ? (CRMSubdivisionRegretMatchPath?)secondPathToExplore : (CRMSubdivisionRegretMatchPath?)null);
                             if (TraceAverageStrategySampling)
                                 TabbedText.Tabs--;
+                            counterfactualSummation = informationSet.GetRegretWeightedValueFromTwoActions(mainActionResult, actionTwoResult);
+                            double cumulativeRegretIncrementAction1 = mainActionResult - counterfactualSummation;
+                            if (EvolutionSettings.ParallelOptimization)
+                                informationSet.IncrementCumulativeRegret_Parallel(1, cumulativeRegretIncrementAction1);
+                            else
+                                informationSet.IncrementCumulativeRegret(1, cumulativeRegretIncrementAction1);
+                            double cumulativeRegretIncrementAction2 = actionTwoResult - counterfactualSummation;
+                            if (EvolutionSettings.ParallelOptimization)
+                                informationSet.IncrementCumulativeRegret_Parallel(2, cumulativeRegretIncrementAction2);
+                            else
+                                informationSet.IncrementCumulativeRegret(2, cumulativeRegretIncrementAction2);
                         }
                         else
-                            counterfactualValues[action - 1] = 0;
-                    }
-                    for (byte action = 1; action <= numPossibleActions; action++)
-                    {
-                        double cumulativeRegretIncrement = counterfactualValues[action - 1] - counterfactualSummation;
-                        if (EvolutionSettings.ParallelOptimization)
-                            informationSet.IncrementCumulativeRegret_Parallel(action, cumulativeRegretIncrement);
-                        else
-                            informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement);
-                        if (TraceAverageStrategySampling)
                         {
-                            // v(a) is set to 0 for many of the a E A(I).The key to understanding this is that we're multiplying the utilities we get back by 1/q. So if there is a 1/3 probability of sampling, then we multiply the utility by 3. So, when we don't sample, we're adding 0 to the regrets; and when we sample, we're adding 3 * counterfactual value.Thus, v(a) is an unbiased predictor of value.Meanwhile, we're always subtracting the regret-matched probability-adjusted counterfactual values. 
-                            TabbedText.WriteLine($"Increasing cumulative regret for action {action} by {(counterfactualValues[action - 1])} - {counterfactualSummation} = {cumulativeRegretIncrement} to {informationSet.GetCumulativeRegret(action)}");
+                            if (TraceAverageStrategySampling)
+                                TabbedText.Tabs--;
+                            return mainActionResult;
+                        }
+                    }
+                    else
+                    {
+                        double sumCumulativeStrategies = 0;
+                        double* cumulativeStrategies = stackalloc double[numPossibleActions];
+                        for (byte action = 1; action <= numPossibleActions; action++)
+                        {
+                            double cumulativeStrategy = informationSet.GetCumulativeStrategy(action);
+                            cumulativeStrategies[action - 1] = cumulativeStrategy;
+                            sumCumulativeStrategies += cumulativeStrategy;
+                        }
+                        double* counterfactualValues = stackalloc double[numPossibleActions];
+                        for (byte action = 1; action <= numPossibleActions; action++)
+                        {
+                            // Note that we may sample multiple actions here.
+                            double rho = Math.Max(epsilon, (beta + tau * cumulativeStrategies[action - 1]) / (beta + sumCumulativeStrategies));
+                            double rnd = RandomGenerator.NextDouble();
+                            bool explore = rnd < rho;
+                            if (TraceAverageStrategySampling)
+                            {
+                                TabbedText.WriteLine($"action {action}: {(explore ? "Explore" : "Do not explore")} rnd: {rnd} rho: {rho}");
+                            }
+                            if (explore)
+                            {
+                                if (TraceAverageStrategySampling)
+                                    TabbedText.Tabs++;
+                                nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
+                                counterfactualValues[action - 1] = AverageStrategySampling_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ * Math.Min(1.0, rho));
+                                counterfactualSummation += sigma_regretMatchedActionProbabilities[action - 1] * counterfactualValues[action - 1];
+                                if (TraceAverageStrategySampling)
+                                    TabbedText.Tabs--;
+                            }
+                            else
+                                counterfactualValues[action - 1] = 0;
+                        }
+                        for (byte action = 1; action <= numPossibleActions; action++)
+                        {
+                            double cumulativeRegretIncrement = counterfactualValues[action - 1] - counterfactualSummation;
+                            if (EvolutionSettings.ParallelOptimization)
+                                informationSet.IncrementCumulativeRegret_Parallel(action, cumulativeRegretIncrement);
+                            else
+                                informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement);
+                            if (TraceAverageStrategySampling)
+                            {
+                                // v(a) is set to 0 for many of the a E A(I).The key to understanding this is that we're multiplying the utilities we get back by 1/q. So if there is a 1/3 probability of sampling, then we multiply the utility by 3. So, when we don't sample, we're adding 0 to the regrets; and when we sample, we're adding 3 * counterfactual value.Thus, v(a) is an unbiased predictor of value.Meanwhile, we're always subtracting the regret-matched probability-adjusted counterfactual values. 
+                                TabbedText.WriteLine($"Increasing cumulative regret for action {action} by {(counterfactualValues[action - 1])} - {counterfactualSummation} = {cumulativeRegretIncrement} to {informationSet.GetCumulativeRegret(action)}");
+                            }
                         }
                     }
                     if (TraceAverageStrategySampling)
@@ -1324,6 +1384,8 @@ namespace ACESim
                         double walkTreeValue2 = AverageStrategySampling_WalkTree_CachedGameHistoryOnly(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ);
                         return walkTreeValue2;
                     }
+                    if (informationSet.BinarySubdivisionLevels != null)
+                        throw new NotImplementedException(); // must copy code from above
                     // player being optimized is player at this information set
                     double sumCumulativeStrategies = 0;
                     double* cumulativeStrategies = stackalloc double[numPossibleActions];

@@ -182,7 +182,10 @@ namespace ACESim
                             }
                             else
                             {
-                                CRMInformationSetNodeTally nodeInfo = new CRMInformationSetNodeTally(informationSetHistory.DecisionByteCode, informationSetHistory.DecisionIndex, playerInfo.PlayerIndex, decision.NumPossibleActions);
+                                byte? binarySubdivisionLevels = null;
+                                if (decision.Subdividable_IsSubdivision && decision.Subdividable_NumOptionsPerBranch == 2)
+                                    binarySubdivisionLevels = (byte)decision.Subdividable_NumLevels;
+                                CRMInformationSetNodeTally nodeInfo = new CRMInformationSetNodeTally(informationSetHistory.DecisionByteCode, informationSetHistory.DecisionIndex, playerInfo.PlayerIndex, decision.NumPossibleActions, binarySubdivisionLevels);
                                 return nodeInfo;
                             }
                         }

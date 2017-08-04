@@ -16,6 +16,7 @@ namespace ACESim
         public byte DecisionByteCode;
         public byte DecisionIndex;
         public byte PlayerIndex;
+        public byte? BinarySubdivisionLevels;
         double[,] NodeInformation;
 
         int NumPossibleActions => NodeInformation.GetLength(1);
@@ -25,13 +26,14 @@ namespace ACESim
         const int bestResponseNumeratorDimension = 2;
         const int bestResponseDenominatorDimension = 3;
 
-        public CRMInformationSetNodeTally(byte decisionByteCode, byte decisionIndex, byte playerIndex, int numPossibleActions)
+        public CRMInformationSetNodeTally(byte decisionByteCode, byte decisionIndex, byte playerIndex, int numPossibleActions, byte? binarySubdivisionLevels)
         {
             DecisionByteCode = decisionByteCode;
             DecisionIndex = decisionIndex;
             PlayerIndex = playerIndex;
             Initialize(totalDimensions, numPossibleActions);
             InformationSetNumber = InformationSetsSoFar;
+            BinarySubdivisionLevels = binarySubdivisionLevels;
             Interlocked.Increment(ref InformationSetsSoFar);
         }
 
@@ -315,6 +317,67 @@ namespace ACESim
                         var quotient = positiveCumulativeRegret / sumPositiveCumulativeRegrets;
                         probabilitiesToSet[a - 1] = quotient;
                     }
+            }
+        }
+
+        public CRMSubdivisionRegretMatchPath GetSubdivisionRegretMatchPath(HistoryPoint historyPoint, HistoryNavigationInfo navigation, CRMSubdivisionRegretMatchPath? pathSoFar = null)
+        {
+            CRMSubdivisionRegretMatchPath pathSoFar2;
+            if (pathSoFar == null)
+                pathSoFar2 = new CRMSubdivisionRegretMatchPath((byte)(BinarySubdivisionLevels - 1));
+            else
+            {
+                pathSoFar2 = (CRMSubdivisionRegretMatchPath)pathSoFar;
+                pathSoFar2.Level--;
+            }
+            bool chooseHigher = ChooseHigherOfTwoActionsWithRegretMatching(RandomGenerator.NextDouble());
+            if (chooseHigher)
+                pathSoFar2.RecordHigherChoiceSelected(pathSoFar2.Level);
+            if (pathSoFar2.Level == 0)
+            {
+                pathSoFar2.SetOneOff(RandomGenerator.NextDouble() > 0.5);
+                return pathSoFar2; // return up the call tree
+            }
+            else
+            {
+                byte level = pathSoFar2.Level;
+                HistoryPoint nextHistoryPoint = historyPoint.GetBranch(navigation, chooseHigher ? (byte)2 : (byte)1);
+                CRMInformationSetNodeTally nextTally = (CRMInformationSetNodeTally) nextHistoryPoint.GetGameStateForCurrentPlayer(navigation);
+                // Get the result from a lower level. This may fill in some additional bits to reflect regret matching leading to higher-value decisions there, and it will also include the OneOff set at level 0. But the level will be 0, so we'll have to change that. 
+                CRMSubdivisionRegretMatchPath resultFromLowerLevel = GetSubdivisionRegretMatchPath(nextHistoryPoint, navigation, pathSoFar2);
+                resultFromLowerLevel.Level = level;
+                return resultFromLowerLevel;
+            }
+        }
+
+        public bool ChooseHigherOfTwoActionsWithRegretMatching(double randomSeed)
+        {
+            // this should be a little faster than ChooseActionWithRegretMatching
+            double firstActionRegrets = NodeInformation[cumulativeRegretDimension, 0];
+            double secondActionRegrets = NodeInformation[cumulativeRegretDimension, 1];
+            if (firstActionRegrets <= 0 & secondActionRegrets <= 0)
+                return randomSeed > 0.5;
+            else if (firstActionRegrets <= 0)
+                return true;
+            else if (secondActionRegrets <= 0)
+                return false;
+            else return (secondActionRegrets / (firstActionRegrets + secondActionRegrets)) > 0.5;
+        }
+
+        public double GetRegretWeightedValueFromTwoActions(double scoreAction1, double scoreAction2)
+        {
+            double firstActionRegrets = NodeInformation[cumulativeRegretDimension, 0];
+            double secondActionRegrets = NodeInformation[cumulativeRegretDimension, 1];
+            if (firstActionRegrets <= 0 & secondActionRegrets <= 0)
+                return 0.5*scoreAction1 + 0.5*scoreAction2;
+            else if (firstActionRegrets <= 0)
+                return scoreAction2;
+            else if (secondActionRegrets <= 0)
+                return scoreAction1;
+            else
+            {
+                double firstActionProbability = firstActionRegrets / (firstActionRegrets + secondActionRegrets);
+                return firstActionProbability * scoreAction1 + (1.0 - firstActionProbability) * scoreAction2;
             }
         }
 

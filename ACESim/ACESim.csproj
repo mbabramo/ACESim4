@@ -387,6 +387,7 @@
     <Compile Include="Strategies\CRM\CRMDevelopment.cs" />
     <Compile Include="Strategies\CRM\CRMFinalUtilities.cs" />
     <Compile Include="Strategies\CRM\CRMInformationSetNodeTally.cs" />
+    <Compile Include="Strategies\CRM\CRMSubdivisionRegretMatchPath.cs" />
     <Compile Include="Strategies\CRM\GameStateTypeEnum.cs" />
     <Compile Include="Strategies\CRM\ICRMGameState.cs" />
     <Compile Include="Strategies\HistoryNavigationInfo.cs" />
