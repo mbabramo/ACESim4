@@ -122,7 +122,6 @@ namespace ACESim
 
         private List<Decision> GetDecisionsList()
         {
-            bool addPlayersOwnDecisionsToInformationSet = false; // When this is false, an action of 1 will always be added to the information set to signify that the decision has occurred. 
             var decisions = new List<Decision>();
             // Litigation Quality. This is not known by a player unless the player has perfect information. 
             // The SignalChance player relies on this information in calculating the probabilities of different signals
@@ -179,6 +178,7 @@ namespace ACESim
             byte decisionByteCode = currentDecision.Subdividable_IsSubdivision ? currentDecision.Subdividable_CorrespondingDecisionByteCode : currentDecision.DecisionByteCode;
             if (decisionByteCode >= (byte)MyGameDecisions.POffer && decisionByteCode <= (byte)MyGameDecisions.DResponse)
             {
+                bool addPlayersOwnDecisionsToInformationSet = false;
                 byte bargainingRound = currentDecision.CustomByte;
                 byte bargainingRoundIndex = (byte)(bargainingRound - 1);
                 byte currentPlayer = currentDecision.PlayerNumber;
@@ -200,6 +200,11 @@ namespace ACESim
                             // But what did each party actually offer? To figure that out, we need to look at the GameHistory. Because these decisions may be subdivided, 
                             // GameHistory will look specifically at the simple actions list, which includes the aggregated decisions but not the subdivision decision.
                             (byte defendantsActionChosen, byte plaintiffsActionChosen) = gameHistory.GetLastActionAndActionBeforeThat();
+                            if (addPlayersOwnDecisionsToInformationSet)
+                            {
+                                gameHistory.AddToInformationSet(plaintiffsActionChosen, currentDecisionIndex, (byte)MyGamePlayers.Plaintiff); // defendant's decision conveyed to plaintiff
+                                gameHistory.AddToInformationSet(defendantsActionChosen, currentDecisionIndex, (byte)MyGamePlayers.Defendant); // plaintiff's decision conveyed to defendant
+                            }
                             gameHistory.AddToInformationSet(defendantsActionChosen, currentDecisionIndex, (byte)MyGamePlayers.Plaintiff); // defendant's decision conveyed to plaintiff
                             gameHistory.AddToInformationSet(plaintiffsActionChosen, currentDecisionIndex, (byte)MyGamePlayers.Defendant); // plaintiff's decision conveyed to defendant
                         }
@@ -207,24 +212,24 @@ namespace ACESim
                 }
                 else
                 { // offer-response bargaining
-                    throw new NotImplementedException(); // DEBUG
                     bool pGoesFirst = BargainingRoundsPGoesFirstIfNotSimultaneous[bargainingRoundIndex];
                     byte partyGoingFirst = pGoesFirst ? (byte)MyGamePlayers.Plaintiff : (byte)MyGamePlayers.Defendant;
                     byte partyGoingSecond = pGoesFirst ? (byte)MyGamePlayers.Defendant : (byte)MyGamePlayers.Plaintiff;
                     byte otherPlayer = currentPlayer == (byte)MyGamePlayers.Plaintiff ? (byte)MyGamePlayers.Defendant : (byte)MyGamePlayers.Plaintiff;
-                    
-                    if (ForgetEarlierBargainingRounds && currentPlayer == partyGoingSecond)
+
+                    // We don't need to put a player's decision into the player's own information set. A player at least knows the information that led to its earlier decision.
+                    // TODO: We could create an option for player to remember own information. After all, with mixed strategies, player will not know what player actually decided.
+                    if (currentPlayer == partyGoingFirst)
                     {
-                        // Based on code below, both information sets contain information about this round. But now it turns out that we want to forget this round.
-                        // We're now at a point where the second party has made its decision. We need to make sure that in the NEXT round,
-                        // the parties do not remember their decisions. 
-                        gameHistory.RemoveItemsInInformationSet(currentPlayer, currentDecisionIndex, 1);
-                        gameHistory.RemoveItemsInInformationSet(otherPlayer, currentDecisionIndex, 1);
+                        gameHistory.AddToInformationSet(actionChosen, currentDecisionIndex, otherPlayer); // convey decision to other player (who must choose whether to act on it)
+                        if (addPlayersOwnDecisionsToInformationSet)
+                            gameHistory.AddToInformationSet(actionChosen, currentDecisionIndex, currentPlayer); // add offer to the offering party's information set. Note that we never need to add a response, since it will always be clear in later rounds that the response was "no".
                     }
-                    else
+                    else if (ForgetEarlierBargainingRounds)
                     {
-                        gameHistory.AddToInformationSet(actionChosen, currentDecisionIndex, currentPlayer); // remember own decision
-                        gameHistory.AddToInformationSet(actionChosen, currentDecisionIndex, otherPlayer); // convey decision
+                        gameHistory.RemoveItemsInInformationSet(currentPlayer, currentDecisionIndex, 1);
+                        if (addPlayersOwnDecisionsToInformationSet)
+                            gameHistory.RemoveItemsInInformationSet(otherPlayer, currentDecisionIndex, 1);
                     }
                 }
 

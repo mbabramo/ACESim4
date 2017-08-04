@@ -6,19 +6,19 @@
       <setting name="MyGameDefinition" type="class" subclass="MyGameDefinition" codeGeneratorName="MyGameDefinition" codeGeneratorOptions="
                NumLitigationQualityPoints: 5; 
                NumSignals: 5; 
-               NumOffers: 8; 
+               NumOffers: 5; 
                PNoiseStdev: 0.1; DNoiseStdev: 0.1; 
                PTrialCosts: 0.1; DTrialCosts: 0.1; 
                PerPartyBargainingRoundCosts: 0.05;
                SubsequentOffersAreDeltas: false; DeltaStartingValue: 0.01; MaxDelta: 0.25;
-               NumBargainingRounds: 4;
+               NumBargainingRounds: 2;
                ForgetEarlierBargainingRounds: true;
-               SubdivideOffers: true;
-               BargainingRound1Simultaneous: true; BargainingRound1PGoesFirstIfNotSimultaneous: true;
-               BargainingRound2Simultaneous: true; BargainingRound2PGoesFirstIfNotSimultaneous: false;
-               BargainingRound3Simultaneous: true; BargainingRound3PGoesFirstIfNotSimultaneous: true;
-               BargainingRound4Simultaneous: true; BargainingRound4PGoesFirstIfNotSimultaneous: false;
-               BargainingRound5Simultaneous: true; BargainingRound5PGoesFirstIfNotSimultaneous: true;
+               SubdivideOffers: false;
+               BargainingRound1Simultaneous: false; BargainingRound1PGoesFirstIfNotSimultaneous: true;
+               BargainingRound2Simultaneous: false; BargainingRound2PGoesFirstIfNotSimultaneous: false;
+               BargainingRound3Simultaneous: false; BargainingRound3PGoesFirstIfNotSimultaneous: true;
+               BargainingRound4Simultaneous: false; BargainingRound4PGoesFirstIfNotSimultaneous: false;
+               BargainingRound5Simultaneous: false; BargainingRound5PGoesFirstIfNotSimultaneous: true;
                IncludeSignalsReport: true" >
       </setting>
     </gameDefinition>
