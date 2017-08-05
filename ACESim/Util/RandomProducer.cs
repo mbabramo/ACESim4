@@ -12,5 +12,10 @@ namespace ACESim
         {
             return RandomGenerator.NextDouble();
         }
+
+        public double GetDoubleAtIndex(int index)
+        {
+            return RandomGenerator.NextDouble(); // does the same thing -- i.e., doesn't necessarily produce consistent random numbers.
+        }
     }
 }

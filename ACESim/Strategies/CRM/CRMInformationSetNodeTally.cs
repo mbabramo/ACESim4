@@ -240,7 +240,7 @@ namespace ACESim
             List<double> probs = new List<double>();
             for (byte a = 1; a <= NumPossibleActions; a++)
                 probs.Add(NodeInformation[cumulativeStrategyDimension, a - 1]);
-            return String.Join(",", probs.Select(x => $"{x:N2}"));
+            return String.Join(", ", probs.Select(x => $"{x:N2}"));
         }
 
         public unsafe string GetCumulativeRegretsString()
@@ -320,7 +320,7 @@ namespace ACESim
             }
         }
 
-        public CRMSubdivisionRegretMatchPath GetSubdivisionRegretMatchPath(HistoryPoint historyPoint, HistoryNavigationInfo navigation, CRMSubdivisionRegretMatchPath? pathSoFar = null)
+        public CRMSubdivisionRegretMatchPath GetSubdivisionRegretMatchPath(HistoryPoint historyPoint, HistoryNavigationInfo navigation, byte numLevels, CRMSubdivisionRegretMatchPath? pathSoFar = null)
         {
             CRMSubdivisionRegretMatchPath pathSoFar2;
             if (pathSoFar == null)
@@ -330,12 +330,20 @@ namespace ACESim
                 pathSoFar2 = (CRMSubdivisionRegretMatchPath)pathSoFar;
                 pathSoFar2.Level--;
             }
-            bool chooseHigher = ChooseHigherOfTwoActionsWithRegretMatching(RandomGenerator.NextDouble());
+            const double probabilityForceComparisonAtThisLevel = 0.0; // DEBUG -- maybe this isn't the best idea?
+            if (RandomGenerator.NextDouble() < probabilityForceComparisonAtThisLevel)
+            {
+                pathSoFar2.RecordHigherChoiceSelected(pathSoFar2.Level);
+                pathSoFar2.SetOneOff(false, numLevels); // we'll do the path lower than this and the main path
+                return pathSoFar2; // we want to compare just around this decision, so we don't want any randomness further down the tree
+            }
+            const double probabilityUseEvenProbabilities = 0.1; // explore other possibilities
+            bool chooseHigher = ChooseHigherOfTwoActionsWithRegretMatching(RandomGenerator.NextDouble(), RandomGenerator.NextDouble(), probabilityUseEvenProbabilities);
             if (chooseHigher)
                 pathSoFar2.RecordHigherChoiceSelected(pathSoFar2.Level);
             if (pathSoFar2.Level == 0)
             {
-                pathSoFar2.SetOneOff(RandomGenerator.NextDouble() > 0.5);
+                pathSoFar2.SetOneOff(RandomGenerator.NextDouble() > 0.5, numLevels);
                 return pathSoFar2; // return up the call tree
             }
             else
@@ -344,24 +352,24 @@ namespace ACESim
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(navigation, chooseHigher ? (byte)2 : (byte)1);
                 CRMInformationSetNodeTally nextTally = (CRMInformationSetNodeTally) nextHistoryPoint.GetGameStateForCurrentPlayer(navigation);
                 // Get the result from a lower level. This may fill in some additional bits to reflect regret matching leading to higher-value decisions there, and it will also include the OneOff set at level 0. But the level will be 0, so we'll have to change that. 
-                CRMSubdivisionRegretMatchPath resultFromLowerLevel = GetSubdivisionRegretMatchPath(nextHistoryPoint, navigation, pathSoFar2);
+                CRMSubdivisionRegretMatchPath resultFromLowerLevel = nextTally.GetSubdivisionRegretMatchPath(nextHistoryPoint, navigation, numLevels, pathSoFar2);
                 resultFromLowerLevel.Level = level;
                 return resultFromLowerLevel;
             }
         }
 
-        public bool ChooseHigherOfTwoActionsWithRegretMatching(double randomSeed)
+        public bool ChooseHigherOfTwoActionsWithRegretMatching(double randomSeed1, double randomSeed2, double epsilon)
         {
             // this should be a little faster than ChooseActionWithRegretMatching
             double firstActionRegrets = NodeInformation[cumulativeRegretDimension, 0];
             double secondActionRegrets = NodeInformation[cumulativeRegretDimension, 1];
-            if (firstActionRegrets <= 0 & secondActionRegrets <= 0)
-                return randomSeed > 0.5;
+            if (randomSeed2 < epsilon || (firstActionRegrets <= 0 && secondActionRegrets <= 0))
+                return randomSeed1 > 0.5;
             else if (firstActionRegrets <= 0)
                 return true;
             else if (secondActionRegrets <= 0)
                 return false;
-            else return (secondActionRegrets / (firstActionRegrets + secondActionRegrets)) > 0.5;
+            else return (secondActionRegrets / (firstActionRegrets + secondActionRegrets)) > randomSeed1;
         }
 
         public double GetRegretWeightedValueFromTwoActions(double scoreAction1, double scoreAction2)

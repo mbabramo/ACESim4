@@ -35,7 +35,7 @@ namespace ACESim
         const int TotalVanillaCFRIterations = 100000000;
         bool TraceVanillaCRM = false;
         bool TraceProbingCRM = false;
-        bool TraceAverageStrategySampling = true;
+        bool TraceAverageStrategySampling = false;
 
         bool ShouldEstimateImprovementOverTime = false;
         const int NumRandomGamePlaysForEstimatingImprovement = 1000;
@@ -51,7 +51,7 @@ namespace ACESim
         bool AllowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => (AllowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)) && Algorithm != CRMAlgorithm.PureStrategyFinder;
 
-        int? ReportEveryNIterations => Algorithm == CRMAlgorithm.Vanilla ? 10000 : 10000;
+        int? ReportEveryNIterations => Algorithm == CRMAlgorithm.Vanilla ? 10000 : 100000;
         const int EffectivelyNever = 999999999;
         int? BestResponseEveryMIterations => EffectivelyNever; // For now, don't do it. This takes most of the time when dealing with partial recall games.
         public int NumRandomIterationsForReporting = 1000;
@@ -145,6 +145,7 @@ namespace ACESim
 
         public void DevelopStrategies()
         {
+            ConsistentRandomSequenceProducer.Test();
             Initialize();
             switch (Algorithm)
             {
@@ -164,6 +165,7 @@ namespace ACESim
                     throw new NotImplementedException();
             }
         }
+
 
         public unsafe void Initialize()
         {
@@ -927,12 +929,12 @@ namespace ACESim
 
         RandomProducer StandardRandomProducer = new RandomProducer();
 
-        public unsafe double Probe(HistoryPoint historyPoint, byte playerBeingOptimized, IRandomProducer randomProducer = null)
+        public unsafe double Probe_SinglePlayer(HistoryPoint historyPoint, byte playerBeingOptimized, IRandomProducer randomProducer)
         {
             return Probe(historyPoint, randomProducer)[playerBeingOptimized];
         }
 
-        public unsafe double[] Probe(HistoryPoint historyPoint, IRandomProducer randomProducer = null)
+        public unsafe double[] Probe(HistoryPoint historyPoint, IRandomProducer randomProducer)
         {
             if (randomProducer == null)
                 randomProducer = StandardRandomProducer;
@@ -955,7 +957,7 @@ namespace ACESim
                 {
                     CRMChanceNodeSettings chanceNodeSettings = (CRMChanceNodeSettings)gameStateForCurrentPlayer;
                     byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
-                    sampledAction = chanceNodeSettings.SampleAction(numPossibleActions, randomProducer.NextDouble());
+                    sampledAction = chanceNodeSettings.SampleAction(numPossibleActions, randomProducer.GetDoubleAtIndex(chanceNodeSettings.DecisionIndex));
                     if (TraceProbingCRM)
                         TabbedText.WriteLine($"{sampledAction}: Sampled chance action {sampledAction} of {numPossibleActions} with probability {chanceNodeSettings.GetActionProbability(sampledAction)}");
                 }
@@ -969,14 +971,14 @@ namespace ACESim
                         informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(actionProbabilities, CurrentEpsilonValue);
                     else
                         informationSet.GetRegretMatchingProbabilities(actionProbabilities);
-                    sampledAction = SampleAction(actionProbabilities, numPossibleActions, randomProducer.NextDouble());
+                    sampledAction = SampleAction(actionProbabilities, numPossibleActions, randomProducer.GetDoubleAtIndex(informationSet.DecisionIndex));
                     if (TraceProbingCRM)
                         TabbedText.WriteLine($"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {informationSet.PlayerIndex}");
                 }
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction);
                 if (TraceProbingCRM)
                     TabbedText.Tabs++;
-                double[] probeResult = Probe(nextHistoryPoint);
+                double[] probeResult = Probe(nextHistoryPoint, randomProducer);
                 if (TraceProbingCRM)
                 {
                     TabbedText.Tabs--;
@@ -986,7 +988,7 @@ namespace ACESim
             }
         }
 
-        public unsafe double Probe_WalkTree(HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ)
+        public unsafe double Probe_WalkTree(HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer)
         {
             if (TraceProbingCRM)
                 TabbedText.WriteLine($"WalkTree sampling probability {samplingProbabilityQ}");
@@ -1002,13 +1004,13 @@ namespace ACESim
             else if (gameStateForCurrentPlayer is CRMChanceNodeSettings chanceNodeSettings)
             {
                 byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
-                sampledAction = chanceNodeSettings.SampleAction(numPossibleActions, RandomGenerator.NextDouble());
+                sampledAction = chanceNodeSettings.SampleAction(numPossibleActions, randomProducer.GetDoubleAtIndex(chanceNodeSettings.DecisionIndex));
                 if (TraceProbingCRM)
                     TabbedText.WriteLine($"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} for chance decision {chanceNodeSettings.DecisionIndex}");
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction);
                 if (TraceProbingCRM)
                     TabbedText.Tabs++;
-                double walkTreeValue = Probe_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ);
+                double walkTreeValue = Probe_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer);
                 if (TraceProbingCRM)
                 {
                     TabbedText.Tabs--;
@@ -1036,13 +1038,13 @@ namespace ACESim
                         if (TraceProbingCRM)
                             TabbedText.WriteLine($"Incrementing cumulative strategy for {action} by {cumulativeStrategyIncrement} to {informationSet.GetCumulativeStrategy(action)}");
                     }
-                    sampledAction = SampleAction(sigma_regretMatchedActionProbabilities, numPossibleActions, RandomGenerator.NextDouble());
+                    sampledAction = SampleAction(sigma_regretMatchedActionProbabilities, numPossibleActions, randomProducer.GetDoubleAtIndex(informationSet.DecisionIndex));
                     if (TraceProbingCRM)
                         TabbedText.WriteLine($"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {playerAtPoint} decision {informationSet.DecisionIndex} with regret-matched prob {sigma_regretMatchedActionProbabilities[sampledAction - 1]}");
                     HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction);
                     if (TraceProbingCRM)
                         TabbedText.Tabs++;
-                    double walkTreeValue = Probe_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ);
+                    double walkTreeValue = Probe_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer);
                     if (TraceProbingCRM)
                     {
                         TabbedText.Tabs--;
@@ -1053,7 +1055,7 @@ namespace ACESim
                 double* samplingProbabilities = stackalloc double[numPossibleActions];
                 const double epsilonForProbeWalk = 0.5;
                 informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(samplingProbabilities, epsilonForProbeWalk);
-                sampledAction = SampleAction(samplingProbabilities, numPossibleActions, RandomGenerator.NextDouble());
+                sampledAction = SampleAction(samplingProbabilities, numPossibleActions, randomProducer.GetDoubleAtIndex(informationSet.DecisionIndex));
                 if (TraceProbingCRM)
                     TabbedText.WriteLine($"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {playerAtPoint} decision {informationSet.DecisionIndex} with regret-matched prob {sigma_regretMatchedActionProbabilities[sampledAction - 1]}");
                 double* counterfactualValues = stackalloc double[numPossibleActions];
@@ -1068,7 +1070,7 @@ namespace ACESim
                         if (TraceProbingCRM)
                             TabbedText.Tabs++;
                         double samplingProbabilityQPrime = samplingProbabilityQ * samplingProbabilities[action - 1];
-                        counterfactualValues[action - 1] = Probe_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQPrime);
+                        counterfactualValues[action - 1] = Probe_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQPrime, randomProducer);
                     }
                     else
                     {
@@ -1076,7 +1078,7 @@ namespace ACESim
                             TabbedText.WriteLine($"{action}: Probing unselected action {action} for player {informationSet.PlayerIndex}decision {informationSet.DecisionIndex}");
                         if (TraceProbingCRM)
                             TabbedText.Tabs++;
-                        counterfactualValues[action - 1] = Probe(nextHistoryPoint, playerBeingOptimized);
+                        counterfactualValues[action - 1] = Probe_SinglePlayer(nextHistoryPoint, playerBeingOptimized, randomProducer);
                     }
                     double summationDelta = sigma_regretMatchedActionProbabilities[action - 1] * counterfactualValues[action - 1];
                     summation += summationDelta;
@@ -1124,13 +1126,14 @@ namespace ACESim
             CurrentEpsilonValue = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(FirstOpponentEpsilonValue, LastOpponentEpsilonValue, 0.75, (double)iteration / (double)TotalProbingCFRIterations);
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
+                IRandomProducer randomProducer = new ConsistentRandomSequenceProducer(iteration * 1000 + playerBeingOptimized);
                 HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
                 if (TraceProbingCRM)
                 {
                     TabbedText.WriteLine($"Optimize player {playerBeingOptimized}");
                     TabbedText.Tabs++;
                 }
-                Probe_WalkTree(historyPoint, playerBeingOptimized, 1.0);
+                Probe_WalkTree(historyPoint, playerBeingOptimized, 1.0, randomProducer);
                 if (TraceProbingCRM)
                     TabbedText.Tabs--;
             }
@@ -1229,18 +1232,19 @@ namespace ACESim
                     }
                     double counterfactualSummation = 0;
                     // player being optimized is player at this information set
-                    if (informationSet.BinarySubdivisionLevels != null)
+                    bool useSpecialBinarySubdivisionLevelTreatment = false; // unfortunately, this isn't working very well -- core problem is that we can't just compare adjacent choices; we must sometimes compare where lower choices have regret matching. Of course, we could still fix that but probing might be working better.
+                    if (informationSet.BinarySubdivisionLevels != null && useSpecialBinarySubdivisionLevelTreatment)
                     {
                         if (regretMatchPath == null)
                             // This is the first of multiple binary decisions. We need to get a regret match path.
-                            regretMatchPath = informationSet.GetSubdivisionRegretMatchPath(historyPoint, Navigation);
+                            regretMatchPath = informationSet.GetSubdivisionRegretMatchPath(historyPoint, Navigation, (byte) informationSet.BinarySubdivisionLevels);
                         CRMSubdivisionRegretMatchPath regretMatchPathNonnullable = (CRMSubdivisionRegretMatchPath)regretMatchPath;
                         CRMSubdivisionRegretMatchPath mainPathToExplore = new CRMSubdivisionRegretMatchPath();
                         CRMSubdivisionRegretMatchPath secondPathToExplore = new CRMSubdivisionRegretMatchPath();
                         byte mainActionToExplore;
                         bool alsoExploreActionTwo;
-                        bool moreBinarySubdivisionLevels = regretMatchPathNonnullable.Level == 0;
-                        if (moreBinarySubdivisionLevels)
+                        bool moreBinarySubdivisionLevels = regretMatchPathNonnullable.Level != 0;
+                        if (!moreBinarySubdivisionLevels)
                             (mainActionToExplore, alsoExploreActionTwo) = regretMatchPathNonnullable.GetActionToExplore();
                         else
                             (mainPathToExplore, secondPathToExplore, mainActionToExplore, alsoExploreActionTwo) = regretMatchPathNonnullable.GetPathsToExplore();
@@ -1435,7 +1439,7 @@ namespace ACESim
             {
                 if (ShouldEstimateImprovementOverTime)
                     PrepareForImprovementOverTimeEstimation(playerBeingOptimized);
-                if (LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly && !TraceAverageStrategySampling)
+                if (LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly && !TraceAverageStrategySampling && false /* DEBUG -- must implement binary subdivisions for cached version above */)
                 {
                     HistoryPoint_CachedGameHistoryOnly historyPoint = new HistoryPoint_CachedGameHistoryOnly(new GameHistory());
                     AverageStrategySampling_WalkTree_CachedGameHistoryOnly(historyPoint, playerBeingOptimized, 1.0);

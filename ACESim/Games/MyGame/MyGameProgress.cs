@@ -37,12 +37,14 @@ namespace ACESim
         public bool BothPlayersHaveCompletedRound => POffers?.Count() == DResponses?.Count() && DOffers?.Count() == PResponses?.Count();
         public bool RoundIsComplete(bool playersMovingSimultaneously, bool pGoesFirstIfNotSimultaneous)
         {
-            if (playersMovingSimultaneously)
-                return POffers != null && DOffers != null && POffers.Count() == DOffers.Count();
-            else if (pGoesFirstIfNotSimultaneous)
-                return POffers != null && DResponses != null && POffers.Count() == DResponses.Count();
-            else
-                return DOffers != null && PResponses != null && DOffers.Count() == PResponses.Count();
+            return (POffers?.Count() ?? 0) + (PResponses?.Count() ?? 0) == (DOffers?.Count() ?? 0) + (DResponses?.Count() ?? 0);
+            // NOTE: The following code doesn't work right when we have a simultaneous move round followed by an offer-response round. Maybe we shouldn't be mixing them.
+            //if (playersMovingSimultaneously)
+            //    return POffers != null && DOffers != null && POffers.Count() == DOffers.Count();
+            //else if (pGoesFirstIfNotSimultaneous)
+            //    return POffers != null && DResponses != null && POffers.Count() == DResponses.Count();
+            //else
+            //    return DOffers != null && PResponses != null && DOffers.Count() == PResponses.Count();
         }
         public void UpdateProgress(MyGameDefinition gameDefinition)
         {

@@ -21,6 +21,16 @@ namespace ACESim
             OneOff = 0;
         }
 
+        public CRMSubdivisionRegretMatchPath(byte numLevels, bool setToComparisonAtLevel)
+        {
+            Level = numLevels;
+            RegretMatchResult = 0;
+            OneOff = 0;
+            if (setToComparisonAtLevel)
+                RecordHigherChoiceSelected(Level);
+        }
+
+
         public void RecordHigherChoiceSelected(byte level)
         {
             if (level > 7)
@@ -57,9 +67,9 @@ namespace ACESim
             return (actionToExplore, alsoMustExploreOpposite);
         }
 
-        private bool IsMaxValue()
+        private bool IsMaxValue(byte numLevels)
         {
-            switch (Level)
+            switch (numLevels)
             {
                 case 0:
                     return RegretMatchResult == 1;
@@ -82,11 +92,11 @@ namespace ACESim
             }
         }
 
-        public void SetOneOff(bool preferablyHigher)
+        public void SetOneOff(bool preferablyHigher, byte numLevels)
         {
             if (preferablyHigher)
             {
-                if (IsMaxValue())
+                if (IsMaxValue(numLevels))
                     preferablyHigher = false;
             }
             else

@@ -9,5 +9,6 @@ namespace ACESim
     public interface IRandomProducer
     {
         double NextDouble();
+        double GetDoubleAtIndex(int index);
     }
 }
