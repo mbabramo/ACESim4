@@ -9,20 +9,28 @@ namespace ACESim
     public class ConsistentRandomSequenceProducer : IRandomProducer
     {
         long Seed = 0;
-        long CurrentIndex = 0;
+        int CurrentIndex = 0;
 
         public ConsistentRandomSequenceProducer(long seed)
         {
-            CurrentIndex = Seed = seed;
+            Seed = seed;
         }
 
         public double NextDouble()
         {
-            double v = FastPseudoRandom.GetRandom(CurrentIndex++, 2);
+            double v = GetDoubleAtIndex(CurrentIndex++);
             return v;
         }
 
         public double GetDoubleAtIndex(int index)
+        {
+            debug();
+            return GetDoubleAtIndex_Alt2(index);
+            // TODO: Combine two random numbers into 1. But averaging them won't work. Note that if one averaged a billion random numbers, we would converge to 0.5.
+            // return (GetDoubleAtIndex_Alt1(index) + GetDoubleAtIndex_Alt2(index)) / 2.0;
+        }
+
+        public double GetDoubleAtIndex_Alt1(int index)
         {
             const long prime1 = 7594955549;
             const long prime2 = 8965095091;
@@ -30,9 +38,15 @@ namespace ACESim
             long intermediateResult = ((index + Seed) * (index + Seed) * prime1 + (index + Seed) * prime2) % prime3;
             double v = Math.Abs((double)intermediateResult / (double)prime3); // should scale it to 0 to 1
             return v;
-            //double v = FastPseudoRandom.GetRandom(Seed + index, 2);
-            //return v;
-            // TODO: I think we could make a slightly more complex version that takes two doubles in a similar way, and then combines them to get a single number.
+        }
+        public double GetDoubleAtIndex_Alt2(int index)
+        {
+            const long prime1 = 634534536871;
+            const long prime2 = 234534536161;
+            const long prime3 = 7546456823;
+            long intermediateResult = ((index + Seed) * (index + Seed) * prime1 + (index + Seed) * prime2) % prime3;
+            double v = Math.Abs((double)intermediateResult / (double)prime3); // should scale it to 0 to 1
+            return v;
         }
 
         public static void Test()
