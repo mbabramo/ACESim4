@@ -145,7 +145,6 @@ namespace ACESim
 
         public void DevelopStrategies()
         {
-            ConsistentRandomSequenceProducer.Test();
             Initialize();
             switch (Algorithm)
             {

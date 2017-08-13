@@ -24,9 +24,8 @@ namespace ACESim
 
         public double GetDoubleAtIndex(int index)
         {
-            return GetDoubleAtIndex_Alt2(index);
-            // TODO: Combine two random numbers into 1. But averaging them won't work. Note that if one averaged a billion random numbers, we would converge to 0.5.
-            // return (GetDoubleAtIndex_Alt1(index) + GetDoubleAtIndex_Alt2(index)) / 2.0;
+            // Combine multiple random numbers into 1. But averaging them won't work. Note that if one averaged a billion random numbers, we would converge to 0.5. This is a simple approach; we could probably do something more sophisticated (like bit interleaving).
+            return GetDoubleAtIndex_Alt1(index) > 0.5 ? GetDoubleAtIndex_Alt2(index) : GetDoubleAtIndex_Alt3(index);
         }
 
         public double GetDoubleAtIndex_Alt1(int index)
@@ -39,6 +38,15 @@ namespace ACESim
             return v;
         }
         public double GetDoubleAtIndex_Alt2(int index)
+        {
+            const long prime1 = 21798470266577;
+            const long prime2 = 6682497317939;
+            const long prime3 = 55571982217;
+            long intermediateResult = ((index + Seed) * (index + Seed) * prime1 + (index + Seed) * prime2) % prime3;
+            double v = Math.Abs((double)intermediateResult / (double)prime3); // should scale it to 0 to 1
+            return v;
+        }
+        public double GetDoubleAtIndex_Alt3(int index)
         {
             const long prime1 = 634534536871;
             const long prime2 = 234534536161;

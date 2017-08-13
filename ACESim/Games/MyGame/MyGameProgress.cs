@@ -107,11 +107,11 @@ namespace ACESim
         {
             // assumes that a settlement has been reached
             if (playersMovingSimultaneously)
-                SettlementValue = (PLastOffer + DLastOffer) / 2.0;
+                SettlementValue = (PLastOffer + DLastOffer) * DamagesAlleged / 2.0;
             else if (pGoesFirstIfNotSimultaneous)
-                SettlementValue = PLastOffer;
+                SettlementValue = PLastOffer * DamagesAlleged;
             else
-                SettlementValue = DLastOffer;
+                SettlementValue = DLastOffer * DamagesAlleged;
         }
 
         public override GameProgress DeepCopy()

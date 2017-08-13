@@ -526,7 +526,7 @@ namespace ACESim
 
         private void SetPUtilityCalculator(string options)
         {
-            string pRiskAversionType = GameModule.GetStringCodeGeneratorOption(options, "PRiskAversion");
+            string pRiskAversionType = GameModule.GetStringCodeGeneratorOption(options, "PRiskAversionType");
             double pRiskAversionParameter = GameModule.GetDoubleCodeGeneratorOption(options, "PRiskAversionParameter");
             switch (pRiskAversionType)
             {
@@ -559,7 +559,7 @@ namespace ACESim
 
         private void SetDUtilityCalculator(string options)
         {
-            string dRiskAversionType = GameModule.GetStringCodeGeneratorOption(options, "DRiskAversion");
+            string dRiskAversionType = GameModule.GetStringCodeGeneratorOption(options, "DRiskAversionType");
             double dRiskAversionParameter = GameModule.GetDoubleCodeGeneratorOption(options, "DRiskAversionParameter");
             switch (dRiskAversionType)
             {
