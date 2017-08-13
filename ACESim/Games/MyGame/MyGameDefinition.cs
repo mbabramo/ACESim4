@@ -66,6 +66,22 @@ namespace ACESim
         /// </summary>
         public bool SubdivideOffers;
 
+        /// <summary>
+        /// Plaintiff's initial wealth.
+        /// </summary>
+        public double PInitialWealth;
+        /// <summary>
+        /// Defendant's initial wealth.
+        /// </summary>
+        public double DInitialWealth;
+        /// <summary>
+        /// Damages alleged
+        /// </summary>
+        public double DamagesAlleged;
+
+        public UtilityCalculator PUtilityCalculator;
+        public UtilityCalculator DUtilityCalculator;
+
         public List<bool> BargainingRoundsSimultaneous;
         public List<bool> BargainingRoundsPGoesFirstIfNotSimultaneous; // if not simultaneous
         public bool IncludeSignalsReport;
@@ -452,6 +468,11 @@ namespace ACESim
 
         private void ParseOptions(string options)
         {
+            PInitialWealth = GameModule.GetDoubleCodeGeneratorOption(options, "PInitialWealth");
+            DInitialWealth = GameModule.GetDoubleCodeGeneratorOption(options, "DInitialWealth");
+            SetUtilityCalculators(options);
+
+            DamagesAlleged = GameModule.GetDoubleCodeGeneratorOption(options, "DamagesAlleged");
             NumLitigationQualityPoints = GameModule.GetByteCodeGeneratorOption(options, "NumLitigationQualityPoints");
             NumSignals = GameModule.GetByteCodeGeneratorOption(options, "NumSignals");
             NumOffers = GameModule.GetByteCodeGeneratorOption(options, "NumOffers");
@@ -495,6 +516,78 @@ namespace ACESim
                 StdevOfNormalDistribution = DNoiseStdev,
                 NumSignals = NumSignals
             };
+        }
+
+        private void SetUtilityCalculators(string options)
+        {
+            SetPUtilityCalculator(options);
+            SetDUtilityCalculator(options);
+        }
+
+        private void SetPUtilityCalculator(string options)
+        {
+            string pRiskAversionType = GameModule.GetStringCodeGeneratorOption(options, "PRiskAversion");
+            double pRiskAversionParameter = GameModule.GetDoubleCodeGeneratorOption(options, "PRiskAversionParameter");
+            switch (pRiskAversionType)
+            {
+                case "Neutral":
+                    PUtilityCalculator = new RiskNeutralUtilityCalculator() {InitialWealth = PInitialWealth};
+                    break;
+                case "Log":
+                    PUtilityCalculator = new LogRiskAverseUtilityCalculator() {InitialWealth = PInitialWealth};
+                    break;
+                case "CARA":
+                    PUtilityCalculator =
+                        new CARARiskAverseUtilityCalculator()
+                        {
+                            InitialWealth = PInitialWealth,
+                            Alpha = pRiskAversionParameter
+                        };
+                    break;
+                case "Quadratic":
+                    PUtilityCalculator =
+                        new QuadraticUtilityRiskAverseUtilityCalculator()
+                        {
+                            InitialWealth = PInitialWealth,
+                            B = pRiskAversionParameter
+                        };
+                    break;
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+
+        private void SetDUtilityCalculator(string options)
+        {
+            string dRiskAversionType = GameModule.GetStringCodeGeneratorOption(options, "DRiskAversion");
+            double dRiskAversionParameter = GameModule.GetDoubleCodeGeneratorOption(options, "DRiskAversionParameter");
+            switch (dRiskAversionType)
+            {
+                case "Neutral":
+                    DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = DInitialWealth };
+                    break;
+                case "Log":
+                    DUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = DInitialWealth };
+                    break;
+                case "CARA":
+                    DUtilityCalculator =
+                        new CARARiskAverseUtilityCalculator()
+                        {
+                            InitialWealth = DInitialWealth,
+                            Alpha = dRiskAversionParameter
+                        };
+                    break;
+                case "Quadratic":
+                    DUtilityCalculator =
+                        new QuadraticUtilityRiskAverseUtilityCalculator()
+                        {
+                            InitialWealth = DInitialWealth,
+                            B = dRiskAversionParameter
+                        };
+                    break;
+                default:
+                    throw new NotImplementedException();
+            }
         }
 
         public override double[] GetChanceActionProbabilities(byte decisionByteCode, GameProgress gameProgress)

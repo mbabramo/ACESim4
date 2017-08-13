@@ -4,6 +4,13 @@
   <gameDefinitionsAll>
     <gameDefinition name="MyGame">
       <setting name="MyGameDefinition" type="class" subclass="MyGameDefinition" codeGeneratorName="MyGameDefinition" codeGeneratorOptions="
+               PInitialWealth: 1000000;
+               DInitialWealth: 1000000;
+               DamagesAlleged: 100000;
+               PRiskAversion: Neutral;
+               PRiskAversionParameter: 0;
+               DRiskAversion: Neutral;
+               DRiskAversionParameter: 0;
                NumLitigationQualityPoints: 10; 
                NumSignals: 10; 
                NumOffers: 8; 

@@ -25,6 +25,9 @@ namespace ACESim
         {
             if (currentDecisionByteCode == (byte)MyGameDecisions.LitigationQuality)
             {
+                MyProgress.PInitialWealth = MyDefinition.PInitialWealth;
+                MyProgress.DInitialWealth = MyDefinition.DInitialWealth;
+                MyProgress.DamagesAlleged = MyDefinition.DamagesAlleged;
                 MyProgress.LitigationQualityDiscrete = action;
                 MyProgress.LitigationQualityUniform = ConvertActionToUniformDistributionDraw(action);
                 // If one or both parties have perfect information, then they can get their information about litigation quality now, since they don't need a signal. Note that we also specify in the game definition that the litigation quality should become part of their information set.
@@ -94,17 +97,23 @@ namespace ACESim
         {
             if (MyProgress.CaseSettles)
             {
-                MyProgress.PWelfare = (double)MyProgress.SettlementValue;
-                MyProgress.DWelfare = 0 - (double)MyProgress.SettlementValue;
+                MyProgress.PChangeWealth = (double)MyProgress.SettlementValue;
+                MyProgress.DChangeWealth = 0 - (double)MyProgress.SettlementValue;
             }
             else
             {
-                MyProgress.PWelfare = (MyProgress.PWinsAtTrial ? 1.0 : 0) - MyDefinition.PTrialCosts;
-                MyProgress.DWelfare = (MyProgress.PWinsAtTrial ? -1.0 : 0) - MyDefinition.DTrialCosts;
+                MyProgress.PChangeWealth = (MyProgress.PWinsAtTrial ? MyProgress.DamagesAlleged : 0) - MyDefinition.PTrialCosts;
+                MyProgress.DChangeWealth = (MyProgress.PWinsAtTrial ? -MyProgress.DamagesAlleged : 0) - MyDefinition.DTrialCosts;
             }
             double perPartyBargainingCosts = MyDefinition.PerPartyBargainingRoundCosts * MyProgress.BargainingRoundsComplete;
-            MyProgress.PWelfare -= perPartyBargainingCosts;
-            MyProgress.DWelfare -= perPartyBargainingCosts;
+            MyProgress.PChangeWealth -= perPartyBargainingCosts;
+            MyProgress.DChangeWealth -= perPartyBargainingCosts;
+            MyProgress.PFinalWealth = MyProgress.PInitialWealth + MyProgress.PChangeWealth;
+            MyProgress.DFinalWealth = MyProgress.DInitialWealth + MyProgress.DChangeWealth;
+            MyProgress.PWelfare =
+                MyDefinition.PUtilityCalculator.GetSubjectiveUtilityForWealthLevel(MyProgress.PFinalWealth);
+            MyProgress.DWelfare =
+                MyDefinition.DUtilityCalculator.GetSubjectiveUtilityForWealthLevel(MyProgress.DFinalWealth);
             base.FinalProcessing();
         }
 

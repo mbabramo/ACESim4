@@ -520,6 +520,7 @@
     <Compile Include="Util\ListExtensions.cs" />
     <Compile Include="Util\RangeFinder.cs" />
     <Compile Include="Util\TabbedWriteLine.cs" />
+    <Compile Include="Util\UtilityCalculations.cs" />
     <Compile Include="Util\WalkToIdentifyMemoryPath.cs" />
     <Compile Include="Util\WeightedPercentileTracker.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

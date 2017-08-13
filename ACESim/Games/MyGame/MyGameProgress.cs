@@ -23,6 +23,13 @@ namespace ACESim
         public double? SettlementValue;
         public bool TrialOccurs;
         public bool PWinsAtTrial;
+        public double PInitialWealth;
+        public double DInitialWealth;
+        public double DamagesAlleged = 1.0;
+        public double PChangeWealth;
+        public double DChangeWealth;
+        public double PFinalWealth;
+        public double DFinalWealth;
         public double PWelfare;
         public double DWelfare;
 
@@ -128,6 +135,13 @@ namespace ACESim
             copy.SettlementValue = SettlementValue;
             copy.TrialOccurs = TrialOccurs;
             copy.PWinsAtTrial = PWinsAtTrial;
+            copy.PInitialWealth = PInitialWealth;
+            copy.DInitialWealth = DInitialWealth;
+            copy.DamagesAlleged = DamagesAlleged;
+            copy.PChangeWealth = PChangeWealth;
+            copy.DChangeWealth = DChangeWealth;
+            copy.PFinalWealth = PFinalWealth;
+            copy.DFinalWealth = DFinalWealth;
             copy.PWelfare = PWelfare;
             copy.DWelfare = DWelfare;
 
