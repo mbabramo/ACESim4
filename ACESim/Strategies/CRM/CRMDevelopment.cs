@@ -29,7 +29,7 @@ namespace ACESim
             PureStrategyFinder
         }
 
-        CRMAlgorithm Algorithm = CRMAlgorithm.AverageStrategySampling;
+        CRMAlgorithm Algorithm = CRMAlgorithm.Probing;
         const int TotalAvgStrategySamplingCFRIterations = 100000000;
         const int TotalProbingCFRIterations = 100000000;
         const int TotalVanillaCFRIterations = 100000000;

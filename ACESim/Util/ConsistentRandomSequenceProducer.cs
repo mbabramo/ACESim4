@@ -24,7 +24,6 @@ namespace ACESim
 
         public double GetDoubleAtIndex(int index)
         {
-            debug();
             return GetDoubleAtIndex_Alt2(index);
             // TODO: Combine two random numbers into 1. But averaging them won't work. Note that if one averaged a billion random numbers, we would converge to 0.5.
             // return (GetDoubleAtIndex_Alt1(index) + GetDoubleAtIndex_Alt2(index)) / 2.0;
