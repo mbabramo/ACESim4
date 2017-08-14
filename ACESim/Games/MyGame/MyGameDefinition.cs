@@ -8,110 +8,27 @@ using ACESim.Util;
 namespace ACESim
 {
     [Serializable]
-    [Export(typeof(ICodeBasedSettingGenerator))] // include the export and exportmetadata attributes if we implement GenerateSetting, setting up the GameModule by code instead of in the settings file.
     [ExportMetadata("CodeGeneratorName", "MyGameDefinition")]
-    public class MyGameDefinition : GameDefinition, ICodeBasedSettingGenerator, ICodeBasedSettingGeneratorName
+    public class MyGameDefinition : GameDefinition
     {
-        public byte NumLitigationQualityPoints;
-        /// <summary>
-        /// The number of discrete signals that a party can receive. For example, 10 signals would allow each party to differentiate 10 different levels of case strength.
-        /// </summary>
-        public byte NumSignals;
-        /// <summary>
-        /// The number of discrete offers a party can make at any given time. For example, 10 signals might allow offers of 0.05, 0.15, ..., 0.95, but delta offers may allow offers to get gradually more precise.
-        /// </summary>
-        public byte NumOffers;
-        /// <summary>
-        /// If true, then the second offer by a party is interpreted as a value relative to the first offer.
-        /// </summary>
-        public bool SubsequentOffersAreDeltas;
-        /// <summary>
-        /// When subsequent offers are deltas, this represents the minimum (non-zero) delta. The party making the offer can make an offer +/- this amount.
-        /// </summary>
-        public double DeltaStartingValue;
-        /// <summary>
-        /// When subsequent offers are deltas, this represents the maximum delta. The intermediate deltas will be determined relative to this. 
-        /// </summary>
-        public double MaxDelta;
-        /// <summary>
-        /// The standard deviation of the noise used to obfuscate the plaintiff's estimate of the case strength.
-        /// </summary>
-        public double PNoiseStdev;
-        /// <summary>
-        /// The standard deviation of the noise used to obfuscate the defendant's estimate of the case strength.
-        /// </summary>
-        public double DNoiseStdev;
-        /// <summary>
-        /// Costs that the plaintiff must pay if the case goes to trial.
-        /// </summary>
-        public double PTrialCosts;
-        /// <summary>
-        /// Costs that the defendant must pay if the case goes to trial.
-        /// </summary>
-        public double DTrialCosts;
-        /// <summary>
-        /// Costs that each party must pay per round of bargaining. Note that an immediate successful resolution will still produce costs.
-        /// </summary>
-        public double PerPartyBargainingRoundCosts;
-        /// <summary>
-        /// If true, this is a partial recall game, in which players do not remember earlier bargaining rounds.
-        /// </summary>
-        public bool ForgetEarlierBargainingRounds;
-        /// <summary>
-        /// The number of bargaining rounds
-        /// </summary>
-        public int NumBargainingRounds;
-        /// <summary>
-        /// Subdivide a single offer decision into a series of binary decisions.
-        /// </summary>
-        public bool SubdivideOffers;
-
-        /// <summary>
-        /// Plaintiff's initial wealth.
-        /// </summary>
-        public double PInitialWealth;
-        /// <summary>
-        /// Defendant's initial wealth.
-        /// </summary>
-        public double DInitialWealth;
-        /// <summary>
-        /// Damages alleged
-        /// </summary>
-        public double DamagesAlleged;
-
-        public UtilityCalculator PUtilityCalculator;
-        public UtilityCalculator DUtilityCalculator;
-
-        public List<bool> BargainingRoundsSimultaneous;
-        public List<bool> BargainingRoundsPGoesFirstIfNotSimultaneous; // if not simultaneous
-        public bool IncludeSignalsReport;
-        public DiscreteValueSignalParameters PSignalParameters, DSignalParameters;
-        public DeltaOffersCalculation DeltaOffersCalculation;
+        public MyGameOptions Options;
 
         public MyGameDefinition() : base()
         {
 
         }
 
-        public string CodeGeneratorName => "MyGameDefinition";
-
-        public object GenerateSetting(string options)
+        public void Setup(MyGameOptions options)
         {
-            Setup(options);
-
-            return this;
-        }
-
-        public void Setup(string options)
-        {
-            ParseOptions(options);
+            Options = options;
+            FurtherOptionsSetup();
 
             Players = GetPlayersList();
             NumPlayers = (byte) Players.Count();
             DecisionsExecutionOrder = GetDecisionsList();
 
-            if (SubsequentOffersAreDeltas)
-                DeltaOffersCalculation = new DeltaOffersCalculation(this);
+            IGameFactory gameFactory = new MyGameFactory();
+            Initialize(gameFactory);
         }
 
         MyGameProgress MyGP(GameProgress gp) => gp as MyGameProgress;
@@ -147,39 +64,39 @@ namespace ACESim
             // Litigation Quality. This is not known by a player unless the player has perfect information. 
             // The SignalChance player relies on this information in calculating the probabilities of different signals
             List<byte> playersKnowingLitigationQuality = new List<byte>() { (byte) MyGamePlayers.PSignalChance, (byte)MyGamePlayers.DSignalChance, (byte) MyGamePlayers.CourtChance };
-            if (PNoiseStdev == 0)
+            if (Options.PNoiseStdev == 0)
                 playersKnowingLitigationQuality.Add((byte)MyGamePlayers.Plaintiff);
-            if (DNoiseStdev == 0)
+            if (Options.DNoiseStdev == 0)
                 playersKnowingLitigationQuality.Add((byte)MyGamePlayers.Defendant);
-            decisions.Add(new Decision("LitigationQuality", "Qual", (byte)MyGamePlayers.QualityChance, playersKnowingLitigationQuality, NumLitigationQualityPoints, (byte)MyGameDecisions.LitigationQuality));
+            decisions.Add(new Decision("LitigationQuality", "Qual", (byte)MyGamePlayers.QualityChance, playersKnowingLitigationQuality, Options.NumLitigationQualityPoints, (byte)MyGameDecisions.LitigationQuality));
             // Plaintiff and defendant signals. If a player has perfect information, then no signal is needed.
-            if (PNoiseStdev != 0)
-                decisions.Add(new Decision("PlaintiffSignal", "PSig", (byte)MyGamePlayers.PSignalChance, new List<byte> { (byte)MyGamePlayers.Plaintiff }, NumSignals, (byte)MyGameDecisions.PSignal, unevenChanceActions: true));
-            if (DNoiseStdev != 0)
-                decisions.Add(new Decision("DefendantSignal", "DSig", (byte)MyGamePlayers.DSignalChance, new List<byte> { (byte)MyGamePlayers.Defendant }, NumSignals, (byte)MyGameDecisions.DSignal, unevenChanceActions: true));
-            for (int b = 0; b < NumBargainingRounds; b++)
+            if (Options.PNoiseStdev != 0)
+                decisions.Add(new Decision("PlaintiffSignal", "PSig", (byte)MyGamePlayers.PSignalChance, new List<byte> { (byte)MyGamePlayers.Plaintiff }, Options.NumSignals, (byte)MyGameDecisions.PSignal, unevenChanceActions: true));
+            if (Options.DNoiseStdev != 0)
+                decisions.Add(new Decision("DefendantSignal", "DSig", (byte)MyGamePlayers.DSignalChance, new List<byte> { (byte)MyGamePlayers.Defendant }, Options.NumSignals, (byte)MyGameDecisions.DSignal, unevenChanceActions: true));
+            for (int b = 0; b < Options.NumBargainingRounds; b++)
             {
                 // bargaining -- note that we will do all information set manipulation in CustomInformationSetManipulation below.
-                if (BargainingRoundsSimultaneous[b])
+                if (Options.BargainingRoundsSimultaneous)
                 { // samuelson-chaterjee bargaining
-                    var pOffer = new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, null, NumOffers, (byte)MyGameDecisions.POffer) { CustomByte = (byte)(b + 1), CustomInformationSetManipulationOnly = true };
+                    var pOffer = new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, null, Options.NumOffers, (byte)MyGameDecisions.POffer) { CustomByte = (byte)(b + 1), CustomInformationSetManipulationOnly = true };
                     AddOfferDecisionOrSubdivisions(decisions, pOffer);
-                    var dOffer = new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, null, NumOffers, (byte)MyGameDecisions.DOffer) { CanTerminateGame = true, CustomByte = (byte)(b + 1), CustomInformationSetManipulationOnly = true };
+                    var dOffer = new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, null, Options.NumOffers, (byte)MyGameDecisions.DOffer) { CanTerminateGame = true, CustomByte = (byte)(b + 1), CustomInformationSetManipulationOnly = true };
                     AddOfferDecisionOrSubdivisions(decisions, dOffer);
 
                 }
                 else
                 { // offer-response bargaining
                     // the response may be irrelevant but no harm adding it to information set
-                    if (BargainingRoundsPGoesFirstIfNotSimultaneous[b])
+                    if (Options.PGoesFirstIfNotSimultaneous[b])
                     {
-                        var pOffer = new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, null, NumOffers, (byte)MyGameDecisions.POffer) { CustomByte = (byte)(b + 1), CustomInformationSetManipulationOnly = true }; // { AlwaysDoAction = 4});
+                        var pOffer = new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, null, Options.NumOffers, (byte)MyGameDecisions.POffer) { CustomByte = (byte)(b + 1), CustomInformationSetManipulationOnly = true }; // { AlwaysDoAction = 4});
                         AddOfferDecisionOrSubdivisions(decisions, pOffer);
                         decisions.Add(new Decision("DefendantResponse" + (b + 1), "DR" + (b + 1), (byte)MyGamePlayers.Defendant, null, 2, (byte)MyGameDecisions.DResponse) { CanTerminateGame = true, CustomByte = (byte)(b + 1), CustomInformationSetManipulationOnly = true });
                     }
                     else
                     {
-                        var dOffer = new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, null, NumOffers, (byte)MyGameDecisions.DOffer) { CustomByte = (byte)(b + 1), CustomInformationSetManipulationOnly = true };
+                        var dOffer = new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, null, Options.NumOffers, (byte)MyGameDecisions.DOffer) { CustomByte = (byte)(b + 1), CustomInformationSetManipulationOnly = true };
                         AddOfferDecisionOrSubdivisions(decisions, dOffer);
                         decisions.Add(new Decision("PlaintiffResponse" + (b + 1), "PR" + (b + 1), (byte)MyGamePlayers.Plaintiff, null, 2, (byte)MyGameDecisions.PResponse) { CanTerminateGame = true, CustomByte = (byte)(b + 1), CustomInformationSetManipulationOnly = true });
                     }
@@ -191,7 +108,7 @@ namespace ACESim
 
         private void AddOfferDecisionOrSubdivisions(List<Decision> decisions, Decision offerDecision)
         {
-            AddPotentiallySubdividableDecision(decisions, offerDecision, SubdivideOffers, (byte)MyGameDecisions.SubdividableOffer, 2, NumOffers);
+            AddPotentiallySubdividableDecision(decisions, offerDecision, Options.SubdivideOffers, (byte)MyGameDecisions.SubdividableOffer, 2, Options.NumOffers);
         }
 
         public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, ref GameHistory gameHistory)
@@ -205,13 +122,13 @@ namespace ACESim
                 byte currentPlayer = currentDecision.PlayerNumber;
                 // Players information sets. We are going to use custom information set manipulation to add the players' information sets. This gives us the 
                 // flexibility to remove information about old bargaining rounds. 
-                if (BargainingRoundsSimultaneous[bargainingRoundIndex])
+                if (Options.BargainingRoundsSimultaneous)
                 { // samuelson-chaterjee bargaining
                     if (currentPlayer == (byte) MyGamePlayers.Defendant)
                     {
                         // If we are forgetting bargaining rounds, then we don't need to add this to either players' information set. 
                         // We'll still add the offers to the resolution set below.
-                        if (!ForgetEarlierBargainingRounds)
+                        if (!Options.ForgetEarlierBargainingRounds)
                         {
                             // We have completed this round of bargaining. Only now should we add the information to the plaintiff and defendant information sets. 
                             // Note that the plaintiff and defendant will both have made their decisions based on whatever information was available from before this round.
@@ -233,7 +150,7 @@ namespace ACESim
                 }
                 else
                 { // offer-response bargaining
-                    bool pGoesFirst = BargainingRoundsPGoesFirstIfNotSimultaneous[bargainingRoundIndex];
+                    bool pGoesFirst = Options.PGoesFirstIfNotSimultaneous[bargainingRoundIndex];
                     byte partyGoingFirst = pGoesFirst ? (byte)MyGamePlayers.Plaintiff : (byte)MyGamePlayers.Defendant;
                     byte partyGoingSecond = pGoesFirst ? (byte)MyGamePlayers.Defendant : (byte)MyGamePlayers.Plaintiff;
                     byte otherPlayer = currentPlayer == (byte)MyGamePlayers.Plaintiff ? (byte)MyGamePlayers.Defendant : (byte)MyGamePlayers.Plaintiff;
@@ -246,7 +163,7 @@ namespace ACESim
                         if (addPlayersOwnDecisionsToInformationSet)
                             gameHistory.AddToInformationSet(actionChosen, currentDecisionIndex, currentPlayer); // add offer to the offering party's information set. Note that we never need to add a response, since it will always be clear in later rounds that the response was "no".
                     }
-                    else if (ForgetEarlierBargainingRounds)
+                    else if (Options.ForgetEarlierBargainingRounds)
                     {
                         gameHistory.RemoveItemsInInformationSet(currentPlayer, currentDecisionIndex, 1);
                         if (addPlayersOwnDecisionsToInformationSet)
@@ -304,7 +221,7 @@ namespace ACESim
                     break;
                 case (byte)MyGameDecisions.DOffer:
                     // this is simultaneous bargaining (plaintiff offer is always first). 
-                    if (!BargainingRoundsSimultaneous[currentDecision.CustomByte - 1])
+                    if (!Options.BargainingRoundsSimultaneous)
                         throw new Exception("Internal error.");
                     (byte defendantAction, byte plaintiffAction) = gameHistory.GetLastActionAndActionBeforeThat();
                     if (defendantAction >= plaintiffAction)
@@ -319,9 +236,9 @@ namespace ACESim
         {
             var reports = new List<SimpleReportDefinition>();
             reports.Add(GetOverallReport());
-            if (IncludeSignalsReport)
+            if (Options.IncludeSignalsReport)
             {
-                for (int b = 1; b <= NumBargainingRounds; b++)
+                for (int b = 1; b <= Options.NumBargainingRounds; b++)
                 {
                     reports.Add(GetStrategyReport(b, false));
                     reports.Add(GetStrategyReport(b, true));
@@ -345,7 +262,7 @@ namespace ACESim
                     new SimpleReportColumnVariable("PWelfare", (GameProgress gp) => MyGP(gp).PWelfare),
                     new SimpleReportColumnVariable("DWelfare", (GameProgress gp) => MyGP(gp).DWelfare),
                 };
-            for (int b = 1; b <= NumBargainingRounds; b++)
+            for (int b = 1; b <= Options.NumBargainingRounds; b++)
             {
                 int bargainingRoundNum = b; // needed for closure -- otherwise b below will always be max value.
                 colItems.Add(
@@ -384,8 +301,8 @@ namespace ACESim
             {
                 new SimpleReportFilter("All", (GameProgress gp) => true)
             };
-            Tuple<double, double>[] signalRegions = EquallySpaced.GetRegions(NumSignals);
-            for (int i = 0; i < NumSignals; i++)
+            Tuple<double, double>[] signalRegions = EquallySpaced.GetRegions(Options.NumSignals);
+            for (int i = 0; i < Options.NumSignals; i++)
             {
                 double regionStart = signalRegions[i].Item1;
                 double regionEnd = signalRegions[i].Item2;
@@ -398,8 +315,8 @@ namespace ACESim
             {
                 new SimpleReportColumnFilter("All", (GameProgress gp) => true, true)
             };
-            Tuple<double, double>[] offerRegions = EquallySpaced.GetRegions(NumOffers);
-            for (int i = 0; i < NumOffers; i++)
+            Tuple<double, double>[] offerRegions = EquallySpaced.GetRegions(Options.NumOffers);
+            for (int i = 0; i < Options.NumOffers; i++)
             {
                 double regionStart = offerRegions[i].Item1;
                 double regionEnd = offerRegions[i].Item2;
@@ -429,14 +346,14 @@ namespace ACESim
             {
                 if (b < bargainingRound)
                 {
-                    if (BargainingRoundsSimultaneous[b - 1])
+                    if (Options.BargainingRoundsSimultaneous)
                     {
                         earlierOffersPlaintiff++;
                         earlierOffersDefendant++;
                     }
                     else
                     {
-                        if (BargainingRoundsPGoesFirstIfNotSimultaneous[b - 1])
+                        if (Options.PGoesFirstIfNotSimultaneous[b - 1])
                             earlierOffersPlaintiff++;
                         else
                             earlierOffersDefendant++;
@@ -444,14 +361,14 @@ namespace ACESim
                 }
                 else
                 {
-                    if (BargainingRoundsSimultaneous[b - 1])
+                    if (Options.BargainingRoundsSimultaneous)
                     {
                         plaintiffMakesOffer = !reportResponseToOffer;
                         reportResponseToOffer = false; // we want to report the offer (which may be the defendant's).
                         isSimultaneous = false;
                     }
                     else
-                        plaintiffMakesOffer = BargainingRoundsPGoesFirstIfNotSimultaneous[b - 1];
+                        plaintiffMakesOffer = Options.PGoesFirstIfNotSimultaneous[b - 1];
                     offerNumber = plaintiffMakesOffer ? earlierOffersPlaintiff + 1 : earlierOffersDefendant + 1;
                 }
             }
@@ -471,128 +388,23 @@ namespace ACESim
             return value != null && value >= offerRange.Item1 && value < offerRange.Item2;
         }
 
-        private void ParseOptions(string options)
+        private void FurtherOptionsSetup()
         {
-            PInitialWealth = GameModule.GetDoubleCodeGeneratorOption(options, "PInitialWealth");
-            DInitialWealth = GameModule.GetDoubleCodeGeneratorOption(options, "DInitialWealth");
-            SetUtilityCalculators(options);
 
-            DamagesAlleged = GameModule.GetDoubleCodeGeneratorOption(options, "DamagesAlleged");
-            NumLitigationQualityPoints = GameModule.GetByteCodeGeneratorOption(options, "NumLitigationQualityPoints");
-            NumSignals = GameModule.GetByteCodeGeneratorOption(options, "NumSignals");
-            NumOffers = GameModule.GetByteCodeGeneratorOption(options, "NumOffers");
-            SubsequentOffersAreDeltas = GameModule.GetBoolCodeGeneratorOption(options, "SubsequentOffersAreDeltas");
-            DeltaStartingValue = GameModule.GetDoubleCodeGeneratorOption(options, "DeltaStartingValue");
-            MaxDelta = GameModule.GetDoubleCodeGeneratorOption(options, "MaxDelta");
-            PNoiseStdev = GameModule.GetDoubleCodeGeneratorOption(options, "PNoiseStdev");
-            DNoiseStdev = GameModule.GetDoubleCodeGeneratorOption(options, "DNoiseStdev");
-            PTrialCosts = GameModule.GetDoubleCodeGeneratorOption(options, "PTrialCosts");
-            DTrialCosts = GameModule.GetDoubleCodeGeneratorOption(options, "DTrialCosts");
-            ForgetEarlierBargainingRounds = GameModule.GetBoolCodeGeneratorOption(options, "ForgetEarlierBargainingRounds");
-            SubdivideOffers = GameModule.GetBoolCodeGeneratorOption(options, "SubdivideOffers");
-            PerPartyBargainingRoundCosts = GameModule.GetDoubleCodeGeneratorOption(options, "PerPartyBargainingRoundCosts"); 
-             IncludeSignalsReport = GameModule.GetBoolCodeGeneratorOption(options, "IncludeSignalsReport");
-            NumBargainingRounds = GameModule.GetIntCodeGeneratorOption(options, "NumBargainingRounds");
-            BargainingRoundsSimultaneous = new List<bool>()
+            if (Options.DeltaOffersOptions.SubsequentOffersAreDeltas)
+                Options.DeltaOffersCalculation = new DeltaOffersCalculation(this);
+            Options.PSignalParameters = new DiscreteValueSignalParameters()
             {
-                GameModule.GetBoolCodeGeneratorOption(options, "BargainingRound1Simultaneous"),
-                GameModule.GetBoolCodeGeneratorOption(options, "BargainingRound2Simultaneous"),
-                GameModule.GetBoolCodeGeneratorOption(options, "BargainingRound3Simultaneous"),
-                GameModule.GetBoolCodeGeneratorOption(options, "BargainingRound4Simultaneous"),
-                GameModule.GetBoolCodeGeneratorOption(options, "BargainingRound5Simultaneous"),
+                NumPointsInSourceUniformDistribution = Options.NumLitigationQualityPoints,
+                StdevOfNormalDistribution = Options.PNoiseStdev,
+                NumSignals = Options.NumSignals
             };
-            BargainingRoundsPGoesFirstIfNotSimultaneous = new List<bool>()
+            Options.DSignalParameters = new DiscreteValueSignalParameters()
             {
-                GameModule.GetBoolCodeGeneratorOption(options, "BargainingRound1PGoesFirstIfNotSimultaneous"),
-                GameModule.GetBoolCodeGeneratorOption(options, "BargainingRound2PGoesFirstIfNotSimultaneous"),
-                GameModule.GetBoolCodeGeneratorOption(options, "BargainingRound3PGoesFirstIfNotSimultaneous"),
-                GameModule.GetBoolCodeGeneratorOption(options, "BargainingRound4PGoesFirstIfNotSimultaneous"),
-                GameModule.GetBoolCodeGeneratorOption(options, "BargainingRound5PGoesFirstIfNotSimultaneous"),
+                NumPointsInSourceUniformDistribution = Options.NumLitigationQualityPoints,
+                StdevOfNormalDistribution = Options.DNoiseStdev,
+                NumSignals = Options.NumSignals
             };
-            PSignalParameters = new DiscreteValueSignalParameters()
-            {
-                NumPointsInSourceUniformDistribution = NumLitigationQualityPoints,
-                StdevOfNormalDistribution = PNoiseStdev,
-                NumSignals = NumSignals
-            };
-            DSignalParameters = new DiscreteValueSignalParameters()
-            {
-                NumPointsInSourceUniformDistribution = NumLitigationQualityPoints,
-                StdevOfNormalDistribution = DNoiseStdev,
-                NumSignals = NumSignals
-            };
-        }
-
-        private void SetUtilityCalculators(string options)
-        {
-            SetPUtilityCalculator(options);
-            SetDUtilityCalculator(options);
-        }
-
-        private void SetPUtilityCalculator(string options)
-        {
-            string pRiskAversionType = GameModule.GetStringCodeGeneratorOption(options, "PRiskAversionType");
-            double pRiskAversionParameter = GameModule.GetDoubleCodeGeneratorOption(options, "PRiskAversionParameter");
-            switch (pRiskAversionType)
-            {
-                case "Neutral":
-                    PUtilityCalculator = new RiskNeutralUtilityCalculator() {InitialWealth = PInitialWealth};
-                    break;
-                case "Log":
-                    PUtilityCalculator = new LogRiskAverseUtilityCalculator() {InitialWealth = PInitialWealth};
-                    break;
-                case "CARA":
-                    PUtilityCalculator =
-                        new CARARiskAverseUtilityCalculator()
-                        {
-                            InitialWealth = PInitialWealth,
-                            Alpha = pRiskAversionParameter
-                        };
-                    break;
-                case "Quadratic":
-                    PUtilityCalculator =
-                        new QuadraticUtilityRiskAverseUtilityCalculator()
-                        {
-                            InitialWealth = PInitialWealth,
-                            B = pRiskAversionParameter
-                        };
-                    break;
-                default:
-                    throw new NotImplementedException();
-            }
-        }
-
-        private void SetDUtilityCalculator(string options)
-        {
-            string dRiskAversionType = GameModule.GetStringCodeGeneratorOption(options, "DRiskAversionType");
-            double dRiskAversionParameter = GameModule.GetDoubleCodeGeneratorOption(options, "DRiskAversionParameter");
-            switch (dRiskAversionType)
-            {
-                case "Neutral":
-                    DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = DInitialWealth };
-                    break;
-                case "Log":
-                    DUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = DInitialWealth };
-                    break;
-                case "CARA":
-                    DUtilityCalculator =
-                        new CARARiskAverseUtilityCalculator()
-                        {
-                            InitialWealth = DInitialWealth,
-                            Alpha = dRiskAversionParameter
-                        };
-                    break;
-                case "Quadratic":
-                    DUtilityCalculator =
-                        new QuadraticUtilityRiskAverseUtilityCalculator()
-                        {
-                            InitialWealth = DInitialWealth,
-                            B = dRiskAversionParameter
-                        };
-                    break;
-                default:
-                    throw new NotImplementedException();
-            }
         }
 
         public override double[] GetChanceActionProbabilities(byte decisionByteCode, GameProgress gameProgress)
@@ -600,12 +412,12 @@ namespace ACESim
             if (decisionByteCode == (byte)MyGameDecisions.PSignal)
             {
                 MyGameProgress myGameProgress = (MyGameProgress)gameProgress;
-                return DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(myGameProgress.LitigationQualityDiscrete, PSignalParameters);
+                return DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(myGameProgress.LitigationQualityDiscrete, Options.PSignalParameters);
             }
             else if (decisionByteCode == (byte)MyGameDecisions.DSignal)
             {
                 MyGameProgress myGameProgress = (MyGameProgress)gameProgress;
-                return DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(myGameProgress.LitigationQualityDiscrete, DSignalParameters);
+                return DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(myGameProgress.LitigationQualityDiscrete, Options.DSignalParameters);
             }
             else if (decisionByteCode == (byte)MyGameDecisions.CourtDecision)
             {

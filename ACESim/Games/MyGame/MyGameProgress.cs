@@ -55,8 +55,8 @@ namespace ACESim
         }
         public void UpdateProgress(MyGameDefinition gameDefinition)
         {
-            bool playersMovingSimultaneously = gameDefinition.BargainingRoundsSimultaneous[BargainingRoundsComplete];
-            bool pGoesFirstIfNotSimultaneous = gameDefinition.BargainingRoundsPGoesFirstIfNotSimultaneous[BargainingRoundsComplete];
+            bool playersMovingSimultaneously = gameDefinition.Options.BargainingRoundsSimultaneous;
+            bool pGoesFirstIfNotSimultaneous = gameDefinition.Options.PGoesFirstIfNotSimultaneous[BargainingRoundsComplete];
             if (!RoundIsComplete(playersMovingSimultaneously, pGoesFirstIfNotSimultaneous))
                 return;
             BargainingRoundsComplete++;

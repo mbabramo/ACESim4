@@ -285,7 +285,7 @@ namespace ACESim
 
 
 
-        public void CheckConsistencyForSetOfIterations(long totalNumIterations, List<IterationID> iterationsToGet, SimulationInteraction simulationInteraction)
+        public void CheckConsistencyForSetOfIterations(long totalNumIterations, List<IterationID> iterationsToGet)
         {
 
             int repetitions = 1; // Should set to 1 (to do all iterations to get once) unless iterationToPlayOverride is non-null, in which case a large number may be desirable
@@ -345,7 +345,6 @@ namespace ACESim
         public IEnumerable<GameProgress> PlayMultipleIterations(
             List<GameProgress> preplayedGameProgressInfos,
             int numIterations,
-            IUiInteraction simulationInteraction,
             IterationID[] iterationIDArray = null)
         {
             CompletedGameProgresses = new ConcurrentBag<GameProgress>();

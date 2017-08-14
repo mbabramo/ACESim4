@@ -8,9 +8,8 @@ using ACESim.Util;
 namespace ACESim
 {
     [Serializable]
-    [Export(typeof(ICodeBasedSettingGenerator))] // include the export and exportmetadata attributes if we implement GenerateSetting, setting up the GameModule by code instead of in the settings file.
     [ExportMetadata("CodeGeneratorName", "SimpleGameDefinition")]
-    public class SimpleGameDefinition : GameDefinition, ICodeBasedSettingGenerator, ICodeBasedSettingGeneratorName
+    public class SimpleGameDefinition : GameDefinition
     {
 
         public double ProbabilityChanceDecision1 = 2.0 / 3.0;
@@ -19,18 +18,14 @@ namespace ACESim
         {
 
         }
-
-        public string CodeGeneratorName => "SimpleGameDefinition";
-
-        public object GenerateSetting(string options)
+        public void Setup()
         {
-            ParseOptions(options);
-
             Players = GetPlayersList();
-            NumPlayers = (byte) Players.Count();
+            NumPlayers = (byte)Players.Count();
             DecisionsExecutionOrder = GetDecisionsList();
 
-            return this;
+            IGameFactory gameFactory = new MyGameFactory();
+            Initialize(gameFactory);
         }
 
         SimpleGameProgress MyGP(GameProgress gp) => gp as SimpleGameProgress;
@@ -110,11 +105,6 @@ namespace ACESim
                 rowItems,
                 colItems
                 );
-        }
-        
-
-        private void ParseOptions(string options)
-        {
         }
 
         public override double[] GetChanceActionProbabilities(byte decisionByteCode, GameProgress gameProgress)

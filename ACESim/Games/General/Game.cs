@@ -65,10 +65,7 @@ namespace ACESim
             )
         {
             if (restartFromBeginningOfGame && Strategies != null)
-            {
-                IGameFactory gameFactory = Strategies[0].SimulationInteraction.CurrentExecutionInformation.GameFactory;
-                progress = gameFactory.CreateNewGameProgress(progress.IterationID);
-            }
+                progress = gameDefinition.GameFactory.CreateNewGameProgress(progress.IterationID);
             if (restartFromBeginningOfGame)
                 progress.GameHistory.Reinitialize();
 

@@ -13,11 +13,6 @@ namespace ACESim
     {
         [NonSerialized]
         [XmlIgnore]
-        internal SimulationInteraction _simulationInteraction;
-        public SimulationInteraction SimulationInteraction { get { return _simulationInteraction; } set { _simulationInteraction = value; } }
-
-        [NonSerialized]
-        [XmlIgnore]
         internal List<Strategy> _allStrategies;
         public List<Strategy> AllStrategies { get { return _allStrategies; } set { _allStrategies = value; } }
 
@@ -44,7 +39,6 @@ namespace ACESim
         {
             Strategy theStrategy = new Strategy()
             {
-                SimulationInteraction = SimulationInteraction,
                 EvolutionSettings = EvolutionSettings,
                 AllStrategies = AllStrategies.ToList(),
                 PlayerInfo = PlayerInfo,
@@ -109,7 +103,7 @@ namespace ACESim
             throw new NotImplementedException();
         }
 
-        public StrategyState RememberStrategyState()
+        public StrategyState RememberStrategyState(IGameFactory gameFactory, GameDefinition gameDefinition)
         {
             bool serializeStrategyItself = true;
             StrategyState s = new StrategyState();
@@ -137,10 +131,8 @@ namespace ACESim
                 }
                 s.UnserializedStrategies.Add(null);
             }
-            s.SerializedGameFactory = BinarySerialization.GetByteArray(SimulationInteraction.CurrentExecutionInformation.GameFactory);
-            s.SerializedGameDefinition = BinarySerialization.GetByteArray(SimulationInteraction.PreviouslyLoadedGameDefinition);
-            s.SerializedSimulationInteraction = BinarySerialization.GetByteArray(SimulationInteraction);
-            s.SerializedFastPseudoRandom = FastPseudoRandom.GetSerializedState();
+            s.SerializedGameFactory = BinarySerialization.GetByteArray(gameFactory);
+            s.SerializedGameDefinition = BinarySerialization.GetByteArray(gameDefinition);
             return s;
         }
 
@@ -177,28 +169,21 @@ namespace ACESim
 
             IGameFactory gameFactory = (IGameFactory)BinarySerialization.GetObjectFromByteArray(s.SerializedGameFactory);
             gameFactory.InitializeStrategyDevelopment(this);
-            SimulationInteraction = (SimulationInteraction)BinarySerialization.GetObjectFromByteArray(s.SerializedSimulationInteraction);
             foreach (var s2 in AllStrategies)
             {
-                s2.SimulationInteraction = SimulationInteraction;
                 s2.AllStrategies = AllStrategies;
             }
-            FastPseudoRandom.SetState(s.SerializedFastPseudoRandom);
         }
 
 
         public void RecallStrategyState(Strategy strategyWithStateAlreadyRecalled)
         {
             AllStrategies = strategyWithStateAlreadyRecalled.AllStrategies.ToList();
-
-            SimulationInteraction = strategyWithStateAlreadyRecalled.SimulationInteraction;
-            foreach (var s2 in AllStrategies)
-                s2.SimulationInteraction = SimulationInteraction;
         }
         
-        public void GetSerializedStrategiesPathAndFilenameBase(int numStrategyStatesSerialized, out string path, out string filenameBase)
+        public void GetSerializedStrategiesPathAndFilenameBase(string baseOutputDirectory, string storedStrategiesSubdirectory, int numStrategyStatesSerialized, out string path, out string filenameBase)
         {
-            path = Path.Combine(SimulationInteraction.BaseOutputDirectory, SimulationInteraction.storedStrategiesSubdirectory);
+            path = Path.Combine(baseOutputDirectory, storedStrategiesSubdirectory);
             filenameBase = "strsta" + numStrategyStatesSerialized.ToString();
         }
 
@@ -214,7 +199,7 @@ namespace ACESim
              return informationSets;
         }
 
-        public static List<Strategy> GetStarterStrategies(GameDefinition gameDefinition, SimulationInteraction simulationInteraction, EvolutionSettings evolutionSettings)
+        public static List<Strategy> GetStarterStrategies(GameDefinition gameDefinition, EvolutionSettings evolutionSettings)
         {
             var strategies = new List<Strategy>();
             int numPlayers = gameDefinition.Players.Count();
@@ -222,7 +207,6 @@ namespace ACESim
             {
                 var aStrategy = new Strategy();
                 aStrategy.EvolutionSettings = evolutionSettings;
-                aStrategy.SimulationInteraction = simulationInteraction;
                 aStrategy.PlayerInfo = gameDefinition.Players[i];
                 strategies.Add(aStrategy);
             }

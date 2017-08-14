@@ -35,7 +35,7 @@ namespace ACESim
             }
             catch(Exception ex)
             {
-                throw new FileLoaderException(
+                throw new Exception(
                     "Could not find code for the game named " + gameName + ". Make sure that the game subclass includes the needed Export attributes.", 
                     ex);
             }

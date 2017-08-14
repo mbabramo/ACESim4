@@ -16,50 +16,50 @@ namespace ACESim
         /// relative order of ActionGroups within the module and outside the module, and the ModifyActionGroups function to make further changes, such as repeating sets
         /// of execution groups.
         /// </summary>
-        [OptionalSetting]
+        
         public List<Decision> DecisionsCore;
 
         /// <summary>
         /// If any are listed, then the default will be to create a single ActionGroup with these actions listed at the beginning.
         /// </summary>
-        [OptionalSetting]
+        
         public List<string> ActionsAtBeginningOfModule;
 
         /// <summary>
         /// If any are listed, then the default will be to create a single ExecutionGroup with these actions listed at the end.
         /// </summary>
-        [OptionalSetting]
+        
         public List<string> ActionsAtEndOfModule;
 
         /// <summary>
         /// When creating a default action group, these tags will automatically be added
         /// </summary>
-        [OptionalSetting]
+        
         public List<string> Tags;
 
         /// <summary>
         /// A name can be given to a game module, so that other modules can find it. Often, this will be the name of the superclass.
         /// </summary>
-        [OptionalSetting]
+        
         public string GameModuleName;
 
         /// <summary>
         /// Modules will be evolved in the order in which they appear. Execution order by default will be the same, with the first module evolving
         /// having an ExecutionNumberOfModule == 1, etc. However, a module can specify an alternative execution number here.
         /// </summary>
-        [OptionalSetting]
+        
         public int ExecutionNumberOfModule;
 
         /// <summary>
         /// If a module needs to access information from other modules, then it can list their names in a comma-delimited string. The GameDefinition will then determine the corresponding game module numbers for the decisions this module relies on, and the relevant game module can then be loaded by calling GetGameModuleThisModuleReliesOn().
         /// </summary>
-        [OptionalSetting]
+        
         public List<string> GameModuleNamesThisModuleReliesOn;
 
         /// <summary>
         /// This is a list of indices into the list of game modules for the game, corresponding to the game module names that this module relies on.
         /// </summary>
-        [InternallyDefinedSetting]
+        
         public List<int> GameModuleNumbersThisModuleReliesOn;
 
         /// <summary>
@@ -67,23 +67,23 @@ namespace ACESim
         /// </summary>
         public object GameModuleSettings;
 
-        [InternallyDefinedSetting]
+        
         [NonSerialized]
         [System.Xml.Serialization.XmlIgnore]
         internal Game Game;
 
-        [InternallyDefinedSetting]
+        
         [NonSerialized]
         [System.Xml.Serialization.XmlIgnore]
         internal List<Strategy> AllStrategies;
 
-        [InternallyDefinedSetting]
+        
         public byte? ModuleNumber;
 
-        [InternallyDefinedSetting]
+        
         public byte? FirstDecisionNumberInGameModule;
 
-        [OptionalSetting]
+        
         public bool IgnoreWhenCountingProgress;
 
         public virtual void CreateInstanceAndInitializeProgress(Game theGame, List<Strategy> theStrategies, object gameModuleSettings, out GameModule theGameModule, out GameModuleProgress theGameModuleProgress)

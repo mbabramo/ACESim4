@@ -10,7 +10,7 @@ namespace ACESim.Util
     [Serializable]
     public abstract class UtilityCalculator
     {
-        [OptionalSetting]
+        
         public double InitialWealth;
 
         public abstract double GetSubjectiveUtilityForWealthLevel(double laterWealth);
@@ -101,7 +101,7 @@ namespace ACESim.Util
         public double MaxSubjectiveLossAsMultipleOfSubjectiveGain;
         public double GainNeededToGetToHalfOfSubjectiveMaxGain;
         public double LossNeededToGetToHalfOfSubjectiveMaxLoss;
-        [InternallyDefinedSetting]
+        
         public double WealthReferencePoint;
 
         public double CalculateSubjectiveUtilityBasedOnGainOrLoss(double actualGainOrLoss)

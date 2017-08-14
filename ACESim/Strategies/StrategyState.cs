@@ -15,8 +15,6 @@ namespace ACESim
         public List<Strategy> UnserializedStrategies; // this is a short cut to use when we don't need to deserialize
         public Byte[] SerializedGameFactory;
         public Byte[] SerializedGameDefinition;
-        public Byte[] SerializedSimulationInteraction;
-        public Byte[] SerializedFastPseudoRandom;
 
         public Dictionary<string, Strategy> GetAlreadyDeserializedStrategies(StrategySerializationInfo ssi)
         {

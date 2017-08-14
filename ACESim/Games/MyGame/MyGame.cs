@@ -25,27 +25,27 @@ namespace ACESim
         {
             if (currentDecisionByteCode == (byte)MyGameDecisions.LitigationQuality)
             {
-                MyProgress.PInitialWealth = MyDefinition.PInitialWealth;
-                MyProgress.DInitialWealth = MyDefinition.DInitialWealth;
-                MyProgress.DamagesAlleged = MyDefinition.DamagesAlleged;
+                MyProgress.PInitialWealth = MyDefinition.Options.PInitialWealth;
+                MyProgress.DInitialWealth = MyDefinition.Options.DInitialWealth;
+                MyProgress.DamagesAlleged = MyDefinition.Options.DamagesAlleged;
                 MyProgress.LitigationQualityDiscrete = action;
                 MyProgress.LitigationQualityUniform = ConvertActionToUniformDistributionDraw(action);
                 // If one or both parties have perfect information, then they can get their information about litigation quality now, since they don't need a signal. Note that we also specify in the game definition that the litigation quality should become part of their information set.
-                if (MyDefinition.PNoiseStdev == 0)
+                if (MyDefinition.Options.PNoiseStdev == 0)
                     MyProgress.PSignalUniform = MyProgress.LitigationQualityUniform;
-                if (MyDefinition.DNoiseStdev == 0)
+                if (MyDefinition.Options.DNoiseStdev == 0)
                     MyProgress.DSignalUniform = MyProgress.LitigationQualityUniform;
             }
             else if (currentDecisionByteCode == (byte)MyGameDecisions.PSignal)
             {
                 // Note: This is an unequal probabilities chance decision. The action IS the discrete signal. The game definition then calculates the probability that we would get this signal, given the uniform distribution draw. In other words, this is like a weighted die, where the die is heavily weighted toward signal values that are close to the litigation quality values.
                 MyProgress.PSignalDiscrete = action;
-                MyProgress.PSignalUniform = EquallySpaced.GetLocationOfEquallySpacedPoint(MyProgress.PSignalDiscrete - 1 /* make it zero-based */, MyDefinition.NumSignals);
+                MyProgress.PSignalUniform = EquallySpaced.GetLocationOfEquallySpacedPoint(MyProgress.PSignalDiscrete - 1 /* make it zero-based */, MyDefinition.Options.NumSignals);
             }
             else if (currentDecisionByteCode == (byte)MyGameDecisions.DSignal)
             {
                 MyProgress.DSignalDiscrete = action;
-                MyProgress.DSignalUniform = EquallySpaced.GetLocationOfEquallySpacedPoint(MyProgress.DSignalDiscrete - 1 /* make it zero-based */, MyDefinition.NumSignals);
+                MyProgress.DSignalUniform = EquallySpaced.GetLocationOfEquallySpacedPoint(MyProgress.DSignalDiscrete - 1 /* make it zero-based */, MyDefinition.Options.NumSignals);
             }
             else if (currentDecisionByteCode == (byte)MyGameDecisions.POffer)
             {
@@ -80,7 +80,7 @@ namespace ACESim
         private double GetOfferBasedOnAction(byte action, bool plaintiffOffer)
         {
             double offer;
-            if (MyProgress.BargainingRoundsComplete == 0 || !MyDefinition.SubsequentOffersAreDeltas)
+            if (MyProgress.BargainingRoundsComplete == 0 || !MyDefinition.Options.DeltaOffersOptions.SubsequentOffersAreDeltas)
                 offer = ConvertActionToUniformDistributionDraw(action);
             else
             {
@@ -88,7 +88,7 @@ namespace ACESim
                 if (previousOffer == null)
                     offer = ConvertActionToUniformDistributionDraw(action);
                 else
-                    offer = MyDefinition.DeltaOffersCalculation.GetOfferValue((double) previousOffer, action);
+                    offer = MyDefinition.Options.DeltaOffersCalculation.GetOfferValue((double) previousOffer, action);
             }
             return offer;
         }
@@ -102,18 +102,18 @@ namespace ACESim
             }
             else
             {
-                MyProgress.PChangeWealth = (MyProgress.PWinsAtTrial ? MyProgress.DamagesAlleged : 0) - MyDefinition.PTrialCosts;
-                MyProgress.DChangeWealth = (MyProgress.PWinsAtTrial ? -MyProgress.DamagesAlleged : 0) - MyDefinition.DTrialCosts;
+                MyProgress.PChangeWealth = (MyProgress.PWinsAtTrial ? MyProgress.DamagesAlleged : 0) - MyDefinition.Options.PTrialCosts;
+                MyProgress.DChangeWealth = (MyProgress.PWinsAtTrial ? -MyProgress.DamagesAlleged : 0) - MyDefinition.Options.DTrialCosts;
             }
-            double perPartyBargainingCosts = MyDefinition.PerPartyBargainingRoundCosts * MyProgress.BargainingRoundsComplete;
+            double perPartyBargainingCosts = MyDefinition.Options.PerPartyBargainingRoundCosts * MyProgress.BargainingRoundsComplete;
             MyProgress.PChangeWealth -= perPartyBargainingCosts;
             MyProgress.DChangeWealth -= perPartyBargainingCosts;
             MyProgress.PFinalWealth = MyProgress.PInitialWealth + MyProgress.PChangeWealth;
             MyProgress.DFinalWealth = MyProgress.DInitialWealth + MyProgress.DChangeWealth;
             MyProgress.PWelfare =
-                MyDefinition.PUtilityCalculator.GetSubjectiveUtilityForWealthLevel(MyProgress.PFinalWealth);
+                MyDefinition.Options.PUtilityCalculator.GetSubjectiveUtilityForWealthLevel(MyProgress.PFinalWealth);
             MyProgress.DWelfare =
-                MyDefinition.DUtilityCalculator.GetSubjectiveUtilityForWealthLevel(MyProgress.DFinalWealth);
+                MyDefinition.Options.DUtilityCalculator.GetSubjectiveUtilityForWealthLevel(MyProgress.DFinalWealth);
             base.FinalProcessing();
         }
 

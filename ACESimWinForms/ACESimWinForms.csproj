@@ -119,12 +119,6 @@
     <Compile Include="ScatterplotHostForm.Designer.cs">
       <DependentUpon>ScatterplotHostForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="Window.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Window.Designer.cs">
-      <DependentUpon>Window.cs</DependentUpon>
-    </Compile>
     <EmbeddedResource Include="LineChart.resx">
       <DependentUpon>LineChart.cs</DependentUpon>
     </EmbeddedResource>
@@ -140,9 +134,6 @@
     </Compile>
     <EmbeddedResource Include="ScatterplotHostForm.resx">
       <DependentUpon>ScatterplotHostForm.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Window.resx">
-      <DependentUpon>Window.cs</DependentUpon>
     </EmbeddedResource>
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">

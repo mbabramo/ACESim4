@@ -21,18 +21,6 @@ namespace ACESim
         public const int MaxNumPlayers = 4; // this affects fixed-size stack-allocated buffers
         public const int MaxPossibleActions = 100; // same
 
-        public enum CRMAlgorithm
-        {
-            Vanilla,
-            Probing,
-            AverageStrategySampling,
-            PureStrategyFinder
-        }
-
-        CRMAlgorithm Algorithm = CRMAlgorithm.Probing;
-        const int TotalAvgStrategySamplingCFRIterations = 100000000;
-        const int TotalProbingCFRIterations = 100000;
-        const int TotalVanillaCFRIterations = 100000000;
         bool TraceVanillaCRM = false;
         bool TraceProbingCRM = false;
         bool TraceAverageStrategySampling = false;
@@ -49,11 +37,8 @@ namespace ACESim
 
         public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
         bool AllowSkipEveryPermutationInitialization = true;
-        public bool SkipEveryPermutationInitialization => (AllowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)) && Algorithm != CRMAlgorithm.PureStrategyFinder;
+        public bool SkipEveryPermutationInitialization => (AllowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)) && EvolutionSettings.Algorithm != CRMAlgorithm.PureStrategyFinder;
 
-        int? ReportEveryNIterations => Algorithm == CRMAlgorithm.Vanilla ? 10000 : 10000;
-        const int EffectivelyNever = 999999999;
-        int? BestResponseEveryMIterations => EffectivelyNever; // For now, don't do it. This takes most of the time when dealing with partial recall games.
         public int NumRandomIterationsForReporting = 1000;
         bool PrintGameTreeAfterReport = false;
         bool PrintInformationSetsAfterReport = false;
@@ -76,8 +61,6 @@ namespace ACESim
         public IGameFactory GameFactory { get; set; }
 
         public GamePlayer GamePlayer { get; set; }
-
-        public CurrentExecutionInformation CurrentExecutionInformation { get; set; }
 
         public HistoryNavigationInfo Navigation;
 
@@ -113,13 +96,12 @@ namespace ACESim
             Navigation.SetGameStateFn(GetGameState);
         }
 
-        public CRMDevelopment(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition, IGameFactory gameFactory, CurrentExecutionInformation currentExecutionInformation)
+        public CRMDevelopment(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition)
         {
             Strategies = existingStrategyState;
             EvolutionSettings = evolutionSettings;
             GameDefinition = gameDefinition;
-            GameFactory = gameFactory;
-            CurrentExecutionInformation = currentExecutionInformation;
+            GameFactory = GameDefinition.GameFactory;
             NumNonChancePlayers = GameDefinition.Players.Count(x => !x.PlayerIsChance);
             NumChancePlayers = GameDefinition.Players.Count(x => x.PlayerIsChance);
         }
@@ -132,9 +114,7 @@ namespace ACESim
                 EvolutionSettings = EvolutionSettings.DeepCopy(),
                 GameDefinition = GameDefinition,
                 GameFactory = GameFactory,
-                CurrentExecutionInformation = CurrentExecutionInformation,
                 Navigation = Navigation,
-                Algorithm = Algorithm,
                 LookupApproach = LookupApproach
             };
         }
@@ -146,7 +126,7 @@ namespace ACESim
         public void DevelopStrategies()
         {
             Initialize();
-            switch (Algorithm)
+            switch (EvolutionSettings.Algorithm)
             {
                 case CRMAlgorithm.AverageStrategySampling:
                     SolveAvgStrategySamplingCRM();
@@ -454,17 +434,17 @@ namespace ACESim
 
         private unsafe void GenerateReports(int iteration, Func<string> prefaceFn)
         {
-            if (ReportEveryNIterations != null && iteration % ReportEveryNIterations == 0)
+            if (EvolutionSettings.ReportEveryNIterations != null && iteration % EvolutionSettings.ReportEveryNIterations == 0)
             {
                 ActionStrategies previous = ActionStrategy;
                 bool useRandomPaths = SkipEveryPermutationInitialization || NumInitializedGamePaths > NumRandomIterationsForReporting;
-                bool doBestResponse = (BestResponseEveryMIterations != null && iteration % BestResponseEveryMIterations == 0 && BestResponseEveryMIterations != EffectivelyNever && iteration != 0);
+                bool doBestResponse = (EvolutionSettings.BestResponseEveryMIterations != null && iteration % EvolutionSettings.BestResponseEveryMIterations == 0 && EvolutionSettings.BestResponseEveryMIterations != EvolutionSettings.EffectivelyNever && iteration != 0);
                 if (doBestResponse)
                     useRandomPaths = false;
                 Debug.WriteLine("");
                 Debug.WriteLine(prefaceFn());
-                if (Algorithm == CRMAlgorithm.AverageStrategySampling)
-                    Debug.WriteLine($"{NumberAverageStrategySamplingExplorations / (double) ReportEveryNIterations}");
+                if (EvolutionSettings.Algorithm == CRMAlgorithm.AverageStrategySampling)
+                    Debug.WriteLine($"{NumberAverageStrategySamplingExplorations / (double)EvolutionSettings.ReportEveryNIterations}");
                 NumberAverageStrategySamplingExplorations = 0;
                 MainReport(useRandomPaths);
                 MeasureRegretMatchingChanges();
@@ -513,7 +493,7 @@ namespace ACESim
 
         public List<GameProgress> GetRandomCompleteGames(GamePlayer player, int numIterations)
         {
-            return player.PlayMultipleIterations(null, numIterations, CurrentExecutionInformation?.UiInteraction).ToList();
+            return player.PlayMultipleIterations(null, numIterations, null).ToList();
         }
 
         private void GenerateReports_RandomPaths(GamePlayer player)
@@ -1122,7 +1102,7 @@ namespace ACESim
 
         public void ProbingCFRIteration(int iteration)
         {
-            CurrentEpsilonValue = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(FirstOpponentEpsilonValue, LastOpponentEpsilonValue, 0.75, (double)iteration / (double)TotalProbingCFRIterations);
+            CurrentEpsilonValue = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(FirstOpponentEpsilonValue, LastOpponentEpsilonValue, 0.75, (double)iteration / (double)EvolutionSettings.TotalProbingCFRIterations);
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
                 IRandomProducer randomProducer = new ConsistentRandomSequenceProducer(iteration * 1000 + playerBeingOptimized);
@@ -1145,7 +1125,7 @@ namespace ACESim
             if (NumNonChancePlayers > 2)
                 throw new Exception("Internal error. Must implement extra code from Gibson algorithm 2 for more than 2 players.");
             ActionStrategy = ActionStrategies.RegretMatching;
-            for (ProbingCFRIterationNum = 0; ProbingCFRIterationNum < TotalProbingCFRIterations; ProbingCFRIterationNum++)
+            for (ProbingCFRIterationNum = 0; ProbingCFRIterationNum < EvolutionSettings.TotalProbingCFRIterations; ProbingCFRIterationNum++)
             {
                 s.Start();
                 ProbingCFRIteration(ProbingCFRIterationNum);
@@ -1433,7 +1413,7 @@ namespace ACESim
 
         public void AvgStrategySamplingCFRIteration(int iteration)
         {
-            CurrentEpsilonValue = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(FirstOpponentEpsilonValue, LastOpponentEpsilonValue, 0.75, (double)iteration / (double)TotalAvgStrategySamplingCFRIterations);
+            CurrentEpsilonValue = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(FirstOpponentEpsilonValue, LastOpponentEpsilonValue, 0.75, (double)iteration / (double)EvolutionSettings.TotalAvgStrategySamplingCFRIterations);
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
                 if (ShouldEstimateImprovementOverTime)
@@ -1467,11 +1447,11 @@ namespace ACESim
                 throw new Exception("Internal error. Must implement extra code from Gibson algorithm 2 for more than 2 players.");
             ActionStrategy = ActionStrategies.RegretMatching;
             AvgStrategySamplingCFRIterationNum = -1;
-            int reportingGroupSize = ReportEveryNIterations ?? TotalAvgStrategySamplingCFRIterations;
+            int reportingGroupSize = EvolutionSettings.ReportEveryNIterations ?? EvolutionSettings.TotalAvgStrategySamplingCFRIterations;
             if (ShouldEstimateImprovementOverTime)
                 InitializeImprovementOverTimeEstimation();
             Stopwatch s = new Stopwatch();
-            for (int iterationGrouper = 0; iterationGrouper < TotalAvgStrategySamplingCFRIterations; iterationGrouper += reportingGroupSize)
+            for (int iterationGrouper = 0; iterationGrouper < EvolutionSettings.TotalAvgStrategySamplingCFRIterations; iterationGrouper += reportingGroupSize)
             {
                 if (iterationGrouper == 0)
                     GenerateReports(0, () => $"Iteration 0");
@@ -1658,7 +1638,7 @@ namespace ACESim
 
         public unsafe void SolveVanillaCRM()
         {
-            for (int iteration = 0; iteration < TotalVanillaCFRIterations; iteration++)
+            for (int iteration = 0; iteration < EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
                 VanillaCFRIteration(iteration); 
             }

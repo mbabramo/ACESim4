@@ -200,11 +200,6 @@ namespace ACESim
             copy.RandomNumbersUsed = this.RandomNumbersUsed;
         }
 
-        public virtual void Report(SimulationInteraction interaction)
-        {
-            interaction.ReportOutputForIteration(this);
-        }
-
         private object GetFieldValueForReportFromGameModuleProgress(string variableNameForReport, int? listIndex, out bool found)
         {
             foreach (GameModuleProgress gameModuleProgress in GameModuleProgresses)

@@ -24,7 +24,7 @@ namespace ACESim
         { // we need a paramaterless constructor for serialization
         }
 
-        public Report(string theStoreReportResultsFile, List<string> theNamesOfVariableSetsChosen, string theReportInitiationTimeString, List<RowOrColumnGroup> theRowsGroups, List<RowOrColumnGroup> theColsGroups, List<PointChartReport> thePointChartReports, List<GameProgressReportable> theOutputs, bool doParallelReporting, SimulationInteraction simulationInteraction)
+        public Report(string theStoreReportResultsFile, List<string> theNamesOfVariableSetsChosen, string theReportInitiationTimeString, List<RowOrColumnGroup> theRowsGroups, List<RowOrColumnGroup> theColsGroups, List<PointChartReport> thePointChartReports, List<GameProgressReportable> theOutputs, bool doParallelReporting)
         {
             storeReportResultsFile = theStoreReportResultsFile;
             namesOfVariableSetsChosen = theNamesOfVariableSetsChosen;
@@ -49,13 +49,13 @@ namespace ACESim
                 }
 
             foreach (var chart in pointChartReports)
-                Create2DPlot(theOutputs, chart, simulationInteraction);
+                Create2DPlot(theOutputs, chart);
             contents = new List<List<double?>>();
             GenerateRowAndColHeads(theRows, theColumns);
             GenerateStatistics(theRows, theColumns, theOutputs);
         }
 
-        internal void Create2DPlot(List<GameProgressReportable> theOutputs, PointChartReport pointChartReport, SimulationInteraction simulationInteraction)
+        internal void Create2DPlot(List<GameProgressReportable> theOutputs, PointChartReport pointChartReport)
         {
             List<double[]> points = new List<double[]>();
             bool abort = false;
@@ -71,8 +71,8 @@ namespace ACESim
                 if (found && xValue != null && yValue != null)
                     points.Add(new double[] { (double) xValue, (double) yValue });
             }
-            if (!abort)
-                simulationInteraction.Create2DPlot(points, pointChartReport.Graph2DSettings, "");
+            //if (!abort)
+            //    simulationInteraction.Create2DPlot(points, pointChartReport.Graph2DSettings, "");
         }
 
         internal void GenerateStatistics(List<RowOrColInfo> theRows, List<RowOrColInfo> theColumns, List<GameProgressReportable> theOutputs)

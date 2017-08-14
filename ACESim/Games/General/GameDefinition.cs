@@ -9,7 +9,10 @@ namespace ACESim
     [Serializable]
     public class GameDefinition
     {
+        public IGameFactory GameFactory;
+
         public List<PlayerInfo> Players;
+
 
         /// <summary>
         /// The number of players in the game, including chance (if applicable).
@@ -17,44 +20,43 @@ namespace ACESim
         public byte NumPlayers;
 
         public virtual byte PlayerIndex_ResolutionPlayer => throw new NotImplementedException();
-
-        [OptionalSetting]
+        
         public List<GameModule> GameModules;
 
-        [OptionalSetting]
+        
         public List<string> GameModuleNamesGameReliesOn;
 
-        [OptionalSetting]
+        
         public List<int> GameModuleNumbersGameReliesOn;
 
-        [OptionalSetting]
+        
         public List<ActionGroupRepetition> AutomaticRepetitions;
 
         /// <summary>
         /// A list of all execution groups, in execution order. Note that a single decision may be included multiple times, but if so, it must be evolved mutliple times
         /// </summary>
-        [InternallyDefinedSetting]
+        
         public List<ActionGroup> ExecutionOrder;
 
         /// <summary>
         /// In a nonmodular game, the game definition should set these directly. In a modular game, this will be set automatically from the decisions in ExecutionOrder. Either way, each instance in this list represents a separately evolved decision. So, if a decision is repeated in execution, a single Decision object will be included multiple times. The index into this list represents the decision number
         /// </summary>
-        [OptionalSetting]
+        
         public List<Decision> DecisionsExecutionOrder;
 
-        [InternallyDefinedSetting]
+        
         public List<ActionPoint> DecisionPointsExecutionOrder;
 
         /// <summary>
         /// The index into ExecutionOrder for each decision in DecisionPointsExecutionOrder.
         /// </summary>
-        [InternallyDefinedSetting]
+        
         private List<int> ExecutionOrderIndexForEachDecision;
 
         /// <summary>
         /// The index into ActionPoints within the ActionGroup indexed by ActionGroupNumberForEachDecision.
         /// </summary>
-        [InternallyDefinedSetting]
+        
         private List<int> ActionPointIndexForEachDecision;
 
         public ActionPoint DecisionPointForDecisionNumber(int decisionNumber)
@@ -68,10 +70,10 @@ namespace ACESim
             return GameModules[(int) dp.ActionGroup.ModuleNumber];
         }
 
-        [InternallyDefinedSetting]
+        
         private bool DecisionsSetFromModules = false; // have we initialized this yet
 
-        public virtual void Initialize()
+        public virtual void Initialize(IGameFactory gameFactory)
         {
             if (DecisionsSetFromModules)
                 return;
@@ -81,6 +83,8 @@ namespace ACESim
                 InitializeNonmodularGame(); 
             else
                 InitializeModularGame();
+
+            GameFactory = gameFactory;
         }
 
         private void InitializeModularGame()

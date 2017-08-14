@@ -115,7 +115,7 @@ namespace ACESim
             if (navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)
             {
                 GameProgress nextProgress = GameProgress.DeepCopy();
-                IGameFactory gameFactory = navigation.Strategies[0].SimulationInteraction.CurrentExecutionInformation.GameFactory;
+                IGameFactory gameFactory = navigation.GameDefinition.GameFactory;
                 GamePlayer player = new GamePlayer(navigation.Strategies, gameFactory, false, navigation.GameDefinition);
                 player.ContinuePathWithAction(actionChosen, nextProgress);
                 next.HistoryToPoint = nextProgress.GameHistory;

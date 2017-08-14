@@ -168,17 +168,16 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Executor\Interactionless.cs" />
-    <Compile Include="Executor\ProgressResumptionManager.cs" />
-    <Compile Include="Executor\ProgressResumptionManagerInfo.cs" />
-    <Compile Include="Executor\ProgressResumptionOptions.cs" />
     <Compile Include="Games\General\GameHistory.cs" />
     <Compile Include="Games\General\ActionPoint.cs" />
     <Compile Include="Games\General\ActionGroup.cs" />
     <Compile Include="Games\General\ActionGroupRepetition.cs" />
     <Compile Include="Games\General\InformationSetHistory.cs" />
+    <Compile Include="Games\General\IterationID.cs" />
+    <Compile Include="Games\MyGame\DeltaOffersOptions.cs" />
     <Compile Include="Games\MyGame\MyGameDecisions.cs" />
     <Compile Include="Games\MyGame\DeltaOffersCalculation.cs" />
+    <Compile Include="Games\MyGame\MyGameOptions.cs" />
     <Compile Include="Games\MyGame\MyGamePlayers.cs" />
     <Compile Include="Games\General\PlayerInfo.cs" />
     <Compile Include="Games\SimpleGame\SimpleGame.cs" />
@@ -225,18 +224,8 @@
       <DependentUpon>SimData.tt</DependentUpon>
     </Compile>
     <Compile Include="Reports\Charting\PointChartReport.cs" />
-    <Compile Include="Commands\CommandSet.cs" />
-    <Compile Include="Commands\Command\Command.cs" />
-    <Compile Include="Commands\Command\EvolveCommand.cs" />
-    <Compile Include="Commands\MultiPartCommand.cs" />
-    <Compile Include="Commands\Command\PlayCommand.cs" />
-    <Compile Include="Commands\Command\ReportCommand.cs" />
-    <Compile Include="Evolution\CompleteSettings.cs" />
     <Compile Include="Evolution\Decision.cs" />
-    <Compile Include="Evolution\DecisionEvolver.cs" />
     <Compile Include="Evolution\EvolutionSettings.cs" />
-    <Compile Include="Executor\ExecutorMultiple.cs" />
-    <Compile Include="Executor\ProgressStep.cs" />
     <Compile Include="Games\General\Game.cs" />
     <Compile Include="Games\General\GameDefinition.cs" />
     <Compile Include="Games\General\GameFactoryFactory.cs" />
@@ -253,11 +242,6 @@
     <Compile Include="Games\MyGame\MyGameDefinition.cs" />
     <Compile Include="Games\MyGame\MyGameFactory.cs" />
     <Compile Include="Games\MyGame\MyGameProgress.cs" />
-    <Compile Include="Executor\CurrentExecutionInformation.cs" />
-    <Compile Include="Executor\Executor.cs" />
-    <Compile Include="Executor\IUiInteraction.cs" />
-    <Compile Include="Executor\SimulationInteraction.cs" />
-    <Compile Include="Commands\ExecuteList.cs" />
     <Compile Include="Reports\Column.cs">
       <DependentUpon>SimData.tt</DependentUpon>
     </Compile>
@@ -278,7 +262,6 @@
     <Compile Include="Reports\Filter\FilterAnd.cs" />
     <Compile Include="Reports\Filter\FilterInt.cs" />
     <Compile Include="Reports\Filter\FilterOr.cs" />
-    <Compile Include="Executor\SimulationCoordinator.cs" />
     <Compile Include="Reports\Filter\Filter.cs" />
     <Compile Include="Reports\Filter\FilterBool.cs" />
     <Compile Include="Reports\Filter\FilterDouble.cs" />
@@ -359,20 +342,6 @@
     <Compile Include="Reports\vw_aspnet_UsersInRoles.cs">
       <DependentUpon>SimData.tt</DependentUpon>
     </Compile>
-    <Compile Include="Settings\ChangeSettings\ChangeSimulationSettingGenerator.cs" />
-    <Compile Include="Settings\ChangeSettings\ChangeSimulationSettings.cs" />
-    <Compile Include="Settings\ChangeSettings\ChangeSimulationSettingContainer.cs" />
-    <Compile Include="Settings\ChangeSettings\IChangeSimulationSettingPermutator.cs" />
-    <Compile Include="Settings\CodeBasedGeneration\CodeBasedSettingGeneratorFactory.cs" />
-    <Compile Include="Settings\CodeBasedGeneration\ICodeBasedSettingGenerator.cs" />
-    <Compile Include="Settings\CodeBasedGeneration\ICodeBasedSettingGeneratorName.cs" />
-    <Compile Include="Settings\Compiling\SettingCompilation.cs" />
-    <Compile Include="Settings\Input\FlipInputSeedAttribute.cs" />
-    <Compile Include="Settings\Input\IterationID.cs" />
-    <Compile Include="Settings\Input\SwapInputSeedsAttribute.cs" />
-    <Compile Include="Settings\Loading and tracking\FindReplaceVariable.cs" />
-    <Compile Include="Settings\Loading and tracking\OptionalAndSkipAttributes.cs" />
-    <Compile Include="Settings\Setting\SettingVariable.cs" />
     <Compile Include="SimpleReports\SimpleReport.cs" />
     <Compile Include="SimpleReports\SimpleReportColumnFilter.cs" />
     <Compile Include="SimpleReports\SimpleReportColumnItem.cs" />
@@ -381,6 +350,7 @@
     <Compile Include="SimpleReports\SimpleReportFilter.cs" />
     <Compile Include="Strategies\ActionStrategies.cs" />
     <Compile Include="Strategies\CRM\CRMActionProbabilities.cs" />
+    <Compile Include="Strategies\CRM\CRMAlgorithm.cs" />
     <Compile Include="Strategies\CRM\CRMChanceNodeSettings.cs" />
     <Compile Include="Strategies\CRM\CRMChanceNodeSettings_EqualProbabilities.cs" />
     <Compile Include="Strategies\CRM\CRMChanceNodeSettings_UnequalProbabilities.cs" />
@@ -402,71 +372,6 @@
     <Compile Include="Util\InvNormal.cs" />
     <Compile Include="Util\IRandomProducer.cs" />
     <Compile Include="Util\PriorityQueueSmallRAMFootprint.cs" />
-    <Compile Include="Settings\Distributions\MixtureDistribution.cs" />
-    <Compile Include="Settings\Distributions\CurveDistribution.cs" />
-    <Compile Include="Settings\Distributions\Distribution.cs" />
-    <Compile Include="Settings\Distributions\DistributionFactory.cs" />
-    <Compile Include="Settings\Distributions\DistributionsInputTracker.cs" />
-    <Compile Include="Settings\Distributions\IDistribution.cs" />
-    <Compile Include="Settings\Distributions\IDistributionName.cs" />
-    <Compile Include="Settings\Distributions\NormalDistribution.cs" />
-    <Compile Include="Settings\Distributions\UniformDistribution.cs" />
-    <Compile Include="Settings\Input\InputSeeds.cs" />
-    <Compile Include="Settings\Input\InputSeedsColumnGenerator.cs" />
-    <Compile Include="Settings\Input\InputSeedsSet.cs" />
-    <Compile Include="Settings\Input\InputSeedsSortHelper.cs" />
-    <Compile Include="Settings\Input\InputVariables.cs" />
-    <Compile Include="Settings\Loading and tracking\FileLoaderException.cs" />
-    <Compile Include="Settings\Loading and tracking\SettingAndFieldInfo.cs" />
-    <Compile Include="Settings\Loading and tracking\SettingsLoader.cs" />
-    <Compile Include="Settings\Loading and tracking\SettingVariableFromSettingTracker.cs" />
-    <Compile Include="Settings\Loading and tracking\StoredSettingAndFieldInfo.cs" />
-    <Compile Include="Settings\SettingsSet\EvolutionSettingsSet.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Settings\SettingsSet\GameDefinitionSettingsSet.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Settings\SettingsSet\GameInputsSet.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Settings\SettingsSet\SettingsSet.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Settings\Setting\Setting.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Settings\Setting\SettingBoolean.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Settings\Setting\SettingCalc.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Settings\Setting\SettingClassOrList.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Settings\Setting\SettingDistribution.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Settings\Setting\SettingDouble.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Settings\Setting\SettingInt32.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Settings\Setting\SettingInt64.cs" />
-    <Compile Include="Settings\Setting\SettingStrategy.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Settings\Setting\SettingString.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Settings\Setting\SettingVariableFromProgram.cs">
-      <SubType>Code</SubType>
-    </Compile>
-    <Compile Include="Settings\Setting\SettingVariableFromSetting.cs">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="Strategies\IStrategiesDeveloper.cs" />
     <Compile Include="Strategies\Strategy.cs" />
     <Compile Include="Strategies\StrategySerialization.cs" />

@@ -62,17 +62,15 @@ namespace ACESim
             }
         }
 
-        public static void SerializeStrategyStateToFiles(Strategy st, string path, string filenameBase)
+        public static void SerializeStrategyStateToFiles(IGameFactory gameFactory, GameDefinition gameDefinition, Strategy st, string path, string filenameBase)
         {
-            StrategyState ss = st.RememberStrategyState();
+            StrategyState ss = st.RememberStrategyState(gameFactory, gameDefinition);
             int serializedStrategiesCount = ss.SerializedStrategies.Count();
             List<string> hashCodes = new List<string>();
             foreach (var stst in ss.SerializedStrategies)
                 hashCodes.Add(ComputeHash(stst)); // improvement: use more sophisticated hashing scheme
             hashCodes.Add(ComputeHash(ss.SerializedGameFactory));
             hashCodes.Add(ComputeHash(ss.SerializedGameDefinition));
-            hashCodes.Add(ComputeHash(ss.SerializedSimulationInteraction));
-            hashCodes.Add(ComputeHash(ss.SerializedFastPseudoRandom));
             BinarySerialization.SerializeObject(Path.Combine(path, filenameBase) + ".sti2", 
                 new StrategySerializationInfo { 
                     NumStrategies = serializedStrategiesCount, 
@@ -92,10 +90,6 @@ namespace ACESim
                         System.IO.File.WriteAllBytes(filename, ss.SerializedGameFactory);
                     else if (s == serializedStrategiesCount + 1)
                         System.IO.File.WriteAllBytes(filename, ss.SerializedGameDefinition);
-                    else if (s == serializedStrategiesCount + 2)
-                        System.IO.File.WriteAllBytes(filename, ss.SerializedSimulationInteraction);
-                    else if (s == serializedStrategiesCount + 3)
-                        System.IO.File.WriteAllBytes(filename, ss.SerializedFastPseudoRandom);
                 }
                 catch
                 {
@@ -134,8 +128,6 @@ namespace ACESim
                 SerializedStrategies = theStrategies,
                 SerializedGameFactory = System.IO.File.ReadAllBytes(filename1),
                 SerializedGameDefinition = System.IO.File.ReadAllBytes(filename2),
-                SerializedSimulationInteraction = System.IO.File.ReadAllBytes(filename3),
-                SerializedFastPseudoRandom = System.IO.File.ReadAllBytes(filename4)
             };
             Strategy mainStrategy = (Strategy) BinarySerialization.GetObjectFromByteArray(ss.SerializedStrategies[(int)theInfo.PlayerNumber]);
             mainStrategy.RecallStrategyState(ss);
