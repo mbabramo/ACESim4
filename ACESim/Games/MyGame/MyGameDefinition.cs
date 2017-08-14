@@ -97,6 +97,13 @@ namespace ACESim
 
         public object GenerateSetting(string options)
         {
+            Setup(options);
+
+            return this;
+        }
+
+        public void Setup(string options)
+        {
             ParseOptions(options);
 
             Players = GetPlayersList();
@@ -105,8 +112,6 @@ namespace ACESim
 
             if (SubsequentOffersAreDeltas)
                 DeltaOffersCalculation = new DeltaOffersCalculation(this);
-
-            return this;
         }
 
         MyGameProgress MyGP(GameProgress gp) => gp as MyGameProgress;

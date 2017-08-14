@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Xml.Serialization;
 
 namespace ACESim
 {
@@ -11,12 +12,12 @@ namespace ACESim
     public class Strategy
     {
         [NonSerialized]
-        [System.Xml.Serialization.XmlIgnore]
+        [XmlIgnore]
         internal SimulationInteraction _simulationInteraction;
         public SimulationInteraction SimulationInteraction { get { return _simulationInteraction; } set { _simulationInteraction = value; } }
 
         [NonSerialized]
-        [System.Xml.Serialization.XmlIgnore]
+        [XmlIgnore]
         internal List<Strategy> _allStrategies;
         public List<Strategy> AllStrategies { get { return _allStrategies; } set { _allStrategies = value; } }
 
@@ -52,6 +53,7 @@ namespace ACESim
             };
             return theStrategy;
         }
+
 
         public void CreateInformationSetTree(int numInitialActions)
         {
@@ -210,6 +212,25 @@ namespace ACESim
                      informationSets.Add((tally, gameDefinition.DecisionsExecutionOrder[tally.DecisionIndex].NumPossibleActions));
              });
              return informationSets;
+        }
+
+        public static List<Strategy> GetStarterStrategies(GameDefinition gameDefinition, SimulationInteraction simulationInteraction, EvolutionSettings evolutionSettings)
+        {
+            var strategies = new List<Strategy>();
+            int numPlayers = gameDefinition.Players.Count();
+            for (int i = 0; i < numPlayers; i++)
+            {
+                var aStrategy = new Strategy();
+                aStrategy.EvolutionSettings = evolutionSettings;
+                aStrategy.SimulationInteraction = simulationInteraction;
+                aStrategy.PlayerInfo = gameDefinition.Players[i];
+                strategies.Add(aStrategy);
+            }
+            for (int i = 0; i < numPlayers; i++)
+            {
+                strategies[i].AllStrategies = strategies;
+            }
+            return strategies;
         }
     }
 }

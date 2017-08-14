@@ -30,6 +30,7 @@ namespace ACESim
     {
         public static Thread Go(string baseOutputDirectory, string settingsPath, IUiInteraction ui, ProgressResumptionOptions progressResumptionOption)
         {
+
             //if (progressResumptionOption == ProgressResumptionOptions.ProceedNormallySavingPastProgress || progressResumptionOption == ProgressResumptionOptions.ProceedNormallyWithoutSavingProgress)
             //    AzureReset.Go(); // will only reset if resetting is on in AzureSetup
 
@@ -263,6 +264,49 @@ namespace ACESim
             aceSimThread.Start();
             return aceSimThread;
         }
+
+        public static void StartMyGame()
+        {
+            MyGameDefinition gameDefinition = new MyGameDefinition();
+            gameDefinition.Setup(@"
+                PInitialWealth: 1000000;
+                DInitialWealth: 1000000;
+                DamagesAlleged: 100000;
+                PRiskAversionType: Neutral;
+                PRiskAversionParameter: 0;
+                DRiskAversionType: Neutral;
+                DRiskAversionParameter: 0;
+                NumLitigationQualityPoints: 5;
+                NumSignals: 5;
+                NumOffers: 5;
+                PNoiseStdev: 0.01; DNoiseStdev: 0.01;
+                PTrialCosts: 5000; DTrialCosts: 5000;
+                PerPartyBargainingRoundCosts: 0.05;
+                SubsequentOffersAreDeltas: false; DeltaStartingValue: 0.01; MaxDelta: 0.25;
+                NumBargainingRounds: 1;
+                ForgetEarlierBargainingRounds: true;
+                SubdivideOffers: false;
+                BargainingRound1Simultaneous: false; BargainingRound1PGoesFirstIfNotSimultaneous: true;
+                BargainingRound2Simultaneous: true; BargainingRound2PGoesFirstIfNotSimultaneous: false;
+                BargainingRound3Simultaneous: true; BargainingRound3PGoesFirstIfNotSimultaneous: true;
+                BargainingRound4Simultaneous: true; BargainingRound4PGoesFirstIfNotSimultaneous: false;
+                BargainingRound5Simultaneous: true; BargainingRound5PGoesFirstIfNotSimultaneous: true;
+                IncludeSignalsReport: true
+            ");
+            gameDefinition.Initialize();
+            IGameFactory gameFactory = new MyGameFactory();
+            EvolutionSettings evolutionSettings = new EvolutionSettings()
+            {
+                MaxParallelDepth = 1,
+                NumIterationsPerPhase = 10000,
+                NumPhases = 1,
+                ParallelOptimization = true
+            };
+            List<Strategy> starterStrategies = Strategy.GetStarterStrategies(gameDefinition, null, evolutionSettings);
+            CRMDevelopment developer =
+                new CRMDevelopment(starterStrategies, evolutionSettings, gameDefinition, gameFactory, null);
+            developer.DevelopStrategies();
+        }
     }
 
     class Program
@@ -303,7 +347,7 @@ namespace ACESim
 
         static void Main(string[] args)
         {
-            new RunWithoutUI();
+            StartRunning.StartMyGame();
         }
     }
 }
