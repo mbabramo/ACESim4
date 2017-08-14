@@ -31,7 +31,7 @@ namespace ACESim
 
         CRMAlgorithm Algorithm = CRMAlgorithm.Probing;
         const int TotalAvgStrategySamplingCFRIterations = 100000000;
-        const int TotalProbingCFRIterations = 100000000;
+        const int TotalProbingCFRIterations = 100000;
         const int TotalVanillaCFRIterations = 100000000;
         bool TraceVanillaCRM = false;
         bool TraceProbingCRM = false;
