@@ -168,12 +168,12 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Games\General\GameHistory.cs" />
-    <Compile Include="Games\General\ActionPoint.cs" />
-    <Compile Include="Games\General\ActionGroup.cs" />
-    <Compile Include="Games\General\ActionGroupRepetition.cs" />
-    <Compile Include="Games\General\InformationSetHistory.cs" />
-    <Compile Include="Games\General\IterationID.cs" />
+    <Compile Include="GamePlay\GameHistory.cs" />
+    <Compile Include="GamePlay\ActionPoint.cs" />
+    <Compile Include="GamePlay\ActionGroup.cs" />
+    <Compile Include="GamePlay\ActionGroupRepetition.cs" />
+    <Compile Include="GamePlay\InformationSetHistory.cs" />
+    <Compile Include="GamePlay\IterationID.cs" />
     <Compile Include="Games\MyGame\DeltaOffersOptions.cs" />
     <Compile Include="Games\MyGame\MyGameActionsGenerator.cs" />
     <Compile Include="Games\MyGame\MyGameDecisions.cs" />
@@ -181,7 +181,7 @@
     <Compile Include="Games\MyGame\MyGameOptions.cs" />
     <Compile Include="Games\MyGame\MyGameOptionsGenerator.cs" />
     <Compile Include="Games\MyGame\MyGamePlayers.cs" />
-    <Compile Include="Games\General\PlayerInfo.cs" />
+    <Compile Include="GamePlay\PlayerInfo.cs" />
     <Compile Include="Games\MyGame\MyGameRunner.cs" />
     <Compile Include="Games\SimpleGame\SimpleGame.cs" />
     <Compile Include="Games\SimpleGame\SimpleGameDecisions.cs" />
@@ -190,20 +190,19 @@
     <Compile Include="Games\SimpleGame\SimpleGamePlayers.cs" />
     <Compile Include="Games\SimpleGame\SimpleGameProgress.cs" />
     <Compile Include="Program.cs" />
-    <Compile Include="Evolution\Decision.cs" />
-    <Compile Include="Evolution\EvolutionSettings.cs" />
-    <Compile Include="Games\General\Game.cs" />
-    <Compile Include="Games\General\GameDefinition.cs" />
-    <Compile Include="Games\General\GameFactoryFactory.cs" />
-    <Compile Include="Games\General\GameModule.cs" />
-    <Compile Include="Games\General\GameModuleProgress.cs" />
-    <Compile Include="Games\General\GamePlayer.cs" />
-    <Compile Include="Games\General\GameProgress.cs" />
-    <Compile Include="Games\General\GameProgressLogger.cs" />
-    <Compile Include="Games\General\GameProgressReportable.cs" />
-    <Compile Include="Games\General\IGameFactory.cs" />
-    <Compile Include="Games\General\IGameName.cs" />
-    <Compile Include="Games\General\ModularGame.cs" />
+    <Compile Include="Strategies\Decision.cs" />
+    <Compile Include="CRM\EvolutionSettings.cs" />
+    <Compile Include="GamePlay\Game.cs" />
+    <Compile Include="GamePlay\GameDefinition.cs" />
+    <Compile Include="GamePlay\GameFactoryFactory.cs" />
+    <Compile Include="GamePlay\GameModule.cs" />
+    <Compile Include="GamePlay\GameModuleProgress.cs" />
+    <Compile Include="GamePlay\GamePlayer.cs" />
+    <Compile Include="GamePlay\GameProgress.cs" />
+    <Compile Include="GamePlay\GameProgressLogger.cs" />
+    <Compile Include="GamePlay\GameProgressReportable.cs" />
+    <Compile Include="GamePlay\IGameFactory.cs" />
+    <Compile Include="GamePlay\IGameName.cs" />
     <Compile Include="Games\MyGame\MyGame.cs" />
     <Compile Include="Games\MyGame\MyGameDefinition.cs" />
     <Compile Include="Games\MyGame\MyGameFactory.cs" />
@@ -214,22 +213,22 @@
     <Compile Include="SimpleReports\SimpleReportColumnVariable.cs" />
     <Compile Include="SimpleReports\SimpleReportDefinition.cs" />
     <Compile Include="SimpleReports\SimpleReportFilter.cs" />
-    <Compile Include="Strategies\ActionStrategies.cs" />
-    <Compile Include="Strategies\CRM\CRMActionProbabilities.cs" />
-    <Compile Include="Strategies\CRM\CRMAlgorithm.cs" />
-    <Compile Include="Strategies\CRM\CRMChanceNodeSettings.cs" />
-    <Compile Include="Strategies\CRM\CRMChanceNodeSettings_EqualProbabilities.cs" />
-    <Compile Include="Strategies\CRM\CRMChanceNodeSettings_UnequalProbabilities.cs" />
-    <Compile Include="Strategies\CRM\CRMDevelopment.cs" />
-    <Compile Include="Strategies\CRM\CRMFinalUtilities.cs" />
-    <Compile Include="Strategies\CRM\CRMInformationSetNodeTally.cs" />
-    <Compile Include="Strategies\CRM\CRMSubdivisionRegretMatchPath.cs" />
-    <Compile Include="Strategies\CRM\GameStateTypeEnum.cs" />
-    <Compile Include="Strategies\CRM\ICRMGameState.cs" />
-    <Compile Include="Strategies\HistoryNavigationInfo.cs" />
-    <Compile Include="Strategies\HistoryPoint.cs" />
-    <Compile Include="Strategies\HistoryPoint_CachedGameHistoryOnly.cs" />
-    <Compile Include="Strategies\InformationSetLookupApproach.cs" />
+    <Compile Include="CRM\ActionStrategies.cs" />
+    <Compile Include="CRM\CRMActionProbabilities.cs" />
+    <Compile Include="CRM\CRMAlgorithm.cs" />
+    <Compile Include="CRM\CRMChanceNodeSettings.cs" />
+    <Compile Include="CRM\CRMChanceNodeSettings_EqualProbabilities.cs" />
+    <Compile Include="CRM\CRMChanceNodeSettings_UnequalProbabilities.cs" />
+    <Compile Include="CRM\CRMDevelopment.cs" />
+    <Compile Include="CRM\CRMFinalUtilities.cs" />
+    <Compile Include="CRM\CRMInformationSetNodeTally.cs" />
+    <Compile Include="CRM\CRMSubdivisionRegretMatchPath.cs" />
+    <Compile Include="CRM\CRMGameStateTypeEnum.cs" />
+    <Compile Include="CRM\ICRMGameState.cs" />
+    <Compile Include="CRM\HistoryNavigationInfo.cs" />
+    <Compile Include="CRM\HistoryPoint.cs" />
+    <Compile Include="CRM\HistoryPoint_CachedGameHistoryOnly.cs" />
+    <Compile Include="CRM\InformationSetLookupApproach.cs" />
     <Compile Include="Strategies\StrategyState.cs" />
     <Compile Include="Util\Br.cs" />
     <Compile Include="Util\ConsistentRandomSequenceProducer.cs" />
@@ -308,7 +307,6 @@
       <SubType>Designer</SubType>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="ClassDiagram1.cd" />
     <None Include="packages.config">
       <SubType>Designer</SubType>
     </None>
