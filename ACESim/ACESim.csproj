@@ -190,43 +190,6 @@
     <Compile Include="Games\SimpleGame\SimpleGamePlayers.cs" />
     <Compile Include="Games\SimpleGame\SimpleGameProgress.cs" />
     <Compile Include="Program.cs" />
-    <Compile Include="Reports\aspnet_Applications.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\aspnet_Membership.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\aspnet_Membership_GetPasswordWithFormat_Result.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\aspnet_Membership_GetPassword_Result.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\aspnet_Membership_GetUserByName_Result.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\aspnet_Membership_GetUserByUserId_Result.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\aspnet_Profile.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\aspnet_Profile_GetProperties_Result.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\aspnet_Roles.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\aspnet_SchemaVersions.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\aspnet_Users.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\aspnet_UsersInRoles_RemoveUsersFromRoles_Result.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\Charting\PointChartReport.cs" />
     <Compile Include="Evolution\Decision.cs" />
     <Compile Include="Evolution\EvolutionSettings.cs" />
     <Compile Include="Games\General\Game.cs" />
@@ -245,106 +208,6 @@
     <Compile Include="Games\MyGame\MyGameDefinition.cs" />
     <Compile Include="Games\MyGame\MyGameFactory.cs" />
     <Compile Include="Games\MyGame\MyGameProgress.cs" />
-    <Compile Include="Reports\Column.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\ColumnList.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\ColumnListToColumn.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\DatabaseAccess\EntityDataReader.cs" />
-    <Compile Include="Reports\DatabaseAccess\SaveExecutionResults.cs" />
-    <Compile Include="Reports\DataPoint.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\ExecutionResultSet.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\Filter\FilterAnd.cs" />
-    <Compile Include="Reports\Filter\FilterInt.cs" />
-    <Compile Include="Reports\Filter\FilterOr.cs" />
-    <Compile Include="Reports\Filter\Filter.cs" />
-    <Compile Include="Reports\Filter\FilterBool.cs" />
-    <Compile Include="Reports\Filter\FilterDouble.cs" />
-    <Compile Include="Reports\Filter\FilterText.cs" />
-    <Compile Include="Reports\Operator.cs" />
-    <Compile Include="Reports\Report.cs" />
-    <Compile Include="Reports\ReportDefinition.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\ReportSnippet.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\ReportSnippetToReportDefinition.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\RolePermission.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\Row.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\RowList.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\RowListToRow.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\RowOrColInfo.cs" />
-    <Compile Include="Reports\RowOrColInfoGenerator.cs" />
-    <Compile Include="Reports\RowOrColInfoOrGenerator.cs" />
-    <Compile Include="Reports\RowOrColumnGroup.cs" />
-    <Compile Include="Reports\SettingCategory.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\SettingChoice.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\SettingChoiceSet.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\SettingChoiceToExecutionResultSet.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\SettingChoiceToSettingChoiceSet.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\SimData.Context.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>SimData.Context.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\SimData.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\SimData.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>SimData.edmx</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\Statistic.cs" />
-    <Compile Include="Reports\vw_aspnet_Applications.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\vw_aspnet_MembershipUsers.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\vw_aspnet_Profiles.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\vw_aspnet_Roles.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\vw_aspnet_Users.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
-    <Compile Include="Reports\vw_aspnet_UsersInRoles.cs">
-      <DependentUpon>SimData.tt</DependentUpon>
-    </Compile>
     <Compile Include="SimpleReports\SimpleReport.cs" />
     <Compile Include="SimpleReports\SimpleReportColumnFilter.cs" />
     <Compile Include="SimpleReports\SimpleReportColumnItem.cs" />
@@ -386,7 +249,6 @@
     <Compile Include="Util\HeisenbugTracker.cs" />
     <Compile Include="Util\ConstrainedOrder.cs" />
     <Compile Include="Util\ConstrainToRange.cs" />
-    <Compile Include="Reports\Charting\Graph2DSettings.cs" />
     <Compile Include="Util\FieldwiseObjectComparison.cs" />
     <Compile Include="Util\GoldenSectionOptimizer.cs" />
     <Compile Include="Util\InverseCumulativeNormalDistributionPoints.cs" />
@@ -459,23 +321,6 @@
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
     </Compile>
-    <EntityDeploy Include="Reports\SimData.edmx">
-      <Generator>EntityModelCodeGenerator</Generator>
-      <LastGenOutput>SimData.Designer.cs</LastGenOutput>
-    </EntityDeploy>
-    <None Include="Reports\SimData.Context.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <DependentUpon>SimData.edmx</DependentUpon>
-      <LastGenOutput>SimData.Context.cs</LastGenOutput>
-    </None>
-    <None Include="Reports\SimData.edmx.diagram">
-      <DependentUpon>SimData.edmx</DependentUpon>
-    </None>
-    <None Include="Reports\SimData.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <DependentUpon>SimData.edmx</DependentUpon>
-      <LastGenOutput>SimData.cs</LastGenOutput>
-    </None>
     <None Include="Resources\Settings.xsd">
       <SubType>Designer</SubType>
     </None>
@@ -499,7 +344,6 @@
     <Content Include="Games\SimpleGame\Settings\SimpleGameOverallSettings.xml" />
     <Content Include="Games\SimpleGame\Settings\SimpleGameReport.xml" />
     <Content Include="Games\SimpleGame\Settings\scratch.xml" />
-    <Content Include="Reports\SimData.edmx.sql" />
     <Content Include="Scratch.txt" />
   </ItemGroup>
   <ItemGroup>
