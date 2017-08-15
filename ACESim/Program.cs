@@ -12,8 +12,6 @@ using System.IO;
 using System.Runtime.Serialization;
 using System.Diagnostics;
 using ACESim.Util;
-using Microsoft.WindowsAzure.Storage.Table;
-using Microsoft.WindowsAzure.Storage.Queue;
 
 namespace ACESim
 {

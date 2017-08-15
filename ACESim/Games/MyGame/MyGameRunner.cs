@@ -23,10 +23,6 @@ namespace ACESim
 
         public static void EvolveMyGame()
         {
-
-            var myGameProgress = PlayMyGameOnce(MyGameOptionsGenerator.SingleBargainingRound_LowNoise(),
-                MyGameActionsGenerator.SettleAtMidpoint_OneBargainingRound);
-
             MyGameDefinition gameDefinition = new MyGameDefinition();
             var options = MyGameOptionsGenerator.SingleBargainingRound_LowNoise();
             gameDefinition.Setup(options);

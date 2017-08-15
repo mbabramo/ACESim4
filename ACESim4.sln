@@ -10,6 +10,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		Performance1.psess = Performance1.psess
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACESimTest", "ACESimTest\ACESimTest.csproj", "{4D068246-FC54-46B6-947A-4CCBF175279D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,12 +34,25 @@ Global
 		{4B723348-E50B-490C-ACEE-E8A56EC8564B}.Release|x64.Build.0 = Release|Any CPU
 		{4B723348-E50B-490C-ACEE-E8A56EC8564B}.Release|x86.ActiveCfg = Release|Any CPU
 		{4B723348-E50B-490C-ACEE-E8A56EC8564B}.Release|x86.Build.0 = Release|Any CPU
+		{4D068246-FC54-46B6-947A-4CCBF175279D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4D068246-FC54-46B6-947A-4CCBF175279D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4D068246-FC54-46B6-947A-4CCBF175279D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{4D068246-FC54-46B6-947A-4CCBF175279D}.Debug|x64.Build.0 = Debug|Any CPU
+		{4D068246-FC54-46B6-947A-4CCBF175279D}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{4D068246-FC54-46B6-947A-4CCBF175279D}.Debug|x86.Build.0 = Debug|Any CPU
+		{4D068246-FC54-46B6-947A-4CCBF175279D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4D068246-FC54-46B6-947A-4CCBF175279D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4D068246-FC54-46B6-947A-4CCBF175279D}.Release|x64.ActiveCfg = Release|Any CPU
+		{4D068246-FC54-46B6-947A-4CCBF175279D}.Release|x64.Build.0 = Release|Any CPU
+		{4D068246-FC54-46B6-947A-4CCBF175279D}.Release|x86.ActiveCfg = Release|Any CPU
+		{4D068246-FC54-46B6-947A-4CCBF175279D}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{4B723348-E50B-490C-ACEE-E8A56EC8564B} = {FE8C46F8-2AAA-4D85-80A9-AF6F28233639}
+		{4D068246-FC54-46B6-947A-4CCBF175279D} = {FE8C46F8-2AAA-4D85-80A9-AF6F28233639}
 	EndGlobalSection
 	GlobalSection(SubversionScc) = preSolution
 		Manager = AnkhSVN - Subversion Support for Visual Studio
