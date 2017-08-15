@@ -154,13 +154,6 @@ namespace ACESim
             }
         }
 
-        internal class ActionGroupOrderingInfo
-        {
-            public OrderingConstraint Constraint;
-            public ActionGroup ActionGroup1;
-            public ActionGroup ActionGroup2;
-        }
-
         private List<ActionGroup> OrderActionGroups(List<ActionGroup> initialList, bool forEvolution)
         {
             List<ConstrainedPair<ActionGroup>> constraints = new List<ConstrainedPair<ActionGroup>>();

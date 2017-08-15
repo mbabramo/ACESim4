@@ -15,7 +15,6 @@ namespace ACESim
         public GameProgress Progress;
 
         internal List<Strategy> Strategies;
-        internal StatCollectorArray RecordedInputs;
         internal GameDefinition GameDefinition;
         internal List<GameModule> GameModules;
         internal ActionPoint CurrentActionPoint;

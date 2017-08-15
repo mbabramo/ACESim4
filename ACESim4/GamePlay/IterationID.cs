@@ -22,7 +22,8 @@ namespace ACESim
         public double GetRandomNumberBasedOnIterationID(byte randomIndex)
         {
             //return RandomGenerator.NextDouble();
-            return FastPseudoRandom.GetRandom(IterationNumber, (int)randomIndex);
+            return new ConsistentRandomSequenceProducer(IterationNumber).GetDoubleAtIndex((int) randomIndex);
+            //return FastPseudoRandom.GetRandom(IterationNumber, (int)randomIndex);
             // Note: We found that the following didn't produce truly randomly distributed numbers. Using the same Random instance per thread works, but that doesn't produce predictable, consistent results.
             //int seed = (IterationNumber * 1000 + randomIndex).GetHashCode();
             //return GetRandomDoubleFromRandomSeed(seed);
