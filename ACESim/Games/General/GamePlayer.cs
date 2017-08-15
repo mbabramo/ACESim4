@@ -15,7 +15,6 @@ namespace ACESim
     public class GamePlayer
     {
         public List<Strategy> Strategies;
-        public IGameFactory GameFactory;
 
         public ConcurrentBag<GameProgress> CompletedGameProgresses;
         public GameProgress MostRecentlyCompletedGameProgress;
@@ -23,7 +22,7 @@ namespace ACESim
         public GameDefinition GameDefinition;
         public GameProgress StartingProgress;
 
-        public List<double> averageInputs;
+        public List<double> AverageInputs;
         public bool DoParallel;
 
         // parameterless constructor for serialization
@@ -31,23 +30,22 @@ namespace ACESim
         {
         }
 
-        public GamePlayer(List<Strategy> strategies, IGameFactory theGameFactory, bool doParallel, GameDefinition gameDefinition)
+        public GamePlayer(List<Strategy> strategies, bool doParallel, GameDefinition gameDefinition)
         {
             Strategies = strategies;
-            GameFactory = theGameFactory;
-            StartingProgress = GameFactory.CreateNewGameProgress(new IterationID(1));
             DoParallel = doParallel;
-            this.GameDefinition = gameDefinition;
+            GameDefinition = gameDefinition;
+            StartingProgress = GameDefinition.GameFactory.CreateNewGameProgress(new IterationID(1));
         }
         
 
-        public void PlaySinglePath(string path)
+        public void PlaySinglePathAndKeepGoing(string path)
         {
             IEnumerable<byte> path2 = path.Split(',').Select(x => Convert.ToByte(x)).ToList();
-            PlaySinglePath(path2);
+            PlaySinglePathAndKeepGoing(path2);
         }
 
-        public void PlaySinglePath(IEnumerable<byte> path)
+        public void PlaySinglePathAndKeepGoing(IEnumerable<byte> path)
         {
             (GameProgress gameProgress, IEnumerable<byte> next) = PlayPath(path, true);
         }
@@ -86,8 +84,8 @@ namespace ACESim
 
         private class PathInfo
         {
-            public List<byte> Path;
-            public int LastPathAlreadyExpanded;
+            public readonly List<byte> Path;
+            public readonly int LastPathAlreadyExpanded;
 
             public PathInfo(List<byte> path, int? lastPathAlreadyExpanded = null)
             {
@@ -224,18 +222,28 @@ namespace ACESim
             return (progress, nextActionsToPlayList.AsEnumerable());
         }
 
-        public unsafe GameProgress PlayPathAndStop(List<byte> actionsToPlay, ref byte* nextActionsToPlay)
+        public GameProgress PlayPathAndStop(List<byte> actionsToPlay)
         {
-            Game game = GameFactory.CreateNewGame();
+            Game game = GameDefinition.GameFactory.CreateNewGame();
             GameProgress gameProgress = StartingProgress.DeepCopy();
             game.PlaySetup(Strategies, gameProgress, GameDefinition, false, true);
             game.PlayPathAndStop(actionsToPlay);
             return gameProgress;
         }
 
+        public GameProgress PlayUsingActionOverride(Func<Decision, byte> actionOverride)
+        {
+            Game game = GameDefinition.GameFactory.CreateNewGame();
+            GameProgress gameProgress = StartingProgress.DeepCopy();
+            gameProgress.ActionOverrider = actionOverride;
+            game.PlaySetup(Strategies, gameProgress, GameDefinition, false, true);
+            game.PlayUntilComplete();
+            return gameProgress;
+        }
+
         public unsafe GameProgress PlayPathAndKeepGoing(byte* actionsToPlay, ref byte* nextActionsToPlay)
         {
-            Game game = GameFactory.CreateNewGame();
+            Game game = GameDefinition.GameFactory.CreateNewGame();
             GameProgress gameProgress = StartingProgress.DeepCopy();
             game.PlaySetup(Strategies, gameProgress, GameDefinition, false, true);
             game.PlayPathAndContinueWithDefaultAction(actionsToPlay, ref nextActionsToPlay);
@@ -245,7 +253,7 @@ namespace ACESim
 
         private GameProgress PlayGameFromSpecifiedPoint(GameProgress currentState)
         {
-            Game game = GameFactory.CreateNewGame();
+            Game game = GameDefinition.GameFactory.CreateNewGame();
             game.PlaySetup(Strategies, currentState, GameDefinition, false, false);
             game.PlayUntilComplete();
             return game.Progress;
@@ -253,7 +261,7 @@ namespace ACESim
 
         public unsafe void ContinuePathWithAction(byte actionToPlay, GameProgress currentGameState)
         {
-            Game game = GameFactory.CreateNewGame();
+            Game game = GameDefinition.GameFactory.CreateNewGame();
             game.PlaySetup(Strategies, currentGameState, GameDefinition, false, false);
             game.ContinuePathWithAction(actionToPlay);
         }
@@ -405,10 +413,10 @@ namespace ACESim
             }
             else
             {
-                gameProgress = GameFactory.CreateNewGameProgress(iterationIDArray == null ? null : iterationIDArray[iteration]);
+                gameProgress = GameDefinition.GameFactory.CreateNewGameProgress(iterationIDArray == null ? null : iterationIDArray[iteration]);
             }
 
-            Game game = GameFactory.CreateNewGame();
+            Game game = GameDefinition.GameFactory.CreateNewGame();
             game.PlaySetup(strategies, gameProgress, GameDefinition, saveCompletedGameProgressInfos, false);
             game.PlayUntilComplete();
 

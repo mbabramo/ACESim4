@@ -169,6 +169,12 @@ namespace ACESim
             byte actionToChoose;
             if (Progress.ActionsToPlay == null)
                 Progress.ActionsToPlay = new List<byte>();
+            if (Progress.ActionOverrider != null)
+            {
+                byte actionToAdd = Progress.ActionOverrider(CurrentDecision);
+                if (actionToAdd != 0)
+                    return actionToAdd;
+            }
             bool anotherActionPlanned = Progress.ActionsToPlay_MoveNext();
             if (anotherActionPlanned)
                 actionToChoose = Progress.ActionsToPlay_CurrentAction;

@@ -16,8 +16,6 @@ namespace ACESim
         internal List<Strategy> _allStrategies;
         public List<Strategy> AllStrategies { get { return _allStrategies; } set { _allStrategies = value; } }
 
-        public EvolutionSettings EvolutionSettings;
-
         public PlayerInfo PlayerInfo;
 
         private NWayTreeStorageInternal<ICRMGameState> InformationSetTree;
@@ -39,7 +37,6 @@ namespace ACESim
         {
             Strategy theStrategy = new Strategy()
             {
-                EvolutionSettings = EvolutionSettings,
                 AllStrategies = AllStrategies.ToList(),
                 PlayerInfo = PlayerInfo,
                 InformationSetTree = InformationSetTree // not currently a deep copy -- may not be needed
@@ -199,15 +196,16 @@ namespace ACESim
              return informationSets;
         }
 
-        public static List<Strategy> GetStarterStrategies(GameDefinition gameDefinition, EvolutionSettings evolutionSettings)
+        public static List<Strategy> GetStarterStrategies(GameDefinition gameDefinition)
         {
             var strategies = new List<Strategy>();
             int numPlayers = gameDefinition.Players.Count();
             for (int i = 0; i < numPlayers; i++)
             {
-                var aStrategy = new Strategy();
-                aStrategy.EvolutionSettings = evolutionSettings;
-                aStrategy.PlayerInfo = gameDefinition.Players[i];
+                var aStrategy = new Strategy
+                {
+                    PlayerInfo = gameDefinition.Players[i]
+                };
                 strategies.Add(aStrategy);
             }
             for (int i = 0; i < numPlayers; i++)

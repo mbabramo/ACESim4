@@ -116,7 +116,7 @@ namespace ACESim
             {
                 GameProgress nextProgress = GameProgress.DeepCopy();
                 IGameFactory gameFactory = navigation.GameDefinition.GameFactory;
-                GamePlayer player = new GamePlayer(navigation.Strategies, gameFactory, false, navigation.GameDefinition);
+                GamePlayer player = new GamePlayer(navigation.Strategies, false, navigation.GameDefinition);
                 player.ContinuePathWithAction(actionChosen, nextProgress);
                 next.HistoryToPoint = nextProgress.GameHistory;
                 next.GameProgress = nextProgress;

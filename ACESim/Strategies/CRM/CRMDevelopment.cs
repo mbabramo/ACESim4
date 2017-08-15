@@ -145,14 +145,13 @@ namespace ACESim
             }
         }
 
-
         public unsafe void Initialize()
         {
             Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, GetGameState);
             foreach (Strategy strategy in Strategies)
                 strategy.Navigation = Navigation;
 
-            GamePlayer = new GamePlayer(Strategies, GameFactory, EvolutionSettings.ParallelOptimization, GameDefinition);
+            GamePlayer = new GamePlayer(Strategies, EvolutionSettings.ParallelOptimization, GameDefinition);
 
             foreach (Strategy s in Strategies)
             {
@@ -304,7 +303,7 @@ namespace ACESim
         bool processIfNotPrinting = false;
         private unsafe void PrintSameGameResults()
         {
-            //player.PlaySinglePath("1,1,1,1,2,1,1", inputs); // use this to trace through a single path
+            //player.PlaySinglePathAndKeepGoing("1,1,1,1,2,1,1", inputs); // use this to trace through a single path
             if (printProbability == 0 && !processIfNotPrinting)
                 return;
             GamePlayer.PlayAllPaths(PrintGameProbabilistically);

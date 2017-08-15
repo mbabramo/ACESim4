@@ -175,11 +175,14 @@
     <Compile Include="Games\General\InformationSetHistory.cs" />
     <Compile Include="Games\General\IterationID.cs" />
     <Compile Include="Games\MyGame\DeltaOffersOptions.cs" />
+    <Compile Include="Games\MyGame\MyGameActionsGenerator.cs" />
     <Compile Include="Games\MyGame\MyGameDecisions.cs" />
     <Compile Include="Games\MyGame\DeltaOffersCalculation.cs" />
     <Compile Include="Games\MyGame\MyGameOptions.cs" />
+    <Compile Include="Games\MyGame\MyGameOptionsGenerator.cs" />
     <Compile Include="Games\MyGame\MyGamePlayers.cs" />
     <Compile Include="Games\General\PlayerInfo.cs" />
+    <Compile Include="Games\MyGame\MyGameRunner.cs" />
     <Compile Include="Games\SimpleGame\SimpleGame.cs" />
     <Compile Include="Games\SimpleGame\SimpleGameDecisions.cs" />
     <Compile Include="Games\SimpleGame\SimpleGameDefinition.cs" />

@@ -119,7 +119,6 @@ namespace ACESim
         {
             if (!IsComplete())
                 throw new Exception("Game is not complete.");
-            double[] utilitiesFromGameTree = null;
             double[] utilitiesFromCachedGameHistory = null;
             byte resolutionPlayer = navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
             var strategy = navigation.Strategies[resolutionPlayer];
@@ -132,7 +131,7 @@ namespace ACESim
                 finalUtilities = (CRMFinalUtilities)strategy.GetInformationSetTreeValue(resolutionInformationSet);
             }
             utilitiesFromCachedGameHistory = finalUtilities.Utilities;
-            return utilitiesFromGameTree ?? utilitiesFromCachedGameHistory;
+            return utilitiesFromCachedGameHistory;
         }
 
 
