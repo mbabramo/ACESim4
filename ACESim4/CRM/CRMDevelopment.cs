@@ -31,14 +31,14 @@ namespace ACESim
         bool UseEpsilonOnPolicyForOpponent = true;
         double FirstOpponentEpsilonValue = 0.5;
         double LastOpponentEpsilonValue = 0.00001;
-        int LastOpponentEpsilonIteration = 10000;
+        int LastOpponentEpsilonIteration = 1000000;
         double CurrentEpsilonValue; // set in algorithm.
 
         public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
         bool AllowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => (AllowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)) && EvolutionSettings.Algorithm != CRMAlgorithm.PureStrategyFinder;
 
-        public int NumRandomIterationsForReporting = 1000;
+        public int NumRandomIterationsForReporting = 10000;
         bool PrintGameTreeAfterReport = false;
         bool PrintInformationSetsAfterReport = false;
         bool PrintNonChanceInformationSetsOnly = true;

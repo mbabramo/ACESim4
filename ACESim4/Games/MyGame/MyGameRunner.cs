@@ -24,7 +24,7 @@ namespace ACESim
         public static void EvolveMyGame()
         {
             MyGameDefinition gameDefinition = new MyGameDefinition();
-            var options = MyGameOptionsGenerator.SingleBargainingRound_LowNoise();
+            var options = MyGameOptionsGenerator.TwoAlternatingOffers_FivePossibilities_LowNoise();
             gameDefinition.Setup(options);
             List<Strategy> starterStrategies = Strategy.GetStarterStrategies(gameDefinition);
             EvolutionSettings evolutionSettings = new EvolutionSettings()
@@ -32,10 +32,10 @@ namespace ACESim
                 MaxParallelDepth = 2,
                 ParallelOptimization = true,
                 Algorithm = CRMAlgorithm.Probing,
-                TotalAvgStrategySamplingCFRIterations = 100000000,
-                TotalProbingCFRIterations = 100000,
+                TotalAvgStrategySamplingCFRIterations = 10000000,
+                TotalProbingCFRIterations = 1000000,
                 TotalVanillaCFRIterations = 100000000,
-                ReportEveryNIterations = 10000,
+                ReportEveryNIterations = 1000,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever
             };
             CRMDevelopment developer = new CRMDevelopment(starterStrategies, evolutionSettings, gameDefinition);
