@@ -1,0 +1,218 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{4B203C0E-087B-493B-86E2-1D4FC955557F}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>ACESim4</RootNamespace>
+    <AssemblyName>ACESim4</AssemblyName>
+    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="FluentAssertions, Version=4.19.3.0, Culture=neutral, PublicKeyToken=33f2691a05b67b6a, processorArchitecture=MSIL">
+      <HintPath>..\packages\FluentAssertions.4.19.3\lib\net45\FluentAssertions.dll</HintPath>
+    </Reference>
+    <Reference Include="FluentAssertions.Core, Version=4.19.3.0, Culture=neutral, PublicKeyToken=33f2691a05b67b6a, processorArchitecture=MSIL">
+      <HintPath>..\packages\FluentAssertions.4.19.3\lib\net45\FluentAssertions.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="MathNet.Numerics, Version=3.20.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\MathNet.Numerics.3.20.0\lib\net40\MathNet.Numerics.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Threading.Tasks.Dataflow, Version=4.5.24.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\packages\Microsoft.Tpl.Dataflow.4.5.24\lib\portable-net45+win8+wpa81\System.Threading.Tasks.Dataflow.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="System.ValueTuple, Version=4.0.2.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\packages\System.ValueTuple.4.4.0\lib\netstandard1.0\System.ValueTuple.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="CRM\ActionStrategies.cs" />
+    <Compile Include="CRM\CRMActionProbabilities.cs" />
+    <Compile Include="CRM\CRMAlgorithm.cs" />
+    <Compile Include="CRM\CRMChanceNodeSettings.cs" />
+    <Compile Include="CRM\CRMChanceNodeSettings_EqualProbabilities.cs" />
+    <Compile Include="CRM\CRMChanceNodeSettings_UnequalProbabilities.cs" />
+    <Compile Include="CRM\CRMDevelopment.cs" />
+    <Compile Include="CRM\CRMFinalUtilities.cs" />
+    <Compile Include="CRM\CRMGameStateTypeEnum.cs" />
+    <Compile Include="CRM\CRMInformationSetNodeTally.cs" />
+    <Compile Include="CRM\CRMSubdivisionRegretMatchPath.cs" />
+    <Compile Include="CRM\EvolutionSettings.cs" />
+    <Compile Include="CRM\HistoryNavigationInfo.cs" />
+    <Compile Include="CRM\HistoryPoint.cs" />
+    <Compile Include="CRM\HistoryPoint_CachedGameHistoryOnly.cs" />
+    <Compile Include="CRM\ICRMGameState.cs" />
+    <Compile Include="CRM\InformationSetLookupApproach.cs" />
+    <Compile Include="GamePlay\ActionGroup.cs" />
+    <Compile Include="GamePlay\ActionGroupRepetition.cs" />
+    <Compile Include="GamePlay\ActionPoint.cs" />
+    <Compile Include="GamePlay\Game.cs" />
+    <Compile Include="GamePlay\GameDefinition.cs" />
+    <Compile Include="GamePlay\GameHistory.cs" />
+    <Compile Include="GamePlay\GameModule.cs" />
+    <Compile Include="GamePlay\GameModuleProgress.cs" />
+    <Compile Include="GamePlay\GamePlayer.cs" />
+    <Compile Include="GamePlay\GameProgress.cs" />
+    <Compile Include="GamePlay\GameProgressLogger.cs" />
+    <Compile Include="GamePlay\GameProgressReportable.cs" />
+    <Compile Include="GamePlay\IGameFactory.cs" />
+    <Compile Include="GamePlay\IGameName.cs" />
+    <Compile Include="GamePlay\InformationSetHistory.cs" />
+    <Compile Include="GamePlay\IterationID.cs" />
+    <Compile Include="GamePlay\PlayerInfo.cs" />
+    <Compile Include="Games\MyGame\DeltaOffersCalculation.cs" />
+    <Compile Include="Games\MyGame\DeltaOffersOptions.cs" />
+    <Compile Include="Games\MyGame\MyGame.cs" />
+    <Compile Include="Games\MyGame\MyGameActionsGenerator.cs" />
+    <Compile Include="Games\MyGame\MyGameDecisions.cs" />
+    <Compile Include="Games\MyGame\MyGameDefinition.cs" />
+    <Compile Include="Games\MyGame\MyGameFactory.cs" />
+    <Compile Include="Games\MyGame\MyGameOptions.cs" />
+    <Compile Include="Games\MyGame\MyGameOptionsGenerator.cs" />
+    <Compile Include="Games\MyGame\MyGamePlayers.cs" />
+    <Compile Include="Games\MyGame\MyGameProgress.cs" />
+    <Compile Include="Games\MyGame\MyGameRunner.cs" />
+    <Compile Include="Games\SimpleGame\SimpleGame.cs" />
+    <Compile Include="Games\SimpleGame\SimpleGameDecisions.cs" />
+    <Compile Include="Games\SimpleGame\SimpleGameDefinition.cs" />
+    <Compile Include="Games\SimpleGame\SimpleGameFactory.cs" />
+    <Compile Include="Games\SimpleGame\SimpleGamePlayers.cs" />
+    <Compile Include="Games\SimpleGame\SimpleGameProgress.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SimpleReports\SimpleReport.cs" />
+    <Compile Include="SimpleReports\SimpleReportColumnFilter.cs" />
+    <Compile Include="SimpleReports\SimpleReportColumnItem.cs" />
+    <Compile Include="SimpleReports\SimpleReportColumnVariable.cs" />
+    <Compile Include="SimpleReports\SimpleReportDefinition.cs" />
+    <Compile Include="SimpleReports\SimpleReportFilter.cs" />
+    <Compile Include="Strategies\Decision.cs" />
+    <Compile Include="Strategies\IStrategiesDeveloper.cs" />
+    <Compile Include="Strategies\Strategy.cs" />
+    <Compile Include="Strategies\StrategySerialization.cs" />
+    <Compile Include="Strategies\StrategyState.cs" />
+    <Compile Include="Util\ArrayFormConversionExtension.cs" />
+    <Compile Include="Util\BatchExtensions.cs" />
+    <Compile Include="Util\Br.cs" />
+    <Compile Include="Util\Class1.cs" />
+    <Compile Include="Util\CloneExtension.cs" />
+    <Compile Include="Util\ClusteringByFirstItem.cs" />
+    <Compile Include="Util\CombinationMaker.cs" />
+    <Compile Include="Util\ConsistentRandomSequenceProducer.cs" />
+    <Compile Include="Util\ConstrainedOrder.cs" />
+    <Compile Include="Util\ConstrainToRange.cs" />
+    <Compile Include="Util\DiscreteValueSignal.cs" />
+    <Compile Include="Util\DiscreteValueSignalParameters.cs" />
+    <Compile Include="Util\EquallySpaced.cs" />
+    <Compile Include="Util\ExceptionExtraction.cs" />
+    <Compile Include="Util\FastPseudoRandom.cs" />
+    <Compile Include="Util\FieldwiseObjectComparison.cs" />
+    <Compile Include="Util\FixedSizeQueue.cs" />
+    <Compile Include="Util\GoldenSectionOptimizer.cs" />
+    <Compile Include="Util\HeisenbugTracker.cs" />
+    <Compile Include="Util\HyperbolicTangentCurve.cs" />
+    <Compile Include="Util\InverseCumulativeNormalDistributionPoints.cs" />
+    <Compile Include="Util\InvNormal.cs" />
+    <Compile Include="Util\IRandomProducer.cs" />
+    <Compile Include="Util\LimitedConcurrencyLevelTaskScheduler.cs" />
+    <Compile Include="Util\ListExtensions.cs" />
+    <Compile Include="Util\LotteryProbabilities.cs" />
+    <Compile Include="Util\MathApproximate.cs" />
+    <Compile Include="Util\MD5HashGenerator.cs" />
+    <Compile Include="Util\MonotonicCurve.cs" />
+    <Compile Include="Util\NormalDistributionApproximation.cs" />
+    <Compile Include="Util\NumberPrint.cs" />
+    <Compile Include="Util\NWayTreeStorage.cs" />
+    <Compile Include="Util\NWayTreeStorageInternal.cs" />
+    <Compile Include="Util\ObfuscationBruteForce.cs" />
+    <Compile Include="Util\ObjectPool.cs" />
+    <Compile Include="Util\ObjectPoolConcurrent.cs" />
+    <Compile Include="Util\ObjectPoolGeneric.cs" />
+    <Compile Include="Util\Parabola.cs" />
+    <Compile Include="Util\Parallelizer.cs" />
+    <Compile Include="Util\PermutationMaker.cs" />
+    <Compile Include="Util\Primes.cs" />
+    <Compile Include="Util\PriorityQueue.cs" />
+    <Compile Include="Util\ProcessInSeparateAppDomain.cs" />
+    <Compile Include="Util\ProfileSimple.cs" />
+    <Compile Include="Util\RandomGenerator.cs" />
+    <Compile Include="Util\RandomProducer.cs" />
+    <Compile Include="Util\RandomSubset.cs" />
+    <Compile Include="Util\RangeFinder.cs" />
+    <Compile Include="Util\Retry.cs" />
+    <Compile Include="Util\Serialization.cs" />
+    <Compile Include="Util\StatCollector.cs" />
+    <Compile Include="Util\SummaryStatistics.cs" />
+    <Compile Include="Util\TabbedWriteLine.cs" />
+    <Compile Include="Util\TestableDateTime.cs" />
+    <Compile Include="Util\ThreadLocalDisposables.cs" />
+    <Compile Include="Util\UtilityCalculations.cs" />
+    <Compile Include="Util\WalkToIdentifyMemoryPath.cs" />
+    <Compile Include="Util\WeightedPercentileTracker.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+    <None Include="packages.config" />
+    <None Include="Resources\Settings.xsd">
+      <SubType>Designer</SubType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Games\MyGame\Settings\MyGameCommands.xml" />
+    <Content Include="Games\MyGame\Settings\MyGameDefinitions.xml">
+      <SubType>Designer</SubType>
+    </Content>
+    <Content Include="Games\MyGame\Settings\MyGameEvolutionSettings.xml" />
+    <Content Include="Games\MyGame\Settings\MyGameInputs.xml" />
+    <Content Include="Games\MyGame\Settings\MyGameOverallSettings.xml" />
+    <Content Include="Games\MyGame\Settings\MyGameReport.xml" />
+    <Content Include="Games\MyGame\Settings\scratch.xml" />
+    <Content Include="Games\SimpleGame\Reports\simple game results.txt" />
+    <Content Include="Games\SimpleGame\Settings\scratch.xml" />
+    <Content Include="Games\SimpleGame\Settings\SimpleGameCommands.xml" />
+    <Content Include="Games\SimpleGame\Settings\SimpleGameDefinitions.xml" />
+    <Content Include="Games\SimpleGame\Settings\SimpleGameEvolutionSettings.xml" />
+    <Content Include="Games\SimpleGame\Settings\SimpleGameInputs.xml" />
+    <Content Include="Games\SimpleGame\Settings\SimpleGameOverallSettings.xml" />
+    <Content Include="Games\SimpleGame\Settings\SimpleGameReport.xml" />
+    <Content Include="Games\SimpleGame\SimpleGameInputs.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Games\SimpleGame\Iterations\" />
+    <Folder Include="Games\SimpleGame\Strategies\" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

@@ -45,6 +45,9 @@
     <Reference Include="FluentAssertions.Core, Version=4.19.3.0, Culture=neutral, PublicKeyToken=33f2691a05b67b6a, processorArchitecture=MSIL">
       <HintPath>..\packages\FluentAssertions.4.19.3\lib\net45\FluentAssertions.Core.dll</HintPath>
     </Reference>
+    <Reference Include="MathNet.Numerics, Version=3.20.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\MathNet.Numerics.3.20.0\lib\net40\MathNet.Numerics.dll</HintPath>
+    </Reference>
     <Reference Include="Microsoft.VisualStudio.TestPlatform.TestFramework, Version=14.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\MSTest.TestFramework.1.1.11\lib\net45\Microsoft.VisualStudio.TestPlatform.TestFramework.dll</HintPath>
     </Reference>
@@ -64,9 +67,9 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\ACESim\ACESim.csproj">
-      <Project>{4b723348-e50b-490c-acee-e8a56ec8564b}</Project>
-      <Name>ACESim</Name>
+    <ProjectReference Include="..\ACESim4\ACESim4.csproj">
+      <Project>{4b203c0e-087b-493b-86e2-1d4fc955557f}</Project>
+      <Name>ACESim4</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VSToolsPath)\TeamTest\Microsoft.TestTools.targets" Condition="Exists('$(VSToolsPath)\TeamTest\Microsoft.TestTools.targets')" />
