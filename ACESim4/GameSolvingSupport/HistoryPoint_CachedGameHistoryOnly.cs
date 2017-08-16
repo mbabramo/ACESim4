@@ -10,7 +10,7 @@ namespace ACESim
     public struct HistoryPoint_CachedGameHistoryOnly
     {
         public GameHistory HistoryToPoint;
-        public ICRMGameState GameState;
+        public IGameState GameState;
 
         public HistoryPoint_CachedGameHistoryOnly(GameHistory historyToPoint)
         {
@@ -40,11 +40,11 @@ namespace ACESim
             return HistoryToPoint.GetActionsAsList();
         }
         
-        public unsafe ICRMGameState GetGameStateForCurrentPlayer(GameDefinition gameDefinition, List<Strategy> strategies)
+        public unsafe IGameState GetGameStateForCurrentPlayer(GameDefinition gameDefinition, List<Strategy> strategies)
         {
             if (GameState != null)
                 return GameState;
-            ICRMGameState gameStateFromGameHistory = null;
+            IGameState gameStateFromGameHistory = null;
             
             //var informationSetHistories = HistoryToPoint.GetInformationSetHistoryItems().Select(x => x.ToString());
             (Decision nextDecision, byte nextDecisionIndex) = gameDefinition.GetNextDecision(HistoryToPoint);
@@ -108,10 +108,10 @@ namespace ACESim
             var strategy = strategies[resolutionPlayer];
             byte* resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerPlayer];
             gameProgress.GameHistory.GetPlayerInformation(resolutionPlayer, null, resolutionInformationSet);
-            NWayTreeStorage<ICRMGameState> informationSetNode = strategy.SetInformationSetTreeValueIfNotSet(
+            NWayTreeStorage<IGameState> informationSetNode = strategy.SetInformationSetTreeValueIfNotSet(
                         resolutionInformationSet,
                         true,
-                        () => new CRMFinalUtilities(gameProgress.GetNonChancePlayerUtilities())
+                        () => new FinalUtilities(gameProgress.GetNonChancePlayerUtilities())
                         );
         }
 
@@ -124,11 +124,11 @@ namespace ACESim
             var strategy = navigation.Strategies[resolutionPlayer];
             byte* resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerPlayer];
             HistoryToPoint.GetPlayerInformation(resolutionPlayer, null, resolutionInformationSet);
-            CRMFinalUtilities finalUtilities = (CRMFinalUtilities)strategy.GetInformationSetTreeValue(resolutionInformationSet);
+            FinalUtilities finalUtilities = (FinalUtilities)strategy.GetInformationSetTreeValue(resolutionInformationSet);
             if (finalUtilities == null)
             {
                 navigation.GetGameState(new HistoryPoint(null, HistoryToPoint, null)); // make sure that point is initialized up to here
-                finalUtilities = (CRMFinalUtilities)strategy.GetInformationSetTreeValue(resolutionInformationSet);
+                finalUtilities = (FinalUtilities)strategy.GetInformationSetTreeValue(resolutionInformationSet);
             }
             utilitiesFromCachedGameHistory = finalUtilities.Utilities;
             return utilitiesFromCachedGameHistory;
@@ -140,7 +140,7 @@ namespace ACESim
         {
             //var informationSetString = informationSetHistory.ToString();
             //var actionsToHere = GetActionsToHereString(navigation);
-            ICRMGameState gameState = GetGameStateForCurrentPlayer(gameDefinition, strategies);
+            IGameState gameState = GetGameStateForCurrentPlayer(gameDefinition, strategies);
             if (gameState == null)
                 SetInformationAtPoint(gameDefinition, strategies, gameProgress, informationSetHistory);
         }
@@ -152,7 +152,7 @@ namespace ACESim
             var playersStrategy = strategies[informationSetHistory.PlayerIndex];
             bool isNecessarilyLast = false; // Not relevant now that we are storing final utilities decision.IsAlwaysPlayersLastDecision || informationSetHistory.IsTerminalAction;
             var informationSetHistoryCopy = informationSetHistory;
-            NWayTreeStorage<ICRMGameState> informationSetNode = playersStrategy.SetInformationSetTreeValueIfNotSet(
+            NWayTreeStorage<IGameState> informationSetNode = playersStrategy.SetInformationSetTreeValueIfNotSet(
                         informationSetHistoryCopy.DecisionIndex, // this will be a choice at the root level of the information set
                         informationSetHistoryCopy.InformationSetForPlayer,
                         isNecessarilyLast,
@@ -160,9 +160,9 @@ namespace ACESim
                         {
                             if (playerInfo.PlayerIsChance)
                             {
-                                CRMChanceNodeSettings chanceNodeSettings;
+                                ChanceNodeSettings chanceNodeSettings;
                                 if (decision.UnevenChanceActions)
-                                    chanceNodeSettings = new CRMChanceNodeSettings_UnequalProbabilities()
+                                    chanceNodeSettings = new ChanceNodeSettingsUnequalProbabilities()
                                     {
                                         DecisionByteCode = informationSetHistory.DecisionByteCode,
                                         DecisionIndex = informationSetHistory.DecisionIndex,
@@ -170,7 +170,7 @@ namespace ACESim
                                         Probabilities = gameDefinition.GetChanceActionProbabilities(decision.DecisionByteCode, gameProgress) // the probabilities depend on the current state of the game
                                     };
                                 else
-                                    chanceNodeSettings = new CRMChanceNodeSettings_EqualProbabilities()
+                                    chanceNodeSettings = new ChanceNodeSettingsEqualProbabilities()
                                     {
                                         DecisionByteCode = informationSetHistory.DecisionByteCode,
                                         DecisionIndex = informationSetHistory.DecisionIndex,
@@ -184,7 +184,7 @@ namespace ACESim
                                 byte? binarySubdivisionLevels = null;
                                 if (decision.Subdividable_IsSubdivision && decision.Subdividable_NumOptionsPerBranch == 2)
                                     binarySubdivisionLevels = (byte)decision.Subdividable_NumLevels;
-                                CRMInformationSetNodeTally nodeInfo = new CRMInformationSetNodeTally(informationSetHistory.DecisionByteCode, informationSetHistory.DecisionIndex, playerInfo.PlayerIndex, decision.NumPossibleActions, binarySubdivisionLevels);
+                                InformationSetNodeTally nodeInfo = new InformationSetNodeTally(informationSetHistory.DecisionByteCode, informationSetHistory.DecisionIndex, playerInfo.PlayerIndex, decision.NumPossibleActions, binarySubdivisionLevels);
                                 return nodeInfo;
                             }
                         }

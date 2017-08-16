@@ -10,7 +10,7 @@ namespace ACESim
     {
         public bool ParallelOptimization = false;
         public int MaxParallelDepth = 1;
-        public CRMAlgorithm Algorithm = CRMAlgorithm.Probing;
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.Probing;
         public int TotalAvgStrategySamplingCFRIterations = 100000;
         public int TotalProbingCFRIterations = 100000;
         public int TotalVanillaCFRIterations = 100000;

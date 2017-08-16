@@ -1,6 +1,6 @@
 namespace ACESim
 {
-    public enum CRMAlgorithm
+    public enum GameApproximationAlgorithm
     {
         Vanilla,
         Probing,

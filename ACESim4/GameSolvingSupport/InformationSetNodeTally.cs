@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace ACESim
 {
     [Serializable]
-    public class CRMInformationSetNodeTally : ICRMGameState
+    public class InformationSetNodeTally : IGameState
     {
         public static int InformationSetsSoFar = 0;
         public int InformationSetNumber; // could delete this once things are working, but may be useful in testing scenarios
@@ -26,7 +26,7 @@ namespace ACESim
         const int bestResponseNumeratorDimension = 2;
         const int bestResponseDenominatorDimension = 3;
 
-        public CRMInformationSetNodeTally(byte decisionByteCode, byte decisionIndex, byte playerIndex, int numPossibleActions, byte? binarySubdivisionLevels)
+        public InformationSetNodeTally(byte decisionByteCode, byte decisionIndex, byte playerIndex, int numPossibleActions, byte? binarySubdivisionLevels)
         {
             DecisionByteCode = decisionByteCode;
             DecisionIndex = decisionIndex;
@@ -325,44 +325,6 @@ namespace ACESim
                         var quotient = positiveCumulativeRegret / sumPositiveCumulativeRegrets;
                         probabilitiesToSet[a - 1] = quotient;
                     }
-            }
-        }
-
-        public CRMSubdivisionRegretMatchPath GetSubdivisionRegretMatchPath(HistoryPoint historyPoint, HistoryNavigationInfo navigation, byte numLevels, CRMSubdivisionRegretMatchPath? pathSoFar = null)
-        {
-            CRMSubdivisionRegretMatchPath pathSoFar2;
-            if (pathSoFar == null)
-                pathSoFar2 = new CRMSubdivisionRegretMatchPath((byte)(BinarySubdivisionLevels - 1));
-            else
-            {
-                pathSoFar2 = (CRMSubdivisionRegretMatchPath)pathSoFar;
-                pathSoFar2.Level--;
-            }
-            const double probabilityForceComparisonAtThisLevel = 0.0; // DEBUG -- maybe this isn't the best idea?
-            if (RandomGenerator.NextDouble() < probabilityForceComparisonAtThisLevel)
-            {
-                pathSoFar2.RecordHigherChoiceSelected(pathSoFar2.Level);
-                pathSoFar2.SetOneOff(false, numLevels); // we'll do the path lower than this and the main path
-                return pathSoFar2; // we want to compare just around this decision, so we don't want any randomness further down the tree
-            }
-            const double probabilityUseEvenProbabilities = 0.1; // explore other possibilities
-            bool chooseHigher = ChooseHigherOfTwoActionsWithRegretMatching(RandomGenerator.NextDouble(), RandomGenerator.NextDouble(), probabilityUseEvenProbabilities);
-            if (chooseHigher)
-                pathSoFar2.RecordHigherChoiceSelected(pathSoFar2.Level);
-            if (pathSoFar2.Level == 0)
-            {
-                pathSoFar2.SetOneOff(RandomGenerator.NextDouble() > 0.5, numLevels);
-                return pathSoFar2; // return up the call tree
-            }
-            else
-            {
-                byte level = pathSoFar2.Level;
-                HistoryPoint nextHistoryPoint = historyPoint.GetBranch(navigation, chooseHigher ? (byte)2 : (byte)1);
-                CRMInformationSetNodeTally nextTally = (CRMInformationSetNodeTally) nextHistoryPoint.GetGameStateForCurrentPlayer(navigation);
-                // Get the result from a lower level. This may fill in some additional bits to reflect regret matching leading to higher-value decisions there, and it will also include the OneOff set at level 0. But the level will be 0, so we'll have to change that. 
-                CRMSubdivisionRegretMatchPath resultFromLowerLevel = nextTally.GetSubdivisionRegretMatchPath(nextHistoryPoint, navigation, numLevels, pathSoFar2);
-                resultFromLowerLevel.Level = level;
-                return resultFromLowerLevel;
             }
         }
 

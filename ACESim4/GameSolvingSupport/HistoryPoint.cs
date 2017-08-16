@@ -9,12 +9,12 @@ namespace ACESim
 {
     public struct HistoryPoint
     {
-        public NWayTreeStorage<ICRMGameState> TreePoint;
+        public NWayTreeStorage<IGameState> TreePoint;
         public GameHistory HistoryToPoint;
         public GameProgress GameProgress;
-        public ICRMGameState GameState;
+        public IGameState GameState;
 
-        public HistoryPoint(NWayTreeStorage<ICRMGameState> treePoint, GameHistory historyToPoint, GameProgress gameProgress)
+        public HistoryPoint(NWayTreeStorage<IGameState> treePoint, GameHistory historyToPoint, GameProgress gameProgress)
         {
             TreePoint = treePoint;
             HistoryToPoint = historyToPoint;
@@ -57,16 +57,16 @@ namespace ACESim
         /// </summary>
         /// <param name="navigation">The navigation settings. If the LookupApproach is both, this method will verify that both return the same value.</param>
         /// <returns></returns>
-        public unsafe ICRMGameState GetGameStateForCurrentPlayer(HistoryNavigationInfo navigation)
+        public unsafe IGameState GetGameStateForCurrentPlayer(HistoryNavigationInfo navigation)
         {
             if (GameState != null)
                 return GameState;
-            ICRMGameState gameStateFromGameHistory = null;
+            IGameState gameStateFromGameHistory = null;
             if (navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)
             {
                 if (GameProgress.GameComplete)
                 {
-                    GameState = new CRMFinalUtilities(GameProgress.GetNonChancePlayerUtilities());
+                    GameState = new FinalUtilities(GameProgress.GetNonChancePlayerUtilities());
                     return GameState;
                 }
                 // Otherwise, when playing the actual game, we use the GameHistory object, so we'll set this object as the "cached" object even though it's cached.
@@ -91,7 +91,7 @@ namespace ACESim
             }
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
-                ICRMGameState gameStateFromGameTree = TreePoint?.StoredValue;
+                IGameState gameStateFromGameTree = TreePoint?.StoredValue;
                 if (navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
                 {
                     bool equals = gameStateFromGameTree == gameStateFromGameHistory; // this should be the same object (not just equal), because the game tree points to the information set tree
@@ -132,10 +132,10 @@ namespace ACESim
             }
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
-                NWayTreeStorage<ICRMGameState> branch = TreePoint.GetBranch(actionChosen);
+                NWayTreeStorage<IGameState> branch = TreePoint.GetBranch(actionChosen);
                 if (branch == null)
                     lock (TreePoint)
-                        branch = ((NWayTreeStorageInternal<ICRMGameState>)TreePoint).AddBranch(actionChosen, true);
+                        branch = ((NWayTreeStorageInternal<IGameState>)TreePoint).AddBranch(actionChosen, true);
                 next.TreePoint = branch;
             }
             return next;
@@ -147,11 +147,11 @@ namespace ACESim
             {
                 switch (TreePoint.StoredValue)
                 {
-                    case CRMInformationSetNodeTally nt:
+                    case InformationSetNodeTally nt:
                         return nt.PlayerIndex;
-                    case CRMChanceNodeSettings cn:
+                    case ChanceNodeSettings cn:
                         return cn.PlayerNum;
-                    case CRMFinalUtilities utils:
+                    case FinalUtilities utils:
                         return navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
                     default:
                         throw new NotImplementedException();
@@ -170,11 +170,11 @@ namespace ACESim
             {
                 switch (TreePoint.StoredValue)
                 {
-                    case CRMInformationSetNodeTally nt:
+                    case InformationSetNodeTally nt:
                         return nt.DecisionByteCode;
-                    case CRMChanceNodeSettings cn:
+                    case ChanceNodeSettings cn:
                         return cn.DecisionByteCode;
-                    case CRMFinalUtilities utils:
+                    case FinalUtilities utils:
                         throw new NotImplementedException();
                     default:
                         throw new NotImplementedException();
@@ -193,11 +193,11 @@ namespace ACESim
             {
                 switch (TreePoint.StoredValue)
                 {
-                    case CRMInformationSetNodeTally nt:
+                    case InformationSetNodeTally nt:
                         return nt.DecisionIndex;
-                    case CRMChanceNodeSettings cn:
+                    case ChanceNodeSettings cn:
                         return cn.DecisionIndex;
-                    case CRMFinalUtilities utils:
+                    case FinalUtilities utils:
                         throw new NotImplementedException();
                     default:
                         throw new NotImplementedException();
@@ -218,10 +218,10 @@ namespace ACESim
             var strategy = navigation.Strategies[resolutionPlayer];
             byte* resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerPlayer];
             gameProgress.GameHistory.GetPlayerInformation(resolutionPlayer, null, resolutionInformationSet);
-            NWayTreeStorage<ICRMGameState> informationSetNode = strategy.SetInformationSetTreeValueIfNotSet(
+            NWayTreeStorage<IGameState> informationSetNode = strategy.SetInformationSetTreeValueIfNotSet(
                         resolutionInformationSet,
                         true,
-                        () => new CRMFinalUtilities(gameProgress.GetNonChancePlayerUtilities())
+                        () => new FinalUtilities(gameProgress.GetNonChancePlayerUtilities())
                         );
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
                 TreePoint.StoredValue = informationSetNode.StoredValue;
@@ -236,18 +236,18 @@ namespace ACESim
             double[] utilitiesFromGameTree = null;
             double[] utilitiesFromCachedGameHistory = null;
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
-                utilitiesFromGameTree = ((CRMFinalUtilities)TreePoint.StoredValue).Utilities;
+                utilitiesFromGameTree = ((FinalUtilities)TreePoint.StoredValue).Utilities;
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
                 byte resolutionPlayer = navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
                 var strategy = navigation.Strategies[resolutionPlayer];
                 byte* resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerPlayer];
                 HistoryToPoint.GetPlayerInformation(resolutionPlayer, null, resolutionInformationSet);
-                CRMFinalUtilities finalUtilities = (CRMFinalUtilities) strategy.GetInformationSetTreeValue(resolutionInformationSet);
+                FinalUtilities finalUtilities = (FinalUtilities) strategy.GetInformationSetTreeValue(resolutionInformationSet);
                 if (finalUtilities == null)
                 {
                     navigation.GetGameState(this); // make sure that point is initialized up to here
-                    finalUtilities = (CRMFinalUtilities)strategy.GetInformationSetTreeValue(resolutionInformationSet);
+                    finalUtilities = (FinalUtilities)strategy.GetInformationSetTreeValue(resolutionInformationSet);
                 }
                 utilitiesFromCachedGameHistory = finalUtilities.Utilities;
             }
@@ -262,7 +262,7 @@ namespace ACESim
         {
             //var informationSetString = informationSetHistory.ToString();
             //var actionsToHere = GetActionsToHereString(navigation);
-            ICRMGameState gameState = GetGameStateForCurrentPlayer(navigation);
+            IGameState gameState = GetGameStateForCurrentPlayer(navigation);
             if (gameState == null)
                 SetInformationAtPoint(navigation, gameProgress, informationSetHistory);
         }
@@ -274,7 +274,7 @@ namespace ACESim
             var playersStrategy = navigation.Strategies[informationSetHistory.PlayerIndex];
             bool isNecessarilyLast = false; // Not relevant now that we are storing final utilities decision.IsAlwaysPlayersLastDecision || informationSetHistory.IsTerminalAction;
             var informationSetHistoryCopy = informationSetHistory;
-            NWayTreeStorage<ICRMGameState> informationSetNode = playersStrategy.SetInformationSetTreeValueIfNotSet(
+            NWayTreeStorage<IGameState> informationSetNode = playersStrategy.SetInformationSetTreeValueIfNotSet(
                         informationSetHistoryCopy.DecisionIndex, // this will be a choice at the root level of the information set
                         informationSetHistoryCopy.InformationSetForPlayer,
                         isNecessarilyLast,
@@ -282,9 +282,9 @@ namespace ACESim
                         {
                             if (playerInfo.PlayerIsChance)
                             {
-                                CRMChanceNodeSettings chanceNodeSettings;
+                                ChanceNodeSettings chanceNodeSettings;
                                 if (decision.UnevenChanceActions)
-                                    chanceNodeSettings = new CRMChanceNodeSettings_UnequalProbabilities()
+                                    chanceNodeSettings = new ChanceNodeSettingsUnequalProbabilities()
                                     {
                                         DecisionByteCode = informationSetHistory.DecisionByteCode,
                                         DecisionIndex = informationSetHistory.DecisionIndex,
@@ -292,7 +292,7 @@ namespace ACESim
                                         Probabilities = navigation.GameDefinition.GetChanceActionProbabilities(decision.DecisionByteCode, gameProgress) // the probabilities depend on the current state of the game
                                     };
                                 else
-                                    chanceNodeSettings = new CRMChanceNodeSettings_EqualProbabilities()
+                                    chanceNodeSettings = new ChanceNodeSettingsEqualProbabilities()
                                     {
                                         DecisionByteCode = informationSetHistory.DecisionByteCode,
                                         DecisionIndex = informationSetHistory.DecisionIndex,
@@ -306,7 +306,7 @@ namespace ACESim
                                 byte? binarySubdivisionLevels = null;
                                 if (decision.Subdividable_IsSubdivision && decision.Subdividable_NumOptionsPerBranch == 2)
                                     binarySubdivisionLevels = (byte)decision.Subdividable_NumLevels;
-                                CRMInformationSetNodeTally nodeInfo = new CRMInformationSetNodeTally(informationSetHistory.DecisionByteCode, informationSetHistory.DecisionIndex, playerInfo.PlayerIndex, decision.NumPossibleActions, binarySubdivisionLevels);
+                                InformationSetNodeTally nodeInfo = new InformationSetNodeTally(informationSetHistory.DecisionByteCode, informationSetHistory.DecisionIndex, playerInfo.PlayerIndex, decision.NumPossibleActions, binarySubdivisionLevels);
                                 return nodeInfo;
                             }
                         }

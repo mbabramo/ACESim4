@@ -18,14 +18,14 @@ namespace ACESim
 
         public PlayerInfo PlayerInfo;
 
-        private NWayTreeStorageInternal<ICRMGameState> InformationSetTree;
+        private NWayTreeStorageInternal<IGameState> InformationSetTree;
         public string GetInformationSetTreeString() => InformationSetTree.ToTreeString();
         public HistoryNavigationInfo Navigation;
         public ActionStrategies ActionStrategy;
 
         public byte ChooseActionBasedOnRandomNumber(GameProgress gameProgress, double randomNumber, byte numPossibleActions)
         {
-            return CRMActionProbabilities.ChooseActionBasedOnRandomNumber(gameProgress, randomNumber, ActionStrategy, numPossibleActions, null, Navigation);
+            return ActionProbabilityUtilities.ChooseActionBasedOnRandomNumber(gameProgress, randomNumber, ActionStrategy, numPossibleActions, null, Navigation);
         }
 
         public Strategy()
@@ -48,7 +48,7 @@ namespace ACESim
 
         public void CreateInformationSetTree(int numInitialActions)
         {
-            InformationSetTree = new NWayTreeStorageInternal<ICRMGameState>(null, numInitialActions);
+            InformationSetTree = new NWayTreeStorageInternal<IGameState>(null, numInitialActions);
         }
 
         public unsafe NWayTreeStorage<List<double>> GetRegretMatchingTree()
@@ -57,7 +57,7 @@ namespace ACESim
             var nodes = InformationSetTree.GetAllTreeNodes();
             foreach (var node in nodes)
             {
-                if (node.storedValue is CRMInformationSetNodeTally tallyNode)
+                if (node.storedValue is InformationSetNodeTally tallyNode)
                 {
                     byte* sequencePointer = stackalloc byte[node.sequenceToHere.Count() + 1];
                     for (int i = 0; i < node.sequenceToHere.Count(); i++)
@@ -71,26 +71,26 @@ namespace ACESim
 
         // NOTE: Sometimes we preface the information set with a decisionIndex, so we have dedicated methods for this.
 
-        public unsafe NWayTreeStorage<ICRMGameState> SetInformationSetTreeValueIfNotSet(byte decisionIndex, byte* informationSet, bool historyComplete, Func<ICRMGameState> setter)
+        public unsafe NWayTreeStorage<IGameState> SetInformationSetTreeValueIfNotSet(byte decisionIndex, byte* informationSet, bool historyComplete, Func<IGameState> setter)
         {
             var returnVal = InformationSetTree.SetValueIfNotSet((byte) (decisionIndex + 1), informationSet, historyComplete, setter);
             // System.Diagnostics.Debug.WriteLine($"{String.Join(",", informationSet)}: {PlayerInfo.PlayerName} {returnVal.StoredValue}");
             return returnVal;
         }
 
-        public unsafe NWayTreeStorage<ICRMGameState> SetInformationSetTreeValueIfNotSet(byte* informationSet, bool historyComplete, Func<ICRMGameState> setter)
+        public unsafe NWayTreeStorage<IGameState> SetInformationSetTreeValueIfNotSet(byte* informationSet, bool historyComplete, Func<IGameState> setter)
         {
             var returnVal = InformationSetTree.SetValueIfNotSet(informationSet, historyComplete, setter);
             // System.Diagnostics.Debug.WriteLine($"{String.Join(",", informationSet)}: {PlayerInfo.PlayerName} {returnVal.StoredValue}");
             return returnVal;
         }
 
-        public unsafe ICRMGameState GetInformationSetTreeValue(byte decisionIndex, byte* informationSet)
+        public unsafe IGameState GetInformationSetTreeValue(byte decisionIndex, byte* informationSet)
         {
             return InformationSetTree?.GetValue((byte)(decisionIndex + 1), informationSet);
         }
 
-        public unsafe ICRMGameState GetInformationSetTreeValue(byte* informationSet)
+        public unsafe IGameState GetInformationSetTreeValue(byte* informationSet)
         {
             return InformationSetTree?.GetValue(informationSet);
         }
@@ -184,13 +184,13 @@ namespace ACESim
             filenameBase = "strsta" + numStrategyStatesSerialized.ToString();
         }
 
-        public List<(CRMInformationSetNodeTally, int)> GetTallyNodes(GameDefinition gameDefinition)
+        public List<(InformationSetNodeTally, int)> GetTallyNodes(GameDefinition gameDefinition)
         {
-            List<(CRMInformationSetNodeTally, int)> informationSets = new List<(CRMInformationSetNodeTally, int)>();
-            InformationSetTree.WalkTree((NWayTreeStorage<ICRMGameState> tree) =>
+            List<(InformationSetNodeTally, int)> informationSets = new List<(InformationSetNodeTally, int)>();
+            InformationSetTree.WalkTree((NWayTreeStorage<IGameState> tree) =>
              {
-                 ICRMGameState gameState = tree.StoredValue;
-                 if (gameState != null && gameState is CRMInformationSetNodeTally tally)
+                 IGameState gameState = tree.StoredValue;
+                 if (gameState != null && gameState is InformationSetNodeTally tally)
                      informationSets.Add((tally, gameDefinition.DecisionsExecutionOrder[tally.DecisionIndex].NumPossibleActions));
              });
              return informationSets;

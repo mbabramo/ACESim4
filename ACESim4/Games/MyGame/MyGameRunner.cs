@@ -32,7 +32,7 @@ namespace ACESim
                 MaxParallelDepth = 2,
                 ParallelOptimization = true,
 
-                Algorithm = CRMAlgorithm.Vanilla,
+                Algorithm = GameApproximationAlgorithm.Vanilla,
                 TotalAvgStrategySamplingCFRIterations = 10000000,
                 TotalProbingCFRIterations = 100000,
                 TotalVanillaCFRIterations = 100000000,
@@ -46,7 +46,7 @@ namespace ACESim
                 LastOpponentEpsilonIteration = 10000,
                 MaxOneEpsilonExploration = true,
             };
-            CRMDevelopment developer = new CRMDevelopment(starterStrategies, evolutionSettings, gameDefinition);
+            CounterfactualRegretMaximization developer = new CounterfactualRegretMaximization(starterStrategies, evolutionSettings, gameDefinition);
             developer.DevelopStrategies();
         }
     }

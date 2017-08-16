@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
-    public interface ICRMGameState
+    public interface IGameState
     {
         GameStateTypeEnum GetGameStateType();
     }

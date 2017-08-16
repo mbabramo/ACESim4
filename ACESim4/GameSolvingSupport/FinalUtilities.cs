@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 namespace ACESim
 {
     [Serializable]
-    public class CRMFinalUtilities : ICRMGameState
+    public class FinalUtilities : IGameState
     {
         public double[] Utilities;
 
-        public CRMFinalUtilities(double[] utilities)
+        public FinalUtilities(double[] utilities)
         {
             Utilities = utilities;
         }

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace ACESim
 {
     [Serializable]
-    public abstract class CRMChanceNodeSettings : ICRMGameState
+    public abstract class ChanceNodeSettings : IGameState
     {
         public byte PlayerNum;
         public byte DecisionByteCode;

@@ -13,9 +13,9 @@ namespace ACESim
         public List<Strategy> Strategies;
         public GameDefinition GameDefinition;
         [NonSerialized]
-        private Func<HistoryPoint, HistoryNavigationInfo?, ICRMGameState> GetGameStateFn;
+        private Func<HistoryPoint, HistoryNavigationInfo?, IGameState> GetGameStateFn;
 
-        public HistoryNavigationInfo(InformationSetLookupApproach lookupApproach, List<Strategy> strategies, GameDefinition gameDefinition, Func<HistoryPoint, HistoryNavigationInfo?, ICRMGameState> getGameStateFn)
+        public HistoryNavigationInfo(InformationSetLookupApproach lookupApproach, List<Strategy> strategies, GameDefinition gameDefinition, Func<HistoryPoint, HistoryNavigationInfo?, IGameState> getGameStateFn)
         {
             LookupApproach = lookupApproach;
             Strategies = strategies;
@@ -23,12 +23,12 @@ namespace ACESim
             GetGameStateFn = getGameStateFn;
         }
 
-        public void SetGameStateFn(Func<HistoryPoint, HistoryNavigationInfo?, ICRMGameState> getGameStateFn)
+        public void SetGameStateFn(Func<HistoryPoint, HistoryNavigationInfo?, IGameState> getGameStateFn)
         {
             GetGameStateFn = getGameStateFn;
         }
 
-        public ICRMGameState GetGameState(HistoryPoint historyPoint)
+        public IGameState GetGameState(HistoryPoint historyPoint)
         {
             return GetGameStateFn(historyPoint, this);
         }
