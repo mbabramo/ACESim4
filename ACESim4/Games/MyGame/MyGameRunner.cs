@@ -31,12 +31,20 @@ namespace ACESim
             {
                 MaxParallelDepth = 2,
                 ParallelOptimization = true,
-                Algorithm = CRMAlgorithm.Probing,
+
+                Algorithm = CRMAlgorithm.Vanilla,
                 TotalAvgStrategySamplingCFRIterations = 10000000,
                 TotalProbingCFRIterations = 100000,
                 TotalVanillaCFRIterations = 100000000,
-                ReportEveryNIterations = 20000,
-                BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever
+
+                ReportEveryNIterations = 1000,
+                BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever,
+
+                UseEpsilonOnPolicyForOpponent = true,
+                FirstOpponentEpsilonValue = 0.5,
+                LastOpponentEpsilonValue = 0.05,
+                LastOpponentEpsilonIteration = 10000,
+                MaxOneEpsilonExploration = true,
             };
             CRMDevelopment developer = new CRMDevelopment(starterStrategies, evolutionSettings, gameDefinition);
             developer.DevelopStrategies();
