@@ -409,7 +409,7 @@ namespace ACESim
             }
             else
             {
-                gameProgress = GameDefinition.GameFactory.CreateNewGameProgress(iterationIDArray == null ? null : iterationIDArray[iteration]);
+                gameProgress = GameDefinition.GameFactory.CreateNewGameProgress(iterationIDArray?[iteration]);
             }
 
             Game game = GameDefinition.GameFactory.CreateNewGame();

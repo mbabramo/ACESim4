@@ -167,8 +167,8 @@ namespace ACESim
                 IsFirstRepetitionOfThisTag = IsFirstRepetitionOfThisTag?.ToList(),
                 IsLastRepetitionOfThisTag = IsLastRepetitionOfThisTag?.ToList(),
                 ActionGroupSettings = ActionGroupSettings, // note that this is a shallow copy, since we don't know the object's type
-                FirstRepetitionCorrespondingToTag = FirstRepetitionCorrespondingToTag == null ? null : FirstRepetitionCorrespondingToTag.ToList(),
-                PreviousRepetitionCorrespondingToTag = PreviousRepetitionCorrespondingToTag == null ? null : PreviousRepetitionCorrespondingToTag.ToList()
+                FirstRepetitionCorrespondingToTag = FirstRepetitionCorrespondingToTag?.ToList(),
+                PreviousRepetitionCorrespondingToTag = PreviousRepetitionCorrespondingToTag?.ToList()
             };
             ag.ActionPoints = ActionPoints.Select(x => x.DeepCopy(ag)).ToList();
             return ag;

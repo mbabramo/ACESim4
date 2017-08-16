@@ -164,7 +164,7 @@ namespace ACESim
                     if (optionString.Contains(codeGeneratorOptionName))
                         optionValue = optionString.Replace(codeGeneratorOptionName + ":", "");
             }
-            return optionValue == null ? null : optionValue.Trim();
+            return optionValue?.Trim();
         }
 
         internal static byte GetByteCodeGeneratorOption(string optionsSpecifiedByUserAndPassedToGenerateSetting, string codeGeneratorOptionName)

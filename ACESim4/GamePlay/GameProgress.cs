@@ -178,7 +178,7 @@ namespace ACESim
         {
             copy.IterationID = IterationID;
             copy.GameDefinition = GameDefinition;
-            copy.GameModuleProgresses = GameModuleProgresses == null ? null : (GameModuleProgresses.Select(x => x == null ? null : x.DeepCopy()).ToList());
+            copy.GameModuleProgresses = GameModuleProgresses == null ? null : (GameModuleProgresses.Select(x => x?.DeepCopy()).ToList());
             copy.GameHistory = GameHistory.DeepCopy();
             copy.ActionsToPlay = ActionsToPlay?.ToList(); 
             copy.ActionsToPlayIndex = ActionsToPlayIndex;
