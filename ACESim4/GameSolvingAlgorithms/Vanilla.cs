@@ -13,18 +13,8 @@ namespace ACESim
         public unsafe double VanillaCFR(HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues,
             bool usePruning)
         {
-            if (usePruning)
-            {
-                bool allZero = true;
-                for (int i = 0; i < NumNonChancePlayers; i++)
-                    if (*(piValues + i) != 0)
-                    {
-                        allZero = false;
-                        break;
-                    }
-                if (allZero)
-                    return 0; // this is zero probability, so the result doesn't matter
-            }
+            if (usePruning && ShouldPruneIfPruning(piValues))
+                return 0;
             IGameState gameStateForCurrentPlayer = GetGameState(historyPoint);
             GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
             if (gameStateType == GameStateTypeEnum.FinalUtilities)
@@ -39,6 +29,23 @@ namespace ACESim
             }
             else
                 return VanillaCFR_DecisionNode(historyPoint, playerBeingOptimized, piValues, usePruning);
+        }
+
+        private unsafe bool ShouldPruneIfPruning(double* piValues)
+        {
+            // If we are pruning, then we do prune when the probability of getting to this path is 0.
+            // But that doesn't mean that we should prune. The results from low probability paths can 
+            // still matter.
+            bool allZero = true;
+            for (int i = 0; i < NumNonChancePlayers; i++)
+                if (*(piValues + i) != 0)
+                {
+                    allZero = false;
+                    break;
+                }
+            if (allZero)
+                return true;
+            return false;
         }
 
         private unsafe double VanillaCFR_DecisionNode(HistoryPoint historyPoint, byte playerBeingOptimized,
@@ -77,8 +84,7 @@ namespace ACESim
                     TabbedText.Tabs++;
                 }
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
-                expectedValueOfAction[action - 1] =
-                    VanillaCFR(nextHistoryPoint, playerBeingOptimized, nextPiValues, usePruning);
+                expectedValueOfAction[action - 1] = VanillaCFR(nextHistoryPoint, playerBeingOptimized, nextPiValues, usePruning);
                 expectedValue += probabilityOfAction * expectedValueOfAction[action - 1];
 
                 if (TraceVanillaCFR)
