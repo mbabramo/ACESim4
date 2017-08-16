@@ -60,16 +60,18 @@ namespace ACESim
             byte decisionNum = informationSet.DecisionIndex;
             byte playerMakingDecision = informationSet.PlayerIndex;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
-            // todo: stackalloc or use simple stack based array pool http://stackoverflow.com/questions/1123939/is-c-sharp-compiler-deciding-to-use-stackalloc-by-itself
             double* actionProbabilities = stackalloc double[numPossibleActions];
             byte? alwaysDoAction = GameDefinition.DecisionsExecutionOrder[decisionNum].AlwaysDoAction;
-            if (alwaysDoAction == null && !usePruning)
-                informationSet.GetRegretMatchingProbabilities(actionProbabilities);
-            else if (alwaysDoAction == null && usePruning)
-                informationSet.GetRegretMatchingProbabilities_WithPruning(actionProbabilities);
-            else
+            if (alwaysDoAction != null)
                 ActionProbabilityUtilities.SetProbabilitiesToAlwaysDoParticularAction(numPossibleActions,
                     actionProbabilities, (byte) alwaysDoAction);
+            else
+            {
+                if (usePruning)
+                    informationSet.GetRegretMatchingProbabilities_WithPruning(actionProbabilities);
+                else
+                    informationSet.GetRegretMatchingProbabilities(actionProbabilities);
+            }
             double* expectedValueOfAction = stackalloc double[numPossibleActions];
             double expectedValue = 0;
             for (byte action = 1; action <= numPossibleActions; action++)

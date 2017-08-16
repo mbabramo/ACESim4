@@ -59,6 +59,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="GameSolvingAlgorithms\ExplorativeProbing.cs" />
     <Compile Include="GameSolvingSupport\ActionStrategies.cs" />
     <Compile Include="GameSolvingAlgorithms\AverageStrategySampling.cs" />
     <Compile Include="GameSolvingAlgorithms\BestResponse.cs" />
@@ -67,7 +68,7 @@
     <Compile Include="GameSolvingSupport\ChanceNodeSettings.cs" />
     <Compile Include="GameSolvingSupport\ChanceNodeSettingsEqualProbabilities.cs" />
     <Compile Include="GameSolvingSupport\ChanceNodeSettingsUnequalProbabilities.cs" />
-    <Compile Include="GameSolvingSupport\CounterfactualRegretMaximization.cs" />
+    <Compile Include="GameSolvingAlgorithms\CounterfactualRegretMaximization.cs" />
     <Compile Include="GameSolvingSupport\FinalUtilities.cs" />
     <Compile Include="GameSolvingSupport\GameStateTypeEnum.cs" />
     <Compile Include="GameSolvingSupport\InformationSetNodeTally.cs" />

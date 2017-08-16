@@ -5,6 +5,7 @@ namespace ACESim
         Vanilla,
         Probing,
         AverageStrategySampling,
-        PureStrategyFinder
+        PureStrategyFinder,
+        ExplorativeProbing
     }
 }

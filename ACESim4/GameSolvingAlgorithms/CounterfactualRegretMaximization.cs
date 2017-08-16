@@ -118,6 +118,9 @@ namespace ACESim
                 case GameApproximationAlgorithm.AverageStrategySampling:
                     SolveAvgStrategySamplingCFR();
                     break;
+                case GameApproximationAlgorithm.ExplorativeProbing:
+                    SolveExplorativeProbingCFR();
+                    break;
                 case GameApproximationAlgorithm.Probing:
                     SolveProbingCFR();
                     break;

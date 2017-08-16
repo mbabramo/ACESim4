@@ -8,6 +8,18 @@ namespace ACESim
 {
     public static class MyGameActionsGenerator
     {
+        public static byte PlaintiffShouldOffer1IfReceivingSignal1(Decision decision)
+        {
+            switch (decision.DecisionByteCode)
+            {
+                case (byte)MyGameDecisions.POffer:
+                    if ()
+
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+
         public static byte SettleAtMidpoint_OneBargainingRound(Decision decision)
         {
             switch (decision.DecisionByteCode)
