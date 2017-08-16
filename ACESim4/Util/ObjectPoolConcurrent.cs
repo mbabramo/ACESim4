@@ -22,8 +22,7 @@ namespace ACESim
 
         public T GetObject(object[] args)
         {
-            T item;
-            if (_objects.TryTake(out item))
+            if (_objects.TryTake(out T item))
             {
                 itemCount--;
                 item.AfterRecycled(args);

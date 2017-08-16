@@ -25,8 +25,7 @@ namespace ACESim
 
         public static GameModuleProgress GetRecycledOrAllocate()
         {
-            GameModuleProgress recycled = null;
-            RecycledGameModuleProgressQueue.TryDequeue(out recycled);
+            RecycledGameModuleProgressQueue.TryDequeue(out GameModuleProgress recycled);
             if (recycled != null)
             {
                 System.Threading.Interlocked.Decrement(ref NumRecycled);

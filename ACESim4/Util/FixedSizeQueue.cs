@@ -14,10 +14,9 @@ namespace ACESim
         public void Enqueue(T obj)
         {
             q.Enqueue(obj);
-            T itemDequeued;
             while (q.Count > Limit)
             {
-                q.TryDequeue(out itemDequeued);
+                q.TryDequeue(out T itemDequeued);
             }
         }
 

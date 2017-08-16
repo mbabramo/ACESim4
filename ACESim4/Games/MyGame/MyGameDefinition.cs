@@ -232,8 +232,10 @@ namespace ACESim
 
         public override List<SimpleReportDefinition> GetSimpleReportDefinitions()
         {
-            var reports = new List<SimpleReportDefinition>();
-            reports.Add(GetOverallReport());
+            var reports = new List<SimpleReportDefinition>
+            {
+                GetOverallReport()
+            };
             if (Options.IncludeSignalsReport)
             {
                 for (int b = 1; b <= Options.NumBargainingRounds; b++)
@@ -293,8 +295,10 @@ namespace ACESim
         {
             (bool plaintiffMakesOffer, int offerNumber, bool isSimultaneous) = GetOfferorAndNumber(bargainingRound, ref reportResponseToOffer);
             string reportName = $"Round {bargainingRound} {(reportResponseToOffer ? "ResponseTo" : "")}{(plaintiffMakesOffer ? "P" : "D")} {offerNumber}";
-            List<SimpleReportFilter> metaFilters = new List<SimpleReportFilter>();
-            metaFilters.Add(new SimpleReportFilter("RoundOccurs", (GameProgress gp) => MyGP(gp).BargainingRoundsComplete >= bargainingRound));
+            List<SimpleReportFilter> metaFilters = new List<SimpleReportFilter>
+            {
+                new SimpleReportFilter("RoundOccurs", (GameProgress gp) => MyGP(gp).BargainingRoundsComplete >= bargainingRound)
+            };
             List<SimpleReportFilter> rowFilters = new List<SimpleReportFilter>()
             {
                 new SimpleReportFilter("All", (GameProgress gp) => true)

@@ -49,10 +49,12 @@ namespace ACESim
             bool P1InformsP2 = false; 
             List<byte> playersWithP1Informing = playersToInform.ToList();
             playersWithP1Informing.Add((byte)SimpleGamePlayers.Player2);
-            var decisions = new List<Decision>();
-            decisions.Add(new Decision("P1", "P1", (byte)SimpleGamePlayers.Player1, P1InformsP2 ? playersWithP1Informing : playersToInform, 2, (byte)SimpleGameDecisions.P1Decision));
-            decisions.Add(new Decision("P2", "P2", (byte)SimpleGamePlayers.Player2, playersToInform, 2, (byte)SimpleGameDecisions.P2Decision));
-            decisions.Add(new Decision("C", "C", (byte)SimpleGamePlayers.Chance, playersToInform, 2, (byte)SimpleGameDecisions.Chance, unevenChanceActions: true) { CanTerminateGame = true });
+            var decisions = new List<Decision>
+            {
+                new Decision("P1", "P1", (byte)SimpleGamePlayers.Player1, P1InformsP2 ? playersWithP1Informing : playersToInform, 2, (byte)SimpleGameDecisions.P1Decision),
+                new Decision("P2", "P2", (byte)SimpleGamePlayers.Player2, playersToInform, 2, (byte)SimpleGameDecisions.P2Decision),
+                new Decision("C", "C", (byte)SimpleGamePlayers.Chance, playersToInform, 2, (byte)SimpleGameDecisions.Chance, unevenChanceActions: true) { CanTerminateGame = true }
+            };
             return decisions;
         }
 
@@ -73,8 +75,10 @@ namespace ACESim
 
         public override List<SimpleReportDefinition> GetSimpleReportDefinitions()
         {
-            var reports = new List<SimpleReportDefinition>();
-            reports.Add(GetOverallReport());
+            var reports = new List<SimpleReportDefinition>
+            {
+                GetOverallReport()
+            };
             return reports;
         }
 

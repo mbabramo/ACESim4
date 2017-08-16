@@ -86,9 +86,7 @@ namespace ACESim
                 GameModules = new List<GameModule>();
                 foreach (var originalModule in GameDefinition.GameModules)
                 {
-                    GameModule theModule;
-                    GameModuleProgress theProgress;
-                    originalModule.CreateInstanceAndInitializeProgress(this, Strategies, originalModule.GameModuleSettings, out theModule, out theProgress);
+                    originalModule.CreateInstanceAndInitializeProgress(this, Strategies, originalModule.GameModuleSettings, out GameModule theModule, out GameModuleProgress theProgress);
                     GameModules.Add(theModule);
                     if (mustAddGameModuleProgresses)
                         Progress.GameModuleProgresses.Add(theProgress);

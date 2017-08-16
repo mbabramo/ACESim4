@@ -36,8 +36,7 @@ namespace ACESim
 
         public static  double[] GetActionProbabilitiesAtHistoryPoint(ICRMGameState gameStateForCurrentPlayer, ActionStrategies actionStrategy, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation)
         {
-            double[] probabilities;
-            GetActionProbabilitiesAtHistoryPoint_Helper(gameStateForCurrentPlayer, actionStrategy, numPossibleActions, alwaysDoAction, navigation, out probabilities);
+            GetActionProbabilitiesAtHistoryPoint_Helper(gameStateForCurrentPlayer, actionStrategy, numPossibleActions, alwaysDoAction, navigation, out double[] probabilities);
             return probabilities.Take(numPossibleActions).ToArray();
 
         }

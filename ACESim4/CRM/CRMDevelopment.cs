@@ -1809,9 +1809,7 @@ namespace ACESim
                 throw new NotImplementedException();
             List<(CRMInformationSetNodeTally, int)> player0InformationSets = Strategies[0].GetTallyNodes(GameDefinition);
             List<(CRMInformationSetNodeTally, int)> player1InformationSets = Strategies[1].GetTallyNodes(GameDefinition);
-            int player0Permutations, player1Permutations;
-            double[,] player0Utilities, player1Utilities;
-            GetUtilitiesForStrategyCombinations(player0InformationSets, player1InformationSets, out player0Permutations, out player1Permutations, out player0Utilities, out player1Utilities);
+            GetUtilitiesForStrategyCombinations(player0InformationSets, player1InformationSets, out int player0Permutations, out int player1Permutations, out double[,] player0Utilities, out double[,] player1Utilities);
             bool[] player0StrategyEliminated = new bool[player0Permutations];
             bool[] player1StrategyEliminated = new bool[player1Permutations];
             EliminateDominatedStrategies(player0Permutations, player1Permutations, player0Utilities, player1Utilities, player0StrategyEliminated, player1StrategyEliminated);
@@ -1828,7 +1826,7 @@ namespace ACESim
             {
                 for (int j = 0; j < colLength; j++)
                 {
-                    Debug.Write(string.Format("{0:N2} ", arr[i, j]));
+                    Debug.Write($"{arr[i, j]:N2} ");
                 }
                 Debug.Write(Environment.NewLine + Environment.NewLine);
             }

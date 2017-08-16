@@ -293,9 +293,7 @@ namespace ACESim
             private bool AddEntryIfPossible(ScheduleEntry entry)
             {
                 Entries.Add(entry);
-                bool exactlyRight;
-                bool overfilled;
-                int[] stages = CountStages(out exactlyRight, out overfilled);
+                int[] stages = CountStages(out bool exactlyRight, out bool overfilled);
                 if (overfilled)
                     Entries.RemoveAt(Entries.Count - 1);
                 return exactlyRight;
@@ -364,9 +362,7 @@ namespace ACESim
                     }
                 }
 
-                bool exactlyRight;
-                bool overfilled;
-                int[] stages = CountStages(out exactlyRight, out overfilled);
+                int[] stages = CountStages(out bool exactlyRight, out bool overfilled);
                 if (!exactlyRight)
                     throw new Exception("Internal error in simple Heisenbug scheduling algorithm.");
             }

@@ -85,9 +85,8 @@ namespace SeparateAppDomain
                     AppDomain.CurrentDomain.SetData("Index", null);
                     AppDomain.CurrentDomain.SetData("Input", null);
                     AppDomain.CurrentDomain.SetData("Output", null);
-                    object output;
                     CancellationToken ct = new CancellationToken();
-                    DoProcessing(input, (int)index, ct, out output);
+                    DoProcessing(input, (int)index, ct, out object output);
                     AppDomain.CurrentDomain.SetData("Output", output);
                 }
                 else

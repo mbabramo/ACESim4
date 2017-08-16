@@ -35,8 +35,7 @@ namespace ACESim
         public static double QNorm(double p, double mu, double sigma, bool lower_tail, bool log_p)
         {
             if (double.IsNaN(p) || double.IsNaN(mu) || double.IsNaN(sigma)) return (p + mu + sigma);
-            double ans;
-            bool isBoundaryCase = R_Q_P01_boundaries(p, double.NegativeInfinity, double.PositiveInfinity, lower_tail, log_p, out ans);
+            bool isBoundaryCase = R_Q_P01_boundaries(p, double.NegativeInfinity, double.PositiveInfinity, lower_tail, log_p, out double ans);
             if (isBoundaryCase) return (ans);
             if (sigma < 0) return (double.NaN);
             if (sigma == 0) return (mu);

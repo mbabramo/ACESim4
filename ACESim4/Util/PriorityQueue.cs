@@ -366,8 +366,7 @@ namespace PriorityQueue
         /// <param name="item">element to add</param>
         public void Add(KeyValuePair<TPriority, TValue> item)
         {
-            bool full;
-            Enqueue(item.Key, item.Value, out full);
+            Enqueue(item.Key, item.Value, out bool full);
         }
 
         /// <summary>

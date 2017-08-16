@@ -127,8 +127,10 @@ namespace ACESim
                 );
                 decisionNum++;
             }
-            ExecutionOrder = new List<ActionGroup>();
-            ExecutionOrder.Add(exGroup);
+            ExecutionOrder = new List<ActionGroup>
+            {
+                exGroup
+            };
             ProcessExecutionOrderList();
         }
 

@@ -47,8 +47,10 @@ namespace ACESim.Util
                 if (newSum <= maxComboSum)
                 {
                     // If so, then recurse by adding it to diffs as both a positive and negative integer
-                    List<int> newPosDiffs = new List<int>(currentCombo);
-                    newPosDiffs.Add(possibleNum);
+                    List<int> newPosDiffs = new List<int>(currentCombo)
+                    {
+                        possibleNum
+                    };
                     CalculateCombinationsBackend(maxComboSum, numPerCombo, newSum, newPosDiffs, combinations, allowNegativeExponents);
 
                     if (
@@ -57,8 +59,10 @@ namespace ACESim.Util
                         ) 
                     {
                         // (Here's the negative version)
-                        List<int> newNegDiffs = new List<int>(currentCombo);
-                        newNegDiffs.Add(-1 * possibleNum);
+                        List<int> newNegDiffs = new List<int>(currentCombo)
+                        {
+                            -1 * possibleNum
+                        };
                         CalculateCombinationsBackend(maxComboSum, numPerCombo, newSum, newNegDiffs, combinations, allowNegativeExponents);
                     }
                 }

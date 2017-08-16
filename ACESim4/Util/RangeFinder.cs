@@ -111,7 +111,8 @@ namespace ACESim.Util
                         }
                     }
                     if (printOutInfo)
-                        Debug.WriteLine(String.Format("Bottom {0} Mid {1} Top {2} ==> Result {3}", bottomOfRange, midpointOfRange, topOfRange, testResult));
+                        Debug.WriteLine(
+                            $"Bottom {bottomOfRange} Mid {midpointOfRange} Top {topOfRange} ==> Result {testResult}");
 
                     if (r == 0 || (highestIsBest && testResult > bestResult) || (!highestIsBest && testResult < bestResult))
                     {
@@ -358,8 +359,8 @@ namespace ACESim.Util
             }
             if (requiredUncertainty < MaximumPrecision)
             {
-                throw new ArgumentOutOfRangeException(String.Format(
-                    "Uncertainty cannot be less than the maximum precision for Single: {0}.", MaximumPrecision));
+                throw new ArgumentOutOfRangeException(
+                    $"Uncertainty cannot be less than the maximum precision for Single: {MaximumPrecision}.");
             }
 
             SearchStage stage;
