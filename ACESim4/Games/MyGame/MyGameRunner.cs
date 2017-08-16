@@ -33,9 +33,9 @@ namespace ACESim
                 ParallelOptimization = true,
                 Algorithm = CRMAlgorithm.Probing,
                 TotalAvgStrategySamplingCFRIterations = 10000000,
-                TotalProbingCFRIterations = 5000000,
+                TotalProbingCFRIterations = 100000,
                 TotalVanillaCFRIterations = 100000000,
-                ReportEveryNIterations = 5000,
+                ReportEveryNIterations = 20000,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever
             };
             CRMDevelopment developer = new CRMDevelopment(starterStrategies, evolutionSettings, gameDefinition);

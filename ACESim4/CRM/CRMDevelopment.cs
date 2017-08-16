@@ -27,24 +27,12 @@ namespace ACESim
         bool ShouldEstimateImprovementOverTime = false;
         const int NumRandomGamePlaysForEstimatingImprovement = 1000;
 
-        // The following apply to probing and average strategy sampling. The MCCFR algorithm is not guaranteed to visit all information sets. There is a trade-off, however. When we use epsilon policy exploration, whether for the player being optimized or for the opponent, we change the dynamics of the game. Perhaps, for example, it will make sense not to take a settlement that is valuable so long as there is some small chance that the opponent will engage in policy exploration and agree to a deal that is bad for the opponent. Similarly, a player's own earlier or later exploration can affect the player's own moves; if I might make a bad move later, then maybe I should play what otherwise would be suboptimally now. 
-        bool UseEpsilonOnPolicyForOpponent = true;
-        double FirstOpponentEpsilonValue = 0.5;
-        double LastOpponentEpsilonValue = 0.05;
-        int LastOpponentEpsilonIteration = 100000;
-        private bool MaxOneEpsilonExploration = true; // If true, do no more than one epsilon exploration for either player, and after doing the epsilon exploration to do no further updating of later decisions. That way, the latest decisions can be optimized and we cna work backwards. (Implemented for now only with probing)
-        double CurrentEpsilonValue; // set in algorithm.
-
         public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
         bool AllowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => (AllowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)) && EvolutionSettings.Algorithm != CRMAlgorithm.PureStrategyFinder;
 
-        public int NumRandomIterationsForReporting = 10000;
-        bool PrintGameTreeAfterReport = false;
-        bool PrintInformationSetsAfterReport = false;
-        bool PrintNonChanceInformationSetsOnly = true;
-        bool AlwaysUseAverageStrategyInReporting = true;
 
+        double CurrentEpsilonValue; // set in algorithm.
         //double epsilon = 0.05, beta = 1000000, tau = 1000; // note that beta will keep sampling even at first, but becomes less important later on. Epsilon ensures some exploration, and larger tau weights things later toward low-probability strategies
         double epsilon = 0.05, beta = 100, tau = 1; // note that beta will keep sampling even at first, but becomes less important later on. Epsilon ensures some exploration, and larger tau weights things later toward low-probability strategies
 
@@ -111,7 +99,7 @@ namespace ACESim
             return new CRMDevelopment()
             {
                 Strategies = Strategies.Select(x => x.DeepCopy()).ToList(),
-                EvolutionSettings = EvolutionSettings.DeepCopy(),
+                EvolutionSettings = EvolutionSettings,
                 GameDefinition = GameDefinition,
                 GameFactory = GameFactory,
                 Navigation = Navigation,
@@ -223,7 +211,7 @@ namespace ACESim
         {
             foreach (Strategy s in Strategies)
             {
-                if (!s.PlayerInfo.PlayerIsChance || !PrintNonChanceInformationSetsOnly)
+                if (!s.PlayerInfo.PlayerIsChance || !EvolutionSettings.PrintNonChanceInformationSetsOnly)
                 {
                     Debug.WriteLine($"{s.PlayerInfo}");
                     string tree = s.GetInformationSetTreeString();
@@ -435,7 +423,7 @@ namespace ACESim
             if (EvolutionSettings.ReportEveryNIterations != null && iteration % EvolutionSettings.ReportEveryNIterations == 0)
             {
                 ActionStrategies previous = ActionStrategy;
-                bool useRandomPaths = SkipEveryPermutationInitialization || NumInitializedGamePaths > NumRandomIterationsForReporting;
+                bool useRandomPaths = SkipEveryPermutationInitialization || NumInitializedGamePaths > EvolutionSettings.NumRandomIterationsForReporting;
                 bool doBestResponse = (EvolutionSettings.BestResponseEveryMIterations != null && iteration % EvolutionSettings.BestResponseEveryMIterations == 0 && EvolutionSettings.BestResponseEveryMIterations != EvolutionSettings.EffectivelyNever && iteration != 0);
                 if (doBestResponse)
                     useRandomPaths = false;
@@ -450,11 +438,11 @@ namespace ACESim
                     ReportEstimatedImprovementsOverTime();
                 if (doBestResponse)
                     CompareBestResponse(iteration, useRandomPaths);
-                if (AlwaysUseAverageStrategyInReporting)
+                if (EvolutionSettings.AlwaysUseAverageStrategyInReporting)
                     ActionStrategy = previous;
-                if (PrintGameTreeAfterReport)
+                if (EvolutionSettings.PrintGameTreeAfterReport)
                     PrintGameTree();
-                if (PrintInformationSetsAfterReport)
+                if (EvolutionSettings.PrintInformationSetsAfterReport)
                     PrintInformationSets();
             }
         }
@@ -464,7 +452,7 @@ namespace ACESim
             Action<GamePlayer> reportGenerator;
             if (useRandomPaths)
             {
-                Debug.WriteLine($"Result using {NumRandomIterationsForReporting} randomly chosen paths");
+                Debug.WriteLine($"Result using {EvolutionSettings.NumRandomIterationsForReporting} randomly chosen paths");
                 reportGenerator = GenerateReports_RandomPaths;
             }
             else
@@ -496,7 +484,7 @@ namespace ACESim
 
         private void GenerateReports_RandomPaths(GamePlayer player)
         {
-            var gameProgresses = GetRandomCompleteGames(player, NumRandomIterationsForReporting);
+            var gameProgresses = GetRandomCompleteGames(player, EvolutionSettings.NumRandomIterationsForReporting);
             UtilityCalculations = new StatCollector[NumNonChancePlayers];
             for (int p = 0; p < NumNonChancePlayers; p++)
                 UtilityCalculations[p] = new StatCollector();
@@ -514,7 +502,7 @@ namespace ACESim
         {
             // this is just for testing
             var CountPaths = new Dictionary<string, int>();
-            for (int i = 0; i < NumRandomIterationsForReporting; i++)
+            for (int i = 0; i < EvolutionSettings.NumRandomIterationsForReporting; i++)
             {
                 GameProgress gameProgress1 = gameProgresses[i];
                 string gameActions = gameProgress1.GameHistory.GetActionsAsListString();
@@ -525,7 +513,7 @@ namespace ACESim
                 //Debug.WriteLine($"{gameActions} {gameProgress1.GetNonChancePlayerUtilities()[0]}");
             }
             foreach (var item in CountPaths.AsEnumerable().OrderBy(x => x.Key))
-                Debug.WriteLine($"{item.Key} => {((double)item.Value) / (double)NumRandomIterationsForReporting}");
+                Debug.WriteLine($"{item.Key} => {((double)item.Value) / (double)EvolutionSettings.NumRandomIterationsForReporting}");
         }
 
         public void ProcessAllPaths(HistoryPoint history, Action<HistoryPoint, double> pathPlayer)
@@ -904,8 +892,6 @@ namespace ACESim
 
         #region ProbingCRM
 
-        RandomProducer StandardRandomProducer = new RandomProducer();
-
         public unsafe double Probe_SinglePlayer(HistoryPoint historyPoint, byte playerBeingOptimized, IRandomProducer randomProducer)
         {
             return Probe(historyPoint, randomProducer)[playerBeingOptimized];
@@ -913,8 +899,6 @@ namespace ACESim
 
         public unsafe double[] Probe(HistoryPoint historyPoint, IRandomProducer randomProducer)
         {
-            if (randomProducer == null)
-                randomProducer = StandardRandomProducer;
             ICRMGameState gameStateForCurrentPlayer = GetGameState(historyPoint);
             //if (TraceProbingCRM)
             //    TabbedText.WriteLine($"Probe optimizing player {playerBeingOptimized}");
@@ -1006,9 +990,9 @@ namespace ACESim
                 if (playerAtPoint != playerBeingOptimized)
                 {
                     // the use of epsilon-on-policy for early iterations of opponent's strategy is a deviation from Gibson.
-                    usingEpsilonExploration = (!EstimatingImprovementOverTimeMode && UseEpsilonOnPolicyForOpponent &&
-                                               ProbingCFRIterationNum <= LastOpponentEpsilonIteration &&
-                                               ((!alreadyUsedEpsilonExploration || !MaxOneEpsilonExploration) &&
+                    usingEpsilonExploration = (!EstimatingImprovementOverTimeMode && EvolutionSettings.UseEpsilonOnPolicyForOpponent &&
+                                               ProbingCFRIterationNum <= EvolutionSettings.LastOpponentEpsilonIteration &&
+                                               ((!alreadyUsedEpsilonExploration || !EvolutionSettings.MaxOneEpsilonExploration) &&
                                                 (Math.Floor(randomDouble * 1000.0) < CurrentEpsilonValue)));
                     if (usingEpsilonExploration)
                         informationSet.GetEqualProbabilitiesRegretMatching(sigma_regretMatchedActionProbabilities);
@@ -1038,7 +1022,7 @@ namespace ACESim
                 double* samplingProbabilities = stackalloc double[numPossibleActions];
                 const double epsilonForProbeWalk = 0.5;
                 usingEpsilonExploration = (!alreadyUsedEpsilonExploration
-                     || !MaxOneEpsilonExploration) && (Math.Floor(randomDouble * 1000.0) < epsilonForProbeWalk); // look at late digits for random bool, without needing to get another random number
+                     || !EvolutionSettings.MaxOneEpsilonExploration) && (Math.Floor(randomDouble * 1000.0) < epsilonForProbeWalk); // look at late digits for random bool, without needing to get another random number
                 // we can't just call GetEpsilonAdjustedRegretMatchingProbabilities, because we need to know whether we are epsilon-adjusting
                 if (usingEpsilonExploration)
                     informationSet.GetEqualProbabilitiesRegretMatching(samplingProbabilities);
@@ -1112,7 +1096,7 @@ namespace ACESim
 
         public void ProbingCFRIteration(int iteration)
         {
-            CurrentEpsilonValue = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(FirstOpponentEpsilonValue, LastOpponentEpsilonValue, 0.75, (double)iteration / (double)EvolutionSettings.TotalProbingCFRIterations);
+            CurrentEpsilonValue = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(EvolutionSettings.FirstOpponentEpsilonValue, EvolutionSettings.LastOpponentEpsilonValue, 0.75, (double)iteration / (double)EvolutionSettings.TotalProbingCFRIterations);
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
                 IRandomProducer randomProducer = new ConsistentRandomSequenceProducer(iteration * 1000 + playerBeingOptimized);
@@ -1189,7 +1173,7 @@ namespace ACESim
                     double* sigma_regretMatchedActionProbabilities = stackalloc double[numPossibleActions];
                     // the following use of epsilon-on-policy for early iterations of opponent's strategy is a deviation from Gibson.
                     byte playerAtPoint = informationSet.PlayerIndex;
-                    if (playerAtPoint != playerBeingOptimized && UseEpsilonOnPolicyForOpponent && AvgStrategySamplingCFRIterationNum <= LastOpponentEpsilonIteration)
+                    if (playerAtPoint != playerBeingOptimized && EvolutionSettings.UseEpsilonOnPolicyForOpponent && AvgStrategySamplingCFRIterationNum <= EvolutionSettings.LastOpponentEpsilonIteration)
                         informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(sigma_regretMatchedActionProbabilities, CurrentEpsilonValue);
                     else
                         informationSet.GetRegretMatchingProbabilities(sigma_regretMatchedActionProbabilities);
@@ -1357,7 +1341,7 @@ namespace ACESim
                     double* sigma_regretMatchedActionProbabilities = stackalloc double[numPossibleActions];
                     // the following use of epsilon-on-policy for early iterations of opponent's strategy is a deviation from Gibson.
                     byte playerAtPoint = informationSet.PlayerIndex;
-                    if (playerAtPoint != playerBeingOptimized && UseEpsilonOnPolicyForOpponent && AvgStrategySamplingCFRIterationNum <= LastOpponentEpsilonIteration)
+                    if (playerAtPoint != playerBeingOptimized && EvolutionSettings.UseEpsilonOnPolicyForOpponent && AvgStrategySamplingCFRIterationNum <= EvolutionSettings.LastOpponentEpsilonIteration)
                         informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(sigma_regretMatchedActionProbabilities, CurrentEpsilonValue);
                     else
                         informationSet.GetRegretMatchingProbabilities(sigma_regretMatchedActionProbabilities);
@@ -1423,7 +1407,7 @@ namespace ACESim
 
         public void AvgStrategySamplingCFRIteration(int iteration)
         {
-            CurrentEpsilonValue = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(FirstOpponentEpsilonValue, LastOpponentEpsilonValue, 0.75, (double)iteration / (double)EvolutionSettings.TotalAvgStrategySamplingCFRIterations);
+            CurrentEpsilonValue = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(EvolutionSettings.FirstOpponentEpsilonValue, EvolutionSettings.LastOpponentEpsilonValue, 0.75, (double)iteration / (double)EvolutionSettings.TotalAvgStrategySamplingCFRIterations);
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
                 if (ShouldEstimateImprovementOverTime)
