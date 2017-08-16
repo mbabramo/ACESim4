@@ -220,14 +220,14 @@ namespace ACESim
                 }
         }
 
-        internal override void ToTreeString(StringBuilder s, int? branch, int level)
+        internal override void ToTreeString(StringBuilder s, int? branch, int level, string branchWord)
         {
-            base.ToTreeString(s, branch, level);
+            base.ToTreeString(s, branch, level, branchWord);
             if (Branches != null)
                 for (int branch2 = 1; branch2 <= Branches.Length; branch2++)
                 {
                     if (Branches[branch2 - 1] != null && !Branches[branch2 - 1].Equals(default(T)))
-                        Branches[branch2 - 1].ToTreeString(s, branch2, level + 1);
+                        Branches[branch2 - 1].ToTreeString(s, branch2, level + 1, branchWord);
                 }
 
         }

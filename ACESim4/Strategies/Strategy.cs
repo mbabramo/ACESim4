@@ -18,8 +18,8 @@ namespace ACESim
 
         public PlayerInfo PlayerInfo;
 
-        private NWayTreeStorageInternal<IGameState> InformationSetTree;
-        public string GetInformationSetTreeString() => InformationSetTree.ToTreeString();
+        public NWayTreeStorageInternal<IGameState> InformationSetTree;
+        public string GetInformationSetTreeString() => InformationSetTree.ToTreeString("Decision index");
         public HistoryNavigationInfo Navigation;
         public ActionStrategies ActionStrategy;
 
@@ -49,24 +49,6 @@ namespace ACESim
         public void CreateInformationSetTree(int numInitialActions)
         {
             InformationSetTree = new NWayTreeStorageInternal<IGameState>(null, numInitialActions);
-        }
-
-        public unsafe NWayTreeStorage<List<double>> GetRegretMatchingTree()
-        {
-            var regretMatchingTree = new NWayTreeStorageInternal<List<double>>(null, InformationSetTree.Branches.Length);
-            var nodes = InformationSetTree.GetAllTreeNodes();
-            foreach (var node in nodes)
-            {
-                if (node.storedValue is InformationSetNodeTally tallyNode)
-                {
-                    byte* sequencePointer = stackalloc byte[node.sequenceToHere.Count() + 1];
-                    for (int i = 0; i < node.sequenceToHere.Count(); i++)
-                        sequencePointer[i] = node.sequenceToHere[i];
-                    sequencePointer[node.sequenceToHere.Count()] = 255;
-                    regretMatchingTree.SetValueIfNotSet(sequencePointer, false, () => tallyNode.GetRegretMatchingProbabilities());
-                }
-            }
-            return regretMatchingTree;
         }
 
         // NOTE: Sometimes we preface the information set with a decisionIndex, so we have dedicated methods for this.
@@ -103,9 +85,12 @@ namespace ACESim
         public StrategyState RememberStrategyState(IGameFactory gameFactory, GameDefinition gameDefinition)
         {
             bool serializeStrategyItself = true;
-            StrategyState s = new StrategyState();
-            s.SerializedStrategies = new List<byte[]>();
-            s.UnserializedStrategies = new List<Strategy>(); // we'll just populate this with nulls for now
+            StrategyState s = new StrategyState
+            {
+                SerializedStrategies = new List<byte[]>(),
+                UnserializedStrategies = new List<Strategy>()
+            };
+            // we'll just populate this with nulls for now
             for (int i = 0; i < AllStrategies.Count; i++)
             {
                 if (!serializeStrategyItself)
@@ -213,6 +198,24 @@ namespace ACESim
                 strategies[i].AllStrategies = strategies;
             }
             return strategies;
+        }
+
+        public unsafe NWayTreeStorage<List<double>> GetRegretMatchingTree()
+        {
+            var regretMatchingTree = new NWayTreeStorageInternal<List<double>>(null, InformationSetTree.Branches.Length);
+            var nodes = InformationSetTree.GetAllTreeNodes();
+            foreach (var node in nodes)
+            {
+                if (node.storedValue is InformationSetNodeTally tallyNode)
+                {
+                    byte* sequencePointer = stackalloc byte[node.sequenceToHere.Count() + 1];
+                    for (int i = 0; i < node.sequenceToHere.Count(); i++)
+                        sequencePointer[i] = node.sequenceToHere[i];
+                    sequencePointer[node.sequenceToHere.Count()] = 255;
+                    regretMatchingTree.SetValueIfNotSet(sequencePointer, false, () => tallyNode.GetRegretMatchingProbabilities());
+                }
+            }
+            return regretMatchingTree;
         }
     }
 }

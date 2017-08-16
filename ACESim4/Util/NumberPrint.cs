@@ -23,7 +23,7 @@ namespace ACESim
         }
 
 
-        public static double RoundToSignificantFigures(double d, int digits = 4)
+        public static double RoundToSignificantFigures(double d, int digits = 6) // DEBUG -- return to 4
         {
             if (double.IsNaN(d) || double.IsInfinity(d))
                 return d;
@@ -56,7 +56,7 @@ namespace ACESim
             return RoundToSignificantFigures((double)num, numSignificantFigures).ToString();
         }
 
-        public static string ToSignificantFigures(this double? num, int numSignificantFigures = 4)
+        public static string ToSignificantFigures(this double? num, int numSignificantFigures = 6) // DEBUG -- return to 4
         {
             if (num == null || double.IsNaN((double)num))
                 return "--";

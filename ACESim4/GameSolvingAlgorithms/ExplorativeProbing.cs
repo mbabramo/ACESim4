@@ -112,7 +112,7 @@ namespace ACESim
                     {
                         double cumulativeStrategyIncrement =
                             sigma_regretMatchedActionProbabilities[action - 1] / samplingProbabilityQ;
-                        informationSet.IncrementCumulativeStrategy(action, cumulativeStrategyIncrement * ExplorativeProbingCurrentWeight);
+                        informationSet.IncrementCumulativeStrategy(action, cumulativeStrategyIncrement);
                         if (TraceProbingCFR)
                             TabbedText.WriteLine(
                                 $"Incrementing cumulative strategy for {action} by {cumulativeStrategyIncrement} to {informationSet.GetCumulativeStrategy(action)}");
@@ -181,7 +181,7 @@ namespace ACESim
                 {
                     double cumulativeRegretIncrement = inverseSamplingProbabilityQ *
                                                        (counterfactualValues[action - 1] - summation);
-                    informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement * ExplorativeProbingCurrentWeight);
+                    informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement);
                     if (TraceProbingCFR)
                     {
                         //TabbedText.WriteLine($"Optimizing {playerBeingOptimized} Iteration {ProbingCFRIterationNum} Actions to here {historyPoint.GetActionsToHereString(Navigation)}");
@@ -193,6 +193,34 @@ namespace ACESim
             }
             else
                 throw new NotImplementedException();
+        }
+
+        public void RecordCurrentRegrets()
+        {
+            for (int p = 0; p < NumNonChancePlayers; p++)
+            {
+                var playerRegrets = Strategies[p].InformationSetTree;
+                playerRegrets.WalkTree(node =>
+                {
+                    InformationSetNodeTally tally = (InformationSetNodeTally) node.StoredValue;
+                    if (tally != null)
+                        tally.CopyCumulativeRegretsToStorage();
+                });
+            }
+        }
+
+        public void RemoveStoredCumulativeRegrets()
+        {
+            for (int p = 0; p < NumNonChancePlayers; p++)
+            {
+                var playerRegrets = Strategies[p].InformationSetTree;
+                playerRegrets.WalkTree(node =>
+                {
+                    InformationSetNodeTally tally = (InformationSetNodeTally)node.StoredValue;
+                    if (tally != null)
+                        tally.RemoveStorageFromCumulativeRegrets();
+                });
+            }
         }
 
         public void ExplorativeProbingCFRIteration(int iteration)
@@ -213,8 +241,6 @@ namespace ACESim
             }
         }
 
-        private double ExplorativeProbingCurrentWeight = 0;
-
         public unsafe void SolveExplorativeProbingCFR()
         {
             Stopwatch s = new Stopwatch();
@@ -222,19 +248,31 @@ namespace ACESim
                 throw new Exception(
                     "Internal error. Must implement extra code from Gibson algorithm 2 for more than 2 players.");
             ActionStrategy = ActionStrategies.RegretMatching;
-            for (ProbingCFRIterationNum = 0;
-                ProbingCFRIterationNum < EvolutionSettings.TotalProbingCFRIterations;
-                ProbingCFRIterationNum++)
+            int numPhases = EvolutionSettings.EpsilonForPhases.Count;
+            int iterationsPerPhase = EvolutionSettings.TotalProbingCFRIterations / numPhases;
+            int extraIterationsLastPhase = iterationsPerPhase - numPhases * iterationsPerPhase;
+            ProbingCFRIterationNum = 0;
+            RecordCurrentRegrets(); // should be 0
+            for (int phase = 0; phase < numPhases; phase++)
             {
-                int phase = ProbingCFRIterationNum / EvolutionSettings.TotalProbingCFRIterations;
-                CurrentEpsilonValue = EvolutionSettings.EpsilonForPhases[phase];
-                ExplorativeProbingCurrentWeight = EvolutionSettings.WeightsForPhases[phase];
-                s.Start();
-                ExplorativeProbingCFRIteration(ProbingCFRIterationNum);
-                s.Stop();
-                GenerateReports(ProbingCFRIterationNum,
-                    () =>
-                        $"Iteration {ProbingCFRIterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)(ProbingCFRIterationNum + 1))))}");
+                int iterationsThisPhase = phase == numPhases - 1
+                    ? iterationsPerPhase + extraIterationsLastPhase
+                    : iterationsPerPhase;
+                for (int iteration = 0;
+                    iteration < iterationsThisPhase;
+                    iteration++)
+                {
+                    CurrentEpsilonValue = EvolutionSettings.EpsilonForPhases[phase];
+                    s.Start();
+                    ExplorativeProbingCFRIteration(ProbingCFRIterationNum);
+                    s.Stop();
+                    GenerateReports(ProbingCFRIterationNum,
+                        () =>
+                            $"Iteration {ProbingCFRIterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double) (ProbingCFRIterationNum + 1))))}");
+                    ProbingCFRIterationNum++;
+                }
+                RemoveStoredCumulativeRegrets(); 
+                RecordCurrentRegrets();
             }
         }
     }

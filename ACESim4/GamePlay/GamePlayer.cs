@@ -231,7 +231,7 @@ namespace ACESim
             return gameProgress;
         }
 
-        public GameProgress PlayUsingActionOverride(Func<Decision, byte> actionOverride)
+        public GameProgress PlayUsingActionOverride(Func<Decision, GameProgress, byte> actionOverride)
         {
             Game game = GameDefinition.GameFactory.CreateNewGame();
             GameProgress gameProgress = StartingProgress.DeepCopy();
@@ -349,7 +349,8 @@ namespace ACESim
         public IEnumerable<GameProgress> PlayMultipleIterations(
             List<GameProgress> preplayedGameProgressInfos,
             int numIterations,
-            IterationID[] iterationIDArray = null)
+            IterationID[] iterationIDArray,
+            Func<Decision, GameProgress, byte> actionOverride)
         {
             CompletedGameProgresses = new ConcurrentBag<GameProgress>();
 
@@ -372,18 +373,7 @@ namespace ACESim
                 // Remove comments from the following to log specific items
                 GameProgressLogger.LoggingOn = false;
                 GameProgressLogger.OutputLogMessages = false;
-                //if ((NumSymmetryTests == 5 || NumSymmetryTests == 6) && runSymmetryTests) // set this to the even iteration of a pair that failed symmetry to see why
-                //{
-                //    GameProgressLogger.LoggingOn = true;
-                //    GameProgressLogger.OutputLogMessages = true;
-                //}
-                //else
-                //{
-                //    GameProgressLogger.LoggingOn = false;
-                //    GameProgressLogger.OutputLogMessages = false;
-                //}
-                // Remove comments from the following to log a particular iteration repeatedly. We can use this to see how changing settings affects a particular iteration.
-                PlayHelper(i, strategiesToPlayWith, true, iterationIDArray, preplayedGameProgressInfos);
+                PlayHelper(i, strategiesToPlayWith, true, iterationIDArray, preplayedGameProgressInfos, actionOverride);
 
             }
             );
@@ -400,7 +390,7 @@ namespace ACESim
         /// resulting for each iteration should be added to completedGames; that way, after evolution is complete, 
         /// the GameProgressInfo objects can be called to generate reports.
         /// </summary>
-        void PlayHelper(int iteration, List<Strategy> strategies, bool saveCompletedGameProgressInfos, IterationID[] iterationIDArray, List<GameProgress> preplayedGameProgressInfos)
+        void PlayHelper(int iteration, List<Strategy> strategies, bool saveCompletedGameProgressInfos, IterationID[] iterationIDArray, List<GameProgress> preplayedGameProgressInfos, Func<Decision, GameProgress, byte> actionOverride)
         {
             GameProgress gameProgress;
             if (preplayedGameProgressInfos != null)
@@ -410,6 +400,7 @@ namespace ACESim
             else
             {
                 gameProgress = GameDefinition.GameFactory.CreateNewGameProgress(iterationIDArray?[iteration]);
+                gameProgress.ActionOverrider = actionOverride;
             }
 
             Game game = GameDefinition.GameFactory.CreateNewGame();

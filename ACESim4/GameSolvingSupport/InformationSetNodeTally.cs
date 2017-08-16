@@ -20,11 +20,12 @@ namespace ACESim
         double[,] NodeInformation;
 
         int NumPossibleActions => NodeInformation.GetLength(1);
-        const int totalDimensions = 4;
+        const int totalDimensions = 5;
         const int cumulativeRegretDimension = 0;
         const int cumulativeStrategyDimension = 1;
         const int bestResponseNumeratorDimension = 2;
         const int bestResponseDenominatorDimension = 3;
+        const int storageDimension = 4;
 
         public InformationSetNodeTally(byte decisionByteCode, byte decisionIndex, byte playerIndex, int numPossibleActions, byte? binarySubdivisionLevels)
         {
@@ -248,7 +249,7 @@ namespace ACESim
             List<double> probs = new List<double>();
             for (byte a = 1; a <= NumPossibleActions; a++)
                 probs.Add(NodeInformation[cumulativeRegretDimension, a - 1]);
-            return String.Join(",", probs.Select(x => $"{x:N2}"));
+            return String.Join(", ", probs.Select(x => $"{x:N2}"));
         }
 
         public unsafe string GetRegretMatchingProbabilitiesString()
@@ -379,6 +380,32 @@ namespace ACESim
                 }
                 return NumPossibleActions; // could happen because of rounding error
             }
+        }
+
+        public void CopyCumulativeRegretsToStorage()
+        {
+            for (byte a = 0; a < NumPossibleActions; a++)
+                NodeInformation[storageDimension, a] = NodeInformation[cumulativeRegretDimension, a];
+        }
+
+        public void CopyStorageToCumulativeRegrets()
+        {
+            for (byte a = 0; a < NumPossibleActions; a++)
+                NodeInformation[cumulativeRegretDimension, a] = NodeInformation[storageDimension, a];
+        }
+
+        public void RemoveStorageFromCumulativeRegrets()
+        {
+            bool difference = false;
+
+            for (byte a = 0; a < NumPossibleActions; a++)
+                if (NodeInformation[cumulativeRegretDimension, a] != NodeInformation[storageDimension, a])
+                    difference = true;
+            if (!difference)
+                return; // we don't want to remove cumulative regrets if nothing has changed.
+
+            for (byte a = 0; a < NumPossibleActions; a++)
+                NodeInformation[cumulativeRegretDimension, a] -= NodeInformation[storageDimension, a];
         }
 
         public GameStateTypeEnum GetGameStateType()

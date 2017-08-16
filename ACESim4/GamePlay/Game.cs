@@ -168,7 +168,7 @@ namespace ACESim
                 Progress.ActionsToPlay = new List<byte>();
             if (Progress.ActionOverrider != null)
             {
-                byte actionToAdd = Progress.ActionOverrider(CurrentDecision);
+                byte actionToAdd = Progress.ActionOverrider(CurrentDecision, Progress);
                 if (actionToAdd != 0)
                     return actionToAdd;
             }

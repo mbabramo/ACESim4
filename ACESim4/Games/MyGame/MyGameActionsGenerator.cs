@@ -8,19 +8,15 @@ namespace ACESim
 {
     public static class MyGameActionsGenerator
     {
-        public static byte PlaintiffShouldOffer1IfReceivingSignal1(Decision decision)
+        public static byte PlaintiffShouldOffer1IfReceivingSignal1(Decision decision, GameProgress progress)
         {
-            switch (decision.DecisionByteCode)
-            {
-                case (byte)MyGameDecisions.POffer:
-                    if ()
-
-                default:
-                    throw new NotImplementedException();
-            }
+            MyGameProgress p = (MyGameProgress) progress;
+            if (decision.DecisionByteCode == (byte)MyGameDecisions.POffer && p.PSignalDiscrete == 1)
+                return 1;
+            return 0;
         }
 
-        public static byte SettleAtMidpoint_OneBargainingRound(Decision decision)
+        public static byte SettleAtMidpoint_FirstBargainingRound(Decision decision, GameProgress progress)
         {
             switch (decision.DecisionByteCode)
             {
@@ -38,7 +34,7 @@ namespace ACESim
             }
         }
 
-        public static byte SettleAtMidpoint_SecondBargainingRound(Decision decision)
+        public static byte SettleAtMidpoint_SecondBargainingRound(Decision decision, GameProgress progress)
         {
             switch (decision.DecisionByteCode)
             {
@@ -60,7 +56,7 @@ namespace ACESim
             }
         }
 
-        public static byte SettleAtTwoThirds_SecondBargainingRound(Decision decision)
+        public static byte SettleAtTwoThirds_SecondBargainingRound(Decision decision, GameProgress progress)
         {
             switch (decision.DecisionByteCode)
             {

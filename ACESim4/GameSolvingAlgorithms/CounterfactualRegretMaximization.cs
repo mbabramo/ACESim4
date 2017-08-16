@@ -425,6 +425,7 @@ namespace ACESim
             if (EvolutionSettings.ReportEveryNIterations != null && iteration % EvolutionSettings.ReportEveryNIterations == 0)
             {
                 ActionStrategies previous = ActionStrategy;
+                ActionStrategy = ActionStrategies.RegretMatching;
                 bool useRandomPaths = SkipEveryPermutationInitialization || NumInitializedGamePaths > EvolutionSettings.NumRandomIterationsForReporting;
                 bool doBestResponse = (EvolutionSettings.BestResponseEveryMIterations != null && iteration % EvolutionSettings.BestResponseEveryMIterations == 0 && EvolutionSettings.BestResponseEveryMIterations != EvolutionSettings.EffectivelyNever && iteration != 0);
                 if (doBestResponse)
@@ -434,8 +435,13 @@ namespace ACESim
                 if (EvolutionSettings.Algorithm == GameApproximationAlgorithm.AverageStrategySampling)
                     Debug.WriteLine($"{NumberAverageStrategySamplingExplorations / (double)EvolutionSettings.ReportEveryNIterations}");
                 NumberAverageStrategySamplingExplorations = 0;
-                MainReport(useRandomPaths);
+                MainReport(useRandomPaths, null);
                 MeasureRegretMatchingChanges();
+                if (EvolutionSettings.AlternativeOverride != null)
+                {
+                    Debug.WriteLine("With alternative:");
+                    MainReport(useRandomPaths, EvolutionSettings.AlternativeOverride);
+                }
                 if (ShouldEstimateImprovementOverTime)
                     ReportEstimatedImprovementsOverTime();
                 if (doBestResponse)
@@ -446,12 +452,13 @@ namespace ACESim
                     PrintGameTree();
                 if (EvolutionSettings.PrintInformationSetsAfterReport)
                     PrintInformationSets();
+                ActionStrategy = previous;
             }
         }
 
-        private unsafe void MainReport(bool useRandomPaths)
+        private unsafe void MainReport(bool useRandomPaths, Func<Decision, GameProgress, byte> actionOverride)
         {
-            Action<GamePlayer> reportGenerator;
+            Action<GamePlayer, Func<Decision, GameProgress, byte>> reportGenerator;
             if (useRandomPaths)
             {
                 Debug.WriteLine($"Result using {EvolutionSettings.NumRandomIterationsForReporting} randomly chosen paths");
@@ -462,7 +469,7 @@ namespace ACESim
                 Debug.WriteLine($"Result using all paths");
                 reportGenerator = GenerateReports_AllPaths;
             }
-            Debug.WriteLine($"{GenerateReports(reportGenerator)}");
+            Debug.WriteLine($"{GenerateReports(reportGenerator, actionOverride)}");
             //Debug.WriteLine($"Number initialized game paths: {NumInitializedGamePaths}");
         }
 
@@ -479,14 +486,14 @@ namespace ACESim
         }
 
 
-        public List<GameProgress> GetRandomCompleteGames(GamePlayer player, int numIterations)
+        public List<GameProgress> GetRandomCompleteGames(GamePlayer player, int numIterations, Func<Decision, GameProgress, byte> actionOverride)
         {
-            return player.PlayMultipleIterations(null, numIterations, null).ToList();
+            return player.PlayMultipleIterations(null, numIterations, null, actionOverride).ToList();
         }
 
-        private void GenerateReports_RandomPaths(GamePlayer player)
+        private void GenerateReports_RandomPaths(GamePlayer player, Func<Decision, GameProgress, byte> actionOverride)
         {
-            var gameProgresses = GetRandomCompleteGames(player, EvolutionSettings.NumRandomIterationsForReporting);
+            var gameProgresses = GetRandomCompleteGames(player, EvolutionSettings.NumRandomIterationsForReporting, actionOverride);
             UtilityCalculations = new StatCollector[NumNonChancePlayers];
             for (int p = 0; p < NumNonChancePlayers; p++)
                 UtilityCalculations[p] = new StatCollector();
@@ -597,7 +604,7 @@ namespace ACESim
 
         SimpleReport[] ReportsBeingGenerated = null;
 
-        public string GenerateReports(Action<GamePlayer> generator)
+        public string GenerateReports(Action<GamePlayer, Func<Decision, GameProgress, byte>> generator, Func<Decision, GameProgress, byte> actionOverride)
         {
             Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, GetGameState);
             StringBuilder sb = new StringBuilder();
@@ -606,7 +613,7 @@ namespace ACESim
             ReportsBeingGenerated = new SimpleReport[simpleReportDefinitionsCount];
             for (int i = 0; i < simpleReportDefinitionsCount; i++)
                 ReportsBeingGenerated[i] = new SimpleReport(simpleReportDefinitions[i], simpleReportDefinitions[i].DivideColumnFiltersByImmediatelyEarlierReport ? ReportsBeingGenerated[i - 1] : null);
-            generator(GamePlayer);
+            generator(GamePlayer, actionOverride);
             for (int i = 0; i < simpleReportDefinitionsCount; i++)
                 ReportsBeingGenerated[i].GetReport(sb, false);
             ReportsBeingGenerated = null;
@@ -615,7 +622,7 @@ namespace ACESim
 
         StatCollector[] UtilityCalculations;
 
-        private void GenerateReports_AllPaths(GamePlayer player)
+        private void GenerateReports_AllPaths(GamePlayer player, Func<Decision, GameProgress, byte> actionOverride)
         {
             UtilityCalculations = new StatCollector[NumNonChancePlayers];
             for (int p = 0; p < NumNonChancePlayers; p++)

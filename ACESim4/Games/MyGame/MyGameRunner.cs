@@ -9,7 +9,7 @@ namespace ACESim
     public static class MyGameRunner
     {
         public static MyGameProgress PlayMyGameOnce(MyGameOptions options,
-            Func<Decision, byte> actionsOverride)
+            Func<Decision, GameProgress, byte> actionsOverride)
         {
             MyGameDefinition gameDefinition = new MyGameDefinition();
             gameDefinition.Setup(options);
@@ -34,17 +34,22 @@ namespace ACESim
 
                 Algorithm = GameApproximationAlgorithm.ExplorativeProbing,
                 TotalAvgStrategySamplingCFRIterations = 10000000,
-                TotalProbingCFRIterations = 100000,
+                TotalProbingCFRIterations = 200000,
                 TotalVanillaCFRIterations = 100000000,
 
-                ReportEveryNIterations = 1000,
+                ReportEveryNIterations = 25000,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever,
+                PrintInformationSetsAfterReport = true,
 
                 UseEpsilonOnPolicyForOpponent = true,
                 FirstOpponentEpsilonValue = 0.5,
                 LastOpponentEpsilonValue = 0.05,
                 LastOpponentEpsilonIteration = 10000,
                 MaxOneEpsilonExploration = true,
+
+                EpsilonForPhases = new List<double>() { 0.05, 0.01, 0.001, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+
+                AlternativeOverride = null // MyGameActionsGenerator.PlaintiffShouldOffer1IfReceivingSignal1
             };
             CounterfactualRegretMaximization developer = new CounterfactualRegretMaximization(starterStrategies, evolutionSettings, gameDefinition);
             developer.DevelopStrategies();

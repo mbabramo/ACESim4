@@ -13,7 +13,22 @@ namespace ACESimTest
         {
             var options = MyGameOptionsGenerator.SingleBargainingRound_LowNoise();
             var myGameProgress = MyGameRunner.PlayMyGameOnce(options,
-                MyGameActionsGenerator.SettleAtMidpoint_OneBargainingRound);
+                MyGameActionsGenerator.SettleAtMidpoint_FirstBargainingRound);
+            myGameProgress.GameComplete.Should().BeTrue();
+            myGameProgress.PFinalWealth.Should().Be(options.PInitialWealth + 0.5 * options.DamagesAlleged -
+                                                    options.PerPartyBargainingRoundCosts);
+            myGameProgress.DFinalWealth.Should().Be(options.DInitialWealth - 0.5 * options.DamagesAlleged -
+                                                    options.PerPartyBargainingRoundCosts);
+            myGameProgress.PWelfare.Should().Be(myGameProgress.PFinalWealth);
+            myGameProgress.DWelfare.Should().Be(myGameProgress.DFinalWealth);
+        }
+
+        [TestMethod]
+        public void SettlementAfterOneBargainingRound_WhenTwoArePossible()
+        {
+            var options = MyGameOptionsGenerator.TwoSimultaneousBargainingRounds();
+            var myGameProgress = MyGameRunner.PlayMyGameOnce(options,
+                MyGameActionsGenerator.SettleAtMidpoint_FirstBargainingRound);
             myGameProgress.GameComplete.Should().BeTrue();
             myGameProgress.PFinalWealth.Should().Be(options.PInitialWealth + 0.5 * options.DamagesAlleged -
                                                     options.PerPartyBargainingRoundCosts);

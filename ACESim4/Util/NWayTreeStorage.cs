@@ -71,21 +71,21 @@ namespace ACESim
             action(this);
         }
 
-        public string ToTreeString()
+        public string ToTreeString(string branchWord)
         {
             StringBuilder s = new StringBuilder();
-            ToTreeString(s, null, 0);
+            ToTreeString(s, null, 0, branchWord);
             return s.ToString();
         }
 
-        internal virtual void ToTreeString(StringBuilder s, int? branch, int level)
+        internal virtual void ToTreeString(StringBuilder s, int? branch, int level, string branchWord)
         {
             for (int i = 0; i < level * 5; i++)
                 s.Append(" ");
             if (branch == null)
                 s.Append("Root");
             else
-                s.Append(branch);
+                s.Append($"{branchWord} {branch}");
             s.Append(": ");
             s.Append($"{StoredValue}");
             s.Append(Environment.NewLine);
