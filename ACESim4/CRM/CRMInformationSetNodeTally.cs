@@ -285,6 +285,14 @@ namespace ACESim
                 probabilitiesToSet[a - 1] = epsilon * equalProbabilities + (1.0 - epsilon) * probabilitiesToSet[a - 1];
         }
 
+        // The following can be used to accomplish the same thing as epsilon adjusted regret matching probabilities. This is useful if we need to be able to determine whether we are doing epsilon exploration.
+        public unsafe void GetEqualProbabilitiesRegretMatching(double* probabilitiesToSet)
+        {
+            double equalProbabilities = 1.0 / NumPossibleActions;
+            for (byte a = 1; a <= NumPossibleActions; a++)
+                probabilitiesToSet[a - 1] = equalProbabilities;
+        }
+
         public unsafe void GetRegretMatchingProbabilities_WithPruning(double* probabilitiesToSet)
         {
             bool zeroOutInRegretMatching = false;

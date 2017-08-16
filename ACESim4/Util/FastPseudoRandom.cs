@@ -66,7 +66,7 @@ namespace ACESim
 
         private class InfoForHashCodeRandomSeedGeneration
         {
-            public long Index;
+            public long Index = 0;
             public int Variant = 0;
             public long Offset = 0;
             public override string ToString()

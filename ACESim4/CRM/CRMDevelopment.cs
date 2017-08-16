@@ -27,11 +27,12 @@ namespace ACESim
         bool ShouldEstimateImprovementOverTime = false;
         const int NumRandomGamePlaysForEstimatingImprovement = 1000;
 
-        // The following apply to probing and average strategy sampling. The MCCFR algorithm is not guaranteed to visit all information sets.
+        // The following apply to probing and average strategy sampling. The MCCFR algorithm is not guaranteed to visit all information sets. There is a trade-off, however. When we use epsilon policy exploration, whether for the player being optimized or for the opponent, we change the dynamics of the game. Perhaps, for example, it will make sense not to take a settlement that is valuable so long as there is some small chance that the opponent will engage in policy exploration and agree to a deal that is bad for the opponent. Similarly, a player's own earlier or later exploration can affect the player's own moves; if I might make a bad move later, then maybe I should play what otherwise would be suboptimally now. 
         bool UseEpsilonOnPolicyForOpponent = true;
         double FirstOpponentEpsilonValue = 0.5;
-        double LastOpponentEpsilonValue = 0.00001;
-        int LastOpponentEpsilonIteration = 1000000;
+        double LastOpponentEpsilonValue = 0.05;
+        int LastOpponentEpsilonIteration = 100000;
+        private bool MaxOneEpsilonExploration = true; // If true, do no more than one epsilon exploration for either player, and after doing the epsilon exploration to do no further updating of later decisions. That way, the latest decisions can be optimized and we cna work backwards. (Implemented for now only with probing)
         double CurrentEpsilonValue; // set in algorithm.
 
         public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
@@ -942,10 +943,10 @@ namespace ACESim
                     CRMInformationSetNodeTally informationSet = (CRMInformationSetNodeTally)gameStateForCurrentPlayer;
                     byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
                     double* actionProbabilities = stackalloc double[numPossibleActions];
-                    // the use of epsilon-on-policy for early iterations of opponent's strategy is a deviation from Gibson.
-                    if (!EstimatingImprovementOverTimeMode && UseEpsilonOnPolicyForOpponent && ProbingCFRIterationNum <= LastOpponentEpsilonIteration)
-                        informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(actionProbabilities, CurrentEpsilonValue);
-                    else
+                    // DEBUG: No epsilon exploration during the probe.
+                    //if (!EstimatingImprovementOverTimeMode && UseEpsilonOnPolicyForOpponent && ProbingCFRIterationNum <= LastOpponentEpsilonIteration)
+                    //    informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(actionProbabilities, CurrentEpsilonValue);
+                    //else
                         informationSet.GetRegretMatchingProbabilities(actionProbabilities);
                     sampledAction = SampleAction(actionProbabilities, numPossibleActions, randomProducer.GetDoubleAtIndex(informationSet.DecisionIndex));
                     if (TraceProbingCRM)
@@ -964,7 +965,7 @@ namespace ACESim
             }
         }
 
-        public unsafe double Probe_WalkTree(HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer)
+        public unsafe double Probe_WalkTree(HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, bool alreadyUsedEpsilonExploration)
         {
             if (TraceProbingCRM)
                 TabbedText.WriteLine($"WalkTree sampling probability {samplingProbabilityQ}");
@@ -986,7 +987,7 @@ namespace ACESim
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction);
                 if (TraceProbingCRM)
                     TabbedText.Tabs++;
-                double walkTreeValue = Probe_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer);
+                double walkTreeValue = Probe_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, alreadyUsedEpsilonExploration);
                 if (TraceProbingCRM)
                 {
                     TabbedText.Tabs--;
@@ -1000,11 +1001,17 @@ namespace ACESim
                 double* sigma_regretMatchedActionProbabilities = stackalloc double[numPossibleActions];
                 informationSet.GetRegretMatchingProbabilities(sigma_regretMatchedActionProbabilities);
                 byte playerAtPoint = informationSet.PlayerIndex;
+                bool usingEpsilonExploration = false;
+                double randomDouble = randomProducer.GetDoubleAtIndex(informationSet.DecisionIndex);
                 if (playerAtPoint != playerBeingOptimized)
                 {
                     // the use of epsilon-on-policy for early iterations of opponent's strategy is a deviation from Gibson.
-                    if (UseEpsilonOnPolicyForOpponent && AvgStrategySamplingCFRIterationNum <= LastOpponentEpsilonIteration)
-                        informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(sigma_regretMatchedActionProbabilities, CurrentEpsilonValue);
+                    usingEpsilonExploration = (!EstimatingImprovementOverTimeMode && UseEpsilonOnPolicyForOpponent &&
+                                               ProbingCFRIterationNum <= LastOpponentEpsilonIteration &&
+                                               ((!alreadyUsedEpsilonExploration || !MaxOneEpsilonExploration) &&
+                                                (Math.Floor(randomDouble * 1000.0) < CurrentEpsilonValue)));
+                    if (usingEpsilonExploration)
+                        informationSet.GetEqualProbabilitiesRegretMatching(sigma_regretMatchedActionProbabilities);
                     else
                         informationSet.GetRegretMatchingProbabilities(sigma_regretMatchedActionProbabilities);
                     for (byte action = 1; action <= numPossibleActions; action++)
@@ -1014,13 +1021,13 @@ namespace ACESim
                         if (TraceProbingCRM)
                             TabbedText.WriteLine($"Incrementing cumulative strategy for {action} by {cumulativeStrategyIncrement} to {informationSet.GetCumulativeStrategy(action)}");
                     }
-                    sampledAction = SampleAction(sigma_regretMatchedActionProbabilities, numPossibleActions, randomProducer.GetDoubleAtIndex(informationSet.DecisionIndex));
+                    sampledAction = SampleAction(sigma_regretMatchedActionProbabilities, numPossibleActions, randomDouble);
                     if (TraceProbingCRM)
                         TabbedText.WriteLine($"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {playerAtPoint} decision {informationSet.DecisionIndex} with regret-matched prob {sigma_regretMatchedActionProbabilities[sampledAction - 1]}");
                     HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction);
                     if (TraceProbingCRM)
                         TabbedText.Tabs++;
-                    double walkTreeValue = Probe_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer);
+                    double walkTreeValue = Probe_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, alreadyUsedEpsilonExploration || usingEpsilonExploration);
                     if (TraceProbingCRM)
                     {
                         TabbedText.Tabs--;
@@ -1030,8 +1037,14 @@ namespace ACESim
                 }
                 double* samplingProbabilities = stackalloc double[numPossibleActions];
                 const double epsilonForProbeWalk = 0.5;
-                informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(samplingProbabilities, epsilonForProbeWalk);
-                sampledAction = SampleAction(samplingProbabilities, numPossibleActions, randomProducer.GetDoubleAtIndex(informationSet.DecisionIndex));
+                usingEpsilonExploration = (!alreadyUsedEpsilonExploration
+                     || !MaxOneEpsilonExploration) && (Math.Floor(randomDouble * 1000.0) < epsilonForProbeWalk); // look at late digits for random bool, without needing to get another random number
+                // we can't just call GetEpsilonAdjustedRegretMatchingProbabilities, because we need to know whether we are epsilon-adjusting
+                if (usingEpsilonExploration)
+                    informationSet.GetEqualProbabilitiesRegretMatching(samplingProbabilities);
+                else
+                    informationSet.GetRegretMatchingProbabilities(samplingProbabilities);
+                sampledAction = SampleAction(samplingProbabilities, numPossibleActions, randomDouble);
                 if (TraceProbingCRM)
                     TabbedText.WriteLine($"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {playerAtPoint} decision {informationSet.DecisionIndex} with regret-matched prob {sigma_regretMatchedActionProbabilities[sampledAction - 1]}");
                 double* counterfactualValues = stackalloc double[numPossibleActions];
@@ -1046,7 +1059,7 @@ namespace ACESim
                         if (TraceProbingCRM)
                             TabbedText.Tabs++;
                         double samplingProbabilityQPrime = samplingProbabilityQ * samplingProbabilities[action - 1];
-                        counterfactualValues[action - 1] = Probe_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQPrime, randomProducer);
+                        counterfactualValues[action - 1] = Probe_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQPrime, randomProducer, alreadyUsedEpsilonExploration || usingEpsilonExploration);
                     }
                     else
                     {
@@ -1109,7 +1122,7 @@ namespace ACESim
                     TabbedText.WriteLine($"Optimize player {playerBeingOptimized}");
                     TabbedText.Tabs++;
                 }
-                Probe_WalkTree(historyPoint, playerBeingOptimized, 1.0, randomProducer);
+                Probe_WalkTree(historyPoint, playerBeingOptimized, 1.0, randomProducer, false);
                 if (TraceProbingCRM)
                     TabbedText.Tabs--;
             }

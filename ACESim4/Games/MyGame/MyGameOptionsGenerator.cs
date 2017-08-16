@@ -110,7 +110,7 @@ namespace ACESim
         }
 
 
-        public static MyGameOptions TwoAlternatingOffers_FivePossibilities_LowNoise()
+        public static MyGameOptions DEBUG_TestOptions()
         {
             var options = new MyGameOptions()
             {
@@ -131,11 +131,11 @@ namespace ACESim
                     DeltaStartingValue = 0.01,
                     MaxDelta = 0.25
                 },
-                NumBargainingRounds = 2,
+                NumBargainingRounds = 3,
                 ForgetEarlierBargainingRounds = true,
                 SubdivideOffers = false,
                 BargainingRoundsSimultaneous = false,
-                PGoesFirstIfNotSimultaneous = new List<bool> { true, false },
+                PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false },
                 IncludeSignalsReport = true
             };
             options.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.PInitialWealth };
