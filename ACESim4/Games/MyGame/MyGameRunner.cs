@@ -32,15 +32,15 @@ namespace ACESim
                 MaxParallelDepth = 2,
                 ParallelOptimization = true,
 
-                Algorithm = GameApproximationAlgorithm.GibsonProbing,
+                Algorithm = GameApproximationAlgorithm.AbramowiczProbing,
                 TotalAvgStrategySamplingCFRIterations = 10000000,
-                TotalProbingCFRIterations = 200000,
+                TotalProbingCFRIterations = 500000,
                 TotalVanillaCFRIterations = 100000000,
 
-                ReportEveryNIterations = 25000,
-                NumRandomIterationsForReporting = 1000,
+                ReportEveryNIterations = 10000,
+                NumRandomIterationsForReporting = 500,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever,
-                PrintInformationSetsAfterReport = true,
+                PrintInformationSetsAfterReport = false,
 
                 UseEpsilonOnPolicyForOpponent = true,
                 FirstOpponentEpsilonValue = 0.5,
