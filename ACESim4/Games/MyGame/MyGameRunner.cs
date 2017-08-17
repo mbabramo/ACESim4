@@ -48,7 +48,7 @@ namespace ACESim
                 LastOpponentEpsilonIteration = 10000,
                 MaxOneEpsilonExploration = true,
 
-                EpsilonForPhases = new List<double>() { 0 }, // 0.05, 0.01, 0.001, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+                EpsilonForPhases = new List<double>() { 0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05 },
 
                 AlternativeOverride = null // MyGameActionsGenerator.PlaintiffShouldOffer1IfReceivingSignal1
             };

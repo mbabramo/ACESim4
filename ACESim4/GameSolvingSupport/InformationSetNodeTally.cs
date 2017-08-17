@@ -17,6 +17,7 @@ namespace ACESim
         public byte DecisionIndex;
         public byte PlayerIndex;
         public byte? BinarySubdivisionLevels;
+        public int LastIterationChanged = -1; // used by some algorithms
         double[,] NodeInformation;
 
         int NumPossibleActions => NodeInformation.GetLength(1);

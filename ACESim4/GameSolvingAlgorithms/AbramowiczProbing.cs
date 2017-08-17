@@ -5,7 +5,7 @@ namespace ACESim
 {
     public partial class CounterfactualRegretMaximization
     {
-        // Differences from Gibson:
+        // Differences from Gibson:Increm
         // 1. During the Probe, we visit all branches on a critical node.
         // 2. The counterfactual value of an action selected for the player being selected is determined based on a probe. The walk through the tree is used solely for purposes of sampling.
         // 3. Alternating phases. We alternate normal with exploratory phases. In the exploratory phase, we increment cumulative regret only where it was not incremented during the prior normal phase and do not increment cumulative strategies. This should slow down our regret bounds by half.
@@ -136,16 +136,20 @@ namespace ACESim
                 // OTHER PLAYER:
                 if (playerAtPoint != playerBeingOptimized)
                 {
-                    informationSet.GetRegretMatchingProbabilities(sigmaRegretMatchedActionProbabilities);
-                    for (byte action = 1; action <= numPossibleActions; action++)
-                    {
-                        double cumulativeStrategyIncrement =
-                            sigmaRegretMatchedActionProbabilities[action - 1] / samplingProbabilityQ;
-                        informationSet.IncrementCumulativeStrategy(action, cumulativeStrategyIncrement);
-                        if (TraceProbingCFR)
-                            TabbedText.WriteLine(
-                                $"Incrementing cumulative strategy for {action} by {cumulativeStrategyIncrement} to {informationSet.GetCumulativeStrategy(action)}");
-                    }
+                    if (IsNormalPhase)
+                        informationSet.GetRegretMatchingProbabilities(sigmaRegretMatchedActionProbabilities);
+                    else // Difference from Gibson. The opponent will use epsilon exploration (but only during the exploratory phase).
+                        informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(sigmaRegretMatchedActionProbabilities, CurrentEpsilonValue);
+                    if (IsNormalPhase)
+                        for (byte action = 1; action <= numPossibleActions; action++)
+                        {
+                            double cumulativeStrategyIncrement =
+                                sigmaRegretMatchedActionProbabilities[action - 1] / samplingProbabilityQ;
+                            informationSet.IncrementCumulativeStrategy(action, cumulativeStrategyIncrement);
+                            if (TraceProbingCFR)
+                                TabbedText.WriteLine(
+                                    $"Incrementing cumulative strategy for {action} by {cumulativeStrategyIncrement} to {informationSet.GetCumulativeStrategy(action)}");
+                        }
                     sampledAction = SampleAction(sigmaRegretMatchedActionProbabilities, numPossibleActions,
                         randomDouble);
                     if (TraceProbingCFR)
@@ -209,14 +213,20 @@ namespace ACESim
                 double inverseSamplingProbabilityQ = (1.0 / samplingProbabilityQ);
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
-                    double cumulativeRegretIncrement = inverseSamplingProbabilityQ *
-                                                       (counterfactualValues[action - 1] - summation);
-                    informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement);
-                    if (TraceProbingCFR)
+                    // In the exploratory phase, we increment only the information sets that were not incremented in the normal phase. That's because we're using opponent exploration and don't want to distort the normal phase.
+                    if (IsNormalPhase || informationSet.LastIterationChanged < BeginningOfLastNormalPhase)
                     {
-                        //TabbedText.WriteLine($"Optimizing {playerBeingOptimized} Iteration {ProbingCFRIterationNum} Actions to here {historyPoint.GetActionsToHereString(Navigation)}");
-                        TabbedText.WriteLine(
-                            $"Increasing cumulative regret for action {action} by {inverseSamplingProbabilityQ} * {(counterfactualValues[action - 1])} - {summation} = {cumulativeRegretIncrement} to {informationSet.GetCumulativeRegret(action)}");
+                        double cumulativeRegretIncrement = inverseSamplingProbabilityQ *
+                                                           (counterfactualValues[action - 1] - summation);
+                        informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement);
+                        if (IsNormalPhase)
+                            informationSet.LastIterationChanged = ProbingCFRIterationNum; // we don't change the iteration in the other phase, because we don't want to limit ourselves to a single pass in this phase. So really, last iteration changed means "last iteration changed in a normal phase."
+                        if (TraceProbingCFR)
+                        {
+                            //TabbedText.WriteLine($"Optimizing {playerBeingOptimized} Iteration {ProbingCFRIterationNum} Actions to here {historyPoint.GetActionsToHereString(Navigation)}");
+                            TabbedText.WriteLine(
+                                $"Increasing cumulative regret for action {action} by {inverseSamplingProbabilityQ} * {(counterfactualValues[action - 1])} - {summation} = {cumulativeRegretIncrement} to {informationSet.GetCumulativeRegret(action)}");
+                        }
                     }
                 }
                 return summation;
@@ -247,6 +257,9 @@ namespace ACESim
             }
         }
 
+        private bool IsNormalPhase = true;
+        private int BeginningOfLastNormalPhase = 0;
+
         public unsafe void SolveAbramowiczProbingCFR()
         {
             Stopwatch s = new Stopwatch();
@@ -254,16 +267,36 @@ namespace ACESim
                 throw new Exception(
                     "Internal error. Must implement extra code from Abramowicz algorithm 2 for more than 2 players.");
             ActionStrategy = ActionStrategies.RegretMatching;
-            for (ProbingCFRIterationNum = 0;
-                ProbingCFRIterationNum < EvolutionSettings.TotalProbingCFRIterations;
-                ProbingCFRIterationNum++)
+            int numPhases = EvolutionSettings.EpsilonForPhases.Count;
+            int iterationsPerPhase = EvolutionSettings.TotalProbingCFRIterations / numPhases;
+            int extraIterationsLastPhase = iterationsPerPhase - numPhases * iterationsPerPhase;
+            ProbingCFRIterationNum = 0;
+            for (int phase = 0; phase < numPhases; phase++)
             {
-                s.Start();
-                AbramowiczProbingCFRIteration(ProbingCFRIterationNum);
-                s.Stop();
-                GenerateReports(ProbingCFRIterationNum,
-                    () =>
-                        $"Iteration {ProbingCFRIterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)(ProbingCFRIterationNum + 1))))}");
+                IsNormalPhase = phase % 2 == 0;
+                if (IsNormalPhase)
+                    BeginningOfLastNormalPhase = ProbingCFRIterationNum;
+                // Note: Ordinarily epsilon will be 0 for normal phases, but this is not required.
+                CurrentEpsilonValue = EvolutionSettings.EpsilonForPhases[phase];
+                if (IsNormalPhase && CurrentEpsilonValue != 0)
+                    Debug.WriteLine("Warning. Using positive epsilon value in normal (even-numbered) phase.");
+                int iterationsThisPhase = phase == numPhases - 1
+                    ? iterationsPerPhase + extraIterationsLastPhase
+                    : iterationsPerPhase;
+                for (int iteration = 0;
+                    iteration < iterationsThisPhase;
+                    iteration++)
+                {
+                    s.Start();
+                    ExplorativeProbingCFRIteration(ProbingCFRIterationNum);
+                    s.Stop();
+                    GenerateReports(ProbingCFRIterationNum,
+                        () =>
+                            $"Iteration {ProbingCFRIterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)(ProbingCFRIterationNum + 1))))}");
+                    ProbingCFRIterationNum++;
+                }
+                RemoveStoredCumulativeRegrets();
+                RecordCurrentRegrets();
             }
         }
     }
