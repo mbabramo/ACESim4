@@ -198,7 +198,21 @@ namespace ACESim
             else
                 throw new NotImplementedException();
         }
-        
+
+
+        private unsafe byte SampleAction(double* actionProbabilities, byte numPossibleActions, double randomNumber)
+        {
+            double cumulative = 0;
+            byte action = 1;
+            do
+            {
+                cumulative += actionProbabilities[action - 1];
+                if (cumulative >= randomNumber || action == numPossibleActions)
+                    return action;
+                else
+                    action++;
+            } while (true);
+        }
 
         public void GibsonProbingCFRIteration(int iteration)
         {
@@ -220,6 +234,8 @@ namespace ACESim
                     TabbedText.Tabs--;
             }
         }
+
+        private int ProbingCFRIterationNum;
 
         public unsafe void SolveGibsonProbingCFR()
         {

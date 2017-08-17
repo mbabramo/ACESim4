@@ -60,7 +60,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="GameSolvingAlgorithms\AbramowiczProbing.cs" />
-    <Compile Include="GameSolvingAlgorithms\ExplorativeProbing.cs" />
     <Compile Include="GameSolvingAlgorithms\GibsonProbing.cs" />
     <Compile Include="GameSolvingSupport\ActionStrategies.cs" />
     <Compile Include="GameSolvingAlgorithms\AverageStrategySampling.cs" />
@@ -80,7 +79,6 @@
     <Compile Include="GameSolvingSupport\HistoryPoint_CachedGameHistoryOnly.cs" />
     <Compile Include="GameSolvingSupport\IGameState.cs" />
     <Compile Include="GameSolvingSupport\InformationSetLookupApproach.cs" />
-    <Compile Include="GameSolvingAlgorithms\Probing.cs" />
     <Compile Include="GameSolvingAlgorithms\PureStrategiesFinder.cs" />
     <Compile Include="GameSolvingAlgorithms\Vanilla.cs" />
     <Compile Include="GamePlay\ActionGroup.cs" />

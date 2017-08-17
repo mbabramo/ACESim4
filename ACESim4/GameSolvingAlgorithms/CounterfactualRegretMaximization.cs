@@ -118,17 +118,11 @@ namespace ACESim
                 case GameApproximationAlgorithm.AverageStrategySampling:
                     SolveAvgStrategySamplingCFR();
                     break;
-                case GameApproximationAlgorithm.ExplorativeProbing:
-                    SolveExplorativeProbingCFR();
-                    break;
                 case GameApproximationAlgorithm.GibsonProbing:
                     SolveGibsonProbingCFR();
                     break;
                 case GameApproximationAlgorithm.AbramowiczProbing:
                     SolveAbramowiczProbingCFR();
-                    break;
-                case GameApproximationAlgorithm.Probing:
-                    SolveProbingCFR();
                     break;
                 case GameApproximationAlgorithm.Vanilla:
                     SolveVanillaCFR();
@@ -723,7 +717,6 @@ namespace ACESim
         double[] AggregateRecentImprovements;
         const int SizeOfMovingAverage = 100;
         long PseudorandomSpot = 1;
-        bool EstimatingImprovementOverTimeMode = false;
 
         public double[] GetUtilitiesFromRandomGamePlay(int repetitions)
         {
@@ -743,9 +736,7 @@ namespace ACESim
 
         public double[] GetUtilitiesFromRandomGamePlay(IRandomProducer randomProducer)
         {
-            EstimatingImprovementOverTimeMode = true;
-            double[] returnVal = Probe(GetStartOfGameHistoryPoint(), randomProducer);
-            EstimatingImprovementOverTimeMode = false;
+            double[] returnVal = GibsonProbe(GetStartOfGameHistoryPoint(), randomProducer);
             return returnVal;
         }
 

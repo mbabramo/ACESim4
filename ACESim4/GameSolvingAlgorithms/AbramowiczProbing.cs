@@ -258,6 +258,21 @@ namespace ACESim
             }
         }
 
+
+        public void DiscountStoredCumulativeRegrets()
+        {
+            for (int p = 0; p < NumNonChancePlayers; p++)
+            {
+                var playerRegrets = Strategies[p].InformationSetTree;
+                playerRegrets.WalkTree(node =>
+                {
+                    InformationSetNodeTally tally = (InformationSetNodeTally)node.StoredValue;
+                    if (tally != null)
+                        tally.DiscountStoredCumulativeRegrets();
+                });
+            }
+        }
+
         private bool IsNormalPhase = true;
         private int BeginningOfLastNormalPhase = 0;
 
