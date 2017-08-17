@@ -40,7 +40,9 @@ namespace ACESim
             | P1=2 | (1,1)   | (3,3)   |
             +------+---------+---------+
 
-            Both parties should play 1. But 1/3 of the time, we have the reverse where both parties should play 2.
+            There are two Nash equilibrium strategies. But on the principle of payoff dominance, both parties should play 1. 
+
+            Meanwhile, 1/3 of the time, we have the reverse where both parties should play 2.
             +------+---------+---------+
             |      |  P2=1   |  P2=2   |
             +------+---------+---------+
@@ -48,7 +50,7 @@ namespace ACESim
             | P1=2 | (0,0)   | (3,3)   |
             +------+---------+---------+
 
-            In expected value terms, both parties should still play 1.
+            In expected value terms, both parties should still play 1, since that is worth (4,4) in expected value (higher than any other single cell).
              */
             if (ChanceDecision == 1)
             {
