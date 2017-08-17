@@ -132,7 +132,7 @@ namespace ACESim
                     MaxDelta = 0.25
                 },
                 NumBargainingRounds = 4,
-                ForgetEarlierBargainingRounds = false,
+                ForgetEarlierBargainingRounds = true,
                 SubdivideOffers = false,
                 BargainingRoundsSimultaneous = true,
                 PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false },

@@ -5,6 +5,11 @@ namespace ACESim
 {
     public partial class CounterfactualRegretMaximization
     {
+        // Differences from Gibson:
+        // 1. During the Probe, we visit all branches on a critical node.
+        // 2. The counterfactual value of an action selected for the player being selected is determined based on a probe. The walk through the tree is used solely for purposes of sampling.
+        // 3. Alternating phases. We alternate normal with exploratory phases. In the exploratory phase, we increment cumulative regret only where it was not incremented during the prior normal phase and do not increment cumulative strategies. This should slow down our regret bounds by half.
+
         public unsafe double AbramowiczProbe_SinglePlayer(HistoryPoint historyPoint, byte playerBeingOptimized,
             IRandomProducer randomProducer)
         {
@@ -32,36 +37,59 @@ namespace ACESim
                 {
                     ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings)gameStateForCurrentPlayer;
                     byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
-                    sampledAction = chanceNodeSettings.SampleAction(numPossibleActions,
-                        randomProducer.GetDoubleAtIndex(chanceNodeSettings.DecisionIndex));
-                    if (TraceProbingCFR)
-                        TabbedText.WriteLine(
-                            $"{sampledAction}: Sampled chance action {sampledAction} of {numPossibleActions} with probability {chanceNodeSettings.GetActionProbability(sampledAction)}");
+                    if (chanceNodeSettings.CriticalNode)
+                    {
+                        double[] combined = new double[NumNonChancePlayers];
+                        for (byte a = 1; a <= numPossibleActions; a++)
+                        {
+                            double probability = chanceNodeSettings.GetActionProbability(a);
+                            double[] result = CompleteAbramowiczProbe(historyPoint, randomProducer, a);
+                            for (byte p = 0; p < NumNonChancePlayers; p++)
+                                combined[p] += probability * result[p];
+                        }
+                        return combined;
+                    }
+                    else
+                    {
+                        sampledAction = chanceNodeSettings.SampleAction(numPossibleActions,
+                            randomProducer.GetDoubleAtIndex(chanceNodeSettings.DecisionIndex));
+                        if (TraceProbingCFR)
+                            TabbedText.WriteLine(
+                                $"{sampledAction}: Sampled chance action {sampledAction} of {numPossibleActions} with probability {chanceNodeSettings.GetActionProbability(sampledAction)}");
+                        return CompleteAbramowiczProbe(historyPoint, randomProducer, sampledAction);
+                    }
                 }
                 else if (gameStateType == GameStateTypeEnum.Tally)
                 {
                     InformationSetNodeTally informationSet = (InformationSetNodeTally)gameStateForCurrentPlayer;
                     byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
                     double* actionProbabilities = stackalloc double[numPossibleActions];
-                    // No epsilon exploration during the probe.
                     informationSet.GetRegretMatchingProbabilities(actionProbabilities);
                     sampledAction = SampleAction(actionProbabilities, numPossibleActions,
                         randomProducer.GetDoubleAtIndex(informationSet.DecisionIndex));
                     if (TraceProbingCFR)
                         TabbedText.WriteLine(
                             $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {informationSet.PlayerIndex}");
+                    return CompleteAbramowiczProbe(historyPoint, randomProducer, sampledAction);
                 }
-                HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction);
-                if (TraceProbingCFR)
-                    TabbedText.Tabs++;
-                double[] probeResult = AbramowiczProbe(nextHistoryPoint, randomProducer);
-                if (TraceProbingCFR)
-                {
-                    TabbedText.Tabs--;
-                    TabbedText.WriteLine($"Returning probe result {probeResult}");
-                }
-                return probeResult;
+                else
+                    throw new NotImplementedException();
             }
+        }
+
+
+        private double[] CompleteAbramowiczProbe(HistoryPoint historyPoint, IRandomProducer randomProducer, byte sampledAction)
+        {
+            HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction);
+            if (TraceProbingCFR)
+                TabbedText.Tabs++;
+            double[] probeResult = ExplorativeProbe(nextHistoryPoint, randomProducer);
+            if (TraceProbingCFR)
+            {
+                TabbedText.Tabs--;
+                TabbedText.WriteLine($"Returning probe result {probeResult}");
+            }
+            return probeResult;
         }
 
         public unsafe double AbramowiczProbe_WalkTree(HistoryPoint historyPoint, byte playerBeingOptimized,

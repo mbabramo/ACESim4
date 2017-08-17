@@ -34,7 +34,7 @@ namespace ACESim
 
                 Algorithm = GameApproximationAlgorithm.AbramowiczProbing,
                 TotalAvgStrategySamplingCFRIterations = 10000000,
-                TotalProbingCFRIterations = 500000,
+                TotalProbingCFRIterations = 200000,
                 TotalVanillaCFRIterations = 100000000,
 
                 ReportEveryNIterations = 10000,
