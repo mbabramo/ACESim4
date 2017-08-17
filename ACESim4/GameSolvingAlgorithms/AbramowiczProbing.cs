@@ -221,6 +221,10 @@ namespace ACESim
                         informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement);
                         if (IsNormalPhase)
                             informationSet.LastIterationChanged = ProbingCFRIterationNum; // we don't change the iteration in the other phase, because we don't want to limit ourselves to a single pass in this phase. So really, last iteration changed means "last iteration changed in a normal phase."
+                        else
+                        {
+                            var DEBUG = 0;
+                        }
                         if (TraceProbingCFR)
                         {
                             //TabbedText.WriteLine($"Optimizing {playerBeingOptimized} Iteration {ProbingCFRIterationNum} Actions to here {historyPoint.GetActionsToHereString(Navigation)}");
@@ -288,7 +292,7 @@ namespace ACESim
                     iteration++)
                 {
                     s.Start();
-                    ExplorativeProbingCFRIteration(ProbingCFRIterationNum);
+                    AbramowiczProbingCFRIteration(ProbingCFRIterationNum);
                     s.Stop();
                     GenerateReports(ProbingCFRIterationNum,
                         () =>
