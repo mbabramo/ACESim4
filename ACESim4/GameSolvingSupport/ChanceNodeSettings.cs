@@ -12,6 +12,7 @@ namespace ACESim
         public byte PlayerNum;
         public byte DecisionByteCode;
         public byte DecisionIndex;
+        public bool CriticalNode; // some strategies may probe more on critical node
         public abstract double GetActionProbability(int action);
 
         public byte SampleAction(byte numPossibleActions, double randomNumber)

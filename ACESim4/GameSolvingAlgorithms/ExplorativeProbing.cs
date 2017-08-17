@@ -33,11 +33,27 @@ namespace ACESim
                 {
                     ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings)gameStateForCurrentPlayer;
                     byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
-                    sampledAction = chanceNodeSettings.SampleAction(numPossibleActions,
-                        randomProducer.GetDoubleAtIndex(chanceNodeSettings.DecisionIndex));
-                    if (TraceProbingCFR)
-                        TabbedText.WriteLine(
-                            $"{sampledAction}: Sampled chance action {sampledAction} of {numPossibleActions} with probability {chanceNodeSettings.GetActionProbability(sampledAction)}");
+                    if (chanceNodeSettings.CriticalNode)
+                    {
+                        double[] combined = new double[NumNonChancePlayers];
+                        for (byte a = 1; a <= numPossibleActions; a++)
+                        {
+                            double probability = chanceNodeSettings.GetActionProbability(a);
+                            double[] result = CompleteExplorativeProbe(historyPoint, randomProducer, a);
+                            for (byte p = 0; p < NumNonChancePlayers; p++)
+                                combined[p] += probability * result[p];
+                        }
+                        return combined;
+                    }
+                    else
+                    {
+                        sampledAction = chanceNodeSettings.SampleAction(numPossibleActions,
+                            randomProducer.GetDoubleAtIndex(chanceNodeSettings.DecisionIndex));
+                        if (TraceProbingCFR)
+                            TabbedText.WriteLine(
+                                $"{sampledAction}: Sampled chance action {sampledAction} of {numPossibleActions} with probability {chanceNodeSettings.GetActionProbability(sampledAction)}");
+                        return CompleteExplorativeProbe(historyPoint, randomProducer, sampledAction);
+                    }
                 }
                 else if (gameStateType == GameStateTypeEnum.Tally)
                 {
@@ -50,18 +66,25 @@ namespace ACESim
                     if (TraceProbingCFR)
                         TabbedText.WriteLine(
                             $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {informationSet.PlayerIndex}");
+                    return CompleteExplorativeProbe(historyPoint, randomProducer, sampledAction);
                 }
-                HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction);
-                if (TraceProbingCFR)
-                    TabbedText.Tabs++;
-                double[] probeResult = ExplorativeProbe(nextHistoryPoint, randomProducer);
-                if (TraceProbingCFR)
-                {
-                    TabbedText.Tabs--;
-                    TabbedText.WriteLine($"Returning probe result {probeResult}");
-                }
-                return probeResult;
+                else
+                    throw new NotImplementedException();
             }
+        }
+
+        private double[] CompleteExplorativeProbe(HistoryPoint historyPoint, IRandomProducer randomProducer, byte sampledAction)
+        {
+            HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction);
+            if (TraceProbingCFR)
+                TabbedText.Tabs++;
+            double[] probeResult = ExplorativeProbe(nextHistoryPoint, randomProducer);
+            if (TraceProbingCFR)
+            {
+                TabbedText.Tabs--;
+                TabbedText.WriteLine($"Returning probe result {probeResult}");
+            }
+            return probeResult;
         }
 
         public unsafe double ExplorativeProbe_WalkTree(HistoryPoint historyPoint, byte playerBeingOptimized,
@@ -107,7 +130,6 @@ namespace ACESim
                 double randomDouble = randomProducer.GetDoubleAtIndex(informationSet.DecisionIndex);
                 if (playerAtPoint != playerBeingOptimized)
                 {
-                    // the use of epsilon-on-policy for early iterations of opponent's strategy is a deviation from Gibson.
                     for (byte action = 1; action <= numPossibleActions; action++)
                     {
                         double cumulativeStrategyIncrement =

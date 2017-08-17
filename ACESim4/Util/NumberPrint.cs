@@ -7,23 +7,7 @@ namespace ACESim
 {
     public static class NumberPrint
     {
-        private static double roundToSignificantFigures_old(double num, int n)
-        {
-            if (num == 0)
-            {
-                return 0;
-            }
-
-            double d = Math.Ceiling(Math.Log10(num < 0 ? -num : num));
-            int power = n - (int)d;
-
-            double magnitude = Math.Pow(10, power);
-            long shifted = (long)Math.Round(num * magnitude);
-            return shifted / magnitude;
-        }
-
-
-        public static double RoundToSignificantFigures(double d, int digits = 6) // DEBUG -- return to 4
+        public static double RoundToSignificantFigures(double d, int digits = 4) 
         {
             if (double.IsNaN(d) || double.IsInfinity(d))
                 return d;

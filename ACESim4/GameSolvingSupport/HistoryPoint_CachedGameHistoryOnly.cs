@@ -167,7 +167,8 @@ namespace ACESim
                                         DecisionByteCode = informationSetHistory.DecisionByteCode,
                                         DecisionIndex = informationSetHistory.DecisionIndex,
                                         PlayerNum = informationSetHistory.PlayerIndex,
-                                        Probabilities = gameDefinition.GetChanceActionProbabilities(decision.DecisionByteCode, gameProgress) // the probabilities depend on the current state of the game
+                                        Probabilities = gameDefinition.GetChanceActionProbabilities(decision.DecisionByteCode, gameProgress), // the probabilities depend on the current state of the game
+                                        CriticalNode = decision.CriticalNode
                                     };
                                 else
                                     chanceNodeSettings = new ChanceNodeSettingsEqualProbabilities()
@@ -175,7 +176,8 @@ namespace ACESim
                                         DecisionByteCode = informationSetHistory.DecisionByteCode,
                                         DecisionIndex = informationSetHistory.DecisionIndex,
                                         PlayerNum = informationSetHistory.PlayerIndex,
-                                        EachProbability = 1.0 / (double)decision.NumPossibleActions
+                                        EachProbability = 1.0 / (double)decision.NumPossibleActions,
+                                        CriticalNode = decision.CriticalNode
                                     };
                                 return chanceNodeSettings;
                             }

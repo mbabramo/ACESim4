@@ -37,9 +37,10 @@ namespace ACESim
                 TotalProbingCFRIterations = 200000,
                 TotalVanillaCFRIterations = 100000000,
 
-                ReportEveryNIterations = 25000,
+                ReportEveryNIterations = 5000,
+                NumRandomIterationsForReporting = 1000,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever,
-                PrintInformationSetsAfterReport = true,
+                PrintInformationSetsAfterReport = false,
 
                 UseEpsilonOnPolicyForOpponent = true,
                 FirstOpponentEpsilonValue = 0.5,
@@ -47,7 +48,7 @@ namespace ACESim
                 LastOpponentEpsilonIteration = 10000,
                 MaxOneEpsilonExploration = true,
 
-                EpsilonForPhases = new List<double>() { 0.05, 0.01, 0.001, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+                EpsilonForPhases = new List<double>() { 0 }, //0.05, 0.01, 0.001, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 
                 AlternativeOverride = null // MyGameActionsGenerator.PlaintiffShouldOffer1IfReceivingSignal1
             };
