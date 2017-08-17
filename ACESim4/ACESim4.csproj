@@ -60,6 +60,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="GameSolvingAlgorithms\ExplorativeProbing.cs" />
+    <Compile Include="GameSolvingAlgorithms\GibsonProbing.cs" />
     <Compile Include="GameSolvingSupport\ActionStrategies.cs" />
     <Compile Include="GameSolvingAlgorithms\AverageStrategySampling.cs" />
     <Compile Include="GameSolvingAlgorithms\BestResponse.cs" />

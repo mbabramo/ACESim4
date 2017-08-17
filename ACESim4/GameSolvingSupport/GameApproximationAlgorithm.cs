@@ -4,8 +4,9 @@ namespace ACESim
     {
         Vanilla,
         Probing,
+        ExplorativeProbing,
+        GibsonProbing,
         AverageStrategySampling,
         PureStrategyFinder,
-        ExplorativeProbing
     }
 }

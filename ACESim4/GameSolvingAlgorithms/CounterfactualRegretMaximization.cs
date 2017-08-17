@@ -121,6 +121,9 @@ namespace ACESim
                 case GameApproximationAlgorithm.ExplorativeProbing:
                     SolveExplorativeProbingCFR();
                     break;
+                case GameApproximationAlgorithm.GibsonProbing:
+                    SolveGibsonProbingCFR();
+                    break;
                 case GameApproximationAlgorithm.Probing:
                     SolveProbingCFR();
                     break;

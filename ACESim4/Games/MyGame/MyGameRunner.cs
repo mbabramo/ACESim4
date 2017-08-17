@@ -32,7 +32,7 @@ namespace ACESim
                 MaxParallelDepth = 2,
                 ParallelOptimization = true,
 
-                Algorithm = GameApproximationAlgorithm.ExplorativeProbing,
+                Algorithm = GameApproximationAlgorithm.GibsonProbing,
                 TotalAvgStrategySamplingCFRIterations = 10000000,
                 TotalProbingCFRIterations = 200000,
                 TotalVanillaCFRIterations = 100000000,
