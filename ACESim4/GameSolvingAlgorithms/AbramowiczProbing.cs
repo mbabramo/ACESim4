@@ -9,6 +9,7 @@ namespace ACESim
         // 1. During the Probe, we visit all branches on a critical node.
         // 2. The counterfactual value of an action selected for the player being selected is determined based on a probe. The walk through the tree is used solely for purposes of sampling.
         // 3. Alternating phases. We alternate normal with exploratory phases. In the exploratory phase, we increment cumulative regret only where it was not incremented during the prior normal phase and do not increment cumulative strategies. This should slow down our regret bounds by half.
+        // 4. Remove old regrets. We discount past regrets almost entirely at the beginning of a new phase -- keeping just enough so that the old behavior will control in case the information set is not visited.
 
         public unsafe double AbramowiczProbe_SinglePlayer(HistoryPoint historyPoint, byte playerBeingOptimized,
             IRandomProducer randomProducer)
@@ -27,7 +28,7 @@ namespace ACESim
                 FinalUtilities finalUtilities = (FinalUtilities)gameStateForCurrentPlayer;
                 var utility = finalUtilities.Utilities;
                 if (TraceProbingCFR)
-                    TabbedText.WriteLine($"Utility returned {utility}");
+                    TabbedText.WriteLine($"Utility returned {String.Join("," ,utility)}");
                 return utility;
             }
             else
@@ -83,11 +84,11 @@ namespace ACESim
             HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction);
             if (TraceProbingCFR)
                 TabbedText.Tabs++;
-            double[] probeResult = ExplorativeProbe(nextHistoryPoint, randomProducer);
+            double[] probeResult = AbramowiczProbe(nextHistoryPoint, randomProducer);
             if (TraceProbingCFR)
             {
                 TabbedText.Tabs--;
-                TabbedText.WriteLine($"Returning probe result {probeResult}");
+                TabbedText.WriteLine($"Returning probe result {String.Join(",", probeResult)}");
             }
             return probeResult;
         }
@@ -145,7 +146,7 @@ namespace ACESim
                         {
                             double cumulativeStrategyIncrement =
                                 sigmaRegretMatchedActionProbabilities[action - 1] / samplingProbabilityQ;
-                            informationSet.IncrementCumulativeStrategy(action, cumulativeStrategyIncrement);
+                            informationSet.IncrementCumulativeStrategy_Parallel(action, cumulativeStrategyIncrement);
                             if (TraceProbingCFR)
                                 TabbedText.WriteLine(
                                     $"Incrementing cumulative strategy for {action} by {cumulativeStrategyIncrement} to {informationSet.GetCumulativeStrategy(action)}");
@@ -218,13 +219,9 @@ namespace ACESim
                     {
                         double cumulativeRegretIncrement = inverseSamplingProbabilityQ *
                                                            (counterfactualValues[action - 1] - summation);
-                        informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement);
+                        informationSet.IncrementCumulativeRegret_Parallel(action, cumulativeRegretIncrement);
                         if (IsNormalPhase)
                             informationSet.LastIterationChanged = ProbingCFRIterationNum; // we don't change the iteration in the other phase, because we don't want to limit ourselves to a single pass in this phase. So really, last iteration changed means "last iteration changed in a normal phase."
-                        else
-                        {
-                            var DEBUG = 0;
-                        }
                         if (TraceProbingCFR)
                         {
                             //TabbedText.WriteLine($"Optimizing {playerBeingOptimized} Iteration {ProbingCFRIterationNum} Actions to here {historyPoint.GetActionsToHereString(Navigation)}");
@@ -273,17 +270,30 @@ namespace ACESim
             ActionStrategy = ActionStrategies.RegretMatching;
             int numPhases = EvolutionSettings.EpsilonForPhases.Count;
             int iterationsPerPhase = EvolutionSettings.TotalProbingCFRIterations / numPhases;
-            int extraIterationsLastPhase = iterationsPerPhase - numPhases * iterationsPerPhase;
+            int extraIterationsLastPhase = EvolutionSettings.TotalProbingCFRIterations - numPhases * iterationsPerPhase;
             ProbingCFRIterationNum = 0;
             for (int phase = 0; phase < numPhases; phase++)
             {
-                IsNormalPhase = phase % 2 == 0;
-                if (IsNormalPhase)
-                    BeginningOfLastNormalPhase = ProbingCFRIterationNum;
-                // Note: Ordinarily epsilon will be 0 for normal phases, but this is not required.
+                Debug.WriteLine($"Starting phase {phase} about to do iteration {ProbingCFRIterationNum}");
                 CurrentEpsilonValue = EvolutionSettings.EpsilonForPhases[phase];
-                if (IsNormalPhase && CurrentEpsilonValue != 0)
-                    Debug.WriteLine("Warning. Using positive epsilon value in normal (even-numbered) phase.");
+                IsNormalPhase = CurrentEpsilonValue == 0;
+                if (IsNormalPhase)
+                {
+                    BeginningOfLastNormalPhase = ProbingCFRIterationNum;
+                    if (EvolutionSettings.RemoveOldRegrets)
+                    {
+                        if (phase != 0)
+                        {
+                            Debug.WriteLine($"Removing old regrets");
+                            //Debug.WriteLine($"Before");
+                            //PrintInformationSets();
+                            DiscountStoredCumulativeRegrets(); // discounts so that the highest absolute value of a cumulative regret is 1.0
+                            //Debug.WriteLine($"After");
+                            //PrintInformationSets();
+                        }
+                        // RecordCurrentRegrets();
+                    }
+                }
                 int iterationsThisPhase = phase == numPhases - 1
                     ? iterationsPerPhase + extraIterationsLastPhase
                     : iterationsPerPhase;
@@ -299,8 +309,6 @@ namespace ACESim
                             $"Iteration {ProbingCFRIterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)(ProbingCFRIterationNum + 1))))}");
                     ProbingCFRIterationNum++;
                 }
-                RemoveStoredCumulativeRegrets();
-                RecordCurrentRegrets();
             }
         }
     }

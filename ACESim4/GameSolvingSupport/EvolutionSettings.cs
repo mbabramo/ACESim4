@@ -26,7 +26,8 @@ namespace ACESim
         public int LastOpponentEpsilonIteration = 100000;
         public bool MaxOneEpsilonExploration = true; // If true, do no more than one epsilon exploration for either player, and after doing the epsilon exploration to do no further updating of later decisions. That way, the latest decisions can be optimized and we cna work backwards. (Implemented for now only with probing)
 
-        // The following are for explorative probing.
+        // The following are for Abramowicz probing.
+        internal bool RemoveOldRegrets;
         public List<double> EpsilonForPhases = new List<double>() { 0.05, 0.01, 0.001, 0, 0, 0, 0, 0, 0, 0};
         public List<double> WeightsForPhases = new List<double>() { 1, 2, 4, 8, 16, 32, 32, 32, 32, 32};
 

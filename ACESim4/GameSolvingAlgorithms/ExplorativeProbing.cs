@@ -231,7 +231,7 @@ namespace ACESim
             }
         }
 
-        public void RemoveStoredCumulativeRegrets()
+        public void RemoveStoredCumulativeRegrets(double portionToRemove = 1.0)
         {
             for (int p = 0; p < NumNonChancePlayers; p++)
             {
@@ -240,7 +240,21 @@ namespace ACESim
                 {
                     InformationSetNodeTally tally = (InformationSetNodeTally)node.StoredValue;
                     if (tally != null)
-                        tally.RemoveStorageFromCumulativeRegrets();
+                        tally.RemoveStorageFromCumulativeRegrets(portionToRemove);
+                });
+            }
+        }
+
+        public void DiscountStoredCumulativeRegrets()
+        {
+            for (int p = 0; p < NumNonChancePlayers; p++)
+            {
+                var playerRegrets = Strategies[p].InformationSetTree;
+                playerRegrets.WalkTree(node =>
+                {
+                    InformationSetNodeTally tally = (InformationSetNodeTally)node.StoredValue;
+                    if (tally != null)
+                        tally.DiscountStoredCumulativeRegrets();
                 });
             }
         }

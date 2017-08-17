@@ -18,6 +18,7 @@ namespace ACESim
         public byte PlayerIndex;
         public byte? BinarySubdivisionLevels;
         public int LastIterationChanged = -1; // used by some algorithms
+        public int NumRegretIncrements = 0;
         double[,] NodeInformation;
 
         int NumPossibleActions => NodeInformation.GetLength(1);
@@ -41,7 +42,7 @@ namespace ACESim
 
         public override string ToString()
         {
-            return $"Information set {InformationSetNumber}: DecisionByteCode {DecisionByteCode} (index {DecisionIndex}) PlayerIndex {PlayerIndex} Probabilities {GetRegretMatchingProbabilitiesString()} Regrets {GetCumulativeRegretsString()} Strategies {GetCumulativeStrategiesString()}";
+            return $"Information set {InformationSetNumber}: DecisionByteCode {DecisionByteCode} (index {DecisionIndex}) PlayerIndex {PlayerIndex} Probabilities {GetRegretMatchingProbabilitiesString()} Regrets {GetCumulativeRegretsString()} Strategies {GetCumulativeStrategiesString()} RegretIncrements {NumRegretIncrements}";
         }
 
         private void Initialize(int numDimensions, int numPossibleActions)
@@ -99,12 +100,16 @@ namespace ACESim
         public void IncrementCumulativeRegret_Parallel(int action, double amount)
         {
             lock (this)
+            {
                 NodeInformation[cumulativeRegretDimension, action - 1] += amount;
+                NumRegretIncrements++;
+            }
         }
 
         public void IncrementCumulativeRegret(int action, double amount)
         {
             NodeInformation[cumulativeRegretDimension, action - 1] += amount;
+            NumRegretIncrements++;
         }
 
         public void SetActionToCertainty(byte action, byte numPossibleActions)
@@ -395,18 +400,32 @@ namespace ACESim
                 NodeInformation[cumulativeRegretDimension, a] = NodeInformation[storageDimension, a];
         }
 
-        public void RemoveStorageFromCumulativeRegrets()
+        public void RemoveStorageFromCumulativeRegrets(double portionToRemove = 1.0)
         {
             bool difference = false;
 
-            for (byte a = 0; a < NumPossibleActions; a++)
-                if (NodeInformation[cumulativeRegretDimension, a] != NodeInformation[storageDimension, a])
-                    difference = true;
-            if (!difference)
-                return; // we don't want to remove cumulative regrets if nothing has changed.
+            if (portionToRemove == 1.0)
+            {
+                for (byte a = 0; a < NumPossibleActions; a++)
+                    if (NodeInformation[cumulativeRegretDimension, a] != NodeInformation[storageDimension, a])
+                        difference = true;
+                if (!difference)
+                    return; // we don't want to remove cumulative regrets if nothing has changed.
+            }
 
             for (byte a = 0; a < NumPossibleActions; a++)
-                NodeInformation[cumulativeRegretDimension, a] -= NodeInformation[storageDimension, a];
+                NodeInformation[cumulativeRegretDimension, a] -= portionToRemove * NodeInformation[storageDimension, a];
+        }
+
+        internal void DiscountStoredCumulativeRegrets()
+        {
+            double maxAbs = 0;
+            for (byte a = 0; a < NumPossibleActions; a++)
+                if (Math.Abs(NodeInformation[cumulativeRegretDimension, a]) > maxAbs)
+                    maxAbs = Math.Abs(NodeInformation[cumulativeRegretDimension, a]);
+            double portionToKeep = 1.0 / maxAbs; // in other words, scale everything so that the maximum item is worth 1 or -1, making it almost trivial.
+            for (byte a = 0; a < NumPossibleActions; a++)
+                NodeInformation[cumulativeRegretDimension, a] *= portionToKeep;
         }
 
         public GameStateTypeEnum GetGameStateType()
