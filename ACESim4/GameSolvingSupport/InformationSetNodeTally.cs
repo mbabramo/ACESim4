@@ -423,6 +423,8 @@ namespace ACESim
             for (byte a = 0; a < NumPossibleActions; a++)
                 if (Math.Abs(NodeInformation[cumulativeRegretDimension, a]) > maxAbs)
                     maxAbs = Math.Abs(NodeInformation[cumulativeRegretDimension, a]);
+            if (maxAbs == 0)
+                return;
             double portionToKeep = 1.0 / maxAbs; // in other words, scale everything so that the maximum item is worth 1 or -1, making it almost trivial.
             for (byte a = 0; a < NumPossibleActions; a++)
                 NodeInformation[cumulativeRegretDimension, a] *= portionToKeep;
