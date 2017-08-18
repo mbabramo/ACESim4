@@ -117,9 +117,9 @@ namespace ACESim
                 PInitialWealth = 1000000,
                 DInitialWealth = 1000000,
                 DamagesAlleged = 100000,
-                NumLitigationQualityPoints = 5,
-                NumSignals = 5,
-                NumOffers = 5,
+                NumLitigationQualityPoints = 8,
+                NumSignals = 8,
+                NumOffers = 8,
                 PNoiseStdev = 0.0001,
                 DNoiseStdev = 0.0001,
                 PTrialCosts = 5000,
@@ -134,7 +134,7 @@ namespace ACESim
                 NumBargainingRounds = 4,
                 ForgetEarlierBargainingRounds = true,
                 SubdivideOffers = false,
-                BargainingRoundsSimultaneous = true,
+                BargainingRoundsSimultaneous = false,
                 PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false },
                 IncludeSignalsReport = true
             };

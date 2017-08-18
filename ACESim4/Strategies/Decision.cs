@@ -138,20 +138,17 @@ namespace ACESim
         /// <summary>
         /// When a decision is subdividable, it is duplicated into multiple subdivision decisions.
         /// </summary>
-        
         public bool Subdividable_IsSubdivision;
 
 
         /// <summary>
         /// Indicates for a subdivision whether this is the first subdivision. If so, a stub will be inserted in the party's own information set.
         /// </summary>
-        
         public bool Subdividable_IsSubdivision_First;
 
         /// <summary>
         /// Indicates for a subdivision whether this is the last subdivision. If this is true, then after the player makes its move, all of the items accumulating for each subdivision level in the information set will be removed and replaced by the aggregated decision.
         /// </summary>
-        
         public bool Subdividable_IsSubdivision_Last;
 
         /// <summary>
