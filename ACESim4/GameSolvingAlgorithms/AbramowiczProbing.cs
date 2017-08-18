@@ -8,8 +8,7 @@ namespace ACESim
         // Differences from Gibson:Increm
         // 1. During the Probe, we visit all branches on a critical node.
         // 2. The counterfactual value of an action selected for the player being selected is determined based on a probe. The walk through the tree is used solely for purposes of sampling.
-        // 3. Alternating phases. We alternate normal with exploratory phases. In the exploratory phase, we increment cumulative regret only where it was not incremented during the prior normal phase and do not increment cumulative strategies. This should slow down our regret bounds by half.
-        // 4. Remove old regrets. We discount past regrets almost entirely at the beginning of a new phase -- keeping just enough so that the old behavior will control in case the information set is not visited.
+        // 3. Backup regrets set on alternate phase. We alternate normal with exploratory phases, where the opponent engages in epsilon exploration. In the exploratory phase, we increment backup cumulative regrets, but only where the main regrets are empty. This ensures that if a node will not be visited without opponent exploration, we still develop our best estimate of the correct value based on exploration.
 
         public unsafe double AbramowiczProbe_SinglePlayer(HistoryPoint historyPoint, byte playerBeingOptimized,
             IRandomProducer randomProducer)
@@ -267,8 +266,8 @@ namespace ACESim
                     "Internal error. Must implement extra code from Abramowicz algorithm 2 for more than 2 players.");
             ActionStrategy = ActionStrategies.RegretMatching;
             int numPhases = EvolutionSettings.EpsilonForPhases.Count;
-            int iterationsPerPhase = EvolutionSettings.TotalProbingCFRIterations / numPhases;
-            int extraIterationsLastPhase = EvolutionSettings.TotalProbingCFRIterations - numPhases * iterationsPerPhase;
+            int iterationsPerPhase = (EvolutionSettings.TotalProbingCFRIterations - EvolutionSettings.ExtraIterationsFinalPhase) / numPhases;
+            int extraIterationsLastPhase = EvolutionSettings.TotalProbingCFRIterations - numPhases * iterationsPerPhase; // may be greater than ExtraIterationsFinalPhase if there is a remainder
             ProbingCFRIterationNum = 0;
             for (int phase = 0; phase < numPhases; phase++)
             {
@@ -312,12 +311,24 @@ namespace ACESim
                         () =>
                             $"Iteration {ProbingCFRIterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double) (ProbingCFRIterationNum + 1))))}");
                 }
+                if (!IsNormalPhase)
+                    EndOfExploratoryPhase();
             }
         }
 
         public void StartOfNormalPhase()
         {
             WalkAllInformationSetTrees(tally => tally.ClearMainTally());
+        }
+
+        public void EndOfExploratoryPhase()
+        {
+            WalkAllInformationSetTrees(tally =>
+            {
+                // In case we have two exploratory phases in a row, we need to set the backup tallies just created to the main tally. If the exploratory phase is followed by a normal phase, then this will simply be deleted.
+                if (tally.MustUseBackup)
+                    tally.CopyBackupTallyToMainTally();
+            });
         }
 
         public void StartOfExploratoryPhase()
