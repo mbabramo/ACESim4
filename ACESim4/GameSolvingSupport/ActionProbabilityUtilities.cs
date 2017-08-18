@@ -27,7 +27,7 @@ namespace ACESim
                 if (cumTotal >= randomNumber)
                 {
                     //Debug.WriteLine($"DecisionCode {historyPoint.GetNextDecisionByteCode(navigation)}");
-                    //Debug.WriteLine($"Actions {historyPoint.GetActionsToHereString(navigation)}\n probabilities {String.Join(",", probabilities)} random number {randomNumber} result {(byte)(a + 1)}"); // DEBUG
+                    //Debug.WriteLine($"Actions {historyPoint.GetActionsToHereString(navigation)}\n probabilities {String.Join(",", probabilities)} random number {randomNumber} result {(byte)(a + 1)}");
                     return (byte)(a + 1); // actions are one-based}
                 }
             }

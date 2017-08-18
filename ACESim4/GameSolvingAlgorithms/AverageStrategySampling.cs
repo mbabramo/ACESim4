@@ -172,7 +172,6 @@ namespace ACESim
                     numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
                     sampledAction = chanceNodeSettings.SampleAction(numPossibleActions, RandomGenerator.NextDouble());
                     nextHistoryPoint = historyPoint.GetBranch(Navigation.GameDefinition, sampledAction);
-                    // DEBUG historyPoint.SwitchToBranch(Navigation.GameDefinition, sampledAction);
                     double walkTreeValue =
                         AverageStrategySampling_WalkTree_CachedGameHistoryOnly(nextHistoryPoint, playerBeingOptimized,
                             samplingProbabilityQ);
@@ -204,13 +203,10 @@ namespace ACESim
                         sampledAction = SampleAction(sigma_regretMatchedActionProbabilities, numPossibleActions,
                             RandomGenerator.NextDouble());
                         nextHistoryPoint = historyPoint.GetBranch(Navigation.GameDefinition, sampledAction);
-                        // DEBUG historyPoint.SwitchToBranch(Navigation.GameDefinition, sampledAction);
                         double walkTreeValue2 = AverageStrategySampling_WalkTree_CachedGameHistoryOnly(nextHistoryPoint,
                             playerBeingOptimized, samplingProbabilityQ);
                         return walkTreeValue2;
                     }
-                    if (informationSet.BinarySubdivisionLevels != null)
-                        throw new NotImplementedException(); // must copy code from above
                     // player being optimized is player at this information set
                     double sumCumulativeStrategies = 0;
                     double* cumulativeStrategies = stackalloc double[numPossibleActions];
@@ -233,7 +229,6 @@ namespace ACESim
                         {
                             NumberAverageStrategySamplingExplorations++;
                             nextHistoryPoint = historyPoint.GetBranch(Navigation.GameDefinition, action);
-                            // DEBUG historyPoint.SwitchToBranch(Navigation.GameDefinition, action);
                             counterfactualValues[action - 1] =
                                 AverageStrategySampling_WalkTree_CachedGameHistoryOnly(nextHistoryPoint,
                                     playerBeingOptimized, samplingProbabilityQ * Math.Min(1.0, rho));
@@ -268,7 +263,7 @@ namespace ACESim
                     PrepareForImprovementOverTimeEstimation(playerBeingOptimized);
                 if (LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly &&
                     !TraceAverageStrategySampling &&
-                    false /* DEBUG -- must implement binary subdivisions for cached version above */)
+                    false /* TODO -- must implement binary subdivisions for cached version above */)
                 {
                     HistoryPoint_CachedGameHistoryOnly historyPoint =
                         new HistoryPoint_CachedGameHistoryOnly(new GameHistory());

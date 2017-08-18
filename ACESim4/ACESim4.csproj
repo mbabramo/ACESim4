@@ -196,23 +196,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Games\MyGame\Settings\MyGameCommands.xml" />
-    <Content Include="Games\MyGame\Settings\MyGameDefinitions.xml">
-      <SubType>Designer</SubType>
-    </Content>
-    <Content Include="Games\MyGame\Settings\MyGameEvolutionSettings.xml" />
-    <Content Include="Games\MyGame\Settings\MyGameInputs.xml" />
-    <Content Include="Games\MyGame\Settings\MyGameOverallSettings.xml" />
-    <Content Include="Games\MyGame\Settings\MyGameReport.xml" />
-    <Content Include="Games\MyGame\Settings\scratch.xml" />
     <Content Include="Games\SimpleGame\Reports\simple game results.txt" />
-    <Content Include="Games\SimpleGame\Settings\scratch.xml" />
-    <Content Include="Games\SimpleGame\Settings\SimpleGameCommands.xml" />
-    <Content Include="Games\SimpleGame\Settings\SimpleGameDefinitions.xml" />
-    <Content Include="Games\SimpleGame\Settings\SimpleGameEvolutionSettings.xml" />
-    <Content Include="Games\SimpleGame\Settings\SimpleGameInputs.xml" />
-    <Content Include="Games\SimpleGame\Settings\SimpleGameOverallSettings.xml" />
-    <Content Include="Games\SimpleGame\Settings\SimpleGameReport.xml" />
     <Content Include="Games\SimpleGame\SimpleGameInputs.xml" />
   </ItemGroup>
   <ItemGroup>

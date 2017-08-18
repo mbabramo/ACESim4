@@ -40,7 +40,7 @@ namespace ACESim
             return RoundToSignificantFigures((double)num, numSignificantFigures).ToString();
         }
 
-        public static string ToSignificantFigures(this double? num, int numSignificantFigures = 6) // DEBUG -- return to 4
+        public static string ToSignificantFigures(this double? num, int numSignificantFigures = 4)
         {
             if (num == null || double.IsNaN((double)num))
                 return "--";

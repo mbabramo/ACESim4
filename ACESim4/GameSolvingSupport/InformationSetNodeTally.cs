@@ -16,7 +16,6 @@ namespace ACESim
         public byte DecisionByteCode;
         public byte DecisionIndex;
         public byte PlayerIndex;
-        public byte? BinarySubdivisionLevels;
         public bool MustUseBackup;
         public int NumRegretIncrements = 0;
         public int NumRegretIncrementsThisCycle = 0;
@@ -31,14 +30,13 @@ namespace ACESim
         const int storageDimension = 4;
         private const int cumulativeRegretBackupDimension = 5;
 
-        public InformationSetNodeTally(byte decisionByteCode, byte decisionIndex, byte playerIndex, int numPossibleActions, byte? binarySubdivisionLevels)
+        public InformationSetNodeTally(byte decisionByteCode, byte decisionIndex, byte playerIndex, int numPossibleActions)
         {
             DecisionByteCode = decisionByteCode;
             DecisionIndex = decisionIndex;
             PlayerIndex = playerIndex;
             Initialize(totalDimensions, numPossibleActions);
             InformationSetNumber = InformationSetsSoFar;
-            BinarySubdivisionLevels = binarySubdivisionLevels;
             Interlocked.Increment(ref InformationSetsSoFar);
         }
 

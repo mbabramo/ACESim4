@@ -34,7 +34,6 @@ namespace ACESim
 
                 Algorithm = GameApproximationAlgorithm.AbramowiczProbing,
                 TotalAvgStrategySamplingCFRIterations = 10000000,
-                TotalProbingCFRIterations = 100_000,
                 TotalVanillaCFRIterations = 100_000_000,
 
                 ReportEveryNIterations = 10000,
@@ -42,7 +41,9 @@ namespace ACESim
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever,
                 PrintInformationSetsAfterReport = false,
                 PrintGameTreeAfterReport = false,
-                
+
+                TotalProbingCFRIterations = 100_000,
+                ExtraIterationsFinalPhase = 50000,
                 EpsilonForPhases = new List<double>() { 0, 0.001, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0 },
 
                 AlternativeOverride = null // MyGameActionsGenerator.PlaintiffShouldOffer1IfReceivingSignal1

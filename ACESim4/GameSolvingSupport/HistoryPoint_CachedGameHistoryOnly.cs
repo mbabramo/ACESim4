@@ -186,7 +186,7 @@ namespace ACESim
                                 byte? binarySubdivisionLevels = null;
                                 if (decision.Subdividable_IsSubdivision && decision.Subdividable_NumOptionsPerBranch == 2)
                                     binarySubdivisionLevels = (byte)decision.Subdividable_NumLevels;
-                                InformationSetNodeTally nodeInfo = new InformationSetNodeTally(informationSetHistory.DecisionByteCode, informationSetHistory.DecisionIndex, playerInfo.PlayerIndex, decision.NumPossibleActions, binarySubdivisionLevels);
+                                InformationSetNodeTally nodeInfo = new InformationSetNodeTally(informationSetHistory.DecisionByteCode, informationSetHistory.DecisionIndex, playerInfo.PlayerIndex, decision.NumPossibleActions);
                                 return nodeInfo;
                             }
                         }

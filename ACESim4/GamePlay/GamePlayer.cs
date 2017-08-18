@@ -344,7 +344,7 @@ namespace ACESim
         }
 
         static int MinIterationID = 0;
-        static bool AlwaysPlaySameIterations = false; // DEBUG
+        static bool AlwaysPlaySameIterations = false;
 
         public IEnumerable<GameProgress> PlayMultipleIterations(
             List<GameProgress> preplayedGameProgressInfos,

@@ -1,8 +1,0 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
-
-<ACESim>
-    <gameInputsAll>
-      <gameInputs name="SimpleGameInputs" gameName="SimpleGame">
-      </gameInputs>
-    </gameInputsAll>
-</ACESim>
