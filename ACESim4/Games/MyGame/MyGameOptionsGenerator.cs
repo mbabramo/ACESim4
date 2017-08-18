@@ -110,7 +110,7 @@ namespace ACESim
         }
 
 
-        public static MyGameOptions DEBUG_TestOptions()
+        public static MyGameOptions ScratchTestOptions()
         {
             var options = new MyGameOptions()
             {
@@ -120,8 +120,8 @@ namespace ACESim
                 NumLitigationQualityPoints = 5,
                 NumSignals = 5,
                 NumOffers = 5,
-                PNoiseStdev = 0.0001,
-                DNoiseStdev = 0.0001,
+                PNoiseStdev = 0.1,
+                DNoiseStdev = 0.1,
                 PTrialCosts = 5000,
                 DTrialCosts = 5000,
                 PerPartyBargainingRoundCosts = 1000,
@@ -132,7 +132,7 @@ namespace ACESim
                     MaxDelta = 0.25
                 },
                 NumBargainingRounds = 4,
-                ForgetEarlierBargainingRounds = false,
+                ForgetEarlierBargainingRounds = true,
                 SubdivideOffers = false,
                 BargainingRoundsSimultaneous = true,
                 PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false },

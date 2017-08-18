@@ -24,7 +24,7 @@ namespace ACESim
         public static void EvolveMyGame()
         {
             MyGameDefinition gameDefinition = new MyGameDefinition();
-            var options = MyGameOptionsGenerator.DEBUG_TestOptions();
+            var options = MyGameOptionsGenerator.ScratchTestOptions();
             gameDefinition.Setup(options);
             List<Strategy> starterStrategies = Strategy.GetStarterStrategies(gameDefinition);
             EvolutionSettings evolutionSettings = new EvolutionSettings()
@@ -34,13 +34,14 @@ namespace ACESim
 
                 Algorithm = GameApproximationAlgorithm.AbramowiczProbing,
                 TotalAvgStrategySamplingCFRIterations = 10000000,
-                TotalProbingCFRIterations = 100_000,
+                TotalProbingCFRIterations = 1_000_000,
                 TotalVanillaCFRIterations = 100_000_000,
 
                 ReportEveryNIterations = 10000,
                 NumRandomIterationsForReporting = 500,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever,
-                PrintInformationSetsAfterReport = true,
+                PrintInformationSetsAfterReport = false,
+                PrintGameTreeAfterReport = false,
                 
                 EpsilonForPhases = new List<double>() { 0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0 },
 

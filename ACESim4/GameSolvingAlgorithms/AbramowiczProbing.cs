@@ -312,18 +312,17 @@ namespace ACESim
                 int iterationsThisPhase = phase == numPhases - 1
                     ? iterationsPerPhase + extraIterationsLastPhase
                     : iterationsPerPhase;
-                for (int iteration = 0;
-                    iteration < iterationsThisPhase;
-                    iteration++)
-                {
-                    s.Start();
-                    AbramowiczProbingCFRIteration(ProbingCFRIterationNum);
-                    s.Stop();
-                    GenerateReports(ProbingCFRIterationNum,
-                        () =>
-                            $"Iteration {ProbingCFRIterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)(ProbingCFRIterationNum + 1))))}");
-                    ProbingCFRIterationNum++;
-                }
+                Parallelizer.Go(EvolutionSettings.ParallelOptimization, 0, iterationsThisPhase, iteration =>
+                    {
+                        s.Start();
+                        AbramowiczProbingCFRIteration(ProbingCFRIterationNum);
+                        s.Stop();
+                        GenerateReports(ProbingCFRIterationNum,
+                            () =>
+                                $"Iteration {ProbingCFRIterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double) (ProbingCFRIterationNum + 1))))}");
+                        ProbingCFRIterationNum++;
+                    }
+                );
             }
         }
     }
