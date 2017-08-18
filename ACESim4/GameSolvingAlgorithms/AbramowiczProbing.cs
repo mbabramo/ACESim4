@@ -218,7 +218,10 @@ namespace ACESim
                     {
                         double cumulativeRegretIncrement = inverseSamplingProbabilityQ *
                                                            (counterfactualValues[action - 1] - summation);
-                        informationSet.IncrementCumulativeRegret_Parallel(action, cumulativeRegretIncrement, !IsNormalPhase);
+                        if (EvolutionSettings.ParallelOptimization)
+                            informationSet.IncrementCumulativeRegret_Parallel(action, cumulativeRegretIncrement, !IsNormalPhase);
+                        else
+                            informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement, !IsNormalPhase);
                         if (TraceProbingCFR)
                         {
                             //TabbedText.WriteLine($"Optimizing {playerBeingOptimized} Iteration {ProbingCFRIterationNum} Actions to here {historyPoint.GetActionsToHereString(Navigation)}");

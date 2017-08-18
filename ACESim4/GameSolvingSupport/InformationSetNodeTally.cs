@@ -101,21 +101,30 @@ namespace ACESim
 
         public void IncrementCumulativeRegret_Parallel(int action, double amount, bool incrementBackup)
         {
-            lock (this)
+            if (incrementBackup)
             {
-                if (incrementBackup)
-                {
-                    if (!MustUseBackup)
-                        return;
-                    if (NodeInformation[cumulativeRegretDimension, action - 1] != 0)
-                        throw new Exception("DEBUG");
-                    NodeInformation[cumulativeRegretBackupDimension, action - 1] += amount;
-                    NumRegretIncrements++;
+                if (!MustUseBackup)
                     return;
-                }
-                NodeInformation[cumulativeRegretDimension, action - 1] += amount;
+                InterlockedAdd(ref NodeInformation[cumulativeRegretBackupDimension, action - 1], amount);
                 NumRegretIncrements++;
-                MustUseBackup = false;
+                return;
+            }
+            NodeInformation[cumulativeRegretDimension, action - 1] += amount;
+            NumRegretIncrements++;
+            MustUseBackup = false;
+        }
+
+        private static double InterlockedAdd(ref double location1, double value)
+        {
+            // Note: There is no Interlocked.Add for doubles, but this accomplishes the same thing, without using a lock.
+            double newCurrentValue = location1; // non-volatile read, so may be stale
+            while (true)
+            {
+                double currentValue = newCurrentValue;
+                double newValue = currentValue + value;
+                newCurrentValue = Interlocked.CompareExchange(ref location1, newValue, currentValue);
+                if (newCurrentValue == currentValue)
+                    return newValue;
             }
         }
 
@@ -125,8 +134,6 @@ namespace ACESim
             {
                 if (!MustUseBackup)
                     return;
-                if (NodeInformation[cumulativeRegretDimension, action - 1] != 0)
-                    throw new Exception("DEBUG");
                 NodeInformation[cumulativeRegretBackupDimension, action - 1] += amount;
                 NumRegretIncrements++;
                 return;
@@ -154,8 +161,7 @@ namespace ACESim
 
         public void IncrementCumulativeStrategy_Parallel(int action, double amount)
         {
-            lock (this)
-                NodeInformation[cumulativeStrategyDimension, action - 1] += amount;
+            InterlockedAdd(ref NodeInformation[cumulativeStrategyDimension, action - 1], amount);
         }
 
         public void IncrementCumulativeStrategy(int action, double amount)
