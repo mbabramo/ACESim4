@@ -245,7 +245,7 @@ namespace ACESim
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
                 IRandomProducer randomProducer =
-                    new ConsistentRandomSequenceProducer(iteration * 1000 + playerBeingOptimized);
+                    new ConsistentRandomSequenceProducer(iteration * 997 + playerBeingOptimized * 283 + GameNumber * 719);
                 HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
                 if (TraceProbingCFR)
                 {
@@ -261,8 +261,12 @@ namespace ACESim
         private bool IsNormalPhase = true;
         private int BeginningOfLastNormalPhase = 0;
 
+        private static int GameNumber = 0;
+
         public unsafe void SolveAbramowiczProbingCFR()
         {
+            if (GameNumber == 0)
+                GameNumber = EvolutionSettings.InitialRandomSeed;
             Stopwatch s = new Stopwatch();
             if (NumNonChancePlayers > 2)
                 throw new Exception(
@@ -317,6 +321,7 @@ namespace ACESim
                 if (!IsNormalPhase)
                     EndOfExploratoryPhase();
             }
+            GameNumber++;
         }
 
         public void StartOfNormalPhase()

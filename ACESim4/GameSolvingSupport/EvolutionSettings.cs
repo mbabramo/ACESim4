@@ -34,5 +34,6 @@ namespace ACESim
         public bool PrintInformationSetsAfterReport = false;
         public bool PrintNonChanceInformationSetsOnly = true;
         public bool AlwaysUseAverageStrategyInReporting = true;
+        public int InitialRandomSeed = 0;
     }
 }
