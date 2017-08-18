@@ -312,18 +312,39 @@ namespace ACESim
                 int iterationsThisPhase = phase == numPhases - 1
                     ? iterationsPerPhase + extraIterationsLastPhase
                     : iterationsPerPhase;
-                Parallelizer.Go(EvolutionSettings.ParallelOptimization, 0, iterationsThisPhase, iteration =>
+                int startingIteration = ProbingCFRIterationNum;
+                int stopPhaseBefore = startingIteration + iterationsThisPhase;
+                while (startingIteration < stopPhaseBefore)
+                {
+                    int stopBefore;
+                    if (EvolutionSettings.ReportEveryNIterations == null)
+                        stopBefore = stopPhaseBefore;
+                    else
                     {
-                        s.Start();
-                        AbramowiczProbingCFRIteration(ProbingCFRIterationNum);
-                        s.Stop();
-                        GenerateReports(ProbingCFRIterationNum,
-                            () =>
-                                $"Iteration {ProbingCFRIterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double) (ProbingCFRIterationNum + 1))))}");
-                        ProbingCFRIterationNum++;
+                        int stopToReportBefore = GetNextMultipleOf(ProbingCFRIterationNum, (int)EvolutionSettings.ReportEveryNIterations);
+                        stopBefore = Math.Min(stopPhaseBefore, stopToReportBefore);
                     }
-                );
+                    s.Start();
+                    Parallelizer.Go(EvolutionSettings.ParallelOptimization, startingIteration, stopBefore, iteration =>
+                        {
+                            AbramowiczProbingCFRIteration(iteration);
+                        }
+                    );
+                    s.Stop();
+                    ProbingCFRIterationNum = startingIteration = stopBefore; // this is the iteration to run next
+                    GenerateReports(ProbingCFRIterationNum,
+                        () =>
+                            $"Iteration {ProbingCFRIterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double) (ProbingCFRIterationNum + 1))))}");
+                }
             }
+        }
+
+        private int GetNextMultipleOf(int value, int multiple)
+        {
+            int rem = value % multiple;
+            int result = value - rem;
+            result += multiple;
+            return result;
         }
     }
 }
