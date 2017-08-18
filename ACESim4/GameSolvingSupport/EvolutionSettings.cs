@@ -26,8 +26,6 @@ namespace ACESim
         public int LastOpponentEpsilonIteration = 100000;
 
         // The following are for Abramowicz probing.
-        internal bool RemoveOldRegrets = true;
-
         public List<double> EpsilonForPhases = new List<double>() {0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0};
 
         public int NumRandomIterationsForReporting = 10000;

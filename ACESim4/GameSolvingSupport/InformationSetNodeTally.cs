@@ -17,17 +17,19 @@ namespace ACESim
         public byte DecisionIndex;
         public byte PlayerIndex;
         public byte? BinarySubdivisionLevels;
-        public int LastIterationChanged = -1; // used by some algorithms
+        public bool MustUseBackup;
         public int NumRegretIncrements = 0;
+        public int NumRegretIncrementsThisCycle = 0;
         double[,] NodeInformation;
 
         int NumPossibleActions => NodeInformation.GetLength(1);
-        const int totalDimensions = 5;
+        const int totalDimensions = 6;
         const int cumulativeRegretDimension = 0;
         const int cumulativeStrategyDimension = 1;
         const int bestResponseNumeratorDimension = 2;
         const int bestResponseDenominatorDimension = 3;
         const int storageDimension = 4;
+        private const int cumulativeRegretBackupDimension = 5;
 
         public InformationSetNodeTally(byte decisionByteCode, byte decisionIndex, byte playerIndex, int numPossibleActions, byte? binarySubdivisionLevels)
         {
@@ -91,25 +93,42 @@ namespace ACESim
             NodeInformation[bestResponseNumeratorDimension, action - 1] += piInverse * expectedValue;
             NodeInformation[bestResponseDenominatorDimension, action - 1] += piInverse;
         }
-
+        
         public double GetCumulativeRegret(int action)
         {
-            return NodeInformation[cumulativeRegretDimension, action - 1];
+            return MustUseBackup ? NodeInformation[cumulativeRegretBackupDimension, action - 1] : NodeInformation[cumulativeRegretDimension, action - 1];
         }
 
-        public void IncrementCumulativeRegret_Parallel(int action, double amount)
+        public void IncrementCumulativeRegret_Parallel(int action, double amount, bool incrementBackup)
         {
             lock (this)
             {
+                if (incrementBackup)
+                {
+                    if (!MustUseBackup)
+                        return;
+                    NodeInformation[cumulativeRegretBackupDimension, action - 1] += amount;
+                    NumRegretIncrements++;
+                    return;
+                }
                 NodeInformation[cumulativeRegretDimension, action - 1] += amount;
                 NumRegretIncrements++;
             }
         }
 
-        public void IncrementCumulativeRegret(int action, double amount)
+        public void IncrementCumulativeRegret(int action, double amount, bool incrementBackup)
         {
+            if (incrementBackup)
+            {
+                if (!MustUseBackup)
+                    return;
+                NodeInformation[cumulativeRegretBackupDimension, action - 1] += amount;
+                NumRegretIncrements++;
+                return;
+            }
             NodeInformation[cumulativeRegretDimension, action - 1] += amount;
             NumRegretIncrements++;
+            MustUseBackup = false;
         }
 
         public void SetActionToCertainty(byte action, byte numPossibleActions)
@@ -172,7 +191,7 @@ namespace ACESim
 
         public double GetPositiveCumulativeRegret(int action)
         {
-            double cumulativeRegret = NodeInformation[cumulativeRegretDimension, action - 1];
+            double cumulativeRegret = MustUseBackup ? NodeInformation[cumulativeRegretBackupDimension, action - 1] : NodeInformation[cumulativeRegretDimension, action - 1];
             if (cumulativeRegret > 0)
                 return cumulativeRegret;
             return 0;
@@ -183,7 +202,7 @@ namespace ACESim
             double total = 0;
             for (int i = 0; i < NumPossibleActions; i++)
             {
-                double cumulativeRegret = NodeInformation[cumulativeRegretDimension, i];
+                double cumulativeRegret = MustUseBackup ? NodeInformation[cumulativeRegretBackupDimension, i] : NodeInformation[cumulativeRegretDimension, i];
                 if (cumulativeRegret > 0)
                     total += cumulativeRegret;
             }
@@ -196,7 +215,7 @@ namespace ACESim
             int numPositive = 0;
             for (int i = 0; i < NumPossibleActions; i++)
             {
-                double cumulativeRegret = NodeInformation[cumulativeRegretDimension, i];
+                double cumulativeRegret = MustUseBackup ? NodeInformation[cumulativeRegretBackupDimension, i] : NodeInformation[cumulativeRegretDimension, i];
                 if (cumulativeRegret > 0)
                 {
                     total += cumulativeRegret;
@@ -220,11 +239,11 @@ namespace ACESim
             (double sumPositiveCumulativeRegrets, int numPositive) = GetSumPositiveCumulativeRegrets_AndNumberPositive();
             if (numPositive == 1)
             {
-                for (byte a = 1; a <= NumPossibleActions; a++)
-                    if (NodeInformation[cumulativeRegretDimension, a - 1] > 0)
-                        probabilitiesToSet[a - 1] = 1.0;
+                for (byte action = 1; action <= NumPossibleActions; action++)
+                    if (GetCumulativeRegret(action) > 0)
+                        probabilitiesToSet[action - 1] = 1.0;
                     else
-                        probabilitiesToSet[a - 1] = 0.0;
+                        probabilitiesToSet[action - 1] = 0.0;
                 return;
             }
             if (sumPositiveCumulativeRegrets == 0)
@@ -254,7 +273,7 @@ namespace ACESim
         {
             List<double> probs = new List<double>();
             for (byte a = 1; a <= NumPossibleActions; a++)
-                probs.Add(NodeInformation[cumulativeRegretDimension, a - 1]);
+                probs.Add(GetCumulativeRegret(a));
             return String.Join(", ", probs.Select(x => $"{x:N2}"));
         }
 
@@ -338,8 +357,8 @@ namespace ACESim
         public bool ChooseHigherOfTwoActionsWithRegretMatching(double randomSeed1, double randomSeed2, double epsilon)
         {
             // this should be a little faster than ChooseActionWithRegretMatching
-            double firstActionRegrets = NodeInformation[cumulativeRegretDimension, 0];
-            double secondActionRegrets = NodeInformation[cumulativeRegretDimension, 1];
+            double firstActionRegrets = GetCumulativeRegret(1);
+            double secondActionRegrets = GetCumulativeRegret(2);
             if (randomSeed2 < epsilon || (firstActionRegrets <= 0 && secondActionRegrets <= 0))
                 return randomSeed1 > 0.5;
             else if (firstActionRegrets <= 0)
@@ -351,8 +370,8 @@ namespace ACESim
 
         public double GetRegretWeightedValueFromTwoActions(double scoreAction1, double scoreAction2)
         {
-            double firstActionRegrets = NodeInformation[cumulativeRegretDimension, 0];
-            double secondActionRegrets = NodeInformation[cumulativeRegretDimension, 1];
+            double firstActionRegrets = GetCumulativeRegret(1);
+            double secondActionRegrets = GetCumulativeRegret(2);
             if (firstActionRegrets <= 0 & secondActionRegrets <= 0)
                 return 0.5*scoreAction1 + 0.5*scoreAction2;
             else if (firstActionRegrets <= 0)
@@ -388,46 +407,34 @@ namespace ACESim
             }
         }
 
-        public void CopyCumulativeRegretsToStorage()
+        public void ClearMainTally()
         {
             for (byte a = 0; a < NumPossibleActions; a++)
-                NodeInformation[storageDimension, a] = NodeInformation[cumulativeRegretDimension, a];
+                NodeInformation[cumulativeRegretDimension, a] = 0;
+            MustUseBackup = true; // as long as the main tally is cleared, we have to use the backup tally -- if we set something in the main tally, then this will automatically change
         }
 
-        public void CopyStorageToCumulativeRegrets()
+        public void ClearBackupTally()
         {
             for (byte a = 0; a < NumPossibleActions; a++)
-                NodeInformation[cumulativeRegretDimension, a] = NodeInformation[storageDimension, a];
+                NodeInformation[cumulativeRegretBackupDimension, a] = 0;
         }
 
-        public void RemoveStorageFromCumulativeRegrets(double portionToRemove = 1.0)
+        public void CopyBackupTallyToMainTally()
         {
-            bool difference = false;
-
-            if (portionToRemove == 1.0)
-            {
-                for (byte a = 0; a < NumPossibleActions; a++)
-                    if (NodeInformation[cumulativeRegretDimension, a] != NodeInformation[storageDimension, a])
-                        difference = true;
-                if (!difference)
-                    return; // we don't want to remove cumulative regrets if nothing has changed.
-            }
-
             for (byte a = 0; a < NumPossibleActions; a++)
-                NodeInformation[cumulativeRegretDimension, a] -= portionToRemove * NodeInformation[storageDimension, a];
+                NodeInformation[cumulativeRegretDimension, a] = NodeInformation[cumulativeRegretBackupDimension, a];
         }
 
-        internal void DiscountStoredCumulativeRegrets()
+        public void SetMustUseBackup()
         {
-            double maxAbs = 0;
             for (byte a = 0; a < NumPossibleActions; a++)
-                if (Math.Abs(NodeInformation[cumulativeRegretDimension, a]) > maxAbs)
-                    maxAbs = Math.Abs(NodeInformation[cumulativeRegretDimension, a]);
-            if (maxAbs == 0)
-                return;
-            double portionToKeep = 1.0 / maxAbs; // in other words, scale everything so that the maximum item is worth 1 or -1, making it almost trivial.
-            for (byte a = 0; a < NumPossibleActions; a++)
-                NodeInformation[cumulativeRegretDimension, a] *= portionToKeep;
+                if (NodeInformation[cumulativeRegretDimension, a] != 0)
+                {
+                    MustUseBackup = false;
+                    return;
+                }
+            MustUseBackup = true;
         }
 
         public GameStateTypeEnum GetGameStateType()

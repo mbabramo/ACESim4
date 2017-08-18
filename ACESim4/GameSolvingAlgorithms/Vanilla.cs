@@ -103,7 +103,7 @@ namespace ACESim
                     double inversePi = GetInversePiValue(piValues, playerBeingOptimized);
                     double pi = piValues[playerBeingOptimized];
                     var regret = (expectedValueOfAction[action - 1] - expectedValue);
-                    informationSet.IncrementCumulativeRegret(action, inversePi * regret);
+                    informationSet.IncrementCumulativeRegret(action, inversePi * regret, false);
                     informationSet.IncrementCumulativeStrategy(action, pi * actionProbabilities[action - 1]);
                     if (TraceVanillaCFR)
                     {

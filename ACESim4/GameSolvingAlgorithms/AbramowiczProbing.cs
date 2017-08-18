@@ -215,13 +215,11 @@ namespace ACESim
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
                     // In the exploratory phase, we increment only the information sets that were not incremented in the normal phase. That's because we're using opponent exploration and don't want to distort the normal phase.
-                    if (IsNormalPhase || informationSet.LastIterationChanged < BeginningOfLastNormalPhase)
+                    if (IsNormalPhase || informationSet.MustUseBackup)
                     {
                         double cumulativeRegretIncrement = inverseSamplingProbabilityQ *
                                                            (counterfactualValues[action - 1] - summation);
-                        informationSet.IncrementCumulativeRegret_Parallel(action, cumulativeRegretIncrement);
-                        if (IsNormalPhase)
-                            informationSet.LastIterationChanged = ProbingCFRIterationNum; // we don't change the iteration in the other phase, because we don't want to limit ourselves to a single pass in this phase. So really, last iteration changed means "last iteration changed in a normal phase."
+                        informationSet.IncrementCumulativeRegret_Parallel(action, cumulativeRegretIncrement, !IsNormalPhase);
                         if (TraceProbingCFR)
                         {
                             //TabbedText.WriteLine($"Optimizing {playerBeingOptimized} Iteration {ProbingCFRIterationNum} Actions to here {historyPoint.GetActionsToHereString(Navigation)}");
@@ -258,21 +256,6 @@ namespace ACESim
             }
         }
 
-
-        public void DiscountStoredCumulativeRegrets()
-        {
-            for (int p = 0; p < NumNonChancePlayers; p++)
-            {
-                var playerRegrets = Strategies[p].InformationSetTree;
-                playerRegrets.WalkTree(node =>
-                {
-                    InformationSetNodeTally tally = (InformationSetNodeTally)node.StoredValue;
-                    if (tally != null)
-                        tally.DiscountStoredCumulativeRegrets();
-                });
-            }
-        }
-
         private bool IsNormalPhase = true;
         private int BeginningOfLastNormalPhase = 0;
 
@@ -295,19 +278,12 @@ namespace ACESim
                 if (IsNormalPhase)
                 {
                     BeginningOfLastNormalPhase = ProbingCFRIterationNum;
-                    if (EvolutionSettings.RemoveOldRegrets)
-                    {
-                        if (phase != 0)
-                        {
-                            Debug.WriteLine($"Removing old regrets");
-                            //Debug.WriteLine($"Before");
-                            //PrintInformationSets();
-                            DiscountStoredCumulativeRegrets(); // discounts so that the highest absolute value of a cumulative regret is 1.0
-                            //Debug.WriteLine($"After");
-                            //PrintInformationSets();
-                        }
-                        // RecordCurrentRegrets();
-                    }
+                    if (phase != 0)
+                        StartOfNormalPhase();
+                }
+                else
+                {
+                    StartOfExploratoryPhase();
                 }
                 int iterationsThisPhase = phase == numPhases - 1
                     ? iterationsPerPhase + extraIterationsLastPhase
@@ -337,6 +313,30 @@ namespace ACESim
                             $"Iteration {ProbingCFRIterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double) (ProbingCFRIterationNum + 1))))}");
                 }
             }
+        }
+
+        public void WalkAllInformationSetTrees(Action<InformationSetNodeTally> action)
+        {
+            for (int p = 0; p < NumNonChancePlayers; p++)
+            {
+                var playerRegrets = Strategies[p].InformationSetTree;
+                playerRegrets.WalkTree(node =>
+                {
+                    InformationSetNodeTally tally = (InformationSetNodeTally)node.StoredValue;
+                    if (tally != null)
+                        action(tally);
+                });
+            }
+        }
+
+        public void StartOfNormalPhase()
+        {
+            WalkAllInformationSetTrees(tally => tally.ClearMainTally());
+        }
+
+        public void StartOfExploratoryPhase()
+        {
+            WalkAllInformationSetTrees(tally => tally.ClearBackupTally());
         }
 
         private int GetNextMultipleOf(int value, int multiple)
