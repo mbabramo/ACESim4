@@ -416,6 +416,21 @@ namespace ACESim
             return GameDefinition.DecisionsExecutionOrder[decisionIndex].NumPossibleActions;
         }
 
+
+        public void WalkAllInformationSetTrees(Action<InformationSetNodeTally> action)
+        {
+            for (int p = 0; p < NumNonChancePlayers; p++)
+            {
+                var playerRegrets = Strategies[p].InformationSetTree;
+                playerRegrets.WalkTree(node =>
+                {
+                    InformationSetNodeTally tally = (InformationSetNodeTally)node.StoredValue;
+                    if (tally != null)
+                        action(tally);
+                });
+            }
+        }
+
         #endregion
 
         #region Game play and reporting

@@ -30,11 +30,11 @@ namespace ACESim
             EvolutionSettings evolutionSettings = new EvolutionSettings()
             {
                 MaxParallelDepth = 2,
-                ParallelOptimization = true,
+                ParallelOptimization = false,
 
                 Algorithm = GameApproximationAlgorithm.AbramowiczProbing,
                 TotalAvgStrategySamplingCFRIterations = 10000000,
-                TotalProbingCFRIterations = 1_000_000,
+                TotalProbingCFRIterations = 120_000,
                 TotalVanillaCFRIterations = 100_000_000,
 
                 ReportEveryNIterations = 10000,

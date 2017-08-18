@@ -107,12 +107,15 @@ namespace ACESim
                 {
                     if (!MustUseBackup)
                         return;
+                    if (NodeInformation[cumulativeRegretDimension, action - 1] != 0)
+                        throw new Exception("DEBUG");
                     NodeInformation[cumulativeRegretBackupDimension, action - 1] += amount;
                     NumRegretIncrements++;
                     return;
                 }
                 NodeInformation[cumulativeRegretDimension, action - 1] += amount;
                 NumRegretIncrements++;
+                MustUseBackup = false;
             }
         }
 
@@ -122,6 +125,8 @@ namespace ACESim
             {
                 if (!MustUseBackup)
                     return;
+                if (NodeInformation[cumulativeRegretDimension, action - 1] != 0)
+                    throw new Exception("DEBUG");
                 NodeInformation[cumulativeRegretBackupDimension, action - 1] += amount;
                 NumRegretIncrements++;
                 return;
@@ -424,17 +429,6 @@ namespace ACESim
         {
             for (byte a = 0; a < NumPossibleActions; a++)
                 NodeInformation[cumulativeRegretDimension, a] = NodeInformation[cumulativeRegretBackupDimension, a];
-        }
-
-        public void SetMustUseBackup()
-        {
-            for (byte a = 0; a < NumPossibleActions; a++)
-                if (NodeInformation[cumulativeRegretDimension, a] != 0)
-                {
-                    MustUseBackup = false;
-                    return;
-                }
-            MustUseBackup = true;
         }
 
         public GameStateTypeEnum GetGameStateType()
