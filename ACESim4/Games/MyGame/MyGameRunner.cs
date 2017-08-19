@@ -41,7 +41,7 @@ namespace ACESim
                 ReportEveryNIterations = 10000,
                 NumRandomIterationsForReporting = 500,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever,
-                PrintInformationSetsAfterReport = false,
+                PrintInformationSetsAfterReport = true,
                 PrintGameTreeAfterReport = false,
 
                 TotalProbingCFRIterations = 500_000,

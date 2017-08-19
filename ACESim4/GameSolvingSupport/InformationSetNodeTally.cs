@@ -18,7 +18,7 @@ namespace ACESim
         public byte PlayerIndex;
         public bool MustUseBackup;
         public int NumRegretIncrements = 0;
-        public int NumRegretIncrementsThisCycle = 0;
+        public int NumBackupRegretIncrements = 0;
         double[,] NodeInformation;
 
         int NumPossibleActions => NodeInformation.GetLength(1);
@@ -104,12 +104,13 @@ namespace ACESim
                 if (!MustUseBackup)
                     return;
                 InterlockedAdd(ref NodeInformation[cumulativeRegretBackupDimension, action - 1], amount);
-                NumRegretIncrements++;
+                NumBackupRegretIncrements++;
+                SetMustUseBackup();
                 return;
             }
             NodeInformation[cumulativeRegretDimension, action - 1] += amount;
             NumRegretIncrements++;
-            MustUseBackup = false;
+            SetMustUseBackup();
         }
 
         private static double InterlockedAdd(ref double location1, double value)
@@ -133,12 +134,18 @@ namespace ACESim
                 if (!MustUseBackup)
                     return;
                 NodeInformation[cumulativeRegretBackupDimension, action - 1] += amount;
-                NumRegretIncrements++;
+                NumBackupRegretIncrements++;
+                SetMustUseBackup();
                 return;
             }
             NodeInformation[cumulativeRegretDimension, action - 1] += amount;
             NumRegretIncrements++;
-            MustUseBackup = false;
+            SetMustUseBackup();
+        }
+
+        private void SetMustUseBackup()
+        {
+            MustUseBackup = NumBackupRegretIncrements > 10 * NumRegretIncrements; // DEBUG
         }
 
         public void SetActionToCertainty(byte action, byte numPossibleActions)
