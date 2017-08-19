@@ -30,9 +30,9 @@ namespace ACESim
             EvolutionSettings evolutionSettings = new EvolutionSettings()
             {
                 MaxParallelDepth = 2,
-                ParallelOptimization = false,
+                ParallelOptimization = true,
 
-                InitialRandomSeed = 3,
+                InitialRandomSeed = 8,
 
                 Algorithm = GameApproximationAlgorithm.AbramowiczProbing,
                 TotalAvgStrategySamplingCFRIterations = 10000000,
@@ -46,7 +46,7 @@ namespace ACESim
 
                 TotalProbingCFRIterations = 500_000,
                 IterationsFinalPhase = 300_000,
-                EpsilonForPhases = new List<double>() { 0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0 },
+                EpsilonForPhases = new List<double>() { 0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0 },
 
                 AlternativeOverride = null // MyGameActionsGenerator.PlaintiffShouldOffer1IfReceivingSignal1
             };
