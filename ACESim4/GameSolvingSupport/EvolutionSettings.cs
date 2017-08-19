@@ -28,6 +28,8 @@ namespace ACESim
         // The following are for Abramowicz probing.
         public double EpsilonForMainPlayer = 0.5;
         public double EpsilonForOpponentWhenExploring = 0.05;
+        public int MinBackupRegretsTrigger = 5;
+        public int TriggerIncreaseOverTime = 45;
 
         public int NumRandomIterationsForReporting = 10000;
         public bool PrintGameTreeAfterReport = false;

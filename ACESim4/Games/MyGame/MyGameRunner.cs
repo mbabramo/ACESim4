@@ -44,11 +44,13 @@ namespace ACESim
                 PrintInformationSetsAfterReport = false,
                 PrintGameTreeAfterReport = false,
 
-                TotalProbingCFRIterations = 500_000,
+                TotalProbingCFRIterations = 300_000,
                 EpsilonForMainPlayer = 0.5,
                 EpsilonForOpponentWhenExploring = 0.05,
+                MinBackupRegretsTrigger = 5,
+                TriggerIncreaseOverTime = 45,
 
-                AlternativeOverride = null // MyGameActionsGenerator.PlaintiffShouldOffer1IfReceivingSignal1
+            AlternativeOverride = null // MyGameActionsGenerator.PlaintiffShouldOffer1IfReceivingSignal1
             };
             const int numRepetitions = 20;
             for (int i = 0; i < numRepetitions; i++)

@@ -275,9 +275,7 @@ namespace ACESim
             ProbingCFRIterationNum = 0;
             for (int phase = 0; phase < numPhases; phase++)
             {
-                const int minBackupRegretsTrigger = 5;
-                const int additionalAmountToAddOverTime = 45;
-                BackupRegretsTrigger = minBackupRegretsTrigger + (int) (additionalAmountToAddOverTime * ((double) phase / (double) (numPhases - 1)));
+                BackupRegretsTrigger = EvolutionSettings.MinBackupRegretsTrigger + (int) (EvolutionSettings.TriggerIncreaseOverTime * ((double) phase / (double) (numPhases - 1)));
                 int iterationsThisPhase = phase == numPhases - 1
                     ? iterationsFinalPhase
                     : iterationsPerPhase;
