@@ -244,12 +244,38 @@ namespace ACESim
         }
 
 
+
         public unsafe List<double> GetRegretMatchingProbabilities()
         {
             double* probabilitiesToSet = stackalloc double[NumPossibleActions];
             GetRegretMatchingProbabilities(probabilitiesToSet);
             return Util.ListExtensions.GetPointerAsList(probabilitiesToSet, NumPossibleActions);
+        }
 
+        public unsafe List<double> GetRegretMatchingProbabilities_IgnoreBackup()
+        {
+            // NOTE: Not thread-safe
+            bool mustUseBackupPrevious = MustUseBackup;
+            MustUseBackup = false;
+            double* probabilitiesToSet = stackalloc double[NumPossibleActions];
+            GetRegretMatchingProbabilities(probabilitiesToSet);
+            return Util.ListExtensions.GetPointerAsList(probabilitiesToSet, NumPossibleActions);
+            MustUseBackup = mustUseBackupPrevious;
+        }
+
+
+        public unsafe List<double> GetRegretMatchingProbabilities_WithEvenProbabilitiesIfUsingBackup()
+        {
+            // NOTE: Not thread-safe
+            bool mustUseBackupPrevious = MustUseBackup;
+            MustUseBackup = false;
+            double* probabilitiesToSet = stackalloc double[NumPossibleActions];
+            if (mustUseBackupPrevious)
+                GetEpsilonAdjustedRegretMatchingProbabilities(probabilitiesToSet, 1.0);
+            else
+                GetRegretMatchingProbabilities(probabilitiesToSet);
+            return Util.ListExtensions.GetPointerAsList(probabilitiesToSet, NumPossibleActions);
+            MustUseBackup = mustUseBackupPrevious;
         }
 
         public unsafe void GetRegretMatchingProbabilities(double* probabilitiesToSet)

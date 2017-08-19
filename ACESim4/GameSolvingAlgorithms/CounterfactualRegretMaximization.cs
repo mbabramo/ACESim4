@@ -720,11 +720,7 @@ namespace ACESim
         }
 
         #endregion
-
-        // Based on Algorithm 9 in the Lanctot thesis. Since we won't be calculating best response much, adopting more efficient approaches probably isn't necessary.
-
-        // http://papers.nips.cc/paper/4569-efficient-monte-carlo-counterfactual-regret-minimization-in-games-with-many-player-actions.pdf
-
+        
         #region Estimate improvement over time
 
         double[] MostRecentUtilities;
