@@ -273,8 +273,8 @@ namespace ACESim
                     "Internal error. Must implement extra code from Abramowicz algorithm 2 for more than 2 players.");
             ActionStrategy = ActionStrategies.RegretMatching;
             int numPhases = EvolutionSettings.EpsilonForPhases.Count;
-            int iterationsPerPhase = (EvolutionSettings.TotalProbingCFRIterations - EvolutionSettings.ExtraIterationsFinalPhase) / numPhases;
-            int extraIterationsLastPhase = EvolutionSettings.TotalProbingCFRIterations - numPhases * iterationsPerPhase; // may be greater than ExtraIterationsFinalPhase if there is a remainder
+            int iterationsPerPhase = (EvolutionSettings.TotalProbingCFRIterations - EvolutionSettings.IterationsFinalPhase) / (numPhases - 1);
+            int iterationsFinalPhaseRevised = EvolutionSettings.TotalProbingCFRIterations - (numPhases - 1) * iterationsPerPhase; // may be greater than IterationsFinalPhase if there is a remainder
             ProbingCFRIterationNum = 0;
             for (int phase = 0; phase < numPhases; phase++)
             {
@@ -292,7 +292,7 @@ namespace ACESim
                     StartOfExploratoryPhase();
                 }
                 int iterationsThisPhase = phase == numPhases - 1
-                    ? iterationsPerPhase + extraIterationsLastPhase
+                    ? iterationsFinalPhaseRevised
                     : iterationsPerPhase;
                 int startingIteration = ProbingCFRIterationNum;
                 int stopPhaseBefore = startingIteration + iterationsThisPhase;
@@ -329,6 +329,21 @@ namespace ACESim
             WalkAllInformationSetTrees(tally => tally.ClearMainTally());
         }
 
+        public void EndOfNormalPhase()
+        {
+            WalkAllInformationSetTrees(tally =>
+            {
+                // We'll copy the main tally to a backup, so the fallback will exist if we have another normal phase.
+                if (!tally.MustUseBackup)
+                    tally.CopyMainTallyToBackupTally();
+            });
+        }
+
+        public void StartOfExploratoryPhase()
+        {
+            WalkAllInformationSetTrees(tally => tally.ClearBackupTally());
+        }
+
         public void EndOfExploratoryPhase()
         {
             WalkAllInformationSetTrees(tally =>
@@ -337,11 +352,6 @@ namespace ACESim
                 if (tally.MustUseBackup)
                     tally.CopyBackupTallyToMainTally();
             });
-        }
-
-        public void StartOfExploratoryPhase()
-        {
-            WalkAllInformationSetTrees(tally => tally.ClearBackupTally());
         }
 
         private int GetNextMultipleOf(int value, int multiple)

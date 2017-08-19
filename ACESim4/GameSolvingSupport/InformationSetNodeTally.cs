@@ -435,6 +435,12 @@ namespace ACESim
                 NodeInformation[cumulativeRegretDimension, a] = NodeInformation[cumulativeRegretBackupDimension, a];
         }
 
+        public void CopyMainTallyToBackupTally()
+        {
+            for (byte a = 0; a < NumPossibleActions; a++)
+                NodeInformation[cumulativeRegretBackupDimension, a] = NodeInformation[cumulativeRegretDimension, a];
+        }
+
         public GameStateTypeEnum GetGameStateType()
         {
             return GameStateTypeEnum.Tally;

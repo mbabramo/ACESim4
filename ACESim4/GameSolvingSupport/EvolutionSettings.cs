@@ -27,7 +27,7 @@ namespace ACESim
 
         // The following are for Abramowicz probing.
         public List<double> EpsilonForPhases = new List<double>() {0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0};
-        public int ExtraIterationsFinalPhase = 25000;
+        public int IterationsFinalPhase = 25000;
 
         public int NumRandomIterationsForReporting = 10000;
         public bool PrintGameTreeAfterReport = false;
