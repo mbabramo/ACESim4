@@ -32,7 +32,7 @@ namespace ACESim
                 MaxParallelDepth = 2,
                 ParallelOptimization = true,
 
-                InitialRandomSeed = 8,
+                InitialRandomSeed = 9,
 
                 Algorithm = GameApproximationAlgorithm.AbramowiczProbing,
                 TotalAvgStrategySamplingCFRIterations = 10000000,
@@ -45,8 +45,8 @@ namespace ACESim
                 PrintGameTreeAfterReport = false,
 
                 TotalProbingCFRIterations = 500_000,
-                IterationsFinalPhase = 300_000,
-                EpsilonForPhases = new List<double>() { 0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0 },
+                EpsilonForMainPlayer = 0.5,
+                EpsilonForOpponentWhenExploring = 0.05,
 
                 AlternativeOverride = null // MyGameActionsGenerator.PlaintiffShouldOffer1IfReceivingSignal1
             };

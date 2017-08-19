@@ -26,8 +26,8 @@ namespace ACESim
         public int LastOpponentEpsilonIteration = 100000;
 
         // The following are for Abramowicz probing.
-        public List<double> EpsilonForPhases = new List<double>() {0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0};
-        public int IterationsFinalPhase = 25000;
+        public double EpsilonForMainPlayer = 0.5;
+        public double EpsilonForOpponentWhenExploring = 0.05;
 
         public int NumRandomIterationsForReporting = 10000;
         public bool PrintGameTreeAfterReport = false;

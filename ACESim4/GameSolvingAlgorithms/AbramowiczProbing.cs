@@ -8,7 +8,7 @@ namespace ACESim
         // Differences from Gibson:Increm
         // 1. During the Probe, we visit all branches on a critical node.
         // 2. The counterfactual value of an action selected for the player being selected is determined based on a probe. The walk through the tree is used solely for purposes of sampling.
-        // 3. Backup regrets set on alternate phase. We alternate normal with exploratory phases, where the opponent engages in epsilon exploration. In the exploratory phase, we increment backup cumulative regrets, but only where the main regrets are empty. This ensures that if a node will not be visited without opponent exploration, we still develop our best estimate of the correct value based on exploration.
+        // 3. Backup regrets set on alternate iterations. We alternate normal with exploratory iterations, where the opponent engages in epsilon exploration. In an exploratory iteration, we increment backup cumulative regrets, but only where the main regrets are empty. This ensures that if a node will not be visited without opponent exploration, we still develop our best estimate of the correct value based on exploration. Note that this provides robustness but means that T in the regret bound guarantees will consist only if the normal iterations.
 
         public unsafe double AbramowiczProbe_SinglePlayer(HistoryPoint historyPoint, byte playerBeingOptimized,
             IRandomProducer randomProducer)
@@ -93,7 +93,7 @@ namespace ACESim
         }
 
         public unsafe double AbramowiczProbe_WalkTree(HistoryPoint historyPoint, byte playerBeingOptimized,
-            double samplingProbabilityQ, IRandomProducer randomProducer)
+            double samplingProbabilityQ, IRandomProducer randomProducer, bool isExploratoryIteration)
         {
             if (TraceProbingCFR)
                 TabbedText.WriteLine($"WalkTree sampling probability {samplingProbabilityQ}");
@@ -118,7 +118,7 @@ namespace ACESim
                 if (TraceProbingCFR)
                     TabbedText.Tabs++;
                 double walkTreeValue = AbramowiczProbe_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ,
-                    randomProducer);
+                    randomProducer, isExploratoryIteration);
                 if (TraceProbingCFR)
                 {
                     TabbedText.Tabs--;
@@ -136,11 +136,11 @@ namespace ACESim
                 // OTHER PLAYER:
                 if (playerAtPoint != playerBeingOptimized)
                 {
-                    if (IsNormalPhase)
+                    if (!isExploratoryIteration)
                         informationSet.GetRegretMatchingProbabilities(sigmaRegretMatchedActionProbabilities);
                     else // Difference from Gibson. The opponent will use epsilon exploration (but only during the exploratory phase).
-                        informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(sigmaRegretMatchedActionProbabilities, CurrentEpsilonValue);
-                    if (IsNormalPhase)
+                        informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(sigmaRegretMatchedActionProbabilities, EvolutionSettings.EpsilonForOpponentWhenExploring);
+                    if (!isExploratoryIteration)
                         for (byte action = 1; action <= numPossibleActions; action++)
                         {
                             double cumulativeStrategyIncrement =
@@ -159,7 +159,7 @@ namespace ACESim
                     if (TraceProbingCFR)
                         TabbedText.Tabs++;
                     double walkTreeValue = AbramowiczProbe_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ,
-                        randomProducer);
+                        randomProducer, isExploratoryIteration);
                     if (TraceProbingCFR)
                     {
                         TabbedText.Tabs--;
@@ -169,8 +169,7 @@ namespace ACESim
                 }
                 // PLAYER BEING OPTIMIZED:
                 double* samplingProbabilities = stackalloc double[numPossibleActions];
-                const double epsilonForProbeWalk = 0.5;
-                informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(samplingProbabilities, epsilonForProbeWalk);
+                informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(samplingProbabilities, EvolutionSettings.EpsilonForMainPlayer);
                 sampledAction = SampleAction(samplingProbabilities, numPossibleActions, randomDouble);
                 if (TraceProbingCFR)
                     TabbedText.WriteLine(
@@ -190,7 +189,7 @@ namespace ACESim
                         double samplingProbabilityQPrime = samplingProbabilityQ * samplingProbabilities[action - 1];
                         // IMPORTANT: Unlike Gibson probing, we don't record the result of the walk through the tree.
                         AbramowiczProbe_WalkTree(nextHistoryPoint, playerBeingOptimized,
-                            samplingProbabilityQPrime, randomProducer);
+                            samplingProbabilityQPrime, randomProducer, isExploratoryIteration);
                     }
                     // IMPORTANT: Unlike Gibson probing, we use a probe to calculate all counterfactual values. 
                     if (TraceProbingCFR)
@@ -213,15 +212,15 @@ namespace ACESim
                 double inverseSamplingProbabilityQ = (1.0 / samplingProbabilityQ);
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
-                    // In the exploratory phase, we increment only the information sets that were not incremented in the normal phase. That's because we're using opponent exploration and don't want to distort the normal phase.
-                    if (IsNormalPhase || informationSet.MustUseBackup)
+                    // In an exploratory iteration, we increment only the information sets that were not incremented in the normal phase. That's because we're using opponent exploration and don't want to distort the normal phase.
+                    if (!isExploratoryIteration|| informationSet.MustUseBackup)
                     {
                         double cumulativeRegretIncrement = inverseSamplingProbabilityQ *
                                                            (counterfactualValues[action - 1] - summation);
                         if (EvolutionSettings.ParallelOptimization)
-                            informationSet.IncrementCumulativeRegret_Parallel(action, cumulativeRegretIncrement, !IsNormalPhase);
+                            informationSet.IncrementCumulativeRegret_Parallel(action, cumulativeRegretIncrement, isExploratoryIteration);
                         else
-                            informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement, !IsNormalPhase);
+                            informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement, isExploratoryIteration);
                         if (TraceProbingCFR)
                         {
                             //TabbedText.WriteLine($"Optimizing {playerBeingOptimized} Iteration {ProbingCFRIterationNum} Actions to here {historyPoint.GetActionsToHereString(Navigation)}");
@@ -239,9 +238,6 @@ namespace ACESim
 
         public void AbramowiczProbingCFRIteration(int iteration)
         {
-            CurrentEpsilonValue = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(
-                EvolutionSettings.FirstOpponentEpsilonValue, EvolutionSettings.LastOpponentEpsilonValue, 0.75,
-                (double)iteration / (double)EvolutionSettings.TotalProbingCFRIterations);
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
                 IRandomProducer randomProducer =
@@ -252,16 +248,14 @@ namespace ACESim
                     TabbedText.WriteLine($"Optimize player {playerBeingOptimized}");
                     TabbedText.Tabs++;
                 }
-                AbramowiczProbe_WalkTree(historyPoint, playerBeingOptimized, 1.0, randomProducer);
+                AbramowiczProbe_WalkTree(historyPoint, playerBeingOptimized, 1.0, randomProducer, iteration % 2 == 1);
                 if (TraceProbingCFR)
                     TabbedText.Tabs--;
             }
         }
 
-        private bool IsNormalPhase = true;
-        private int BeginningOfLastNormalPhase = 0;
-
         private static int GameNumber = 0;
+
 
         public unsafe void SolveAbramowiczProbingCFR()
         {
@@ -272,27 +266,15 @@ namespace ACESim
                 throw new Exception(
                     "Internal error. Must implement extra code from Abramowicz algorithm 2 for more than 2 players.");
             ActionStrategy = ActionStrategies.RegretMatching;
-            int numPhases = EvolutionSettings.EpsilonForPhases.Count;
-            int iterationsPerPhase = (EvolutionSettings.TotalProbingCFRIterations - EvolutionSettings.IterationsFinalPhase) / (numPhases - 1);
-            int iterationsFinalPhaseRevised = EvolutionSettings.TotalProbingCFRIterations - (numPhases - 1) * iterationsPerPhase; // may be greater than IterationsFinalPhase if there is a remainder
+            // The code can run in parallel, but we break up our parallel calls for two reasons: (1) We would like to produce reports and need to do this while pausing the main algorithm; and (2) we would like to be able differentiate early from late iterations, in case we want to change epsilon over time for example. 
+            int numPhases = 100; 
+            int iterationsPerPhase = (EvolutionSettings.TotalProbingCFRIterations) / (numPhases);
+            int iterationsFinalPhase = EvolutionSettings.TotalProbingCFRIterations - (numPhases - 1) * iterationsPerPhase; // may be greater if there is a remainder from above
             ProbingCFRIterationNum = 0;
             for (int phase = 0; phase < numPhases; phase++)
             {
-                Debug.WriteLine($"Starting phase {phase} about to do iteration {ProbingCFRIterationNum}");
-                CurrentEpsilonValue = EvolutionSettings.EpsilonForPhases[phase];
-                IsNormalPhase = CurrentEpsilonValue == 0;
-                if (IsNormalPhase)
-                {
-                    BeginningOfLastNormalPhase = ProbingCFRIterationNum;
-                    if (phase != 0)
-                        StartOfNormalPhase();
-                }
-                else
-                {
-                    StartOfExploratoryPhase();
-                }
                 int iterationsThisPhase = phase == numPhases - 1
-                    ? iterationsFinalPhaseRevised
+                    ? iterationsFinalPhase
                     : iterationsPerPhase;
                 int startingIteration = ProbingCFRIterationNum;
                 int stopPhaseBefore = startingIteration + iterationsThisPhase;
@@ -316,42 +298,10 @@ namespace ACESim
                     ProbingCFRIterationNum = startingIteration = stopBefore; // this is the iteration to run next
                     GenerateReports(ProbingCFRIterationNum,
                         () =>
-                            $"Iteration {ProbingCFRIterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double) (ProbingCFRIterationNum + 1))))}");
+                            $"Iteration {ProbingCFRIterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)(ProbingCFRIterationNum + 1))))}");
                 }
-                if (!IsNormalPhase)
-                    EndOfExploratoryPhase();
             }
             GameNumber++;
-        }
-
-        public void StartOfNormalPhase()
-        {
-            WalkAllInformationSetTrees(tally => tally.ClearMainTally());
-        }
-
-        public void EndOfNormalPhase()
-        {
-            WalkAllInformationSetTrees(tally =>
-            {
-                // We'll copy the main tally to a backup, so the fallback will exist if we have another normal phase.
-                if (!tally.MustUseBackup)
-                    tally.CopyMainTallyToBackupTally();
-            });
-        }
-
-        public void StartOfExploratoryPhase()
-        {
-            WalkAllInformationSetTrees(tally => tally.ClearBackupTally());
-        }
-
-        public void EndOfExploratoryPhase()
-        {
-            WalkAllInformationSetTrees(tally =>
-            {
-                // In case we have two exploratory phases in a row, we need to set the backup tallies just created to the main tally. If the exploratory phase is followed by a normal phase, then this will simply be deleted.
-                if (tally.MustUseBackup)
-                    tally.CopyBackupTallyToMainTally();
-            });
         }
 
         private int GetNextMultipleOf(int value, int multiple)
