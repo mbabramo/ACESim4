@@ -323,13 +323,11 @@ namespace ACESim
                 }
             SetFirstAndPreviousRepetitionsForTags(ExecutionOrder);
         }
-        
-        
 
-        private void PrintOutOrderingInformation()
+        public void PrintOutOrderingInformation()
         {
             PrintOutOrderedDecisionPoints("Execution Order of Decisions", DecisionPointsExecutionOrder);
-            PrintOutActionGroupList("Execution Order of Action Groups", ExecutionOrder);
+            //PrintOutActionGroupList("Execution Order of Action Groups", ExecutionOrder);
         }
 
         private void PrintOutActionGroupList(string header, List<ActionGroup> actionGroupList)
@@ -341,7 +339,7 @@ namespace ACESim
             TabbedText.Tabs--;
         }
 
-        private static void PrintOutOrderedDecisionPoints(string heading, List<ActionPoint> decisionPointsToPrint)
+        public static void PrintOutOrderedDecisionPoints(string heading, List<ActionPoint> decisionPointsToPrint)
         {
             TabbedText.WriteLine("");
             TabbedText.WriteLine(heading);
@@ -351,7 +349,7 @@ namespace ACESim
                 string repetitionTag = dp.ActionGroup.RepetitionTagString();
                 if (repetitionTag != "")
                     repetitionTag = " (Repetition:" + repetitionTag + ")";
-                TabbedText.WriteLine(dp.Name + repetitionTag + " [" + dp.DecisionNumber + "]");
+                TabbedText.WriteLine($"{dp.DecisionNumber} {dp.Decision}");
             }
             TabbedText.Tabs--;
         }

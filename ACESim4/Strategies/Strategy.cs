@@ -55,7 +55,9 @@ namespace ACESim
 
         public unsafe NWayTreeStorage<IGameState> SetInformationSetTreeValueIfNotSet(byte decisionIndex, byte* informationSet, bool historyComplete, Func<IGameState> setter)
         {
-            var returnVal = InformationSetTree.SetValueIfNotSet((byte) (decisionIndex + 1), informationSet, historyComplete, setter);
+            if (decisionIndex == 0)
+                decisionIndex = 200; // a bit hacky -- we can't use a 0 prefix
+            var returnVal = InformationSetTree.SetValueIfNotSet(decisionIndex, informationSet, historyComplete, setter);
             // System.Diagnostics.Debug.WriteLine($"{String.Join(",", informationSet)}: {PlayerInfo.PlayerName} {returnVal.StoredValue}");
             return returnVal;
         }
@@ -69,7 +71,9 @@ namespace ACESim
 
         public unsafe IGameState GetInformationSetTreeValue(byte decisionIndex, byte* informationSet)
         {
-            return InformationSetTree?.GetValue((byte)(decisionIndex + 1), informationSet);
+            if (decisionIndex == 0)
+                decisionIndex = 200; // a bit hacky -- we can't use a 0 prefix
+            return InformationSetTree?.GetValue(decisionIndex, informationSet);
         }
 
         public unsafe IGameState GetInformationSetTreeValue(byte* informationSet)

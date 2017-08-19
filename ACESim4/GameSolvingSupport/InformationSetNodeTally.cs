@@ -19,6 +19,8 @@ namespace ACESim
         public bool MustUseBackup;
         public int NumRegretIncrements = 0;
         public int NumBackupRegretIncrements = 0;
+        public int NumBackupRegretsSinceLastRegretIncrement = 0;
+
         double[,] NodeInformation;
 
         int NumPossibleActions => NodeInformation.GetLength(1);
@@ -42,7 +44,7 @@ namespace ACESim
 
         public override string ToString()
         {
-            return $"Information set {InformationSetNumber}: DecisionByteCode {DecisionByteCode} (index {DecisionIndex}) PlayerIndex {PlayerIndex} Probabilities {GetRegretMatchingProbabilitiesString()} Regrets {GetCumulativeRegretsString()} Strategies {GetCumulativeStrategiesString()} RegretIncrements {NumRegretIncrements}";
+            return $"Information set {InformationSetNumber}: DecisionByteCode {DecisionByteCode} (index {DecisionIndex}) PlayerIndex {PlayerIndex} Probabilities {GetRegretMatchingProbabilitiesString()} Regrets{(MustUseBackup ? "*" : "")} {GetCumulativeRegretsString()} Strategies {GetCumulativeStrategiesString()} RegretIncrements {NumRegretIncrements} NumBackupRegretsSinceLastRegretIncrement {NumBackupRegretsSinceLastRegretIncrement} NumBackupRegretIncrements {NumBackupRegretIncrements}";
         }
 
         private void Initialize(int numDimensions, int numPossibleActions)
@@ -101,15 +103,15 @@ namespace ACESim
         {
             if (incrementBackup)
             {
-                if (!MustUseBackup)
-                    return;
                 InterlockedAdd(ref NodeInformation[cumulativeRegretBackupDimension, action - 1], amount);
-                NumBackupRegretIncrements++;
+                Interlocked.Increment(ref NumBackupRegretIncrements);
+                Interlocked.Increment(ref NumBackupRegretsSinceLastRegretIncrement);
                 SetMustUseBackup();
                 return;
             }
-            NodeInformation[cumulativeRegretDimension, action - 1] += amount;
-            NumRegretIncrements++;
+            InterlockedAdd(ref NodeInformation[cumulativeRegretDimension, action - 1], amount);
+            Interlocked.Increment(ref NumRegretIncrements);
+            NumBackupRegretsSinceLastRegretIncrement = 0;
             SetMustUseBackup();
         }
 
@@ -131,21 +133,21 @@ namespace ACESim
         {
             if (incrementBackup)
             {
-                if (!MustUseBackup)
-                    return;
                 NodeInformation[cumulativeRegretBackupDimension, action - 1] += amount;
                 NumBackupRegretIncrements++;
+                NumBackupRegretsSinceLastRegretIncrement++;
                 SetMustUseBackup();
                 return;
             }
             NodeInformation[cumulativeRegretDimension, action - 1] += amount;
             NumRegretIncrements++;
+            NumBackupRegretsSinceLastRegretIncrement = 0;
             SetMustUseBackup();
         }
 
         private void SetMustUseBackup()
         {
-            MustUseBackup = NumBackupRegretIncrements > 10 * NumRegretIncrements; // DEBUG
+            MustUseBackup = (NumRegretIncrements == 0) || NumBackupRegretsSinceLastRegretIncrement >= 100;
         }
 
         public void SetActionToCertainty(byte action, byte numPossibleActions)

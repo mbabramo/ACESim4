@@ -212,21 +212,17 @@ namespace ACESim
                 double inverseSamplingProbabilityQ = (1.0 / samplingProbabilityQ);
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
-                    // In an exploratory iteration, we increment only the information sets that were not incremented in the normal phase. That's because we're using opponent exploration and don't want to distort the normal phase.
-                    if (!isExploratoryIteration|| informationSet.MustUseBackup)
+                    double cumulativeRegretIncrement = inverseSamplingProbabilityQ *
+                                                        (counterfactualValues[action - 1] - summation);
+                    if (EvolutionSettings.ParallelOptimization)
+                        informationSet.IncrementCumulativeRegret_Parallel(action, cumulativeRegretIncrement, isExploratoryIteration);
+                    else
+                        informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement, isExploratoryIteration);
+                    if (TraceProbingCFR)
                     {
-                        double cumulativeRegretIncrement = inverseSamplingProbabilityQ *
-                                                           (counterfactualValues[action - 1] - summation);
-                        if (EvolutionSettings.ParallelOptimization)
-                            informationSet.IncrementCumulativeRegret_Parallel(action, cumulativeRegretIncrement, isExploratoryIteration);
-                        else
-                            informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement, isExploratoryIteration);
-                        if (TraceProbingCFR)
-                        {
-                            //TabbedText.WriteLine($"Optimizing {playerBeingOptimized} Iteration {ProbingCFRIterationNum} Actions to here {historyPoint.GetActionsToHereString(Navigation)}");
-                            TabbedText.WriteLine(
-                                $"Increasing cumulative regret for action {action} by {inverseSamplingProbabilityQ} * {(counterfactualValues[action - 1])} - {summation} = {cumulativeRegretIncrement} to {informationSet.GetCumulativeRegret(action)}");
-                        }
+                        //TabbedText.WriteLine($"Optimizing {playerBeingOptimized} Iteration {ProbingCFRIterationNum} Actions to here {historyPoint.GetActionsToHereString(Navigation)}");
+                        TabbedText.WriteLine(
+                            $"Increasing cumulative regret for action {action} by {inverseSamplingProbabilityQ} * {(counterfactualValues[action - 1])} - {summation} = {cumulativeRegretIncrement} to {informationSet.GetCumulativeRegret(action)}");
                     }
                 }
                 return summation;
@@ -266,6 +262,7 @@ namespace ACESim
                 throw new Exception(
                     "Internal error. Must implement extra code from Abramowicz algorithm 2 for more than 2 players.");
             ActionStrategy = ActionStrategies.RegretMatching;
+            GameDefinition.PrintOutOrderingInformation();
             // The code can run in parallel, but we break up our parallel calls for two reasons: (1) We would like to produce reports and need to do this while pausing the main algorithm; and (2) we would like to be able differentiate early from late iterations, in case we want to change epsilon over time for example. 
             int numPhases = 100; 
             int iterationsPerPhase = (EvolutionSettings.TotalProbingCFRIterations) / (numPhases);

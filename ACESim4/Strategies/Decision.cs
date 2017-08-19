@@ -184,6 +184,12 @@ namespace ACESim
             return d;
         }
 
+        public override string ToString()
+        {
+            return
+                $"{Name} ({Abbreviation}) Player {PlayerNumber} ByteCode {DecisionByteCode} CustomByte {CustomByte} Subdivision? {Subdividable_IsSubdivision} UnevenChanceActions {UnevenChanceActions} AlwaysDoAction {AlwaysDoAction}";
+        }
+
         public void AddDecisionOrSubdivisions(List<Decision> currentDecisionList)
         {
             if (!Subdividable)

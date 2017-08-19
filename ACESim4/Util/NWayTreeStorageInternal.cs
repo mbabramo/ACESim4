@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -194,6 +195,9 @@ namespace ACESim
         {
             lock (this)
             {
+                //TODO: Make it so that we can name each branch. We need to figure out all the places this is called. Probably, we need to pass a pointer to a function that can identify all of the branches. This could involve parsing the information set histories.
+                //Debug.WriteLine(System.Environment.StackTrace);
+                //Debug.WriteLine("");
                 var existing = GetBranch(index);
                 if (existing != null)
                     return existing; // this may have been set during the lock
