@@ -41,12 +41,12 @@ namespace ACESim
                 ReportEveryNIterations = 10000,
                 NumRandomIterationsForReporting = 500,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever,
-                PrintInformationSetsAfterReport = true,
+                PrintInformationSetsAfterReport = false,
                 PrintGameTreeAfterReport = false,
 
                 TotalProbingCFRIterations = 500_000,
-                IterationsFinalPhase = 400_000,
-                EpsilonForPhases = new List<double>() { 0, 0.001, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0 },
+                IterationsFinalPhase = 300_000,
+                EpsilonForPhases = new List<double>() { 0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0.05, 0, 0 },
 
                 AlternativeOverride = null // MyGameActionsGenerator.PlaintiffShouldOffer1IfReceivingSignal1
             };
