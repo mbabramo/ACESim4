@@ -30,18 +30,18 @@ namespace ACESim
             EvolutionSettings evolutionSettings = new EvolutionSettings()
             {
                 MaxParallelDepth = 2,
-                ParallelOptimization = false,
+                ParallelOptimization = true,
 
-                InitialRandomSeed = 10,
+                InitialRandomSeed = 30,
 
                 Algorithm = GameApproximationAlgorithm.AbramowiczProbing,
                 TotalAvgStrategySamplingCFRIterations = 10000000,
                 TotalVanillaCFRIterations = 100_000_000,
 
-                ReportEveryNIterations = 10000,
+                ReportEveryNIterations = 100000,
                 NumRandomIterationsForReporting = 500,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever,
-                PrintInformationSetsAfterReport = true,
+                PrintInformationSetsAfterReport = false,
                 PrintGameTreeAfterReport = false,
 
                 TotalProbingCFRIterations = 500_000,
@@ -50,8 +50,13 @@ namespace ACESim
 
                 AlternativeOverride = null // MyGameActionsGenerator.PlaintiffShouldOffer1IfReceivingSignal1
             };
-            CounterfactualRegretMaximization developer = new CounterfactualRegretMaximization(starterStrategies, evolutionSettings, gameDefinition);
-            developer.DevelopStrategies();
+            const int numRepetitions = 20;
+            for (int i = 0; i < numRepetitions; i++)
+            {
+                CounterfactualRegretMaximization developer =
+                    new CounterfactualRegretMaximization(starterStrategies, evolutionSettings, gameDefinition);
+                developer.DevelopStrategies();
+            }
         }
     }
 }

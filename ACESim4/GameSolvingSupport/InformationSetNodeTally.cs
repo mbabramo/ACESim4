@@ -99,20 +99,20 @@ namespace ACESim
             return MustUseBackup ? NodeInformation[cumulativeRegretBackupDimension, action - 1] : NodeInformation[cumulativeRegretDimension, action - 1];
         }
 
-        public void IncrementCumulativeRegret_Parallel(int action, double amount, bool incrementBackup)
+        public void IncrementCumulativeRegret_Parallel(int action, double amount, bool incrementBackup, int backupRegretsTrigger = int.MaxValue)
         {
             if (incrementBackup)
             {
                 InterlockedAdd(ref NodeInformation[cumulativeRegretBackupDimension, action - 1], amount);
                 Interlocked.Increment(ref NumBackupRegretIncrements);
                 Interlocked.Increment(ref NumBackupRegretsSinceLastRegretIncrement);
-                SetMustUseBackup();
+                SetMustUseBackup(backupRegretsTrigger);
                 return;
             }
             InterlockedAdd(ref NodeInformation[cumulativeRegretDimension, action - 1], amount);
             Interlocked.Increment(ref NumRegretIncrements);
             NumBackupRegretsSinceLastRegretIncrement = 0;
-            SetMustUseBackup();
+            SetMustUseBackup(backupRegretsTrigger);
         }
 
         private static double InterlockedAdd(ref double location1, double value)
@@ -129,25 +129,25 @@ namespace ACESim
             }
         }
 
-        public void IncrementCumulativeRegret(int action, double amount, bool incrementBackup)
+        public void IncrementCumulativeRegret(int action, double amount, bool incrementBackup, int backupRegretsTrigger = int.MaxValue)
         {
             if (incrementBackup)
             {
                 NodeInformation[cumulativeRegretBackupDimension, action - 1] += amount;
                 NumBackupRegretIncrements++;
                 NumBackupRegretsSinceLastRegretIncrement++;
-                SetMustUseBackup();
+                SetMustUseBackup(backupRegretsTrigger);
                 return;
             }
             NodeInformation[cumulativeRegretDimension, action - 1] += amount;
             NumRegretIncrements++;
             NumBackupRegretsSinceLastRegretIncrement = 0;
-            SetMustUseBackup();
+            SetMustUseBackup(backupRegretsTrigger);
         }
 
-        private void SetMustUseBackup()
+        private void SetMustUseBackup(int backupRegretsTrigger)
         {
-            MustUseBackup = (NumRegretIncrements == 0) || NumBackupRegretsSinceLastRegretIncrement >= 100;
+            MustUseBackup = (NumRegretIncrements == 0) || NumBackupRegretsSinceLastRegretIncrement >= backupRegretsTrigger;
         }
 
         public void SetActionToCertainty(byte action, byte numPossibleActions)

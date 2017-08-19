@@ -145,7 +145,10 @@ namespace ACESim
                         {
                             double cumulativeStrategyIncrement =
                                 sigmaRegretMatchedActionProbabilities[action - 1] / samplingProbabilityQ;
-                            informationSet.IncrementCumulativeStrategy_Parallel(action, cumulativeStrategyIncrement);
+                            if (EvolutionSettings.ParallelOptimization)
+                                informationSet.IncrementCumulativeStrategy_Parallel(action, cumulativeStrategyIncrement);
+                            else
+                                informationSet.IncrementCumulativeStrategy(action, cumulativeStrategyIncrement);
                             if (TraceProbingCFR)
                                 TabbedText.WriteLine(
                                     $"Incrementing cumulative strategy for {action} by {cumulativeStrategyIncrement} to {informationSet.GetCumulativeStrategy(action)}");
@@ -215,9 +218,9 @@ namespace ACESim
                     double cumulativeRegretIncrement = inverseSamplingProbabilityQ *
                                                         (counterfactualValues[action - 1] - summation);
                     if (EvolutionSettings.ParallelOptimization)
-                        informationSet.IncrementCumulativeRegret_Parallel(action, cumulativeRegretIncrement, isExploratoryIteration);
+                        informationSet.IncrementCumulativeRegret_Parallel(action, cumulativeRegretIncrement, isExploratoryIteration, BackupRegretsTrigger);
                     else
-                        informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement, isExploratoryIteration);
+                        informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement, isExploratoryIteration, BackupRegretsTrigger);
                     if (TraceProbingCFR)
                     {
                         //TabbedText.WriteLine($"Optimizing {playerBeingOptimized} Iteration {ProbingCFRIterationNum} Actions to here {historyPoint.GetActionsToHereString(Navigation)}");
@@ -252,11 +255,13 @@ namespace ACESim
 
         private static int GameNumber = 0;
 
+        private int BackupRegretsTrigger;
 
         public unsafe void SolveAbramowiczProbingCFR()
         {
             if (GameNumber == 0)
                 GameNumber = EvolutionSettings.InitialRandomSeed;
+            Debug.WriteLine($"Game number {GameNumber}");
             Stopwatch s = new Stopwatch();
             if (NumNonChancePlayers > 2)
                 throw new Exception(
@@ -270,6 +275,9 @@ namespace ACESim
             ProbingCFRIterationNum = 0;
             for (int phase = 0; phase < numPhases; phase++)
             {
+                const int minBackupRegretsTrigger = 5;
+                const int additionalAmountToAddOverTime = 45;
+                BackupRegretsTrigger = minBackupRegretsTrigger + (int) (additionalAmountToAddOverTime * ((double) phase / (double) (numPhases - 1)));
                 int iterationsThisPhase = phase == numPhases - 1
                     ? iterationsFinalPhase
                     : iterationsPerPhase;

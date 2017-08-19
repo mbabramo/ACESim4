@@ -117,9 +117,9 @@ namespace ACESim
                 PInitialWealth = 1000000,
                 DInitialWealth = 1000000,
                 DamagesAlleged = 100000,
-                NumLitigationQualityPoints = 4,
-                NumSignals = 4,
-                NumOffers = 4,
+                NumLitigationQualityPoints = 10,
+                NumSignals = 10,
+                NumOffers = 10,
                 PNoiseStdev = 0.0001,
                 DNoiseStdev = 0.0001,
                 PTrialCosts = 5000,
@@ -133,10 +133,10 @@ namespace ACESim
                 },
                 NumBargainingRounds = 4,
                 ForgetEarlierBargainingRounds = true,
-                SubdivideOffers = true,
+                SubdivideOffers = false,
                 BargainingRoundsSimultaneous = false,
                 PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false },
-                IncludeSignalsReport = true
+                IncludeSignalsReport = false
             };
             options.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.PInitialWealth };
             options.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.DInitialWealth };
