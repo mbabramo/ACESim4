@@ -38,7 +38,7 @@ namespace ACESim
                 TotalAvgStrategySamplingCFRIterations = 10000000,
                 TotalVanillaCFRIterations = 100_000_000,
 
-                ReportEveryNIterations = 1000,
+                ReportEveryNIterations = 10000,
                 NumRandomIterationsForReporting = 500,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever,
                 PrintInformationSetsAfterReport = false,
