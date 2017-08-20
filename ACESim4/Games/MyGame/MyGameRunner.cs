@@ -30,7 +30,7 @@ namespace ACESim
             EvolutionSettings evolutionSettings = new EvolutionSettings()
             {
                 MaxParallelDepth = 2,
-                ParallelOptimization = true,
+                ParallelOptimization = false,
 
                 InitialRandomSeed = 30,
 
@@ -50,7 +50,7 @@ namespace ACESim
                 MinBackupRegretsTrigger = 5,
                 TriggerIncreaseOverTime = 45,
 
-            AlternativeOverride = null // MyGameActionsGenerator.PlaintiffShouldOffer1IfReceivingSignal1
+                AlternativeOverride = null // MyGameActionsGenerator.PlaintiffShouldOffer1IfReceivingSignal1
             };
             const int numRepetitions = 20;
             for (int i = 0; i < numRepetitions; i++)

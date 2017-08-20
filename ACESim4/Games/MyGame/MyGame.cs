@@ -39,10 +39,12 @@ namespace ACESim
             else if (currentDecisionByteCode == (byte)MyGameDecisions.PSignal)
             {
                 ConvertActionToDiscreteAndUniformSignal(action, MyDefinition.Options.UseRawSignals, MyProgress.LitigationQualityUniform, MyDefinition.Options.NumNoiseValues, MyDefinition.Options.PNoiseStdev, MyDefinition.Options.NumSignals, out MyProgress.PSignalDiscrete, out MyProgress.PSignalUniform);
+                System.Diagnostics.Debug.WriteLine($"P: Quality {MyProgress.LitigationQualityUniform} Noise action {action} => signal {MyProgress.PSignalDiscrete} ({MyProgress.PSignalUniform})");
             }
             else if (currentDecisionByteCode == (byte)MyGameDecisions.DSignal)
             {
                 ConvertActionToDiscreteAndUniformSignal(action, MyDefinition.Options.UseRawSignals, MyProgress.LitigationQualityUniform, MyDefinition.Options.NumNoiseValues, MyDefinition.Options.DNoiseStdev, MyDefinition.Options.NumSignals, out MyProgress.DSignalDiscrete, out MyProgress.DSignalUniform);
+                System.Diagnostics.Debug.WriteLine($"D: Quality {MyProgress.LitigationQualityUniform} Noise action {action} => signal {MyProgress.DSignalDiscrete} ({MyProgress.DSignalUniform})");
             }
             else if (currentDecisionByteCode == (byte)MyGameDecisions.POffer)
             {
@@ -76,6 +78,7 @@ namespace ACESim
                                                   MyDefinition.Options.CourtNoiseStdev;
                     double courtSignal = MyProgress.LitigationQualityUniform + courtNoiseNormalDraw;
                     MyProgress.PWinsAtTrial = courtSignal > 0.5; // we'll assume that P has burden of proof in case courtSignal is exactly equal to 0.5.
+                    //System.Diagnostics.Debug.WriteLine($"Quality {MyProgress.LitigationQualityUniform} Court noise action {action} => {courtNoiseNormalDraw} => signal {courtSignal} PWins {MyProgress.PWinsAtTrial}");
                 }
                 else // with processed signals, the probability of P winning is defined in MyGameDefinition; action 2 always means a plaintiff victory
                     MyProgress.PWinsAtTrial = action == 2;
