@@ -68,11 +68,12 @@ namespace ACESim
                 playersKnowingLitigationQuality.Add((byte)MyGamePlayers.Defendant);
             decisions.Add(new Decision("LitigationQuality", "Qual", (byte)MyGamePlayers.QualityChance, playersKnowingLitigationQuality, Options.NumLitigationQualityPoints, (byte)MyGameDecisions.LitigationQuality));
             // Plaintiff and defendant signals. If a player has perfect information, then no signal is needed.
-            debug; 
+            if (!Options.UseRawSignals && (Options.NumNoiseValues != Options.NumSignals))
+                throw new NotImplementedException(); // with non-raw signals, we currently require the number of noise values to be equal to the number of signals.
             if (Options.PNoiseStdev != 0)
-                decisions.Add(new Decision("PlaintiffSignal", "PSig", (byte)MyGamePlayers.PSignalChance, new List<byte> { (byte)MyGamePlayers.Plaintiff }, Options.NumSignals, (byte)MyGameDecisions.PSignal, unevenChanceActions: true));
+                decisions.Add(new Decision("PlaintiffSignal", "PSig", (byte)MyGamePlayers.PSignalChance, new List<byte> { (byte)MyGamePlayers.Plaintiff }, Options.NumNoiseValues, (byte)MyGameDecisions.PSignal, unevenChanceActions: !Options.UseRawSignals));
             if (Options.DNoiseStdev != 0)
-                decisions.Add(new Decision("DefendantSignal", "DSig", (byte)MyGamePlayers.DSignalChance, new List<byte> { (byte)MyGamePlayers.Defendant }, Options.NumSignals, (byte)MyGameDecisions.DSignal, unevenChanceActions: true));
+                decisions.Add(new Decision("DefendantSignal", "DSig", (byte)MyGamePlayers.DSignalChance, new List<byte> { (byte)MyGamePlayers.Defendant }, Options.NumNoiseValues, (byte)MyGameDecisions.DSignal, unevenChanceActions: !Options.UseRawSignals));
             for (int b = 0; b < Options.NumBargainingRounds; b++)
             {
                 // bargaining -- note that we will do all information set manipulation in CustomInformationSetManipulation below.
@@ -417,18 +418,22 @@ namespace ACESim
         {
             if (decisionByteCode == (byte)MyGameDecisions.PSignal)
             {
+                if (Options.UseRawSignals)
+                    throw new NotImplementedException();
                 MyGameProgress myGameProgress = (MyGameProgress)gameProgress;
                 return DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(myGameProgress.LitigationQualityDiscrete, Options.PSignalParameters);
             }
             else if (decisionByteCode == (byte)MyGameDecisions.DSignal)
             {
+                if (Options.UseRawSignals)
+                    throw new NotImplementedException();
                 MyGameProgress myGameProgress = (MyGameProgress)gameProgress;
                 return DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(myGameProgress.LitigationQualityDiscrete, Options.DSignalParameters);
             }
             else if (decisionByteCode == (byte)MyGameDecisions.CourtDecision)
             {
                 if (Options.UseRawSignals)
-                {
+                    throw new NotImplementedException();
                     double[] probabilities = new double[2];
                     MyGameProgress myGameProgress = (MyGameProgress) gameProgress;
                     probabilities[0] =
@@ -436,9 +441,6 @@ namespace ACESim
                     probabilities[1] =
                         myGameProgress.LitigationQualityUniform; // probability action 2 ==> rule for plaintiff
                     return probabilities;
-                }
-                else
-                    throw new NotImplementedException(); // when using processed signals, we should have even chance probabilities
             }
             else
                 throw new NotImplementedException(); // subclass should define if needed
