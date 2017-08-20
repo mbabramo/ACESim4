@@ -38,14 +38,11 @@ namespace ACESim
             }
             else if (currentDecisionByteCode == (byte)MyGameDecisions.PSignal)
             {
-                // Note: This is an unequal probabilities chance decision. The action IS the discrete signal. The game definition then calculates the probability that we would get this signal, given the uniform distribution draw. In other words, this is like a weighted die, where the die is heavily weighted toward signal values that are close to the litigation quality values.
-                MyProgress.PSignalDiscrete = action;
-                MyProgress.PSignalUniform = EquallySpaced.GetLocationOfEquallySpacedPoint(MyProgress.PSignalDiscrete - 1 /* make it zero-based */, MyDefinition.Options.NumSignals);
+                ConvertActionToDiscreteAndUniformSignal(action, MyDefinition.Options.UseRawSignals, MyProgress.LitigationQualityUniform, MyDefinition.Options.NumNoiseValues, MyDefinition.Options.PNoiseStdev, MyDefinition.Options.NumSignals, out MyProgress.PSignalDiscrete, out MyProgress.PSignalUniform);
             }
             else if (currentDecisionByteCode == (byte)MyGameDecisions.DSignal)
             {
-                MyProgress.DSignalDiscrete = action;
-                MyProgress.DSignalUniform = EquallySpaced.GetLocationOfEquallySpacedPoint(MyProgress.DSignalDiscrete - 1 /* make it zero-based */, MyDefinition.Options.NumSignals);
+                ConvertActionToDiscreteAndUniformSignal(action, MyDefinition.Options.UseRawSignals, MyProgress.LitigationQualityUniform, MyDefinition.Options.NumNoiseValues, MyDefinition.Options.DNoiseStdev, MyDefinition.Options.NumSignals, out MyProgress.DSignalDiscrete, out MyProgress.DSignalUniform);
             }
             else if (currentDecisionByteCode == (byte)MyGameDecisions.POffer)
             {
@@ -72,8 +69,42 @@ namespace ACESim
             else if (currentDecisionByteCode == (byte)MyGameDecisions.CourtDecision)
             {
                 MyProgress.TrialOccurs = true;
-                // note that the probability of P winning is defined in MyGameDefinition.
-                MyProgress.PWinsAtTrial = action == 2;
+                if (MyDefinition.Options.UseRawSignals)
+                {
+                    double courtNoiseUniformDistribution = EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, MyDefinition.Options.NumSignals);
+                    double courtNoiseNormalDraw = InvNormal.Calculate(courtNoiseUniformDistribution) *
+                                                  MyDefinition.Options.CourtNoiseStdev;
+                    double courtSignal = MyProgress.LitigationQualityUniform + courtNoiseNormalDraw;
+                    MyProgress.PWinsAtTrial = courtSignal > 0.5; // we'll assume that P has burden of proof in case courtSignal is exactly equal to 0.5.
+                }
+                else // with processed signals, the probability of P winning is defined in MyGameDefinition; action 2 always means a plaintiff victory
+                    MyProgress.PWinsAtTrial = action == 2;
+            }
+        }
+
+        private static void ConvertActionToDiscreteAndUniformSignal(byte action, bool useRawSignals, double trueValue, byte numNoiseValues, double noiseStdev, byte numSignals, out byte discreteSignal, out double uniformSignal)
+        {
+            if (useRawSignals)
+            {
+                // This is an equal probabilities decision. 
+                discreteSignal = DiscreteValueSignal.GetRawSignal(trueValue, action, numNoiseValues, noiseStdev, numSignals);
+                if (discreteSignal == 1)
+                    uniformSignal = -1.0; // just a sign indicating that the signal is negative
+                else if (discreteSignal == numSignals)
+                    uniformSignal = 2.0; // again, just a sign that it's out of range
+                else
+                    uniformSignal = EquallySpaced.GetLocationOfEquallySpacedPoint(
+                        discreteSignal -
+                        2 /* make it zero-based, but also account for the fact that we have a signal for values less than 0 */,
+                        numSignals - 2);
+            }
+            else
+            {
+                // Note: This is an unequal probabilities chance decision. The action IS the discrete signal. The game definition must then calculates the probability that we would get this signal, given the uniform distribution draw. In other words, this is like a weighted die, where the die is heavily weighted toward signal values that are close to the litigation quality values.
+                discreteSignal = action;
+                uniformSignal =
+                    EquallySpaced.GetLocationOfEquallySpacedPoint(
+                        discreteSignal - 1 /* make it zero-based */, numSignals);
             }
         }
 

@@ -68,6 +68,7 @@ namespace ACESim
                 playersKnowingLitigationQuality.Add((byte)MyGamePlayers.Defendant);
             decisions.Add(new Decision("LitigationQuality", "Qual", (byte)MyGamePlayers.QualityChance, playersKnowingLitigationQuality, Options.NumLitigationQualityPoints, (byte)MyGameDecisions.LitigationQuality));
             // Plaintiff and defendant signals. If a player has perfect information, then no signal is needed.
+            debug; 
             if (Options.PNoiseStdev != 0)
                 decisions.Add(new Decision("PlaintiffSignal", "PSig", (byte)MyGamePlayers.PSignalChance, new List<byte> { (byte)MyGamePlayers.Plaintiff }, Options.NumSignals, (byte)MyGameDecisions.PSignal, unevenChanceActions: true));
             if (Options.DNoiseStdev != 0)
@@ -100,7 +101,10 @@ namespace ACESim
                     }
                 }
             }
-            decisions.Add(new Decision("CourtDecision", "CD", (byte)MyGamePlayers.CourtChance, new List<byte> { (byte)MyGamePlayers.Resolution }, 2 /* for plaintiff or for defendant */, (byte)MyGameDecisions.CourtDecision, unevenChanceActions: true, criticalNode: true) { CanTerminateGame = true });
+            if (Options.UseRawSignals)
+                decisions.Add(new Decision("CourtDecision", "CD", (byte)MyGamePlayers.CourtChance, new List<byte> { (byte)MyGamePlayers.Resolution }, Options.NumSignals, (byte)MyGameDecisions.CourtDecision, unevenChanceActions: false, criticalNode: true) { CanTerminateGame = true }); // even chance options
+            else
+                decisions.Add(new Decision("CourtDecision", "CD", (byte)MyGamePlayers.CourtChance, new List<byte> { (byte)MyGamePlayers.Resolution }, 2 /* for plaintiff or for defendant */, (byte)MyGameDecisions.CourtDecision, unevenChanceActions: true, criticalNode: true) { CanTerminateGame = true });
             return decisions;
         }
 
@@ -423,11 +427,18 @@ namespace ACESim
             }
             else if (decisionByteCode == (byte)MyGameDecisions.CourtDecision)
             {
-                double[] probabilities = new double[2];
-                MyGameProgress myGameProgress = (MyGameProgress)gameProgress;
-                probabilities[0] = 1.0 - myGameProgress.LitigationQualityUniform; // probability action 1 ==> rule for defendant
-                probabilities[1] = myGameProgress.LitigationQualityUniform; // probability action 2 ==> rule for plaintiff
-                return probabilities;
+                if (Options.UseRawSignals)
+                {
+                    double[] probabilities = new double[2];
+                    MyGameProgress myGameProgress = (MyGameProgress) gameProgress;
+                    probabilities[0] =
+                        1.0 - myGameProgress.LitigationQualityUniform; // probability action 1 ==> rule for defendant
+                    probabilities[1] =
+                        myGameProgress.LitigationQualityUniform; // probability action 2 ==> rule for plaintiff
+                    return probabilities;
+                }
+                else
+                    throw new NotImplementedException(); // when using processed signals, we should have even chance probabilities
             }
             else
                 throw new NotImplementedException(); // subclass should define if needed

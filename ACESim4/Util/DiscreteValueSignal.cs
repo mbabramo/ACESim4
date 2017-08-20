@@ -10,6 +10,28 @@ namespace ACESim.Util
     public static class DiscreteValueSignal
     {
         /// <summary>
+        /// Calculates a raw signal by adding noise drawn from a normal distribution to a true value. If the sum is less than 0, the signal returned is 1. If it is greater than 1, the signal returned is numSignalValues. Otherwise, the signal is in between.
+        /// </summary>
+        /// <param name="trueValueFrom0To1"></param>
+        /// <param name="oneBasedNoiseValue"></param>
+        /// <param name="numNoiseValues"></param>
+        /// <param name="standardDeviationOfNoise"></param>
+        /// <param name="numSignalValues"></param>
+        /// <returns></returns>
+        public static byte GetRawSignal(double trueValueFrom0To1, byte oneBasedNoiseValue, byte numNoiseValues, double standardDeviationOfNoise, byte numSignalValues)
+        {
+            double noiseUniformDistribution = EquallySpaced.GetLocationOfEquallySpacedPoint(oneBasedNoiseValue, numNoiseValues);
+            double noiseNormalDistributionDraw = InvNormal.Calculate(noiseUniformDistribution) * standardDeviationOfNoise;
+            double obfuscatedValue = trueValueFrom0To1 + noiseNormalDistributionDraw;
+            if (obfuscatedValue < 0)
+                return 1;
+            else if (obfuscatedValue > 1)
+                return numSignalValues;
+            else
+                return (byte) (2 + (int) Math.Floor(obfuscatedValue * (numSignalValues - 2)));
+        }
+
+        /// <summary>
         /// Given a signal (in the form of the sum of values taken from a uniform distribution and from a normal distribution), returns a discrete signal, such that each signal will ex ante be equally likely to obtain. The lowest signal is equal to 1. 
         /// For example, if NumSignals is 10, then one-tenth of the time, we will draw from the two distributions in a way that will produce a signal of i, for all i from 1 to 10. 
         /// </summary>
