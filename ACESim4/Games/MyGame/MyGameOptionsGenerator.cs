@@ -9,7 +9,7 @@ namespace ACESim
 {
     public static class MyGameOptionsGenerator
     {
-        public static MyGameOptions SingleBargainingRound_LowNoise()
+        public static MyGameOptions SingleBargainingRound_5Points_LowNoise()
         {
             var options = new MyGameOptions()
             {

@@ -24,7 +24,7 @@ namespace ACESim
             return 0;
         }
 
-        public static byte SettleAtMidpoint_FirstBargainingRound(Decision decision, GameProgress progress)
+        public static byte SettleAtMidpointOf5Points_FirstBargainingRound(Decision decision, GameProgress progress)
         {
             switch (decision.DecisionByteCode)
             {

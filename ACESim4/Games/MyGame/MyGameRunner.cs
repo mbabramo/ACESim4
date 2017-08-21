@@ -50,7 +50,7 @@ namespace ACESim
                 MinBackupRegretsTrigger = 5,
                 TriggerIncreaseOverTime = 45,
 
-                OverrideForAlternativeReport = MyGameActionsGenerator.PlaintiffShouldOffer10IfReceivingAtLeastSignal9
+                OverrideForAlternativeReport = null // MyGameActionsGenerator.PlaintiffShouldOffer10IfReceivingAtLeastSignal9
             };
             const int numRepetitions = 20;
             for (int i = 0; i < numRepetitions; i++)

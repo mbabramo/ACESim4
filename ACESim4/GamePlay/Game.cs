@@ -122,6 +122,8 @@ namespace ACESim
                     UpdateGameProgressFollowingAction(currentDecision.Subdividable_CorrespondingDecisionByteCode, aggregatedActionOrZero); // this is last decision for a subdivision, so we update the game progress for the underlying decision based on the aggregated action
                 else
                     UpdateGameProgressFollowingAction(currentDecision.DecisionByteCode, action);
+                var DEBUG = Progress.GameHistory.GetPlayerInformationString((byte)MyGamePlayers.Resolution, null);
+                var DEBUG2 = Progress.DeepCopy().GameHistory.GetPlayerInformationString((byte)MyGamePlayers.Resolution, null);
             }
         }
 

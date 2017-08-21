@@ -12,6 +12,7 @@ namespace ACESim
     [Serializable]
     public unsafe struct GameHistory : ISerializable
     {
+        public string DEBUG;
         public const int MaxHistoryLength = 200;
         public const int MaxInformationSetLength = 1000; // MUST equal MaxInformationSetLengthPerPlayer * MaxNumPlayers. 
         public const int MaxInformationSetLengthPerPlayer = 100; 
@@ -66,6 +67,7 @@ namespace ACESim
         // The special constructor is used to deserialize values.
         public GameHistory(SerializationInfo info, StreamingContext context)
         {
+            DEBUG = "Init";
             byte[] history = (byte[])info.GetValue("history", typeof(byte[]));
             byte[] informationSets = (byte[])info.GetValue("informationSets", typeof(byte[]));
             fixed (byte* ptr = History)
@@ -331,6 +333,7 @@ namespace ACESim
 
         public void AddToInformationSet(byte information, byte followingDecisionIndex, byte playerNumber, List<byte> playersToInform)
         {
+            Debug.WriteLine($"player {playerNumber} informing {String.Join(", ", playersToInform)} info {information} following {followingDecisionIndex}"); 
             fixed (byte* informationSetsPtr = InformationSets)
             {
                 if (playersToInform != null)
