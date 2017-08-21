@@ -196,8 +196,6 @@ namespace ACESim
                             samplingProbabilityQPrime, randomProducer, isExploratoryIteration);
                     }
                     // IMPORTANT: Unlike Gibson probing, we use a probe to calculate all counterfactual values. 
-                    if (Br.eak.Contains("A") && action == 6)
-                        Br.eak.Add("B");
                     if (TraceProbingCFR)
                         TabbedText.WriteLine(
                             $"{action}: AbramowiczProbing action {action} for player {informationSet.PlayerIndex} decision {informationSet.DecisionIndex}");
@@ -244,11 +242,6 @@ namespace ACESim
             {
                 IRandomProducer randomProducer =
                     new ConsistentRandomSequenceProducer(iteration * 997 + playerBeingOptimized * 283 + GameNumber * 719);
-                if (iteration == 565)
-                {
-                    TraceProbingCFR = true;
-                    Br.eak.Add("A");
-                }
                 HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
                 if (TraceProbingCFR)
                 {
