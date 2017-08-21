@@ -128,74 +128,111 @@ namespace ACESim
                 // Players information sets. We are going to use custom information set manipulation to add the players' information sets. This gives us the 
                 // flexibility to remove information about old bargaining rounds. 
                 if (Options.BargainingRoundsSimultaneous)
-                { // samuelson-chaterjee bargaining
-                    if (currentPlayer == (byte) MyGamePlayers.Defendant)
-                    {
-                        // If we are forgetting bargaining rounds, then we don't need to add this to either players' information set. 
-                        // We'll still add the offers to the resolution set below.
-                        if (!Options.ForgetEarlierBargainingRounds)
-                        {
-                            // We have completed this round of bargaining. Only now should we add the information to the plaintiff and defendant information sets. 
-                            // Note that the plaintiff and defendant will both have made their decisions based on whatever information was available from before this round.
-                            // We don't want to add the plaintiff's decision before the defendant has actually made a decision, so that's why we add both decisions now.
-
-                            // Now add the information -- the actual decision for the other player. 
-                            // But what did each party actually offer? To figure that out, we need to look at the GameHistory. Because these decisions may be subdivided, 
-                            // GameHistory will look specifically at the simple actions list, which includes the aggregated decisions but not the subdivision decision.
-                            (byte defendantsActionChosen, byte plaintiffsActionChosen) = gameHistory.GetLastActionAndActionBeforeThat();
-                            if (addPlayersOwnDecisionsToInformationSet)
-                            {
-                                gameHistory.AddToInformationSet(plaintiffsActionChosen, currentDecisionIndex, (byte)MyGamePlayers.Plaintiff); // defendant's decision conveyed to plaintiff
-                                gameHistory.AddToInformationSet(defendantsActionChosen, currentDecisionIndex, (byte)MyGamePlayers.Defendant); // plaintiff's decision conveyed to defendant
-                            }
-                            gameHistory.AddToInformationSet(defendantsActionChosen, currentDecisionIndex, (byte)MyGamePlayers.Plaintiff); // defendant's decision conveyed to plaintiff
-                            gameHistory.AddToInformationSet(plaintiffsActionChosen, currentDecisionIndex, (byte)MyGamePlayers.Defendant); // plaintiff's decision conveyed to defendant
-                        }
-                    }
-                }
+                    CustomInformationSetManipulationSamuelsonChaterjeeBargaining(currentDecisionIndex, gameHistory, currentPlayer, addPlayersOwnDecisionsToInformationSet);
                 else
-                { // offer-response bargaining
-                    bool pGoesFirst = Options.PGoesFirstIfNotSimultaneous[bargainingRoundIndex];
-                    byte partyGoingFirst = pGoesFirst ? (byte)MyGamePlayers.Plaintiff : (byte)MyGamePlayers.Defendant;
-                    byte partyGoingSecond = pGoesFirst ? (byte)MyGamePlayers.Defendant : (byte)MyGamePlayers.Plaintiff;
-                    byte otherPlayer = currentPlayer == (byte)MyGamePlayers.Plaintiff ? (byte)MyGamePlayers.Defendant : (byte)MyGamePlayers.Plaintiff;
+                    CustomInformationSetManipulationOfferResponseBargaining(currentDecisionIndex, actionChosen, gameHistory, bargainingRoundIndex, currentPlayer, addPlayersOwnDecisionsToInformationSet);
 
-                    // We don't need to put a player's decision into the player's own information set. A player at least knows the information that led to its earlier decision.
-                    // TODO: We could create an option for player to remember own information. After all, with mixed strategies, player will not know what player actually decided.
-                    if (currentPlayer == partyGoingFirst)
-                    {
-                        gameHistory.AddToInformationSet(actionChosen, currentDecisionIndex, otherPlayer); // convey decision to other player (who must choose whether to act on it)
-                        if (addPlayersOwnDecisionsToInformationSet)
-                            gameHistory.AddToInformationSet(actionChosen, currentDecisionIndex, currentPlayer); // add offer to the offering party's information set. Note that we never need to add a response, since it will always be clear in later rounds that the response was "no".
-                    }
-                    else if (Options.ForgetEarlierBargainingRounds)
-                    {
-                        gameHistory.RemoveItemsInInformationSet(currentPlayer, currentDecisionIndex, 1);
-                        if (addPlayersOwnDecisionsToInformationSet)
-                            gameHistory.RemoveItemsInInformationSet(otherPlayer, currentDecisionIndex, 1);
-                    }
-                }
+                CustomInformationSetManipulationResolutionInformationSet(currentDecisionIndex, actionChosen, gameHistory, decisionByteCode);
+            }
+        }
 
-                // Resolution information set. We need an information set that uniquely identifies each distinct resolution. We have added the court decision 
-                // to the resolution set above, but also need information about whether we have reached some kind of offer.
-                // We only need to put the LAST offer and response in the information set. This could, of course, be the first offer and response if it is accepted. 
-                // We will also need information on the nature of the offer and response, since different bargaining rounds may have different structures,
-                // and since the number of bargaining rounds that has occurred may affect the parties' payoffs.
-                // For example, a response of 2 may mean something different if we have simultaneous bargaining or if plaintiff or defendant is responding.
-                // So, we would like our resolution information set to have the decision number of the last offer (which may be the first of two simultaneous offers)
-                // and the actions of both players. Thus, if there is nothing in the resolution information set, then we add the decision byte code and the action.
-                // If there are two items, then we add the decision byte code and the action. If there are three, we delete everything and then there are zero, so
-                // we respond accordingly. 
-                debug; // if using raw signals, then we need to make sure that we don't remove litigation quality from the resolution set. Maybe this is the problem? 
-                byte numItems = gameHistory.CountItemsInInformationSet((byte)MyGamePlayers.Resolution);
-                if (numItems == 3)
+        private void CustomInformationSetManipulationResolutionInformationSet(byte currentDecisionIndex, byte actionChosen,
+            GameHistory gameHistory, byte decisionByteCode)
+        {
+// Resolution information set. We need an information set that uniquely identifies each distinct resolution. We have added the court decision 
+            // to the resolution set above, but still need two types of information. First, we need information about how we got to the court decision.
+            // When we are using raw signals, then the court's decision is based on both the raw signal and the noise value that the court receives. Thus,
+            // the court's action, by itself, doesn't tell us who won the litigation. Thus, when using raw signals, we need to know what the original litigation
+            // quality was. However, if we are not using raw signals, then for tried cases, it is enough to know the court decision action, which tells
+            // us which party wins. Second, for settled cases, the resolution set must contain enough information to determine the settlement and its consequences.
+            // We only need to put the LAST offer and response in the information set. This could, of course, be the first offer and response if it is accepted. 
+            // We will also need information on the nature of the offer and response, since different bargaining rounds may have different structures,
+            // and since the number of bargaining rounds that has occurred may affect the parties' payoffs.
+            // For example, a response of 2 may mean something different if we have simultaneous bargaining or if plaintiff or defendant is responding.
+            // So, we would like our resolution information set to have the decision number of the last offer (which may be the first of two simultaneous offers)
+            // and the actions of both players. Thus, if there is nothing in the resolution information set, or just one item in the case where we use raw signals,
+            // then we add the decision byte code and the action. If there are two items, or three when using raw signals then we add the decision byte code and 
+            // the action. If there are three, or four in the case where we use raw signals, we delete everything and then there are zero, so
+            // we respond accordingly. 
+            byte numberItemsDefiningLitigationQuality = Options.UseRawSignals ? (byte) 1 : (byte) 0;
+            byte numberItemsDefiningBargainingRound = 3;
+            byte numItems = gameHistory.CountItemsInInformationSet((byte) MyGamePlayers.Resolution);
+            if (numItems == numberItemsDefiningLitigationQuality + numberItemsDefiningBargainingRound)
+            {
+                gameHistory.RemoveItemsInInformationSet((byte) MyGamePlayers.Resolution, currentDecisionIndex,
+                    numberItemsDefiningBargainingRound);
+                numItems = numberItemsDefiningLitigationQuality;
+            }
+            if (numItems == numberItemsDefiningLitigationQuality)
+            {
+                gameHistory.AddToInformationSet(currentDecisionIndex, currentDecisionIndex,
+                    (byte) MyGamePlayers.Resolution); // in effect, just note the decision leading to resolution
+                numItems++;
+            }
+            // We'll be adding this offer/response to the information set, regardless of what we did above
+            gameHistory.AddToInformationSet(actionChosen, decisionByteCode, (byte) MyGamePlayers.Resolution);
+            numItems++; // doesn't matter since it's at the end, but useful to help understand the code.
+        }
+
+        private void CustomInformationSetManipulationOfferResponseBargaining(byte currentDecisionIndex, byte actionChosen,
+            GameHistory gameHistory, byte bargainingRoundIndex, byte currentPlayer, bool addPlayersOwnDecisionsToInformationSet)
+        {
+// offer-response bargaining
+            bool pGoesFirst = Options.PGoesFirstIfNotSimultaneous[bargainingRoundIndex];
+            byte partyGoingFirst = pGoesFirst ? (byte) MyGamePlayers.Plaintiff : (byte) MyGamePlayers.Defendant;
+            byte partyGoingSecond = pGoesFirst ? (byte) MyGamePlayers.Defendant : (byte) MyGamePlayers.Plaintiff;
+            byte otherPlayer = currentPlayer == (byte) MyGamePlayers.Plaintiff
+                ? (byte) MyGamePlayers.Defendant
+                : (byte) MyGamePlayers.Plaintiff;
+
+            // We don't need to put a player's decision into the player's own information set. A player at least knows the information that led to its earlier decision.
+            // TODO: We could create an option for player to remember own information. After all, with mixed strategies, player will not know what player actually decided.
+            if (currentPlayer == partyGoingFirst)
+            {
+                gameHistory.AddToInformationSet(actionChosen, currentDecisionIndex,
+                    otherPlayer); // convey decision to other player (who must choose whether to act on it)
+                if (addPlayersOwnDecisionsToInformationSet)
+                    gameHistory.AddToInformationSet(actionChosen, currentDecisionIndex,
+                        currentPlayer); // add offer to the offering party's information set. Note that we never need to add a response, since it will always be clear in later rounds that the response was "no".
+            }
+            else if (Options.ForgetEarlierBargainingRounds)
+            {
+                gameHistory.RemoveItemsInInformationSet(currentPlayer, currentDecisionIndex, 1);
+                if (addPlayersOwnDecisionsToInformationSet)
+                    gameHistory.RemoveItemsInInformationSet(otherPlayer, currentDecisionIndex, 1);
+            }
+        }
+
+        private void CustomInformationSetManipulationSamuelsonChaterjeeBargaining(byte currentDecisionIndex,
+            GameHistory gameHistory, byte currentPlayer, bool addPlayersOwnDecisionsToInformationSet)
+        {
+// samuelson-chaterjee bargaining
+            if (currentPlayer == (byte) MyGamePlayers.Defendant)
+            {
+                // If we are forgetting bargaining rounds, then we don't need to add this to either players' information set. 
+                // We'll still add the offers to the resolution set below.
+                if (!Options.ForgetEarlierBargainingRounds)
                 {
-                    numItems = 0;
-                    gameHistory.RemoveItemsInInformationSet((byte)MyGamePlayers.Resolution, currentDecisionIndex, numItems);
+                    // We have completed this round of bargaining. Only now should we add the information to the plaintiff and defendant information sets. 
+                    // Note that the plaintiff and defendant will both have made their decisions based on whatever information was available from before this round.
+                    // We don't want to add the plaintiff's decision before the defendant has actually made a decision, so that's why we add both decisions now.
+
+                    // Now add the information -- the actual decision for the other player. 
+                    // But what did each party actually offer? To figure that out, we need to look at the GameHistory. Because these decisions may be subdivided, 
+                    // GameHistory will look specifically at the simple actions list, which includes the aggregated decisions but not the subdivision decision.
+                    (byte defendantsActionChosen, byte plaintiffsActionChosen) = gameHistory.GetLastActionAndActionBeforeThat();
+                    if (addPlayersOwnDecisionsToInformationSet)
+                    {
+                        gameHistory.AddToInformationSet(plaintiffsActionChosen, currentDecisionIndex,
+                            (byte) MyGamePlayers.Plaintiff); // defendant's decision conveyed to plaintiff
+                        gameHistory.AddToInformationSet(defendantsActionChosen, currentDecisionIndex,
+                            (byte) MyGamePlayers.Defendant); // plaintiff's decision conveyed to defendant
+                    }
+                    gameHistory.AddToInformationSet(defendantsActionChosen, currentDecisionIndex,
+                        (byte) MyGamePlayers.Plaintiff); // defendant's decision conveyed to plaintiff
+                    gameHistory.AddToInformationSet(plaintiffsActionChosen, currentDecisionIndex,
+                        (byte) MyGamePlayers.Defendant); // plaintiff's decision conveyed to defendant
                 }
-                if (numItems == 0)
-                    gameHistory.AddToInformationSet(currentDecisionIndex, currentDecisionIndex, (byte)MyGamePlayers.Resolution); // in effect, just note the decision leading to resolution
-                gameHistory.AddToInformationSet(actionChosen, decisionByteCode, (byte)MyGamePlayers.Resolution);
             }
         }
 
