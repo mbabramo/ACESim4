@@ -138,6 +138,11 @@ namespace ACESim
                         branch = ((NWayTreeStorageInternal<IGameState>)TreePoint).AddBranch(actionChosen, true);
                 next.TreePoint = branch;
             }
+            string DEBUG2 = next.GetActionsToHereString(navigation);
+            if (DEBUG2.Contains("3,10,5,9,4,8"))
+            {
+                var DEBUG = 0;
+            }
             return next;
         }
 

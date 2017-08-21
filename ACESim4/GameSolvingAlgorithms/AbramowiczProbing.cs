@@ -42,6 +42,11 @@ namespace ACESim
                         double[] combined = new double[NumNonChancePlayers];
                         for (byte a = 1; a <= numPossibleActions; a++)
                         {
+
+                            if (Br.eak.Contains("A") && Br.eak.Contains("B") && a == 8)
+                            {
+                                var DEBUG = 0; // DEBUG: We don't seem to have the problem when playing the underlying game -- only when playing using cached game history. 
+                            }
                             double probability = chanceNodeSettings.GetActionProbability(a);
                             double[] result = CompleteAbramowiczProbe(historyPoint, randomProducer, a);
                             for (byte p = 0; p < NumNonChancePlayers; p++)
@@ -87,6 +92,7 @@ namespace ACESim
             if (TraceProbingCFR)
             {
                 TabbedText.Tabs--;
+                TabbedText.WriteLine($"Actions to here: {nextHistoryPoint.GetActionsToHereString(Navigation)} DEBUG");
                 TabbedText.WriteLine($"Returning probe result {String.Join(",", probeResult)}");
             }
             return probeResult;
@@ -195,9 +201,11 @@ namespace ACESim
                             samplingProbabilityQPrime, randomProducer, isExploratoryIteration);
                     }
                     // IMPORTANT: Unlike Gibson probing, we use a probe to calculate all counterfactual values. 
+                    if (Br.eak.Contains("A") && action == 6)
+                        Br.eak.Add("B");
                     if (TraceProbingCFR)
                         TabbedText.WriteLine(
-                            $"{action}: AbramowiczProbing unselected action {action} for player {informationSet.PlayerIndex}decision {informationSet.DecisionIndex}");
+                            $"{action}: AbramowiczProbing action {action} for player {informationSet.PlayerIndex} decision {informationSet.DecisionIndex}");
                     if (TraceProbingCFR)
                         TabbedText.Tabs++;
                     counterfactualValues[action - 1] =
@@ -241,10 +249,15 @@ namespace ACESim
             {
                 IRandomProducer randomProducer =
                     new ConsistentRandomSequenceProducer(iteration * 997 + playerBeingOptimized * 283 + GameNumber * 719);
+                if (iteration == 565)
+                {
+                    TraceProbingCFR = true;
+                    Br.eak.Add("A");
+                }
                 HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
                 if (TraceProbingCFR)
                 {
-                    TabbedText.WriteLine($"Optimize player {playerBeingOptimized}");
+                    TabbedText.WriteLine($"Iteration {iteration} Optimize player {playerBeingOptimized}");
                     TabbedText.Tabs++;
                 }
                 AbramowiczProbe_WalkTree(historyPoint, playerBeingOptimized, 1.0, randomProducer, iteration % 2 == 1);

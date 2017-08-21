@@ -109,6 +109,7 @@
     <Compile Include="Games\MyGame\MyGameOptionsGenerator.cs" />
     <Compile Include="Games\MyGame\MyGamePlayers.cs" />
     <Compile Include="Games\MyGame\MyGameProgress.cs" />
+    <Compile Include="Games\MyGame\MyGameReportDefinition.cs" />
     <Compile Include="Games\MyGame\MyGameRunner.cs" />
     <Compile Include="Games\SimpleGame\SimpleGame.cs" />
     <Compile Include="Games\SimpleGame\SimpleGameDecisions.cs" />

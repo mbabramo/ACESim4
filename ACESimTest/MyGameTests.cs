@@ -61,5 +61,19 @@ namespace ACESimTest
             myGameProgress.DFinalWealth.Should().Be(options.DInitialWealth - (2.0 / 3.0) * options.DamagesAlleged -
                                                     2 * options.PerPartyBargainingRoundCosts);
         }
+
+        [TestMethod]
+        public void UsingRawSignals_SettlementFails()
+        {
+            var options = MyGameOptionsGenerator.UsingRawSignals();
+            var myGameProgress = MyGameRunner.PlayMyGameOnce(options,
+                MyGameActionsGenerator.UsingRawSignals_SettlementFails);
+            myGameProgress.GameComplete.Should().BeTrue();
+            myGameProgress.PWinsAtTrial.Should().BeTrue();
+            myGameProgress.PFinalWealth.Should().Be(options.PInitialWealth + options.DamagesAlleged - options.PTrialCosts -
+                                                    options.PerPartyBargainingRoundCosts);
+            myGameProgress.DFinalWealth.Should().Be(options.DInitialWealth - options.DamagesAlleged - options.DTrialCosts -
+                                                    options.PerPartyBargainingRoundCosts);
+        }
     }
 }

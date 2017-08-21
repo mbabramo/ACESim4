@@ -8,11 +8,19 @@ namespace ACESim
 {
     public static class MyGameActionsGenerator
     {
-        public static byte PlaintiffShouldOffer1IfReceivingSignal1(Decision decision, GameProgress progress)
+        public static byte PlaintiffShouldOffer10IfReceivingAtLeastSignal9(Decision decision, GameProgress progress)
         {
             MyGameProgress p = (MyGameProgress) progress;
-            if (decision.DecisionByteCode == (byte)MyGameDecisions.POffer && p.PSignalDiscrete == 1)
-                return 1;
+            if (decision.DecisionByteCode == (byte)MyGameDecisions.POffer && p.PSignalDiscrete >= 9)
+                return 10;
+            return 0;
+        }
+
+        public static byte PlaintiffShouldInsistOnMaximum(Decision decision, GameProgress progress)
+        {
+            MyGameProgress p = (MyGameProgress)progress;
+            if (decision.DecisionByteCode == (byte)MyGameDecisions.POffer)
+                return decision.NumPossibleActions;
             return 0;
         }
 
@@ -72,6 +80,30 @@ namespace ACESim
                         return 4; // this is settlement value. With 5 settlement value options, the settlement is thus 4/6 = 2/3.
                 case (byte)MyGameDecisions.DOffer:
                     return 4;
+
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+
+
+        public static byte UsingRawSignals_SettlementFails(Decision decision, GameProgress progress)
+        {
+            switch (decision.DecisionByteCode)
+            {
+                case (byte)MyGameDecisions.LitigationQuality:
+                    return 3;
+                case (byte)MyGameDecisions.PSignal:
+                    return 10;
+                case (byte)MyGameDecisions.DSignal:
+                    return 5; 
+
+                case (byte)MyGameDecisions.POffer:
+                    return 9;
+                case (byte)MyGameDecisions.DOffer:
+                    return 4;
+                case (byte)MyGameDecisions.CourtDecision:
+                    return 8;
 
                 default:
                     throw new NotImplementedException();

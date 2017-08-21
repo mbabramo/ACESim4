@@ -152,7 +152,7 @@ namespace ACESim
         }
 
 
-        public static MyGameOptions ScratchTestOptions()
+        public static MyGameOptions UsingRawSignals()
         {
             var options = new MyGameOptions()
             {

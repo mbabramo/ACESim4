@@ -24,7 +24,7 @@ namespace ACESim
         public static void EvolveMyGame()
         {
             MyGameDefinition gameDefinition = new MyGameDefinition();
-            var options = MyGameOptionsGenerator.ScratchTestOptions();
+            var options = MyGameOptionsGenerator.UsingRawSignals();
             gameDefinition.Setup(options);
             List<Strategy> starterStrategies = Strategy.GetStarterStrategies(gameDefinition);
             EvolutionSettings evolutionSettings = new EvolutionSettings()
@@ -38,11 +38,11 @@ namespace ACESim
                 TotalAvgStrategySamplingCFRIterations = 10000000,
                 TotalVanillaCFRIterations = 100_000_000,
 
-                ReportEveryNIterations = 10000,
+                ReportEveryNIterations = 500,
                 NumRandomIterationsForReporting = 500,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever,
                 PrintInformationSetsAfterReport = false,
-                PrintGameTreeAfterReport = false,
+                PrintGameTreeAfterReport = true, // DEBUG
 
                 TotalProbingCFRIterations = 300_000,
                 EpsilonForMainPlayer = 0.5,
@@ -50,7 +50,7 @@ namespace ACESim
                 MinBackupRegretsTrigger = 5,
                 TriggerIncreaseOverTime = 45,
 
-                AlternativeOverride = null // MyGameActionsGenerator.PlaintiffShouldOffer1IfReceivingSignal1
+                OverrideForAlternativeReport = MyGameActionsGenerator.PlaintiffShouldOffer10IfReceivingAtLeastSignal9
             };
             const int numRepetitions = 20;
             for (int i = 0; i < numRepetitions; i++)

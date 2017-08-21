@@ -124,6 +124,8 @@ namespace ACESim
             copy.PSignalDiscrete = PSignalDiscrete;
             copy.DSignalDiscrete = DSignalDiscrete;
             copy.LitigationQualityUniform = LitigationQualityUniform;
+            copy.PSignalDiscrete = PSignalDiscrete;
+            copy.DSignalDiscrete = DSignalDiscrete;
             copy.PSignalUniform = PSignalUniform;
             copy.DSignalUniform = DSignalUniform;
             copy.BargainingRoundsComplete = BargainingRoundsComplete;

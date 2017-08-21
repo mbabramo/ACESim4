@@ -27,7 +27,7 @@ namespace ACESim
         bool ShouldEstimateImprovementOverTime = false;
         const int NumRandomGamePlaysForEstimatingImprovement = 1000;
 
-        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
+        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameTreeOnly;
         bool AllowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => (AllowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)) && EvolutionSettings.Algorithm != GameApproximationAlgorithm.PureStrategyFinder;
 
@@ -161,6 +161,7 @@ namespace ACESim
 
         unsafe void ProcessInitializedGameProgress(GameProgress gameProgress)
         {
+            
             // First, add the utilities at the end of the tree for this path.
             byte* actionsEnumerator = stackalloc byte[GameHistory.MaxNumActions];
             gameProgress.GameHistory.GetActions(actionsEnumerator);
@@ -178,6 +179,13 @@ namespace ACESim
                 //var actionsToHere = historyPoint.GetActionsToHereString(Navigation);
             }
             historyPoint.SetFinalUtilitiesAtPoint(Navigation, gameProgress);
+            var DEBUG2 = (FinalUtilities) historyPoint.GetGameStateForCurrentPlayer(Navigation);
+            var DEBUG3 = gameProgress.GetNonChancePlayerUtilities();
+            if (!DEBUG3.SequenceEqual(DEBUG2.Utilities))
+            {
+                var actionsToHere = historyPoint.GetActionsToHereString(Navigation);
+                var DEBUG = 0;
+            }
         }
 
         public IGameState GetGameState(HistoryPoint_CachedGameHistoryOnly historyPoint, HistoryNavigationInfo? navigation = null)
@@ -229,6 +237,9 @@ namespace ACESim
 
         public void PrintGameTree()
         {
+            HistoryPoint historyPoint = GetHistoryPointFromActions(new List<byte>() {3, 10, 5, 9, 4, 8});
+            PrintGameTree_Helper(historyPoint);
+            throw new Exception();
             PrintGameTree_Helper(GetStartOfGameHistoryPoint());
         }
 
@@ -378,6 +389,14 @@ namespace ACESim
             }
         }
 
+        private unsafe HistoryPoint GetHistoryPointFromActions(List<byte> actions)
+        {
+            HistoryPoint hp = GetStartOfGameHistoryPoint();
+            foreach (byte action in actions)
+                hp = hp.GetBranch(Navigation, action);
+            return hp;
+        }
+
         private unsafe HistoryPoint GetHistoryPointBasedOnProgress(GameProgress gameProgress)
         {
             if (Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)
@@ -452,10 +471,10 @@ namespace ACESim
                 NumberAverageStrategySamplingExplorations = 0;
                 MainReport(useRandomPaths, null);
                 MeasureRegretMatchingChanges();
-                if (EvolutionSettings.AlternativeOverride != null)
+                if (EvolutionSettings.OverrideForAlternativeReport != null)
                 {
                     Debug.WriteLine("With alternative:");
-                    MainReport(useRandomPaths, EvolutionSettings.AlternativeOverride);
+                    MainReport(useRandomPaths, EvolutionSettings.OverrideForAlternativeReport);
                 }
                 if (ShouldEstimateImprovementOverTime)
                     ReportEstimatedImprovementsOverTime();
