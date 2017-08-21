@@ -42,11 +42,6 @@ namespace ACESim
                         double[] combined = new double[NumNonChancePlayers];
                         for (byte a = 1; a <= numPossibleActions; a++)
                         {
-
-                            if (Br.eak.Contains("A") && Br.eak.Contains("B") && a == 8)
-                            {
-                                var DEBUG = 0; // DEBUG: We don't seem to have the problem when playing the underlying game -- only when playing using cached game history. 
-                            }
                             double probability = chanceNodeSettings.GetActionProbability(a);
                             double[] result = CompleteAbramowiczProbe(historyPoint, randomProducer, a);
                             for (byte p = 0; p < NumNonChancePlayers; p++)
@@ -92,7 +87,7 @@ namespace ACESim
             if (TraceProbingCFR)
             {
                 TabbedText.Tabs--;
-                TabbedText.WriteLine($"Actions to here: {nextHistoryPoint.GetActionsToHereString(Navigation)} DEBUG");
+                //TabbedText.WriteLine($"Actions to here: {nextHistoryPoint.GetActionsToHereString(Navigation)}");
                 TabbedText.WriteLine($"Returning probe result {String.Join(",", probeResult)}");
             }
             return probeResult;

@@ -10,13 +10,10 @@ namespace ACESim
     public class FinalUtilities : IGameState
     {
         public double[] Utilities;
-        public int DEBUG2;
-        private static int DEBUG = 0;
 
         public FinalUtilities(double[] utilities)
         {
             Utilities = utilities;
-            DEBUG2 = DEBUG++;
         }
 
         public override string ToString()

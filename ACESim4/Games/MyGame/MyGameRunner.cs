@@ -30,7 +30,7 @@ namespace ACESim
             EvolutionSettings evolutionSettings = new EvolutionSettings()
             {
                 MaxParallelDepth = 2,
-                ParallelOptimization = false,
+                ParallelOptimization = true,
 
                 InitialRandomSeed = 30,
 
@@ -38,11 +38,11 @@ namespace ACESim
                 TotalAvgStrategySamplingCFRIterations = 10000000,
                 TotalVanillaCFRIterations = 100_000_000,
 
-                ReportEveryNIterations = 500,
+                ReportEveryNIterations = 50000,
                 NumRandomIterationsForReporting = 500,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever,
                 PrintInformationSetsAfterReport = false,
-                PrintGameTreeAfterReport = true, // DEBUG
+                PrintGameTreeAfterReport = false,
 
                 TotalProbingCFRIterations = 300_000,
                 EpsilonForMainPlayer = 0.5,

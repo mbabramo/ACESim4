@@ -27,7 +27,7 @@ namespace ACESim
         bool ShouldEstimateImprovementOverTime = false;
         const int NumRandomGamePlaysForEstimatingImprovement = 1000;
 
-        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameTreeOnly;
+        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
         bool AllowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => (AllowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)) && EvolutionSettings.Algorithm != GameApproximationAlgorithm.PureStrategyFinder;
 
@@ -179,13 +179,10 @@ namespace ACESim
                 //var actionsToHere = historyPoint.GetActionsToHereString(Navigation);
             }
             historyPoint.SetFinalUtilitiesAtPoint(Navigation, gameProgress);
-            var DEBUG2 = (FinalUtilities) historyPoint.GetGameStateForCurrentPlayer(Navigation);
-            var DEBUG3 = gameProgress.GetNonChancePlayerUtilities();
-            if (!DEBUG3.SequenceEqual(DEBUG2.Utilities))
-            {
-                var actionsToHere = historyPoint.GetActionsToHereString(Navigation);
-                var DEBUG = 0;
-            }
+            //var checkMatch1 = (FinalUtilities) historyPoint.GetGameStateForCurrentPlayer(Navigation);
+            //var checkMatch2 = gameProgress.GetNonChancePlayerUtilities();
+            //if (!checkMatch2.SequenceEqual(checkMatch1.Utilities))
+            //    throw new Exception(); // could it be that something is not in the resolution set that should be?
         }
 
         public IGameState GetGameState(HistoryPoint_CachedGameHistoryOnly historyPoint, HistoryNavigationInfo? navigation = null)
@@ -237,9 +234,8 @@ namespace ACESim
 
         public void PrintGameTree()
         {
-            HistoryPoint historyPoint = GetHistoryPointFromActions(new List<byte>() {3, 10, 5, 9, 4, 8});
-            PrintGameTree_Helper(historyPoint);
-            throw new Exception();
+            //HistoryPoint historyPoint = GetHistoryPointFromActions(new List<byte>() {3, 10, 5, 9, 4, 8});
+            //PrintGameTree_Helper(historyPoint);
             PrintGameTree_Helper(GetStartOfGameHistoryPoint());
         }
 
