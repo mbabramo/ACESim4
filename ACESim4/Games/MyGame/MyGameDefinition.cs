@@ -186,6 +186,7 @@ namespace ACESim
                 // and the actions of both players. Thus, if there is nothing in the resolution information set, then we add the decision byte code and the action.
                 // If there are two items, then we add the decision byte code and the action. If there are three, we delete everything and then there are zero, so
                 // we respond accordingly. 
+                debug; // if using raw signals, then we need to make sure that we don't remove litigation quality from the resolution set. Maybe this is the problem? 
                 byte numItems = gameHistory.CountItemsInInformationSet((byte)MyGamePlayers.Resolution);
                 if (numItems == 3)
                 {
