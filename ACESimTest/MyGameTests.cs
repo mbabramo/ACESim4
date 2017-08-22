@@ -127,36 +127,83 @@ namespace ACESimTest
             resolutionSet.Should().Be("5,4,4"); // decision 5 --> agreement to 4
         }
 
+        [TestMethod]
+        public void SettlementFailsAfterOneRound_RememberingOffers_PWins()
+        {
+            SettlementFails_Helper(rememberOffers: true, twoBargainingRounds: false, plaintiffWins: true);
+        }
 
         [TestMethod]
-        public void SettlementFailsAfterTwoRounds_PWins()
+        public void SettlementFailsAfterOneRound_RememberingOffers_PLoses()
         {
-            var options = MyGameOptionsGenerator.TwoSimultaneousBargainingRounds();
-            var myGameProgress = MyGameRunner.PlayMyGameOnce(options,
-                MyGameActionsGenerator.SettlementFails_PWins);
-            myGameProgress.GameComplete.Should().BeTrue();
-            myGameProgress.PFinalWealth.Should().Be(options.PInitialWealth + options.DamagesAlleged - options.PTrialCosts - 2 * options.PerPartyBargainingRoundCosts);
-            myGameProgress.DFinalWealth.Should().Be(options.DInitialWealth - options.DTrialCosts - options.DamagesAlleged - 2 * options.PerPartyBargainingRoundCosts);
-            GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet, out string resolutionSet);
-            pInformationSet.Should().Be("4");
-            dInformationSet.Should().Be("2");
-            resolutionSet.Should().Be("5,5,1,2"); // decision 5, plaintiff offers 5, defendant offers 1, court rules for plaintiff (2)
+            SettlementFails_Helper(rememberOffers: true, twoBargainingRounds: false, plaintiffWins: false);
+        }
+
+        [TestMethod]
+        public void SettlementFailsAfterOneRound_ForgettingOffers_PWins()
+        {
+            SettlementFails_Helper(rememberOffers: false, twoBargainingRounds: false, plaintiffWins: true);
+        }
+
+        [TestMethod]
+        public void SettlementFailsAfterOneRound_ForgettingOffers_PLoses()
+        {
+            SettlementFails_Helper(rememberOffers: false, twoBargainingRounds: false, plaintiffWins: false);
         }
 
         [TestMethod]
         public void SettlementFailsAfterTwoRounds_RememberingOffers_PWins()
         {
+            SettlementFails_Helper(rememberOffers: true, twoBargainingRounds: true, plaintiffWins: true);
+        }
+
+        [TestMethod]
+        public void SettlementFailsAfterTwoRounds_RememberingOffers_PLoses()
+        {
+            SettlementFails_Helper(rememberOffers: true, twoBargainingRounds: true, plaintiffWins: false);
+        }
+
+        [TestMethod]
+        public void SettlementFailsAfterTwoRounds_ForgettingOffers_PWins()
+        {
+            SettlementFails_Helper(rememberOffers: false, twoBargainingRounds: true, plaintiffWins: true);
+        }
+
+        [TestMethod]
+        public void SettlementFailsAfterTwoRounds_ForgettingOffers_PLoses()
+        {
+            SettlementFails_Helper(rememberOffers: false, twoBargainingRounds: true, plaintiffWins: false);
+        }
+
+        private static void SettlementFails_Helper(bool rememberOffers, bool twoBargainingRounds,
+            bool plaintiffWins)
+        {
             var options = MyGameOptionsGenerator.TwoSimultaneousBargainingRounds();
-            options.ForgetEarlierBargainingRounds = false;
-            var myGameProgress = MyGameRunner.PlayMyGameOnce(options,
-                MyGameActionsGenerator.SettlementFails_PWins);
+            if (rememberOffers)
+                options.ForgetEarlierBargainingRounds = false;
+            if (!twoBargainingRounds)
+                options.NumBargainingRounds = 1;
+            var myGameProgress = MyGameRunner.PlayMyGameOnce(options, plaintiffWins ? (Func<Decision,GameProgress,byte>) MyGameActionsGenerator.SettlementFails_PWins : (Func<Decision, GameProgress, byte>)MyGameActionsGenerator.SettlementFails_PLoses);
             myGameProgress.GameComplete.Should().BeTrue();
-            myGameProgress.PFinalWealth.Should().Be(options.PInitialWealth + options.DamagesAlleged - options.PTrialCosts - 2 * options.PerPartyBargainingRoundCosts);
-            myGameProgress.DFinalWealth.Should().Be(options.DInitialWealth - options.DTrialCosts - options.DamagesAlleged - 2 * options.PerPartyBargainingRoundCosts);
-            GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet, out string resolutionSet);
-            pInformationSet.Should().Be("4,1,1"); // p gets signal 4, d offers 1 twice
-            dInformationSet.Should().Be("2,5,5");
-            resolutionSet.Should().Be("5,5,1,2"); // still, only last round affects resolution set
+            double pFinalWealthExpected = options.PInitialWealth - options.PTrialCosts -
+                              options.NumBargainingRounds * options.PerPartyBargainingRoundCosts;
+            double dFinalWealthExpected = options.DInitialWealth - options.DTrialCosts -
+                                          options.NumBargainingRounds * options.PerPartyBargainingRoundCosts;
+            if (plaintiffWins)
+            {
+                pFinalWealthExpected += options.DamagesAlleged;
+                dFinalWealthExpected -= options.DamagesAlleged;
+            }
+            myGameProgress.PFinalWealth.Should().Be(pFinalWealthExpected);
+            myGameProgress.DFinalWealth.Should().Be(dFinalWealthExpected);
+            GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet,
+                out string resolutionSet);
+            string pOffers = !twoBargainingRounds ? ",5" : ",5,5";
+            string dOffers = !twoBargainingRounds ? ",1" : ",1,1";
+            pInformationSet.Should().Be("4" + (rememberOffers ? dOffers : "")); // p gets signal 4, d offers 1 twice
+            dInformationSet.Should().Be("2" + (rememberOffers ? pOffers : ""));
+            string lastPlaintiffOfferDecision = twoBargainingRounds ? "5," : "3,";
+            resolutionSet.Should().Be(lastPlaintiffOfferDecision + "5,1" + (plaintiffWins ? ",2" : ",1")); // still, only last round affects resolution set
         }
 
         [TestMethod]
