@@ -209,7 +209,7 @@ namespace ACESimTest
         [TestMethod]
         public void UsingRawSignals_SettlementFails()
         {
-            var options = MyGameOptionsGenerator.UsingRawSignals_10Points_2Rounds();
+            var options = MyGameOptionsGenerator.UsingRawSignals_10Points_1Round();
             var myGameProgress = MyGameRunner.PlayMyGameOnce(options,
                 MyGameActionsGenerator.UsingRawSignals_SettlementFails);
             myGameProgress.GameComplete.Should().BeTrue();

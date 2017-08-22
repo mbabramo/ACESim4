@@ -333,7 +333,7 @@ namespace ACESim
 
         public void AddToInformationSet(byte information, byte followingDecisionIndex, byte playerNumber, List<byte> playersToInform)
         {
-            Debug.WriteLine($"player {playerNumber} informing {String.Join(", ", playersToInform)} info {information} following {followingDecisionIndex}"); 
+            //Debug.WriteLine($"player {playerNumber} informing {String.Join(", ", playersToInform)} info {information} following {followingDecisionIndex}"); 
             fixed (byte* informationSetsPtr = InformationSets)
             {
                 if (playersToInform != null)

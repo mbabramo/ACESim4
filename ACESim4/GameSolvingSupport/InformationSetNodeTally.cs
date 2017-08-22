@@ -99,20 +99,26 @@ namespace ACESim
             return MustUseBackup ? NodeInformation[cumulativeRegretBackupDimension, action - 1] : NodeInformation[cumulativeRegretDimension, action - 1];
         }
 
-        public void IncrementCumulativeRegret_Parallel(int action, double amount, bool incrementBackup, int backupRegretsTrigger = int.MaxValue)
+        public void IncrementCumulativeRegret_Parallel(int action, double amount, bool incrementBackup, int backupRegretsTrigger = int.MaxValue, bool incrementVisits = false)
         {
             if (incrementBackup)
             {
                 InterlockedAdd(ref NodeInformation[cumulativeRegretBackupDimension, action - 1], amount);
-                Interlocked.Increment(ref NumBackupRegretIncrements);
-                Interlocked.Increment(ref NumBackupRegretsSinceLastRegretIncrement);
-                SetMustUseBackup(backupRegretsTrigger);
+                if (incrementVisits)
+                {
+                    Interlocked.Increment(ref NumBackupRegretIncrements);
+                    Interlocked.Increment(ref NumBackupRegretsSinceLastRegretIncrement);
+                    SetMustUseBackup(backupRegretsTrigger);
+                }
                 return;
             }
             InterlockedAdd(ref NodeInformation[cumulativeRegretDimension, action - 1], amount);
-            Interlocked.Increment(ref NumRegretIncrements);
-            NumBackupRegretsSinceLastRegretIncrement = 0;
-            SetMustUseBackup(backupRegretsTrigger);
+            if (incrementVisits)
+            {
+                Interlocked.Increment(ref NumRegretIncrements);
+                NumBackupRegretsSinceLastRegretIncrement = 0;
+                SetMustUseBackup(backupRegretsTrigger);
+            }
         }
 
         private static double InterlockedAdd(ref double location1, double value)
@@ -129,20 +135,26 @@ namespace ACESim
             }
         }
 
-        public void IncrementCumulativeRegret(int action, double amount, bool incrementBackup, int backupRegretsTrigger = int.MaxValue)
+        public void IncrementCumulativeRegret(int action, double amount, bool incrementBackup, int backupRegretsTrigger = int.MaxValue, bool incrementVisits = false)
         {
             if (incrementBackup)
             {
                 NodeInformation[cumulativeRegretBackupDimension, action - 1] += amount;
-                NumBackupRegretIncrements++;
-                NumBackupRegretsSinceLastRegretIncrement++;
-                SetMustUseBackup(backupRegretsTrigger);
+                if (incrementVisits)
+                {
+                    NumBackupRegretIncrements++;
+                    NumBackupRegretsSinceLastRegretIncrement++;
+                    SetMustUseBackup(backupRegretsTrigger);
+                }
                 return;
             }
             NodeInformation[cumulativeRegretDimension, action - 1] += amount;
-            NumRegretIncrements++;
-            NumBackupRegretsSinceLastRegretIncrement = 0;
-            SetMustUseBackup(backupRegretsTrigger);
+            if (incrementVisits)
+            {
+                NumRegretIncrements++;
+                NumBackupRegretsSinceLastRegretIncrement = 0;
+                SetMustUseBackup(backupRegretsTrigger);
+            }
         }
 
         private void SetMustUseBackup(int backupRegretsTrigger)

@@ -24,7 +24,9 @@ namespace ACESim
         public static void EvolveMyGame()
         {
             MyGameDefinition gameDefinition = new MyGameDefinition();
-            var options = MyGameOptionsGenerator.UsingRawSignals_10Points_2Rounds();
+            var options = MyGameOptionsGenerator.FourBargainingRounds_PerfectInformation();
+            debug; // try lowering the backup triggers a lot to see if we get better results. then switch back t othe game we're primarily interested in
+            //var options = MyGameOptionsGenerator.UsingRawSignals_10Points_1Round();
             gameDefinition.Setup(options);
             List<Strategy> starterStrategies = Strategy.GetStarterStrategies(gameDefinition);
             EvolutionSettings evolutionSettings = new EvolutionSettings()
@@ -50,7 +52,7 @@ namespace ACESim
                 MinBackupRegretsTrigger = 5,
                 TriggerIncreaseOverTime = 45,
 
-                OverrideForAlternativeReport = null // MyGameActionsGenerator.PlaintiffShouldOffer10IfReceivingAtLeastSignal9
+                OverrideForAlternativeReport = null //MyGameActionsGenerator.PlaintiffShouldOffer10IfReceivingAtLeastSignal9
             };
             const int numRepetitions = 20;
             for (int i = 0; i < numRepetitions; i++)

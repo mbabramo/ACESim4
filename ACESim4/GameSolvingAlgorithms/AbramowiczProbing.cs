@@ -218,10 +218,11 @@ namespace ACESim
                 {
                     double cumulativeRegretIncrement = inverseSamplingProbabilityQ *
                                                         (counterfactualValues[action - 1] - summation);
+                    bool incrementVisits = action == numPossibleActions; // we increment visits only once per information set. This incrementing is how we keep track of whether we are accumulating backup visits without main visits, in which case we switch to that set.
                     if (EvolutionSettings.ParallelOptimization)
-                        informationSet.IncrementCumulativeRegret_Parallel(action, cumulativeRegretIncrement, isExploratoryIteration, BackupRegretsTrigger);
+                        informationSet.IncrementCumulativeRegret_Parallel(action, cumulativeRegretIncrement, isExploratoryIteration, BackupRegretsTrigger, incrementVisits);
                     else
-                        informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement, isExploratoryIteration, BackupRegretsTrigger);
+                        informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement, isExploratoryIteration, BackupRegretsTrigger, incrementVisits);
                     if (TraceProbingCFR)
                     {
                         //TabbedText.WriteLine($"Optimizing {playerBeingOptimized} Iteration {ProbingCFRIterationNum} Actions to here {historyPoint.GetActionsToHereString(Navigation)}");

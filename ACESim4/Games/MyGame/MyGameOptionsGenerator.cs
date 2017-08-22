@@ -116,7 +116,7 @@ namespace ACESim
         }
 
 
-        public static MyGameOptions ScratchTestOptions_ProcessedSignals()
+        public static MyGameOptions FourBargainingRounds_PerfectInformation()
         {
             var options = new MyGameOptions()
             {
@@ -144,7 +144,7 @@ namespace ACESim
                 SubdivideOffers = false,
                 BargainingRoundsSimultaneous = true,
                 PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false },
-                IncludeSignalsReport = false
+                IncludeSignalsReport = true
             };
             options.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.PInitialWealth };
             options.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.DInitialWealth };
@@ -152,7 +152,7 @@ namespace ACESim
         }
 
 
-        public static MyGameOptions UsingRawSignals_10Points_2Rounds()
+        public static MyGameOptions UsingRawSignals_10Points_1Round()
         {
             var options = new MyGameOptions()
             {
@@ -176,7 +176,7 @@ namespace ACESim
                     DeltaStartingValue = 0.01,
                     MaxDelta = 0.25
                 },
-                NumBargainingRounds = 2,
+                NumBargainingRounds = 1,
                 ForgetEarlierBargainingRounds = true, // true makes things much faster
                 SubdivideOffers = false,
                 BargainingRoundsSimultaneous = true,
