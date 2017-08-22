@@ -25,7 +25,6 @@ namespace ACESim
         {
             MyGameDefinition gameDefinition = new MyGameDefinition();
             var options = MyGameOptionsGenerator.FourBargainingRounds_PerfectInformation();
-            debug; // try lowering the backup triggers a lot to see if we get better results. then switch back t othe game we're primarily interested in
             //var options = MyGameOptionsGenerator.UsingRawSignals_10Points_1Round();
             gameDefinition.Setup(options);
             List<Strategy> starterStrategies = Strategy.GetStarterStrategies(gameDefinition);
@@ -49,8 +48,8 @@ namespace ACESim
                 TotalProbingCFRIterations = 300_000,
                 EpsilonForMainPlayer = 0.5,
                 EpsilonForOpponentWhenExploring = 0.05,
-                MinBackupRegretsTrigger = 5,
-                TriggerIncreaseOverTime = 45,
+                MinBackupRegretsTrigger = 3,
+                TriggerIncreaseOverTime = 20,
 
                 OverrideForAlternativeReport = null //MyGameActionsGenerator.PlaintiffShouldOffer10IfReceivingAtLeastSignal9
             };
