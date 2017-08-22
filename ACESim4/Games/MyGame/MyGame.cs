@@ -38,12 +38,20 @@ namespace ACESim
             }
             else if (currentDecisionByteCode == (byte)MyGameDecisions.PSignal)
             {
-                ConvertActionToDiscreteAndUniformSignal(action, MyDefinition.Options.UseRawSignals, MyProgress.LitigationQualityUniform, MyDefinition.Options.NumNoiseValues, MyDefinition.Options.PNoiseStdev, MyDefinition.Options.NumSignals, out MyProgress.PSignalDiscrete, out MyProgress.PSignalUniform);
+                if (MyDefinition.Options.UseRawSignals)
+                    MyDefinition.GetDiscreteSignal(MyProgress.LitigationQualityDiscrete, action, true,
+                        out MyProgress.PSignalDiscrete, out MyProgress.PSignalUniform);
+                else
+                    ConvertNoiseActionToDiscreteAndUniformSignal(action, MyDefinition.Options.UseRawSignals, MyProgress.LitigationQualityUniform, MyDefinition.Options.NumNoiseValues, MyDefinition.Options.PNoiseStdev, MyDefinition.Options.NumSignals, out MyProgress.PSignalDiscrete, out MyProgress.PSignalUniform);
+
                 //System.Diagnostics.Debug.WriteLine($"P: Quality {MyProgress.LitigationQualityUniform} Noise action {action} => signal {MyProgress.PSignalDiscrete} ({MyProgress.PSignalUniform})");
             }
             else if (currentDecisionByteCode == (byte)MyGameDecisions.DSignal)
             {
-                ConvertActionToDiscreteAndUniformSignal(action, MyDefinition.Options.UseRawSignals, MyProgress.LitigationQualityUniform, MyDefinition.Options.NumNoiseValues, MyDefinition.Options.DNoiseStdev, MyDefinition.Options.NumSignals, out MyProgress.DSignalDiscrete, out MyProgress.DSignalUniform);
+                if (MyDefinition.Options.UseRawSignals)
+                    MyDefinition.GetDiscreteSignal(MyProgress.LitigationQualityDiscrete, action, false, out MyProgress.DSignalDiscrete, out MyProgress.DSignalUniform);
+                else
+                    ConvertNoiseActionToDiscreteAndUniformSignal(action, MyDefinition.Options.UseRawSignals, MyProgress.LitigationQualityUniform, MyDefinition.Options.NumNoiseValues, MyDefinition.Options.DNoiseStdev, MyDefinition.Options.NumSignals, out MyProgress.DSignalDiscrete, out MyProgress.DSignalUniform);
                 //System.Diagnostics.Debug.WriteLine($"D: Quality {MyProgress.LitigationQualityUniform} Noise action {action} => signal {MyProgress.DSignalDiscrete} ({MyProgress.DSignalUniform})");
             }
             else if (currentDecisionByteCode == (byte)MyGameDecisions.POffer)
@@ -86,7 +94,7 @@ namespace ACESim
             }
         }
 
-        private static void ConvertActionToDiscreteAndUniformSignal(byte action, bool useRawSignals, double trueValue, byte numNoiseValues, double noiseStdev, byte numSignals, out byte discreteSignal, out double uniformSignal)
+        public static void ConvertNoiseActionToDiscreteAndUniformSignal(byte action, bool useRawSignals, double trueValue, byte numNoiseValues, double noiseStdev, byte numSignals, out byte discreteSignal, out double uniformSignal)
         {
             if (useRawSignals)
             {

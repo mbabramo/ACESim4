@@ -56,6 +56,8 @@ namespace ACESim
 
         public override byte PlayerIndex_ResolutionPlayer => (byte) MyGamePlayers.Resolution;
 
+        private byte LitigationQualityDecisionIndex = (byte) 255;
+
         private List<Decision> GetDecisionsList()
         {
             var decisions = new List<Decision>();
@@ -69,13 +71,14 @@ namespace ACESim
             if (Options.DNoiseStdev == 0)
                 playersKnowingLitigationQuality.Add((byte)MyGamePlayers.Defendant);
             decisions.Add(new Decision("LitigationQuality", "Qual", (byte)MyGamePlayers.QualityChance, playersKnowingLitigationQuality, Options.NumLitigationQualityPoints, (byte)MyGameDecisions.LitigationQuality));
+            LitigationQualityDecisionIndex = 0; // we'll need to change this if we have decisions before litigation quality
             // Plaintiff and defendant signals. If a player has perfect information, then no signal is needed.
-            if (!Options.UseRawSignals && (Options.NumNoiseValues != Options.NumSignals))
-                throw new NotImplementedException(); // with non-raw signals, we currently require the number of noise values to be equal to the number of signals.
+            bool partyReceivesDirectSignal = !Options.UseRawSignals; // when using processed signals, we have an uneven chance decision, so the action is the signal, and the party can receive it directly. When using raw signals, we want the party to receive the signal and we add that with custom information set manipulation below.
             if (Options.PNoiseStdev != 0)
-                decisions.Add(new Decision("PlaintiffSignal", "PSig", (byte)MyGamePlayers.PSignalChance, new List<byte> { (byte)MyGamePlayers.Plaintiff }, Options.NumNoiseValues, (byte)MyGameDecisions.PSignal, unevenChanceActions: !Options.UseRawSignals));
+                decisions.Add(new Decision("PlaintiffSignal", "PSig", (byte)MyGamePlayers.PSignalChance, partyReceivesDirectSignal ? new List<byte>() { (byte) MyGamePlayers.Plaintiff } : new List<byte>(), Options.NumNoiseValues, (byte)MyGameDecisions.PSignal, unevenChanceActions: !Options.UseRawSignals));
             if (Options.DNoiseStdev != 0)
-                decisions.Add(new Decision("DefendantSignal", "DSig", (byte)MyGamePlayers.DSignalChance, new List<byte> { (byte)MyGamePlayers.Defendant }, Options.NumNoiseValues, (byte)MyGameDecisions.DSignal, unevenChanceActions: !Options.UseRawSignals));
+                decisions.Add(new Decision("DefendantSignal", "DSig", (byte)MyGamePlayers.DSignalChance, partyReceivesDirectSignal ? new List<byte>() { (byte)MyGamePlayers.Defendant } : new List<byte>(), Options.NumNoiseValues, (byte)MyGameDecisions.DSignal, unevenChanceActions: !Options.UseRawSignals));
+            CreateSignalsTable();
             for (int b = 0; b < Options.NumBargainingRounds; b++)
             {
                 // bargaining -- note that we will do all information set manipulation in CustomInformationSetManipulation below.
@@ -111,6 +114,46 @@ namespace ACESim
             return decisions;
         }
 
+        public void GetDiscreteSignal(byte litigationQuality, byte noise, bool plaintiff, out byte discreteSignal,
+            out double uniformSignal)
+        {
+            ValueTuple<byte, double> tableValue;
+            if (plaintiff)
+                tableValue = PRawSignalsTable[litigationQuality, noise];
+            else
+                tableValue = DRawSignalsTable[litigationQuality, noise];
+            discreteSignal = tableValue.Item1;
+            uniformSignal = tableValue.Item2;
+        }
+
+        private ValueTuple<byte, double>[,] PRawSignalsTable, DRawSignalsTable;
+        public void CreateSignalsTable()
+        {
+            PRawSignalsTable = new ValueTuple<byte, double>[Options.NumLitigationQualityPoints + 1, Options.NumNoiseValues + 1];
+            DRawSignalsTable = new ValueTuple<byte, double>[Options.NumLitigationQualityPoints + 1, Options.NumNoiseValues + 1];
+            for (byte litigationQuality = 1;
+                litigationQuality <= Options.NumLitigationQualityPoints;
+                litigationQuality++)
+            {
+                double litigationQualityUniform =
+                    EquallySpaced.GetLocationOfEquallySpacedPoint(litigationQuality - 1,
+                        Options.NumLitigationQualityPoints);
+                for (byte noise = 1; noise <= Options.NumNoiseValues; noise++)
+                {
+                    MyGame.ConvertNoiseActionToDiscreteAndUniformSignal(noise, Options.UseRawSignals,
+                        litigationQualityUniform, Options.NumNoiseValues,
+                        Options.PNoiseStdev, Options.NumSignals,
+                        out byte pDiscreteSignal, out double pUniformSignal);
+                    PRawSignalsTable[litigationQuality, noise] = (pDiscreteSignal, pUniformSignal);
+                    MyGame.ConvertNoiseActionToDiscreteAndUniformSignal(noise, Options.UseRawSignals,
+                        litigationQualityUniform, Options.NumNoiseValues,
+                        Options.DNoiseStdev, Options.NumSignals,
+                        out byte dDiscreteSignal, out double dUniformSignal);
+                    DRawSignalsTable[litigationQuality, noise] = (dDiscreteSignal, dUniformSignal);
+                }
+            }
+        }
+
         private void AddOfferDecisionOrSubdivisions(List<Decision> decisions, Decision offerDecision)
         {
             AddPotentiallySubdividableDecision(decisions, offerDecision, Options.SubdivideOffers, (byte)MyGameDecisions.SubdividableOffer, 2, Options.NumOffers);
@@ -119,6 +162,13 @@ namespace ACESim
         public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, ref GameHistory gameHistory)
         {
             byte decisionByteCode = currentDecision.Subdividable_IsSubdivision ? currentDecision.Subdividable_CorrespondingDecisionByteCode : currentDecision.DecisionByteCode;
+            if (Options.UseRawSignals && (decisionByteCode == (byte) MyGameDecisions.PSignal || decisionByteCode == (byte) MyGameDecisions.DSignal))
+            {
+                // When using processed signals, we just send the signal that the player receives, because there are unequal chance probabilities. With raw signals, we have an even chance of each noise value. We can't just give the player the noise value; we have to take into account the litigation quality. So, we do that here.
+                byte litigationQuality = gameHistory.GetPlayerInformationItem((byte)MyGamePlayers.Resolution, LitigationQualityDecisionIndex);
+                GetDiscreteSignal(litigationQuality, actionChosen, decisionByteCode == (byte)MyGameDecisions.PSignal, out byte discreteSignal, out _);
+                gameHistory.AddToInformationSet(discreteSignal, currentDecisionIndex, decisionByteCode == (byte)MyGameDecisions.PSignal ? (byte) MyGamePlayers.Plaintiff : (byte) MyGamePlayers.Defendant);
+            }
             if (decisionByteCode >= (byte)MyGameDecisions.POffer && decisionByteCode <= (byte)MyGameDecisions.DResponse)
             {
                 bool addPlayersOwnDecisionsToInformationSet = false;

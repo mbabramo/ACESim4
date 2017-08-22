@@ -217,10 +217,9 @@ namespace ACESimTest
             myGameProgress.PFinalWealth.Should().Be(options.PInitialWealth + options.DamagesAlleged - options.PTrialCosts - options.PerPartyBargainingRoundCosts);
             myGameProgress.DFinalWealth.Should().Be(options.DInitialWealth - options.DamagesAlleged - options.DTrialCosts - options.PerPartyBargainingRoundCosts);
             GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet, out string resolutionSet);
-            pInformationSet.Should().Be("9"); // p's raw signal is 9, based on litigation quality 9 and raw signal 9
-            dInformationSet.Should().Be("7"); // d's raw signal is 7, based on litigation quality 9 and raw signal 1
-            // DEBUG -- pick some other values that gives different information sets
-            resolutionSet.Should().Be("9,3,9,4,8"); // litigation quality 9, decision 3, p offer in last round 9, d offer in last round 4, court decision 8
+            pInformationSet.Should().Be("6"); // p's raw signal is 6, based on litigation quality 5 and noise 9
+            dInformationSet.Should().Be("4"); // d's raw signal is 4, based on litigation quality 5 and noise 9
+            resolutionSet.Should().Be("5,3,9,4,8"); // litigation quality 9, decision 3, p offer in last round 9, d offer in last round 4, court decision 8
         }
     }
 }

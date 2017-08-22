@@ -394,6 +394,35 @@ namespace ACESim
             }
         }
 
+        public unsafe byte GetPlayerInformationItem(int playerNumber, byte decisionIndex)
+        {
+            if (!Initialized)
+                Initialize();
+            fixed (byte* informationSetsPtr = InformationSets)
+            {
+                byte* playerPointer = informationSetsPtr + playerNumber * MaxInformationSetLengthPerPlayer;
+                while (*playerPointer != InformationSetTerminator)
+                {
+                    if (*playerPointer == decisionIndex)
+                    {
+                        playerPointer++;
+                        if (*playerPointer != RemoveItemFromInformationSet)
+                            return *playerPointer;
+                        else
+                            playerPointer++;
+                    }
+                    else if (*playerPointer == InformationSetTerminator)
+                        break;
+                    else
+                    {
+                        playerPointer++;
+                        playerPointer++;
+                    }
+                }
+                return 0;
+            }
+        }
+
         public unsafe void GetPlayerInformation(int playerNumber, byte? upToDecision, byte* playerInfoBuffer)
         {
             if (!Initialized)

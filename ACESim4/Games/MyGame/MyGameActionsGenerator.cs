@@ -146,7 +146,7 @@ namespace ACESim
             switch (decision.DecisionByteCode)
             {
                 case (byte)MyGameDecisions.LitigationQuality:
-                    return 9;
+                    return 5;
                 case (byte)MyGameDecisions.PSignal:
                     return 9;
                 case (byte)MyGameDecisions.DSignal:
