@@ -229,7 +229,7 @@ namespace ACESim
                         informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement, isExploratoryIteration, BackupRegretsTrigger, incrementVisits);
                     if (TraceProbingCFR)
                     {
-                        TabbedText.WriteLine($"Optimizing {playerBeingOptimized} Actions to here {historyPoint.GetActionsToHereString(Navigation)} information set:{historyPoint.HistoryToPoint.GetPlayerInformationString(playerBeingOptimized, null)}"); // DEBUG
+                        //TabbedText.WriteLine($"Optimizing {playerBeingOptimized} Actions to here {historyPoint.GetActionsToHereString(Navigation)} information set:{historyPoint.HistoryToPoint.GetPlayerInformationString(playerBeingOptimized, null)}"); 
                         TabbedText.WriteLine(
                             $"Increasing cumulative regret for action {action} in {informationSet.InformationSetNumber} by {inverseSamplingProbabilityQ} * {(counterfactualValues[action - 1])} - {summation} = {cumulativeRegretIncrement} to {informationSet.GetCumulativeRegret(action)}");
                     }
@@ -300,11 +300,10 @@ namespace ACESim
                     s.Start();
                     Parallelizer.Go(EvolutionSettings.ParallelOptimization, startingIteration, stopBefore, iteration =>
                         {
-                            // DEBUG
-                            if (iteration > 10001 && iteration % 2 == 0)
-                                TraceProbingCFR = true;
-                            else
-                                TraceProbingCFR = false;
+                            //if (iteration > 10001 && iteration % 2 == 0)
+                            //    TraceProbingCFR = true;
+                            //else
+                            //    TraceProbingCFR = false;
 
                             AbramowiczProbingCFRIteration(iteration);
                         }

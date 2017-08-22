@@ -74,6 +74,8 @@ namespace ACESim
             LitigationQualityDecisionIndex = 0; // we'll need to change this if we have decisions before litigation quality
             // Plaintiff and defendant signals. If a player has perfect information, then no signal is needed.
             bool partyReceivesDirectSignal = !Options.UseRawSignals; // when using processed signals, we have an uneven chance decision, so the action is the signal, and the party can receive it directly. When using raw signals, we want the party to receive the signal and we add that with custom information set manipulation below.
+            if (!Options.UseRawSignals && Options.NumNoiseValues != Options.NumSignals)
+                throw new NotImplementedException(); // our uneven chance probabilities assumes this is true
             if (Options.PNoiseStdev != 0)
                 decisions.Add(new Decision("PlaintiffSignal", "PSig", (byte)MyGamePlayers.PSignalChance, partyReceivesDirectSignal ? new List<byte>() { (byte) MyGamePlayers.Plaintiff } : new List<byte>(), Options.NumNoiseValues, (byte)MyGameDecisions.PSignal, unevenChanceActions: !Options.UseRawSignals));
             if (Options.DNoiseStdev != 0)
@@ -110,7 +112,7 @@ namespace ACESim
             if (Options.UseRawSignals)
                 decisions.Add(new Decision("CourtDecision", "CD", (byte)MyGamePlayers.CourtChance, new List<byte> { (byte)MyGamePlayers.Resolution }, Options.NumSignals, (byte)MyGameDecisions.CourtDecision, unevenChanceActions: false, criticalNode: true) { CanTerminateGame = true }); // even chance options
             else
-                decisions.Add(new Decision("CourtDecision", "CD", (byte)MyGamePlayers.CourtChance, new List<byte> { (byte)MyGamePlayers.Resolution }, 2 /* for plaintiff or for defendant */, (byte)MyGameDecisions.CourtDecision, unevenChanceActions: true, criticalNode: true) { CanTerminateGame = true });
+                decisions.Add(new Decision("CourtDecision", "CD", (byte)MyGamePlayers.CourtChance, new List<byte> { (byte)MyGamePlayers.Resolution }, 2 /* for plaintiff or for defendant */, (byte)MyGameDecisions.CourtDecision, unevenChanceActions: true, criticalNode: true) { CanTerminateGame = true }); // uneven chance options
             return decisions;
         }
 
@@ -168,6 +170,7 @@ namespace ACESim
                 byte litigationQuality = gameHistory.GetPlayerInformationItem((byte)MyGamePlayers.Resolution, LitigationQualityDecisionIndex);
                 GetDiscreteSignal(litigationQuality, actionChosen, decisionByteCode == (byte)MyGameDecisions.PSignal, out byte discreteSignal, out _);
                 gameHistory.AddToInformationSet(discreteSignal, currentDecisionIndex, decisionByteCode == (byte)MyGameDecisions.PSignal ? (byte) MyGamePlayers.Plaintiff : (byte) MyGamePlayers.Defendant);
+                // NOTE: We don't have to do anything like this for the court's information set. The court simply gets the actual litigation quality and the noise. When the game is actually being played, the court will combine these to determine whether the plaintiff wins. The plaintiff and defendant are non-chance players, and so we want to have the same information set for all situations with the same signal.  But with the court, that doesn't matter. We can have lots of information sets, covering the wide range of possibilities.
             }
             if (decisionByteCode >= (byte)MyGameDecisions.POffer && decisionByteCode <= (byte)MyGameDecisions.DResponse)
             {
