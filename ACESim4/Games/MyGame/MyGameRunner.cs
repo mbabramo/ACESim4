@@ -31,7 +31,7 @@ namespace ACESim
             EvolutionSettings evolutionSettings = new EvolutionSettings()
             {
                 MaxParallelDepth = 2,
-                ParallelOptimization = true,
+                ParallelOptimization = false,
 
                 InitialRandomSeed = 30,
 
@@ -39,10 +39,12 @@ namespace ACESim
                 TotalAvgStrategySamplingCFRIterations = 10000000,
                 TotalVanillaCFRIterations = 100_000_000,
 
-                ReportEveryNIterations = 50000,
+                ReportEveryNIterations = 10000,
                 NumRandomIterationsForSummaryTable = 500,
-                PrintSummaryTable = false,
+                PrintSummaryTable = true,
+                OverrideForAlternativeTable = null, // MyGameActionsGenerator.PlaintiffShouldOffer10IfReceivingAtLeastSignal9,
                 PrintInformationSets = true,
+                RestrictToTheseInformationSets = null, // new List<int>() {16},
                 PrintGameTree = false,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever,
 
@@ -51,8 +53,6 @@ namespace ACESim
                 EpsilonForOpponentWhenExploring = 0.05,
                 MinBackupRegretsTrigger = 3,
                 TriggerIncreaseOverTime = 20,
-
-                OverrideForAlternativeTable = null //MyGameActionsGenerator.PlaintiffShouldOffer10IfReceivingAtLeastSignal9
             };
             const int numRepetitions = 20;
             for (int i = 0; i < numRepetitions; i++)

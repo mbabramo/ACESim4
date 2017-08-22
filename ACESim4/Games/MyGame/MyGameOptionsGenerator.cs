@@ -167,8 +167,8 @@ namespace ACESim
                 PNoiseStdev = 0.001,
                 DNoiseStdev = 0.001,
                 CourtNoiseStdev = 0.5,
-                PTrialCosts = 25000,
-                DTrialCosts = 25000,
+                PTrialCosts = 20000,
+                DTrialCosts = 20000,
                 PerPartyBargainingRoundCosts = 1000,
                 DeltaOffersOptions = new DeltaOffersOptions()
                 {

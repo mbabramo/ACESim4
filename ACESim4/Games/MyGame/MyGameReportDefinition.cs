@@ -71,6 +71,7 @@ namespace ACESim
                         (GameProgress gp) => MyGP(gp).DSignalUniform > 0.25 && MyGP(gp).DSignalUniform < 0.75),
                     new SimpleReportFilter("HiPSignal", (GameProgress gp) => MyGP(gp).PSignalUniform >= 0.75),
                     new SimpleReportFilter("HiDSignal", (GameProgress gp) => MyGP(gp).DSignalUniform >= 0.75),
+                    new SimpleReportFilter("DEBUG", (GameProgress gp) => MyGP(gp).PSignalDiscrete == 9),
                 },
                 colItems
             );

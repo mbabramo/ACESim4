@@ -16,6 +16,14 @@ namespace ACESim
             return 0;
         }
 
+        public static byte DShouldOffer7IfReceivingAtLeastSignal9(Decision decision, GameProgress progress)
+        {
+            MyGameProgress p = (MyGameProgress)progress;
+            if (decision.DecisionByteCode == (byte)MyGameDecisions.DOffer && p.DSignalDiscrete >= 9)
+                return 7;
+            return 0;
+        }
+
         public static byte PlaintiffShouldInsistOnMaximum(Decision decision, GameProgress progress)
         {
             MyGameProgress p = (MyGameProgress)progress;
@@ -138,11 +146,11 @@ namespace ACESim
             switch (decision.DecisionByteCode)
             {
                 case (byte)MyGameDecisions.LitigationQuality:
-                    return 3;
+                    return 9;
                 case (byte)MyGameDecisions.PSignal:
-                    return 10;
+                    return 9;
                 case (byte)MyGameDecisions.DSignal:
-                    return 5; 
+                    return 1; 
 
                 case (byte)MyGameDecisions.POffer:
                     return 9;

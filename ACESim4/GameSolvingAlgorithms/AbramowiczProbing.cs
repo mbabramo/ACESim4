@@ -24,6 +24,8 @@ namespace ACESim
             GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
             if (gameStateType == GameStateTypeEnum.FinalUtilities)
             {
+                if (TraceProbingCFR && Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)
+                    TabbedText.WriteLine($"{historyPoint.GameProgress}");
                 FinalUtilities finalUtilities = (FinalUtilities)gameStateForCurrentPlayer;
                 var utility = finalUtilities.Utilities;
                 if (TraceProbingCFR)
@@ -194,6 +196,8 @@ namespace ACESim
                         // IMPORTANT: Unlike Gibson probing, we don't record the result of the walk through the tree.
                         AbramowiczProbe_WalkTree(nextHistoryPoint, playerBeingOptimized,
                             samplingProbabilityQPrime, randomProducer, isExploratoryIteration);
+                        if (TraceProbingCFR)
+                            TabbedText.Tabs--;
                     }
                     // IMPORTANT: Unlike Gibson probing, we use a probe to calculate all counterfactual values. 
                     if (TraceProbingCFR)
@@ -225,9 +229,9 @@ namespace ACESim
                         informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement, isExploratoryIteration, BackupRegretsTrigger, incrementVisits);
                     if (TraceProbingCFR)
                     {
-                        //TabbedText.WriteLine($"Optimizing {playerBeingOptimized} Iteration {ProbingCFRIterationNum} Actions to here {historyPoint.GetActionsToHereString(Navigation)}");
+                        TabbedText.WriteLine($"Optimizing {playerBeingOptimized} Actions to here {historyPoint.GetActionsToHereString(Navigation)} information set:{historyPoint.HistoryToPoint.GetPlayerInformationString(playerBeingOptimized, null)}"); // DEBUG
                         TabbedText.WriteLine(
-                            $"Increasing cumulative regret for action {action} by {inverseSamplingProbabilityQ} * {(counterfactualValues[action - 1])} - {summation} = {cumulativeRegretIncrement} to {informationSet.GetCumulativeRegret(action)}");
+                            $"Increasing cumulative regret for action {action} in {informationSet.InformationSetNumber} by {inverseSamplingProbabilityQ} * {(counterfactualValues[action - 1])} - {summation} = {cumulativeRegretIncrement} to {informationSet.GetCumulativeRegret(action)}");
                     }
                 }
                 return summation;
@@ -296,6 +300,12 @@ namespace ACESim
                     s.Start();
                     Parallelizer.Go(EvolutionSettings.ParallelOptimization, startingIteration, stopBefore, iteration =>
                         {
+                            // DEBUG
+                            if (iteration > 10001 && iteration % 2 == 0)
+                                TraceProbingCFR = true;
+                            else
+                                TraceProbingCFR = false;
+
                             AbramowiczProbingCFRIteration(iteration);
                         }
                     );

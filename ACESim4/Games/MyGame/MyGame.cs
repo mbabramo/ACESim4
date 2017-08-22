@@ -48,6 +48,7 @@ namespace ACESim
             }
             else if (currentDecisionByteCode == (byte)MyGameDecisions.POffer)
             {
+                var DEBUG = MyProgress.GameHistory.GetPlayerInformationString(0, null); 
                 double offer = GetOfferBasedOnAction(action, true);
                 MyProgress.AddOffer(true, offer);
                 MyProgress.UpdateProgress(MyDefinition);

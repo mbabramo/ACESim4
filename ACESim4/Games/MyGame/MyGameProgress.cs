@@ -33,6 +33,12 @@ namespace ACESim
         public double PWelfare;
         public double DWelfare;
 
+        public override string ToString()
+        {
+            return
+                $"LitigationQualityDiscrete {LitigationQualityDiscrete} LitigationQualityUniform {LitigationQualityUniform} PSignalDiscrete {PSignalDiscrete} DSignalDiscrete {DSignalDiscrete} PSignalUniform {PSignalUniform} DSignalUniform {DSignalUniform} BargainingRoundsComplete {BargainingRoundsComplete} PLastOffer {PLastOffer} DLastOffer {DLastOffer} CaseSettles {CaseSettles} SettlementValue {SettlementValue} TrialOccurs {TrialOccurs} PWinsAtTrial {PWinsAtTrial} PFinalWealth {PFinalWealth} DFinalWealth {DFinalWealth} PWelfare {PWelfare} DWelfare {DWelfare}";
+        }
+
         public double? PFirstOffer => (double?)POffers?.FirstOrDefault() ?? null;
         public double? DFirstOffer => (double?)DOffers?.FirstOrDefault() ?? null;
         public bool? PFirstResponse => (bool?)PResponses?.FirstOrDefault() ?? null;
