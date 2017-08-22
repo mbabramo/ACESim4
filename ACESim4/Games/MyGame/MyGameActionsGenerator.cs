@@ -86,6 +86,29 @@ namespace ACESim
             }
         }
 
+        public static byte SettlementFails_PWins(Decision decision, GameProgress progress)
+        {
+            switch (decision.DecisionByteCode)
+            {
+
+                case (byte)MyGameDecisions.LitigationQuality:
+                    return 3;
+                case (byte)MyGameDecisions.PSignal:
+                    return 4;
+                case (byte)MyGameDecisions.DSignal:
+                    return 2;
+                case (byte)MyGameDecisions.POffer:
+                    return 5;
+                case (byte)MyGameDecisions.DOffer:
+                    return 1;
+                case (byte)MyGameDecisions.CourtDecision:
+                    return 2;
+
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+
 
         public static byte UsingRawSignals_SettlementFails(Decision decision, GameProgress progress)
         {

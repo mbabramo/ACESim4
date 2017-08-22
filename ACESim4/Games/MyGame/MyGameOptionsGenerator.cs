@@ -79,7 +79,7 @@ namespace ACESim
             return options;
         }
 
-
+        
         public static MyGameOptions TwoAlternatingOffers()
         {
             var options = new MyGameOptions()
@@ -152,7 +152,7 @@ namespace ACESim
         }
 
 
-        public static MyGameOptions UsingRawSignals()
+        public static MyGameOptions UsingRawSignals_10Points_2Rounds()
         {
             var options = new MyGameOptions()
             {
@@ -176,7 +176,7 @@ namespace ACESim
                     DeltaStartingValue = 0.01,
                     MaxDelta = 0.25
                 },
-                NumBargainingRounds = 1,
+                NumBargainingRounds = 2,
                 ForgetEarlierBargainingRounds = true, // true makes things much faster
                 SubdivideOffers = false,
                 BargainingRoundsSimultaneous = true,

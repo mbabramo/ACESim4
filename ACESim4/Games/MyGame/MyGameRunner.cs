@@ -24,7 +24,7 @@ namespace ACESim
         public static void EvolveMyGame()
         {
             MyGameDefinition gameDefinition = new MyGameDefinition();
-            var options = MyGameOptionsGenerator.UsingRawSignals();
+            var options = MyGameOptionsGenerator.UsingRawSignals_10Points_2Rounds();
             gameDefinition.Setup(options);
             List<Strategy> starterStrategies = Strategy.GetStarterStrategies(gameDefinition);
             EvolutionSettings evolutionSettings = new EvolutionSettings()
