@@ -220,9 +220,24 @@ namespace ACESim
             {
                 if (!s.PlayerInfo.PlayerIsChance || !EvolutionSettings.PrintNonChanceInformationSetsOnly)
                 {
-                    Debug.WriteLine($"{s.PlayerInfo}");
-                    string tree = s.GetInformationSetTreeString();
-                    Debug.WriteLine(tree);
+                    if (EvolutionSettings.RestrictToTheseInformationSets != null)
+                    {
+                        s.InformationSetTree.WalkTree(node =>
+                        {
+                            InformationSetNodeTally t = (InformationSetNodeTally) node.StoredValue;
+                            if (t != null &&
+                                EvolutionSettings.RestrictToTheseInformationSets.Contains(t.InformationSetNumber))
+                            {
+                                Debug.WriteLine($"{t}");
+                            }
+                        });
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"{s.PlayerInfo}");
+                        string tree = s.GetInformationSetTreeString();
+                        Debug.WriteLine(tree);
+                    }
                 }
             }
         }
@@ -456,7 +471,7 @@ namespace ACESim
             {
                 ActionStrategies previous = ActionStrategy;
                 ActionStrategy = ActionStrategies.RegretMatching;
-                bool useRandomPaths = SkipEveryPermutationInitialization || NumInitializedGamePaths > EvolutionSettings.NumRandomIterationsForReporting;
+                bool useRandomPaths = SkipEveryPermutationInitialization || NumInitializedGamePaths > EvolutionSettings.NumRandomIterationsForSummaryTable;
                 bool doBestResponse = (EvolutionSettings.BestResponseEveryMIterations != null && iteration % EvolutionSettings.BestResponseEveryMIterations == 0 && EvolutionSettings.BestResponseEveryMIterations != EvolutionSettings.EffectivelyNever && iteration != 0);
                 if (doBestResponse)
                     useRandomPaths = false;
@@ -465,12 +480,13 @@ namespace ACESim
                 if (EvolutionSettings.Algorithm == GameApproximationAlgorithm.AverageStrategySampling)
                     Debug.WriteLine($"{NumberAverageStrategySamplingExplorations / (double)EvolutionSettings.ReportEveryNIterations}");
                 NumberAverageStrategySamplingExplorations = 0;
-                MainReport(useRandomPaths, null);
+                if (EvolutionSettings.PrintSummaryTable)
+                    PrintSummaryTable(useRandomPaths, null);
                 MeasureRegretMatchingChanges();
-                if (EvolutionSettings.OverrideForAlternativeReport != null)
+                if (EvolutionSettings.OverrideForAlternativeTable != null)
                 {
                     Debug.WriteLine("With alternative:");
-                    MainReport(useRandomPaths, EvolutionSettings.OverrideForAlternativeReport);
+                    PrintSummaryTable(useRandomPaths, EvolutionSettings.OverrideForAlternativeTable);
                 }
                 if (ShouldEstimateImprovementOverTime)
                     ReportEstimatedImprovementsOverTime();
@@ -478,20 +494,20 @@ namespace ACESim
                     CompareBestResponse(iteration, useRandomPaths);
                 if (EvolutionSettings.AlwaysUseAverageStrategyInReporting)
                     ActionStrategy = previous;
-                if (EvolutionSettings.PrintGameTreeAfterReport)
+                if (EvolutionSettings.PrintGameTree)
                     PrintGameTree();
-                if (EvolutionSettings.PrintInformationSetsAfterReport)
+                if (EvolutionSettings.PrintInformationSets)
                     PrintInformationSets();
                 ActionStrategy = previous;
             }
         }
 
-        private unsafe void MainReport(bool useRandomPaths, Func<Decision, GameProgress, byte> actionOverride)
+        private unsafe void PrintSummaryTable(bool useRandomPaths, Func<Decision, GameProgress, byte> actionOverride)
         {
             Action<GamePlayer, Func<Decision, GameProgress, byte>> reportGenerator;
             if (useRandomPaths)
             {
-                Debug.WriteLine($"Result using {EvolutionSettings.NumRandomIterationsForReporting} randomly chosen paths");
+                Debug.WriteLine($"Result using {EvolutionSettings.NumRandomIterationsForSummaryTable} randomly chosen paths");
                 reportGenerator = GenerateReports_RandomPaths;
             }
             else
@@ -523,7 +539,7 @@ namespace ACESim
 
         private void GenerateReports_RandomPaths(GamePlayer player, Func<Decision, GameProgress, byte> actionOverride)
         {
-            var gameProgresses = GetRandomCompleteGames(player, EvolutionSettings.NumRandomIterationsForReporting, actionOverride);
+            var gameProgresses = GetRandomCompleteGames(player, EvolutionSettings.NumRandomIterationsForSummaryTable, actionOverride);
             UtilityCalculations = new StatCollector[NumNonChancePlayers];
             for (int p = 0; p < NumNonChancePlayers; p++)
                 UtilityCalculations[p] = new StatCollector();
@@ -541,7 +557,7 @@ namespace ACESim
         {
             // this is just for testing
             var CountPaths = new Dictionary<string, int>();
-            for (int i = 0; i < EvolutionSettings.NumRandomIterationsForReporting; i++)
+            for (int i = 0; i < EvolutionSettings.NumRandomIterationsForSummaryTable; i++)
             {
                 GameProgress gameProgress1 = gameProgresses[i];
                 string gameActions = gameProgress1.GameHistory.GetActionsAsListString();
@@ -552,7 +568,7 @@ namespace ACESim
                 //Debug.WriteLine($"{gameActions} {gameProgress1.GetNonChancePlayerUtilities()[0]}");
             }
             foreach (var item in CountPaths.AsEnumerable().OrderBy(x => x.Key))
-                Debug.WriteLine($"{item.Key} => {((double)item.Value) / (double)EvolutionSettings.NumRandomIterationsForReporting}");
+                Debug.WriteLine($"{item.Key} => {((double)item.Value) / (double)EvolutionSettings.NumRandomIterationsForSummaryTable}");
         }
 
         public void ProcessAllPaths(HistoryPoint history, Action<HistoryPoint, double> pathPlayer)

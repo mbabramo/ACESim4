@@ -24,8 +24,8 @@ namespace ACESim
         public static void EvolveMyGame()
         {
             MyGameDefinition gameDefinition = new MyGameDefinition();
-            var options = MyGameOptionsGenerator.FourBargainingRounds_PerfectInformation();
-            //var options = MyGameOptionsGenerator.UsingRawSignals_10Points_1Round();
+            //var options = MyGameOptionsGenerator.FourBargainingRounds_PerfectInformation();
+            var options = MyGameOptionsGenerator.UsingRawSignals_10Points_1Round();
             gameDefinition.Setup(options);
             List<Strategy> starterStrategies = Strategy.GetStarterStrategies(gameDefinition);
             EvolutionSettings evolutionSettings = new EvolutionSettings()
@@ -40,10 +40,11 @@ namespace ACESim
                 TotalVanillaCFRIterations = 100_000_000,
 
                 ReportEveryNIterations = 50000,
-                NumRandomIterationsForReporting = 500,
+                NumRandomIterationsForSummaryTable = 500,
+                PrintSummaryTable = false,
+                PrintInformationSets = true,
+                PrintGameTree = false,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever,
-                PrintInformationSetsAfterReport = false,
-                PrintGameTreeAfterReport = false,
 
                 TotalProbingCFRIterations = 300_000,
                 EpsilonForMainPlayer = 0.5,
@@ -51,7 +52,7 @@ namespace ACESim
                 MinBackupRegretsTrigger = 3,
                 TriggerIncreaseOverTime = 20,
 
-                OverrideForAlternativeReport = null //MyGameActionsGenerator.PlaintiffShouldOffer10IfReceivingAtLeastSignal9
+                OverrideForAlternativeTable = null //MyGameActionsGenerator.PlaintiffShouldOffer10IfReceivingAtLeastSignal9
             };
             const int numRepetitions = 20;
             for (int i = 0; i < numRepetitions; i++)
