@@ -58,8 +58,8 @@ namespace ACESim
                 UseRawSignals = false,
                 PNoiseStdev = 0.1,
                 DNoiseStdev = 0.1,
-                PTrialCosts = 5000,
-                DTrialCosts = 5000,
+                PTrialCosts = 20000,
+                DTrialCosts = 20000,
                 PerPartyBargainingRoundCosts = 1000,
                 DeltaOffersOptions = new DeltaOffersOptions()
                 {

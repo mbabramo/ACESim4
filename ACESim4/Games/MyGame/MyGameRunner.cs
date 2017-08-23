@@ -24,8 +24,9 @@ namespace ACESim
         public static void EvolveMyGame()
         {
             MyGameDefinition gameDefinition = new MyGameDefinition();
-            //var options = MyGameOptionsGenerator.FourBargainingRounds_PerfectInformation();
-            var options = MyGameOptionsGenerator.UsingRawSignals_10Points_1Round();
+            var options = MyGameOptionsGenerator.FourBargainingRounds_PerfectInformation();
+            //var options = MyGameOptionsGenerator.TwoSimultaneousBargainingRounds(); // processed signals
+            //var options = MyGameOptionsGenerator.UsingRawSignals_10Points_1Round();
             gameDefinition.Setup(options);
             List<Strategy> starterStrategies = Strategy.GetStarterStrategies(gameDefinition);
             EvolutionSettings evolutionSettings = new EvolutionSettings()
@@ -39,11 +40,11 @@ namespace ACESim
                 TotalAvgStrategySamplingCFRIterations = 10000000,
                 TotalVanillaCFRIterations = 100_000_000,
 
-                ReportEveryNIterations = 10000,
+                ReportEveryNIterations = 50000,
                 NumRandomIterationsForSummaryTable = 500,
                 PrintSummaryTable = true,
                 OverrideForAlternativeTable = null, // MyGameActionsGenerator.PlaintiffShouldOffer10IfReceivingAtLeastSignal9,
-                PrintInformationSets = true,
+                PrintInformationSets = false,
                 RestrictToTheseInformationSets = null, // new List<int>() {16},
                 PrintGameTree = false,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever,
