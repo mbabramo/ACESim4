@@ -353,7 +353,7 @@ namespace ACESim
                 throw new NotImplementedException(); // subclass should define if needed
         }
 
-        public override bool ShouldMarkGameHistoryComplete(Decision currentDecision, GameHistory gameHistory)
+        public override bool ShouldMarkGameHistoryComplete(Decision currentDecision, GameHistory gameHistory, byte actionChosen)
         {
             if (!currentDecision.CanTerminateGame)
                 return false;
@@ -387,6 +387,21 @@ namespace ACESim
                     if (defendantAction >= plaintiffAction)
                         return true;
                     break;
+                case (byte)MyGameDecisions.PFile:
+                    if (actionChosen == 2)
+                        return true; // plaintiff hasn't filed
+                    break;
+                case (byte)MyGameDecisions.DAnswer:
+                    if (actionChosen == 2)
+                        return true; // defendant's hasn't answered
+                    break;
+                case (byte)MyGameDecisions.DDefault:
+                    (byte dTriesToDefault, byte pTriesToAbandon) = gameHistory.GetLastActionAndActionBeforeThat();
+                    if (dTriesToDefault == 1 ^ pTriesToAbandon == 1) // i.e., one but not both parties try to default
+                        return true;
+                    break;
+                case (byte)MyGameDecisions.MutualGiveUp:
+                    return true; // if we reach this decision, the game is definitely over; just a question of who wins
             }
             return false;
         }

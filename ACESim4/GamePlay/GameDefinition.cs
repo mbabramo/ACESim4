@@ -359,7 +359,7 @@ namespace ACESim
             throw new NotImplementedException(); // subclass should define if needed
         }
 
-        public virtual bool ShouldMarkGameHistoryComplete(Decision currentDecision, GameHistory gameHistory)
+        public virtual bool ShouldMarkGameHistoryComplete(Decision currentDecision, GameHistory gameHistory, byte actionChosen)
         {
             // Entirely subclass. During full game play, the game marks the game complete as necessary, and this automatically calls
             // the game history. But during cached game play (without using a game tree), we must determine whether the game is complete

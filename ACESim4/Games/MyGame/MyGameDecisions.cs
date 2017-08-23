@@ -11,16 +11,16 @@ namespace ACESim
         LitigationQuality,
         PSignal,
         DSignal,
-        PFile,
-        DAnswer,
+        PFile, // 1 = yes, 2 = no
+        DAnswer, // 1 = yes, 2 = no
         POffer,
         DOffer,
-        PResponse,
+        PResponse, // 1 = yes, 2 = no
         DResponse,
-        PAbandon,
-        DDefault,
-        MutualGiveUp,
-        CourtDecision,
+        PAbandon, // 1 = yes, 2 = no
+        DDefault, // 1 = yes, 2 = no
+        MutualGiveUp, // 1 = plaintiff gives up (defendant wins), 2 = defendant gives up (plaintiff wins)
+        CourtDecision, // with processed signals: 1 = defendant wins, 2 = plaintiff wins
         SubdividableOffer,
     }
 }

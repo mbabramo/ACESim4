@@ -69,7 +69,7 @@ namespace ACESim
             HistoryPoint_CachedGameHistoryOnly next = new HistoryPoint_CachedGameHistoryOnly(HistoryToPoint);
             (Decision nextDecision, byte nextDecisionIndex) = gameDefinition.GetNextDecision(HistoryToPoint);
             Game.UpdateGameHistory(ref next.HistoryToPoint, gameDefinition, nextDecision, nextDecisionIndex, actionChosen);
-            if (nextDecision.CanTerminateGame && gameDefinition.ShouldMarkGameHistoryComplete(nextDecision, next.HistoryToPoint))
+            if (nextDecision.CanTerminateGame && gameDefinition.ShouldMarkGameHistoryComplete(nextDecision, next.HistoryToPoint, actionChosen))
                 next.HistoryToPoint.MarkComplete();
             return next;
         }
@@ -78,7 +78,7 @@ namespace ACESim
         {
             (Decision nextDecision, byte nextDecisionIndex) = gameDefinition.GetNextDecision(HistoryToPoint);
             Game.UpdateGameHistory(ref HistoryToPoint, gameDefinition, nextDecision, nextDecisionIndex, actionChosen);
-            if (nextDecision.CanTerminateGame && gameDefinition.ShouldMarkGameHistoryComplete(nextDecision, HistoryToPoint))
+            if (nextDecision.CanTerminateGame && gameDefinition.ShouldMarkGameHistoryComplete(nextDecision, HistoryToPoint, actionChosen))
                 HistoryToPoint.MarkComplete();
         }
 
