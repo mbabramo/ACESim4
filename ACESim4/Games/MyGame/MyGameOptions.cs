@@ -59,6 +59,10 @@ namespace ACESim
         /// Options for making offers that are relative to previous offers.
         /// </summary>
         public DeltaOffersOptions DeltaOffersOptions;
+        /// <summary>
+        /// If true, then a plaintiff can abandon the litigation or a defendant can decide to default immediately after a bargaining round. If both do so, then a coin is flipped to decide who has done so.
+        /// </summary>
+        public bool AllowAbandonAndDefaults;
 
         /// <summary>
         /// Costs that the plaintiff must pay if the case goes to trial.

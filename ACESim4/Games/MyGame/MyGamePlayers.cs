@@ -14,6 +14,7 @@ namespace ACESim
         QualityChance,
         PSignalChance,
         DSignalChance,
+        BothGiveUpChance,
         CourtChance,
         Resolution
     }

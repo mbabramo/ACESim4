@@ -11,6 +11,8 @@ namespace ACESim
     {
         public MyGameOptions Options;
 
+        #region Construction and setup
+
         public MyGameDefinition() : base()
         {
 
@@ -27,6 +29,27 @@ namespace ACESim
 
             IGameFactory gameFactory = new MyGameFactory();
             Initialize(gameFactory);
+        }
+
+
+
+        private void FurtherOptionsSetup()
+        {
+
+            if (Options.DeltaOffersOptions.SubsequentOffersAreDeltas)
+                Options.DeltaOffersCalculation = new DeltaOffersCalculation(this);
+            Options.PSignalParameters = new DiscreteValueSignalParameters()
+            {
+                NumPointsInSourceUniformDistribution = Options.NumLitigationQualityPoints,
+                StdevOfNormalDistribution = Options.PNoiseStdev,
+                NumSignals = Options.NumSignals
+            };
+            Options.DSignalParameters = new DiscreteValueSignalParameters()
+            {
+                NumPointsInSourceUniformDistribution = Options.NumLitigationQualityPoints,
+                StdevOfNormalDistribution = Options.DNoiseStdev,
+                NumSignals = Options.NumSignals
+            };
         }
 
         MyGameProgress MyGP(GameProgress gp) => gp as MyGameProgress;
@@ -58,62 +81,55 @@ namespace ACESim
 
         private byte LitigationQualityDecisionIndex = (byte) 255;
 
+        #endregion
+
+        #region Decisions list
+
         private List<Decision> GetDecisionsList()
         {
             var decisions = new List<Decision>();
-            // Litigation Quality. This is not known by a player unless the player has perfect information. 
+            AddLitigationQualityAndSignalsDecisions(decisions);
+            for (int b = 0; b < Options.NumBargainingRounds; b++)
+                AddDecisionsForBargainingRound(b, decisions);
+            AddCourtDecision(decisions);
+            return decisions;
+        }
+
+        private void AddLitigationQualityAndSignalsDecisions(List<Decision> decisions)
+        {
+// Litigation Quality. This is not known by a player unless the player has perfect information. 
             // The SignalChance player relies on this information in calculating the probabilities of different signals
-            List<byte> playersKnowingLitigationQuality = new List<byte>() { (byte) MyGamePlayers.PSignalChance, (byte)MyGamePlayers.DSignalChance, (byte) MyGamePlayers.CourtChance };
+            List<byte> playersKnowingLitigationQuality = new List<byte>()
+            {
+                (byte) MyGamePlayers.PSignalChance,
+                (byte) MyGamePlayers.DSignalChance,
+                (byte) MyGamePlayers.CourtChance
+            };
             if (Options.UseRawSignals)
                 playersKnowingLitigationQuality.Add((byte) MyGamePlayers.Resolution);
             if (Options.PNoiseStdev == 0)
-                playersKnowingLitigationQuality.Add((byte)MyGamePlayers.Plaintiff);
+                playersKnowingLitigationQuality.Add((byte) MyGamePlayers.Plaintiff);
             if (Options.DNoiseStdev == 0)
-                playersKnowingLitigationQuality.Add((byte)MyGamePlayers.Defendant);
-            decisions.Add(new Decision("LitigationQuality", "Qual", (byte)MyGamePlayers.QualityChance, playersKnowingLitigationQuality, Options.NumLitigationQualityPoints, (byte)MyGameDecisions.LitigationQuality));
+                playersKnowingLitigationQuality.Add((byte) MyGamePlayers.Defendant);
+            decisions.Add(new Decision("LitigationQuality", "Qual", (byte) MyGamePlayers.QualityChance,
+                playersKnowingLitigationQuality, Options.NumLitigationQualityPoints, (byte) MyGameDecisions.LitigationQuality));
             LitigationQualityDecisionIndex = 0; // we'll need to change this if we have decisions before litigation quality
             // Plaintiff and defendant signals. If a player has perfect information, then no signal is needed.
-            bool partyReceivesDirectSignal = !Options.UseRawSignals; // when using processed signals, we have an uneven chance decision, so the action is the signal, and the party can receive it directly. When using raw signals, we want the party to receive the signal and we add that with custom information set manipulation below.
+            bool
+                partyReceivesDirectSignal =
+                    !Options
+                        .UseRawSignals; // when using processed signals, we have an uneven chance decision, so the action is the signal, and the party can receive it directly. When using raw signals, we want the party to receive the signal and we add that with custom information set manipulation below.
             if (!Options.UseRawSignals && Options.NumNoiseValues != Options.NumSignals)
                 throw new NotImplementedException(); // our uneven chance probabilities assumes this is true
             if (Options.PNoiseStdev != 0)
-                decisions.Add(new Decision("PlaintiffSignal", "PSig", (byte)MyGamePlayers.PSignalChance, partyReceivesDirectSignal ? new List<byte>() { (byte) MyGamePlayers.Plaintiff } : new List<byte>(), Options.NumNoiseValues, (byte)MyGameDecisions.PSignal, unevenChanceActions: !Options.UseRawSignals));
+                decisions.Add(new Decision("PlaintiffSignal", "PSig", (byte) MyGamePlayers.PSignalChance,
+                    partyReceivesDirectSignal ? new List<byte>() {(byte) MyGamePlayers.Plaintiff} : new List<byte>(),
+                    Options.NumNoiseValues, (byte) MyGameDecisions.PSignal, unevenChanceActions: !Options.UseRawSignals));
             if (Options.DNoiseStdev != 0)
-                decisions.Add(new Decision("DefendantSignal", "DSig", (byte)MyGamePlayers.DSignalChance, partyReceivesDirectSignal ? new List<byte>() { (byte)MyGamePlayers.Defendant } : new List<byte>(), Options.NumNoiseValues, (byte)MyGameDecisions.DSignal, unevenChanceActions: !Options.UseRawSignals));
+                decisions.Add(new Decision("DefendantSignal", "DSig", (byte) MyGamePlayers.DSignalChance,
+                    partyReceivesDirectSignal ? new List<byte>() {(byte) MyGamePlayers.Defendant} : new List<byte>(),
+                    Options.NumNoiseValues, (byte) MyGameDecisions.DSignal, unevenChanceActions: !Options.UseRawSignals));
             CreateSignalsTable();
-            for (int b = 0; b < Options.NumBargainingRounds; b++)
-            {
-                // bargaining -- note that we will do all information set manipulation in CustomInformationSetManipulation below.
-                if (Options.BargainingRoundsSimultaneous)
-                { // samuelson-chaterjee bargaining
-                    var pOffer = new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, null, Options.NumOffers, (byte)MyGameDecisions.POffer) { CustomByte = (byte)(b + 1), CustomInformationSetManipulationOnly = true };
-                    AddOfferDecisionOrSubdivisions(decisions, pOffer);
-                    var dOffer = new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, null, Options.NumOffers, (byte)MyGameDecisions.DOffer) { CanTerminateGame = true, CustomByte = (byte)(b + 1), CustomInformationSetManipulationOnly = true };
-                    AddOfferDecisionOrSubdivisions(decisions, dOffer);
-
-                }
-                else
-                { // offer-response bargaining
-                    // the response may be irrelevant but no harm adding it to information set
-                    if (Options.PGoesFirstIfNotSimultaneous[b])
-                    {
-                        var pOffer = new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, null, Options.NumOffers, (byte)MyGameDecisions.POffer) { CustomByte = (byte)(b + 1), CustomInformationSetManipulationOnly = true }; // { AlwaysDoAction = 4});
-                        AddOfferDecisionOrSubdivisions(decisions, pOffer);
-                        decisions.Add(new Decision("DefendantResponse" + (b + 1), "DR" + (b + 1), (byte)MyGamePlayers.Defendant, null, 2, (byte)MyGameDecisions.DResponse) { CanTerminateGame = true, CustomByte = (byte)(b + 1), CustomInformationSetManipulationOnly = true });
-                    }
-                    else
-                    {
-                        var dOffer = new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, null, Options.NumOffers, (byte)MyGameDecisions.DOffer) { CustomByte = (byte)(b + 1), CustomInformationSetManipulationOnly = true };
-                        AddOfferDecisionOrSubdivisions(decisions, dOffer);
-                        decisions.Add(new Decision("PlaintiffResponse" + (b + 1), "PR" + (b + 1), (byte)MyGamePlayers.Plaintiff, null, 2, (byte)MyGameDecisions.PResponse) { CanTerminateGame = true, CustomByte = (byte)(b + 1), CustomInformationSetManipulationOnly = true });
-                    }
-                }
-            }
-            if (Options.UseRawSignals)
-                decisions.Add(new Decision("CourtDecision", "CD", (byte)MyGamePlayers.CourtChance, new List<byte> { (byte)MyGamePlayers.Resolution }, Options.NumSignals, (byte)MyGameDecisions.CourtDecision, unevenChanceActions: false, criticalNode: true) { CanTerminateGame = true }); // even chance options
-            else
-                decisions.Add(new Decision("CourtDecision", "CD", (byte)MyGamePlayers.CourtChance, new List<byte> { (byte)MyGamePlayers.Resolution }, 2 /* for plaintiff or for defendant */, (byte)MyGameDecisions.CourtDecision, unevenChanceActions: true, criticalNode: true) { CanTerminateGame = true }); // uneven chance options
-            return decisions;
         }
 
         public void GetDiscreteSignal(byte litigationQuality, byte noise, bool plaintiff, out byte discreteSignal,
@@ -156,9 +172,223 @@ namespace ACESim
             }
         }
 
+        private void AddDecisionsForBargainingRound(int b, List<Decision> decisions)
+        {
+            // note that we will do all information set manipulation in CustomInformationSetManipulation below.
+            if (Options.BargainingRoundsSimultaneous)
+            {
+                // samuelson-chaterjee bargaining
+                var pOffer =
+                    new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, null,
+                        Options.NumOffers, (byte)MyGameDecisions.POffer)
+                    {
+                        CustomByte = (byte)(b + 1),
+                        CustomInformationSetManipulationOnly = true
+                    };
+                AddOfferDecisionOrSubdivisions(decisions, pOffer);
+                var dOffer =
+                    new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, null,
+                        Options.NumOffers, (byte)MyGameDecisions.DOffer)
+                    {
+                        CanTerminateGame = true,
+                        CustomByte = (byte)(b + 1),
+                        CustomInformationSetManipulationOnly = true
+                    };
+                AddOfferDecisionOrSubdivisions(decisions, dOffer);
+            }
+            else
+            {
+                // offer-response bargaining
+                // the response may be irrelevant but no harm adding it to information set
+                if (Options.PGoesFirstIfNotSimultaneous[b])
+                {
+                    var pOffer =
+                        new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, null,
+                            Options.NumOffers, (byte)MyGameDecisions.POffer)
+                        {
+                            CustomByte = (byte)(b + 1),
+                            CustomInformationSetManipulationOnly = true
+                        }; // { AlwaysDoAction = 4});
+                    AddOfferDecisionOrSubdivisions(decisions, pOffer);
+                    decisions.Add(
+                        new Decision("DefendantResponse" + (b + 1), "DR" + (b + 1), (byte)MyGamePlayers.Defendant, null, 2,
+                            (byte)MyGameDecisions.DResponse)
+                        {
+                            CanTerminateGame = true,
+                            CustomByte = (byte)(b + 1),
+                            CustomInformationSetManipulationOnly = true
+                        });
+                }
+                else
+                {
+                    var dOffer =
+                        new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, null,
+                            Options.NumOffers, (byte)MyGameDecisions.DOffer)
+                        {
+                            CustomByte = (byte)(b + 1),
+                            CustomInformationSetManipulationOnly = true
+                        };
+                    AddOfferDecisionOrSubdivisions(decisions, dOffer);
+                    decisions.Add(
+                        new Decision("PlaintiffResponse" + (b + 1), "PR" + (b + 1), (byte)MyGamePlayers.Plaintiff, null, 2,
+                            (byte)MyGameDecisions.PResponse)
+                        {
+                            CanTerminateGame = true,
+                            CustomByte = (byte)(b + 1),
+                            CustomInformationSetManipulationOnly = true
+                        });
+                }
+            }
+            if (Options.AllowAbandonAndDefaults)
+                AddAbandonOrDefaultDecisions(b, decisions);
+        }
+
         private void AddOfferDecisionOrSubdivisions(List<Decision> decisions, Decision offerDecision)
         {
             AddPotentiallySubdividableDecision(decisions, offerDecision, Options.SubdivideOffers, (byte)MyGameDecisions.SubdividableOffer, 2, Options.NumOffers);
+        }
+
+
+        private void AddFileAndAnswerDecisions(List<Decision> decisions)
+        {
+            var pFile =
+                new Decision("PFile", "PF", (byte)MyGamePlayers.Plaintiff, new List<byte>() { (byte)MyGamePlayers.Resolution },
+                    2, (byte)MyGameDecisions.PFile)
+                {
+                    CanTerminateGame = true, // not filing always terminates
+                };
+            decisions.Add(pFile);
+
+            var dAnswer =
+                new Decision("DAnswer" + (b + 1), "DA" + (b + 1), (byte)MyGamePlayers.Defendant, new List<byte>() { (byte)MyGamePlayers.Resolution },
+                    2, (byte)MyGameDecisions.DAnswer)
+                {
+                    CanTerminateGame = true, // not answering terminates, with defendant paying full damages
+                };
+            decisions.Add(dAnswer);
+        }
+
+        private void AddAbandonOrDefaultDecisions(int b, List<Decision> decisions)
+        {
+            var pAbandon =
+                new Decision("PAbandon" + (b + 1), "PA" + (b + 1), (byte)MyGamePlayers.Plaintiff, new List<byte>() { (byte)MyGamePlayers.Resolution }, 
+                    2, (byte)MyGameDecisions.PAbandon)
+                {
+                    CustomByte = (byte)(b + 1),
+                    CanTerminateGame = false, // we always must look at whether D is defaulting too. 
+                    CustomInformationSetManipulationOnly = false 
+                };
+            decisions.Add(pAbandon);
+
+            var dDefault =
+                new Decision("DDefault" + (b + 1), "DD" + (b + 1), (byte)MyGamePlayers.Defendant, new List<byte>() { (byte)MyGamePlayers.Resolution },
+                    2, (byte)MyGameDecisions.DDefault)
+                {
+                    CustomByte = (byte)(b + 1),
+                    CanTerminateGame = true, // if either but not both has given up, game terminates
+                    CustomInformationSetManipulationOnly = false 
+                };
+            decisions.Add(dDefault);
+
+            var bothGiveUp =
+                new Decision("MutualGiveUp" + (b + 1), "MGU" + (b + 1), (byte)MyGamePlayers.BothGiveUpChance, new List<byte>() { (byte)MyGamePlayers.Resolution },
+                    2, (byte)MyGameDecisions.DDefault, unevenChanceActions: false)
+                {
+                    CustomByte = (byte)(b + 1),
+                    CanTerminateGame = true, // if this decision is needed, then both have given up, and the decision always terminates the game
+                    CustomInformationSetManipulationOnly = false 
+                };
+            decisions.Add(dDefault);
+        }
+
+        private void AddCourtDecision(List<Decision> decisions)
+        {
+            if (Options.UseRawSignals)
+                decisions.Add(new Decision("CourtDecision", "CD", (byte)MyGamePlayers.CourtChance,
+                        new List<byte> { (byte)MyGamePlayers.Resolution }, Options.NumSignals, (byte)MyGameDecisions.CourtDecision,
+                        unevenChanceActions: false, criticalNode: true)
+                    { CanTerminateGame = true }); // even chance options
+            else
+                decisions.Add(new Decision("CourtDecision", "CD", (byte)MyGamePlayers.CourtChance,
+                    new List<byte> { (byte)MyGamePlayers.Resolution }, 2 /* for plaintiff or for defendant */,
+                    (byte)MyGameDecisions.CourtDecision, unevenChanceActions: true, criticalNode: true)
+                {
+                    CanTerminateGame = true
+                }); // uneven chance options
+        }
+
+        #endregion
+
+        #region Game play support 
+        
+        public override double[] GetChanceActionProbabilities(byte decisionByteCode, GameProgress gameProgress)
+        {
+            if (decisionByteCode == (byte)MyGameDecisions.PSignal)
+            {
+                if (Options.UseRawSignals)
+                    throw new NotImplementedException();
+                MyGameProgress myGameProgress = (MyGameProgress)gameProgress;
+                return DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(myGameProgress.LitigationQualityDiscrete, Options.PSignalParameters);
+            }
+            else if (decisionByteCode == (byte)MyGameDecisions.DSignal)
+            {
+                if (Options.UseRawSignals)
+                    throw new NotImplementedException();
+                MyGameProgress myGameProgress = (MyGameProgress)gameProgress;
+                return DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(myGameProgress.LitigationQualityDiscrete, Options.DSignalParameters);
+            }
+            else if (decisionByteCode == (byte)MyGameDecisions.CourtDecision)
+            {
+                if (Options.UseRawSignals)
+                    throw new NotImplementedException();
+                double[] probabilities = new double[2];
+                MyGameProgress myGameProgress = (MyGameProgress)gameProgress;
+                probabilities[0] =
+                    1.0 - myGameProgress.LitigationQualityUniform; // probability action 1 ==> rule for defendant
+                probabilities[1] =
+                    myGameProgress.LitigationQualityUniform; // probability action 2 ==> rule for plaintiff
+                return probabilities;
+            }
+            else
+                throw new NotImplementedException(); // subclass should define if needed
+        }
+
+        public override bool ShouldMarkGameHistoryComplete(Decision currentDecision, GameHistory gameHistory)
+        {
+            if (!currentDecision.CanTerminateGame)
+                return false;
+
+            byte decisionByteCode;
+            if (currentDecision.Subdividable_IsSubdivision)
+            {
+                if (currentDecision.Subdividable_IsSubdivision_Last)
+                    decisionByteCode = currentDecision.Subdividable_CorrespondingDecisionByteCode;
+                else
+                    return false; // must get to the last subdivision before considering this
+            }
+            else
+                decisionByteCode = currentDecision.DecisionByteCode;
+
+            switch (decisionByteCode)
+            {
+                case (byte)MyGameDecisions.CourtDecision:
+                    return true;
+                case (byte)MyGameDecisions.DResponse:
+                case (byte)MyGameDecisions.PResponse:
+                    var lastTwoActions = gameHistory.GetLastActionAndActionBeforeThat();
+                    if (lastTwoActions.mostRecentAction == 1) // offer was accepted
+                        return true;
+                    break;
+                case (byte)MyGameDecisions.DOffer:
+                    // this is simultaneous bargaining (plaintiff offer is always first). 
+                    if (!Options.BargainingRoundsSimultaneous)
+                        throw new Exception("Internal error.");
+                    (byte defendantAction, byte plaintiffAction) = gameHistory.GetLastActionAndActionBeforeThat();
+                    if (defendantAction >= plaintiffAction)
+                        return true;
+                    break;
+            }
+            return false;
         }
 
         public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, ref GameHistory gameHistory)
@@ -287,139 +517,9 @@ namespace ACESim
             gameHistory.AddToInformationSet(actionChosen, decisionByteCode, (byte)MyGamePlayers.Resolution);
             numItems++; // doesn't matter since it's at the end, but useful to help understand the code.
         }
-        public override bool ShouldMarkGameHistoryComplete(Decision currentDecision, GameHistory gameHistory)
-        {
-            if (!currentDecision.CanTerminateGame)
-                return false;
 
-            byte decisionByteCode;
-            if (currentDecision.Subdividable_IsSubdivision)
-            {
-                if (currentDecision.Subdividable_IsSubdivision_Last)
-                    decisionByteCode = currentDecision.Subdividable_CorrespondingDecisionByteCode;
-                else
-                    return false; // must get to the last subdivision before considering this
-            }
-            else
-                decisionByteCode = currentDecision.DecisionByteCode;
+        #endregion
 
-            switch (decisionByteCode)
-            {
-                case (byte)MyGameDecisions.CourtDecision:
-                    return true;
-                case (byte)MyGameDecisions.DResponse:
-                case (byte)MyGameDecisions.PResponse:
-                    var lastTwoActions = gameHistory.GetLastActionAndActionBeforeThat();
-                    if (lastTwoActions.mostRecentAction == 1) // offer was accepted
-                        return true;
-                    break;
-                case (byte)MyGameDecisions.DOffer:
-                    // this is simultaneous bargaining (plaintiff offer is always first). 
-                    if (!Options.BargainingRoundsSimultaneous)
-                        throw new Exception("Internal error.");
-                    (byte defendantAction, byte plaintiffAction) = gameHistory.GetLastActionAndActionBeforeThat();
-                    if (defendantAction >= plaintiffAction)
-                        return true;
-                    break;
-            }
-            return false;
-        }
-
-
-        private (bool plaintiffMakesOffer, int offerNumber, bool isSimultaneous) GetOfferorAndNumber(int bargainingRound, ref bool reportResponseToOffer)
-        {
-            bool plaintiffMakesOffer = true;
-            int offerNumber = 0;
-            bool isSimultaneous = false;
-            int earlierOffersPlaintiff = 0, earlierOffersDefendant = 0;
-            for (int b = 1; b <= bargainingRound; b++)
-            {
-                if (b < bargainingRound)
-                {
-                    if (Options.BargainingRoundsSimultaneous)
-                    {
-                        earlierOffersPlaintiff++;
-                        earlierOffersDefendant++;
-                    }
-                    else
-                    {
-                        if (Options.PGoesFirstIfNotSimultaneous[b - 1])
-                            earlierOffersPlaintiff++;
-                        else
-                            earlierOffersDefendant++;
-                    }
-                }
-                else
-                {
-                    if (Options.BargainingRoundsSimultaneous)
-                    {
-                        plaintiffMakesOffer = !reportResponseToOffer;
-                        reportResponseToOffer = false; // we want to report the offer (which may be the defendant's).
-                        isSimultaneous = false;
-                    }
-                    else
-                        plaintiffMakesOffer = Options.PGoesFirstIfNotSimultaneous[b - 1];
-                    offerNumber = plaintiffMakesOffer ? earlierOffersPlaintiff + 1 : earlierOffersDefendant + 1;
-                }
-            }
-            return (plaintiffMakesOffer, offerNumber, isSimultaneous);
-        }
-        
-        private bool IsInOfferRange(double? value, Tuple<double, double> offerRange)
-        {
-            return value != null && value >= offerRange.Item1 && value < offerRange.Item2;
-        }
-
-        private void FurtherOptionsSetup()
-        {
-
-            if (Options.DeltaOffersOptions.SubsequentOffersAreDeltas)
-                Options.DeltaOffersCalculation = new DeltaOffersCalculation(this);
-            Options.PSignalParameters = new DiscreteValueSignalParameters()
-            {
-                NumPointsInSourceUniformDistribution = Options.NumLitigationQualityPoints,
-                StdevOfNormalDistribution = Options.PNoiseStdev,
-                NumSignals = Options.NumSignals
-            };
-            Options.DSignalParameters = new DiscreteValueSignalParameters()
-            {
-                NumPointsInSourceUniformDistribution = Options.NumLitigationQualityPoints,
-                StdevOfNormalDistribution = Options.DNoiseStdev,
-                NumSignals = Options.NumSignals
-            };
-        }
-
-        public override double[] GetChanceActionProbabilities(byte decisionByteCode, GameProgress gameProgress)
-        {
-            if (decisionByteCode == (byte)MyGameDecisions.PSignal)
-            {
-                if (Options.UseRawSignals)
-                    throw new NotImplementedException();
-                MyGameProgress myGameProgress = (MyGameProgress)gameProgress;
-                return DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(myGameProgress.LitigationQualityDiscrete, Options.PSignalParameters);
-            }
-            else if (decisionByteCode == (byte)MyGameDecisions.DSignal)
-            {
-                if (Options.UseRawSignals)
-                    throw new NotImplementedException();
-                MyGameProgress myGameProgress = (MyGameProgress)gameProgress;
-                return DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(myGameProgress.LitigationQualityDiscrete, Options.DSignalParameters);
-            }
-            else if (decisionByteCode == (byte)MyGameDecisions.CourtDecision)
-            {
-                if (Options.UseRawSignals)
-                    throw new NotImplementedException();
-                    double[] probabilities = new double[2];
-                    MyGameProgress myGameProgress = (MyGameProgress) gameProgress;
-                    probabilities[0] =
-                        1.0 - myGameProgress.LitigationQualityUniform; // probability action 1 ==> rule for defendant
-                    probabilities[1] =
-                        myGameProgress.LitigationQualityUniform; // probability action 2 ==> rule for plaintiff
-                    return probabilities;
-            }
-            else
-                throw new NotImplementedException(); // subclass should define if needed
-        }
 
     }
 }

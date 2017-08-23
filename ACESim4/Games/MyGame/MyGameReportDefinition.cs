@@ -160,5 +160,48 @@ namespace ACESim
                 return (GameProgress gp) => IsInOfferRange(MyGP(gp).GetOffer(plaintiffMakesOffer, offerNumber),
                     offerRange);
         }
+        private (bool plaintiffMakesOffer, int offerNumber, bool isSimultaneous) GetOfferorAndNumber(int bargainingRound, ref bool reportResponseToOffer)
+        {
+            bool plaintiffMakesOffer = true;
+            int offerNumber = 0;
+            bool isSimultaneous = false;
+            int earlierOffersPlaintiff = 0, earlierOffersDefendant = 0;
+            for (int b = 1; b <= bargainingRound; b++)
+            {
+                if (b < bargainingRound)
+                {
+                    if (Options.BargainingRoundsSimultaneous)
+                    {
+                        earlierOffersPlaintiff++;
+                        earlierOffersDefendant++;
+                    }
+                    else
+                    {
+                        if (Options.PGoesFirstIfNotSimultaneous[b - 1])
+                            earlierOffersPlaintiff++;
+                        else
+                            earlierOffersDefendant++;
+                    }
+                }
+                else
+                {
+                    if (Options.BargainingRoundsSimultaneous)
+                    {
+                        plaintiffMakesOffer = !reportResponseToOffer;
+                        reportResponseToOffer = false; // we want to report the offer (which may be the defendant's).
+                        isSimultaneous = false;
+                    }
+                    else
+                        plaintiffMakesOffer = Options.PGoesFirstIfNotSimultaneous[b - 1];
+                    offerNumber = plaintiffMakesOffer ? earlierOffersPlaintiff + 1 : earlierOffersDefendant + 1;
+                }
+            }
+            return (plaintiffMakesOffer, offerNumber, isSimultaneous);
+        }
+
+        private bool IsInOfferRange(double? value, Tuple<double, double> offerRange)
+        {
+            return value != null && value >= offerRange.Item1 && value < offerRange.Item2;
+        }
     }
 }
