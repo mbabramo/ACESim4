@@ -79,11 +79,11 @@ namespace ACESimTest
                     foreach (var moveSet in bargainingRounds)
                     {
                         bool isLastBargainedRound = bargainingRound == numBargainingRoundsCompleted;
-                        bool pMovesFirst = (bargainingRound % 2 == 1) || simultaneousBargainingRounds;
                         // Note that the resolution information set always consists of just the last round settled, regardless of whether the case goes to trial. Some of this information may be irrelevant to trial (if we're not doing the settlement shootout).
-                        if (isLastBargainedRound && settlementReachedLastRound)
+                        if (isLastBargainedRound)
                         {
                             l.Add(decisionIndex);
+                            bool pMovesFirst = (bargainingRound % 2 == 1) || simultaneousBargainingRounds;
                             if (pMovesFirst)
                                 l.Add(moveSet.pMove);
                             l.Add(moveSet.dMove);
@@ -102,7 +102,7 @@ namespace ACESimTest
                         {
                             decisionIndex += 2;
                             if (allowAbandonAndDefault)
-                                decisionIndex += 2; // since there is a later bargaining round
+                                decisionIndex += 3; // since there is a later bargaining round. Note that we skip over the mutual abandonment decision, regardless of whether it is placed, since we're interested in the decision index, not only in played decisions
                         }
                         bargainingRound++;
                     }
@@ -263,7 +263,7 @@ namespace ACESimTest
         {
             var options = GetGameOptions(allowAbandonAndDefaults, numBargainingRounds, forgetEarlierBargainingRounds, simultaneousBargainingRounds);
             var bargainingMoves = GetBargainingRoundMoves(simultaneousBargainingRounds, numBargainingRounds, false);
-            var actions = GetPlayerActions(true, true, 1, 1, 1, bargainingMoves, simultaneousBargainingRounds);
+            var actions = GetPlayerActions(true, true, 1, 1, 1, bargainingMoves, simultaneousBargainingRounds, null, null, 0, plaintiffWins ? (byte)2 : (byte)1);
             var myGameProgress = MyGameRunner.PlayMyGameOnce(options, actions);
             myGameProgress.GameComplete.Should().BeTrue();
             double pFinalWealthExpected = options.PInitialWealth - options.PTrialCosts -

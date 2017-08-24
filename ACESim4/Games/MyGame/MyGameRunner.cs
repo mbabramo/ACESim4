@@ -15,6 +15,8 @@ namespace ACESim
             gameDefinition.Setup(options);
             List<Strategy> starterStrategies = Strategy.GetStarterStrategies(gameDefinition);
 
+            gameDefinition.PrintOutOrderingInformation();
+
             GamePlayer gamePlayer = new GamePlayer(starterStrategies, false, gameDefinition);
             MyGameProgress gameProgress = (MyGameProgress)gamePlayer.PlayUsingActionOverride(actionsOverride);
 

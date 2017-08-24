@@ -16,6 +16,8 @@ namespace ACESim
 
         public override bool DecisionIsNeeded(Decision currentDecision)
         {
+            if (currentDecision.DecisionByteCode == (byte) MyGameDecisions.MutualGiveUp)
+                return MyProgress.PTriesAbandon && MyProgress.DTriesDefault;
             if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.CourtDecision)
                 return !MyProgress.CaseSettles;
             return true;

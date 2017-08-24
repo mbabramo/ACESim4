@@ -300,7 +300,7 @@ namespace ACESim
                     CanTerminateGame = true, // if this decision is needed, then both have given up, and the decision always terminates the game
                     CriticalNode = true, // always play out both sides of this coin flip
                 };
-            decisions.Add(dDefault);
+            decisions.Add(bothGiveUp);
         }
 
         private void AddCourtDecision(List<Decision> decisions)
@@ -433,8 +433,8 @@ namespace ACESim
                     CustomInformationSetManipulationOfferResponseBargaining(currentDecisionIndex, actionChosen, ref gameHistory, bargainingRoundIndex, currentPlayer, addPlayersOwnDecisionsToInformationSet);
                 CustomInformationSetManipulationBargainingToResolutionInformationSet(currentDecisionIndex, actionChosen, ref gameHistory, decisionByteCode);
             }
-            else if (decisionByteCode == (byte)MyGameDecisions.PAbandon || decisionByteCode == (byte)MyGameDecisions.DDefault)
-                CustomInformationSetManipulationBargainingToResolutionInformationSet(currentDecisionIndex, actionChosen, ref gameHistory, decisionByteCode);
+            //else if (decisionByteCode == (byte)MyGameDecisions.PAbandon || decisionByteCode == (byte)MyGameDecisions.DDefault)
+            //    CustomInformationSetManipulationBargainingToResolutionInformationSet(currentDecisionIndex, actionChosen, ref gameHistory, decisionByteCode);
         }
 
         private void CustomInformationSetManipulationOfferResponseBargaining(byte currentDecisionIndex, byte actionChosen,
@@ -502,7 +502,7 @@ namespace ACESim
         private void CustomInformationSetManipulationBargainingToResolutionInformationSet(byte currentDecisionIndex, byte actionChosen,
             ref GameHistory gameHistory, byte decisionByteCode)
         {
-            // This is called at the end of each round of bargaining 
+            // This is called at the end of each round of bargaining (but before abandon/default decisions)
             // Resolution information set. We need an information set that uniquely identifies each distinct resolution. The code above adds the court decision 
             // to the resolution set above, but still need two types of information. First, we need information about the quality of the case.
             // When we are using raw signals, then the court's decision is based on both the raw signal and the noise value that the court receives. Thus,
