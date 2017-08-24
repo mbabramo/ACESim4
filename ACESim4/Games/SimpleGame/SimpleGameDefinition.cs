@@ -62,7 +62,7 @@ namespace ACESim
         {
         }
 
-        public override bool ShouldMarkGameHistoryComplete(Decision currentDecision, GameHistory gameHistory)
+        public override bool ShouldMarkGameHistoryComplete(Decision currentDecision, GameHistory gameHistory, byte actionChosen)
         {
             if (!currentDecision.CanTerminateGame)
                 return false;

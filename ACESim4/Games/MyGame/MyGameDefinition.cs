@@ -52,19 +52,20 @@ namespace ACESim
             };
         }
 
-        MyGameProgress MyGP(GameProgress gp) => gp as MyGameProgress;
+        private MyGameProgress MyGP(GameProgress gp) => gp as MyGameProgress;
 
-        static string PlaintiffName = "P";
-        static string DefendantName = "D";
-        static string LitigationQualityChanceName = "QC";
-        static string PlaintiffSignalChanceName = "PSC";
-        static string DefendantSignalChanceName = "DSC";
-        static string CourtChanceName = "CC";
-        static string ResolutionPlayerName = "R";
+        private static string PlaintiffName = "P";
+        private static string DefendantName = "D";
+        private static string LitigationQualityChanceName = "QC";
+        private static string PlaintiffSignalChanceName = "PSC";
+        private static string DefendantSignalChanceName = "DSC";
+        private static string BothGiveUpChanceName = "GUC";
+        private static string CourtChanceName = "CC";
+        private static string ResolutionPlayerName = "R";
 
         private static List<PlayerInfo> GetPlayersList()
         {
-            // IMPORTANT: Chance players MUST be listed after other players.
+            // IMPORTANT: Chance players MUST be listed after other players. Resolution player should be listed last.
             return new List<PlayerInfo>
                 {
                     new PlayerInfo(PlaintiffName, (int) MyGamePlayers.Plaintiff, false, true),
@@ -72,6 +73,7 @@ namespace ACESim
                     new PlayerInfo(LitigationQualityChanceName, (int) MyGamePlayers.QualityChance, true, false),
                     new PlayerInfo(PlaintiffSignalChanceName, (int) MyGamePlayers.PSignalChance, true, false),
                     new PlayerInfo(DefendantSignalChanceName, (int) MyGamePlayers.DSignalChance, true, false),
+                    new PlayerInfo(BothGiveUpChanceName, (int) MyGamePlayers.BothGiveUpChance, true, false),
                     new PlayerInfo(CourtChanceName, (int) MyGamePlayers.CourtChance, true, false),
                     new PlayerInfo(ResolutionPlayerName, (int) MyGamePlayers.Resolution, true, false),
                 };
@@ -188,7 +190,7 @@ namespace ACESim
             decisions.Add(pFile);
 
             var dAnswer =
-                new Decision("DAnswer" + (b + 1), "DA" + (b + 1), (byte)MyGamePlayers.Defendant, new List<byte>() { (byte)MyGamePlayers.Resolution },
+                new Decision("DAnswer", "DA", (byte)MyGamePlayers.Defendant, new List<byte>() { (byte)MyGamePlayers.Resolution },
                     2, (byte)MyGameDecisions.DAnswer)
                 {
                     CanTerminateGame = true, // not answering terminates, with defendant paying full damages

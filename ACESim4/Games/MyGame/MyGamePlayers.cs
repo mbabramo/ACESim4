@@ -9,6 +9,7 @@ namespace ACESim
     public enum MyGamePlayers : byte
     {
         // NOTE: Chance players must be listed after real players, and Resolution player must be listed last.
+        // NOTE2: When adding players, also add in GetPlayersList.
         Plaintiff,
         Defendant,
         QualityChance,
@@ -16,6 +17,6 @@ namespace ACESim
         DSignalChance,
         BothGiveUpChance,
         CourtChance,
-        Resolution
+        Resolution // keep this last
     }
 }

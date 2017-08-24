@@ -61,9 +61,13 @@ namespace ACESim
                     break;
                 case (byte)MyGameDecisions.PFile:
                     MyProgress.PFiles = action == 1;
+                    if (MyProgress.PFiles)
+                        MyProgress.GameComplete = true;
                     break;
                 case (byte)MyGameDecisions.DAnswer:
                     MyProgress.DAnswers = action == 1;
+                    if (MyProgress.DAnswers)
+                        MyProgress.GameComplete = true;
                     break;
                 case (byte)MyGameDecisions.POffer:
                     double offer = GetOfferBasedOnAction(action, true);
@@ -94,12 +98,14 @@ namespace ACESim
                         MyProgress.PAbandons = MyProgress.PTriesAbandon;
                         MyProgress.DDefaults = MyProgress.DTriesDefault;
                         MyProgress.TrialOccurs = false;
+                        MyProgress.GameComplete = true;
                     }
                     break;
                 case (byte)MyGameDecisions.MutualGiveUp:
                     // both trying to give up simultaneously! revise with a coin flip
                     MyProgress.PAbandons = action == 1;
                     MyProgress.DDefaults = !MyProgress.PAbandons;
+                    MyProgress.GameComplete = true;
                     break;
                 case (byte)MyGameDecisions.CourtDecision:
                     MyProgress.TrialOccurs = true;
