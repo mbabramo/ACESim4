@@ -14,6 +14,7 @@ namespace ACESim
         public byte DSignalDiscrete;
         public double PSignalUniform;
         public double DSignalUniform;
+        public bool PFiles, DAnswers, PTriesAbandon, DTriesDefault, PAbandons, DDefaults;
         public int BargainingRoundsComplete;
         public List<double> POffers;
         public List<bool> PResponses;
@@ -36,7 +37,7 @@ namespace ACESim
         public override string ToString()
         {
             return
-                $"LitigationQualityDiscrete {LitigationQualityDiscrete} LitigationQualityUniform {LitigationQualityUniform} PSignalDiscrete {PSignalDiscrete} DSignalDiscrete {DSignalDiscrete} PSignalUniform {PSignalUniform} DSignalUniform {DSignalUniform} BargainingRoundsComplete {BargainingRoundsComplete} PLastOffer {PLastOffer} DLastOffer {DLastOffer} CaseSettles {CaseSettles} SettlementValue {SettlementValue} TrialOccurs {TrialOccurs} PWinsAtTrial {PWinsAtTrial} PFinalWealth {PFinalWealth} DFinalWealth {DFinalWealth} PWelfare {PWelfare} DWelfare {DWelfare}";
+                $"LitigationQualityDiscrete {LitigationQualityDiscrete} LitigationQualityUniform {LitigationQualityUniform} PSignalDiscrete {PSignalDiscrete} DSignalDiscrete {DSignalDiscrete} PSignalUniform {PSignalUniform} DSignalUniform {DSignalUniform} PFiles {PFiles} DAnswers {DAnswers} BargainingRoundsComplete {BargainingRoundsComplete} PLastOffer {PLastOffer} DLastOffer {DLastOffer} CaseSettles {CaseSettles} SettlementValue {SettlementValue} PAbandons {PAbandons} DDefaults {DDefaults} TrialOccurs {TrialOccurs} PWinsAtTrial {PWinsAtTrial} PFinalWealth {PFinalWealth} DFinalWealth {DFinalWealth} PWelfare {PWelfare} DWelfare {DWelfare}";
         }
 
         public double? PFirstOffer => (double?)POffers?.FirstOrDefault() ?? null;
@@ -134,6 +135,12 @@ namespace ACESim
             copy.DSignalDiscrete = DSignalDiscrete;
             copy.PSignalUniform = PSignalUniform;
             copy.DSignalUniform = DSignalUniform;
+            copy.PFiles = PFiles;
+            copy.DAnswers = DAnswers;
+            copy.PTriesAbandon = PTriesAbandon;
+            copy.DTriesDefault = DTriesDefault;
+            copy.PAbandons = PAbandons;
+            copy.DDefaults = DDefaults;
             copy.BargainingRoundsComplete = BargainingRoundsComplete;
             copy.POffers = POffers?.ToList();
             copy.DOffers = DOffers?.ToList();

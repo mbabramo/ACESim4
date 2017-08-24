@@ -278,7 +278,6 @@ namespace ACESim
                 {
                     CustomByte = (byte)(b + 1),
                     CanTerminateGame = false, // we always must look at whether D is defaulting too. 
-                    CustomInformationSetManipulationOnly = false 
                 };
             decisions.Add(pAbandon);
 
@@ -288,17 +287,16 @@ namespace ACESim
                 {
                     CustomByte = (byte)(b + 1),
                     CanTerminateGame = true, // if either but not both has given up, game terminates
-                    CustomInformationSetManipulationOnly = false 
                 };
             decisions.Add(dDefault);
 
             var bothGiveUp =
                 new Decision("MutualGiveUp" + (b + 1), "MGU" + (b + 1), (byte)MyGamePlayers.BothGiveUpChance, new List<byte>() { (byte)MyGamePlayers.Resolution },
-                    2, (byte)MyGameDecisions.DDefault, unevenChanceActions: false)
+                    2, (byte)MyGameDecisions.MutualGiveUp, unevenChanceActions: false)
                 {
                     CustomByte = (byte)(b + 1),
                     CanTerminateGame = true, // if this decision is needed, then both have given up, and the decision always terminates the game
-                    CustomInformationSetManipulationOnly = false 
+                    CriticalNode = true, // always play out both sides of this coin flip
                 };
             decisions.Add(dDefault);
         }

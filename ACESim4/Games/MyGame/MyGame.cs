@@ -23,73 +23,104 @@ namespace ACESim
 
         public override void UpdateGameProgressFollowingAction(byte currentDecisionByteCode, byte action)
         {
-            if (currentDecisionByteCode == (byte)MyGameDecisions.LitigationQuality)
+            switch (currentDecisionByteCode)
             {
-                MyProgress.PInitialWealth = MyDefinition.Options.PInitialWealth;
-                MyProgress.DInitialWealth = MyDefinition.Options.DInitialWealth;
-                MyProgress.DamagesAlleged = MyDefinition.Options.DamagesAlleged;
-                MyProgress.LitigationQualityDiscrete = action;
-                MyProgress.LitigationQualityUniform = ConvertActionToUniformDistributionDraw(action);
-                // If one or both parties have perfect information, then they can get their information about litigation quality now, since they don't need a signal. Note that we also specify in the game definition that the litigation quality should become part of their information set.
-                if (MyDefinition.Options.PNoiseStdev == 0)
-                    MyProgress.PSignalUniform = MyProgress.LitigationQualityUniform;
-                if (MyDefinition.Options.DNoiseStdev == 0)
-                    MyProgress.DSignalUniform = MyProgress.LitigationQualityUniform;
-            }
-            else if (currentDecisionByteCode == (byte)MyGameDecisions.PSignal)
-            {
-                if (MyDefinition.Options.UseRawSignals)
-                    MyDefinition.GetDiscreteSignal(MyProgress.LitigationQualityDiscrete, action, true,
-                        out MyProgress.PSignalDiscrete, out MyProgress.PSignalUniform);
-                else
-                    ConvertNoiseActionToDiscreteAndUniformSignal(action, MyDefinition.Options.UseRawSignals, MyProgress.LitigationQualityUniform, MyDefinition.Options.NumNoiseValues, MyDefinition.Options.PNoiseStdev, MyDefinition.Options.NumSignals, out MyProgress.PSignalDiscrete, out MyProgress.PSignalUniform);
-
-                //System.Diagnostics.Debug.WriteLine($"P: Quality {MyProgress.LitigationQualityUniform} Noise action {action} => signal {MyProgress.PSignalDiscrete} ({MyProgress.PSignalUniform})");
-            }
-            else if (currentDecisionByteCode == (byte)MyGameDecisions.DSignal)
-            {
-                if (MyDefinition.Options.UseRawSignals)
-                    MyDefinition.GetDiscreteSignal(MyProgress.LitigationQualityDiscrete, action, false, out MyProgress.DSignalDiscrete, out MyProgress.DSignalUniform);
-                else
-                    ConvertNoiseActionToDiscreteAndUniformSignal(action, MyDefinition.Options.UseRawSignals, MyProgress.LitigationQualityUniform, MyDefinition.Options.NumNoiseValues, MyDefinition.Options.DNoiseStdev, MyDefinition.Options.NumSignals, out MyProgress.DSignalDiscrete, out MyProgress.DSignalUniform);
-                //System.Diagnostics.Debug.WriteLine($"D: Quality {MyProgress.LitigationQualityUniform} Noise action {action} => signal {MyProgress.DSignalDiscrete} ({MyProgress.DSignalUniform})");
-            }
-            else if (currentDecisionByteCode == (byte)MyGameDecisions.POffer)
-            {
-                double offer = GetOfferBasedOnAction(action, true);
-                MyProgress.AddOffer(true, offer);
-                MyProgress.UpdateProgress(MyDefinition);
-            }
-            else if (currentDecisionByteCode == (byte)MyGameDecisions.DOffer)
-            {
-                double offer = GetOfferBasedOnAction(action, false);
-                MyProgress.AddOffer(false, offer);
-                MyProgress.UpdateProgress(MyDefinition);
-            }
-            else if (currentDecisionByteCode == (byte)MyGameDecisions.PResponse)
-            {
-                MyProgress.AddResponse(true, action == 1); // 1 == accept, 2 == reject
-                MyProgress.UpdateProgress(MyDefinition);
-            }
-            else if (currentDecisionByteCode == (byte)MyGameDecisions.DResponse)
-            {
-                MyProgress.AddResponse(false, action == 1); // 1 == accept, 2 == reject
-                MyProgress.UpdateProgress(MyDefinition);
-            }
-            else if (currentDecisionByteCode == (byte)MyGameDecisions.CourtDecision)
-            {
-                MyProgress.TrialOccurs = true;
-                if (MyDefinition.Options.UseRawSignals)
-                {
-                    double courtNoiseUniformDistribution = EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, MyDefinition.Options.NumSignals);
-                    double courtNoiseNormalDraw = InvNormal.Calculate(courtNoiseUniformDistribution) *
-                                                  MyDefinition.Options.CourtNoiseStdev;
-                    double courtSignal = MyProgress.LitigationQualityUniform + courtNoiseNormalDraw;
-                    MyProgress.PWinsAtTrial = courtSignal > 0.5; // we'll assume that P has burden of proof in case courtSignal is exactly equal to 0.5.
-                    //System.Diagnostics.Debug.WriteLine($"Quality {MyProgress.LitigationQualityUniform} Court noise action {action} => {courtNoiseNormalDraw} => signal {courtSignal} PWins {MyProgress.PWinsAtTrial}");
-                }
-                else // with processed signals, the probability of P winning is defined in MyGameDefinition; action 2 always means a plaintiff victory
-                    MyProgress.PWinsAtTrial = action == 2;
+                case (byte)MyGameDecisions.LitigationQuality:
+                    MyProgress.PInitialWealth = MyDefinition.Options.PInitialWealth;
+                    MyProgress.DInitialWealth = MyDefinition.Options.DInitialWealth;
+                    MyProgress.DamagesAlleged = MyDefinition.Options.DamagesAlleged;
+                    MyProgress.LitigationQualityDiscrete = action;
+                    MyProgress.LitigationQualityUniform = ConvertActionToUniformDistributionDraw(action);
+                    // If one or both parties have perfect information, then they can get their information about litigation quality now, since they don't need a signal. Note that we also specify in the game definition that the litigation quality should become part of their information set.
+                    if (MyDefinition.Options.PNoiseStdev == 0)
+                        MyProgress.PSignalUniform = MyProgress.LitigationQualityUniform;
+                    if (MyDefinition.Options.DNoiseStdev == 0)
+                        MyProgress.DSignalUniform = MyProgress.LitigationQualityUniform;
+                break;
+                case (byte)MyGameDecisions.PSignal:
+                    if (MyDefinition.Options.UseRawSignals)
+                        MyDefinition.GetDiscreteSignal(MyProgress.LitigationQualityDiscrete, action, true,
+                            out MyProgress.PSignalDiscrete, out MyProgress.PSignalUniform);
+                    else
+                        ConvertNoiseActionToDiscreteAndUniformSignal(action, MyDefinition.Options.UseRawSignals,
+                            MyProgress.LitigationQualityUniform, MyDefinition.Options.NumNoiseValues,
+                            MyDefinition.Options.PNoiseStdev, MyDefinition.Options.NumSignals,
+                            out MyProgress.PSignalDiscrete, out MyProgress.PSignalUniform);
+                    //System.Diagnostics.Debug.WriteLine($"P: Quality {MyProgress.LitigationQualityUniform} Noise action {action} => signal {MyProgress.PSignalDiscrete} ({MyProgress.PSignalUniform})");
+                break;
+                case (byte)MyGameDecisions.DSignal:
+                    if (MyDefinition.Options.UseRawSignals)
+                        MyDefinition.GetDiscreteSignal(MyProgress.LitigationQualityDiscrete, action, false,
+                            out MyProgress.DSignalDiscrete, out MyProgress.DSignalUniform);
+                    else
+                        ConvertNoiseActionToDiscreteAndUniformSignal(action, MyDefinition.Options.UseRawSignals,
+                            MyProgress.LitigationQualityUniform, MyDefinition.Options.NumNoiseValues,
+                            MyDefinition.Options.DNoiseStdev, MyDefinition.Options.NumSignals,
+                            out MyProgress.DSignalDiscrete, out MyProgress.DSignalUniform);
+                    //System.Diagnostics.Debug.WriteLine($"D: Quality {MyProgress.LitigationQualityUniform} Noise action {action} => signal {MyProgress.DSignalDiscrete} ({MyProgress.DSignalUniform})");
+                    break;
+                case (byte)MyGameDecisions.PFile:
+                    MyProgress.PFiles = action == 1;
+                    break;
+                case (byte)MyGameDecisions.DAnswer:
+                    MyProgress.DAnswers = action == 1;
+                    break;
+                case (byte)MyGameDecisions.POffer:
+                    double offer = GetOfferBasedOnAction(action, true);
+                    MyProgress.AddOffer(true, offer);
+                    MyProgress.UpdateProgress(MyDefinition);
+                break;
+                case (byte)MyGameDecisions.DOffer:
+                    offer = GetOfferBasedOnAction(action, false);
+                    MyProgress.AddOffer(false, offer);
+                    MyProgress.UpdateProgress(MyDefinition);
+                break;
+                case (byte)MyGameDecisions.PResponse:
+                    MyProgress.AddResponse(true, action == 1); // 1 == accept, 2 == reject
+                    MyProgress.UpdateProgress(MyDefinition);
+                break;
+                case (byte)MyGameDecisions.DResponse:
+                    MyProgress.AddResponse(false, action == 1); // 1 == accept, 2 == reject
+                    MyProgress.UpdateProgress(MyDefinition);
+                break;
+                case (byte)MyGameDecisions.PAbandon:
+                    MyProgress.PTriesAbandon = action == 1;
+                    break;
+                case (byte)MyGameDecisions.DDefault:
+                    MyProgress.DTriesDefault = action == 1;
+                    if (MyProgress.PTriesAbandon ^ MyProgress.DTriesDefault)
+                    {
+                        // exactly one party gives up
+                        MyProgress.PAbandons = MyProgress.PTriesAbandon;
+                        MyProgress.DDefaults = MyProgress.DTriesDefault;
+                        MyProgress.TrialOccurs = false;
+                    }
+                    break;
+                case (byte)MyGameDecisions.MutualGiveUp:
+                    // both trying to give up simultaneously! revise with a coin flip
+                    MyProgress.PAbandons = action == 1;
+                    MyProgress.DDefaults = !MyProgress.PAbandons;
+                    break;
+                case (byte)MyGameDecisions.CourtDecision:
+                    MyProgress.TrialOccurs = true;
+                    if (MyDefinition.Options.UseRawSignals)
+                    {
+                        double courtNoiseUniformDistribution =
+                            EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */,
+                                MyDefinition.Options.NumSignals);
+                        double courtNoiseNormalDraw = InvNormal.Calculate(courtNoiseUniformDistribution) *
+                                                        MyDefinition.Options.CourtNoiseStdev;
+                        double courtSignal = MyProgress.LitigationQualityUniform + courtNoiseNormalDraw;
+                        MyProgress.PWinsAtTrial =
+                            courtSignal >
+                            0.5; // we'll assume that P has burden of proof in case courtSignal is exactly equal to 0.5.
+                        //System.Diagnostics.Debug.WriteLine($"Quality {MyProgress.LitigationQualityUniform} Court noise action {action} => {courtNoiseNormalDraw} => signal {courtSignal} PWins {MyProgress.PWinsAtTrial}");
+                    }
+                    else // with processed signals, the probability of P winning is defined in MyGameDefinition; action 2 always means a plaintiff victory
+                        MyProgress.PWinsAtTrial = action == 2;
+                    break;
+                default:
+                    throw new NotImplementedException();
             }
         }
 
