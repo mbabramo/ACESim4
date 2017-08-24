@@ -166,15 +166,36 @@ namespace ACESim
             return offer;
         }
 
+        private byte GetDiscreteSignal(int action, double noiseStdev, DiscreteValueSignalParameters dvsp)
+        {
+            var noise = ConvertActionToNormalDistributionDraw(action, noiseStdev);
+            var valuePlusNoise = MyProgress.LitigationQualityUniform + noise;
+            byte discreteSignal = (byte)DiscreteValueSignal.GetDiscreteSignal(valuePlusNoise, dvsp); // note that this is a 1-based signal
+            return discreteSignal;
+        }
+
         public override void FinalProcessing()
         {
-            if (MyProgress.CaseSettles)
+            if (!MyProgress.PFiles || MyProgress.PAbandons)
+            {
+                MyProgress.PChangeWealth = MyProgress.DChangeWealth = 0;
+                MyProgress.TrialOccurs = false;
+            }
+            else if (!MyProgress.DAnswers || MyProgress.DDefaults)
+            { // defendant pays full damages (but no trial costs)
+                MyProgress.PChangeWealth += MyDefinition.Options.DamagesAlleged;
+                MyProgress.DChangeWealth -= MyDefinition.Options.DamagesAlleged;
+                MyProgress.TrialOccurs = false;
+            }
+            else if (MyProgress.CaseSettles)
             {
                 MyProgress.PChangeWealth = (double)MyProgress.SettlementValue;
                 MyProgress.DChangeWealth = 0 - (double)MyProgress.SettlementValue;
+                MyProgress.TrialOccurs = false;
             }
             else
             {
+                MyProgress.TrialOccurs = true;
                 MyProgress.PChangeWealth = (MyProgress.PWinsAtTrial ? MyProgress.DamagesAlleged : 0) - MyDefinition.Options.PTrialCosts;
                 MyProgress.DChangeWealth = (MyProgress.PWinsAtTrial ? -MyProgress.DamagesAlleged : 0) - MyDefinition.Options.DTrialCosts;
             }
@@ -188,14 +209,6 @@ namespace ACESim
             MyProgress.DWelfare =
                 MyDefinition.Options.DUtilityCalculator.GetSubjectiveUtilityForWealthLevel(MyProgress.DFinalWealth);
             base.FinalProcessing();
-        }
-
-        private byte GetDiscreteSignal(int action, double noiseStdev, DiscreteValueSignalParameters dvsp)
-        {
-            var noise = ConvertActionToNormalDistributionDraw(action, noiseStdev);
-            var valuePlusNoise = MyProgress.LitigationQualityUniform + noise;
-            byte discreteSignal = (byte)DiscreteValueSignal.GetDiscreteSignal(valuePlusNoise, dvsp); // note that this is a 1-based signal
-            return discreteSignal;
         }
     }
 }
