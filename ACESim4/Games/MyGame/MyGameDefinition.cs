@@ -88,9 +88,14 @@ namespace ACESim
         private List<Decision> GetDecisionsList()
         {
             var decisions = new List<Decision>();
+            AddFileAndAnswerDecisions(decisions);
             AddLitigationQualityAndSignalsDecisions(decisions);
             for (int b = 0; b < Options.NumBargainingRounds; b++)
+            {
                 AddDecisionsForBargainingRound(b, decisions);
+                if (Options.AllowAbandonAndDefaults)
+                    AddAbandonOrDefaultDecisions(b, decisions);
+            }
             AddCourtDecision(decisions);
             return decisions;
         }
@@ -171,6 +176,25 @@ namespace ACESim
                 }
             }
         }
+        
+        private void AddFileAndAnswerDecisions(List<Decision> decisions)
+        {
+            var pFile =
+                new Decision("PFile", "PF", (byte)MyGamePlayers.Plaintiff, new List<byte>() { (byte)MyGamePlayers.Resolution },
+                    2, (byte)MyGameDecisions.PFile)
+                {
+                    CanTerminateGame = true, // not filing always terminates
+                };
+            decisions.Add(pFile);
+
+            var dAnswer =
+                new Decision("DAnswer" + (b + 1), "DA" + (b + 1), (byte)MyGamePlayers.Defendant, new List<byte>() { (byte)MyGamePlayers.Resolution },
+                    2, (byte)MyGameDecisions.DAnswer)
+                {
+                    CanTerminateGame = true, // not answering terminates, with defendant paying full damages
+                };
+            decisions.Add(dAnswer);
+        }
 
         private void AddDecisionsForBargainingRound(int b, List<Decision> decisions)
         {
@@ -239,35 +263,13 @@ namespace ACESim
                         });
                 }
             }
-            if (Options.AllowAbandonAndDefaults)
-                AddAbandonOrDefaultDecisions(b, decisions);
         }
 
         private void AddOfferDecisionOrSubdivisions(List<Decision> decisions, Decision offerDecision)
         {
             AddPotentiallySubdividableDecision(decisions, offerDecision, Options.SubdivideOffers, (byte)MyGameDecisions.SubdividableOffer, 2, Options.NumOffers);
         }
-
-
-        private void AddFileAndAnswerDecisions(List<Decision> decisions)
-        {
-            var pFile =
-                new Decision("PFile", "PF", (byte)MyGamePlayers.Plaintiff, new List<byte>() { (byte)MyGamePlayers.Resolution },
-                    2, (byte)MyGameDecisions.PFile)
-                {
-                    CanTerminateGame = true, // not filing always terminates
-                };
-            decisions.Add(pFile);
-
-            var dAnswer =
-                new Decision("DAnswer" + (b + 1), "DA" + (b + 1), (byte)MyGamePlayers.Defendant, new List<byte>() { (byte)MyGamePlayers.Resolution },
-                    2, (byte)MyGameDecisions.DAnswer)
-                {
-                    CanTerminateGame = true, // not answering terminates, with defendant paying full damages
-                };
-            decisions.Add(dAnswer);
-        }
-
+        
         private void AddAbandonOrDefaultDecisions(int b, List<Decision> decisions)
         {
             var pAbandon =
