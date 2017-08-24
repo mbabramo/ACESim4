@@ -515,16 +515,17 @@ namespace ACESim
             // then we add the decision byte code and the action. If there are two items, or three when using raw signals then we add the decision byte code and 
             // the action. If there are three, or four in the case where we use raw signals, we delete everything and then there are zero, so
             // we respond accordingly. 
+            byte numberItemsForFileAnswer = 2;
             byte numberItemsDefiningLitigationQuality = Options.UseRawSignals ? (byte)1 : (byte)0;
-            byte numberItemsDefiningBargainingRound = 3;
+            byte numberItemsDefiningBargainingRound = Options.AllowAbandonAndDefaults ? (byte) 5 : (byte) 3;
             byte numItems = gameHistory.CountItemsInInformationSet((byte)MyGamePlayers.Resolution);
-            if (numItems == numberItemsDefiningLitigationQuality + numberItemsDefiningBargainingRound)
+            if (numItems == numberItemsForFileAnswer + numberItemsDefiningLitigationQuality + numberItemsDefiningBargainingRound)
             {
                 gameHistory.RemoveItemsInInformationSet((byte)MyGamePlayers.Resolution, currentDecisionIndex,
                     numberItemsDefiningBargainingRound);
-                numItems = numberItemsDefiningLitigationQuality;
+                numItems -= numberItemsDefiningBargainingRound;
             }
-            if (numItems == numberItemsDefiningLitigationQuality)
+            if (numItems == numberItemsForFileAnswer + numberItemsDefiningLitigationQuality)
             {
                 gameHistory.AddToInformationSet(currentDecisionIndex, currentDecisionIndex,
                     (byte)MyGamePlayers.Resolution); // in effect, just note the decision leading to resolution

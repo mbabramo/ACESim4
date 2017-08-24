@@ -352,7 +352,7 @@ namespace ACESim
         {
             if (!Initialized)
                 Initialize();
-            //Debug.WriteLine($"Adding information {information} following decision {followingDecision} for Player number {playerNumber}");
+            Debug.WriteLine($"Adding information {information} following decision {followingDecisionIndex} for Player number {playerNumber}"); // DEBUG
             if (playerNumber >= MaxNumPlayers)
                 throw new Exception("Invalid player index. Must increase MaxNumPlayers.");
             byte* playerPointer = informationSetsPtr + playerNumber * MaxInformationSetLengthPerPlayer;

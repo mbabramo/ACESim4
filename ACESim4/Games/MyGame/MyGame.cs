@@ -61,12 +61,12 @@ namespace ACESim
                     break;
                 case (byte)MyGameDecisions.PFile:
                     MyProgress.PFiles = action == 1;
-                    if (MyProgress.PFiles)
+                    if (!MyProgress.PFiles)
                         MyProgress.GameComplete = true;
                     break;
                 case (byte)MyGameDecisions.DAnswer:
                     MyProgress.DAnswers = action == 1;
-                    if (MyProgress.DAnswers)
+                    if (!MyProgress.DAnswers)
                         MyProgress.GameComplete = true;
                     break;
                 case (byte)MyGameDecisions.POffer:

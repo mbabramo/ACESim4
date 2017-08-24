@@ -26,6 +26,7 @@ namespace ACESim
                 PTrialCosts = 5000,
                 DTrialCosts = 5000,
                 PerPartyBargainingRoundCosts = 1000,
+                AllowAbandonAndDefaults = true,
                 DeltaOffersOptions = new DeltaOffersOptions()
                 {
                     SubsequentOffersAreDeltas = false,
@@ -61,6 +62,7 @@ namespace ACESim
                 PTrialCosts = 20000,
                 DTrialCosts = 20000,
                 PerPartyBargainingRoundCosts = 1000,
+                AllowAbandonAndDefaults = true,
                 DeltaOffersOptions = new DeltaOffersOptions()
                 {
                     SubsequentOffersAreDeltas = false,
@@ -97,6 +99,7 @@ namespace ACESim
                 PTrialCosts = 5000,
                 DTrialCosts = 5000,
                 PerPartyBargainingRoundCosts = 1000,
+                AllowAbandonAndDefaults = true,
                 DeltaOffersOptions = new DeltaOffersOptions()
                 {
                     SubsequentOffersAreDeltas = false,
@@ -133,6 +136,7 @@ namespace ACESim
                 PTrialCosts = 5000,
                 DTrialCosts = 5000,
                 PerPartyBargainingRoundCosts = 1000,
+                AllowAbandonAndDefaults = true,
                 DeltaOffersOptions = new DeltaOffersOptions()
                 {
                     SubsequentOffersAreDeltas = false,
@@ -170,6 +174,7 @@ namespace ACESim
                 PTrialCosts = 20000,
                 DTrialCosts = 20000,
                 PerPartyBargainingRoundCosts = 1000,
+                AllowAbandonAndDefaults = true,
                 DeltaOffersOptions = new DeltaOffersOptions()
                 {
                     SubsequentOffersAreDeltas = false,

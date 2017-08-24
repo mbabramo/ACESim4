@@ -59,6 +59,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="GamePlay\DefineActions.cs" />
     <Compile Include="GameSolvingAlgorithms\AbramowiczProbing.cs" />
     <Compile Include="GameSolvingAlgorithms\GibsonProbing.cs" />
     <Compile Include="GameSolvingSupport\ActionStrategies.cs" />
