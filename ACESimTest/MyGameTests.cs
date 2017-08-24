@@ -165,7 +165,7 @@ namespace ACESimTest
             return (String.Join(",", pInfo), String.Join(",", dInfo));
         }
 
-        private Func<Decision, GameProgress, byte> GetPlayerActions(bool pFiles, bool dAnswers, byte litigationQuality, byte pSignal, byte dSignal, List<(byte pMove, byte dMove)> bargainingRoundMoves, bool simultaneousBargainingRounds)
+        private Func<Decision, GameProgress, byte> GetPlayerActions(bool pFiles, bool dAnswers, byte litigationQuality, byte pSignal, byte dSignal, List<(byte pMove, byte dMove)> bargainingRoundMoves, bool simultaneousBargainingRounds, byte? pAbandonsRound = null, byte? dDefaultsRound = null, byte mutualGiveUpResult = 0, byte courtResult = 0)
         {
             var offers = new List<(byte decision, byte customInfo, byte action)>();
             for (byte b = 1; b <= bargainingRoundMoves.Count(); b++)
@@ -188,6 +188,8 @@ namespace ACESimTest
                         offers.Add(((byte)MyGameDecisions.PResponse, b, bargainingRoundMoves[b - 1].pMove));
                     }
                 }
+                offers.Add(((byte)MyGameDecisions.PAbandon, b, pAbandonsRound == b ? (byte)1 : (byte)2));
+                offers.Add(((byte)MyGameDecisions.DDefault, b, dDefaultsRound == b ? (byte)1 : (byte)2));
             }
             var actionsToPlay = DefineActions.ForTest(
                 new List<(byte decision, byte action)>()
@@ -197,12 +199,14 @@ namespace ACESimTest
                     ((byte) MyGameDecisions.LitigationQuality, litigationQuality),
                     ((byte) MyGameDecisions.PSignal, pSignal),
                     ((byte) MyGameDecisions.DSignal, dSignal),
+                    ((byte) MyGameDecisions.CourtDecision, courtResult),
                 },
                 offers
                 );
             return actionsToPlay;
         }
         
+        // DEBUG -- must add abandon + default scenarios (probably a whole separate test), also not file and not answer scenarios
 
         [TestMethod]
         public void SettlingCase()
@@ -244,16 +248,23 @@ namespace ACESimTest
             resolutionSet.Should().Be(expectedResolutionSet);
         }
 
+        [TestMethod]
         public void CaseTried()
         {
-            
+            foreach (bool allowAbandonAndDefaults in new bool[] { true, false })
+                foreach (bool forgetEarlierBargainingRounds in new bool[] { true, false })
+                    foreach (byte numBargainingRounds in new byte[] { 1, 2 })
+                        foreach (bool plaintiffWins in new bool[] { true, false })
+                            foreach (bool simultaneousBargainingRounds in new bool[] { true, false })
+                                CaseTried_Helper(allowAbandonAndDefaults, forgetEarlierBargainingRounds, numBargainingRounds, plaintiffWins, simultaneousBargainingRounds);
         }
 
-        private static void CaseTried_Helper(bool allowAbandonAndDefaults, bool forgetEarlierBargainingRounds, byte numBargainingRounds, bool plaintiffWins, bool simultaneousBargainingRounds)
+        private void CaseTried_Helper(bool allowAbandonAndDefaults, bool forgetEarlierBargainingRounds, byte numBargainingRounds, bool plaintiffWins, bool simultaneousBargainingRounds)
         {
-            var options = GetGameOptions(allowAbandonAndDefaults, numBargainingRounds, forgetEarlierBargainingRounds,
-                simultaneousBargainingRounds);
-            var myGameProgress = MyGameRunner.PlayMyGameOnce(options, plaintiffWins ? (Func<Decision,GameProgress,byte>) MyGameActionsGenerator.SettlementFails_PWins : (Func<Decision, GameProgress, byte>)MyGameActionsGenerator.SettlementFails_PLoses);
+            var options = GetGameOptions(allowAbandonAndDefaults, numBargainingRounds, forgetEarlierBargainingRounds, simultaneousBargainingRounds);
+            var bargainingMoves = GetBargainingRoundMoves(simultaneousBargainingRounds, numBargainingRounds, false);
+            var actions = GetPlayerActions(true, true, 1, 1, 1, bargainingMoves, simultaneousBargainingRounds);
+            var myGameProgress = MyGameRunner.PlayMyGameOnce(options, actions);
             myGameProgress.GameComplete.Should().BeTrue();
             double pFinalWealthExpected = options.PInitialWealth - options.PTrialCosts -
                               options.NumBargainingRounds * options.PerPartyBargainingRoundCosts;
@@ -268,12 +279,13 @@ namespace ACESimTest
             myGameProgress.DFinalWealth.Should().Be(dFinalWealthExpected);
             GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet,
                 out string resolutionSet);
-            string pOffers = !twoBargainingRounds ? ",5" : ",5,5";
-            string dOffers = !twoBargainingRounds ? ",1" : ",1,1";
-            pInformationSet.Should().Be("4" + (rememberOffers ? dOffers : "")); // p gets signal 4, d offers 1 twice
-            dInformationSet.Should().Be("2" + (rememberOffers ? pOffers : ""));
-            string lastPlaintiffOfferDecision = twoBargainingRounds ? "5," : "3,";
-            resolutionSet.Should().Be(lastPlaintiffOfferDecision + "5,1" + (plaintiffWins ? ",2" : ",1")); // still, only last round affects resolution set
+            var expectedPartyInformationSets = GetExpectedPartyInformationSets(1, 1, bargainingMoves,
+                forgetEarlierBargainingRounds, simultaneousBargainingRounds);
+            var expectedResolutionSet = ConstructExpectedResolutionSet(true, true, bargainingMoves,
+                simultaneousBargainingRounds, false, allowAbandonAndDefaults, false, false, false, true, plaintiffWins);
+            pInformationSet.Should().Be(expectedPartyInformationSets.pInformationSet);
+            dInformationSet.Should().Be(expectedPartyInformationSets.dInformationSet);
+            resolutionSet.Should().Be(expectedResolutionSet);
         }
 
         [TestMethod]
