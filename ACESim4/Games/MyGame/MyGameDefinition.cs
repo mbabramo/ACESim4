@@ -433,6 +433,8 @@ namespace ACESim
                     CustomInformationSetManipulationOfferResponseBargaining(currentDecisionIndex, actionChosen, ref gameHistory, bargainingRoundIndex, currentPlayer, addPlayersOwnDecisionsToInformationSet);
                 CustomInformationSetManipulationBargainingToResolutionInformationSet(currentDecisionIndex, actionChosen, ref gameHistory, decisionByteCode);
             }
+            else if (decisionByteCode == (byte)MyGameDecisions.PAbandon || decisionByteCode == (byte)MyGameDecisions.DDefault)
+                CustomInformationSetManipulationBargainingToResolutionInformationSet(currentDecisionIndex, actionChosen, ref gameHistory, decisionByteCode);
         }
 
         private void CustomInformationSetManipulationOfferResponseBargaining(byte currentDecisionIndex, byte actionChosen,
@@ -500,33 +502,37 @@ namespace ACESim
         private void CustomInformationSetManipulationBargainingToResolutionInformationSet(byte currentDecisionIndex, byte actionChosen,
             ref GameHistory gameHistory, byte decisionByteCode)
         {
-            // Resolution information set. We need an information set that uniquely identifies each distinct resolution. We have added the court decision 
-            // to the resolution set above, but still need two types of information. First, we need information about how we got to the court decision.
+            // This is called at the end of each round of bargaining 
+            // Resolution information set. We need an information set that uniquely identifies each distinct resolution. The code above adds the court decision 
+            // to the resolution set above, but still need two types of information. First, we need information about the quality of the case.
             // When we are using raw signals, then the court's decision is based on both the raw signal and the noise value that the court receives. Thus,
             // the court's action, by itself, doesn't tell us who won the litigation. Thus, when using raw signals, we need to know what the original litigation
             // quality was. However, if we are not using raw signals, then for tried cases, it is enough to know the court decision action, which tells
-            // us which party wins. Second, for settled cases, the resolution set must contain enough information to determine the settlement and its consequences.
+            // us which party wins. 
+            // Second, for settled cases, the resolution set must contain enough information to determine the settlement and its consequences.
             // We only need to put the LAST offer and response in the information set. This could, of course, be the first offer and response if it is accepted. 
             // We will also need information on the nature of the offer and response, since different bargaining rounds may have different structures,
             // and since the number of bargaining rounds that has occurred may affect the parties' payoffs.
             // For example, a response of 2 may mean something different if we have simultaneous bargaining or if plaintiff or defendant is responding.
             // So, we would like our resolution information set to have the decision number of the last offer (which may be the first of two simultaneous offers)
-            // and the actions of both players. Thus, if there is nothing in the resolution information set, or just one item in the case where we use raw signals,
-            // then we add the decision byte code and the action. If there are two items, or three when using raw signals then we add the decision byte code and 
-            // the action. If there are three, or four in the case where we use raw signals, we delete everything and then there are zero, so
-            // we respond accordingly. 
-            byte numberItemsForFileAnswer = 2;
+            // and the actions of both players. But this is only for settled cases.
+            // Third, for tried cases, we might as well keep the last round of bargaining. This will be useful sometimes (i.e., with settlement shootout), and
+            // there are a relatively small number of permutations, so it shouldn't take up too much memory or slow us down too much. One virtue of leaving the
+            // last round in is that we won't have to put in a special index for the court decision. Because we don't call this function when making a court decision,
+            // we won't be removing the last settlement round.
+            byte numberItemsForFileAndAnswerDecisions = 2;
             byte numberItemsDefiningLitigationQuality = Options.UseRawSignals ? (byte)1 : (byte)0;
-            byte numberItemsDefiningBargainingRound = Options.AllowAbandonAndDefaults ? (byte) 5 : (byte) 3;
+            byte numberItemsDefiningOffersResponses = 3; 
+            byte numberItemsDefiningBargainingRound = (byte) (numberItemsDefiningOffersResponses + (Options.AllowAbandonAndDefaults ? (byte) 2 : (byte) 0));
             byte numItems = gameHistory.CountItemsInInformationSet((byte)MyGamePlayers.Resolution);
-            if (numItems == numberItemsForFileAnswer + numberItemsDefiningLitigationQuality + numberItemsDefiningBargainingRound)
-            {
+            if (numItems == numberItemsForFileAndAnswerDecisions + numberItemsDefiningLitigationQuality + numberItemsDefiningBargainingRound)
+            { // the information set is full -- we must be on a LATER bargaining round. So let's delete this earlier one. 
                 gameHistory.RemoveItemsInInformationSet((byte)MyGamePlayers.Resolution, currentDecisionIndex,
                     numberItemsDefiningBargainingRound);
                 numItems -= numberItemsDefiningBargainingRound;
             }
-            if (numItems == numberItemsForFileAnswer + numberItemsDefiningLitigationQuality)
-            {
+            if (numItems == numberItemsForFileAndAnswerDecisions + numberItemsDefiningLitigationQuality)
+            { // we're just starting to fill in bargaining information. The first thing we're going to put in is the decision index (even though this will be redundantly stored in the information set), so that it's part of the chain that leads us to the resolution, and the resolution can thus take into account the decision index.
                 gameHistory.AddToInformationSet(currentDecisionIndex, currentDecisionIndex,
                     (byte)MyGamePlayers.Resolution); // in effect, just note the decision leading to resolution
                 numItems++;
