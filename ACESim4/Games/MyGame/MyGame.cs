@@ -16,8 +16,9 @@ namespace ACESim
 
         public override bool DecisionIsNeeded(Decision currentDecision)
         {
+            if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.MutualGiveUp)
             if (currentDecision.DecisionByteCode == (byte) MyGameDecisions.MutualGiveUp)
-                return MyProgress.PTriesAbandon && MyProgress.DTriesDefault;
+                return MyProgress.PReadyToAbandon && MyProgress.DReadyToAbandon;
             if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.CourtDecision)
                 return !MyProgress.CaseSettles;
             return true;
@@ -90,15 +91,15 @@ namespace ACESim
                     MyProgress.UpdateProgress(MyDefinition);
                 break;
                 case (byte)MyGameDecisions.PAbandon:
-                    MyProgress.PTriesAbandon = action == 1;
+                    MyProgress.PReadyToAbandon = action == 1;
                     break;
                 case (byte)MyGameDecisions.DDefault:
-                    MyProgress.DTriesDefault = action == 1;
-                    if (MyProgress.PTriesAbandon ^ MyProgress.DTriesDefault)
+                    MyProgress.DReadyToAbandon = action == 1;
+                    if (MyProgress.PReadyToAbandon ^ MyProgress.DReadyToAbandon)
                     {
                         // exactly one party gives up
-                        MyProgress.PAbandons = MyProgress.PTriesAbandon;
-                        MyProgress.DDefaults = MyProgress.DTriesDefault;
+                        MyProgress.PAbandons = MyProgress.PReadyToAbandon;
+                        MyProgress.DDefaults = MyProgress.DReadyToAbandon;
                         MyProgress.TrialOccurs = false;
                         MyProgress.GameComplete = true;
                     }

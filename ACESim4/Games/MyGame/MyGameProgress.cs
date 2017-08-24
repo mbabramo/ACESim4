@@ -14,7 +14,7 @@ namespace ACESim
         public byte DSignalDiscrete;
         public double PSignalUniform;
         public double DSignalUniform;
-        public bool PFiles, DAnswers, PTriesAbandon, DTriesDefault, PAbandons, DDefaults;
+        public bool PFiles, DAnswers, PReadyToAbandon, DReadyToAbandon, PAbandons, DDefaults;
         public int BargainingRoundsComplete;
         public List<double> POffers;
         public List<bool> PResponses;
@@ -137,8 +137,8 @@ namespace ACESim
             copy.DSignalUniform = DSignalUniform;
             copy.PFiles = PFiles;
             copy.DAnswers = DAnswers;
-            copy.PTriesAbandon = PTriesAbandon;
-            copy.DTriesDefault = DTriesDefault;
+            copy.PReadyToAbandon = PReadyToAbandon;
+            copy.DReadyToAbandon = DReadyToAbandon;
             copy.PAbandons = PAbandons;
             copy.DDefaults = DDefaults;
             copy.BargainingRoundsComplete = BargainingRoundsComplete;
