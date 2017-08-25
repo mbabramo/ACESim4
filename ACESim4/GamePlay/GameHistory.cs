@@ -269,6 +269,22 @@ namespace ACESim
             GetItems(History_Action_Offset, actions);
         }
 
+        public unsafe void GetActionsWithBlanksForSkippedDecisions(byte* actions)
+        {
+            if (!Initialized)
+                Initialize();
+            int d = 0;
+            if (LastIndexAddedToHistory != 0)
+                for (short i = 0; i < LastIndexAddedToHistory; i += History_NumPiecesOfInformation)
+                {
+                    byte decisionIndex = GetHistoryIndex(i + History_DecisionIndex_Offset);
+                    while (d != decisionIndex)
+                        actions[d++] = 0;
+                    actions[d++] = GetHistoryIndex(i + History_Action_Offset);
+                }
+            actions[d] = HistoryTerminator;
+        }
+
         public List<byte> GetActionsAsList()
         {
             byte* actions = stackalloc byte[MaxNumActions];
@@ -507,19 +523,31 @@ namespace ACESim
             int? lastDecisionInNextPath = GetIndexOfLastDecisionWithAnotherAction(gameDefinition) ?? -1; // negative number symbolizes that there is nothing else to do
             int indexInNewDecisionPath = 0, indexInCurrentActions = 0;
             byte* currentActions = stackalloc byte[MaxNumActions];
-            GetActions(currentActions);
+            GetActionsWithBlanksForSkippedDecisions(currentActions);
+            var DEBUG = Util.ListExtensions.GetPointerAsList_255Terminated(currentActions);
             while (indexInNewDecisionPath <= lastDecisionInNextPath)
             {
-                bool another = currentActions[indexInCurrentActions] != InformationSetTerminator;
-                if (!another)
-                    throw new Exception("Internal error. Expected another decision to exist.");
-                if (indexInNewDecisionPath == lastDecisionInNextPath)
-                    nextDecisionPath[indexInNewDecisionPath] = (byte)(currentActions[indexInCurrentActions] + (byte)1); // this is the decision where we need to try the next path
+                byte currentAction = currentActions[indexInCurrentActions];
+                if (currentAction == 0)
+                {
+                    indexInCurrentActions++;
+                    lastDecisionInNextPath--;
+                }
                 else
-                    nextDecisionPath[indexInNewDecisionPath] = currentActions[indexInCurrentActions]; // we're still on the same path
-                
-                indexInCurrentActions++;
-                indexInNewDecisionPath++;
+                {
+                    bool another = currentAction != InformationSetTerminator;
+                    if (!another)
+                        throw new Exception("Internal error. Expected another decision to exist.");
+                    if (indexInNewDecisionPath == lastDecisionInNextPath)
+                        nextDecisionPath[indexInNewDecisionPath] =
+                            (byte) (currentAction +
+                                    (byte) 1); // this is the decision where we need to try the next path
+                    else
+                        nextDecisionPath[indexInNewDecisionPath] = currentAction; // we're still on the same path
+
+                    indexInCurrentActions++;
+                    indexInNewDecisionPath++;
+                }
             }
             nextDecisionPath[indexInNewDecisionPath] = InformationSetTerminator;
         }
