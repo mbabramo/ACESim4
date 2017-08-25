@@ -45,12 +45,12 @@ namespace ACESim
                     {
                         MyDefinition.ConvertNoiseToSignal(MyProgress.LitigationQualityDiscrete, action, true,
                             out MyProgress.PSignalDiscrete, out MyProgress.PSignalUniform);
-                        //System.Diagnostics.Debug.WriteLine($"P: Quality {MyProgress.LitigationQualityUniform} Noise action {action} => signal {MyProgress.PSignalDiscrete} ({MyProgress.PSignalUniform})");
+                        System.Diagnostics.Debug.WriteLine($"P: Quality {MyProgress.LitigationQualityUniform} Noise action {action} => signal {MyProgress.PSignalDiscrete} ({MyProgress.PSignalUniform})");
                     }
                     else
                     {
                         MyProgress.PSignalDiscrete = action;
-                        EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */,
+                        MyProgress.PSignalUniform = EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */,
                             MyDefinition.Options.NumSignals);
                     }
                 break;
@@ -64,7 +64,7 @@ namespace ACESim
                     else
                     {
                         MyProgress.DSignalDiscrete = action;
-                        EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */,
+                        MyProgress.DSignalUniform = EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */,
                             MyDefinition.Options.NumSignals);
                     }
                     break;

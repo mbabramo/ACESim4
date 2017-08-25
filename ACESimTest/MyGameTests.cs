@@ -235,25 +235,40 @@ namespace ACESimTest
         [TestMethod]
         public void CaseGivenUp()
         {
+            // settings
             for (byte numPotentialBargainingRounds = 1; numPotentialBargainingRounds <= 3; numPotentialBargainingRounds++)
-                for (byte abandonmentInRound = 1; abandonmentInRound <= numPotentialBargainingRounds; abandonmentInRound++)
-                    foreach (bool forgetEarlierBargainingRounds in new bool[] { true, false })
-                        foreach (bool simultaneousBargainingRounds in new bool[] { true, false })
-                            foreach (bool actionIsNoiseNotSignal in new bool[] { true, false }) 
-                                foreach (bool plaintiffGivesUp in new bool[] { true, false })
-                                    foreach (bool defendantGivesUp in new bool[] { true, false })
-                                        foreach (bool plaintiffWinsIfBothGiveUp in new bool[] {true, false})
-                                        {
-                                            if (!plaintiffGivesUp && !defendantGivesUp)
-                                                continue; // not interested in this case
-                                            if ((!plaintiffGivesUp || !defendantGivesUp) && !plaintiffWinsIfBothGiveUp)
-                                                continue; // only need to test both values of plaintiff wins if both give up if both give up.
-                                            CaseGivenUp_Helper(numPotentialBargainingRounds, abandonmentInRound, forgetEarlierBargainingRounds,
-                                                simultaneousBargainingRounds, actionIsNoiseNotSignal, (byte)LitigationQuality, pReadyToAbandonRound: plaintiffGivesUp ? (byte?)abandonmentInRound : (byte?)null, dReadyToDefaultRound: defendantGivesUp ? (byte?)abandonmentInRound : (byte?)null, mutualGiveUpResult: plaintiffWinsIfBothGiveUp ? (byte)2 : (byte)1);
-                                        }
+                foreach (bool forgetEarlierBargainingRounds in new bool[] { true, false })
+                foreach (bool simultaneousBargainingRounds in new bool[] { true, false })
+                foreach (bool actionIsNoiseNotSignal in new bool[] {true, false})
+                {
+                    CaseGivenUpVariousActions(numPotentialBargainingRounds, forgetEarlierBargainingRounds, simultaneousBargainingRounds, actionIsNoiseNotSignal);
+                }
         }
 
-        public void CaseGivenUp_Helper(byte numPotentialBargainingRounds, byte? abandonmentInRound, bool forgetEarlierBargainingRounds, bool simultaneousBargainingRounds, bool actionIsNoiseNotSignal, byte litigationQuality, byte? pReadyToAbandonRound = null, byte? dReadyToDefaultRound = null, byte mutualGiveUpResult = 0)
+        private void CaseGivenUpVariousActions(byte numPotentialBargainingRounds, bool forgetEarlierBargainingRounds,
+            bool simultaneousBargainingRounds, bool actionIsNoiseNotSignal)
+        {
+            for (byte abandonmentInRound = 1;
+                abandonmentInRound <= numPotentialBargainingRounds;
+                abandonmentInRound++)
+                foreach (bool plaintiffGivesUp in new bool[] {true, false})
+                foreach (bool defendantGivesUp in new bool[] {true, false})
+                foreach (bool plaintiffWinsIfBothGiveUp in new bool[] {true, false})
+                {
+                    if (!plaintiffGivesUp && !defendantGivesUp)
+                        continue; // not interested in this case
+                    if ((!plaintiffGivesUp || !defendantGivesUp) && !plaintiffWinsIfBothGiveUp)
+                        continue; // only need to test both values of plaintiff wins if both give up if both give up.
+                    CaseGivenUp_SpecificSettingsAndActions(numPotentialBargainingRounds, abandonmentInRound,
+                        forgetEarlierBargainingRounds,
+                        simultaneousBargainingRounds, actionIsNoiseNotSignal, (byte) LitigationQuality,
+                        pReadyToAbandonRound: plaintiffGivesUp ? (byte?) abandonmentInRound : (byte?) null,
+                        dReadyToDefaultRound: defendantGivesUp ? (byte?) abandonmentInRound : (byte?) null,
+                        mutualGiveUpResult: plaintiffWinsIfBothGiveUp ? (byte) 2 : (byte) 1);
+                }
+        }
+
+        public void CaseGivenUp_SpecificSettingsAndActions(byte numPotentialBargainingRounds, byte? abandonmentInRound, bool forgetEarlierBargainingRounds, bool simultaneousBargainingRounds, bool actionIsNoiseNotSignal, byte litigationQuality, byte? pReadyToAbandonRound = null, byte? dReadyToDefaultRound = null, byte mutualGiveUpResult = 0)
         {
             var bargainingRoundMoves = GetBargainingRoundMoves(simultaneousBargainingRounds,
                 abandonmentInRound ?? numPotentialBargainingRounds, false);
@@ -293,12 +308,12 @@ namespace ACESimTest
         public void SettlingCase()
         {
             for (byte numPotentialBargainingRounds = 1; numPotentialBargainingRounds <= 3; numPotentialBargainingRounds++)
+                foreach (bool forgetEarlierBargainingRounds in new bool[] { true, false })
+                foreach (bool simultaneousBargainingRounds in new bool[] { true, false })
+                foreach (bool allowAbandonAndDefault in new bool[] { true, false })
+                foreach (bool actionIsNoiseNotSignal in new bool[] { true, false })
                 for (byte settlementInRound = 1; settlementInRound <= numPotentialBargainingRounds; settlementInRound++)
-                    foreach (bool forgetEarlierBargainingRounds in new bool[] { true, false })
-                        foreach (bool simultaneousBargainingRounds in new bool[] { true, false })
-                            foreach (bool allowAbandonAndDefault in new bool[] { true, false })
-                                foreach (bool actionIsNoiseNotSignal in new bool[] { true, false })
-                                    SettlingCase_Helper(numPotentialBargainingRounds, settlementInRound, forgetEarlierBargainingRounds, simultaneousBargainingRounds, allowAbandonAndDefault, actionIsNoiseNotSignal);
+                    SettlingCase_Helper(numPotentialBargainingRounds, settlementInRound, forgetEarlierBargainingRounds, simultaneousBargainingRounds, allowAbandonAndDefault, actionIsNoiseNotSignal);
         }
 
         public void SettlingCase_Helper(byte numPotentialBargainingRounds, byte? settlementInRound, bool forgetEarlierBargainingRounds, bool simultaneousBargainingRounds, bool allowAbandonAndDefault, bool actionIsNoiseNotSignal)

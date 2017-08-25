@@ -26,8 +26,8 @@ namespace ACESim
         public static void EvolveMyGame()
         {
             MyGameDefinition gameDefinition = new MyGameDefinition();
-            var options = MyGameOptionsGenerator.FourBargainingRounds_PerfectInformation();
-            //var options = MyGameOptionsGenerator.TwoSimultaneousBargainingRounds(); // processed signals
+            //var options = MyGameOptionsGenerator.FourBargainingRounds_PerfectInformation();
+            var options = MyGameOptionsGenerator.SingleBargainingRound(); // processed signals
             //var options = MyGameOptionsGenerator.UsingRawSignals_10Points_1Round();
             gameDefinition.Setup(options);
             List<Strategy> starterStrategies = Strategy.GetStarterStrategies(gameDefinition);
