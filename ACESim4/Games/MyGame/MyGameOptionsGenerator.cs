@@ -58,12 +58,12 @@ namespace ACESim
                 NumSignals = 10,
                 NumNoiseValues = 10,
                 NumOffers = 10,
-                PNoiseStdev = 0.10,
-                DNoiseStdev = 0.10,
+                PNoiseStdev = 0.15,
+                DNoiseStdev = 0.15,
                 PTrialCosts = 30000,
                 DTrialCosts = 30000,
                 PerPartyBargainingRoundCosts = 1000,
-                AllowAbandonAndDefaults = true,
+                AllowAbandonAndDefaults = false,
                 DeltaOffersOptions = new DeltaOffersOptions()
                 {
                     SubsequentOffersAreDeltas = false,

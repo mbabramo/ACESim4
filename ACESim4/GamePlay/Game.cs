@@ -111,10 +111,6 @@ namespace ACESim
             }
             else if (DecisionNeeded)
             {
-                if (CurrentDecision.DecisionByteCode == 12)
-                {
-                    var DEBUG = 0;
-                }
                 byte action = ChooseAction();
                 byte numPossibleActions = CurrentDecision.NumPossibleActions;
                 if (Progress.IsFinalGamePath && action < numPossibleActions)

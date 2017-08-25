@@ -12,6 +12,7 @@ namespace ACESim
         PNoiseOrSignal, // meaning depends on ActionIsNoiseNotSignal option
         DNoiseOrSignal, // meaning depends on ActionIsNoiseNotSignal option
         PFile, // 1 = yes, 2 = no
+        DEBUG,
         DAnswer, // 1 = yes, 2 = no
         POffer,
         DOffer,

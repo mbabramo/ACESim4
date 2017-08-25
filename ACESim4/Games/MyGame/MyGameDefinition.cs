@@ -71,6 +71,7 @@ namespace ACESim
                     new PlayerInfo(PlaintiffName, (int) MyGamePlayers.Plaintiff, false, true),
                     new PlayerInfo(DefendantName, (int) MyGamePlayers.Defendant, false, true),
                     new PlayerInfo(LitigationQualityChanceName, (int) MyGamePlayers.QualityChance, true, false),
+                    new PlayerInfo("DEBUG", (int) MyGamePlayers.DEBUGChance, true, false),
                     new PlayerInfo(PlaintiffNoiseOrSignalChanceName, (int) MyGamePlayers.PNoiseOrSignalChance, true, false),
                     new PlayerInfo(DefendantNoiseOrSignalChanceName, (int) MyGamePlayers.DNoiseOrSignalChance, true, false),
                     new PlayerInfo(BothGiveUpChanceName, (int) MyGamePlayers.BothGiveUpChance, true, false),
@@ -209,6 +210,8 @@ namespace ACESim
                     CanTerminateGame = true, // not filing always terminates
                 };
             decisions.Add(pFile);
+
+            decisions.Add(new Decision("DEBUG", "DB", (byte)MyGamePlayers.DEBUGChance, null, 2, (byte)MyGameDecisions.DEBUG));
 
             var dAnswer =
                 new Decision("DAnswer", "DA", (byte)MyGamePlayers.Defendant, new List<byte>() { (byte)MyGamePlayers.Resolution },
