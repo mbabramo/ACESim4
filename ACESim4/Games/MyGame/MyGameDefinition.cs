@@ -71,7 +71,6 @@ namespace ACESim
                     new PlayerInfo(PlaintiffName, (int) MyGamePlayers.Plaintiff, false, true),
                     new PlayerInfo(DefendantName, (int) MyGamePlayers.Defendant, false, true),
                     new PlayerInfo(LitigationQualityChanceName, (int) MyGamePlayers.QualityChance, true, false),
-                    new PlayerInfo("DEBUG", (int) MyGamePlayers.DEBUGChance, true, false),
                     new PlayerInfo(PlaintiffNoiseOrSignalChanceName, (int) MyGamePlayers.PNoiseOrSignalChance, true, false),
                     new PlayerInfo(DefendantNoiseOrSignalChanceName, (int) MyGamePlayers.DNoiseOrSignalChance, true, false),
                     new PlayerInfo(BothGiveUpChanceName, (int) MyGamePlayers.BothGiveUpChance, true, false),
@@ -122,7 +121,6 @@ namespace ACESim
             LitigationQualityDecisionIndex = (byte)decisions.Count();
             decisions.Add(new Decision("LitigationQuality", "Qual", (byte) MyGamePlayers.QualityChance,
                 playersKnowingLitigationQuality, Options.NumLitigationQualityPoints, (byte) MyGameDecisions.LitigationQuality));
-            decisions.Add(new Decision("DEBUG", "DB", (byte)MyGamePlayers.DEBUGChance, null, 2, (byte)MyGameDecisions.DEBUG));
             // Plaintiff and defendant signals. If a player has perfect information, then no signal is needed.
             bool
                 partyReceivesDirectSignal =
@@ -380,8 +378,6 @@ namespace ACESim
 
         public override bool SkipDecision(Decision decision, GameHistory gameHistory)
         {
-            if (decision.DecisionByteCode == (byte) MyGameDecisions.DEBUG)
-                return true;
             if (decision.DecisionByteCode == (byte) MyGameDecisions.MutualGiveUp)
             {
                 var priorActions = gameHistory.GetLastActionAndActionBeforeThat();

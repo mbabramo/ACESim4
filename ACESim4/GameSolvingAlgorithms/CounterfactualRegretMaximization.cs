@@ -165,7 +165,7 @@ namespace ACESim
             // First, add the utilities at the end of the tree for this path.
             byte* actions = stackalloc byte[GameHistory.MaxNumActions];
             gameProgress.GameHistory.GetActions(actions);
-            var actionsAsList = ListExtensions.GetPointerAsList_255Terminated(actions); // DEBUG
+            //var actionsAsList = ListExtensions.GetPointerAsList_255Terminated(actions);
 
             // Go through each non-chance decision point on this path and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
 
@@ -176,7 +176,7 @@ namespace ACESim
                 //var informationSetHistoryString = informationSetHistory.ToString();
                 historyPoint.SetInformationIfNotSet(Navigation, gameProgress, informationSetHistory);
                 historyPoint = historyPoint.GetBranch(Navigation, informationSetHistory.ActionChosen);
-                var actionsToHere = historyPoint.GetActionsToHereString(Navigation); // DEBUG
+                // var actionsToHere = historyPoint.GetActionsToHereString(Navigation); 
             }
             historyPoint.SetFinalUtilitiesAtPoint(Navigation, gameProgress);
             //var checkMatch1 = (FinalUtilities) historyPoint.GetGameStateForCurrentPlayer(Navigation);

@@ -233,9 +233,6 @@ namespace ACESimTest
             return actionsToPlay;
         }
 
-        // DEBUG -- must add abandon + default scenarios (probably a whole separate test), also not file and not answer scenarios
-
-
         [TestMethod]
         public void CaseGivenUp()
         {

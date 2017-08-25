@@ -205,8 +205,6 @@ namespace ACESim
             //Debug.WriteLine($"Yielded: {numYielded} {numYielded2}");
         }
 
-        static int DEBUGCount = 0;
-
         public unsafe (GameProgress progress, IEnumerable<byte> next) PlayPath(IEnumerable<byte> actionsToPlay, bool getNextPath)
         {
             byte* actionsToPlay_AsPointer = stackalloc byte[GameHistory.MaxNumActions];
@@ -217,7 +215,6 @@ namespace ACESim
             byte* nextActionsToPlay = stackalloc byte[GameHistory.MaxNumActions];
             if (!getNextPath)
                 nextActionsToPlay = null;
-            DEBUGCount++;
             GameProgress progress = PlayPathAndKeepGoing(actionsToPlay_AsPointer, ref nextActionsToPlay);
             if (nextActionsToPlay == null)
                 return (progress, null);

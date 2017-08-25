@@ -12,7 +12,6 @@ namespace ACESim
         // NOTE2: When adding players, also add in GetPlayersList.
         Plaintiff,
         Defendant,
-        DEBUGChance,
         QualityChance,
         PNoiseOrSignalChance,
         DNoiseOrSignalChance,

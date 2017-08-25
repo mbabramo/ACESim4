@@ -368,7 +368,7 @@ namespace ACESim
         {
             if (!Initialized)
                 Initialize();
-            //Debug.WriteLine($"Adding information {information} following decision {followingDecisionIndex} for Player number {playerNumber}"); // DEBUG
+            //Debug.WriteLine($"Adding information {information} following decision {followingDecisionIndex} for Player number {playerNumber}"); 
             if (playerNumber >= MaxNumPlayers)
                 throw new Exception("Invalid player index. Must increase MaxNumPlayers.");
             byte* playerPointer = informationSetsPtr + playerNumber * MaxInformationSetLengthPerPlayer;
@@ -524,7 +524,7 @@ namespace ACESim
             int indexInNewDecisionPath = 0, indexInCurrentActions = 0;
             byte* currentActions = stackalloc byte[MaxNumActions];
             GetActionsWithBlanksForSkippedDecisions(currentActions);
-            var DEBUG = Util.ListExtensions.GetPointerAsList_255Terminated(currentActions);
+            //var currentActionsList = Util.ListExtensions.GetPointerAsList_255Terminated(currentActions);
             while (indexInNewDecisionPath <= lastDecisionInNextPath)
             {
                 byte currentAction = currentActions[indexInCurrentActions];
