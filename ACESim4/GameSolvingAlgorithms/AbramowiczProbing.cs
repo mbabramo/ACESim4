@@ -120,6 +120,7 @@ namespace ACESim
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction);
                 if (TraceProbingCFR)
                     TabbedText.Tabs++;
+                var DEBUG = nextHistoryPoint.GetActionsToHereString(Navigation);
                 double walkTreeValue = AbramowiczProbe_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ,
                     randomProducer, isExploratoryIteration);
                 if (TraceProbingCFR)

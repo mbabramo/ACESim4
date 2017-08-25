@@ -107,7 +107,7 @@ namespace ACESim
             Decision currentDecision = CurrentDecision;
             if (PreparationPhase)
             {
-                DecisionNeeded = DecisionIsNeeded(currentDecision);
+                DecisionNeeded = DecisionIsNeeded(currentDecision, Progress);
             }
             else if (DecisionNeeded)
             {
@@ -156,9 +156,9 @@ namespace ACESim
             return aggregatedAction; // should be ignored when this is not the current decision.
         }
 
-        public virtual bool DecisionIsNeeded(Decision currentDecision)
+        public virtual bool DecisionIsNeeded(Decision currentDecision, GameProgress gameProgress)
         {
-            return true;
+            return !GameDefinition.SkipDecision(currentDecision, gameProgress.GameHistory);
         }
 
         public unsafe virtual byte ChooseAction()

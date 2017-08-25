@@ -381,11 +381,23 @@ namespace ACESim
             if (gameHistory.IsComplete())
                 return (null, 255);
             byte? lastDecisionIndex = gameHistory.LastDecisionIndex();
-            byte nextDecisionIndex = 0;
-            if (lastDecisionIndex != null)
-                nextDecisionIndex = (byte) (((byte) lastDecisionIndex) + (byte)1);
-            return (DecisionsExecutionOrder[nextDecisionIndex], nextDecisionIndex);
+            if (lastDecisionIndex == null)
+                return (DecisionsExecutionOrder[0], 0); // note: first decision is not skippable
+            byte nextDecisionIndex = (byte) lastDecisionIndex;
+            Decision theDecision;
+            do
+            {
+                nextDecisionIndex++;
+                theDecision = DecisionsExecutionOrder[nextDecisionIndex];
+            } while (SkipDecision(theDecision, gameHistory));
+            return (theDecision, nextDecisionIndex);
         }
+
+        public virtual bool SkipDecision(Decision decision, GameHistory gameHistory)
+        {
+            return false;
+        }
+
         public virtual List<SimpleReportDefinition> GetSimpleReportDefinitions()
         {
             return new List<SimpleReportDefinition>();

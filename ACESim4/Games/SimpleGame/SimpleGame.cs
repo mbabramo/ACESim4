@@ -14,11 +14,6 @@ namespace ACESim
         public SimpleGameDefinition MyDefinition => (SimpleGameDefinition)GameDefinition;
         public SimpleGameProgress MyProgress => (SimpleGameProgress)Progress;
 
-        public override bool DecisionIsNeeded(Decision currentDecision)
-        {
-            return true;
-        }
-
         public override void UpdateGameProgressFollowingAction(byte currentDecisionByteCode, byte action)
         {
             if (currentDecisionByteCode == (byte)SimpleGameDecisions.P1Decision)

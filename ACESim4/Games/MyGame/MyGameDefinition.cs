@@ -122,6 +122,7 @@ namespace ACESim
             LitigationQualityDecisionIndex = (byte)decisions.Count();
             decisions.Add(new Decision("LitigationQuality", "Qual", (byte) MyGamePlayers.QualityChance,
                 playersKnowingLitigationQuality, Options.NumLitigationQualityPoints, (byte) MyGameDecisions.LitigationQuality));
+            decisions.Add(new Decision("DEBUG", "DB", (byte)MyGamePlayers.DEBUGChance, null, 2, (byte)MyGameDecisions.DEBUG));
             // Plaintiff and defendant signals. If a player has perfect information, then no signal is needed.
             bool
                 partyReceivesDirectSignal =
@@ -210,8 +211,6 @@ namespace ACESim
                     CanTerminateGame = true, // not filing always terminates
                 };
             decisions.Add(pFile);
-
-            decisions.Add(new Decision("DEBUG", "DB", (byte)MyGamePlayers.DEBUGChance, null, 2, (byte)MyGameDecisions.DEBUG));
 
             var dAnswer =
                 new Decision("DAnswer", "DA", (byte)MyGamePlayers.Defendant, new List<byte>() { (byte)MyGamePlayers.Resolution },
@@ -377,6 +376,18 @@ namespace ACESim
             }
             else
                 throw new NotImplementedException(); // subclass should define if needed
+        }
+
+        public override bool SkipDecision(Decision decision, GameHistory gameHistory)
+        {
+            if (decision.DecisionByteCode == (byte) MyGameDecisions.DEBUG)
+                return true;
+            if (decision.DecisionByteCode == (byte) MyGameDecisions.MutualGiveUp)
+            {
+                var priorActions = gameHistory.GetLastActionAndActionBeforeThat();
+                return priorActions.mostRecentAction == 1 && priorActions.actionBeforeThat == 1;
+            }
+            return false;
         }
 
         public override bool ShouldMarkGameHistoryComplete(Decision currentDecision, GameHistory gameHistory, byte actionChosen)

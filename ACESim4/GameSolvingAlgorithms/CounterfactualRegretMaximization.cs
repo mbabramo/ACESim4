@@ -163,9 +163,9 @@ namespace ACESim
         {
             
             // First, add the utilities at the end of the tree for this path.
-            byte* actionsEnumerator = stackalloc byte[GameHistory.MaxNumActions];
-            gameProgress.GameHistory.GetActions(actionsEnumerator);
-            //var actionsAsList = ListExtensions.GetPointerAsList_255Terminated(actionsEnumerator);
+            byte* actions = stackalloc byte[GameHistory.MaxNumActions];
+            gameProgress.GameHistory.GetActions(actions);
+            var actionsAsList = ListExtensions.GetPointerAsList_255Terminated(actions); // DEBUG
 
             // Go through each non-chance decision point on this path and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
 

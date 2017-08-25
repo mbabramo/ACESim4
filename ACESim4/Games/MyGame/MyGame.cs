@@ -14,17 +14,6 @@ namespace ACESim
         public MyGameDefinition MyDefinition => (MyGameDefinition)GameDefinition;
         public MyGameProgress MyProgress => (MyGameProgress)Progress;
 
-        public override bool DecisionIsNeeded(Decision currentDecision)
-        {
-            if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.DEBUG)
-                return false;
-            if (currentDecision.DecisionByteCode == (byte) MyGameDecisions.MutualGiveUp)
-                return MyProgress.PReadyToAbandon && MyProgress.DReadyToAbandon;
-            if (currentDecision.DecisionByteCode == (byte)MyGameDecisions.CourtDecision)
-                return !MyProgress.CaseSettles;
-            return true;
-        }
-
         public override void UpdateGameProgressFollowingAction(byte currentDecisionByteCode, byte action)
         {
             switch (currentDecisionByteCode)
