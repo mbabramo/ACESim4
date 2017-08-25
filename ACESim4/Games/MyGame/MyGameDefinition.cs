@@ -381,7 +381,9 @@ namespace ACESim
             if (decision.DecisionByteCode == (byte) MyGameDecisions.MutualGiveUp)
             {
                 var priorActions = gameHistory.GetLastActionAndActionBeforeThat();
-                return priorActions.mostRecentAction == 1 && priorActions.actionBeforeThat == 1;
+                bool pTryingToGiveUp = priorActions.actionBeforeThat == 1;
+                bool dTryingToGiveUp = priorActions.mostRecentAction == 1;
+                return !pTryingToGiveUp || !dTryingToGiveUp; // if anyone is NOT trying to give up, we don't have to deal with mutual giving up
             }
             return false;
         }

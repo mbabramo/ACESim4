@@ -43,7 +43,7 @@ namespace ACESim
                 ReportEveryNIterations = 10_000,
                 NumRandomIterationsForSummaryTable = 500,
                 PrintSummaryTable = true,
-                OverrideForAlternativeTable = MyGameActionsGenerator.NoOneSettles,
+                OverrideForAlternativeTable = MyGameActionsGenerator.PDoesntGiveUp,
                 PrintInformationSets = false,
                 RestrictToTheseInformationSets = null, // new List<int>() {16},
                 PrintGameTree = false,

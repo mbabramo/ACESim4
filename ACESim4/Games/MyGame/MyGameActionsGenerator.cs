@@ -13,9 +13,26 @@ namespace ACESim
             MyGameProgress p = (MyGameProgress)progress;
                 if (decision.DecisionByteCode == (byte)MyGameDecisions.POffer)
                     return 10;
-            else
-                if (decision.DecisionByteCode == (byte)MyGameDecisions.DOffer)
+            else if (decision.DecisionByteCode == (byte)MyGameDecisions.DOffer)
                     return 1;
+            return 0;
+        }
+
+        public static byte NoOneGivesUp(Decision decision, GameProgress progress)
+        {
+            MyGameProgress p = (MyGameProgress)progress;
+            if (decision.DecisionByteCode == (byte)MyGameDecisions.PAbandon)
+                return 2;
+            else if (decision.DecisionByteCode == (byte)MyGameDecisions.DDefault)
+                return 2;
+            return 0;
+        }
+
+        public static byte PDoesntGiveUp(Decision decision, GameProgress progress)
+        {
+            MyGameProgress p = (MyGameProgress)progress;
+            if (decision.DecisionByteCode == (byte)MyGameDecisions.PAbandon)
+                return 2;
             return 0;
         }
 
