@@ -38,6 +38,7 @@ namespace ACESim
                 new SimpleReportColumnVariable("ValIfSettled", (GameProgress gp) => MyGP(gp).SettlementValue),
                 new SimpleReportColumnFilter("PAbandons", (GameProgress gp) => MyGP(gp).PAbandons, false),
                 new SimpleReportColumnFilter("DDefaults", (GameProgress gp) => MyGP(gp).DDefaults, false),
+                new SimpleReportColumnFilter("BothReadyToGiveUp", (GameProgress gp) => MyGP(gp).BothReadyToGiveUp, false),
                 new SimpleReportColumnFilter("Trial", (GameProgress gp) => MyGP(gp).TrialOccurs, false),
                 new SimpleReportColumnFilter("PWins", (GameProgress gp) => MyGP(gp).SettlementValue == null && MyGP(gp).PWinsAtTrial == true, false),
                 new SimpleReportColumnFilter("DWins", (GameProgress gp) => MyGP(gp).SettlementValue == null && MyGP(gp).PWinsAtTrial == false, false),

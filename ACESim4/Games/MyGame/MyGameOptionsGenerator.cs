@@ -58,10 +58,10 @@ namespace ACESim
                 NumSignals = 10,
                 NumNoiseValues = 10,
                 NumOffers = 10,
-                PNoiseStdev = 0.15,
-                DNoiseStdev = 0.15,
-                PTrialCosts = 5000,
-                DTrialCosts = 5000,
+                PNoiseStdev = 0.1,
+                DNoiseStdev = 0.1,
+                PTrialCosts = 15000,
+                DTrialCosts = 15000,
                 PerPartyBargainingRoundCosts = 1000,
                 AllowAbandonAndDefaults = true,
                 DeltaOffersOptions = new DeltaOffersOptions()
@@ -70,7 +70,7 @@ namespace ACESim
                     DeltaStartingValue = 0.01,
                     MaxDelta = 0.25
                 },
-                NumBargainingRounds = 1,
+                NumBargainingRounds = 4,
                 ForgetEarlierBargainingRounds = true,
                 SubdivideOffers = false,
                 BargainingRoundsSimultaneous = true,

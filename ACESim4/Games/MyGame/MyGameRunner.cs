@@ -34,16 +34,16 @@ namespace ACESim
             EvolutionSettings evolutionSettings = new EvolutionSettings()
             {
                 MaxParallelDepth = 2,
-                ParallelOptimization = false,
+                ParallelOptimization = true,
 
                 InitialRandomSeed = 31,
 
                 Algorithm = GameApproximationAlgorithm.AbramowiczProbing,
 
-                ReportEveryNIterations = 10_000,
+                ReportEveryNIterations = 100_000,
                 NumRandomIterationsForSummaryTable = 500,
                 PrintSummaryTable = true,
-                OverrideForAlternativeTable = MyGameActionsGenerator.PDoesntGiveUp,
+                OverrideForAlternativeTable = null, // MyGameActionsGenerator.PDoesntGiveUp,
                 PrintInformationSets = false,
                 RestrictToTheseInformationSets = null, // new List<int>() {16},
                 PrintGameTree = false,

@@ -102,6 +102,7 @@ namespace ACESim
                     break;
                 case (byte)MyGameDecisions.MutualGiveUp:
                     // both trying to give up simultaneously! revise with a coin flip
+                    MyProgress.BothReadyToGiveUp = true;
                     MyProgress.PAbandons = action == 1;
                     MyProgress.DDefaults = !MyProgress.PAbandons;
                     MyProgress.GameComplete = true;
