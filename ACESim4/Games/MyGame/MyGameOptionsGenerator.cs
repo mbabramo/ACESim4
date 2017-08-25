@@ -60,10 +60,10 @@ namespace ACESim
                 NumOffers = 10,
                 PNoiseStdev = 0.10,
                 DNoiseStdev = 0.10,
-                PTrialCosts = 25000,
-                DTrialCosts = 25000,
+                PTrialCosts = 30000,
+                DTrialCosts = 30000,
                 PerPartyBargainingRoundCosts = 1000,
-                AllowAbandonAndDefaults = false,
+                AllowAbandonAndDefaults = true,
                 DeltaOffersOptions = new DeltaOffersOptions()
                 {
                     SubsequentOffersAreDeltas = false,

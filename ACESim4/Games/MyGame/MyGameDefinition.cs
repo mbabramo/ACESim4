@@ -90,8 +90,8 @@ namespace ACESim
         private List<Decision> GetDecisionsList()
         {
             var decisions = new List<Decision>();
-            AddFileAndAnswerDecisions(decisions);
             AddLitigationQualityAndSignalsDecisions(decisions);
+            AddFileAndAnswerDecisions(decisions);
             for (int b = 0; b < Options.NumBargainingRounds; b++)
             {
                 AddDecisionsForBargainingRound(b, decisions);

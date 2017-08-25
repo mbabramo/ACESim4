@@ -8,6 +8,17 @@ namespace ACESim
 {
     public static class MyGameActionsGenerator
     {
+        public static byte NoOneSettles(Decision decision, GameProgress progress)
+        {
+            MyGameProgress p = (MyGameProgress)progress;
+                if (decision.DecisionByteCode == (byte)MyGameDecisions.POffer)
+                    return 10;
+            else
+                if (decision.DecisionByteCode == (byte)MyGameDecisions.DOffer)
+                    return 1;
+            return 0;
+        }
+
         public static byte PlaintiffShouldOffer10IfReceivingAtLeastSignal9(Decision decision, GameProgress progress)
         {
             MyGameProgress p = (MyGameProgress) progress;
@@ -29,6 +40,25 @@ namespace ACESim
             MyGameProgress p = (MyGameProgress)progress;
             if (decision.DecisionByteCode == (byte)MyGameDecisions.POffer)
                 return decision.NumPossibleActions;
+            return 0;
+        }
+
+
+        public static byte PlaintiffGivesUp(Decision decision, GameProgress progress)
+        {
+            MyGameProgress p = (MyGameProgress)progress;
+            if (decision.DecisionByteCode == (byte) MyGameDecisions.PAbandon)
+                return 1;
+            return 0;
+        }
+
+        public static byte PlaintiffDoesntSettleThenGivesUp(Decision decision, GameProgress progress)
+        {
+            MyGameProgress p = (MyGameProgress)progress;
+            if (decision.DecisionByteCode == (byte)MyGameDecisions.POffer)
+                return decision.NumPossibleActions;
+            if (decision.DecisionByteCode == (byte)MyGameDecisions.PAbandon)
+                return 1;
             return 0;
         }
 

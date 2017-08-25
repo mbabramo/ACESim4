@@ -27,7 +27,7 @@ namespace ACESim
         bool ShouldEstimateImprovementOverTime = false;
         const int NumRandomGamePlaysForEstimatingImprovement = 1000;
 
-        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
+        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameTreeOnly; // DEBUG
         bool AllowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => (AllowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)) && EvolutionSettings.Algorithm != GameApproximationAlgorithm.PureStrategyFinder;
 
@@ -137,6 +137,7 @@ namespace ACESim
 
         public unsafe void Initialize()
         {
+            GameDefinition.PrintOutOrderingInformation();
             Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, GetGameState);
             foreach (Strategy strategy in Strategies)
                 strategy.Navigation = Navigation;
@@ -176,13 +177,18 @@ namespace ACESim
                 //var informationSetHistoryString = informationSetHistory.ToString();
                 historyPoint.SetInformationIfNotSet(Navigation, gameProgress, informationSetHistory);
                 historyPoint = historyPoint.GetBranch(Navigation, informationSetHistory.ActionChosen);
-                //var actionsToHere = historyPoint.GetActionsToHereString(Navigation);
+                var actionsToHere = historyPoint.GetActionsToHereString(Navigation); // DEBUG
             }
             historyPoint.SetFinalUtilitiesAtPoint(Navigation, gameProgress);
             //var checkMatch1 = (FinalUtilities) historyPoint.GetGameStateForCurrentPlayer(Navigation);
             //var checkMatch2 = gameProgress.GetNonChancePlayerUtilities();
             //if (!checkMatch2.SequenceEqual(checkMatch1.Utilities))
             //    throw new Exception(); // could it be that something is not in the resolution set that should be?
+            //var playAgain = false;
+            //if (playAgain)
+            //{
+            //    MyGameProgress p = (MyGameProgress) GamePlayer.PlayPathAndStop(historyPoint.GetActionsToHere(Navigation));
+            //}
         }
 
         public IGameState GetGameState(HistoryPoint_CachedGameHistoryOnly historyPoint, HistoryNavigationInfo? navigation = null)

@@ -283,6 +283,10 @@ namespace ACESim
                             if (playerInfo.PlayerIsChance)
                             {
                                 ChanceNodeSettings chanceNodeSettings;
+                                if (informationSetHistory.DecisionByteCode == 12)
+                                {
+                                    var DEBUG = 0;
+                                }
                                 if (decision.UnevenChanceActions)
                                     chanceNodeSettings = new ChanceNodeSettingsUnequalProbabilities()
                                     {

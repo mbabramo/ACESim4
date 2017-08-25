@@ -13,6 +13,10 @@ namespace ACESim
 
         public override double GetActionProbability(int action)
         {
+            if (DecisionByteCode == 12)
+            {
+                var DEBUG = 0;
+            }
             return Probabilities[action - 1];
         }
 

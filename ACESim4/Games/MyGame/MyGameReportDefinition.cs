@@ -28,6 +28,8 @@ namespace ACESim
             {
                 new SimpleReportColumnFilter("All", (GameProgress gp) => true, true),
                 new SimpleReportColumnVariable("LitigQuality", (GameProgress gp) => MyGP(gp).LitigationQualityUniform),
+                new SimpleReportColumnFilter("PFiles", (GameProgress gp) => MyGP(gp).PFiles, false),
+                new SimpleReportColumnFilter("DAnswers", (GameProgress gp) => MyGP(gp).DAnswers, false),
                 new SimpleReportColumnVariable("PFirstOffer", (GameProgress gp) => MyGP(gp).PFirstOffer),
                 new SimpleReportColumnVariable("DFirstOffer", (GameProgress gp) => MyGP(gp).DFirstOffer),
                 new SimpleReportColumnVariable("PLastOffer", (GameProgress gp) => MyGP(gp).PLastOffer),
@@ -36,6 +38,8 @@ namespace ACESim
                 new SimpleReportColumnVariable("ValIfSettled", (GameProgress gp) => MyGP(gp).SettlementValue),
                 new SimpleReportColumnVariable("PWelfare", (GameProgress gp) => MyGP(gp).PWelfare),
                 new SimpleReportColumnVariable("DWelfare", (GameProgress gp) => MyGP(gp).DWelfare),
+                new SimpleReportColumnFilter("PAbandons", (GameProgress gp) => MyGP(gp).PAbandons, false),
+                new SimpleReportColumnFilter("DDefaults", (GameProgress gp) => MyGP(gp).DDefaults, false),
                 new SimpleReportColumnFilter("PWins", (GameProgress gp) => MyGP(gp).SettlementValue == null && MyGP(gp).PWinsAtTrial == true, false),
                 new SimpleReportColumnFilter("DWins", (GameProgress gp) => MyGP(gp).SettlementValue == null && MyGP(gp).PWinsAtTrial == false, false),
             };
@@ -54,6 +58,7 @@ namespace ACESim
                 new List<SimpleReportFilter>()
                 {
                     new SimpleReportFilter("All", (GameProgress gp) => true),
+                    new SimpleReportFilter("Litigated", (GameProgress gp) => MyGP(gp).PFiles && MyGP(gp).DAnswers),
                     new SimpleReportFilter("Settles", (GameProgress gp) => MyGP(gp).CaseSettles),
                     new SimpleReportFilter("Tried", (GameProgress gp) => !MyGP(gp).CaseSettles),
                     new SimpleReportFilter("LowQuality",

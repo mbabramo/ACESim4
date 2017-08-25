@@ -111,6 +111,10 @@ namespace ACESim
             }
             else if (DecisionNeeded)
             {
+                if (CurrentDecision.DecisionByteCode == 12)
+                {
+                    var DEBUG = 0;
+                }
                 byte action = ChooseAction();
                 byte numPossibleActions = CurrentDecision.NumPossibleActions;
                 if (Progress.IsFinalGamePath && action < numPossibleActions)
@@ -174,11 +178,24 @@ namespace ACESim
             }
             bool anotherActionPlanned = Progress.ActionsToPlay_MoveNext();
             if (anotherActionPlanned)
+            {
                 actionToChoose = Progress.ActionsToPlay_CurrentAction;
+                Debug.WriteLine($"Decision byte code {CurrentDecision.DecisionByteCode} (index {CurrentDecisionIndex}) ==> {actionToChoose}"); // DEBUG
+            }
             else if (ChooseDefaultActionIfNoneChosen)
-                actionToChoose = 1; // The history does not give us guidance, so we play the first available decision. When the game is complete, we can figure out the next possible game history and play that one (which may go to completion or not). 
+            {
+                actionToChoose =
+                    1; // The history does not give us guidance, so we play the first available decision. When the game is complete, we can figure out the next possible game history and play that one (which may go to completion or not). 
+                Debug.WriteLine(
+                    $"Decision byte code {CurrentDecision.DecisionByteCode} (index {CurrentDecisionIndex}) ==> default {actionToChoose}"); // DEBUG
+            }
             else
-                actionToChoose = CurrentPlayerStrategy.ChooseActionBasedOnRandomNumber(Progress, Progress.IterationID.GetRandomNumberBasedOnIterationID((byte)CurrentDecisionIndex), CurrentDecision.NumPossibleActions);
+            {
+                actionToChoose = CurrentPlayerStrategy.ChooseActionBasedOnRandomNumber(Progress,
+                    Progress.IterationID.GetRandomNumberBasedOnIterationID((byte) CurrentDecisionIndex),
+                    CurrentDecision.NumPossibleActions);
+                Debug.WriteLine($"Decision byte code {CurrentDecision.DecisionByteCode} (index {CurrentDecisionIndex}) ==> randomly chosen {actionToChoose}"); // DEBUG
+            }
 
             return actionToChoose;
         }
