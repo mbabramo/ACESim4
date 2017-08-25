@@ -13,8 +13,8 @@ namespace ACESim
         Plaintiff,
         Defendant,
         QualityChance,
-        PSignalChance,
-        DSignalChance,
+        PNoiseOrSignalChance,
+        DNoiseOrSignalChance,
         BothGiveUpChance,
         CourtChance,
         Resolution // keep this last

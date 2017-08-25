@@ -40,27 +40,33 @@ namespace ACESim
                     if (MyDefinition.Options.DNoiseStdev == 0)
                         MyProgress.DSignalUniform = MyProgress.LitigationQualityUniform;
                 break;
-                case (byte)MyGameDecisions.PSignal:
-                    if (MyDefinition.Options.UseRawSignals)
-                        MyDefinition.GetDiscreteSignal(MyProgress.LitigationQualityDiscrete, action, true,
+                case (byte)MyGameDecisions.PNoiseOrSignal:
+                    if (MyDefinition.Options.ActionIsNoiseNotSignal)
+                    {
+                        MyDefinition.ConvertNoiseToSignal(MyProgress.LitigationQualityDiscrete, action, true,
                             out MyProgress.PSignalDiscrete, out MyProgress.PSignalUniform);
+                        //System.Diagnostics.Debug.WriteLine($"P: Quality {MyProgress.LitigationQualityUniform} Noise action {action} => signal {MyProgress.PSignalDiscrete} ({MyProgress.PSignalUniform})");
+                    }
                     else
-                        ConvertNoiseActionToDiscreteAndUniformSignal(action, MyDefinition.Options.UseRawSignals,
-                            MyProgress.LitigationQualityUniform, MyDefinition.Options.NumNoiseValues,
-                            MyDefinition.Options.PNoiseStdev, MyDefinition.Options.NumSignals,
-                            out MyProgress.PSignalDiscrete, out MyProgress.PSignalUniform);
-                    //System.Diagnostics.Debug.WriteLine($"P: Quality {MyProgress.LitigationQualityUniform} Noise action {action} => signal {MyProgress.PSignalDiscrete} ({MyProgress.PSignalUniform})");
+                    {
+                        MyProgress.PSignalDiscrete = action;
+                        EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */,
+                            MyDefinition.Options.NumSignals);
+                    }
                 break;
-                case (byte)MyGameDecisions.DSignal:
-                    if (MyDefinition.Options.UseRawSignals)
-                        MyDefinition.GetDiscreteSignal(MyProgress.LitigationQualityDiscrete, action, false,
+                case (byte)MyGameDecisions.DNoiseOrSignal:
+                    if (MyDefinition.Options.ActionIsNoiseNotSignal)
+                    {
+                        MyDefinition.ConvertNoiseToSignal(MyProgress.LitigationQualityDiscrete, action, false,
                             out MyProgress.DSignalDiscrete, out MyProgress.DSignalUniform);
+                        //System.Diagnostics.Debug.WriteLine($"D: Quality {MyProgress.LitigationQualityUniform} Noise action {action} => signal {MyProgress.DSignalDiscrete} ({MyProgress.DSignalUniform})");
+                    }
                     else
-                        ConvertNoiseActionToDiscreteAndUniformSignal(action, MyDefinition.Options.UseRawSignals,
-                            MyProgress.LitigationQualityUniform, MyDefinition.Options.NumNoiseValues,
-                            MyDefinition.Options.DNoiseStdev, MyDefinition.Options.NumSignals,
-                            out MyProgress.DSignalDiscrete, out MyProgress.DSignalUniform);
-                    //System.Diagnostics.Debug.WriteLine($"D: Quality {MyProgress.LitigationQualityUniform} Noise action {action} => signal {MyProgress.DSignalDiscrete} ({MyProgress.DSignalUniform})");
+                    {
+                        MyProgress.DSignalDiscrete = action;
+                        EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */,
+                            MyDefinition.Options.NumSignals);
+                    }
                     break;
                 case (byte)MyGameDecisions.PFile:
                     MyProgress.PFiles = action == 1;
@@ -112,7 +118,7 @@ namespace ACESim
                     break;
                 case (byte)MyGameDecisions.CourtDecision:
                     MyProgress.TrialOccurs = true;
-                    if (MyDefinition.Options.UseRawSignals)
+                    if (MyDefinition.Options.ActionIsNoiseNotSignal)
                     {
                         double courtNoiseUniformDistribution =
                             EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */,
@@ -133,30 +139,19 @@ namespace ACESim
             }
         }
 
-        public static void ConvertNoiseActionToDiscreteAndUniformSignal(byte action, bool useRawSignals, double trueValue, byte numNoiseValues, double noiseStdev, byte numSignals, out byte discreteSignal, out double uniformSignal)
+        public static void ConvertNoiseActionToDiscreteAndUniformSignal(byte action, double trueValue, byte numNoiseValues, double noiseStdev, byte numSignals, out byte discreteSignal, out double uniformSignal)
         {
-            if (useRawSignals)
-            {
-                // This is an equal probabilities decision. 
-                discreteSignal = DiscreteValueSignal.GetRawSignal(trueValue, action, numNoiseValues, noiseStdev, numSignals);
-                if (discreteSignal == 1)
-                    uniformSignal = -1.0; // just a sign indicating that the signal is negative
-                else if (discreteSignal == numSignals)
-                    uniformSignal = 2.0; // again, just a sign that it's out of range
-                else
-                    uniformSignal = EquallySpaced.GetLocationOfEquallySpacedPoint(
-                        discreteSignal -
-                        2 /* make it zero-based, but also account for the fact that we have a signal for values less than 0 */,
-                        numSignals - 2);
-            }
+            // This is an equal probabilities decision. 
+            discreteSignal = DiscreteValueSignal.ConvertNoiseToSignal(trueValue, action, numNoiseValues, noiseStdev, numSignals);
+            if (discreteSignal == 1)
+                uniformSignal = -1.0; // just a sign indicating that the signal is negative
+            else if (discreteSignal == numSignals)
+                uniformSignal = 2.0; // again, just a sign that it's out of range
             else
-            {
-                // Note: This is an unequal probabilities chance decision. The action IS the discrete signal. The game definition must then calculates the probability that we would get this signal, given the uniform distribution draw. In other words, this is like a weighted die, where the die is heavily weighted toward signal values that are close to the litigation quality values.
-                discreteSignal = action;
-                uniformSignal =
-                    EquallySpaced.GetLocationOfEquallySpacedPoint(
-                        discreteSignal - 1 /* make it zero-based */, numSignals);
-            }
+                uniformSignal = EquallySpaced.GetLocationOfEquallySpacedPoint(
+                    discreteSignal -
+                    2 /* make it zero-based, but also account for the fact that we have a signal for values less than 0 */,
+                    numSignals - 2);
         }
 
         private double GetOfferBasedOnAction(byte action, bool plaintiffOffer)

@@ -9,8 +9,8 @@ namespace ACESim
     public enum MyGameDecisions : byte
     {
         LitigationQuality,
-        PSignal,
-        DSignal,
+        PNoiseOrSignal, // meaning depends on ActionIsNoiseNotSignal option
+        DNoiseOrSignal, // meaning depends on ActionIsNoiseNotSignal option
         PFile, // 1 = yes, 2 = no
         DAnswer, // 1 = yes, 2 = no
         POffer,

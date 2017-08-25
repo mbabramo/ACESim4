@@ -100,7 +100,7 @@ namespace ACESim
                 if (plaintiffMakesOffer)
                 {
                     byte j = (byte) (i + 1);
-                    if (Options.UseRawSignals)
+                    if (Options.ActionIsNoiseNotSignal)
                         rowFilters.Add(new SimpleReportFilter(
                         $"PSignal {j}",
                         (GameProgress gp) => MyGP(gp).PSignalDiscrete == j));
@@ -113,7 +113,7 @@ namespace ACESim
                 else
                 {
                     byte j = (byte)(i + 1);
-                    if (Options.UseRawSignals)
+                    if (Options.ActionIsNoiseNotSignal)
                         rowFilters.Add(new SimpleReportFilter(
                             $"DSignal {j}",
                             (GameProgress gp) => MyGP(gp).DSignalDiscrete == j));

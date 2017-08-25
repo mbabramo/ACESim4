@@ -21,10 +21,12 @@ namespace ACESimTest
             resolutionSet = myGameProgress.GameHistory.GetPlayerInformationString((byte)MyGamePlayers.Resolution, null);
         }
 
-        private const double PartyNoise = 0.1, InitialWealth = 1_000_000, DamagesAlleged = 100_000, TrialCosts = 5000, PerRoundBargainingCost = 1000;
-        private const int NumDistinctPoints = 5;
+        private const double PartyNoise = 0.2, InitialWealth = 1_000_000, DamagesAlleged = 100_000, TrialCosts = 5000, PerRoundBargainingCost = 1000;
+        private const byte NumDistinctPoints = 5;
+        private const byte LitigationQuality = 3;
+        private const byte PSignalOrNoise = 5, DSignalOrNoise = 1; 
 
-        private MyGameOptions GetGameOptions(bool allowAbandonAndDefaults, byte numBargainingRounds, bool forgetEarlierBargainingRounds, bool simultaneousBargainingRounds, bool useRawSignals)
+        private MyGameOptions GetGameOptions(bool allowAbandonAndDefaults, byte numBargainingRounds, bool forgetEarlierBargainingRounds, bool simultaneousBargainingRounds, bool actionIsNoiseNotSignal)
         {
             var options = new MyGameOptions()
             {
@@ -35,9 +37,10 @@ namespace ACESimTest
                 NumSignals = NumDistinctPoints,
                 NumOffers = NumDistinctPoints,
                 NumNoiseValues = NumDistinctPoints,
-                UseRawSignals = useRawSignals,
+                ActionIsNoiseNotSignal = actionIsNoiseNotSignal,
                 PNoiseStdev = PartyNoise,
                 DNoiseStdev = PartyNoise,
+                CourtNoiseStdev = 0.5,
                 PTrialCosts = TrialCosts,
                 DTrialCosts = TrialCosts,
                 PerPartyBargainingRoundCosts = PerRoundBargainingCost,
@@ -60,25 +63,25 @@ namespace ACESimTest
             return options;
         }
 
-        private string ConstructExpectedResolutionSet_CaseSettles(bool useRawSignals, byte litigationQuality, bool pFiles, bool dAnswers,
-            List<(byte pMove, byte dMove)> bargainingRounds, bool simultaneousBargainingRounds, bool forgetEarlierRounds,
+        private string ConstructExpectedResolutionSet_CaseSettles(bool actionIsNoiseNotSignal, byte litigationQuality, bool pFiles, bool dAnswers,
+            List<(byte pMove, byte dMove)> bargainingRounds, bool simultaneousBargainingRounds,
             bool allowAbandonAndDefault)
         {
-            return ConstructExpectedResolutionSet(useRawSignals, litigationQuality, pFiles, dAnswers, bargainingRounds, simultaneousBargainingRounds, true, allowAbandonAndDefault,
-                false, false, false, false, false);
+            return ConstructExpectedResolutionSet(actionIsNoiseNotSignal, litigationQuality, pFiles, dAnswers, bargainingRounds, simultaneousBargainingRounds, true, allowAbandonAndDefault,
+                false, false, false, false, 0);
         }
 
-        private string ConstructExpectedResolutionSet(bool useRawSignals, byte litigationQuality, bool pFiles, bool dAnswers, List<(byte pMove, byte dMove)> bargainingRounds, bool simultaneousBargainingRounds, bool settlementReachedLastRound, bool allowAbandonAndDefault, bool pReadyToAbandonLastRound, bool dReadyToDefaultLastRound, bool ifBothDefaultPlaintiffLoses, bool caseGoesToTrial, bool plaintiffWinsAtTrial)
+        private string ConstructExpectedResolutionSet(bool actionIsNoiseNotSignal, byte litigationQuality, bool pFiles, bool dAnswers, List<(byte pMove, byte dMove)> bargainingRounds, bool simultaneousBargainingRounds, bool settlementReachedLastRound, bool allowAbandonAndDefault, bool pReadyToAbandonLastRound, bool dReadyToDefaultLastRound, bool ifBothDefaultPlaintiffLoses, bool caseGoesToTrial, byte courtResultAtTrial)
         {
             List<byte> l = new List<byte>();
-            if (useRawSignals)
-                l.Add(litigationQuality);
             if (pFiles)
             {
                 l.Add(1); 
                 if (dAnswers)
                 {
                     l.Add(1);
+                    if (actionIsNoiseNotSignal)
+                        l.Add(litigationQuality); // the resolution set must contain the actual litigation quality if we're using noise actions, so then the court can determine what to do based on its own noise value. Not so when actions are signals, in which case the action the court receives simply determines its decision and is based on an uneven chance probabilities decision that doesn't need to be part of the resolution set.
                     byte decisionIndex = (byte) MyGameDecisions.POffer; // this assumes that all earlier decisions in the list are in the game
                     int bargainingRound = 1;
                     int numBargainingRoundsCompleted = bargainingRounds.Count();
@@ -113,7 +116,7 @@ namespace ACESimTest
                         bargainingRound++;
                     }
                     if (caseGoesToTrial)
-                        l.Add(plaintiffWinsAtTrial ? (byte) 2 : (byte) 1);
+                        l.Add(courtResultAtTrial);
                 }
                 else
                     l.Add(2); // d doesn't answer
@@ -143,16 +146,16 @@ namespace ACESimTest
             return moves;
         }
 
-        private (string pInformationSet, string dInformationSet) GetExpectedPartyInformationSets(bool useRawSignals, byte litigationQuality, byte pNoise, byte dNoise,
+        private (string pInformationSet, string dInformationSet) GetExpectedPartyInformationSets(bool actionIsNoiseNotSignal, byte litigationQuality, byte pNoise, byte dNoise,
             List<(byte pMove, byte dMove)> bargainingMoves, bool forgetEarlierBargainingRounds, bool simultaneousBargaining)
         {
             byte pSignal, dSignal;
-            if (useRawSignals)
+            if (actionIsNoiseNotSignal)
             {
                 double litigationQualityUniform =
-                    EquallySpaced.GetLocationOfEquallySpacedPoint(litigationQuality - 1, 5);
-                MyGame.ConvertNoiseActionToDiscreteAndUniformSignal(pNoise, true, litigationQualityUniform, 5, 0.1, 5, out pSignal, out _);
-                MyGame.ConvertNoiseActionToDiscreteAndUniformSignal(dNoise, true, litigationQualityUniform, 5, 0.1, 5, out dSignal, out _);
+                    EquallySpaced.GetLocationOfEquallySpacedPoint(litigationQuality - 1, NumDistinctPoints);
+                MyGame.ConvertNoiseActionToDiscreteAndUniformSignal(pNoise, litigationQualityUniform, NumDistinctPoints, PartyNoise, NumDistinctPoints, out pSignal, out _);
+                MyGame.ConvertNoiseActionToDiscreteAndUniformSignal(dNoise, litigationQualityUniform, NumDistinctPoints, PartyNoise, NumDistinctPoints, out dSignal, out _);
             }
             else
             {
@@ -184,7 +187,7 @@ namespace ACESimTest
             return (String.Join(",", pInfo), String.Join(",", dInfo));
         }
 
-        private Func<Decision, GameProgress, byte> GetPlayerActions(bool pFiles, bool dAnswers, byte litigationQuality, byte pSignal, byte dSignal, List<(byte pMove, byte dMove)> bargainingRoundMoves, bool simultaneousBargainingRounds, byte? pReadyToAbandonRound = null, byte? dReadyToDefaultRound = null, byte mutualGiveUpResult = 0, byte courtResult = 0)
+        private Func<Decision, GameProgress, byte> GetPlayerActions(bool pFiles, bool dAnswers, byte litigationQuality, byte pSignalOrNoise, byte dSignalOrNoise, List<(byte pMove, byte dMove)> bargainingRoundMoves, bool simultaneousBargainingRounds, byte? pReadyToAbandonRound = null, byte? dReadyToDefaultRound = null, byte mutualGiveUpResult = 0, byte courtResult = 0)
         {
             var bargaining = new List<(byte decision, byte customInfo, byte action)>();
             for (byte b = 1; b <= bargainingRoundMoves.Count(); b++)
@@ -216,8 +219,8 @@ namespace ACESimTest
                     ((byte) MyGameDecisions.PFile, pFiles ? (byte) 1 : (byte) 2),
                     ((byte) MyGameDecisions.DAnswer, dAnswers ? (byte) 1 : (byte) 2),
                     ((byte) MyGameDecisions.LitigationQuality, litigationQuality),
-                    ((byte) MyGameDecisions.PSignal, pSignal),
-                    ((byte) MyGameDecisions.DSignal, dSignal),
+                    ((byte) MyGameDecisions.PNoiseOrSignal, pSignalOrNoise),
+                    ((byte) MyGameDecisions.DNoiseOrSignal, dSignalOrNoise),
                     ((byte)MyGameDecisions.MutualGiveUp, mutualGiveUpResult), // we'll only reach this if both try to give up, so it won't be called in multiple bargaining rounds
                     ((byte) MyGameDecisions.CourtDecision, courtResult),
                 },
@@ -236,7 +239,7 @@ namespace ACESimTest
                 for (byte abandonmentInRound = 1; abandonmentInRound <= numPotentialBargainingRounds; abandonmentInRound++)
                     foreach (bool forgetEarlierBargainingRounds in new bool[] { true, false })
                         foreach (bool simultaneousBargainingRounds in new bool[] { true, false })
-                            foreach (bool useRawSignals in new bool[] { true, false })
+                            foreach (bool actionIsNoiseNotSignal in new bool[] { true, false }) 
                                 foreach (bool plaintiffGivesUp in new bool[] { true, false })
                                     foreach (bool defendantGivesUp in new bool[] { true, false })
                                         foreach (bool plaintiffWinsIfBothGiveUp in new bool[] {true, false})
@@ -246,18 +249,18 @@ namespace ACESimTest
                                             if ((!plaintiffGivesUp || !defendantGivesUp) && !plaintiffWinsIfBothGiveUp)
                                                 continue; // only need to test both values of plaintiff wins if both give up if both give up.
                                             CaseGivenUp_Helper(numPotentialBargainingRounds, abandonmentInRound, forgetEarlierBargainingRounds,
-                                                simultaneousBargainingRounds, useRawSignals, (byte)3, pReadyToAbandonRound: plaintiffGivesUp ? (byte?)abandonmentInRound : (byte?)null, dReadyToDefaultRound: defendantGivesUp ? (byte?)abandonmentInRound : (byte?)null, mutualGiveUpResult: plaintiffWinsIfBothGiveUp ? (byte)2 : (byte)1);
+                                                simultaneousBargainingRounds, actionIsNoiseNotSignal, (byte)LitigationQuality, pReadyToAbandonRound: plaintiffGivesUp ? (byte?)abandonmentInRound : (byte?)null, dReadyToDefaultRound: defendantGivesUp ? (byte?)abandonmentInRound : (byte?)null, mutualGiveUpResult: plaintiffWinsIfBothGiveUp ? (byte)2 : (byte)1);
                                         }
         }
 
-        public void CaseGivenUp_Helper(byte numPotentialBargainingRounds, byte? abandonmentInRound, bool forgetEarlierBargainingRounds, bool simultaneousBargainingRounds, bool useRawSignals, byte litigationQuality, byte? pReadyToAbandonRound = null, byte? dReadyToDefaultRound = null, byte mutualGiveUpResult = 0)
+        public void CaseGivenUp_Helper(byte numPotentialBargainingRounds, byte? abandonmentInRound, bool forgetEarlierBargainingRounds, bool simultaneousBargainingRounds, bool actionIsNoiseNotSignal, byte litigationQuality, byte? pReadyToAbandonRound = null, byte? dReadyToDefaultRound = null, byte mutualGiveUpResult = 0)
         {
             var bargainingRoundMoves = GetBargainingRoundMoves(simultaneousBargainingRounds,
                 abandonmentInRound ?? numPotentialBargainingRounds, false);
             byte numActualRounds = (byte)bargainingRoundMoves.Count();
-            var options = GetGameOptions(allowAbandonAndDefaults: true, numBargainingRounds: numPotentialBargainingRounds, forgetEarlierBargainingRounds: forgetEarlierBargainingRounds, simultaneousBargainingRounds: simultaneousBargainingRounds, useRawSignals: useRawSignals);
-            var actionsToPlay = GetPlayerActions(pFiles: true, dAnswers: true, litigationQuality: litigationQuality, pSignal: 1,
-                dSignal: 1, bargainingRoundMoves: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds, pReadyToAbandonRound: pReadyToAbandonRound, dReadyToDefaultRound: dReadyToDefaultRound, mutualGiveUpResult: mutualGiveUpResult);
+            var options = GetGameOptions(allowAbandonAndDefaults: true, numBargainingRounds: numPotentialBargainingRounds, forgetEarlierBargainingRounds: forgetEarlierBargainingRounds, simultaneousBargainingRounds: simultaneousBargainingRounds, actionIsNoiseNotSignal: actionIsNoiseNotSignal);
+            var actionsToPlay = GetPlayerActions(pFiles: true, dAnswers: true, litigationQuality: litigationQuality, pSignalOrNoise: PSignalOrNoise,
+                dSignalOrNoise: DSignalOrNoise, bargainingRoundMoves: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds, pReadyToAbandonRound: pReadyToAbandonRound, dReadyToDefaultRound: dReadyToDefaultRound, mutualGiveUpResult: mutualGiveUpResult);
             var myGameProgress = MyGameRunner.PlayMyGameOnce(options, actionsToPlay);
 
             bool pWins = (pReadyToAbandonRound == null && dReadyToDefaultRound != null) ||
@@ -278,9 +281,9 @@ namespace ACESimTest
 
             //var informationSetHistories = myGameProgress.GameHistory.GetInformationSetHistoryItems().ToList();
             GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet, out string resolutionSet);
-            var expectedPartyInformationSets = GetExpectedPartyInformationSets(useRawSignals, 3, 5, 1, bargainingRoundMoves, forgetEarlierBargainingRounds, simultaneousBargainingRounds);
+            var expectedPartyInformationSets = GetExpectedPartyInformationSets(actionIsNoiseNotSignal, LitigationQuality, PSignalOrNoise, DSignalOrNoise, bargainingRoundMoves, forgetEarlierBargainingRounds, simultaneousBargainingRounds);
             string expectedResolutionSet = ConstructExpectedResolutionSet(pFiles: true, dAnswers: true,
-                bargainingRounds: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds, useRawSignals: useRawSignals, litigationQuality: litigationQuality, settlementReachedLastRound: false, allowAbandonAndDefault: true, pReadyToAbandonLastRound: pReadyToAbandonRound != null, dReadyToDefaultLastRound: dReadyToDefaultRound != null, ifBothDefaultPlaintiffLoses: mutualGiveUpResult == (byte)1, caseGoesToTrial: false, plaintiffWinsAtTrial: false);
+                bargainingRounds: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds, actionIsNoiseNotSignal: actionIsNoiseNotSignal, litigationQuality: litigationQuality, settlementReachedLastRound: false, allowAbandonAndDefault: true, pReadyToAbandonLastRound: pReadyToAbandonRound != null, dReadyToDefaultLastRound: dReadyToDefaultRound != null, ifBothDefaultPlaintiffLoses: mutualGiveUpResult == (byte)1, caseGoesToTrial: false, courtResultAtTrial: 0);
             pInformationSet.Should().Be(expectedPartyInformationSets.pInformationSet);
             dInformationSet.Should().Be(expectedPartyInformationSets.dInformationSet);
             resolutionSet.Should().Be(expectedResolutionSet);
@@ -294,18 +297,18 @@ namespace ACESimTest
                     foreach (bool forgetEarlierBargainingRounds in new bool[] { true, false })
                         foreach (bool simultaneousBargainingRounds in new bool[] { true, false })
                             foreach (bool allowAbandonAndDefault in new bool[] { true, false })
-                                foreach (bool useRawSignals in new bool[] { true, false })
-                                    SettlingCase_Helper(numPotentialBargainingRounds, settlementInRound, forgetEarlierBargainingRounds, simultaneousBargainingRounds, allowAbandonAndDefault, useRawSignals);
+                                foreach (bool actionIsNoiseNotSignal in new bool[] { true, false })
+                                    SettlingCase_Helper(numPotentialBargainingRounds, settlementInRound, forgetEarlierBargainingRounds, simultaneousBargainingRounds, allowAbandonAndDefault, actionIsNoiseNotSignal);
         }
 
-        public void SettlingCase_Helper(byte numPotentialBargainingRounds, byte? settlementInRound, bool forgetEarlierBargainingRounds, bool simultaneousBargainingRounds, bool allowAbandonAndDefault, bool useRawSignals)
+        public void SettlingCase_Helper(byte numPotentialBargainingRounds, byte? settlementInRound, bool forgetEarlierBargainingRounds, bool simultaneousBargainingRounds, bool allowAbandonAndDefault, bool actionIsNoiseNotSignal)
         {
             var bargainingRoundMoves = GetBargainingRoundMoves(simultaneousBargainingRounds,
                 settlementInRound ?? numPotentialBargainingRounds, settlementInRound != null);
             byte numActualRounds = (byte) bargainingRoundMoves.Count();
-            var options = GetGameOptions(allowAbandonAndDefaults: allowAbandonAndDefault, numBargainingRounds: numPotentialBargainingRounds, forgetEarlierBargainingRounds: forgetEarlierBargainingRounds, simultaneousBargainingRounds: simultaneousBargainingRounds, useRawSignals:useRawSignals);
-            var actionsToPlay = GetPlayerActions(pFiles: true, dAnswers: true, litigationQuality: 3, pSignal: 1,
-                dSignal: 5, bargainingRoundMoves: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds);
+            var options = GetGameOptions(allowAbandonAndDefaults: allowAbandonAndDefault, numBargainingRounds: numPotentialBargainingRounds, forgetEarlierBargainingRounds: forgetEarlierBargainingRounds, simultaneousBargainingRounds: simultaneousBargainingRounds, actionIsNoiseNotSignal:actionIsNoiseNotSignal);
+            var actionsToPlay = GetPlayerActions(pFiles: true, dAnswers: true, litigationQuality: LitigationQuality, pSignalOrNoise: PSignalOrNoise,
+                dSignalOrNoise: DSignalOrNoise, bargainingRoundMoves: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds);
             var myGameProgress = MyGameRunner.PlayMyGameOnce(options, actionsToPlay);
 
             myGameProgress.GameComplete.Should().BeTrue();
@@ -319,9 +322,9 @@ namespace ACESimTest
 
             //var informationSetHistories = myGameProgress.GameHistory.GetInformationSetHistoryItems().ToList();
             GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet, out string resolutionSet);
-            var expectedPartyInformationSets = GetExpectedPartyInformationSets(useRawSignals, 3, 5, 1, bargainingRoundMoves, forgetEarlierBargainingRounds, simultaneousBargainingRounds);
+            var expectedPartyInformationSets = GetExpectedPartyInformationSets(actionIsNoiseNotSignal, LitigationQuality, PSignalOrNoise, DSignalOrNoise, bargainingRoundMoves, forgetEarlierBargainingRounds, simultaneousBargainingRounds);
             string expectedResolutionSet = ConstructExpectedResolutionSet_CaseSettles(pFiles: true, dAnswers: true,
-                bargainingRounds: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds, useRawSignals:useRawSignals, litigationQuality:3, forgetEarlierRounds: forgetEarlierBargainingRounds, allowAbandonAndDefault: allowAbandonAndDefault);
+                bargainingRounds: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds, actionIsNoiseNotSignal:actionIsNoiseNotSignal, litigationQuality:LitigationQuality, allowAbandonAndDefault: allowAbandonAndDefault);
             pInformationSet.Should().Be(expectedPartyInformationSets.pInformationSet);
             dInformationSet.Should().Be(expectedPartyInformationSets.dInformationSet);
             resolutionSet.Should().Be(expectedResolutionSet);
@@ -335,20 +338,20 @@ namespace ACESimTest
                     foreach (byte numBargainingRounds in new byte[] { 1, 2 })
                         foreach (bool plaintiffWins in new bool[] { true, false })
                             foreach (bool simultaneousBargainingRounds in new bool[] { true, false })
-                                foreach (bool useRawSignals in new bool[] { true, false })
-                                    CaseTried_Helper(allowAbandonAndDefaults, forgetEarlierBargainingRounds, numBargainingRounds, plaintiffWins, simultaneousBargainingRounds, useRawSignals);
+                                foreach (bool actionIsNoiseNotSignal in new bool[] { true, false })
+                                    CaseTried_Helper(allowAbandonAndDefaults, forgetEarlierBargainingRounds, numBargainingRounds, plaintiffWins, simultaneousBargainingRounds, actionIsNoiseNotSignal);
         }
 
-        private void CaseTried_Helper(bool allowAbandonAndDefaults, bool forgetEarlierBargainingRounds, byte numBargainingRounds, bool plaintiffWins, bool simultaneousBargainingRounds, bool useRawSignals)
+        private void CaseTried_Helper(bool allowAbandonAndDefaults, bool forgetEarlierBargainingRounds, byte numBargainingRounds, bool plaintiffWins, bool simultaneousBargainingRounds, bool actionIsNoiseNotSignal)
         {
-            var options = GetGameOptions(allowAbandonAndDefaults, numBargainingRounds, forgetEarlierBargainingRounds, simultaneousBargainingRounds, useRawSignals);
+            var options = GetGameOptions(allowAbandonAndDefaults, numBargainingRounds, forgetEarlierBargainingRounds, simultaneousBargainingRounds, actionIsNoiseNotSignal);
             var bargainingMoves = GetBargainingRoundMoves(simultaneousBargainingRounds, numBargainingRounds, false);
             byte courtResult;
-            if (useRawSignals)
-                courtResult = (byte) 4;
+            if (actionIsNoiseNotSignal)
+                courtResult = plaintiffWins ? (byte) NumDistinctPoints : (byte) 1; // we've used a high value of court noise above, so if the court has its highest possible noise, it will definitely conclude plaintiff has won, and if the court has its lowest possible noise, it will definitely conclude that defendant has won
             else
                 courtResult = plaintiffWins ? (byte) 2 : (byte) 1;
-            var actions = GetPlayerActions(true, true, 1, 1, 1, bargainingMoves, simultaneousBargainingRounds, null, null, 0, courtResult);
+            var actions = GetPlayerActions(true, true, LitigationQuality, PSignalOrNoise, DSignalOrNoise, bargainingMoves, simultaneousBargainingRounds, null, null, 0, courtResult);
             var myGameProgress = MyGameRunner.PlayMyGameOnce(options, actions);
             myGameProgress.GameComplete.Should().BeTrue();
             double pFinalWealthExpected = options.PInitialWealth - options.PTrialCosts -
@@ -364,29 +367,13 @@ namespace ACESimTest
             myGameProgress.DFinalWealth.Should().Be(dFinalWealthExpected);
             GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet,
                 out string resolutionSet);
-            var expectedPartyInformationSets = GetExpectedPartyInformationSets(useRawSignals, 3, 5, 1, bargainingMoves,
+            var expectedPartyInformationSets = GetExpectedPartyInformationSets(actionIsNoiseNotSignal, LitigationQuality, PSignalOrNoise, DSignalOrNoise, bargainingMoves,
                 forgetEarlierBargainingRounds, simultaneousBargainingRounds);
-            var expectedResolutionSet = ConstructExpectedResolutionSet(useRawSignals, 3, true, true, bargainingMoves,
-                simultaneousBargainingRounds, false, allowAbandonAndDefaults, false, false, false, true, plaintiffWins);
+            var expectedResolutionSet = ConstructExpectedResolutionSet(actionIsNoiseNotSignal, LitigationQuality, true, true, bargainingMoves,
+                simultaneousBargainingRounds, false, allowAbandonAndDefaults, false, false, false, true, courtResult);
             pInformationSet.Should().Be(expectedPartyInformationSets.pInformationSet);
             dInformationSet.Should().Be(expectedPartyInformationSets.dInformationSet);
             resolutionSet.Should().Be(expectedResolutionSet);
-        }
-
-        [TestMethod]
-        public void UsingRawSignals_SettlementFails()
-        {
-            var options = MyGameOptionsGenerator.UsingRawSignals_10Points_1Round();
-            var myGameProgress = MyGameRunner.PlayMyGameOnce(options,
-                MyGameActionsGenerator.UsingRawSignals_SettlementFails);
-            myGameProgress.GameComplete.Should().BeTrue();
-            myGameProgress.PWinsAtTrial.Should().BeTrue();
-            myGameProgress.PFinalWealth.Should().Be(options.PInitialWealth + options.DamagesAlleged - options.PTrialCosts - options.PerPartyBargainingRoundCosts);
-            myGameProgress.DFinalWealth.Should().Be(options.DInitialWealth - options.DamagesAlleged - options.DTrialCosts - options.PerPartyBargainingRoundCosts);
-            GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet, out string resolutionSet);
-            pInformationSet.Should().Be("6"); // p's raw signal is 6, based on litigation quality 5 and noise 9
-            dInformationSet.Should().Be("4"); // d's raw signal is 4, based on litigation quality 5 and noise 1
-            resolutionSet.Should().Be("5,3,9,4,8"); // litigation quality 9, decision 3, p offer in last round 9, d offer in last round 4, court decision 8
         }
     }
 }

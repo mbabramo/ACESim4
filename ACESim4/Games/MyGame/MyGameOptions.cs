@@ -14,25 +14,25 @@ namespace ACESim
         /// </summary>
         public byte NumSignals;
         /// <summary>
-        /// The number of noise values that a party can receive to determine the discrete signal that the party receives. This is ignored if UseRawSignals = false (effectively, NumNoiseValues is automatically equal to NumSignals in that case).
+        /// The number of noise values that a party can receive to determine the discrete signal that the party receives. This is ignored if ActionIsNoiseNotSignal = false (effectively, NumNoiseValues is automatically equal to NumSignals in that case).
         /// </summary>
         public byte NumNoiseValues;
         /// <summary>
-        /// The standard deviation of the noise used to obfuscate the plaintiff's estimate of the case strength.
+        /// The standard deviation of the noise used to obfuscate the plaintiff's estimate of the case strength. When the action is the signal, this determines the probabilities of each signal; when the action is the noise, this affects the conversion of the noise to a signal, considering the underlying true value.
         /// </summary>
         public double PNoiseStdev;
         /// <summary>
-        /// The standard deviation of the noise used to obfuscate the defendant's estimate of the case strength.
+        /// The standard deviation of the noise used to obfuscate the defendant's estimate of the case strength. When the action is the signal, this determines the probabilities of each signal; when the action is the noise, this affects the conversion of the noise to a signal, considering the underlying true value.
         /// </summary>
         public double DNoiseStdev;
         /// <summary>
-        /// The standard deviation of the noise used to obfuscate the court's estimate of the case strength. This applies only when using raw signals.
+        /// The standard deviation of the noise used to obfuscate the court's estimate of the case strength. This applies only when the action is the noise, rather than the signal itself.
         /// </summary>
         public double CourtNoiseStdev;
         /// <summary>
-        /// If true, then a litigant's signal is determined solely by adding the litigation quality and a noise parameter, drawn from the inverse cumulative normal distribution. If false, then a litigant's signal represents an unbiased probability estimate of the probability of winning (so, for example, if there are 10 signals, then a signal of 3 would represent a 35% chance of winning). The court decision will then be an uneven chance decision consistent with this estimate. This depends, however, on the assumption that litigation quality is uniformly distributed between 0 and 1. If it is not, then raw signals should be used. 
+        /// If true, then the chance action represents noise, and a litigant's signal is determined by combining the litigation quality with a noise value, drawn from the inverse cumulative normal distribution. If false, then a litigant's signal represents an unbiased probability estimate of the probability of winning (so, for example, if there are 10 signals, then a signal of 3 would represent a 35% chance of winning). The court decision will then be an uneven chance decision consistent with this estimate. This depends, however, on the assumption that litigation quality is uniformly distributed between 0 and 1. If it is not, then this should be set to true. 
         /// </summary>
-        public bool UseRawSignals;
+        public bool ActionIsNoiseNotSignal;
 
 
         /// <summary>

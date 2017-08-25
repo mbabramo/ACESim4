@@ -10,7 +10,7 @@ namespace ACESim.Util
     public static class DiscreteValueSignal
     {
         /// <summary>
-        /// Calculates a raw signal by adding noise drawn from a normal distribution to a true value. If the sum is less than 0, the signal returned is 1. If it is greater than 1, the signal returned is numSignalValues. Otherwise, the signal is in between.
+        /// Calculates a signal by adding noise drawn from a normal distribution to a true value. If the sum is less than 0, the signal returned is 1. If it is greater than 1, the signal returned is numSignalValues. Otherwise, the signal is in between.
         /// </summary>
         /// <param name="trueValueFrom0To1"></param>
         /// <param name="oneBasedNoiseValue"></param>
@@ -18,7 +18,7 @@ namespace ACESim.Util
         /// <param name="standardDeviationOfNoise"></param>
         /// <param name="numSignalValues"></param>
         /// <returns></returns>
-        public static byte GetRawSignal(double trueValueFrom0To1, byte oneBasedNoiseValue, byte numNoiseValues, double standardDeviationOfNoise, byte numSignalValues)
+        public static byte ConvertNoiseToSignal(double trueValueFrom0To1, byte oneBasedNoiseValue, byte numNoiseValues, double standardDeviationOfNoise, byte numSignalValues)
         {
             double noiseUniformDistribution = EquallySpaced.GetLocationOfEquallySpacedPoint((byte) (oneBasedNoiseValue - 1), numNoiseValues);
             double noiseNormalDistributionDraw = InvNormal.Calculate(noiseUniformDistribution) * standardDeviationOfNoise;
