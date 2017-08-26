@@ -184,6 +184,8 @@ namespace ACESim
             }
             else if (MyProgress.CaseSettles)
             {
+                if (MyProgress.SettlementValue == null)
+                    throw new NotImplementedException();
                 MyProgress.PChangeWealth = (double)MyProgress.SettlementValue;
                 MyProgress.DChangeWealth = 0 - (double)MyProgress.SettlementValue;
                 MyProgress.TrialOccurs = false;
@@ -191,12 +193,32 @@ namespace ACESim
             else
             {
                 MyProgress.TrialOccurs = true;
-                MyProgress.PChangeWealth = (MyProgress.PWinsAtTrial ? MyProgress.DamagesAlleged : 0) - MyDefinition.Options.PTrialCosts;
-                MyProgress.DChangeWealth = (MyProgress.PWinsAtTrial ? -MyProgress.DamagesAlleged : 0) - MyDefinition.Options.DTrialCosts;
+                MyProgress.PChangeWealth = (MyProgress.PWinsAtTrial ? MyProgress.DamagesAlleged : 0);
+                MyProgress.DChangeWealth = (MyProgress.PWinsAtTrial ? -MyProgress.DamagesAlleged : 0);
             }
-            double perPartyBargainingCosts = MyDefinition.Options.PerPartyBargainingRoundCosts * MyProgress.BargainingRoundsComplete;
-            MyProgress.PChangeWealth -= perPartyBargainingCosts;
-            MyProgress.DChangeWealth -= perPartyBargainingCosts;
+            double pFilingCostIncurred = MyProgress.PFiles ? MyDefinition.Options.PFilingCost : 0;
+            double dAnswerCostIncurred = MyProgress.DAnswers ? MyDefinition.Options.DAnswerCost : 0;
+            double pTrialCostsIncurred = MyProgress.TrialOccurs ? MyDefinition.Options.PTrialCosts : 0;
+            double dTrialCostsIncurred = MyProgress.TrialOccurs ? MyDefinition.Options.DTrialCosts : 0;
+            double perPartyBargainingCostsIncurred = MyDefinition.Options.PerPartyBargainingRoundCosts * MyProgress.BargainingRoundsComplete;
+            bool loserPaysApplies = MyDefinition.Options.LoserPays && (MyProgress.TrialOccurs || (MyDefinition.Options.LoserPaysAfterAbandonment && (MyProgress.PAbandons || MyProgress.DDefaults)));
+            if (loserPaysApplies)
+            { // British Rule and it applies (contested litigation and no settlement)
+                bool pLoses = (MyProgress.TrialOccurs && !MyProgress.PWinsAtTrial) || MyProgress.PAbandons;
+                double losersBill = 0;
+                losersBill += pFilingCostIncurred + dAnswerCostIncurred;
+                losersBill += 2 * perPartyBargainingCostsIncurred;
+                losersBill += pTrialCostsIncurred + dTrialCostsIncurred;
+                if (pLoses)
+                    MyProgress.PChangeWealth -= losersBill;
+                else
+                    MyProgress.DChangeWealth -= losersBill;
+            }
+            else
+            { // American rule
+                MyProgress.PChangeWealth -= pFilingCostIncurred + perPartyBargainingCostsIncurred + pTrialCostsIncurred;
+                MyProgress.DChangeWealth -= dAnswerCostIncurred + perPartyBargainingCostsIncurred + dTrialCostsIncurred;
+            }
             MyProgress.PFinalWealth = MyProgress.PInitialWealth + MyProgress.PChangeWealth;
             MyProgress.DFinalWealth = MyProgress.DInitialWealth + MyProgress.DChangeWealth;
             MyProgress.PWelfare =

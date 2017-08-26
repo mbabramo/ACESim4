@@ -13,7 +13,7 @@ namespace ACESim
             };
             if (Options.IncludeSignalsReport)
             {
-                for (int b = 1; b <= Options.NumBargainingRounds; b++)
+                for (int b = 1; b <= Options.NumPotentialBargainingRounds; b++)
                 {
                     reports.Add(GetStrategyReport(b, false));
                     reports.Add(GetStrategyReport(b, true));
@@ -45,7 +45,7 @@ namespace ACESim
                 new SimpleReportColumnVariable("PWelfare", (GameProgress gp) => MyGP(gp).PWelfare),
                 new SimpleReportColumnVariable("DWelfare", (GameProgress gp) => MyGP(gp).DWelfare),
             };
-            for (int b = 1; b <= Options.NumBargainingRounds; b++)
+            for (int b = 1; b <= Options.NumPotentialBargainingRounds; b++)
             {
                 int bargainingRoundNum = b; // needed for closure -- otherwise b below will always be max value.
                 colItems.Add(

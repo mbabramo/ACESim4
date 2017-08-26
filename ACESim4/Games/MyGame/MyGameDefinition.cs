@@ -92,7 +92,7 @@ namespace ACESim
             var decisions = new List<Decision>();
             AddLitigationQualityAndSignalsDecisions(decisions);
             AddFileAndAnswerDecisions(decisions);
-            for (int b = 0; b < Options.NumBargainingRounds; b++)
+            for (int b = 0; b < Options.NumPotentialBargainingRounds; b++)
             {
                 AddDecisionsForBargainingRound(b, decisions);
                 if (Options.AllowAbandonAndDefaults)

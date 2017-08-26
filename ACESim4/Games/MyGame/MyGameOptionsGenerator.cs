@@ -33,7 +33,7 @@ namespace ACESim
                     DeltaStartingValue = 0.01,
                     MaxDelta = 0.25
                 },
-                NumBargainingRounds = 1,
+                NumPotentialBargainingRounds = 1,
                 ForgetEarlierBargainingRounds = true,
                 SubdivideOffers = false,
                 BargainingRoundsSimultaneous = true,
@@ -60,9 +60,9 @@ namespace ACESim
                 NumOffers = 10,
                 PNoiseStdev = 0.1,
                 DNoiseStdev = 0.1,
-                PTrialCosts = 15000,
-                DTrialCosts = 15000,
-                PerPartyBargainingRoundCosts = 1000,
+                PTrialCosts = 10000,
+                DTrialCosts = 10000,
+                PerPartyBargainingRoundCosts = 5000,
                 AllowAbandonAndDefaults = true,
                 DeltaOffersOptions = new DeltaOffersOptions()
                 {
@@ -70,7 +70,7 @@ namespace ACESim
                     DeltaStartingValue = 0.01,
                     MaxDelta = 0.25
                 },
-                NumBargainingRounds = 4,
+                NumPotentialBargainingRounds = 4,
                 ForgetEarlierBargainingRounds = true,
                 SubdivideOffers = false,
                 BargainingRoundsSimultaneous = true,
@@ -106,7 +106,7 @@ namespace ACESim
                     DeltaStartingValue = 0.01,
                     MaxDelta = 0.25
                 },
-                NumBargainingRounds = 2,
+                NumPotentialBargainingRounds = 2,
                 ForgetEarlierBargainingRounds = true,
                 SubdivideOffers = false,
                 BargainingRoundsSimultaneous = true,
@@ -143,7 +143,7 @@ namespace ACESim
                     DeltaStartingValue = 0.01,
                     MaxDelta = 0.25
                 },
-                NumBargainingRounds = 2,
+                NumPotentialBargainingRounds = 2,
                 ForgetEarlierBargainingRounds = true,
                 SubdivideOffers = false,
                 BargainingRoundsSimultaneous = false,
@@ -180,7 +180,7 @@ namespace ACESim
                     DeltaStartingValue = 0.01,
                     MaxDelta = 0.25
                 },
-                NumBargainingRounds = 4,
+                NumPotentialBargainingRounds = 4,
                 ForgetEarlierBargainingRounds = true, // true makes things much faster
                 SubdivideOffers = false,
                 BargainingRoundsSimultaneous = true,
@@ -218,7 +218,7 @@ namespace ACESim
                     DeltaStartingValue = 0.01,
                     MaxDelta = 0.25
                 },
-                NumBargainingRounds = 1,
+                NumPotentialBargainingRounds = 1,
                 ForgetEarlierBargainingRounds = true, // true makes things much faster
                 SubdivideOffers = false,
                 BargainingRoundsSimultaneous = true,

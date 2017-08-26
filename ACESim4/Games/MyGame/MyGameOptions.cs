@@ -73,13 +73,29 @@ namespace ACESim
         /// </summary>
         public double DTrialCosts;
         /// <summary>
+        /// Cost that the plaintiff must pay for filing
+        /// </summary>
+        public double PFilingCost;
+        /// <summary>
+        /// Cost that the defendant must pay for answering
+        /// </summary>
+        public double DAnswerCost;
+        /// <summary>
         /// Costs that each party must pay per round of bargaining. Note that an immediate successful resolution will still produce costs.
         /// </summary>
         public double PerPartyBargainingRoundCosts;
         /// <summary>
         /// The number of bargaining rounds
         /// </summary>
-        public int NumBargainingRounds;
+        public int NumPotentialBargainingRounds;
+        /// <summary>
+        /// If true, and there is a loser at trial, then the loser pays all of the winner's costs.
+        /// </summary>
+        public bool LoserPays;
+        /// <summary>
+        /// If true, then the loser pays rule applies also when a party gives up (except when that occurs by not answering in the first place).
+        /// </summary>
+        public bool LoserPaysAfterAbandonment;
 
         /// <summary>
         /// Plaintiff's initial wealth.
