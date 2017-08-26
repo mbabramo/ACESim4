@@ -95,10 +95,7 @@ namespace ACESimTest
                 if (dAnswers)
                 {
                     l.Add(1);
-                    byte decisionIndex =
-                        (byte) MyGameDecisions
-                            .POffer; // this assumes that all earlier decisions in the list are in the game
-                    int bargainingRound = 1;
+                    byte bargainingRound = 1;
                     int numBargainingRoundsCompleted = bargainingRounds.Count();
                     foreach (var moveSet in bargainingRounds)
                     {
@@ -106,7 +103,7 @@ namespace ACESimTest
                         // Note that the resolution information set always consists of just the last round settled, regardless of whether the case goes to trial. Some of this information may be irrelevant to trial (if we're not doing the settlement shootout).
                         if (isLastBargainedRound)
                         {
-                            l.Add(decisionIndex);
+                            l.Add(bargainingRound);
                             bool pMovesFirst = (bargainingRound % 2 == 1) || simultaneousBargainingRounds;
                             if (pMovesFirst)
                                 l.Add(moveSet.pMove);
@@ -121,13 +118,6 @@ namespace ACESimTest
                                     l.Add(ifBothDefaultPlaintiffLoses ? (byte) 1 : (byte) 2);
                             }
                             break; // we don't need to enter/track anything about later bargaining rounds, since they didn't occur
-                        }
-                        else
-                        {
-                            decisionIndex += 2;
-                            if (allowAbandonAndDefault)
-                                decisionIndex +=
-                                    3; // since there is a later bargaining round. Note that we skip over the mutual abandonment decision, regardless of whether it is placed, since we're interested in the decision index, not only in played decisions
                         }
                         bargainingRound++;
                     }
@@ -238,6 +228,7 @@ namespace ACESimTest
                     ((byte) MyGameDecisions.PNoiseOrSignal, pSignalOrNoise),
                     ((byte) MyGameDecisions.DNoiseOrSignal, dSignalOrNoise),
                     ((byte)MyGameDecisions.MutualGiveUp, mutualGiveUpResult), // we'll only reach this if both try to give up, so it won't be called in multiple bargaining rounds
+                    ((byte)MyGameDecisions.PostBargainingRound, 1 /* only action */),
                     ((byte) MyGameDecisions.CourtDecision, courtResult),
                 },
                 bargaining

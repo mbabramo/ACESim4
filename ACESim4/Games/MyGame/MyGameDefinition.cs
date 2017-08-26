@@ -60,6 +60,7 @@ namespace ACESim
         private static string PlaintiffNoiseOrSignalChanceName = "PNS";
         private static string DefendantNoiseOrSignalChanceName = "DNS";
         private static string BothGiveUpChanceName = "GUC";
+        private static string PostBargainingRoundChanceName = "PBR";
         private static string CourtChanceName = "CC";
         private static string ResolutionPlayerName = "R";
 
@@ -74,6 +75,7 @@ namespace ACESim
                     new PlayerInfo(PlaintiffNoiseOrSignalChanceName, (int) MyGamePlayers.PNoiseOrSignalChance, true, false),
                     new PlayerInfo(DefendantNoiseOrSignalChanceName, (int) MyGamePlayers.DNoiseOrSignalChance, true, false),
                     new PlayerInfo(BothGiveUpChanceName, (int) MyGamePlayers.BothGiveUpChance, true, false),
+                    new PlayerInfo(PostBargainingRoundChanceName, (int) MyGamePlayers.PostBargainingRoundChance, true, false),
                     new PlayerInfo(CourtChanceName, (int) MyGamePlayers.CourtChance, true, false),
                     new PlayerInfo(ResolutionPlayerName, (int) MyGamePlayers.Resolution, true, false),
                 };
@@ -97,6 +99,7 @@ namespace ACESim
                 AddDecisionsForBargainingRound(b, decisions);
                 if (Options.AllowAbandonAndDefaults)
                     AddAbandonOrDefaultDecisions(b, decisions);
+                AddPostBargainingRoundDummyDecision(b, decisions);
             }
             AddCourtDecision(decisions);
             return decisions;
@@ -221,7 +224,7 @@ namespace ACESim
 
         private void AddDecisionsForBargainingRound(int b, List<Decision> decisions)
         {
-            // DEBUG
+            // DEBUG -- put it back later
             //var pAgreeToBargain = new Decision("PAgreeToBargain" + (b + 1), "PB" + (b + 1), (byte)MyGamePlayers.Plaintiff, null,
             //    2, (byte)MyGameDecisions.PAgreeToBargain)
             //{
@@ -339,6 +342,21 @@ namespace ACESim
                     CriticalNode = true, // always play out both sides of this coin flip
                 };
             decisions.Add(bothGiveUp);
+        }
+
+
+        private void AddPostBargainingRoundDummyDecision(int b, List<Decision> decisions)
+        {
+            var dummyDecision =
+                new Decision("PostBargainingRound" + (b + 1), "PBR" + (b + 1), (byte)MyGamePlayers.PostBargainingRoundChance, null,
+                    1 /* i.e., just an opportunity to do some calculation and cleanup */, (byte)MyGameDecisions.PostBargainingRound, unevenChanceActions: false)
+                {
+                    CustomByte = (byte)(b + 1),
+                    CanTerminateGame = true, // if this decision is needed, then both have given up, and the decision always terminates the game
+                    CriticalNode = false, // doesn't matter -- just one possibility
+                    CustomInformationSetManipulationOnly = true // purpose of this decision is to do some manipulation
+                };
+            decisions.Add(dummyDecision);
         }
 
         private void AddCourtDecision(List<Decision> decisions)
@@ -481,7 +499,7 @@ namespace ACESim
                     CustomInformationSetManipulationSamuelsonChaterjeeBargaining(currentDecisionIndex, ref gameHistory, currentPlayer, addPlayersOwnDecisionsToInformationSet);
                 else
                     CustomInformationSetManipulationOfferResponseBargaining(currentDecisionIndex, actionChosen, ref gameHistory, bargainingRoundIndex, currentPlayer, addPlayersOwnDecisionsToInformationSet);
-                CustomInformationSetManipulationBargainingToResolutionInformationSet(currentDecisionIndex, actionChosen, ref gameHistory, decisionByteCode);
+                CustomInformationSetManipulationBargainingToResolutionInformationSet(bargainingRound, currentDecisionIndex, actionChosen, ref gameHistory, decisionByteCode);
             }
             //else if (decisionByteCode == (byte)MyGameDecisions.PAbandon || decisionByteCode == (byte)MyGameDecisions.DDefault)
             //    CustomInformationSetManipulationBargainingToResolutionInformationSet(currentDecisionIndex, actionChosen, ref gameHistory, decisionByteCode);
@@ -549,7 +567,7 @@ namespace ACESim
             }
         }
 
-        private void CustomInformationSetManipulationBargainingToResolutionInformationSet(byte currentDecisionIndex, byte actionChosen,
+        private void CustomInformationSetManipulationBargainingToResolutionInformationSet(byte bargainingRound, byte currentDecisionIndex, byte actionChosen,
             ref GameHistory gameHistory, byte decisionByteCode)
         {
             // This is called at the end of each round of bargaining (but before abandon/default decisions)
@@ -582,8 +600,8 @@ namespace ACESim
                 numItems -= numberItemsDefiningBargainingRound;
             }
             if (numItems == numberItemsForFileAndAnswerDecisions + numberItemsDefiningLitigationQuality)
-            { // we're just starting to fill in bargaining information. The first thing we're going to put in is the decision index (even though this will be redundantly stored in the information set), so that it's part of the chain that leads us to the resolution, and the resolution can thus take into account the decision index.
-                gameHistory.AddToInformationSet(currentDecisionIndex, currentDecisionIndex,
+            { // we're just starting to fill in bargaining information. The first thing we're going to put in is the bargaining round, so that it's part of the chain that leads us to the resolution, and the resolution can thus take into account the bargaining round of resolution.
+                gameHistory.AddToInformationSet(bargainingRound, currentDecisionIndex,
                     (byte)MyGamePlayers.Resolution); // in effect, just note the decision leading to resolution
                 numItems++;
             }

@@ -16,6 +16,7 @@ namespace ACESim
         PNoiseOrSignalChance,
         DNoiseOrSignalChance,
         BothGiveUpChance,
+        PostBargainingRoundChance, // no real chance / 1 possible action
         CourtChance,
         Resolution, // keep this last
     }

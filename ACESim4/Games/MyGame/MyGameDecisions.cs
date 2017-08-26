@@ -22,6 +22,7 @@ namespace ACESim
         PAbandon, // 1 = yes, 2 = no
         DDefault, // 1 = yes, 2 = no
         MutualGiveUp, // 1 = plaintiff gives up (defendant wins), 2 = defendant gives up (plaintiff wins)
+        PostBargainingRound, // dummy chance decision -- gives us chance to perform some processing
         CourtDecision, // with processed signals: 1 = defendant wins, 2 = plaintiff wins
         SubdividableOffer,
     }
