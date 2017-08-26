@@ -12,6 +12,7 @@ namespace ACESim
     [Serializable]
     public unsafe struct GameHistory : ISerializable
     {
+        public const int CacheLength = 10; // the game and game definition can use the cache to store information. This is helpful when the game player is simulating the game without playing the underlying game. The game definition may, for example, need to be able to figure out which decision is next.
         public const int MaxHistoryLength = 200;
         public const int MaxInformationSetLength = 1000; // MUST equal MaxInformationSetLengthPerPlayer * MaxNumPlayers. 
         public const int MaxInformationSetLengthPerPlayer = 100; 
@@ -29,6 +30,8 @@ namespace ACESim
         private const byte History_Action_Offset = 3;
         private const byte History_NumPossibleActions_Offset = 4;
         private const byte History_NumPiecesOfInformation = 5; // the total number of pieces of information above, so that we know how much to skip (i.e., 0, 1, 2, and 3)
+
+        public fixed byte Cache[CacheLength];
 
         public fixed byte History[MaxHistoryLength];
         public short LastIndexAddedToHistory;

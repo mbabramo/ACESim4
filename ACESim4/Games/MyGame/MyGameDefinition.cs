@@ -221,6 +221,23 @@ namespace ACESim
 
         private void AddDecisionsForBargainingRound(int b, List<Decision> decisions)
         {
+            // DEBUG
+            //var pAgreeToBargain = new Decision("PAgreeToBargain" + (b + 1), "PB" + (b + 1), (byte)MyGamePlayers.Plaintiff, null,
+            //    2, (byte)MyGameDecisions.PAgreeToBargain)
+            //{
+            //    CustomByte = (byte)(b + 1),
+            //    CustomInformationSetManipulationOnly = true
+            //};
+            //decisions.Add(pAgreeToBargain);
+
+            //var dAgreeToBargain = new Decision("DAgreeToBargain" + (b + 1), "DB" + (b + 1), (byte)MyGamePlayers.Defendant, null,
+            //    2, (byte)MyGameDecisions.DAgreeToBargain)
+            //{
+            //    CustomByte = (byte)(b + 1),
+            //    CustomInformationSetManipulationOnly = true
+            //};
+            //decisions.Add(dAgreeToBargain);
+
             // note that we will do all information set manipulation in CustomInformationSetManipulation below.
             if (Options.BargainingRoundsSimultaneous)
             {

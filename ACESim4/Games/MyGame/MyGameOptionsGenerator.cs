@@ -64,6 +64,8 @@ namespace ACESim
                 DTrialCosts = 10000,
                 PerPartyBargainingRoundCosts = 5000,
                 AllowAbandonAndDefaults = true,
+                LoserPays = true,
+                LoserPaysAfterAbandonment = true,
                 DeltaOffersOptions = new DeltaOffersOptions()
                 {
                     SubsequentOffersAreDeltas = false,
