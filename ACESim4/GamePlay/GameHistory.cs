@@ -114,7 +114,7 @@ namespace ACESim
             Initialized = true;
         }
 
-        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerNumber, byte action, byte numPossibleActions, List<byte> playersToInform, bool skipAddToInformationSet, bool skipAddToHistory)
+        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerNumber, byte action, byte numPossibleActions, List<byte> playersToInform, bool skipAddToHistory, byte? cacheIndexToIncrement)
         {
             if (!Initialized)
                 Initialize();
@@ -136,8 +136,28 @@ namespace ACESim
                 if (LastIndexAddedToHistory >= MaxHistoryLength - 2) // must account for terminator characters
                     throw new Exception("Internal error. Must increase history length.");
             }
-            if (!skipAddToInformationSet)
+            if (playersToInform != null && playersToInform.Any())
                 AddToInformationSet(action, decisionIndex, playerNumber, playersToInform);
+            if (cacheIndexToIncrement != null)
+                IncrementCacheIndex((byte) cacheIndexToIncrement);
+        }
+
+        public unsafe void IncrementCacheIndex(byte cacheIndexToIncrement)
+        {
+            fixed (byte* cachePtr = Cache)
+                *(cachePtr + (byte)cacheIndexToIncrement) = (byte)(*(cachePtr + (byte)cacheIndexToIncrement) + (byte)1);
+        }
+
+        public unsafe byte GetCacheIndex(byte cacheIndexToReset)
+        {
+            fixed (byte* cachePtr = Cache)
+                return *(cachePtr + (byte)cacheIndexToReset);
+        }
+
+        public unsafe void SetCacheIndex(byte cacheIndexToReset, byte newValue)
+        {
+            fixed (byte* cachePtr = Cache)
+                *(cachePtr + (byte)cacheIndexToReset) = newValue;
         }
 
         public void AddToSimpleActionsList(byte action)
@@ -442,6 +462,7 @@ namespace ACESim
 
         public unsafe void GetPlayerInformation(int playerNumber, byte? upToDecision, byte* playerInfoBuffer)
         {
+            // TODO: We're keeping the player information in a log and then converting that log each time. We should also keep a running copy, so that if we want all the player information, we can just call a faster routine. // DEBUG
             if (!Initialized)
                 Initialize();
             fixed (byte* informationSetsPtr = InformationSets)

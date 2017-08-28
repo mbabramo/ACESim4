@@ -107,6 +107,7 @@ namespace ACESim
                     MyProgress.DDefaults = !MyProgress.PAbandons;
                     MyProgress.GameComplete = true;
                     break;
+                case (byte)MyGameDecisions.PreBargainingRound:
                 case (byte)MyGameDecisions.PostBargainingRound:
                     break;
                 case (byte)MyGameDecisions.CourtDecision:

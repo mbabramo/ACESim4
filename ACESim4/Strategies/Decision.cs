@@ -32,6 +32,11 @@ namespace ACESim
         public List<byte> PlayersToInform;
 
         /// <summary>
+        /// If non-null, then the game history cache item specified will be incremented immediately after the decision. This makes it possible to keep track of how many times a decision or set of decisions have been made.
+        /// </summary>
+        public List<byte> IncrementGameCacheItem;
+
+        /// <summary>
         /// The number of discrete actions for this decision. (The actions will be numbered 1 .. NumberActions.)
         /// </summary>
         public byte NumPossibleActions;
@@ -94,12 +99,6 @@ namespace ACESim
         /// </summary>
         
         public List<string> InformationSetAbbreviations;
-
-        /// <summary>
-        /// If true, then information will never be automatically added to information sets. 
-        /// </summary>
-        
-        public bool CustomInformationSetManipulationOnly;
 
         /// <summary>
         /// This can be used to store some additional information about a decision.
@@ -180,7 +179,7 @@ namespace ACESim
 
         public Decision Clone()
         {
-            Decision d = new Decision(Name, Abbreviation, PlayerNumber, PlayersToInform?.ToList() ?? new List<byte>(), NumPossibleActions, DecisionByteCode, DecisionTypeCode, RepetitionsAfterFirst, PreevolvedStrategyFilename, InformationSetAbbreviations, AlwaysDoAction, UnevenChanceActions, CriticalNode) { IsAlwaysPlayersLastDecision = IsAlwaysPlayersLastDecision, CanTerminateGame = CanTerminateGame, CustomInformationSetManipulationOnly = CustomInformationSetManipulationOnly, CustomByte = CustomByte, Subdividable = Subdividable, Subdividable_NumLevels = Subdividable_NumLevels, Subdividable_NumOptionsPerBranch = Subdividable_NumOptionsPerBranch, Subdividable_CorrespondingDecisionByteCode = Subdividable_CorrespondingDecisionByteCode, Subdividable_IsSubdivision = Subdividable_IsSubdivision, Subdividable_IsSubdivision_Last = Subdividable_IsSubdivision_Last, Subdividable_IsSubdivision_First = Subdividable_IsSubdivision_First, Subdividable_AggregateNumPossibleActions = Subdividable_AggregateNumPossibleActions };
+            Decision d = new Decision(Name, Abbreviation, PlayerNumber, PlayersToInform?.ToList() ?? new List<byte>(), NumPossibleActions, DecisionByteCode, DecisionTypeCode, RepetitionsAfterFirst, PreevolvedStrategyFilename, InformationSetAbbreviations, AlwaysDoAction, UnevenChanceActions, CriticalNode) { IsAlwaysPlayersLastDecision = IsAlwaysPlayersLastDecision, CanTerminateGame = CanTerminateGame, IncrementGameCacheItem = IncrementGameCacheItem, CustomByte = CustomByte, Subdividable = Subdividable, Subdividable_NumLevels = Subdividable_NumLevels, Subdividable_NumOptionsPerBranch = Subdividable_NumOptionsPerBranch, Subdividable_CorrespondingDecisionByteCode = Subdividable_CorrespondingDecisionByteCode, Subdividable_IsSubdivision = Subdividable_IsSubdivision, Subdividable_IsSubdivision_Last = Subdividable_IsSubdivision_Last, Subdividable_IsSubdivision_First = Subdividable_IsSubdivision_First, Subdividable_AggregateNumPossibleActions = Subdividable_AggregateNumPossibleActions };
             return d;
         }
 
@@ -215,7 +214,7 @@ namespace ACESim
                 subdivisionDecision.Subdividable_AggregateNumPossibleActions = NumPossibleActions;
                 subdivisionDecision.NumPossibleActions = Subdividable_NumOptionsPerBranch;
                 subdivisionDecision.Subdividable_IsSubdivision = true;
-                subdivisionDecision.CustomInformationSetManipulationOnly = false;
+                subdivisionDecision.PlayersToInform = new List<byte>() {subdivisionDecision.PlayerNumber}; // inform self
                 if (i == 0)
                     subdivisionDecision.Subdividable_IsSubdivision_First = true;
                 else if (i == Subdividable_NumLevels - 1)
