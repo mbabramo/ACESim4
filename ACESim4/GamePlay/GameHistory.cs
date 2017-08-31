@@ -114,7 +114,7 @@ namespace ACESim
             Initialized = true;
         }
 
-        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerNumber, byte action, byte numPossibleActions, List<byte> playersToInform, bool skipAddToHistory, byte? cacheIndexToIncrement)
+        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerNumber, byte action, byte numPossibleActions, List<byte> playersToInform, bool skipAddToHistory, List<byte> cacheIndicesToIncrement)
         {
             if (!Initialized)
                 Initialize();
@@ -138,8 +138,9 @@ namespace ACESim
             }
             if (playersToInform != null && playersToInform.Any())
                 AddToInformationSet(action, decisionIndex, playerNumber, playersToInform);
-            if (cacheIndexToIncrement != null)
-                IncrementCacheIndex((byte) cacheIndexToIncrement);
+            if (cacheIndicesToIncrement != null)
+                foreach (byte cacheIndex in cacheIndicesToIncrement)
+                    IncrementCacheIndex(cacheIndex);
         }
 
         public unsafe void IncrementCacheIndex(byte cacheIndexToIncrement)

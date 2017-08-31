@@ -106,10 +106,15 @@ namespace ACESimTest
                             l.Add(bargainingRound);
                             bool pMovesFirst = (bargainingRound % 2 == 1) || simultaneousBargainingRounds;
                             if (pMovesFirst)
+                            {
                                 l.Add(moveSet.pMove);
-                            l.Add(moveSet.dMove);
-                            if (!pMovesFirst)
+                                l.Add(moveSet.dMove);
+                            }
+                            else
+                            {
+                                l.Add(moveSet.dMove);
                                 l.Add(moveSet.pMove);
+                            }
                             if (allowAbandonAndDefault && !settlementReachedLastRound)
                             {
                                 l.Add(pReadyToAbandonLastRound ? (byte) 1 : (byte) 2);
@@ -170,24 +175,19 @@ namespace ACESimTest
             }
             List<byte> pInfo = new List<byte>() { pSignal };
             List<byte> dInfo = new List<byte>() { dSignal };
-            if (!forgetEarlierBargainingRounds)
+            byte startingRound = forgetEarlierBargainingRounds ? (byte) bargainingMoves.Count() : (byte) 1;
+            for (byte b = 1; b <= bargainingMoves.Count(); b++)
             {
-                for (int b = 1; b <= bargainingMoves.Count(); b++)
+                (byte pMove, byte dMove) = bargainingMoves[b - 1];
+                if (simultaneousBargaining)
                 {
-                    (byte pMove, byte dMove) = bargainingMoves[b - 1];
-                    if (simultaneousBargaining)
-                    {
-                        pInfo.Add(dMove);
-                        dInfo.Add(pMove);
-                    }
-                    else
-                    {
-                        bool isPOfferRound = b % 2 == 1;
-                        if (isPOfferRound)
-                            dInfo.Add(pMove);
-                        else
-                            pInfo.Add(dMove);
-                    }
+                    pInfo.Add(dMove);
+                    dInfo.Add(pMove);
+                }
+                else
+                { // we add the offer and response regardless of whether it is accepted
+                    dInfo.Add(pMove);
+                    pInfo.Add(dMove);
                 }
             }
             return (String.Join(",", pInfo), String.Join(",", dInfo));
