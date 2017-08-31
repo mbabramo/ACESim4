@@ -175,21 +175,25 @@ namespace ACESimTest
             }
             List<byte> pInfo = new List<byte>() { pSignal };
             List<byte> dInfo = new List<byte>() { dSignal };
-            byte startingRound = forgetEarlierBargainingRounds ? (byte) bargainingMoves.Count() : (byte) 1;
-            for (byte b = 1; b <= bargainingMoves.Count(); b++)
-            {
-                (byte pMove, byte dMove) = bargainingMoves[b - 1];
-                if (simultaneousBargaining)
+            int bargainingRoundCount = bargainingMoves.Count();
+            byte startingRound = forgetEarlierBargainingRounds ? (byte) bargainingRoundCount : (byte) 1;
+            if (bargainingRoundCount != 0)
+                for (byte b = startingRound; b <= bargainingRoundCount; b++)
                 {
-                    pInfo.Add(dMove);
-                    dInfo.Add(pMove);
+                    pInfo.Add(b);
+                    dInfo.Add(b);
+                    (byte pMove, byte dMove) = bargainingMoves[b - 1];
+                    if (simultaneousBargaining)
+                    {
+                        pInfo.Add(dMove);
+                        dInfo.Add(pMove);
+                    }
+                    else
+                    { // we add the offer and response regardless of whether it is accepted
+                        dInfo.Add(pMove);
+                        pInfo.Add(dMove);
+                    }
                 }
-                else
-                { // we add the offer and response regardless of whether it is accepted
-                    dInfo.Add(pMove);
-                    pInfo.Add(dMove);
-                }
-            }
             return (String.Join(",", pInfo), String.Join(",", dInfo));
         }
 
@@ -226,6 +230,8 @@ namespace ACESimTest
                     ((byte) MyGameDecisions.DAnswer, dAnswers ? (byte) 1 : (byte) 2),
                     ((byte) MyGameDecisions.LitigationQuality, litigationQuality),
                     ((byte) MyGameDecisions.PNoiseOrSignal, pSignalOrNoise),
+                    ((byte) MyGameDecisions.DNoiseOrSignal, dSignalOrNoise),
+                    ((byte) MyGameDecisions.PreBargainingRound, (byte)1 /* only action -- dummy decision */),
                     ((byte) MyGameDecisions.DNoiseOrSignal, dSignalOrNoise),
                     ((byte)MyGameDecisions.MutualGiveUp, mutualGiveUpResult), // we'll only reach this if both try to give up, so it won't be called in multiple bargaining rounds
                     ((byte)MyGameDecisions.PostBargainingRound, 1 /* only action */),
@@ -358,14 +364,18 @@ namespace ACESimTest
         [TestMethod]
         public void SettlingCase()
         {
+            int caseNumber = 0;
             for (byte numPotentialBargainingRounds = 1; numPotentialBargainingRounds <= 3; numPotentialBargainingRounds++)
                 foreach (bool forgetEarlierBargainingRounds in new bool[] { true, false })
                 foreach (bool simultaneousBargainingRounds in new bool[] { true, false })
                 foreach (bool allowAbandonAndDefault in new bool[] { true, false })
                 foreach (bool actionIsNoiseNotSignal in new bool[] { true, false })
                 foreach (LoserPaysPolicy loserPaysPolicy in new LoserPaysPolicy[] { LoserPaysPolicy.NoLoserPays, LoserPaysPolicy.AfterTrialOnly, LoserPaysPolicy.EvenAfterAbandonOrDefault, })
-                for (byte settlementInRound = 1; settlementInRound <= numPotentialBargainingRounds; settlementInRound++)
-                    SettlingCase_Helper(numPotentialBargainingRounds, settlementInRound, forgetEarlierBargainingRounds, simultaneousBargainingRounds, allowAbandonAndDefault, actionIsNoiseNotSignal, loserPaysPolicy);
+                    for (byte settlementInRound = 1; settlementInRound <= numPotentialBargainingRounds; settlementInRound++)
+                    {
+                        SettlingCase_Helper(numPotentialBargainingRounds, settlementInRound, forgetEarlierBargainingRounds, simultaneousBargainingRounds, allowAbandonAndDefault, actionIsNoiseNotSignal, loserPaysPolicy);
+                        caseNumber++;
+                    }
         }
 
         public void SettlingCase_Helper(byte numPotentialBargainingRounds, byte? settlementInRound, bool forgetEarlierBargainingRounds, bool simultaneousBargainingRounds, bool allowAbandonAndDefault, bool actionIsNoiseNotSignal, LoserPaysPolicy loserPaysPolicy)

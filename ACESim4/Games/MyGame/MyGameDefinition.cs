@@ -86,8 +86,8 @@ namespace ACESim
         private byte LitigationQualityDecisionIndex = (byte) 255;
 
         private const byte GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound = 0;
-        private const byte GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound = 0;
-        private const byte GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound = 0;
+        private const byte GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound = 1;
+        private const byte GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound = 2;
 
         #endregion
 

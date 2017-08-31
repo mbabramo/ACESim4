@@ -145,6 +145,7 @@ namespace ACESim
 
         public unsafe void IncrementCacheIndex(byte cacheIndexToIncrement)
         {
+            Debug.WriteLine($"Increment cache for {cacheIndexToIncrement}"); // DEBUG
             fixed (byte* cachePtr = Cache)
                 *(cachePtr + (byte)cacheIndexToIncrement) = (byte)(*(cachePtr + (byte)cacheIndexToIncrement) + (byte)1);
         }
@@ -157,6 +158,7 @@ namespace ACESim
 
         public unsafe void SetCacheIndex(byte cacheIndexToReset, byte newValue)
         {
+            Debug.WriteLine($"Set cache for {cacheIndexToReset} to {newValue}"); // DEBUG
             fixed (byte* cachePtr = Cache)
                 *(cachePtr + (byte)cacheIndexToReset) = newValue;
         }
@@ -371,7 +373,7 @@ namespace ACESim
 
         public void AddToInformationSet(byte information, byte followingDecisionIndex, byte playerNumber, List<byte> playersToInform)
         {
-            //Debug.WriteLine($"player {playerNumber} informing {String.Join(", ", playersToInform)} info {information} following {followingDecisionIndex}"); 
+            //Debug.WriteLine($"player {playerNumber} informing {String.Join(", ", playersToInform)} info {information} following {followingDecisionIndex}");
             fixed (byte* informationSetsPtr = InformationSets)
             {
                 if (playersToInform != null)
@@ -392,7 +394,7 @@ namespace ACESim
         {
             if (!Initialized)
                 Initialize();
-            //Debug.WriteLine($"Adding information {information} following decision {followingDecisionIndex} for Player number {playerNumber}"); 
+            Debug.WriteLine($"Adding information {information} following decision {followingDecisionIndex} for Player number {playerNumber}"); // DEBUG
             if (playerNumber >= MaxNumPlayers)
                 throw new Exception("Invalid player index. Must increase MaxNumPlayers.");
             byte* playerPointer = informationSetsPtr + playerNumber * MaxInformationSetLengthPerPlayer;
