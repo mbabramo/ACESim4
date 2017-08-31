@@ -72,7 +72,7 @@ namespace ACESim
                     DeltaStartingValue = 0.01,
                     MaxDelta = 0.25
                 },
-                NumPotentialBargainingRounds = 4,
+                NumPotentialBargainingRounds = 1,
                 ForgetEarlierBargainingRounds = true,
                 SubdivideOffers = false,
                 BargainingRoundsSimultaneous = true,
