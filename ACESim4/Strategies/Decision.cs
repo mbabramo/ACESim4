@@ -32,9 +32,19 @@ namespace ACESim
         public List<byte> PlayersToInform;
 
         /// <summary>
+        /// If true, then players will be informed only after the next decision in the game. This is useful when two players "simultaneously" make decisions, i.e., the second player should not know of the first player's decision until after the second player makes a decision.
+        /// </summary>
+        public bool DeferNotificationOfPlayers;
+
+        /// <summary>
         /// If non-null, then the game history cache item specified will be incremented immediately after the decision. This makes it possible to keep track of how many times a decision or set of decisions have been made.
         /// </summary>
         public List<byte> IncrementGameCacheItem;
+
+        /// <summary>
+        /// If non-null, then the game history cache item specified will be set to the action chosen.
+        /// </summary>
+        public byte? StoreActionInGameCacheItem;
 
         /// <summary>
         /// The number of discrete actions for this decision. (The actions will be numbered 1 .. NumberActions.)

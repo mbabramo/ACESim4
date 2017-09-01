@@ -90,6 +90,8 @@ namespace ACESim
         private const byte GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound = 0;
         private const byte GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound = 1;
         private const byte GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound = 2;
+        private const byte GameHistoryCacheIndex_PAgreesToBargain = 3;
+        private const byte GameHistoryCacheIndex_DAgreesToBargain = 4;
 
         #endregion
 
@@ -228,43 +230,47 @@ namespace ACESim
 
         private void AddDecisionsForBargainingRound(int b, List<Decision> decisions)
         {
-            // DEBUG -- put it back later
-            //var pAgreeToBargain = new Decision("PAgreeToBargain" + (b + 1), "PB" + (b + 1), (byte)MyGamePlayers.Plaintiff, null,
-            //    2, (byte)MyGameDecisions.PAgreeToBargain)
-            //{
-            //    CustomByte = (byte)(b + 1),
-            //    CustomInformationSetManipulationOnly = true
-            //};
-            //decisions.Add(pAgreeToBargain);
+            // Agreement to bargain: We do want to add this to the information set of the opposing player, since that may be relevant in future rounds and also might affect decisions whether to abandon/default later in this round, but we want to defer addition of the plaintiff statement, so that it doesn't influence the defendant decision.
+            debug; // should we use same approach as below? Or should we add a defer mode? That would probably be best. If game history sees that something has been deferred, then it will add it.
 
-            //var dAgreeToBargain = new Decision("DAgreeToBargain" + (b + 1), "DB" + (b + 1), (byte)MyGamePlayers.Defendant, null,
-            //    2, (byte)MyGameDecisions.DAgreeToBargain)
-            //{
-            //    CustomByte = (byte)(b + 1),
-            //    CustomInformationSetManipulationOnly = true
-            //};
-            //decisions.Add(dAgreeToBargain);
+            var pAgreeToBargain = new Decision("PAgreeToBargain" + (b + 1), "PB" + (b + 1), (byte)MyGamePlayers.Plaintiff, new List<byte> { (byte) MyGamePlayers.Resolution, (byte) MyGamePlayers.Defendant },
+                2, (byte)MyGameDecisions.PAgreeToBargain)
+            {
+                CustomByte = (byte)(b + 1),
+                IncrementGameCacheItem = new List<byte>() { GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound },
+                StoreActionInGameCacheItem = GameHistoryCacheIndex_PAgreesToBargain
+            };
+            decisions.Add(pAgreeToBargain);
+
+            var dAgreeToBargain = new Decision("DAgreeToBargain" + (b + 1), "DB" + (b + 1), (byte)MyGamePlayers.Defendant, new List<byte> { (byte)MyGamePlayers.Resolution, (byte) MyGamePlayers.Plaintiff },
+                2, (byte)MyGameDecisions.DAgreeToBargain)
+            {
+                CustomByte = (byte)(b + 1),
+                IncrementGameCacheItem = new List<byte>() { GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound },
+                StoreActionInGameCacheItem = GameHistoryCacheIndex_PAgreesToBargain
+            };
+            decisions.Add(dAgreeToBargain);
 
             // note that we will do all information set manipulation in CustomInformationSetManipulation below.
             if (Options.BargainingRoundsSimultaneous)
             {
                 // samuelson-chaterjee bargaining.
-                // Note: We don't inform the other player right away. Rather, the custom information set manipulation will add to information sets after both players have gone, i.e. after defendant goes
                 var pOffer =
-                    new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, new List<byte>() { (byte)MyGamePlayers.Resolution },
+                    new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, new List<byte>() { (byte)MyGamePlayers.Resolution, (byte) MyGamePlayers.Defendant },
                         Options.NumOffers, (byte)MyGameDecisions.POffer)
                     {
                         CustomByte = (byte)(b + 1),
-                        IncrementGameCacheItem = new List<byte>() { GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound }
+                        IncrementGameCacheItem = new List<byte>() { GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound },
+                        DeferNotificationOfPlayers = true // wait until after defendant has gone for defendant to find out -- of course, we don't do that with defendant decision
                     };
                 AddOfferDecisionOrSubdivisions(decisions, pOffer);
                 var dOffer =
-                    new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, new List<byte>() { (byte)MyGamePlayers.Resolution },
+                    new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, new List<byte>() { (byte)MyGamePlayers.Resolution, (byte) MyGamePlayers.Plaintiff },
                         Options.NumOffers, (byte)MyGameDecisions.DOffer)
                     {
                         CanTerminateGame = true,
                         CustomByte = (byte)(b + 1),
-                        IncrementGameCacheItem = new List<byte>() { GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound }
+                        IncrementGameCacheItem = new List<byte>() { GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound }
                     }; 
                 AddOfferDecisionOrSubdivisions(decisions, dOffer);
             }
@@ -438,6 +444,12 @@ namespace ACESim
                 bool dTryingToGiveUp = priorActions.mostRecentAction == 1;
                 return !pTryingToGiveUp || !dTryingToGiveUp; // if anyone is NOT trying to give up, we don't have to deal with mutual giving up
             }
+            else if (decision.DecisionByteCode >= (byte) MyGameDecisions.POffer && decision.DecisionByteCode <= (byte) MyGameDecisions.DResponse)
+            {
+                bool pAgreesToBargain = gameHistory.GetCacheIndex(GameHistoryCacheIndex_PAgreesToBargain) == (byte) 1;
+                bool dAgreesToBargain = gameHistory.GetCacheIndex(GameHistoryCacheIndex_DAgreesToBargain) == (byte) 1;
+                return !pAgreesToBargain || !dAgreesToBargain; // if anyone refuses to bargain, we skip the decisions
+            }
             return false;
         }
 
@@ -505,17 +517,6 @@ namespace ACESim
                 gameHistory.AddToInformationSetAndLog(discreteSignal, currentDecisionIndex, decisionByteCode == (byte)MyGameDecisions.PNoiseOrSignal ? (byte) MyGamePlayers.Plaintiff : (byte) MyGamePlayers.Defendant);
                 // NOTE: We don't have to do anything like this for the court's information set. The court simply gets the actual litigation quality and the noise. When the game is actually being played, the court will combine these to determine whether the plaintiff wins. The plaintiff and defendant are non-chance players, and so we want to have the same information set for all situations with the same signal.  But with the court, that doesn't matter. We can have lots of information sets, covering the wide range of possibilities.
             }
-            if (decisionByteCode == (byte) MyGameDecisions.DOffer && Options.BargainingRoundsSimultaneous)
-            {
-                // With simultaneous bargaining, the offers must be conveyed, but only after both players have made their offers, i.e., after the defendant's decision. 
-                (byte defendantsActionChosen, byte plaintiffsActionChosen) = gameHistory.GetLastActionAndActionBeforeThat();
-                gameHistory.AddToInformationSetAndLog(defendantsActionChosen, currentDecisionIndex,
-                    (byte)MyGamePlayers.Plaintiff); // defendant's decision conveyed to plaintiff
-                gameHistory.AddToInformationSetAndLog(plaintiffsActionChosen, currentDecisionIndex,
-                    (byte)MyGamePlayers.Defendant); // plaintiff's decision conveyed to defendant
-                gameHistory.IncrementCacheIndex(GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound);
-                gameHistory.IncrementCacheIndex(GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound);
-            }
             else if (decisionByteCode == (byte)MyGameDecisions.PreBargainingRound)
             {
                 // Clean up previous round after the bargaining round:
@@ -549,29 +550,6 @@ namespace ACESim
                 gameHistory.SetCacheIndex(GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, (byte) 1);
                 gameHistory.SetCacheIndex(GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, (byte)1);
                 gameHistory.SetCacheIndex(GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, (byte)1);
-            }
-        }
-
-        private void CustomInformationSetManipulationOfferResponseBargaining(byte currentDecisionIndex, byte actionChosen,
-            ref GameHistory gameHistory, byte bargainingRoundIndex, byte currentPlayer, bool addPlayersOwnDecisionsToInformationSet)
-        {
-            // offer-response bargaining
-            bool pGoesFirst = Options.PGoesFirstIfNotSimultaneous[bargainingRoundIndex];
-            byte partyGoingFirst = pGoesFirst ? (byte) MyGamePlayers.Plaintiff : (byte) MyGamePlayers.Defendant;
-            byte partyGoingSecond = pGoesFirst ? (byte) MyGamePlayers.Defendant : (byte) MyGamePlayers.Plaintiff;
-            byte otherPlayer = currentPlayer == (byte) MyGamePlayers.Plaintiff
-                ? (byte) MyGamePlayers.Defendant
-                : (byte) MyGamePlayers.Plaintiff;
-
-            // We don't need to put a player's decision into the player's own information set. A player at least knows the information that led to its earlier decision.
-            // TODO: We could create an option for player to remember own information. After all, with mixed strategies, player will not know what player actually decided.
-            if (currentPlayer == partyGoingFirst)
-            {
-                gameHistory.AddToInformationSetAndLog(actionChosen, currentDecisionIndex,
-                    otherPlayer); // convey decision to other player (who must choose whether to act on it)
-                if (addPlayersOwnDecisionsToInformationSet)
-                    gameHistory.AddToInformationSetAndLog(actionChosen, currentDecisionIndex,
-                        currentPlayer); // add offer to the offering party's information set. Note that we never need to add a response, since it will always be clear in later rounds that the response was "no".
             }
         }
 

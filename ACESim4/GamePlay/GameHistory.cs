@@ -130,7 +130,13 @@ namespace ACESim
             Initialized = true;
         }
 
-        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerNumber, byte action, byte numPossibleActions, List<byte> playersToInform, bool skipAddToHistory, List<byte> cacheIndicesToIncrement)
+        private bool previousNotificationDeferred;
+        private byte deferredAction;
+        private byte deferredDecisionIndex;
+        private byte deferredPlayerNumber;
+        private List<byte> deferredPlayersToInform;
+
+        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerNumber, byte action, byte numPossibleActions, List<byte> playersToInform, bool skipAddToHistory, List<byte> cacheIndicesToIncrement, byte? storeActionInCacheIndex, bool deferNotification)
         {
             if (!Initialized)
                 Initialize();
@@ -152,11 +158,23 @@ namespace ACESim
                 if (LastIndexAddedToHistory >= MaxHistoryLength - 2) // must account for terminator characters
                     throw new Exception("Internal error. Must increase history length.");
             }
-            if (playersToInform != null && playersToInform.Any())
+            if (previousNotificationDeferred && deferredPlayersToInform != null && deferredPlayersToInform.Any())
+                AddToInformationSetAndLog(deferredAction, deferredDecisionIndex, deferredPlayerNumber, deferredPlayersToInform);
+            previousNotificationDeferred = deferNotification;
+            if (deferNotification)
+            {
+                deferredAction = action;
+                deferredDecisionIndex = decisionIndex;
+                deferredPlayerNumber = playerNumber;
+                deferredPlayersToInform = playersToInform;
+            }
+            else if (playersToInform != null && playersToInform.Any())
                 AddToInformationSetAndLog(action, decisionIndex, playerNumber, playersToInform);
             if (cacheIndicesToIncrement != null)
                 foreach (byte cacheIndex in cacheIndicesToIncrement)
                     IncrementCacheIndex(cacheIndex);
+            if (storeActionInCacheIndex != null)
+                SetCacheIndex((byte)storeActionInCacheIndex, action);
         }
 
         public unsafe void IncrementCacheIndex(byte cacheIndexToIncrement)

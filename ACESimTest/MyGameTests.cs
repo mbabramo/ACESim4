@@ -144,21 +144,38 @@ namespace ACESimTest
             return String.Join(",", l);
         }
 
-        private List<(byte pMove, byte dMove)> GetBargainingRoundMoves(bool simultaneousBargaining, byte numRoundsToInclude, bool settlementInLastRound)
+        enum HowToSimulateBargainingFailure : byte
         {
-            List<(byte pMove, byte dMove)> moves = new List<(byte pMove, byte dMove)>();
+            PRefusesToBargain,
+            DRefusesToBargain,
+            BothRefuseToBargain,
+            BargainingOccurs
+        }
+
+        private List<(byte? pMove, byte? dMove)> GetBargainingRoundMoves(bool simultaneousBargaining, byte numRoundsToInclude, bool settlementInLastRound, bool ifNotSettlingPRefusesToBargain, bool ifNotSettlingDRefusesToBargain)
+        {
+            List<(byte? pMove, byte? dMove)> moves = new List<(byte? pMove, byte? dMove)>();
             for (byte b = 1; b <= numRoundsToInclude; b++)
             {
-                if (simultaneousBargaining)
-                    moves.Add((3, settlementInLastRound && b == numRoundsToInclude ? (byte) 3 : (byte) 2));
+                bool settlingThisRound = settlementInLastRound && b == numRoundsToInclude;
+                if (!settlingThisRound && (ifNotSettlingPRefusesToBargain || ifNotSettlingDRefusesToBargain))
+                {
+                    // Note that if one player refuses to bargain, then the other party's move will be ignored -- hence, the use of the dummy 255 here
+                    moves.Add((ifNotSettlingPRefusesToBargain ? (byte?) null : (byte?) 255, ifNotSettlingDRefusesToBargain ? (byte?) 255 : (byte?)null));
+                }
                 else
                 {
-                    byte offer = 3;
-                    byte response = settlementInLastRound && b == numRoundsToInclude ? (byte)1 : (byte)2;
-                    if (b % 2 == 1)
-                        moves.Add((offer, response));
+                    if (simultaneousBargaining)
+                        moves.Add((3, settlingThisRound ? (byte) 3 : (byte) 2));
                     else
-                        moves.Add((response, offer));
+                    {
+                        byte offer = 3;
+                        byte response = settlingThisRound ? (byte) 1 : (byte) 2;
+                        if (b % 2 == 1)
+                            moves.Add((offer, response));
+                        else
+                            moves.Add((response, offer));
+                    }
                 }
             }
             return moves;
