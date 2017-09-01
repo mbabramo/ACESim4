@@ -231,25 +231,27 @@ namespace ACESim
         private void AddDecisionsForBargainingRound(int b, List<Decision> decisions)
         {
             // Agreement to bargain: We do want to add this to the information set of the opposing player, since that may be relevant in future rounds and also might affect decisions whether to abandon/default later in this round, but we want to defer addition of the plaintiff statement, so that it doesn't influence the defendant decision.
-            debug; // should we use same approach as below? Or should we add a defer mode? That would probably be best. If game history sees that something has been deferred, then it will add it.
 
-            var pAgreeToBargain = new Decision("PAgreeToBargain" + (b + 1), "PB" + (b + 1), (byte)MyGamePlayers.Plaintiff, new List<byte> { (byte) MyGamePlayers.Resolution, (byte) MyGamePlayers.Defendant },
-                2, (byte)MyGameDecisions.PAgreeToBargain)
-            {
-                CustomByte = (byte)(b + 1),
-                IncrementGameCacheItem = new List<byte>() { GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound },
-                StoreActionInGameCacheItem = GameHistoryCacheIndex_PAgreesToBargain
-            };
-            decisions.Add(pAgreeToBargain);
+            // DEBUG
 
-            var dAgreeToBargain = new Decision("DAgreeToBargain" + (b + 1), "DB" + (b + 1), (byte)MyGamePlayers.Defendant, new List<byte> { (byte)MyGamePlayers.Resolution, (byte) MyGamePlayers.Plaintiff },
-                2, (byte)MyGameDecisions.DAgreeToBargain)
-            {
-                CustomByte = (byte)(b + 1),
-                IncrementGameCacheItem = new List<byte>() { GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound },
-                StoreActionInGameCacheItem = GameHistoryCacheIndex_PAgreesToBargain
-            };
-            decisions.Add(dAgreeToBargain);
+            //var pAgreeToBargain = new Decision("PAgreeToBargain" + (b + 1), "PB" + (b + 1), (byte)MyGamePlayers.Plaintiff, new List<byte> { (byte) MyGamePlayers.Resolution, (byte) MyGamePlayers.Defendant },
+            //    2, (byte)MyGameDecisions.PAgreeToBargain)
+            //{
+            //    CustomByte = (byte)(b + 1),
+            //    IncrementGameCacheItem = new List<byte>() { GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound },
+            //    StoreActionInGameCacheItem = GameHistoryCacheIndex_PAgreesToBargain,
+            //    DeferNotificationOfPlayers = true
+            //};
+            //decisions.Add(pAgreeToBargain);
+
+            //var dAgreeToBargain = new Decision("DAgreeToBargain" + (b + 1), "DB" + (b + 1), (byte)MyGamePlayers.Defendant, new List<byte> { (byte)MyGamePlayers.Resolution, (byte) MyGamePlayers.Plaintiff },
+            //    2, (byte)MyGameDecisions.DAgreeToBargain)
+            //{
+            //    CustomByte = (byte)(b + 1),
+            //    IncrementGameCacheItem = new List<byte>() { GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound },
+            //    StoreActionInGameCacheItem = GameHistoryCacheIndex_PAgreesToBargain
+            //};
+            //decisions.Add(dAgreeToBargain);
 
             // note that we will do all information set manipulation in CustomInformationSetManipulation below.
             if (Options.BargainingRoundsSimultaneous)
@@ -328,7 +330,7 @@ namespace ACESim
             // no need to notify other player, as if abandon/default takes place, this will be the last decision
 
             var pAbandon =
-                new Decision("PAbandon" + (b + 1), "PA" + (b + 1), (byte)MyGamePlayers.Plaintiff, new List<byte>() { (byte)MyGamePlayers.Resolution }, 
+                new Decision("PAbandon" + (b + 1), "PA" + (b + 1), (byte)MyGamePlayers.Plaintiff, new List<byte>() { (byte)MyGamePlayers.Resolution },
                     2, (byte)MyGameDecisions.PAbandon)
                 {
                     CustomByte = (byte)(b + 1),

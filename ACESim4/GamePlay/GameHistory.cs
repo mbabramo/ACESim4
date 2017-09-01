@@ -47,8 +47,15 @@ namespace ACESim
         public bool Initialized;
         public fixed byte InformationSetLogs[MaxInformationSetLoggingLength]; // a buffer for each player, terminated by 255. This includes removal characters, so that we can replay the history of an information set.
         public fixed byte InformationSets[MaxInformationSetLength]; // a buffer for each player, terminated by 255.
-                                                                              // Implement this method to serialize data. The method is called 
-                                                                              // on serialization.
+                                                                    // Implement this method to serialize data. The method is called 
+                                                                    // on serialization.
+
+        // The following are used to defer adding information to a player information set.
+        private bool PreviousNotificationDeferred;
+        private byte DeferredAction;
+        private byte DeferredDecisionIndex;
+        private byte DeferredPlayerNumber;
+        private List<byte> DeferredPlayersToInform;
 
         public void GetObjectData(SerializationInfo info, StreamingContext context)
         {
@@ -92,6 +99,12 @@ namespace ACESim
             LastIndexAddedToHistory = (short)info.GetValue("LastIndexAddedToHistory", typeof(short));
             NextIndexInHistoryActionsOnly = 0;
             Initialized = (bool)info.GetValue("Initialized", typeof(bool));
+
+            PreviousNotificationDeferred = false;
+            DeferredAction = 0;
+            DeferredDecisionIndex = 0;
+            DeferredPlayerNumber = 0;
+            DeferredPlayersToInform = null;
         }
 
         #region Construction and adding information
@@ -130,12 +143,6 @@ namespace ACESim
             Initialized = true;
         }
 
-        private bool previousNotificationDeferred;
-        private byte deferredAction;
-        private byte deferredDecisionIndex;
-        private byte deferredPlayerNumber;
-        private List<byte> deferredPlayersToInform;
-
         public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerNumber, byte action, byte numPossibleActions, List<byte> playersToInform, bool skipAddToHistory, List<byte> cacheIndicesToIncrement, byte? storeActionInCacheIndex, bool deferNotification)
         {
             if (!Initialized)
@@ -158,15 +165,15 @@ namespace ACESim
                 if (LastIndexAddedToHistory >= MaxHistoryLength - 2) // must account for terminator characters
                     throw new Exception("Internal error. Must increase history length.");
             }
-            if (previousNotificationDeferred && deferredPlayersToInform != null && deferredPlayersToInform.Any())
-                AddToInformationSetAndLog(deferredAction, deferredDecisionIndex, deferredPlayerNumber, deferredPlayersToInform);
-            previousNotificationDeferred = deferNotification;
+            if (PreviousNotificationDeferred && DeferredPlayersToInform != null && DeferredPlayersToInform.Any())
+                AddToInformationSetAndLog(DeferredAction, DeferredDecisionIndex, DeferredPlayerNumber, DeferredPlayersToInform);
+            PreviousNotificationDeferred = deferNotification;
             if (deferNotification)
             {
-                deferredAction = action;
-                deferredDecisionIndex = decisionIndex;
-                deferredPlayerNumber = playerNumber;
-                deferredPlayersToInform = playersToInform;
+                DeferredAction = action;
+                DeferredDecisionIndex = decisionIndex;
+                DeferredPlayerNumber = playerNumber;
+                DeferredPlayersToInform = playersToInform;
             }
             else if (playersToInform != null && playersToInform.Any())
                 AddToInformationSetAndLog(action, decisionIndex, playerNumber, playersToInform);
