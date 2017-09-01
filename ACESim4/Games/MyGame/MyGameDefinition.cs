@@ -500,16 +500,16 @@ namespace ACESim
                 // When the action is the signal, we just send the signal that the player receives, because there are unequal chance probabilities. When the action is the noise, we have an even chance of each noise value. We can't just give the player the noise value; we have to take into account the litigation quality. So, we do that here.
                 byte litigationQuality = gameHistory.GetPlayerInformationItem((byte)MyGamePlayers.Resolution, LitigationQualityDecisionIndex);
                 ConvertNoiseToSignal(litigationQuality, actionChosen, decisionByteCode == (byte)MyGameDecisions.PNoiseOrSignal, out byte discreteSignal, out _);
-                gameHistory.AddToInformationSet(discreteSignal, currentDecisionIndex, decisionByteCode == (byte)MyGameDecisions.PNoiseOrSignal ? (byte) MyGamePlayers.Plaintiff : (byte) MyGamePlayers.Defendant);
+                gameHistory.AddToInformationSetAndLog(discreteSignal, currentDecisionIndex, decisionByteCode == (byte)MyGameDecisions.PNoiseOrSignal ? (byte) MyGamePlayers.Plaintiff : (byte) MyGamePlayers.Defendant);
                 // NOTE: We don't have to do anything like this for the court's information set. The court simply gets the actual litigation quality and the noise. When the game is actually being played, the court will combine these to determine whether the plaintiff wins. The plaintiff and defendant are non-chance players, and so we want to have the same information set for all situations with the same signal.  But with the court, that doesn't matter. We can have lots of information sets, covering the wide range of possibilities.
             }
             if (decisionByteCode == (byte) MyGameDecisions.DOffer && Options.BargainingRoundsSimultaneous)
             {
                 // With simultaneous bargaining, the offers must be conveyed, but only after both players have made their offers, i.e., after the defendant's decision. 
                 (byte defendantsActionChosen, byte plaintiffsActionChosen) = gameHistory.GetLastActionAndActionBeforeThat();
-                gameHistory.AddToInformationSet(defendantsActionChosen, currentDecisionIndex,
+                gameHistory.AddToInformationSetAndLog(defendantsActionChosen, currentDecisionIndex,
                     (byte)MyGamePlayers.Plaintiff); // defendant's decision conveyed to plaintiff
-                gameHistory.AddToInformationSet(plaintiffsActionChosen, currentDecisionIndex,
+                gameHistory.AddToInformationSetAndLog(plaintiffsActionChosen, currentDecisionIndex,
                     (byte)MyGamePlayers.Defendant); // plaintiff's decision conveyed to defendant
                 gameHistory.IncrementCacheIndex(GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound);
                 gameHistory.IncrementCacheIndex(GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound);
@@ -539,9 +539,9 @@ namespace ACESim
 
                 // Add an indication of the bargaining round we're in.
                 byte bargainingRound = currentDecision.CustomByte;
-                gameHistory.AddToInformationSet(bargainingRound, currentDecisionIndex, (byte)MyGamePlayers.Resolution);
-                gameHistory.AddToInformationSet(bargainingRound, currentDecisionIndex, (byte)MyGamePlayers.Plaintiff);
-                gameHistory.AddToInformationSet(bargainingRound, currentDecisionIndex, (byte)MyGamePlayers.Defendant);
+                gameHistory.AddToInformationSetAndLog(bargainingRound, currentDecisionIndex, (byte)MyGamePlayers.Resolution);
+                gameHistory.AddToInformationSetAndLog(bargainingRound, currentDecisionIndex, (byte)MyGamePlayers.Plaintiff);
+                gameHistory.AddToInformationSetAndLog(bargainingRound, currentDecisionIndex, (byte)MyGamePlayers.Defendant);
 
                 // Reset the cache indices to reflect that there is only one item
                 gameHistory.SetCacheIndex(GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, (byte) 1);
@@ -565,10 +565,10 @@ namespace ACESim
             // TODO: We could create an option for player to remember own information. After all, with mixed strategies, player will not know what player actually decided.
             if (currentPlayer == partyGoingFirst)
             {
-                gameHistory.AddToInformationSet(actionChosen, currentDecisionIndex,
+                gameHistory.AddToInformationSetAndLog(actionChosen, currentDecisionIndex,
                     otherPlayer); // convey decision to other player (who must choose whether to act on it)
                 if (addPlayersOwnDecisionsToInformationSet)
-                    gameHistory.AddToInformationSet(actionChosen, currentDecisionIndex,
+                    gameHistory.AddToInformationSetAndLog(actionChosen, currentDecisionIndex,
                         currentPlayer); // add offer to the offering party's information set. Note that we never need to add a response, since it will always be clear in later rounds that the response was "no".
             }
         }

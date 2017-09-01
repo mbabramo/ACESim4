@@ -133,7 +133,7 @@ namespace ACESim
                 // For subdivision decisions, we initially add only to the player's own information set, starting with a stub to distinguish the individual levels from the eventual decision.
                 // Start by adding to history -- but without informing any players. We're treating the history the same as always.
                 gameHistory.AddToHistory(decision.DecisionByteCode, decisionIndex, decision.PlayerNumber, action, decision.NumPossibleActions, null, false, decision.IncrementGameCacheItem);
-                gameHistory.AddToInformationSet(action, decisionIndex, decision.PlayerNumber);
+                gameHistory.AddToInformationSetAndLog(action, decisionIndex, decision.PlayerNumber);
                 if (decision.Subdividable_IsSubdivision_Last)
                 {
                     // Aggregate the subdivisions and remove the subactions from the player's own information set.

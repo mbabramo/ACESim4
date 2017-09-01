@@ -16,9 +16,16 @@ namespace ACESimTest
         private static void GetInformationSetStrings(MyGameProgress myGameProgress, out string pInformationSet,
             out string dInformationSet, out string resolutionSet)
         {
-            pInformationSet = myGameProgress.GameHistory.GetPlayerInformationString((byte)MyGamePlayers.Plaintiff, null);
-            dInformationSet = myGameProgress.GameHistory.GetPlayerInformationString((byte)MyGamePlayers.Defendant, null);
-            resolutionSet = myGameProgress.GameHistory.GetPlayerInformationString((byte)MyGamePlayers.Resolution, null);
+            pInformationSet = myGameProgress.GameHistory.GetPlayerInformationAtPointString((byte)MyGamePlayers.Plaintiff, null);
+            dInformationSet = myGameProgress.GameHistory.GetPlayerInformationAtPointString((byte)MyGamePlayers.Defendant, null);
+            resolutionSet = myGameProgress.GameHistory.GetPlayerInformationAtPointString((byte)MyGamePlayers.Resolution, null);
+            string pInformationSet2 = myGameProgress.GameHistory.GetCurrentPlayerInformationString((byte)MyGamePlayers.Plaintiff);
+            string dInformationSet2 = myGameProgress.GameHistory.GetCurrentPlayerInformationString((byte)MyGamePlayers.Defendant);
+            string resolutionSet2 = myGameProgress.GameHistory.GetCurrentPlayerInformationString((byte)MyGamePlayers.Resolution);
+            pInformationSet.Should().Be(pInformationSet2);
+            dInformationSet.Should().Be(dInformationSet2);
+            resolutionSet.Should().Be(resolutionSet2);
+
         }
 
         private const double PartyNoise = 0.2, InitialWealth = 1_000_000, DamagesAlleged = 100_000, PFileCost = 3000, DAnswerCost = 2000, PTrialCosts = 4000, DTrialCosts = 6000, PerRoundBargainingCost = 1000;
