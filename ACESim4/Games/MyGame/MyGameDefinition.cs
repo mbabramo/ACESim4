@@ -249,7 +249,7 @@ namespace ACESim
                 {
                     CustomByte = (byte) (b + 1),
                     IncrementGameCacheItem = new List<byte>() {GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound},
-                    StoreActionInGameCacheItem = GameHistoryCacheIndex_PAgreesToBargain
+                    StoreActionInGameCacheItem = GameHistoryCacheIndex_DAgreesToBargain
                 };
                 decisions.Add(dAgreeToBargain);
             }
@@ -455,6 +455,8 @@ namespace ACESim
                 {
                     byte pAgreesToBargainCacheValue = gameHistory.GetCacheIndex(GameHistoryCacheIndex_PAgreesToBargain);
                     byte dAgreesToBargainCacheValue = gameHistory.GetCacheIndex(GameHistoryCacheIndex_DAgreesToBargain);
+                    if (pAgreesToBargainCacheValue == 0 || dAgreesToBargainCacheValue == 0)
+                        throw new NotImplementedException();
                     bool pAgreesToBargain = pAgreesToBargainCacheValue == (byte) 1;
                     bool dAgreesToBargain = dAgreesToBargainCacheValue == (byte) 1;
                     return !pAgreesToBargain || !dAgreesToBargain; // if anyone refuses to bargain, we skip the decisions
