@@ -16,6 +16,8 @@ namespace ACESim
         public double DSignalUniform;
         public bool PFiles, DAnswers, PReadyToAbandon, DReadyToAbandon, BothReadyToGiveUp, PAbandons, DDefaults;
         public int BargainingRoundsComplete;
+        public List<bool> PAgreesToBargain;
+        public List<bool> DAgreesToBargain;
         public List<double> POffers;
         public List<bool> PResponses;
         public List<double> DOffers;
@@ -37,9 +39,13 @@ namespace ACESim
         public override string ToString()
         {
             return
-                $"LitigationQualityDiscrete {LitigationQualityDiscrete} LitigationQualityUniform {LitigationQualityUniform} PSignalDiscrete {PSignalDiscrete} DSignalDiscrete {DSignalDiscrete} PSignalUniform {PSignalUniform} DSignalUniform {DSignalUniform} PFiles {PFiles} DAnswers {DAnswers} BargainingRoundsComplete {BargainingRoundsComplete} PLastOffer {PLastOffer} DLastOffer {DLastOffer} CaseSettles {CaseSettles} SettlementValue {SettlementValue} PAbandons {PAbandons} DDefaults {DDefaults} TrialOccurs {TrialOccurs} PWinsAtTrial {PWinsAtTrial} PFinalWealth {PFinalWealth} DFinalWealth {DFinalWealth} PWelfare {PWelfare} DWelfare {DWelfare}";
+                $"LitigationQualityDiscrete {LitigationQualityDiscrete} LitigationQualityUniform {LitigationQualityUniform} PSignalDiscrete {PSignalDiscrete} DSignalDiscrete {DSignalDiscrete} PSignalUniform {PSignalUniform} DSignalUniform {DSignalUniform} PFiles {PFiles} DAnswers {DAnswers} BargainingRoundsComplete {BargainingRoundsComplete} PLastAgreesToBargain {PLastAgreesToBargain} DLastAgreesToBargain {DLastAgreesToBargain} PLastOffer {PLastOffer} DLastOffer {DLastOffer} CaseSettles {CaseSettles} SettlementValue {SettlementValue} PAbandons {PAbandons} DDefaults {DDefaults} TrialOccurs {TrialOccurs} PWinsAtTrial {PWinsAtTrial} PFinalWealth {PFinalWealth} DFinalWealth {DFinalWealth} PWelfare {PWelfare} DWelfare {DWelfare}";
         }
 
+        public bool? PFirstAgreesToBargain => (bool?)PAgreesToBargain?.FirstOrDefault() ?? null;
+        public bool? DFirstAgreesToBargain => (bool?)DAgreesToBargain?.FirstOrDefault() ?? null;
+        public bool? PLastAgreesToBargain => (bool?) PAgreesToBargain?.LastOrDefault() ?? null;
+        public bool? DLastAgreesToBargain => (bool?)DAgreesToBargain?.LastOrDefault() ?? null;
         public double? PFirstOffer => (double?)POffers?.FirstOrDefault() ?? null;
         public double? DFirstOffer => (double?)DOffers?.FirstOrDefault() ?? null;
         public bool? PFirstResponse => (bool?)PResponses?.FirstOrDefault() ?? null;
@@ -49,28 +55,15 @@ namespace ACESim
         public bool? PLastResponse => (bool?)PResponses?.LastOrDefault() ?? null;
         public bool? DLastResponse => (bool?)DResponses?.LastOrDefault() ?? null;
         public bool BothPlayersHaveCompletedRound => POffers?.Count() == DResponses?.Count() && DOffers?.Count() == PResponses?.Count();
-        public bool RoundIsComplete(bool playersMovingSimultaneously, bool pGoesFirstIfNotSimultaneous)
-        {
-            return (POffers?.Count() ?? 0) + (PResponses?.Count() ?? 0) == (DOffers?.Count() ?? 0) + (DResponses?.Count() ?? 0);
-            // NOTE: The following code doesn't work right when we have a simultaneous move round followed by an offer-response round. Maybe we shouldn't be mixing them.
-            //if (playersMovingSimultaneously)
-            //    return POffers != null && DOffers != null && POffers.Count() == DOffers.Count();
-            //else if (pGoesFirstIfNotSimultaneous)
-            //    return POffers != null && DResponses != null && POffers.Count() == DResponses.Count();
-            //else
-            //    return DOffers != null && PResponses != null && DOffers.Count() == PResponses.Count();
-        }
-        public void UpdateProgress(MyGameDefinition gameDefinition)
+        public void ConcludeBargainingRound(MyGameDefinition gameDefinition)
         {
             bool playersMovingSimultaneously = gameDefinition.Options.BargainingRoundsSimultaneous;
             bool pGoesFirstIfNotSimultaneous = playersMovingSimultaneously || gameDefinition.Options.PGoesFirstIfNotSimultaneous[BargainingRoundsComplete];
-            if (!RoundIsComplete(playersMovingSimultaneously, pGoesFirstIfNotSimultaneous))
-                return;
             BargainingRoundsComplete++;
             CaseSettles = SettlementReached(playersMovingSimultaneously, pGoesFirstIfNotSimultaneous);
             if (CaseSettles)
                 SetSettlementValue(playersMovingSimultaneously, pGoesFirstIfNotSimultaneous);
-            if (CaseSettles)
+            if (CaseSettles || PAbandons || DDefaults)
                 GameComplete = true;
         }
 
@@ -143,6 +136,8 @@ namespace ACESim
             copy.PAbandons = PAbandons;
             copy.DDefaults = DDefaults;
             copy.BargainingRoundsComplete = BargainingRoundsComplete;
+            copy.PAgreesToBargain = PAgreesToBargain?.ToList();
+            copy.DAgreesToBargain = DAgreesToBargain?.ToList();
             copy.POffers = POffers?.ToList();
             copy.DOffers = DOffers?.ToList();
             copy.PResponses = PResponses?.ToList();
@@ -172,6 +167,20 @@ namespace ACESim
         public override double[] GetNonChancePlayerUtilities()
         {
             return new double[] { PWelfare, DWelfare };
+        }
+
+        public void AddPAgreesToBargain(bool agreesToBargain)
+        {
+            if (PAgreesToBargain == null)
+                PAgreesToBargain = new List<bool>();
+            PAgreesToBargain.Add(agreesToBargain);
+        }
+
+        public void AddDAgreesToBargain(bool agreesToBargain)
+        {
+            if (DAgreesToBargain == null)
+                DAgreesToBargain = new List<bool>();
+            DAgreesToBargain.Add(agreesToBargain);
         }
 
         public void AddOffer(bool plaintiff, double value)

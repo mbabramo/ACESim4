@@ -232,26 +232,27 @@ namespace ACESim
         {
             // Agreement to bargain: We do want to add this to the information set of the opposing player, since that may be relevant in future rounds and also might affect decisions whether to abandon/default later in this round, but we want to defer addition of the plaintiff statement, so that it doesn't influence the defendant decision.
 
-            // DEBUG
+            if (Options.IncludeAgreementToBargainDecisions)
+            {
+                var pAgreeToBargain = new Decision("PAgreeToBargain" + (b + 1), "PB" + (b + 1), (byte) MyGamePlayers.Plaintiff, new List<byte> {(byte) MyGamePlayers.Resolution, (byte) MyGamePlayers.Defendant},
+                    2, (byte) MyGameDecisions.PAgreeToBargain)
+                {
+                    CustomByte = (byte) (b + 1),
+                    IncrementGameCacheItem = new List<byte>() {GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound},
+                    StoreActionInGameCacheItem = GameHistoryCacheIndex_PAgreesToBargain,
+                    DeferNotificationOfPlayers = true
+                };
+                decisions.Add(pAgreeToBargain);
 
-            //var pAgreeToBargain = new Decision("PAgreeToBargain" + (b + 1), "PB" + (b + 1), (byte)MyGamePlayers.Plaintiff, new List<byte> { (byte) MyGamePlayers.Resolution, (byte) MyGamePlayers.Defendant },
-            //    2, (byte)MyGameDecisions.PAgreeToBargain)
-            //{
-            //    CustomByte = (byte)(b + 1),
-            //    IncrementGameCacheItem = new List<byte>() { GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound },
-            //    StoreActionInGameCacheItem = GameHistoryCacheIndex_PAgreesToBargain,
-            //    DeferNotificationOfPlayers = true
-            //};
-            //decisions.Add(pAgreeToBargain);
-
-            //var dAgreeToBargain = new Decision("DAgreeToBargain" + (b + 1), "DB" + (b + 1), (byte)MyGamePlayers.Defendant, new List<byte> { (byte)MyGamePlayers.Resolution, (byte) MyGamePlayers.Plaintiff },
-            //    2, (byte)MyGameDecisions.DAgreeToBargain)
-            //{
-            //    CustomByte = (byte)(b + 1),
-            //    IncrementGameCacheItem = new List<byte>() { GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound },
-            //    StoreActionInGameCacheItem = GameHistoryCacheIndex_PAgreesToBargain
-            //};
-            //decisions.Add(dAgreeToBargain);
+                var dAgreeToBargain = new Decision("DAgreeToBargain" + (b + 1), "DB" + (b + 1), (byte) MyGamePlayers.Defendant, new List<byte> {(byte) MyGamePlayers.Resolution, (byte) MyGamePlayers.Plaintiff},
+                    2, (byte) MyGameDecisions.DAgreeToBargain)
+                {
+                    CustomByte = (byte) (b + 1),
+                    IncrementGameCacheItem = new List<byte>() {GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound},
+                    StoreActionInGameCacheItem = GameHistoryCacheIndex_PAgreesToBargain
+                };
+                decisions.Add(dAgreeToBargain);
+            }
 
             // note that we will do all information set manipulation in CustomInformationSetManipulation below.
             if (Options.BargainingRoundsSimultaneous)
@@ -450,9 +451,14 @@ namespace ACESim
             }
             else if (decision.DecisionByteCode >= (byte) MyGameDecisions.POffer && decision.DecisionByteCode <= (byte) MyGameDecisions.DResponse)
             {
-                bool pAgreesToBargain = gameHistory.GetCacheIndex(GameHistoryCacheIndex_PAgreesToBargain) == (byte) 1;
-                bool dAgreesToBargain = gameHistory.GetCacheIndex(GameHistoryCacheIndex_DAgreesToBargain) == (byte) 1;
-                return !pAgreesToBargain || !dAgreesToBargain; // if anyone refuses to bargain, we skip the decisions
+                if (Options.IncludeAgreementToBargainDecisions)
+                {
+                    byte pAgreesToBargainCacheValue = gameHistory.GetCacheIndex(GameHistoryCacheIndex_PAgreesToBargain);
+                    byte dAgreesToBargainCacheValue = gameHistory.GetCacheIndex(GameHistoryCacheIndex_DAgreesToBargain);
+                    bool pAgreesToBargain = pAgreesToBargainCacheValue == (byte) 1;
+                    bool dAgreesToBargain = dAgreesToBargainCacheValue == (byte) 1;
+                    return !pAgreesToBargain || !dAgreesToBargain; // if anyone refuses to bargain, we skip the decisions
+                }
             }
             return false;
         }

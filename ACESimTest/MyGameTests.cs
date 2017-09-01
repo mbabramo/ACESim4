@@ -40,8 +40,16 @@ namespace ACESimTest
             AfterTrialOnly,
             EvenAfterAbandonOrDefault,
         }
+        public enum HowToSimulateBargainingFailure
+        {
+            PRefusesToBargain,
+            DRefusesToBargain,
+            BothRefuseToBargain,
+            BothAgreeToBargain,
+            BothHaveNoChoiceAndMustBargain // i.e., we don't have the decisions representing agreement to bargain
+        }
 
-        private MyGameOptions GetGameOptions(bool allowAbandonAndDefaults, byte numBargainingRounds, bool forgetEarlierBargainingRounds, bool simultaneousBargainingRounds, bool actionIsNoiseNotSignal, LoserPaysPolicy loserPaysPolicy)
+        private MyGameOptions GetGameOptions(bool allowAbandonAndDefaults, byte numBargainingRounds, bool forgetEarlierBargainingRounds, bool simultaneousBargainingRounds, bool actionIsNoiseNotSignal, LoserPaysPolicy loserPaysPolicy, HowToSimulateBargainingFailure simulatingBargainingFailure)
         {
             var options = new MyGameOptions()
             {
@@ -70,6 +78,7 @@ namespace ACESimTest
                     DeltaStartingValue = 0.01,
                     MaxDelta = 0.25
                 },
+                IncludeAgreementToBargainDecisions = simulatingBargainingFailure != HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain,
                 NumPotentialBargainingRounds = numBargainingRounds,
                 ForgetEarlierBargainingRounds = forgetEarlierBargainingRounds,
                 SubdivideOffers = false,
@@ -82,15 +91,15 @@ namespace ACESimTest
             return options;
         }
 
-        private string ConstructExpectedResolutionSet_CaseSettles(bool actionIsNoiseNotSignal, byte litigationQuality, bool pFiles, bool dAnswers,
+        private string ConstructExpectedResolutionSet_CaseSettles(bool actionIsNoiseNotSignal, byte litigationQuality, bool pFiles, bool dAnswers, HowToSimulateBargainingFailure simulatingBargainingFailure,
             List<(byte? pMove, byte? dMove)> bargainingRounds, bool simultaneousBargainingRounds,
             bool allowAbandonAndDefault)
         {
-            return ConstructExpectedResolutionSet(actionIsNoiseNotSignal, litigationQuality, pFiles, dAnswers, bargainingRounds, simultaneousBargainingRounds, true, allowAbandonAndDefault,
+            return ConstructExpectedResolutionSet(actionIsNoiseNotSignal, litigationQuality, pFiles, dAnswers, simulatingBargainingFailure, bargainingRounds, simultaneousBargainingRounds, true, allowAbandonAndDefault,
                 false, false, false, false, 0);
         }
 
-        private string ConstructExpectedResolutionSet(bool actionIsNoiseNotSignal, byte litigationQuality, bool pFiles, bool dAnswers, List<(byte? pMove, byte? dMove)> bargainingRounds, bool simultaneousBargainingRounds, bool settlementReachedLastRound, bool allowAbandonAndDefault, bool pReadyToAbandonLastRound, bool dReadyToDefaultLastRound, bool ifBothDefaultPlaintiffLoses, bool caseGoesToTrial, byte courtResultAtTrial)
+        private string ConstructExpectedResolutionSet(bool actionIsNoiseNotSignal, byte litigationQuality, bool pFiles, bool dAnswers, HowToSimulateBargainingFailure simulatingBargainingFailure, List<(byte? pMove, byte? dMove)> bargainingRounds, bool simultaneousBargainingRounds, bool settlementReachedLastRound, bool allowAbandonAndDefault, bool pReadyToAbandonLastRound, bool dReadyToDefaultLastRound, bool ifBothDefaultPlaintiffLoses, bool caseGoesToTrial, byte courtResultAtTrial)
         {
             List<byte> l = new List<byte>();
             
@@ -111,23 +120,33 @@ namespace ACESimTest
                         if (isLastBargainedRound)
                         {
                             l.Add(bargainingRound);
-                            bool pMovesFirst = (bargainingRound % 2 == 1) || simultaneousBargainingRounds;
-                            if (pMovesFirst)
+                            bool pAgreesToBargain = moveSet.pMove != null;
+                            bool dAgreesToBargain = moveSet.dMove != null;
+                            if (simulatingBargainingFailure != HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain)
                             {
-                                l.Add((byte)moveSet.pMove);
-                                l.Add((byte)moveSet.dMove);
+                                l.Add(pAgreesToBargain ? (byte) 1 : (byte) 2);
+                                l.Add(dAgreesToBargain ? (byte) 1 : (byte) 2);
                             }
-                            else
+                            if (pAgreesToBargain && dAgreesToBargain)
                             {
-                                l.Add((byte)moveSet.dMove);
-                                l.Add((byte)moveSet.pMove);
-                            }
-                            if (allowAbandonAndDefault && !settlementReachedLastRound)
-                            {
-                                l.Add(pReadyToAbandonLastRound ? (byte) 1 : (byte) 2);
-                                l.Add(dReadyToDefaultLastRound ? (byte) 1 : (byte) 2);
-                                if (pReadyToAbandonLastRound && dReadyToDefaultLastRound)
-                                    l.Add(ifBothDefaultPlaintiffLoses ? (byte) 1 : (byte) 2);
+                                bool pMovesFirst = (bargainingRound % 2 == 1) || simultaneousBargainingRounds;
+                                if (pMovesFirst)
+                                {
+                                    l.Add((byte) moveSet.pMove);
+                                    l.Add((byte) moveSet.dMove);
+                                }
+                                else
+                                {
+                                    l.Add((byte) moveSet.dMove);
+                                    l.Add((byte) moveSet.pMove);
+                                }
+                                if (allowAbandonAndDefault && !settlementReachedLastRound)
+                                {
+                                    l.Add(pReadyToAbandonLastRound ? (byte) 1 : (byte) 2);
+                                    l.Add(dReadyToDefaultLastRound ? (byte) 1 : (byte) 2);
+                                    if (pReadyToAbandonLastRound && dReadyToDefaultLastRound)
+                                        l.Add(ifBothDefaultPlaintiffLoses ? (byte) 1 : (byte) 2);
+                                }
                             }
                             break; // we don't need to enter/track anything about later bargaining rounds, since they didn't occur
                         }
@@ -144,16 +163,10 @@ namespace ACESimTest
             return String.Join(",", l);
         }
 
-        enum HowToSimulateBargainingFailure : byte
+        private List<(byte? pMove, byte? dMove)> GetBargainingRoundMoves(bool simultaneousBargaining, byte numRoundsToInclude, bool settlementInLastRound, HowToSimulateBargainingFailure simulatingBargainingFailure)
         {
-            PRefusesToBargain,
-            DRefusesToBargain,
-            BothRefuseToBargain,
-            BargainingOccurs
-        }
-
-        private List<(byte? pMove, byte? dMove)> GetBargainingRoundMoves(bool simultaneousBargaining, byte numRoundsToInclude, bool settlementInLastRound, bool ifNotSettlingPRefusesToBargain, bool ifNotSettlingDRefusesToBargain)
-        {
+            bool ifNotSettlingPRefusesToBargain = simulatingBargainingFailure == HowToSimulateBargainingFailure.PRefusesToBargain || simulatingBargainingFailure == HowToSimulateBargainingFailure.BothRefuseToBargain;
+            bool ifNotSettlingDRefusesToBargain = simulatingBargainingFailure == HowToSimulateBargainingFailure.DRefusesToBargain || simulatingBargainingFailure == HowToSimulateBargainingFailure.BothRefuseToBargain;
             List<(byte? pMove, byte? dMove)> moves = new List<(byte? pMove, byte? dMove)>();
             for (byte b = 1; b <= numRoundsToInclude; b++)
             {
@@ -181,7 +194,7 @@ namespace ACESimTest
             return moves;
         }
 
-        private (string pInformationSet, string dInformationSet) GetExpectedPartyInformationSets(bool actionIsNoiseNotSignal, byte litigationQuality, byte pNoise, byte dNoise,
+        private (string pInformationSet, string dInformationSet) GetExpectedPartyInformationSets(bool actionIsNoiseNotSignal, byte litigationQuality, byte pNoise, byte dNoise, HowToSimulateBargainingFailure simulatingBargainingFailure,
             List<(byte? pMove, byte? dMove)> bargainingMoves, bool forgetEarlierBargainingRounds, bool simultaneousBargaining)
         {
             byte pSignal, dSignal;
@@ -207,45 +220,65 @@ namespace ACESimTest
                     pInfo.Add(b);
                     dInfo.Add(b);
                     (byte? pMove, byte? dMove) = bargainingMoves[b - 1];
-                    if (simultaneousBargaining)
+                    if (simulatingBargainingFailure != HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain)
                     {
-                        pInfo.Add((byte)dMove);
-                        dInfo.Add((byte)pMove);
+                        dInfo.Add(pMove == null ? (byte) 2 : (byte) 1);
+                        pInfo.Add(dMove == null ? (byte) 2 : (byte) 1);
                     }
-                    else
-                    { // we add the offer and response regardless of whether it is accepted
-                        dInfo.Add((byte)pMove);
-                        pInfo.Add((byte)dMove);
+                    if (pMove != null && dMove != null)
+                    {
+                        if (simultaneousBargaining)
+                        {
+                            pInfo.Add((byte) dMove);
+                            dInfo.Add((byte) pMove);
+                        }
+                        else
+                        {
+                            // we add the offer and response regardless of whether it is accepted
+                            dInfo.Add((byte) pMove);
+                            pInfo.Add((byte) dMove);
+                        }
                     }
                 }
             return (String.Join(",", pInfo), String.Join(",", dInfo));
         }
 
-        private Func<Decision, GameProgress, byte> GetPlayerActions(bool pFiles, bool dAnswers, byte litigationQuality, byte pSignalOrNoise, byte dSignalOrNoise, List<(byte? pMove, byte? dMove)> bargainingRoundMoves, bool simultaneousBargainingRounds, byte? pReadyToAbandonRound = null, byte? dReadyToDefaultRound = null, byte mutualGiveUpResult = 0, byte courtResult = 0)
+        private Func<Decision, GameProgress, byte> GetPlayerActions(bool pFiles, bool dAnswers, byte litigationQuality, byte pSignalOrNoise, byte dSignalOrNoise, HowToSimulateBargainingFailure simulatingBargainingFailure, List<(byte? pMove, byte? dMove)> bargainingRoundMoves, bool simultaneousBargainingRounds, byte? pReadyToAbandonRound = null, byte? dReadyToDefaultRound = null, byte mutualGiveUpResult = 0, byte courtResult = 0)
         {
             var bargaining = new List<(byte decision, byte customInfo, byte action)>();
             for (byte b = 1; b <= bargainingRoundMoves.Count(); b++)
             {
-                if (simultaneousBargainingRounds)
+                var bargainingRoundMove = bargainingRoundMoves[b - 1];
+                var pMove = bargainingRoundMove.pMove;
+                var dMove = bargainingRoundMove.dMove;
+                if (simulatingBargainingFailure != HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain)
                 {
-                    bargaining.Add(((byte) MyGameDecisions.POffer, b, (byte) bargainingRoundMoves[b - 1].pMove));
-                    bargaining.Add(((byte) MyGameDecisions.DOffer, b, (byte)bargainingRoundMoves[b - 1].dMove));
+                    bargaining.Add(((byte) MyGameDecisions.PAgreeToBargain, b, pMove == null ? (byte) 2 : (byte) 1));
+                    bargaining.Add(((byte)MyGameDecisions.DAgreeToBargain, b, dMove == null ? (byte)2 : (byte)1));
                 }
-                else
+                if (pMove != null && dMove != null)
                 {
-                    if (b % 2 == 1)
+                    if (simultaneousBargainingRounds)
                     {
-                        bargaining.Add(((byte)MyGameDecisions.POffer, b, (byte)bargainingRoundMoves[b - 1].pMove));
-                        bargaining.Add(((byte)MyGameDecisions.DResponse, b, (byte)bargainingRoundMoves[b - 1].dMove));
+                        bargaining.Add(((byte) MyGameDecisions.POffer, b, (byte) pMove));
+                        bargaining.Add(((byte) MyGameDecisions.DOffer, b, (byte) dMove));
                     }
                     else
                     {
-                        bargaining.Add(((byte)MyGameDecisions.DOffer, b, (byte)bargainingRoundMoves[b - 1].dMove));
-                        bargaining.Add(((byte)MyGameDecisions.PResponse, b, (byte)bargainingRoundMoves[b - 1].pMove));
+                        if (b % 2 == 1)
+                        {
+                            bargaining.Add(((byte) MyGameDecisions.POffer, b, (byte) pMove));
+                            bargaining.Add(((byte) MyGameDecisions.DResponse, b, (byte) dMove));
+                        }
+                        else
+                        {
+                            bargaining.Add(((byte) MyGameDecisions.DOffer, b, (byte) dMove));
+                            bargaining.Add(((byte) MyGameDecisions.PResponse, b, (byte) pMove));
+                        }
                     }
+                    bargaining.Add(((byte) MyGameDecisions.PAbandon, b, pReadyToAbandonRound == b ? (byte) 1 : (byte) 2));
+                    bargaining.Add(((byte) MyGameDecisions.DDefault, b, dReadyToDefaultRound == b ? (byte) 1 : (byte) 2));
                 }
-                bargaining.Add(((byte)MyGameDecisions.PAbandon, b, pReadyToAbandonRound == b ? (byte)1 : (byte)2));
-                bargaining.Add(((byte)MyGameDecisions.DDefault, b, dReadyToDefaultRound == b ? (byte)1 : (byte)2));
             }
             var actionsToPlay = DefineActions.ForTest(
                 new List<(byte decision, byte action)>()
@@ -275,13 +308,14 @@ namespace ACESimTest
                 foreach (bool simultaneousBargainingRounds in new bool[] { true, false })
                 foreach (bool actionIsNoiseNotSignal in new bool[] {true, false})
                 foreach (LoserPaysPolicy loserPaysPolicy in new LoserPaysPolicy[] { LoserPaysPolicy.NoLoserPays, LoserPaysPolicy.AfterTrialOnly, LoserPaysPolicy.EvenAfterAbandonOrDefault, })
+                foreach (HowToSimulateBargainingFailure simulatingBargainingFailure in new HowToSimulateBargainingFailure[] { HowToSimulateBargainingFailure.PRefusesToBargain, HowToSimulateBargainingFailure.DRefusesToBargain, HowToSimulateBargainingFailure.BothRefuseToBargain, HowToSimulateBargainingFailure.BothAgreeToBargain, HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain })
                 {
-                    CaseGivenUpVariousActions(numPotentialBargainingRounds, forgetEarlierBargainingRounds, simultaneousBargainingRounds, actionIsNoiseNotSignal, loserPaysPolicy);
+                    CaseGivenUpVariousActions(numPotentialBargainingRounds, forgetEarlierBargainingRounds, simultaneousBargainingRounds, actionIsNoiseNotSignal, loserPaysPolicy, simulatingBargainingFailure);
                 }
         }
 
         private void CaseGivenUpVariousActions(byte numPotentialBargainingRounds, bool forgetEarlierBargainingRounds,
-            bool simultaneousBargainingRounds, bool actionIsNoiseNotSignal, LoserPaysPolicy loserPaysPolicy)
+            bool simultaneousBargainingRounds, bool actionIsNoiseNotSignal, LoserPaysPolicy loserPaysPolicy, HowToSimulateBargainingFailure simulatingBargainingFailure)
         {
             for (byte abandonmentInRound = 0;
                 abandonmentInRound <= numPotentialBargainingRounds;
@@ -300,20 +334,21 @@ namespace ACESimTest
                         pReadyToAbandonRound: plaintiffGivesUp ? (byte?) abandonmentInRound : (byte?) null,
                         dReadyToDefaultRound: defendantGivesUp ? (byte?) abandonmentInRound : (byte?) null,
                         mutualGiveUpResult: plaintiffWinsIfBothGiveUp ? (byte) 2 : (byte) 1,
-                        loserPaysPolicy: loserPaysPolicy);
+                        loserPaysPolicy: loserPaysPolicy,
+                        simulatingBargainingFailure: simulatingBargainingFailure);
                 }
         }
 
-        public void CaseGivenUp_SpecificSettingsAndActions(byte numPotentialBargainingRounds, byte? abandonmentInRound, bool forgetEarlierBargainingRounds, bool simultaneousBargainingRounds, bool actionIsNoiseNotSignal, byte litigationQuality, byte? pReadyToAbandonRound, byte? dReadyToDefaultRound, byte mutualGiveUpResult, LoserPaysPolicy loserPaysPolicy)
+        public void CaseGivenUp_SpecificSettingsAndActions(byte numPotentialBargainingRounds, byte? abandonmentInRound, bool forgetEarlierBargainingRounds, bool simultaneousBargainingRounds, bool actionIsNoiseNotSignal, byte litigationQuality, byte? pReadyToAbandonRound, byte? dReadyToDefaultRound, byte mutualGiveUpResult, LoserPaysPolicy loserPaysPolicy, HowToSimulateBargainingFailure simulatingBargainingFailure)
         {
             var bargainingRoundMoves = GetBargainingRoundMoves(simultaneousBargainingRounds,
-                abandonmentInRound ?? numPotentialBargainingRounds, false, false, false);
+                abandonmentInRound ?? numPotentialBargainingRounds, false, simulatingBargainingFailure);
             byte numActualRounds = (byte)bargainingRoundMoves.Count();
-            var options = GetGameOptions(allowAbandonAndDefaults: true, numBargainingRounds: numPotentialBargainingRounds, forgetEarlierBargainingRounds: forgetEarlierBargainingRounds, simultaneousBargainingRounds: simultaneousBargainingRounds, actionIsNoiseNotSignal: actionIsNoiseNotSignal, loserPaysPolicy: loserPaysPolicy);
+            var options = GetGameOptions(allowAbandonAndDefaults: true, numBargainingRounds: numPotentialBargainingRounds, forgetEarlierBargainingRounds: forgetEarlierBargainingRounds, simultaneousBargainingRounds: simultaneousBargainingRounds, actionIsNoiseNotSignal: actionIsNoiseNotSignal, loserPaysPolicy: loserPaysPolicy, simulatingBargainingFailure: simulatingBargainingFailure);
             bool pFiles = pReadyToAbandonRound != 0;
             bool dAnswers = pFiles && dReadyToDefaultRound != 0;
             var actionsToPlay = GetPlayerActions(pFiles: pFiles, dAnswers: dAnswers, litigationQuality: litigationQuality, pSignalOrNoise: PSignalOrNoise,
-                dSignalOrNoise: DSignalOrNoise, bargainingRoundMoves: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds, pReadyToAbandonRound: pReadyToAbandonRound, dReadyToDefaultRound: dReadyToDefaultRound, mutualGiveUpResult: mutualGiveUpResult);
+                dSignalOrNoise: DSignalOrNoise, bargainingRoundMoves: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds, pReadyToAbandonRound: pReadyToAbandonRound, dReadyToDefaultRound: dReadyToDefaultRound, mutualGiveUpResult: mutualGiveUpResult, simulatingBargainingFailure: simulatingBargainingFailure);
             var myGameProgress = MyGameRunner.PlayMyGameOnce(options, actionsToPlay);
 
             bool pWins = (pReadyToAbandonRound == null && dReadyToDefaultRound != null) ||
@@ -377,9 +412,9 @@ namespace ACESimTest
 
             //var informationSetHistories = myGameProgress.GameHistory.GetInformationSetHistoryItems().ToList();
             GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet, out string resolutionSet);
-            var expectedPartyInformationSets = GetExpectedPartyInformationSets(actionIsNoiseNotSignal, LitigationQuality, PSignalOrNoise, DSignalOrNoise, bargainingRoundMoves, forgetEarlierBargainingRounds, simultaneousBargainingRounds);
+            var expectedPartyInformationSets = GetExpectedPartyInformationSets(actionIsNoiseNotSignal, LitigationQuality, PSignalOrNoise, DSignalOrNoise, simulatingBargainingFailure, bargainingRoundMoves, forgetEarlierBargainingRounds, simultaneousBargainingRounds);
             string expectedResolutionSet = ConstructExpectedResolutionSet(pFiles: pFiles, dAnswers: dAnswers,
-                bargainingRounds: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds, actionIsNoiseNotSignal: actionIsNoiseNotSignal, litigationQuality: litigationQuality, settlementReachedLastRound: false, allowAbandonAndDefault: true, pReadyToAbandonLastRound: pReadyToAbandonRound != null, dReadyToDefaultLastRound: dReadyToDefaultRound != null, ifBothDefaultPlaintiffLoses: mutualGiveUpResult == (byte)1, caseGoesToTrial: false, courtResultAtTrial: 0);
+                bargainingRounds: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds, actionIsNoiseNotSignal: actionIsNoiseNotSignal, litigationQuality: litigationQuality, settlementReachedLastRound: false, allowAbandonAndDefault: true, pReadyToAbandonLastRound: pReadyToAbandonRound != null, dReadyToDefaultLastRound: dReadyToDefaultRound != null, ifBothDefaultPlaintiffLoses: mutualGiveUpResult == (byte)1, caseGoesToTrial: false, courtResultAtTrial: 0, simulatingBargainingFailure:simulatingBargainingFailure);
             pInformationSet.Should().Be(expectedPartyInformationSets.pInformationSet);
             dInformationSet.Should().Be(expectedPartyInformationSets.dInformationSet);
             resolutionSet.Should().Be(expectedResolutionSet);
@@ -395,21 +430,22 @@ namespace ACESimTest
                 foreach (bool allowAbandonAndDefault in new bool[] { true, false })
                 foreach (bool actionIsNoiseNotSignal in new bool[] { true, false })
                 foreach (LoserPaysPolicy loserPaysPolicy in new LoserPaysPolicy[] { LoserPaysPolicy.NoLoserPays, LoserPaysPolicy.AfterTrialOnly, LoserPaysPolicy.EvenAfterAbandonOrDefault, })
-                    for (byte settlementInRound = 1; settlementInRound <= numPotentialBargainingRounds; settlementInRound++)
+                foreach (HowToSimulateBargainingFailure simulatingBargainingFailure in new HowToSimulateBargainingFailure[] { HowToSimulateBargainingFailure.PRefusesToBargain, HowToSimulateBargainingFailure.DRefusesToBargain, HowToSimulateBargainingFailure.BothRefuseToBargain, HowToSimulateBargainingFailure.BothAgreeToBargain, HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain })
+                                        for (byte settlementInRound = 1; settlementInRound <= numPotentialBargainingRounds; settlementInRound++)
                     {
-                        SettlingCase_Helper(numPotentialBargainingRounds, settlementInRound, forgetEarlierBargainingRounds, simultaneousBargainingRounds, allowAbandonAndDefault, actionIsNoiseNotSignal, loserPaysPolicy);
+                        SettlingCase_Helper(numPotentialBargainingRounds, settlementInRound, forgetEarlierBargainingRounds, simultaneousBargainingRounds, allowAbandonAndDefault, actionIsNoiseNotSignal, loserPaysPolicy, simulatingBargainingFailure);
                         caseNumber++;
                     }
         }
 
-        public void SettlingCase_Helper(byte numPotentialBargainingRounds, byte? settlementInRound, bool forgetEarlierBargainingRounds, bool simultaneousBargainingRounds, bool allowAbandonAndDefault, bool actionIsNoiseNotSignal, LoserPaysPolicy loserPaysPolicy)
+        public void SettlingCase_Helper(byte numPotentialBargainingRounds, byte? settlementInRound, bool forgetEarlierBargainingRounds, bool simultaneousBargainingRounds, bool allowAbandonAndDefault, bool actionIsNoiseNotSignal, LoserPaysPolicy loserPaysPolicy, HowToSimulateBargainingFailure simulatingBargainingFailure)
         {
             var bargainingRoundMoves = GetBargainingRoundMoves(simultaneousBargainingRounds,
-                settlementInRound ?? numPotentialBargainingRounds, settlementInRound != null, false, false);
+                settlementInRound ?? numPotentialBargainingRounds, settlementInRound != null, simulatingBargainingFailure);
             byte numActualRounds = (byte) bargainingRoundMoves.Count();
-            var options = GetGameOptions(allowAbandonAndDefaults: allowAbandonAndDefault, numBargainingRounds: numPotentialBargainingRounds, forgetEarlierBargainingRounds: forgetEarlierBargainingRounds, simultaneousBargainingRounds: simultaneousBargainingRounds, actionIsNoiseNotSignal:actionIsNoiseNotSignal, loserPaysPolicy: loserPaysPolicy);
+            var options = GetGameOptions(allowAbandonAndDefaults: allowAbandonAndDefault, numBargainingRounds: numPotentialBargainingRounds, forgetEarlierBargainingRounds: forgetEarlierBargainingRounds, simultaneousBargainingRounds: simultaneousBargainingRounds, actionIsNoiseNotSignal:actionIsNoiseNotSignal, loserPaysPolicy: loserPaysPolicy, simulatingBargainingFailure: simulatingBargainingFailure);
             var actionsToPlay = GetPlayerActions(pFiles: true, dAnswers: true, litigationQuality: LitigationQuality, pSignalOrNoise: PSignalOrNoise,
-                dSignalOrNoise: DSignalOrNoise, bargainingRoundMoves: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds);
+                dSignalOrNoise: DSignalOrNoise, simulatingBargainingFailure: simulatingBargainingFailure, bargainingRoundMoves: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds);
             var myGameProgress = MyGameRunner.PlayMyGameOnce(options, actionsToPlay);
 
             myGameProgress.GameComplete.Should().BeTrue();
@@ -423,8 +459,8 @@ namespace ACESimTest
 
             //var informationSetHistories = myGameProgress.GameHistory.GetInformationSetHistoryItems().ToList();
             GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet, out string resolutionSet);
-            var expectedPartyInformationSets = GetExpectedPartyInformationSets(actionIsNoiseNotSignal, LitigationQuality, PSignalOrNoise, DSignalOrNoise, bargainingRoundMoves, forgetEarlierBargainingRounds, simultaneousBargainingRounds);
-            string expectedResolutionSet = ConstructExpectedResolutionSet_CaseSettles(pFiles: true, dAnswers: true,
+            var expectedPartyInformationSets = GetExpectedPartyInformationSets(actionIsNoiseNotSignal, LitigationQuality, PSignalOrNoise, DSignalOrNoise, simulatingBargainingFailure, bargainingRoundMoves, forgetEarlierBargainingRounds, simultaneousBargainingRounds);
+            string expectedResolutionSet = ConstructExpectedResolutionSet_CaseSettles(pFiles: true, dAnswers: true, simulatingBargainingFailure: simulatingBargainingFailure,
                 bargainingRounds: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds, actionIsNoiseNotSignal:actionIsNoiseNotSignal, litigationQuality:LitigationQuality, allowAbandonAndDefault: allowAbandonAndDefault);
             pInformationSet.Should().Be(expectedPartyInformationSets.pInformationSet);
             dInformationSet.Should().Be(expectedPartyInformationSets.dInformationSet);
@@ -441,19 +477,20 @@ namespace ACESimTest
                             foreach (bool simultaneousBargainingRounds in new bool[] { true, false })
                                 foreach (bool actionIsNoiseNotSignal in new bool[] { true, false })
                                     foreach (LoserPaysPolicy loserPaysPolicy in new LoserPaysPolicy[] { LoserPaysPolicy.NoLoserPays, LoserPaysPolicy.AfterTrialOnly, LoserPaysPolicy.EvenAfterAbandonOrDefault, })
-                                        CaseTried_Helper(allowAbandonAndDefaults, forgetEarlierBargainingRounds, numBargainingRounds, plaintiffWins, simultaneousBargainingRounds, actionIsNoiseNotSignal, loserPaysPolicy);
+                                    foreach (HowToSimulateBargainingFailure simulatingBargainingFailure in new HowToSimulateBargainingFailure[] { HowToSimulateBargainingFailure.PRefusesToBargain, HowToSimulateBargainingFailure.DRefusesToBargain, HowToSimulateBargainingFailure.BothRefuseToBargain, HowToSimulateBargainingFailure.BothAgreeToBargain, HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain })
+                                            CaseTried_Helper(allowAbandonAndDefaults, forgetEarlierBargainingRounds, numBargainingRounds, plaintiffWins, simultaneousBargainingRounds, actionIsNoiseNotSignal, loserPaysPolicy, simulatingBargainingFailure);
         }
 
-        private void CaseTried_Helper(bool allowAbandonAndDefaults, bool forgetEarlierBargainingRounds, byte numBargainingRounds, bool plaintiffWins, bool simultaneousBargainingRounds, bool actionIsNoiseNotSignal, LoserPaysPolicy loserPaysPolicy)
+        private void CaseTried_Helper(bool allowAbandonAndDefaults, bool forgetEarlierBargainingRounds, byte numBargainingRounds, bool plaintiffWins, bool simultaneousBargainingRounds, bool actionIsNoiseNotSignal, LoserPaysPolicy loserPaysPolicy, HowToSimulateBargainingFailure simulatingBargainingFailure)
         {
-            var options = GetGameOptions(allowAbandonAndDefaults, numBargainingRounds, forgetEarlierBargainingRounds, simultaneousBargainingRounds, actionIsNoiseNotSignal, loserPaysPolicy);
-            var bargainingMoves = GetBargainingRoundMoves(simultaneousBargainingRounds, numBargainingRounds, false, false, false);
+            var options = GetGameOptions(allowAbandonAndDefaults, numBargainingRounds, forgetEarlierBargainingRounds, simultaneousBargainingRounds, actionIsNoiseNotSignal, loserPaysPolicy, simulatingBargainingFailure);
+            var bargainingMoves = GetBargainingRoundMoves(simultaneousBargainingRounds, numBargainingRounds, false, simulatingBargainingFailure);
             byte courtResult;
             if (actionIsNoiseNotSignal)
                 courtResult = plaintiffWins ? (byte) NumDistinctPoints : (byte) 1; // we've used a high value of court noise above, so if the court has its highest possible noise, it will definitely conclude plaintiff has won, and if the court has its lowest possible noise, it will definitely conclude that defendant has won
             else
                 courtResult = plaintiffWins ? (byte) 2 : (byte) 1;
-            var actions = GetPlayerActions(true, true, LitigationQuality, PSignalOrNoise, DSignalOrNoise, bargainingMoves, simultaneousBargainingRounds, null, null, 0, courtResult);
+            var actions = GetPlayerActions(true, true, LitigationQuality, PSignalOrNoise, DSignalOrNoise, simulatingBargainingFailure, bargainingMoves, simultaneousBargainingRounds, null, null, 0, courtResult);
             var myGameProgress = MyGameRunner.PlayMyGameOnce(options, actions);
             myGameProgress.GameComplete.Should().BeTrue();
             double pExpenses, dExpenses;
@@ -487,9 +524,9 @@ namespace ACESimTest
             myGameProgress.DFinalWealth.Should().Be(dFinalWealthExpected);
             GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet,
                 out string resolutionSet);
-            var expectedPartyInformationSets = GetExpectedPartyInformationSets(actionIsNoiseNotSignal, LitigationQuality, PSignalOrNoise, DSignalOrNoise, bargainingMoves,
+            var expectedPartyInformationSets = GetExpectedPartyInformationSets(actionIsNoiseNotSignal, LitigationQuality, PSignalOrNoise, DSignalOrNoise, simulatingBargainingFailure, bargainingMoves,
                 forgetEarlierBargainingRounds, simultaneousBargainingRounds);
-            var expectedResolutionSet = ConstructExpectedResolutionSet(actionIsNoiseNotSignal, LitigationQuality, true, true, bargainingMoves,
+            var expectedResolutionSet = ConstructExpectedResolutionSet(actionIsNoiseNotSignal, LitigationQuality, true, true, simulatingBargainingFailure, bargainingMoves,
                 simultaneousBargainingRounds, false, allowAbandonAndDefaults, false, false, false, true, courtResult);
             pInformationSet.Should().Be(expectedPartyInformationSets.pInformationSet);
             dInformationSet.Should().Be(expectedPartyInformationSets.dInformationSet);

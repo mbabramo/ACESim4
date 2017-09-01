@@ -71,21 +71,25 @@ namespace ACESim
                 case (byte)MyGameDecisions.POffer:
                     double offer = GetOfferBasedOnAction(action, true);
                     MyProgress.AddOffer(true, offer);
-                    MyProgress.UpdateProgress(MyDefinition);
                 break;
                 case (byte)MyGameDecisions.DOffer:
                     offer = GetOfferBasedOnAction(action, false);
                     MyProgress.AddOffer(false, offer);
-                    MyProgress.UpdateProgress(MyDefinition);
                 break;
                 case (byte)MyGameDecisions.PResponse:
                     MyProgress.AddResponse(true, action == 1); // 1 == accept, 2 == reject
-                    MyProgress.UpdateProgress(MyDefinition);
                 break;
                 case (byte)MyGameDecisions.DResponse:
                     MyProgress.AddResponse(false, action == 1); // 1 == accept, 2 == reject
-                    MyProgress.UpdateProgress(MyDefinition);
                 break;
+                case (byte)MyGameDecisions.PreBargainingRound:
+                    break;
+                case (byte)MyGameDecisions.PAgreeToBargain:
+                    MyProgress.AddPAgreesToBargain(action == 1);
+                    break;
+                case (byte)MyGameDecisions.DAgreeToBargain:
+                    MyProgress.AddDAgreesToBargain(action == 1);
+                    break;
                 case (byte)MyGameDecisions.PAbandon:
                     MyProgress.PReadyToAbandon = action == 1;
                     break;
@@ -107,8 +111,8 @@ namespace ACESim
                     MyProgress.DDefaults = !MyProgress.PAbandons;
                     MyProgress.GameComplete = true;
                     break;
-                case (byte)MyGameDecisions.PreBargainingRound:
                 case (byte)MyGameDecisions.PostBargainingRound:
+                    MyProgress.ConcludeBargainingRound(MyDefinition);
                     break;
                 case (byte)MyGameDecisions.CourtDecision:
                     MyProgress.TrialOccurs = true;

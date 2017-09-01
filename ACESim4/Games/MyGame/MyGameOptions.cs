@@ -34,7 +34,10 @@ namespace ACESim
         /// </summary>
         public bool ActionIsNoiseNotSignal;
 
-
+        /// <summary>
+        /// If true, then the bargaining round starts with P and D deciding whether to bargain at all this round. The per bargaining round costs will be borne either way.
+        /// </summary>
+        public bool IncludeAgreementToBargainDecisions;
         /// <summary>
         /// If true, this is a partial recall game, in which players do not remember earlier bargaining rounds.
         /// </summary>
