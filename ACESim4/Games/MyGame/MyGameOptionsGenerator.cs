@@ -46,7 +46,7 @@ namespace ACESim
         }
 
 
-        public static MyGameOptions SingleBargainingRound()
+        public static MyGameOptions FourBargainingRounds()
         {
             var options = new MyGameOptions()
             {
@@ -72,7 +72,7 @@ namespace ACESim
                     DeltaStartingValue = 0.01,
                     MaxDelta = 0.25
                 },
-                NumPotentialBargainingRounds = 1,
+                NumPotentialBargainingRounds = 4,
                 ForgetEarlierBargainingRounds = true,
                 SubdivideOffers = false,
                 BargainingRoundsSimultaneous = true,

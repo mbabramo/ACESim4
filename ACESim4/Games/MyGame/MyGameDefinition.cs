@@ -60,7 +60,8 @@ namespace ACESim
         private static string PlaintiffNoiseOrSignalChanceName = "PNS";
         private static string DefendantNoiseOrSignalChanceName = "DNS";
         private static string BothGiveUpChanceName = "GUC";
-        private static string PostBargainingRoundChanceName = "PBR";
+        private static string PreBargainingRoundChanceName = "PRE";
+        private static string PostBargainingRoundChanceName = "POST";
         private static string CourtChanceName = "CC";
         private static string ResolutionPlayerName = "R";
 
@@ -75,6 +76,7 @@ namespace ACESim
                     new PlayerInfo(PlaintiffNoiseOrSignalChanceName, (int) MyGamePlayers.PNoiseOrSignalChance, true, false),
                     new PlayerInfo(DefendantNoiseOrSignalChanceName, (int) MyGamePlayers.DNoiseOrSignalChance, true, false),
                     new PlayerInfo(BothGiveUpChanceName, (int) MyGamePlayers.BothGiveUpChance, true, false),
+                    new PlayerInfo(PreBargainingRoundChanceName, (int) MyGamePlayers.PreBargainingRoundChance, true, false),
                     new PlayerInfo(PostBargainingRoundChanceName, (int) MyGamePlayers.PostBargainingRoundChance, true, false),
                     new PlayerInfo(CourtChanceName, (int) MyGamePlayers.CourtChance, true, false),
                     new PlayerInfo(ResolutionPlayerName, (int) MyGamePlayers.Resolution, true, false),
