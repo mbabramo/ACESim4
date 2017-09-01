@@ -325,6 +325,8 @@ namespace ACESim
         
         private void AddAbandonOrDefaultDecisions(int b, List<Decision> decisions)
         {
+            // no need to notify other player, as if abandon/default takes place, this will be the last decision
+
             var pAbandon =
                 new Decision("PAbandon" + (b + 1), "PA" + (b + 1), (byte)MyGamePlayers.Plaintiff, new List<byte>() { (byte)MyGamePlayers.Resolution }, 
                     2, (byte)MyGameDecisions.PAbandon)
