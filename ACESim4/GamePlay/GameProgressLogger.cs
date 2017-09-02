@@ -38,6 +38,16 @@ namespace ACESim
         public static Queue<GameProgressHistory> IncompleteGames = new Queue<GameProgressHistory>();
         public static Queue<GameProgressHistory> CompleteGames = new Queue<GameProgressHistory>();
 
+        /// <summary>
+        /// Uses a function to produce the message to log. The advantage of this is that if logging is not on, the function need not be called, and so the string is never constructed.
+        /// </summary>
+        /// <param name="messageProducer"></param>
+        public static void Log(Func<string> messageProducer)
+        {
+            if (LoggingOn)
+                Log(messageProducer());
+        }
+
         public static void Log(string message)
         {
             if (LoggingOn)

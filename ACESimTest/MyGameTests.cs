@@ -435,8 +435,12 @@ namespace ACESimTest
                     foreach (HowToSimulateBargainingFailure simulatingBargainingFailure in new HowToSimulateBargainingFailure[] { HowToSimulateBargainingFailure.PRefusesToBargain, HowToSimulateBargainingFailure.DRefusesToBargain, HowToSimulateBargainingFailure.BothRefuseToBargain, HowToSimulateBargainingFailure.BothAgreeToBargain, HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain })
                         for (byte settlementInRound = 1; settlementInRound <= numPotentialBargainingRounds; settlementInRound++)
                         {
-                            if (caseNumber == 1091)
-                                SettlingCase_Helper(numPotentialBargainingRounds, settlementInRound, forgetEarlierBargainingRounds, simultaneousBargainingRounds, allowAbandonAndDefault, actionIsNoiseNotSignal, loserPaysPolicy, simulatingBargainingFailure);
+                            if (caseNumber == 9999999)
+                            {
+                                GameProgressLogger.LoggingOn = true;
+                                GameProgressLogger.OutputLogMessages = true;
+                            }
+                            SettlingCase_Helper(numPotentialBargainingRounds, settlementInRound, forgetEarlierBargainingRounds, simultaneousBargainingRounds, allowAbandonAndDefault, actionIsNoiseNotSignal, loserPaysPolicy, simulatingBargainingFailure);
                             caseNumber++;
                         }
             }
@@ -444,7 +448,6 @@ namespace ACESimTest
             {
                 throw new Exception($"Failed at case number {caseNumber}. Inner exception: {e.Message}", e);
             }
-            throw new NotImplementedException(); // uncomment if putting in case number restriction
         }
 
         public void SettlingCase_Helper(byte numPotentialBargainingRounds, byte? settlementInRound, bool forgetEarlierBargainingRounds, bool simultaneousBargainingRounds, bool allowAbandonAndDefault, bool actionIsNoiseNotSignal, LoserPaysPolicy loserPaysPolicy, HowToSimulateBargainingFailure simulatingBargainingFailure)

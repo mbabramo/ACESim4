@@ -170,7 +170,10 @@ namespace ACESim
             {
                 byte actionToAdd = Progress.ActionOverrider(CurrentDecision, Progress);
                 if (actionToAdd != 0)
+                {
+                    GameProgressLogger.Log(() => $"Choosing overridden action {actionToAdd} for {CurrentDecision}");
                     return actionToAdd;
+                }
             }
             bool anotherActionPlanned = Progress.ActionsToPlay_MoveNext();
             if (anotherActionPlanned)
@@ -190,8 +193,7 @@ namespace ACESim
                 //Debug.WriteLine($"Decision byte code {CurrentDecision.DecisionByteCode} (index {CurrentDecisionIndex}) ==> randomly chosen {actionToChoose}");
             }
 
-            Debug.WriteLine($"{CurrentDecision} => {actionToChoose}"); // DEBUG
-
+            GameProgressLogger.Log(() => $"Choosing action {actionToChoose} for {CurrentDecision}");
             return actionToChoose;
         }
 
@@ -294,8 +296,7 @@ namespace ACESim
                         GameProgressLogger.OutputLogMessages = false;
                     }
                 }
-                if (GameProgressLogger.LoggingOn)
-                    GameProgressLogger.Log("PLAY UNTIL COMPLETE");
+                GameProgressLogger.Log(() => "PLAY UNTIL COMPLETE");
                 bool logEachGame = false;
                 if (logEachGame)
                 {
@@ -303,8 +304,7 @@ namespace ACESim
                     GameProgressLogger.OutputLogMessages = true;
                     GameProgressLogger.Log("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
                 }
-                if (GameProgressLogger.LoggingOn)
-                    GameProgressLogger.Log("Iteration: " + Progress.IterationID.ToString());
+                GameProgressLogger.Log(() => "Iteration: " + Progress.IterationID.ToString());
                 RegisterGamePlayed();
                 while (!Progress.GameComplete)
                     AdvanceToOrCompleteNextStep();
@@ -325,8 +325,7 @@ namespace ACESim
             try
             {
                 CurrentlyPlayingUpToADecisionInsteadOfCompletingGame = true;
-                if (GameProgressLogger.LoggingOn)
-                    GameProgressLogger.Log("PLAY UP TO: " + decisionNumber);
+                GameProgressLogger.Log(() => "PLAY UP TO: " + decisionNumber);
                 RegisterGamePlayed();
                 bool done = decisionNumber == -1;
                 while (!done)

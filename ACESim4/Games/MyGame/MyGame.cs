@@ -35,7 +35,7 @@ namespace ACESim
                     {
                         MyDefinition.ConvertNoiseToSignal(MyProgress.LitigationQualityDiscrete, action, true,
                             out MyProgress.PSignalDiscrete, out MyProgress.PSignalUniform);
-                        System.Diagnostics.Debug.WriteLine($"P: Quality {MyProgress.LitigationQualityUniform} Noise action {action} => signal {MyProgress.PSignalDiscrete} ({MyProgress.PSignalUniform})");
+                        GameProgressLogger.Log(() => $"P: Quality {MyProgress.LitigationQualityUniform} Noise action {action} => signal {MyProgress.PSignalDiscrete} ({MyProgress.PSignalUniform})");
                     }
                     else
                     {
