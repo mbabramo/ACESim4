@@ -440,7 +440,7 @@ namespace ACESim
                 throw new NotImplementedException(); // subclass should define if needed
         }
 
-        public override bool SkipDecision(Decision decision, ref GameHistory gameHistory)
+        public override bool SkipDecision(Decision decision, GameHistory gameHistory)
         {
             if (decision.DecisionByteCode == (byte) MyGameDecisions.MutualGiveUp)
             {
@@ -466,7 +466,7 @@ namespace ACESim
         }
 
         // DEBUG -- try using ref for all GameHistory references. Meanwhile, is there a way to test that this runs properly? i.e., ensure that we get right final utilities.
-        public override bool ShouldMarkGameHistoryComplete(Decision currentDecision, ref GameHistory gameHistory, byte actionChosen)
+        public override bool ShouldMarkGameHistoryComplete(Decision currentDecision, GameHistory gameHistory, byte actionChosen)
         {
             if (!currentDecision.CanTerminateGame)
                 return false;

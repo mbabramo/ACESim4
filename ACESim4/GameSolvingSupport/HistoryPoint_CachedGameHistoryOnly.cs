@@ -47,7 +47,7 @@ namespace ACESim
             IGameState gameStateFromGameHistory = null;
             
             //var informationSetHistories = HistoryToPoint.GetInformationSetHistoryItems().Select(x => x.ToString());
-            (Decision nextDecision, byte nextDecisionIndex) = gameDefinition.GetNextDecision(ref HistoryToPoint);
+            (Decision nextDecision, byte nextDecisionIndex) = gameDefinition.GetNextDecision(HistoryToPoint);
             byte nextPlayer = nextDecision?.PlayerNumber ?? gameDefinition.PlayerIndex_ResolutionPlayer;
             byte* informationSetsPtr = stackalloc byte[GameHistory.MaxInformationSetLengthPerPlayer];
             // string playerInformationString = HistoryToPoint.GetPlayerInformationString(currentPlayer, nextDecision?.DecisionByteCode);
@@ -67,36 +67,36 @@ namespace ACESim
         public HistoryPoint_CachedGameHistoryOnly GetBranch(GameDefinition gameDefinition, byte actionChosen)
         {
             HistoryPoint_CachedGameHistoryOnly next = new HistoryPoint_CachedGameHistoryOnly(HistoryToPoint);
-            (Decision nextDecision, byte nextDecisionIndex) = gameDefinition.GetNextDecision(ref HistoryToPoint);
+            (Decision nextDecision, byte nextDecisionIndex) = gameDefinition.GetNextDecision(HistoryToPoint);
             Game.UpdateGameHistory(ref next.HistoryToPoint, gameDefinition, nextDecision, nextDecisionIndex, actionChosen);
-            if (nextDecision.CanTerminateGame && gameDefinition.ShouldMarkGameHistoryComplete(nextDecision, ref next.HistoryToPoint, actionChosen))
+            if (nextDecision.CanTerminateGame && gameDefinition.ShouldMarkGameHistoryComplete(nextDecision, next.HistoryToPoint, actionChosen))
                 next.HistoryToPoint.MarkComplete();
             return next;
         }
 
         public void SwitchToBranch(GameDefinition gameDefinition, byte actionChosen)
         {
-            (Decision nextDecision, byte nextDecisionIndex) = gameDefinition.GetNextDecision(ref HistoryToPoint);
+            (Decision nextDecision, byte nextDecisionIndex) = gameDefinition.GetNextDecision(HistoryToPoint);
             Game.UpdateGameHistory(ref HistoryToPoint, gameDefinition, nextDecision, nextDecisionIndex, actionChosen);
-            if (nextDecision.CanTerminateGame && gameDefinition.ShouldMarkGameHistoryComplete(nextDecision, ref HistoryToPoint, actionChosen))
+            if (nextDecision.CanTerminateGame && gameDefinition.ShouldMarkGameHistoryComplete(nextDecision, HistoryToPoint, actionChosen))
                 HistoryToPoint.MarkComplete();
         }
 
         public byte GetNextPlayer(GameDefinition gameDefinition)
         {
-            (Decision nextDecision, byte nextDecisionIndex) = gameDefinition.GetNextDecision(ref HistoryToPoint);
+            (Decision nextDecision, byte nextDecisionIndex) = gameDefinition.GetNextDecision(HistoryToPoint);
             return nextDecision.PlayerNumber;
         }
 
         public byte GetNextDecisionByteCode(GameDefinition gameDefinition)
         {
-            (Decision nextDecision, byte nextDecisionIndex) = gameDefinition.GetNextDecision(ref HistoryToPoint);
+            (Decision nextDecision, byte nextDecisionIndex) = gameDefinition.GetNextDecision(HistoryToPoint);
             return nextDecision.DecisionByteCode;
         }
 
         public byte GetNextDecisionIndex(GameDefinition gameDefinition)
         {
-            (Decision nextDecision, byte nextDecisionIndex) = gameDefinition.GetNextDecision(ref HistoryToPoint);
+            (Decision nextDecision, byte nextDecisionIndex) = gameDefinition.GetNextDecision(HistoryToPoint);
             return nextDecisionIndex;
         }
 

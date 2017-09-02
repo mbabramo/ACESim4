@@ -158,7 +158,7 @@ namespace ACESim
 
         public virtual bool DecisionIsNeeded(Decision currentDecision, GameProgress gameProgress)
         {
-            return !GameDefinition.SkipDecision(currentDecision, ref gameProgress.GameHistory);
+            return !GameDefinition.SkipDecision(currentDecision, gameProgress.GameHistory);
         }
 
         public unsafe virtual byte ChooseAction()
