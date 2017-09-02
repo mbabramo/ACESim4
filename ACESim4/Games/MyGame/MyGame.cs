@@ -68,20 +68,6 @@ namespace ACESim
                     if (!MyProgress.DAnswers)
                         MyProgress.GameComplete = true;
                     break;
-                case (byte)MyGameDecisions.POffer:
-                    double offer = GetOfferBasedOnAction(action, true);
-                    MyProgress.AddOffer(true, offer);
-                break;
-                case (byte)MyGameDecisions.DOffer:
-                    offer = GetOfferBasedOnAction(action, false);
-                    MyProgress.AddOffer(false, offer);
-                break;
-                case (byte)MyGameDecisions.PResponse:
-                    MyProgress.AddResponse(true, action == 1); // 1 == accept, 2 == reject
-                break;
-                case (byte)MyGameDecisions.DResponse:
-                    MyProgress.AddResponse(false, action == 1); // 1 == accept, 2 == reject
-                break;
                 case (byte)MyGameDecisions.PreBargainingRound:
                     break;
                 case (byte)MyGameDecisions.PAgreeToBargain:
@@ -89,6 +75,24 @@ namespace ACESim
                     break;
                 case (byte)MyGameDecisions.DAgreeToBargain:
                     MyProgress.AddDAgreesToBargain(action == 1);
+                    break;
+                case (byte)MyGameDecisions.POffer:
+                    double offer = GetOfferBasedOnAction(action, true);
+                    MyProgress.AddOffer(true, offer);
+                break;
+                case (byte)MyGameDecisions.DOffer:
+                    offer = GetOfferBasedOnAction(action, false);
+                    MyProgress.AddOffer(false, offer);
+                    if (MyDefinition.Options.BargainingRoundsSimultaneous || MyDefinition.Options.PGoesFirstIfNotSimultaneous[MyProgress.BargainingRoundsComplete])
+                        MyProgress.ConcludeMainPortionOfBargainingRound(MyDefinition);
+                break;
+                case (byte)MyGameDecisions.PResponse:
+                    MyProgress.AddResponse(true, action == 1); // 1 == accept, 2 == reject
+                    MyProgress.ConcludeMainPortionOfBargainingRound(MyDefinition);
+                    break;
+                case (byte)MyGameDecisions.DResponse:
+                    MyProgress.AddResponse(false, action == 1); // 1 == accept, 2 == reject
+                    MyProgress.ConcludeMainPortionOfBargainingRound(MyDefinition);
                     break;
                 case (byte)MyGameDecisions.PAbandon:
                     MyProgress.PReadyToAbandon = action == 1;
@@ -102,6 +106,7 @@ namespace ACESim
                         MyProgress.DDefaults = MyProgress.DReadyToAbandon;
                         MyProgress.TrialOccurs = false;
                         MyProgress.GameComplete = true;
+                        MyProgress.BargainingRoundsComplete++;
                     }
                     break;
                 case (byte)MyGameDecisions.MutualGiveUp:
@@ -112,7 +117,7 @@ namespace ACESim
                     MyProgress.GameComplete = true;
                     break;
                 case (byte)MyGameDecisions.PostBargainingRound:
-                    MyProgress.ConcludeBargainingRound(MyDefinition);
+                    MyProgress.BargainingRoundsComplete++;
                     break;
                 case (byte)MyGameDecisions.CourtDecision:
                     MyProgress.TrialOccurs = true;

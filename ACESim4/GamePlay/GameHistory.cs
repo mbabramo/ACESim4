@@ -414,7 +414,7 @@ namespace ACESim
 
         public void AddToInformationSetAndLog(byte information, byte followingDecisionIndex, byte playerNumber, List<byte> playersToInform)
         {
-            // Debug.WriteLine($"player {playerNumber} informing {String.Join(", ", playersToInform)} info {information} following {followingDecisionIndex}"); 
+            Debug.WriteLine($"player {playerNumber} informing {String.Join(", ", playersToInform)} info {information} following {followingDecisionIndex}"); // DEBUG
             fixed (byte* informationSetsLogPtr = InformationSetLogs)
             fixed (byte* informationSetsPtr = InformationSets)
             {

@@ -190,6 +190,8 @@ namespace ACESim
                 //Debug.WriteLine($"Decision byte code {CurrentDecision.DecisionByteCode} (index {CurrentDecisionIndex}) ==> randomly chosen {actionToChoose}");
             }
 
+            Debug.WriteLine($"{CurrentDecision} => {actionToChoose}"); // DEBUG
+
             return actionToChoose;
         }
 

@@ -55,16 +55,18 @@ namespace ACESim
         public bool? PLastResponse => (bool?)PResponses?.LastOrDefault() ?? null;
         public bool? DLastResponse => (bool?)DResponses?.LastOrDefault() ?? null;
         public bool BothPlayersHaveCompletedRound => POffers?.Count() == DResponses?.Count() && DOffers?.Count() == PResponses?.Count();
-        public void ConcludeBargainingRound(MyGameDefinition gameDefinition)
+        public void ConcludeMainPortionOfBargainingRound(MyGameDefinition gameDefinition)
         {
             bool playersMovingSimultaneously = gameDefinition.Options.BargainingRoundsSimultaneous;
             bool pGoesFirstIfNotSimultaneous = playersMovingSimultaneously || gameDefinition.Options.PGoesFirstIfNotSimultaneous[BargainingRoundsComplete];
-            BargainingRoundsComplete++;
             CaseSettles = SettlementReached(playersMovingSimultaneously, pGoesFirstIfNotSimultaneous);
             if (CaseSettles)
                 SetSettlementValue(playersMovingSimultaneously, pGoesFirstIfNotSimultaneous);
-            if (CaseSettles || PAbandons || DDefaults)
+            if (CaseSettles)
+            {
+                BargainingRoundsComplete++;
                 GameComplete = true;
+            }
         }
 
         public double? GetOffer(bool plaintiff, int offerNumber)

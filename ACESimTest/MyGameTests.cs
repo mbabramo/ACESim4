@@ -174,7 +174,7 @@ namespace ACESimTest
                 if (!settlingThisRound && (ifNotSettlingPRefusesToBargain || ifNotSettlingDRefusesToBargain))
                 {
                     // Note that if one player refuses to bargain, then the other party's move will be ignored -- hence, the use of the dummy 255 here
-                    moves.Add((ifNotSettlingPRefusesToBargain ? (byte?) null : (byte?) 255, ifNotSettlingDRefusesToBargain ? (byte?) 255 : (byte?)null));
+                    moves.Add((ifNotSettlingPRefusesToBargain ? (byte?) null : (byte?) 255, ifNotSettlingDRefusesToBargain ? (byte?) null : (byte?)255));
                 }
                 else
                 {
@@ -276,9 +276,9 @@ namespace ACESimTest
                             bargaining.Add(((byte) MyGameDecisions.PResponse, b, (byte) pMove));
                         }
                     }
-                    bargaining.Add(((byte) MyGameDecisions.PAbandon, b, pReadyToAbandonRound == b ? (byte) 1 : (byte) 2));
-                    bargaining.Add(((byte) MyGameDecisions.DDefault, b, dReadyToDefaultRound == b ? (byte) 1 : (byte) 2));
                 }
+                bargaining.Add(((byte)MyGameDecisions.PAbandon, b, pReadyToAbandonRound == b ? (byte)1 : (byte)2));
+                bargaining.Add(((byte)MyGameDecisions.DDefault, b, dReadyToDefaultRound == b ? (byte)1 : (byte)2));
             }
             var actionsToPlay = DefineActions.ForTest(
                 new List<(byte decision, byte action)>()
@@ -424,18 +424,27 @@ namespace ACESimTest
         public void SettlingCase()
         {
             int caseNumber = 0;
-            for (byte numPotentialBargainingRounds = 1; numPotentialBargainingRounds <= 3; numPotentialBargainingRounds++)
-                foreach (bool forgetEarlierBargainingRounds in new bool[] { true, false })
-                foreach (bool simultaneousBargainingRounds in new bool[] { true, false })
-                foreach (bool allowAbandonAndDefault in new bool[] { true, false })
-                foreach (bool actionIsNoiseNotSignal in new bool[] { true, false })
-                foreach (LoserPaysPolicy loserPaysPolicy in new LoserPaysPolicy[] { LoserPaysPolicy.NoLoserPays, LoserPaysPolicy.AfterTrialOnly, LoserPaysPolicy.EvenAfterAbandonOrDefault, })
-                foreach (HowToSimulateBargainingFailure simulatingBargainingFailure in new HowToSimulateBargainingFailure[] { HowToSimulateBargainingFailure.PRefusesToBargain, HowToSimulateBargainingFailure.DRefusesToBargain, HowToSimulateBargainingFailure.BothRefuseToBargain, HowToSimulateBargainingFailure.BothAgreeToBargain, HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain })
-                                        for (byte settlementInRound = 1; settlementInRound <= numPotentialBargainingRounds; settlementInRound++)
-                    {
-                        SettlingCase_Helper(numPotentialBargainingRounds, settlementInRound, forgetEarlierBargainingRounds, simultaneousBargainingRounds, allowAbandonAndDefault, actionIsNoiseNotSignal, loserPaysPolicy, simulatingBargainingFailure);
-                        caseNumber++;
-                    }
+            try
+            {
+                for (byte numPotentialBargainingRounds = 1; numPotentialBargainingRounds <= 3; numPotentialBargainingRounds++)
+                    foreach (bool forgetEarlierBargainingRounds in new bool[] { true, false })
+                    foreach (bool simultaneousBargainingRounds in new bool[] { true, false })
+                    foreach (bool allowAbandonAndDefault in new bool[] { true, false })
+                    foreach (bool actionIsNoiseNotSignal in new bool[] { true, false })
+                    foreach (LoserPaysPolicy loserPaysPolicy in new LoserPaysPolicy[] { LoserPaysPolicy.NoLoserPays, LoserPaysPolicy.AfterTrialOnly, LoserPaysPolicy.EvenAfterAbandonOrDefault, })
+                    foreach (HowToSimulateBargainingFailure simulatingBargainingFailure in new HowToSimulateBargainingFailure[] { HowToSimulateBargainingFailure.PRefusesToBargain, HowToSimulateBargainingFailure.DRefusesToBargain, HowToSimulateBargainingFailure.BothRefuseToBargain, HowToSimulateBargainingFailure.BothAgreeToBargain, HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain })
+                        for (byte settlementInRound = 1; settlementInRound <= numPotentialBargainingRounds; settlementInRound++)
+                        {
+                            if (caseNumber == 1091)
+                                SettlingCase_Helper(numPotentialBargainingRounds, settlementInRound, forgetEarlierBargainingRounds, simultaneousBargainingRounds, allowAbandonAndDefault, actionIsNoiseNotSignal, loserPaysPolicy, simulatingBargainingFailure);
+                            caseNumber++;
+                        }
+            }
+            catch (Exception e)
+            {
+                throw new Exception($"Failed at case number {caseNumber}. Inner exception: {e.Message}", e);
+            }
+            throw new NotImplementedException(); // uncomment if putting in case number restriction
         }
 
         public void SettlingCase_Helper(byte numPotentialBargainingRounds, byte? settlementInRound, bool forgetEarlierBargainingRounds, bool simultaneousBargainingRounds, bool allowAbandonAndDefault, bool actionIsNoiseNotSignal, LoserPaysPolicy loserPaysPolicy, HowToSimulateBargainingFailure simulatingBargainingFailure)
