@@ -14,8 +14,8 @@ namespace ACESim
     {
         public const int CacheLength = 10; // the game and game definition can use the cache to store information. This is helpful when the game player is simulating the game without playing the underlying game. The game definition may, for example, need to be able to figure out which decision is next.
         public const int MaxHistoryLength = 200;
-        public const int MaxInformationSetLoggingLength = 1000; // MUST equal MaxInformationSetLoggingLengthPerPlayer * MaxNumPlayers. 
-        public const int MaxInformationSetLoggingLengthPerPlayer = 100;
+        public const int MaxInformationSetLoggingLength = 2000; // MUST equal MaxInformationSetLoggingLengthPerPlayer * MaxNumPlayers. 
+        public const int MaxInformationSetLoggingLengthPerPlayer = 200;
         public const int MaxInformationSetLength = 200; // MUST equal MaxInformationSetLengthPerPlayer * MaxNumPlayers. 
         public const int MaxInformationSetLengthPerPlayer = 20;
         public const int MaxNumPlayers = 10;
@@ -53,7 +53,6 @@ namespace ACESim
         // The following are used to defer adding information to a player information set.
         private bool PreviousNotificationDeferred;
         private byte DeferredAction;
-        private byte DeferredDecisionIndex;
         private byte DeferredPlayerNumber;
         private List<byte> DeferredPlayersToInform;
 
@@ -102,7 +101,6 @@ namespace ACESim
 
             PreviousNotificationDeferred = false;
             DeferredAction = 0;
-            DeferredDecisionIndex = 0;
             DeferredPlayerNumber = 0;
             DeferredPlayersToInform = null;
         }
@@ -166,12 +164,11 @@ namespace ACESim
                     throw new Exception("Internal error. Must increase history length.");
             }
             if (PreviousNotificationDeferred && DeferredPlayersToInform != null && DeferredPlayersToInform.Any())
-                AddToInformationSetAndLog(DeferredAction, decisionIndex /* we use the current decision index, not the decision from which it was deferred -- this is important in setting the information set correctly */, DeferredPlayerNumber, DeferredPlayersToInform);
+                AddToInformationSetAndLog(DeferredAction, decisionIndex, DeferredPlayerNumber, DeferredPlayersToInform); /* we use the current decision index, not the decision from which it was deferred -- this is important in setting the information set correctly */
             PreviousNotificationDeferred = deferNotification;
             if (deferNotification)
             {
                 DeferredAction = action;
-                DeferredDecisionIndex = decisionIndex; // DEBUG -- delete DeferredDecisionIndex
                 DeferredPlayerNumber = playerIndex;
                 DeferredPlayersToInform = playersToInform;
             }
