@@ -27,15 +27,14 @@ namespace ACESim
         public static void EvolveMyGame()
         {
             MyGameDefinition gameDefinition = new MyGameDefinition();
-            //var options = MyGameOptionsGenerator.FourBargainingRounds_PerfectInformation();
-            var options = MyGameOptionsGenerator.FourBargainingRounds(); // processed signals
+            var options = MyGameOptionsGenerator.Standard(); // processed signals
             //var options = MyGameOptionsGenerator.UsingRawSignals_10Points_1Round();
             gameDefinition.Setup(options);
             List<Strategy> starterStrategies = Strategy.GetStarterStrategies(gameDefinition);
             EvolutionSettings evolutionSettings = new EvolutionSettings()
             {
                 MaxParallelDepth = 2,
-                ParallelOptimization = true,
+                ParallelOptimization = false,
 
                 InitialRandomSeed = 31,
 

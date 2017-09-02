@@ -31,6 +31,7 @@ namespace ACESim
         public static bool OutputLogMessages = false;
         public static bool PartialLoggingOn = false; // change this to allow partial logging -- might do this in code in specific places
         public static int MaxIncomplete = 1000;
+        public static int Tabs = 0;
         public static StringBuilder MessagesLog = new StringBuilder();
 
         private static object lockObj = new object();
@@ -52,6 +53,8 @@ namespace ACESim
         {
             if (LoggingOn)
             {
+                for (int tab = 0; tab < Tabs; tab++)
+                    message = "    " + message;
                 if (OutputLogMessages)
                     System.Diagnostics.Debug.WriteLine(message);
                 if (RecordLogMessages)

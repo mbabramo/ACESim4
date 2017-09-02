@@ -171,12 +171,25 @@ namespace ACESim
 
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
             IEnumerable<InformationSetHistory> informationSetHistories = gameProgress.GameHistory.GetInformationSetHistoryItems();
+            GameProgressLogger.Log(() => "Processing information set histories");
+            if (GameProgressLogger.LoggingOn)
+            {
+                GameProgressLogger.Tabs++;
+            }
             foreach (var informationSetHistory in informationSetHistories)
             {
+                GameProgressLogger.Log(() => informationSetHistory.ToString());
                 //var informationSetHistoryString = informationSetHistory.ToString();
+                if (informationSetHistory.PlayerIndex == 1 && informationSetHistory.ToString().Contains("8,1,2"))
+                    Debug.WriteLine($"Setting information for player 1 at {informationSetHistory.ToString()}");
                 historyPoint.SetInformationIfNotSet(Navigation, gameProgress, informationSetHistory);
                 historyPoint = historyPoint.GetBranch(Navigation, informationSetHistory.ActionChosen);
+                GameProgressLogger.Log(() => "Actions processed: " + historyPoint.GetActionsToHereString(Navigation));
                 // var actionsToHere = historyPoint.GetActionsToHereString(Navigation); 
+            }
+            if (GameProgressLogger.LoggingOn)
+            {
+                GameProgressLogger.Tabs--;
             }
             historyPoint.SetFinalUtilitiesAtPoint(Navigation, gameProgress);
             //var checkMatch1 = (FinalUtilities) historyPoint.GetGameStateForCurrentPlayer(Navigation);
@@ -206,6 +219,11 @@ namespace ACESim
         {
             IGameState gameState;
             List<byte> actionsSoFar = historyPoint.GetActionsToHere(navigationSettings);
+            if (NumInitializedGamePaths == 7)
+            {
+                GameProgressLogger.LoggingOn = true;
+                GameProgressLogger.OutputLogMessages = true;
+            }
             (GameProgress progress, _) = GamePlayer.PlayPath(actionsSoFar, false);
             ProcessInitializedGameProgress(progress);
             NumInitializedGamePaths++; // Note: This may not be exact if we initialize the same game path twice

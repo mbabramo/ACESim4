@@ -70,7 +70,7 @@ namespace ACESimTest
                 DTrialCosts = DTrialCosts,
                 LoserPays = loserPaysPolicy != LoserPaysPolicy.NoLoserPays,
                 LoserPaysAfterAbandonment = loserPaysPolicy == LoserPaysPolicy.EvenAfterAbandonOrDefault,
-                PerPartyBargainingRoundCosts = PerRoundBargainingCost,
+                PerPartyCostsLeadingUpToBargainingRound = PerRoundBargainingCost,
                 AllowAbandonAndDefaults = allowAbandonAndDefaults,
                 DeltaOffersOptions = new DeltaOffersOptions()
                 {
@@ -399,18 +399,18 @@ namespace ACESimTest
                     if (pWins)
                     {
                         pExpenses = 0;
-                        dExpenses = options.PFilingCost + options.DAnswerCost + 2 * numActualRounds * options.PerPartyBargainingRoundCosts;
+                        dExpenses = options.PFilingCost + options.DAnswerCost + 2 * numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound;
                     }
                     else
                     {
                         dExpenses = 0;
-                        pExpenses = options.PFilingCost + options.DAnswerCost + 2 * numActualRounds * options.PerPartyBargainingRoundCosts;
+                        pExpenses = options.PFilingCost + options.DAnswerCost + 2 * numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound;
                     }
                 }
                 else
                 {
-                    pExpenses = options.PFilingCost + numActualRounds * options.PerPartyBargainingRoundCosts;
-                    dExpenses = options.DAnswerCost + numActualRounds * options.PerPartyBargainingRoundCosts;
+                    pExpenses = options.PFilingCost + numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound;
+                    dExpenses = options.DAnswerCost + numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound;
                 }
             }
             else
@@ -477,9 +477,9 @@ namespace ACESimTest
             myGameProgress.GameComplete.Should().BeTrue();
             myGameProgress.CaseSettles.Should().BeTrue();
             myGameProgress.PFinalWealth.Should().Be(options.PInitialWealth - options.PFilingCost + 0.5 * options.DamagesAlleged -
-                                                    numActualRounds * options.PerPartyBargainingRoundCosts);
+                                                    numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound);
             myGameProgress.DFinalWealth.Should().Be(options.DInitialWealth - options.DAnswerCost - 0.5 * options.DamagesAlleged -
-                                                    numActualRounds * options.PerPartyBargainingRoundCosts);
+                                                    numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound);
             myGameProgress.PWelfare.Should().Be(myGameProgress.PFinalWealth);
             myGameProgress.DWelfare.Should().Be(myGameProgress.DFinalWealth);
 
@@ -541,18 +541,18 @@ namespace ACESimTest
                 if (plaintiffWins)
                 {
                     pExpenses = 0;
-                    dExpenses = options.PFilingCost + options.DAnswerCost + 2 * numBargainingRounds * options.PerPartyBargainingRoundCosts + options.PTrialCosts + options.DTrialCosts;
+                    dExpenses = options.PFilingCost + options.DAnswerCost + 2 * numBargainingRounds * options.PerPartyCostsLeadingUpToBargainingRound + options.PTrialCosts + options.DTrialCosts;
                 }
                 else
                 {
                     dExpenses = 0;
-                    pExpenses = options.PFilingCost + options.DAnswerCost + 2 * numBargainingRounds * options.PerPartyBargainingRoundCosts + options.PTrialCosts + options.DTrialCosts;
+                    pExpenses = options.PFilingCost + options.DAnswerCost + 2 * numBargainingRounds * options.PerPartyCostsLeadingUpToBargainingRound + options.PTrialCosts + options.DTrialCosts;
                 }
             }
             else
             {
-                pExpenses = options.PFilingCost + numBargainingRounds * options.PerPartyBargainingRoundCosts + options.PTrialCosts;
-                dExpenses = options.DAnswerCost + numBargainingRounds * options.PerPartyBargainingRoundCosts + options.DTrialCosts;
+                pExpenses = options.PFilingCost + numBargainingRounds * options.PerPartyCostsLeadingUpToBargainingRound + options.PTrialCosts;
+                dExpenses = options.DAnswerCost + numBargainingRounds * options.PerPartyCostsLeadingUpToBargainingRound + options.DTrialCosts;
             }
 
             double pFinalWealthExpected = options.PInitialWealth - pExpenses;

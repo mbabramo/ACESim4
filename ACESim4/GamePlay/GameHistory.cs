@@ -166,12 +166,12 @@ namespace ACESim
                     throw new Exception("Internal error. Must increase history length.");
             }
             if (PreviousNotificationDeferred && DeferredPlayersToInform != null && DeferredPlayersToInform.Any())
-                AddToInformationSetAndLog(DeferredAction, DeferredDecisionIndex, DeferredPlayerNumber, DeferredPlayersToInform);
+                AddToInformationSetAndLog(DeferredAction, decisionIndex /* we use the current decision index, not the decision from which it was deferred -- this is important in setting the information set correctly */, DeferredPlayerNumber, DeferredPlayersToInform);
             PreviousNotificationDeferred = deferNotification;
             if (deferNotification)
             {
                 DeferredAction = action;
-                DeferredDecisionIndex = decisionIndex;
+                DeferredDecisionIndex = decisionIndex; // DEBUG -- delete DeferredDecisionIndex
                 DeferredPlayerNumber = playerIndex;
                 DeferredPlayersToInform = playersToInform;
             }
@@ -182,6 +182,8 @@ namespace ACESim
                     IncrementCacheIndex(cacheIndex);
             if (storeActionInCacheIndex != null)
                 SetCacheIndex((byte)storeActionInCacheIndex, action);
+            if (GameProgressLogger.LoggingOn)
+                GameProgressLogger.Log($"Actions so far: {GetActionsAsListString()}");
         }
 
         public unsafe void IncrementCacheIndex(byte cacheIndexToIncrement)

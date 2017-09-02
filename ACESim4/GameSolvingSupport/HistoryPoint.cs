@@ -76,12 +76,26 @@ namespace ACESim
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
                 //var informationSetHistories = HistoryToPoint.GetInformationSetHistoryItems().Select(x => x.ToString());
+                var DEBUG = HistoryToPoint.GetActionsAsListString();
                 (Decision nextDecision, byte nextDecisionIndex) = navigation.GameDefinition.GetNextDecision(HistoryToPoint); 
                 byte nextPlayer = nextDecision?.PlayerNumber ?? navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
                 byte* informationSetsPtr = stackalloc byte[GameHistory.MaxInformationSetLengthPerPlayer];
                 // string playerInformationString = HistoryToPoint.GetPlayerInformationString(currentPlayer, nextDecision?.DecisionByteCode);
                 HistoryToPoint.GetPlayerInformation(nextPlayer, null, informationSetsPtr);
-                //var informationSetList = Util.ListExtensions.GetPointerAsList_255Terminated(informationSetsPtr);
+                if (GameProgressLogger.LoggingOn)
+                {
+                    var informationSetList = Util.ListExtensions.GetPointerAsList_255Terminated(informationSetsPtr);
+                    GameProgressLogger.Log($"Player {nextPlayer} information set: {String.Join(",", informationSetList)}");
+                    var DEBUG2 = navigation.Strategies[nextPlayer].GetInformationSetTreeString();
+                    //GameProgressLogger.Log(() => DEBUG2);
+                }
+                else
+                {
+                    // DEBUG -- delete this section
+
+                    var informationSetList = Util.ListExtensions.GetPointerAsList_255Terminated(informationSetsPtr);
+                    Debug.WriteLine($"Player {nextPlayer} information set: {String.Join(",", informationSetList)} at decision {nextDecision?.DecisionByteCode}");
+                }
                 if (nextDecision != null)
                     gameStateFromGameHistory = navigation.Strategies[nextPlayer].GetInformationSetTreeValue(nextDecisionIndex, informationSetsPtr);
                 else

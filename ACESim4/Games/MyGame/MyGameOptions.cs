@@ -86,7 +86,7 @@ namespace ACESim
         /// <summary>
         /// Costs that each party must pay per round of bargaining. Note that an immediate successful resolution will still produce costs.
         /// </summary>
-        public double PerPartyBargainingRoundCosts;
+        public double PerPartyCostsLeadingUpToBargainingRound;
         /// <summary>
         /// The number of bargaining rounds
         /// </summary>

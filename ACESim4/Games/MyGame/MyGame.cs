@@ -213,7 +213,7 @@ namespace ACESim
             double dAnswerCostIncurred = MyProgress.DAnswers ? MyDefinition.Options.DAnswerCost : 0;
             double pTrialCostsIncurred = MyProgress.TrialOccurs ? MyDefinition.Options.PTrialCosts : 0;
             double dTrialCostsIncurred = MyProgress.TrialOccurs ? MyDefinition.Options.DTrialCosts : 0;
-            double perPartyBargainingCostsIncurred = MyDefinition.Options.PerPartyBargainingRoundCosts * MyProgress.BargainingRoundsComplete;
+            double perPartyBargainingCostsIncurred = MyDefinition.Options.PerPartyCostsLeadingUpToBargainingRound * MyProgress.BargainingRoundsComplete;
             bool loserPaysApplies = MyDefinition.Options.LoserPays && (MyProgress.TrialOccurs || (MyDefinition.Options.LoserPaysAfterAbandonment && (MyProgress.PAbandons || MyProgress.DDefaults)));
             if (loserPaysApplies)
             { // British Rule and it applies (contested litigation and no settlement)
