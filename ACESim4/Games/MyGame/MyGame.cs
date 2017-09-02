@@ -114,6 +114,7 @@ namespace ACESim
                     MyProgress.BothReadyToGiveUp = true;
                     MyProgress.PAbandons = action == 1;
                     MyProgress.DDefaults = !MyProgress.PAbandons;
+                    MyProgress.BargainingRoundsComplete++;
                     MyProgress.GameComplete = true;
                     break;
                 case (byte)MyGameDecisions.PostBargainingRound:

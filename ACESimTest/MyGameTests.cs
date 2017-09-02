@@ -140,13 +140,13 @@ namespace ACESimTest
                                     l.Add((byte) moveSet.dMove);
                                     l.Add((byte) moveSet.pMove);
                                 }
-                                if (allowAbandonAndDefault && !settlementReachedLastRound)
-                                {
-                                    l.Add(pReadyToAbandonLastRound ? (byte) 1 : (byte) 2);
-                                    l.Add(dReadyToDefaultLastRound ? (byte) 1 : (byte) 2);
-                                    if (pReadyToAbandonLastRound && dReadyToDefaultLastRound)
-                                        l.Add(ifBothDefaultPlaintiffLoses ? (byte) 1 : (byte) 2);
-                                }
+                            }
+                            if (allowAbandonAndDefault && !settlementReachedLastRound)
+                            {
+                                l.Add(pReadyToAbandonLastRound ? (byte) 1 : (byte) 2);
+                                l.Add(dReadyToDefaultLastRound ? (byte) 1 : (byte) 2);
+                                if (pReadyToAbandonLastRound && dReadyToDefaultLastRound)
+                                    l.Add(ifBothDefaultPlaintiffLoses ? (byte) 1 : (byte) 2);
                             }
                             break; // we don't need to enter/track anything about later bargaining rounds, since they didn't occur
                         }
@@ -317,26 +317,40 @@ namespace ACESimTest
         private void CaseGivenUpVariousActions(byte numPotentialBargainingRounds, bool forgetEarlierBargainingRounds,
             bool simultaneousBargainingRounds, bool actionIsNoiseNotSignal, LoserPaysPolicy loserPaysPolicy, HowToSimulateBargainingFailure simulatingBargainingFailure)
         {
-            for (byte abandonmentInRound = 0;
-                abandonmentInRound <= numPotentialBargainingRounds;
-                abandonmentInRound++)
-                foreach (bool plaintiffGivesUp in new bool[] {true, false})
-                foreach (bool defendantGivesUp in new bool[] {true, false})
-                foreach (bool plaintiffWinsIfBothGiveUp in new bool[] {true, false})
-                {
-                    if (!plaintiffGivesUp && !defendantGivesUp)
-                        continue; // not interested in this case
-                    if ((!plaintiffGivesUp || !defendantGivesUp) && !plaintiffWinsIfBothGiveUp)
-                        continue; // only need to test both values of plaintiff wins if both give up if both give up.
-                    CaseGivenUp_SpecificSettingsAndActions(numPotentialBargainingRounds, abandonmentInRound,
-                        forgetEarlierBargainingRounds,
-                        simultaneousBargainingRounds, actionIsNoiseNotSignal, (byte) LitigationQuality,
-                        pReadyToAbandonRound: plaintiffGivesUp ? (byte?) abandonmentInRound : (byte?) null,
-                        dReadyToDefaultRound: defendantGivesUp ? (byte?) abandonmentInRound : (byte?) null,
-                        mutualGiveUpResult: plaintiffWinsIfBothGiveUp ? (byte) 2 : (byte) 1,
-                        loserPaysPolicy: loserPaysPolicy,
-                        simulatingBargainingFailure: simulatingBargainingFailure);
-                }
+            int caseNumber = 0;
+            try
+            {
+                for (byte abandonmentInRound = 0;
+                    abandonmentInRound <= numPotentialBargainingRounds;
+                    abandonmentInRound++)
+                    foreach (bool plaintiffGivesUp in new bool[] { true, false })
+                        foreach (bool defendantGivesUp in new bool[] { true, false })
+                            foreach (bool plaintiffWinsIfBothGiveUp in new bool[] { true, false })
+                            {
+                                if (!plaintiffGivesUp && !defendantGivesUp)
+                                    continue; // not interested in this case
+                                if ((!plaintiffGivesUp || !defendantGivesUp) && !plaintiffWinsIfBothGiveUp)
+                                    continue; // only need to test both values of plaintiff wins if both give up if both give up.
+                                if (caseNumber == 999999)
+                                {
+                                    GameProgressLogger.LoggingOn = true;
+                                    GameProgressLogger.OutputLogMessages = true;
+                                }
+                                CaseGivenUp_SpecificSettingsAndActions(numPotentialBargainingRounds, abandonmentInRound,
+                                    forgetEarlierBargainingRounds,
+                                    simultaneousBargainingRounds, actionIsNoiseNotSignal, (byte)LitigationQuality,
+                                    pReadyToAbandonRound: plaintiffGivesUp ? (byte?)abandonmentInRound : (byte?)null,
+                                    dReadyToDefaultRound: defendantGivesUp ? (byte?)abandonmentInRound : (byte?)null,
+                                    mutualGiveUpResult: plaintiffWinsIfBothGiveUp ? (byte)2 : (byte)1,
+                                    loserPaysPolicy: loserPaysPolicy,
+                                    simulatingBargainingFailure: simulatingBargainingFailure);
+                                caseNumber++;
+                            }
+            }
+            catch (Exception e)
+            {
+                throw new Exception($"Case number {caseNumber} failed: {e.Message}");
+            }
         }
 
         public void CaseGivenUp_SpecificSettingsAndActions(byte numPotentialBargainingRounds, byte? abandonmentInRound, bool forgetEarlierBargainingRounds, bool simultaneousBargainingRounds, bool actionIsNoiseNotSignal, byte litigationQuality, byte? pReadyToAbandonRound, byte? dReadyToDefaultRound, byte mutualGiveUpResult, LoserPaysPolicy loserPaysPolicy, HowToSimulateBargainingFailure simulatingBargainingFailure)
@@ -482,15 +496,31 @@ namespace ACESimTest
         [TestMethod]
         public void CaseTried()
         {
-            foreach (bool allowAbandonAndDefaults in new bool[] { true, false })
-                foreach (bool forgetEarlierBargainingRounds in new bool[] { true, false })
-                    foreach (byte numBargainingRounds in new byte[] { 1, 2 })
-                        foreach (bool plaintiffWins in new bool[] { true, false })
-                            foreach (bool simultaneousBargainingRounds in new bool[] { true, false })
-                                foreach (bool actionIsNoiseNotSignal in new bool[] { true, false })
-                                    foreach (LoserPaysPolicy loserPaysPolicy in new LoserPaysPolicy[] { LoserPaysPolicy.NoLoserPays, LoserPaysPolicy.AfterTrialOnly, LoserPaysPolicy.EvenAfterAbandonOrDefault, })
-                                    foreach (HowToSimulateBargainingFailure simulatingBargainingFailure in new HowToSimulateBargainingFailure[] { HowToSimulateBargainingFailure.PRefusesToBargain, HowToSimulateBargainingFailure.DRefusesToBargain, HowToSimulateBargainingFailure.BothRefuseToBargain, HowToSimulateBargainingFailure.BothAgreeToBargain, HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain })
-                                            CaseTried_Helper(allowAbandonAndDefaults, forgetEarlierBargainingRounds, numBargainingRounds, plaintiffWins, simultaneousBargainingRounds, actionIsNoiseNotSignal, loserPaysPolicy, simulatingBargainingFailure);
+            var caseNumber = 0;
+            try
+            {
+                foreach (bool allowAbandonAndDefaults in new[] { true, false })
+                    foreach (bool forgetEarlierBargainingRounds in new[] { true, false })
+                        foreach (byte numBargainingRounds in new byte[] { 1, 2 })
+                            foreach (bool plaintiffWins in new[] { true, false })
+                                foreach (bool simultaneousBargainingRounds in new[] { true, false })
+                                    foreach (bool actionIsNoiseNotSignal in new[] { true, false })
+                                        foreach (var loserPaysPolicy in new[] { LoserPaysPolicy.NoLoserPays, LoserPaysPolicy.AfterTrialOnly, LoserPaysPolicy.EvenAfterAbandonOrDefault })
+                                            foreach (var simulatingBargainingFailure in new[] { HowToSimulateBargainingFailure.PRefusesToBargain, HowToSimulateBargainingFailure.DRefusesToBargain, HowToSimulateBargainingFailure.BothRefuseToBargain, HowToSimulateBargainingFailure.BothAgreeToBargain, HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain })
+                                            {
+                                                if (caseNumber == 999999)
+                                                {
+                                                    GameProgressLogger.LoggingOn = true;
+                                                    GameProgressLogger.OutputLogMessages = true;
+                                                }
+                                                CaseTried_Helper(allowAbandonAndDefaults, forgetEarlierBargainingRounds, numBargainingRounds, plaintiffWins, simultaneousBargainingRounds, actionIsNoiseNotSignal, loserPaysPolicy, simulatingBargainingFailure);
+                                                caseNumber++;
+                                            }
+            }
+            catch (Exception e)
+            {
+                throw new Exception($"Failed case number {caseNumber}: {e.Message}");
+            }
         }
 
         private void CaseTried_Helper(bool allowAbandonAndDefaults, bool forgetEarlierBargainingRounds, byte numBargainingRounds, bool plaintiffWins, bool simultaneousBargainingRounds, bool actionIsNoiseNotSignal, LoserPaysPolicy loserPaysPolicy, HowToSimulateBargainingFailure simulatingBargainingFailure)
