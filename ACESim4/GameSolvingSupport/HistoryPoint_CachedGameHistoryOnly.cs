@@ -20,8 +20,6 @@ namespace ACESim
 
         public override string ToString()
         {
-            if (HistoryToPoint.LastIndexAddedToHistory > 0)
-                return String.Join(",", HistoryToPoint.GetInformationSetHistoryItems());
             return "HistoryPoint";
         }
 
@@ -51,7 +49,7 @@ namespace ACESim
             byte nextPlayer = nextDecision?.PlayerNumber ?? gameDefinition.PlayerIndex_ResolutionPlayer;
             byte* informationSetsPtr = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
             // string playerInformationString = HistoryToPoint.GetPlayerInformationString(currentPlayer, nextDecision?.DecisionByteCode);
-            HistoryToPoint.GetPlayerInformation(nextPlayer, null, informationSetsPtr);
+            HistoryToPoint.GetPlayerInformationCurrent(nextPlayer, informationSetsPtr);
             //var informationSetList = Util.ListExtensions.GetPointerAsList_255Terminated(informationSetsPtr);
             if (nextDecision != null)
                 gameStateFromGameHistory = strategies[nextPlayer].GetInformationSetTreeValue(nextDecisionIndex, informationSetsPtr);
@@ -68,7 +66,7 @@ namespace ACESim
         {
             HistoryPoint_CachedGameHistoryOnly next = new HistoryPoint_CachedGameHistoryOnly(HistoryToPoint);
             (Decision nextDecision, byte nextDecisionIndex) = gameDefinition.GetNextDecision(ref HistoryToPoint);
-            Game.UpdateGameHistory(ref next.HistoryToPoint, gameDefinition, nextDecision, nextDecisionIndex, actionChosen);
+            Game.UpdateGameHistory(ref next.HistoryToPoint, gameDefinition, nextDecision, nextDecisionIndex, actionChosen, null);
             if (nextDecision.CanTerminateGame && gameDefinition.ShouldMarkGameHistoryComplete(nextDecision, ref next.HistoryToPoint, actionChosen))
                 next.HistoryToPoint.MarkComplete();
             return next;
@@ -78,7 +76,7 @@ namespace ACESim
         {
             // If we're going to do this, we need a means of switching away FROM the branch, i.e. rolling back in time.
             (Decision nextDecision, byte nextDecisionIndex) = gameDefinition.GetNextDecision(ref HistoryToPoint);
-            Game.UpdateGameHistory(ref HistoryToPoint, gameDefinition, nextDecision, nextDecisionIndex, actionChosen);
+            Game.UpdateGameHistory(ref HistoryToPoint, gameDefinition, nextDecision, nextDecisionIndex, actionChosen, null);
             if (nextDecision.CanTerminateGame && gameDefinition.ShouldMarkGameHistoryComplete(nextDecision, ref HistoryToPoint, actionChosen))
                 HistoryToPoint.MarkComplete();
         }
@@ -108,7 +106,7 @@ namespace ACESim
             byte resolutionPlayer = gameDefinition.PlayerIndex_ResolutionPlayer;
             var strategy = strategies[resolutionPlayer];
             byte* resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
-            gameProgress.GameHistory.GetPlayerInformation(resolutionPlayer, null, resolutionInformationSet);
+            gameProgress.GameHistory.GetPlayerInformationCurrent(resolutionPlayer, resolutionInformationSet);
             NWayTreeStorage<IGameState> informationSetNode = strategy.SetInformationSetTreeValueIfNotSet(
                         resolutionInformationSet,
                         true,
@@ -124,7 +122,7 @@ namespace ACESim
             byte resolutionPlayer = navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
             var strategy = navigation.Strategies[resolutionPlayer];
             byte* resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
-            HistoryToPoint.GetPlayerInformation(resolutionPlayer, null, resolutionInformationSet);
+            HistoryToPoint.GetPlayerInformationCurrent(resolutionPlayer,  resolutionInformationSet);
             FinalUtilities finalUtilities = (FinalUtilities)strategy.GetInformationSetTreeValue(resolutionInformationSet);
             if (finalUtilities == null)
             {

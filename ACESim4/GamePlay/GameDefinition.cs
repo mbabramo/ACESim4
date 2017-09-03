@@ -367,7 +367,7 @@ namespace ACESim
             return false;
         }
 
-        public virtual void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte action, ref GameHistory gameHistory)
+        public virtual void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte action, ref GameHistory gameHistory, GameProgress gameProgress)
         {
             // Entirely subclass. This method allow one to chance information sets in ways other than mechanically adding items to an information set.
             // It is defined in the GameDefinition, rather than in the Game, because it needs to be called when playing a cached game (i.e., going through 

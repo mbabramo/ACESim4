@@ -16,9 +16,9 @@ namespace ACESimTest
         private static void GetInformationSetStrings(MyGameProgress myGameProgress, out string pInformationSet,
             out string dInformationSet, out string resolutionSet)
         {
-            pInformationSet = myGameProgress.GameHistory.GetPlayerInformationAtPointString((byte)MyGamePlayers.Plaintiff, null);
-            dInformationSet = myGameProgress.GameHistory.GetPlayerInformationAtPointString((byte)MyGamePlayers.Defendant, null);
-            resolutionSet = myGameProgress.GameHistory.GetPlayerInformationAtPointString((byte)MyGamePlayers.Resolution, null);
+            pInformationSet = myGameProgress.InformationSetLog.GetPlayerInformationAtPointString((byte)MyGamePlayers.Plaintiff, null);
+            dInformationSet = myGameProgress.InformationSetLog.GetPlayerInformationAtPointString((byte)MyGamePlayers.Defendant, null);
+            resolutionSet = myGameProgress.InformationSetLog.GetPlayerInformationAtPointString((byte)MyGamePlayers.Resolution, null);
             string pInformationSet2 = myGameProgress.GameHistory.GetCurrentPlayerInformationString((byte)MyGamePlayers.Plaintiff);
             string dInformationSet2 = myGameProgress.GameHistory.GetCurrentPlayerInformationString((byte)MyGamePlayers.Defendant);
             string resolutionSet2 = myGameProgress.GameHistory.GetCurrentPlayerInformationString((byte)MyGamePlayers.Resolution);

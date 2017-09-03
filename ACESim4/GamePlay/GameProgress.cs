@@ -15,6 +15,7 @@ namespace ACESim
         public GameDefinition GameDefinition;
         public List<GameModuleProgress> GameModuleProgresses;
         public GameHistory GameHistory;
+        public InformationSetLog InformationSetLog;
         public List<byte> ActionsToPlay = new List<byte>();
         /// <summary>
         /// A function that will choose an action to take for a particular decision, overriding other mechanisms. If it returns 0, the standard mechanisms will be used.
@@ -28,6 +29,10 @@ namespace ACESim
         public bool IsFinalGamePath;
         public byte RandomNumbersUsed;
 
+        public GameProgress()
+        {
+            InformationSetLog.Initialize();
+        }
 
         public int ActionsToPlayIndex;
         public string ActionsToPlayString => String.Join(",", ActionsToPlay);
@@ -68,6 +73,11 @@ namespace ACESim
             return actionsPlayed;
         }
 
+        public IEnumerable<InformationSetHistory> GetInformationSetHistoryItems()
+        {
+            return GameHistory.GetInformationSetHistoryItems(this);
+        }
+
 
         static ConcurrentQueue<GameProgress> RecycledGameProgressQueue = new ConcurrentQueue<GameProgress>();
         private static int NumRecycled;
@@ -83,6 +93,7 @@ namespace ACESim
 
         public virtual void CleanAfterRecycling()
         {
+            InformationSetLog.Initialize();
             DummyVariable = 1.0;
             IterationID = null; // torecycle
             GameDefinition = null;
@@ -176,6 +187,7 @@ namespace ACESim
 
         internal virtual void CopyFieldInfo(GameProgress copy)
         {
+            copy.InformationSetLog = InformationSetLog;
             copy.IterationID = IterationID;
             copy.GameDefinition = GameDefinition;
             copy.GameModuleProgresses = GameModuleProgresses == null ? null : (GameModuleProgresses.Select(x => x?.DeepCopy()).ToList());

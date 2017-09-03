@@ -20,8 +20,6 @@ namespace ACESim
         public const int CacheLength = 10; // the game and game definition can use the cache to store information. This is helpful when the game player is simulating the game without playing the underlying game. The game definition may, for example, need to be able to figure out which decision is next.
         public const int MaxHistoryLength = 200;
 
-        private InformationSetLog InformationSetLog;
-
         public const int MaxInformationSetLength = 69; // MUST equal MaxInformationSetLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLengthPerPartialPlayer * NumPartialPlayers. 
         public const int MaxInformationSetLengthPerFullPlayer = 20;
         public const int MaxInformationSetLengthPerPartialPlayer = 3;
@@ -79,7 +77,6 @@ namespace ACESim
                     informationSets[b] = *(ptr + b);
 
             info.AddValue("history", history, typeof(byte[]));
-            info.AddValue("informationSetLog", InformationSetLog, typeof(InformationSetLog));
             info.AddValue("informationSets", informationSets, typeof(byte[]));
             info.AddValue("LastIndexAddedToHistory", LastIndexAddedToHistory, typeof(short));
             info.AddValue("Initialized", Initialized, typeof(bool));
@@ -91,7 +88,6 @@ namespace ACESim
         {
             byte[] history = (byte[])info.GetValue("history", typeof(byte[]));
             byte[] informationSets = (byte[])info.GetValue("informationSets", typeof(byte[]));
-            InformationSetLog = (InformationSetLog)info.GetValue("informationSetLog", typeof(InformationSetLog));
             fixed (byte* ptr = History)
                 for (int b = 0; b < MaxHistoryLength; b++)
                     *(ptr + b) = history[b];
@@ -131,7 +127,6 @@ namespace ACESim
 
         private void Initialize_Helper()
         {
-            InformationSetLog.Initialize();
             fixed (byte* historyPtr = History)
                 *(historyPtr + 0) = HistoryTerminator;
             fixed (byte* informationSetPtr = InformationSets)
@@ -147,7 +142,7 @@ namespace ACESim
 
         #region History and cache
 
-        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, List<byte> playersToInform, bool skipAddToHistory, List<byte> cacheIndicesToIncrement, byte? storeActionInCacheIndex, bool deferNotification)
+        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, List<byte> playersToInform, bool skipAddToHistory, List<byte> cacheIndicesToIncrement, byte? storeActionInCacheIndex, bool deferNotification, GameProgress gameProgress)
         {
             if (!Initialized)
                 Initialize();
@@ -170,7 +165,7 @@ namespace ACESim
                     throw new Exception("Internal error. Must increase history length.");
             }
             if (PreviousNotificationDeferred && DeferredPlayersToInform != null && DeferredPlayersToInform.Any())
-                AddToInformationSetAndLog(DeferredAction, decisionIndex, DeferredPlayerNumber, DeferredPlayersToInform); /* we use the current decision index, not the decision from which it was deferred -- this is important in setting the information set correctly */
+                AddToInformationSetAndLog(DeferredAction, decisionIndex, DeferredPlayerNumber, DeferredPlayersToInform, gameProgress); /* we use the current decision index, not the decision from which it was deferred -- this is important in setting the information set correctly */
             PreviousNotificationDeferred = deferNotification;
             if (deferNotification)
             {
@@ -179,7 +174,7 @@ namespace ACESim
                 DeferredPlayersToInform = playersToInform;
             }
             else if (playersToInform != null && playersToInform.Any())
-                AddToInformationSetAndLog(action, decisionIndex, playerIndex, playersToInform);
+                AddToInformationSetAndLog(action, decisionIndex, playerIndex, playersToInform, gameProgress);
             if (cacheIndicesToIncrement != null)
                 foreach (byte cacheIndex in cacheIndicesToIncrement)
                     IncrementCacheIndex(cacheIndex);
@@ -333,7 +328,7 @@ namespace ACESim
 
         #region Player information sets
 
-        public IEnumerable<InformationSetHistory> GetInformationSetHistoryItems()
+        public IEnumerable<InformationSetHistory> GetInformationSetHistoryItems(GameProgress gameProgress)
         {
             if (!Initialized)
                 Initialize();
@@ -341,11 +336,11 @@ namespace ACESim
                 yield break;
             for (short i = 0; i < LastIndexAddedToHistory; i += History_NumPiecesOfInformation)
             {
-                yield return GetInformationSetHistory(i);
+                yield return GetInformationSetHistory(i, gameProgress);
             }
         }
 
-        private InformationSetHistory GetInformationSetHistory(short index)
+        private InformationSetHistory GetInformationSetHistory(short index, GameProgress gameProgress)
         {
             if (!Initialized)
                 Initialize();
@@ -361,11 +356,11 @@ namespace ACESim
                 NumPossibleActions = GetHistoryIndex(index + History_NumPossibleActions_Offset),
                 IsTerminalAction = GetHistoryIndex(index + History_NumPiecesOfInformation) == HistoryComplete
             };
-            GetPlayerInformation(playerIndex, decisionIndex, informationSetHistory.InformationSetForPlayer);
+            gameProgress.InformationSetLog.GetPlayerInformationAtPoint(playerIndex, decisionIndex, informationSetHistory.InformationSetForPlayer);
             return informationSetHistory;
         }
 
-        public void AddToInformationSetAndLog(byte information, byte followingDecisionIndex, byte playerIndex, List<byte> playersToInform)
+        public void AddToInformationSetAndLog(byte information, byte followingDecisionIndex, byte playerIndex, List<byte> playersToInform, GameProgress gameProgress)
         {
             GameProgressLogger.Log(() => $"player {playerIndex} informing {String.Join(", ", playersToInform)} info {information} following {followingDecisionIndex}");
             fixed (byte* informationSetsPtr = InformationSets)
@@ -374,7 +369,8 @@ namespace ACESim
                     foreach (byte playerToInformIndex in playersToInform)
                     {
                         AddToInformationSet(information, playerToInformIndex, informationSetsPtr);
-                        InformationSetLog.AddToLog(information, followingDecisionIndex, playerToInformIndex);
+                        if (gameProgress != null)
+                            gameProgress.InformationSetLog.AddToLog(information, followingDecisionIndex, playerToInformIndex);
                     }
             }
             if (GameProgressLogger.LoggingOn)
@@ -387,12 +383,13 @@ namespace ACESim
             }
         }
 
-        public void AddToInformationSetAndLog(byte information, byte followingDecisionIndex, byte playerIndex)
+        public void AddToInformationSetAndLog(byte information, byte followingDecisionIndex, byte playerIndex, GameProgress gameProgress)
         {
             fixed (byte* informationSetsPtr = InformationSets)
             {
                 AddToInformationSet(information, playerIndex, informationSetsPtr);
-                InformationSetLog.AddToLog(information, followingDecisionIndex, playerIndex);
+                if (gameProgress != null)
+                    gameProgress.InformationSetLog.AddToLog(information, followingDecisionIndex, playerIndex);
             }
         }
 
@@ -439,22 +436,12 @@ namespace ACESim
             //}
         }
 
-
-        public unsafe void GetPlayerInformation(byte playerIndex, byte? upToDecision, byte* playerInfoBuffer)
-        {
-            if (!Initialized)
-                Initialize();
-            if (upToDecision == null)
-            {
-                GetPlayerInformationCurrent(playerIndex, playerInfoBuffer);
-                return;
-            }
-            InformationSetLog.GetPlayerInformationAtPoint(playerIndex, upToDecision, playerInfoBuffer);
-        }
-
+        
 
         public unsafe void GetPlayerInformationCurrent(byte playerIndex, byte* playerInfoBuffer)
         {
+            if (!Initialized)
+                Initialize();
             if (playerIndex >= MaxNumPlayers)
             {
                 // player has no information
@@ -474,11 +461,6 @@ namespace ACESim
             }
         }
 
-        public string GetPlayerInformationAtPointString(byte playerIndex, byte? upToDecision)
-        {
-            // DEBUG -- should be able to move this into Gameprogress
-            return InformationSetLog.GetPlayerInformationAtPointString(playerIndex, upToDecision);
-        }
 
         public unsafe string GetCurrentPlayerInformationString(byte playerIndex)
         {
@@ -508,17 +490,18 @@ namespace ACESim
         }
 
 
-        public void RemoveItemsInInformationSet(byte playerIndex, byte followingDecisionIndex, byte numItemsToRemove)
+        public void RemoveItemsInInformationSet(byte playerIndex, byte followingDecisionIndex, byte numItemsToRemove, GameProgress gameProgress)
         {
             if (playerIndex >= MaxNumPlayers)
                 throw new NotImplementedException();
             // This takes the approach of keeping the information set as append-only storage. That is, we add a notation that we're removing an item from the information set. 
             if (!Initialized)
                 Initialize();
-            for (byte b = 0; b < numItemsToRemove; b++)
-            {
-                InformationSetLog.AddRemovalToInformationSetLog(followingDecisionIndex, playerIndex);
-            }
+            if (gameProgress != null)
+                for (byte b = 0; b < numItemsToRemove; b++)
+                {
+                    gameProgress.InformationSetLog.AddRemovalToInformationSetLog(followingDecisionIndex, playerIndex);
+                }
             fixed (byte* informationSetsPtr = InformationSets)
             {
                 byte* ptr = informationSetsPtr + InformationSetIndex(playerIndex);

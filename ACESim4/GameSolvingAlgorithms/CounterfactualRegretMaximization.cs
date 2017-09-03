@@ -170,7 +170,7 @@ namespace ACESim
             // Go through each non-chance decision point on this path and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
 
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
-            IEnumerable<InformationSetHistory> informationSetHistories = gameProgress.GameHistory.GetInformationSetHistoryItems();
+            IEnumerable<InformationSetHistory> informationSetHistories = gameProgress.GetInformationSetHistoryItems();
             //GameProgressLogger.Log(() => "Processing information set histories");
             //if (GameProgressLogger.LoggingOn)
             //{
@@ -383,7 +383,7 @@ namespace ACESim
         {
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
             // Go through each non-chance decision point 
-            foreach (var informationSetHistory in progress.GameHistory.GetInformationSetHistoryItems())
+            foreach (var informationSetHistory in progress.GetInformationSetHistoryItems())
             {
                 var informationSetHistoryCopy = informationSetHistory; // must copy because informationSetHistory is foreach iteration variable.
                 var decision = GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
@@ -443,7 +443,7 @@ namespace ACESim
             if (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly)
                 return new HistoryPoint(null, gameProgress.GameHistory, null);
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
-            foreach (var informationSetHistory in gameProgress.GameHistory.GetInformationSetHistoryItems())
+            foreach (var informationSetHistory in gameProgress.GetInformationSetHistoryItems())
             {
                 historyPoint = historyPoint.GetBranch(Navigation, informationSetHistory.ActionChosen);
             }

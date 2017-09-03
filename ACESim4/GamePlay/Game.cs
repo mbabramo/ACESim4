@@ -117,7 +117,7 @@ namespace ACESim
                     Progress.IsFinalGamePath = false;
                 byte decisionIndex = (byte)CurrentDecisionIndex;
                 byte playerNumber = CurrentPlayerNumber;
-                byte aggregatedActionOrZero = UpdateGameHistory(ref Progress.GameHistory, GameDefinition, currentDecision, decisionIndex, action);
+                byte aggregatedActionOrZero = UpdateGameHistory(ref Progress.GameHistory, GameDefinition, currentDecision, decisionIndex, action, Progress);
                 if (aggregatedActionOrZero != 0)
                     UpdateGameProgressFollowingAction(currentDecision.Subdividable_CorrespondingDecisionByteCode, aggregatedActionOrZero); // this is last decision for a subdivision, so we update the game progress for the underlying decision based on the aggregated action
                 else
@@ -125,33 +125,33 @@ namespace ACESim
             }
         }
 
-        public static byte UpdateGameHistory(ref GameHistory gameHistory, GameDefinition gameDefinition, Decision decision, byte decisionIndex, byte action)
+        public static byte UpdateGameHistory(ref GameHistory gameHistory, GameDefinition gameDefinition, Decision decision, byte decisionIndex, byte action, GameProgress gameProgress)
         {
             byte aggregatedAction = 0;
             if (decision.Subdividable_IsSubdivision)
             {
                 // For subdivision decisions, we initially add only to the player's own information set, starting with a stub to distinguish the individual levels from the eventual decision.
                 // Start by adding to history -- but without informing any players. We're treating the history the same as always.
-                gameHistory.AddToHistory(decision.DecisionByteCode, decisionIndex, decision.PlayerNumber, action, decision.NumPossibleActions, null, false, decision.IncrementGameCacheItem, decision.StoreActionInGameCacheItem, decision.DeferNotificationOfPlayers);
-                gameHistory.AddToInformationSetAndLog(action, decisionIndex, decision.PlayerNumber);
+                gameHistory.AddToHistory(decision.DecisionByteCode, decisionIndex, decision.PlayerNumber, action, decision.NumPossibleActions, null, false, decision.IncrementGameCacheItem, decision.StoreActionInGameCacheItem, decision.DeferNotificationOfPlayers, gameProgress);
+                gameHistory.AddToInformationSetAndLog(action, decisionIndex, decision.PlayerNumber, gameProgress);
                 if (decision.Subdividable_IsSubdivision_Last)
                 {
                     // Aggregate the subdivisions and remove the subactions from the player's own information set.
                     aggregatedAction = gameHistory.AggregateSubdividable(decision.PlayerNumber, decisionIndex, decision.Subdividable_NumOptionsPerBranch, decision.Subdividable_NumLevels);
-                    gameHistory.RemoveItemsInInformationSet(decision.PlayerNumber, decisionIndex, decision.Subdividable_NumLevels);
+                    gameHistory.RemoveItemsInInformationSet(decision.PlayerNumber, decisionIndex, decision.Subdividable_NumLevels, gameProgress);
                     // now, we add the aggregated decision to the information sets that we would have added to, but we don't add to the history itself, since this is not a separate history action.
-                    gameHistory.AddToHistory(decision.Subdividable_CorrespondingDecisionByteCode, decisionIndex, decision.PlayerNumber, aggregatedAction, decision.Subdividable_AggregateNumPossibleActions, decision.PlayersToInform, true /* don't add this to history */, decision.IncrementGameCacheItem, decision.StoreActionInGameCacheItem, decision.DeferNotificationOfPlayers);
+                    gameHistory.AddToHistory(decision.Subdividable_CorrespondingDecisionByteCode, decisionIndex, decision.PlayerNumber, aggregatedAction, decision.Subdividable_AggregateNumPossibleActions, decision.PlayersToInform, true /* don't add this to history */, decision.IncrementGameCacheItem, decision.StoreActionInGameCacheItem, decision.DeferNotificationOfPlayers, gameProgress);
                     // We do want to add the aggregated action to the simple actions list, so that we can look to see what the most recent decisions were.
                     gameHistory.AddToSimpleActionsList(aggregatedAction);
                     // And do any custom information set manipulation, using the aggregated action. Note that this is NOT called for earlier subdivisions
-                    gameDefinition.CustomInformationSetManipulation(decision, decisionIndex, aggregatedAction, ref gameHistory);
+                    gameDefinition.CustomInformationSetManipulation(decision, decisionIndex, aggregatedAction, ref gameHistory, gameProgress);
                 }
             }
             else
             {
-                gameHistory.AddToHistory(decision.DecisionByteCode, decisionIndex, decision.PlayerNumber, action, decision.NumPossibleActions, decision.PlayersToInform, false, decision.IncrementGameCacheItem, decision.StoreActionInGameCacheItem, decision.DeferNotificationOfPlayers);
+                gameHistory.AddToHistory(decision.DecisionByteCode, decisionIndex, decision.PlayerNumber, action, decision.NumPossibleActions, decision.PlayersToInform, false, decision.IncrementGameCacheItem, decision.StoreActionInGameCacheItem, decision.DeferNotificationOfPlayers, gameProgress);
                 gameHistory.AddToSimpleActionsList(action);
-                gameDefinition.CustomInformationSetManipulation(decision, decisionIndex, action, ref gameHistory);
+                gameDefinition.CustomInformationSetManipulation(decision, decisionIndex, action, ref gameHistory, gameProgress);
             }
             return aggregatedAction; // should be ignored when this is not the current decision.
         }

@@ -520,7 +520,7 @@ namespace ACESim
             return false;
         }
 
-        public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, ref GameHistory gameHistory)
+        public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, ref GameHistory gameHistory, GameProgress gameProgress)
         {
             byte decisionByteCode = currentDecision.Subdividable_IsSubdivision ? currentDecision.Subdividable_CorrespondingDecisionByteCode : currentDecision.DecisionByteCode;
             if (Options.ActionIsNoiseNotSignal && (decisionByteCode == (byte) MyGameDecisions.PNoiseOrSignal || decisionByteCode == (byte) MyGameDecisions.DNoiseOrSignal))
@@ -528,7 +528,7 @@ namespace ACESim
                 // When the action is the signal, we just send the signal that the player receives, because there are unequal chance probabilities. When the action is the noise, we have an even chance of each noise value. We can't just give the player the noise value; we have to take into account the litigation quality. So, we do that here.
                 byte litigationQuality = gameHistory.GetCacheIndex(GameHistoryCacheIndex_LitigationQuality);
                 ConvertNoiseToSignal(litigationQuality, actionChosen, decisionByteCode == (byte)MyGameDecisions.PNoiseOrSignal, out byte discreteSignal, out _);
-                gameHistory.AddToInformationSetAndLog(discreteSignal, currentDecisionIndex, decisionByteCode == (byte)MyGameDecisions.PNoiseOrSignal ? (byte) MyGamePlayers.Plaintiff : (byte) MyGamePlayers.Defendant);
+                gameHistory.AddToInformationSetAndLog(discreteSignal, currentDecisionIndex, decisionByteCode == (byte)MyGameDecisions.PNoiseOrSignal ? (byte) MyGamePlayers.Plaintiff : (byte) MyGamePlayers.Defendant, gameProgress);
                 // NOTE: We don't have to do anything like this for the court's information set. The court simply gets the actual litigation quality and the noise. When the game is actually being played, the court will combine these to determine whether the plaintiff wins. The plaintiff and defendant are non-chance players, and so we want to have the same information set for all situations with the same signal.  But with the court, that doesn't matter. We can have lots of information sets, covering the wide range of possibilities.
             }
             else if (decisionByteCode == (byte)MyGameDecisions.PreBargainingRound)
@@ -541,24 +541,24 @@ namespace ACESim
                 // Clean up resolution set and (if necessary) players' sets
                 byte numItemsInResolutionSetFromPreviousBargainingRound = gameHistory.GetCacheIndex(GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound);
                 if (numItemsInResolutionSetFromPreviousBargainingRound > 0)
-                    gameHistory.RemoveItemsInInformationSet((byte) MyGamePlayers.Resolution, currentDecisionIndex, numItemsInResolutionSetFromPreviousBargainingRound);
+                    gameHistory.RemoveItemsInInformationSet((byte) MyGamePlayers.Resolution, currentDecisionIndex, numItemsInResolutionSetFromPreviousBargainingRound, gameProgress);
 
                 if (Options.ForgetEarlierBargainingRounds)
                 {
                     byte numItemsInPlaintiffSetFromPreviousBargainingRound = gameHistory.GetCacheIndex(GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound);
                     if (numItemsInPlaintiffSetFromPreviousBargainingRound > 0)
-                        gameHistory.RemoveItemsInInformationSet((byte) MyGamePlayers.Plaintiff, currentDecisionIndex, numItemsInPlaintiffSetFromPreviousBargainingRound);
+                        gameHistory.RemoveItemsInInformationSet((byte) MyGamePlayers.Plaintiff, currentDecisionIndex, numItemsInPlaintiffSetFromPreviousBargainingRound, gameProgress);
 
                     byte numItemsInDefendantSetFromPreviousBargainingRound = gameHistory.GetCacheIndex(GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound);
                     if (numItemsInDefendantSetFromPreviousBargainingRound > 0)
-                        gameHistory.RemoveItemsInInformationSet((byte) MyGamePlayers.Defendant, currentDecisionIndex, numItemsInDefendantSetFromPreviousBargainingRound);
+                        gameHistory.RemoveItemsInInformationSet((byte) MyGamePlayers.Defendant, currentDecisionIndex, numItemsInDefendantSetFromPreviousBargainingRound, gameProgress);
                 }
 
                 // Add an indication of the bargaining round we're in.
                 byte bargainingRound = currentDecision.CustomByte;
-                gameHistory.AddToInformationSetAndLog(bargainingRound, currentDecisionIndex, (byte)MyGamePlayers.Resolution);
-                gameHistory.AddToInformationSetAndLog(bargainingRound, currentDecisionIndex, (byte)MyGamePlayers.Plaintiff);
-                gameHistory.AddToInformationSetAndLog(bargainingRound, currentDecisionIndex, (byte)MyGamePlayers.Defendant);
+                gameHistory.AddToInformationSetAndLog(bargainingRound, currentDecisionIndex, (byte)MyGamePlayers.Resolution, gameProgress);
+                gameHistory.AddToInformationSetAndLog(bargainingRound, currentDecisionIndex, (byte)MyGamePlayers.Plaintiff, gameProgress);
+                gameHistory.AddToInformationSetAndLog(bargainingRound, currentDecisionIndex, (byte)MyGamePlayers.Defendant, gameProgress);
 
                 // Reset the cache indices to reflect that there is only one item
                 gameHistory.SetCacheIndex(GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, (byte) 1);

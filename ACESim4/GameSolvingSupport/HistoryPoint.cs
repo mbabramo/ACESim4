@@ -24,8 +24,8 @@ namespace ACESim
 
         public override string ToString()
         {
-            if (HistoryToPoint.LastIndexAddedToHistory > 0)
-                return String.Join(",", HistoryToPoint.GetInformationSetHistoryItems());
+            if (HistoryToPoint.LastIndexAddedToHistory > 0 && GameProgress != null)
+                return String.Join(",", HistoryToPoint.GetInformationSetHistoryItems(GameProgress));
             return "HistoryPoint";
         }
 
@@ -80,7 +80,7 @@ namespace ACESim
                 byte nextPlayer = nextDecision?.PlayerNumber ?? navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
                 byte* informationSetsPtr = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
                 // string playerInformationString = HistoryToPoint.GetPlayerInformationString(currentPlayer, nextDecision?.DecisionByteCode);
-                HistoryToPoint.GetPlayerInformation(nextPlayer, null, informationSetsPtr);
+                HistoryToPoint.GetPlayerInformationCurrent(nextPlayer, informationSetsPtr);
                 if (GameProgressLogger.LoggingOn)
                 {
                     var informationSetList = Util.ListExtensions.GetPointerAsList_255Terminated(informationSetsPtr);
@@ -130,7 +130,7 @@ namespace ACESim
             {
                 (Decision nextDecision, byte nextDecisionIndex) = navigation.GameDefinition.GetNextDecision(ref HistoryToPoint);
                 next.HistoryToPoint = HistoryToPoint; // struct is copied. We then use a ref to change the copy, since otherwise it would be copied again. TODO: This is extremely costly, because we're copying the entire struct. An alternative possibility would be to try to use SwitchToBranch. We started this with HistoryPoint_Cached. but if we do that, whenever we call SwitchToBranch, we must call SwitchFromBranch at the end of the routine, because often we call GetBranch and then further operate on the original history point.
-                Game.UpdateGameHistory(ref next.HistoryToPoint, navigation.GameDefinition, nextDecision, nextDecisionIndex, actionChosen);
+                Game.UpdateGameHistory(ref next.HistoryToPoint, navigation.GameDefinition, nextDecision, nextDecisionIndex, actionChosen, GameProgress);
                 if (nextDecision.CanTerminateGame && navigation.GameDefinition.ShouldMarkGameHistoryComplete(nextDecision, ref next.HistoryToPoint, actionChosen))
                     next.HistoryToPoint.MarkComplete();
             }
@@ -221,7 +221,7 @@ namespace ACESim
             byte resolutionPlayer = navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
             var strategy = navigation.Strategies[resolutionPlayer];
             byte* resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
-            gameProgress.GameHistory.GetPlayerInformation(resolutionPlayer, null, resolutionInformationSet);
+            gameProgress.GameHistory.GetPlayerInformationCurrent(resolutionPlayer, resolutionInformationSet);
             NWayTreeStorage<IGameState> informationSetNode = strategy.SetInformationSetTreeValueIfNotSet(
                         resolutionInformationSet,
                         true,
@@ -246,7 +246,7 @@ namespace ACESim
                 byte resolutionPlayer = navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
                 var strategy = navigation.Strategies[resolutionPlayer];
                 byte* resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
-                HistoryToPoint.GetPlayerInformation(resolutionPlayer, null, resolutionInformationSet);
+                HistoryToPoint.GetPlayerInformationCurrent(resolutionPlayer, resolutionInformationSet);
                 FinalUtilities finalUtilities = (FinalUtilities) strategy.GetInformationSetTreeValue(resolutionInformationSet);
                 if (finalUtilities == null)
                 {
