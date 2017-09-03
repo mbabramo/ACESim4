@@ -78,7 +78,6 @@
     <Compile Include="GameSolvingSupport\EvolutionSettings.cs" />
     <Compile Include="GameSolvingSupport\HistoryNavigationInfo.cs" />
     <Compile Include="GameSolvingSupport\HistoryPoint.cs" />
-    <Compile Include="GameSolvingSupport\HistoryPoint_CachedGameHistoryOnly.cs" />
     <Compile Include="GameSolvingSupport\IGameState.cs" />
     <Compile Include="GameSolvingSupport\InformationSetLookupApproach.cs" />
     <Compile Include="GameSolvingAlgorithms\PureStrategiesFinder.cs" />

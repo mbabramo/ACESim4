@@ -201,18 +201,6 @@ namespace ACESim
             //}
         }
 
-        public IGameState GetGameState_CachedGameHistoryOnly(HistoryPoint_CachedGameHistoryOnly historyPoint, HistoryNavigationInfo? navigation = null)
-        {
-            HistoryNavigationInfo navigationSettings = navigation ?? Navigation;
-            var gameState = historyPoint.GetGameStateForCurrentPlayer(navigationSettings.GameDefinition, navigationSettings.Strategies);
-            if (gameState == null)
-            {
-                var historyPoint2 = new HistoryPoint(null, historyPoint.HistoryToPoint, null);
-                gameState = GetGameStateByPlayingUnderlyingGame(ref historyPoint2, navigationSettings);
-            }
-            return gameState;
-        }
-
         public IGameState GetGameState(ref HistoryPoint historyPoint, HistoryNavigationInfo? navigation = null)
         {
             HistoryNavigationInfo navigationSettings = navigation ?? Navigation;
