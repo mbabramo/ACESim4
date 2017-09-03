@@ -31,6 +31,7 @@ namespace ACESim
         public const byte InformationSetTerminator = 255;
 
         public GameFullHistory GameFullHistory;
+        public fixed byte ActionsHistory[GameFullHistory.MaxHistoryLength];
 
         public fixed byte Cache[CacheLength];
 

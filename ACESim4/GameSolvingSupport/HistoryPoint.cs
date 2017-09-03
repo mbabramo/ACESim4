@@ -33,6 +33,7 @@ namespace ACESim
         {
             if (navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)
                 return GameProgress.GameComplete;
+            debug;
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
                 return HistoryToPoint.GameFullHistory.IsComplete();
             return TreePoint.IsLeaf();
