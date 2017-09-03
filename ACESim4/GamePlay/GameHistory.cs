@@ -12,7 +12,7 @@ namespace ACESim
     [Serializable]
     public unsafe struct GameHistory : ISerializable
     {
-        // DEBUG: Right now, we're storing information set information for ALL players. We really only need it for the nonchance players plus the resolution player. Perhaps we can move the resolution player right after the nonchance player
+        // We use a struct here because this makes a big difference in performance, allowing GameHistory to be allocated on the stack. A disadvantage is that we must set the number of players, maximum size of different players' information sets, etc. in the GameHistory (which means that we need to change the code whenever we change games). We distinguish between full and partial players because this also produces a significant performance boost.
 
         public const int CacheLength = 10; // the game and game definition can use the cache to store information. This is helpful when the game player is simulating the game without playing the underlying game. The game definition may, for example, need to be able to figure out which decision is next.
         public const int MaxHistoryLength = 200;
@@ -116,7 +116,7 @@ namespace ACESim
             DeferredPlayersToInform = null;
         }
 
-        #region Construction and adding information
+        #region Construction and adding information to history
 
         public GameHistory DeepCopy()
         {
@@ -274,8 +274,6 @@ namespace ACESim
             return next;
         }
 
-        #endregion
-        
         public byte? LastDecisionIndex()
         {
             if (!Initialized)
@@ -310,6 +308,10 @@ namespace ACESim
                 return (*(historyPtr + NextIndexInHistoryActionsOnly - 1), *(historyPtr + NextIndexInHistoryActionsOnly - 2));
             }
         }
+
+        #endregion
+
+
 
         public IEnumerable<InformationSetHistory> GetInformationSetHistoryItems()
         {
