@@ -49,6 +49,8 @@ namespace ACESim
         private byte DeferredPlayerNumber;
         private List<byte> DeferredPlayersToInform;
 
+        public byte LastDecisionIndexAdded;
+
         public void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             // Use the AddValue method to specify serialized values.
@@ -75,6 +77,7 @@ namespace ACESim
             GameFullHistory = new GameFullHistory();
             GameFullHistory.Initialize();
             NextIndexInHistoryActionsOnly = 0;
+            LastDecisionIndexAdded = 255;
             Complete = false;
 
             PreviousNotificationDeferred = false;
@@ -113,6 +116,7 @@ namespace ACESim
                     *(informationSetPtr + InformationSetIndex(p)) = InformationSetTerminator;
                 }
             Initialized = true;
+            LastDecisionIndexAdded = 255;
         }
 
         #endregion
@@ -149,6 +153,7 @@ namespace ACESim
                 Initialize();
             AddToSimpleActionsList(action);
             GameFullHistory.AddToHistory(decisionByteCode, decisionIndex, playerIndex, action, numPossibleActions, playersToInform, skipAddToHistory, cacheIndicesToIncrement, storeActionInCacheIndex, deferNotification, gameProgress);
+            LastDecisionIndexAdded = decisionIndex; // DEBUG -- check
             if (PreviousNotificationDeferred && DeferredPlayersToInform != null && DeferredPlayersToInform.Any())
                 AddToInformationSetAndLog(DeferredAction, decisionIndex, DeferredPlayerNumber, DeferredPlayersToInform, gameProgress); /* we use the current decision index, not the decision from which it was deferred -- this is important in setting the information set correctly */
             PreviousNotificationDeferred = deferNotification;
