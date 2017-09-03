@@ -76,6 +76,7 @@ namespace ACESim
 
         public void SwitchToBranch(GameDefinition gameDefinition, byte actionChosen)
         {
+            // If we're going to do this, we need a means of switching away FROM the branch, i.e. rolling back in time.
             (Decision nextDecision, byte nextDecisionIndex) = gameDefinition.GetNextDecision(ref HistoryToPoint);
             Game.UpdateGameHistory(ref HistoryToPoint, gameDefinition, nextDecision, nextDecisionIndex, actionChosen);
             if (nextDecision.CanTerminateGame && gameDefinition.ShouldMarkGameHistoryComplete(nextDecision, ref HistoryToPoint, actionChosen))
@@ -127,7 +128,8 @@ namespace ACESim
             FinalUtilities finalUtilities = (FinalUtilities)strategy.GetInformationSetTreeValue(resolutionInformationSet);
             if (finalUtilities == null)
             {
-                navigation.GetGameState(new HistoryPoint(null, HistoryToPoint, null)); // make sure that point is initialized up to here
+                var finalHistoryPoint = new HistoryPoint(null, HistoryToPoint, null);
+                navigation.GetGameState(ref finalHistoryPoint); // make sure that point is initialized up to here
                 finalUtilities = (FinalUtilities)strategy.GetInformationSetTreeValue(resolutionInformationSet);
             }
             utilitiesFromCachedGameHistory = finalUtilities.Utilities;

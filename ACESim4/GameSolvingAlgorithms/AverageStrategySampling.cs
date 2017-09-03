@@ -6,12 +6,12 @@ namespace ACESim
 {
     public partial class CounterfactualRegretMaximization
     {
-        public unsafe double AverageStrategySampling_WalkTree(HistoryPoint historyPoint, byte playerBeingOptimized,
+        public unsafe double AverageStrategySampling_WalkTree(ref HistoryPoint historyPoint, byte playerBeingOptimized,
             double samplingProbabilityQ)
         {
             if (TraceAverageStrategySampling)
                 TabbedText.WriteLine($"WalkTree sampling probability {samplingProbabilityQ}");
-            IGameState gameStateForCurrentPlayer = GetGameState(historyPoint);
+            IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             byte sampledAction = 0;
             GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
             HistoryPoint nextHistoryPoint;
@@ -35,7 +35,7 @@ namespace ACESim
                     if (TraceAverageStrategySampling)
                         TabbedText.Tabs++;
                     double walkTreeValue =
-                        AverageStrategySampling_WalkTree(nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ);
+                        AverageStrategySampling_WalkTree(ref nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ);
                     if (TraceAverageStrategySampling)
                     {
                         TabbedText.Tabs--;
@@ -78,7 +78,7 @@ namespace ACESim
                         if (TraceAverageStrategySampling)
                             TabbedText.Tabs++;
                         double walkTreeValue2 =
-                            AverageStrategySampling_WalkTree(nextHistoryPoint, playerBeingOptimized,
+                            AverageStrategySampling_WalkTree(ref nextHistoryPoint, playerBeingOptimized,
                                 samplingProbabilityQ);
                         if (TraceAverageStrategySampling)
                         {
@@ -115,7 +115,7 @@ namespace ACESim
                             if (TraceAverageStrategySampling)
                                 TabbedText.Tabs++;
                             nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
-                            counterfactualValues[action - 1] = AverageStrategySampling_WalkTree(nextHistoryPoint,
+                            counterfactualValues[action - 1] = AverageStrategySampling_WalkTree(ref nextHistoryPoint,
                                 playerBeingOptimized, samplingProbabilityQ * Math.Min(1.0, rho));
                             counterfactualSummation +=
                                 sigma_regretMatchedActionProbabilities[action - 1] *
@@ -156,7 +156,7 @@ namespace ACESim
         public unsafe double AverageStrategySampling_WalkTree_CachedGameHistoryOnly(
             HistoryPoint_CachedGameHistoryOnly historyPoint, byte playerBeingOptimized, double samplingProbabilityQ)
         {
-            IGameState gameStateForCurrentPlayer = GetGameState(historyPoint);
+            IGameState gameStateForCurrentPlayer = GetGameState_CachedGameHistoryOnly(historyPoint);
             byte sampledAction = 0;
             GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
             HistoryPoint_CachedGameHistoryOnly nextHistoryPoint;
@@ -277,7 +277,7 @@ namespace ACESim
                         TabbedText.WriteLine($"Optimize player {playerBeingOptimized}");
                         TabbedText.Tabs++;
                     }
-                    AverageStrategySampling_WalkTree(historyPoint, playerBeingOptimized, 1.0);
+                    AverageStrategySampling_WalkTree(ref historyPoint, playerBeingOptimized, 1.0);
                     if (TraceAverageStrategySampling)
                         TabbedText.Tabs--;
                 }

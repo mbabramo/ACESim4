@@ -10,12 +10,12 @@ namespace ACESim
         /// <param name="historyPoint">The game tree, pointing to the particular point in the game where we are located</param>
         /// <param name="playerBeingOptimized">0 for first player, etc. Note that this corresponds in Lanctot to 1, 2, etc. We are using zero-basing for player index (even though we are 1-basing actions).</param>
         /// <returns></returns>
-        public unsafe double VanillaCFR(HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues,
+        public unsafe double VanillaCFR(ref HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues,
             bool usePruning)
         {
             if (usePruning && ShouldPruneIfPruning(piValues))
                 return 0;
-            IGameState gameStateForCurrentPlayer = GetGameState(historyPoint);
+            IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
             if (gameStateType == GameStateTypeEnum.FinalUtilities)
             {
@@ -25,10 +25,10 @@ namespace ACESim
             else if (gameStateType == GameStateTypeEnum.Chance)
             {
                 ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings) gameStateForCurrentPlayer;
-                return VanillaCFR_ChanceNode(historyPoint, playerBeingOptimized, piValues, usePruning);
+                return VanillaCFR_ChanceNode(ref historyPoint, playerBeingOptimized, piValues, usePruning);
             }
             else
-                return VanillaCFR_DecisionNode(historyPoint, playerBeingOptimized, piValues, usePruning);
+                return VanillaCFR_DecisionNode(ref historyPoint, playerBeingOptimized, piValues, usePruning);
         }
 
         private unsafe bool ShouldPruneIfPruning(double* piValues)
@@ -48,14 +48,14 @@ namespace ACESim
             return false;
         }
 
-        private unsafe double VanillaCFR_DecisionNode(HistoryPoint historyPoint, byte playerBeingOptimized,
+        private unsafe double VanillaCFR_DecisionNode(ref HistoryPoint historyPoint, byte playerBeingOptimized,
             double* piValues, bool usePruning)
         {
             double* nextPiValues = stackalloc double[MaxNumPlayers];
             //var actionsToHere = historyPoint.GetActionsToHere(Navigation);
             //var historyPointString = historyPoint.ToString();
 
-            IGameState gameStateForCurrentPlayer = GetGameState(historyPoint);
+            IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             var informationSet = (InformationSetNodeTally) gameStateForCurrentPlayer;
             byte decisionNum = informationSet.DecisionIndex;
             byte playerMakingDecision = informationSet.PlayerIndex;
@@ -86,7 +86,7 @@ namespace ACESim
                     TabbedText.Tabs++;
                 }
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
-                expectedValueOfAction[action - 1] = VanillaCFR(nextHistoryPoint, playerBeingOptimized, nextPiValues, usePruning);
+                expectedValueOfAction[action - 1] = VanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, usePruning);
                 expectedValue += probabilityOfAction * expectedValueOfAction[action - 1];
 
                 if (TraceVanillaCFR)
@@ -116,11 +116,11 @@ namespace ACESim
             return expectedValue;
         }
 
-        private unsafe double VanillaCFR_ChanceNode(HistoryPoint historyPoint, byte playerBeingOptimized,
+        private unsafe double VanillaCFR_ChanceNode(ref HistoryPoint historyPoint, byte playerBeingOptimized,
             double* piValues, bool usePruning)
         {
             double* equalProbabilityNextPiValues = stackalloc double[MaxNumPlayers];
-            IGameState gameStateForCurrentPlayer = GetGameState(historyPoint);
+            IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings) gameStateForCurrentPlayer;
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
             bool equalProbabilities = chanceNodeSettings.AllProbabilitiesEqual();
@@ -130,6 +130,7 @@ namespace ACESim
             else
                 equalProbabilityNextPiValues = null;
             double expectedValue = 0;
+            var historyPointCopy = historyPoint; // can't use historyPoint in anonymous method below. This is costly, so it might be worth optimizing if we use VanillaCFR much.
             Parallelizer.GoByte(EvolutionSettings.ParallelOptimization, EvolutionSettings.MaxParallelDepth, 1,
                 (byte) (numPossibleActions + 1),
                 action =>
@@ -143,8 +144,9 @@ namespace ACESim
                     //else
                     //    for (int i = 0; i < MaxNumPlayers; i++)
                     //        *(equalProbabilityPiValuesToPass + i) = *(equalProbabilityNextPiValues + i);
+                    var historyPointCopy2 = historyPointCopy; // Need to do this because we need a separate copy for each thread
                     double probabilityAdjustedExpectedValueParticularAction =
-                        VanillaCFR_ChanceNode_NextAction(historyPoint, playerBeingOptimized, piValues,
+                        VanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues,
                             chanceNodeSettings, equalProbabilityNextPiValues, expectedValue, action, usePruning);
                     expectedValue += probabilityAdjustedExpectedValueParticularAction;
                 });
@@ -152,7 +154,7 @@ namespace ACESim
             return expectedValue;
         }
 
-        private unsafe double VanillaCFR_ChanceNode_NextAction(HistoryPoint historyPoint, byte playerBeingOptimized,
+        private unsafe double VanillaCFR_ChanceNode_NextAction(ref HistoryPoint historyPoint, byte playerBeingOptimized,
             double* piValues, ChanceNodeSettings chanceNodeSettings, double* equalProbabilityNextPiValues,
             double expectedValue, byte action, bool usePruning)
         {
@@ -180,7 +182,7 @@ namespace ACESim
                 TabbedText.Tabs++;
             }
             double expectedValueParticularAction =
-                VanillaCFR(nextHistoryPoint, playerBeingOptimized, nextPiValues, usePruning);
+                VanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, usePruning);
             var probabilityAdjustedExpectedValueParticularAction = actionProbability * expectedValueParticularAction;
             if (TraceVanillaCFR)
             {
@@ -216,7 +218,7 @@ namespace ACESim
                 s.Start();
                 HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
                 lastUtilities[playerBeingOptimized] =
-                    VanillaCFR(historyPoint, playerBeingOptimized, initialPiValues, usePruning);
+                    VanillaCFR(ref historyPoint, playerBeingOptimized, initialPiValues, usePruning);
                 s.Stop();
             }
 

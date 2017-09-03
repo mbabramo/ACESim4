@@ -17,7 +17,8 @@ namespace ACESim
         public double CalculateBestResponse(byte playerIndex, ActionStrategies opponentsActionStrategy)
         {
             HashSet<byte> depthsOfPlayerDecisions = new HashSet<byte>();
-            GEBRPass1(GetStartOfGameHistoryPoint(), playerIndex, 1,
+            var startHistoryPoint = GetStartOfGameHistoryPoint();
+            GEBRPass1(ref startHistoryPoint, playerIndex, 1,
                 depthsOfPlayerDecisions); // setup counting first decision as depth 1
             List<byte> depthsOrdered = depthsOfPlayerDecisions.OrderByDescending(x => x).ToList();
             depthsOrdered.Add(0); // last depth to play should return outcome
@@ -29,7 +30,8 @@ namespace ACESim
                     TabbedText.WriteLine($"Optimizing {playerIndex} depthToTarget {depthToTarget}: ");
                     TabbedText.Tabs++;
                 }
-                bestResponseUtility = GEBRPass2(GetStartOfGameHistoryPoint(), playerIndex, depthToTarget, 1, 1.0,
+                var startHistoryPoint2 = GetStartOfGameHistoryPoint();
+                bestResponseUtility = GEBRPass2(ref startHistoryPoint2, playerIndex, depthToTarget, 1, 1.0,
                     opponentsActionStrategy);
                 if (TraceGEBR)
                     TabbedText.Tabs--;
@@ -37,7 +39,7 @@ namespace ACESim
             return bestResponseUtility;
         }
 
-        public void GEBRPass1(HistoryPoint historyPoint, byte playerIndex, byte depth,
+        public void GEBRPass1(ref HistoryPoint historyPoint, byte playerIndex, byte depth,
             HashSet<byte> depthOfPlayerDecisions)
         {
             if (historyPoint.IsComplete(Navigation))
@@ -45,7 +47,7 @@ namespace ACESim
             else
             {
                 byte numPossibleActions;
-                IGameState gameStateForCurrentPlayer = GetGameState(historyPoint);
+                IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
                 if (gameStateForCurrentPlayer is ChanceNodeSettings chanceNodeSettings)
                 {
                     numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
@@ -67,31 +69,31 @@ namespace ACESim
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
                     var nextHistory = historyPoint.GetBranch(Navigation, action);
-                    GEBRPass1(nextHistory, playerIndex, (byte) (depth + 1), depthOfPlayerDecisions);
+                    GEBRPass1(ref nextHistory, playerIndex, (byte) (depth + 1), depthOfPlayerDecisions);
                 }
             }
         }
 
-        public double GEBRPass2(HistoryPoint historyPoint, byte playerIndex, byte depthToTarget, byte depthSoFar,
+        public double GEBRPass2(ref HistoryPoint historyPoint, byte playerIndex, byte depthToTarget, byte depthSoFar,
             double inversePi, ActionStrategies opponentsActionStrategy)
         {
             if (historyPoint.IsComplete(Navigation))
-                return GetUtilityFromTerminalHistory(historyPoint, playerIndex);
+                return GetUtilityFromTerminalHistory(ref historyPoint, playerIndex);
             else
             {
-                IGameState gameStateForCurrentPlayer = GetGameState(historyPoint);
+                IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
                 if (gameStateForCurrentPlayer is ChanceNodeSettings)
-                    return GEBRPass2_ChanceNode(historyPoint, playerIndex, depthToTarget, depthSoFar, inversePi,
+                    return GEBRPass2_ChanceNode(ref historyPoint, playerIndex, depthToTarget, depthSoFar, inversePi,
                         opponentsActionStrategy);
             }
-            return GEBRPass2_DecisionNode(historyPoint, playerIndex, depthToTarget, depthSoFar, inversePi,
+            return GEBRPass2_DecisionNode(ref historyPoint, playerIndex, depthToTarget, depthSoFar, inversePi,
                 opponentsActionStrategy);
         }
 
-        private unsafe double GEBRPass2_DecisionNode(HistoryPoint historyPoint, byte playerIndex, byte depthToTarget,
+        private unsafe double GEBRPass2_DecisionNode(ref HistoryPoint historyPoint, byte playerIndex, byte depthToTarget,
             byte depthSoFar, double inversePi, ActionStrategies opponentsActionStrategy)
         {
-            IGameState gameStateForCurrentPlayer = GetGameState(historyPoint);
+            IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             var informationSet = (InformationSetNodeTally) gameStateForCurrentPlayer;
             byte decisionIndex = informationSet.DecisionIndex;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionIndex);
@@ -107,7 +109,9 @@ namespace ACESim
                     TabbedText.Tabs++;
                 byte action = GameDefinition.DecisionsExecutionOrder[decisionIndex].AlwaysDoAction ??
                               informationSet.GetBestResponseAction();
-                double expectedValue = GEBRPass2(historyPoint.GetBranch(Navigation, action), playerIndex, depthToTarget,
+
+                var nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
+                double expectedValue = GEBRPass2(ref nextHistoryPoint, playerIndex, depthToTarget,
                     (byte) (depthSoFar + 1), inversePi, opponentsActionStrategy);
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionIndex))
                 {
@@ -142,7 +146,8 @@ namespace ACESim
                         TabbedText.WriteLine($"action {action} for playerMakingDecision {playerMakingDecision}...");
                         TabbedText.Tabs++;
                     }
-                    double expectedValue = GEBRPass2(historyPoint.GetBranch(Navigation, action), playerIndex,
+                    var nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
+                    double expectedValue = GEBRPass2(ref nextHistoryPoint, playerIndex,
                         depthToTarget, (byte) (depthSoFar + 1), nextInversePi, opponentsActionStrategy);
                     double product = actionProbabilities[action - 1] * expectedValue;
                     if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionIndex))
@@ -174,10 +179,10 @@ namespace ACESim
             }
         }
 
-        private double GEBRPass2_ChanceNode(HistoryPoint historyPoint, byte playerIndex, byte depthToTarget,
+        private double GEBRPass2_ChanceNode(ref HistoryPoint historyPoint, byte playerIndex, byte depthToTarget,
             byte depthSoFar, double inversePi, ActionStrategies opponentsActionStrategy)
         {
-            IGameState gameStateForCurrentPlayer = GetGameState(historyPoint);
+            IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings) gameStateForCurrentPlayer;
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
             if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNodeSettings.DecisionIndex))
@@ -194,7 +199,8 @@ namespace ACESim
                 double probability = chanceNodeSettings.GetActionProbability(action);
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNodeSettings.DecisionIndex))
                     TabbedText.Tabs++;
-                var valueBelow = GEBRPass2(historyPoint.GetBranch(Navigation, action), playerIndex, depthToTarget,
+                var nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
+                var valueBelow = GEBRPass2(ref nextHistoryPoint, playerIndex, depthToTarget,
                     (byte) (depthSoFar + 1), inversePi * probability, opponentsActionStrategy);
                 double expectedValue = probability * valueBelow;
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNodeSettings.DecisionIndex))

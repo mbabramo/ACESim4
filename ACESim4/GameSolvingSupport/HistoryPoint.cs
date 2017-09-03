@@ -129,7 +129,7 @@ namespace ACESim
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
                 (Decision nextDecision, byte nextDecisionIndex) = navigation.GameDefinition.GetNextDecision(ref HistoryToPoint);
-                next.HistoryToPoint = HistoryToPoint; // struct is copied. We then use a ref to change the copy, since otherwise it would be copied again.
+                next.HistoryToPoint = HistoryToPoint; // struct is copied. We then use a ref to change the copy, since otherwise it would be copied again. TODO: This is extremely costly, because we're copying the entire struct. An alternative possibility would be to try to use SwitchToBranch. We started this with HistoryPoint_Cached. but if we do that, whenever we call SwitchToBranch, we must call SwitchFromBranch at the end of the routine, because often we call GetBranch and then further operate on the original history point.
                 Game.UpdateGameHistory(ref next.HistoryToPoint, navigation.GameDefinition, nextDecision, nextDecisionIndex, actionChosen);
                 if (nextDecision.CanTerminateGame && navigation.GameDefinition.ShouldMarkGameHistoryComplete(nextDecision, ref next.HistoryToPoint, actionChosen))
                     next.HistoryToPoint.MarkComplete();
@@ -250,7 +250,7 @@ namespace ACESim
                 FinalUtilities finalUtilities = (FinalUtilities) strategy.GetInformationSetTreeValue(resolutionInformationSet);
                 if (finalUtilities == null)
                 {
-                    navigation.GetGameState(this); // make sure that point is initialized up to here
+                    navigation.GetGameState(ref this); // make sure that point is initialized up to here
                     finalUtilities = (FinalUtilities)strategy.GetInformationSetTreeValue(resolutionInformationSet);
                 }
                 utilitiesFromCachedGameHistory = finalUtilities.Utilities;

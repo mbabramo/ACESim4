@@ -12,25 +12,29 @@ namespace ACESim
         public InformationSetLookupApproach LookupApproach;
         public List<Strategy> Strategies;
         public GameDefinition GameDefinition;
-        [NonSerialized]
-        private Func<HistoryPoint, HistoryNavigationInfo?, IGameState> GetGameStateFn;
+        public delegate IGameState GameStateFunction(ref HistoryPoint historyPoint, HistoryNavigationInfo? navigation);
 
-        public HistoryNavigationInfo(InformationSetLookupApproach lookupApproach, List<Strategy> strategies, GameDefinition gameDefinition, Func<HistoryPoint, HistoryNavigationInfo?, IGameState> getGameStateFn)
+        [NonSerialized]
+        public GameStateFunction StoredGameStateFunction;
+
+        public HistoryNavigationInfo(InformationSetLookupApproach lookupApproach, List<Strategy> strategies, GameDefinition gameDefinition, GameStateFunction gameStateFunction)
         {
             LookupApproach = lookupApproach;
             Strategies = strategies;
             GameDefinition = gameDefinition;
-            GetGameStateFn = getGameStateFn;
+            StoredGameStateFunction = gameStateFunction;
         }
 
-        public void SetGameStateFn(Func<HistoryPoint, HistoryNavigationInfo?, IGameState> getGameStateFn)
+        // The reason that we need to refer to the algorithm to set game state is that when we are navigating, we sometimes arrive at a game path that hasn't been played. We need the algorithm to play the game and add it to the navigation tree. 
+
+        public void SetGameStateFunction(GameStateFunction getGameStateFunction)
         {
-            GetGameStateFn = getGameStateFn;
+            StoredGameStateFunction = getGameStateFunction;
         }
 
-        public IGameState GetGameState(HistoryPoint historyPoint)
+        public IGameState GetGameState(ref HistoryPoint historyPoint)
         {
-            return GetGameStateFn(historyPoint, this);
+            return StoredGameStateFunction(ref historyPoint, this);
         }
     }
 }
