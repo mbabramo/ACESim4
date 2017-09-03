@@ -374,10 +374,32 @@ namespace ACESim
             // the game tree without creating Game or GameProgress objects).
         }
 
-        public virtual (Decision decision, byte index) GetNextDecision(ref GameHistory gameHistory)
+        public void GetNextDecision(ref GameHistory gameHistory, out Decision decision, out byte nextDecisionIndex)
         {
-            // This can be overriden, for example if we sometimes skip a decision as a result of previous
-            // occurrences in a game.
+            if (gameHistory.IsComplete())
+            {
+                decision = null;
+                nextDecisionIndex = 255;
+                return;
+            }
+            byte? lastDecisionIndex = gameHistory.LastDecisionIndexAdded;
+            if (lastDecisionIndex == 255)
+            {
+                decision = DecisionsExecutionOrder[0];
+                nextDecisionIndex = 0; // note: first decision is not skippable
+                return;
+            }
+            nextDecisionIndex = (byte)lastDecisionIndex;
+            do
+            {
+                nextDecisionIndex++;
+                decision = DecisionsExecutionOrder[nextDecisionIndex];
+            } while (SkipDecision(decision, ref gameHistory));
+        }
+
+        // DEBUG -- can eliminate
+        public (Decision decision, byte index) GetNextDecision(ref GameHistory gameHistory)
+        {
             if (gameHistory.IsComplete())
                 return (null, 255);
             byte? lastDecisionIndex = gameHistory.LastDecisionIndexAdded;

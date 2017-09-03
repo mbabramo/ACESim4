@@ -27,7 +27,7 @@ namespace ACESim
         bool ShouldEstimateImprovementOverTime = false;
         const int NumRandomGamePlaysForEstimatingImprovement = 1000;
 
-        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
+        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameTreeOnly;
         bool AllowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => (AllowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)) && EvolutionSettings.Algorithm != GameApproximationAlgorithm.PureStrategyFinder;
 
@@ -72,7 +72,7 @@ namespace ACESim
         public int NumNonChancePlayers;
         public int NumChancePlayers; // note that chance players MUST be indexed after nonchance players in the player list
 
-        public int NumInitializedGamePaths = 0;
+        public int NumInitializedGamePaths = 0; // Because of how EnumerateIfNotRedundant works, this will be much higher for parallel implementations
 
         #endregion
 
@@ -218,7 +218,7 @@ namespace ACESim
             //}
             (GameProgress progress, _) = GamePlayer.PlayPath(actionsSoFar, false);
             ProcessInitializedGameProgress(progress);
-            NumInitializedGamePaths++; // Note: This may not be exact if we initialize the same game path twice
+            NumInitializedGamePaths++; // Note: This may not be exact if we initialize the same game path twice (e.g., if we are playing in parallel)
             gameState = historyPoint.GetGameStateForCurrentPlayer(navigationSettings);
             if (gameState == null)
                 throw new Exception("Internal error.");

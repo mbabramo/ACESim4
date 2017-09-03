@@ -57,18 +57,24 @@ namespace ACESim
         
         private void ConfirmAdjustedIndex(int adjustedIndex)
         {
-            if (Branches == null || !(adjustedIndex < Branches.Length))
+            if (Branches == null)
+            {
+                lock (this)
+                    Branches = new NWayTreeStorage<T>[adjustedIndex + 1];
+                return;
+            }
+            int branchesLength = Branches.Length;
+            if (!(adjustedIndex < branchesLength))
             {
                 lock (this)
                 {
-                    if (Branches == null)
-                        Branches = new NWayTreeStorage<T>[adjustedIndex + 1];
-                    else if (Branches.Length >= adjustedIndex + 1)
-                        return; // may have been set while waiting for lock
-                    else if (!(adjustedIndex < Branches.Length))
+                    branchesLength = Branches.Length; // may have been set while waiting for lock
+                    if (branchesLength >= adjustedIndex + 1)
+                        return; 
+                    else if (!(adjustedIndex < branchesLength))
                     {
                         NWayTreeStorage<T>[] branchesReplacement = new NWayTreeStorage<T>[adjustedIndex + 1];
-                        for (int i = 0; i < Branches.Length; i++)
+                        for (int i = 0; i < branchesLength; i++)
                             branchesReplacement[i] = Branches[i];
                         Branches = branchesReplacement;
                     }
