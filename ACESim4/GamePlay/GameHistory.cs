@@ -12,6 +12,9 @@ namespace ACESim
     [Serializable]
     public unsafe struct GameHistory : ISerializable
     {
+
+        #region Construction
+
         // We use a struct here because this makes a big difference in performance, allowing GameHistory to be allocated on the stack. A disadvantage is that we must set the number of players, maximum size of different players' information sets, etc. in the GameHistory (which means that we need to change the code whenever we change games). We distinguish between full and partial players because this also produces a significant performance boost.
 
         public const int CacheLength = 10; // the game and game definition can use the cache to store information. This is helpful when the game player is simulating the game without playing the underlying game. The game definition may, for example, need to be able to figure out which decision is next.
@@ -116,8 +119,6 @@ namespace ACESim
             DeferredPlayersToInform = null;
         }
 
-        #region Construction and adding information to history
-
         public GameHistory DeepCopy()
         {
             // This works only because we have a fixed buffer. If we had a reference type, we would get a shallow copy.
@@ -155,6 +156,10 @@ namespace ACESim
             LastIndexAddedToHistory = 0;
             Initialized = true;
         }
+
+        #endregion
+
+        #region History and cache
 
         public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, List<byte> playersToInform, bool skipAddToHistory, List<byte> cacheIndicesToIncrement, byte? storeActionInCacheIndex, bool deferNotification)
         {
@@ -309,42 +314,6 @@ namespace ACESim
             }
         }
 
-        #endregion
-
-
-
-        public IEnumerable<InformationSetHistory> GetInformationSetHistoryItems()
-        {
-            if (!Initialized)
-                Initialize();
-            if (LastIndexAddedToHistory == 0)
-                yield break;
-            for (short i = 0; i < LastIndexAddedToHistory; i += History_NumPiecesOfInformation)
-            {
-                yield return GetInformationSetHistory(i);
-            }
-        }
-
-        private InformationSetHistory GetInformationSetHistory(short index)
-        {
-            if (!Initialized)
-                Initialize();
-            byte playerIndex = GetHistoryIndex(index + History_PlayerNumber_Offset);
-            byte decisionByteCode = GetHistoryIndex(index + History_DecisionByteCode_Offset);
-            byte decisionIndex = GetHistoryIndex(index + History_DecisionIndex_Offset);
-            var informationSetHistory = new InformationSetHistory()
-            {
-                PlayerIndex = playerIndex,
-                DecisionByteCode = decisionByteCode,
-                DecisionIndex = decisionIndex,
-                ActionChosen = GetHistoryIndex(index + History_Action_Offset),
-                NumPossibleActions = GetHistoryIndex(index + History_NumPossibleActions_Offset),
-                IsTerminalAction = GetHistoryIndex(index + History_NumPiecesOfInformation) == HistoryComplete
-            };
-            GetPlayerInformation(playerIndex, decisionIndex, informationSetHistory.InformationSetForPlayer);
-            return informationSetHistory;
-        }
-
         public unsafe void GetActions(byte* actions)
         {
             if (!Initialized)
@@ -426,7 +395,41 @@ namespace ACESim
                 return (*(historyPtr + LastIndexAddedToHistory) == HistoryComplete);
         }
 
+        #endregion
+
         #region Player information sets
+
+        public IEnumerable<InformationSetHistory> GetInformationSetHistoryItems()
+        {
+            if (!Initialized)
+                Initialize();
+            if (LastIndexAddedToHistory == 0)
+                yield break;
+            for (short i = 0; i < LastIndexAddedToHistory; i += History_NumPiecesOfInformation)
+            {
+                yield return GetInformationSetHistory(i);
+            }
+        }
+
+        private InformationSetHistory GetInformationSetHistory(short index)
+        {
+            if (!Initialized)
+                Initialize();
+            byte playerIndex = GetHistoryIndex(index + History_PlayerNumber_Offset);
+            byte decisionByteCode = GetHistoryIndex(index + History_DecisionByteCode_Offset);
+            byte decisionIndex = GetHistoryIndex(index + History_DecisionIndex_Offset);
+            var informationSetHistory = new InformationSetHistory()
+            {
+                PlayerIndex = playerIndex,
+                DecisionByteCode = decisionByteCode,
+                DecisionIndex = decisionIndex,
+                ActionChosen = GetHistoryIndex(index + History_Action_Offset),
+                NumPossibleActions = GetHistoryIndex(index + History_NumPossibleActions_Offset),
+                IsTerminalAction = GetHistoryIndex(index + History_NumPiecesOfInformation) == HistoryComplete
+            };
+            GetPlayerInformation(playerIndex, decisionIndex, informationSetHistory.InformationSetForPlayer);
+            return informationSetHistory;
+        }
 
         public void AddToInformationSetAndLog(byte information, byte followingDecisionIndex, byte playerIndex, List<byte> playersToInform)
         {

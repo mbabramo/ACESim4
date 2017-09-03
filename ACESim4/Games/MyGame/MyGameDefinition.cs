@@ -92,6 +92,7 @@ namespace ACESim
         private const byte GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound = 2;
         private const byte GameHistoryCacheIndex_PAgreesToBargain = 3;
         private const byte GameHistoryCacheIndex_DAgreesToBargain = 4;
+        private const byte GameHistoryCacheIndex_LitigationQuality = 5;
 
         #endregion
 
@@ -132,7 +133,7 @@ namespace ACESim
                 playersKnowingLitigationQuality.Add((byte) MyGamePlayers.Defendant);
             LitigationQualityDecisionIndex = (byte)decisions.Count();
             decisions.Add(new Decision("LitigationQuality", "Qual", (byte) MyGamePlayers.QualityChance,
-                playersKnowingLitigationQuality, Options.NumLitigationQualityPoints, (byte) MyGameDecisions.LitigationQuality));
+                playersKnowingLitigationQuality, Options.NumLitigationQualityPoints, (byte) MyGameDecisions.LitigationQuality) {StoreActionInGameCacheItem = GameHistoryCacheIndex_LitigationQuality});
             // Plaintiff and defendant signals. If a player has perfect information, then no signal is needed.
             // when action is the signal, we have an uneven chance decision, and the party receives the signal directly. When the action is the noise, we still want the party to receive the signal rather than the noise and we add that with custom information set manipulation below.
             if (!Options.ActionIsNoiseNotSignal && Options.NumNoiseValues != Options.NumSignals)
@@ -525,7 +526,7 @@ namespace ACESim
             if (Options.ActionIsNoiseNotSignal && (decisionByteCode == (byte) MyGameDecisions.PNoiseOrSignal || decisionByteCode == (byte) MyGameDecisions.DNoiseOrSignal))
             {
                 // When the action is the signal, we just send the signal that the player receives, because there are unequal chance probabilities. When the action is the noise, we have an even chance of each noise value. We can't just give the player the noise value; we have to take into account the litigation quality. So, we do that here.
-                byte litigationQuality = gameHistory.GetPlayerInformationItem((byte)MyGamePlayers.Resolution, LitigationQualityDecisionIndex);
+                byte litigationQuality = gameHistory.GetCacheIndex(GameHistoryCacheIndex_LitigationQuality);
                 ConvertNoiseToSignal(litigationQuality, actionChosen, decisionByteCode == (byte)MyGameDecisions.PNoiseOrSignal, out byte discreteSignal, out _);
                 gameHistory.AddToInformationSetAndLog(discreteSignal, currentDecisionIndex, decisionByteCode == (byte)MyGameDecisions.PNoiseOrSignal ? (byte) MyGamePlayers.Plaintiff : (byte) MyGamePlayers.Defendant);
                 // NOTE: We don't have to do anything like this for the court's information set. The court simply gets the actual litigation quality and the noise. When the game is actually being played, the court will combine these to determine whether the plaintiff wins. The plaintiff and defendant are non-chance players, and so we want to have the same information set for all situations with the same signal.  But with the court, that doesn't matter. We can have lots of information sets, covering the wide range of possibilities.
