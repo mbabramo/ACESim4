@@ -17,7 +17,7 @@ namespace ACESim
 
         // We use a struct here because this makes a big difference in performance, allowing GameHistory to be allocated on the stack. A disadvantage is that we must set the number of players, maximum size of different players' information sets, etc. in the GameHistory (which means that we need to change the code whenever we change games). We distinguish between full and partial players because this also produces a significant performance boost.
 
-        public const int CacheLength = 10; // the game and game definition can use the cache to store information. This is helpful when the game player is simulating the game without playing the underlying game. The game definition may, for example, need to be able to figure out which decision is next.
+        public const int CacheLength = 15; // the game and game definition can use the cache to store information. This is helpful when the game player is simulating the game without playing the underlying game. The game definition may, for example, need to be able to figure out which decision is next.
         public const int MaxHistoryLength = 200;
 
         public const int MaxInformationSetLength = 69; // MUST equal MaxInformationSetLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLengthPerPartialPlayer * NumPartialPlayers. 
@@ -46,9 +46,6 @@ namespace ACESim
 
         public fixed byte History[MaxHistoryLength];
         public short LastIndexAddedToHistory;
-
-        public fixed byte HistoryActionsOnly[MaxNumActions];
-        public byte NextIndexInHistoryActionsOnly;
 
         public int NumberDecisions => (LastIndexAddedToHistory - 1) / 4;
 
@@ -95,7 +92,6 @@ namespace ACESim
                 for (int b = 0; b < MaxInformationSetLength; b++)
                     *(ptr + b) = informationSets[b];
             LastIndexAddedToHistory = (short)info.GetValue("LastIndexAddedToHistory", typeof(short));
-            NextIndexInHistoryActionsOnly = 0;
             Initialized = (bool)info.GetValue("Initialized", typeof(bool));
 
             PreviousNotificationDeferred = false;
@@ -136,6 +132,30 @@ namespace ACESim
                 }
             LastIndexAddedToHistory = 0;
             Initialized = true;
+        }
+
+        #endregion
+
+        #region Cache
+
+        public unsafe void IncrementCacheIndex(byte cacheIndexToIncrement)
+        {
+            // Console.WriteLine($"Increment cache for {cacheIndexToIncrement}");
+            fixed (byte* cachePtr = Cache)
+                *(cachePtr + (byte)cacheIndexToIncrement) = (byte)(*(cachePtr + (byte)cacheIndexToIncrement) + (byte)1);
+        }
+
+        public unsafe byte GetCacheIndex(byte cacheIndexToReset)
+        {
+            fixed (byte* cachePtr = Cache)
+                return *(cachePtr + (byte)cacheIndexToReset);
+        }
+
+        public unsafe void SetCacheIndex(byte cacheIndexToReset, byte newValue)
+        {
+            // Console.WriteLine($"Set cache for {cacheIndexToReset} to {newValue}"); 
+            fixed (byte* cachePtr = Cache)
+                *(cachePtr + (byte)cacheIndexToReset) = newValue;
         }
 
         #endregion
@@ -184,36 +204,7 @@ namespace ACESim
                 GameProgressLogger.Log($"Actions so far: {GetActionsAsListString()}");
         }
 
-        public unsafe void IncrementCacheIndex(byte cacheIndexToIncrement)
-        {
-            // Console.WriteLine($"Increment cache for {cacheIndexToIncrement}");
-            fixed (byte* cachePtr = Cache)
-                *(cachePtr + (byte)cacheIndexToIncrement) = (byte)(*(cachePtr + (byte)cacheIndexToIncrement) + (byte)1);
-        }
-
-        public unsafe byte GetCacheIndex(byte cacheIndexToReset)
-        {
-            fixed (byte* cachePtr = Cache)
-                return *(cachePtr + (byte)cacheIndexToReset);
-        }
-
-        public unsafe void SetCacheIndex(byte cacheIndexToReset, byte newValue)
-        {
-            // Console.WriteLine($"Set cache for {cacheIndexToReset} to {newValue}"); 
-            fixed (byte* cachePtr = Cache)
-                *(cachePtr + (byte)cacheIndexToReset) = newValue;
-        }
-
-        public void AddToSimpleActionsList(byte action)
-        {
-            fixed (byte* historyPtr = HistoryActionsOnly)
-            {
-                *(historyPtr + NextIndexInHistoryActionsOnly) = action;
-                NextIndexInHistoryActionsOnly++;
-                if (NextIndexInHistoryActionsOnly >= MaxNumActions)
-                    throw new Exception("Internal error. Must increase MaxNumActions.");
-            }
-        }
+        
 
         /// <summary>
         /// Gets an earlier version of the GameHistory, including everything up to but not including the specified decision. Not tested.
@@ -229,17 +220,6 @@ namespace ACESim
             fixed (byte* historyPtr = History)
             {
                 return *(historyPtr + i - History_NumPiecesOfInformation + History_DecisionIndex_Offset);
-            }
-        }
-
-        public (byte mostRecentAction, byte actionBeforeThat) GetLastActionAndActionBeforeThat()
-        {
-            // Note that we're using the simple actions list here. That means that when we have decisions with subdivisions, we ignore the subdivisions and count only the final decision.
-            if (NextIndexInHistoryActionsOnly < 2)
-                throw new Exception("Internal error. Two actions have not occurred");
-            fixed (byte* historyPtr = HistoryActionsOnly)
-            {
-                return (*(historyPtr + NextIndexInHistoryActionsOnly - 1), *(historyPtr + NextIndexInHistoryActionsOnly - 2));
             }
         }
 

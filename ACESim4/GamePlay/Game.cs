@@ -141,8 +141,6 @@ namespace ACESim
                     gameHistory.RemoveItemsInInformationSet(decision.PlayerNumber, decisionIndex, decision.Subdividable_NumLevels, gameProgress);
                     // now, we add the aggregated decision to the information sets that we would have added to, but we don't add to the history itself, since this is not a separate history action.
                     gameHistory.AddToHistory(decision.Subdividable_CorrespondingDecisionByteCode, decisionIndex, decision.PlayerNumber, aggregatedAction, decision.Subdividable_AggregateNumPossibleActions, decision.PlayersToInform, true /* don't add this to history */, decision.IncrementGameCacheItem, decision.StoreActionInGameCacheItem, decision.DeferNotificationOfPlayers, gameProgress);
-                    // We do want to add the aggregated action to the simple actions list, so that we can look to see what the most recent decisions were.
-                    gameHistory.AddToSimpleActionsList(aggregatedAction);
                     // And do any custom information set manipulation, using the aggregated action. Note that this is NOT called for earlier subdivisions
                     gameDefinition.CustomInformationSetManipulation(decision, decisionIndex, aggregatedAction, ref gameHistory, gameProgress);
                 }
@@ -150,7 +148,6 @@ namespace ACESim
             else
             {
                 gameHistory.AddToHistory(decision.DecisionByteCode, decisionIndex, decision.PlayerNumber, action, decision.NumPossibleActions, decision.PlayersToInform, false, decision.IncrementGameCacheItem, decision.StoreActionInGameCacheItem, decision.DeferNotificationOfPlayers, gameProgress);
-                gameHistory.AddToSimpleActionsList(action);
                 gameDefinition.CustomInformationSetManipulation(decision, decisionIndex, action, ref gameHistory, gameProgress);
             }
             return aggregatedAction; // should be ignored when this is not the current decision.
