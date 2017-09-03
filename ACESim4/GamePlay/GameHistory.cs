@@ -46,6 +46,7 @@ namespace ACESim
 
         public fixed byte History[MaxHistoryLength];
         public short LastIndexAddedToHistory;
+        public byte LastDecisionIndexAdded;
 
         public fixed byte HistoryActionsOnly[MaxNumActions];
         public byte NextIndexInHistoryActionsOnly;
@@ -95,6 +96,7 @@ namespace ACESim
                 for (int b = 0; b < MaxInformationSetLength; b++)
                     *(ptr + b) = informationSets[b];
             LastIndexAddedToHistory = (short)info.GetValue("LastIndexAddedToHistory", typeof(short));
+            LastDecisionIndexAdded = 0;
             NextIndexInHistoryActionsOnly = 0;
             Initialized = (bool)info.GetValue("Initialized", typeof(bool));
 
@@ -219,17 +221,14 @@ namespace ACESim
         /// Gets an earlier version of the GameHistory, including everything up to but not including the specified decision. Not tested.
         /// </summary>
         /// <returns></returns>        
-        public byte? LastDecisionIndex()
+        public byte? GetLastDecisionIndex()
         {
             if (!Initialized)
                 Initialize();
             short i = LastIndexAddedToHistory;
             if (i == 0)
                 return null; // no decisions processed yet
-            fixed (byte* historyPtr = History)
-            {
-                return *(historyPtr + i - History_NumPiecesOfInformation + History_DecisionIndex_Offset);
-            }
+            return LastDecisionIndexAdded;
         }
 
         public (byte mostRecentAction, byte actionBeforeThat) GetLastActionAndActionBeforeThat()
@@ -373,6 +372,7 @@ namespace ACESim
                             gameProgress.InformationSetLog.AddToLog(information, followingDecisionIndex, playerToInformIndex);
                     }
             }
+            LastDecisionIndexAdded = followingDecisionIndex;
             if (GameProgressLogger.LoggingOn)
             {
                 if (playersToInform != null)
