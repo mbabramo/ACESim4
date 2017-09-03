@@ -30,8 +30,10 @@ namespace ACESim
 
         public const byte InformationSetTerminator = 255;
 
+        public bool Complete;
         public GameFullHistory GameFullHistory;
         public fixed byte ActionsHistory[GameFullHistory.MaxHistoryLength];
+        public byte NextIndexInHistoryActionsOnly;
 
         public fixed byte Cache[CacheLength];
 
@@ -72,6 +74,8 @@ namespace ACESim
 
             GameFullHistory = new GameFullHistory();
             GameFullHistory.Initialize();
+            NextIndexInHistoryActionsOnly = 0;
+            Complete = false;
 
             PreviousNotificationDeferred = false;
             DeferredAction = 0;
@@ -143,6 +147,7 @@ namespace ACESim
         {
             if (!Initialized)
                 Initialize();
+            AddToSimpleActionsList(action);
             GameFullHistory.AddToHistory(decisionByteCode, decisionIndex, playerIndex, action, numPossibleActions, playersToInform, skipAddToHistory, cacheIndicesToIncrement, storeActionInCacheIndex, deferNotification, gameProgress);
             if (PreviousNotificationDeferred && DeferredPlayersToInform != null && DeferredPlayersToInform.Any())
                 AddToInformationSetAndLog(DeferredAction, decisionIndex, DeferredPlayerNumber, DeferredPlayersToInform, gameProgress); /* we use the current decision index, not the decision from which it was deferred -- this is important in setting the information set correctly */
@@ -161,6 +166,41 @@ namespace ACESim
             if (storeActionInCacheIndex != null)
                 SetCacheItemAtIndex((byte)storeActionInCacheIndex, action);
         }
+
+
+        public void AddToSimpleActionsList(byte action)
+        {
+            fixed (byte* historyPtr = ActionsHistory)
+            {
+                *(historyPtr + NextIndexInHistoryActionsOnly) = action;
+                NextIndexInHistoryActionsOnly++;
+                if (NextIndexInHistoryActionsOnly >= GameFullHistory.MaxNumActions)
+                    throw new Exception("Internal error. Must increase MaxNumActions.");
+            }
+        }
+
+        public List<byte> GetActionsAsList()
+        {
+            List<byte> actions = new List<byte>();
+            fixed (byte* historyPtr = ActionsHistory)
+            {
+                for (int i = 0; i < NextIndexInHistoryActionsOnly; i++)
+                    actions.Add(*(historyPtr + i));
+            }
+            return actions;
+        }
+
+        public void MarkComplete(GameProgress gameProgress = null)
+        {
+            Complete = true;
+            GameFullHistory.MarkComplete();
+        }
+
+        public bool IsComplete()
+        {
+            return Complete;
+        }
+
         #endregion
 
         #region Player information sets

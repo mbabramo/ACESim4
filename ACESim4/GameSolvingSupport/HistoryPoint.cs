@@ -33,9 +33,8 @@ namespace ACESim
         {
             if (navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)
                 return GameProgress.GameComplete;
-            debug;
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
-                return HistoryToPoint.GameFullHistory.IsComplete();
+                return HistoryToPoint.IsComplete();
             return TreePoint.IsLeaf();
         }
 
@@ -49,7 +48,7 @@ namespace ACESim
             if (navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)
                 return GameProgress.ActionsPlayed();
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
-                return HistoryToPoint.GameFullHistory.GetActionsAsList();
+                return HistoryToPoint.GetActionsAsList();
             return TreePoint.GetSequenceToHere();
         }
 
@@ -123,7 +122,7 @@ namespace ACESim
                 next.HistoryToPoint = HistoryToPoint; // struct is copied. We then use a ref to change the copy, since otherwise it would be copied again. TODO: This is costly, because we're copying the entire struct (and this is executed very frequently. An alternative possibility would be to try to use SwitchToBranch. We started this with HistoryPoint_Cached. but if we do that, whenever we call SwitchToBranch, we must call SwitchFromBranch at the end of the routine, because often we call GetBranch and then further operate on the original history point.
                 Game.UpdateGameHistory(ref next.HistoryToPoint, navigation.GameDefinition, nextDecision, nextDecisionIndex, actionChosen, GameProgress);
                 if (nextDecision.CanTerminateGame && navigation.GameDefinition.ShouldMarkGameHistoryComplete(nextDecision, ref next.HistoryToPoint, actionChosen))
-                    next.HistoryToPoint.GameFullHistory.MarkComplete();
+                    next.HistoryToPoint.MarkComplete();
             }
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {

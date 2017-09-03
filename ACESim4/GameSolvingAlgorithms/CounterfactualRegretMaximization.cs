@@ -210,7 +210,6 @@ namespace ACESim
         private IGameState GetGameStateByPlayingUnderlyingGame(ref HistoryPoint historyPoint, HistoryNavigationInfo navigationSettings)
         {
             IGameState gameState;
-            debug;
             List<byte> actionsSoFar = historyPoint.GetActionsToHere(navigationSettings);
             //if (NumInitializedGamePaths == 7)
             //{

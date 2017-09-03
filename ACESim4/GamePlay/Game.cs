@@ -368,7 +368,7 @@ namespace ACESim
         public virtual void FinalProcessing()
         {
             Progress.GameComplete = true; // might have already been set as a way to trigger early final processing
-            Progress.GameHistory.GameFullHistory.MarkComplete();
+            Progress.GameHistory.MarkComplete(Progress);
         }
 
         internal void SetStatusVariables()
