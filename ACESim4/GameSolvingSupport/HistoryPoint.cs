@@ -78,7 +78,7 @@ namespace ACESim
                 //var informationSetHistories = HistoryToPoint.GetInformationSetHistoryItems().Select(x => x.ToString());
                 (Decision nextDecision, byte nextDecisionIndex) = navigation.GameDefinition.GetNextDecision(ref HistoryToPoint); 
                 byte nextPlayer = nextDecision?.PlayerNumber ?? navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
-                byte* informationSetsPtr = stackalloc byte[GameHistory.MaxInformationSetLengthPerPlayer];
+                byte* informationSetsPtr = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
                 // string playerInformationString = HistoryToPoint.GetPlayerInformationString(currentPlayer, nextDecision?.DecisionByteCode);
                 HistoryToPoint.GetPlayerInformation(nextPlayer, null, informationSetsPtr);
                 if (GameProgressLogger.LoggingOn)
@@ -220,7 +220,7 @@ namespace ACESim
                 throw new Exception("Game is not complete.");
             byte resolutionPlayer = navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
             var strategy = navigation.Strategies[resolutionPlayer];
-            byte* resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerPlayer];
+            byte* resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
             gameProgress.GameHistory.GetPlayerInformation(resolutionPlayer, null, resolutionInformationSet);
             NWayTreeStorage<IGameState> informationSetNode = strategy.SetInformationSetTreeValueIfNotSet(
                         resolutionInformationSet,
@@ -245,7 +245,7 @@ namespace ACESim
             {
                 byte resolutionPlayer = navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
                 var strategy = navigation.Strategies[resolutionPlayer];
-                byte* resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerPlayer];
+                byte* resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
                 HistoryToPoint.GetPlayerInformation(resolutionPlayer, null, resolutionInformationSet);
                 FinalUtilities finalUtilities = (FinalUtilities) strategy.GetInformationSetTreeValue(resolutionInformationSet);
                 if (finalUtilities == null)
