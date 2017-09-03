@@ -154,8 +154,11 @@ namespace ACESim
             // Create game trees
             GameHistoryTree = new NWayTreeStorageInternal<IGameState>(null, GameDefinition.DecisionsExecutionOrder.First().NumPossibleActions);
 
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
             NumInitializedGamePaths = GamePlayer.PlayAllPaths(ProcessInitializedGameProgress);
-            Console.WriteLine($"Initialized. Total paths: {NumInitializedGamePaths}");
+            stopwatch.Stop();
+            Console.WriteLine($"Initialized. Total paths (higher number in parallel): {NumInitializedGamePaths} Total initialization milliseconds {stopwatch.ElapsedMilliseconds}");
             PrintSameGameResults();
         }
 

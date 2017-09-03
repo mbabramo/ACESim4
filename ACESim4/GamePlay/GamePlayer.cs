@@ -54,7 +54,8 @@ namespace ACESim
         {
             Stopwatch s = new Stopwatch();
             s.Start();
-            Action<Action<GameProgress>> playPathsFn = DoParallel ? (Action<Action<GameProgress>>) PlayAllPaths_Parallel : PlayAllPaths_Serial;
+            bool disableParallel = true; // it seems this is always faster NOT in parallel right now. Maybe with more processors it will be faster in parallel
+            Action<Action<GameProgress>> playPathsFn = DoParallel && !disableParallel ? (Action<Action<GameProgress>>) PlayAllPaths_Parallel : PlayAllPaths_Serial;
             int numPathsPlayed = 0;
             playPathsFn(gp => 
             {

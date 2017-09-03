@@ -25,6 +25,8 @@ namespace ACESim
             return gameProgress;
         }
 
+        Debug; // if we are using the tree method, then we shouldn't need to reset to do multiple games.
+
         public static void EvolveMyGame()
         {
             MyGameDefinition gameDefinition = new MyGameDefinition();
@@ -35,7 +37,7 @@ namespace ACESim
             EvolutionSettings evolutionSettings = new EvolutionSettings()
             {
                 MaxParallelDepth = 2,
-                ParallelOptimization = false,
+                ParallelOptimization = true,
 
                 InitialRandomSeed = 31,
 
