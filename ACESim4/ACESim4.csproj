@@ -118,6 +118,7 @@
     <Compile Include="Games\SimpleGame\SimpleGameFactory.cs" />
     <Compile Include="Games\SimpleGame\SimpleGamePlayers.cs" />
     <Compile Include="Games\SimpleGame\SimpleGameProgress.cs" />
+    <Compile Include="InformationSetLog.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SimpleReports\SimpleReport.cs" />

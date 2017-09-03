@@ -9,7 +9,7 @@ namespace ACESim
 
     public unsafe struct InformationSetHistory
     {
-        public fixed byte InformationSetForPlayer[GameHistory.MaxInformationSetLoggingLengthPerFullPlayer];
+        public fixed byte InformationSetForPlayer[InformationSetLog.MaxInformationSetLoggingLengthPerFullPlayer];
         public byte PlayerIndex;
         public byte DecisionByteCode;
         public byte DecisionIndex;

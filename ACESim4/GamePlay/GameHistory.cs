@@ -19,9 +19,9 @@ namespace ACESim
 
         public const int CacheLength = 10; // the game and game definition can use the cache to store information. This is helpful when the game player is simulating the game without playing the underlying game. The game definition may, for example, need to be able to figure out which decision is next.
         public const int MaxHistoryLength = 200;
-        public const int MaxInformationSetLoggingLength = 690; // MUST equal MaxInformationSetLoggingLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLoggingLengthPerPartialPlayer * NumPartialPlayers. 
-        public const int MaxInformationSetLoggingLengthPerFullPlayer = 200;
-        public const int MaxInformationSetLoggingLengthPerPartialPlayer = 30;
+
+        private InformationSetLog InformationSetLog;
+
         public const int MaxInformationSetLength = 69; // MUST equal MaxInformationSetLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLengthPerPartialPlayer * NumPartialPlayers. 
         public const int MaxInformationSetLengthPerFullPlayer = 20;
         public const int MaxInformationSetLengthPerPartialPlayer = 3;
@@ -29,16 +29,13 @@ namespace ACESim
         public const int MaxNumPlayers = 6; // includes chance players that need a very limited information set
         public int NumPartialPlayers => MaxNumPlayers - NumFullPlayers;
         public int InformationSetIndex(byte playerIndex) => playerIndex <= NumFullPlayers ? MaxInformationSetLengthPerFullPlayer * playerIndex : MaxInformationSetLengthPerFullPlayer * NumFullPlayers + (playerIndex - NumFullPlayers) * MaxInformationSetLengthPerPartialPlayer;
-        public int InformationSetLoggingIndex(byte playerIndex) => playerIndex <= NumFullPlayers ? MaxInformationSetLoggingLengthPerFullPlayer * playerIndex : MaxInformationSetLoggingLengthPerFullPlayer * NumFullPlayers + (playerIndex - NumFullPlayers) * MaxInformationSetLoggingLengthPerPartialPlayer;
         public int MaxInformationSetLengthForPlayer(byte playerIndex) => playerIndex < NumFullPlayers ? MaxInformationSetLengthPerFullPlayer : MaxInformationSetLengthPerPartialPlayer;
-        public int MaxInformationSetLoggingLengthForPlayer(byte playerIndex) => playerIndex < NumFullPlayers ? MaxInformationSetLoggingLengthPerFullPlayer : MaxInformationSetLoggingLengthPerPartialPlayer;
         public const int MaxNumActions = 40;
 
         const byte HistoryComplete = 254;
         const byte HistoryTerminator = 255;
 
         public const byte InformationSetTerminator = 255;
-        public const byte RemoveItemFromInformationSet = 254;
 
         private const byte History_DecisionByteCode_Offset = 0;
         private const byte History_DecisionIndex_Offset = 1; // the decision index reflects the order of the decision in the decisions list. A decision with the same byte code could correspond to multiple decision indices.
@@ -59,7 +56,6 @@ namespace ACESim
 
         // Information set structure. We have an information set buffer for each player. We need to be able to remove information from the information set for a player, but still to remember that it was there as of a particular point in time, so that we can figure out what the information set was as of a particular decision. (This is needed for reconstructing the game play.) We thus store information in pairs. The first byte consists of the decision byte code after which we are making changes. The second byte either consists of an item to add, or 254, indicating that we are removing an item from the information set. All of this is internal. When we get the information set, we get it as of a certain point, and thus we skip decision byte codes and automatically process deletions. 
         public bool Initialized;
-        public fixed byte InformationSetLogs[MaxInformationSetLoggingLength]; // a buffer for each player, terminated by 255. This includes removal characters, so that we can replay the history of an information set.
         public fixed byte InformationSets[MaxInformationSetLength]; // a buffer for each player, terminated by 255.
                                                                     // Implement this method to serialize data. The method is called 
                                                                     // on serialization.
@@ -77,17 +73,13 @@ namespace ACESim
             fixed (byte* ptr = History)
                 for (int b = 0; b < MaxHistoryLength; b++)
                     history[b] = *(ptr + b);
-            byte[] informationSetLogs = new byte[MaxInformationSetLoggingLength];
-            fixed (byte* ptr = InformationSetLogs)
-                for (int b = 0; b < MaxInformationSetLoggingLength; b++)
-                    informationSetLogs[b] = *(ptr + b);
             byte[] informationSets = new byte[MaxInformationSetLength];
             fixed (byte* ptr = InformationSets)
                 for (int b = 0; b < MaxInformationSetLength; b++)
                     informationSets[b] = *(ptr + b);
 
             info.AddValue("history", history, typeof(byte[]));
-            info.AddValue("informationSetLogs", informationSetLogs, typeof(byte[]));
+            info.AddValue("informationSetLog", InformationSetLog, typeof(InformationSetLog));
             info.AddValue("informationSets", informationSets, typeof(byte[]));
             info.AddValue("LastIndexAddedToHistory", LastIndexAddedToHistory, typeof(short));
             info.AddValue("Initialized", Initialized, typeof(bool));
@@ -99,13 +91,10 @@ namespace ACESim
         {
             byte[] history = (byte[])info.GetValue("history", typeof(byte[]));
             byte[] informationSets = (byte[])info.GetValue("informationSets", typeof(byte[]));
-            byte[] informationSetLogs = (byte[])info.GetValue("informationSetLogs", typeof(byte[]));
+            InformationSetLog = (InformationSetLog)info.GetValue("informationSetLog", typeof(InformationSetLog));
             fixed (byte* ptr = History)
                 for (int b = 0; b < MaxHistoryLength; b++)
                     *(ptr + b) = history[b];
-            fixed (byte* ptr = InformationSetLogs)
-                for (int b = 0; b < MaxInformationSetLoggingLength; b++)
-                    *(ptr + b) = informationSetLogs[b];
             fixed (byte* ptr = InformationSets)
                 for (int b = 0; b < MaxInformationSetLength; b++)
                     *(ptr + b) = informationSets[b];
@@ -130,8 +119,6 @@ namespace ACESim
         {
             if (Initialized)
                 return;
-            if (MaxInformationSetLoggingLength != MaxInformationSetLoggingLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLoggingLengthPerPartialPlayer * NumPartialPlayers)
-                throw new Exception("Lengths not set correctly.");
             if (MaxInformationSetLength != MaxInformationSetLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLengthPerPartialPlayer * NumPartialPlayers)
                 throw new Exception("Lengths not set correctly.");
             Initialize_Helper();
@@ -144,13 +131,12 @@ namespace ACESim
 
         private void Initialize_Helper()
         {
+            InformationSetLog.Initialize();
             fixed (byte* historyPtr = History)
                 *(historyPtr + 0) = HistoryTerminator;
-            fixed (byte* logPtr = InformationSetLogs)
             fixed (byte* informationSetPtr = InformationSets)
                 for (byte p = 0; p < MaxNumPlayers; p++)
                 {
-                    *(logPtr + InformationSetLoggingIndex(p)) = InformationSetTerminator;
                     *(informationSetPtr + InformationSetIndex(p)) = InformationSetTerminator;
                 }
             LastIndexAddedToHistory = 0;
@@ -237,48 +223,7 @@ namespace ACESim
         /// <summary>
         /// Gets an earlier version of the GameHistory, including everything up to but not including the specified decision. Not tested.
         /// </summary>
-        /// <param name="upToDecisionIndex"></param>
-        /// <returns></returns>
-        public GameHistory BackInTime(byte upToDecisionIndex)
-        {
-            if (!Initialized)
-                Initialize();
-            GameHistory next = this;
-            if (LastIndexAddedToHistory != 0)
-            {
-                if (upToDecisionIndex == 0)
-                    next.Reinitialize();
-                else
-                {
-                    byte* historyPtr = next.History;
-                    for (short i = 0; i < LastIndexAddedToHistory; i += History_NumPiecesOfInformation)
-                    {
-                        byte decisionIndex = *(historyPtr + i + History_DecisionIndex_Offset);
-                        if (decisionIndex >= upToDecisionIndex)
-                        {
-                            *(historyPtr + i - 1) = HistoryTerminator;
-                            break;
-                        }
-                    }
-                    byte* informationSetsPtr = next.InformationSetLogs;
-                    for (byte p = 0; p < MaxNumPlayers; p++)
-                    {
-                        byte* playerPointer = informationSetsPtr + InformationSetLoggingIndex(p);
-                        while (*playerPointer != InformationSetTerminator)
-                        {
-                            if (*playerPointer >= upToDecisionIndex)
-                            {
-                                *playerPointer = InformationSetTerminator;
-                                break;
-                            }
-                            playerPointer += 2;
-                        }
-                    }
-                }
-            }
-            return next;
-        }
-
+        /// <returns></returns>        
         public byte? LastDecisionIndex()
         {
             if (!Initialized)
@@ -291,17 +236,6 @@ namespace ACESim
                 return *(historyPtr + i - History_NumPiecesOfInformation + History_DecisionIndex_Offset);
             }
         }
-
-        //public (byte mostRecentAction, byte actionBeforeThat) GetLastActionAndActionBeforeThat()
-        //{
-        //    if (LastIndexAddedToHistory < History_NumPiecesOfInformation * 2)
-        //        throw new Exception("Internal error. Two actions have not occurred");
-        //    fixed (byte* historyPtr = History)
-        //    {
-        //        byte* mostRecentPointer = (historyPtr + LastIndexAddedToHistory - History_NumPiecesOfInformation + History_Action_Offset);
-        //        return (*mostRecentPointer, *(mostRecentPointer - History_NumPiecesOfInformation));
-        //    }
-        //}
 
         public (byte mostRecentAction, byte actionBeforeThat) GetLastActionAndActionBeforeThat()
         {
@@ -434,14 +368,13 @@ namespace ACESim
         public void AddToInformationSetAndLog(byte information, byte followingDecisionIndex, byte playerIndex, List<byte> playersToInform)
         {
             GameProgressLogger.Log(() => $"player {playerIndex} informing {String.Join(", ", playersToInform)} info {information} following {followingDecisionIndex}");
-            fixed (byte* informationSetsLogPtr = InformationSetLogs)
             fixed (byte* informationSetsPtr = InformationSets)
             {
                 if (playersToInform != null)
                     foreach (byte playerToInformIndex in playersToInform)
                     {
                         AddToInformationSet(information, playerToInformIndex, informationSetsPtr);
-                        AddToInformationSetLog(information, followingDecisionIndex, playerToInformIndex, informationSetsLogPtr);
+                        InformationSetLog.AddToLog(information, followingDecisionIndex, playerToInformIndex);
                     }
             }
             if (GameProgressLogger.LoggingOn)
@@ -456,11 +389,10 @@ namespace ACESim
 
         public void AddToInformationSetAndLog(byte information, byte followingDecisionIndex, byte playerIndex)
         {
-            fixed (byte* informationSetsLogPtr = InformationSetLogs)
             fixed (byte* informationSetsPtr = InformationSets)
             {
                 AddToInformationSet(information, playerIndex, informationSetsPtr);
-                AddToInformationSetLog(information, followingDecisionIndex, playerIndex, informationSetsLogPtr);
+                InformationSetLog.AddToLog(information, followingDecisionIndex, playerIndex);
             }
         }
 
@@ -483,80 +415,30 @@ namespace ACESim
             *playerPointer = InformationSetTerminator;
         }
 
-        private void AddToInformationSetLog(byte information, byte followingDecisionIndex, byte playerIndex, byte* informationSetsLogPtr)
-        {
-            if (playerIndex >= MaxNumPlayers)
-                throw new NotImplementedException();
-            if (!Initialized)
-                Initialize();
-            // Debug.WriteLine($"Adding information {information} following decision {followingDecisionIndex} for Player number {playerIndex}"); 
-            byte* playerPointer = informationSetsLogPtr + InformationSetLoggingIndex(playerIndex);
-            byte* nextPlayerPointer = playerPointer + MaxInformationSetLoggingLengthForPlayer(playerIndex);
-            // advance to the end of the information set
-            while (*playerPointer != InformationSetTerminator)
-                playerPointer += 2;
-            // now record the information
-            *playerPointer = followingDecisionIndex; // we must record the decision
-            playerPointer++;
-            *playerPointer = information;
-            playerPointer++;
-            *playerPointer = InformationSetTerminator; // terminator
-            if (playerPointer >= nextPlayerPointer)
-                throw new Exception("Internal error. Must increase size of information set.");
-        }
 
         public byte AggregateSubdividable(byte playerIndex, byte decisionIndex, byte numOptionsPerBranch, byte numLevels)
         {
-            fixed (byte* informationSetsPtr = InformationSetLogs)
-            {
-                byte* playerPointer = informationSetsPtr + InformationSetLoggingIndex(playerIndex);
-                // advance to the end of the information set
-                while (*playerPointer != InformationSetTerminator)
-                    playerPointer += 2;
-                playerPointer--; // spot before terminator
-                byte accumulator = (byte) (*playerPointer - 1); // one less than value pointed to (not changing the pointer itself)
-                byte columnValue = 1; // this is the units column
-                for (byte level = 1; level < numLevels; level++)
-                {
-                    columnValue = (byte) (columnValue * numOptionsPerBranch); // for example, when level = 1, if numOptionsPerBranch is 10, then an action of 1 is worth 0, an action of 2 is worth 10, etc.
-                    playerPointer--; // go back to decision index
-                    playerPointer--; // go back to previous decision
-                    accumulator = (byte) (accumulator + columnValue * (*playerPointer - 1));
-                }
-                return (byte) (accumulator + 1);
-            }
+            throw new NotImplementedException(); // must implement without using logs
+            //fixed (byte* informationSetsPtr = InformationSetLogs)
+            //{
+            //    byte* playerPointer = informationSetsPtr + InformationSetLoggingIndex(playerIndex);
+            //    // advance to the end of the information set
+            //    while (*playerPointer != InformationSetTerminator)
+            //        playerPointer += 2;
+            //    playerPointer--; // spot before terminator
+            //    byte accumulator = (byte) (*playerPointer - 1); // one less than value pointed to (not changing the pointer itself)
+            //    byte columnValue = 1; // this is the units column
+            //    for (byte level = 1; level < numLevels; level++)
+            //    {
+            //        columnValue = (byte) (columnValue * numOptionsPerBranch); // for example, when level = 1, if numOptionsPerBranch is 10, then an action of 1 is worth 0, an action of 2 is worth 10, etc.
+            //        playerPointer--; // go back to decision index
+            //        playerPointer--; // go back to previous decision
+            //        accumulator = (byte) (accumulator + columnValue * (*playerPointer - 1));
+            //    }
+            //    return (byte) (accumulator + 1);
+            //}
         }
 
-        public unsafe byte GetPlayerInformationItem(byte playerIndex, byte decisionIndex)
-        {
-            if (playerIndex >= MaxNumPlayers)
-                throw new NotImplementedException();
-            if (!Initialized)
-                Initialize();
-            fixed (byte* informationSetsPtr = InformationSetLogs)
-            {
-                byte* playerPointer = informationSetsPtr + InformationSetLoggingIndex(playerIndex);
-                while (*playerPointer != InformationSetTerminator)
-                {
-                    if (*playerPointer == decisionIndex)
-                    {
-                        playerPointer++;
-                        if (*playerPointer != RemoveItemFromInformationSet)
-                            return *playerPointer;
-                        else
-                            playerPointer++;
-                    }
-                    else if (*playerPointer == InformationSetTerminator)
-                        break;
-                    else
-                    {
-                        playerPointer++;
-                        playerPointer++;
-                    }
-                }
-                return 0;
-            }
-        }
 
         public unsafe void GetPlayerInformation(byte playerIndex, byte? upToDecision, byte* playerInfoBuffer)
         {
@@ -567,37 +449,9 @@ namespace ACESim
                 GetPlayerInformationCurrent(playerIndex, playerInfoBuffer);
                 return;
             }
-            GetPlayerInformationAtPoint(playerIndex, upToDecision, playerInfoBuffer);
+            InformationSetLog.GetPlayerInformationAtPoint(playerIndex, upToDecision, playerInfoBuffer);
         }
 
-        public unsafe void GetPlayerInformationAtPoint(byte playerIndex, byte? upToDecision, byte* playerInfoBuffer)
-        {
-            if (playerIndex >= MaxNumPlayers)
-            {
-                // player has no information
-                *playerInfoBuffer = InformationSetTerminator;
-                return;
-            }
-            fixed (byte* informationSetsPtr = InformationSetLogs)
-            {
-                byte* playerPointer = informationSetsPtr + InformationSetLoggingIndex(playerIndex);
-                while (*playerPointer != InformationSetTerminator)
-                {
-                    if (*playerPointer >= upToDecision)
-                        break;
-                    playerPointer++;
-                    if (*playerPointer == RemoveItemFromInformationSet)
-                        playerInfoBuffer--; // delete an item
-                    else
-                    {
-                        *playerInfoBuffer = *playerPointer;
-                        playerInfoBuffer++;
-                    }
-                    playerPointer++;
-                }
-                *playerInfoBuffer = InformationSetTerminator;
-            }
-        }
 
         public unsafe void GetPlayerInformationCurrent(byte playerIndex, byte* playerInfoBuffer)
         {
@@ -620,12 +474,10 @@ namespace ACESim
             }
         }
 
-        public unsafe string GetPlayerInformationAtPointString(byte playerIndex, byte? upToDecision)
+        public string GetPlayerInformationAtPointString(byte playerIndex, byte? upToDecision)
         {
-            byte* playerInfoBuffer = stackalloc byte[MaxInformationSetLoggingLengthPerFullPlayer];
-            GetPlayerInformationAtPoint(playerIndex, upToDecision, playerInfoBuffer);
-            List<byte> informationSetList = ListExtensions.GetPointerAsList_255Terminated(playerInfoBuffer);
-            return String.Join(",", informationSetList);
+            // DEBUG -- should be able to move this into Gameprogress
+            return InformationSetLog.GetPlayerInformationAtPointString(playerIndex, upToDecision);
         }
 
         public unsafe string GetCurrentPlayerInformationString(byte playerIndex)
@@ -655,28 +507,6 @@ namespace ACESim
             return b;
         }
 
-        public byte CountItemsInInformationSet_UsingLog(byte playerIndex)
-        {
-            if (playerIndex >= MaxNumPlayers)
-                throw new NotImplementedException();
-            if (!Initialized)
-                Initialize();
-            byte b = 0;
-            fixed (byte* informationSetsPtr = InformationSetLogs)
-            {
-                byte* ptr = informationSetsPtr + InformationSetLoggingIndex(playerIndex);
-                while (*ptr != InformationSetTerminator)
-                {
-                    ptr++; // skip the decision code
-                    if (*ptr == RemoveItemFromInformationSet)
-                        b--;
-                    else
-                        b++;
-                    ptr++; // now move past the information
-                }
-            }
-            return b;
-        }
 
         public void RemoveItemsInInformationSet(byte playerIndex, byte followingDecisionIndex, byte numItemsToRemove)
         {
@@ -687,8 +517,7 @@ namespace ACESim
                 Initialize();
             for (byte b = 0; b < numItemsToRemove; b++)
             {
-                AddRemovalToInformationSetLog(followingDecisionIndex, playerIndex);
-                // TODO: We could make this more efficient by going to the end of the information set and then adding all the removals at the same time. Otherwise, we're going back through our list for each item we're removing.
+                InformationSetLog.AddRemovalToInformationSetLog(followingDecisionIndex, playerIndex);
             }
             fixed (byte* informationSetsPtr = InformationSets)
             {
@@ -701,15 +530,6 @@ namespace ACESim
             GameProgressLogger.Log($"Player {playerIndex} information (removed {numItemsToRemove}): {GetCurrentPlayerInformationString(playerIndex)}");
         }
 
-        public void AddRemovalToInformationSetLog(byte followingDecisionIndex, byte playerIndex)
-        {
-            if (playerIndex >= MaxNumPlayers)
-                throw new NotImplementedException();
-            fixed (byte* informationSetsLogPtr = InformationSetLogs)
-            {
-                AddToInformationSetLog(RemoveItemFromInformationSet, followingDecisionIndex, playerIndex, informationSetsLogPtr);
-            }
-        }
 
         #endregion
 
