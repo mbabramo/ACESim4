@@ -164,7 +164,7 @@ namespace ACESim
             
             // First, add the utilities at the end of the tree for this path.
             byte* actions = stackalloc byte[GameFullHistory.MaxNumActions];
-            gameProgress.GameHistory.GameFullHistory.GetActions(actions);
+            gameProgress.GameFullHistory.GetActions(actions);
             //var actionsAsList = ListExtensions.GetPointerAsList_255Terminated(actions);
 
             // Go through each non-chance decision point on this path and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
@@ -341,7 +341,7 @@ namespace ACESim
         {
             byte* path = stackalloc byte[GameFullHistory.MaxNumActions];
             bool overridePrint = false;
-            string actionsList = progress.GameHistory.GameFullHistory.GetActionsAsListString();
+            string actionsList = progress.GameFullHistory.GetActionsAsListString();
             if (actionsList == "INSERT_PATH_HERE") // use this to print a single path
             {
                 overridePrint = true;
@@ -351,7 +351,7 @@ namespace ACESim
                 lock (this)
                 {
 
-                    progress.GameHistory.GameFullHistory.GetActions(path);
+                    progress.GameFullHistory.GetActions(path);
                     List<byte> path2 = new List<byte>();
                     int i = 0;
                     while (*(path + i) != 255)
@@ -576,7 +576,7 @@ namespace ACESim
             for (int i = 0; i < EvolutionSettings.NumRandomIterationsForSummaryTable; i++)
             {
                 GameProgress gameProgress1 = gameProgresses[i];
-                string gameActions = gameProgress1.GameHistory.GameFullHistory.GetActionsAsListString();
+                string gameActions = gameProgress1.GameFullHistory.GetActionsAsListString();
                 if (!CountPaths.ContainsKey(gameActions))
                     CountPaths[gameActions] = 1;
                 else

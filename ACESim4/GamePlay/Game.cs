@@ -269,7 +269,7 @@ namespace ACESim
                 nextPath = null;
                 return;
             }
-            Progress.GameHistory.GameFullHistory.GetNextDecisionPath(GameDefinition, nextPath);
+            Progress.GameFullHistory.GetNextDecisionPath(GameDefinition, nextPath);
             ChooseDefaultActionIfNoneChosen = false;
         }
 

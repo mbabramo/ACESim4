@@ -134,8 +134,8 @@ namespace ACESim
                 // produce the starting paths (), (1), (1,1), ... (1,1,1,1).
                 // We really only need the last of these.
                 int actionsToPlayCount = gp.ActionsToPlay.Count();
-                int actionsPlayedCount = gp.GameHistory.GameFullHistory.GetActionsAsList().Count();
-                bool notRedundant = actionsToPlayCount == actionsPlayedCount || (actionsPlayedCount == actionsToPlayCount + 1 && gp.GameHistory.GameFullHistory.GetActionsAsList().Last() == 1);
+                int actionsPlayedCount = gp.GameFullHistory.GetActionsAsList().Count();
+                bool notRedundant = actionsToPlayCount == actionsPlayedCount || (actionsPlayedCount == actionsToPlayCount + 1 && gp.GameFullHistory.GetActionsAsList().Last() == 1);
                 if (notRedundant)
                 {
                     yield return gp;

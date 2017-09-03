@@ -15,6 +15,7 @@ namespace ACESim
         public GameDefinition GameDefinition;
         public List<GameModuleProgress> GameModuleProgresses;
         public GameHistory GameHistory;
+        public GameFullHistory GameFullHistory;
         public InformationSetLog InformationSetLog;
         public List<byte> ActionsToPlay = new List<byte>();
         /// <summary>
@@ -75,7 +76,7 @@ namespace ACESim
 
         public IEnumerable<InformationSetHistory> GetInformationSetHistoryItems()
         {
-            return GameHistory.GameFullHistory.GetInformationSetHistoryItems(this);
+            return GameFullHistory.GetInformationSetHistoryItems(this);
         }
 
 
@@ -102,6 +103,7 @@ namespace ACESim
                     gmp.Recycle();
             GameModuleProgresses = null;
             GameHistory.Reinitialize();
+            GameFullHistory.Initialize();
             ActionsToPlay = null;
             ActionsToPlayIndex = -1;
             GameComplete = false;
@@ -192,6 +194,7 @@ namespace ACESim
             copy.GameDefinition = GameDefinition;
             copy.GameModuleProgresses = GameModuleProgresses == null ? null : (GameModuleProgresses.Select(x => x?.DeepCopy()).ToList());
             copy.GameHistory = GameHistory.DeepCopy();
+            copy.GameFullHistory = GameFullHistory;
             copy.ActionsToPlay = ActionsToPlay?.ToList(); 
             copy.ActionsToPlayIndex = ActionsToPlayIndex;
             copy.GameComplete = this.GameComplete;

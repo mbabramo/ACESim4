@@ -19,6 +19,17 @@ namespace ACESim
 
         public const int CacheLength = 15; // the game and game definition can use the cache to store information. This is helpful when the game player is simulating the game without playing the underlying game. The game definition may, for example, need to be able to figure out which decision is next.
 
+        public const byte InformationSetTerminator = 255;
+
+        public bool Complete;
+        public fixed byte ActionsHistory[GameFullHistory.MaxHistoryLength];
+        public byte NextIndexInHistoryActionsOnly;
+
+        public fixed byte Cache[CacheLength];
+
+        // Information set structure. We have an information set buffer for each player. We need to be able to remove information from the information set for a player, but still to remember that it was there as of a particular point in time, so that we can figure out what the information set was as of a particular decision. (This is needed for reconstructing the game play.) We thus store information in pairs. The first byte consists of the decision byte code after which we are making changes. The second byte either consists of an item to add, or 254, indicating that we are removing an item from the information set. All of this is internal. When we get the information set, we get it as of a certain point, and thus we skip decision byte codes and automatically process deletions. 
+        public bool Initialized;
+        public fixed byte InformationSets[MaxInformationSetLength];
         public const int MaxInformationSetLength = 69; // MUST equal MaxInformationSetLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLengthPerPartialPlayer * NumPartialPlayers. 
         public const int MaxInformationSetLengthPerFullPlayer = 20;
         public const int MaxInformationSetLengthPerPartialPlayer = 3;
@@ -27,21 +38,6 @@ namespace ACESim
         public int NumPartialPlayers => MaxNumPlayers - NumFullPlayers;
         public int InformationSetIndex(byte playerIndex) => playerIndex <= NumFullPlayers ? MaxInformationSetLengthPerFullPlayer * playerIndex : MaxInformationSetLengthPerFullPlayer * NumFullPlayers + (playerIndex - NumFullPlayers) * MaxInformationSetLengthPerPartialPlayer;
         public int MaxInformationSetLengthForPlayer(byte playerIndex) => playerIndex < NumFullPlayers ? MaxInformationSetLengthPerFullPlayer : MaxInformationSetLengthPerPartialPlayer;
-
-        public const byte InformationSetTerminator = 255;
-
-        public bool Complete;
-        public GameFullHistory GameFullHistory;
-        public fixed byte ActionsHistory[GameFullHistory.MaxHistoryLength];
-        public byte NextIndexInHistoryActionsOnly;
-
-        public fixed byte Cache[CacheLength];
-
-        // Information set structure. We have an information set buffer for each player. We need to be able to remove information from the information set for a player, but still to remember that it was there as of a particular point in time, so that we can figure out what the information set was as of a particular decision. (This is needed for reconstructing the game play.) We thus store information in pairs. The first byte consists of the decision byte code after which we are making changes. The second byte either consists of an item to add, or 254, indicating that we are removing an item from the information set. All of this is internal. When we get the information set, we get it as of a certain point, and thus we skip decision byte codes and automatically process deletions. 
-        public bool Initialized;
-        public fixed byte InformationSets[MaxInformationSetLength]; // a buffer for each player, terminated by 255.
-                                                                    // Implement this method to serialize data. The method is called 
-                                                                    // on serialization.
 
         // The following are used to defer adding information to a player information set.
         private bool PreviousNotificationDeferred;
@@ -73,9 +69,7 @@ namespace ACESim
                 for (int b = 0; b < MaxInformationSetLength; b++)
                     *(ptr + b) = informationSets[b];
             Initialized = (bool)info.GetValue("Initialized", typeof(bool));
-
-            GameFullHistory = new GameFullHistory();
-            GameFullHistory.Initialize();
+            
             NextIndexInHistoryActionsOnly = 0;
             LastDecisionIndexAdded = 255;
             Complete = false;
@@ -109,7 +103,6 @@ namespace ACESim
 
         private void Initialize_Helper()
         {
-            GameFullHistory.Initialize();
             fixed (byte* informationSetPtr = InformationSets)
                 for (byte p = 0; p < MaxNumPlayers; p++)
                 {
@@ -152,9 +145,9 @@ namespace ACESim
             if (!Initialized)
                 Initialize();
             AddToSimpleActionsList(action);
-            GameFullHistory.AddToHistory(decisionByteCode, decisionIndex, playerIndex, action, numPossibleActions, playersToInform, skipAddToHistory, cacheIndicesToIncrement, storeActionInCacheIndex, deferNotification, gameProgress);
+            gameProgress?.GameFullHistory.AddToHistory(decisionByteCode, decisionIndex, playerIndex, action, numPossibleActions, playersToInform, skipAddToHistory, cacheIndicesToIncrement, storeActionInCacheIndex, deferNotification, gameProgress);
             LastDecisionIndexAdded = decisionIndex; // DEBUG -- check
-            if (PreviousNotificationDeferred && DeferredPlayersToInform != null && DeferredPlayersToInform.Any())
+            if (PreviousNotificationDeferred && DeferredPlayersToInform != null)
                 AddToInformationSetAndLog(DeferredAction, decisionIndex, DeferredPlayerNumber, DeferredPlayersToInform, gameProgress); /* we use the current decision index, not the decision from which it was deferred -- this is important in setting the information set correctly */
             PreviousNotificationDeferred = deferNotification;
             if (deferNotification)
@@ -163,7 +156,7 @@ namespace ACESim
                 DeferredPlayerNumber = playerIndex;
                 DeferredPlayersToInform = playersToInform;
             }
-            else if (playersToInform != null && playersToInform.Any())
+            else if (playersToInform != null)
                 AddToInformationSetAndLog(action, decisionIndex, playerIndex, playersToInform, gameProgress);
             if (cacheIndicesToIncrement != null)
                 foreach (byte cacheIndex in cacheIndicesToIncrement)
@@ -198,7 +191,8 @@ namespace ACESim
         public void MarkComplete(GameProgress gameProgress = null)
         {
             Complete = true;
-            GameFullHistory.MarkComplete();
+            if (gameProgress != null)
+                gameProgress.GameFullHistory.MarkComplete();
         }
 
         public bool IsComplete()

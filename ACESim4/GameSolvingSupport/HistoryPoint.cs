@@ -24,8 +24,8 @@ namespace ACESim
 
         public override string ToString()
         {
-            if (HistoryToPoint.GameFullHistory.LastIndexAddedToHistory > 0 && GameProgress != null)
-                return String.Join(",", HistoryToPoint.GameFullHistory.GetInformationSetHistoryItems(GameProgress));
+            if (GameProgress?.GameFullHistory.LastIndexAddedToHistory > 0)
+                return String.Join(",", GameProgress?.GameFullHistory.GetInformationSetHistoryItems(GameProgress));
             return "HistoryPoint";
         }
 
