@@ -138,20 +138,20 @@ namespace ACESim
 
         #region Cache
 
-        public unsafe void IncrementCacheIndex(byte cacheIndexToIncrement)
+        public unsafe void IncrementItemAtCacheIndex(byte cacheIndexToIncrement)
         {
             // Console.WriteLine($"Increment cache for {cacheIndexToIncrement}");
             fixed (byte* cachePtr = Cache)
                 *(cachePtr + (byte)cacheIndexToIncrement) = (byte)(*(cachePtr + (byte)cacheIndexToIncrement) + (byte)1);
         }
 
-        public unsafe byte GetCacheIndex(byte cacheIndexToReset)
+        public unsafe byte GetCacheItemAtIndex(byte cacheIndexToReset)
         {
             fixed (byte* cachePtr = Cache)
                 return *(cachePtr + (byte)cacheIndexToReset);
         }
 
-        public unsafe void SetCacheIndex(byte cacheIndexToReset, byte newValue)
+        public unsafe void SetCacheItemAtIndex(byte cacheIndexToReset, byte newValue)
         {
             // Console.WriteLine($"Set cache for {cacheIndexToReset} to {newValue}"); 
             fixed (byte* cachePtr = Cache)
@@ -160,7 +160,7 @@ namespace ACESim
 
         #endregion
 
-        #region History and cache
+        #region History
 
         public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, List<byte> playersToInform, bool skipAddToHistory, List<byte> cacheIndicesToIncrement, byte? storeActionInCacheIndex, bool deferNotification, GameProgress gameProgress)
         {
@@ -197,9 +197,9 @@ namespace ACESim
                 AddToInformationSetAndLog(action, decisionIndex, playerIndex, playersToInform, gameProgress);
             if (cacheIndicesToIncrement != null)
                 foreach (byte cacheIndex in cacheIndicesToIncrement)
-                    IncrementCacheIndex(cacheIndex);
+                    IncrementItemAtCacheIndex(cacheIndex);
             if (storeActionInCacheIndex != null)
-                SetCacheIndex((byte)storeActionInCacheIndex, action);
+                SetCacheItemAtIndex((byte)storeActionInCacheIndex, action);
             if (GameProgressLogger.LoggingOn)
                 GameProgressLogger.Log($"Actions so far: {GetActionsAsListString()}");
         }

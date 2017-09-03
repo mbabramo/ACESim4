@@ -459,16 +459,16 @@ namespace ACESim
         {
             if (decision.DecisionByteCode == (byte) MyGameDecisions.MutualGiveUp)
             {
-                bool pTryingToGiveUp = gameHistory.GetCacheIndex(GameHistoryCacheIndex_PReadyToAbandon) == 1;
-                bool dTryingToGiveUp = gameHistory.GetCacheIndex(GameHistoryCacheIndex_DReadyToAbandon) == 1;
+                bool pTryingToGiveUp = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PReadyToAbandon) == 1;
+                bool dTryingToGiveUp = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_DReadyToAbandon) == 1;
                 return !pTryingToGiveUp || !dTryingToGiveUp; // if anyone is NOT trying to give up, we don't have to deal with mutual giving up
             }
             else if (decision.DecisionByteCode >= (byte) MyGameDecisions.POffer && decision.DecisionByteCode <= (byte) MyGameDecisions.DResponse)
             {
                 if (Options.IncludeAgreementToBargainDecisions)
                 {
-                    byte pAgreesToBargainCacheValue = gameHistory.GetCacheIndex(GameHistoryCacheIndex_PAgreesToBargain);
-                    byte dAgreesToBargainCacheValue = gameHistory.GetCacheIndex(GameHistoryCacheIndex_DAgreesToBargain);
+                    byte pAgreesToBargainCacheValue = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PAgreesToBargain);
+                    byte dAgreesToBargainCacheValue = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_DAgreesToBargain);
                     if (pAgreesToBargainCacheValue == 0 || dAgreesToBargainCacheValue == 0)
                         throw new NotImplementedException();
                     bool pAgreesToBargain = pAgreesToBargainCacheValue == (byte) 1;
@@ -501,12 +501,12 @@ namespace ACESim
                 case (byte)MyGameDecisions.CourtDecision:
                     return true;
                 case (byte)MyGameDecisions.DResponse:
-                    bool dAccepts = gameHistory.GetCacheIndex(GameHistoryCacheIndex_DResponse) == 1;
+                    bool dAccepts = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_DResponse) == 1;
                     if (dAccepts)
                         return true;
                     break;
                 case (byte)MyGameDecisions.PResponse:
-                    bool pAccepts = gameHistory.GetCacheIndex(GameHistoryCacheIndex_PResponse) == 1;
+                    bool pAccepts = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PResponse) == 1;
                     if (pAccepts)
                         return true;
                     break;
@@ -514,8 +514,8 @@ namespace ACESim
                     // this is simultaneous bargaining (plaintiff offer is always first). 
                     if (!Options.BargainingRoundsSimultaneous)
                         throw new Exception("Internal error.");
-                    byte plaintiffOffer = gameHistory.GetCacheIndex(GameHistoryCacheIndex_POffer);
-                    byte defendantOffer = gameHistory.GetCacheIndex(GameHistoryCacheIndex_DOffer);
+                    byte plaintiffOffer = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_POffer);
+                    byte defendantOffer = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_DOffer);
                     if (defendantOffer >= plaintiffOffer)
                         return true;
                     break;
@@ -528,8 +528,8 @@ namespace ACESim
                         return true; // defendant's hasn't answered
                     break;
                 case (byte)MyGameDecisions.DDefault:
-                    bool pTryingToGiveUp = gameHistory.GetCacheIndex(GameHistoryCacheIndex_PReadyToAbandon) == 1;
-                    bool dTryingToGiveUp = gameHistory.GetCacheIndex(GameHistoryCacheIndex_DReadyToAbandon) == 1;
+                    bool pTryingToGiveUp = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PReadyToAbandon) == 1;
+                    bool dTryingToGiveUp = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_DReadyToAbandon) == 1;
                     if (pTryingToGiveUp ^ dTryingToGiveUp) // i.e., one but not both parties try to default
                         return true;
                     break;
@@ -545,7 +545,7 @@ namespace ACESim
             if (Options.ActionIsNoiseNotSignal && (decisionByteCode == (byte) MyGameDecisions.PNoiseOrSignal || decisionByteCode == (byte) MyGameDecisions.DNoiseOrSignal))
             {
                 // When the action is the signal, we just send the signal that the player receives, because there are unequal chance probabilities. When the action is the noise, we have an even chance of each noise value. We can't just give the player the noise value; we have to take into account the litigation quality. So, we do that here.
-                byte litigationQuality = gameHistory.GetCacheIndex(GameHistoryCacheIndex_LitigationQuality);
+                byte litigationQuality = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_LitigationQuality);
                 ConvertNoiseToSignal(litigationQuality, actionChosen, decisionByteCode == (byte)MyGameDecisions.PNoiseOrSignal, out byte discreteSignal, out _);
                 gameHistory.AddToInformationSetAndLog(discreteSignal, currentDecisionIndex, decisionByteCode == (byte)MyGameDecisions.PNoiseOrSignal ? (byte) MyGamePlayers.Plaintiff : (byte) MyGamePlayers.Defendant, gameProgress);
                 // NOTE: We don't have to do anything like this for the court's information set. The court simply gets the actual litigation quality and the noise. When the game is actually being played, the court will combine these to determine whether the plaintiff wins. The plaintiff and defendant are non-chance players, and so we want to have the same information set for all situations with the same signal.  But with the court, that doesn't matter. We can have lots of information sets, covering the wide range of possibilities.
@@ -558,17 +558,17 @@ namespace ACESim
                 // At the beginning of one bargaining round, we must clean up the results of the previous bargaining round. Thus, if we are forgetting earlier bargaining rounds, then we want to delete all of the items in the resolution information set from that bargaining round. We need to know the number of items that have been added since the beginning of the previous bargaining round. We can do this by incrementing something in the game history cache whenever we process any of these decisions. We do this by using the IncrementGameCacheItem option of Decision.
 
                 // Clean up resolution set and (if necessary) players' sets
-                byte numItemsInResolutionSetFromPreviousBargainingRound = gameHistory.GetCacheIndex(GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound);
+                byte numItemsInResolutionSetFromPreviousBargainingRound = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound);
                 if (numItemsInResolutionSetFromPreviousBargainingRound > 0)
                     gameHistory.RemoveItemsInInformationSet((byte) MyGamePlayers.Resolution, currentDecisionIndex, numItemsInResolutionSetFromPreviousBargainingRound, gameProgress);
 
                 if (Options.ForgetEarlierBargainingRounds)
                 {
-                    byte numItemsInPlaintiffSetFromPreviousBargainingRound = gameHistory.GetCacheIndex(GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound);
+                    byte numItemsInPlaintiffSetFromPreviousBargainingRound = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound);
                     if (numItemsInPlaintiffSetFromPreviousBargainingRound > 0)
                         gameHistory.RemoveItemsInInformationSet((byte) MyGamePlayers.Plaintiff, currentDecisionIndex, numItemsInPlaintiffSetFromPreviousBargainingRound, gameProgress);
 
-                    byte numItemsInDefendantSetFromPreviousBargainingRound = gameHistory.GetCacheIndex(GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound);
+                    byte numItemsInDefendantSetFromPreviousBargainingRound = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound);
                     if (numItemsInDefendantSetFromPreviousBargainingRound > 0)
                         gameHistory.RemoveItemsInInformationSet((byte) MyGamePlayers.Defendant, currentDecisionIndex, numItemsInDefendantSetFromPreviousBargainingRound, gameProgress);
                 }
@@ -580,9 +580,9 @@ namespace ACESim
                 gameHistory.AddToInformationSetAndLog(bargainingRound, currentDecisionIndex, (byte)MyGamePlayers.Defendant, gameProgress);
 
                 // Reset the cache indices to reflect that there is only one item
-                gameHistory.SetCacheIndex(GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, (byte) 1);
-                gameHistory.SetCacheIndex(GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, (byte)1);
-                gameHistory.SetCacheIndex(GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, (byte)1);
+                gameHistory.SetCacheItemAtIndex(GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, (byte) 1);
+                gameHistory.SetCacheItemAtIndex(GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, (byte)1);
+                gameHistory.SetCacheItemAtIndex(GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, (byte)1);
             }
         }
 
