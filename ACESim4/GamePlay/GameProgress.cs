@@ -75,7 +75,7 @@ namespace ACESim
 
         public IEnumerable<InformationSetHistory> GetInformationSetHistoryItems()
         {
-            return GameHistory.GetInformationSetHistoryItems(this);
+            return GameHistory.GameFullHistory.GetInformationSetHistoryItems(this);
         }
 
 

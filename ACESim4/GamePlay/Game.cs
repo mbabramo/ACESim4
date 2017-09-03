@@ -269,7 +269,7 @@ namespace ACESim
                 nextPath = null;
                 return;
             }
-            Progress.GameHistory.GetNextDecisionPath(GameDefinition, nextPath);
+            Progress.GameHistory.GameFullHistory.GetNextDecisionPath(GameDefinition, nextPath);
             ChooseDefaultActionIfNoneChosen = false;
         }
 
@@ -368,7 +368,7 @@ namespace ACESim
         public virtual void FinalProcessing()
         {
             Progress.GameComplete = true; // might have already been set as a way to trigger early final processing
-            Progress.GameHistory.MarkComplete();
+            Progress.GameHistory.GameFullHistory.MarkComplete();
         }
 
         internal void SetStatusVariables()

@@ -378,9 +378,9 @@ namespace ACESim
         {
             // This can be overriden, for example if we sometimes skip a decision as a result of previous
             // occurrences in a game.
-            if (gameHistory.IsComplete())
+            if (gameHistory.GameFullHistory.IsComplete())
                 return (null, 255);
-            byte? lastDecisionIndex = gameHistory.LastDecisionIndex();
+            byte? lastDecisionIndex = gameHistory.GameFullHistory.LastDecisionIndex();
             if (lastDecisionIndex == null)
                 return (DecisionsExecutionOrder[0], 0); // note: first decision is not skippable
             byte nextDecisionIndex = (byte) lastDecisionIndex;

@@ -134,8 +134,8 @@ namespace ACESim
                 // produce the starting paths (), (1), (1,1), ... (1,1,1,1).
                 // We really only need the last of these.
                 int actionsToPlayCount = gp.ActionsToPlay.Count();
-                int actionsPlayedCount = gp.GameHistory.GetActionsAsList().Count();
-                bool notRedundant = actionsToPlayCount == actionsPlayedCount || (actionsPlayedCount == actionsToPlayCount + 1 && gp.GameHistory.GetActionsAsList().Last() == 1);
+                int actionsPlayedCount = gp.GameHistory.GameFullHistory.GetActionsAsList().Count();
+                bool notRedundant = actionsToPlayCount == actionsPlayedCount || (actionsPlayedCount == actionsToPlayCount + 1 && gp.GameHistory.GameFullHistory.GetActionsAsList().Last() == 1);
                 if (notRedundant)
                 {
                     yield return gp;
@@ -207,12 +207,12 @@ namespace ACESim
 
         public unsafe (GameProgress progress, IEnumerable<byte> next) PlayPath(IEnumerable<byte> actionsToPlay, bool getNextPath)
         {
-            byte* actionsToPlay_AsPointer = stackalloc byte[GameHistory.MaxNumActions];
+            byte* actionsToPlay_AsPointer = stackalloc byte[GameFullHistory.MaxNumActions];
             int d = 0;
             foreach (byte b in actionsToPlay)
                 actionsToPlay_AsPointer[d++] = b;
             actionsToPlay_AsPointer[d] = 255;
-            byte* nextActionsToPlay = stackalloc byte[GameHistory.MaxNumActions];
+            byte* nextActionsToPlay = stackalloc byte[GameFullHistory.MaxNumActions];
             if (!getNextPath)
                 nextActionsToPlay = null;
             GameProgress progress = PlayPathAndKeepGoing(actionsToPlay_AsPointer, ref nextActionsToPlay);
