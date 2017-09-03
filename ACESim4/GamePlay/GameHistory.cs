@@ -186,7 +186,7 @@ namespace ACESim
 
         public unsafe void IncrementCacheIndex(byte cacheIndexToIncrement)
         {
-            // Debug.WriteLine($"Increment cache for {cacheIndexToIncrement}");
+            // Console.WriteLine($"Increment cache for {cacheIndexToIncrement}");
             fixed (byte* cachePtr = Cache)
                 *(cachePtr + (byte)cacheIndexToIncrement) = (byte)(*(cachePtr + (byte)cacheIndexToIncrement) + (byte)1);
         }
@@ -199,7 +199,7 @@ namespace ACESim
 
         public unsafe void SetCacheIndex(byte cacheIndexToReset, byte newValue)
         {
-            // Debug.WriteLine($"Set cache for {cacheIndexToReset} to {newValue}"); 
+            // Console.WriteLine($"Set cache for {cacheIndexToReset} to {newValue}"); 
             fixed (byte* cachePtr = Cache)
                 *(cachePtr + (byte)cacheIndexToReset) = newValue;
         }

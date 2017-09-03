@@ -93,7 +93,7 @@ namespace ACESim
                 }
                 catch
                 {
-                    Debug.WriteLine("WARNING: Could not serialize strategy " + s);
+                    Console.WriteLine("WARNING: Could not serialize strategy " + s);
                 }
             }
         }
@@ -155,7 +155,7 @@ namespace ACESim
                 }
                 catch
                 {
-                    Debug.WriteLine("WARNING: Could not serialize strategy " + s);
+                    Console.WriteLine("WARNING: Could not serialize strategy " + s);
                 }
             }
         }

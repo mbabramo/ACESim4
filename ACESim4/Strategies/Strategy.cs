@@ -58,14 +58,14 @@ namespace ACESim
             if (decisionIndex == 0)
                 decisionIndex = 200; // a bit hacky -- we can't use a 0 prefix
             var returnVal = InformationSetTree.SetValueIfNotSet(decisionIndex, informationSet, historyComplete, setter);
-            // System.Diagnostics.Debug.WriteLine($"{String.Join(",", informationSet)}: {PlayerInfo.PlayerName} {returnVal.StoredValue}");
+            // System.Diagnostics.Console.WriteLine($"{String.Join(",", informationSet)}: {PlayerInfo.PlayerName} {returnVal.StoredValue}");
             return returnVal;
         }
 
         public unsafe NWayTreeStorage<IGameState> SetInformationSetTreeValueIfNotSet(byte* informationSet, bool historyComplete, Func<IGameState> setter)
         {
             var returnVal = InformationSetTree.SetValueIfNotSet(informationSet, historyComplete, setter);
-            // System.Diagnostics.Debug.WriteLine($"{String.Join(",", informationSet)}: {PlayerInfo.PlayerName} {returnVal.StoredValue}");
+            // System.Diagnostics.Console.WriteLine($"{String.Join(",", informationSet)}: {PlayerInfo.PlayerName} {returnVal.StoredValue}");
             return returnVal;
         }
 

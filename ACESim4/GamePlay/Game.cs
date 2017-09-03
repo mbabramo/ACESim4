@@ -179,18 +179,18 @@ namespace ACESim
             if (anotherActionPlanned)
             {
                 actionToChoose = Progress.ActionsToPlay_CurrentAction;
-                //Debug.WriteLine($"Decision byte code {CurrentDecision.DecisionByteCode} (index {CurrentDecisionIndex}) ==> {actionToChoose}");
+                //Console.WriteLine($"Decision byte code {CurrentDecision.DecisionByteCode} (index {CurrentDecisionIndex}) ==> {actionToChoose}");
             }
             else if (ChooseDefaultActionIfNoneChosen)
             {
                 actionToChoose =
                     1; // The history does not give us guidance, so we play the first available decision. When the game is complete, we can figure out the next possible game history and play that one (which may go to completion or not). 
-                //Debug.WriteLine($"Decision byte code {CurrentDecision.DecisionByteCode} (index {CurrentDecisionIndex}) ==> default {actionToChoose}");
+                //Console.WriteLine($"Decision byte code {CurrentDecision.DecisionByteCode} (index {CurrentDecisionIndex}) ==> default {actionToChoose}");
             }
             else
             {
                 actionToChoose = CurrentPlayerStrategy.ChooseActionBasedOnRandomNumber(Progress, Progress.IterationID.GetRandomNumberBasedOnIterationID((byte)CurrentDecisionIndex), CurrentDecision.NumPossibleActions);
-                //Debug.WriteLine($"Decision byte code {CurrentDecision.DecisionByteCode} (index {CurrentDecisionIndex}) ==> randomly chosen {actionToChoose}");
+                //Console.WriteLine($"Decision byte code {CurrentDecision.DecisionByteCode} (index {CurrentDecisionIndex}) ==> randomly chosen {actionToChoose}");
             }
 
             GameProgressLogger.Log(() => $"Choosing action {actionToChoose} for {CurrentDecision}");
@@ -311,7 +311,7 @@ namespace ACESim
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("Exception found in PlayUntilComplete: " + ex.Message);
+                Console.WriteLine("Exception found in PlayUntilComplete: " + ex.Message);
             }
         }
 
@@ -338,7 +338,7 @@ namespace ACESim
             }
             catch (Exception ex)
             {
-                Debug.WriteLine("Exception found in PlayUpTo: " + ex.Message);
+                Console.WriteLine("Exception found in PlayUpTo: " + ex.Message);
             }
 
         }

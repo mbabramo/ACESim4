@@ -56,7 +56,7 @@ namespace ACESim
                 for (int tab = 0; tab < Tabs; tab++)
                     message = "    " + message;
                 if (OutputLogMessages)
-                    System.Diagnostics.Debug.WriteLine(message);
+                    Console.WriteLine(message);
                 if (RecordLogMessages)
                     MessagesLog.Append("\n" + message);
             }

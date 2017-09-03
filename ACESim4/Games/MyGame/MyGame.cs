@@ -49,7 +49,7 @@ namespace ACESim
                     {
                         MyDefinition.ConvertNoiseToSignal(MyProgress.LitigationQualityDiscrete, action, false,
                             out MyProgress.DSignalDiscrete, out MyProgress.DSignalUniform);
-                        //System.Diagnostics.Debug.WriteLine($"D: Quality {MyProgress.LitigationQualityUniform} Noise action {action} => signal {MyProgress.DSignalDiscrete} ({MyProgress.DSignalUniform})");
+                        //System.Diagnostics.Console.WriteLine($"D: Quality {MyProgress.LitigationQualityUniform} Noise action {action} => signal {MyProgress.DSignalDiscrete} ({MyProgress.DSignalUniform})");
                     }
                     else
                     {
@@ -133,7 +133,7 @@ namespace ACESim
                         MyProgress.PWinsAtTrial =
                             courtSignal >
                             0.5; // we'll assume that P has burden of proof in case courtSignal is exactly equal to 0.5.
-                        //System.Diagnostics.Debug.WriteLine($"Quality {MyProgress.LitigationQualityUniform} Court noise action {action} => {courtNoiseNormalDraw} => signal {courtSignal} PWins {MyProgress.PWinsAtTrial}");
+                        //System.Diagnostics.Console.WriteLine($"Quality {MyProgress.LitigationQualityUniform} Court noise action {action} => {courtNoiseNormalDraw} => signal {courtSignal} PWins {MyProgress.PWinsAtTrial}");
                     }
                     else // with processed signals, the probability of P winning is defined in MyGameDefinition; action 2 always means a plaintiff victory
                         MyProgress.PWinsAtTrial = action == 2;

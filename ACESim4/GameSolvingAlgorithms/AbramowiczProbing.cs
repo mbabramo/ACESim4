@@ -270,7 +270,7 @@ namespace ACESim
         {
             if (GameNumber == 0)
                 GameNumber = EvolutionSettings.InitialRandomSeed;
-            Debug.WriteLine($"Game number {GameNumber}");
+            Console.WriteLine($"Game number {GameNumber}");
             Stopwatch s = new Stopwatch();
             if (NumNonChancePlayers > 2)
                 throw new Exception(

@@ -68,7 +68,7 @@ namespace ACESim
                 throw new NotImplementedException();
             fixed (byte* informationSetsLogPtr = InformationSetLogs)
             {
-                // Debug.WriteLine($"Adding information {information} following decision {followingDecisionIndex} for Player number {playerIndex}"); 
+                // Console.WriteLine($"Adding information {information} following decision {followingDecisionIndex} for Player number {playerIndex}"); 
                 byte* playerPointer = informationSetsLogPtr + InformationSetLoggingIndex(playerIndex);
                 byte* nextPlayerPointer = playerPointer + MaxInformationSetLoggingLengthForPlayer(playerIndex);
                 // advance to the end of the information set

@@ -155,7 +155,7 @@ namespace ACESim
             GameHistoryTree = new NWayTreeStorageInternal<IGameState>(null, GameDefinition.DecisionsExecutionOrder.First().NumPossibleActions);
 
             NumInitializedGamePaths = GamePlayer.PlayAllPaths(ProcessInitializedGameProgress);
-            Debug.WriteLine($"Initialized. Total paths: {NumInitializedGamePaths}");
+            Console.WriteLine($"Initialized. Total paths: {NumInitializedGamePaths}");
             PrintSameGameResults();
         }
 
@@ -255,15 +255,15 @@ namespace ACESim
                             if (t != null &&
                                 EvolutionSettings.RestrictToTheseInformationSets.Contains(t.InformationSetNumber))
                             {
-                                Debug.WriteLine($"{t}");
+                                Console.WriteLine($"{t}");
                             }
                         });
                     }
                     else
                     {
-                        Debug.WriteLine($"{s.PlayerInfo}");
+                        Console.WriteLine($"{s.PlayerInfo}");
                         string tree = s.GetInformationSetTreeString();
-                        Debug.WriteLine(tree);
+                        Console.WriteLine(tree);
                     }
                 }
             }
@@ -503,17 +503,17 @@ namespace ACESim
                 bool doBestResponse = (EvolutionSettings.BestResponseEveryMIterations != null && iteration % EvolutionSettings.BestResponseEveryMIterations == 0 && EvolutionSettings.BestResponseEveryMIterations != EvolutionSettings.EffectivelyNever && iteration != 0);
                 if (doBestResponse)
                     useRandomPaths = false;
-                Debug.WriteLine("");
-                Debug.WriteLine(prefaceFn());
+                Console.WriteLine("");
+                Console.WriteLine(prefaceFn());
                 if (EvolutionSettings.Algorithm == GameApproximationAlgorithm.AverageStrategySampling)
-                    Debug.WriteLine($"{NumberAverageStrategySamplingExplorations / (double)EvolutionSettings.ReportEveryNIterations}");
+                    Console.WriteLine($"{NumberAverageStrategySamplingExplorations / (double)EvolutionSettings.ReportEveryNIterations}");
                 NumberAverageStrategySamplingExplorations = 0;
                 if (EvolutionSettings.PrintSummaryTable)
                     PrintSummaryTable(useRandomPaths, null);
                 MeasureRegretMatchingChanges();
                 if (EvolutionSettings.OverrideForAlternativeTable != null)
                 {
-                    Debug.WriteLine("With alternative:");
+                    Console.WriteLine("With alternative:");
                     PrintSummaryTable(useRandomPaths, EvolutionSettings.OverrideForAlternativeTable);
                 }
                 if (ShouldEstimateImprovementOverTime)
@@ -535,16 +535,16 @@ namespace ACESim
             Action<GamePlayer, Func<Decision, GameProgress, byte>> reportGenerator;
             if (useRandomPaths)
             {
-                Debug.WriteLine($"Result using {EvolutionSettings.NumRandomIterationsForSummaryTable} randomly chosen paths");
+                Console.WriteLine($"Result using {EvolutionSettings.NumRandomIterationsForSummaryTable} randomly chosen paths");
                 reportGenerator = GenerateReports_RandomPaths;
             }
             else
             {
-                Debug.WriteLine($"Result using all paths");
+                Console.WriteLine($"Result using all paths");
                 reportGenerator = GenerateReports_AllPaths;
             }
-            Debug.WriteLine($"{GenerateReports(reportGenerator, actionOverride)}");
-            //Debug.WriteLine($"Number initialized game paths: {NumInitializedGamePaths}");
+            Console.WriteLine($"{GenerateReports(reportGenerator, actionOverride)}");
+            //Console.WriteLine($"Number initialized game paths: {NumInitializedGamePaths}");
         }
 
         private unsafe void CompareBestResponse(int iteration, bool useRandomPaths)
@@ -555,7 +555,7 @@ namespace ACESim
                 double bestResponseImprovement = bestResponseUtility - UtilityCalculations[playerBeingOptimized].Average();
                 if (!useRandomPaths && bestResponseImprovement < -1E-15)
                     throw new Exception("Best response function worse."); // it can be slightly negative as a result of rounding error or if we are using random paths as a result of sampling error
-                Debug.WriteLine($"Player {playerBeingOptimized} utility with regret matching {UtilityCalculations[playerBeingOptimized].Average()} using best response against regret matching {bestResponseUtility} best response improvement {bestResponseImprovement}");
+                Console.WriteLine($"Player {playerBeingOptimized} utility with regret matching {UtilityCalculations[playerBeingOptimized].Average()} using best response against regret matching {bestResponseUtility} best response improvement {bestResponseImprovement}");
             }
         }
 
@@ -593,10 +593,10 @@ namespace ACESim
                     CountPaths[gameActions] = 1;
                 else
                     CountPaths[gameActions] = CountPaths[gameActions] + 1;
-                //Debug.WriteLine($"{gameActions} {gameProgress1.GetNonChancePlayerUtilities()[0]}");
+                //Console.WriteLine($"{gameActions} {gameProgress1.GetNonChancePlayerUtilities()[0]}");
             }
             foreach (var item in CountPaths.AsEnumerable().OrderBy(x => x.Key))
-                Debug.WriteLine($"{item.Key} => {((double)item.Value) / (double)EvolutionSettings.NumRandomIterationsForSummaryTable}");
+                Console.WriteLine($"{item.Key} => {((double)item.Value) / (double)EvolutionSettings.NumRandomIterationsForSummaryTable}");
         }
 
         public void ProcessAllPaths(ref HistoryPoint history, Action<HistoryPoint, double> pathPlayer)
@@ -855,7 +855,7 @@ namespace ACESim
             for (int p = 0; p < NumNonChancePlayers; p++)
             {
                 double numItems = MostRecentImprovements[p].Count();
-                Debug.WriteLine($"Estimated average improvement per iteration over last {SizeOfMovingAverage} iterations for player {p}: {AggregateRecentImprovements[p]/numItems}");
+                Console.WriteLine($"Estimated average improvement per iteration over last {SizeOfMovingAverage} iterations for player {p}: {AggregateRecentImprovements[p]/numItems}");
             }
         }
 
@@ -874,7 +874,7 @@ namespace ACESim
                 if (PreviousRegretMatchingState != null)
                 {
                     (double totalChange, double proportionMixed) = MeasureRegretMatchingChange(PreviousRegretMatchingState[p], newRegretMatchingState[p]);
-                    Debug.WriteLine($"Change size for player {p} change {totalChange} proportion mixed {proportionMixed}");
+                    Console.WriteLine($"Change size for player {p} change {totalChange} proportion mixed {proportionMixed}");
                 }
             }
             PreviousRegretMatchingState = newRegretMatchingState;
