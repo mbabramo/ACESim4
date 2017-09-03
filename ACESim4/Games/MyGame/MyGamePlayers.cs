@@ -8,17 +8,17 @@ namespace ACESim
 {
     public enum MyGamePlayers : byte
     {
-        // NOTE: Chance players must be listed after real players, and Resolution player must be listed last.
+        // NOTE: Order: Main players, chance players that may have uneven chance actions (and thus have information sets), then resolution player, then other chance players.
         // NOTE2: When adding players, also add in GetPlayersList.
         Plaintiff,
         Defendant,
-        QualityChance,
         PNoiseOrSignalChance,
         DNoiseOrSignalChance,
+        CourtChance,
+        Resolution, 
+        QualityChance,
         BothGiveUpChance,
         PreBargainingRoundChance, // no real chance / 1 possible action
         PostBargainingRoundChance, // no real chance / 1 possible action
-        CourtChance,
-        Resolution, // keep this last
     }
 }

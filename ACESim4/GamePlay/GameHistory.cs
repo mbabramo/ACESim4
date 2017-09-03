@@ -16,17 +16,17 @@ namespace ACESim
 
         public const int CacheLength = 10; // the game and game definition can use the cache to store information. This is helpful when the game player is simulating the game without playing the underlying game. The game definition may, for example, need to be able to figure out which decision is next.
         public const int MaxHistoryLength = 200;
-        public const int MaxInformationSetLoggingLength = 2000; // MUST equal MaxInformationSetLoggingLengthPerPlayer * MaxNumPlayers. 
+        public const int MaxInformationSetLoggingLength = 1200; // MUST equal MaxInformationSetLoggingLengthPerPlayer * MaxNumPlayers. 
         public const int MaxInformationSetLoggingLengthPerPlayer = 200;
-        public const int MaxInformationSetLength = 200; // MUST equal MaxInformationSetLengthPerPlayer * MaxNumPlayers. 
+        public const int MaxInformationSetLength = 120; // MUST equal MaxInformationSetLengthPerPlayer * MaxNumPlayers. 
         public const int MaxInformationSetLengthPerPlayer = 20;
-        public const int MaxNumPlayers = 10;
+        public const int MaxNumPlayers = 6; // includes main players and resolution player (which must be numbered after main players), not chance players
         public const int MaxNumActions = 40;
         const byte HistoryComplete = 254;
         const byte HistoryTerminator = 255;
 
-        const byte InformationSetTerminator = 255;
-        const byte RemoveItemFromInformationSet = 254;
+        public const byte InformationSetTerminator = 255;
+        public const byte RemoveItemFromInformationSet = 254;
 
         private const byte History_DecisionByteCode_Offset = 0;
         private const byte History_DecisionIndex_Offset = 1; // the decision index reflects the order of the decision in the decisions list. A decision with the same byte code could correspond to multiple decision indices.
@@ -448,6 +448,8 @@ namespace ACESim
 
         private void AddToInformationSet(byte information, byte playerIndex, byte* informationSetsPtr)
         {
+            if (playerIndex >= MaxNumPlayers)
+                throw new NotImplementedException();
             byte* playerPointer = informationSetsPtr + playerIndex * MaxInformationSetLengthPerPlayer;
             byte numItems = 0;
             while (*playerPointer != InformationSetTerminator)
@@ -465,6 +467,8 @@ namespace ACESim
 
         private void AddToInformationSetLog(byte information, byte followingDecisionIndex, byte playerIndex, byte* informationSetsLogPtr)
         {
+            if (playerIndex >= MaxNumPlayers)
+                throw new NotImplementedException();
             if (!Initialized)
                 Initialize();
             // Debug.WriteLine($"Adding information {information} following decision {followingDecisionIndex} for Player number {playerIndex}"); 
@@ -509,6 +513,8 @@ namespace ACESim
 
         public unsafe byte GetPlayerInformationItem(int playerIndex, byte decisionIndex)
         {
+            if (playerIndex >= MaxNumPlayers)
+                throw new NotImplementedException();
             if (!Initialized)
                 Initialize();
             fixed (byte* informationSetsPtr = InformationSetLogs)
@@ -550,6 +556,12 @@ namespace ACESim
 
         public unsafe void GetPlayerInformationAtPoint(int playerIndex, byte? upToDecision, byte* playerInfoBuffer)
         {
+            if (playerIndex >= MaxNumPlayers)
+            {
+                // player has no information
+                *playerInfoBuffer = InformationSetTerminator;
+                return;
+            }
             fixed (byte* informationSetsPtr = InformationSetLogs)
             {
                 byte* playerPointer = informationSetsPtr + playerIndex * MaxInformationSetLoggingLengthPerPlayer;
@@ -573,6 +585,12 @@ namespace ACESim
 
         public unsafe void GetPlayerInformationCurrent(int playerIndex, byte* playerInfoBuffer)
         {
+            if (playerIndex >= MaxNumPlayers)
+            {
+                // player has no information
+                *playerInfoBuffer = InformationSetTerminator;
+                return;
+            }
             fixed (byte* informationSetsPtr = InformationSets)
             {
                 byte* playerPointer = informationSetsPtr + playerIndex * MaxInformationSetLengthPerPlayer;
@@ -604,6 +622,8 @@ namespace ACESim
 
         public byte CountItemsInInformationSet(byte playerIndex)
         {
+            if (playerIndex >= MaxNumPlayers)
+                throw new NotImplementedException();
             if (!Initialized)
                 Initialize();
             byte b = 0;
@@ -621,6 +641,8 @@ namespace ACESim
 
         public byte CountItemsInInformationSet_UsingLog(byte playerIndex)
         {
+            if (playerIndex >= MaxNumPlayers)
+                throw new NotImplementedException();
             if (!Initialized)
                 Initialize();
             byte b = 0;
@@ -642,6 +664,8 @@ namespace ACESim
 
         public void RemoveItemsInInformationSet(byte playerIndex, byte followingDecisionIndex, byte numItemsToRemove)
         {
+            if (playerIndex >= MaxNumPlayers)
+                throw new NotImplementedException();
             // This takes the approach of keeping the information set as append-only storage. That is, we add a notation that we're removing an item from the information set. 
             if (!Initialized)
                 Initialize();
@@ -663,6 +687,8 @@ namespace ACESim
 
         public void AddRemovalToInformationSetLog(byte followingDecisionIndex, byte playerIndex)
         {
+            if (playerIndex >= MaxNumPlayers)
+                throw new NotImplementedException();
             fixed (byte* informationSetsLogPtr = InformationSetLogs)
             {
                 AddToInformationSetLog(RemoveItemFromInformationSet, followingDecisionIndex, playerIndex, informationSetsLogPtr);

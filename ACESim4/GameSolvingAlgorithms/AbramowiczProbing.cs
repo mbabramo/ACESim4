@@ -112,8 +112,10 @@ namespace ACESim
             else if (gameStateForCurrentPlayer is ChanceNodeSettings chanceNodeSettings)
             {
                 byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
-                sampledAction = chanceNodeSettings.SampleAction(numPossibleActions,
-                    randomProducer.GetDoubleAtIndex(chanceNodeSettings.DecisionIndex));
+                if (numPossibleActions == 1)
+                    sampledAction = 1;
+                else
+                    sampledAction = chanceNodeSettings.SampleAction(numPossibleActions, randomProducer.GetDoubleAtIndex(chanceNodeSettings.DecisionIndex));
                 if (TraceProbingCFR)
                     TabbedText.WriteLine(
                         $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} for chance decision {chanceNodeSettings.DecisionIndex}");

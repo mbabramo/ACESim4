@@ -72,6 +72,7 @@ namespace ACESim
                 {
                     new PlayerInfo(PlaintiffName, (int) MyGamePlayers.Plaintiff, false, true),
                     new PlayerInfo(DefendantName, (int) MyGamePlayers.Defendant, false, true),
+                    new PlayerInfo(ResolutionPlayerName, (int) MyGamePlayers.Resolution, true, false),
                     new PlayerInfo(LitigationQualityChanceName, (int) MyGamePlayers.QualityChance, true, false),
                     new PlayerInfo(PlaintiffNoiseOrSignalChanceName, (int) MyGamePlayers.PNoiseOrSignalChance, true, false),
                     new PlayerInfo(DefendantNoiseOrSignalChanceName, (int) MyGamePlayers.DNoiseOrSignalChance, true, false),
@@ -79,7 +80,6 @@ namespace ACESim
                     new PlayerInfo(PreBargainingRoundChanceName, (int) MyGamePlayers.PreBargainingRoundChance, true, false),
                     new PlayerInfo(PostBargainingRoundChanceName, (int) MyGamePlayers.PostBargainingRoundChance, true, false),
                     new PlayerInfo(CourtChanceName, (int) MyGamePlayers.CourtChance, true, false),
-                    new PlayerInfo(ResolutionPlayerName, (int) MyGamePlayers.Resolution, true, false),
                 };
         }
 

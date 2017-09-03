@@ -10,8 +10,8 @@ namespace ACESim
     {
         // NOTE: Chance players must be listed after real players, and Resolution player must be listed last.
         Player1,
-        Player2, 
+        Player2,
+        Resolution,
         Chance,
-        Resolution
     }
 }
