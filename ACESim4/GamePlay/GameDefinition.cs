@@ -380,7 +380,7 @@ namespace ACESim
             // occurrences in a game.
             if (gameHistory.IsComplete())
                 return (null, 255);
-            byte? lastDecisionIndex = gameHistory.GetLastDecisionIndex();
+            byte? lastDecisionIndex = gameHistory.LastDecisionIndex();
             if (lastDecisionIndex == null)
                 return (DecisionsExecutionOrder[0], 0); // note: first decision is not skippable
             byte nextDecisionIndex = (byte) lastDecisionIndex;
