@@ -480,8 +480,7 @@ namespace ACESim
             }
             return false;
         }
-
-        // DEBUG -- try using ref for all GameHistory references. Meanwhile, is there a way to test that this runs properly? i.e., ensure that we get right final utilities.
+        
         public override bool ShouldMarkGameHistoryComplete(Decision currentDecision, ref GameHistory gameHistory, byte actionChosen)
         {
             if (!currentDecision.CanTerminateGame)

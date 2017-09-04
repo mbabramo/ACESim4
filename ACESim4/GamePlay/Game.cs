@@ -140,20 +140,18 @@ namespace ACESim
                 // Now, the player's information set. In HistoryPoint.GetGameStateForCurrentPlayer, we preface the information set tree for a decision (other than by the resolution player) by the decision index.
                 // That's good, because it means that we won't confuse the information set for the subdivision decisions with the information sets for the aggregated decision, since each decision will have its own
                 // decision index. But we still need to make sure that each subdivision decision gets the appropriate information set. Thus, after each subdivision decision, we need to add some information.
-                // Because our information set traversal algorithms expect the action, that's what we'll add. But we won't do it for the LAST subdivision. Instead, we'll remove the subdivision decisions
+                // Because our information set traversal algorithms expect the action, that's what we'll add. For the last decision, we'll remove the subdivision decisions
                 // from the information set. That way, the main decision will have a clear slate, and the subdivision decisions will not further clutter the information set tree.
                 // For the last subdivision, we'll also need to do the same things that we would do for an ordinary nonsubdivision decision. This is because the original decision is NOT in
                 // the decision list.
-                if (!decision.Subdividable_IsSubdivision_Last)
+                GameProgressLogger.Log(() => $"Adding subdivision action {action} to information set of {decision.PlayerNumber}");
+                gameHistory.AddToInformationSetAndLog(action, decisionIndex, decision.PlayerNumber, gameProgress);
+                gameHistory.AddToHistory(decision.DecisionByteCode, decisionIndex, decision.PlayerNumber, action, decision.NumPossibleActions, null /* we did the informing above */, false /* can't skip add to history b/c we need this for GetNextDecisionPath */, null, null, false, gameProgress);
+                if (decision.Subdividable_IsSubdivision_Last)
                 {
-                    GameProgressLogger.Log(() => $"Adding subdivision action {action} to information set of {decision.PlayerNumber}");
-                    gameHistory.AddToInformationSetAndLog(action, decisionIndex, decision.PlayerNumber, gameProgress);
-                }
-                else
-                {
-                    gameHistory.RemoveItemsInInformationSetAndLog(decision.PlayerNumber, decisionIndex, (byte) (decision.Subdividable_NumLevels - 1), gameProgress);
+                    gameHistory.RemoveItemsInInformationSetAndLog(decision.PlayerNumber, decisionIndex, decision.Subdividable_NumLevels, gameProgress);
                     GameProgressLogger.Log(() => $"Adding overall decision action {replacementAggregateValue} from {decision.PlayerNumber} to {string.Join(",", decision.PlayersToInform)}");
-                    gameHistory.AddToHistory(decision.Subdividable_CorrespondingDecisionByteCode, decisionIndex, decision.PlayerNumber, replacementAggregateValue, decision.AggregateNumPossibleActions, decision.PlayersToInform, false, decision.IncrementGameCacheItem, decision.StoreActionInGameCacheItem, decision.DeferNotificationOfPlayers, gameProgress);
+                    gameHistory.AddToHistory(decision.Subdividable_CorrespondingDecisionByteCode, decisionIndex, decision.PlayerNumber, replacementAggregateValue, decision.AggregateNumPossibleActions, decision.PlayersToInform, true, decision.IncrementGameCacheItem, decision.StoreActionInGameCacheItem, decision.DeferNotificationOfPlayers, gameProgress);
                     gameDefinition.CustomInformationSetManipulation(decision, decisionIndex, action, ref gameHistory, gameProgress);
                 }
             }
@@ -202,6 +200,8 @@ namespace ACESim
             }
 
             GameProgressLogger.Log(() => $"Choosing action {actionToChoose} for {CurrentDecision}");
+            if (actionToChoose > CurrentDecision.NumPossibleActions)
+                throw new Exception("Internal error.");
             return actionToChoose;
         }
 

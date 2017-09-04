@@ -21,8 +21,8 @@ namespace ACESim
         private const byte History_NumPossibleActions_Offset = 4;
         private const byte History_NumPiecesOfInformation = 5; // the total number of pieces of information above, so that we know how much to skip (i.e., 0, 1, 2, and 3)
 
-        public const int MaxNumActions = 40;
-        public const int MaxHistoryLength = 200;
+        public const int MaxNumActions = 60;
+        public const int MaxHistoryLength = 300;
         public fixed byte History[MaxHistoryLength];
         public short LastIndexAddedToHistory;
 
@@ -124,7 +124,8 @@ namespace ACESim
                     byte decisionIndex = GetHistoryIndex(i + History_DecisionIndex_Offset);
                     while (d != decisionIndex)
                         actions[d++] = 0;
-                    actions[d++] = GetHistoryIndex(i + History_Action_Offset);
+                    byte historyIndex = GetHistoryIndex(i + History_Action_Offset);
+                    actions[d++] = historyIndex;
                 }
             actions[d] = HistoryTerminator;
         }
@@ -264,6 +265,7 @@ namespace ACESim
                 }
             }
             nextDecisionPath[indexInNewDecisionPath] = HistoryTerminator;
+            //var nextDecisionPath2 = Util.ListExtensions.GetPointerAsList_255Terminated(nextDecisionPath);
         }
 
         private int? GetIndexOfLastDecisionWithAnotherAction(GameDefinition gameDefinition)

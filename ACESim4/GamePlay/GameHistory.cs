@@ -147,7 +147,7 @@ namespace ACESim
                 Initialize();
             AddToSimpleActionsList(action);
             gameProgress?.GameFullHistory.AddToHistory(decisionByteCode, decisionIndex, playerIndex, action, numPossibleActions, playersToInform, skipAddToHistory, cacheIndicesToIncrement, storeActionInCacheIndex, deferNotification, gameProgress);
-            LastDecisionIndexAdded = decisionIndex; // DEBUG -- check
+            LastDecisionIndexAdded = decisionIndex;
             if (PreviousNotificationDeferred && DeferredPlayersToInform != null)
                 AddToInformationSetAndLog(DeferredAction, decisionIndex, DeferredPlayerNumber, DeferredPlayersToInform, gameProgress); /* we use the current decision index, not the decision from which it was deferred -- this is important in setting the information set correctly */
             PreviousNotificationDeferred = deferNotification;
