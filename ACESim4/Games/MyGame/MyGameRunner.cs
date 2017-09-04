@@ -25,7 +25,7 @@ namespace ACESim
             return gameProgress;
         }
 
-        Debug; // if we are using the tree method, then we shouldn't need to reset to do multiple games.
+        // DEBUG TODO: if we are using the tree method, then we shouldn't need to reset to do multiple games.
 
         public static void EvolveMyGame()
         {

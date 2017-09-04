@@ -117,38 +117,43 @@ namespace ACESim
         public byte CustomByte;
 
         /// <summary>
-        /// This may be set for continuous actions, where a single decision should be broken up into multiple nodes. For example, if the choices are numbers 1-128, the first decision might be to choose between 1 and 64, the second between 65 and 128, etc. 
+        /// If true and this is a chance node, then explorative probing will probe all possibilities. 
         /// </summary>
-        
+        public bool CriticalNode;
+
+        /// <summary>
+        /// This may be set for continuous actions, where a single decision should be broken up into multiple nodes. For example, if the choices are numbers 1-128, the first decision might be to choose between 1 and 64, the second between 65 and 128, etc. Note that the subdivisions will have Subdividable == false.
+        /// </summary>
+
         public bool Subdividable;
 
         /// <summary>
-        /// The number of options per branch. For example, this would be set to 2 for a binary division.
+        /// The number of options per branch. For example, this would be set to 2 for a binary division. Currently, only 2 is supported.
         /// </summary>
         public byte Subdividable_NumOptionsPerBranch;
 
         /// <summary>
-        /// The number of levels to be used for subdividing. For example, if the actions are 1-128 and there are two options per branch, this should be set to 2.
+        /// The number of levels to be used for subdividing. For example, if the actions are 1-128 and there are two options per branch, this should be set to 7.
         /// </summary>
         public byte Subdividable_NumLevels;
 
         /// <summary>
-        /// The number of options per branch raised to the number of levels.
+        /// The number of options per branch raised to the number of levels. If Subdividable_NumOptionsPerBranch is 2 and Subdividable_NumLevels is 7, then this should be 128.
         /// </summary>
         public byte Subdividable_AggregateNumPossibleActions;
 
+
         public byte AggregateNumPossibleActions => Subdividable_IsSubdivision ? Subdividable_AggregateNumPossibleActions : NumPossibleActions;
+
+        /// <summary>
+        /// When a decision is subdividable, it is duplicated into multiple subdivision decisions. The subdivision decision components will have this set to true.
+        /// </summary>
+        public bool Subdividable_IsSubdivision;
 
         /// <summary>
         /// For a subdividable decision, this represents the decision byte code to be used for each level of the substitutable decision. For the subdivision itself, this represents the decision byte code of the subdivided decision.
         /// </summary>
         public byte Subdividable_CorrespondingDecisionByteCode;
-
-        /// <summary>
-        /// When a decision is subdividable, it is duplicated into multiple subdivision decisions.
-        /// </summary>
-        public bool Subdividable_IsSubdivision;
-
 
         /// <summary>
         /// Indicates for a subdivision whether this is the first subdivision. If so, a stub will be inserted in the party's own information set.
@@ -159,11 +164,6 @@ namespace ACESim
         /// Indicates for a subdivision whether this is the last subdivision. If this is true, then after the player makes its move, all of the items accumulating for each subdivision level in the information set will be removed and replaced by the aggregated decision.
         /// </summary>
         public bool Subdividable_IsSubdivision_Last;
-
-        /// <summary>
-        /// If true and this is a chance node, then explorative probing will probe all possibilities. 
-        /// </summary>
-        public bool CriticalNode;
 
         public Decision()
         {
@@ -224,7 +224,7 @@ namespace ACESim
                 subdivisionDecision.Subdividable_AggregateNumPossibleActions = NumPossibleActions;
                 subdivisionDecision.NumPossibleActions = Subdividable_NumOptionsPerBranch;
                 subdivisionDecision.Subdividable_IsSubdivision = true;
-                subdivisionDecision.PlayersToInform = new List<byte>() {subdivisionDecision.PlayerNumber}; // inform self
+                subdivisionDecision.PlayersToInform = new List<byte>() {subdivisionDecision.PlayerNumber}; // inform self, b/c self is going to make the aggregated decision; no need to inform resolution or anyone else
                 if (i == 0)
                     subdivisionDecision.Subdividable_IsSubdivision_First = true;
                 else if (i == Subdividable_NumLevels - 1)

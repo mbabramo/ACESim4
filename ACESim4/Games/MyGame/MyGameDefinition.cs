@@ -87,7 +87,7 @@ namespace ACESim
 
         private byte LitigationQualityDecisionIndex = (byte) 255;
 
-        private const byte GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound = 0;
+        // NOTE: Must skip 0, because that is used for subdivision aggregation decisions
         private const byte GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound = 1;
         private const byte GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound = 2;
         private const byte GameHistoryCacheIndex_PAgreesToBargain = 3;
@@ -99,9 +99,10 @@ namespace ACESim
         private const byte GameHistoryCacheIndex_PReadyToAbandon = 9;
         private const byte GameHistoryCacheIndex_DReadyToAbandon = 10;
         private const byte GameHistoryCacheIndex_LitigationQuality = 11;
+        private const byte GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound = 12;
 
         #endregion
-        
+
         #region Decisions list
 
         private List<Decision> GetDecisionsList()
@@ -541,7 +542,7 @@ namespace ACESim
 
         public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, ref GameHistory gameHistory, GameProgress gameProgress)
         {
-            byte decisionByteCode = currentDecision.Subdividable_IsSubdivision ? currentDecision.Subdividable_CorrespondingDecisionByteCode : currentDecision.DecisionByteCode;
+            byte decisionByteCode = currentDecision.Subdividable_IsSubdivision ? currentDecision.Subdividable_CorrespondingDecisionByteCode : currentDecision.DecisionByteCode; // get the original decision byte code
             if (Options.ActionIsNoiseNotSignal && (decisionByteCode == (byte) MyGameDecisions.PNoiseOrSignal || decisionByteCode == (byte) MyGameDecisions.DNoiseOrSignal))
             {
                 // When the action is the signal, we just send the signal that the player receives, because there are unequal chance probabilities. When the action is the noise, we have an even chance of each noise value. We can't just give the player the noise value; we have to take into account the litigation quality. So, we do that here.

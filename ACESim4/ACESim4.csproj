@@ -62,6 +62,7 @@
   <ItemGroup>
     <Compile Include="GamePlay\DefineActions.cs" />
     <Compile Include="GamePlay\GameFullHistory.cs" />
+    <Compile Include="GamePlay\SubdivisionCalculations.cs" />
     <Compile Include="GameSolvingAlgorithms\AbramowiczProbing.cs" />
     <Compile Include="GameSolvingAlgorithms\GibsonProbing.cs" />
     <Compile Include="GameSolvingSupport\ActionStrategies.cs" />
