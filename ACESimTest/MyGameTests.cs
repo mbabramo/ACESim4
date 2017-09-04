@@ -29,7 +29,8 @@ namespace ACESimTest
         }
 
         private const double PartyNoise = 0.2, InitialWealth = 1_000_000, DamagesAlleged = 100_000, PFileCost = 3000, DAnswerCost = 2000, PTrialCosts = 4000, DTrialCosts = 6000, PerRoundBargainingCost = 1000;
-        private const byte NumDistinctPoints = 5;
+        private const byte NumDistinctPoints = 8;
+        public const byte ValueWhenCaseSettles = 4;
         private const byte LitigationQuality = 3;
         private const byte PSignalOrNoise = 5, DSignalOrNoise = 1;
 
@@ -179,10 +180,10 @@ namespace ACESimTest
                 else
                 {
                     if (simultaneousBargaining)
-                        moves.Add((3, settlingThisRound ? (byte) 3 : (byte) 2));
+                        moves.Add((ValueWhenCaseSettles, settlingThisRound ? (byte)ValueWhenCaseSettles : (byte) (ValueWhenCaseSettles - 1)));
                     else
                     {
-                        byte offer = 3;
+                        byte offer = ValueWhenCaseSettles;
                         byte response = settlingThisRound ? (byte) 1 : (byte) 2;
                         if (b % 2 == 1)
                             moves.Add((offer, response));
@@ -474,11 +475,13 @@ namespace ACESimTest
                 dSignalOrNoise: DSignalOrNoise, simulatingBargainingFailure: simulatingBargainingFailure, bargainingRoundMoves: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds);
             var myGameProgress = MyGameRunner.PlayMyGameOnce(options, actionsToPlay);
 
+            double settlementProportion = EquallySpaced.GetLocationOfEquallySpacedPoint((byte) (ValueWhenCaseSettles - 1), NumDistinctPoints);
+
             myGameProgress.GameComplete.Should().BeTrue();
             myGameProgress.CaseSettles.Should().BeTrue();
-            myGameProgress.PFinalWealth.Should().Be(options.PInitialWealth - options.PFilingCost + 0.5 * options.DamagesAlleged -
+            myGameProgress.PFinalWealth.Should().Be(options.PInitialWealth - options.PFilingCost + settlementProportion * options.DamagesAlleged -
                                                     numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound);
-            myGameProgress.DFinalWealth.Should().Be(options.DInitialWealth - options.DAnswerCost - 0.5 * options.DamagesAlleged -
+            myGameProgress.DFinalWealth.Should().Be(options.DInitialWealth - options.DAnswerCost - settlementProportion * options.DamagesAlleged -
                                                     numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound);
             myGameProgress.PWelfare.Should().Be(myGameProgress.PFinalWealth);
             myGameProgress.DWelfare.Should().Be(myGameProgress.DFinalWealth);
