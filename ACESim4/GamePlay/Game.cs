@@ -264,6 +264,8 @@ namespace ACESim
                 AdvanceToOrCompleteNextStep();
         }
 
+        private static int DEBUG = 0;
+
         /// <summary>
         /// Plays the game according to a particular decisionmaking path. If the path is incomplete, it plays the first possible action for each remaining decision.
         /// </summary>
@@ -275,6 +277,7 @@ namespace ACESim
             Progress.SetActionsToPlay(actionsToPlay);
             Progress.IsFinalGamePath = true;
             PlayUntilComplete();
+            DEBUG++;
             if (nextPath == null || Progress.IsFinalGamePath)
             {
                 nextPath = null;
