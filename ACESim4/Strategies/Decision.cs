@@ -155,6 +155,12 @@ namespace ACESim
         /// </summary>
         public byte Subdividable_CorrespondingDecisionByteCode;
 
+
+        /// <summary>
+        /// Indicates for a subdivision the subdivision level. Level 1 is the first and most important level (e.g., if we're choosing among 128 levels, the action will be a 1 for values 1-64 and a 2 for values 65-128).
+        /// </summary>
+        public byte Subdividable_IsSubdivision_Level;
+
         /// <summary>
         /// Indicates for a subdivision whether this is the first subdivision. If so, a stub will be inserted in the party's own information set.
         /// </summary>
@@ -212,7 +218,7 @@ namespace ACESim
             if (!Subdividable)
                 throw new Exception("Only subdividable decisions can be converted");
             int totalActions = (int)Math.Pow(Subdividable_NumOptionsPerBranch, Subdividable_NumLevels);
-            if (totalActions != NumPossibleActions)
+            if (totalActions != NumPossibleActions || totalActions > 254)
                 throw new Exception("Subdivision not set up correctly.");
             List<Decision> decisions = new List<Decision>();
             for (int i = 0; i < Subdividable_NumLevels; i++)
@@ -229,8 +235,8 @@ namespace ACESim
                     subdivisionDecision.Subdividable_IsSubdivision_First = true;
                 else if (i == Subdividable_NumLevels - 1)
                     subdivisionDecision.Subdividable_IsSubdivision_Last = true;
-                if (i != Subdividable_NumLevels - 1)
-                    subdivisionDecision.CanTerminateGame = false;
+                subdivisionDecision.Subdividable_IsSubdivision_Level = (byte) (i + 1);
+                subdivisionDecision.CanTerminateGame = false; // the ACTUAL decision that follows the subdivisions can terminate the game
                 decisions.Add(subdivisionDecision);
             }
             return decisions;

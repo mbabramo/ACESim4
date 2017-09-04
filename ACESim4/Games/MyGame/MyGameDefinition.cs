@@ -486,16 +486,7 @@ namespace ACESim
             if (!currentDecision.CanTerminateGame)
                 return false;
 
-            byte decisionByteCode;
-            if (currentDecision.Subdividable_IsSubdivision)
-            {
-                if (currentDecision.Subdividable_IsSubdivision_Last)
-                    decisionByteCode = currentDecision.Subdividable_CorrespondingDecisionByteCode;
-                else
-                    return false; // must get to the last subdivision before considering this
-            }
-            else
-                decisionByteCode = currentDecision.DecisionByteCode;
+            byte decisionByteCode = currentDecision.DecisionByteCode;
 
             switch (decisionByteCode)
             {
@@ -561,17 +552,17 @@ namespace ACESim
                 // Clean up resolution set and (if necessary) players' sets
                 byte numItemsInResolutionSetFromPreviousBargainingRound = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound);
                 if (numItemsInResolutionSetFromPreviousBargainingRound > 0)
-                    gameHistory.RemoveItemsInInformationSet((byte) MyGamePlayers.Resolution, currentDecisionIndex, numItemsInResolutionSetFromPreviousBargainingRound, gameProgress);
+                    gameHistory.RemoveItemsInInformationSetAndLog((byte) MyGamePlayers.Resolution, currentDecisionIndex, numItemsInResolutionSetFromPreviousBargainingRound, gameProgress);
 
                 if (Options.ForgetEarlierBargainingRounds)
                 {
                     byte numItemsInPlaintiffSetFromPreviousBargainingRound = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound);
                     if (numItemsInPlaintiffSetFromPreviousBargainingRound > 0)
-                        gameHistory.RemoveItemsInInformationSet((byte) MyGamePlayers.Plaintiff, currentDecisionIndex, numItemsInPlaintiffSetFromPreviousBargainingRound, gameProgress);
+                        gameHistory.RemoveItemsInInformationSetAndLog((byte) MyGamePlayers.Plaintiff, currentDecisionIndex, numItemsInPlaintiffSetFromPreviousBargainingRound, gameProgress);
 
                     byte numItemsInDefendantSetFromPreviousBargainingRound = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound);
                     if (numItemsInDefendantSetFromPreviousBargainingRound > 0)
-                        gameHistory.RemoveItemsInInformationSet((byte) MyGamePlayers.Defendant, currentDecisionIndex, numItemsInDefendantSetFromPreviousBargainingRound, gameProgress);
+                        gameHistory.RemoveItemsInInformationSetAndLog((byte) MyGamePlayers.Defendant, currentDecisionIndex, numItemsInDefendantSetFromPreviousBargainingRound, gameProgress);
                 }
 
                 // Add an indication of the bargaining round we're in.

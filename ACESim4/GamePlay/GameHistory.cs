@@ -336,7 +336,7 @@ namespace ACESim
         }
 
 
-        public void RemoveItemsInInformationSet(byte playerIndex, byte followingDecisionIndex, byte numItemsToRemove, GameProgress gameProgress)
+        public void RemoveItemsInInformationSetAndLog(byte playerIndex, byte followingDecisionIndex, byte numItemsToRemove, GameProgress gameProgress)
         {
             if (playerIndex >= MaxNumPlayers)
                 throw new NotImplementedException();

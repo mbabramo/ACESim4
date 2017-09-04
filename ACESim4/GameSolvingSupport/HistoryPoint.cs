@@ -330,9 +330,6 @@ namespace ACESim
                             }
                             else
                             {
-                                byte? binarySubdivisionLevels = null;
-                                if (decision.Subdividable_IsSubdivision && decision.Subdividable_NumOptionsPerBranch == 2)
-                                    binarySubdivisionLevels = (byte)decision.Subdividable_NumLevels;
                                 InformationSetNodeTally nodeInfo = new InformationSetNodeTally(informationSetHistory.DecisionByteCode, informationSetHistory.DecisionIndex, playerInfo.PlayerIndex, decision.NumPossibleActions);
                                 return nodeInfo;
                             }
