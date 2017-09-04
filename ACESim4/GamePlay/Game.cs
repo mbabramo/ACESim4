@@ -118,8 +118,14 @@ namespace ACESim
                 byte decisionIndex = (byte)CurrentDecisionIndex;
                 byte playerNumber = CurrentPlayerNumber;
                 UpdateGameHistory(ref Progress.GameHistory, GameDefinition, currentDecision, decisionIndex, action, Progress);
-                if (!currentDecision.Subdividable_IsSubdivision)
-                    UpdateGameProgressFollowingAction(currentDecision.DecisionByteCode, action); // this is last decision for a subdivision, so we update the game progress for the underlying decision based on the aggregated action
+                // We update game progress now (note that this will not be called when traversing the tree -- that's why we don't do this within UpdateGameHistory)
+                if (!currentDecision.Subdividable_IsSubdivision) // If it is a subdivision, we'll call this in Update
+                    UpdateGameProgressFollowingAction(currentDecision.DecisionByteCode, action); 
+                else if (currentDecision.Subdividable_IsSubdivision_Last)
+                {
+                    byte aggregatedAction = Progress.GameHistory.GetCacheItemAtIndex(GameHistory.Cache_SubdivisionAggregationIndex);
+                    UpdateGameProgressFollowingAction(currentDecision.Subdividable_CorrespondingDecisionByteCode, aggregatedAction);
+                }
             }
         }
 
@@ -136,11 +142,20 @@ namespace ACESim
                 // decision index. But we still need to make sure that each subdivision decision gets the appropriate information set. Thus, after each subdivision decision, we need to add some information.
                 // Because our information set traversal algorithms expect the action, that's what we'll add. But we won't do it for the LAST subdivision. Instead, we'll remove the subdivision decisions
                 // from the information set. That way, the main decision will have a clear slate, and the subdivision decisions will not further clutter the information set tree.
-                // How main decision gets the aggregated value after all subdivision decisions are made: In ChooseAction(), the main decision should see that it is an aggregated decision, and it should automatically choose the action relayed by the subdivision decisions.
+                // For the last subdivision, we'll also need to do the same things that we would do for an ordinary nonsubdivision decision. This is because the original decision is NOT in
+                // the decision list.
                 if (!decision.Subdividable_IsSubdivision_Last)
+                {
+                    GameProgressLogger.Log(() => $"Adding subdivision action {action} to information set of {decision.PlayerNumber}");
                     gameHistory.AddToInformationSetAndLog(action, decisionIndex, decision.PlayerNumber, gameProgress);
+                }
                 else
+                {
                     gameHistory.RemoveItemsInInformationSetAndLog(decision.PlayerNumber, decisionIndex, (byte) (decision.Subdividable_NumLevels - 1), gameProgress);
+                    GameProgressLogger.Log(() => $"Adding overall decision action {replacementAggregateValue} from {decision.PlayerNumber} to {string.Join(",", decision.PlayersToInform)}");
+                    gameHistory.AddToHistory(decision.Subdividable_CorrespondingDecisionByteCode, decisionIndex, decision.PlayerNumber, replacementAggregateValue, decision.AggregateNumPossibleActions, decision.PlayersToInform, false, decision.IncrementGameCacheItem, decision.StoreActionInGameCacheItem, decision.DeferNotificationOfPlayers, gameProgress);
+                    gameDefinition.CustomInformationSetManipulation(decision, decisionIndex, action, ref gameHistory, gameProgress);
+                }
             }
             else
             {
@@ -167,11 +182,6 @@ namespace ACESim
                     GameProgressLogger.Log(() => $"Choosing overridden action {actionToAdd} for {CurrentDecision}");
                     return actionToAdd;
                 }
-            }
-            if (CurrentDecision.Subdividable)
-            {
-                byte aggregatedDecision = Progress.GameHistory.GetCacheItemAtIndex(GameHistory.Cache_SubdivisionAggregationIndex);
-                return aggregatedDecision;
             }
             bool anotherActionPlanned = Progress.ActionsToPlay_MoveNext();
             if (anotherActionPlanned)

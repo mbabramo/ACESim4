@@ -12,6 +12,7 @@ namespace ACESimTest
     [TestClass]
     public class MyGameTests
     {
+        private int CaseNumber = 0;
 
         private static void GetInformationSetStrings(MyGameProgress myGameProgress, out string pInformationSet,
             out string dInformationSet, out string resolutionSet)
@@ -304,6 +305,7 @@ namespace ACESimTest
         public void CaseGivenUp()
         {
             // settings
+            CaseNumber = 0;
             for (byte numPotentialBargainingRounds = 1; numPotentialBargainingRounds <= 3; numPotentialBargainingRounds++)
                 foreach (bool subdivideOffers in new bool[] { false, true })
                     foreach (bool forgetEarlierBargainingRounds in new bool[] { true, false })
@@ -319,7 +321,6 @@ namespace ACESimTest
         private void CaseGivenUpVariousActions(byte numPotentialBargainingRounds, bool subdivideOffers, bool forgetEarlierBargainingRounds,
             bool simultaneousBargainingRounds, bool actionIsNoiseNotSignal, LoserPaysPolicy loserPaysPolicy, HowToSimulateBargainingFailure simulatingBargainingFailure)
         {
-            int caseNumber = 0;
             try
             {
                 for (byte abandonmentInRound = 0;
@@ -333,7 +334,7 @@ namespace ACESimTest
                                     continue; // not interested in this case
                                 if ((!plaintiffGivesUp || !defendantGivesUp) && !plaintiffWinsIfBothGiveUp)
                                     continue; // only need to test both values of plaintiff wins if both give up if both give up.
-                                if (caseNumber == 999999)
+                                if (CaseNumber == 9999999)
                                 {
                                     GameProgressLogger.LoggingOn = true;
                                     GameProgressLogger.OutputLogMessages = true;
@@ -346,12 +347,12 @@ namespace ACESimTest
                                     mutualGiveUpResult: plaintiffWinsIfBothGiveUp ? (byte)2 : (byte)1,
                                     loserPaysPolicy: loserPaysPolicy,
                                     simulatingBargainingFailure: simulatingBargainingFailure);
-                                caseNumber++;
+                                CaseNumber++;
                             }
             }
             catch (Exception e)
             {
-                throw new Exception($"Case number {caseNumber} failed: {e.Message}");
+                throw new Exception($"Case number {CaseNumber} failed: {e.Message}");
             }
         }
 
@@ -439,7 +440,7 @@ namespace ACESimTest
         [TestMethod]
         public void SettlingCase()
         {
-            int caseNumber = 0;
+            CaseNumber = 0;
             try
             {
                 for (byte numPotentialBargainingRounds = 1; numPotentialBargainingRounds <= 3; numPotentialBargainingRounds++)
@@ -452,18 +453,18 @@ namespace ACESimTest
                     foreach (HowToSimulateBargainingFailure simulatingBargainingFailure in new HowToSimulateBargainingFailure[] { HowToSimulateBargainingFailure.PRefusesToBargain, HowToSimulateBargainingFailure.DRefusesToBargain, HowToSimulateBargainingFailure.BothRefuseToBargain, HowToSimulateBargainingFailure.BothAgreeToBargain, HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain })
                         for (byte settlementInRound = 1; settlementInRound <= numPotentialBargainingRounds; settlementInRound++)
                         {
-                            if (caseNumber == 9999999)
+                            if (CaseNumber == 9999999)
                             {
                                 GameProgressLogger.LoggingOn = true;
                                 GameProgressLogger.OutputLogMessages = true;
                             }
                             SettlingCase_Helper(numPotentialBargainingRounds, subdivideOffers, settlementInRound, forgetEarlierBargainingRounds, simultaneousBargainingRounds, allowAbandonAndDefault, actionIsNoiseNotSignal, loserPaysPolicy, simulatingBargainingFailure);
-                            caseNumber++;
+                            CaseNumber++;
                         }
             }
             catch (Exception e)
             {
-                throw new Exception($"Failed at case number {caseNumber}. Inner exception: {e.Message}", e);
+                throw new Exception($"Failed at case number {CaseNumber}. Inner exception: {e.Message}", e);
             }
         }
 
@@ -501,7 +502,7 @@ namespace ACESimTest
         [TestMethod]
         public void CaseTried()
         {
-            var caseNumber = 0;
+            CaseNumber = 0;
             try
             {
                 foreach (bool allowAbandonAndDefaults in new[] { true, false })
@@ -514,18 +515,18 @@ namespace ACESimTest
                                         foreach (var loserPaysPolicy in new[] { LoserPaysPolicy.NoLoserPays, LoserPaysPolicy.AfterTrialOnly, LoserPaysPolicy.EvenAfterAbandonOrDefault })
                                             foreach (var simulatingBargainingFailure in new[] { HowToSimulateBargainingFailure.PRefusesToBargain, HowToSimulateBargainingFailure.DRefusesToBargain, HowToSimulateBargainingFailure.BothRefuseToBargain, HowToSimulateBargainingFailure.BothAgreeToBargain, HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain })
                                             {
-                                                if (caseNumber == 999999)
+                                                if (CaseNumber == 999999)
                                                 {
                                                     GameProgressLogger.LoggingOn = true;
                                                     GameProgressLogger.OutputLogMessages = true;
                                                 }
                                                 CaseTried_Helper(allowAbandonAndDefaults, forgetEarlierBargainingRounds, numBargainingRounds, subdivideOffers, plaintiffWins, simultaneousBargainingRounds, actionIsNoiseNotSignal, loserPaysPolicy, simulatingBargainingFailure);
-                                                caseNumber++;
+                                                CaseNumber++;
                                             }
             }
             catch (Exception e)
             {
-                throw new Exception($"Failed case number {caseNumber}: {e.Message}");
+                throw new Exception($"Failed case number {CaseNumber}: {e.Message}");
             }
         }
 

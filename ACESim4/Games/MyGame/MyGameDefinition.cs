@@ -458,13 +458,14 @@ namespace ACESim
 
         public override bool SkipDecision(Decision decision, ref GameHistory gameHistory)
         {
-            if (decision.DecisionByteCode == (byte) MyGameDecisions.MutualGiveUp)
+            byte decisionByteCode = decision.Subdividable_IsSubdivision ? decision.Subdividable_CorrespondingDecisionByteCode : decision.DecisionByteCode;
+            if (decisionByteCode == (byte) MyGameDecisions.MutualGiveUp)
             {
                 bool pTryingToGiveUp = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PReadyToAbandon) == 1;
                 bool dTryingToGiveUp = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_DReadyToAbandon) == 1;
                 return !pTryingToGiveUp || !dTryingToGiveUp; // if anyone is NOT trying to give up, we don't have to deal with mutual giving up
             }
-            else if (decision.DecisionByteCode >= (byte) MyGameDecisions.POffer && decision.DecisionByteCode <= (byte) MyGameDecisions.DResponse)
+            else if (decisionByteCode >= (byte) MyGameDecisions.POffer && decisionByteCode <= (byte) MyGameDecisions.DResponse)
             {
                 if (Options.IncludeAgreementToBargainDecisions)
                 {

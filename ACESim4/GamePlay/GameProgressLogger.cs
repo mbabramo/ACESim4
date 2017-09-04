@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
@@ -56,7 +57,7 @@ namespace ACESim
                 for (int tab = 0; tab < Tabs; tab++)
                     message = "    " + message;
                 if (OutputLogMessages)
-                    Console.WriteLine(message);
+                    Debug.WriteLine(message);
                 if (RecordLogMessages)
                     MessagesLog.Append("\n" + message);
             }

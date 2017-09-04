@@ -211,6 +211,7 @@ namespace ACESim
                 currentDecisionList.Add(this);
             else
                 currentDecisionList.AddRange(ConvertToSubdivisionDecisions());
+            // NOTE: We do not add the original decision after the subdivisions are added. Instead, the Game will arrange for progress to be added based on the original decision after the last subdivision executes, even though it hasn't been added.
         }
 
         public List<Decision> ConvertToSubdivisionDecisions()
@@ -224,13 +225,15 @@ namespace ACESim
             for (int i = 0; i < Subdividable_NumLevels; i++)
             {
                 Decision subdivisionDecision = Clone();
+                subdivisionDecision.Name += $" (Subdivision Level {i + 1})";
+                subdivisionDecision.Abbreviation += $"SL{i + 1}";
                 subdivisionDecision.DecisionByteCode = Subdividable_CorrespondingDecisionByteCode;
                 subdivisionDecision.Subdividable_CorrespondingDecisionByteCode = DecisionByteCode;
                 subdivisionDecision.Subdividable = false;
                 subdivisionDecision.Subdividable_AggregateNumPossibleActions = NumPossibleActions;
                 subdivisionDecision.NumPossibleActions = Subdividable_NumOptionsPerBranch;
                 subdivisionDecision.Subdividable_IsSubdivision = true;
-                subdivisionDecision.PlayersToInform = new List<byte>() {subdivisionDecision.PlayerNumber}; // inform self, b/c self is going to make the aggregated decision; no need to inform resolution or anyone else
+                subdivisionDecision.PlayersToInform = PlayersToInform.ToList(); // this will be applied only when simulating the last decision
                 if (i == 0)
                     subdivisionDecision.Subdividable_IsSubdivision_First = true;
                 else if (i == Subdividable_NumLevels - 1)
