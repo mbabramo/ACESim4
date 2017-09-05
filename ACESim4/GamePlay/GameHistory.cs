@@ -141,16 +141,19 @@ namespace ACESim
 
         #region History
 
-        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, List<byte> playersToInform, bool skipAddToHistory, List<byte> cacheIndicesToIncrement, byte? storeActionInCacheIndex, bool deferNotification, GameProgress gameProgress)
+        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, List<byte> playersToInform, bool skipAddToHistory, List<byte> cacheIndicesToIncrement, byte? storeActionInCacheIndex, bool deferNotification, bool delayPreviousDeferredNotification, GameProgress gameProgress)
         {
             if (!Initialized)
                 Initialize();
             AddToSimpleActionsList(action);
             gameProgress?.GameFullHistory.AddToHistory(decisionByteCode, decisionIndex, playerIndex, action, numPossibleActions, playersToInform, skipAddToHistory, cacheIndicesToIncrement, storeActionInCacheIndex, deferNotification, gameProgress);
             LastDecisionIndexAdded = decisionIndex;
-            if (PreviousNotificationDeferred && DeferredPlayersToInform != null)
-                AddToInformationSetAndLog(DeferredAction, decisionIndex, DeferredPlayerNumber, DeferredPlayersToInform, gameProgress); /* we use the current decision index, not the decision from which it was deferred -- this is important in setting the information set correctly */
-            PreviousNotificationDeferred = deferNotification;
+            if (!delayPreviousDeferredNotification)
+            {
+                if (PreviousNotificationDeferred && DeferredPlayersToInform != null)
+                    AddToInformationSetAndLog(DeferredAction, decisionIndex, DeferredPlayerNumber, DeferredPlayersToInform, gameProgress); /* we use the current decision index, not the decision from which it was deferred -- this is important in setting the information set correctly */
+                PreviousNotificationDeferred = deferNotification;
+            }
             if (deferNotification)
             {
                 DeferredAction = action;

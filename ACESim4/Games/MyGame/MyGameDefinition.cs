@@ -486,7 +486,7 @@ namespace ACESim
             if (!currentDecision.CanTerminateGame)
                 return false;
 
-            byte decisionByteCode = currentDecision.DecisionByteCode;
+            byte decisionByteCode = currentDecision.Subdividable_IsSubdivision ? currentDecision.Subdividable_CorrespondingDecisionByteCode : currentDecision.DecisionByteCode;
 
             switch (decisionByteCode)
             {

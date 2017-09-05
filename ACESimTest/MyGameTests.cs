@@ -334,7 +334,7 @@ namespace ACESimTest
                                     continue; // not interested in this case
                                 if ((!plaintiffGivesUp || !defendantGivesUp) && !plaintiffWinsIfBothGiveUp)
                                     continue; // only need to test both values of plaintiff wins if both give up if both give up.
-                                if (CaseNumber == 9999999)
+                                if (CaseNumber == 999999)
                                 {
                                     GameProgressLogger.LoggingOn = true;
                                     GameProgressLogger.OutputLogMessages = true;

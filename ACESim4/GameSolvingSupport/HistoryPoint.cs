@@ -92,7 +92,17 @@ namespace ACESim
                 if (GameProgressLogger.LoggingOn)
                 {
                     var informationSetList = Util.ListExtensions.GetPointerAsList_255Terminated(informationSetsPtr);
-                    GameProgressLogger.Log($"Player {nextPlayer} information set: {String.Join(",", informationSetList)}");
+                    // DEBUG uncomment GameProgressLogger.Log($"Player {nextPlayer} information set: {String.Join(",", informationSetList)}");
+                    // DEBUG:
+                    HistoryToPoint.GetPlayerInformationCurrent(0, informationSetsPtr);
+                    informationSetList = Util.ListExtensions.GetPointerAsList_255Terminated(informationSetsPtr);
+                    GameProgressLogger.Log($"Player {0} information set: {String.Join(",", informationSetList)}");
+                    HistoryToPoint.GetPlayerInformationCurrent(1, informationSetsPtr);
+                    informationSetList = Util.ListExtensions.GetPointerAsList_255Terminated(informationSetsPtr);
+                    GameProgressLogger.Log($"Player {1} information set: {String.Join(",", informationSetList)}");
+                    HistoryToPoint.GetPlayerInformationCurrent(2, informationSetsPtr);
+                    informationSetList = Util.ListExtensions.GetPointerAsList_255Terminated(informationSetsPtr);
+                    GameProgressLogger.Log($"Player {2} information set: {String.Join(",", informationSetList)}");
                 }
                 if (nextDecision != null)
                     gameStateFromGameHistory = navigation.Strategies[nextPlayer].GetInformationSetTreeValue(nextDecisionIndex, informationSetsPtr);
@@ -243,6 +253,7 @@ namespace ACESim
             var strategy = navigation.Strategies[resolutionPlayer];
             byte* resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
             gameProgress.GameHistory.GetPlayerInformationCurrent(resolutionPlayer, resolutionInformationSet);
+            var resolutionInformationSetList = Util.ListExtensions.GetPointerAsList_255Terminated(resolutionInformationSet); // DEBUG
             NWayTreeStorage<IGameState> informationSetNode = strategy.SetInformationSetTreeValueIfNotSet(
                         resolutionInformationSet,
                         true,
