@@ -145,21 +145,23 @@ namespace ACESim
                 // For the last subdivision, we'll also need to do the same things that we would do for an ordinary nonsubdivision decision. This is because the original decision is NOT in
                 // the decision list.
                 GameProgressLogger.Log(() => $"Adding subdivision action {action} to information set of {decision.PlayerNumber}");
+                if (decision.Subdividable_IsSubdivision_First)
+                    gameHistory.AddToInformationSetAndLog(GameHistory.StartDetourMarker, decisionIndex, decision.PlayerNumber, gameProgress); // delineate this portion of the information set (which will be removed later) as belonging to the subdivision decisions
                 gameHistory.AddToInformationSetAndLog(action, decisionIndex, decision.PlayerNumber, gameProgress);
-                gameHistory.AddToHistory(decision.DecisionByteCode, decisionIndex, decision.PlayerNumber, action, decision.NumPossibleActions, null /* we did the informing above */, false /* can't skip add to history b/c we need this for GetNextDecisionPath */, null, null, false, true /* defer previous notifications some more until we get to the last decision */, gameProgress);
+                gameHistory.AddToHistory(decision.DecisionByteCode, decisionIndex, decision.PlayerNumber, action, decision.NumPossibleActions, null /* we did the informing above */ , null, null /* defer previous notifications some more until we get to the last decision */, gameProgress, skipAddToHistory: false, deferNotification: false, delayPreviousDeferredNotification: true);
                 if (decision.Subdividable_IsSubdivision_Last)
                 {
-                    gameHistory.RemoveItemsInInformationSetAndLog(decision.PlayerNumber, decisionIndex, decision.Subdividable_NumLevels, gameProgress);
-                    Br.eak.IfAdded("A");
+                    gameHistory.RemoveItemsInInformationSetAndLog(decision.PlayerNumber, decisionIndex, (byte) (decision.Subdividable_NumLevels + 1), gameProgress);
+                    gameHistory.AddToInformationSetAndLog(GameHistory.EndDetourMarker, decisionIndex, decision.PlayerNumber, gameProgress); // this marks that we're done with the subdivision detour
                     GameProgressLogger.Log(() => $"Adding overall decision action {replacementAggregateValue} from {decision.PlayerNumber} to {string.Join(",", decision.PlayersToInform)} {(decision.DeferNotificationOfPlayers ? "with deferred notification" : "")}");
                     // Add information to player's information sets (including deferred information, if applicable), but don't actaully add to history itself, because this isn't a decision that corresponds to a decision in the decisions list.
-                    gameHistory.AddToHistory(decision.Subdividable_CorrespondingDecisionByteCode, decisionIndex, decision.PlayerNumber, replacementAggregateValue, decision.AggregateNumPossibleActions, decision.PlayersToInform, true, decision.IncrementGameCacheItem, decision.StoreActionInGameCacheItem, decision.DeferNotificationOfPlayers, false, gameProgress);
+                    gameHistory.AddToHistory(decision.Subdividable_CorrespondingDecisionByteCode, decisionIndex, decision.PlayerNumber, replacementAggregateValue, decision.AggregateNumPossibleActions, decision.PlayersToInform, decision.IncrementGameCacheItem, decision.StoreActionInGameCacheItem, gameProgress, skipAddToHistory: true, deferNotification: decision.DeferNotificationOfPlayers, delayPreviousDeferredNotification: false);
                     gameDefinition.CustomInformationSetManipulation(decision, decisionIndex, action, ref gameHistory, gameProgress);
                 }
             }
             else
             {
-                gameHistory.AddToHistory(decision.DecisionByteCode, decisionIndex, decision.PlayerNumber, action, decision.NumPossibleActions, decision.PlayersToInform, false, decision.IncrementGameCacheItem, decision.StoreActionInGameCacheItem, decision.DeferNotificationOfPlayers, false, gameProgress);
+                gameHistory.AddToHistory(decision.DecisionByteCode, decisionIndex, decision.PlayerNumber, action, decision.NumPossibleActions, decision.PlayersToInform, decision.IncrementGameCacheItem, decision.StoreActionInGameCacheItem, gameProgress, false, decision.DeferNotificationOfPlayers, false);
                 gameDefinition.CustomInformationSetManipulation(decision, decisionIndex, action, ref gameHistory, gameProgress);
             }
         }

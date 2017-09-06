@@ -100,6 +100,9 @@ namespace ACESim
         {
             if (TraceProbingCFR)
                 TabbedText.WriteLine($"WalkTree sampling probability {samplingProbabilityQ}");
+            var DEBUG = historyPoint.HistoryToPoint.GetCurrentPlayerInformationString(1) ?? null;
+            if (GameProgressLogger.LoggingOn)
+                GameProgressLogger.Log("History point: " + historyPoint.HistoryToPoint.GetCurrentPlayerInformationString(1)); // DEBUG
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             byte sampledAction = 0;
             if (gameStateForCurrentPlayer is FinalUtilities finalUtilities)
@@ -246,6 +249,12 @@ namespace ACESim
 
         public void AbramowiczProbingCFRIteration(int iteration)
         {
+            if (iteration == 11)
+            {
+                //TraceProbingCFR = true; // DEBUG
+                //GameProgressLogger.LoggingOn = true;
+                //GameProgressLogger.OutputLogMessages = true;
+            }
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
                 IRandomProducer randomProducer =

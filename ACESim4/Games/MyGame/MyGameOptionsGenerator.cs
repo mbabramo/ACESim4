@@ -42,7 +42,7 @@ namespace ACESim
                 },
                 NumPotentialBargainingRounds = 1,
                 ForgetEarlierBargainingRounds = true,
-                SubdivideOffers = true,
+                SubdivideOffers = false,
                 BargainingRoundsSimultaneous = true,
                 PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false, true, false, true, false },
                 IncludeSignalsReport = false,                 

@@ -27,7 +27,7 @@ namespace ACESim
         bool ShouldEstimateImprovementOverTime = false;
         const int NumRandomGamePlaysForEstimatingImprovement = 1000;
 
-        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
+        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedBothMethods; // DEBUG
         bool AllowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => (AllowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)) && EvolutionSettings.Algorithm != GameApproximationAlgorithm.PureStrategyFinder;
 
@@ -183,11 +183,13 @@ namespace ACESim
             var list = informationSetHistories.ToList(); // DEBUG -- undo ToList()
             foreach (var informationSetHistory in list)
             {
-                GameProgressLogger.Log(() => $"Information set {i} of {list.Count()}: {informationSetHistory}");
+                GameProgressLogger.Log(() => $"Setting information set point based on player's information set: {informationSetHistory}");
+                GameProgressLogger.Tabs++;
                 //var informationSetHistoryString = informationSetHistory.ToString();
                 historyPoint.SetInformationIfNotSet(Navigation, gameProgress, informationSetHistory);
                 historyPoint = historyPoint.GetBranch(Navigation, informationSetHistory.ActionChosen);
                 i++;
+                GameProgressLogger.Tabs--;
                 //GameProgressLogger.Log(() => "Actions processed: " + historyPoint.GetActionsToHereString(Navigation));
                 // var actionsToHere = historyPoint.GetActionsToHereString(Navigation); 
             }
@@ -213,12 +215,16 @@ namespace ACESim
             return historyPoint.GetGameStateForCurrentPlayer(navigationSettings) ?? GetGameStateByPlayingUnderlyingGame(ref historyPoint, navigationSettings);
         }
 
-        private IGameState GetGameStateByPlayingUnderlyingGame(ref HistoryPoint historyPoint, HistoryNavigationInfo navigationSettings)
+        private unsafe IGameState GetGameStateByPlayingUnderlyingGame(ref HistoryPoint historyPoint, HistoryNavigationInfo navigationSettings)
         {
             IGameState gameState;
             List<byte> actionsSoFar = historyPoint.GetActionsToHere(navigationSettings);
-            if (NumInitializedGamePaths == 53)
+            if (NumInitializedGamePaths == 31)
             { // DEBUG
+                // DEBUG -- question is why 3,1,1,252,2 is the information set path for plyaer 1. It's not the information set path when playing the game based on the actions so far. This seems to be the problem. Also, we're not marking things complete correctly. 
+                byte* informationSetsPtr = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer]; // DEBUG
+                historyPoint.HistoryToPoint.GetPlayerInformationCurrent(1, informationSetsPtr); // DEBUG
+                var DEBUG2 = Util.ListExtensions.GetPointerAsList_255Terminated(informationSetsPtr);
                 Br.eak.Add("A");
                 GameProgressLogger.LoggingOn = true;
                 GameProgressLogger.OutputLogMessages = true;
@@ -226,6 +232,8 @@ namespace ACESim
             (GameProgress progress, _) = GamePlayer.PlayPath(actionsSoFar, false);
             ProcessInitializedGameProgress(progress);
             NumInitializedGamePaths++; // Note: This may not be exact if we initialize the same game path twice (e.g., if we are playing in parallel)
+            if (Br.eak.Contains("A"))
+                Br.eak.Add("B");
             gameState = historyPoint.GetGameStateForCurrentPlayer(navigationSettings);
             if (gameState == null)
                 throw new Exception("Internal error.");
@@ -407,17 +415,19 @@ namespace ACESim
 
         private unsafe HistoryPoint GetStartOfGameHistoryPoint()
         {
+            GameHistory gameHistory = new GameHistory();
+            gameHistory.Initialize();
             switch (Navigation.LookupApproach)
             {
                 case InformationSetLookupApproach.PlayUnderlyingGame:
                     GameProgress startingProgress = GameFactory.CreateNewGameProgress(new IterationID(1));
                     return new HistoryPoint(null, startingProgress.GameHistory, startingProgress);
                 case InformationSetLookupApproach.CachedGameTreeOnly:
-                    return new HistoryPoint(GameHistoryTree, new GameHistory() /* won't even initialize, since won't be used */, null);
+                    return new HistoryPoint(GameHistoryTree, gameHistory, null);
                 case InformationSetLookupApproach.CachedGameHistoryOnly:
-                    return new HistoryPoint(null, new GameHistory(), null);
+                    return new HistoryPoint(null, gameHistory, null);
                 case InformationSetLookupApproach.CachedBothMethods:
-                    return new HistoryPoint(GameHistoryTree, new GameHistory(), null);
+                    return new HistoryPoint(GameHistoryTree, gameHistory, null);
                 default:
                     throw new Exception(); // unexpected lookup approach -- won't be called
             }

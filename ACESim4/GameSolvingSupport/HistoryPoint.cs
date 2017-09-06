@@ -84,6 +84,7 @@ namespace ACESim
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
                 //var informationSetHistories = HistoryToPoint.GetInformationSetHistoryItems().Select(x => x.ToString());
+                Br.eak.IfAdded("B"); // DEBUG: (1) nextDecision is coming back as the 2nd defendant decision, which has already occurred. (2) May have something to do with LastDecisionIndex; (3) Also, shouldn't game be marked complete? Maybe that's the problem.
                 navigation.GameDefinition.GetNextDecision(ref HistoryToPoint, out Decision nextDecision, out byte nextDecisionIndex); 
                 byte nextPlayer = nextDecision?.PlayerNumber ?? navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
                 byte* informationSetsPtr = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
@@ -94,6 +95,7 @@ namespace ACESim
                     var informationSetList = Util.ListExtensions.GetPointerAsList_255Terminated(informationSetsPtr);
                     // DEBUG uncomment GameProgressLogger.Log($"Player {nextPlayer} information set: {String.Join(",", informationSetList)}");
                     // DEBUG:
+                    GameProgressLogger.Log("Actions to here " + String.Join(",", HistoryToPoint.GetActionsAsList()));
                     HistoryToPoint.GetPlayerInformationCurrent(0, informationSetsPtr);
                     informationSetList = Util.ListExtensions.GetPointerAsList_255Terminated(informationSetsPtr);
                     GameProgressLogger.Log($"Player {0} information set: {String.Join(",", informationSetList)}");
@@ -103,6 +105,9 @@ namespace ACESim
                     HistoryToPoint.GetPlayerInformationCurrent(2, informationSetsPtr);
                     informationSetList = Util.ListExtensions.GetPointerAsList_255Terminated(informationSetsPtr);
                     GameProgressLogger.Log($"Player {2} information set: {String.Join(",", informationSetList)}");
+                    HistoryToPoint.GetPlayerInformationCurrent(nextPlayer, informationSetsPtr); // must restore informationSetsPtr
+                    informationSetList = Util.ListExtensions.GetPointerAsList_255Terminated(informationSetsPtr);
+                    GameProgressLogger.Log($"Player {nextPlayer} information set: {String.Join(",", informationSetList)}");
                 }
                 if (nextDecision != null)
                     gameStateFromGameHistory = navigation.Strategies[nextPlayer].GetInformationSetTreeValue(nextDecisionIndex, informationSetsPtr);
@@ -296,7 +301,8 @@ namespace ACESim
 
         public unsafe void SetInformationIfNotSet(HistoryNavigationInfo navigation, GameProgress gameProgress, InformationSetHistory informationSetHistory)
         {
-            //var informationSetString = informationSetHistory.ToString();
+            var informationSetString = informationSetHistory.ToString(); // DEBUG
+            var informationSetList = informationSetHistory.GetInformationSetForPlayerAsList(); // DEBUG
             //var actionsToHere = GetActionsToHereString(navigation);
             IGameState gameState = GetGameStateForCurrentPlayer(navigation);
             if (gameState == null)
@@ -309,6 +315,7 @@ namespace ACESim
             var playerInfo = navigation.GameDefinition.Players[informationSetHistory.PlayerIndex];
             var playersStrategy = navigation.Strategies[informationSetHistory.PlayerIndex];
             bool isNecessarilyLast = false; // Not relevant now that we are storing final utilities decision.IsAlwaysPlayersLastDecision || informationSetHistory.IsTerminalAction;
+            var DEBUG = informationSetHistory.GetInformationSetForPlayerAsList();
             var informationSetHistoryCopy = informationSetHistory;
             NWayTreeStorage<IGameState> informationSetNode = playersStrategy.SetInformationSetTreeValueIfNotSet(
                         informationSetHistoryCopy.DecisionIndex, // this will be a choice at the root level of the information set

@@ -17,6 +17,12 @@ namespace ACESim
         public byte NumPossibleActions;
         public bool IsTerminalAction;
 
+        public unsafe List<byte> GetInformationSetForPlayerAsList()
+        {
+            fixed (byte* ptr = InformationSetForPlayer)
+                return Util.ListExtensions.GetPointerAsList_255Terminated(ptr);
+        }
+
         public override string ToString()
         {
             StringBuilder infoSet = new StringBuilder();

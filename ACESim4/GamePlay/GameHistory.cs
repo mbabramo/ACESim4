@@ -21,6 +21,8 @@ namespace ACESim
         public const byte Cache_SubdivisionAggregationIndex = 0; // Use this cache entry to aggregate subdivision decisions. Thus, do NOT use it for any other purpose.
 
         public const byte InformationSetTerminator = 255;
+        public const byte StartDetourMarker = 252; // when starting a subdivision decision, we need to put in a marker to delineate the subdivision action from subsequent actions by same player
+        public const byte EndDetourMarker = 253; // when starting a subdivision decision, we need to put in a marker to delineate the subdivision action from other player's 
 
         public bool Complete;
         public fixed byte ActionsHistory[GameFullHistory.MaxHistoryLength];
@@ -88,7 +90,7 @@ namespace ACESim
             return b;
         }
 
-        private void Initialize()
+        public void Initialize()
         {
             if (Initialized)
                 return;
@@ -141,10 +143,8 @@ namespace ACESim
 
         #region History
 
-        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, List<byte> playersToInform, bool skipAddToHistory, List<byte> cacheIndicesToIncrement, byte? storeActionInCacheIndex, bool deferNotification, bool delayPreviousDeferredNotification, GameProgress gameProgress)
+        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, List<byte> playersToInform, List<byte> cacheIndicesToIncrement, byte? storeActionInCacheIndex, GameProgress gameProgress, bool skipAddToHistory, bool deferNotification, bool delayPreviousDeferredNotification)
         {
-            if (!Initialized)
-                Initialize();
             AddToSimpleActionsList(action);
             gameProgress?.GameFullHistory.AddToHistory(decisionByteCode, decisionIndex, playerIndex, action, numPossibleActions, playersToInform, skipAddToHistory, cacheIndicesToIncrement, storeActionInCacheIndex, deferNotification, gameProgress);
             LastDecisionIndexAdded = decisionIndex;
@@ -289,8 +289,6 @@ namespace ACESim
 
         public unsafe void GetPlayerInformationCurrent(byte playerIndex, byte* playerInfoBuffer)
         {
-            if (!Initialized)
-                Initialize();
             if (playerIndex >= MaxNumPlayers)
             {
                 // player has no information
@@ -323,8 +321,6 @@ namespace ACESim
         {
             if (playerIndex >= MaxNumPlayers)
                 throw new NotImplementedException();
-            if (!Initialized)
-                Initialize();
             byte b = 0;
             fixed (byte* informationSetsPtr = InformationSets)
             {
@@ -344,8 +340,6 @@ namespace ACESim
             if (playerIndex >= MaxNumPlayers)
                 throw new NotImplementedException();
             // This takes the approach of keeping the information set as append-only storage. That is, we add a notation that we're removing an item from the information set. 
-            if (!Initialized)
-                Initialize();
             if (gameProgress != null)
                 for (byte b = 0; b < numItemsToRemove; b++)
                 {

@@ -59,6 +59,7 @@ namespace ACESim
             int numPathsPlayed = 0;
             playPathsFn(gp => 
             {
+                GameProgressLogger.Log("DEBUG");
                 actionToTake(gp);
                 Interlocked.Increment(ref numPathsPlayed);
             }) ;
