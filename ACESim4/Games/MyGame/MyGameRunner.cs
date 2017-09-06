@@ -52,7 +52,7 @@ namespace ACESim
                 PrintGameTree = false,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever,
 
-                TotalProbingCFRIterations = 100_000,
+                TotalProbingCFRIterations = 1_000_000,
                 EpsilonForMainPlayer = 0.5,
                 EpsilonForOpponentWhenExploring = 0.05,
                 MinBackupRegretsTrigger = 3,
