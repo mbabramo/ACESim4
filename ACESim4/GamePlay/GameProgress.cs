@@ -32,6 +32,8 @@ namespace ACESim
 
         public GameProgress()
         {
+            GameHistory.Initialize();
+            GameFullHistory.Initialize();
             InformationSetLog.Initialize();
         }
 

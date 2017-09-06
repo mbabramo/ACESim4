@@ -145,7 +145,8 @@ namespace ACESim
 
         public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, List<byte> playersToInform, List<byte> cacheIndicesToIncrement, byte? storeActionInCacheIndex, GameProgress gameProgress, bool skipAddToHistory, bool deferNotification, bool delayPreviousDeferredNotification)
         {
-            AddToSimpleActionsList(action);
+            if (!skipAddToHistory)
+                AddToSimpleActionsList(action);
             gameProgress?.GameFullHistory.AddToHistory(decisionByteCode, decisionIndex, playerIndex, action, numPossibleActions, playersToInform, skipAddToHistory, cacheIndicesToIncrement, storeActionInCacheIndex, deferNotification, gameProgress);
             LastDecisionIndexAdded = decisionIndex;
             if (!delayPreviousDeferredNotification)
@@ -261,32 +262,6 @@ namespace ACESim
             *playerPointer = InformationSetTerminator;
         }
 
-
-        public byte AggregateSubdividable(byte playerIndex, byte decisionIndex, byte numOptionsPerBranch, byte numLevels)
-        {
-            throw new NotImplementedException(); // must implement without using logs
-            //fixed (byte* informationSetsPtr = InformationSetLogs)
-            //{
-            //    byte* playerPointer = informationSetsPtr + InformationSetLoggingIndex(playerIndex);
-            //    // advance to the end of the information set
-            //    while (*playerPointer != InformationSetTerminator)
-            //        playerPointer += 2;
-            //    playerPointer--; // spot before terminator
-            //    byte accumulator = (byte) (*playerPointer - 1); // one less than value pointed to (not changing the pointer itself)
-            //    byte columnValue = 1; // this is the units column
-            //    for (byte level = 1; level < numLevels; level++)
-            //    {
-            //        columnValue = (byte) (columnValue * numOptionsPerBranch); // for example, when level = 1, if numOptionsPerBranch is 10, then an action of 1 is worth 0, an action of 2 is worth 10, etc.
-            //        playerPointer--; // go back to decision index
-            //        playerPointer--; // go back to previous decision
-            //        accumulator = (byte) (accumulator + columnValue * (*playerPointer - 1));
-            //    }
-            //    return (byte) (accumulator + 1);
-            //}
-        }
-
-        
-
         public unsafe void GetPlayerInformationCurrent(byte playerIndex, byte* playerInfoBuffer)
         {
             if (playerIndex >= MaxNumPlayers)
@@ -295,6 +270,8 @@ namespace ACESim
                 *playerInfoBuffer = InformationSetTerminator;
                 return;
             }
+            int maxInformationSetLengthForPlayer = MaxInformationSetLengthForPlayer(playerIndex);
+            byte size = 0;
             fixed (byte* informationSetsPtr = InformationSets)
             {
                 byte* playerPointer = informationSetsPtr + InformationSetIndex(playerIndex);
@@ -303,6 +280,9 @@ namespace ACESim
                     *playerInfoBuffer = *playerPointer;
                     playerPointer++;
                     playerInfoBuffer++;
+                    size++;
+                    if (size == maxInformationSetLengthForPlayer)
+                        throw new Exception("Internal error.");
                 }
                 *playerInfoBuffer = InformationSetTerminator;
             }

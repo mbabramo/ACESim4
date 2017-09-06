@@ -37,14 +37,14 @@ namespace ACESim
             EvolutionSettings evolutionSettings = new EvolutionSettings()
             {
                 MaxParallelDepth = 2,
-                ParallelOptimization = false,
+                ParallelOptimization = true,
 
-                InitialRandomSeed = 31,
+                InitialRandomSeed = 35,
 
                 Algorithm = GameApproximationAlgorithm.AbramowiczProbing,
 
-                ReportEveryNIterations = 25_000,
-                NumRandomIterationsForSummaryTable = 10000, // DEBUG
+                ReportEveryNIterations = 100_000,
+                NumRandomIterationsForSummaryTable = 1000,
                 PrintSummaryTable = true,
                 OverrideForAlternativeTable = null, // MyGameActionsGenerator.PDoesntGiveUp,
                 PrintInformationSets = false,
@@ -52,7 +52,7 @@ namespace ACESim
                 PrintGameTree = false,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever,
 
-                TotalProbingCFRIterations = 1_000_000,
+                TotalProbingCFRIterations = 100_000,
                 EpsilonForMainPlayer = 0.5,
                 EpsilonForOpponentWhenExploring = 0.05,
                 MinBackupRegretsTrigger = 3,

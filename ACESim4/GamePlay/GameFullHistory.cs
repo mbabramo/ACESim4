@@ -64,7 +64,7 @@ namespace ACESim
         public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, List<byte> playersToInform, bool skipAddToHistory, List<byte> cacheIndicesToIncrement, byte? storeActionInCacheIndex, bool deferNotification, GameProgress gameProgress)
         {
             if (!Initialized)
-                Initialize();
+                throw new Exception();
             if (!skipAddToHistory)
             {
                 short i = LastIndexAddedToHistory;
@@ -96,7 +96,7 @@ namespace ACESim
         public byte? LastDecisionIndex()
         {
             if (!Initialized)
-                Initialize();
+                throw new Exception();
             short i = LastIndexAddedToHistory;
             if (i == 0)
                 return null; // no decisions processed yet
@@ -109,14 +109,14 @@ namespace ACESim
         public unsafe void GetActions(byte* actions)
         {
             if (!Initialized)
-                Initialize();
+                throw new Exception();
             GetItems(History_Action_Offset, actions);
         }
 
         public unsafe void GetActionsWithBlanksForSkippedDecisions(byte* actions)
         {
             if (!Initialized)
-                Initialize();
+                throw new Exception();
             int d = 0;
             if (LastIndexAddedToHistory != 0)
                 for (short i = 0; i < LastIndexAddedToHistory; i += History_NumPiecesOfInformation)
@@ -151,7 +151,7 @@ namespace ACESim
         private unsafe void GetItems(int offset, byte* items)
         {
             if (!Initialized)
-                Initialize();
+                throw new Exception();
             int d = 0;
             if (LastIndexAddedToHistory != 0)
                 for (short i = 0; i < LastIndexAddedToHistory; i += History_NumPiecesOfInformation)
@@ -169,7 +169,7 @@ namespace ACESim
         public void MarkComplete()
         {
             if (!Initialized)
-                Initialize();
+                throw new Exception();
             short i = LastIndexAddedToHistory;
             fixed (byte* historyPtr = History)
             {
@@ -183,7 +183,7 @@ namespace ACESim
         public bool IsComplete()
         {
             if (!Initialized)
-                return false;
+                throw new Exception();
             fixed (byte* historyPtr = History)
                 return (*(historyPtr + LastIndexAddedToHistory) == HistoryComplete);
         }
@@ -191,7 +191,7 @@ namespace ACESim
         public IEnumerable<InformationSetHistory> GetInformationSetHistoryItems(GameProgress gameProgress)
         {
             if (!Initialized)
-                Initialize();
+                throw new Exception();
             if (LastIndexAddedToHistory == 0)
                 yield break;
             for (short i = 0; i < LastIndexAddedToHistory; i += History_NumPiecesOfInformation)
@@ -203,7 +203,7 @@ namespace ACESim
         private InformationSetHistory GetInformationSetHistory(short index, GameProgress gameProgress)
         {
             if (!Initialized)
-                Initialize();
+                throw new Exception();
             byte playerIndex = GetHistoryIndex(index + History_PlayerNumber_Offset);
             byte decisionByteCode = GetHistoryIndex(index + History_DecisionByteCode_Offset);
             byte decisionIndex = GetHistoryIndex(index + History_DecisionIndex_Offset);
@@ -231,7 +231,7 @@ namespace ACESim
         public unsafe void GetNextDecisionPath(GameDefinition gameDefinition, byte* nextDecisionPath)
         {
             if (!Initialized)
-                Initialize();
+                throw new Exception();
             if (!IsComplete())
                 throw new Exception("Can get next path to try only on a completed game.");
             // We need to find the last decision made where there was another action that could have been taken.
@@ -271,7 +271,7 @@ namespace ACESim
         private int? GetIndexOfLastDecisionWithAnotherAction(GameDefinition gameDefinition)
         {
             if (!Initialized)
-                Initialize();
+                throw new Exception();
             int? lastDecisionWithAnotherAction = null;
 
             fixed (byte* historyPtr = History)

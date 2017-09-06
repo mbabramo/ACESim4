@@ -27,7 +27,7 @@ namespace ACESim
         bool ShouldEstimateImprovementOverTime = false;
         const int NumRandomGamePlaysForEstimatingImprovement = 1000;
 
-        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedBothMethods; // DEBUG
+        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
         bool AllowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => (AllowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)) && EvolutionSettings.Algorithm != GameApproximationAlgorithm.PureStrategyFinder;
 
@@ -180,8 +180,7 @@ namespace ACESim
             //    GameProgressLogger.Tabs++;
             //}
             int i = 1;
-            var list = informationSetHistories.ToList(); // DEBUG -- undo ToList()
-            foreach (var informationSetHistory in list)
+            foreach (var informationSetHistory in informationSetHistories)
             {
                 GameProgressLogger.Log(() => $"Setting information set point based on player's information set: {informationSetHistory}");
                 GameProgressLogger.Tabs++;
@@ -219,24 +218,12 @@ namespace ACESim
         {
             IGameState gameState;
             List<byte> actionsSoFar = historyPoint.GetActionsToHere(navigationSettings);
-            if (NumInitializedGamePaths == 31)
-            { // DEBUG
-                // DEBUG -- question is why 3,1,1,252,2 is the information set path for plyaer 1. It's not the information set path when playing the game based on the actions so far. This seems to be the problem. Also, we're not marking things complete correctly. 
-                byte* informationSetsPtr = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer]; // DEBUG
-                historyPoint.HistoryToPoint.GetPlayerInformationCurrent(1, informationSetsPtr); // DEBUG
-                var DEBUG2 = Util.ListExtensions.GetPointerAsList_255Terminated(informationSetsPtr);
-                Br.eak.Add("A");
-                GameProgressLogger.LoggingOn = true;
-                GameProgressLogger.OutputLogMessages = true;
-            }
             (GameProgress progress, _) = GamePlayer.PlayPath(actionsSoFar, false);
             ProcessInitializedGameProgress(progress);
             NumInitializedGamePaths++; // Note: This may not be exact if we initialize the same game path twice (e.g., if we are playing in parallel)
-            if (Br.eak.Contains("A"))
-                Br.eak.Add("B");
             gameState = historyPoint.GetGameStateForCurrentPlayer(navigationSettings);
             if (gameState == null)
-                throw new Exception("Internal error.");
+                throw new Exception("Internal error. Try using CachedBothMethods to try to identify where there is a problem with information sets.");
             return gameState;
         }
 
@@ -609,8 +596,9 @@ namespace ACESim
             ProcessAllPaths_Recursive(ref history, pathPlayer, ActionStrategy, 1.0);
         }
 
-        private void ProcessAllPaths_Recursive(ref HistoryPoint history, Action<HistoryPoint, double> pathPlayer, ActionStrategies actionStrategy, double probability)
+        private void ProcessAllPaths_Recursive(ref HistoryPoint history, Action<HistoryPoint, double> pathPlayer, ActionStrategies actionStrategy, double probability, byte action = 0, byte nextDecisionIndex = 0)
         {
+            // The last two parameters are included to facilitate debugging.
             // Note that this method is different from GamePlayer.PlayAllPaths, because it relies on the cached history, rather than needing to play the game to discover what the next paths are.
             if (history.IsComplete(Navigation))
             {
@@ -623,7 +611,8 @@ namespace ACESim
         private unsafe void ProcessAllPaths_Helper(ref HistoryPoint historyPoint, double probability, Action<HistoryPoint, double> completedGameProcessor, ActionStrategies actionStrategy)
         {
             double* probabilities = stackalloc double[GameFullHistory.MaxNumActions];
-            byte numPossibleActions = NumPossibleActionsAtDecision(historyPoint.GetNextDecisionIndex(Navigation));
+            byte nextDecisionIndex = historyPoint.GetNextDecisionIndex(Navigation);
+            byte numPossibleActions = NumPossibleActionsAtDecision(nextDecisionIndex);
             IGameState gameState = GetGameState(ref historyPoint);
             ActionProbabilityUtilities.GetActionProbabilitiesAtHistoryPoint(gameState, actionStrategy, probabilities, numPossibleActions, null, Navigation);
             var historyPointCopy = historyPoint;
@@ -632,7 +621,7 @@ namespace ACESim
                 if (probabilities[action - 1] > 0)
                 {
                     var nextHistoryPoint = historyPointCopy.GetBranch(Navigation, action); // must use a copy because it's an anonymous method (but this won't be executed much so it isn't so costly). Note that we couldn't use switch-to-branch approach here because all threads are sharing historyPointCopy variable.
-                    ProcessAllPaths_Recursive(ref nextHistoryPoint, completedGameProcessor, actionStrategy, probability * probabilities[action - 1]);
+                    ProcessAllPaths_Recursive(ref nextHistoryPoint, completedGameProcessor, actionStrategy, probability * probabilities[action - 1], action, nextDecisionIndex);
                 }
             });
         }

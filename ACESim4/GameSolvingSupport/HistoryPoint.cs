@@ -84,7 +84,7 @@ namespace ACESim
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
                 //var informationSetHistories = HistoryToPoint.GetInformationSetHistoryItems().Select(x => x.ToString());
-                Br.eak.IfAdded("B"); // DEBUG: (1) nextDecision is coming back as the 2nd defendant decision, which has already occurred. (2) May have something to do with LastDecisionIndex; (3) Also, shouldn't game be marked complete? Maybe that's the problem.
+                // DEBUG: shouldn't game be marked complete?
                 navigation.GameDefinition.GetNextDecision(ref HistoryToPoint, out Decision nextDecision, out byte nextDecisionIndex); 
                 byte nextPlayer = nextDecision?.PlayerNumber ?? navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
                 byte* informationSetsPtr = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
@@ -93,20 +93,6 @@ namespace ACESim
                 if (GameProgressLogger.LoggingOn)
                 {
                     var informationSetList = Util.ListExtensions.GetPointerAsList_255Terminated(informationSetsPtr);
-                    // DEBUG uncomment GameProgressLogger.Log($"Player {nextPlayer} information set: {String.Join(",", informationSetList)}");
-                    // DEBUG:
-                    GameProgressLogger.Log("Actions to here " + String.Join(",", HistoryToPoint.GetActionsAsList()));
-                    HistoryToPoint.GetPlayerInformationCurrent(0, informationSetsPtr);
-                    informationSetList = Util.ListExtensions.GetPointerAsList_255Terminated(informationSetsPtr);
-                    GameProgressLogger.Log($"Player {0} information set: {String.Join(",", informationSetList)}");
-                    HistoryToPoint.GetPlayerInformationCurrent(1, informationSetsPtr);
-                    informationSetList = Util.ListExtensions.GetPointerAsList_255Terminated(informationSetsPtr);
-                    GameProgressLogger.Log($"Player {1} information set: {String.Join(",", informationSetList)}");
-                    HistoryToPoint.GetPlayerInformationCurrent(2, informationSetsPtr);
-                    informationSetList = Util.ListExtensions.GetPointerAsList_255Terminated(informationSetsPtr);
-                    GameProgressLogger.Log($"Player {2} information set: {String.Join(",", informationSetList)}");
-                    HistoryToPoint.GetPlayerInformationCurrent(nextPlayer, informationSetsPtr); // must restore informationSetsPtr
-                    informationSetList = Util.ListExtensions.GetPointerAsList_255Terminated(informationSetsPtr);
                     GameProgressLogger.Log($"Player {nextPlayer} information set: {String.Join(",", informationSetList)}");
                 }
                 if (nextDecision != null)
@@ -258,7 +244,7 @@ namespace ACESim
             var strategy = navigation.Strategies[resolutionPlayer];
             byte* resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
             gameProgress.GameHistory.GetPlayerInformationCurrent(resolutionPlayer, resolutionInformationSet);
-            var resolutionInformationSetList = Util.ListExtensions.GetPointerAsList_255Terminated(resolutionInformationSet); // DEBUG
+            //var resolutionInformationSetList = Util.ListExtensions.GetPointerAsList_255Terminated(resolutionInformationSet); 
             NWayTreeStorage<IGameState> informationSetNode = strategy.SetInformationSetTreeValueIfNotSet(
                         resolutionInformationSet,
                         true,
@@ -301,8 +287,8 @@ namespace ACESim
 
         public unsafe void SetInformationIfNotSet(HistoryNavigationInfo navigation, GameProgress gameProgress, InformationSetHistory informationSetHistory)
         {
-            var informationSetString = informationSetHistory.ToString(); // DEBUG
-            var informationSetList = informationSetHistory.GetInformationSetForPlayerAsList(); // DEBUG
+            //var informationSetString = informationSetHistory.ToString(); 
+            //var informationSetList = informationSetHistory.GetInformationSetForPlayerAsList(); 
             //var actionsToHere = GetActionsToHereString(navigation);
             IGameState gameState = GetGameStateForCurrentPlayer(navigation);
             if (gameState == null)
