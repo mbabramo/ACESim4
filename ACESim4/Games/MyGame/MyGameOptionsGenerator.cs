@@ -10,7 +10,8 @@ namespace ACESim
     public static class MyGameOptionsGenerator
     {
 
-        public static MyGameOptions Standard()
+
+        public static MyGameOptions PerfectInformation()
         {
             var options = new MyGameOptions()
             {
@@ -19,6 +20,48 @@ namespace ACESim
                 DamagesAlleged = 100000,
                 NumLitigationQualityPoints = 10,
                 ActionIsNoiseNotSignal = false,
+                NumSignals = 10,
+                NumNoiseValues = 10,
+                NumOffers = 10,
+                PFilingCost = 0,
+                DAnswerCost = 0,
+                PNoiseStdev = 0.001,
+                DNoiseStdev = 0.001,
+                CourtNoiseStdev = 0.1,
+                PTrialCosts = 12000,
+                DTrialCosts = 12000,
+                IncludeAgreementToBargainDecisions = false,
+                PerPartyCostsLeadingUpToBargainingRound = 5000,
+                AllowAbandonAndDefaults = false,
+                LoserPays = false,
+                LoserPaysAfterAbandonment = true,
+                DeltaOffersOptions = new DeltaOffersOptions()
+                {
+                    SubsequentOffersAreDeltas = false,
+                    DeltaStartingValue = 0.01,
+                    MaxDelta = 0.25
+                },
+                NumPotentialBargainingRounds = 4,
+                ForgetEarlierBargainingRounds = true,
+                SubdivideOffers = false,
+                BargainingRoundsSimultaneous = true,
+                PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false, true, false, true, false },
+                IncludeSignalsReport = true,
+            };
+            options.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.PInitialWealth };
+            options.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.DInitialWealth };
+            return options;
+        }
+
+        public static MyGameOptions Standard()
+        {
+            var options = new MyGameOptions()
+            {
+                PInitialWealth = 1000000,
+                DInitialWealth = 1000000,
+                DamagesAlleged = 100000,
+                NumLitigationQualityPoints = 10,
+                ActionIsNoiseNotSignal = true,
                 NumSignals = 10,
                 NumNoiseValues = 10,
                 NumOffers = 10,

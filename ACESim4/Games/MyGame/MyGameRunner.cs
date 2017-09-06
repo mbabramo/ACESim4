@@ -30,7 +30,7 @@ namespace ACESim
         public static void EvolveMyGame()
         {
             MyGameDefinition gameDefinition = new MyGameDefinition();
-            var options = MyGameOptionsGenerator.Standard(); // processed signals
+            var options = MyGameOptionsGenerator.PerfectInformation(); 
             //var options = MyGameOptionsGenerator.UsingRawSignals_10Points_1Round();
             gameDefinition.Setup(options);
             List<Strategy> starterStrategies = Strategy.GetStarterStrategies(gameDefinition);
@@ -52,7 +52,7 @@ namespace ACESim
                 PrintGameTree = false,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever,
 
-                TotalProbingCFRIterations = 1_000_000,
+                TotalProbingCFRIterations = 700_000,
                 EpsilonForMainPlayer = 0.5,
                 EpsilonForOpponentWhenExploring = 0.05,
                 MinBackupRegretsTrigger = 3,
