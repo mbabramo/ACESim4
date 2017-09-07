@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace ACESim
@@ -11,8 +12,13 @@ namespace ACESim
         // 3. Backup regrets set on alternate iterations. We alternate normal with exploratory iterations, where the opponent engages in epsilon exploration. In an exploratory iteration, we increment backup cumulative regrets, but only where the main regrets are empty. This ensures that if a node will not be visited without opponent exploration, we still develop our best estimate of the correct value based on exploration. Note that this provides robustness but means that T in the regret bound guarantees will consist only if the normal iterations.
 
         private bool AlsoDisablePlayerOwnExplorationOnNonExploratoryIterations = true;
-        private double ApplyDiscountingToFirstProportionOfIterations = 0.1;
-        private const double DiscountToApply = 0.00001;
+        private List<(double discount, double endAfterIterationsProportion)> Discounts = new List<(double, double)>()
+        {
+          (0.00000001, 0.01),
+          (0.00000100, 0.05),
+          (0.00010000, 0.1),
+          (0.01000000, 0.2),
+        };
 
 
         public unsafe double AbramowiczProbe_SinglePlayer(ref HistoryPoint historyPoint, byte playerBeingOptimized,
@@ -242,7 +248,7 @@ namespace ACESim
                                                         (counterfactualValues[action - 1] - summation);
                     bool incrementVisits = action == numPossibleActions; // we increment visits only once per information set. This incrementing is how we keep track of whether we are accumulating backup visits without main visits, in which case we switch to that set.
                     if (DiscountingEnabled)
-                        cumulativeRegretIncrement *= DiscountToApply;
+                        cumulativeRegretIncrement *= CurrentDiscount;
                     if (EvolutionSettings.ParallelOptimization)
                         informationSet.IncrementCumulativeRegret_Parallel(action, cumulativeRegretIncrement, isExploratoryIteration, BackupRegretsTrigger, incrementVisits);
                     else
@@ -298,6 +304,7 @@ namespace ACESim
 
         private int BackupRegretsTrigger;
         private bool DiscountingEnabled;
+        private double CurrentDiscount;
 
         public unsafe void SolveAbramowiczProbingCFR()
         {
@@ -311,13 +318,11 @@ namespace ACESim
             ActionStrategy = ActionStrategies.RegretMatching;
             GameDefinition.PrintOutOrderingInformation();
             // The code can run in parallel, but we break up our parallel calls for two reasons: (1) We would like to produce reports and need to do this while pausing the main algorithm; and (2) we would like to be able differentiate early from late iterations, in case we want to change epsilon over time for example. 
-            int numPhases = 100; 
+            int numPhases = 100; // should have at least 100 if we have a discount for first 1% of iterations
             int iterationsPerPhase = (EvolutionSettings.TotalProbingCFRIterations) / (numPhases);
             int iterationsFinalPhase = EvolutionSettings.TotalProbingCFRIterations - (numPhases - 1) * iterationsPerPhase; // may be greater if there is a remainder from above
             ProbingCFRIterationNum = 0;
             ProbingCFREffectiveIteration = 0;
-            DiscountingEnabled = true;
-            int stopDiscountingAt = (int) Math.Floor(ApplyDiscountingToFirstProportionOfIterations * EvolutionSettings.TotalProbingCFRIterations);
             for (int phase = 0; phase < numPhases; phase++)
             {
                 BackupRegretsTrigger = EvolutionSettings.MinBackupRegretsTrigger + (int) (EvolutionSettings.TriggerIncreaseOverTime * ((double) phase / (double) (numPhases - 1)));
@@ -326,6 +331,16 @@ namespace ACESim
                     : iterationsPerPhase;
                 int startingIteration = ProbingCFRIterationNum;
                 int stopPhaseBefore = startingIteration + iterationsThisPhase;
+                DiscountingEnabled = false;
+                foreach (var discount in Discounts)
+                {
+                    if (startingIteration < discount.endAfterIterationsProportion * EvolutionSettings.TotalProbingCFRIterations)
+                    {
+                        DiscountingEnabled = true;
+                        CurrentDiscount = discount.discount;
+                        break; // once we find a discount, we're done
+                    }
+                }
                 while (startingIteration < stopPhaseBefore)
                 {
                     int stopBefore;
@@ -349,8 +364,6 @@ namespace ACESim
                     );
                     s.Stop();
                     ProbingCFRIterationNum = startingIteration = stopBefore; // this is the iteration to run next
-                    if (DiscountingEnabled && ProbingCFRIterationNum >= stopDiscountingAt)
-                        DiscountingEnabled = false;
                     GenerateReports(ProbingCFRIterationNum,
                         () =>
                             $"Iteration {ProbingCFRIterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)(ProbingCFRIterationNum + 1))))}");

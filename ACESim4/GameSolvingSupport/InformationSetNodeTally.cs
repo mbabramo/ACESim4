@@ -125,12 +125,12 @@ namespace ACESim
         {
             // Note: There is no Interlocked.Add for doubles, but this accomplishes the same thing, without using a lock.
             double newCurrentValue = location1; // non-volatile read, so may be stale
+            if (double.IsNaN(value))
+                throw new Exception("Not a double");
             while (true)
             {
                 double currentValue = newCurrentValue;
                 double newValue = currentValue + value;
-                if (double.IsNaN(newValue))
-                    throw new Exception("Not a double");
                 newCurrentValue = Interlocked.CompareExchange(ref location1, newValue, currentValue);
                 if (newCurrentValue == currentValue)
                     return newValue;
