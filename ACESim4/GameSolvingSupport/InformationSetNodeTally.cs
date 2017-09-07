@@ -362,6 +362,14 @@ namespace ACESim
             return probs;
         }
 
+        public byte GetRegretMatchingHighestRatedAction()
+        {
+            var regretMatchingProbabilitiesList = GetRegretMatchingProbabilitiesList();
+            int highestIndex = regretMatchingProbabilitiesList.Select((v, i) => new { item = v, index = i }).OrderByDescending(x => x.item).First().index;
+            byte actionWithHighestProbability = (byte)(highestIndex + 1);
+            return actionWithHighestProbability;
+        }
+
         /// <summary>
         /// Get regret matching adjusted probabilities, but adjusted so that unlikely actions are sometimes sampled.
         /// </summary>

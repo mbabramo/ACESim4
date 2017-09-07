@@ -185,11 +185,10 @@ namespace ACESim
                         $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {playerAtPoint} decision {informationSet.DecisionIndex} with regret-matched prob {sigmaRegretMatchedActionProbabilities[sampledAction - 1]}");
                 double* counterfactualValues = stackalloc double[numPossibleActions];
                 double summation = 0;
-                if (ProbingCFREffectiveIteration > 100000 && (informationSet.InformationSetNumber == 89 || informationSet.InformationSetNumber == 88))
+                if  ((informationSet.InformationSetNumber == 89 || informationSet.InformationSetNumber == 88))
                 {
                     // DEBUG
-                    TraceProbingCFR = true;
-                    TabbedText.WriteLine($"Information set {informationSet.InformationSetNumber} player {playerBeingOptimized} Iteration {ProbingCFREffectiveIteration} at {informationSet}");
+                    //TabbedText.WriteLine($"player {playerBeingOptimized} Odd {ProbingCFREffectiveIteration % 2 == 1} Iteration {ProbingCFREffectiveIteration} at {String.Join(",", informationSet.GetRegretMatchingProbabilitiesList())}");
                 }
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
@@ -227,6 +226,8 @@ namespace ACESim
                     }
                 }
                 double inverseSamplingProbabilityQ = (1.0 / samplingProbabilityQ);
+                byte bestAction = 0;
+                double bestCumulativeRegretIncrement = 0;
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
                     double cumulativeRegretIncrement = inverseSamplingProbabilityQ *
@@ -236,20 +237,27 @@ namespace ACESim
                         informationSet.IncrementCumulativeRegret_Parallel(action, cumulativeRegretIncrement, isExploratoryIteration, BackupRegretsTrigger, incrementVisits);
                     else
                         informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement, isExploratoryIteration, BackupRegretsTrigger, incrementVisits);
+                    if (bestAction == 0 || cumulativeRegretIncrement > bestCumulativeRegretIncrement)
+                    {
+                        bestAction = action;
+                        bestCumulativeRegretIncrement = cumulativeRegretIncrement;
+                    }
                     if (TraceProbingCFR)
                     {
                         //TabbedText.WriteLine($"Optimizing {playerBeingOptimized} Actions to here {historyPoint.GetActionsToHereString(Navigation)} information set:{historyPoint.HistoryToPoint.GetPlayerInformationString(playerBeingOptimized, null)}"); 
                         TabbedText.WriteLine(
-                            $"Increasing cumulative regret for action {action} in {informationSet.InformationSetNumber} by {inverseSamplingProbabilityQ} * {(counterfactualValues[action - 1])} - {summation} = {cumulativeRegretIncrement} to {informationSet.GetCumulativeRegret(action)}");
+                            $"Increasing cumulative regret for action {action} in {informationSet.InformationSetNumber} by {inverseSamplingProbabilityQ} * ({(counterfactualValues[action - 1])} - {summation}) = {cumulativeRegretIncrement} to {informationSet.GetCumulativeRegret(action)}");
                     }
                 }
-                if (ProbingCFREffectiveIteration > 100000 && (informationSet.InformationSetNumber == 89 || informationSet.InformationSetNumber == 88))
+                if ((informationSet.InformationSetNumber == 89 || informationSet.InformationSetNumber == 88))
                 {
-                    // DEBUG
-                    TraceProbingCFR = false;
-                    TabbedText.WriteLine($"Information set {informationSet.InformationSetNumber} player {playerBeingOptimized} Iteration {ProbingCFREffectiveIteration} at {informationSet}");
-                    if (playerBeingOptimized == 1)
-                        TabbedText.WriteLine($"End of iteration {ProbingCFREffectiveIteration} plaintiff's move was {historyPoint.HistoryToPoint.GetCacheItemAtIndex(MyGameDefinition.GameHistoryCacheIndex_POffer)}");
+                    byte highestRatedAction = informationSet.GetRegretMatchingHighestRatedAction();
+                    TabbedText.WriteLine($"player {playerBeingOptimized} {(ProbingCFREffectiveIteration % 2 == 1 ? "Odd" : "Even")} Iteration {ProbingCFREffectiveIteration} weight {inverseSamplingProbabilityQ} bestActionThisTime {bestAction} cumRegrets9 {informationSet.GetCumulativeRegret(9)} cumRegretsHighest {informationSet.GetCumulativeRegret(highestRatedAction)} ratio {informationSet.GetCumulativeRegret(9)/informationSet.GetCumulativeRegret(highestRatedAction)}"); // {String.Join(",", informationSet.GetCumulativeRegretsString())}");
+                    //// DEBUG
+                    //TraceProbingCFR = false;
+                    //TabbedText.WriteLine($"Information set {informationSet.InformationSetNumber} player {playerBeingOptimized} Iteration {ProbingCFREffectiveIteration} at {informationSet}");
+                    //if (playerBeingOptimized == 1)
+                    //    TabbedText.WriteLine($"End of iteration {ProbingCFREffectiveIteration} plaintiff's move was {historyPoint.HistoryToPoint.GetCacheItemAtIndex(MyGameDefinition.GameHistoryCacheIndex_POffer)}");
                 }
                 return summation;
             }
@@ -318,10 +326,10 @@ namespace ACESim
                     s.Start();
                     Parallelizer.Go(EvolutionSettings.ParallelOptimization, startingIteration, stopBefore, iteration =>
                         {
-                            //if (iteration > 10001 && iteration % 2 == 0)
-                            //    TraceProbingCFR = true;
-                            //else
-                            //    TraceProbingCFR = false;
+                            if (iteration == 125092)
+                                TraceProbingCFR = true;
+                            else
+                                TraceProbingCFR = false;
                             ProbingCFREffectiveIteration = iteration;
                             AbramowiczProbingCFRIteration(iteration);
                         }

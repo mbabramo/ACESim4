@@ -43,7 +43,7 @@ namespace ACESim
 
                 Algorithm = GameApproximationAlgorithm.AbramowiczProbing,
 
-                ReportEveryNIterations = 25_000,
+                ReportEveryNIterations = 125091,
                 NumRandomIterationsForSummaryTable = 1000,
                 PrintSummaryTable = true,
                 OverrideForAlternativeTable = null, // MyGameActionsGenerator.PDoesntGiveUp,
