@@ -24,12 +24,13 @@ namespace ACESim
         double[,] NodeInformation;
 
         int NumPossibleActions => NodeInformation.GetLength(1);
-        const int totalDimensions = 6;
+        const int totalDimensions = 7;
         const int cumulativeRegretDimension = 0;
         const int cumulativeStrategyDimension = 1;
         const int bestResponseNumeratorDimension = 2;
         const int bestResponseDenominatorDimension = 3;
         const int storageDimension = 4;
+        const int storageDimension2 = 5;
         private const int cumulativeRegretBackupDimension = 5;
 
         public InformationSetNodeTally(byte decisionByteCode, byte decisionIndex, byte playerIndex, int numPossibleActions)
@@ -296,27 +297,43 @@ namespace ACESim
 
         public unsafe void GetRegretMatchingProbabilities(double* probabilitiesToSet)
         {
-            (double sumPositiveCumulativeRegrets, int numPositive) = GetSumPositiveCumulativeRegrets_AndNumberPositive();
-            if (numPositive == 1)
-            {
-                for (byte action = 1; action <= NumPossibleActions; action++)
-                    if (GetCumulativeRegret(action) > 0)
-                        probabilitiesToSet[action - 1] = 1.0;
-                    else
-                        probabilitiesToSet[action - 1] = 0.0;
-                return;
-            }
-            if (sumPositiveCumulativeRegrets == 0)
-            {
-                double equalProbability = 1.0 / (double)NumPossibleActions;
-                for (byte a = 1; a <= NumPossibleActions; a++)
-                    probabilitiesToSet[a - 1] = equalProbability;
-            }
-            else
-            {
-                for (byte a = 1; a <= NumPossibleActions; a++)
+            bool done = false;
+            while (!done)
+            { // without this outer loop, there is a risk that when using parallel code, our regret matching probabilities will not add up to 1
+                (double sumPositiveCumulativeRegrets, int numPositive) = GetSumPositiveCumulativeRegrets_AndNumberPositive();
+                if (numPositive == 1)
                 {
-                    probabilitiesToSet[a - 1] = (GetPositiveCumulativeRegret(a)) / sumPositiveCumulativeRegrets;
+                    int numSet = 0;
+                    for (byte action = 1; action <= NumPossibleActions; action++)
+                        if (GetCumulativeRegret(action) > 0)
+                        {
+                            probabilitiesToSet[action - 1] = 1.0;
+                            numSet++;
+                        }
+                        else
+                            probabilitiesToSet[action - 1] = 0.0;
+                    done = numSet == 1;
+                }
+                if (sumPositiveCumulativeRegrets == 0)
+                {
+                    double equalProbability = 1.0 / (double) NumPossibleActions;
+                    for (byte a = 1; a <= NumPossibleActions; a++)
+                        probabilitiesToSet[a - 1] = equalProbability;
+                    done = true;
+                }
+                else
+                {
+                    double total = 0;
+                    for (byte a = 1; a <= NumPossibleActions; a++)
+                    {
+                        probabilitiesToSet[a - 1] = (GetPositiveCumulativeRegret(a)) / sumPositiveCumulativeRegrets;
+                        total += probabilitiesToSet[a - 1];
+                    }
+                    done = Math.Abs(1.0 - total) < 1E-7;
+                }
+                if (done == false)
+                {
+                    var DEBUG = 0;
                 }
             }
         }
@@ -458,28 +475,7 @@ namespace ACESim
                 return firstActionProbability * scoreAction1 + (1.0 - firstActionProbability) * scoreAction2;
             }
         }
-
-        public int ChooseActionWithRegretMatching(double randomSeed)
-        {
-            double sumPositiveCumulativeRegrets = GetSumPositiveCumulativeRegrets();
-            if (sumPositiveCumulativeRegrets == 0)
-            {
-                int total = (int) Math.Floor(randomSeed * NumPossibleActions);
-                return total + 1; // because actions are one-based.
-            }
-            else
-            {
-                double runningSum = 0;
-                int numPossibleActions = NumPossibleActions;
-                for (int action = 1; action <= numPossibleActions; action++)
-                {
-                    runningSum += GetPositiveCumulativeRegret(action);
-                    if (runningSum >= randomSeed)
-                        return action;
-                }
-                return NumPossibleActions; // could happen because of rounding error
-            }
-        }
+        
 
         public void ClearMainTally()
         {
@@ -494,16 +490,38 @@ namespace ACESim
                 NodeInformation[cumulativeRegretBackupDimension, a] = 0;
         }
 
-        public void CopyBackupTallyToMainTally()
+        public void CopyFromOneDimensionToAnother(byte dimensionCopyingFrom, byte dimensionCopyingTo)
         {
             for (byte a = 0; a < NumPossibleActions; a++)
-                NodeInformation[cumulativeRegretDimension, a] = NodeInformation[cumulativeRegretBackupDimension, a];
+                NodeInformation[dimensionCopyingTo, a] = NodeInformation[dimensionCopyingFrom, a];
+        }
+
+        public void SubtractOutValues(byte dimensionSubtractingFrom, byte dimensionWithValuesToSubtract)
+        {
+            for (byte a = 0; a < NumPossibleActions; a++)
+                NodeInformation[dimensionSubtractingFrom, a] -= NodeInformation[dimensionWithValuesToSubtract, a];
+        }
+
+        public void CopyBackupTallyToMainTally()
+        {
+            CopyFromOneDimensionToAnother(cumulativeRegretBackupDimension, cumulativeRegretDimension);
         }
 
         public void CopyMainTallyToBackupTally()
         {
-            for (byte a = 0; a < NumPossibleActions; a++)
-                NodeInformation[cumulativeRegretBackupDimension, a] = NodeInformation[cumulativeRegretDimension, a];
+            CopyFromOneDimensionToAnother(cumulativeRegretDimension, cumulativeRegretBackupDimension);
+        }
+
+        public void StoreCurrentTallyValues()
+        {
+            CopyFromOneDimensionToAnother(cumulativeRegretDimension, storageDimension);
+            CopyFromOneDimensionToAnother(cumulativeRegretBackupDimension, storageDimension2);
+        }
+
+        public void SubtractOutStoredTallyValues()
+        {
+            SubtractOutValues(cumulativeRegretDimension, storageDimension);
+            SubtractOutValues(cumulativeRegretBackupDimension, storageDimension2);
         }
 
         public GameStateTypeEnum GetGameStateType()

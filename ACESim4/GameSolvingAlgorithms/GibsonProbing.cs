@@ -199,15 +199,17 @@ namespace ACESim
                 throw new NotImplementedException();
         }
 
-
         private unsafe byte SampleAction(double* actionProbabilities, byte numPossibleActions, double randomNumber)
         {
+
             double cumulative = 0;
             byte action = 1;
             do
             {
+                if (action == numPossibleActions)
+                    return action;
                 cumulative += actionProbabilities[action - 1];
-                if (cumulative >= randomNumber || action == numPossibleActions)
+                if (cumulative >= randomNumber)
                     return action;
                 else
                     action++;

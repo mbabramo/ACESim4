@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 
 namespace ACESim
 {
@@ -14,11 +15,13 @@ namespace ACESim
         private bool AlsoDisablePlayerOwnExplorationOnNonExploratoryIterations = true;
         private List<(double discount, double endAfterIterationsProportion)> Discounts = new List<(double, double)>()
         {
-          (0.00000001, 0.01),
-          (0.00000100, 0.05),
-          (0.00010000, 0.1),
-          (0.01000000, 0.2),
+          //(0.00000001, 0.01),
+          //(0.00000100, 0.05),
+          //(0.00010000, 0.1),
+          //(0.01000000, 0.2),
         };
+
+        private List<int> PhasePointsToSubtractEarlierValues = new List<int>() {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20};
 
 
         public unsafe double AbramowiczProbe_SinglePlayer(ref HistoryPoint historyPoint, byte playerBeingOptimized,
@@ -341,6 +344,10 @@ namespace ACESim
                         break; // once we find a discount, we're done
                     }
                 }
+                if (phase == PhasePointsToSubtractEarlierValues.First())
+                    WalkAllInformationSetTrees(node => { node.StoreCurrentTallyValues(); });
+                else if (PhasePointsToSubtractEarlierValues.Contains(phase))
+                    WalkAllInformationSetTrees(node => { node.SubtractOutStoredTallyValues(); node.StoreCurrentTallyValues(); });
                 while (startingIteration < stopPhaseBefore)
                 {
                     int stopBefore;
