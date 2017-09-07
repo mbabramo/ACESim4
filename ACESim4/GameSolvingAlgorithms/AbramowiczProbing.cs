@@ -10,6 +10,11 @@ namespace ACESim
         // 2. The counterfactual value of an action selected for the player being selected is determined based on a probe. The walk through the tree is used solely for purposes of sampling.
         // 3. Backup regrets set on alternate iterations. We alternate normal with exploratory iterations, where the opponent engages in epsilon exploration. In an exploratory iteration, we increment backup cumulative regrets, but only where the main regrets are empty. This ensures that if a node will not be visited without opponent exploration, we still develop our best estimate of the correct value based on exploration. Note that this provides robustness but means that T in the regret bound guarantees will consist only if the normal iterations.
 
+        private bool AlsoDisablePlayerOwnExplorationOnNonExploratoryIterations = true;
+        private double ApplyDiscountingToFirstProportionOfIterations = 0.1;
+        private const double DiscountToApply = 0.00001;
+
+
         public unsafe double AbramowiczProbe_SinglePlayer(ref HistoryPoint historyPoint, byte playerBeingOptimized,
             IRandomProducer randomProducer)
         {
@@ -178,7 +183,10 @@ namespace ACESim
                 }
                 // PLAYER BEING OPTIMIZED:
                 double* samplingProbabilities = stackalloc double[numPossibleActions];
-                informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(samplingProbabilities, EvolutionSettings.EpsilonForMainPlayer);
+                if (!isExploratoryIteration && AlsoDisablePlayerOwnExplorationOnNonExploratoryIterations) // with this change, the main player will also explore only on odd iterations
+                    informationSet.GetRegretMatchingProbabilities(samplingProbabilities);
+                else
+                    informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(samplingProbabilities, EvolutionSettings.EpsilonForMainPlayer);
                 sampledAction = SampleAction(samplingProbabilities, numPossibleActions, randomDouble);
                 if (TraceProbingCFR)
                     TabbedText.WriteLine(
@@ -233,6 +241,8 @@ namespace ACESim
                     double cumulativeRegretIncrement = inverseSamplingProbabilityQ *
                                                         (counterfactualValues[action - 1] - summation);
                     bool incrementVisits = action == numPossibleActions; // we increment visits only once per information set. This incrementing is how we keep track of whether we are accumulating backup visits without main visits, in which case we switch to that set.
+                    if (DiscountingEnabled)
+                        cumulativeRegretIncrement *= DiscountToApply;
                     if (EvolutionSettings.ParallelOptimization)
                         informationSet.IncrementCumulativeRegret_Parallel(action, cumulativeRegretIncrement, isExploratoryIteration, BackupRegretsTrigger, incrementVisits);
                     else
@@ -252,7 +262,7 @@ namespace ACESim
                 if ((informationSet.InformationSetNumber == 89 || informationSet.InformationSetNumber == 88))
                 {
                     byte highestRatedAction = informationSet.GetRegretMatchingHighestRatedAction();
-                    TabbedText.WriteLine($"player {playerBeingOptimized} {(ProbingCFREffectiveIteration % 2 == 1 ? "Odd" : "Even")} Iteration {ProbingCFREffectiveIteration} weight {inverseSamplingProbabilityQ} bestActionThisTime {bestAction} cumRegrets9 {informationSet.GetCumulativeRegret(9)} cumRegretsHighest {informationSet.GetCumulativeRegret(highestRatedAction)} ratio {informationSet.GetCumulativeRegret(9)/informationSet.GetCumulativeRegret(highestRatedAction)}"); // {String.Join(",", informationSet.GetCumulativeRegretsString())}");
+                    // DEBUG TabbedText.WriteLine($"player {playerBeingOptimized} {(ProbingCFREffectiveIteration % 2 == 1 ? "Odd" : "Even")} Iteration {ProbingCFREffectiveIteration} weight {inverseSamplingProbabilityQ} bestActionThisTime {bestAction} cumRegrets9 {informationSet.GetCumulativeRegret(9)} cumRegretsHighest {informationSet.GetCumulativeRegret(highestRatedAction)} ratio {informationSet.GetCumulativeRegret(9)/informationSet.GetCumulativeRegret(highestRatedAction)}"); // {String.Join(",", informationSet.GetCumulativeRegretsString())}");
                     //// DEBUG
                     //TraceProbingCFR = false;
                     //TabbedText.WriteLine($"Information set {informationSet.InformationSetNumber} player {playerBeingOptimized} Iteration {ProbingCFREffectiveIteration} at {informationSet}");
@@ -287,6 +297,7 @@ namespace ACESim
         private static int GameNumber = 0;
 
         private int BackupRegretsTrigger;
+        private bool DiscountingEnabled;
 
         public unsafe void SolveAbramowiczProbingCFR()
         {
@@ -305,6 +316,8 @@ namespace ACESim
             int iterationsFinalPhase = EvolutionSettings.TotalProbingCFRIterations - (numPhases - 1) * iterationsPerPhase; // may be greater if there is a remainder from above
             ProbingCFRIterationNum = 0;
             ProbingCFREffectiveIteration = 0;
+            DiscountingEnabled = true;
+            int stopDiscountingAt = (int) Math.Floor(ApplyDiscountingToFirstProportionOfIterations * EvolutionSettings.TotalProbingCFRIterations);
             for (int phase = 0; phase < numPhases; phase++)
             {
                 BackupRegretsTrigger = EvolutionSettings.MinBackupRegretsTrigger + (int) (EvolutionSettings.TriggerIncreaseOverTime * ((double) phase / (double) (numPhases - 1)));
@@ -326,16 +339,18 @@ namespace ACESim
                     s.Start();
                     Parallelizer.Go(EvolutionSettings.ParallelOptimization, startingIteration, stopBefore, iteration =>
                         {
-                            if (iteration == 125092)
-                                TraceProbingCFR = true;
-                            else
-                                TraceProbingCFR = false;
+                            //if (iteration == 125092)
+                            //    TraceProbingCFR = true;
+                            //else
+                            //    TraceProbingCFR = false;
                             ProbingCFREffectiveIteration = iteration;
                             AbramowiczProbingCFRIteration(iteration);
                         }
                     );
                     s.Stop();
                     ProbingCFRIterationNum = startingIteration = stopBefore; // this is the iteration to run next
+                    if (DiscountingEnabled && ProbingCFRIterationNum >= stopDiscountingAt)
+                        DiscountingEnabled = false;
                     GenerateReports(ProbingCFRIterationNum,
                         () =>
                             $"Iteration {ProbingCFRIterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)(ProbingCFRIterationNum + 1))))}");

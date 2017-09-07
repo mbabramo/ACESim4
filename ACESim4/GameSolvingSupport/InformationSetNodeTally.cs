@@ -129,6 +129,8 @@ namespace ACESim
             {
                 double currentValue = newCurrentValue;
                 double newValue = currentValue + value;
+                if (double.IsNaN(newValue))
+                    throw new Exception("Not a double");
                 newCurrentValue = Interlocked.CompareExchange(ref location1, newValue, currentValue);
                 if (newCurrentValue == currentValue)
                     return newValue;
