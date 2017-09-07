@@ -236,6 +236,7 @@ namespace ACESim
         }
 
         private int ProbingCFRIterationNum;
+        private int ProbingCFREffectiveIteration; // iteration number valid only when not in parallel
 
         public unsafe void SolveGibsonProbingCFR()
         {

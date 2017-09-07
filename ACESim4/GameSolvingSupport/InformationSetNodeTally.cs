@@ -327,7 +327,7 @@ namespace ACESim
             return String.Join(", ", probs.Select(x => $"{x:N2}"));
         }
 
-        public unsafe string GetCumulativeRegretsString()
+        public string GetCumulativeRegretsString()
         {
             List<double> probs = new List<double>();
             for (byte a = 1; a <= NumPossibleActions; a++)
@@ -335,14 +335,20 @@ namespace ACESim
             return String.Join(", ", probs.Select(x => $"{x:N2}"));
         }
 
-        public unsafe string GetRegretMatchingProbabilitiesString()
+        public string GetRegretMatchingProbabilitiesString()
+        {
+            var probs = GetRegretMatchingProbabilitiesList();
+            return String.Join(",", probs.Select(x => $"{x:N2}"));
+        }
+
+        public unsafe List<double> GetRegretMatchingProbabilitiesList()
         {
             List<double> probs = new List<double>();
             double* probabilitiesToSet = stackalloc double[NumPossibleActions];
             double sumPositiveCumulativeRegrets = GetSumPositiveCumulativeRegrets();
             if (sumPositiveCumulativeRegrets == 0)
             {
-                double equalProbability = 1.0 / (double)NumPossibleActions;
+                double equalProbability = 1.0 / (double) NumPossibleActions;
                 for (byte a = 1; a <= NumPossibleActions; a++)
                     probs.Add(equalProbability);
             }
@@ -353,7 +359,7 @@ namespace ACESim
                     probs.Add((GetPositiveCumulativeRegret(a)) / sumPositiveCumulativeRegrets);
                 }
             }
-            return String.Join(",", probs.Select(x => $"{x:N2}"));
+            return probs;
         }
 
         /// <summary>

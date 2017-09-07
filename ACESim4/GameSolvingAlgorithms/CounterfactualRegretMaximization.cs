@@ -231,8 +231,42 @@ namespace ACESim
 
         #region Printing
 
+        public void SolveProblemWithPerfectInformationGame()
+        {
+            foreach (byte player in new byte[] {0, 1})
+            {
+                var tree = Strategies[player].InformationSetTree;
+                var branches = tree.Branches.Where(x => x != null).Skip(1).ToList();
+                if (branches.Count() != 4)
+                    throw new Exception();
+                for (byte bargainingRound = 4; bargainingRound >= 1; bargainingRound--)
+                {
+                    var branch = branches[bargainingRound - 1];
+                    for (byte action = 1; action <= 10; action++)
+                    {
+                        var actionSubbranch = branch.GetBranch(action).GetBranch(bargainingRound); // first we have the action, then the bargaining round
+                        InformationSetNodeTally node = (InformationSetNodeTally) actionSubbranch.StoredValue;
+                        var regretMatchingProbabilitiesList = node.GetRegretMatchingProbabilitiesList();
+                        double probabilityAssociatedWithCorrectMove = regretMatchingProbabilitiesList[action - 1];
+                        double cumulativeRegrets = node.GetCumulativeRegret(action);
+                        if (probabilityAssociatedWithCorrectMove != 1.0)
+                        {
+                            int highestIndex = regretMatchingProbabilitiesList.Select((v, i) => new {item = v, index = i}).OrderByDescending(x => x.item).First().index;
+                            byte actionWithHighestProbability = (byte) (highestIndex + 1);
+                            //if (actionWithHighestProbability != action)
+                            {
+                                double cumulativeRegretsForHighestProbabilityItem = node.GetCumulativeRegret(actionWithHighestProbability);
+                                Console.WriteLine($"{(actionWithHighestProbability == action ? "Imperfect" : "Bad")} (node {node.InformationSetNumber}): player {player} bargaining round {bargainingRound} action {action} cumulative regret {cumulativeRegrets} highest probability action {actionWithHighestProbability} cumulativeRegretsForHighest {cumulativeRegretsForHighestProbabilityItem} ratio {cumulativeRegrets / cumulativeRegretsForHighestProbabilityItem} {node}");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         public void PrintInformationSets()
         {
+            SolveProblemWithPerfectInformationGame(); return; // DEBUG
             foreach (Strategy s in Strategies)
             {
                 if (!s.PlayerInfo.PlayerIsChance || !EvolutionSettings.PrintNonChanceInformationSetsOnly)

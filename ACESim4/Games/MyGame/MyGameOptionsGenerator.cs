@@ -28,10 +28,10 @@ namespace ACESim
                 PNoiseStdev = 0.001,
                 DNoiseStdev = 0.001,
                 CourtNoiseStdev = 0.1,
-                PTrialCosts = 12000,
-                DTrialCosts = 12000,
+                PTrialCosts = 1000,
+                DTrialCosts = 1000,
                 IncludeAgreementToBargainDecisions = false,
-                PerPartyCostsLeadingUpToBargainingRound = 5000,
+                PerPartyCostsLeadingUpToBargainingRound = 1000,
                 AllowAbandonAndDefaults = false,
                 LoserPays = false,
                 LoserPaysAfterAbandonment = true,
@@ -46,7 +46,7 @@ namespace ACESim
                 SubdivideOffers = false,
                 BargainingRoundsSimultaneous = true,
                 PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false, true, false, true, false },
-                IncludeSignalsReport = true,
+                IncludeSignalsReport = false,
             };
             options.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.PInitialWealth };
             options.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.DInitialWealth };

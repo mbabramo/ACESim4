@@ -54,7 +54,7 @@ namespace ACESim
         {
             string localString = builder.ToString();
             if (EnableOutput)
-                Debug.Write(localString);
+                Console.Write(localString);
             AccumulatedText.Append(localString);
         }
 

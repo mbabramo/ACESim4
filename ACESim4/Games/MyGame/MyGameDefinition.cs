@@ -88,18 +88,18 @@ namespace ACESim
         private byte LitigationQualityDecisionIndex = (byte) 255;
 
         // NOTE: Must skip 0, because that is used for subdivision aggregation decisions
-        private const byte GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound = 1;
-        private const byte GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound = 2;
-        private const byte GameHistoryCacheIndex_PAgreesToBargain = 3;
-        private const byte GameHistoryCacheIndex_DAgreesToBargain = 4;
-        private const byte GameHistoryCacheIndex_POffer = 5;
-        private const byte GameHistoryCacheIndex_DOffer = 6;
-        private const byte GameHistoryCacheIndex_PResponse = 7;
-        private const byte GameHistoryCacheIndex_DResponse = 8;
-        private const byte GameHistoryCacheIndex_PReadyToAbandon = 9;
-        private const byte GameHistoryCacheIndex_DReadyToAbandon = 10;
-        private const byte GameHistoryCacheIndex_LitigationQuality = 11;
-        private const byte GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound = 12;
+        public const byte GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound = 1;
+        public const byte GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound = 2;
+        public const byte GameHistoryCacheIndex_PAgreesToBargain = 3;
+        public const byte GameHistoryCacheIndex_DAgreesToBargain = 4;
+        public const byte GameHistoryCacheIndex_POffer = 5;
+        public const byte GameHistoryCacheIndex_DOffer = 6;
+        public const byte GameHistoryCacheIndex_PResponse = 7;
+        public const byte GameHistoryCacheIndex_DResponse = 8;
+        public const byte GameHistoryCacheIndex_PReadyToAbandon = 9;
+        public const byte GameHistoryCacheIndex_DReadyToAbandon = 10;
+        public const byte GameHistoryCacheIndex_LitigationQuality = 11;
+        public const byte GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound = 12;
 
         #endregion
 
