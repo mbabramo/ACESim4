@@ -1,3 +1,4 @@
+using System;
 using ACESim.Util;
 using System.Collections.Generic;
 
@@ -124,6 +125,7 @@ namespace ACESim
 
 
         public bool IncludeSignalsReport;
+        public List<(Func<Decision, GameProgress, byte>, string)> AdditionalTableOverrides;
 
         // the following are derived and should not be set directly
 

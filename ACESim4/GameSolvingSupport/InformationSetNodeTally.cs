@@ -333,10 +333,6 @@ namespace ACESim
                     }
                     done = Math.Abs(1.0 - total) < 1E-7;
                 }
-                if (done == false)
-                {
-                    var DEBUG = 0;
-                }
             }
         }
 

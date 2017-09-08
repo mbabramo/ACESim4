@@ -202,11 +202,6 @@ namespace ACESim
                         $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {playerAtPoint} decision {informationSet.DecisionIndex} with regret-matched prob {sigmaRegretMatchedActionProbabilities[sampledAction - 1]}");
                 double* counterfactualValues = stackalloc double[numPossibleActions];
                 double summation = 0;
-                if  ((informationSet.InformationSetNumber == 89 || informationSet.InformationSetNumber == 88))
-                {
-                    // DEBUG
-                    //TabbedText.WriteLine($"player {playerBeingOptimized} Odd {ProbingCFREffectiveIteration % 2 == 1} Iteration {ProbingCFREffectiveIteration} at {String.Join(",", informationSet.GetRegretMatchingProbabilitiesList())}");
-                }
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
                     HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
@@ -267,16 +262,6 @@ namespace ACESim
                         TabbedText.WriteLine(
                             $"Increasing cumulative regret for action {action} in {informationSet.InformationSetNumber} by {inverseSamplingProbabilityQ} * ({(counterfactualValues[action - 1])} - {summation}) = {cumulativeRegretIncrement} to {informationSet.GetCumulativeRegret(action)}");
                     }
-                }
-                if ((informationSet.InformationSetNumber == 89 || informationSet.InformationSetNumber == 88))
-                {
-                    byte highestRatedAction = informationSet.GetRegretMatchingHighestRatedAction();
-                    // DEBUG TabbedText.WriteLine($"player {playerBeingOptimized} {(ProbingCFREffectiveIteration % 2 == 1 ? "Odd" : "Even")} Iteration {ProbingCFREffectiveIteration} weight {inverseSamplingProbabilityQ} bestActionThisTime {bestAction} cumRegrets9 {informationSet.GetCumulativeRegret(9)} cumRegretsHighest {informationSet.GetCumulativeRegret(highestRatedAction)} ratio {informationSet.GetCumulativeRegret(9)/informationSet.GetCumulativeRegret(highestRatedAction)}"); // {String.Join(",", informationSet.GetCumulativeRegretsString())}");
-                    //// DEBUG
-                    //TraceProbingCFR = false;
-                    //TabbedText.WriteLine($"Information set {informationSet.InformationSetNumber} player {playerBeingOptimized} Iteration {ProbingCFREffectiveIteration} at {informationSet}");
-                    //if (playerBeingOptimized == 1)
-                    //    TabbedText.WriteLine($"End of iteration {ProbingCFREffectiveIteration} plaintiff's move was {historyPoint.HistoryToPoint.GetCacheItemAtIndex(MyGameDefinition.GameHistoryCacheIndex_POffer)}");
                 }
                 return summation;
             }

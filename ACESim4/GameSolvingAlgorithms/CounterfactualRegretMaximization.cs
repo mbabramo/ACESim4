@@ -233,6 +233,7 @@ namespace ACESim
 
         #region Printing
 
+        
         public void SolveProblemWithPerfectInformationGame()
         {
             foreach (byte player in new byte[] {0, 1})
@@ -268,7 +269,7 @@ namespace ACESim
 
         public void PrintInformationSets()
         {
-            // DEBUG SolveProblemWithPerfectInformationGame(); return; // DEBUG
+            // DEBUG SolveProblemWithPerfectInformationGame(); return;
             foreach (Strategy s in Strategies)
             {
                 if (!s.PlayerInfo.PlayerIsChance || !EvolutionSettings.PrintNonChanceInformationSetsOnly)
@@ -538,17 +539,12 @@ namespace ACESim
                     Console.WriteLine($"{NumberAverageStrategySamplingExplorations / (double)EvolutionSettings.ReportEveryNIterations}");
                 NumberAverageStrategySamplingExplorations = 0;
                 if (EvolutionSettings.PrintSummaryTable)
-                    PrintSummaryTable(useRandomPaths, null);
+                    PrintSummaryTable(useRandomPaths);
                 MeasureRegretMatchingChanges();
-                if (EvolutionSettings.OverrideForAlternativeTable != null)
-                {
-                    Console.WriteLine("With alternative:");
-                    PrintSummaryTable(useRandomPaths, EvolutionSettings.OverrideForAlternativeTable);
-                }
                 if (ShouldEstimateImprovementOverTime)
                     ReportEstimatedImprovementsOverTime();
                 if (doBestResponse)
-                    CompareBestResponse(iteration, useRandomPaths);
+                    CompareBestResponse(iteration, false);
                 if (EvolutionSettings.AlwaysUseAverageStrategyInReporting)
                     ActionStrategy = previous;
                 if (EvolutionSettings.PrintGameTree)
@@ -559,7 +555,7 @@ namespace ACESim
             }
         }
 
-        private unsafe void PrintSummaryTable(bool useRandomPaths, Func<Decision, GameProgress, byte> actionOverride)
+        private unsafe void PrintSummaryTable(bool useRandomPaths)
         {
             Action<GamePlayer, Func<Decision, GameProgress, byte>> reportGenerator;
             if (useRandomPaths)
@@ -572,7 +568,7 @@ namespace ACESim
                 Console.WriteLine($"Result using all paths");
                 reportGenerator = GenerateReports_AllPaths;
             }
-            Console.WriteLine($"{GenerateReports(reportGenerator, actionOverride)}");
+            Console.WriteLine($"{GenerateReports(reportGenerator)}");
             //Console.WriteLine($"Number initialized game paths: {NumInitializedGamePaths}");
         }
 
@@ -712,7 +708,7 @@ namespace ACESim
 
         SimpleReport[] ReportsBeingGenerated = null;
 
-        public string GenerateReports(Action<GamePlayer, Func<Decision, GameProgress, byte>> generator, Func<Decision, GameProgress, byte> actionOverride)
+        public string GenerateReports(Action<GamePlayer, Func<Decision, GameProgress, byte>> generator)
         {
             Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, GetGameState);
             StringBuilder sb = new StringBuilder();
@@ -720,10 +716,11 @@ namespace ACESim
             int simpleReportDefinitionsCount = simpleReportDefinitions.Count();
             ReportsBeingGenerated = new SimpleReport[simpleReportDefinitionsCount];
             for (int i = 0; i < simpleReportDefinitionsCount; i++)
+            {
                 ReportsBeingGenerated[i] = new SimpleReport(simpleReportDefinitions[i], simpleReportDefinitions[i].DivideColumnFiltersByImmediatelyEarlierReport ? ReportsBeingGenerated[i - 1] : null);
-            generator(GamePlayer, actionOverride);
-            for (int i = 0; i < simpleReportDefinitionsCount; i++)
+                generator(GamePlayer, simpleReportDefinitions[i].ActionsOverride);
                 ReportsBeingGenerated[i].GetReport(sb, false);
+            }
             ReportsBeingGenerated = null;
             return sb.ToString();
         }

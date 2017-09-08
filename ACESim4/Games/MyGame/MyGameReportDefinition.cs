@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace ACESim
 {
@@ -11,6 +12,17 @@ namespace ACESim
             {
                 GetOverallReport()
             };
+            if (Options.AdditionalTableOverrides != null && Options.AdditionalTableOverrides.Any())
+            {
+                foreach (var overrideWithName in Options.AdditionalTableOverrides)
+                {
+                    var report = GetOverallReport();
+                    report.ActionsOverride = overrideWithName.Item1;
+                    report.Name += $" ({overrideWithName.Item2})";
+                    reports.Add(report);
+                }
+            }
+            
             if (Options.IncludeSignalsReport)
             {
                 for (int b = 1; b <= Options.NumPotentialBargainingRounds; b++)

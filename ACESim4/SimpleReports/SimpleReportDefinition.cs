@@ -14,6 +14,7 @@ namespace ACESim
         public List<SimpleReportFilter> RowFilters;
         public List<SimpleReportColumnItem> ColumnItems;
         public bool DivideColumnFiltersByImmediatelyEarlierReport;
+        public Func<Decision, GameProgress, byte> ActionsOverride;
 
         public SimpleReportDefinition(string name, List<SimpleReportFilter> metaFilters, List<SimpleReportFilter> rowFilters, List<SimpleReportColumnItem> columnItems, bool divideColumnFiltersByImmediatelyEarlierReport = false)
         {
