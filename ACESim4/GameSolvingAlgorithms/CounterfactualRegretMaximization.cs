@@ -266,7 +266,7 @@ namespace ACESim
 
         public void PrintInformationSets()
         {
-            SolveProblemWithPerfectInformationGame(); return; // DEBUG
+            // DEBUG SolveProblemWithPerfectInformationGame(); return; // DEBUG
             foreach (Strategy s in Strategies)
             {
                 if (!s.PlayerInfo.PlayerIsChance || !EvolutionSettings.PrintNonChanceInformationSetsOnly)
