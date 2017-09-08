@@ -15,10 +15,10 @@ namespace ACESim
         private bool AlsoDisablePlayerOwnExplorationOnNonExploratoryIterations = true;
         private List<(double discount, double endAfterIterationsProportion)> Discounts = new List<(double, double)>()
         {
-          //(0.00000001, 0.01),
-          //(0.00000100, 0.05),
-          //(0.00010000, 0.1),
-          //(0.01000000, 0.2),
+          (0.00000001, 0.01),
+          (0.00000100, 0.05),
+          (0.00010000, 0.1),
+          (0.01000000, 0.2),
         };
 
         private List<int> PhasePointsToSubtractEarlierValues = new List<int>() {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20};
