@@ -579,7 +579,7 @@ namespace ACESim
             {
                 double bestResponseUtility = CalculateBestResponse(playerBeingOptimized, ActionStrategy);
                 double bestResponseImprovement = bestResponseUtility - UtilityCalculations[playerBeingOptimized].Average();
-                if (!useRandomPaths && bestResponseImprovement < -1E-15)
+                if (!useRandomPaths && bestResponseImprovement < 0 && Math.Abs(bestResponseImprovement) > Math.Abs(bestResponseUtility)/1E-8)
                     throw new Exception("Best response function worse."); // it can be slightly negative as a result of rounding error or if we are using random paths as a result of sampling error
                 Console.WriteLine($"Player {playerBeingOptimized} utility with regret matching {UtilityCalculations[playerBeingOptimized].Average()} using best response against regret matching {bestResponseUtility} best response improvement {bestResponseImprovement}");
             }
