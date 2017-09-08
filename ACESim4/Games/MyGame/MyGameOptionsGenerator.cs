@@ -53,7 +53,51 @@ namespace ACESim
             return options;
         }
 
-        public static MyGameOptions Standard()
+
+        public static MyGameOptions ReducedGame()
+        {
+            var options = new MyGameOptions()
+            {
+                PInitialWealth = 1000000,
+                DInitialWealth = 1000000,
+                DamagesAlleged = 100000,
+                NumLitigationQualityPoints = 3,
+                ActionIsNoiseNotSignal = true,
+                NumSignals = 3,
+                NumNoiseValues = 3,
+                NumOffers = 3,
+                PFilingCost = 5000,
+                DAnswerCost = 5000,
+                PNoiseStdev = 0.3,
+                DNoiseStdev = 0.3,
+                CourtNoiseStdev = 0.3,
+                PTrialCosts = 15000,
+                DTrialCosts = 15000,
+                IncludeAgreementToBargainDecisions = false,
+                PerPartyCostsLeadingUpToBargainingRound = 10000,
+                AllowAbandonAndDefaults = false,
+                LoserPays = false,
+                LoserPaysAfterAbandonment = true,
+                DeltaOffersOptions = new DeltaOffersOptions()
+                {
+                    SubsequentOffersAreDeltas = false,
+                    DeltaStartingValue = 0.01,
+                    MaxDelta = 0.25
+                },
+                NumPotentialBargainingRounds = 1,
+                ForgetEarlierBargainingRounds = true,
+                SubdivideOffers = false,
+                BargainingRoundsSimultaneous = true,
+                PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false, true, false, true, false },
+                IncludeSignalsReport = false,
+            };
+            options.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.PInitialWealth };
+            options.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.DInitialWealth };
+            return options;
+        }
+
+
+        public static MyGameOptions Temporary()
         {
             var options = new MyGameOptions()
             {
@@ -65,6 +109,48 @@ namespace ACESim
                 NumSignals = 5,
                 NumNoiseValues = 5,
                 NumOffers = 5,
+                PFilingCost = 5000,
+                DAnswerCost = 5000,
+                PNoiseStdev = 0.3,
+                DNoiseStdev = 0.3,
+                CourtNoiseStdev = 0.3,
+                PTrialCosts = 15000,
+                DTrialCosts = 15000,
+                IncludeAgreementToBargainDecisions = true,
+                PerPartyCostsLeadingUpToBargainingRound = 10000,
+                AllowAbandonAndDefaults = true,
+                LoserPays = false,
+                LoserPaysAfterAbandonment = true,
+                DeltaOffersOptions = new DeltaOffersOptions()
+                {
+                    SubsequentOffersAreDeltas = false,
+                    DeltaStartingValue = 0.01,
+                    MaxDelta = 0.25
+                },
+                NumPotentialBargainingRounds = 1,
+                ForgetEarlierBargainingRounds = true,
+                SubdivideOffers = false,
+                BargainingRoundsSimultaneous = true,
+                PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false, true, false, true, false },
+                IncludeSignalsReport = false,
+            };
+            options.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.PInitialWealth };
+            options.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.DInitialWealth };
+            return options;
+        }
+
+        public static MyGameOptions Standard()
+        {
+            var options = new MyGameOptions()
+            {
+                PInitialWealth = 1000000,
+                DInitialWealth = 1000000,
+                DamagesAlleged = 100000,
+                NumLitigationQualityPoints = 10,
+                ActionIsNoiseNotSignal = true,
+                NumSignals = 10,
+                NumNoiseValues = 10,
+                NumOffers = 10,
                 PFilingCost = 5000,
                 DAnswerCost = 5000,
                 PNoiseStdev = 0.3,

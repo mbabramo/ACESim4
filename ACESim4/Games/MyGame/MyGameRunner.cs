@@ -39,7 +39,7 @@ namespace ACESim
                 MaxParallelDepth = 2,
                 ParallelOptimization = true,
 
-                InitialRandomSeed = 39,
+                InitialRandomSeed = 0,
 
                 Algorithm = GameApproximationAlgorithm.AbramowiczProbing,
 
@@ -50,9 +50,10 @@ namespace ACESim
                 PrintInformationSets = false,
                 RestrictToTheseInformationSets = null, // new List<int>() {16},
                 PrintGameTree = false,
-                BestResponseEveryMIterations = 500_000,
+                AlwaysUseAverageStrategyInReporting = false,
+                BestResponseEveryMIterations = 100_000, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
 
-                TotalProbingCFRIterations = 500_000,
+                TotalProbingCFRIterations = 100_000,
                 EpsilonForMainPlayer = 0.5,
                 EpsilonForOpponentWhenExploring = 0.05,
                 MinBackupRegretsTrigger = 3,

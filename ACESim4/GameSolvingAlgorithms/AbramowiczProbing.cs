@@ -344,10 +344,19 @@ namespace ACESim
                         break; // once we find a discount, we're done
                     }
                 }
-                if (phase == PhasePointsToSubtractEarlierValues.First())
-                    WalkAllInformationSetTrees(node => { node.StoreCurrentTallyValues(); });
-                else if (PhasePointsToSubtractEarlierValues.Contains(phase))
-                    WalkAllInformationSetTrees(node => { node.SubtractOutStoredTallyValues(); node.StoreCurrentTallyValues(); });
+                if (PhasePointsToSubtractEarlierValues.Any())
+                {
+                    if (phase == PhasePointsToSubtractEarlierValues.First())
+                        WalkAllInformationSetTrees(node => { node.StoreCurrentTallyValues(); });
+                    else if (PhasePointsToSubtractEarlierValues.Contains(phase))
+                        WalkAllInformationSetTrees(node =>
+                        {
+                            node.SubtractOutStoredTallyValues();
+                            node.StoreCurrentTallyValues();
+                        });
+                    if (phase == PhasePointsToSubtractEarlierValues.Last())
+                        WalkAllInformationSetTrees(node => { node.ClearAverageStrategyTally(); });
+                }
                 while (startingIteration < stopPhaseBefore)
                 {
                     int stopBefore;

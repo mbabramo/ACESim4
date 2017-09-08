@@ -51,6 +51,8 @@ namespace ACESim
 
         public HistoryNavigationInfo Navigation;
 
+        // Note: The ActionStrategy selected does not affect the learning process. It affects reporting after learning, including the calculation of best response scores. Convergence bounds guarantees depend on all players' using the AverageStrategies ActionStrategy. It may seem surprising that we can have convergence guarantees when a player is using the average strategy, thus continuing to make what appears to be some mistakes from the past. But the key is that the other players are also using their average strategies. Thus, even if new information has changed the best move for a player under current circumstances, the player will be competing against a player that continues to employ some of the old strategies. In other words, the opponents' average strategy changes extremely slowly, and the no-regret learning convergence guarantees at a single information set are based on this concept of the player and the opponent playing their average strategies. But the average strategy is not the strategy that the player has "learned." 
+
         public ActionStrategies _ActionStrategy;
         public ActionStrategies ActionStrategy
         {
@@ -524,7 +526,8 @@ namespace ACESim
             if (EvolutionSettings.ReportEveryNIterations != null && iteration % EvolutionSettings.ReportEveryNIterations == 0)
             {
                 ActionStrategies previous = ActionStrategy;
-                ActionStrategy = ActionStrategies.RegretMatching;
+                if (EvolutionSettings.AlwaysUseAverageStrategyInReporting)
+                    ActionStrategy = ActionStrategies.AverageStrategy;
                 bool useRandomPaths = SkipEveryPermutationInitialization || NumInitializedGamePaths > EvolutionSettings.NumRandomIterationsForSummaryTable;
                 bool doBestResponse = (EvolutionSettings.BestResponseEveryMIterations != null && iteration % EvolutionSettings.BestResponseEveryMIterations == 0 && EvolutionSettings.BestResponseEveryMIterations != EvolutionSettings.EffectivelyNever && iteration != 0);
                 if (doBestResponse)
@@ -581,7 +584,7 @@ namespace ACESim
                 double bestResponseImprovement = bestResponseUtility - UtilityCalculations[playerBeingOptimized].Average();
                 if (!useRandomPaths && bestResponseImprovement < 0 && Math.Abs(bestResponseImprovement) > Math.Abs(bestResponseUtility)/1E-8)
                     throw new Exception("Best response function worse."); // it can be slightly negative as a result of rounding error or if we are using random paths as a result of sampling error
-                Console.WriteLine($"Player {playerBeingOptimized} utility with regret matching {UtilityCalculations[playerBeingOptimized].Average()} using best response against regret matching {bestResponseUtility} best response improvement {bestResponseImprovement}");
+                Console.WriteLine($"Player {playerBeingOptimized} utility with {(EvolutionSettings.AlwaysUseAverageStrategyInReporting ? "average strategy" : "regret matching")} against opponent using average strategy {UtilityCalculations[playerBeingOptimized].Average()} using best response {bestResponseUtility} best response improvement {bestResponseImprovement}");
             }
         }
 
@@ -650,6 +653,7 @@ namespace ACESim
             IGameState gameState = GetGameState(ref historyPoint);
             ActionProbabilityUtilities.GetActionProbabilitiesAtHistoryPoint(gameState, actionStrategy, probabilities, numPossibleActions, null, Navigation);
             var historyPointCopy = historyPoint;
+
             Parallelizer.GoByte(EvolutionSettings.ParallelOptimization, EvolutionSettings.MaxParallelDepth, 1, (byte)(numPossibleActions + 1), (action) =>
             {
                 if (probabilities[action - 1] > 0)
@@ -744,7 +748,9 @@ namespace ACESim
                 // do the simple aggregation of utilities. note that this is different from the value returned by vanilla, since that uses regret matching, instead of average strategies.
                 double[] utilities = GetUtilities(ref completedGame);
                 for (int p = 0; p < NumNonChancePlayers; p++)
+                {
                     UtilityCalculations[p].Add(utilities[p], probabilityOfPath);
+                }
                 // consume the result for reports
                 step2_buffer.SendAsync(new Tuple<GameProgress, double>(progress, probabilityOfPath));
             };
@@ -754,9 +760,9 @@ namespace ACESim
             step2_buffer.Complete(); // tell consumer nothing more to be produced
             step3_consumer.Wait(); // wait until all have been processed
 
-            //for (int p = 0; p < NumNonChancePlayers; p++)
-            //    if (Math.Abs(UtilityCalculations[p].sumOfWeights - 1.0) > 0.0001)
-            //        throw new Exception("Imperfect sampling.");
+            for (int p = 0; p < NumNonChancePlayers; p++)
+                if (Math.Abs(UtilityCalculations[p].sumOfWeights - 1.0) > 0.001)
+                    throw new Exception("Imperfect sampling.");
         }
 
         async Task AddGameProgressToReport(ISourceBlock<Tuple<GameProgress, double>> source)

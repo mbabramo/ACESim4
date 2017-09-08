@@ -41,7 +41,7 @@ namespace ACESim
 
         }
 
-        public static unsafe void GetActionProbabilitiesAtHistoryPoint_Helper(IGameState gameStateForCurrentPlayer, ActionStrategies actionStrategy, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation, out double[] probabilities)
+        private static unsafe void GetActionProbabilitiesAtHistoryPoint_Helper(IGameState gameStateForCurrentPlayer, ActionStrategies actionStrategy, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation, out double[] probabilities)
         {
             probabilities = new double[GameFullHistory.MaxNumActions];
             double* probabilitiesBuffer = stackalloc double[GameFullHistory.MaxNumActions];

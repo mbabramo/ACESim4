@@ -67,7 +67,7 @@ namespace ACESim
                         Console.WriteLine(
                             $"Player0StrategyIndex {player0StrategyIndex} Player1StrategyIndex {player1StrategyIndex}");
                         GenerateReports(0, () => "");
-                        //PrintGameTree();
+                        PrintGameTree();
                         Console.WriteLine("");
                         numPrinted++;
                     }
@@ -80,10 +80,11 @@ namespace ACESim
             List<(InformationSetNodeTally, int)> player1InformationSets, out int player0Permutations,
             out int player1Permutations, out double[,] player0Utilities, out double[,] player1Utilities)
         {
+            PrintInformationSets(); // DEBUG
             long p0P = player0InformationSets.Aggregate(1L, (acc, val) => acc * (long) val.Item2);
             long p1P = player1InformationSets.Aggregate(1L, (acc, val) => acc * (long) val.Item2);
-            if (p0P * p1P > 10000000)
-                throw new Exception("Too many combinations.");
+            if (p0P == 0 || p1P == 0 || p0P > 10000000 || p1P > 10000000 || p0P * p1P > 10000000)
+                throw new Exception("Too many combinations."); // note that aggregate will put 0 as overflow result
             player0Permutations = (int) p0P;
             player1Permutations = (int) p1P;
             player0Utilities = new double[player0Permutations, player1Permutations];

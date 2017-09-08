@@ -191,7 +191,7 @@ namespace ACESim
             NodeInformation[cumulativeStrategyDimension, action - 1] += amount;
         }
 
-        public static double ZeroOutBelow = 0.01;
+        public static double ZeroOutBelow = 1E-50;
 
         public unsafe void GetAverageStrategies(double* probabilities)
         {
@@ -219,6 +219,8 @@ namespace ACESim
                 for (int a = 1; a <= NumPossibleActions; a++)
                     probabilities[a - 1] /= sum;
             }
+            if (sum == 0)
+                GetEqualProbabilitiesRegretMatching(probabilities);
 
         }
 
@@ -474,6 +476,12 @@ namespace ACESim
                 double firstActionProbability = firstActionRegrets / (firstActionRegrets + secondActionRegrets);
                 return firstActionProbability * scoreAction1 + (1.0 - firstActionProbability) * scoreAction2;
             }
+        }
+
+        public void ClearAverageStrategyTally()
+        {
+            for (byte a = 0; a < NumPossibleActions; a++)
+                NodeInformation[cumulativeStrategyDimension, a] = 0;
         }
         
 

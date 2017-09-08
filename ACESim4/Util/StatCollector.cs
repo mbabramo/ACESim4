@@ -219,8 +219,8 @@ namespace ACESim
 
         public virtual void Add(double item, double? weight = null)
         {
-            //if (double.IsInfinity(item) || double.IsNaN(item))
-            //    throw new OverflowException("Invalid addition to the stat collector.");
+            if (double.IsInfinity(item) || double.IsNaN(item))
+                throw new OverflowException("Invalid addition to the stat collector.");
             double w = weight ?? 1.0;
             if (w == 0)
                 return;

@@ -113,6 +113,8 @@ namespace ACESim
                 var nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
                 double expectedValue = GEBRPass2(ref nextHistoryPoint, playerIndex, depthToTarget,
                     (byte) (depthSoFar + 1), inversePi, opponentsActionStrategy);
+                if (double.IsNaN(expectedValue))
+                    throw new Exception("DEBUG");
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionIndex))
                 {
                     TabbedText.Tabs--;
@@ -139,6 +141,8 @@ namespace ACESim
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
                     double nextInversePi = inversePi;
+                    if (double.IsNaN(actionProbabilities[action -1]))
+                        throw new Exception("DEBUG");
                     if (playerMakingDecision != playerIndex)
                         nextInversePi *= actionProbabilities[action - 1];
                     if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionIndex))
@@ -215,6 +219,8 @@ namespace ACESim
             {
                 TabbedText.WriteLine($"Chance expected value sum {expectedValueSum}");
             }
+            if (double.IsNaN(expectedValueSum))
+                throw new Exception("DEBUG");
             return expectedValueSum;
         }
     }
