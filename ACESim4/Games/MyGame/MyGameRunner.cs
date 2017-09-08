@@ -50,9 +50,9 @@ namespace ACESim
                 PrintInformationSets = false,
                 RestrictToTheseInformationSets = null, // new List<int>() {16},
                 PrintGameTree = false,
-                BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever,
+                BestResponseEveryMIterations = 500_000,
 
-                TotalProbingCFRIterations = 100_000,
+                TotalProbingCFRIterations = 500_000,
                 EpsilonForMainPlayer = 0.5,
                 EpsilonForOpponentWhenExploring = 0.05,
                 MinBackupRegretsTrigger = 3,

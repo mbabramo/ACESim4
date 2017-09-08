@@ -39,5 +39,6 @@ namespace ACESim
         public bool PrintNonChanceInformationSetsOnly = true;
         public bool AlwaysUseAverageStrategyInReporting = true;
         public int InitialRandomSeed = 0;
+        internal int NumRandomIterationsForUtilityCalculation = 10000;
     }
 }

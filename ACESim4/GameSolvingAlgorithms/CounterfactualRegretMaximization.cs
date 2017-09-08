@@ -725,6 +725,7 @@ namespace ACESim
         }
 
         StatCollector[] UtilityCalculations;
+        private StatCollectorArray UtilityCalculationsArray;
 
         private void GenerateReports_AllPaths(GamePlayer player, Func<Decision, GameProgress, byte> actionOverride)
         {
@@ -768,6 +769,41 @@ namespace ACESim
                 if (toProcess.Item2 > 0) // probability
                     for (int i = 0; i < simpleReportDefinitionsCount; i++)
                         ReportsBeingGenerated[i].ProcessGameProgress(toProcess.Item1, toProcess.Item2);
+            }
+        }
+
+        private double[] GetBestResponseImprovements_RandomPaths()
+        {
+            throw new NotImplementedException();
+            // basic idea: for each player, WalkTree, try to override each action, play random paths, and see what score is. 
+        }
+
+        private double[] CalculateUtility_RandomPaths(GamePlayer player, Func<Decision, GameProgress, byte> actionOverride)
+        {
+            var gameProgresses = GetRandomCompleteGames(player, EvolutionSettings.NumRandomIterationsForUtilityCalculation, actionOverride);
+            // start Task Parallel Library consumer/producer pattern
+            // we'll set up step1, step2, and step3 (but not in that order, since step 1 triggers step 2)
+            var step2_buffer = new BufferBlock<Tuple<GameProgress, double>>(new DataflowBlockOptions { BoundedCapacity = 10000 });
+            var step3_consumer = ProcessUtilities(step2_buffer);
+            foreach (var gameProgress in gameProgresses)
+                step2_buffer.SendAsync(new Tuple<GameProgress, double>(gameProgress, 1.0));
+            step2_buffer.Complete(); // tell consumer nothing more to be produced
+            step3_consumer.Wait(); // wait until all have been processed
+            return UtilityCalculationsArray.Average().ToArray();
+        }
+
+        async Task ProcessUtilities(ISourceBlock<Tuple<GameProgress, double>> source)
+        {
+            UtilityCalculationsArray = new StatCollectorArray();
+            UtilityCalculationsArray.Initialize(NumNonChancePlayers);
+            while (await source.OutputAvailableAsync())
+            {
+                Tuple<GameProgress, double> toProcess = source.Receive();
+                if (toProcess.Item2 > 0) // probability
+                {
+                    double[] utilities = toProcess.Item1.GetNonChancePlayerUtilities();
+                    UtilityCalculationsArray.Add(utilities, toProcess.Item2);
+                }
             }
         }
 
