@@ -21,7 +21,7 @@ namespace ACESim
         private const byte History_NumPossibleActions_Offset = 4;
         private const byte History_NumPiecesOfInformation = 5; // the total number of pieces of information above, so that we know how much to skip (i.e., 0, 1, 2, and 3)
 
-        public const int MaxNumActions = 60;
+        public const int MaxNumActions = 100;
         public const int MaxHistoryLength = 300;
         public fixed byte History[MaxHistoryLength];
         public short LastIndexAddedToHistory;

@@ -188,6 +188,13 @@ namespace ACESim
                     $"LitQual {j}",
                     (GameProgress gp) => MyGP(gp).LitigationQualityDiscrete == j));
             }
+            //for (int i = 1; i <= Options.NumNoiseValues; i++)
+            //{
+            //    byte j = (byte)(i); // necessary to prevent access to modified closure
+            //    rowFilters.Add(new SimpleReportFilter(
+            //        $"LitQual 1 Noise {j}",
+            //        (GameProgress gp) => MyGP(gp).LitigationQualityDiscrete == 1 && MyGP(gp).PNoiseDiscrete == j));
+            //}
         }
         private void AddColumnFiltersLitigationQuality(List<SimpleReportColumnItem> columnFilters)
         {

@@ -33,13 +33,14 @@ namespace ACESim
                 case (byte)MyGameDecisions.PNoiseOrSignal:
                     if (MyDefinition.Options.ActionIsNoiseNotSignal)
                     {
+                        MyProgress.PNoiseDiscrete = action;
                         MyDefinition.ConvertNoiseToSignal(MyProgress.LitigationQualityDiscrete, action, true,
                             out MyProgress.PSignalDiscrete, out MyProgress.PSignalUniform);
                         GameProgressLogger.Log(() => $"P: Quality {MyProgress.LitigationQualityUniform} Noise action {action} => signal {MyProgress.PSignalDiscrete} ({MyProgress.PSignalUniform})");
                     }
                     else
                     {
-                        MyProgress.PSignalDiscrete = action;
+                        MyProgress.PSignalDiscrete = MyProgress.PNoiseDiscrete = action;
                         MyProgress.PSignalUniform = EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */,
                             MyDefinition.Options.NumSignals);
                     }
@@ -47,13 +48,14 @@ namespace ACESim
                 case (byte)MyGameDecisions.DNoiseOrSignal:
                     if (MyDefinition.Options.ActionIsNoiseNotSignal)
                     {
+                        MyProgress.DNoiseDiscrete = action;
                         MyDefinition.ConvertNoiseToSignal(MyProgress.LitigationQualityDiscrete, action, false,
                             out MyProgress.DSignalDiscrete, out MyProgress.DSignalUniform);
                         //System.Diagnostics.Console.WriteLine($"D: Quality {MyProgress.LitigationQualityUniform} Noise action {action} => signal {MyProgress.DSignalDiscrete} ({MyProgress.DSignalUniform})");
                     }
                     else
                     {
-                        MyProgress.DSignalDiscrete = action;
+                        MyProgress.DSignalDiscrete = MyProgress.DNoiseDiscrete = action;
                         MyProgress.DSignalUniform = EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */,
                             MyDefinition.Options.NumSignals);
                     }

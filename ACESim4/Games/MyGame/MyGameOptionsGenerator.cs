@@ -149,7 +149,7 @@ namespace ACESim
                 NumLitigationQualityPoints = 10,
                 ActionIsNoiseNotSignal = true,
                 NumSignals = 10,
-                NumNoiseValues = 60,
+                NumNoiseValues = 100,
                 NumCourtNoiseValues = 10,
                 NumOffers = 10,
                 PFilingCost = 5000,

@@ -10,6 +10,8 @@ namespace ACESim
     {
         public byte LitigationQualityDiscrete;
         public double LitigationQualityUniform;
+        public byte PNoiseDiscrete;
+        public byte DNoiseDiscrete;
         public byte PSignalDiscrete;
         public byte DSignalDiscrete;
         public double PSignalUniform;
@@ -123,6 +125,8 @@ namespace ACESim
             // copy.GameComplete = this.GameComplete;
             base.CopyFieldInfo(copy);
             copy.LitigationQualityDiscrete = LitigationQualityDiscrete;
+            copy.PNoiseDiscrete = PNoiseDiscrete;
+            copy.DNoiseDiscrete = DNoiseDiscrete;
             copy.PSignalDiscrete = PSignalDiscrete;
             copy.DSignalDiscrete = DSignalDiscrete;
             copy.LitigationQualityUniform = LitigationQualityUniform;
