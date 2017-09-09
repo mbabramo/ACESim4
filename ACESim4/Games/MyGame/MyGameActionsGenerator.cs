@@ -8,6 +8,24 @@ namespace ACESim
 {
     public static class MyGameActionsGenerator
     {
+        public static byte GamePlaysOutToTrial(Decision decision, GameProgress progress)
+        {
+            MyGameProgress p = (MyGameProgress)progress;
+            if (decision.DecisionByteCode == (byte)MyGameDecisions.PFile)
+                return 1;
+            else if (decision.DecisionByteCode == (byte)MyGameDecisions.DAnswer)
+                return 1;
+            else if(decision.DecisionByteCode == (byte)MyGameDecisions.PAgreeToBargain)
+                return 2;
+            else if (decision.DecisionByteCode == (byte)MyGameDecisions.PAgreeToBargain)
+                return 2;
+            else if (decision.DecisionByteCode == (byte)MyGameDecisions.PAbandon)
+                return 2;
+            else if (decision.DecisionByteCode == (byte)MyGameDecisions.DDefault)
+                return 2;
+            return 0;
+        }
+
         public static byte NoOneSettles(Decision decision, GameProgress progress)
         {
             MyGameProgress p = (MyGameProgress)progress;

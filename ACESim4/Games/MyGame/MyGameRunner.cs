@@ -44,15 +44,15 @@ namespace ACESim
                 Algorithm = GameApproximationAlgorithm.AbramowiczProbing,
 
                 ReportEveryNIterations = 100_000,
-                NumRandomIterationsForSummaryTable = 1000,
+                NumRandomIterationsForSummaryTable = 50000,
                 PrintSummaryTable = true,
                 PrintInformationSets = false,
                 RestrictToTheseInformationSets = null, // new List<int>() {16},
                 PrintGameTree = false,
                 AlwaysUseAverageStrategyInReporting = false,
-                BestResponseEveryMIterations = 100_000, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
+                BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
 
-                TotalProbingCFRIterations = 100_000,
+                TotalProbingCFRIterations = 300_000,
                 EpsilonForMainPlayer = 0.5,
                 EpsilonForOpponentWhenExploring = 0.05,
                 MinBackupRegretsTrigger = 3,

@@ -149,19 +149,19 @@ namespace ACESim
                 NumLitigationQualityPoints = 10,
                 ActionIsNoiseNotSignal = true,
                 NumSignals = 10,
-                NumNoiseValues = 10,
+                NumNoiseValues = 50,
                 NumOffers = 10,
                 PFilingCost = 5000,
                 DAnswerCost = 5000,
-                PNoiseStdev = 0.3,
-                DNoiseStdev = 0.3,
-                CourtNoiseStdev = 0.3,
+                PNoiseStdev = 0.5,
+                DNoiseStdev = 0.5,
+                CourtNoiseStdev = 0.5,
                 PTrialCosts = 15000,
                 DTrialCosts = 15000,
                 IncludeAgreementToBargainDecisions = true,
                 PerPartyCostsLeadingUpToBargainingRound = 10000,
                 AllowAbandonAndDefaults = true,
-                LoserPays = false,
+                LoserPays = true,
                 LoserPaysAfterAbandonment = true,
                 DeltaOffersOptions = new DeltaOffersOptions()
                 {
@@ -174,7 +174,8 @@ namespace ACESim
                 SubdivideOffers = false,
                 BargainingRoundsSimultaneous = true,
                 PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false, true, false, true, false },
-                IncludeSignalsReport = false,                 
+                IncludeSignalsReport = false,     
+                IncludeCourtSuccessReport = true,
             };
             options.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.PInitialWealth };
             options.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.DInitialWealth };

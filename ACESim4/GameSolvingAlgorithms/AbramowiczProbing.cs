@@ -7,10 +7,16 @@ namespace ACESim
 {
     public partial class CounterfactualRegretMaximization
     {
-        // Differences from Gibson:Increm
+        // Differences from Gibson:
         // 1. During the Probe, we visit all branches on a critical node.
         // 2. The counterfactual value of an action selected for the player being selected is determined based on a probe. The walk through the tree is used solely for purposes of sampling.
-        // 3. Backup regrets set on alternate iterations. We alternate normal with exploratory iterations, where the opponent engages in epsilon exploration. In an exploratory iteration, we increment backup cumulative regrets, but only where the main regrets are empty. This ensures that if a node will not be visited without opponent exploration, we still develop our best estimate of the correct value based on exploration. Note that this provides robustness but means that T in the regret bound guarantees will consist only if the normal iterations.
+        // 3. Backup regrets set on alternate iterations. We alternate normal with exploratory iterations, where both players engage in epsilon exploration. In an exploratory iteration, we increment backup cumulative regrets, but only where the main regrets are empty. This ensures that if a node will not be visited without exploration, we still develop our best estimate of the correct value based on exploration. Note that this provides robustness but means that T in the regret bound guarantees will consist only if the normal iterations.
+
+        // TODO -- optimization. Reducing unnecessary probes. Sometimes, we may have an action that leads to a particular result that will then necessarily be the same for either all higher or lower actions. For example, a plaintiff gives a particular offer that results in rejection of the defendant's settlement offer. In many litigation games (where there is no punishment for unreasonable offers), this means that all higher plaintiff offers will lead to the same result. So, in this case, we should start with the lowest possible offer. As soon as we get one that leads to rejection of the next settlement, then we should automatically set all higher offers. This should eliminate about half of all probes if implemented. But what if one's decision will enter into the other player's information set? Then this won't work. Every action will lead potentially to different consequences. 
+        // The game definition might have a function that has IdentifySameGroups. It reports this information using a boolean indicating whether an action will produce the same result as the one below it. For our game, when we're forgetting earlier offers, this will be all offers leading to rejection of the settlement (unless we are in a bargaining round where we're penalizing unreasonable settlements). Note that sampling one item in this group will essentially have the same effect as sampling any other. Meanwhile, accepting offers will lead to quick termination of the game, so those probes won't take long to resolve. 
+
+        // Comment: Note that we're already incrementing cumulative regret for all possible actions at each information set visited. So, the only benefit that we can get occurs if we have decisions that lead to the same result, thus speeding up our probes. Perhaps we can have a custom hook that allows us to figure this out quickly. That is, the game definition will tell us, given the custom random numbers that we have and the HistoryPoint, which actions can be grouped with the action that we are currently exploring for the player being optimized. For example, we might be able to group all actions that would lead to rejection of settlement, depending on the information that will be added to players' information sets; it might also report whether there could be another group beyond this. This should be very straightforward when we're forgetting earlier bargaining rounds. 
+        
 
         private bool AlsoDisablePlayerOwnExplorationOnNonExploratoryIterations = true;
         private List<(double discount, double endAfterIterationsProportion)> Discounts = new List<(double, double)>()
@@ -340,7 +346,7 @@ namespace ACESim
                             node.StoreCurrentTallyValues();
                         });
                     if (phase == PhasePointsToSubtractEarlierValues.Last())
-                        WalkAllInformationSetTrees(node => { node.ClearAverageStrategyTally(); });
+                        WalkAllInformationSetTrees(node => { node.ClearAverageStrategyTally(); }); // we will be measuring average strategies from here. Thus, earlier iterations will not count in the regret bounds.
                 }
                 while (startingIteration < stopPhaseBefore)
                 {

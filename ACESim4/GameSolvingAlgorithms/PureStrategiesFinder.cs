@@ -80,7 +80,6 @@ namespace ACESim
             List<(InformationSetNodeTally, int)> player1InformationSets, out int player0Permutations,
             out int player1Permutations, out double[,] player0Utilities, out double[,] player1Utilities)
         {
-            PrintInformationSets(); // DEBUG
             long p0P = player0InformationSets.Aggregate(1L, (acc, val) => acc * (long) val.Item2);
             long p1P = player1InformationSets.Aggregate(1L, (acc, val) => acc * (long) val.Item2);
             if (p0P == 0 || p1P == 0 || p0P > 10000000 || p1P > 10000000 || p0P * p1P > 10000000)

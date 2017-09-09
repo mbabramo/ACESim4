@@ -125,6 +125,7 @@ namespace ACESim
 
 
         public bool IncludeSignalsReport;
+        internal bool IncludeCourtSuccessReport;
         public List<(Func<Decision, GameProgress, byte>, string)> AdditionalTableOverrides;
 
         // the following are derived and should not be set directly

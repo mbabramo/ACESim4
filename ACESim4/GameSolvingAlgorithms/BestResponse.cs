@@ -9,6 +9,16 @@ namespace ACESim
         private bool TraceGEBR = false;
         private List<byte> TraceGEBR_SkipDecisions = new List<byte>() { };
 
+        // DEBUG TODO: Accelerated best response
+        // Preparation. Each information set node tally should contain the information set of the player. In addition, for each decision, we should have a list of all information sets for that player.
+        // 1. If we are optimizing player X, identify all decisions by player X. 
+        // 2. Play from start of game, to X's first decision. Whenever we get to an X information set (at that first decision), create a string with information on the information set of all players besides X, including the resolution player. Use this as a dictionary to the HistoryPoint and the accumulated probability that others (including chance) will play to here. If we get to an information set where there is already something in the dictionary, then we increase this probability. Note that we are using a single HistoryPoint to represent a number of different histories, but all of these histories reflect the same information sets for other players, so all of these information sets will, given the same subsequent actions, lead to the same outcome.
+        // 3. Play from X's first decision to X's second decision. That is, for each information set in X's first decision, play beginning with each HistoryPoint in the dictionary, starting with the accumulated probability specified. Do the same thing for X's second decision that we did for X's first decision. The time savings here is that we don't need need to go back to the beginning of the game.
+        // 4. Continue until we get to X's last decision. Then, we play from X's last decision to the end of the game. We can determine X's best response at this point by probability weighting X's utilities. Record the best response and the corresponding utility.
+        // 5. Play from X's second-to-last to last decision. Again, we can determine X's best response and expected utility at this point by probability weighting X's utilities.
+        // 6. Continue backwards until we get to X's first decision and have determined the best action for each information set in this first decision. We now know the expected utility for each information set, plus we can aggregate all of the probabilities leading to this decision to determine the expected utility for X. The best response calculation is thus complete.
+        // 7. Clear all information. Note that there may be some additional or fewer HistoryPoints at an information set next time, because the opponent might play actions not previously played. (This is less likely, however, if we are using average strategies.)
+
         /// <summary>
         /// This calculates the best response for a player, and it also sets up the information set so that we can then play that best response strategy.
         /// </summary>

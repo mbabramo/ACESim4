@@ -84,7 +84,6 @@ namespace ACESim
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
                 //var informationSetHistories = HistoryToPoint.GetInformationSetHistoryItems().Select(x => x.ToString());
-                // DEBUG: shouldn't game be marked complete?
                 navigation.GameDefinition.GetNextDecision(ref HistoryToPoint, out Decision nextDecision, out byte nextDecisionIndex); 
                 byte nextPlayer = nextDecision?.PlayerNumber ?? navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
                 byte* informationSetsPtr = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
@@ -301,7 +300,6 @@ namespace ACESim
             var playerInfo = navigation.GameDefinition.Players[informationSetHistory.PlayerIndex];
             var playersStrategy = navigation.Strategies[informationSetHistory.PlayerIndex];
             bool isNecessarilyLast = false; // Not relevant now that we are storing final utilities decision.IsAlwaysPlayersLastDecision || informationSetHistory.IsTerminalAction;
-            var DEBUG = informationSetHistory.GetInformationSetForPlayerAsList();
             var informationSetHistoryCopy = informationSetHistory;
             NWayTreeStorage<IGameState> informationSetNode = playersStrategy.SetInformationSetTreeValueIfNotSet(
                         informationSetHistoryCopy.DecisionIndex, // this will be a choice at the root level of the information set

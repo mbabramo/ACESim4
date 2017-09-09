@@ -22,7 +22,8 @@ namespace ACESim
                     reports.Add(report);
                 }
             }
-            
+            if (Options.IncludeCourtSuccessReport)
+                reports.Add(GetCourtSuccessReport());
             if (Options.IncludeSignalsReport)
             {
                 for (int b = 1; b <= Options.NumPotentialBargainingRounds; b++)
@@ -96,6 +97,45 @@ namespace ACESim
             );
         }
 
+        private SimpleReportDefinition GetCourtSuccessReport()
+        {
+            bool reportResponseToOffer = false;
+            (bool plaintiffMakesOffer, int offerNumber, bool isSimultaneous) =
+                GetOfferorAndNumber(1, ref reportResponseToOffer);
+            string reportName =
+                $"Probability of winning given {(plaintiffMakesOffer ? "P" : "D")} signal";
+            List<SimpleReportFilter> metaFilters = new List<SimpleReportFilter>()
+            {
+                new SimpleReportFilter("All", (GameProgress gp) => true)
+            };
+
+            List<SimpleReportFilter> rowFilters = new List<SimpleReportFilter>()
+            {
+                new SimpleReportFilter("All", (GameProgress gp) => true)
+            };
+            AddRowFilterSignalRegions(plaintiffMakesOffer, rowFilters);
+            AddRowFiltersLitigationQuality(rowFilters);
+            List<SimpleReportColumnItem> columnItems = new List<SimpleReportColumnItem>()
+            {
+                new SimpleReportColumnFilter("All", (GameProgress gp) => true, true),
+                new SimpleReportColumnFilter("Trial", (GameProgress gp) => MyGP(gp).TrialOccurs, false),
+                new SimpleReportColumnFilter("PWinsAtTrial", (GameProgress gp) => MyGP(gp).TrialOccurs && MyGP(gp).PWinsAtTrial == true, false),
+                new SimpleReportColumnFilter("DWinsAtTrial", (GameProgress gp) => MyGP(gp).TrialOccurs && MyGP(gp).PWinsAtTrial == false, false),
+                new SimpleReportColumnVariable("PWelfare", (GameProgress gp) => MyGP(gp).PWelfare),
+                new SimpleReportColumnVariable("DWelfare", (GameProgress gp) => MyGP(gp).DWelfare),
+            };
+            AddColumnFiltersLitigationQuality(columnItems);
+            AddColumnFiltersPSignal(columnItems);
+            return new SimpleReportDefinition(
+                    reportName,
+                    metaFilters,
+                    rowFilters,
+                    columnItems,
+                    reportResponseToOffer
+                )
+                {ActionsOverride = MyGameActionsGenerator.GamePlaysOutToTrial};
+        }
+
         private SimpleReportDefinition GetStrategyReport(int bargainingRound, bool reportResponseToOffer)
         {
             (bool plaintiffMakesOffer, int offerNumber, bool isSimultaneous) =
@@ -111,42 +151,11 @@ namespace ACESim
             {
                 new SimpleReportFilter("All", (GameProgress gp) => true)
             };
-            Tuple<double, double>[] signalRegions = EquallySpaced.GetRegions(Options.NumSignals);
-            for (int i = 0; i < Options.NumSignals; i++)
-            {
-                double regionStart = signalRegions[i].Item1;
-                double regionEnd = signalRegions[i].Item2;
-                if (plaintiffMakesOffer)
-                {
-                    byte j = (byte) (i + 1);
-                    if (Options.ActionIsNoiseNotSignal)
-                        rowFilters.Add(new SimpleReportFilter(
-                        $"PSignal {j}",
-                        (GameProgress gp) => MyGP(gp).PSignalDiscrete == j));
-                    else
-                        rowFilters.Add(new SimpleReportFilter(
-                        $"PSignal {regionStart.ToSignificantFigures(2)}-{regionEnd.ToSignificantFigures(2)}",
-                        (GameProgress gp) => MyGP(gp).PSignalUniform >= regionStart &&
-                                             MyGP(gp).PSignalUniform < regionEnd));
-                }
-                else
-                {
-                    byte j = (byte)(i + 1);
-                    if (Options.ActionIsNoiseNotSignal)
-                        rowFilters.Add(new SimpleReportFilter(
-                            $"DSignal {j}",
-                            (GameProgress gp) => MyGP(gp).DSignalDiscrete == j));
-                    else
-                        rowFilters.Add(new SimpleReportFilter(
-                        $"DSignal {regionStart.ToSignificantFigures(2)}-{regionEnd.ToSignificantFigures(2)}",
-                        (GameProgress gp) => MyGP(gp).DSignalUniform >= regionStart &&
-                                             MyGP(gp).DSignalUniform < regionEnd));
-                }
-            }
             List<SimpleReportColumnItem> columnItems = new List<SimpleReportColumnItem>()
             {
                 new SimpleReportColumnFilter("All", (GameProgress gp) => true, true)
             };
+            AddColumnFiltersLitigationQuality(columnItems);
             Tuple<double, double>[] offerRegions = EquallySpaced.GetRegions(Options.NumOffers);
             for (int i = 0; i < Options.NumOffers; i++)
             {
@@ -167,6 +176,76 @@ namespace ACESim
                 columnItems,
                 reportResponseToOffer
             );
+        }
+
+
+        private void AddRowFiltersLitigationQuality(List<SimpleReportFilter> rowFilters)
+        {
+            for (int i = 1; i <= Options.NumLitigationQualityPoints; i++)
+            {
+                byte j = (byte)(i); // necessary to prevent access to modified closure
+                rowFilters.Add(new SimpleReportFilter(
+                    $"LitQual {j}",
+                    (GameProgress gp) => MyGP(gp).LitigationQualityDiscrete == j));
+            }
+        }
+        private void AddColumnFiltersLitigationQuality(List<SimpleReportColumnItem> columnFilters)
+        {
+            for (int i = 1; i <= Options.NumLitigationQualityPoints; i++)
+            {
+                byte j = (byte)(i); // necessary to prevent access to modified closure
+                columnFilters.Add(new SimpleReportColumnFilter(
+                    $"LitQual {j}",
+                    (GameProgress gp) => MyGP(gp).LitigationQualityDiscrete == j,
+                    false));
+            }
+        }
+        private void AddColumnFiltersPSignal(List<SimpleReportColumnItem> columnFilters)
+        {
+            for (int i = 1; i <= Options.NumSignals; i++)
+            {
+                byte j = (byte)(i); // necessary to prevent access to modified closure
+                columnFilters.Add(new SimpleReportColumnFilter(
+                    $"PSignal {j}",
+                    (GameProgress gp) => MyGP(gp).PSignalDiscrete == j,
+                    false));
+            }
+        }
+
+        private void AddRowFilterSignalRegions(bool plaintiffMakesOffer, List<SimpleReportFilter> rowFilters)
+        {
+            Tuple<double, double>[] signalRegions = EquallySpaced.GetRegions(Options.NumSignals);
+            for (int i = 0; i < Options.NumSignals; i++)
+            {
+                double regionStart = signalRegions[i].Item1;
+                double regionEnd = signalRegions[i].Item2;
+                if (plaintiffMakesOffer)
+                {
+                    byte j = (byte) (i + 1);
+                    if (Options.ActionIsNoiseNotSignal)
+                        rowFilters.Add(new SimpleReportFilter(
+                            $"PSignal {j}",
+                            (GameProgress gp) => MyGP(gp).PSignalDiscrete == j));
+                    else
+                        rowFilters.Add(new SimpleReportFilter(
+                            $"PSignal {regionStart.ToSignificantFigures(2)}-{regionEnd.ToSignificantFigures(2)}",
+                            (GameProgress gp) => MyGP(gp).PSignalUniform >= regionStart &&
+                                                 MyGP(gp).PSignalUniform < regionEnd));
+                }
+                else
+                {
+                    byte j = (byte) (i + 1);
+                    if (Options.ActionIsNoiseNotSignal)
+                        rowFilters.Add(new SimpleReportFilter(
+                            $"DSignal {j}",
+                            (GameProgress gp) => MyGP(gp).DSignalDiscrete == j));
+                    else
+                        rowFilters.Add(new SimpleReportFilter(
+                            $"DSignal {regionStart.ToSignificantFigures(2)}-{regionEnd.ToSignificantFigures(2)}",
+                            (GameProgress gp) => MyGP(gp).DSignalUniform >= regionStart &&
+                                                 MyGP(gp).DSignalUniform < regionEnd));
+                }
+            }
         }
 
         private Func<GameProgress, bool> GetOfferOrResponseFilter(bool plaintiffMakesOffer, int offerNumber,
