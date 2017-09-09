@@ -132,7 +132,9 @@ namespace ACESim
         public static void UpdateGameHistory(ref GameHistory gameHistory, GameDefinition gameDefinition, Decision decision, byte decisionIndex, byte action, GameProgress gameProgress)
         {
             if (decision.Subdividable_IsSubdivision)
-            { 
+            {
+                
+
                 // For subdivision decisions, we use the game history cache to aggregate the decision result.
                 byte aggregatedSoFar = decision.Subdividable_IsSubdivision_First ? (byte) 0 : gameHistory.GetCacheItemAtIndex(GameHistory.Cache_SubdivisionAggregationIndex);
                 byte replacementAggregateValue = SubdivisionCalculations.GetAggregatedDecision(aggregatedSoFar, action, decision.Subdividable_NumOptionsPerBranch, decision.Subdividable_IsSubdivision_Last);
@@ -144,6 +146,7 @@ namespace ACESim
                 // from the information set. That way, the main decision will have a clear slate, and the subdivision decisions will not further clutter the information set tree.
                 // For the last subdivision, we'll also need to do the same things that we would do for an ordinary nonsubdivision decision. This is because the original decision is NOT in
                 // the decision list.
+                // We can add a start detour marker to the information set of the moving player. The start detour marker doesn't get added to the information set until after the first subdivision, so it won't be part of the information set until the second subdivision. At the end of all subdivisions, the start detour marker and the individual decisions will be eliminated from the information set. Thus, we need an end detour marker to distinguish the next decision by this party from the original subdivision.  So, suppose that X represents the state before the first subdivision. Then before the second subdivision, we might have X,Start_Detour,1 or X,Start_Detour,2. Before the first decision after the subdivision, we would have X,End_Detour. If the player informs itself of the decision, then we would have X,End_Detour,Decision. 
                 GameProgressLogger.Log(() => $"Adding subdivision action {action} to information set of {decision.PlayerNumber}");
                 if (decision.Subdividable_IsSubdivision_First)
                     gameHistory.AddToInformationSetAndLog(GameHistory.StartDetourMarker, decisionIndex, decision.PlayerNumber, gameProgress); // delineate this portion of the information set (which will be removed later) as belonging to the subdivision decisions

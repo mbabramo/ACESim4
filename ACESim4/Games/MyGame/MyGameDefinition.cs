@@ -35,7 +35,6 @@ namespace ACESim
 
         private void FurtherOptionsSetup()
         {
-
             if (Options.DeltaOffersOptions.SubsequentOffersAreDeltas)
                 Options.DeltaOffersCalculation = new DeltaOffersCalculation(this);
             Options.PSignalParameters = new DiscreteValueSignalParameters()
@@ -87,19 +86,19 @@ namespace ACESim
 
         private byte LitigationQualityDecisionIndex = (byte) 255;
 
-        // NOTE: Must skip 0, because that is used for subdivision aggregation decisions
-        public const byte GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound = 1;
-        public const byte GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound = 2;
-        public const byte GameHistoryCacheIndex_PAgreesToBargain = 3;
-        public const byte GameHistoryCacheIndex_DAgreesToBargain = 4;
-        public const byte GameHistoryCacheIndex_POffer = 5;
-        public const byte GameHistoryCacheIndex_DOffer = 6;
-        public const byte GameHistoryCacheIndex_PResponse = 7;
-        public const byte GameHistoryCacheIndex_DResponse = 8;
-        public const byte GameHistoryCacheIndex_PReadyToAbandon = 9;
-        public const byte GameHistoryCacheIndex_DReadyToAbandon = 10;
-        public const byte GameHistoryCacheIndex_LitigationQuality = 11;
-        public const byte GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound = 12;
+        // NOTE: Must skip 0, because that is used for subdivision aggregation decisions. Note that the first three may be augmented if we are using subdivision decisions
+        public byte GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound = 1;
+        public byte GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound = 2;
+        public byte GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound = 3;
+        public byte GameHistoryCacheIndex_PAgreesToBargain = 4;
+        public byte GameHistoryCacheIndex_DAgreesToBargain = 5;
+        public byte GameHistoryCacheIndex_POffer = 6;
+        public byte GameHistoryCacheIndex_DOffer = 7;
+        public byte GameHistoryCacheIndex_PResponse = 8;
+        public byte GameHistoryCacheIndex_DResponse = 9;
+        public byte GameHistoryCacheIndex_PReadyToAbandon = 10;
+        public byte GameHistoryCacheIndex_DReadyToAbandon = 11;
+        public byte GameHistoryCacheIndex_LitigationQuality = 12;
 
         #endregion
 
@@ -275,6 +274,8 @@ namespace ACESim
                         DeferNotificationOfPlayers = true, // wait until after defendant has gone for defendant to find out -- of course, we don't do that with defendant decision
                         StoreActionInGameCacheItem = GameHistoryCacheIndex_POffer,
                     };
+                if (Options.SubdivideOffers)
+                    pOffer.IncrementGameCacheItem.Add(GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound); // for detour marker
                 AddOfferDecisionOrSubdivisions(decisions, pOffer);
                 var dOffer =
                     new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, new List<byte>() { (byte)MyGamePlayers.Resolution, (byte) MyGamePlayers.Plaintiff },
@@ -284,7 +285,9 @@ namespace ACESim
                         CustomByte = (byte)(b + 1),
                         IncrementGameCacheItem = new List<byte>() { GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound },
                         StoreActionInGameCacheItem = GameHistoryCacheIndex_DOffer,
-                    }; 
+                    };
+                if (Options.SubdivideOffers)
+                    dOffer.IncrementGameCacheItem.Add(GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound); // for detour marker
                 AddOfferDecisionOrSubdivisions(decisions, dOffer);
             }
             else
@@ -300,6 +303,8 @@ namespace ACESim
                             IncrementGameCacheItem = new List<byte>() { GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound },
                             StoreActionInGameCacheItem = GameHistoryCacheIndex_POffer,
                         }; // { AlwaysDoAction = 4});
+                    if (Options.SubdivideOffers)
+                        pOffer.IncrementGameCacheItem.Add(GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound); // for detour marker
                     AddOfferDecisionOrSubdivisions(decisions, pOffer);
                     decisions.Add(
                         new Decision("DefendantResponse" + (b + 1), "DR" + (b + 1), (byte)MyGamePlayers.Defendant, new List<byte>() { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Resolution }, 2,
@@ -321,6 +326,8 @@ namespace ACESim
                             IncrementGameCacheItem = new List<byte>() { GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound },
                             StoreActionInGameCacheItem = GameHistoryCacheIndex_DOffer,
                         };
+                    if (Options.SubdivideOffers)
+                        dOffer.IncrementGameCacheItem.Add(GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound); // for detour marker
                     AddOfferDecisionOrSubdivisions(decisions, dOffer);
                     decisions.Add(
                         new Decision("PlaintiffResponse" + (b + 1), "PR" + (b + 1), (byte)MyGamePlayers.Plaintiff, new List<byte>() { (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution }, 2,

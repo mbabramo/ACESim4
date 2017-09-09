@@ -21,8 +21,8 @@ namespace ACESim
         public const byte Cache_SubdivisionAggregationIndex = 0; // Use this cache entry to aggregate subdivision decisions. Thus, do NOT use it for any other purpose.
 
         public const byte InformationSetTerminator = 255;
-        public const byte StartDetourMarker = 252; // when starting a subdivision decision, we need to put in a marker to delineate the subdivision action from subsequent actions by same player
-        public const byte EndDetourMarker = 253; // when starting a subdivision decision, we need to put in a marker to delineate the subdivision action from other player's 
+        public const byte StartDetourMarker = 252; // when starting a subdivision detour, we need to put in a marker to delineate the subdivision action from subsequent actions by same player. Note that this will precede the second subdivision decision
+        public const byte EndDetourMarker = 253; // when ending a subdivision detour, we need to put in a marker to delineate the subdivision action from other player's 
 
         public bool Complete;
         public fixed byte ActionsHistory[GameFullHistory.MaxHistoryLength];

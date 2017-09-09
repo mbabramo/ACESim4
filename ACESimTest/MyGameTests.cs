@@ -197,7 +197,7 @@ namespace ACESimTest
         }
 
         private (string pInformationSet, string dInformationSet) GetExpectedPartyInformationSets(bool actionIsNoiseNotSignal, byte litigationQuality, byte pNoise, byte dNoise, HowToSimulateBargainingFailure simulatingBargainingFailure,
-            List<(byte? pMove, byte? dMove)> bargainingMoves, bool forgetEarlierBargainingRounds, bool simultaneousBargaining)
+            List<(byte? pMove, byte? dMove)> bargainingMoves, bool forgetEarlierBargainingRounds, bool simultaneousBargaining, bool subdivideOffers)
         {
             byte pSignal, dSignal;
             if (actionIsNoiseNotSignal)
@@ -231,14 +231,33 @@ namespace ACESimTest
                     {
                         if (simultaneousBargaining)
                         {
+                            if (subdivideOffers)
+                            {
+                                // Note: The reason these are both at the beginning of the decision is that the decision is deferred
+                                pInfo.Add(GameHistory.EndDetourMarker);
+                                dInfo.Add(GameHistory.EndDetourMarker);
+                            }
+                            dInfo.Add((byte)pMove);
                             pInfo.Add((byte) dMove);
-                            dInfo.Add((byte) pMove);
                         }
                         else
                         {
-                            // we add the offer and response regardless of whether it is accepted
-                            dInfo.Add((byte) pMove);
-                            pInfo.Add((byte) dMove);
+                            if (b % 2 == 1)
+                            {
+                                // plaintiff offers
+                                dInfo.Add((byte) pMove);
+                                if (subdivideOffers)
+                                    pInfo.Add(GameHistory.EndDetourMarker); // the first end detour marker comes to P after P's move.
+                                pInfo.Add((byte) dMove); // not a subdivision decision
+                            }
+                            else
+                            {
+                                // defendant offers
+                                pInfo.Add((byte)dMove);
+                                if (subdivideOffers)
+                                    dInfo.Add(GameHistory.EndDetourMarker); // the first end detour marker comes to P after P's move.
+                                dInfo.Add((byte)pMove); // not a subdivision decision
+                            }
                         }
                     }
                 }
@@ -333,11 +352,16 @@ namespace ACESimTest
                                 if (!plaintiffGivesUp && !defendantGivesUp)
                                     continue; // not interested in this case
                                 if ((!plaintiffGivesUp || !defendantGivesUp) && !plaintiffWinsIfBothGiveUp)
-                                    continue; // only need to test both values of plaintiff wins if both give up if both give up.
-                                if (CaseNumber == 999999)
+                                    continue; // only need to test both values of plaintiff wins if both give up.
+                                if (CaseNumber == 3404)
                                 {
                                     GameProgressLogger.LoggingOn = true;
                                     GameProgressLogger.OutputLogMessages = true;
+                                }
+                                else
+                                {
+                                    GameProgressLogger.LoggingOn = false;
+                                    GameProgressLogger.OutputLogMessages = false;
                                 }
                                 CaseGivenUp_SpecificSettingsAndActions(numPotentialBargainingRounds, subdivideOffers, abandonmentInRound,
                                     forgetEarlierBargainingRounds,
@@ -429,7 +453,7 @@ namespace ACESimTest
 
             //var informationSetHistories = myGameProgress.GameHistory.GetInformationSetHistoryItems().ToList();
             GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet, out string resolutionSet);
-            var expectedPartyInformationSets = GetExpectedPartyInformationSets(actionIsNoiseNotSignal, LitigationQuality, PSignalOrNoise, DSignalOrNoise, simulatingBargainingFailure, bargainingRoundMoves, forgetEarlierBargainingRounds, simultaneousBargainingRounds);
+            var expectedPartyInformationSets = GetExpectedPartyInformationSets(actionIsNoiseNotSignal, LitigationQuality, PSignalOrNoise, DSignalOrNoise, simulatingBargainingFailure, bargainingRoundMoves, forgetEarlierBargainingRounds, simultaneousBargainingRounds, subdivideOffers);
             string expectedResolutionSet = ConstructExpectedResolutionSet(pFiles: pFiles, dAnswers: dAnswers,
                 bargainingRounds: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds, actionIsNoiseNotSignal: actionIsNoiseNotSignal, litigationQuality: litigationQuality, settlementReachedLastRound: false, allowAbandonAndDefault: true, pReadyToAbandonLastRound: pReadyToAbandonRound != null, dReadyToDefaultLastRound: dReadyToDefaultRound != null, ifBothDefaultPlaintiffLoses: mutualGiveUpResult == (byte)1, caseGoesToTrial: false, courtResultAtTrial: 0, simulatingBargainingFailure:simulatingBargainingFailure);
             pInformationSet.Should().Be(expectedPartyInformationSets.pInformationSet);
@@ -491,7 +515,7 @@ namespace ACESimTest
 
             //var informationSetHistories = myGameProgress.GameHistory.GetInformationSetHistoryItems().ToList();
             GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet, out string resolutionSet);
-            var expectedPartyInformationSets = GetExpectedPartyInformationSets(actionIsNoiseNotSignal, LitigationQuality, PSignalOrNoise, DSignalOrNoise, simulatingBargainingFailure, bargainingRoundMoves, forgetEarlierBargainingRounds, simultaneousBargainingRounds);
+            var expectedPartyInformationSets = GetExpectedPartyInformationSets(actionIsNoiseNotSignal, LitigationQuality, PSignalOrNoise, DSignalOrNoise, simulatingBargainingFailure, bargainingRoundMoves, forgetEarlierBargainingRounds, simultaneousBargainingRounds, subdivideOffers);
             string expectedResolutionSet = ConstructExpectedResolutionSet_CaseSettles(pFiles: true, dAnswers: true, simulatingBargainingFailure: simulatingBargainingFailure,
                 bargainingRounds: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds, actionIsNoiseNotSignal:actionIsNoiseNotSignal, litigationQuality:LitigationQuality, allowAbandonAndDefault: allowAbandonAndDefault);
             pInformationSet.Should().Be(expectedPartyInformationSets.pInformationSet);
@@ -574,7 +598,7 @@ namespace ACESimTest
             GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet,
                 out string resolutionSet);
             var expectedPartyInformationSets = GetExpectedPartyInformationSets(actionIsNoiseNotSignal, LitigationQuality, PSignalOrNoise, DSignalOrNoise, simulatingBargainingFailure, bargainingMoves,
-                forgetEarlierBargainingRounds, simultaneousBargainingRounds);
+                forgetEarlierBargainingRounds, simultaneousBargainingRounds, subdivideOffers);
             var expectedResolutionSet = ConstructExpectedResolutionSet(actionIsNoiseNotSignal, LitigationQuality, true, true, simulatingBargainingFailure, bargainingMoves,
                 simultaneousBargainingRounds, false, allowAbandonAndDefaults, false, false, false, true, courtResult);
             pInformationSet.Should().Be(expectedPartyInformationSets.pInformationSet);
