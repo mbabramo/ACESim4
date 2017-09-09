@@ -126,7 +126,7 @@ namespace ACESim
                     {
                         double courtNoiseUniformDistribution =
                             EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */,
-                                MyDefinition.Options.NumSignals);
+                                MyDefinition.Options.NumCourtNoiseValues);
                         double courtNoiseNormalDraw = InvNormal.Calculate(courtNoiseUniformDistribution) *
                                                         MyDefinition.Options.CourtNoiseStdev;
                         double courtSignal = MyProgress.LitigationQualityUniform + courtNoiseNormalDraw;

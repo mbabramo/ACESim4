@@ -65,6 +65,10 @@ namespace ACESim
                     byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
                     if (chanceNodeSettings.CriticalNode)
                     {
+                        if (numPossibleActions > 20)
+                        {
+                            var DEBUG = 0; // still not figure out why high amount of noise slows things down so much. Maybe has to do with court decision. OK -- why are we setting Court Decision so number of decisions is number of signals? Oddly, this breakpoint isn't hit Also, how come 60 noise values doesn't always produce all 10 signals?
+                        }
                         double[] combined = new double[NumNonChancePlayers];
                         for (byte a = 1; a <= numPossibleActions; a++)
                         {

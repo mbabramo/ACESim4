@@ -31,6 +31,7 @@ namespace ACESimTest
 
         private const double PartyNoise = 0.2, InitialWealth = 1_000_000, DamagesAlleged = 100_000, PFileCost = 3000, DAnswerCost = 2000, PTrialCosts = 4000, DTrialCosts = 6000, PerRoundBargainingCost = 1000;
         private const byte NumDistinctPoints = 8;
+        private const byte NumCourtNoiseValues = 10;
         public const byte ValueWhenCaseSettles = 4;
         private const byte LitigationQuality = 3;
         private const byte PSignalOrNoise = 5, DSignalOrNoise = 1;
@@ -61,6 +62,7 @@ namespace ACESimTest
                 NumLitigationQualityPoints = NumDistinctPoints,
                 NumSignals = NumDistinctPoints,
                 NumOffers = NumDistinctPoints,
+                NumCourtNoiseValues = NumCourtNoiseValues,
                 NumNoiseValues = NumDistinctPoints,
                 ActionIsNoiseNotSignal = actionIsNoiseNotSignal,
                 PNoiseStdev = PartyNoise,
@@ -560,7 +562,7 @@ namespace ACESimTest
             var bargainingMoves = GetBargainingRoundMoves(simultaneousBargainingRounds, numBargainingRounds, false, simulatingBargainingFailure);
             byte courtResult;
             if (actionIsNoiseNotSignal)
-                courtResult = plaintiffWins ? (byte) NumDistinctPoints : (byte) 1; // we've used a high value of court noise above, so if the court has its highest possible noise, it will definitely conclude plaintiff has won, and if the court has its lowest possible noise, it will definitely conclude that defendant has won
+                courtResult = plaintiffWins ? (byte) NumCourtNoiseValues : (byte) 1; // we've used a high value of court noise above, so if the court has its highest possible noise, it will definitely conclude plaintiff has won, and if the court has its lowest possible noise, it will definitely conclude that defendant has won
             else
                 courtResult = plaintiffWins ? (byte) 2 : (byte) 1;
             var actions = GetPlayerActions(true, true, LitigationQuality, PSignalOrNoise, DSignalOrNoise, simulatingBargainingFailure, bargainingMoves, simultaneousBargainingRounds, null, null, 0, courtResult);

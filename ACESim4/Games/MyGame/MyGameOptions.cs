@@ -19,6 +19,10 @@ namespace ACESim
         /// </summary>
         public byte NumNoiseValues;
         /// <summary>
+        /// The number of noise values that may distort the court's signal when it makes a decision. 
+        /// </summary>
+        public byte NumCourtNoiseValues;
+        /// <summary>
         /// The standard deviation of the noise used to obfuscate the plaintiff's estimate of the case strength. When the action is the signal, this determines the probabilities of each signal; when the action is the noise, this affects the conversion of the noise to a signal, considering the underlying true value.
         /// </summary>
         public double PNoiseStdev;

@@ -415,7 +415,7 @@ namespace ACESim
         {
             if (Options.ActionIsNoiseNotSignal)
                 decisions.Add(new Decision("CourtDecision", "CD", (byte)MyGamePlayers.CourtChance,
-                        new List<byte> { (byte)MyGamePlayers.Resolution }, Options.NumSignals, (byte)MyGameDecisions.CourtDecision,
+                        new List<byte> { (byte)MyGamePlayers.Resolution }, Options.NumCourtNoiseValues, (byte)MyGameDecisions.CourtDecision,
                         unevenChanceActions: false, criticalNode: true)
                     { CanTerminateGame = true }); // even chance options
             else
