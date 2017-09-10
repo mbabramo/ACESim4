@@ -20,6 +20,7 @@ namespace ACESim
         // Comment: Note that we're already incrementing cumulative regret for all possible actions at each information set visited. So, the only benefit that we can get occurs if we have decisions that lead to the same result, thus speeding up our probes. Perhaps we can have a custom hook that allows us to figure this out quickly. That is, the game definition will tell us, given the custom random numbers that we have and the HistoryPoint, which actions can be grouped with the action that we are currently exploring for the player being optimized. For example, we might be able to group all actions that would lead to rejection of settlement, depending on the information that will be added to players' information sets; it might also report whether there could be another group beyond this. This should be very straightforward when we're forgetting earlier bargaining rounds. 
         
 
+
         private bool AlsoDisablePlayerOwnExplorationOnNonExploratoryIterations = true;
         private List<(double discount, double endAfterIterationsProportion)> Discounts = new List<(double, double)>()
         {
@@ -82,7 +83,7 @@ namespace ACESim
                         if (TraceProbingCFR)
                             TabbedText.WriteLine(
                                 $"{sampledAction}: Sampled chance action {sampledAction} of {numPossibleActions} with probability {chanceNodeSettings.GetActionProbability(sampledAction)}");
-                        return CompleteAbramowiczProbe(ref historyPoint, randomProducer, sampledAction);
+                        return CompleteAbramowiczProbe_InPlace(ref historyPoint, randomProducer, sampledAction);
                     }
                 }
                 else if (gameStateType == GameStateTypeEnum.Tally)
@@ -96,7 +97,7 @@ namespace ACESim
                     if (TraceProbingCFR)
                         TabbedText.WriteLine(
                             $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {informationSet.PlayerIndex}");
-                    return CompleteAbramowiczProbe(ref historyPoint, randomProducer, sampledAction);
+                    return CompleteAbramowiczProbe_InPlace(ref historyPoint, randomProducer, sampledAction);
                 }
                 else
                     throw new NotImplementedException();
@@ -104,12 +105,32 @@ namespace ACESim
         }
 
 
+
+        // DEBUG TODO: The probes take much of the time going through the algorithm. As a result, the calls to GetBranch in the probe are expensive. Moreover, they are generally unnecessary after the initial copy to initiate the probing (which occurs in WalkTree), because we are moving exclusively forward in the tree after we start the probe. The exception is for critical nodes, where we would need to call a routine that would copy the HistoryPoint for each route through the tree. ... Potentially, we could improve the performance in WalkTree as well, by determining whether the GetBranch is easily reversible (i.e., it consists of simple adds to players' history and cache index items).
+        // Is there a simple way of reversing changes? In GameHistory itself, we could have a reversibility mode. Once in that mode, we add a reversibility point. Then, each change then gets cataloged.  Then, we could reverse so long as there hasn't been anything to shorten in the interim. Removing items from the information set makes things a lot harder, because that could happen considerably later in the game. 
+
         private double[] CompleteAbramowiczProbe(ref HistoryPoint historyPoint, IRandomProducer randomProducer, byte sampledAction)
         {
             HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction);
             if (TraceProbingCFR)
                 TabbedText.Tabs++;
             double[] probeResult = AbramowiczProbe(ref nextHistoryPoint, randomProducer);
+            if (TraceProbingCFR)
+            {
+                TabbedText.Tabs--;
+                //TabbedText.WriteLine($"Actions to here: {nextHistoryPoint.GetActionsToHereString(Navigation)}");
+                TabbedText.WriteLine($"Returning probe result {String.Join(",", probeResult)}");
+            }
+            return probeResult;
+        }
+        
+
+        private double[] CompleteAbramowiczProbe_InPlace(ref HistoryPoint historyPoint, IRandomProducer randomProducer, byte sampledAction)
+        {
+            historyPoint.SwitchToBranch(Navigation, sampledAction);
+            if (TraceProbingCFR)
+                TabbedText.Tabs++;
+            double[] probeResult = AbramowiczProbe(ref historyPoint, randomProducer);
             if (TraceProbingCFR)
             {
                 TabbedText.Tabs--;

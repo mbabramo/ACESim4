@@ -37,7 +37,7 @@ namespace ACESim
             EvolutionSettings evolutionSettings = new EvolutionSettings()
             {
                 MaxParallelDepth = 1, // we're parallelizing on the iteration level, so there is no need for further parallelization
-                ParallelOptimization = true,
+                ParallelOptimization = false,
 
                 InitialRandomSeed = 0,
 
