@@ -36,7 +36,7 @@ namespace ACESim
             List<Strategy> starterStrategies = Strategy.GetStarterStrategies(gameDefinition);
             EvolutionSettings evolutionSettings = new EvolutionSettings()
             {
-                MaxParallelDepth = 1, // we're parallelizing on the iteration level, so there is no need for further parallelization
+                MaxParallelDepth = 2,
                 ParallelOptimization = true,
 
                 InitialRandomSeed = 0,

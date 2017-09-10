@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Serialization;
-using ACESim4.Util;
 
 namespace ACESim
 {
@@ -19,7 +18,7 @@ namespace ACESim
 
         public PlayerInfo PlayerInfo;
 
-        public NWayTreeStorageRoot<IGameState> InformationSetTree;
+        public NWayTreeStorageInternal<IGameState> InformationSetTree;
         public string GetInformationSetTreeString() => InformationSetTree.ToTreeString("Branch");
         public HistoryNavigationInfo Navigation;
         public ActionStrategies ActionStrategy;
@@ -32,7 +31,6 @@ namespace ACESim
         public Strategy()
         {
             // RegretsOrMoveProbabilities = new NWayTreeStorageInternal<double>();
-            Crc32.InitializeIfNecessary();
         }
 
         public virtual Strategy DeepCopy()
@@ -47,11 +45,10 @@ namespace ACESim
             return theStrategy;
         }
 
-        #region Information set tree
 
-        public void CreateInformationSetTree(int numInitialActions, bool useDictionary)
+        public void CreateInformationSetTree(int numInitialActions)
         {
-            InformationSetTree = new NWayTreeStorageRoot<IGameState>(null, numInitialActions, useDictionary);
+            InformationSetTree = new NWayTreeStorageInternal<IGameState>(null, numInitialActions);
         }
 
         // NOTE: Sometimes we preface the information set with a decisionIndex, so we have dedicated methods for this.
@@ -59,35 +56,30 @@ namespace ACESim
         public unsafe NWayTreeStorage<IGameState> SetInformationSetTreeValueIfNotSet(byte decisionIndex, byte* informationSet, bool historyComplete, Func<IGameState> setter)
         {
             if (decisionIndex == 0)
-                decisionIndex = DecisionIndexSubstitute; // a bit hacky -- we can't use a 0 prefix
-            var returnVal = InformationSetTree.SetValueIfNotSet(new NWayTreeStorageKey(decisionIndex, informationSet), historyComplete, setter);
+                decisionIndex = 200; // a bit hacky -- we can't use a 0 prefix
+            var returnVal = InformationSetTree.SetValueIfNotSet(decisionIndex, informationSet, historyComplete, setter);
             // System.Diagnostics.Console.WriteLine($"{String.Join(",", informationSet)}: {PlayerInfo.PlayerName} {returnVal.StoredValue}");
             return returnVal;
         }
 
         public unsafe NWayTreeStorage<IGameState> SetInformationSetTreeValueIfNotSet(byte* informationSet, bool historyComplete, Func<IGameState> setter)
         {
-
-            var returnVal = InformationSetTree.SetValueIfNotSet(new NWayTreeStorageKey(DecisionIndexSubstitute, informationSet), historyComplete, setter);
+            var returnVal = InformationSetTree.SetValueIfNotSet(informationSet, historyComplete, setter);
             // System.Diagnostics.Console.WriteLine($"{String.Join(",", informationSet)}: {PlayerInfo.PlayerName} {returnVal.StoredValue}");
             return returnVal;
         }
 
-        public byte DecisionIndexSubstitute = 235;
-
         public unsafe IGameState GetInformationSetTreeValue(byte decisionIndex, byte* informationSet)
         {
             if (decisionIndex == 0)
-                decisionIndex = DecisionIndexSubstitute; // a bit hacky -- we can't use a 0 prefix
-            return InformationSetTree?.GetValue(new NWayTreeStorageKey(decisionIndex, informationSet));
+                decisionIndex = 200; // a bit hacky -- we can't use a 0 prefix
+            return InformationSetTree?.GetValue(decisionIndex, informationSet);
         }
 
         public unsafe IGameState GetInformationSetTreeValue(byte* informationSet)
         {
-            return InformationSetTree?.GetValue(new NWayTreeStorageKey(DecisionIndexSubstitute, informationSet));
+            return InformationSetTree?.GetValue(informationSet);
         }
-
-        #endregion 
 
         public unsafe byte ChooseAction(byte* informationSet, Func<double> randomNumberGenerator)
         {
@@ -214,7 +206,7 @@ namespace ACESim
 
         public unsafe NWayTreeStorage<List<double>> GetRegretMatchingTree()
         {
-            var regretMatchingTree = new NWayTreeStorageRoot<List<double>>(null, InformationSetTree.Branches.Length, false);
+            var regretMatchingTree = new NWayTreeStorageInternal<List<double>>(null, InformationSetTree.Branches.Length);
             var nodes = InformationSetTree.GetAllTreeNodes();
             foreach (var node in nodes)
             {
@@ -224,7 +216,7 @@ namespace ACESim
                     for (int i = 0; i < node.sequenceToHere.Count(); i++)
                         sequencePointer[i] = node.sequenceToHere[i];
                     sequencePointer[node.sequenceToHere.Count()] = 255;
-                    regretMatchingTree.SetValueIfNotSet(new NWayTreeStorageKey(DecisionIndexSubstitute, sequencePointer), false, () => tallyNode.GetRegretMatchingProbabilities_WithEvenProbabilitiesIfUsingBackup());
+                    regretMatchingTree.SetValueIfNotSet(sequencePointer, false, () => tallyNode.GetRegretMatchingProbabilities_WithEvenProbabilitiesIfUsingBackup());
                 }
             }
             return regretMatchingTree;

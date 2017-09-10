@@ -144,7 +144,6 @@
     <Compile Include="Util\ConsistentRandomSequenceProducer.cs" />
     <Compile Include="Util\ConstrainedOrder.cs" />
     <Compile Include="Util\ConstrainToRange.cs" />
-    <Compile Include="Util\Crc32.cs" />
     <Compile Include="Util\DiscreteValueSignal.cs" />
     <Compile Include="Util\DiscreteValueSignalParameters.cs" />
     <Compile Include="Util\EquallySpaced.cs" />
@@ -168,8 +167,6 @@
     <Compile Include="Util\NumberPrint.cs" />
     <Compile Include="Util\NWayTreeStorage.cs" />
     <Compile Include="Util\NWayTreeStorageInternal.cs" />
-    <Compile Include="Util\NWayTreeStorageKey.cs" />
-    <Compile Include="Util\NWayTreeStorageRoot.cs" />
     <Compile Include="Util\ObfuscationBruteForce.cs" />
     <Compile Include="Util\ObjectPool.cs" />
     <Compile Include="Util\ObjectPoolConcurrent.cs" />
