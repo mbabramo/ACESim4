@@ -53,7 +53,7 @@ namespace ACESim
                 FinalUtilities finalUtilities = (FinalUtilities)gameStateForCurrentPlayer;
                 var utility = finalUtilities.Utilities;
                 if (TraceProbingCFR)
-                    TabbedText.WriteLine($"Utility returned {String.Join("," ,utility)}");
+                    TabbedText.WriteLine($"Utility returned {String.Join("," ,utility)}"); 
                 return utility;
             }
             else
