@@ -19,6 +19,8 @@ namespace ACESim
             Sequence = sequence;
         }
 
+        public override string ToString() => PrefaceByte + ": " + String.Join(",", Util.ListExtensions.GetPointerAsList_255Terminated(Sequence));
+
         public override bool Equals(object obj)
         {
             NWayTreeStorageKey other = (NWayTreeStorageKey) obj;
