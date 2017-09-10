@@ -37,7 +37,7 @@ namespace ACESim
             EvolutionSettings evolutionSettings = new EvolutionSettings()
             {
                 MaxParallelDepth = 1, // we're parallelizing on the iteration level, so there is no need for further parallelization
-                ParallelOptimization = false, // DEBUG
+                ParallelOptimization = true,
 
                 InitialRandomSeed = 0,
 
@@ -61,6 +61,7 @@ namespace ACESim
                 TotalAvgStrategySamplingCFRIterations = 10000000,
                 TotalVanillaCFRIterations = 100_000_000,
             };
+            NWayTreeStorageRoot<IGameState>.EnableUseDictionary = evolutionSettings.ParallelOptimization == false; // this is based on some limited performance testing; with parallelism, this seems to slow us down
             const int numRepetitions = 20;
             for (int i = 0; i < numRepetitions; i++)
             {

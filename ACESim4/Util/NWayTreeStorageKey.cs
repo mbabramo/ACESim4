@@ -7,11 +7,12 @@ using ACESim4.Util;
 
 namespace ACESim
 {
-    public unsafe struct NWayTreeStorageKey
+    public unsafe struct NWayTreeStorageKey : INWayTreeStorageKey
     {
-        public byte PrefaceByte;
+        public byte PrefaceByte { get; set; }
         public byte* Sequence;
-        public static uint[] Table;
+
+        public byte Element(int i) => Sequence[i];
 
         public NWayTreeStorageKey(byte prefaceByte, byte* sequence)
         {
@@ -23,19 +24,17 @@ namespace ACESim
 
         public override bool Equals(object obj)
         {
-            NWayTreeStorageKey other = (NWayTreeStorageKey) obj;
+            INWayTreeStorageKey other = (INWayTreeStorageKey) obj;
             if (PrefaceByte != other.PrefaceByte)
                 return false;
-            byte* ptr1 = Sequence;
-            byte* ptr2 = other.Sequence;
-            while (*ptr1 != 255 && *ptr2 != 255)
+            int i = 0;
+            while (*(Sequence + i) != 255 && other.Element(i) != 255)
             {
-                if (*ptr1 != *ptr2)
+                if (*(Sequence + i) != other.Element(i))
                     return false;
-                ptr1++;
-                ptr2++;
+                i++;
             }
-            if (*ptr1 != *ptr2)
+            if (*(Sequence + i) != other.Element(i))
                 return false;
             return true;
         }
@@ -43,6 +42,11 @@ namespace ACESim
         public override int GetHashCode()
         {
             return Crc32.ComputeChecksum(this);
+        }
+
+        public NWayTreeStorageKeySafe ToSafe()
+        {
+            return new NWayTreeStorageKeySafe() {PrefaceByte = PrefaceByte, Sequence = Util.ListExtensions.GetPointerAsList_255Terminated(Sequence).ToArray()};
         }
     }
 }

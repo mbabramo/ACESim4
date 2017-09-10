@@ -41,6 +41,22 @@ namespace ACESim4.Util
             return unchecked((int)~crc); // keep bits
         }
 
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int ComputeChecksum(NWayTreeStorageKeySafe key)
+        {
+            uint crc = 0xffffffff;
+            byte index = (byte)(((crc) & 0xff) ^ key.PrefaceByte);
+            crc = (uint)((crc >> 8) ^ table[index]);
+            for (int i = 0; i < key.Sequence.Length; i++)
+            {
+                index = (byte)(((crc) & 0xff) ^ key.Sequence[i]);
+                crc = (uint)((crc >> 8) ^ table[index]);
+            }
+            return unchecked((int)~crc); // keep bits
+        }
+
+
         public static byte[] ComputeChecksumBytes(byte[] bytes)
         {
             return BitConverter.GetBytes(ComputeChecksum(bytes));
