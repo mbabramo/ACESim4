@@ -111,6 +111,7 @@ namespace ACESim
 
         private double[] CompleteAbramowiczProbe(ref HistoryPoint historyPoint, IRandomProducer randomProducer, byte sampledAction)
         {
+            DEBUGTest(ref historyPoint);
             HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction);
             if (TraceProbingCFR)
                 TabbedText.Tabs++;
@@ -123,7 +124,32 @@ namespace ACESim
             }
             return probeResult;
         }
-        
+
+        private void DEBUGTest(ref HistoryPoint historyPoint)
+        {
+            Stopwatch s = new Stopwatch();
+            s.Start();
+            for (int i = 0; i < 10000000; i++)
+                DEBUGTest2(ref historyPoint);
+            s.Stop();
+            Console.WriteLine($"Test speed A {s.ElapsedMilliseconds}");
+            s.Start();
+            for (int i = 0; i < 10000000; i++)
+                DEBUGTest3(historyPoint);
+            s.Stop();
+            Console.WriteLine($"Test speed B {s.ElapsedMilliseconds}");
+        }
+
+        private void DEBUGTest2(ref HistoryPoint historyPoint)
+        {
+            historyPoint.GameState = null;
+        }
+
+        private void DEBUGTest3(HistoryPoint historyPoint)
+        {
+            historyPoint.GameState = null;
+        }
+
 
         private double[] CompleteAbramowiczProbe_InPlace(ref HistoryPoint historyPoint, IRandomProducer randomProducer, byte sampledAction)
         {
