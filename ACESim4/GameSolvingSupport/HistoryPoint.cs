@@ -166,6 +166,33 @@ namespace ACESim
             return next;
         }
 
+        public void SwitchToBranch(HistoryNavigationInfo navigation, byte actionChosen)
+        {
+            if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly)
+            {
+                navigation.GameDefinition.GetNextDecision(ref HistoryToPoint, out Decision nextDecision, out byte nextDecisionIndex);
+                Game.UpdateGameHistory(ref HistoryToPoint, navigation.GameDefinition, nextDecision, nextDecisionIndex, actionChosen, GameProgress);
+                if (nextDecision.CanTerminateGame && navigation.GameDefinition.ShouldMarkGameHistoryComplete(nextDecision, ref HistoryToPoint, actionChosen))
+                    HistoryToPoint.MarkComplete();
+            }
+            else if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
+            {
+                NWayTreeStorage<IGameState> branch = TreePoint.GetBranch(actionChosen);
+                if (branch == null)
+                    lock (TreePoint)
+                        branch = ((NWayTreeStorageInternal<IGameState>)TreePoint).AddBranch(actionChosen, true);
+                TreePoint = branch;
+            }
+            else if (navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)
+            {
+                IGameFactory gameFactory = navigation.GameDefinition.GameFactory;
+                GamePlayer player = new GamePlayer(navigation.Strategies, false, navigation.GameDefinition);
+                player.ContinuePathWithAction(actionChosen, GameProgress);
+                HistoryToPoint = GameProgress.GameHistory;
+            }
+            GameState = null;
+        }
+
         public byte GetNextPlayer(HistoryNavigationInfo navigation)
         {
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly)
