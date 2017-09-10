@@ -135,17 +135,23 @@ namespace ACESim
             Console.WriteLine($"Test speed A {s.ElapsedMilliseconds}");
             s.Start();
             for (int i = 0; i < 10000000; i++)
-                DEBUGTest3(historyPoint);
+                DEBUGTest3(ref historyPoint);
             s.Stop();
             Console.WriteLine($"Test speed B {s.ElapsedMilliseconds}");
         }
 
         private void DEBUGTest2(ref HistoryPoint historyPoint)
         {
-            historyPoint.GameState = null;
+            DEBUGTest4(ref historyPoint);
         }
 
-        private void DEBUGTest3(HistoryPoint historyPoint)
+        private void DEBUGTest3(ref HistoryPoint historyPoint)
+        {
+            HistoryPoint nextHistoryPoint = historyPoint;
+            DEBUGTest4(ref nextHistoryPoint);
+        }
+
+        private void DEBUGTest4(ref HistoryPoint historyPoint)
         {
             historyPoint.GameState = null;
         }
