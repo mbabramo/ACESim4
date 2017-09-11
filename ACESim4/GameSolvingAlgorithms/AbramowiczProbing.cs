@@ -59,72 +59,72 @@ namespace ACESim
             }
             else
             {
-                byte sampledAction = 0;
                 if (gameStateType == GameStateTypeEnum.Chance)
-                {
-                    ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings)gameStateForCurrentPlayer;
-                    byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
-                    if (chanceNodeSettings.CriticalNode)
-                    {
-                        if (historyPoint.BranchingIsReversible(Navigation, chanceNodeSettings.Decision))
-                        {
-                            double[] combined = new double[NumNonChancePlayers];
-                            for (byte a = 1; a <= numPossibleActions; a++)
-                            {
-                                double probability = chanceNodeSettings.GetActionProbability(a);
-                                IGameState gameStateOriginal = historyPoint.GameState;
-                                double[] result = CompleteAbramowiczProbe_InPlace(ref historyPoint, randomProducer, a, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
-                                GameDefinition.ReverseDecision(chanceNodeSettings.Decision, ref historyPoint, gameStateOriginal);
-                                for (byte p = 0; p < NumNonChancePlayers; p++)
-                                    combined[p] += probability * result[p];
-                            }
-                            return combined;
-
-                        }
-                        else
-                        {
-                            double[] combined = new double[NumNonChancePlayers];
-                            for (byte a = 1; a <= numPossibleActions; a++)
-                            {
-                                double probability = chanceNodeSettings.GetActionProbability(a);
-                                double[] result = CompleteAbramowiczProbe(ref historyPoint, randomProducer, a, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
-                                for (byte p = 0; p < NumNonChancePlayers; p++)
-                                    combined[p] += probability * result[p];
-                            }
-                            return combined;
-                        }
-                    }
-                    else
-                    {
-                        sampledAction = chanceNodeSettings.SampleAction(numPossibleActions,
-                            randomProducer.GetDoubleAtIndex(chanceNodeSettings.DecisionIndex));
-                        if (TraceProbingCFR)
-                            TabbedText.WriteLine(
-                                $"{sampledAction}: Sampled chance action {sampledAction} of {numPossibleActions} with probability {chanceNodeSettings.GetActionProbability(sampledAction)}");
-                        return CompleteAbramowiczProbe_InPlace(ref historyPoint, randomProducer, sampledAction, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
-                    }
-                }
-                else if (gameStateType == GameStateTypeEnum.Tally)
-                {
-                    InformationSetNodeTally informationSet = (InformationSetNodeTally)gameStateForCurrentPlayer;
-                    byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
-                    double* actionProbabilities = stackalloc double[numPossibleActions];
-                    informationSet.GetRegretMatchingProbabilities(actionProbabilities);
-                    sampledAction = SampleAction(actionProbabilities, numPossibleActions,
-                        randomProducer.GetDoubleAtIndex(informationSet.DecisionIndex));
-                    if (TraceProbingCFR)
-                        TabbedText.WriteLine(
-                            $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {informationSet.PlayerIndex}");
-                    return CompleteAbramowiczProbe_InPlace(ref historyPoint, randomProducer, sampledAction, informationSet.Decision, informationSet.DecisionIndex);
-                }
-                else
-                    throw new NotImplementedException();
+                    return AbramowiczProbe_ChanceNode(ref historyPoint, randomProducer, gameStateForCurrentPlayer);
+                if (gameStateType == GameStateTypeEnum.Tally)
+                    return AbramowiczProbe_DecisionNode(ref historyPoint, randomProducer, gameStateForCurrentPlayer);
+                throw new NotImplementedException();
             }
         }
 
+        private unsafe double[] AbramowiczProbe_DecisionNode(ref HistoryPoint historyPoint, IRandomProducer randomProducer, IGameState gameStateForCurrentPlayer)
+        {
+            byte sampledAction;
+            InformationSetNodeTally informationSet = (InformationSetNodeTally) gameStateForCurrentPlayer;
+            byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
+            double* actionProbabilities = stackalloc double[numPossibleActions];
+            informationSet.GetRegretMatchingProbabilities(actionProbabilities);
+            sampledAction = SampleAction(actionProbabilities, numPossibleActions,
+                randomProducer.GetDoubleAtIndex(informationSet.DecisionIndex));
+            if (TraceProbingCFR)
+                TabbedText.WriteLine(
+                    $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {informationSet.PlayerIndex}");
+            return CompleteAbramowiczProbe_InPlace(ref historyPoint, randomProducer, sampledAction, informationSet.Decision, informationSet.DecisionIndex);
+        }
 
-        // DEBUG TODO: The probes take much of the time going through the algorithm. As a result, the calls to GetBranch in the probe are expensive. Moreover, they are generally unnecessary after the initial copy to initiate the probing (which occurs in WalkTree), because we are moving exclusively forward in the tree after we start the probe. The exception is for critical nodes, where we would need to call a routine that would copy the HistoryPoint for each route through the tree. ... Potentially, we could improve the performance in WalkTree as well, by determining whether the GetBranch is easily reversible (i.e., it consists of simple adds to players' history and cache index items).
-        // Is there a simple way of reversing changes? In GameHistory itself, we could have a reversibility mode. Once in that mode, we add a reversibility point. Then, each change then gets cataloged.  Then, we could reverse so long as there hasn't been anything to shorten in the interim. Removing items from the information set makes things a lot harder, because that could happen considerably later in the game. 
+        private double[] AbramowiczProbe_ChanceNode(ref HistoryPoint historyPoint, IRandomProducer randomProducer, IGameState gameStateForCurrentPlayer)
+        {
+            ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings) gameStateForCurrentPlayer;
+            byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
+            if (chanceNodeSettings.CriticalNode)
+            {
+                if (historyPoint.BranchingIsReversible(Navigation, chanceNodeSettings.Decision))
+                {
+                    double[] combined = new double[NumNonChancePlayers];
+                    for (byte a = 1; a <= numPossibleActions; a++)
+                    {
+                        double probability = chanceNodeSettings.GetActionProbability(a);
+                        IGameState gameStateOriginal = historyPoint.GameState;
+                        double[] result = CompleteAbramowiczProbe_InPlace(ref historyPoint, randomProducer, a, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
+                        GameDefinition.ReverseDecision(chanceNodeSettings.Decision, ref historyPoint, gameStateOriginal);
+                        for (byte p = 0; p < NumNonChancePlayers; p++)
+                            combined[p] += probability * result[p];
+                    }
+                    return combined;
+                }
+                else
+                {
+                    double[] combined = new double[NumNonChancePlayers];
+                    for (byte a = 1; a <= numPossibleActions; a++)
+                    {
+                        double probability = chanceNodeSettings.GetActionProbability(a);
+                        double[] result = CompleteAbramowiczProbe(ref historyPoint, randomProducer, a, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
+                        for (byte p = 0; p < NumNonChancePlayers; p++)
+                            combined[p] += probability * result[p];
+                    }
+                    return combined;
+                }
+            }
+            else
+            {
+                byte sampledAction = chanceNodeSettings.SampleAction(numPossibleActions,
+                    randomProducer.GetDoubleAtIndex(chanceNodeSettings.DecisionIndex));
+                if (TraceProbingCFR)
+                    TabbedText.WriteLine(
+                        $"{sampledAction}: Sampled chance action {sampledAction} of {numPossibleActions} with probability {chanceNodeSettings.GetActionProbability(sampledAction)}");
+                return CompleteAbramowiczProbe_InPlace(ref historyPoint, randomProducer, sampledAction, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
+            }
+        }
 
         private double[] CompleteAbramowiczProbe(ref HistoryPoint historyPoint, IRandomProducer randomProducer, byte sampledAction, Decision nextDecision, byte nextDecisionIndex)
         {
@@ -140,41 +140,7 @@ namespace ACESim
             }
             return probeResult;
         }
-
-        private void DEBUGTest(ref HistoryPoint historyPoint)
-        {
-            HistoryPoint theHistoryPoint = historyPoint;
-            Stopwatch s = new Stopwatch();
-            s.Start();
-            for (int i = 0; i < 10000000; i++)
-                DEBUGTest2(ref theHistoryPoint);
-            s.Stop();
-            Console.WriteLine($"Test speed A {s.ElapsedMilliseconds}");
-            s.Start();
-            for (int i = 0; i < 10000000; i++)
-                DEBUGTest3(ref theHistoryPoint);
-            s.Stop();
-            Console.WriteLine($"Test speed B {s.ElapsedMilliseconds}");
-        }
-
-        private void DEBUGTest2(ref HistoryPoint historyPoint)
-        {
-            historyPoint.HistoryToPoint.Reinitialize();
-            DEBUGTest4(ref historyPoint);
-        }
-
-        private void DEBUGTest3(ref HistoryPoint historyPoint)
-        {
-            HistoryPoint nextHistoryPoint = historyPoint;
-            DEBUGTest4(ref nextHistoryPoint);
-        }
-
-        private void DEBUGTest4(ref HistoryPoint historyPoint)
-        {
-            
-            historyPoint.GameState = null;
-        }
-
+        
 
         private double[] CompleteAbramowiczProbe_InPlace(ref HistoryPoint historyPoint, IRandomProducer randomProducer, byte sampledAction, Decision nextDecision, byte nextDecisionIndex)
         {
@@ -197,7 +163,6 @@ namespace ACESim
             if (TraceProbingCFR)
                 TabbedText.WriteLine($"WalkTree sampling probability {samplingProbabilityQ}");
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
-            byte sampledAction = 0;
             if (gameStateForCurrentPlayer is FinalUtilities finalUtilities)
             {
                 var utility = finalUtilities.Utilities[playerBeingOptimized];
@@ -206,149 +171,165 @@ namespace ACESim
                 return utility;
             }
             else if (gameStateForCurrentPlayer is ChanceNodeSettings chanceNodeSettings)
-            {
-                byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
-                if (numPossibleActions == 1)
-                    sampledAction = 1;
-                else
-                    sampledAction = chanceNodeSettings.SampleAction(numPossibleActions, randomProducer.GetDoubleAtIndex(chanceNodeSettings.DecisionIndex));
-                if (TraceProbingCFR)
-                    TabbedText.WriteLine(
-                        $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} for chance decision {chanceNodeSettings.DecisionIndex}");
-                HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
-                if (TraceProbingCFR)
-                    TabbedText.Tabs++;
-                // var actionsToHere = nextHistoryPoint.GetActionsToHereString(Navigation);
-                double walkTreeValue = AbramowiczProbe_WalkTree(ref nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ,
-                    randomProducer, isExploratoryIteration, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
-                if (TraceProbingCFR)
-                {
-                    TabbedText.Tabs--;
-                    TabbedText.WriteLine($"Returning walk tree result {walkTreeValue}");
-                }
-                return walkTreeValue;
-            }
+                return AbramowiczProbe_WalkTree_ChanceNode(historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, isExploratoryIteration, chanceNodeSettings);
             else if (gameStateForCurrentPlayer is InformationSetNodeTally informationSet)
             {
-                byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
-                double* sigmaRegretMatchedActionProbabilities = stackalloc double[numPossibleActions];
-                informationSet.GetRegretMatchingProbabilities(sigmaRegretMatchedActionProbabilities);
-                byte playerAtPoint = informationSet.PlayerIndex;
-                double randomDouble = randomProducer.GetDoubleAtIndex(informationSet.DecisionIndex);
-                // OTHER PLAYER:
-                if (playerAtPoint != playerBeingOptimized)
-                {
-                    if (!isExploratoryIteration)
-                        informationSet.GetRegretMatchingProbabilities(sigmaRegretMatchedActionProbabilities);
-                    else // Difference from Gibson. The opponent will use epsilon exploration (but only during the exploratory phase).
-                        informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(sigmaRegretMatchedActionProbabilities, EvolutionSettings.EpsilonForOpponentWhenExploring);
-                    if (!isExploratoryIteration)
-                        for (byte action = 1; action <= numPossibleActions; action++)
-                        {
-                            double cumulativeStrategyIncrement =
-                                sigmaRegretMatchedActionProbabilities[action - 1] / samplingProbabilityQ;
-                            if (EvolutionSettings.ParallelOptimization)
-                                informationSet.IncrementCumulativeStrategy_Parallel(action, cumulativeStrategyIncrement);
-                            else
-                                informationSet.IncrementCumulativeStrategy(action, cumulativeStrategyIncrement);
-                            if (TraceProbingCFR)
-                                TabbedText.WriteLine(
-                                    $"Incrementing cumulative strategy for {action} by {cumulativeStrategyIncrement} to {informationSet.GetCumulativeStrategy(action)}");
-                        }
-                    sampledAction = SampleAction(sigmaRegretMatchedActionProbabilities, numPossibleActions,
-                        randomDouble);
-                    if (TraceProbingCFR)
-                        TabbedText.WriteLine(
-                            $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {playerAtPoint} decision {informationSet.DecisionIndex} with regret-matched prob {sigmaRegretMatchedActionProbabilities[sampledAction - 1]}");
-                    HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction, informationSet.Decision, informationSet.DecisionIndex);
-                    if (TraceProbingCFR)
-                        TabbedText.Tabs++;
-                    double walkTreeValue = AbramowiczProbe_WalkTree(ref nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ,
-                        randomProducer, isExploratoryIteration, informationSet.Decision, informationSet.DecisionIndex);
-                    if (TraceProbingCFR)
-                    {
-                        TabbedText.Tabs--;
-                        TabbedText.WriteLine($"Returning walk tree result {walkTreeValue}");
-                    }
-                    return walkTreeValue;
-                }
-                // PLAYER BEING OPTIMIZED:
-                double* samplingProbabilities = stackalloc double[numPossibleActions];
-                if (!isExploratoryIteration && AlsoDisablePlayerOwnExplorationOnNonExploratoryIterations) // with this change, the main player will also explore only on odd iterations
-                    informationSet.GetRegretMatchingProbabilities(samplingProbabilities);
-                else
-                    informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(samplingProbabilities, EvolutionSettings.EpsilonForMainPlayer);
-                sampledAction = SampleAction(samplingProbabilities, numPossibleActions, randomDouble);
-                if (TraceProbingCFR)
-                    TabbedText.WriteLine(
-                        $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {playerAtPoint} decision {informationSet.DecisionIndex} with regret-matched prob {sigmaRegretMatchedActionProbabilities[sampledAction - 1]}");
-                double* counterfactualValues = stackalloc double[numPossibleActions];
-                double summation = 0;
-                for (byte action = 1; action <= numPossibleActions; action++)
-                {
-                    HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
-                    if (action == sampledAction)
-                    {
-                        if (TraceProbingCFR)
-                            TabbedText.WriteLine(
-                                $"{action}: Sampling selected action {action} for player {informationSet.PlayerIndex} decision {informationSet.DecisionIndex}");
-                        if (TraceProbingCFR)
-                            TabbedText.Tabs++;
-                        double samplingProbabilityQPrime = samplingProbabilityQ * samplingProbabilities[action - 1];
-                        // IMPORTANT: Unlike Gibson probing, we don't record the result of the walk through the tree.
-                        AbramowiczProbe_WalkTree(ref nextHistoryPoint, playerBeingOptimized,
-                            samplingProbabilityQPrime, randomProducer, isExploratoryIteration, informationSet.Decision, informationSet.DecisionIndex);
-                        if (TraceProbingCFR)
-                            TabbedText.Tabs--;
-                    }
-                    // IMPORTANT: Unlike Gibson probing, we use a probe to calculate all counterfactual values. 
-                    if (TraceProbingCFR)
-                        TabbedText.WriteLine(
-                            $"{action}: AbramowiczProbing action {action} for player {informationSet.PlayerIndex} decision {informationSet.DecisionIndex}");
-                    if (TraceProbingCFR)
-                        TabbedText.Tabs++;
-                    counterfactualValues[action - 1] =
-                        AbramowiczProbe_SinglePlayer(ref nextHistoryPoint, playerBeingOptimized, randomProducer);
-                    double summationDelta = sigmaRegretMatchedActionProbabilities[action - 1] *
-                                            counterfactualValues[action - 1];
-                    summation += summationDelta;
-                    if (TraceProbingCFR)
-                    {
-                        TabbedText.Tabs--;
-                        TabbedText.WriteLine(
-                            $"Counterfactual value for action {action} is {counterfactualValues[action - 1]} => increment summation by {sigmaRegretMatchedActionProbabilities[action - 1]} * {counterfactualValues[action - 1]} = {summationDelta} to {summation}");
-                    }
-                }
-                double inverseSamplingProbabilityQ = (1.0 / samplingProbabilityQ);
-                byte bestAction = 0;
-                double bestCumulativeRegretIncrement = 0;
-                for (byte action = 1; action <= numPossibleActions; action++)
-                {
-                    double cumulativeRegretIncrement = inverseSamplingProbabilityQ *
-                                                        (counterfactualValues[action - 1] - summation);
-                    bool incrementVisits = action == numPossibleActions; // we increment visits only once per information set. This incrementing is how we keep track of whether we are accumulating backup visits without main visits, in which case we switch to that set.
-                    if (DiscountingEnabled)
-                        cumulativeRegretIncrement *= CurrentDiscount;
-                    if (EvolutionSettings.ParallelOptimization)
-                        informationSet.IncrementCumulativeRegret_Parallel(action, cumulativeRegretIncrement, isExploratoryIteration, BackupRegretsTrigger, incrementVisits);
-                    else
-                        informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement, isExploratoryIteration, BackupRegretsTrigger, incrementVisits);
-                    if (bestAction == 0 || cumulativeRegretIncrement > bestCumulativeRegretIncrement)
-                    {
-                        bestAction = action;
-                        bestCumulativeRegretIncrement = cumulativeRegretIncrement;
-                    }
-                    if (TraceProbingCFR)
-                    {
-                        //TabbedText.WriteLine($"Optimizing {playerBeingOptimized} Actions to here {historyPoint.GetActionsToHereString(Navigation)} information set:{historyPoint.HistoryToPoint.GetPlayerInformationString(playerBeingOptimized, null)}"); 
-                        TabbedText.WriteLine(
-                            $"Increasing cumulative regret for action {action} in {informationSet.InformationSetNumber} by {inverseSamplingProbabilityQ} * ({(counterfactualValues[action - 1])} - {summation}) = {cumulativeRegretIncrement} to {informationSet.GetCumulativeRegret(action)}");
-                    }
-                }
-                return summation;
+                return AbramowiczProbe_WalkTree_DecisionNode(historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, isExploratoryIteration, informationSet);
             }
             else
                 throw new NotImplementedException();
+        }
+
+        private unsafe double AbramowiczProbe_WalkTree_DecisionNode(HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, bool isExploratoryIteration, InformationSetNodeTally informationSet)
+        {
+            byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
+            double* sigmaRegretMatchedActionProbabilities = stackalloc double[numPossibleActions];
+            informationSet.GetRegretMatchingProbabilities(sigmaRegretMatchedActionProbabilities);
+            byte playerAtPoint = informationSet.PlayerIndex;
+            double randomDouble = randomProducer.GetDoubleAtIndex(informationSet.DecisionIndex);
+            if (playerAtPoint != playerBeingOptimized)
+                return AbramowiczProbe_WalkTree_DecisionNode_OtherPlayer(historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, isExploratoryIteration, informationSet, sigmaRegretMatchedActionProbabilities, numPossibleActions, randomDouble, playerAtPoint);
+            return AbramowiczProbe_WalkTree_DecisionNode_PlayerBeingOptimized(historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, isExploratoryIteration, informationSet, numPossibleActions, randomDouble, playerAtPoint, sigmaRegretMatchedActionProbabilities);
+        }
+
+        private unsafe double AbramowiczProbe_WalkTree_DecisionNode_PlayerBeingOptimized(HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, bool isExploratoryIteration, InformationSetNodeTally informationSet, byte numPossibleActions, double randomDouble, byte playerAtPoint, double* sigmaRegretMatchedActionProbabilities)
+        {
+            double* samplingProbabilities = stackalloc double[numPossibleActions];
+            if (!isExploratoryIteration && AlsoDisablePlayerOwnExplorationOnNonExploratoryIterations) // with this change, the main player will also explore only on odd iterations
+                informationSet.GetRegretMatchingProbabilities(samplingProbabilities);
+            else
+                informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(samplingProbabilities, EvolutionSettings.EpsilonForMainPlayer);
+            byte sampledAction = SampleAction(samplingProbabilities, numPossibleActions, randomDouble);
+            if (TraceProbingCFR)
+                TabbedText.WriteLine(
+                    $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {playerAtPoint} decision {informationSet.DecisionIndex} with regret-matched prob {sigmaRegretMatchedActionProbabilities[sampledAction - 1]}");
+            double* counterfactualValues = stackalloc double[numPossibleActions];
+            double summation = 0;
+            for (byte action = 1; action <= numPossibleActions; action++)
+            {
+                HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
+                if (action == sampledAction)
+                {
+                    if (TraceProbingCFR)
+                        TabbedText.WriteLine(
+                            $"{action}: Sampling selected action {action} for player {informationSet.PlayerIndex} decision {informationSet.DecisionIndex}");
+                    if (TraceProbingCFR)
+                        TabbedText.Tabs++;
+                    double samplingProbabilityQPrime = samplingProbabilityQ * samplingProbabilities[action - 1];
+                    // IMPORTANT: Unlike Gibson probing, we don't record the result of the walk through the tree.
+                    AbramowiczProbe_WalkTree(ref nextHistoryPoint, playerBeingOptimized,
+                        samplingProbabilityQPrime, randomProducer, isExploratoryIteration, informationSet.Decision, informationSet.DecisionIndex);
+                    if (TraceProbingCFR)
+                        TabbedText.Tabs--;
+                }
+                // IMPORTANT: Unlike Gibson probing, we use a probe to calculate all counterfactual values. 
+                if (TraceProbingCFR)
+                    TabbedText.WriteLine(
+                        $"{action}: AbramowiczProbing action {action} for player {informationSet.PlayerIndex} decision {informationSet.DecisionIndex}");
+                if (TraceProbingCFR)
+                    TabbedText.Tabs++;
+                counterfactualValues[action - 1] =
+                    AbramowiczProbe_SinglePlayer(ref nextHistoryPoint, playerBeingOptimized, randomProducer);
+                double summationDelta = sigmaRegretMatchedActionProbabilities[action - 1] *
+                                        counterfactualValues[action - 1];
+                summation += summationDelta;
+                if (TraceProbingCFR)
+                {
+                    TabbedText.Tabs--;
+                    TabbedText.WriteLine(
+                        $"Counterfactual value for action {action} is {counterfactualValues[action - 1]} => increment summation by {sigmaRegretMatchedActionProbabilities[action - 1]} * {counterfactualValues[action - 1]} = {summationDelta} to {summation}");
+                }
+            }
+            double inverseSamplingProbabilityQ = (1.0 / samplingProbabilityQ);
+            byte bestAction = 0;
+            double bestCumulativeRegretIncrement = 0;
+            for (byte action = 1; action <= numPossibleActions; action++)
+            {
+                double cumulativeRegretIncrement = inverseSamplingProbabilityQ *
+                                                   (counterfactualValues[action - 1] - summation);
+                bool incrementVisits = action == numPossibleActions; // we increment visits only once per information set. This incrementing is how we keep track of whether we are accumulating backup visits without main visits, in which case we switch to that set.
+                if (DiscountingEnabled)
+                    cumulativeRegretIncrement *= CurrentDiscount;
+                if (EvolutionSettings.ParallelOptimization)
+                    informationSet.IncrementCumulativeRegret_Parallel(action, cumulativeRegretIncrement, isExploratoryIteration, BackupRegretsTrigger, incrementVisits);
+                else
+                    informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement, isExploratoryIteration, BackupRegretsTrigger, incrementVisits);
+                if (bestAction == 0 || cumulativeRegretIncrement > bestCumulativeRegretIncrement)
+                {
+                    bestAction = action;
+                    bestCumulativeRegretIncrement = cumulativeRegretIncrement;
+                }
+                if (TraceProbingCFR)
+                {
+                    //TabbedText.WriteLine($"Optimizing {playerBeingOptimized} Actions to here {historyPoint.GetActionsToHereString(Navigation)} information set:{historyPoint.HistoryToPoint.GetPlayerInformationString(playerBeingOptimized, null)}"); 
+                    TabbedText.WriteLine(
+                        $"Increasing cumulative regret for action {action} in {informationSet.InformationSetNumber} by {inverseSamplingProbabilityQ} * ({(counterfactualValues[action - 1])} - {summation}) = {cumulativeRegretIncrement} to {informationSet.GetCumulativeRegret(action)}");
+                }
+            }
+            return summation;
+        }
+
+        private unsafe double AbramowiczProbe_WalkTree_DecisionNode_OtherPlayer(HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, bool isExploratoryIteration, InformationSetNodeTally informationSet, double* sigmaRegretMatchedActionProbabilities, byte numPossibleActions, double randomDouble, byte playerAtPoint)
+        {
+            byte sampledAction;
+            if (!isExploratoryIteration)
+                informationSet.GetRegretMatchingProbabilities(sigmaRegretMatchedActionProbabilities);
+            else // Difference from Gibson. The opponent will use epsilon exploration (but only during the exploratory phase).
+                informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(sigmaRegretMatchedActionProbabilities, EvolutionSettings.EpsilonForOpponentWhenExploring);
+            if (!isExploratoryIteration)
+                for (byte action = 1; action <= numPossibleActions; action++)
+                {
+                    double cumulativeStrategyIncrement =
+                        sigmaRegretMatchedActionProbabilities[action - 1] / samplingProbabilityQ;
+                    if (EvolutionSettings.ParallelOptimization)
+                        informationSet.IncrementCumulativeStrategy_Parallel(action, cumulativeStrategyIncrement);
+                    else
+                        informationSet.IncrementCumulativeStrategy(action, cumulativeStrategyIncrement);
+                    if (TraceProbingCFR)
+                        TabbedText.WriteLine(
+                            $"Incrementing cumulative strategy for {action} by {cumulativeStrategyIncrement} to {informationSet.GetCumulativeStrategy(action)}");
+                }
+            sampledAction = SampleAction(sigmaRegretMatchedActionProbabilities, numPossibleActions,
+                randomDouble);
+            if (TraceProbingCFR)
+                TabbedText.WriteLine(
+                    $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {playerAtPoint} decision {informationSet.DecisionIndex} with regret-matched prob {sigmaRegretMatchedActionProbabilities[sampledAction - 1]}");
+            HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction, informationSet.Decision, informationSet.DecisionIndex);
+            if (TraceProbingCFR)
+                TabbedText.Tabs++;
+            double walkTreeValue = AbramowiczProbe_WalkTree(ref nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ,
+                randomProducer, isExploratoryIteration, informationSet.Decision, informationSet.DecisionIndex);
+            if (TraceProbingCFR)
+            {
+                TabbedText.Tabs--;
+                TabbedText.WriteLine($"Returning walk tree result {walkTreeValue}");
+            }
+            return walkTreeValue;
+        }
+
+        private double AbramowiczProbe_WalkTree_ChanceNode(HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, bool isExploratoryIteration, ChanceNodeSettings chanceNodeSettings)
+        {
+            byte sampledAction;
+            byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
+            if (numPossibleActions == 1)
+                sampledAction = 1;
+            else
+                sampledAction = chanceNodeSettings.SampleAction(numPossibleActions, randomProducer.GetDoubleAtIndex(chanceNodeSettings.DecisionIndex));
+            if (TraceProbingCFR)
+                TabbedText.WriteLine(
+                    $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} for chance decision {chanceNodeSettings.DecisionIndex}");
+            HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
+            if (TraceProbingCFR)
+                TabbedText.Tabs++;
+            // var actionsToHere = nextHistoryPoint.GetActionsToHereString(Navigation);
+            double walkTreeValue = AbramowiczProbe_WalkTree(ref nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ,
+                randomProducer, isExploratoryIteration, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
+            if (TraceProbingCFR)
+            {
+                TabbedText.Tabs--;
+                TabbedText.WriteLine($"Returning walk tree result {walkTreeValue}");
+            }
+            return walkTreeValue;
         }
 
 
