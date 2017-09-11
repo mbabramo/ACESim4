@@ -9,11 +9,11 @@ namespace ACESim
     [Serializable]
     public abstract class ChanceNodeSettings : IGameState
     {
-        public byte PlayerNum;
-        public byte DecisionByteCode;
+        public Decision Decision;
         public byte DecisionIndex;
-        public bool CriticalNode; // some strategies may probe more on critical node
-        public bool AlwaysTerminatesGame;
+        public byte PlayerNum => Decision.PlayerNumber;
+        public byte DecisionByteCode => Decision.DecisionByteCode;
+        public bool CriticalNode => Decision.CriticalNode;
         public abstract double GetActionProbability(int action);
 
         public byte SampleAction(byte numPossibleActions, double randomNumber)

@@ -13,9 +13,10 @@ namespace ACESim
     {
         public static int InformationSetsSoFar = 0;
         public int InformationSetNumber; // could delete this once things are working, but may be useful in testing scenarios
-        public byte DecisionByteCode;
+        public Decision Decision;
+        public byte DecisionByteCode => Decision.DecisionByteCode;
         public byte DecisionIndex;
-        public byte PlayerIndex;
+        public byte PlayerIndex => Decision.PlayerNumber;
         public bool MustUseBackup;
         public int NumRegretIncrements = 0;
         public int NumBackupRegretIncrements = 0;
@@ -23,7 +24,7 @@ namespace ACESim
 
         double[,] NodeInformation;
 
-        int NumPossibleActions => NodeInformation.GetLength(1);
+        int NumPossibleActions => Decision.NumPossibleActions;
         const int totalDimensions = 7;
         const int cumulativeRegretDimension = 0;
         const int cumulativeStrategyDimension = 1;
@@ -33,12 +34,11 @@ namespace ACESim
         const int storageDimension2 = 5;
         private const int cumulativeRegretBackupDimension = 5;
 
-        public InformationSetNodeTally(byte decisionByteCode, byte decisionIndex, byte playerIndex, int numPossibleActions)
+        public InformationSetNodeTally(Decision decision, byte decisionIndex)
         {
-            DecisionByteCode = decisionByteCode;
+            Decision = decision;
             DecisionIndex = decisionIndex;
-            PlayerIndex = playerIndex;
-            Initialize(totalDimensions, numPossibleActions);
+            Initialize(totalDimensions, decision.NumPossibleActions);
             InformationSetNumber = InformationSetsSoFar;
             Interlocked.Increment(ref InformationSetsSoFar);
         }

@@ -58,9 +58,13 @@ namespace ACESim
             {
                 byte numPossibleActions;
                 IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
+                Decision decision;
+                byte decisionIndex;
                 if (gameStateForCurrentPlayer is ChanceNodeSettings chanceNodeSettings)
                 {
                     numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
+                    decision = chanceNodeSettings.Decision;
+                    decisionIndex = chanceNodeSettings.DecisionIndex;
                 }
                 else if (gameStateForCurrentPlayer is InformationSetNodeTally informationSet)
                 {
@@ -73,12 +77,14 @@ namespace ACESim
                             depthOfPlayerDecisions.Add(depth);
                         informationSet.ResetBestResponseData();
                     }
+                    decision = informationSet.Decision;
+                    decisionIndex = informationSet.DecisionIndex;
                 }
                 else
                     throw new Exception("Unexpected game state type.");
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
-                    var nextHistory = historyPoint.GetBranch(Navigation, action);
+                    var nextHistory = historyPoint.GetBranch(Navigation, action, decision, decisionIndex);
                     GEBRPass1(ref nextHistory, playerIndex, (byte) (depth + 1), depthOfPlayerDecisions);
                 }
             }
@@ -120,7 +126,7 @@ namespace ACESim
                 byte action = GameDefinition.DecisionsExecutionOrder[decisionIndex].AlwaysDoAction ??
                               informationSet.GetBestResponseAction();
 
-                var nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
+                var nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                 double expectedValue = GEBRPass2(ref nextHistoryPoint, playerIndex, depthToTarget,
                     (byte) (depthSoFar + 1), inversePi, opponentsActionStrategy);
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionIndex))
@@ -156,7 +162,7 @@ namespace ACESim
                         TabbedText.WriteLine($"action {action} for playerMakingDecision {playerMakingDecision}...");
                         TabbedText.Tabs++;
                     }
-                    var nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
+                    var nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                     double expectedValue = GEBRPass2(ref nextHistoryPoint, playerIndex,
                         depthToTarget, (byte) (depthSoFar + 1), nextInversePi, opponentsActionStrategy);
                     double product = actionProbabilities[action - 1] * expectedValue;
@@ -209,7 +215,7 @@ namespace ACESim
                 double probability = chanceNodeSettings.GetActionProbability(action);
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNodeSettings.DecisionIndex))
                     TabbedText.Tabs++;
-                var nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
+                var nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
                 var valueBelow = GEBRPass2(ref nextHistoryPoint, playerIndex, depthToTarget,
                     (byte) (depthSoFar + 1), inversePi * probability, opponentsActionStrategy);
                 double expectedValue = probability * valueBelow;

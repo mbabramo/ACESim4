@@ -374,18 +374,20 @@ namespace ACESim
             // the game tree without creating Game or GameProgress objects).
         }
 
-        public virtual void ReverseDecision(Decision decisionToReverse, ref GameHistory gameHistory)
+        public virtual void ReverseDecision(Decision decisionToReverse, ref HistoryPoint historyPoint, IGameState originalGameState)
         {
+            ref GameHistory gameHistory = ref historyPoint.HistoryToPoint;
             if (decisionToReverse.PlayersToInform != null)
-            {
                 foreach (byte playerIndex in decisionToReverse.PlayersToInform)
                     gameHistory.ReverseAdditionsToInformationSet(playerIndex, 1, null);
+            if (decisionToReverse.IncrementGameCacheItem != null)
                 foreach (byte cacheIndex in decisionToReverse.IncrementGameCacheItem)
                     gameHistory.DecrementItemAtCacheIndex(cacheIndex);
-                gameHistory.Complete = false; // just in case it was marked true
-            }
-            // Then, HistoryPoint should have an IsReversible method. Should be reversible only if we are using CachedGameHistoryOnly (no GameProgress) and the decision is reversible.
-            // DEBUG: Then we should try to override for other decisions that are reversible. Pre bargaining round won't be reversible, because we can't recover the removed information. P/D decisions with simultaneous bargaining have the complication of deferred decisionmaking.
+            gameHistory.RemoveLastActionFromSimpleActionsList();
+            gameHistory.Complete = false; // just in case it was marked true
+            historyPoint.GameState = originalGameState;
+            if (historyPoint.GameProgress != null || historyPoint.TreePoint != null)
+                throw new Exception();
         }
 
         public void GetNextDecision(ref GameHistory gameHistory, out Decision decision, out byte nextDecisionIndex)

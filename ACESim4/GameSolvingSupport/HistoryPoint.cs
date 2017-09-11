@@ -84,7 +84,7 @@ namespace ACESim
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
                 //var informationSetHistories = HistoryToPoint.GetInformationSetHistoryItems().Select(x => x.ToString());
-                navigation.GameDefinition.GetNextDecision(ref HistoryToPoint, out Decision nextDecision, out byte nextDecisionIndex); 
+                navigation.GameDefinition.GetNextDecision(ref HistoryToPoint, out Decision nextDecision, out byte nextDecisionIndex);
                 byte nextPlayer = nextDecision?.PlayerNumber ?? navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
                 byte* informationSetsPtr = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
                 // string playerInformationString = HistoryToPoint.GetPlayerInformationString(currentPlayer, nextDecision?.DecisionByteCode);
@@ -121,19 +121,24 @@ namespace ACESim
             return GameState;
         }
 
-        public HistoryPoint GetBranch(HistoryNavigationInfo navigation, byte actionChosen)
+        public bool BranchingIsReversible(HistoryNavigationInfo navigation, Decision nextDecision)
         {
-            if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly)
-                return GetBranch_CachedGameHistory(navigation, actionChosen);
-
-            return GetBranch_NotCacheOnly(navigation, actionChosen);
+            return navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly && nextDecision.IsReversible && GameProgress == null;
         }
 
-        private HistoryPoint GetBranch_NotCacheOnly(HistoryNavigationInfo navigation, byte actionChosen)
+        public HistoryPoint GetBranch(HistoryNavigationInfo navigation, byte actionChosen, Decision nextDecision, byte nextDecisionIndex)
+        {
+            if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly)
+                return GetBranch_CachedGameHistory(navigation, actionChosen, nextDecision, nextDecisionIndex);
+
+            return GetBranch_NotCacheOnly(navigation, actionChosen, nextDecision, nextDecisionIndex);
+        }
+
+        private HistoryPoint GetBranch_NotCacheOnly(HistoryNavigationInfo navigation, byte actionChosen, Decision nextDecision, byte nextDecisionIndex)
         {
             HistoryPoint next = new HistoryPoint();
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
-                next = GetBranch_CachedGameHistory(navigation, actionChosen);
+                next = GetBranch_CachedGameHistory(navigation, actionChosen, nextDecision, nextDecisionIndex);
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
                 NWayTreeStorage<IGameState> branch = TreePoint.GetBranch(actionChosen);
@@ -155,9 +160,8 @@ namespace ACESim
             return next;
         }
 
-        private HistoryPoint GetBranch_CachedGameHistory(HistoryNavigationInfo navigation, byte actionChosen)
+        private HistoryPoint GetBranch_CachedGameHistory(HistoryNavigationInfo navigation, byte actionChosen, Decision nextDecision, byte nextDecisionIndex)
         {
-            navigation.GameDefinition.GetNextDecision(ref HistoryToPoint, out Decision nextDecision, out byte nextDecisionIndex);
             HistoryPoint next = new HistoryPoint {HistoryToPoint = HistoryToPoint}; // struct is copied. We then use a ref to change the copy, since otherwise it would be copied again. This is costly, because we're copying the entire struct (and this is executed very frequently.
             Game.UpdateGameHistory(ref next.HistoryToPoint, navigation.GameDefinition, nextDecision, nextDecisionIndex, actionChosen, GameProgress);
             if (nextDecision.CanTerminateGame && navigation.GameDefinition.ShouldMarkGameHistoryComplete(nextDecision, ref next.HistoryToPoint, actionChosen))
@@ -165,11 +169,10 @@ namespace ACESim
             return next;
         }
 
-        public void SwitchToBranch(HistoryNavigationInfo navigation, byte actionChosen)
+        public void SwitchToBranch(HistoryNavigationInfo navigation, byte actionChosen, Decision nextDecision, byte nextDecisionIndex)
         {
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly)
             {
-                navigation.GameDefinition.GetNextDecision(ref HistoryToPoint, out Decision nextDecision, out byte nextDecisionIndex);
                 Game.UpdateGameHistory(ref HistoryToPoint, navigation.GameDefinition, nextDecision, nextDecisionIndex, actionChosen, GameProgress);
                 if (nextDecision.CanTerminateGame && navigation.GameDefinition.ShouldMarkGameHistoryComplete(nextDecision, ref HistoryToPoint, actionChosen))
                     HistoryToPoint.MarkComplete();
@@ -339,28 +342,22 @@ namespace ACESim
                                 if (decision.UnevenChanceActions)
                                     chanceNodeSettings = new ChanceNodeSettingsUnequalProbabilities()
                                     {
-                                        DecisionByteCode = informationSetHistory.DecisionByteCode,
+                                        Decision = decision,
                                         DecisionIndex = informationSetHistory.DecisionIndex,
-                                        PlayerNum = informationSetHistory.PlayerIndex,
                                         Probabilities = navigation.GameDefinition.GetChanceActionProbabilities(decision.DecisionByteCode, gameProgress), // the probabilities depend on the current state of the game
-                                        CriticalNode = decision.CriticalNode,
-                                        AlwaysTerminatesGame = decision.AlwaysTerminatesGame
                                     };
                                 else
                                     chanceNodeSettings = new ChanceNodeSettingsEqualProbabilities()
                                     {
-                                        DecisionByteCode = informationSetHistory.DecisionByteCode,
+                                        Decision = decision,
                                         DecisionIndex = informationSetHistory.DecisionIndex,
-                                        PlayerNum = informationSetHistory.PlayerIndex,
                                         EachProbability = 1.0 / (double)decision.NumPossibleActions,
-                                        CriticalNode = decision.CriticalNode,
-                                        AlwaysTerminatesGame = decision.AlwaysTerminatesGame
                                     };
                                 return chanceNodeSettings;
                             }
                             else
                             {
-                                InformationSetNodeTally nodeInfo = new InformationSetNodeTally(informationSetHistory.DecisionByteCode, informationSetHistory.DecisionIndex, playerInfo.PlayerIndex, decision.NumPossibleActions);
+                                InformationSetNodeTally nodeInfo = new InformationSetNodeTally(decision, informationSetHistory.DecisionIndex);
                                 return nodeInfo;
                             }
                         }

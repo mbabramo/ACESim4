@@ -188,7 +188,8 @@ namespace ACESim
                 GameProgressLogger.Tabs++;
                 //var informationSetHistoryString = informationSetHistory.ToString();
                 historyPoint.SetInformationIfNotSet(Navigation, gameProgress, informationSetHistory);
-                historyPoint = historyPoint.GetBranch(Navigation, informationSetHistory.ActionChosen);
+                var decision = GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
+                historyPoint = historyPoint.GetBranch(Navigation, informationSetHistory.ActionChosen, decision, informationSetHistory.DecisionIndex);
                 i++;
                 GameProgressLogger.Tabs--;
                 //GameProgressLogger.Log(() => "Actions processed: " + historyPoint.GetActionsToHereString(Navigation));
@@ -294,7 +295,7 @@ namespace ACESim
                     {
                         double chanceProbability = chanceNodeSettings.GetActionProbability(action);
                         TabbedText.WriteLine($"{action} (C): p={chanceProbability:N2}");
-                        HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
+                        HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
                         TabbedText.Tabs++;
                         double[] utilitiesAtNextHistoryPoint = PrintGameTree_Helper(ref nextHistoryPoint);
                         TabbedText.Tabs--;
@@ -315,7 +316,7 @@ namespace ACESim
                     for (byte action = 1; action <= numPossibleActions; action++)
                     {
                         TabbedText.WriteLine($"{action} (P{informationSet.PlayerIndex}): p={actionProbabilities[action - 1]:N2} (from regrets {informationSet.GetCumulativeRegretsString()})");
-                        HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
+                        HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                         TabbedText.Tabs++;
                         double[] utilitiesAtNextHistoryPoint = PrintGameTree_Helper(ref nextHistoryPoint);
                         TabbedText.Tabs--;
@@ -392,7 +393,7 @@ namespace ACESim
                 }
                 TabbedText.WriteLine($"==> Action chosen: {informationSetHistory.ActionChosen}");
                 TabbedText.Tabs--;
-                historyPoint = historyPoint.GetBranch(Navigation, informationSetHistory.ActionChosen);
+                historyPoint = historyPoint.GetBranch(Navigation, informationSetHistory.ActionChosen, decision, informationSetHistory.DecisionIndex);
             }
             double[] finalUtilities = historyPoint.GetFinalUtilities(Navigation);
             TabbedText.WriteLine($"--> Utilities: { String.Join(",", finalUtilities)}");
@@ -422,27 +423,27 @@ namespace ACESim
             }
         }
 
-        private unsafe HistoryPoint GetHistoryPointFromActions(List<byte> actions)
-        {
-            HistoryPoint hp = GetStartOfGameHistoryPoint();
-            foreach (byte action in actions)
-                hp = hp.GetBranch(Navigation, action);
-            return hp;
-        }
+        //private unsafe HistoryPoint GetHistoryPointFromActions(List<byte> actions)
+        //{
+        //    HistoryPoint hp = GetStartOfGameHistoryPoint();
+        //    foreach (byte action in actions)
+        //        hp = hp.GetBranch(Navigation, action);
+        //    return hp;
+        //}
 
-        private unsafe HistoryPoint GetHistoryPointBasedOnProgress(GameProgress gameProgress)
-        {
-            if (Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)
-                return new HistoryPoint(null, gameProgress.GameHistory, gameProgress);
-            if (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly)
-                return new HistoryPoint(null, gameProgress.GameHistory, null);
-            HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
-            foreach (var informationSetHistory in gameProgress.GetInformationSetHistoryItems())
-            {
-                historyPoint = historyPoint.GetBranch(Navigation, informationSetHistory.ActionChosen);
-            }
-            return historyPoint;
-        }
+        //private unsafe HistoryPoint GetHistoryPointBasedOnProgress(GameProgress gameProgress)
+        //{
+        //    if (Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)
+        //        return new HistoryPoint(null, gameProgress.GameHistory, gameProgress);
+        //    if (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly)
+        //        return new HistoryPoint(null, gameProgress.GameHistory, null);
+        //    HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
+        //    foreach (var informationSetHistory in gameProgress.GetInformationSetHistoryItems())
+        //    {
+        //        historyPoint = historyPoint.GetBranch(Navigation, informationSetHistory.ActionChosen);
+        //    }
+        //    return historyPoint;
+        //}
 
         public double GetUtilityFromTerminalHistory(ref HistoryPoint historyPoint, byte playerIndex)
         {
@@ -619,7 +620,7 @@ namespace ACESim
             {
                 if (probabilities[action - 1] > 0)
                 {
-                    var nextHistoryPoint = historyPointCopy.GetBranch(Navigation, action); // must use a copy because it's an anonymous method (but this won't be executed much so it isn't so costly). Note that we couldn't use switch-to-branch approach here because all threads are sharing historyPointCopy variable.
+                    var nextHistoryPoint = historyPointCopy.GetBranch(Navigation, action, GameDefinition.DecisionsExecutionOrder[0], 0); // must use a copy because it's an anonymous method (but this won't be executed much so it isn't so costly). Note that we couldn't use switch-to-branch approach here because all threads are sharing historyPointCopy variable.
                     ProcessAllPaths_Recursive(ref nextHistoryPoint, completedGameProcessor, actionStrategy, probability * probabilities[action - 1], action, nextDecisionIndex);
                 }
             });
@@ -642,29 +643,29 @@ namespace ACESim
                 for (byte p = 0; p < NumNonChancePlayers; p++)
                     cumulated[p] += finalUtilities.Utilities[p] * prob;
             }
-            else if (gameState is ChanceNodeSettings chanceNode)
+            else if (gameState is ChanceNodeSettings chanceNodeSettings)
             {
-                byte numPossibilities = GameDefinition.DecisionsExecutionOrder[chanceNode.DecisionIndex].NumPossibleActions;
+                byte numPossibilities = GameDefinition.DecisionsExecutionOrder[chanceNodeSettings.DecisionIndex].NumPossibleActions;
                 for (byte action = 1; action <= numPossibilities; action++)
                 {
-                    double actionProb = chanceNode.GetActionProbability(action);
+                    double actionProb = chanceNodeSettings.GetActionProbability(action);
                     if (actionProb > 0)
                     {
-                        HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
+                        HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
                         GetAverageUtilities_Helper(ref nextHistoryPoint, cumulated, prob * actionProb);
                     }
                 }
             }
-            else if (gameState is InformationSetNodeTally nodeTally)
+            else if (gameState is InformationSetNodeTally informationSet)
             {
-                byte numPossibilities = GameDefinition.DecisionsExecutionOrder[nodeTally.DecisionIndex].NumPossibleActions;
+                byte numPossibilities = GameDefinition.DecisionsExecutionOrder[informationSet.DecisionIndex].NumPossibleActions;
                 double* actionProbabilities = stackalloc double[numPossibilities];
-                nodeTally.GetRegretMatchingProbabilities(actionProbabilities);
+                informationSet.GetRegretMatchingProbabilities(actionProbabilities);
                 for (byte action = 1; action <= numPossibilities; action++)
                 {
                     if (actionProbabilities[action - 1] > 0)
                     {
-                        HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
+                        HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                         GetAverageUtilities_Helper(ref nextHistoryPoint, cumulated, prob * actionProbabilities[action - 1]);
                     }
                 }
@@ -843,7 +844,7 @@ namespace ACESim
         public double[] GetUtilitiesFromRandomGamePlay(IRandomProducer randomProducer)
         {
             var startHistoryPoint = GetStartOfGameHistoryPoint();
-            double[] returnVal = GibsonProbe(ref startHistoryPoint, randomProducer);
+            double[] returnVal = GibsonProbe(ref startHistoryPoint, randomProducer, GameDefinition.DecisionsExecutionOrder[0], 0);
             return returnVal;
         }
 

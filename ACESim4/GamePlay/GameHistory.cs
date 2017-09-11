@@ -52,6 +52,29 @@ namespace ACESim
 
         public byte LastDecisionIndexAdded;
 
+
+        public override string ToString()
+        {
+            return $"Actions {String.Join(",", GetActionsAsList())} cache {CacheString()} {GetInformationSetsString()} PreviousNotificationDeferred {PreviousNotificationDeferred} DeferredAction {DeferredAction} DeferredPlayerNumber {DeferredPlayerNumber}";
+        }
+
+        public string CacheString()
+        {
+            string cacheString = "";
+            fixed (byte* cache = Cache)
+                for (int i = 0; i < CacheLength; i++)
+                    cacheString += cache[i] + ",";
+            return cacheString;
+        }
+
+        public string GetInformationSetsString()
+        {
+            string informationSetsString = "";
+            for (byte i = 0; i < MaxNumPlayers; i++)
+                informationSetsString += $"Player {i} Information: {GetCurrentPlayerInformationString(i)} ";
+            return informationSetsString;
+        }
+
         public void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             // Use the AddValue method to specify serialized values.
@@ -198,6 +221,11 @@ namespace ACESim
                 if (NextIndexInHistoryActionsOnly >= GameFullHistory.MaxNumActions)
                     throw new Exception("Internal error. Must increase MaxNumActions.");
             }
+        }
+
+        public void RemoveLastActionFromSimpleActionsList()
+        {
+            NextIndexInHistoryActionsOnly--;
         }
 
         public List<byte> GetActionsAsList()

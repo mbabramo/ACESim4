@@ -85,7 +85,7 @@ namespace ACESim
                         $"decisionNum {decisionNum} optimizing player {playerBeingOptimized}  own decision {playerMakingDecision == playerBeingOptimized} action {action} probability {probabilityOfAction} ...");
                     TabbedText.Tabs++;
                 }
-                HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
+                HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                 expectedValueOfAction[action - 1] = VanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, usePruning);
                 expectedValue += probabilityOfAction * expectedValueOfAction[action - 1];
 
@@ -174,7 +174,7 @@ namespace ACESim
                 GetNextPiValues(piValues, playerBeingOptimized, chanceNodeSettings.GetActionProbability(action), true,
                     nextPiValues);
             double actionProbability = chanceNodeSettings.GetActionProbability(action);
-            HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action);
+            HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
             if (TraceVanillaCFR)
             {
                 TabbedText.WriteLine(
