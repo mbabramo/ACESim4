@@ -430,7 +430,8 @@ namespace ACESim
                     new List<byte> { (byte)MyGamePlayers.Resolution }, 2 /* for plaintiff or for defendant */,
                     (byte)MyGameDecisions.CourtDecision, unevenChanceActions: true, criticalNode: true)
                 {
-                    CanTerminateGame = true
+                    CanTerminateGame = true,
+                    IsReversible = true
                 }); // uneven chance options
         }
 
