@@ -424,7 +424,7 @@ namespace ACESim
                 decisions.Add(new Decision("CourtDecision", "CD", (byte)MyGamePlayers.CourtChance,
                         new List<byte> { (byte)MyGamePlayers.Resolution }, Options.NumCourtNoiseValues, (byte)MyGameDecisions.CourtDecision,
                         unevenChanceActions: false, criticalNode: true)
-                    { CanTerminateGame = true, AlwaysTerminatesGame = true }); // even chance options
+                    { CanTerminateGame = true, AlwaysTerminatesGame = true, IsReversible = true }); // even chance options
             else
                 decisions.Add(new Decision("CourtDecision", "CD", (byte)MyGamePlayers.CourtChance,
                     new List<byte> { (byte)MyGamePlayers.Resolution }, 2 /* for plaintiff or for defendant */,

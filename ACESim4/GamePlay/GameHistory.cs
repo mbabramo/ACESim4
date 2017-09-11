@@ -27,11 +27,12 @@ namespace ACESim
         public bool Complete;
         public fixed byte ActionsHistory[GameFullHistory.MaxHistoryLength];
         public byte NextIndexInHistoryActionsOnly;
-        
+
         public fixed byte Cache[CacheLength];
 
         // Information set structure. We have an information set buffer for each player. We need to be able to remove information from the information set for a player, but still to remember that it was there as of a particular point in time, so that we can figure out what the information set was as of a particular decision. (This is needed for reconstructing the game play.) We thus store information in pairs. The first byte consists of the decision byte code after which we are making changes. The second byte either consists of an item to add, or 254, indicating that we are removing an item from the information set. All of this is internal. When we get the information set, we get it as of a certain point, and thus we skip decision byte codes and automatically process deletions. 
         public bool Initialized;
+
         public fixed byte InformationSets[MaxInformationSetLength];
         public const int MaxInformationSetLength = 69; // MUST equal MaxInformationSetLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLengthPerPartialPlayer * NumPartialPlayers. 
         public const int MaxInformationSetLengthPerFullPlayer = 20;
@@ -44,6 +45,7 @@ namespace ACESim
 
         // The following are used to defer adding information to a player information set.
         private bool PreviousNotificationDeferred;
+
         private byte DeferredAction;
         private byte DeferredPlayerNumber;
         private List<byte> DeferredPlayersToInform;
@@ -57,7 +59,7 @@ namespace ACESim
             fixed (byte* ptr = InformationSets)
                 for (int b = 0; b < MaxInformationSetLength; b++)
                     informationSets[b] = *(ptr + b);
-            
+
             info.AddValue("informationSets", informationSets, typeof(byte[]));
             info.AddValue("Initialized", Initialized, typeof(bool));
 
@@ -66,13 +68,13 @@ namespace ACESim
         // The special constructor is used to deserialize values.
         public GameHistory(SerializationInfo info, StreamingContext context)
         {
-            byte[] history = (byte[])info.GetValue("history", typeof(byte[]));
-            byte[] informationSets = (byte[])info.GetValue("informationSets", typeof(byte[]));
+            byte[] history = (byte[]) info.GetValue("history", typeof(byte[]));
+            byte[] informationSets = (byte[]) info.GetValue("informationSets", typeof(byte[]));
             fixed (byte* ptr = InformationSets)
                 for (int b = 0; b < MaxInformationSetLength; b++)
                     *(ptr + b) = informationSets[b];
-            Initialized = (bool)info.GetValue("Initialized", typeof(bool));
-            
+            Initialized = (bool) info.GetValue("Initialized", typeof(bool));
+
             NextIndexInHistoryActionsOnly = 0;
             LastDecisionIndexAdded = 255;
             Complete = false;
@@ -127,20 +129,32 @@ namespace ACESim
         {
             // Console.WriteLine($"Increment cache for {cacheIndexToIncrement}");
             fixed (byte* cachePtr = Cache)
-                *(cachePtr + (byte)cacheIndexToIncrement) = (byte)(*(cachePtr + (byte)cacheIndexToIncrement) + (byte)1);
+                *(cachePtr + (byte) cacheIndexToIncrement) = (byte) (*(cachePtr + (byte) cacheIndexToIncrement) + (byte) 1);
+        }
+
+        public unsafe void DecrementItemAtCacheIndex(byte cacheIndexToDecrement)
+        {
+            // Console.WriteLine($"Decrement cache for {cacheIndexToIncrement}");
+            fixed (byte* cachePtr = Cache)
+            {
+                byte currentValue = *(cachePtr + (byte)cacheIndexToDecrement);
+                if (currentValue == 0)
+                    throw new Exception();
+                *(cachePtr + (byte) cacheIndexToDecrement) = (byte) (currentValue - (byte) 1);
+            }
         }
 
         public unsafe byte GetCacheItemAtIndex(byte cacheIndexToReset)
         {
             fixed (byte* cachePtr = Cache)
-                return *(cachePtr + (byte)cacheIndexToReset);
+                return *(cachePtr + (byte) cacheIndexToReset);
         }
 
         public unsafe void SetCacheItemAtIndex(byte cacheIndexToReset, byte newValue)
         {
             // Console.WriteLine($"Set cache for {cacheIndexToReset} to {newValue}"); 
             fixed (byte* cachePtr = Cache)
-                *(cachePtr + (byte)cacheIndexToReset) = newValue;
+                *(cachePtr + (byte) cacheIndexToReset) = newValue;
         }
 
         #endregion
@@ -171,7 +185,7 @@ namespace ACESim
                 foreach (byte cacheIndex in cacheIndicesToIncrement)
                     IncrementItemAtCacheIndex(cacheIndex);
             if (storeActionInCacheIndex != null)
-                SetCacheItemAtIndex((byte)storeActionInCacheIndex, action);
+                SetCacheItemAtIndex((byte) storeActionInCacheIndex, action);
         }
 
 
@@ -254,7 +268,7 @@ namespace ACESim
             byte* playerPointer = informationSetsPtr + InformationSetIndex(playerIndex);
             byte numItems = 0;
             while (*playerPointer != InformationSetTerminator)
-            { 
+            {
                 playerPointer++;
                 numItems++;
             }
@@ -329,6 +343,19 @@ namespace ACESim
                 {
                     gameProgress.InformationSetLog.AddRemovalToInformationSetLog(followingDecisionIndex, playerIndex);
                 }
+            RemoveItemsInInformationSet(playerIndex, numItemsToRemove);
+            GameProgressLogger.Log($"Player {playerIndex} information (removed {numItemsToRemove}): {GetCurrentPlayerInformationString(playerIndex)}");
+        }
+
+        public unsafe void ReverseAdditionsToInformationSet(byte playerIndex, byte numItemsToRemove, GameProgress gameProgress = null)
+        {
+            RemoveItemsInInformationSet(playerIndex, numItemsToRemove);
+            if (gameProgress != null)
+                gameProgress.InformationSetLog.RemoveLastItemInLog(playerIndex);
+        }
+
+    public unsafe void RemoveItemsInInformationSet(byte playerIndex, byte numItemsToRemove)
+        {
             fixed (byte* informationSetsPtr = InformationSets)
             {
                 byte* ptr = informationSetsPtr + InformationSetIndex(playerIndex);
@@ -337,9 +364,7 @@ namespace ACESim
                 ptr -= (byte) numItemsToRemove;
                 *ptr = InformationSetTerminator;
             }
-            GameProgressLogger.Log($"Player {playerIndex} information (removed {numItemsToRemove}): {GetCurrentPlayerInformationString(playerIndex)}");
         }
-
 
         #endregion
 

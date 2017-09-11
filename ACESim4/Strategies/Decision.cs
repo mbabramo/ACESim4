@@ -42,6 +42,11 @@ namespace ACESim
         public bool RequiresCustomInformationSetManipulation;
 
         /// <summary>
+        /// If true, then the decision step can be reversed, via the ReverseDecision mechanism or an overload.
+        /// </summary>
+        public bool IsReversible;
+
+        /// <summary>
         /// If non-null, then the game history cache item specified will be incremented immediately after the decision. This makes it possible to keep track of how many times a decision or set of decisions have been made.
         /// </summary>
         public List<byte> IncrementGameCacheItem;

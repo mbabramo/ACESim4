@@ -84,6 +84,29 @@ namespace ACESim
                     throw new Exception("Internal error. Must increase size of information set.");
             }
         }
+
+        public void RemoveLastItemsInLog(byte playerIndex, byte numItems)
+        {
+            for (byte i = 0; i < numItems; i++)
+                RemoveLastItemInLog(playerIndex);
+        }
+
+        public void RemoveLastItemInLog(byte playerIndex)
+        {
+            if (playerIndex >= MaxNumPlayers)
+                throw new NotImplementedException();
+            fixed (byte* informationSetsLogPtr = InformationSetLogs)
+            {
+                // Console.WriteLine($"Adding information {information} following decision {followingDecisionIndex} for Player number {playerIndex}"); 
+                byte* playerPointer = informationSetsLogPtr + InformationSetLoggingIndex(playerIndex);
+                // advance to the end of the information set
+                while (*playerPointer != InformationSetTerminator)
+                    playerPointer += 2;
+                playerPointer -= 2;
+                *playerPointer = InformationSetTerminator;
+            }
+        }
+
         public unsafe byte GetPlayerInformationItem(byte playerIndex, byte decisionIndex)
         {
             if (playerIndex >= MaxNumPlayers)
@@ -169,6 +192,7 @@ namespace ACESim
             }
             return b;
         }
+
         public void AddRemovalToInformationSetLog(byte followingDecisionIndex, byte playerIndex)
         {
             if (playerIndex >= MaxNumPlayers)

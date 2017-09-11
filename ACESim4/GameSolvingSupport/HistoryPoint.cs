@@ -158,8 +158,7 @@ namespace ACESim
         private HistoryPoint GetBranch_CachedGameHistory(HistoryNavigationInfo navigation, byte actionChosen)
         {
             navigation.GameDefinition.GetNextDecision(ref HistoryToPoint, out Decision nextDecision, out byte nextDecisionIndex);
-            HistoryPoint next = new HistoryPoint(); // struct is copied. We then use a ref to change the copy, since otherwise it would be copied again. TODO: This is costly, because we're copying the entire struct (and this is executed very frequently. An alternative possibility would be to try to use SwitchToBranch. We started this with HistoryPoint_Cached. but if we do that, whenever we call SwitchToBranch, we must call SwitchFromBranch at the end of the routine, because often we call GetBranch and then further operate on the original history point.
-            next.HistoryToPoint = HistoryToPoint;
+            HistoryPoint next = new HistoryPoint {HistoryToPoint = HistoryToPoint}; // struct is copied. We then use a ref to change the copy, since otherwise it would be copied again. This is costly, because we're copying the entire struct (and this is executed very frequently.
             Game.UpdateGameHistory(ref next.HistoryToPoint, navigation.GameDefinition, nextDecision, nextDecisionIndex, actionChosen, GameProgress);
             if (nextDecision.CanTerminateGame && navigation.GameDefinition.ShouldMarkGameHistoryComplete(nextDecision, ref next.HistoryToPoint, actionChosen))
                 next.HistoryToPoint.MarkComplete();
