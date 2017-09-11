@@ -159,13 +159,15 @@ namespace ACESim
                     GameProgressLogger.Log(() => $"Adding overall decision action {replacementAggregateValue} from {decision.PlayerNumber} to {string.Join(",", decision.PlayersToInform)} {(decision.DeferNotificationOfPlayers ? "with deferred notification" : "")}");
                     // Add information to player's information sets (including deferred information, if applicable), but don't actaully add to history itself, because this isn't a decision that corresponds to a decision in the decisions list.
                     gameHistory.AddToHistory(decision.Subdividable_CorrespondingDecisionByteCode, decisionIndex, decision.PlayerNumber, replacementAggregateValue, decision.AggregateNumPossibleActions, decision.PlayersToInform, decision.IncrementGameCacheItem, decision.StoreActionInGameCacheItem, gameProgress, skipAddToHistory: true, deferNotification: decision.DeferNotificationOfPlayers, delayPreviousDeferredNotification: false);
-                    gameDefinition.CustomInformationSetManipulation(decision, decisionIndex, action, ref gameHistory, gameProgress);
+                    if (decision.RequiresCustomInformationSetManipulation)
+                        gameDefinition.CustomInformationSetManipulation(decision, decisionIndex, action, ref gameHistory, gameProgress);
                 }
             }
             else
             {
                 gameHistory.AddToHistory(decision.DecisionByteCode, decisionIndex, decision.PlayerNumber, action, decision.NumPossibleActions, decision.PlayersToInform, decision.IncrementGameCacheItem, decision.StoreActionInGameCacheItem, gameProgress, false, decision.DeferNotificationOfPlayers, false);
-                gameDefinition.CustomInformationSetManipulation(decision, decisionIndex, action, ref gameHistory, gameProgress);
+                if (decision.RequiresCustomInformationSetManipulation)
+                    gameDefinition.CustomInformationSetManipulation(decision, decisionIndex, action, ref gameHistory, gameProgress);
             }
         }
 

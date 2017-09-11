@@ -150,11 +150,17 @@ namespace ACESim
                 if (Options.PNoiseStdev != 0)
                     decisions.Add(new Decision("PlaintiffNoise", "PN", (byte)MyGamePlayers.PNoiseOrSignalChance,
                         null,
-                        Options.NumNoiseValues, (byte)MyGameDecisions.PNoiseOrSignal, unevenChanceActions: false) ) ;
+                        Options.NumNoiseValues, (byte)MyGameDecisions.PNoiseOrSignal, unevenChanceActions: false)
+                        {
+                            RequiresCustomInformationSetManipulation = true
+                        });
                 if (Options.DNoiseStdev != 0)
                     decisions.Add(new Decision("DefendantNoise", "DN", (byte)MyGamePlayers.DNoiseOrSignalChance,
                         null,
-                        Options.NumNoiseValues, (byte)MyGameDecisions.DNoiseOrSignal, unevenChanceActions: false));
+                        Options.NumNoiseValues, (byte)MyGameDecisions.DNoiseOrSignal, unevenChanceActions: false)
+                    {
+                        RequiresCustomInformationSetManipulation = true
+                    });
             }
             else
             {
@@ -394,6 +400,7 @@ namespace ACESim
                     CustomByte = (byte)(b + 1),
                     CanTerminateGame = false, 
                     CriticalNode = false, // doesn't matter -- just one possibility
+                    RequiresCustomInformationSetManipulation = true // this is where we do cleanup from previous bargaining rounds
                 };
             decisions.Add(dummyDecision);
         }
@@ -410,14 +417,14 @@ namespace ACESim
                 };
             decisions.Add(dummyDecision);
         }
-
+        
         private void AddCourtDecision(List<Decision> decisions)
         {
             if (Options.ActionIsNoiseNotSignal)
                 decisions.Add(new Decision("CourtDecision", "CD", (byte)MyGamePlayers.CourtChance,
                         new List<byte> { (byte)MyGamePlayers.Resolution }, Options.NumCourtNoiseValues, (byte)MyGameDecisions.CourtDecision,
                         unevenChanceActions: false, criticalNode: true)
-                    { CanTerminateGame = true }); // even chance options
+                    { CanTerminateGame = true, AlwaysTerminatesGame = true }); // even chance options
             else
                 decisions.Add(new Decision("CourtDecision", "CD", (byte)MyGamePlayers.CourtChance,
                     new List<byte> { (byte)MyGamePlayers.Resolution }, 2 /* for plaintiff or for defendant */,

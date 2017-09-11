@@ -27,7 +27,7 @@ namespace ACESim
         public bool Complete;
         public fixed byte ActionsHistory[GameFullHistory.MaxHistoryLength];
         public byte NextIndexInHistoryActionsOnly;
-
+        
         public fixed byte Cache[CacheLength];
 
         // Information set structure. We have an information set buffer for each player. We need to be able to remove information from the information set for a player, but still to remember that it was there as of a particular point in time, so that we can figure out what the information set was as of a particular decision. (This is needed for reconstructing the game play.) We thus store information in pairs. The first byte consists of the decision byte code after which we are making changes. The second byte either consists of an item to add, or 254, indicating that we are removing an item from the information set. All of this is internal. When we get the information set, we get it as of a certain point, and thus we skip decision byte codes and automatically process deletions. 
@@ -113,6 +113,10 @@ namespace ACESim
                 }
             Initialized = true;
             LastDecisionIndexAdded = 255;
+            NextIndexInHistoryActionsOnly = 0;
+            fixed (byte* cachePtr = Cache)
+                for (int i = 0; i < CacheLength; i++)
+                    *(cachePtr + i) = 0;
         }
 
         #endregion

@@ -37,6 +37,11 @@ namespace ACESim
         public bool DeferNotificationOfPlayers;
 
         /// <summary>
+        /// If true, the CustomInformationSetManipulation method of the GameDefinition will be called. Otherwise, information sets and cache items will be manipulated solely on the basis of the above.
+        /// </summary>
+        public bool RequiresCustomInformationSetManipulation;
+
+        /// <summary>
         /// If non-null, then the game history cache item specified will be incremented immediately after the decision. This makes it possible to keep track of how many times a decision or set of decisions have been made.
         /// </summary>
         public List<byte> IncrementGameCacheItem;
@@ -78,6 +83,11 @@ namespace ACESim
         /// </summary>
         
         public bool CanTerminateGame;
+
+        /// <summary>
+        /// Indicates that a decision always terminates the game. This allows for a more efficient probing strategy to be used.
+        /// </summary>
+        public bool AlwaysTerminatesGame;
 
         /// <summary>
         /// A game-specific code, often used simply to list the decisions in order.

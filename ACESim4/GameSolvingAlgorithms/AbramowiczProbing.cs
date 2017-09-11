@@ -105,13 +105,11 @@ namespace ACESim
         }
 
 
-
         // DEBUG TODO: The probes take much of the time going through the algorithm. As a result, the calls to GetBranch in the probe are expensive. Moreover, they are generally unnecessary after the initial copy to initiate the probing (which occurs in WalkTree), because we are moving exclusively forward in the tree after we start the probe. The exception is for critical nodes, where we would need to call a routine that would copy the HistoryPoint for each route through the tree. ... Potentially, we could improve the performance in WalkTree as well, by determining whether the GetBranch is easily reversible (i.e., it consists of simple adds to players' history and cache index items).
         // Is there a simple way of reversing changes? In GameHistory itself, we could have a reversibility mode. Once in that mode, we add a reversibility point. Then, each change then gets cataloged.  Then, we could reverse so long as there hasn't been anything to shorten in the interim. Removing items from the information set makes things a lot harder, because that could happen considerably later in the game. 
 
         private double[] CompleteAbramowiczProbe(ref HistoryPoint historyPoint, IRandomProducer randomProducer, byte sampledAction)
         {
-            DEBUGTest(ref historyPoint);
             HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction);
             if (TraceProbingCFR)
                 TabbedText.Tabs++;
@@ -127,21 +125,23 @@ namespace ACESim
 
         private void DEBUGTest(ref HistoryPoint historyPoint)
         {
+            HistoryPoint theHistoryPoint = historyPoint;
             Stopwatch s = new Stopwatch();
             s.Start();
             for (int i = 0; i < 10000000; i++)
-                DEBUGTest2(ref historyPoint);
+                DEBUGTest2(ref theHistoryPoint);
             s.Stop();
             Console.WriteLine($"Test speed A {s.ElapsedMilliseconds}");
             s.Start();
             for (int i = 0; i < 10000000; i++)
-                DEBUGTest3(ref historyPoint);
+                DEBUGTest3(ref theHistoryPoint);
             s.Stop();
             Console.WriteLine($"Test speed B {s.ElapsedMilliseconds}");
         }
 
         private void DEBUGTest2(ref HistoryPoint historyPoint)
         {
+            historyPoint.HistoryToPoint.Reinitialize();
             DEBUGTest4(ref historyPoint);
         }
 
@@ -153,6 +153,7 @@ namespace ACESim
 
         private void DEBUGTest4(ref HistoryPoint historyPoint)
         {
+            
             historyPoint.GameState = null;
         }
 

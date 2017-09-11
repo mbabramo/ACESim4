@@ -344,7 +344,8 @@ namespace ACESim
                                         DecisionIndex = informationSetHistory.DecisionIndex,
                                         PlayerNum = informationSetHistory.PlayerIndex,
                                         Probabilities = navigation.GameDefinition.GetChanceActionProbabilities(decision.DecisionByteCode, gameProgress), // the probabilities depend on the current state of the game
-                                        CriticalNode = decision.CriticalNode
+                                        CriticalNode = decision.CriticalNode,
+                                        AlwaysTerminatesGame = decision.AlwaysTerminatesGame
                                     };
                                 else
                                     chanceNodeSettings = new ChanceNodeSettingsEqualProbabilities()
@@ -353,7 +354,8 @@ namespace ACESim
                                         DecisionIndex = informationSetHistory.DecisionIndex,
                                         PlayerNum = informationSetHistory.PlayerIndex,
                                         EachProbability = 1.0 / (double)decision.NumPossibleActions,
-                                        CriticalNode = decision.CriticalNode
+                                        CriticalNode = decision.CriticalNode,
+                                        AlwaysTerminatesGame = decision.AlwaysTerminatesGame
                                     };
                                 return chanceNodeSettings;
                             }
