@@ -69,12 +69,11 @@ namespace ACESim
 
         private unsafe double[] AbramowiczProbe_DecisionNode(ref HistoryPoint historyPoint, IRandomProducer randomProducer, IGameState gameStateForCurrentPlayer)
         {
-            byte sampledAction;
             InformationSetNodeTally informationSet = (InformationSetNodeTally) gameStateForCurrentPlayer;
             byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
             double* actionProbabilities = stackalloc double[numPossibleActions];
             informationSet.GetRegretMatchingProbabilities(actionProbabilities);
-            sampledAction = SampleAction(actionProbabilities, numPossibleActions,
+            byte sampledAction = SampleAction(actionProbabilities, numPossibleActions,
                 randomProducer.GetDoubleAtIndex(informationSet.DecisionIndex));
             if (TraceProbingCFR)
                 TabbedText.WriteLine(
@@ -171,16 +170,16 @@ namespace ACESim
                 return utility;
             }
             else if (gameStateForCurrentPlayer is ChanceNodeSettings chanceNodeSettings)
-                return AbramowiczProbe_WalkTree_ChanceNode(historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, isExploratoryIteration, chanceNodeSettings);
+                return AbramowiczProbe_WalkTree_ChanceNode(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, isExploratoryIteration, chanceNodeSettings);
             else if (gameStateForCurrentPlayer is InformationSetNodeTally informationSet)
             {
-                return AbramowiczProbe_WalkTree_DecisionNode(historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, isExploratoryIteration, informationSet);
+                return AbramowiczProbe_WalkTree_DecisionNode(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, isExploratoryIteration, informationSet);
             }
             else
                 throw new NotImplementedException();
         }
 
-        private unsafe double AbramowiczProbe_WalkTree_DecisionNode(HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, bool isExploratoryIteration, InformationSetNodeTally informationSet)
+        private unsafe double AbramowiczProbe_WalkTree_DecisionNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, bool isExploratoryIteration, InformationSetNodeTally informationSet)
         {
             byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
             double* sigmaRegretMatchedActionProbabilities = stackalloc double[numPossibleActions];
@@ -188,11 +187,11 @@ namespace ACESim
             byte playerAtPoint = informationSet.PlayerIndex;
             double randomDouble = randomProducer.GetDoubleAtIndex(informationSet.DecisionIndex);
             if (playerAtPoint != playerBeingOptimized)
-                return AbramowiczProbe_WalkTree_DecisionNode_OtherPlayer(historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, isExploratoryIteration, informationSet, sigmaRegretMatchedActionProbabilities, numPossibleActions, randomDouble, playerAtPoint);
-            return AbramowiczProbe_WalkTree_DecisionNode_PlayerBeingOptimized(historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, isExploratoryIteration, informationSet, numPossibleActions, randomDouble, playerAtPoint, sigmaRegretMatchedActionProbabilities);
+                return AbramowiczProbe_WalkTree_DecisionNode_OtherPlayer(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, isExploratoryIteration, informationSet, sigmaRegretMatchedActionProbabilities, numPossibleActions, randomDouble, playerAtPoint);
+            return AbramowiczProbe_WalkTree_DecisionNode_PlayerBeingOptimized(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, isExploratoryIteration, informationSet, numPossibleActions, randomDouble, playerAtPoint, sigmaRegretMatchedActionProbabilities);
         }
 
-        private unsafe double AbramowiczProbe_WalkTree_DecisionNode_PlayerBeingOptimized(HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, bool isExploratoryIteration, InformationSetNodeTally informationSet, byte numPossibleActions, double randomDouble, byte playerAtPoint, double* sigmaRegretMatchedActionProbabilities)
+        private unsafe double AbramowiczProbe_WalkTree_DecisionNode_PlayerBeingOptimized(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, bool isExploratoryIteration, InformationSetNodeTally informationSet, byte numPossibleActions, double randomDouble, byte playerAtPoint, double* sigmaRegretMatchedActionProbabilities)
         {
             double* samplingProbabilities = stackalloc double[numPossibleActions];
             if (!isExploratoryIteration && AlsoDisablePlayerOwnExplorationOnNonExploratoryIterations) // with this change, the main player will also explore only on odd iterations
@@ -269,9 +268,8 @@ namespace ACESim
             return summation;
         }
 
-        private unsafe double AbramowiczProbe_WalkTree_DecisionNode_OtherPlayer(HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, bool isExploratoryIteration, InformationSetNodeTally informationSet, double* sigmaRegretMatchedActionProbabilities, byte numPossibleActions, double randomDouble, byte playerAtPoint)
+        private unsafe double AbramowiczProbe_WalkTree_DecisionNode_OtherPlayer(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, bool isExploratoryIteration, InformationSetNodeTally informationSet, double* sigmaRegretMatchedActionProbabilities, byte numPossibleActions, double randomDouble, byte playerAtPoint)
         {
-            byte sampledAction;
             if (!isExploratoryIteration)
                 informationSet.GetRegretMatchingProbabilities(sigmaRegretMatchedActionProbabilities);
             else // Difference from Gibson. The opponent will use epsilon exploration (but only during the exploratory phase).
@@ -289,7 +287,7 @@ namespace ACESim
                         TabbedText.WriteLine(
                             $"Incrementing cumulative strategy for {action} by {cumulativeStrategyIncrement} to {informationSet.GetCumulativeStrategy(action)}");
                 }
-            sampledAction = SampleAction(sigmaRegretMatchedActionProbabilities, numPossibleActions,
+            byte sampledAction = SampleAction(sigmaRegretMatchedActionProbabilities, numPossibleActions,
                 randomDouble);
             if (TraceProbingCFR)
                 TabbedText.WriteLine(
@@ -307,7 +305,7 @@ namespace ACESim
             return walkTreeValue;
         }
 
-        private double AbramowiczProbe_WalkTree_ChanceNode(HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, bool isExploratoryIteration, ChanceNodeSettings chanceNodeSettings)
+        private double AbramowiczProbe_WalkTree_ChanceNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, bool isExploratoryIteration, ChanceNodeSettings chanceNodeSettings)
         {
             byte sampledAction;
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
