@@ -258,24 +258,23 @@ namespace ACESim
 
         public void AddToInformationSetAndLog(byte information, byte followingDecisionIndex, byte playerIndex, List<byte> playersToInform, GameProgress gameProgress)
         {
-            GameProgressLogger.Log(() => $"player {playerIndex} informing {String.Join(", ", playersToInform)} info {information} following {followingDecisionIndex}");
+            if (playersToInform == null)
+                return;
             fixed (byte* informationSetsPtr = InformationSets)
             {
-                if (playersToInform != null)
-                    foreach (byte playerToInformIndex in playersToInform)
-                    {
-                        AddToInformationSet(information, playerToInformIndex, informationSetsPtr);
-                        if (gameProgress != null)
-                            gameProgress.InformationSetLog.AddToLog(information, followingDecisionIndex, playerToInformIndex);
-                    }
+                foreach (byte playerToInformIndex in playersToInform)
+                {
+                    AddToInformationSet(information, playerToInformIndex, informationSetsPtr);
+                    gameProgress?.InformationSetLog.AddToLog(information, followingDecisionIndex, playerToInformIndex);
+                }
             }
             if (GameProgressLogger.LoggingOn)
             {
-                if (playersToInform != null)
-                    foreach (byte playerToInformIndex in playersToInform)
-                    {
-                        GameProgressLogger.Log($"Player {playerToInformIndex} information: {GetCurrentPlayerInformationString(playerToInformIndex)}");
-                    }
+                GameProgressLogger.Log($"player {playerIndex} informing {String.Join(", ", playersToInform)} info {information} following {followingDecisionIndex}");
+                foreach (byte playerToInformIndex in playersToInform)
+                {
+                    GameProgressLogger.Log($"Player {playerToInformIndex} information: {GetCurrentPlayerInformationString(playerToInformIndex)}");
+                }
             }
         }
 

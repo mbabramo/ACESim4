@@ -61,7 +61,8 @@ namespace ACESim
                 TotalAvgStrategySamplingCFRIterations = 10000000,
                 TotalVanillaCFRIterations = 100_000_000,
             };
-            NWayTreeStorageRoot<IGameState>.EnableUseDictionary = false; // DEBUG evolutionSettings.ParallelOptimization == false; // this is based on some limited performance testing; with parallelism, this seems to slow us down. Maybe it's not worth using.
+            NWayTreeStorageRoot<IGameState>.EnableUseDictionary = false; // DEBUG evolutionSettings.ParallelOptimization == false; // this is based on some limited performance testing; with parallelism, this seems to slow us down. Maybe it's not worth using. It might just be because of the lock.
+            NWayTreeStorageRoot<IGameState>.ParallelEnabled = evolutionSettings.ParallelOptimization;
             const int numRepetitions = 20;
             for (int i = 0; i < numRepetitions; i++)
             {

@@ -41,11 +41,25 @@ namespace ACESim
         public override NWayTreeStorage<T> GetBranch(byte index)
         {
             var adjustedIndex = AdjustedIndex(index);
-            ConfirmAdjustedIndex(adjustedIndex);
+            if (ParallelEnabled)
+                ConfirmAdjustedIndexWithLock(adjustedIndex);
+            else
+                ConfirmAdjustedIndex(adjustedIndex);
             return Branches[adjustedIndex];
         }
 
         public override void SetBranch(byte index, NWayTreeStorage<T> tree)
+        {
+            if (ParallelEnabled)
+            {
+                CompleteSetBranchWithLock(index, tree);
+            }
+            else
+            {
+                CompleteSetBranch(index, tree);
+            }
+        }
+        private void CompleteSetBranchWithLock(byte index, NWayTreeStorage<T> tree)
         {
             lock (this)
             {
@@ -54,8 +68,15 @@ namespace ACESim
                 Branches[adjustedIndex] = tree;
             }
         }
-        
-        private void ConfirmAdjustedIndex(int adjustedIndex)
+
+        private void CompleteSetBranch(byte index, NWayTreeStorage<T> tree)
+        {
+            var adjustedIndex = AdjustedIndex(index);
+            ConfirmAdjustedIndex(adjustedIndex);
+            Branches[adjustedIndex] = tree;
+        }
+
+        private void ConfirmAdjustedIndexWithLock(int adjustedIndex)
         {
             if (Branches == null)
             {
@@ -70,7 +91,7 @@ namespace ACESim
                 {
                     branchesLength = Branches.Length; // may have been set while waiting for lock
                     if (branchesLength >= adjustedIndex + 1)
-                        return; 
+                        return;
                     else if (!(adjustedIndex < branchesLength))
                     {
                         NWayTreeStorage<T>[] branchesReplacement = new NWayTreeStorage<T>[adjustedIndex + 1];
@@ -79,6 +100,23 @@ namespace ACESim
                         Branches = branchesReplacement;
                     }
                 }
+            }
+        }
+
+        private void ConfirmAdjustedIndex(int adjustedIndex)
+        {
+            if (Branches == null)
+            {
+                Branches = new NWayTreeStorage<T>[adjustedIndex + 1];
+                return;
+            }
+            int branchesLength = Branches.Length;
+            if (!(adjustedIndex < branchesLength))
+            {
+                NWayTreeStorage<T>[] branchesReplacement = new NWayTreeStorage<T>[adjustedIndex + 1];
+                for (int i = 0; i < branchesLength; i++)
+                    branchesReplacement[i] = Branches[i];
+                Branches = branchesReplacement;
             }
         }
 
@@ -154,24 +192,38 @@ namespace ACESim
 
         public NWayTreeStorage<T> AddBranch(byte index, bool mayBeInternal)
         {
-            lock (this)
+            if (ParallelEnabled)
             {
-                //TODO: Make it so that we can name each branch. We need to figure out all the places this is called. Probably, we need to pass a pointer to a function that can identify all of the branches. This could involve parsing the information set histories.
-                //Debug.WriteLine(System.Environment.StackTrace);
-                //Debug.WriteLine("");
-                var existing = GetBranch(index);
-                if (existing != null)
-                    return existing; // this may have been set during the lock
-                NWayTreeStorage<T> nextTree;
-                if (mayBeInternal)
-                    nextTree = new NWayTreeStorageInternal<T>(this);
-                else
-                {
-                    nextTree = new NWayTreeStorage<T>(this); // leaf node for last item in history; having a separate type saves space on Branches.
-                }
-                SetBranch(index, nextTree);
-                return nextTree;
+                return CompleteAddBranchWithLock(index, mayBeInternal);
             }
+            else
+            {
+                return CompleteAddBranch(index, mayBeInternal);
+            }
+        }
+
+        private NWayTreeStorage<T> CompleteAddBranchWithLock(byte index, bool mayBeInternal)
+        {
+            lock (this)
+                return CompleteAddBranch(index, mayBeInternal);
+        }
+
+        private NWayTreeStorage<T> CompleteAddBranch(byte index, bool mayBeInternal)
+        {
+            //Debug.WriteLine(System.Environment.StackTrace);
+            //Debug.WriteLine("");
+            var existing = GetBranch(index);
+            if (existing != null)
+                return existing; // this may have been set during the lock
+            NWayTreeStorage<T> nextTree;
+            if (mayBeInternal)
+                nextTree = new NWayTreeStorageInternal<T>(this);
+            else
+            {
+                nextTree = new NWayTreeStorage<T>(this); // leaf node for last item in history; having a separate type saves space on Branches.
+            }
+            SetBranch(index, nextTree);
+            return nextTree;
         }
 
         public override void WalkTree(Action<NWayTreeStorage<T>> action)

@@ -9,6 +9,7 @@ namespace ACESim
     [Serializable]
     public class NWayTreeStorage<T>
     {
+        public static bool ParallelEnabled = true; // set this to false to disable running in parallel
         public NWayTreeStorageInternal<T> Parent;
 
         private T _StoredValue;
@@ -16,12 +17,27 @@ namespace ACESim
         {
             get
             {
-                lock (this)
+                if (ParallelEnabled)
+                {
+                    lock (this)
+                        return _StoredValue;
+                }
+                else
+                {
                     return _StoredValue;
+                }
             }
             set
             {
-                lock (this)
+                if (ParallelEnabled)
+                {
+                    lock (this)
+                    {
+                        if (_StoredValue == null || _StoredValue.Equals(default(T)))
+                            _StoredValue = value;
+                    }
+                }
+                else
                 {
                     if (_StoredValue == null || _StoredValue.Equals(default(T)))
                         _StoredValue = value;
