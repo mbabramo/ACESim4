@@ -19,8 +19,7 @@ namespace ACESim
             {
                 if (ParallelEnabled)
                 {
-                    lock (this)
-                        return _StoredValue;
+                    return GetStoredValueWithLock();
                 }
                 else
                 {
@@ -31,11 +30,7 @@ namespace ACESim
             {
                 if (ParallelEnabled)
                 {
-                    lock (this)
-                    {
-                        if (_StoredValue == null || _StoredValue.Equals(default(T)))
-                            _StoredValue = value;
-                    }
+                    SetStoredValueWithLock(value);
                 }
                 else
                 {
@@ -43,6 +38,21 @@ namespace ACESim
                         _StoredValue = value;
                 }
             }
+        }
+
+        private void SetStoredValueWithLock(T value)
+        {
+            lock (this)
+            {
+                if (_StoredValue == null || _StoredValue.Equals(default(T)))
+                    _StoredValue = value;
+            }
+        }
+
+        private T GetStoredValueWithLock()
+        {
+            lock (this)
+                return _StoredValue;
         }
 
         public NWayTreeStorage(NWayTreeStorageInternal<T> parent)

@@ -61,7 +61,7 @@ namespace ACESim
             Initialized = true;
         }
 
-        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, List<byte> playersToInform, bool skipAddToHistory, List<byte> cacheIndicesToIncrement, byte? storeActionInCacheIndex, bool deferNotification, GameProgress gameProgress)
+        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, byte[] playersToInform, bool skipAddToHistory, byte[] cacheIndicesToIncrement, byte? storeActionInCacheIndex, bool deferNotification, GameProgress gameProgress)
         {
             if (!Initialized)
                 throw new Exception();

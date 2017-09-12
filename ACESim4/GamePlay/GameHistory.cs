@@ -48,7 +48,7 @@ namespace ACESim
 
         private byte DeferredAction;
         private byte DeferredPlayerNumber;
-        private List<byte> DeferredPlayersToInform;
+        private byte[] DeferredPlayersToInform;
 
         public byte LastDecisionIndexAdded;
 
@@ -184,7 +184,7 @@ namespace ACESim
 
         #region History
 
-        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, List<byte> playersToInform, List<byte> cacheIndicesToIncrement, byte? storeActionInCacheIndex, GameProgress gameProgress, bool skipAddToHistory, bool deferNotification, bool delayPreviousDeferredNotification)
+        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, byte[] playersToInform, byte[] cacheIndicesToIncrement, byte? storeActionInCacheIndex, GameProgress gameProgress, bool skipAddToHistory, bool deferNotification, bool delayPreviousDeferredNotification)
         {
             if (!skipAddToHistory)
                 AddToSimpleActionsList(action);
@@ -256,7 +256,7 @@ namespace ACESim
         #region Player information sets
 
 
-        public void AddToInformationSetAndLog(byte information, byte followingDecisionIndex, byte playerIndex, List<byte> playersToInform, GameProgress gameProgress)
+        public void AddToInformationSetAndLog(byte information, byte followingDecisionIndex, byte playerIndex, byte[] playersToInform, GameProgress gameProgress)
         {
             if (playersToInform == null)
                 return;

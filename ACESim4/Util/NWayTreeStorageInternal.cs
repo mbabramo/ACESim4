@@ -123,17 +123,17 @@ namespace ACESim
         internal unsafe NWayTreeStorage<T> GetNode(byte* restOfSequence, bool createIfNecessary, out bool created)
         {
             created = false;
-            NWayTreeStorage<T> tree = this;
+            NWayTreeStorageInternal<T> tree = this;
             bool moreInSequence = *restOfSequence != 255;
             while (moreInSequence)
             {
-                var previous = ((NWayTreeStorageInternal<T>)tree);
-                tree = ((NWayTreeStorageInternal<T>)tree).GetBranch(*restOfSequence);
+                var previous = tree;
+                tree = (NWayTreeStorageInternal<T>) tree.GetBranch(*restOfSequence);
                 if (tree == null)
                 {
                     if (createIfNecessary)
                     {
-                        tree = previous.AddBranch(*restOfSequence, true);
+                        tree = (NWayTreeStorageInternal<T>)previous.AddBranch(*restOfSequence, true);
                         created = true;
                     }
                     else

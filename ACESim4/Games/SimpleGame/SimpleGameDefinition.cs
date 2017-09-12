@@ -51,9 +51,9 @@ namespace ACESim
             playersWithP1Informing.Add((byte)SimpleGamePlayers.Player2);
             var decisions = new List<Decision>
             {
-                new Decision("P1", "P1", (byte)SimpleGamePlayers.Player1, P1InformsP2 ? playersWithP1Informing : playersToInform, 2, (byte)SimpleGameDecisions.P1Decision),
-                new Decision("P2", "P2", (byte)SimpleGamePlayers.Player2, playersToInform, 2, (byte)SimpleGameDecisions.P2Decision),
-                new Decision("C", "C", (byte)SimpleGamePlayers.Chance, playersToInform, 2, (byte)SimpleGameDecisions.Chance, unevenChanceActions: true) { CanTerminateGame = true }
+                new Decision("P1", "P1", (byte)SimpleGamePlayers.Player1, P1InformsP2 ? playersWithP1Informing.ToArray() : playersToInform.ToArray(), 2, (byte)SimpleGameDecisions.P1Decision),
+                new Decision("P2", "P2", (byte)SimpleGamePlayers.Player2, playersToInform.ToArray(), 2, (byte)SimpleGameDecisions.P2Decision),
+                new Decision("C", "C", (byte)SimpleGamePlayers.Chance, playersToInform.ToArray(), 2, (byte)SimpleGameDecisions.Chance, unevenChanceActions: true) { CanTerminateGame = true }
             };
             return decisions;
         }

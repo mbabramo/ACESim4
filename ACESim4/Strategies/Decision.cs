@@ -29,7 +29,7 @@ namespace ACESim
         /// <summary>
         /// The players to be informed of this decision. For a non-chance decision, this will generally include the player itself, so that the player can remember the decision.
         /// </summary>
-        public List<byte> PlayersToInform;
+        public byte[] PlayersToInform;
 
         /// <summary>
         /// If true, then players will be informed only after the next decision in the game. This is useful when two players "simultaneously" make decisions, i.e., the second player should not know of the first player's decision until after the second player makes a decision.
@@ -49,7 +49,7 @@ namespace ACESim
         /// <summary>
         /// If non-null, then the game history cache item specified will be incremented immediately after the decision. This makes it possible to keep track of how many times a decision or set of decisions have been made.
         /// </summary>
-        public List<byte> IncrementGameCacheItem;
+        public byte[] IncrementGameCacheItem;
 
         /// <summary>
         /// If non-null, then the game history cache item specified will be set to the action chosen.
@@ -191,7 +191,7 @@ namespace ACESim
 
         }
 
-        public Decision(string name, string abbreviation, byte playerNumber, List<byte> playersToInform, byte numActions, byte decisionByteCode = 0, string decisionTypeCode = null, int repetitionsAfterFirst = 0, string preevolvedStrategyFilename = null, List<string> informationSetAbbreviations = null, byte? alwaysDoAction = null, bool unevenChanceActions = false, bool criticalNode = false)
+        public Decision(string name, string abbreviation, byte playerNumber, byte[] playersToInform, byte numActions, byte decisionByteCode = 0, string decisionTypeCode = null, int repetitionsAfterFirst = 0, string preevolvedStrategyFilename = null, List<string> informationSetAbbreviations = null, byte? alwaysDoAction = null, bool unevenChanceActions = false, bool criticalNode = false)
         {
             Name = name;
             Abbreviation = abbreviation;
@@ -210,7 +210,7 @@ namespace ACESim
 
         public Decision Clone()
         {
-            Decision d = new Decision(Name, Abbreviation, PlayerNumber, PlayersToInform?.ToList() ?? new List<byte>(), NumPossibleActions, DecisionByteCode, DecisionTypeCode, RepetitionsAfterFirst, PreevolvedStrategyFilename, InformationSetAbbreviations, AlwaysDoAction, UnevenChanceActions, CriticalNode) { IsAlwaysPlayersLastDecision = IsAlwaysPlayersLastDecision, CanTerminateGame = CanTerminateGame, IncrementGameCacheItem = IncrementGameCacheItem, CustomByte = CustomByte, Subdividable = Subdividable, Subdividable_NumLevels = Subdividable_NumLevels, Subdividable_NumOptionsPerBranch = Subdividable_NumOptionsPerBranch, Subdividable_CorrespondingDecisionByteCode = Subdividable_CorrespondingDecisionByteCode, Subdividable_IsSubdivision = Subdividable_IsSubdivision, Subdividable_IsSubdivision_Last = Subdividable_IsSubdivision_Last, Subdividable_IsSubdivision_First = Subdividable_IsSubdivision_First, Subdividable_AggregateNumPossibleActions = Subdividable_AggregateNumPossibleActions, DeferNotificationOfPlayers = DeferNotificationOfPlayers, StoreActionInGameCacheItem = StoreActionInGameCacheItem, Subdividable_IsSubdivision_Level = Subdividable_IsSubdivision_Level, };
+            Decision d = new Decision(Name, Abbreviation, PlayerNumber, PlayersToInform?.ToArray() ?? new byte[] {}, NumPossibleActions, DecisionByteCode, DecisionTypeCode, RepetitionsAfterFirst, PreevolvedStrategyFilename, InformationSetAbbreviations, AlwaysDoAction, UnevenChanceActions, CriticalNode) { IsAlwaysPlayersLastDecision = IsAlwaysPlayersLastDecision, CanTerminateGame = CanTerminateGame, IncrementGameCacheItem = IncrementGameCacheItem, CustomByte = CustomByte, Subdividable = Subdividable, Subdividable_NumLevels = Subdividable_NumLevels, Subdividable_NumOptionsPerBranch = Subdividable_NumOptionsPerBranch, Subdividable_CorrespondingDecisionByteCode = Subdividable_CorrespondingDecisionByteCode, Subdividable_IsSubdivision = Subdividable_IsSubdivision, Subdividable_IsSubdivision_Last = Subdividable_IsSubdivision_Last, Subdividable_IsSubdivision_First = Subdividable_IsSubdivision_First, Subdividable_AggregateNumPossibleActions = Subdividable_AggregateNumPossibleActions, DeferNotificationOfPlayers = DeferNotificationOfPlayers, StoreActionInGameCacheItem = StoreActionInGameCacheItem, Subdividable_IsSubdivision_Level = Subdividable_IsSubdivision_Level, };
             return d;
         }
 
@@ -248,7 +248,7 @@ namespace ACESim
                 subdivisionDecision.Subdividable_AggregateNumPossibleActions = NumPossibleActions;
                 subdivisionDecision.NumPossibleActions = Subdividable_NumOptionsPerBranch;
                 subdivisionDecision.Subdividable_IsSubdivision = true;
-                subdivisionDecision.PlayersToInform = PlayersToInform.ToList(); // this will be applied only when simulating the last decision
+                subdivisionDecision.PlayersToInform = PlayersToInform.ToArray(); // this will be applied only when simulating the last decision
                 if (i == 0)
                     subdivisionDecision.Subdividable_IsSubdivision_First = true;
                 else if (i == Subdividable_NumLevels - 1)
