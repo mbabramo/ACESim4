@@ -205,7 +205,7 @@ namespace ACESim
             {
                 double litigationQualityUniform =
                     EquallySpaced.GetLocationOfEquallySpacedPoint(litigationQuality - 1,
-                        Options.NumLitigationQualityPoints);
+                        Options.NumLitigationQualityPoints, false);
                 for (byte noise = 1; noise <= Options.NumNoiseValues; noise++)
                 {
                     MyGame.ConvertNoiseActionToDiscreteAndUniformSignal(noise,

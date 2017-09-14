@@ -23,7 +23,7 @@ namespace ACESim
                     MyProgress.DInitialWealth = MyDefinition.Options.DInitialWealth;
                     MyProgress.DamagesAlleged = MyDefinition.Options.DamagesAlleged;
                     MyProgress.LitigationQualityDiscrete = action;
-                    MyProgress.LitigationQualityUniform = ConvertActionToUniformDistributionDraw(action);
+                    MyProgress.LitigationQualityUniform = ConvertActionToUniformDistributionDraw(action, false);
                     // If one or both parties have perfect information, then they can get their information about litigation quality now, since they don't need a signal. Note that we also specify in the game definition that the litigation quality should become part of their information set.
                     if (MyDefinition.Options.PNoiseStdev == 0)
                         MyProgress.PSignalUniform = MyProgress.LitigationQualityUniform;
@@ -42,7 +42,7 @@ namespace ACESim
                     {
                         MyProgress.PSignalDiscrete = MyProgress.PNoiseDiscrete = action;
                         MyProgress.PSignalUniform = EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */,
-                            MyDefinition.Options.NumSignals);
+                            MyDefinition.Options.NumSignals, false);
                     }
                 break;
                 case (byte)MyGameDecisions.DNoiseOrSignal:
@@ -57,7 +57,7 @@ namespace ACESim
                     {
                         MyProgress.DSignalDiscrete = MyProgress.DNoiseDiscrete = action;
                         MyProgress.DSignalUniform = EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */,
-                            MyDefinition.Options.NumSignals);
+                            MyDefinition.Options.NumSignals, false);
                     }
                     break;
                 case (byte)MyGameDecisions.PFile:
@@ -130,7 +130,7 @@ namespace ACESim
                     {
                         double courtNoiseUniformDistribution =
                             EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */,
-                                MyDefinition.Options.NumCourtNoiseValues);
+                                MyDefinition.Options.NumCourtNoiseValues, false);
                         double courtNoiseNormalDraw = InvNormal.Calculate(courtNoiseUniformDistribution) *
                                                         MyDefinition.Options.CourtNoiseStdev;
                         double courtSignal = MyProgress.LitigationQualityUniform + courtNoiseNormalDraw;
@@ -159,19 +159,20 @@ namespace ACESim
                 uniformSignal = EquallySpaced.GetLocationOfEquallySpacedPoint(
                     discreteSignal -
                     2 /* make it zero-based, but also account for the fact that we have a signal for values less than 0 */,
-                    numSignals - 2);
+                    numSignals - 2,
+                    false /* signals, unlike offers, do not use endpoints */);
         }
 
         private double GetOfferBasedOnAction(byte action, bool plaintiffOffer)
         {
             double offer;
             if (MyProgress.BargainingRoundsComplete == 0 || !MyDefinition.Options.DeltaOffersOptions.SubsequentOffersAreDeltas)
-                offer = ConvertActionToUniformDistributionDraw(action);
+                offer = ConvertActionToUniformDistributionDraw(action, true);
             else
             {
                 double? previousOffer = plaintiffOffer ? MyProgress.PLastOffer : MyProgress.DLastOffer;
                 if (previousOffer == null)
-                    offer = ConvertActionToUniformDistributionDraw(action);
+                    offer = ConvertActionToUniformDistributionDraw(action, true);
                 else
                     offer = MyDefinition.Options.DeltaOffersCalculation.GetOfferValue((double) previousOffer, action);
             }
@@ -199,10 +200,6 @@ namespace ACESim
 
         public static MyGameOutcome CalculateGameOutcome(MyGameDefinition gameDefinition, double pInitialWealth, double dInitialWealth, double damagesAlleged, bool pFiles, bool pAbandons, bool dAnswers, bool dDefaults, double? settlementValue, bool pWinsAtTrial, byte bargainingRoundsComplete, double? pFinalWealthWithBestOffer, double? dFinalWealthWithBestOffer)
         {
-            if (Br.eak.Contains("A"))
-            {
-                var DEBUG = 0;
-            }
             MyGameOutcome outcome = new MyGameOutcome();
             if (!pFiles || pAbandons)
             {

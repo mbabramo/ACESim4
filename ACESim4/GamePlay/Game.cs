@@ -218,15 +218,15 @@ namespace ACESim
         {
         }
 
-        public virtual double ConvertActionToUniformDistributionDraw(int action)
+        public virtual double ConvertActionToUniformDistributionDraw(int action, bool includeEndpoints)
         {
-            // If we have 2 actions and we draw action #1, then this is equivalent to 0.25 (= 0.5/2); if we draw action #2, then we have 0.75 (= 1.5/2). If we have 3 actions, then the three actions are 1/6, 3/6, and 5/6.
-            return EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, CurrentDecision.AggregateNumPossibleActions);
+            // Not including endpoints: If we have 2 actions and we draw action #1, then this is equivalent to 0.25 (= 0.5/2); if we draw action #2, then we have 0.75 (= 1.5/2). If we have 3 actions, then the three actions are 1/6, 3/6, and 5/6.
+            return EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, CurrentDecision.AggregateNumPossibleActions, includeEndpoints);
         }
 
         public virtual double ConvertActionToNormalDistributionDraw(int action, double stdev)
         {
-            return ConvertUniformDistributionDrawToNormalDraw(ConvertActionToUniformDistributionDraw(action), stdev);
+            return ConvertUniformDistributionDrawToNormalDraw(ConvertActionToUniformDistributionDraw(action, false), stdev);
         }
 
         public virtual double ConvertUniformDistributionDrawToNormalDraw(double uniformDistributionDraw, double stdev)

@@ -30,8 +30,11 @@ namespace ACESimTest
         }
 
         private const double PartyNoise = 0.2, InitialWealth = 1_000_000, DamagesAlleged = 100_000, PFileCost = 3000, DAnswerCost = 2000, PTrialCosts = 4000, DTrialCosts = 6000, PerRoundBargainingCost = 1000, RegretAversion = 0.25;
-        private const byte NumDistinctPoints = 8;
-        private const byte NumCourtNoiseValues = 10;
+        private const byte NumLitigationQualityPoints = 8;
+        private const byte NumSignals = 10;
+        private const byte NumNoiseValues = 10; // must equal NumSignals in some situations
+        private const byte NumOffers = 16;
+        private const byte NumCourtNoiseValues = 11;
         public const byte ValueWhenCaseSettles = 4;
         private const byte LitigationQuality = 3;
         private const byte PSignalOrNoise = 5, DSignalOrNoise = 1;
@@ -59,11 +62,11 @@ namespace ACESimTest
                 PInitialWealth = InitialWealth,
                 DInitialWealth = InitialWealth,
                 DamagesAlleged = DamagesAlleged,
-                NumLitigationQualityPoints = NumDistinctPoints,
-                NumSignals = NumDistinctPoints,
-                NumOffers = NumDistinctPoints,
+                NumLitigationQualityPoints = NumLitigationQualityPoints,
+                NumSignals = NumSignals,
+                NumOffers = NumOffers,
                 NumCourtNoiseValues = NumCourtNoiseValues,
-                NumNoiseValues = NumDistinctPoints,
+                NumNoiseValues = NumNoiseValues,
                 ActionIsNoiseNotSignal = actionIsNoiseNotSignal,
                 PNoiseStdev = PartyNoise,
                 DNoiseStdev = PartyNoise,
@@ -224,14 +227,14 @@ namespace ACESimTest
             {
                 if (offer.isOfferToP)
                 {
-                    double offerToP = EquallySpaced.GetLocationOfEquallySpacedPoint((byte) (offer.offerMove - 1), NumDistinctPoints);
+                    double offerToP = EquallySpaced.GetLocationOfEquallySpacedPoint((byte) (offer.offerMove - 1), NumOffers, true);
                     double roundAdjustedOfferToP = InitialWealth + offerToP * DamagesAlleged - PFileCost - offer.bargainingRoundNumber * PerRoundBargainingCost;
                     if (bestOffers.bestRejectedOfferToP == null || roundAdjustedOfferToP > bestOffers.bestRejectedOfferToP)
                         bestOffers.bestRejectedOfferToP =  roundAdjustedOfferToP;
                 }
                 else
                 { 
-                    double offerToD = EquallySpaced.GetLocationOfEquallySpacedPoint((byte)(offer.offerMove - 1), NumDistinctPoints);
+                    double offerToD = EquallySpaced.GetLocationOfEquallySpacedPoint((byte)(offer.offerMove - 1), NumOffers, true);
                     double roundAdjustedOfferToD = InitialWealth - offerToD * DamagesAlleged - DAnswerCost - offer.bargainingRoundNumber * PerRoundBargainingCost; // note that this is negative, because it's the change in wealth for D
                     if (bestOffers.bestRejectedOfferToD == null || roundAdjustedOfferToD > bestOffers.bestRejectedOfferToD)
                         bestOffers.bestRejectedOfferToD = roundAdjustedOfferToD;
@@ -247,9 +250,9 @@ namespace ACESimTest
             if (actionIsNoiseNotSignal)
             {
                 double litigationQualityUniform =
-                    EquallySpaced.GetLocationOfEquallySpacedPoint(litigationQuality - 1, NumDistinctPoints);
-                MyGame.ConvertNoiseActionToDiscreteAndUniformSignal(pNoise, litigationQualityUniform, NumDistinctPoints, PartyNoise, NumDistinctPoints, out pSignal, out _);
-                MyGame.ConvertNoiseActionToDiscreteAndUniformSignal(dNoise, litigationQualityUniform, NumDistinctPoints, PartyNoise, NumDistinctPoints, out dSignal, out _);
+                    EquallySpaced.GetLocationOfEquallySpacedPoint(litigationQuality - 1, NumLitigationQualityPoints, false);
+                MyGame.ConvertNoiseActionToDiscreteAndUniformSignal(pNoise, litigationQualityUniform, NumNoiseValues, PartyNoise, NumSignals, out pSignal, out _);
+                MyGame.ConvertNoiseActionToDiscreteAndUniformSignal(dNoise, litigationQualityUniform, NumNoiseValues, PartyNoise, NumSignals, out dSignal, out _);
             }
             else
             {
@@ -556,7 +559,7 @@ namespace ACESimTest
                 dSignalOrNoise: DSignalOrNoise, simulatingBargainingFailure: simulatingBargainingFailure, bargainingRoundMoves: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds);
             var myGameProgress = MyGameRunner.PlayMyGameOnce(options, actionsToPlay);
 
-            double settlementProportion = EquallySpaced.GetLocationOfEquallySpacedPoint((byte) (ValueWhenCaseSettles - 1), NumDistinctPoints);
+            double settlementProportion = EquallySpaced.GetLocationOfEquallySpacedPoint((byte) (ValueWhenCaseSettles - 1), NumOffers, true);
 
             myGameProgress.GameComplete.Should().BeTrue();
             myGameProgress.CaseSettles.Should().BeTrue();

@@ -154,7 +154,7 @@ namespace ACESim
                 NumSignals = 10,
                 NumNoiseValues = 100,
                 NumCourtNoiseValues = 10,
-                NumOffers = 10,
+                NumOffers = 11,
                 PFilingCost = 5000,
                 DAnswerCost = 5000,
                 PNoiseStdev = 0.3,

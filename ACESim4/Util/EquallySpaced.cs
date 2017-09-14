@@ -20,8 +20,10 @@ namespace ACESim
                 return GetPointsFullyEquallySpaced(numPoints, from, to); // e.g., 0.1, 0.2, ... 0.9
         }
 
-        public static double GetLocationOfEquallySpacedPoint(int pointIndex, int numPoints, double from = 0, double to = 1.0)
+        public static double GetLocationOfEquallySpacedPoint(int pointIndex, int numPoints, bool includeEndpoints, double from = 0, double to = 1.0)
         {
+            if (includeEndpoints)
+                return from + (to - from) * ((double) pointIndex / (double) (numPoints - 1));
             if (numPoints % 2 == 0)
                 return GetLocationOfMidpoint(pointIndex, numPoints, from, to);
             else
