@@ -23,7 +23,11 @@ namespace ACESim
                 }
             }
             if (Options.IncludeCourtSuccessReport)
-                reports.Add(GetCourtSuccessReport());
+            {
+                var courtSuccessReport = GetCourtSuccessReport();
+                courtSuccessReport.ActionsOverride = MyGameActionsGenerator.GamePlaysOutToTrial;
+                reports.Add(courtSuccessReport);
+            }
             if (Options.IncludeSignalsReport)
             {
                 for (int b = 1; b <= Options.NumPotentialBargainingRounds; b++)
@@ -79,32 +83,41 @@ namespace ACESim
                                              MyGP(gp).BargainingRoundsComplete == bargainingRoundNum, false)
                 );
             }
+            var simpleReportFilters = new List<SimpleReportFilter>()
+            {
+                new SimpleReportFilter("All", (GameProgress gp) => true),
+                new SimpleReportFilter("Litigated", (GameProgress gp) => MyGP(gp).PFiles && MyGP(gp).DAnswers),
+                new SimpleReportFilter("Settles", (GameProgress gp) => MyGP(gp).CaseSettles),
+                new SimpleReportFilter("Tried", (GameProgress gp) => !MyGP(gp).CaseSettles),
+                new SimpleReportFilter("LowQuality",
+                    (GameProgress gp) => MyGP(gp).LitigationQualityUniform <= 0.25),
+                new SimpleReportFilter("MediumQuality",
+                    (GameProgress gp) => MyGP(gp).LitigationQualityUniform > 0.25 &&
+                                         MyGP(gp).LitigationQualityUniform < 0.75),
+                new SimpleReportFilter("HighQuality",
+                    (GameProgress gp) => MyGP(gp).LitigationQualityUniform >= 0.75),
+                new SimpleReportFilter("LowPSignal", (GameProgress gp) => MyGP(gp).PSignalUniform <= 0.25),
+                new SimpleReportFilter("LowDSignal", (GameProgress gp) => MyGP(gp).DSignalUniform <= 0.25),
+                new SimpleReportFilter("MedPSignal",
+                    (GameProgress gp) => MyGP(gp).PSignalUniform > 0.25 && MyGP(gp).PSignalUniform < 0.75),
+                new SimpleReportFilter("MedDSignal",
+                    (GameProgress gp) => MyGP(gp).DSignalUniform > 0.25 && MyGP(gp).DSignalUniform < 0.75),
+                new SimpleReportFilter("HiPSignal", (GameProgress gp) => MyGP(gp).PSignalUniform >= 0.75),
+                new SimpleReportFilter("HiDSignal", (GameProgress gp) => MyGP(gp).DSignalUniform >= 0.75),
+                //new SimpleReportFilter("Custom", (GameProgress gp) => MyGP(gp).PSignalDiscrete == 9),
+            };
+            for (byte signal = 1; signal < Options.NumSignals; signal++)
+            {
+                byte s = signal; // avoid closure
+                simpleReportFilters.Add(
+                    new SimpleReportFilter("PSignal" + s, (GameProgress gp) => MyGP(gp).PSignalDiscrete == s));
+                simpleReportFilters.Add(
+                    new SimpleReportFilter("DSignal" + s, (GameProgress gp) => MyGP(gp).DSignalDiscrete == s));
+            }
             return new SimpleReportDefinition(
                 "MyGameReport",
                 null,
-                new List<SimpleReportFilter>()
-                {
-                    new SimpleReportFilter("All", (GameProgress gp) => true),
-                    new SimpleReportFilter("Litigated", (GameProgress gp) => MyGP(gp).PFiles && MyGP(gp).DAnswers),
-                    new SimpleReportFilter("Settles", (GameProgress gp) => MyGP(gp).CaseSettles),
-                    new SimpleReportFilter("Tried", (GameProgress gp) => !MyGP(gp).CaseSettles),
-                    new SimpleReportFilter("LowQuality",
-                        (GameProgress gp) => MyGP(gp).LitigationQualityUniform <= 0.25),
-                    new SimpleReportFilter("MediumQuality",
-                        (GameProgress gp) => MyGP(gp).LitigationQualityUniform > 0.25 &&
-                                             MyGP(gp).LitigationQualityUniform < 0.75),
-                    new SimpleReportFilter("HighQuality",
-                        (GameProgress gp) => MyGP(gp).LitigationQualityUniform >= 0.75),
-                    new SimpleReportFilter("LowPSignal", (GameProgress gp) => MyGP(gp).PSignalUniform <= 0.25),
-                    new SimpleReportFilter("LowDSignal", (GameProgress gp) => MyGP(gp).DSignalUniform <= 0.25),
-                    new SimpleReportFilter("MedPSignal",
-                        (GameProgress gp) => MyGP(gp).PSignalUniform > 0.25 && MyGP(gp).PSignalUniform < 0.75),
-                    new SimpleReportFilter("MedDSignal",
-                        (GameProgress gp) => MyGP(gp).DSignalUniform > 0.25 && MyGP(gp).DSignalUniform < 0.75),
-                    new SimpleReportFilter("HiPSignal", (GameProgress gp) => MyGP(gp).PSignalUniform >= 0.75),
-                    new SimpleReportFilter("HiDSignal", (GameProgress gp) => MyGP(gp).DSignalUniform >= 0.75),
-                    new SimpleReportFilter("Custom", (GameProgress gp) => MyGP(gp).PSignalDiscrete == 9),
-                },
+                simpleReportFilters,
                 colItems
             );
         }

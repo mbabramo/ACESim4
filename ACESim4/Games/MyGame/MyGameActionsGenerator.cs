@@ -17,7 +17,15 @@ namespace ACESim
                 return 1;
             else if(decision.DecisionByteCode == (byte)MyGameDecisions.PAgreeToBargain)
                 return 2;
-            else if (decision.DecisionByteCode == (byte)MyGameDecisions.PAgreeToBargain)
+            else if (decision.DecisionByteCode == (byte)MyGameDecisions.DAgreeToBargain)
+                return 2;
+            else if (decision.DecisionByteCode == (byte)MyGameDecisions.POffer)
+                return 10;
+            else if (decision.DecisionByteCode == (byte)MyGameDecisions.DOffer)
+                return 1;
+            else if (decision.DecisionByteCode == (byte)MyGameDecisions.PResponse)
+                return 2;
+            else if (decision.DecisionByteCode == (byte)MyGameDecisions.DResponse)
                 return 2;
             else if (decision.DecisionByteCode == (byte)MyGameDecisions.PAbandon)
                 return 2;
@@ -33,6 +41,10 @@ namespace ACESim
                     return 10;
             else if (decision.DecisionByteCode == (byte)MyGameDecisions.DOffer)
                     return 1;
+            else if (decision.DecisionByteCode == (byte)MyGameDecisions.PResponse)
+                return 2;
+            else if (decision.DecisionByteCode == (byte)MyGameDecisions.DResponse)
+                return 2;
             return 0;
         }
 
