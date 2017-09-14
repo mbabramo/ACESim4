@@ -108,7 +108,7 @@ namespace ACESim
             // -- Duplicate the execution order list, turn it into an evolution order list, and process it.
             List<ActionGroup> executionOrderCopy = ExecutionOrder.Select(x => x.DeepCopy()).ToList();
 
-            PrintOutOrderingInformation();
+            //PrintOutOrderingInformation();
         }
 
         private void InitializeNonmodularGame()

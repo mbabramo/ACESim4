@@ -29,7 +29,7 @@ namespace ACESimTest
 
         }
 
-        private const double PartyNoise = 0.2, InitialWealth = 1_000_000, DamagesAlleged = 100_000, PFileCost = 3000, DAnswerCost = 2000, PTrialCosts = 4000, DTrialCosts = 6000, PerRoundBargainingCost = 1000, RegretAversion = 0.25;
+        private const double PartyNoise = 0.2, InitialWealth = 1_000_000, DamagesAlleged = 100_000, PFileCost = 3000, DAnswerCost = 2000, PTrialCosts = 4000, DTrialCosts = 6000, PerRoundBargainingCost = 1000, RegretAversion = 0.25, LoserPaysMultiple = 3.0;
         private const byte NumLitigationQualityPoints = 8;
         private const byte NumSignals = 10;
         private const byte NumNoiseValues = 10; // must equal NumSignals in some situations
@@ -77,7 +77,7 @@ namespace ACESimTest
                 DTrialCosts = DTrialCosts,
                 RegretAversion = RegretAversion,
                 LoserPays = loserPaysPolicy != LoserPaysPolicy.NoLoserPays,
-                LoserPaysMultiple = 1.5,
+                LoserPaysMultiple = LoserPaysMultiple,
                 LoserPaysAfterAbandonment = loserPaysPolicy == LoserPaysPolicy.EvenAfterAbandonOrDefault,
                 PerPartyCostsLeadingUpToBargainingRound = PerRoundBargainingCost,
                 AllowAbandonAndDefaults = allowAbandonAndDefaults,
@@ -627,11 +627,10 @@ namespace ACESimTest
             var actions = GetPlayerActions(true, true, LitigationQuality, PSignalOrNoise, DSignalOrNoise, simulatingBargainingFailure, bargainingMoves, simultaneousBargainingRounds, null, null, 0, courtResult);
             var myGameProgress = MyGameRunner.PlayMyGameOnce(options, actions);
             myGameProgress.GameComplete.Should().BeTrue();
-            double pExpenses, dExpenses;
 
             double pInitialExpenses = options.PFilingCost + numBargainingRounds * options.PerPartyCostsLeadingUpToBargainingRound + options.PTrialCosts;
             double dInitialExpenses = options.DAnswerCost + numBargainingRounds * options.PerPartyCostsLeadingUpToBargainingRound + options.DTrialCosts;
-            GetExpensesAfterFeeShifting(options, false, plaintiffWins, pInitialExpenses, dInitialExpenses, out pExpenses, out dExpenses);
+            GetExpensesAfterFeeShifting(options, false, plaintiffWins, pInitialExpenses, dInitialExpenses, out double pExpenses, out double dExpenses);
 
             double pFinalWealthExpected = options.PInitialWealth - pExpenses;
             double dFinalWealthExpected = options.DInitialWealth - dExpenses;

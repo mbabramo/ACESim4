@@ -445,7 +445,7 @@ namespace ACESim
                 throw new Exception(
                     "Internal error. Must implement extra code from Abramowicz algorithm 2 for more than 2 players.");
             ActionStrategy = ActionStrategies.RegretMatching;
-            GameDefinition.PrintOutOrderingInformation();
+            //GameDefinition.PrintOutOrderingInformation();
             // The code can run in parallel, but we break up our parallel calls for two reasons: (1) We would like to produce reports and need to do this while pausing the main algorithm; and (2) we would like to be able differentiate early from late iterations, in case we want to change epsilon over time for example. 
             int numPhases = 100; // should have at least 100 if we have a discount for first 1% of iterations
             int iterationsPerPhase = (EvolutionSettings.TotalProbingCFRIterations) / (numPhases);

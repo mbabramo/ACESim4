@@ -39,11 +39,11 @@ namespace ACESim
                 MaxParallelDepth = 1, // we're parallelizing on the iteration level, so there is no need for further parallelization
                 ParallelOptimization = false,
 
-                InitialRandomSeed = 0,
+                InitialRandomSeed = 100,
 
                 Algorithm = GameApproximationAlgorithm.AbramowiczProbing,
 
-                ReportEveryNIterations = 100_000,
+                ReportEveryNIterations = 10_000,
                 NumRandomIterationsForSummaryTable = 5000,
                 PrintSummaryTable = true,
                 PrintInformationSets = false,
@@ -52,7 +52,7 @@ namespace ACESim
                 AlwaysUseAverageStrategyInReporting = false,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
 
-                TotalProbingCFRIterations = 100_000,
+                TotalProbingCFRIterations = 10_000,
                 EpsilonForMainPlayer = 0.5,
                 EpsilonForOpponentWhenExploring = 0.05,
                 MinBackupRegretsTrigger = 3,

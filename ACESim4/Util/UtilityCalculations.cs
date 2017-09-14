@@ -86,12 +86,12 @@ namespace ACESim.Util
             
         public override double GetSubjectiveUtilityForWealthLevel(double laterWealth)
         {
-            return 1.0 - Math.Exp(-Alpha * laterWealth);
+            return -Math.Exp(-Alpha * laterWealth);
         }
 
         public override double GetDeltaFromInitialWealthProducingSpecifiedSubjectiveUtility(double subjectiveUtility)
         {
-            return -Math.Log(1.0 - subjectiveUtility) / Alpha - InitialWealth;
+            return -Math.Log(subjectiveUtility) / Alpha - InitialWealth;
         }
     }
 
