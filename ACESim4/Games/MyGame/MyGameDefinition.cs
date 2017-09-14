@@ -84,8 +84,6 @@ namespace ACESim
 
         public override byte PlayerIndex_ResolutionPlayer => (byte) MyGamePlayers.Resolution;
 
-        private byte LitigationQualityDecisionIndex = (byte) 255;
-
         // NOTE: Must skip 0, because that is used for subdivision aggregation decisions. Note that the first three may be augmented if we are using subdivision decisions
         public byte GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound = 1;
         public byte GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound = 2;
@@ -137,7 +135,6 @@ namespace ACESim
                 playersKnowingLitigationQuality.Add((byte) MyGamePlayers.Plaintiff);
             if (Options.DNoiseStdev == 0)
                 playersKnowingLitigationQuality.Add((byte) MyGamePlayers.Defendant);
-            LitigationQualityDecisionIndex = (byte)decisions.Count();
             decisions.Add(new Decision("LitigationQuality", "Qual", (byte) MyGamePlayers.QualityChance,
                 playersKnowingLitigationQuality.ToArray(), Options.NumLitigationQualityPoints, (byte) MyGameDecisions.LitigationQuality) {StoreActionInGameCacheItem = GameHistoryCacheIndex_LitigationQuality, IsReversible = true});
             // Plaintiff and defendant signals. If a player has perfect information, then no signal is needed.

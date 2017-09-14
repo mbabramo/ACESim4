@@ -29,7 +29,7 @@ namespace ACESimTest
 
         }
 
-        private const double PartyNoise = 0.2, InitialWealth = 1_000_000, DamagesAlleged = 100_000, PFileCost = 3000, DAnswerCost = 2000, PTrialCosts = 4000, DTrialCosts = 6000, PerRoundBargainingCost = 1000;
+        private const double PartyNoise = 0.2, InitialWealth = 1_000_000, DamagesAlleged = 100_000, PFileCost = 3000, DAnswerCost = 2000, PTrialCosts = 4000, DTrialCosts = 6000, PerRoundBargainingCost = 1000, RegretAversion = 0.25;
         private const byte NumDistinctPoints = 8;
         private const byte NumCourtNoiseValues = 10;
         public const byte ValueWhenCaseSettles = 4;
@@ -72,6 +72,7 @@ namespace ACESimTest
                 DAnswerCost = DAnswerCost,
                 PTrialCosts = PTrialCosts,
                 DTrialCosts = DTrialCosts,
+                RegretAversion = RegretAversion,
                 LoserPays = loserPaysPolicy != LoserPaysPolicy.NoLoserPays,
                 LoserPaysAfterAbandonment = loserPaysPolicy == LoserPaysPolicy.EvenAfterAbandonOrDefault,
                 PerPartyCostsLeadingUpToBargainingRound = PerRoundBargainingCost,
@@ -167,8 +168,9 @@ namespace ACESimTest
             return String.Join(",", l);
         }
 
-        private List<(byte? pMove, byte? dMove)> GetBargainingRoundMoves(bool simultaneousBargaining, byte numRoundsToInclude, bool settlementInLastRound, HowToSimulateBargainingFailure simulatingBargainingFailure)
+        private List<(byte? pMove, byte? dMove)> GetBargainingRoundMoves(bool simultaneousBargaining, byte numRoundsToInclude, bool settlementInLastRound, HowToSimulateBargainingFailure simulatingBargainingFailure, out List<(byte offerMove, byte bargainingRoundNumber, bool isOfferToP)> offers)
         {
+            offers = new List<(byte offerMove, byte bargainingRoundNumber, bool isOfferToP)>(); // we are also going to track offers; note that not every move is an offer
             bool ifNotSettlingPRefusesToBargain = simulatingBargainingFailure == HowToSimulateBargainingFailure.PRefusesToBargain || simulatingBargainingFailure == HowToSimulateBargainingFailure.BothRefuseToBargain;
             bool ifNotSettlingDRefusesToBargain = simulatingBargainingFailure == HowToSimulateBargainingFailure.DRefusesToBargain || simulatingBargainingFailure == HowToSimulateBargainingFailure.BothRefuseToBargain;
             List<(byte? pMove, byte? dMove)> moves = new List<(byte? pMove, byte? dMove)>();
@@ -183,19 +185,58 @@ namespace ACESimTest
                 else
                 {
                     if (simultaneousBargaining)
-                        moves.Add((ValueWhenCaseSettles, settlingThisRound ? (byte)ValueWhenCaseSettles : (byte) (ValueWhenCaseSettles - 1)));
+                    {
+                        if (settlingThisRound)
+                            moves.Add((ValueWhenCaseSettles, (byte) ValueWhenCaseSettles));
+                        else
+                        { // we will have different ways of making settlement fail -- this will help us when testing regret aversion. The plaintiff may be regretful based on the generous offer from the defendant in bargaining round 2, and the defendant may be regretful based on the generous offer from the plaintiff in bargaining round 1.
+                            if (b == 1)
+                                moves.Add(((byte) (ValueWhenCaseSettles - 1), (byte) (ValueWhenCaseSettles - 2)));
+                            else
+                                moves.Add(((byte)(ValueWhenCaseSettles + 2), (byte)(ValueWhenCaseSettles + 1)));
+                        }
+                        offers.Add(((byte) moves.Last().pMove, b, false));
+                        offers.Add(((byte)moves.Last().dMove, b, true));
+                    }
                     else
                     {
                         byte offer = ValueWhenCaseSettles;
                         byte response = settlingThisRound ? (byte) 1 : (byte) 2;
-                        if (b % 2 == 1)
+                        bool plaintiffIsOffering = b % 2 == 1; // plaintiff offers in first round, which is odd numbered
+                        if (plaintiffIsOffering)
                             moves.Add((offer, response));
                         else
                             moves.Add((response, offer));
+                        offers.Add((offer, b, !plaintiffIsOffering));
                     }
                 }
             }
             return moves;
+        }
+
+        private (double? bestRejectedOfferToP, double? bestRejectedOfferToD) GetBestOffers(
+            List<(byte offerMove, byte bargainingRoundNumber, bool isOfferToP)> offers)
+        {
+            Br.eak.IfAdded("A");
+            (double? bestRejectedOfferToP, double? bestRejectedOfferToD) bestOffers = (null, null);
+            foreach ((byte offerMove, byte bargainingRoundNumber, bool isOfferToP) offer in offers)
+            {
+                if (offer.isOfferToP)
+                {
+                    double offerToP = EquallySpaced.GetLocationOfEquallySpacedPoint((byte) (offer.offerMove - 1), NumDistinctPoints);
+                    double roundAdjustedOfferToP = InitialWealth + offerToP * DamagesAlleged - PFileCost - offer.bargainingRoundNumber * PerRoundBargainingCost;
+                    if (bestOffers.bestRejectedOfferToP == null || roundAdjustedOfferToP > bestOffers.bestRejectedOfferToP)
+                        bestOffers.bestRejectedOfferToP =  roundAdjustedOfferToP;
+                }
+                else
+                { 
+                    double offerToD = EquallySpaced.GetLocationOfEquallySpacedPoint((byte)(offer.offerMove - 1), NumDistinctPoints);
+                    double roundAdjustedOfferToD = InitialWealth - offerToD * DamagesAlleged - DAnswerCost - offer.bargainingRoundNumber * PerRoundBargainingCost; // note that this is negative, because it's the change in wealth for D
+                    if (bestOffers.bestRejectedOfferToD == null || roundAdjustedOfferToD > bestOffers.bestRejectedOfferToD)
+                        bestOffers.bestRejectedOfferToD = roundAdjustedOfferToD;
+                }
+            }
+            return bestOffers;
         }
 
         private (string pInformationSet, string dInformationSet) GetExpectedPartyInformationSets(bool actionIsNoiseNotSignal, byte litigationQuality, byte pNoise, byte dNoise, HowToSimulateBargainingFailure simulatingBargainingFailure,
@@ -385,7 +426,8 @@ namespace ACESimTest
         public void CaseGivenUp_SpecificSettingsAndActions(byte numPotentialBargainingRounds, bool subdivideOffers, byte? abandonmentInRound, bool forgetEarlierBargainingRounds, bool simultaneousBargainingRounds, bool actionIsNoiseNotSignal, byte litigationQuality, byte? pReadyToAbandonRound, byte? dReadyToDefaultRound, byte mutualGiveUpResult, LoserPaysPolicy loserPaysPolicy, HowToSimulateBargainingFailure simulatingBargainingFailure)
         {
             var bargainingRoundMoves = GetBargainingRoundMoves(simultaneousBargainingRounds,
-                abandonmentInRound ?? numPotentialBargainingRounds, false, simulatingBargainingFailure);
+                abandonmentInRound ?? numPotentialBargainingRounds, false, simulatingBargainingFailure, out var offers);
+            var bestOffers = GetBestOffers(offers);
             byte numActualRounds = (byte)bargainingRoundMoves.Count();
             var options = GetGameOptions(allowAbandonAndDefaults: true, numBargainingRounds: numPotentialBargainingRounds, subdivideOffers:subdivideOffers, forgetEarlierBargainingRounds: forgetEarlierBargainingRounds, simultaneousBargainingRounds: simultaneousBargainingRounds, actionIsNoiseNotSignal: actionIsNoiseNotSignal, loserPaysPolicy: loserPaysPolicy, simulatingBargainingFailure: simulatingBargainingFailure);
             bool pFiles = pReadyToAbandonRound != 0;
@@ -448,10 +490,10 @@ namespace ACESimTest
                 dExpenses = 0;
             }
 
-            myGameProgress.PFinalWealth.Should().Be(options.PInitialWealth + damages - pExpenses);
-            myGameProgress.DFinalWealth.Should().Be(options.DInitialWealth - damages - dExpenses);
-            myGameProgress.PWelfare.Should().Be(myGameProgress.PFinalWealth);
-            myGameProgress.DWelfare.Should().Be(myGameProgress.DFinalWealth);
+
+            double pFinalWealthExpected = options.PInitialWealth + damages - pExpenses;
+            double dFinalWealthExpected = options.DInitialWealth - damages - dExpenses;
+            CheckFinalWelfare(myGameProgress, pFinalWealthExpected, dFinalWealthExpected, bestOffers);
 
             //var informationSetHistories = myGameProgress.GameHistory.GetInformationSetHistoryItems().ToList();
             GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet, out string resolutionSet);
@@ -497,7 +539,8 @@ namespace ACESimTest
         public void SettlingCase_Helper(byte numPotentialBargainingRounds, bool subdivideOffers, byte? settlementInRound, bool forgetEarlierBargainingRounds, bool simultaneousBargainingRounds, bool allowAbandonAndDefault, bool actionIsNoiseNotSignal, LoserPaysPolicy loserPaysPolicy, HowToSimulateBargainingFailure simulatingBargainingFailure)
         {
             var bargainingRoundMoves = GetBargainingRoundMoves(simultaneousBargainingRounds,
-                settlementInRound ?? numPotentialBargainingRounds, settlementInRound != null, simulatingBargainingFailure);
+                settlementInRound ?? numPotentialBargainingRounds, settlementInRound != null, simulatingBargainingFailure, out var offers);
+            var bestOffers = GetBestOffers(offers);
             byte numActualRounds = (byte) bargainingRoundMoves.Count();
             var options = GetGameOptions(allowAbandonAndDefaults: allowAbandonAndDefault, numBargainingRounds: numPotentialBargainingRounds, subdivideOffers: subdivideOffers, forgetEarlierBargainingRounds: forgetEarlierBargainingRounds, simultaneousBargainingRounds: simultaneousBargainingRounds, actionIsNoiseNotSignal:actionIsNoiseNotSignal, loserPaysPolicy: loserPaysPolicy, simulatingBargainingFailure: simulatingBargainingFailure);
             var actionsToPlay = GetPlayerActions(pFiles: true, dAnswers: true, litigationQuality: LitigationQuality, pSignalOrNoise: PSignalOrNoise,
@@ -508,12 +551,10 @@ namespace ACESimTest
 
             myGameProgress.GameComplete.Should().BeTrue();
             myGameProgress.CaseSettles.Should().BeTrue();
-            myGameProgress.PFinalWealth.Should().Be(options.PInitialWealth - options.PFilingCost + settlementProportion * options.DamagesAlleged -
-                                                    numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound);
-            myGameProgress.DFinalWealth.Should().Be(options.DInitialWealth - options.DAnswerCost - settlementProportion * options.DamagesAlleged -
-                                                    numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound);
-            myGameProgress.PWelfare.Should().Be(myGameProgress.PFinalWealth);
-            myGameProgress.DWelfare.Should().Be(myGameProgress.DFinalWealth);
+            double pFinalWealthExpected = options.PInitialWealth - options.PFilingCost + settlementProportion * options.DamagesAlleged - numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound;
+            double dFinalWealthExpected = options.DInitialWealth - options.DAnswerCost - settlementProportion * options.DamagesAlleged -
+                                          numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound;
+            CheckFinalWelfare(myGameProgress, pFinalWealthExpected, dFinalWealthExpected, bestOffers);
 
             //var informationSetHistories = myGameProgress.GameHistory.GetInformationSetHistoryItems().ToList();
             GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet, out string resolutionSet);
@@ -546,6 +587,11 @@ namespace ACESimTest
                                                     GameProgressLogger.LoggingOn = true;
                                                     GameProgressLogger.OutputLogMessages = true;
                                                 }
+                                                else
+                                                {
+                                                    GameProgressLogger.LoggingOn = false;
+                                                    GameProgressLogger.OutputLogMessages = false;
+                                                    }
                                                 CaseTried_Helper(allowAbandonAndDefaults, forgetEarlierBargainingRounds, numBargainingRounds, subdivideOffers, plaintiffWins, simultaneousBargainingRounds, actionIsNoiseNotSignal, loserPaysPolicy, simulatingBargainingFailure);
                                                 CaseNumber++;
                                             }
@@ -559,7 +605,8 @@ namespace ACESimTest
         private void CaseTried_Helper(bool allowAbandonAndDefaults, bool forgetEarlierBargainingRounds, byte numBargainingRounds, bool subdivideOffers, bool plaintiffWins, bool simultaneousBargainingRounds, bool actionIsNoiseNotSignal, LoserPaysPolicy loserPaysPolicy, HowToSimulateBargainingFailure simulatingBargainingFailure)
         {
             var options = GetGameOptions(allowAbandonAndDefaults, numBargainingRounds, subdivideOffers, forgetEarlierBargainingRounds, simultaneousBargainingRounds, actionIsNoiseNotSignal, loserPaysPolicy, simulatingBargainingFailure);
-            var bargainingMoves = GetBargainingRoundMoves(simultaneousBargainingRounds, numBargainingRounds, false, simulatingBargainingFailure);
+            var bargainingMoves = GetBargainingRoundMoves(simultaneousBargainingRounds, numBargainingRounds, false, simulatingBargainingFailure, out var offers);
+            var bestOffers = GetBestOffers(offers);
             byte courtResult;
             if (actionIsNoiseNotSignal)
                 courtResult = plaintiffWins ? (byte) NumCourtNoiseValues : (byte) 1; // we've used a high value of court noise above, so if the court has its highest possible noise, it will definitely conclude plaintiff has won, and if the court has its lowest possible noise, it will definitely conclude that defendant has won
@@ -595,8 +642,7 @@ namespace ACESimTest
                 pFinalWealthExpected += options.DamagesAlleged;
                 dFinalWealthExpected -= options.DamagesAlleged;
             }
-            myGameProgress.PFinalWealth.Should().Be(pFinalWealthExpected);
-            myGameProgress.DFinalWealth.Should().Be(dFinalWealthExpected);
+            CheckFinalWelfare(myGameProgress, pFinalWealthExpected, dFinalWealthExpected, bestOffers);
             GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet,
                 out string resolutionSet);
             var expectedPartyInformationSets = GetExpectedPartyInformationSets(actionIsNoiseNotSignal, LitigationQuality, PSignalOrNoise, DSignalOrNoise, simulatingBargainingFailure, bargainingMoves,
@@ -606,6 +652,20 @@ namespace ACESimTest
             pInformationSet.Should().Be(expectedPartyInformationSets.pInformationSet);
             dInformationSet.Should().Be(expectedPartyInformationSets.dInformationSet);
             resolutionSet.Should().Be(expectedResolutionSet);
+        }
+
+        private static void CheckFinalWelfare(MyGameProgress myGameProgress, double pFinalWealthExpected, double dFinalWealthExpected, ValueTuple<double?, double?> bestOffers)
+        {
+            myGameProgress.PFinalWealth.Should().Be(pFinalWealthExpected);
+            myGameProgress.DFinalWealth.Should().Be(dFinalWealthExpected);
+            double pRegretAversionAdjustedWealth = myGameProgress.PFinalWealth;
+            double dRegretAversionAdjustedWealth = myGameProgress.DFinalWealth;
+            if (bestOffers.Item1 != null && bestOffers.Item1 > myGameProgress.PFinalWealth)
+                pRegretAversionAdjustedWealth -= RegretAversion * ((double) bestOffers.Item1 - myGameProgress.PFinalWealth);
+            if (bestOffers.Item2 != null && bestOffers.Item2 > myGameProgress.DFinalWealth)
+                dRegretAversionAdjustedWealth -= RegretAversion * ((double) bestOffers.Item2 - myGameProgress.DFinalWealth);
+            myGameProgress.PWelfare.Should().Be(pRegretAversionAdjustedWealth);
+            myGameProgress.DWelfare.Should().Be(dRegretAversionAdjustedWealth);
         }
     }
 }

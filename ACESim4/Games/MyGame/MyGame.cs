@@ -86,8 +86,10 @@ namespace ACESim
                     offer = GetOfferBasedOnAction(action, false);
                     MyProgress.AddOffer(false, offer);
                     if (MyDefinition.Options.BargainingRoundsSimultaneous || MyDefinition.Options.PGoesFirstIfNotSimultaneous[MyProgress.BargainingRoundsComplete])
+                    {
                         MyProgress.ConcludeMainPortionOfBargainingRound(MyDefinition);
-                break;
+                    }
+                    break;
                 case (byte)MyGameDecisions.PResponse:
                     MyProgress.AddResponse(true, action == 1); // 1 == accept, 2 == reject
                     MyProgress.ConcludeMainPortionOfBargainingRound(MyDefinition);
@@ -184,62 +186,98 @@ namespace ACESim
             return discreteSignal;
         }
 
-        public override void FinalProcessing()
+        public class MyGameOutcome
         {
-            if (!MyProgress.PFiles || MyProgress.PAbandons)
+            public double PChangeWealth;
+            public double DChangeWealth;
+            public double PFinalWealth;
+            public double DFinalWealth;
+            public double PWelfare;
+            public double DWelfare;
+            public bool TrialOccurs;
+        }
+
+        public static MyGameOutcome CalculateGameOutcome(MyGameDefinition gameDefinition, double pInitialWealth, double dInitialWealth, double damagesAlleged, bool pFiles, bool pAbandons, bool dAnswers, bool dDefaults, double? settlementValue, bool pWinsAtTrial, byte bargainingRoundsComplete, double? pFinalWealthWithBestOffer, double? dFinalWealthWithBestOffer)
+        {
+            if (Br.eak.Contains("A"))
             {
-                MyProgress.PChangeWealth = MyProgress.DChangeWealth = 0;
-                MyProgress.TrialOccurs = false;
+                var DEBUG = 0;
             }
-            else if (!MyProgress.DAnswers || MyProgress.DDefaults)
+            MyGameOutcome outcome = new MyGameOutcome();
+            if (!pFiles || pAbandons)
+            {
+                outcome.PChangeWealth = outcome.DChangeWealth = 0;
+                outcome.TrialOccurs = false;
+            }
+            else if (!dAnswers || dDefaults)
             { // defendant pays full damages (but no trial costs)
-                MyProgress.PChangeWealth += MyDefinition.Options.DamagesAlleged;
-                MyProgress.DChangeWealth -= MyDefinition.Options.DamagesAlleged;
-                MyProgress.TrialOccurs = false;
+                outcome.PChangeWealth += gameDefinition.Options.DamagesAlleged;
+                outcome.DChangeWealth -= gameDefinition.Options.DamagesAlleged;
+                outcome.TrialOccurs = false;
             }
-            else if (MyProgress.CaseSettles)
+            else if (settlementValue != null)
             {
-                if (MyProgress.SettlementValue == null)
-                    throw new NotImplementedException();
-                MyProgress.PChangeWealth = (double)MyProgress.SettlementValue;
-                MyProgress.DChangeWealth = 0 - (double)MyProgress.SettlementValue;
-                MyProgress.TrialOccurs = false;
+                outcome.PChangeWealth = (double)settlementValue;
+                outcome.DChangeWealth = 0 - (double)settlementValue;
+                outcome.TrialOccurs = false;
             }
             else
             {
-                MyProgress.TrialOccurs = true;
-                MyProgress.PChangeWealth = (MyProgress.PWinsAtTrial ? MyProgress.DamagesAlleged : 0);
-                MyProgress.DChangeWealth = (MyProgress.PWinsAtTrial ? -MyProgress.DamagesAlleged : 0);
+                outcome.TrialOccurs = true;
+                outcome.PChangeWealth = (pWinsAtTrial ? damagesAlleged : 0);
+                outcome.DChangeWealth = (pWinsAtTrial ? -damagesAlleged : 0);
             }
-            double pFilingCostIncurred = MyProgress.PFiles ? MyDefinition.Options.PFilingCost : 0;
-            double dAnswerCostIncurred = MyProgress.DAnswers ? MyDefinition.Options.DAnswerCost : 0;
-            double pTrialCostsIncurred = MyProgress.TrialOccurs ? MyDefinition.Options.PTrialCosts : 0;
-            double dTrialCostsIncurred = MyProgress.TrialOccurs ? MyDefinition.Options.DTrialCosts : 0;
-            double perPartyBargainingCostsIncurred = MyDefinition.Options.PerPartyCostsLeadingUpToBargainingRound * MyProgress.BargainingRoundsComplete;
-            bool loserPaysApplies = MyDefinition.Options.LoserPays && (MyProgress.TrialOccurs || (MyDefinition.Options.LoserPaysAfterAbandonment && (MyProgress.PAbandons || MyProgress.DDefaults)));
+            double pFilingCostIncurred = pFiles ? gameDefinition.Options.PFilingCost : 0;
+            double dAnswerCostIncurred = dAnswers ? gameDefinition.Options.DAnswerCost : 0;
+            double pTrialCostsIncurred = outcome.TrialOccurs ? gameDefinition.Options.PTrialCosts : 0;
+            double dTrialCostsIncurred = outcome.TrialOccurs ? gameDefinition.Options.DTrialCosts : 0;
+            double perPartyBargainingCostsIncurred = gameDefinition.Options.PerPartyCostsLeadingUpToBargainingRound * bargainingRoundsComplete;
+            bool loserPaysApplies = gameDefinition.Options.LoserPays && (outcome.TrialOccurs || (gameDefinition.Options.LoserPaysAfterAbandonment && (pAbandons || dDefaults)));
             if (loserPaysApplies)
             { // British Rule and it applies (contested litigation and no settlement)
-                bool pLoses = (MyProgress.TrialOccurs && !MyProgress.PWinsAtTrial) || MyProgress.PAbandons;
+                bool pLoses = (outcome.TrialOccurs && !pWinsAtTrial) || pAbandons;
                 double losersBill = 0;
                 losersBill += pFilingCostIncurred + dAnswerCostIncurred;
                 losersBill += 2 * perPartyBargainingCostsIncurred;
                 losersBill += pTrialCostsIncurred + dTrialCostsIncurred;
                 if (pLoses)
-                    MyProgress.PChangeWealth -= losersBill;
+                    outcome.PChangeWealth -= losersBill;
                 else
-                    MyProgress.DChangeWealth -= losersBill;
+                    outcome.DChangeWealth -= losersBill;
             }
             else
             { // American rule
-                MyProgress.PChangeWealth -= pFilingCostIncurred + perPartyBargainingCostsIncurred + pTrialCostsIncurred;
-                MyProgress.DChangeWealth -= dAnswerCostIncurred + perPartyBargainingCostsIncurred + dTrialCostsIncurred;
+                outcome.PChangeWealth -= pFilingCostIncurred + perPartyBargainingCostsIncurred + pTrialCostsIncurred;
+                outcome.DChangeWealth -= dAnswerCostIncurred + perPartyBargainingCostsIncurred + dTrialCostsIncurred;
             }
-            MyProgress.PFinalWealth = MyProgress.PInitialWealth + MyProgress.PChangeWealth;
-            MyProgress.DFinalWealth = MyProgress.DInitialWealth + MyProgress.DChangeWealth;
-            MyProgress.PWelfare =
-                MyDefinition.Options.PUtilityCalculator.GetSubjectiveUtilityForWealthLevel(MyProgress.PFinalWealth);
-            MyProgress.DWelfare =
-                MyDefinition.Options.DUtilityCalculator.GetSubjectiveUtilityForWealthLevel(MyProgress.DFinalWealth);
+            outcome.PFinalWealth = pInitialWealth + outcome.PChangeWealth;
+            outcome.DFinalWealth = dInitialWealth + outcome.DChangeWealth;
+            double pPerceivedFinalWealth = outcome.PFinalWealth;
+            double dPerceivedFinalWealth = outcome.DFinalWealth;
+            if (gameDefinition.Options.RegretAversion != 0)
+            {
+                if (pFinalWealthWithBestOffer > outcome.PFinalWealth)
+                    pPerceivedFinalWealth -= gameDefinition.Options.RegretAversion * ((double) pFinalWealthWithBestOffer - outcome.PFinalWealth);
+                if (dFinalWealthWithBestOffer > outcome.DFinalWealth)
+                    dPerceivedFinalWealth -= gameDefinition.Options.RegretAversion * ((double)dFinalWealthWithBestOffer - outcome.DFinalWealth);
+            }
+            outcome.PWelfare =
+                gameDefinition.Options.PUtilityCalculator.GetSubjectiveUtilityForWealthLevel(pPerceivedFinalWealth);
+            outcome.DWelfare =
+                gameDefinition.Options.DUtilityCalculator.GetSubjectiveUtilityForWealthLevel(dPerceivedFinalWealth);
+            return outcome;
+        }
+
+        public override void FinalProcessing()
+        {
+            var outcome = CalculateGameOutcome(MyDefinition, MyProgress.PInitialWealth, MyProgress.DInitialWealth, MyProgress.DamagesAlleged, MyProgress.PFiles, MyProgress.PAbandons, MyProgress.DAnswers, MyProgress.DDefaults, MyProgress.SettlementValue, MyProgress.PWinsAtTrial, MyProgress.BargainingRoundsComplete, MyProgress.PFinalWealthWithBestOffer, MyProgress.DFinalWealthWithBestOffer);
+            MyProgress.PChangeWealth = outcome.PChangeWealth;
+            MyProgress.DChangeWealth = outcome.DChangeWealth;
+            MyProgress.PFinalWealth = outcome.PFinalWealth;
+            MyProgress.DFinalWealth = outcome.DFinalWealth;
+            MyProgress.PWelfare = outcome.PWelfare;
+            MyProgress.DWelfare = outcome.DWelfare;
+            MyProgress.TrialOccurs = outcome.TrialOccurs;
             base.FinalProcessing();
         }
     }

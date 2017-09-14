@@ -17,7 +17,7 @@ namespace ACESim
         public double PSignalUniform;
         public double DSignalUniform;
         public bool PFiles, DAnswers, PReadyToAbandon, DReadyToAbandon, BothReadyToGiveUp, PAbandons, DDefaults;
-        public int BargainingRoundsComplete;
+        public byte BargainingRoundsComplete;
         public List<bool> PAgreesToBargain;
         public List<bool> DAgreesToBargain;
         public List<double> POffers;
@@ -33,6 +33,8 @@ namespace ACESim
         public double DamagesAlleged = 1.0;
         public double PChangeWealth;
         public double DChangeWealth;
+        public double? PFinalWealthWithBestOffer;
+        public double? DFinalWealthWithBestOffer;
         public double PFinalWealth;
         public double DFinalWealth;
         public double PWelfare;
@@ -41,7 +43,7 @@ namespace ACESim
         public override string ToString()
         {
             return
-                $"LitigationQualityDiscrete {LitigationQualityDiscrete} LitigationQualityUniform {LitigationQualityUniform} PSignalDiscrete {PSignalDiscrete} DSignalDiscrete {DSignalDiscrete} PSignalUniform {PSignalUniform} DSignalUniform {DSignalUniform} PFiles {PFiles} DAnswers {DAnswers} BargainingRoundsComplete {BargainingRoundsComplete} PLastAgreesToBargain {PLastAgreesToBargain} DLastAgreesToBargain {DLastAgreesToBargain} PLastOffer {PLastOffer} DLastOffer {DLastOffer} CaseSettles {CaseSettles} SettlementValue {SettlementValue} PAbandons {PAbandons} DDefaults {DDefaults} TrialOccurs {TrialOccurs} PWinsAtTrial {PWinsAtTrial} PFinalWealth {PFinalWealth} DFinalWealth {DFinalWealth} PWelfare {PWelfare} DWelfare {DWelfare}";
+                $"LitigationQualityDiscrete {LitigationQualityDiscrete} LitigationQualityUniform {LitigationQualityUniform} PSignalDiscrete {PSignalDiscrete} DSignalDiscrete {DSignalDiscrete} PSignalUniform {PSignalUniform} DSignalUniform {DSignalUniform} PFiles {PFiles} DAnswers {DAnswers} BargainingRoundsComplete {BargainingRoundsComplete} PLastAgreesToBargain {PLastAgreesToBargain} DLastAgreesToBargain {DLastAgreesToBargain} PLastOffer {PLastOffer} DLastOffer {DLastOffer} CaseSettles {CaseSettles} SettlementValue {SettlementValue} PAbandons {PAbandons} DDefaults {DDefaults} TrialOccurs {TrialOccurs} PWinsAtTrial {PWinsAtTrial} PFinalWealthWithBestOffer {PFinalWealthWithBestOffer} DFinalWealthWithBestOffer {DFinalWealthWithBestOffer} PFinalWealth {PFinalWealth} DFinalWealth {DFinalWealth} PWelfare {PWelfare} DWelfare {DWelfare}";
         }
 
         public bool? PFirstAgreesToBargain => (bool?)PAgreesToBargain?.FirstOrDefault() ?? null;
@@ -69,7 +71,25 @@ namespace ACESim
                 BargainingRoundsComplete++;
                 GameComplete = true;
             }
+            else
+            {
+                Br.eak.IfAdded("A");
+                if (playersMovingSimultaneously || !pGoesFirstIfNotSimultaneous)
+                { // defendant has made an offer this round
+                    var pMissedOpportunity = MyGame.CalculateGameOutcome(gameDefinition, PInitialWealth, DInitialWealth, DamagesAlleged, PFiles, PAbandons, DAnswers, DDefaults, (double) DLastOffer * DamagesAlleged, true /* ignored */, (byte) (BargainingRoundsComplete + 1), null, null);
+                    if (pMissedOpportunity.PFinalWealth > PFinalWealthWithBestOffer || PFinalWealthWithBestOffer == null)
+                        PFinalWealthWithBestOffer = pMissedOpportunity.PFinalWealth;
+                }
+                if (playersMovingSimultaneously || pGoesFirstIfNotSimultaneous)
+                { // plaintiff has made an offer this round
+                    var dMissedOpportunity = MyGame.CalculateGameOutcome(gameDefinition, PInitialWealth, DInitialWealth, DamagesAlleged, PFiles, PAbandons, DAnswers, DDefaults, (double)PLastOffer * DamagesAlleged, true /* ignored */, (byte)(BargainingRoundsComplete + 1), null, null);
+                    if (dMissedOpportunity.DFinalWealth > DFinalWealthWithBestOffer || DFinalWealthWithBestOffer == null)
+                        DFinalWealthWithBestOffer = dMissedOpportunity.DFinalWealth;
+                }
+            }
         }
+
+
 
         public double? GetOffer(bool plaintiff, int offerNumber)
         {
@@ -157,6 +177,8 @@ namespace ACESim
             copy.DamagesAlleged = DamagesAlleged;
             copy.PChangeWealth = PChangeWealth;
             copy.DChangeWealth = DChangeWealth;
+            copy.PFinalWealthWithBestOffer = PFinalWealthWithBestOffer;
+            copy.DFinalWealthWithBestOffer = DFinalWealthWithBestOffer;
             copy.PFinalWealth = PFinalWealth;
             copy.DFinalWealth = DFinalWealth;
             copy.PWelfare = PWelfare;
