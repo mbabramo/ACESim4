@@ -74,6 +74,7 @@ namespace ACESimTest
                 DTrialCosts = DTrialCosts,
                 RegretAversion = RegretAversion,
                 LoserPays = loserPaysPolicy != LoserPaysPolicy.NoLoserPays,
+                LoserPaysMultiple = 1.5,
                 LoserPaysAfterAbandonment = loserPaysPolicy == LoserPaysPolicy.EvenAfterAbandonOrDefault,
                 PerPartyCostsLeadingUpToBargainingRound = PerRoundBargainingCost,
                 AllowAbandonAndDefaults = allowAbandonAndDefaults,
@@ -465,24 +466,9 @@ namespace ACESimTest
             double pExpenses, dExpenses;
             if (myGameProgress.PFiles && myGameProgress.DAnswers)
             {
-                if (options.LoserPays && options.LoserPaysAfterAbandonment)
-                {
-                    if (pWins)
-                    {
-                        pExpenses = 0;
-                        dExpenses = options.PFilingCost + options.DAnswerCost + 2 * numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound;
-                    }
-                    else
-                    {
-                        dExpenses = 0;
-                        pExpenses = options.PFilingCost + options.DAnswerCost + 2 * numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound;
-                    }
-                }
-                else
-                {
-                    pExpenses = options.PFilingCost + numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound;
-                    dExpenses = options.DAnswerCost + numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound;
-                }
+                double pInitialExpenses = options.PFilingCost + numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound;
+                double dInitialExpenses = options.DAnswerCost + numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound;
+                GetExpensesAfterFeeShifting(options, true, pWins, pInitialExpenses, dInitialExpenses, out pExpenses, out dExpenses);
             }
             else
             { // either p didn't file or p filed and d didn't answer
@@ -503,6 +489,29 @@ namespace ACESimTest
             pInformationSet.Should().Be(expectedPartyInformationSets.pInformationSet);
             dInformationSet.Should().Be(expectedPartyInformationSets.dInformationSet);
             resolutionSet.Should().Be(expectedResolutionSet);
+        }
+
+        private void GetExpensesAfterFeeShifting(MyGameOptions options, bool loserPaysAfterAbandonmentRequired, bool pWins, double pInitialExpenses, double dInitialExpenses, out double pExpenses, out double dExpenses)
+        {
+            if (options.LoserPays && (!loserPaysAfterAbandonmentRequired || options.LoserPaysAfterAbandonment))
+            {
+                if (pWins)
+                {
+                    pExpenses = pInitialExpenses - options.LoserPaysMultiple * pInitialExpenses;
+                    dExpenses = dInitialExpenses + options.LoserPaysMultiple * pInitialExpenses;
+                }
+                else
+                {
+                    pExpenses = pInitialExpenses + options.LoserPaysMultiple * dInitialExpenses;
+                    dExpenses = dInitialExpenses - options.LoserPaysMultiple * dInitialExpenses;
+                }
+            }
+            else
+            {
+                // American rule
+                pExpenses = pInitialExpenses;
+                dExpenses = dInitialExpenses;
+            }
         }
 
         [TestMethod]
@@ -616,24 +625,10 @@ namespace ACESimTest
             var myGameProgress = MyGameRunner.PlayMyGameOnce(options, actions);
             myGameProgress.GameComplete.Should().BeTrue();
             double pExpenses, dExpenses;
-            if (options.LoserPays)
-            {
-                if (plaintiffWins)
-                {
-                    pExpenses = 0;
-                    dExpenses = options.PFilingCost + options.DAnswerCost + 2 * numBargainingRounds * options.PerPartyCostsLeadingUpToBargainingRound + options.PTrialCosts + options.DTrialCosts;
-                }
-                else
-                {
-                    dExpenses = 0;
-                    pExpenses = options.PFilingCost + options.DAnswerCost + 2 * numBargainingRounds * options.PerPartyCostsLeadingUpToBargainingRound + options.PTrialCosts + options.DTrialCosts;
-                }
-            }
-            else
-            {
-                pExpenses = options.PFilingCost + numBargainingRounds * options.PerPartyCostsLeadingUpToBargainingRound + options.PTrialCosts;
-                dExpenses = options.DAnswerCost + numBargainingRounds * options.PerPartyCostsLeadingUpToBargainingRound + options.DTrialCosts;
-            }
+
+            double pInitialExpenses = options.PFilingCost + numBargainingRounds * options.PerPartyCostsLeadingUpToBargainingRound + options.PTrialCosts;
+            double dInitialExpenses = options.DAnswerCost + numBargainingRounds * options.PerPartyCostsLeadingUpToBargainingRound + options.DTrialCosts;
+            GetExpensesAfterFeeShifting(options, false, plaintiffWins, pInitialExpenses, dInitialExpenses, out pExpenses, out dExpenses);
 
             double pFinalWealthExpected = options.PInitialWealth - pExpenses;
             double dFinalWealthExpected = options.DInitialWealth - dExpenses;

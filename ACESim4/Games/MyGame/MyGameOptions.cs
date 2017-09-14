@@ -97,9 +97,13 @@ namespace ACESim
         /// </summary>
         public int NumPotentialBargainingRounds;
         /// <summary>
-        /// If true, and there is a loser at trial, then the loser pays all of the winner's costs.
+        /// If true, and there is a loser at trial, then the loser pays the winner's costs.
         /// </summary>
         public bool LoserPays;
+        /// <summary>
+        /// This can be used to increase or decrease the amount of the winner's costs paid by the winner.
+        /// </summary>
+        public double LoserPaysMultiple;
         /// <summary>
         /// If true, then the loser pays rule applies also when a party gives up (except when that occurs by not answering in the first place).
         /// </summary>

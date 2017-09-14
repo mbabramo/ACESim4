@@ -232,18 +232,23 @@ namespace ACESim
             double pTrialCostsIncurred = outcome.TrialOccurs ? gameDefinition.Options.PTrialCosts : 0;
             double dTrialCostsIncurred = outcome.TrialOccurs ? gameDefinition.Options.DTrialCosts : 0;
             double perPartyBargainingCostsIncurred = gameDefinition.Options.PerPartyCostsLeadingUpToBargainingRound * bargainingRoundsComplete;
+            double pCostsInitiallyIncurred = pFilingCostIncurred + perPartyBargainingCostsIncurred + pTrialCostsIncurred;
+            double dCostsInitiallyIncurred = dAnswerCostIncurred + perPartyBargainingCostsIncurred + dTrialCostsIncurred;
             bool loserPaysApplies = gameDefinition.Options.LoserPays && (outcome.TrialOccurs || (gameDefinition.Options.LoserPaysAfterAbandonment && (pAbandons || dDefaults)));
             if (loserPaysApplies)
             { // British Rule and it applies (contested litigation and no settlement)
+                double loserPaysMultiple = gameDefinition.Options.LoserPaysMultiple;
                 bool pLoses = (outcome.TrialOccurs && !pWinsAtTrial) || pAbandons;
-                double losersBill = 0;
-                losersBill += pFilingCostIncurred + dAnswerCostIncurred;
-                losersBill += 2 * perPartyBargainingCostsIncurred;
-                losersBill += pTrialCostsIncurred + dTrialCostsIncurred;
                 if (pLoses)
-                    outcome.PChangeWealth -= losersBill;
+                {
+                    outcome.PChangeWealth -= pCostsInitiallyIncurred + loserPaysMultiple * dCostsInitiallyIncurred;
+                    outcome.DChangeWealth -= dCostsInitiallyIncurred - loserPaysMultiple * dCostsInitiallyIncurred;
+                }
                 else
-                    outcome.DChangeWealth -= losersBill;
+                {
+                    outcome.PChangeWealth -= pCostsInitiallyIncurred - loserPaysMultiple * pCostsInitiallyIncurred;
+                    outcome.DChangeWealth -= dCostsInitiallyIncurred + loserPaysMultiple * pCostsInitiallyIncurred;
+                }
             }
             else
             { // American rule

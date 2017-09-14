@@ -34,6 +34,7 @@ namespace ACESim
                 PerPartyCostsLeadingUpToBargainingRound = 1000,
                 AllowAbandonAndDefaults = false,
                 LoserPays = false,
+                LoserPaysMultiple = 1.0,
                 LoserPaysAfterAbandonment = true,
                 DeltaOffersOptions = new DeltaOffersOptions()
                 {
@@ -77,6 +78,7 @@ namespace ACESim
                 PerPartyCostsLeadingUpToBargainingRound = 10000,
                 AllowAbandonAndDefaults = false,
                 LoserPays = false,
+                LoserPaysMultiple = 1.0,
                 LoserPaysAfterAbandonment = true,
                 DeltaOffersOptions = new DeltaOffersOptions()
                 {
@@ -120,6 +122,7 @@ namespace ACESim
                 PerPartyCostsLeadingUpToBargainingRound = 10000,
                 AllowAbandonAndDefaults = true,
                 LoserPays = false,
+                LoserPaysMultiple = 1.0,
                 LoserPaysAfterAbandonment = true,
                 DeltaOffersOptions = new DeltaOffersOptions()
                 {
@@ -159,10 +162,12 @@ namespace ACESim
                 CourtNoiseStdev = 0.5,
                 PTrialCosts = 15000,
                 DTrialCosts = 15000,
-                IncludeAgreementToBargainDecisions = true,
+                RegretAversion = 3.0,
+                IncludeAgreementToBargainDecisions = false,
                 PerPartyCostsLeadingUpToBargainingRound = 10000,
                 AllowAbandonAndDefaults = true,
                 LoserPays = true,
+                LoserPaysMultiple = 1.0,
                 LoserPaysAfterAbandonment = true,
                 DeltaOffersOptions = new DeltaOffersOptions()
                 {

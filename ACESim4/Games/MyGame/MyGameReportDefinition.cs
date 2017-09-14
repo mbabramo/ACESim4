@@ -61,6 +61,18 @@ namespace ACESim
             for (int b = 1; b <= Options.NumPotentialBargainingRounds; b++)
             {
                 int bargainingRoundNum = b; // needed for closure -- otherwise b below will always be max value.
+                if (Options.IncludeAgreementToBargainDecisions)
+                {
+                    colItems.Add(
+                        new SimpleReportColumnFilter($"PBargains{b}",
+                            (GameProgress gp) => (MyGP(gp).PAgreesToBargain?.Count() ?? 0) >= bargainingRoundNum && MyGP(gp).PAgreesToBargain[bargainingRoundNum - 1], false)
+                    );
+
+                    colItems.Add(
+                        new SimpleReportColumnFilter($"DBargains{b}",
+                            (GameProgress gp) => (MyGP(gp).DAgreesToBargain?.Count() ?? 0) >= bargainingRoundNum && MyGP(gp).DAgreesToBargain[bargainingRoundNum - 1], false)
+                    );
+                }
                 colItems.Add(
                     new SimpleReportColumnFilter($"Settles{b}",
                         (GameProgress gp) => MyGP(gp).SettlementValue != null &&
