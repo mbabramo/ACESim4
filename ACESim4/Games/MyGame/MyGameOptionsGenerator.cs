@@ -162,13 +162,13 @@ namespace ACESim
                 CourtNoiseStdev = 0.3,
                 PTrialCosts = 15000,
                 DTrialCosts = 15000,
-                RegretAversion = 1.0,
+                RegretAversion = 0.0,
                 IncludeAgreementToBargainDecisions = false,
                 PerPartyCostsLeadingUpToBargainingRound = 10000,
                 AllowAbandonAndDefaults = true,
                 LoserPays = false,
                 LoserPaysMultiple = 1.0,
-                LoserPaysAfterAbandonment = true,
+                LoserPaysAfterAbandonment = false, 
                 DeltaOffersOptions = new DeltaOffersOptions()
                 {
                     SubsequentOffersAreDeltas = false,
@@ -181,9 +181,9 @@ namespace ACESim
                 BargainingRoundsSimultaneous = true,
                 PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false, true, false, true, false },
                 IncludeSignalsReport = false,     
-                IncludeCourtSuccessReport = true,
+                IncludeCourtSuccessReport = false,
             };
-            //options.AdditionalTableOverrides = new List<(Func<Decision, GameProgress, byte>, string)>() { (MyGameActionsGenerator.GamePlaysOutToTrial, "GamePlaysOutToTrial") };
+            // options.AdditionalTableOverrides = new List<(Func<Decision, GameProgress, byte>, string)>() { (MyGameActionsGenerator.GamePlaysOutToTrial, "GamePlaysOutToTrial") };
             options.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.PInitialWealth };
             options.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.DInitialWealth };
             return options;
