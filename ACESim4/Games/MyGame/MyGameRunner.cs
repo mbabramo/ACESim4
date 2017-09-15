@@ -113,42 +113,88 @@ namespace ACESim
             return differentiatedReport;
         }
 
-        private static string GetCombinedString(List<string> linesFromAllReports, List<bool> isNumeric)
+
+
+        private static Dictionary<string, List<(string theString, double? theValue)>> GetValuesForEachVariable(string cumulativeReport)
         {
-            List<string> resultingStrings = new List<string>();
-            for (int variable = 0; variable < isNumeric.Count(); variable++)
+            (string headerLine, List<string> otherLines) = GetHeaderLineAndOtherLines(cumulativeReport);
+            List<string> variableNames = headerLine.Split(',').ToList();
+            var listOfDictionaries = GetLinesAsDictionaries(variableNames, otherLines);
+            problem; // Now we need to get each header item and narrow down from that
+            var dictionaryOfLists = ConvertToDictionaryOfLists(listOfDictionaries);
+            foreach (string variableName in variableNames)
             {
-                if (isNumeric[variable])
+                var itemsForVariable = dictionaryOfLists[variableName];
+                if (itemsForVariable.All(x => x.theString == "" || x.theValue != null))
                 {
-                    StatCollector c = new StatCollector();
+                    var numericItems = itemsForVariable.Where(x => x.theValue != null).Select(x => (double) x.theValue).ToList();
+                    var aggregation = numericItems.Average();
                 }
-                else
+            }
+            return dictionaryOfLists;
+        }
+
+        private static (string, List<string>) GetHeaderLineAndOtherLines(string csvString)
+        {
+            List<string> lines = GetLinesAsStrings(csvString);
+            return (lines.First(), lines.Skip(1).ToList());
+        }
+
+        private static List<string> GetLinesAsStrings(string csvString)
+        {
+            List<string> lines = new List<string>();
+            using (StringReader reader = new StringReader(csvString))
+            {
+                string line = string.Empty;
+                do
                 {
-                    resultingStrings.Add
-                }
+                    line = reader.ReadLine();
+                    if (line != null)
+                    {
+                        lines.Add(line);
+                    }
+
+                } while (line != null);
+                return lines;
             }
         }
 
-        private static List<bool> IsNumericColumn(string cumulativeReport)
+        private static Dictionary<T, List<U>> ConvertToDictionaryOfLists<T,U>(List<Dictionary<T, U>> listOfDictionaries)
         {
-            return GetVariableNames(cumulativeReport).Select(x => x != "\"Report\"" && x != "\"Iteration\"" && x != "\"Filter\"" && x != "\"LineNum\"" && x != "\"Parameter\"").ToList();
-        }
-
-        private static List<string> GetVariableNames(string cumulativeReport)
-        {
-            string headerLine = GetHeaderLine(cumulativeReport);
-            string[] varNames = headerLine.Split(',');
-            return varNames.ToList();
-        }
-
-        private static string GetHeaderLine(string cumulativeReport)
-        {
-            string headerLine = null;
-            using (StringReader reader = new StringReader(cumulativeReport))
+            Dictionary<T, List<U>> outerDict = new Dictionary<T, List<U>>();
+            foreach (var key in listOfDictionaries.SelectMany(x => x.Keys).Distinct())
             {
-                headerLine = reader.ReadLine();
+                List<U> innerList = new List<U>();
+                foreach (Dictionary<T, U> innerDict in listOfDictionaries)
+                {
+                    foreach (var keyValuePair in innerDict)
+                    {
+                        if (keyValuePair.Key.Equals(key))
+                            innerList.Add(keyValuePair.Value)
+                    }
+                }
+                outerDict[key] = innerList;
             }
-            return headerLine;
+            return outerDict;
+        }
+
+        private static List<Dictionary<string, (string theString, double? theValue)>> GetLinesAsDictionaries(List<string> variableNames, List<string> linesToParse)
+        {
+            List<Dictionary<string, (string theString, double? theValue)>> list = new List<Dictionary<string, (string theString, double? theValue)>>();
+            foreach (string line in linesToParse)
+            {
+                string[] parsed = line.Split(',');
+                Dictionary<string, (string theString, double? theValue)> dict = new Dictionary<string, (string theString, double? theValue)>();
+                for (int i = 0; i < parsed.Length; i++)
+                {
+                    string variableName = variableNames[i];
+                    string value = parsed[i];
+                    bool parsable = double.TryParse(value, out double parseResult);
+                    dict[variableName] = parsable ? (value, (double?) parseResult) : (value, null);
+                }
+                list.Add(dict);
+            }
+            return list;
         }
 
         private static List<List<string>> GetAggregatedLines(string cumulativeReport, int numLines, int numReports)
