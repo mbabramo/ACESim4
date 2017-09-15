@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -63,13 +64,117 @@ namespace ACESim
             };
             NWayTreeStorageRoot<IGameState>.EnableUseDictionary = false; // DEBUG evolutionSettings.ParallelOptimization == false; // this is based on some limited performance testing; with parallelism, this seems to slow us down. Maybe it's not worth using. It might just be because of the lock.
             NWayTreeStorageRoot<IGameState>.ParallelEnabled = evolutionSettings.ParallelOptimization;
-            const int numRepetitions = 20;
+            const int numRepetitions = 2;
+            string cumulativeReport = "";
+            int numMainLines = 0;
             for (int i = 0; i < numRepetitions; i++)
             {
+                string reportName = "Report";
+                string reportIteration = i.ToString();
                 CounterfactualRegretMaximization developer =
                     new CounterfactualRegretMaximization(starterStrategies, evolutionSettings, gameDefinition);
-                developer.DevelopStrategies();
+                string report = developer.DevelopStrategies();
+                string differentiatedReport = DifferentiatedReport(report, reportName, reportIteration, i == 0, out numMainLines);
+                cumulativeReport += differentiatedReport;
             }
+            Debug.WriteLine(cumulativeReport);
+            var aggregatedLines = GetAggregatedLines(cumulativeReport, numMainLines, numRepetitions);
+            
+        }
+
+        private static string DifferentiatedReport(string report, string reportName, string reportIteration, bool includeFirst, out int numMainLines)
+        {
+            StringBuilder sb = new StringBuilder();
+            using (StringReader reader = new StringReader(report))
+            {
+                string line;
+                bool isFirst = true;
+                numMainLines = 0;
+                while ((line = reader.ReadLine()) != null)
+                {
+                    if (isFirst && !includeFirst)
+                    {
+                        isFirst = false;
+                        continue;
+                    }
+                    string lineWithPreface;
+                    if (isFirst)
+                        lineWithPreface = $"\"Report\",\"Iteration\",\"LineNum\",{line}";
+                    else
+                        lineWithPreface = $"\"{reportName}\",{reportIteration},{numMainLines},{line}";
+                    sb.Append(lineWithPreface);
+                    sb.AppendLine();
+                    if (!isFirst)
+                        numMainLines++;
+                    isFirst = false;
+                }
+            }
+            string differentiatedReport = sb.ToString();
+            return differentiatedReport;
+        }
+
+        private static string GetCombinedString(List<string> linesFromAllReports, List<bool> isNumeric)
+        {
+            List<string> resultingStrings = new List<string>();
+            for (int variable = 0; variable < isNumeric.Count(); variable++)
+            {
+                if (isNumeric[variable])
+                {
+                    StatCollector c = new StatCollector();
+                }
+                else
+                {
+                    resultingStrings.Add
+                }
+            }
+        }
+
+        private static List<bool> IsNumericColumn(string cumulativeReport)
+        {
+            return GetVariableNames(cumulativeReport).Select(x => x != "\"Report\"" && x != "\"Iteration\"" && x != "\"Filter\"" && x != "\"LineNum\"" && x != "\"Parameter\"").ToList();
+        }
+
+        private static List<string> GetVariableNames(string cumulativeReport)
+        {
+            string headerLine = GetHeaderLine(cumulativeReport);
+            string[] varNames = headerLine.Split(',');
+            return varNames.ToList();
+        }
+
+        private static string GetHeaderLine(string cumulativeReport)
+        {
+            string headerLine = null;
+            using (StringReader reader = new StringReader(cumulativeReport))
+            {
+                headerLine = reader.ReadLine();
+            }
+            return headerLine;
+        }
+
+        private static List<List<string>> GetAggregatedLines(string cumulativeReport, int numLines, int numReports)
+        {
+            List<List<string>> list = new List<List<string>>();
+            for (int i = 0; i < numLines; i++)
+                list.Add(GetLinesByNumber(cumulativeReport, i, numLines, numReports));
+            return list;
+        }
+
+        private static List<string> GetLinesByNumber(string cumulativeReport, int lineNumber, int numLines, int numReports)
+        {
+            List<string> stringList = new List<string>();
+            string headerLine = null;
+            using (StringReader reader = new StringReader(cumulativeReport))
+            {
+                headerLine = reader.ReadLine();
+                for (int r = 0; r < numReports; r++)
+                for (int l = 0; l < numLines; l++)
+                {
+                    string theLine = reader.ReadLine();
+                    if (l == lineNumber)
+                        stringList.Add(theLine);
+                }
+            }
+            return stringList;
         }
     }
 }

@@ -112,8 +112,9 @@ namespace ACESim
 
         #region Initialization
 
-        public void DevelopStrategies()
+        public string DevelopStrategies()
         {
+            string report = null;
             Initialize();
             switch (EvolutionSettings.Algorithm)
             {
@@ -121,13 +122,13 @@ namespace ACESim
                     SolveAvgStrategySamplingCFR();
                     break;
                 case GameApproximationAlgorithm.GibsonProbing:
-                    SolveGibsonProbingCFR();
+                    report = SolveGibsonProbingCFR();
                     break;
                 case GameApproximationAlgorithm.AbramowiczProbing:
-                    SolveAbramowiczProbingCFR();
+                    report = SolveAbramowiczProbingCFR();
                     break;
                 case GameApproximationAlgorithm.Vanilla:
-                    SolveVanillaCFR();
+                    report = SolveVanillaCFR();
                     break;
                 case GameApproximationAlgorithm.PureStrategyFinder:
                     FindPureStrategies();
@@ -135,6 +136,7 @@ namespace ACESim
                 default:
                     throw new NotImplementedException();
             }
+            return report;
         }
 
         public unsafe void Initialize()
@@ -488,8 +490,9 @@ namespace ACESim
 
         #region Game play and reporting
 
-        private unsafe void GenerateReports(int iteration, Func<string> prefaceFn)
+        private unsafe string GenerateReports(int iteration, Func<string> prefaceFn)
         {
+            string reportString = null;
             if (EvolutionSettings.ReportEveryNIterations != null && iteration % EvolutionSettings.ReportEveryNIterations == 0)
             {
                 ActionStrategies previous = ActionStrategy;
@@ -505,7 +508,7 @@ namespace ACESim
                     Console.WriteLine($"{NumberAverageStrategySamplingExplorations / (double)EvolutionSettings.ReportEveryNIterations}");
                 NumberAverageStrategySamplingExplorations = 0;
                 if (EvolutionSettings.PrintSummaryTable)
-                    PrintSummaryTable(useRandomPaths);
+                    reportString = PrintSummaryTable(useRandomPaths);
                 MeasureRegretMatchingChanges();
                 if (ShouldEstimateImprovementOverTime)
                     ReportEstimatedImprovementsOverTime();
@@ -519,9 +522,10 @@ namespace ACESim
                     PrintInformationSets();
                 ActionStrategy = previous;
             }
+            return reportString;
         }
 
-        private unsafe void PrintSummaryTable(bool useRandomPaths)
+        private unsafe string PrintSummaryTable(bool useRandomPaths)
         {
             Action<GamePlayer, Func<Decision, GameProgress, byte>> reportGenerator;
             if (useRandomPaths)
@@ -534,7 +538,9 @@ namespace ACESim
                 Console.WriteLine($"Result using all paths");
                 reportGenerator = GenerateReports_AllPaths;
             }
-            Console.WriteLine($"{GenerateReports(reportGenerator)}");
+            var reports = GenerateReports(reportGenerator);
+            Console.WriteLine($"{reports.standardReport}");
+            return reports.csvReport;
             //Console.WriteLine($"Number initialized game paths: {NumInitializedGamePaths}");
         }
 
@@ -674,10 +680,11 @@ namespace ACESim
 
         SimpleReport[] ReportsBeingGenerated = null;
 
-        public string GenerateReports(Action<GamePlayer, Func<Decision, GameProgress, byte>> generator)
+        public (string standardReport, string csvReport) GenerateReports(Action<GamePlayer, Func<Decision, GameProgress, byte>> generator)
         {
             Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, GetGameState);
-            StringBuilder sb = new StringBuilder();
+            StringBuilder standardReport = new StringBuilder();
+            StringBuilder csvReport = new StringBuilder();
             var simpleReportDefinitions = GameDefinition.GetSimpleReportDefinitions();
             int simpleReportDefinitionsCount = simpleReportDefinitions.Count();
             ReportsBeingGenerated = new SimpleReport[simpleReportDefinitionsCount];
@@ -685,11 +692,11 @@ namespace ACESim
             {
                 ReportsBeingGenerated[i] = new SimpleReport(simpleReportDefinitions[i], simpleReportDefinitions[i].DivideColumnFiltersByImmediatelyEarlierReport ? ReportsBeingGenerated[i - 1] : null);
                 generator(GamePlayer, simpleReportDefinitions[i].ActionsOverride);
-                ReportsBeingGenerated[i].GetReport(sb, false);
+                ReportsBeingGenerated[i].GetReport(standardReport, csvReport);
                 ReportsBeingGenerated[i] = null; // so we don't keep adding GameProgress to this report
             }
             ReportsBeingGenerated = null;
-            return sb.ToString();
+            return (standardReport.ToString(), csvReport.ToString());
         }
 
         StatCollector[] UtilityCalculations;

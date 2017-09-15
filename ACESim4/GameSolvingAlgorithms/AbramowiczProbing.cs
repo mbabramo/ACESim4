@@ -435,8 +435,9 @@ namespace ACESim
         private bool DiscountingEnabled;
         private double CurrentDiscount;
 
-        public unsafe void SolveAbramowiczProbingCFR()
+        public unsafe string SolveAbramowiczProbingCFR()
         {
+            string reportString = null;
             if (GameNumber == 0)
                 GameNumber = EvolutionSettings.InitialRandomSeed;
             Console.WriteLine($"Game number {GameNumber}");
@@ -506,12 +507,13 @@ namespace ACESim
                     );
                     s.Stop();
                     ProbingCFRIterationNum = startingIteration = stopBefore; // this is the iteration to run next
-                    GenerateReports(ProbingCFRIterationNum,
+                    reportString = GenerateReports(ProbingCFRIterationNum,
                         () =>
                             $"Iteration {ProbingCFRIterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)(ProbingCFRIterationNum + 1))))}");
                 }
             }
             GameNumber++;
+            return reportString; // final report
         }
 
         private int GetNextMultipleOf(int value, int multiple)

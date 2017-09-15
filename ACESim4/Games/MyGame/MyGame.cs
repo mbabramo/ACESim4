@@ -231,6 +231,7 @@ namespace ACESim
             double perPartyBargainingCostsIncurred = gameDefinition.Options.PerPartyCostsLeadingUpToBargainingRound * bargainingRoundsComplete;
             double pCostsInitiallyIncurred = pFilingCostIncurred + perPartyBargainingCostsIncurred + pTrialCostsIncurred;
             double dCostsInitiallyIncurred = dAnswerCostIncurred + perPartyBargainingCostsIncurred + dTrialCostsIncurred;
+            double pEffectOfExpenses = 0, dEffectOfExpenses = 0;
             bool loserPaysApplies = gameDefinition.Options.LoserPays && (outcome.TrialOccurs || (gameDefinition.Options.LoserPaysAfterAbandonment && (pAbandons || dDefaults)));
             if (loserPaysApplies)
             { // British Rule and it applies (contested litigation and no settlement)
@@ -238,20 +239,24 @@ namespace ACESim
                 bool pLoses = (outcome.TrialOccurs && !pWinsAtTrial) || pAbandons;
                 if (pLoses)
                 {
-                    outcome.PChangeWealth -= pCostsInitiallyIncurred + loserPaysMultiple * dCostsInitiallyIncurred;
-                    outcome.DChangeWealth -= dCostsInitiallyIncurred - loserPaysMultiple * dCostsInitiallyIncurred;
+                    pEffectOfExpenses -= pCostsInitiallyIncurred + loserPaysMultiple * dCostsInitiallyIncurred;
+                    dEffectOfExpenses -= dCostsInitiallyIncurred - loserPaysMultiple * dCostsInitiallyIncurred;
                 }
                 else
                 {
-                    outcome.PChangeWealth -= pCostsInitiallyIncurred - loserPaysMultiple * pCostsInitiallyIncurred;
-                    outcome.DChangeWealth -= dCostsInitiallyIncurred + loserPaysMultiple * pCostsInitiallyIncurred;
+                    pEffectOfExpenses -= pCostsInitiallyIncurred - loserPaysMultiple * pCostsInitiallyIncurred;
+                    dEffectOfExpenses -= dCostsInitiallyIncurred + loserPaysMultiple * pCostsInitiallyIncurred;
                 }
             }
             else
             { // American rule
-                outcome.PChangeWealth -= pFilingCostIncurred + perPartyBargainingCostsIncurred + pTrialCostsIncurred;
-                outcome.DChangeWealth -= dAnswerCostIncurred + perPartyBargainingCostsIncurred + dTrialCostsIncurred;
+                pEffectOfExpenses -= pFilingCostIncurred + perPartyBargainingCostsIncurred + pTrialCostsIncurred;
+                dEffectOfExpenses -= dAnswerCostIncurred + perPartyBargainingCostsIncurred + dTrialCostsIncurred;
             }
+
+            outcome.PChangeWealth += pEffectOfExpenses;
+            outcome.DChangeWealth += dEffectOfExpenses;
+
             outcome.PFinalWealth = pInitialWealth + outcome.PChangeWealth;
             outcome.DFinalWealth = dInitialWealth + outcome.DChangeWealth;
             double pPerceivedFinalWealth = outcome.PFinalWealth;

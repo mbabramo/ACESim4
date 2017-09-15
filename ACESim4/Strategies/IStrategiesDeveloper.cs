@@ -7,7 +7,7 @@ namespace ACESim
     {
         List<Strategy> Strategies { get; set; }
         IStrategiesDeveloper DeepCopy();
-        void DevelopStrategies();
+        string DevelopStrategies();
         EvolutionSettings EvolutionSettings { get; set; }
     }
 }

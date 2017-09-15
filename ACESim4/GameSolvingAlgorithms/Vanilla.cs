@@ -194,16 +194,19 @@ namespace ACESim
             return probabilityAdjustedExpectedValueParticularAction;
         }
 
-        public unsafe void SolveVanillaCFR()
+        public unsafe string SolveVanillaCFR()
         {
+            string reportString = null;
             for (int iteration = 0; iteration < EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
-                VanillaCFRIteration(iteration);
+                reportString = VanillaCFRIteration(iteration);
             }
+            return reportString;
         }
 
-        private unsafe void VanillaCFRIteration(int iteration)
+        private unsafe string VanillaCFRIteration(int iteration)
         {
+            string reportString = null;
             Stopwatch s = new Stopwatch();
             double[] lastUtilities = new double[NumNonChancePlayers];
 
@@ -222,9 +225,10 @@ namespace ACESim
                 s.Stop();
             }
 
-            GenerateReports(iteration,
+            reportString = GenerateReports(iteration,
                 () =>
                     $"Iteration {iteration} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double) iteration + 1.0)))}");
+            return reportString;
         }
     }
 }

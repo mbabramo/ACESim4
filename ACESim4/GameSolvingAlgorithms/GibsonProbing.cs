@@ -246,8 +246,9 @@ namespace ACESim
         private int ProbingCFRIterationNum;
         private int ProbingCFREffectiveIteration; // iteration number valid only when not in parallel
 
-        public unsafe void SolveGibsonProbingCFR()
+        public unsafe string SolveGibsonProbingCFR()
         {
+            string reportString = null;
             Stopwatch s = new Stopwatch();
             if (NumNonChancePlayers > 2)
                 throw new Exception(
@@ -260,10 +261,11 @@ namespace ACESim
                 s.Start();
                 GibsonProbingCFRIteration(ProbingCFRIterationNum);
                 s.Stop();
-                GenerateReports(ProbingCFRIterationNum,
+                reportString = GenerateReports(ProbingCFRIterationNum,
                     () =>
                         $"Iteration {ProbingCFRIterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)(ProbingCFRIterationNum + 1))))}");
             }
+            return reportString;
         }
     }
 }

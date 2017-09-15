@@ -59,35 +59,46 @@ namespace ACESim
             }
         }
 
-        public void GetReport(StringBuilder sb, bool commaSeparated)
+        public void Append(StringBuilder standardReport, StringBuilder csvReport, bool isNumeric, string text, int? columnWidth, bool isLastColumn)
         {
-            if (!commaSeparated)
-                sb.AppendLine(Definition.Name);
+            if (!isNumeric)
+                csvReport.Append("\"");
+            csvReport.Append(text);
+            if (!isLastColumn)
+                csvReport.Append(",");
+            if (!isNumeric)
+                csvReport.Append("\"");
+            standardReport.Append(FormatTableString(text, columnWidth, isLastColumn));
+        }
+
+        public void GetReport(StringBuilder standardReport, StringBuilder csvReport)
+        {
+            standardReport.AppendLine(Definition.Name);
             int? metaColumnWidth = null, rowFilterColumnWidth = null;
-            if (!commaSeparated)
-            {
-                metaColumnWidth = Math.Max(9, Definition.MetaFilters.Max(x => x.Name.Length) + 3);
-                rowFilterColumnWidth = Math.Max(9, Definition.RowFilters.Max(x => x.Name.Length) + 3);
-            }
+            metaColumnWidth = Math.Max(9, Definition.MetaFilters.Max(x => x.Name.Length) + 3);
+            rowFilterColumnWidth = Math.Max(9, Definition.RowFilters.Max(x => x.Name.Length) + 3);
             SimpleReportColumnItem lastColumn = Definition.ColumnItems.Last();
             bool printMetaColumn = Definition.MetaFilters.Count() > 1;
             foreach (SimpleReportFilter metaFilter in Definition.MetaFilters)
             {
                 // print column headers
                 if (printMetaColumn)
-                    sb.Append(FormatTableString("Filter1", metaColumnWidth, false));
-                sb.Append(FormatTableString(printMetaColumn ? "Filter2" : "Filter", rowFilterColumnWidth, false));
+                {
+                    Append(standardReport, csvReport, false, "Filter1", metaColumnWidth, false);
+                }
+                Append(standardReport, csvReport, false, printMetaColumn ? "Filter2" : "Filter", rowFilterColumnWidth, false);
                 foreach (SimpleReportColumnItem colItem in Definition.ColumnItems)
-                    sb.Append(FormatTableString(colItem.Name, colItem.Width, colItem == lastColumn));
-                sb.AppendLine();
+                    Append(standardReport, csvReport, false, colItem.Name, colItem.Width, colItem == lastColumn);
+                standardReport.AppendLine();
+                csvReport.AppendLine();
 
                 // print rows
                 int i = 0;
                 foreach (SimpleReportFilter rowFilter in Definition.RowFilters)
                 {
                     if (printMetaColumn)
-                        sb.Append(FormatTableString(metaFilter.Name, metaColumnWidth, false));
-                    sb.Append(FormatTableString(rowFilter.Name, rowFilterColumnWidth, false));
+                        Append(standardReport, csvReport, false, metaFilter.Name, metaColumnWidth, false);
+                    Append(standardReport, csvReport, false, rowFilter.Name, rowFilterColumnWidth, false);
                     foreach (SimpleReportColumnItem colItem in Definition.ColumnItems)
                     {
                         double? value;
@@ -115,10 +126,11 @@ namespace ACESim
                             }
                         }
                         string valueString = value == null ? "" : value.ToSignificantFigures();
-                        sb.Append(FormatTableString(valueString, colItem.Width, colItem == lastColumn));
+                        Append(standardReport, csvReport, true, valueString, colItem.Width, colItem == lastColumn);
                         i++;
                     }
-                    sb.AppendLine();
+                    standardReport.AppendLine();
+                    csvReport.AppendLine();
                 }
             }
         }
