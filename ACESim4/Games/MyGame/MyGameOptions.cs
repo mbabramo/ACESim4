@@ -39,6 +39,31 @@ namespace ACESim
         /// </summary>
         public bool ActionIsNoiseNotSignal;
 
+        public enum LitigationQualitySourceEnum
+        {
+            EachValueEquallyLikely,
+            GenerateFromTrulyLiableStatus,
+        }
+
+        /// <summary>
+        /// If each litigation quality value is equally likely, then the probability that the defendant is truly liable when the uniform litigation quality is 0.75. A value higehr than 0.75 reflects the proposition that majorities are likely generally to be correct.
+        /// </summary>
+        public double ProbabilityTrulyLiable_LitigationQuality75;
+        /// If each litigation quality value is equally likely, then the probability that the defendant is truly liable when the uniform litigation quality is 0.90. A value higehr than 0.90 reflects the proposition that majorities are likely generally to be correct.
+        public double ProbabilityTrulyLiable_LitigationQuality90;
+        /// <summary>
+        /// Indicates the source of litigation quality numbers
+        /// </summary>
+        public LitigationQualitySourceEnum LitigationQualitySource;
+        /// <summary>
+        /// If litigation quality is generated from truly-liable status, and truly-liable status is exogenously determined, then the probability that the correct outcome is that the defendant truly is liable.
+        /// </summary>
+        public double ExogenousProbabilityTrulyLiable;
+        /// <summary>
+        /// If generating LitigationQuality based on true case value, this is the standard deviation of the noise used to obscure the true litigation quality value (0 or 1). Each litigation quality level will be equally likely if there is an equal chance of either true litigation quality value.
+        /// </summary>
+        public double StdevNoiseToProduceLitigationQuality;
+
         /// <summary>
         /// If true, then the bargaining round starts with P and D deciding whether to bargain at all this round. The per bargaining round costs will be borne either way.
         /// </summary>

@@ -8,6 +8,7 @@ namespace ACESim
     [Serializable]
     public class MyGameProgress : GameProgress
     {
+        public bool IsTrulyLiable;
         public byte LitigationQualityDiscrete;
         public double LitigationQualityUniform;
         public byte PNoiseDiscrete;
@@ -28,6 +29,9 @@ namespace ACESim
         public double? SettlementValue;
         public bool TrialOccurs;
         public bool PWinsAtTrial;
+        public double FalsePositiveExpenditures;
+        public double FalseNegativeShortfall;
+        public double TotalExpensesIncurred;
         public double PInitialWealth;
         public double DInitialWealth;
         public double DamagesAlleged = 1.0;
@@ -43,7 +47,7 @@ namespace ACESim
         public override string ToString()
         {
             return
-                $"LitigationQualityDiscrete {LitigationQualityDiscrete} LitigationQualityUniform {LitigationQualityUniform} PSignalDiscrete {PSignalDiscrete} DSignalDiscrete {DSignalDiscrete} PSignalUniform {PSignalUniform} DSignalUniform {DSignalUniform} PFiles {PFiles} DAnswers {DAnswers} BargainingRoundsComplete {BargainingRoundsComplete} PLastAgreesToBargain {PLastAgreesToBargain} DLastAgreesToBargain {DLastAgreesToBargain} PLastOffer {PLastOffer} DLastOffer {DLastOffer} CaseSettles {CaseSettles} SettlementValue {SettlementValue} PAbandons {PAbandons} DDefaults {DDefaults} TrialOccurs {TrialOccurs} PWinsAtTrial {PWinsAtTrial} PFinalWealthWithBestOffer {PFinalWealthWithBestOffer} DFinalWealthWithBestOffer {DFinalWealthWithBestOffer} PFinalWealth {PFinalWealth} DFinalWealth {DFinalWealth} PWelfare {PWelfare} DWelfare {DWelfare}";
+                $"IsTrulyLiable {IsTrulyLiable} LitigationQualityDiscrete {LitigationQualityDiscrete} LitigationQualityUniform {LitigationQualityUniform} PSignalDiscrete {PSignalDiscrete} DSignalDiscrete {DSignalDiscrete} PSignalUniform {PSignalUniform} DSignalUniform {DSignalUniform} PFiles {PFiles} DAnswers {DAnswers} BargainingRoundsComplete {BargainingRoundsComplete} PLastAgreesToBargain {PLastAgreesToBargain} DLastAgreesToBargain {DLastAgreesToBargain} PLastOffer {PLastOffer} DLastOffer {DLastOffer} CaseSettles {CaseSettles} SettlementValue {SettlementValue} PAbandons {PAbandons} DDefaults {DDefaults} TrialOccurs {TrialOccurs} PWinsAtTrial {PWinsAtTrial} PFinalWealthWithBestOffer {PFinalWealthWithBestOffer} DFinalWealthWithBestOffer {DFinalWealthWithBestOffer} PFinalWealth {PFinalWealth} DFinalWealth {DFinalWealth} PWelfare {PWelfare} DWelfare {DWelfare} FalsePositiveExpenditures {FalsePositiveExpenditures} FalseNegativeShortfall {FalseNegativeShortfall} TotalExpensesIncurred {TotalExpensesIncurred} ";
         }
 
         public bool? PFirstAgreesToBargain => (bool?)PAgreesToBargain?.FirstOrDefault() ?? null;
@@ -144,6 +148,7 @@ namespace ACESim
 
             // copy.GameComplete = this.GameComplete;
             base.CopyFieldInfo(copy);
+            copy.IsTrulyLiable = IsTrulyLiable;
             copy.LitigationQualityDiscrete = LitigationQualityDiscrete;
             copy.PNoiseDiscrete = PNoiseDiscrete;
             copy.DNoiseDiscrete = DNoiseDiscrete;
@@ -183,6 +188,9 @@ namespace ACESim
             copy.DFinalWealth = DFinalWealth;
             copy.PWelfare = PWelfare;
             copy.DWelfare = DWelfare;
+            copy.FalsePositiveExpenditures = FalsePositiveExpenditures;
+            copy.FalseNegativeShortfall = FalseNegativeShortfall;
+            copy.TotalExpensesIncurred = TotalExpensesIncurred;
 
             return copy;
         }

@@ -49,12 +49,17 @@ namespace ACESim
                 StdevOfNormalDistribution = Options.DNoiseStdev,
                 NumSignals = Options.NumSignals
             };
+            if (Options.LitigationQualitySource == MyGameOptions.LitigationQualitySourceEnum.EachValueEquallyLikely)
+                CorrectnessGivenLitigationQuality = MonotonicCurve.CalculateCurvatureForThreePoints(0.5, 0.5, 0.75, Options.ProbabilityTrulyLiable_LitigationQuality75, 0.9, Options.ProbabilityTrulyLiable_LitigationQuality90);
+            if (Options.LitigationQualitySource == MyGameOptions.LitigationQualitySourceEnum.GenerateFromTrulyLiableStatus)
+                CreateExogenousLitigationQualityTable();
         }
 
         private MyGameProgress MyGP(GameProgress gp) => gp as MyGameProgress;
 
         private static string PlaintiffName = "P";
         private static string DefendantName = "D";
+        private static string TrulyLiableChanceName = "TLC";
         private static string LitigationQualityChanceName = "QC";
         private static string PlaintiffNoiseOrSignalChanceName = "PNS";
         private static string DefendantNoiseOrSignalChanceName = "DNS";
@@ -72,6 +77,7 @@ namespace ACESim
                     new PlayerInfo(PlaintiffName, (int) MyGamePlayers.Plaintiff, false, true),
                     new PlayerInfo(DefendantName, (int) MyGamePlayers.Defendant, false, true),
                     new PlayerInfo(ResolutionPlayerName, (int) MyGamePlayers.Resolution, true, false),
+                    new PlayerInfo(TrulyLiableChanceName, (int) MyGamePlayers.TrulyLiableChance, true, false),
                     new PlayerInfo(LitigationQualityChanceName, (int) MyGamePlayers.QualityChance, true, false),
                     new PlayerInfo(PlaintiffNoiseOrSignalChanceName, (int) MyGamePlayers.PNoiseOrSignalChance, true, false),
                     new PlayerInfo(DefendantNoiseOrSignalChanceName, (int) MyGamePlayers.DNoiseOrSignalChance, true, false),
@@ -85,18 +91,19 @@ namespace ACESim
         public override byte PlayerIndex_ResolutionPlayer => (byte) MyGamePlayers.Resolution;
 
         // NOTE: Must skip 0, because that is used for subdivision aggregation decisions. Note that the first three may be augmented if we are using subdivision decisions
-        public byte GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound = 1;
-        public byte GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound = 2;
-        public byte GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound = 3;
-        public byte GameHistoryCacheIndex_PAgreesToBargain = 4;
-        public byte GameHistoryCacheIndex_DAgreesToBargain = 5;
-        public byte GameHistoryCacheIndex_POffer = 6;
-        public byte GameHistoryCacheIndex_DOffer = 7;
-        public byte GameHistoryCacheIndex_PResponse = 8;
-        public byte GameHistoryCacheIndex_DResponse = 9;
-        public byte GameHistoryCacheIndex_PReadyToAbandon = 10;
-        public byte GameHistoryCacheIndex_DReadyToAbandon = 11;
-        public byte GameHistoryCacheIndex_LitigationQuality = 12;
+        public byte GameHistoryCacheIndex_TrulyLiable = 1;
+        public byte GameHistoryCacheIndex_LitigationQuality = 2;
+        public byte GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound = 3;
+        public byte GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound = 4;
+        public byte GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound = 5;
+        public byte GameHistoryCacheIndex_PAgreesToBargain = 6;
+        public byte GameHistoryCacheIndex_DAgreesToBargain = 7;
+        public byte GameHistoryCacheIndex_POffer = 8;
+        public byte GameHistoryCacheIndex_DOffer = 9;
+        public byte GameHistoryCacheIndex_PResponse = 10;
+        public byte GameHistoryCacheIndex_DResponse = 11;
+        public byte GameHistoryCacheIndex_PReadyToAbandon = 12;
+        public byte GameHistoryCacheIndex_DReadyToAbandon = 13;
 
         #endregion
 
@@ -121,7 +128,7 @@ namespace ACESim
 
         private void AddLitigationQualityAndSignalsDecisions(List<Decision> decisions)
         {
-// Litigation Quality. This is not known by a player unless the player has perfect information. 
+            // Litigation Quality. This is not known by a player unless the player has perfect information. 
             // The SignalChance player relies on this information in calculating the probabilities of different signals
             List<byte> playersKnowingLitigationQuality = new List<byte>()
             {
@@ -135,8 +142,18 @@ namespace ACESim
                 playersKnowingLitigationQuality.Add((byte) MyGamePlayers.Plaintiff);
             if (Options.DNoiseStdev == 0)
                 playersKnowingLitigationQuality.Add((byte) MyGamePlayers.Defendant);
-            decisions.Add(new Decision("LitigationQuality", "Qual", (byte) MyGamePlayers.QualityChance,
-                playersKnowingLitigationQuality.ToArray(), Options.NumLitigationQualityPoints, (byte) MyGameDecisions.LitigationQuality) {StoreActionInGameCacheItem = GameHistoryCacheIndex_LitigationQuality, IsReversible = true});
+            if (Options.LitigationQualitySource == MyGameOptions.LitigationQualitySourceEnum.EachValueEquallyLikely)
+            {
+                decisions.Add(new Decision("LitigationQuality", "Qual", (byte) MyGamePlayers.QualityChance,
+                    playersKnowingLitigationQuality.ToArray(), Options.NumLitigationQualityPoints, (byte) MyGameDecisions.LitigationQuality) {StoreActionInGameCacheItem = GameHistoryCacheIndex_LitigationQuality, IsReversible = true});
+            }
+            else
+            {
+                decisions.Add(new Decision("TrulyLiable", "Truly", (byte)MyGamePlayers.TrulyLiableChance, null, 2, (byte)MyGameDecisions.TrulyLiable) { StoreActionInGameCacheItem = GameHistoryCacheIndex_TrulyLiable, IsReversible = true, UnevenChanceActions = Options.ExogenousProbabilityTrulyLiable != 0.5});
+                decisions.Add(new Decision("LitigationQuality", "Qual", (byte)MyGamePlayers.QualityChance,
+                        playersKnowingLitigationQuality.ToArray(), Options.NumLitigationQualityPoints, (byte)MyGameDecisions.LitigationQuality)
+                    { StoreActionInGameCacheItem = GameHistoryCacheIndex_LitigationQuality, IsReversible = true, UnevenChanceActions = true });
+            }
             // Plaintiff and defendant signals. If a player has perfect information, then no signal is needed.
             // when action is the signal, we have an uneven chance decision, and the party receives the signal directly. When the action is the noise, we still want the party to receive the signal rather than the noise and we add that with custom information set manipulation below.
             if (!Options.ActionIsNoiseNotSignal && Options.NumNoiseValues != Options.NumSignals)
@@ -192,6 +209,20 @@ namespace ACESim
                 tableValue = DSignalsTable[litigationQuality, noise];
             discreteSignal = tableValue.Item1;
             uniformSignal = tableValue.Item2;
+        }
+
+        public double CorrectnessGivenLitigationQuality;
+
+        private double[] ProbabilityOfTrulyLiabilityValues, ProbabilitiesLitigationQuality_TrulyNotLiable, ProbabilitiesLitigationQuality_TrulyLiable;
+        public void CreateExogenousLitigationQualityTable()
+        {
+            ProbabilityOfTrulyLiabilityValues = new double[] {1.0 - Options.ExogenousProbabilityTrulyLiable, Options.ExogenousProbabilityTrulyLiable};
+            // A case is assigned a "true" value of 1 (should not be liable) or 2 (should be liable).
+            // Based on the litigation quality noise parameter, we then collect a distribution of possible realized values, on the assumption
+            // that the true values are equally likely. We then break this distribution into evenly sized buckets to get cutoff points.
+            DiscreteValueSignalParameters dsParams = new DiscreteValueSignalParameters() {NumPointsInSourceUniformDistribution = 2, NumSignals = Options.NumLitigationQualityPoints, StdevOfNormalDistribution = Options.StdevNoiseToProduceLitigationQuality, UseEndpoints = true};
+            ProbabilitiesLitigationQuality_TrulyNotLiable = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(1, dsParams);
+            ProbabilitiesLitigationQuality_TrulyLiable = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(1, dsParams);
         }
 
         private ValueTuple<byte, double>[,] PSignalsTable, DSignalsTable;
@@ -455,6 +486,23 @@ namespace ACESim
         
         public override double[] GetChanceActionProbabilities(byte decisionByteCode, GameProgress gameProgress)
         {
+            if (decisionByteCode == (byte)MyGameDecisions.TrulyLiable)
+            {
+                if (Options.LitigationQualitySource != MyGameOptions.LitigationQualitySourceEnum.GenerateFromTrulyLiableStatus)
+                    throw new NotImplementedException();
+                return ProbabilityOfTrulyLiabilityValues;
+            }
+            else if (decisionByteCode == (byte) MyGameDecisions.LitigationQuality)
+            {
+                if (Options.LitigationQualitySource != MyGameOptions.LitigationQualitySourceEnum.GenerateFromTrulyLiableStatus)
+                    throw new NotImplementedException();
+                byte trulyLiableActionValue = gameProgress.GameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_TrulyLiable);
+                bool isTrulyLiable = trulyLiableActionValue == (byte) 2;
+                if (isTrulyLiable)
+                    return ProbabilitiesLitigationQuality_TrulyLiable;
+                else
+                    return ProbabilitiesLitigationQuality_TrulyNotLiable;
+            }
             if (decisionByteCode == (byte)MyGameDecisions.PNoiseOrSignal)
             {
                 if (Options.ActionIsNoiseNotSignal)

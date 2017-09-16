@@ -12,8 +12,12 @@ namespace ACESim
 
         // The following two methods choose between these based on whether the number of points is even or odd. If we want to include the midpoint, then we use an odd number of points; if not, then we use an even nujmber of points.
 
-        public static double[] GetEquallySpacedPoints(int numPoints, double from = 0, double to = 1.0)
+        public static double[] GetEquallySpacedPoints(int numPoints, bool includeEndpoints, double from = 0, double to = 1.0)
         {
+            if (includeEndpoints)
+            {
+                return Enumerable.Range(0, numPoints).Select(x => GetLocationOfEquallySpacedPoint(x, numPoints, true, from, to)).ToArray();
+            }
             if (numPoints % 2 == 0)
                 return GetMidpointsOfEquallySpacedRegions(numPoints, from, to); // e.g., 0.05, 0.15, ... , 0.95
             else

@@ -34,11 +34,11 @@ namespace ACESim
         public bool Initialized;
 
         public fixed byte InformationSets[MaxInformationSetLength];
-        public const int MaxInformationSetLength = 69; // MUST equal MaxInformationSetLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLengthPerPartialPlayer * NumPartialPlayers. 
+        public const int MaxInformationSetLength = 72; // MUST equal MaxInformationSetLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLengthPerPartialPlayer * NumPartialPlayers. 
         public const int MaxInformationSetLengthPerFullPlayer = 20;
         public const int MaxInformationSetLengthPerPartialPlayer = 3;
         public const int NumFullPlayers = 3; // includes main players and resolution player and any chance players that need full size information set
-        public const int MaxNumPlayers = 6; // includes chance players that need a very limited information set
+        public const int MaxNumPlayers = 7; // includes chance players that need a very limited information set
         public int NumPartialPlayers => MaxNumPlayers - NumFullPlayers;
         public int InformationSetIndex(byte playerIndex) => playerIndex <= NumFullPlayers ? MaxInformationSetLengthPerFullPlayer * playerIndex : MaxInformationSetLengthPerFullPlayer * NumFullPlayers + (playerIndex - NumFullPlayers) * MaxInformationSetLengthPerPartialPlayer;
         public int MaxInformationSetLengthForPlayer(byte playerIndex) => playerIndex < NumFullPlayers ? MaxInformationSetLengthPerFullPlayer : MaxInformationSetLengthPerPartialPlayer;

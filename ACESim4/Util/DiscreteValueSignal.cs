@@ -36,11 +36,11 @@ namespace ACESim.Util
         /// For example, if NumSignals is 10, then one-tenth of the time, we will draw from the two distributions in a way that will produce a signal of i, for all i from 1 to 10. 
         /// </summary>
         /// <param name="signal"></param>
-        /// <param name="dsParamas"></param>
+        /// <param name="dsParams"></param>
         /// <returns></returns>
-        public static int GetDiscreteSignal(double signal, DiscreteValueSignalParameters dsParamas)
+        public static int GetDiscreteSignal(double signal, DiscreteValueSignalParameters dsParams)
         {
-            double[] cutoffs = GetSignalCutoffs(dsParamas);
+            double[] cutoffs = GetSignalCutoffs(dsParams);
             int i = 0;
             while (i < cutoffs.Length && cutoffs[i] < signal)
                 i++;
@@ -88,7 +88,7 @@ namespace ACESim.Util
         {
             lock (CalcLock)
             {
-                _PointsInInverseNormalDistribution = EquallySpaced.GetEquallySpacedPoints(NumInInverseNormalDistribution)
+                _PointsInInverseNormalDistribution = EquallySpaced.GetEquallySpacedPoints(NumInInverseNormalDistribution, false)
                     .Select(x => InvNormal.Calculate(x))
                     .ToArray();
             }
@@ -151,7 +151,7 @@ namespace ACESim.Util
         {
             // Midpoints from uniform distribution: 
             double[] midpoints = 
-                EquallySpaced.GetEquallySpacedPoints(nsParams.NumPointsInSourceUniformDistribution);
+                EquallySpaced.GetEquallySpacedPoints(nsParams.NumPointsInSourceUniformDistribution, nsParams.UseEndpoints);
             double[] drawsFromNormalDistribution = PointsInInverseNormalDistribution.Select(x => x * nsParams.StdevOfNormalDistribution).ToArray();
             // Now, we make every combination of uniform and normal distribution draws, and add them together
             var crossProduct = midpoints

@@ -18,6 +18,9 @@ namespace ACESim
         {
             switch (currentDecisionByteCode)
             {
+                case (byte)MyGameDecisions.TrulyLiable:
+                    MyProgress.IsTrulyLiable = action == 2;
+                    break;
                 case (byte)MyGameDecisions.LitigationQuality:
                     MyProgress.PInitialWealth = MyDefinition.Options.PInitialWealth;
                     MyProgress.DInitialWealth = MyDefinition.Options.DInitialWealth;
@@ -29,6 +32,7 @@ namespace ACESim
                         MyProgress.PSignalUniform = MyProgress.LitigationQualityUniform;
                     if (MyDefinition.Options.DNoiseStdev == 0)
                         MyProgress.DSignalUniform = MyProgress.LitigationQualityUniform;
+
                 break;
                 case (byte)MyGameDecisions.PNoiseOrSignal:
                     if (MyDefinition.Options.ActionIsNoiseNotSignal)
@@ -285,7 +289,36 @@ namespace ACESim
             MyProgress.PWelfare = outcome.PWelfare;
             MyProgress.DWelfare = outcome.DWelfare;
             MyProgress.TrialOccurs = outcome.TrialOccurs;
+
+            CalculateSocialWelfareOutcomes();
+
             base.FinalProcessing();
+        }
+
+        private void CalculateSocialWelfareOutcomes()
+        {
+            MyProgress.TotalExpensesIncurred = 0 - MyProgress.PChangeWealth - MyProgress.DChangeWealth;
+            double falseNegativeShortfallIfTrulyLiable = Math.Max(0, MyProgress.DamagesAlleged - MyProgress.PChangeWealth); // how much plaintiff's payment fell short (if at all)
+            double falsePositiveExpendituresIfNotTrulyLiable = Math.Min(0, 0 - MyProgress.DChangeWealth); // how much defendant's payment was excessive (if at all)
+            if (MyDefinition.Options.LitigationQualitySource == MyGameOptions.LitigationQualitySourceEnum.GenerateFromTrulyLiableStatus)
+            {
+                if (MyProgress.IsTrulyLiable)
+                {
+                    MyProgress.FalseNegativeShortfall = falseNegativeShortfallIfTrulyLiable;
+                    MyProgress.FalsePositiveExpenditures = 0;
+                }
+                else
+                {
+                    MyProgress.FalseNegativeShortfall = 0;
+                    MyProgress.FalsePositiveExpenditures = falsePositiveExpendituresIfNotTrulyLiable;
+                }
+            }
+            else
+            {
+                double probabilityTrulyLiable = MonotonicCurve.CalculateYValueForX(0, 1, MyDefinition.CorrectnessGivenLitigationQuality, MyProgress.LitigationQualityUniform);
+                MyProgress.FalseNegativeShortfall = probabilityTrulyLiable * falseNegativeShortfallIfTrulyLiable;
+                MyProgress.FalsePositiveExpenditures = (1.0 - probabilityTrulyLiable) * falsePositiveExpendituresIfNotTrulyLiable;
+            }
         }
     }
 }

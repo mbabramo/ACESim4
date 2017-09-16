@@ -8,6 +8,7 @@ namespace ACESim
 {
     public enum MyGameDecisions : byte
     {
+        TrulyLiable,
         LitigationQuality,
         PNoiseOrSignal, // meaning depends on ActionIsNoiseNotSignal option
         DNoiseOrSignal, // meaning depends on ActionIsNoiseNotSignal option

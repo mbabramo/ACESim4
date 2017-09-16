@@ -9,10 +9,11 @@ namespace ACESim
     public enum MyGamePlayers : byte
     {
         // NOTE: Order: Main players, the resolution player, chance players that may have uneven chance actions (and thus have information sets), then other chance players.
-        // NOTE2: When adding players, also add in GetPlayersList.
+        // NOTE2: When adding players, also add in GetPlayersList. Also may need to change values in InformationSetLog and GameHistory, including value for MaxNumPlayers and other values dependent on this.
         Plaintiff,
         Defendant,
         Resolution,
+        TrulyLiableChance,
         PNoiseOrSignalChance,
         DNoiseOrSignalChance,
         CourtChance,

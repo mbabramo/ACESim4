@@ -12,6 +12,7 @@ namespace ACESim.Util
         public int NumPointsInSourceUniformDistribution;
         public double StdevOfNormalDistribution;
         public int NumSignals;
+        public bool UseEndpoints;
 
         public override int GetHashCode()
         {
@@ -21,6 +22,7 @@ namespace ACESim.Util
                 hash = (hash * 7) + NumPointsInSourceUniformDistribution.GetHashCode();
                 hash = (hash * 7) + StdevOfNormalDistribution.GetHashCode();
                 hash = (hash * 7) + NumSignals.GetHashCode();
+                hash = (hash * 7) + UseEndpoints.GetHashCode();
                 return hash;
             }
         }
@@ -28,7 +30,7 @@ namespace ACESim.Util
         public override bool Equals(object obj)
         {
             DiscreteValueSignalParameters other = (DiscreteValueSignalParameters)obj;
-            return NumPointsInSourceUniformDistribution == other.NumPointsInSourceUniformDistribution && StdevOfNormalDistribution == other.StdevOfNormalDistribution && NumSignals == other.NumSignals;
+            return NumPointsInSourceUniformDistribution == other.NumPointsInSourceUniformDistribution && StdevOfNormalDistribution == other.StdevOfNormalDistribution && NumSignals == other.NumSignals && UseEndpoints == other.UseEndpoints;
         }
     }
 }
