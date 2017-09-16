@@ -14,11 +14,14 @@ namespace ACESim
 
         // TODO -- optimization. Reducing unnecessary probes. Sometimes, we may have an action that leads to a particular result that will then necessarily be the same for either all higher or lower actions. For example, a plaintiff gives a particular offer that results in rejection of the defendant's settlement offer. In many litigation games (where there is no punishment for unreasonable offers), this means that all higher plaintiff offers will lead to the same result. So, in this case, we should start with the lowest possible offer. As soon as we get one that leads to rejection of the next settlement, then we should automatically set all higher offers. This should eliminate about half of all probes if implemented. But what if one's decision will enter into the other player's information set? Then this won't work. Every action will lead potentially to different consequences. 
         // The game definition might have a function that has IdentifySameGroups. It reports this information using a boolean indicating whether an action will produce the same result as the one below it. For our game, when we're forgetting earlier offers, this will be all offers leading to rejection of the settlement (unless we are in a bargaining round where we're penalizing unreasonable settlements). Note that sampling one item in this group will essentially have the same effect as sampling any other. Meanwhile, accepting offers will lead to quick termination of the game, so those probes won't take long to resolve. 
-        // Further optimization might be to store utilities in the penultimate node, in a dictionary based on a hash of the resolution set. This would take up a fair bit of space, but it might speed things up. Can we also do a similar speed up at the beginning of the game for chance actions? That is, we'd like to be able to go from litigation quality to the parties signals without going through all of the noise values.
-
-
         // Comment: Note that we're already incrementing cumulative regret for all possible actions at each information set visited. So, the only benefit that we can get occurs if we have decisions that lead to the same result, thus speeding up our probes. Perhaps we can have a custom hook that allows us to figure this out quickly. That is, the game definition will tell us, given the custom random numbers that we have and the HistoryPoint, which actions can be grouped with the action that we are currently exploring for the player being optimized. For example, we might be able to group all actions that would lead to rejection of settlement, depending on the information that will be added to players' information sets; it might also report whether there could be another group beyond this. This should be very straightforward when we're forgetting earlier bargaining rounds. 
-        
+
+        // TODO: Another possible speedup: Skip probes on many zero-probability moves. So, if we're exploring, and a move is zero probability based on regret matching, then it won't affect any other node's measurement of counterfactual regret. However, we still periodically want to measure this node's counterfactual regret. So, we could decide that we will do this with just some probability and then multiply the counterfactual regret by the inverse of the probability. 
+
+        // TODO: Can we store utilities for the resolution set in the penultimate node? That is, if we see that the next nodes all contain a final utilities, then maybe we can record what those final utilities are, and thus save the need to traverse each of those possibilities.
+
+
+
 
 
         private bool AlsoDisablePlayerOwnExplorationOnNonExploratoryIterations = true;
@@ -32,7 +35,7 @@ namespace ACESim
 
         private List<int> PhasePointsToSubtractEarlierValues = new List<int>() {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20};
 
-        // DEBUG: See if it will work well with just PhasePoints, no discounts. Could leave feature in though.
+        // TODO: See if it will work well with just PhasePoints, no discounts. Could leave feature in though.
 
 
         public unsafe double AbramowiczProbe_SinglePlayer(HistoryPoint historyPoint, byte playerBeingOptimized,
