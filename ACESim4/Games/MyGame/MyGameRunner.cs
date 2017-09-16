@@ -69,7 +69,7 @@ namespace ACESim
             int numMainLines = 0;
             for (int i = 0; i < numRepetitions; i++)
             {
-                string reportName = "Report";
+                string reportName = "MyReport";
                 string reportIteration = i.ToString();
                 CounterfactualRegretMaximization developer =
                     new CounterfactualRegretMaximization(starterStrategies, evolutionSettings, gameDefinition);
@@ -78,8 +78,8 @@ namespace ACESim
                 cumulativeReport += differentiatedReport;
             }
             Debug.WriteLine(cumulativeReport);
-            var aggregatedLines = GetAggregatedLines(cumulativeReport, numMainLines, numRepetitions);
-            
+            var theAggregation = GetAggregationReport(cumulativeReport, "MyReport", x => x.Average(), "Average");
+
         }
 
         private static string DifferentiatedReport(string report, string reportName, string reportIteration, bool includeFirst, out int numMainLines)
@@ -115,23 +115,55 @@ namespace ACESim
 
 
 
-        private static Dictionary<string, List<(string theString, double? theValue)>> GetValuesForEachVariable(string cumulativeReport)
+        private static string GetAggregationReport(string cumulativeReport, string reportName, Func<IEnumerable<double>,double> aggregationFunc, string aggregationFuncName)
         {
             (string headerLine, List<string> otherLines) = GetHeaderLineAndOtherLines(cumulativeReport);
             List<string> variableNames = headerLine.Split(',').ToList();
             var listOfDictionaries = GetLinesAsDictionaries(variableNames, otherLines);
-            problem; // Now we need to get each header item and narrow down from that
+            var filteredToReport = listOfDictionaries.Where(x => x["\"Report\""].theString == $"\"{reportName}\"").ToList();
+            var filterNames = filteredToReport.Select(x => x["\"Filter\""].theString).Distinct().ToList();
             var dictionaryOfLists = ConvertToDictionaryOfLists(listOfDictionaries);
-            foreach (string variableName in variableNames)
+            
+            Dictionary<string, List<(string theString, double? theValue)>> aggregatedReport = new Dictionary<string, List<(string theString, double? theValue)>>();
+            foreach (string filterName in filterNames)
             {
-                var itemsForVariable = dictionaryOfLists[variableName];
-                if (itemsForVariable.All(x => x.theString == "" || x.theValue != null))
+                List<(string theString, double? theValue)> variableList = new List<(string theString, double? theValue)>();
+                foreach (string variableName in variableNames)
                 {
-                    var numericItems = itemsForVariable.Where(x => x.theValue != null).Select(x => (double) x.theValue).ToList();
-                    var aggregation = numericItems.Average();
+                    var itemsForVariable = dictionaryOfLists[variableName];
+                    if (itemsForVariable.All(x => x.theString == "" || x.theValue != null))
+                    {
+                        var numericItems = itemsForVariable.Where(x => x.theValue != null).Select(x => (double) x.theValue).ToList();
+                        var aggregation = aggregationFunc(numericItems);
+                        variableList.Add((aggregation.ToString(), aggregation));
+                    }
+                    else
+                    {
+                        var theStringValues = itemsForVariable.Select(x => x.theString).Distinct().ToList();
+                        if (theStringValues.Count() == 1)
+                            variableList.Add((theStringValues.Single(), null));
+                        else
+                            variableList.Add((aggregationFuncName, null));
+                    }
                 }
+                aggregatedReport[filterName] = variableList;
             }
-            return dictionaryOfLists;
+
+            StringBuilder sb = new StringBuilder();
+            sb.Append(String.Join(",", variableNames));
+            sb.AppendLine();
+            foreach (var keyValuePair in aggregatedReport)
+            {
+                sb.Append(keyValuePair.Key);
+                sb.Append(",");
+                foreach (var item in keyValuePair.Value)
+                {
+                    sb.Append(item.theString);
+                    sb.Append(",");
+                }
+                sb.AppendLine();
+            }
+            return sb.ToString();
         }
 
         private static (string, List<string>) GetHeaderLineAndOtherLines(string csvString)
@@ -170,7 +202,7 @@ namespace ACESim
                     foreach (var keyValuePair in innerDict)
                     {
                         if (keyValuePair.Key.Equals(key))
-                            innerList.Add(keyValuePair.Value)
+                            innerList.Add(keyValuePair.Value);
                     }
                 }
                 outerDict[key] = innerList;

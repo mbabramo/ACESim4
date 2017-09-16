@@ -64,10 +64,10 @@ namespace ACESim
             if (!isNumeric)
                 csvReport.Append("\"");
             csvReport.Append(text);
-            if (!isLastColumn)
-                csvReport.Append(",");
             if (!isNumeric)
                 csvReport.Append("\"");
+            if (!isLastColumn)
+                csvReport.Append(",");
             standardReport.Append(FormatTableString(text, columnWidth, isLastColumn));
         }
 
