@@ -45,22 +45,34 @@ namespace ACESim
                 case SimpleReportAggregations.Average:
                     return x => x.Average();
                 case SimpleReportAggregations.LowerBound:
-                    return x =>
-                    {
-                        StatCollector statCollector = new StatCollector();
-                        foreach (double d in x)
-                            statCollector.Add(d);
-                        double confInterval = statCollector.ConfInterval();
-                        return x.Average() - confInterval;
-                    };
                 case SimpleReportAggregations.UpperBound:
+                    bool isLower = aggregation == SimpleReportAggregations.LowerBound;
                     return x =>
                     {
+                        if (x.All(y => y == 0))
+                            return 0;
+                        else if (x.All(y => y == 1.0))
+                            return 1.0;
+                        bool doLogitTransformation = x.All(y => y >= 0 && y <= 1);
                         StatCollector statCollector = new StatCollector();
                         foreach (double d in x)
-                            statCollector.Add(d);
+                        {
+                            double dTransformed = d;
+                            if (doLogitTransformation)
+                            {
+                                if (dTransformed == 0)
+                                    dTransformed = 1E-10;
+                                else if (dTransformed == 1)
+                                    dTransformed = 1.0 - 1E-10;
+                                dTransformed = Math.Log(dTransformed / (1.0 - dTransformed));
+                            }
+                            statCollector.Add(dTransformed);
+                        }
                         double confInterval = statCollector.ConfInterval();
-                        return x.Average() + confInterval;
+                        double bound = isLower ? statCollector.Average() - confInterval : statCollector.Average() + confInterval;
+                        if (doLogitTransformation)
+                            bound = Math.Exp(bound) / (Math.Exp(bound) + 1.0);
+                        return bound;
                     };
                 default:
                     throw new ArgumentOutOfRangeException(nameof(aggregation), aggregation, null);
@@ -74,8 +86,9 @@ namespace ACESim
             return GetAggregatedCSV(variableNames, filterNames, aggregatedReport, includeFirstLine);
         }
 
-        public static string AddReportInformationColumns(string report, string reportName, string reportIteration, bool includeFirst, out int numMainLines)
+        public static string AddReportInformationColumns(string report, string reportName, string reportIteration, bool includeFirst)
         {
+            int numMainLines;
             StringBuilder sb = new StringBuilder();
             using (StringReader reader = new StringReader(report))
             {

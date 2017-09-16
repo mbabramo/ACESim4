@@ -26,15 +26,9 @@ namespace ACESim
             return gameProgress;
         }
 
-        // DEBUG TODO: if we are using the tree method, then we shouldn't need to reset to do multiple games.
 
-        public static void EvolveMyGame()
+        private static EvolutionSettings GetEvolutionSettings()
         {
-            MyGameDefinition gameDefinition = new MyGameDefinition();
-            var options = MyGameOptionsGenerator.Standard(); 
-            //var options = MyGameOptionsGenerator.UsingRawSignals_10Points_1Round();
-            gameDefinition.Setup(options);
-            List<Strategy> starterStrategies = Strategy.GetStarterStrategies(gameDefinition);
             EvolutionSettings evolutionSettings = new EvolutionSettings()
             {
                 MaxParallelDepth = 1, // we're parallelizing on the iteration level, so there is no need for further parallelization
@@ -44,8 +38,8 @@ namespace ACESim
 
                 Algorithm = GameApproximationAlgorithm.AbramowiczProbing,
 
-                ReportEveryNIterations = 10_000,
-                NumRandomIterationsForSummaryTable = 5000,
+                ReportEveryNIterations = 3_000,
+                NumRandomIterationsForSummaryTable = 1000,
                 PrintSummaryTable = true,
                 PrintInformationSets = false,
                 RestrictToTheseInformationSets = null, // new List<int>() {16},
@@ -53,7 +47,7 @@ namespace ACESim
                 AlwaysUseAverageStrategyInReporting = false,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
 
-                TotalProbingCFRIterations = 10_000,
+                TotalProbingCFRIterations = 3_000,
                 EpsilonForMainPlayer = 0.5,
                 EpsilonForOpponentWhenExploring = 0.05,
                 MinBackupRegretsTrigger = 3,
@@ -62,23 +56,43 @@ namespace ACESim
                 TotalAvgStrategySamplingCFRIterations = 10000000,
                 TotalVanillaCFRIterations = 100_000_000,
             };
+            return evolutionSettings;
+        }
+
+        public static void EvolveMyGame()
+        {
+            var options = MyGameOptionsGenerator.Standard();
+            //var options = MyGameOptionsGenerator.UsingRawSignals_10Points_1Round();
+            string amRuleReport = PerformEvolution(options, "American");
+            Debug.WriteLine(amRuleReport);
+            options.LoserPays = true;
+            string brRuleReport = PerformEvolution(options, "British");
+            Debug.WriteLine(brRuleReport);
+            string combined = amRuleReport + brRuleReport;
+        }
+
+        private static string PerformEvolution(MyGameOptions options, string reportName)
+        {
+            MyGameDefinition gameDefinition = new MyGameDefinition();
+            gameDefinition.Setup(options);
+            List<Strategy> starterStrategies = Strategy.GetStarterStrategies(gameDefinition);
+            var evolutionSettings = GetEvolutionSettings();
             NWayTreeStorageRoot<IGameState>.EnableUseDictionary = false; // DEBUG evolutionSettings.ParallelOptimization == false; // this is based on some limited performance testing; with parallelism, this seems to slow us down. Maybe it's not worth using. It might just be because of the lock.
             NWayTreeStorageRoot<IGameState>.ParallelEnabled = evolutionSettings.ParallelOptimization;
-            const int numRepetitions = 2;
+            const int numRepetitions = 5;
             string cumulativeReport = "";
-            int numMainLines = 0;
             for (int i = 0; i < numRepetitions; i++)
             {
-                string reportName = "MyReport";
                 string reportIteration = i.ToString();
                 CounterfactualRegretMaximization developer =
                     new CounterfactualRegretMaximization(starterStrategies, evolutionSettings, gameDefinition);
                 string report = developer.DevelopStrategies();
-                string differentiatedReport = SimpleReportMerging.AddReportInformationColumns(report, reportName, reportIteration, i == 0, out numMainLines);
+                string differentiatedReport = SimpleReportMerging.AddReportInformationColumns(report, reportName, reportIteration, i == 0);
                 cumulativeReport += differentiatedReport;
             }
             Debug.WriteLine(cumulativeReport);
-            string mergedReport = SimpleReportMerging.GetMergedReports(cumulativeReport, "MyReport");
+            string mergedReport = SimpleReportMerging.GetMergedReports(cumulativeReport, reportName);
+            return mergedReport;
         }
     }
 }
