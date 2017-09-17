@@ -62,13 +62,15 @@ namespace ACESim
         public static void EvolveMyGame()
         {
             var options = MyGameOptionsGenerator.Standard();
+            options.ExogenousProbabilityTrulyLiable = 0.50;
+            options.LitigationQualitySource = MyGameOptions.LitigationQualitySourceEnum.GenerateFromTrulyLiableStatus;
             //var options = MyGameOptionsGenerator.UsingRawSignals_10Points_1Round();
             string amRuleReport = PerformEvolution(options, "American");
             Debug.WriteLine(amRuleReport);
             options.LoserPays = true;
-            string brRuleReport = PerformEvolution(options, "British");
-            Debug.WriteLine(brRuleReport);
-            string combined = amRuleReport + brRuleReport;
+            //string brRuleReport = PerformEvolution(options, "British");
+            //Debug.WriteLine(brRuleReport);
+            //string combined = amRuleReport + brRuleReport;
         }
 
         private static string PerformEvolution(MyGameOptions options, string reportName)

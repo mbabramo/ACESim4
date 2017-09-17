@@ -299,7 +299,7 @@ namespace ACESim
         {
             MyProgress.TotalExpensesIncurred = 0 - MyProgress.PChangeWealth - MyProgress.DChangeWealth;
             double falseNegativeShortfallIfTrulyLiable = Math.Max(0, MyProgress.DamagesAlleged - MyProgress.PChangeWealth); // how much plaintiff's payment fell short (if at all)
-            double falsePositiveExpendituresIfNotTrulyLiable = Math.Min(0, 0 - MyProgress.DChangeWealth); // how much defendant's payment was excessive (if at all)
+            double falsePositiveExpendituresIfNotTrulyLiable = Math.Max(0, 0 - MyProgress.DChangeWealth); // how much defendant's payment was excessive (if at all)
             if (MyDefinition.Options.LitigationQualitySource == MyGameOptions.LitigationQualitySourceEnum.GenerateFromTrulyLiableStatus)
             {
                 if (MyProgress.IsTrulyLiable)

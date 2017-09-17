@@ -149,7 +149,7 @@ namespace ACESim
             }
             else
             {
-                decisions.Add(new Decision("TrulyLiable", "Truly", (byte)MyGamePlayers.TrulyLiableChance, null, 2, (byte)MyGameDecisions.TrulyLiable) { StoreActionInGameCacheItem = GameHistoryCacheIndex_TrulyLiable, IsReversible = true, UnevenChanceActions = Options.ExogenousProbabilityTrulyLiable != 0.5});
+                decisions.Add(new Decision("TrulyLiable", "Truly", (byte)MyGamePlayers.TrulyLiableChance, new byte[] { (byte)MyGamePlayers.QualityChance, (byte)MyGamePlayers.Resolution }, 2, (byte)MyGameDecisions.TrulyLiable) { StoreActionInGameCacheItem = GameHistoryCacheIndex_TrulyLiable, IsReversible = true, UnevenChanceActions = Options.ExogenousProbabilityTrulyLiable != 0.5});
                 decisions.Add(new Decision("LitigationQuality", "Qual", (byte)MyGamePlayers.QualityChance,
                         playersKnowingLitigationQuality.ToArray(), Options.NumLitigationQualityPoints, (byte)MyGameDecisions.LitigationQuality)
                     { StoreActionInGameCacheItem = GameHistoryCacheIndex_LitigationQuality, IsReversible = true, UnevenChanceActions = true });
@@ -222,7 +222,7 @@ namespace ACESim
             // that the true values are equally likely. We then break this distribution into evenly sized buckets to get cutoff points.
             DiscreteValueSignalParameters dsParams = new DiscreteValueSignalParameters() {NumPointsInSourceUniformDistribution = 2, NumSignals = Options.NumLitigationQualityPoints, StdevOfNormalDistribution = Options.StdevNoiseToProduceLitigationQuality, UseEndpoints = true};
             ProbabilitiesLitigationQuality_TrulyNotLiable = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(1, dsParams);
-            ProbabilitiesLitigationQuality_TrulyLiable = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(1, dsParams);
+            ProbabilitiesLitigationQuality_TrulyLiable = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(2, dsParams);
         }
 
         private ValueTuple<byte, double>[,] PSignalsTable, DSignalsTable;
