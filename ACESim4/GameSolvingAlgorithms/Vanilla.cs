@@ -51,7 +51,7 @@ namespace ACESim
         private unsafe double VanillaCFR_DecisionNode(ref HistoryPoint historyPoint, byte playerBeingOptimized,
             double* piValues, bool usePruning)
         {
-            double* nextPiValues = stackalloc double[MaxNumPlayers];
+            double* nextPiValues = stackalloc double[MaxNumMainPlayers];
             //var actionsToHere = historyPoint.GetActionsToHere(Navigation);
             //var historyPointString = historyPoint.ToString();
 
@@ -119,7 +119,7 @@ namespace ACESim
         private unsafe double VanillaCFR_ChanceNode(ref HistoryPoint historyPoint, byte playerBeingOptimized,
             double* piValues, bool usePruning)
         {
-            double* equalProbabilityNextPiValues = stackalloc double[MaxNumPlayers];
+            double* equalProbabilityNextPiValues = stackalloc double[MaxNumMainPlayers];
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings) gameStateForCurrentPlayer;
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
@@ -158,7 +158,7 @@ namespace ACESim
             double* piValues, ChanceNodeSettings chanceNodeSettings, double* equalProbabilityNextPiValues,
             double expectedValue, byte action, bool usePruning)
         {
-            double* nextPiValues = stackalloc double[MaxNumPlayers];
+            double* nextPiValues = stackalloc double[MaxNumMainPlayers];
             if (equalProbabilityNextPiValues != null)
             {
                 double* locTarget = nextPiValues;
@@ -214,7 +214,7 @@ namespace ACESim
             ActionStrategy = usePruning ? ActionStrategies.RegretMatchingWithPruning : ActionStrategies.RegretMatching;
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
-                double* initialPiValues = stackalloc double[MaxNumPlayers];
+                double* initialPiValues = stackalloc double[MaxNumMainPlayers];
                 GetInitialPiValues(initialPiValues);
                 if (TraceVanillaCFR)
                     TabbedText.WriteLine($"Iteration {iteration} Player {playerBeingOptimized}");

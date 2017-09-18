@@ -17,7 +17,7 @@ namespace ACESim
 
         #region Options
 
-        public const int MaxNumPlayers = 4; // this affects fixed-size stack-allocated buffers
+        public const int MaxNumMainPlayers = 4; // this affects fixed-size stack-allocated buffers // TODO: Set to 2
         public const int MaxPossibleActions = 100; // same
 
         bool TraceVanillaCFR = false;

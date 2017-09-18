@@ -32,6 +32,7 @@ namespace ACESim
         public double FalsePositiveExpenditures;
         public double FalseNegativeShortfall;
         public double TotalExpensesIncurred;
+        public double PreDisputeSWelfare;
         public double PInitialWealth;
         public double DInitialWealth;
         public double DamagesAlleged = 1.0;
@@ -43,6 +44,7 @@ namespace ACESim
         public double DFinalWealth;
         public double PWelfare;
         public double DWelfare;
+        public MyGameDisputeGeneratorActions DisputeGeneratorActions;
 
         public override string ToString()
         {
@@ -191,6 +193,7 @@ namespace ACESim
             copy.FalsePositiveExpenditures = FalsePositiveExpenditures;
             copy.FalseNegativeShortfall = FalseNegativeShortfall;
             copy.TotalExpensesIncurred = TotalExpensesIncurred;
+            copy.PreDisputeSWelfare = PreDisputeSWelfare;
 
             return copy;
         }

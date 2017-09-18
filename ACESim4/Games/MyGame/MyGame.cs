@@ -18,8 +18,14 @@ namespace ACESim
         {
             switch (currentDecisionByteCode)
             {
-                case (byte)MyGameDecisions.TrulyLiable:
-                    MyProgress.IsTrulyLiable = action == 2;
+                case (byte)MyGameDecisions.PrePrimaryActionChance:
+                    MyProgress.DisputeGeneratorActions.PrePrimaryChanceAction = action;
+                    break;
+                case (byte)MyGameDecisions.PrimaryAction:
+                    MyProgress.DisputeGeneratorActions.PrimaryAction = action;
+                    break;
+                case (byte)MyGameDecisions.PostPrimaryActionChance:
+                    MyProgress.DisputeGeneratorActions.PostPrimaryChanceAction = action;
                     break;
                 case (byte)MyGameDecisions.LitigationQuality:
                     MyProgress.PInitialWealth = MyDefinition.Options.PInitialWealth;
@@ -300,8 +306,9 @@ namespace ACESim
             MyProgress.TotalExpensesIncurred = 0 - MyProgress.PChangeWealth - MyProgress.DChangeWealth;
             double falseNegativeShortfallIfTrulyLiable = Math.Max(0, MyProgress.DamagesAlleged - MyProgress.PChangeWealth); // how much plaintiff's payment fell short (if at all)
             double falsePositiveExpendituresIfNotTrulyLiable = Math.Max(0, 0 - MyProgress.DChangeWealth); // how much defendant's payment was excessive (if at all)
-            if (MyDefinition.Options.LitigationQualitySource == MyGameOptions.LitigationQualitySourceEnum.GenerateFromTrulyLiableStatus)
+            if (MyDefinition.Options.MyGameDisputeGenerator != null)
             {
+                MyProgress.IsTrulyLiable = MyDefinition.Options.MyGameDisputeGenerator.IsTrulyLiable(MyDefinition, MyProgress.DisputeGeneratorActions);
                 if (MyProgress.IsTrulyLiable)
                 {
                     MyProgress.FalseNegativeShortfall = falseNegativeShortfallIfTrulyLiable;
@@ -312,6 +319,7 @@ namespace ACESim
                     MyProgress.FalseNegativeShortfall = 0;
                     MyProgress.FalsePositiveExpenditures = falsePositiveExpendituresIfNotTrulyLiable;
                 }
+                MyProgress.PreDisputeSWelfare = MyDefinition.Options.MyGameDisputeGenerator.GetLitigationIndependentSocialWelfare(MyDefinition, MyProgress.DisputeGeneratorActions);
             }
             else
             {

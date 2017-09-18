@@ -19,13 +19,14 @@ namespace ACESim
         Resolution,
 
         // chance players (small information sets)
+        PostPrimaryChance,
         PNoiseOrSignalChance,
         DNoiseOrSignalChance,
         QualityChance,
         CourtChance,
 
         // chance players (no information sets)
-        TrulyLiableChance,
+        PrePrimaryChance,
         BothGiveUpChance,
         PreBargainingRoundChance, // no real chance / 1 possible action
         PostBargainingRoundChance, // no real chance / 1 possible action

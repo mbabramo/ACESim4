@@ -63,14 +63,17 @@ namespace ACESim
                 new SimpleReportColumnVariable("DWealth", (GameProgress gp) => MyGP(gp).DFinalWealth),
                 new SimpleReportColumnVariable("PWelfare", (GameProgress gp) => MyGP(gp).PWelfare),
                 new SimpleReportColumnVariable("DWelfare", (GameProgress gp) => MyGP(gp).DWelfare),
-                new SimpleReportColumnVariable("TotalExpensesIncurred", (GameProgress gp) => MyGP(gp).TotalExpensesIncurred),
-                new SimpleReportColumnVariable("FalsePositiveExpenditures", (GameProgress gp) => MyGP(gp).FalsePositiveExpenditures),
-                new SimpleReportColumnVariable("FalseNegativeShortfall", (GameProgress gp) => MyGP(gp).FalseNegativeShortfall),
+                new SimpleReportColumnVariable("TotExpense", (GameProgress gp) => MyGP(gp).TotalExpensesIncurred),
+                new SimpleReportColumnVariable("False+", (GameProgress gp) => MyGP(gp).FalsePositiveExpenditures),
+                new SimpleReportColumnVariable("False-", (GameProgress gp) => MyGP(gp).FalseNegativeShortfall),
             };
-            if (Options.LitigationQualitySource == MyGameOptions.LitigationQualitySourceEnum.GenerateFromTrulyLiableStatus)
+            if (Options.MyGameDisputeGenerator != null)
             {
-                colItems.Add(
-                    new SimpleReportColumnFilter("TrulyLiable", (GameProgress gp) => MyGP(gp).IsTrulyLiable, false));
+                colItems.AddRange(new SimpleReportColumnItem[]
+                {
+                    new SimpleReportColumnVariable("PDSWelfare", (GameProgress gp) => MyGP(gp).PreDisputeSWelfare),
+                    new SimpleReportColumnFilter("TrulyLiable", (GameProgress gp) => MyGP(gp).IsTrulyLiable, false)
+                });
             }
             for (int b = 1; b <= Options.NumPotentialBargainingRounds; b++)
             {

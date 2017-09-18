@@ -62,8 +62,11 @@ namespace ACESim
         public static void EvolveMyGame()
         {
             var options = MyGameOptionsGenerator.Standard();
-            options.ExogenousProbabilityTrulyLiable = 0.50;
-            options.LitigationQualitySource = MyGameOptions.LitigationQualitySourceEnum.GenerateFromTrulyLiableStatus;
+            options.MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
+            {
+                ExogenousProbabilityTrulyLiable = 0.5,
+                StdevNoiseToProduceLitigationQuality = 0.5
+            };
             //var options = MyGameOptionsGenerator.UsingRawSignals_10Points_1Round();
             string amRuleReport = PerformEvolution(options, "American");
             Debug.WriteLine(amRuleReport);
