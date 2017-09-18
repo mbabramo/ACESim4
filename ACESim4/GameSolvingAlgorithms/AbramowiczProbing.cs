@@ -363,6 +363,7 @@ namespace ACESim
                 sampledAction = 1;
             else
                 sampledAction = chanceNodeSettings.SampleAction(numPossibleActions, randomProducer.GetDoubleAtIndex(chanceNodeSettings.DecisionIndex));
+            // TODO: Take into account critical node status. Right now, our critical node matters only for our probes, i.e. for later decisions. But we might have an early chance node that should be critical.
             if (historyPoint.BranchingIsReversible(Navigation, chanceNodeSettings.Decision))
             {
                 return AbramowiczProbe_WalkTree_ChanceNode_Reversible(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, isExploratoryIteration, chanceNodeSettings, sampledAction, numPossibleActions);
