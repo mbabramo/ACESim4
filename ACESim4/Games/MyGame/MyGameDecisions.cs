@@ -12,8 +12,8 @@ namespace ACESim
         PrimaryAction,
         PostPrimaryActionChance,
         LitigationQuality,
-        PNoiseOrSignal, // meaning depends on ActionIsNoiseNotSignal option
-        DNoiseOrSignal, // meaning depends on ActionIsNoiseNotSignal option
+        PNoise,
+        DNoise,
         PFile, // 1 = yes, 2 = no
         DAnswer, // 1 = yes, 2 = no
         PreBargainingRound, // dummy chance decision -- gives us chance to perform some processing 

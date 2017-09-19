@@ -39,10 +39,6 @@ namespace ACESim
         /// The standard deviation of the noise used to obfuscate the court's estimate of the case strength. This applies only when the action is the noise, rather than the signal itself.
         /// </summary>
         public double CourtNoiseStdev;
-        /// <summary>
-        /// If true, then the chance action represents noise, and a litigant's signal is determined by combining the litigation quality with a noise value, drawn from the inverse cumulative normal distribution. If false, then a litigant's signal represents an unbiased probability estimate of the probability of winning (so, for example, if there are 10 signals, then a signal of 3 would represent a 35% chance of winning). The court decision will then be an uneven chance decision consistent with this estimate. This depends, however, on the assumption that litigation quality is uniformly distributed between 0 and 1. If it is not, then this should be set to true. 
-        /// </summary>
-        public bool ActionIsNoiseNotSignal;
 
 
         /// <summary>

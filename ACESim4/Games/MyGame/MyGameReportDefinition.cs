@@ -261,28 +261,16 @@ namespace ACESim
                 if (plaintiffMakesOffer)
                 {
                     byte j = (byte) (i + 1);
-                    if (Options.ActionIsNoiseNotSignal)
-                        rowFilters.Add(new SimpleReportFilter(
-                            $"PSignal {j}",
-                            (GameProgress gp) => MyGP(gp).PSignalDiscrete == j));
-                    else
-                        rowFilters.Add(new SimpleReportFilter(
-                            $"PSignal {regionStart.ToSignificantFigures(2)}-{regionEnd.ToSignificantFigures(2)}",
-                            (GameProgress gp) => MyGP(gp).PSignalUniform >= regionStart &&
-                                                 MyGP(gp).PSignalUniform < regionEnd));
+                    rowFilters.Add(new SimpleReportFilter(
+                        $"PSignal {j}",
+                        (GameProgress gp) => MyGP(gp).PSignalDiscrete == j));
                 }
                 else
                 {
                     byte j = (byte) (i + 1);
-                    if (Options.ActionIsNoiseNotSignal)
-                        rowFilters.Add(new SimpleReportFilter(
-                            $"DSignal {j}",
-                            (GameProgress gp) => MyGP(gp).DSignalDiscrete == j));
-                    else
-                        rowFilters.Add(new SimpleReportFilter(
-                            $"DSignal {regionStart.ToSignificantFigures(2)}-{regionEnd.ToSignificantFigures(2)}",
-                            (GameProgress gp) => MyGP(gp).DSignalUniform >= regionStart &&
-                                                 MyGP(gp).DSignalUniform < regionEnd));
+                    rowFilters.Add(new SimpleReportFilter(
+                        $"DSignal {j}",
+                        (GameProgress gp) => MyGP(gp).DSignalDiscrete == j));
                 }
             }
         }

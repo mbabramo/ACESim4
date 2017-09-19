@@ -19,7 +19,6 @@ namespace ACESim
                 DInitialWealth = 1000000,
                 DamagesAlleged = 100000,
                 NumLitigationQualityPoints = 10,
-                ActionIsNoiseNotSignal = false,
                 MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
                 {
                     ProbabilityTrulyLiable_LitigationQuality75 = 0.75,
@@ -69,7 +68,6 @@ namespace ACESim
                 DInitialWealth = 1000000,
                 DamagesAlleged = 100000,
                 NumLitigationQualityPoints = 3,
-                ActionIsNoiseNotSignal = false,
                 MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
                 { 
                     ProbabilityTrulyLiable_LitigationQuality75 = 0.75,
@@ -119,7 +117,6 @@ namespace ACESim
                 DInitialWealth = 1000000,
                 DamagesAlleged = 100000,
                 NumLitigationQualityPoints = 5,
-                ActionIsNoiseNotSignal = false,
                 MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
                 {
                     ProbabilityTrulyLiable_LitigationQuality75 = 0.75,
@@ -168,7 +165,6 @@ namespace ACESim
                 DInitialWealth = 1000000,
                 DamagesAlleged = 100000,
                 NumLitigationQualityPoints = 10,
-                ActionIsNoiseNotSignal = true,
                 MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
                 {
                     ProbabilityTrulyLiable_LitigationQuality75 = 0.75,
@@ -229,7 +225,6 @@ namespace ACESim
                 NumLitigationQualityPoints = 10,
                 NumSignals = 10, // include signals for < 0 and > 1
                 NumNoiseValues = 10,
-                ActionIsNoiseNotSignal = false,
                 MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
                 {
                     ProbabilityTrulyLiable_LitigationQuality75 = 0.75,

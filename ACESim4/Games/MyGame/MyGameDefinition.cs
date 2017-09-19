@@ -59,8 +59,8 @@ namespace ACESim
         private static string PrePrimaryChanceName = "PPC";
         private static string PostPrimaryChanceName = "POPC";
         private static string LitigationQualityChanceName = "QC";
-        private static string PlaintiffNoiseOrSignalChanceName = "PNS";
-        private static string DefendantNoiseOrSignalChanceName = "DNS";
+        private static string PlaintiffNoiseChanceName = "PNC";
+        private static string DefendantNoiseChanceName = "DNC";
         private static string BothGiveUpChanceName = "GUC";
         private static string PreBargainingRoundChanceName = "PRE";
         private static string PostBargainingRoundChanceName = "POST";
@@ -78,8 +78,8 @@ namespace ACESim
                     new PlayerInfo(PrePrimaryChanceName, (int) MyGamePlayers.PrePrimaryChance, true, false),
                     new PlayerInfo(PostPrimaryChanceName, (int) MyGamePlayers.PrePrimaryChance, true, false),
                     new PlayerInfo(LitigationQualityChanceName, (int) MyGamePlayers.QualityChance, true, false),
-                    new PlayerInfo(PlaintiffNoiseOrSignalChanceName, (int) MyGamePlayers.PNoiseOrSignalChance, true, false),
-                    new PlayerInfo(DefendantNoiseOrSignalChanceName, (int) MyGamePlayers.DNoiseOrSignalChance, true, false),
+                    new PlayerInfo(PlaintiffNoiseChanceName, (int) MyGamePlayers.PNoiseChance, true, false),
+                    new PlayerInfo(DefendantNoiseChanceName, (int) MyGamePlayers.DNoiseChance, true, false),
                     new PlayerInfo(BothGiveUpChanceName, (int) MyGamePlayers.BothGiveUpChance, true, false),
                     new PlayerInfo(PreBargainingRoundChanceName, (int) MyGamePlayers.PreBargainingRoundChance, true, false),
                     new PlayerInfo(PostBargainingRoundChanceName, (int) MyGamePlayers.PostBargainingRoundChance, true, false),
@@ -133,12 +133,11 @@ namespace ACESim
             // The SignalChance player relies on this information in calculating the probabilities of different signals
             List<byte> playersKnowingLitigationQuality = new List<byte>()
             {
-                (byte) MyGamePlayers.PNoiseOrSignalChance,
-                (byte) MyGamePlayers.DNoiseOrSignalChance,
-                (byte) MyGamePlayers.CourtChance
+                (byte) MyGamePlayers.PNoiseChance,
+                (byte) MyGamePlayers.DNoiseChance,
+                (byte) MyGamePlayers.CourtChance,
+                (byte) MyGamePlayers.Resolution
             };
-            if (Options.ActionIsNoiseNotSignal)
-                playersKnowingLitigationQuality.Add((byte) MyGamePlayers.Resolution);
             if (Options.PNoiseStdev == 0)
                 playersKnowingLitigationQuality.Add((byte) MyGamePlayers.Plaintiff);
             if (Options.DNoiseStdev == 0)
@@ -160,48 +159,23 @@ namespace ACESim
                     playersKnowingLitigationQuality.ToArray(), Options.NumLitigationQualityPoints, (byte)MyGameDecisions.LitigationQuality)
                 { StoreActionInGameCacheItem = GameHistoryCacheIndex_LitigationQuality, IsReversible = true, UnevenChanceActions = litigationQualityUnevenChance });
             // Plaintiff and defendant signals. If a player has perfect information, then no signal is needed.
-            // when action is the signal, we have an uneven chance decision, and the party receives the signal directly. When the action is the noise, we still want the party to receive the signal rather than the noise and we add that with custom information set manipulation below.
-            if (!Options.ActionIsNoiseNotSignal && Options.NumNoiseValues != Options.NumSignals)
-                throw new NotImplementedException(); // our uneven chance probabilities assumes this is true
-            if (Options.ActionIsNoiseNotSignal)
-            {
-
-                if (Options.PNoiseStdev != 0)
-                    decisions.Add(new Decision("PlaintiffNoise", "PN", (byte)MyGamePlayers.PNoiseOrSignalChance,
-                        null,
-                        Options.NumNoiseValues, (byte)MyGameDecisions.PNoiseOrSignal, unevenChanceActions: false)
-                        {
-                            RequiresCustomInformationSetManipulation = true,
-                            IsReversible = true // custom ReverseDecision defined below
-                        });
-                if (Options.DNoiseStdev != 0)
-                    decisions.Add(new Decision("DefendantNoise", "DN", (byte)MyGamePlayers.DNoiseOrSignalChance,
-                        null,
-                        Options.NumNoiseValues, (byte)MyGameDecisions.DNoiseOrSignal, unevenChanceActions: false)
+            if (Options.PNoiseStdev != 0)
+                decisions.Add(new Decision("PlaintiffNoise", "PN", (byte)MyGamePlayers.PNoiseChance,
+                    null,
+                    Options.NumNoiseValues, (byte)MyGameDecisions.PNoise, unevenChanceActions: false)
                     {
                         RequiresCustomInformationSetManipulation = true,
                         IsReversible = true // custom ReverseDecision defined below
                     });
-            }
-            else
-            {
-                if (Options.PNoiseStdev != 0)
-                    decisions.Add(new Decision("PlaintiffSignal", "PSig", (byte)MyGamePlayers.PNoiseOrSignalChance,
-                        new byte[] { (byte)MyGamePlayers.Plaintiff },
-                        Options.NumNoiseValues, (byte)MyGameDecisions.PNoiseOrSignal, unevenChanceActions: true) { IsReversible = true });
-                if (Options.DNoiseStdev != 0)
-                    decisions.Add(new Decision("DefendantSignal", "DSig", (byte)MyGamePlayers.DNoiseOrSignalChance,
-                        new byte[] { (byte)MyGamePlayers.Defendant },
-                        Options.NumNoiseValues, (byte)MyGameDecisions.DNoiseOrSignal, unevenChanceActions: true)
-                        { IsReversible = true });
-            }
-            if (Options.ActionIsNoiseNotSignal)
-                CreateSignalsTables();
-            else
-            { // make sure we don't use it!
-                PSignalsTable = null;
-                DSignalsTable = null;
-            }
+            if (Options.DNoiseStdev != 0)
+                decisions.Add(new Decision("DefendantNoise", "DN", (byte)MyGamePlayers.DNoiseChance,
+                    null,
+                    Options.NumNoiseValues, (byte)MyGameDecisions.DNoise, unevenChanceActions: false)
+                {
+                    RequiresCustomInformationSetManipulation = true,
+                    IsReversible = true // custom ReverseDecision defined below
+                });
+            CreateSignalsTables();
         }
 
         public void ConvertNoiseToSignal(byte litigationQuality, byte noise, bool plaintiff, out byte discreteSignal,
@@ -459,19 +433,10 @@ namespace ACESim
         
         private void AddCourtDecision(List<Decision> decisions)
         {
-            if (Options.ActionIsNoiseNotSignal)
-                decisions.Add(new Decision("CourtDecision", "CD", (byte)MyGamePlayers.CourtChance,
-                        new byte[] { (byte)MyGamePlayers.Resolution }, Options.NumCourtNoiseValues, (byte)MyGameDecisions.CourtDecision,
-                        unevenChanceActions: false, criticalNode: true)
-                    { CanTerminateGame = true, AlwaysTerminatesGame = true, IsReversible = true }); // even chance options
-            else
-                decisions.Add(new Decision("CourtDecision", "CD", (byte)MyGamePlayers.CourtChance,
-                    new byte[] { (byte)MyGamePlayers.Resolution }, 2 /* for plaintiff or for defendant */,
-                    (byte)MyGameDecisions.CourtDecision, unevenChanceActions: true, criticalNode: true)
-                {
-                    CanTerminateGame = true,
-                    IsReversible = true
-                }); // uneven chance options
+            decisions.Add(new Decision("CourtDecision", "CD", (byte)MyGamePlayers.CourtChance,
+                    new byte[] { (byte)MyGamePlayers.Resolution }, Options.NumCourtNoiseValues, (byte)MyGameDecisions.CourtDecision,
+                    unevenChanceActions: false, criticalNode: true)
+                { CanTerminateGame = true, AlwaysTerminatesGame = true, IsReversible = true }); // even chance options
         }
 
         #endregion
@@ -496,32 +461,6 @@ namespace ACESim
             {
                 var myGameProgress = ((MyGameProgress) gameProgress);
                 var probabilities = Options.MyGameDisputeGenerator.GetLitigationQualityProbabilities(this, myGameProgress.DisputeGeneratorActions);
-                return probabilities;
-            }
-            if (decisionByteCode == (byte)MyGameDecisions.PNoiseOrSignal)
-            {
-                if (Options.ActionIsNoiseNotSignal)
-                    throw new NotImplementedException();
-                MyGameProgress myGameProgress = (MyGameProgress)gameProgress;
-                return DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(myGameProgress.LitigationQualityDiscrete, Options.PSignalParameters);
-            }
-            else if (decisionByteCode == (byte)MyGameDecisions.DNoiseOrSignal)
-            {
-                if (Options.ActionIsNoiseNotSignal)
-                    throw new NotImplementedException();
-                MyGameProgress myGameProgress = (MyGameProgress)gameProgress;
-                return DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(myGameProgress.LitigationQualityDiscrete, Options.DSignalParameters);
-            }
-            else if (decisionByteCode == (byte)MyGameDecisions.CourtDecision)
-            {
-                if (Options.ActionIsNoiseNotSignal)
-                    throw new NotImplementedException();
-                double[] probabilities = new double[2];
-                MyGameProgress myGameProgress = (MyGameProgress)gameProgress;
-                probabilities[0] =
-                    1.0 - myGameProgress.LitigationQualityUniform; // probability action 1 ==> rule for defendant
-                probabilities[1] =
-                    myGameProgress.LitigationQualityUniform; // probability action 2 ==> rule for plaintiff
                 return probabilities;
             }
             else
@@ -606,12 +545,12 @@ namespace ACESim
         public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, ref GameHistory gameHistory, GameProgress gameProgress)
         {
             byte decisionByteCode = currentDecision.Subdividable_IsSubdivision ? currentDecision.Subdividable_CorrespondingDecisionByteCode : currentDecision.DecisionByteCode; // get the original decision byte code
-            if (Options.ActionIsNoiseNotSignal && (decisionByteCode == (byte) MyGameDecisions.PNoiseOrSignal || decisionByteCode == (byte) MyGameDecisions.DNoiseOrSignal))
+            if (decisionByteCode == (byte) MyGameDecisions.PNoise || decisionByteCode == (byte) MyGameDecisions.DNoise)
             {
                 // When the action is the signal, we just send the signal that the player receives, because there are unequal chance probabilities. When the action is the noise, we have an even chance of each noise value. We can't just give the player the noise value; we have to take into account the litigation quality. So, we do that here.
                 byte litigationQuality = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_LitigationQuality);
-                ConvertNoiseToSignal(litigationQuality, actionChosen, decisionByteCode == (byte)MyGameDecisions.PNoiseOrSignal, out byte discreteSignal, out _);
-                gameHistory.AddToInformationSetAndLog(discreteSignal, currentDecisionIndex, decisionByteCode == (byte)MyGameDecisions.PNoiseOrSignal ? (byte) MyGamePlayers.Plaintiff : (byte) MyGamePlayers.Defendant, gameProgress);
+                ConvertNoiseToSignal(litigationQuality, actionChosen, decisionByteCode == (byte)MyGameDecisions.PNoise, out byte discreteSignal, out _);
+                gameHistory.AddToInformationSetAndLog(discreteSignal, currentDecisionIndex, decisionByteCode == (byte)MyGameDecisions.PNoise ? (byte) MyGamePlayers.Plaintiff : (byte) MyGamePlayers.Defendant, gameProgress);
                 // NOTE: We don't have to do anything like this for the court's information set. The court simply gets the actual litigation quality and the noise. When the game is actually being played, the court will combine these to determine whether the plaintiff wins. The plaintiff and defendant are non-chance players, and so we want to have the same information set for all situations with the same signal.  But with the court, that doesn't matter. We can have lots of information sets, covering the wide range of possibilities.
             }
             else if (decisionByteCode == (byte)MyGameDecisions.PreBargainingRound)
@@ -655,9 +594,9 @@ namespace ACESim
             base.ReverseDecision(decisionToReverse, ref historyPoint, originalGameState);
             ref GameHistory gameHistory = ref historyPoint.HistoryToPoint;
             byte decisionByteCode = decisionToReverse.DecisionByteCode;
-            if (Options.ActionIsNoiseNotSignal && (decisionByteCode == (byte)MyGameDecisions.PNoiseOrSignal || decisionByteCode == (byte)MyGameDecisions.DNoiseOrSignal))
+            if (decisionByteCode == (byte)MyGameDecisions.PNoise || decisionByteCode == (byte)MyGameDecisions.DNoise)
             {
-                gameHistory.ReverseAdditionsToInformationSet(decisionByteCode == (byte)MyGameDecisions.PNoiseOrSignal ? (byte)MyGamePlayers.Plaintiff : (byte)MyGamePlayers.Defendant, 1, null);
+                gameHistory.ReverseAdditionsToInformationSet(decisionByteCode == (byte)MyGameDecisions.PNoise ? (byte)MyGamePlayers.Plaintiff : (byte)MyGamePlayers.Defendant, 1, null);
             }
         }
 
