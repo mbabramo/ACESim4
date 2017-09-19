@@ -38,8 +38,8 @@ namespace ACESim
 
                 Algorithm = GameApproximationAlgorithm.AbramowiczProbing,
 
-                ReportEveryNIterations = 3_000,
-                NumRandomIterationsForSummaryTable = 1000,
+                ReportEveryNIterations = 10_000,
+                NumRandomIterationsForSummaryTable = 10000,
                 PrintSummaryTable = true,
                 PrintInformationSets = false,
                 RestrictToTheseInformationSets = null, // new List<int>() {16},
@@ -47,7 +47,7 @@ namespace ACESim
                 AlwaysUseAverageStrategyInReporting = false,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
 
-                TotalProbingCFRIterations = 3_000,
+                TotalProbingCFRIterations = 10_000,
                 EpsilonForMainPlayer = 0.5,
                 EpsilonForOpponentWhenExploring = 0.05,
                 MinBackupRegretsTrigger = 3,
@@ -62,11 +62,17 @@ namespace ACESim
         public static void EvolveMyGame()
         {
             var options = MyGameOptionsGenerator.Standard();
-            options.MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
+            options.MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
             {
-                ExogenousProbabilityTrulyLiable = 0.5,
-                StdevNoiseToProduceLitigationQuality = 0.5
+                ProbabilityTrulyLiable_LitigationQuality75 = 0.75,
+                ProbabilityTrulyLiable_LitigationQuality90 = 0.90,
+                NumPointsToDetermineTrulyLiable = 100,
             };
+            //options.MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
+            //{
+            //    ExogenousProbabilityTrulyLiable = 0.5,
+            //    StdevNoiseToProduceLitigationQuality = 0.5
+            //};
             //var options = MyGameOptionsGenerator.UsingRawSignals_10Points_1Round();
             string amRuleReport = PerformEvolution(options, "American");
             Debug.WriteLine(amRuleReport);

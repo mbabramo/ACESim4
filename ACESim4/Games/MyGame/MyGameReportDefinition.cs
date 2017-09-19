@@ -66,15 +66,9 @@ namespace ACESim
                 new SimpleReportColumnVariable("TotExpense", (GameProgress gp) => MyGP(gp).TotalExpensesIncurred),
                 new SimpleReportColumnVariable("False+", (GameProgress gp) => MyGP(gp).FalsePositiveExpenditures),
                 new SimpleReportColumnVariable("False-", (GameProgress gp) => MyGP(gp).FalseNegativeShortfall),
+                new SimpleReportColumnVariable("PDSWelfare", (GameProgress gp) => MyGP(gp).PreDisputeSWelfare),
+                new SimpleReportColumnFilter("TrulyLiable", (GameProgress gp) => MyGP(gp).IsTrulyLiable, false)
             };
-            if (Options.MyGameDisputeGenerator != null)
-            {
-                colItems.AddRange(new SimpleReportColumnItem[]
-                {
-                    new SimpleReportColumnVariable("PDSWelfare", (GameProgress gp) => MyGP(gp).PreDisputeSWelfare),
-                    new SimpleReportColumnFilter("TrulyLiable", (GameProgress gp) => MyGP(gp).IsTrulyLiable, false)
-                });
-            }
             for (int b = 1; b <= Options.NumPotentialBargainingRounds; b++)
             {
                 int bargainingRoundNum = b; // needed for closure -- otherwise b below will always be max value.

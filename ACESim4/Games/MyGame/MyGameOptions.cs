@@ -44,13 +44,6 @@ namespace ACESim
         /// </summary>
         public bool ActionIsNoiseNotSignal;
 
-        // The following apply to when we have equal litigation quality probabilities.
-        /// <summary>
-        /// If each litigation quality value is equally likely, then the probability that the defendant is truly liable when the uniform litigation quality is 0.75. A value higehr than 0.75 reflects the proposition that majorities are likely generally to be correct.
-        /// </summary>
-        public double ProbabilityTrulyLiable_LitigationQuality75;
-        /// If each litigation quality value is equally likely, then the probability that the defendant is truly liable when the uniform litigation quality is 0.90. A value higehr than 0.90 reflects the proposition that majorities are likely generally to be correct.
-        public double ProbabilityTrulyLiable_LitigationQuality90;
 
         /// <summary>
         /// If true, then the bargaining round starts with P and D deciding whether to bargain at all this round. The per bargaining round costs will be borne either way.

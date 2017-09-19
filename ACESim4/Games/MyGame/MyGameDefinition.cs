@@ -49,10 +49,7 @@ namespace ACESim
                 StdevOfNormalDistribution = Options.DNoiseStdev,
                 NumSignals = Options.NumSignals
             };
-            if (Options.MyGameDisputeGenerator == null)
-                CorrectnessGivenLitigationQuality = MonotonicCurve.CalculateCurvatureForThreePoints(0.5, 0.5, 0.75, Options.ProbabilityTrulyLiable_LitigationQuality75, 0.9, Options.ProbabilityTrulyLiable_LitigationQuality90);
-            else
-                Options.MyGameDisputeGenerator.Setup(this);
+            Options.MyGameDisputeGenerator.Setup(this);
         }
 
         private MyGameProgress MyGP(GameProgress gp) => gp as MyGameProgress;
@@ -146,30 +143,22 @@ namespace ACESim
                 playersKnowingLitigationQuality.Add((byte) MyGamePlayers.Plaintiff);
             if (Options.DNoiseStdev == 0)
                 playersKnowingLitigationQuality.Add((byte) MyGamePlayers.Defendant);
-            if (Options.MyGameDisputeGenerator == null)
+            Options.MyGameDisputeGenerator.GetActionsSetup(this, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance);
+            if (prePrimaryChanceActions > 0)
             {
-                decisions.Add(new Decision("LitigationQuality", "Qual", (byte) MyGamePlayers.QualityChance,
-                    playersKnowingLitigationQuality.ToArray(), Options.NumLitigationQualityPoints, (byte) MyGameDecisions.LitigationQuality) {StoreActionInGameCacheItem = GameHistoryCacheIndex_LitigationQuality, IsReversible = true});
+                decisions.Add(new Decision("PrePrimaryChanceActions", "PrePrimary", (byte) MyGamePlayers.PrePrimaryChance, prePrimaryPlayersToInform, prePrimaryChanceActions, (byte) MyGameDecisions.PrePrimaryActionChance) {StoreActionInGameCacheItem = GameHistoryCacheIndex_PrePrimaryChance, IsReversible = true, UnevenChanceActions = prePrimaryUnevenChance});
             }
-            else
+            if (primaryActions > 0)
             {
-                Options.MyGameDisputeGenerator.GetActionsSetup(this, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform);
-                if (prePrimaryChanceActions > 0)
-                {
-                    decisions.Add(new Decision("PrePrimaryChanceActions", "PrePrimary", (byte) MyGamePlayers.PrePrimaryChance, prePrimaryPlayersToInform, prePrimaryChanceActions, (byte) MyGameDecisions.PrePrimaryActionChance) {StoreActionInGameCacheItem = GameHistoryCacheIndex_PrePrimaryChance, IsReversible = true, UnevenChanceActions = false});
-                }
-                if (primaryActions > 0)
-                {
-                    decisions.Add(new Decision("PrimaryActions", "Primary", (byte) MyGamePlayers.Defendant, primaryPlayersToInform, primaryActions, (byte) MyGameDecisions.PrimaryAction) {StoreActionInGameCacheItem = GameHistoryCacheIndex_PrimaryAction, IsReversible = true});
-                }
-                if (postPrimaryChanceActions > 0)
-                {
-                    decisions.Add(new Decision("PostPrimaryChanceActions", "PostPrimary", (byte) MyGamePlayers.PostPrimaryChance, postPrimaryPlayersToInform, postPrimaryChanceActions, (byte) MyGameDecisions.PostPrimaryActionChance) {StoreActionInGameCacheItem = GameHistoryCacheIndex_PostPrimaryChance, IsReversible = true, UnevenChanceActions = true});
-                }
-                decisions.Add(new Decision("LitigationQuality", "Qual", (byte)MyGamePlayers.QualityChance,
-                        playersKnowingLitigationQuality.ToArray(), Options.NumLitigationQualityPoints, (byte)MyGameDecisions.LitigationQuality)
-                    { StoreActionInGameCacheItem = GameHistoryCacheIndex_LitigationQuality, IsReversible = true, UnevenChanceActions = true });
+                decisions.Add(new Decision("PrimaryActions", "Primary", (byte) MyGamePlayers.Defendant, primaryPlayersToInform, primaryActions, (byte) MyGameDecisions.PrimaryAction) {StoreActionInGameCacheItem = GameHistoryCacheIndex_PrimaryAction, IsReversible = true});
             }
+            if (postPrimaryChanceActions > 0)
+            {
+                decisions.Add(new Decision("PostPrimaryChanceActions", "PostPrimary", (byte) MyGamePlayers.PostPrimaryChance, postPrimaryPlayersToInform, postPrimaryChanceActions, (byte) MyGameDecisions.PostPrimaryActionChance) {StoreActionInGameCacheItem = GameHistoryCacheIndex_PostPrimaryChance, IsReversible = true, UnevenChanceActions = postPrimaryUnevenChance});
+            }
+            decisions.Add(new Decision("LitigationQuality", "Qual", (byte)MyGamePlayers.QualityChance,
+                    playersKnowingLitigationQuality.ToArray(), Options.NumLitigationQualityPoints, (byte)MyGameDecisions.LitigationQuality)
+                { StoreActionInGameCacheItem = GameHistoryCacheIndex_LitigationQuality, IsReversible = true, UnevenChanceActions = litigationQualityUnevenChance });
             // Plaintiff and defendant signals. If a player has perfect information, then no signal is needed.
             // when action is the signal, we have an uneven chance decision, and the party receives the signal directly. When the action is the noise, we still want the party to receive the signal rather than the noise and we add that with custom information set manipulation below.
             if (!Options.ActionIsNoiseNotSignal && Options.NumNoiseValues != Options.NumSignals)

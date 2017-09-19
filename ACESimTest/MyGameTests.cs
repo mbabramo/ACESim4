@@ -68,6 +68,12 @@ namespace ACESimTest
                 NumCourtNoiseValues = NumCourtNoiseValues,
                 NumNoiseValues = NumNoiseValues,
                 ActionIsNoiseNotSignal = actionIsNoiseNotSignal,
+                MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
+                {
+                    ProbabilityTrulyLiable_LitigationQuality75 = 0.75,
+                    ProbabilityTrulyLiable_LitigationQuality90 = 0.90,
+                    NumPointsToDetermineTrulyLiable = 100,
+                },
                 PNoiseStdev = PartyNoise,
                 DNoiseStdev = PartyNoise,
                 CourtNoiseStdev = 0.5,
@@ -351,6 +357,7 @@ namespace ACESimTest
             var actionsToPlay = DefineActions.ForTest(
                 new List<(byte decision, byte action)>()
                 {
+                    ((byte) MyGameDecisions.PostPrimaryActionChance, 17), // irrelevant -- just determines probability truly liable
                     ((byte) MyGameDecisions.PFile, pFiles ? (byte) 1 : (byte) 2),
                     ((byte) MyGameDecisions.DAnswer, dAnswers ? (byte) 1 : (byte) 2),
                     ((byte) MyGameDecisions.LitigationQuality, litigationQuality),

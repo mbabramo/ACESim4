@@ -103,13 +103,14 @@
     <Compile Include="GamePlay\PlayerInfo.cs" />
     <Compile Include="Games\MyGame\DeltaOffersCalculation.cs" />
     <Compile Include="Games\MyGame\DeltaOffersOptions.cs" />
-    <Compile Include="Games\MyGame\IMyGameDisputeGenerator.cs" />
+    <Compile Include="Games\MyGame\DisputeGeneration\IMyGameDisputeGenerator.cs" />
+    <Compile Include="Games\MyGame\DisputeGeneration\MyGameEqualQualityProbabilitiesDisputeGenerator.cs" />
     <Compile Include="Games\MyGame\MyGame.cs" />
     <Compile Include="Games\MyGame\MyGameActionsGenerator.cs" />
     <Compile Include="Games\MyGame\MyGameDecisions.cs" />
     <Compile Include="Games\MyGame\MyGameDefinition.cs" />
-    <Compile Include="Games\MyGame\MyGameDisputeGeneratorActions.cs" />
-    <Compile Include="Games\MyGame\MyGameExogenousDisputeGenerator.cs" />
+    <Compile Include="Games\MyGame\DisputeGeneration\MyGameDisputeGeneratorActions.cs" />
+    <Compile Include="Games\MyGame\DisputeGeneration\MyGameExogenousDisputeGenerator.cs" />
     <Compile Include="Games\MyGame\MyGameFactory.cs" />
     <Compile Include="Games\MyGame\MyGameOptions.cs" />
     <Compile Include="Games\MyGame\MyGameOptionsGenerator.cs" />
