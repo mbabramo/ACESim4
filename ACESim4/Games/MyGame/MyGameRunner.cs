@@ -38,8 +38,8 @@ namespace ACESim
 
                 Algorithm = GameApproximationAlgorithm.AbramowiczProbing,
 
-                ReportEveryNIterations = 10_000,
-                NumRandomIterationsForSummaryTable = 10000,
+                ReportEveryNIterations = 100_000,
+                NumRandomIterationsForSummaryTable = 5000,
                 PrintSummaryTable = true,
                 PrintInformationSets = false,
                 RestrictToTheseInformationSets = null, // new List<int>() {16},
@@ -47,7 +47,7 @@ namespace ACESim
                 AlwaysUseAverageStrategyInReporting = false,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
 
-                TotalProbingCFRIterations = 10_000,
+                TotalProbingCFRIterations = 100_000,
                 EpsilonForMainPlayer = 0.5,
                 EpsilonForOpponentWhenExploring = 0.05,
                 MinBackupRegretsTrigger = 3,
@@ -59,7 +59,7 @@ namespace ACESim
             return evolutionSettings;
         }
 
-        public static void EvolveMyGame()
+        public static string EvolveMyGame()
         {
             var options = MyGameOptionsGenerator.Standard();
             options.MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
@@ -74,15 +74,16 @@ namespace ACESim
             //    StdevNoiseToProduceLitigationQuality = 0.5
             //};
             //var options = MyGameOptionsGenerator.UsingRawSignals_10Points_1Round();
-            string amRuleReport = PerformEvolution(options, "American");
+            string amRuleReport = PerformEvolution(options, "American", true);
             Debug.WriteLine(amRuleReport);
             options.LoserPays = true;
-            //string brRuleReport = PerformEvolution(options, "British");
-            //Debug.WriteLine(brRuleReport);
-            //string combined = amRuleReport + brRuleReport;
+            string brRuleReport = PerformEvolution(options, "British", false);
+            Debug.WriteLine(brRuleReport);
+            string combined = amRuleReport + brRuleReport;
+            return combined;
         }
 
-        private static string PerformEvolution(MyGameOptions options, string reportName)
+        private static string PerformEvolution(MyGameOptions options, string reportName, bool includeFirstLine)
         {
             MyGameDefinition gameDefinition = new MyGameDefinition();
             gameDefinition.Setup(options);
@@ -102,7 +103,7 @@ namespace ACESim
                 cumulativeReport += differentiatedReport;
             }
             Debug.WriteLine(cumulativeReport);
-            string mergedReport = SimpleReportMerging.GetMergedReports(cumulativeReport, reportName);
+            string mergedReport = SimpleReportMerging.GetMergedReports(cumulativeReport, reportName, includeFirstLine);
             return mergedReport;
         }
     }

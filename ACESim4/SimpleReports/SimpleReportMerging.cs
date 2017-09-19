@@ -8,9 +8,9 @@ namespace ACESim
 {
     public static class SimpleReportMerging
     {
-        public static string GetMergedReports(string cumulativeReport, string reportName)
+        public static string GetMergedReports(string cumulativeReport, string reportName, bool includeFirstLine)
         {
-            var averageReport = SimpleReportMerging.GetAggregationReport(cumulativeReport, reportName, SimpleReportAggregations.Average, true);
+            var averageReport = SimpleReportMerging.GetAggregationReport(cumulativeReport, reportName, SimpleReportAggregations.Average, includeFirstLine);
             var lowerBoundReport = SimpleReportMerging.GetAggregationReport(cumulativeReport, reportName, SimpleReportAggregations.LowerBound, false);
             var upperBoundReport = SimpleReportMerging.GetAggregationReport(cumulativeReport, reportName, SimpleReportAggregations.UpperBound, false);
             return averageReport + lowerBoundReport + upperBoundReport;
