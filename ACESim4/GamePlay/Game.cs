@@ -74,6 +74,12 @@ namespace ACESim
             this.GameDefinition = gameDefinition;
             this.RecordReportInfo = recordReportInfo;
             SetUpGameModules();
+            Initialize();
+        }
+
+        public virtual void Initialize()
+        {
+            
         }
 
         internal virtual void SetUpGameModules()

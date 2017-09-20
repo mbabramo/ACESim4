@@ -44,6 +44,8 @@ namespace ACESim
             var colItems = new List<SimpleReportColumnItem>()
             {
                 new SimpleReportColumnFilter("All", (GameProgress gp) => true, true),
+                new SimpleReportColumnFilter("NoDispute", (GameProgress gp) => !MyGP(gp).DisputeArises, true),
+                new SimpleReportColumnFilter("DisputeArises", (GameProgress gp) => MyGP(gp).DisputeArises, true),
                 new SimpleReportColumnVariable("LitigQuality", (GameProgress gp) => MyGP(gp).LitigationQualityUniform),
                 new SimpleReportColumnFilter("PFiles", (GameProgress gp) => MyGP(gp).PFiles, false),
                 new SimpleReportColumnFilter("DAnswers", (GameProgress gp) => MyGP(gp).DAnswers, false),
@@ -93,6 +95,8 @@ namespace ACESim
             var simpleReportFilters = new List<SimpleReportFilter>()
             {
                 new SimpleReportFilter("All", (GameProgress gp) => true),
+                new SimpleReportFilter("NoDispute", (GameProgress gp) => !MyGP(gp).DisputeArises),
+                new SimpleReportFilter("DisputeArises", (GameProgress gp) => MyGP(gp).DisputeArises),
                 new SimpleReportFilter("Litigated", (GameProgress gp) => MyGP(gp).PFiles && MyGP(gp).DAnswers),
                 new SimpleReportFilter("Settles", (GameProgress gp) => MyGP(gp).CaseSettles),
                 new SimpleReportFilter("Tried", (GameProgress gp) => !MyGP(gp).CaseSettles),

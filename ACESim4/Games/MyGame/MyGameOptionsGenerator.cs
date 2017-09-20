@@ -17,7 +17,7 @@ namespace ACESim
             {
                 PInitialWealth = 1000000,
                 DInitialWealth = 1000000,
-                DamagesAlleged = 100000,
+                DamagesToAllege = 100000,
                 NumLitigationQualityPoints = 10,
                 MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
                 {
@@ -66,7 +66,7 @@ namespace ACESim
             {
                 PInitialWealth = 1000000,
                 DInitialWealth = 1000000,
-                DamagesAlleged = 100000,
+                DamagesToAllege = 100000,
                 NumLitigationQualityPoints = 3,
                 MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
                 { 
@@ -115,7 +115,7 @@ namespace ACESim
             {
                 PInitialWealth = 1000000,
                 DInitialWealth = 1000000,
-                DamagesAlleged = 100000,
+                DamagesToAllege = 100000,
                 NumLitigationQualityPoints = 5,
                 MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
                 {
@@ -163,7 +163,7 @@ namespace ACESim
             {
                 PInitialWealth = 1000000,
                 DInitialWealth = 1000000,
-                DamagesAlleged = 100000,
+                DamagesToAllege = 100000,
                 NumLitigationQualityPoints = 10,
                 MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
                 {
@@ -221,7 +221,7 @@ namespace ACESim
             {
                 PInitialWealth = 1000000,
                 DInitialWealth = 1000000,
-                DamagesAlleged = 100000,
+                DamagesToAllege = 100000,
                 NumLitigationQualityPoints = 10,
                 NumSignals = 10, // include signals for < 0 and > 1
                 NumNoiseValues = 10,

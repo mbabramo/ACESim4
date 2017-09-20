@@ -106,6 +106,7 @@
     <Compile Include="Games\MyGame\DeltaOffersCalculation.cs" />
     <Compile Include="Games\MyGame\DeltaOffersOptions.cs" />
     <Compile Include="Games\MyGame\DisputeGeneration\IMyGameDisputeGenerator.cs" />
+    <Compile Include="Games\MyGame\DisputeGeneration\MyGameContractDisputeGenerator.cs" />
     <Compile Include="Games\MyGame\DisputeGeneration\MyGameEqualQualityProbabilitiesDisputeGenerator.cs" />
     <Compile Include="Games\MyGame\MyGame.cs" />
     <Compile Include="Games\MyGame\MyGameActionsGenerator.cs" />

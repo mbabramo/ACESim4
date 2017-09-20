@@ -8,9 +8,10 @@ namespace ACESim
     [Serializable]
     public class MyGameProgress : GameProgress
     {
+        public bool DisputeArises;
         public bool IsTrulyLiable;
         public byte LitigationQualityDiscrete;
-        public double LitigationQualityUniform;
+        public double? LitigationQualityUniform;
         public byte PNoiseDiscrete;
         public byte DNoiseDiscrete;
         public byte PSignalDiscrete;
@@ -35,7 +36,7 @@ namespace ACESim
         public double PreDisputeSWelfare;
         public double PInitialWealth;
         public double DInitialWealth;
-        public double DamagesAlleged = 1.0;
+        public double? DamagesAlleged;
         public double PChangeWealth;
         public double DChangeWealth;
         public double? PFinalWealthWithBestOffer;
@@ -49,7 +50,7 @@ namespace ACESim
         public override string ToString()
         {
             return
-                $"IsTrulyLiable {IsTrulyLiable} LitigationQualityDiscrete {LitigationQualityDiscrete} LitigationQualityUniform {LitigationQualityUniform} PSignalDiscrete {PSignalDiscrete} DSignalDiscrete {DSignalDiscrete} PSignalUniform {PSignalUniform} DSignalUniform {DSignalUniform} PFiles {PFiles} DAnswers {DAnswers} BargainingRoundsComplete {BargainingRoundsComplete} PLastAgreesToBargain {PLastAgreesToBargain} DLastAgreesToBargain {DLastAgreesToBargain} PLastOffer {PLastOffer} DLastOffer {DLastOffer} CaseSettles {CaseSettles} SettlementValue {SettlementValue} PAbandons {PAbandons} DDefaults {DDefaults} TrialOccurs {TrialOccurs} PWinsAtTrial {PWinsAtTrial} PFinalWealthWithBestOffer {PFinalWealthWithBestOffer} DFinalWealthWithBestOffer {DFinalWealthWithBestOffer} PFinalWealth {PFinalWealth} DFinalWealth {DFinalWealth} PWelfare {PWelfare} DWelfare {DWelfare} FalsePositiveExpenditures {FalsePositiveExpenditures} FalseNegativeShortfall {FalseNegativeShortfall} TotalExpensesIncurred {TotalExpensesIncurred} ";
+                $"DisputeArises {DisputeArises} IsTrulyLiable {IsTrulyLiable} LitigationQualityDiscrete {LitigationQualityDiscrete} LitigationQualityUniform {LitigationQualityUniform} PSignalDiscrete {PSignalDiscrete} DSignalDiscrete {DSignalDiscrete} PSignalUniform {PSignalUniform} DSignalUniform {DSignalUniform} PFiles {PFiles} DAnswers {DAnswers} BargainingRoundsComplete {BargainingRoundsComplete} PLastAgreesToBargain {PLastAgreesToBargain} DLastAgreesToBargain {DLastAgreesToBargain} PLastOffer {PLastOffer} DLastOffer {DLastOffer} CaseSettles {CaseSettles} SettlementValue {SettlementValue} PAbandons {PAbandons} DDefaults {DDefaults} TrialOccurs {TrialOccurs} PWinsAtTrial {PWinsAtTrial} PFinalWealthWithBestOffer {PFinalWealthWithBestOffer} DFinalWealthWithBestOffer {DFinalWealthWithBestOffer} PFinalWealth {PFinalWealth} DFinalWealth {DFinalWealth} PWelfare {PWelfare} DWelfare {DWelfare} FalsePositiveExpenditures {FalsePositiveExpenditures} FalseNegativeShortfall {FalseNegativeShortfall} TotalExpensesIncurred {TotalExpensesIncurred} ";
         }
 
         public bool? PFirstAgreesToBargain => (bool?)PAgreesToBargain?.FirstOrDefault() ?? null;
@@ -82,13 +83,13 @@ namespace ACESim
                 Br.eak.IfAdded("A");
                 if (playersMovingSimultaneously || !pGoesFirstIfNotSimultaneous)
                 { // defendant has made an offer this round
-                    var pMissedOpportunity = MyGame.CalculateGameOutcome(gameDefinition, PInitialWealth, DInitialWealth, DamagesAlleged, PFiles, PAbandons, DAnswers, DDefaults, (double) DLastOffer * DamagesAlleged, true /* ignored */, (byte) (BargainingRoundsComplete + 1), null, null);
+                    var pMissedOpportunity = MyGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PInitialWealth, DInitialWealth, (double) DamagesAlleged, PFiles, PAbandons, DAnswers, DDefaults, (double) DLastOffer * (double)DamagesAlleged, true /* ignored */, (byte) (BargainingRoundsComplete + 1), null, null);
                     if (pMissedOpportunity.PFinalWealth > PFinalWealthWithBestOffer || PFinalWealthWithBestOffer == null)
                         PFinalWealthWithBestOffer = pMissedOpportunity.PFinalWealth;
                 }
                 if (playersMovingSimultaneously || pGoesFirstIfNotSimultaneous)
                 { // plaintiff has made an offer this round
-                    var dMissedOpportunity = MyGame.CalculateGameOutcome(gameDefinition, PInitialWealth, DInitialWealth, DamagesAlleged, PFiles, PAbandons, DAnswers, DDefaults, (double)PLastOffer * DamagesAlleged, true /* ignored */, (byte)(BargainingRoundsComplete + 1), null, null);
+                    var dMissedOpportunity = MyGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PInitialWealth, DInitialWealth, (double)DamagesAlleged, PFiles, PAbandons, DAnswers, DDefaults, (double)PLastOffer * (double)DamagesAlleged, true /* ignored */, (byte)(BargainingRoundsComplete + 1), null, null);
                     if (dMissedOpportunity.DFinalWealth > DFinalWealthWithBestOffer || DFinalWealthWithBestOffer == null)
                         DFinalWealthWithBestOffer = dMissedOpportunity.DFinalWealth;
                 }
@@ -137,11 +138,11 @@ namespace ACESim
         {
             // assumes that a settlement has been reached
             if (playersMovingSimultaneously)
-                SettlementValue = (PLastOffer + DLastOffer) * DamagesAlleged / 2.0;
+                SettlementValue = (PLastOffer + DLastOffer) * (double)DamagesAlleged / 2.0;
             else if (pGoesFirstIfNotSimultaneous)
-                SettlementValue = PLastOffer * DamagesAlleged;
+                SettlementValue = PLastOffer * (double)DamagesAlleged;
             else
-                SettlementValue = DLastOffer * DamagesAlleged;
+                SettlementValue = DLastOffer * (double)DamagesAlleged;
         }
 
         public override GameProgress DeepCopy()
@@ -150,6 +151,7 @@ namespace ACESim
 
             // copy.GameComplete = this.GameComplete;
             base.CopyFieldInfo(copy);
+            copy.DisputeArises = DisputeArises;
             copy.IsTrulyLiable = IsTrulyLiable;
             copy.LitigationQualityDiscrete = LitigationQualityDiscrete;
             copy.PNoiseDiscrete = PNoiseDiscrete;

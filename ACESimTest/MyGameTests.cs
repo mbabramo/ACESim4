@@ -60,7 +60,7 @@ namespace ACESimTest
             {
                 PInitialWealth = InitialWealth,
                 DInitialWealth = InitialWealth,
-                DamagesAlleged = DamagesAlleged,
+                DamagesToAllege = DamagesAlleged,
                 NumLitigationQualityPoints = NumLitigationQualityPoints,
                 NumSignals = NumSignals,
                 NumOffers = NumOffers,
@@ -434,7 +434,7 @@ namespace ACESimTest
             bool pWins = (pReadyToAbandonRound == null && dReadyToDefaultRound != null) ||
                          (pReadyToAbandonRound != null && dReadyToDefaultRound != null && pFiles && mutualGiveUpResult == (byte) 2);
 
-            double damages = pWins ? options.DamagesAlleged : 0;
+            double damages = pWins ? options.DamagesToAllege : 0;
 
             myGameProgress.GameComplete.Should().BeTrue();
             myGameProgress.CaseSettles.Should().BeFalse();
@@ -552,8 +552,8 @@ namespace ACESimTest
 
             myGameProgress.GameComplete.Should().BeTrue();
             myGameProgress.CaseSettles.Should().BeTrue();
-            double pFinalWealthExpected = options.PInitialWealth - options.PFilingCost + settlementProportion * options.DamagesAlleged - numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound;
-            double dFinalWealthExpected = options.DInitialWealth - options.DAnswerCost - settlementProportion * options.DamagesAlleged -
+            double pFinalWealthExpected = options.PInitialWealth - options.PFilingCost + settlementProportion * options.DamagesToAllege - numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound;
+            double dFinalWealthExpected = options.DInitialWealth - options.DAnswerCost - settlementProportion * options.DamagesToAllege -
                                           numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound;
             CheckFinalWelfare(myGameProgress, pFinalWealthExpected, dFinalWealthExpected, bestOffers);
 
@@ -619,8 +619,8 @@ namespace ACESimTest
             double dFinalWealthExpected = options.DInitialWealth - dExpenses;
             if (plaintiffWins)
             {
-                pFinalWealthExpected += options.DamagesAlleged;
-                dFinalWealthExpected -= options.DamagesAlleged;
+                pFinalWealthExpected += options.DamagesToAllege;
+                dFinalWealthExpected -= options.DamagesToAllege;
             }
             CheckFinalWelfare(myGameProgress, pFinalWealthExpected, dFinalWealthExpected, bestOffers);
             GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet,

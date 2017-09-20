@@ -122,7 +122,7 @@ namespace ACESim
         /// <summary>
         /// Damages alleged
         /// </summary>
-        public double DamagesAlleged;
+        public double DamagesToAllege;
         /// <summary>
         /// The degree of regret aversion. If a party finishes with wealth w0 but could have finished with wealth w1, where w1 > w0, then the party experiences effective wealth of w0 - RegretAversion*(w1 - w0)
         /// </summary>

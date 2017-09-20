@@ -31,7 +31,7 @@ namespace ACESim
             ProbabilitiesLitigationQuality_TrulyLiable = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(2, dsParams);
         }
 
-        public void GetActionsSetup(MyGameDefinition myGameDefinition, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance)
+        public void GetActionsSetup(MyGameDefinition myGameDefinition, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance, out bool primaryActionCanTerminate, out bool postPrimaryChanceCanTerminate)
         {
             prePrimaryChanceActions = 0;
             primaryActions = 0;
@@ -42,11 +42,19 @@ namespace ACESim
             prePrimaryUnevenChance = true; // though not used
             postPrimaryUnevenChance = true;
             litigationQualityUnevenChance = true;
+            primaryActionCanTerminate = false;
+            postPrimaryChanceCanTerminate = false;
         }
 
         public double GetLitigationIndependentSocialWelfare(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
         {
             return 0;
+        }
+
+        double[] NoWealthEffects = new double[] { 0, 0 };
+        public double[] GetLitigationIndependentWealthEffects(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
+        {
+            return NoWealthEffects; 
         }
 
         public double[] GetLitigationQualityProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
@@ -71,6 +79,16 @@ namespace ACESim
         public bool PotentialDisputeArises(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
         {
             return true;
+        }
+
+        public bool MarkComplete(MyGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool MarkComplete(MyGameDefinition myGameDefinition, byte prePrimaryAction, byte primaryAction, byte postPrimaryAction)
+        {
+            throw new NotImplementedException();
         }
 
         public double[] GetPrePrimaryChanceProbabilities(MyGameDefinition myGameDefinition)
