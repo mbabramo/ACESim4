@@ -9,52 +9,40 @@ namespace ACESim
 {
     public class MyGameAppropriationDisputeGenerator : IMyGameDisputeGenerator
     {
-        // Defendant receives information on the noise to be added to the information about whether the defendant is truly liable. With the lowest level of noise, correct identification of the defendant's choice whether to appropriate is certain. With the highest level of noise, there is a substantial chance that one who is not liable will be thought to be liable and vice versa. Assuming that the court does not take selection effects into account (i.e., the court assumes that one is equally liable to be not liable or liable), the court will find liability if the litigation quality appears to be > 0.5.
+        // Defendant receives information on the extent to which actions will be reflected in litigation quality (call this systemic randomness). Defendant must determine whether to appropriate value. With the lowest systemic randomness, appropriation is highly likely to make the litigation quality the strongest possible value for the plaintiff and nonappropriation is highly likely to make the litigation quality the weakest possible value for the plaintiff. With the highest systemic randomness, each litigation quality is equally likely, regardless of whether the defendant appropriates. Regardless of the level of systemic randomness, the probability of various litigation qualities is a geometric sequence, with the "correct" value being most likely.
 
-        // Pre primary action chance: Determines the level of noise (from 0 to MaxNoise).
+        // Pre primary action chance: Determines the level of systemic randomness
         // Primary action: Appropriate (yes = 1, no = 2).
         // Post primary action: None.
 
-        public byte NumNoiseLevels = 11;
-        public double MaxNoise = 0.002;
-        public double BenefitToDefendantOfAppropriation = 30000;
-        public double CostToPlaintiffOfAppropriation = 30000;
+        public byte NumSystemicRandomnessLevels = 10;
+        public double BenefitToDefendantOfAppropriation = 25000;
+        public double CostToPlaintiffOfAppropriation = 50000;
         public double SocialWelfareMultiplier = 1.0;
 
         private double[][] ProbabilityLitigationQualityForNoiseLevel_TrulyLiable, ProbabilityLitigationQualityForNoiseLevel_TrulyNotLiable;
 
-        private double GetNoiseLevel(byte noiseLevelDiscrete)
-        {
-            return EquallySpaced.GetLocationOfEquallySpacedPoint(noiseLevelDiscrete - 1, NumNoiseLevels, true) * MaxNoise;
-        }
-
         public void Setup(MyGameDefinition myGameDefinition)
         {
             // We need to determine the probability of different litigation qualities 
-            ProbabilityLitigationQualityForNoiseLevel_TrulyLiable = new double[NumNoiseLevels][];
-            ProbabilityLitigationQualityForNoiseLevel_TrulyNotLiable = new double[NumNoiseLevels][];
-            for (byte n = 1; n <= NumNoiseLevels; n++)
+            ProbabilityLitigationQualityForNoiseLevel_TrulyLiable = new double[NumSystemicRandomnessLevels][];
+            ProbabilityLitigationQualityForNoiseLevel_TrulyNotLiable = new double[NumSystemicRandomnessLevels][];
+            for (byte n = 1; n <= NumSystemicRandomnessLevels; n++)
             {
-                double noiseLevel = GetNoiseLevel(n);
-                DiscreteValueSignalParameters dsParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = 2 /* not truly liable and truly liable */, NumSignals = myGameDefinition.Options.NumLitigationQualityPoints, StdevOfNormalDistribution = noiseLevel, UseEndpoints = true };
-                if (n == 1) // no noise -- algorithm isn't perfect on this (ideally, to be fixed but this works for now)
-                {
-                    ProbabilityLitigationQualityForNoiseLevel_TrulyNotLiable[0] = Enumerable.Range(1, NumNoiseLevels).Select(x => x == 1 ? 1.0 : 0).ToArray();
-                    ProbabilityLitigationQualityForNoiseLevel_TrulyLiable[0] = Enumerable.Range(1, NumNoiseLevels).Select(x => x == NumNoiseLevels ? 1.0 : 0).ToArray();
-                }
-                else
-                {
-                    ProbabilityLitigationQualityForNoiseLevel_TrulyNotLiable[n - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(1, dsParams);
-                    ProbabilityLitigationQualityForNoiseLevel_TrulyLiable[n - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(2, dsParams);
-                }
+                double multiplier = (double) n / (double) NumSystemicRandomnessLevels;
+                double sequenceSum = 0;
+                for (byte n2 = 1; n2 <= NumSystemicRandomnessLevels; n2++)
+                    sequenceSum += Math.Pow(multiplier, (n2 - 1));
+                double startingValue = 1.0/sequenceSum;
+
+                ProbabilityLitigationQualityForNoiseLevel_TrulyNotLiable[n - 1] = Enumerable.Range(0, NumSystemicRandomnessLevels).Select(y => startingValue * Math.Pow(multiplier, y)).ToArray();
+                ProbabilityLitigationQualityForNoiseLevel_TrulyLiable[n - 1] = ProbabilityLitigationQualityForNoiseLevel_TrulyNotLiable[n - 1].Reverse().ToArray();
             }
-            myGameDefinition.Options.CourtNoiseStdev = 0.001; // DEBUG
-            debug // overall, this doesn't work. With signals of litigation quality, we're always putting it into 10 equal buckets, so if there is a true value, then with a low noise, we have five signals. Instead, maybe we should just say that the defendant previews what litigation quality would be. 
         }
 
         public void GetActionsSetup(MyGameDefinition myGameDefinition, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance, out bool primaryActionCanTerminate, out bool postPrimaryChanceCanTerminate)
         {
-            prePrimaryChanceActions = NumNoiseLevels;
+            prePrimaryChanceActions = NumSystemicRandomnessLevels;
             primaryActions = 2;
             postPrimaryChanceActions = 0;
             prePrimaryPlayersToInform = new byte[] { (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.QualityChance };
