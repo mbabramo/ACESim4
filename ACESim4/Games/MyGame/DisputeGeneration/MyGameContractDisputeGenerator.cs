@@ -15,6 +15,8 @@ namespace ACESim
         // Post-primary decision: None.
         // Litigation quality decision: A noise drawn from a distribution is added to the litigation quality to produce a litigation quality signal. Thus, there is a distribution of litigation quality signals based on all possible combinations of potential benefit (whether or not defendant actually takes it) and the noise. Thus, given the expected litigation quality, we must determine the probability of each litigation quality level. 
 
+        // Another possibility: We could implement strict liability. E.g., the cost to the plaintiff could vary. Then, there may be disagreement about damages. But we can't do that until we implement varying damages. 
+
         public byte NumBenefitLevels = 10; // since we are using endpoints, an even number means we won't have a benefit level at the exact midpoint
         public double MinBenefitOfActionToDefendant = 0;
         public double MaxBenefitOfActionToDefendant = 200000;
@@ -62,7 +64,7 @@ namespace ACESim
             postPrimaryChanceCanTerminate = false;
         }
 
-        double[] WealthEffects_NoBenefitTaken = new double[] { 0, 0 };
+        readonly double[] WealthEffects_NoBenefitTaken = new double[] { 0, 0 };
         public double[] GetLitigationIndependentWealthEffects(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
         {
             if (disputeGeneratorActions.PrimaryAction == 2)
@@ -78,6 +80,8 @@ namespace ACESim
 
         public double GetLitigationIndependentSocialWelfare(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
         {
+            if (disputeGeneratorActions.PrimaryAction == 2)
+                return 0;
             return BenefitOfActionToDefendant_Level(disputeGeneratorActions.PrePrimaryChanceAction) - CostOfActionOnPlaintiff;
         }
 

@@ -152,7 +152,10 @@ namespace ACESim.Util
             // Midpoints from uniform distribution: 
             double[] midpoints = 
                 EquallySpaced.GetEquallySpacedPoints(nsParams.NumPointsInSourceUniformDistribution, nsParams.UseEndpoints);
-            double[] drawsFromNormalDistribution = PointsInInverseNormalDistribution.Select(x => x * nsParams.StdevOfNormalDistribution).ToArray();
+            double stdev = nsParams.StdevOfNormalDistribution;
+            if (stdev == 0)
+                stdev = 1E-10;
+            double[] drawsFromNormalDistribution = PointsInInverseNormalDistribution.Select(x => x * stdev).ToArray();
             // Now, we make every combination of uniform and normal distribution draws, and add them together
             var crossProduct = midpoints
                 .SelectMany(x => drawsFromNormalDistribution, (x, y) => new { uniformDistPoint = x, normDistValue = y }).ToArray();

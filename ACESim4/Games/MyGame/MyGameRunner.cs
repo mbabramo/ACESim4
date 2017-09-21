@@ -62,7 +62,8 @@ namespace ACESim
         public static string EvolveMyGame()
         {
             var options = MyGameOptionsGenerator.Standard();
-            options.MyGameDisputeGenerator = new MyGameContractDisputeGenerator();
+            options.MyGameDisputeGenerator = new MyGameAppropriationDisputeGenerator();
+            //options.MyGameDisputeGenerator = new MyGameContractDisputeGenerator();
             //options.MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
             //{
             //    ProbabilityTrulyLiable_LitigationQuality75 = 0.75,

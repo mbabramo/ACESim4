@@ -117,6 +117,12 @@ namespace ACESim
                 new SimpleReportFilter("HiDSignal", (GameProgress gp) => MyGP(gp).DSignalUniform >= 0.75),
                 //new SimpleReportFilter("Custom", (GameProgress gp) => MyGP(gp).PSignalDiscrete == 9),
             };
+            for (byte signal = 1; signal < 11; signal++) // DEBUG
+            {
+                byte s = signal; // avoid closure
+                simpleReportFilters.Add(
+                    new SimpleReportFilter("PrePrimary" + s, (GameProgress gp) => MyGP(gp).DisputeGeneratorActions.PrePrimaryChanceAction == s));
+            }
             for (byte signal = 1; signal < Options.NumSignals; signal++)
             {
                 byte s = signal; // avoid closure
