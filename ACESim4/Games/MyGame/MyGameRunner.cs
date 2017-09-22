@@ -95,7 +95,7 @@ namespace ACESim
             var evolutionSettings = GetEvolutionSettings();
             NWayTreeStorageRoot<IGameState>.EnableUseDictionary = false; // evolutionSettings.ParallelOptimization == false; // this is based on some limited performance testing; with parallelism, this seems to slow us down. Maybe it's not worth using. It might just be because of the lock.
             NWayTreeStorageRoot<IGameState>.ParallelEnabled = evolutionSettings.ParallelOptimization;
-            const int numRepetitions = 3;
+            const int numRepetitions = 5;
             string cumulativeReport = "";
             for (int i = 0; i < numRepetitions; i++)
             {
