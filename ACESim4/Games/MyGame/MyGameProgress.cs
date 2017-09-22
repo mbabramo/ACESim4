@@ -80,7 +80,6 @@ namespace ACESim
             }
             else
             {
-                Br.eak.IfAdded("A");
                 if (playersMovingSimultaneously || !pGoesFirstIfNotSimultaneous)
                 { // defendant has made an offer this round
                     var pMissedOpportunity = MyGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PInitialWealth, DInitialWealth, (double) DamagesAlleged, PFiles, PAbandons, DAnswers, DDefaults, (double) DLastOffer * (double)DamagesAlleged, true /* ignored */, (byte) (BargainingRoundsComplete + 1), null, null);

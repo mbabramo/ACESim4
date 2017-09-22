@@ -32,7 +32,7 @@ namespace ACESim
             EvolutionSettings evolutionSettings = new EvolutionSettings()
             {
                 MaxParallelDepth = 1, // we're parallelizing on the iteration level, so there is no need for further parallelization
-                ParallelOptimization = false,
+                ParallelOptimization = true,
 
                 InitialRandomSeed = 100,
 
@@ -42,7 +42,7 @@ namespace ACESim
                 NumRandomIterationsForSummaryTable = 5000,
                 PrintSummaryTable = true,
                 PrintInformationSets = false,
-                RestrictToTheseInformationSets = null, // new List<int>() {16},
+                RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
                 PrintGameTree = false,
                 AlwaysUseAverageStrategyInReporting = false,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
@@ -62,7 +62,8 @@ namespace ACESim
         public static string EvolveMyGame()
         {
             var options = MyGameOptionsGenerator.Standard();
-            options.MyGameDisputeGenerator = new MyGameAppropriationDisputeGenerator();
+            options.MyGameDisputeGenerator = new MyGameDiscriminationDisputeGenerator();
+            //options.MyGameDisputeGenerator = new MyGameAppropriationDisputeGenerator();
             //options.MyGameDisputeGenerator = new MyGameContractDisputeGenerator();
             //options.MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
             //{
