@@ -225,11 +225,11 @@ namespace ACESim
                 outcome.PChangeWealth = (pWinsAtTrial ? damagesAlleged : 0);
                 outcome.DChangeWealth = (pWinsAtTrial ? -damagesAlleged : 0);
             }
-            double pFilingCostIncurred = pFiles ? gameDefinition.Options.PFilingCost : 0;
-            double dAnswerCostIncurred = dAnswers ? gameDefinition.Options.DAnswerCost : 0;
-            double pTrialCostsIncurred = outcome.TrialOccurs ? gameDefinition.Options.PTrialCosts : 0;
-            double dTrialCostsIncurred = outcome.TrialOccurs ? gameDefinition.Options.DTrialCosts : 0;
-            double perPartyBargainingCostsIncurred = gameDefinition.Options.PerPartyCostsLeadingUpToBargainingRound * bargainingRoundsComplete;
+            double pFilingCostIncurred = pFiles ? gameDefinition.Options.PFilingCost * gameDefinition.Options.CostsMultiplier : 0;
+            double dAnswerCostIncurred = dAnswers ? gameDefinition.Options.DAnswerCost * gameDefinition.Options.CostsMultiplier : 0;
+            double pTrialCostsIncurred = outcome.TrialOccurs ? gameDefinition.Options.PTrialCosts * gameDefinition.Options.CostsMultiplier : 0;
+            double dTrialCostsIncurred = outcome.TrialOccurs ? gameDefinition.Options.DTrialCosts * gameDefinition.Options.CostsMultiplier : 0;
+            double perPartyBargainingCostsIncurred = gameDefinition.Options.PerPartyCostsLeadingUpToBargainingRound * gameDefinition.Options.CostsMultiplier * bargainingRoundsComplete;
             double pCostsInitiallyIncurred = pFilingCostIncurred + perPartyBargainingCostsIncurred + pTrialCostsIncurred;
             double dCostsInitiallyIncurred = dAnswerCostIncurred + perPartyBargainingCostsIncurred + dTrialCostsIncurred;
             double pEffectOfExpenses = 0, dEffectOfExpenses = 0;

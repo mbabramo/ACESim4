@@ -28,7 +28,7 @@ namespace ACESimTest
 
         }
 
-        private const double PartyNoise = 0.2, InitialWealth = 1_000_000, DamagesAlleged = 100_000, PFileCost = 3000, DAnswerCost = 2000, PTrialCosts = 4000, DTrialCosts = 6000, PerRoundBargainingCost = 1000, RegretAversion = 0.25, LoserPaysMultiple = 1.5;
+        private const double PartyNoise = 0.2, InitialWealth = 1_000_000, DamagesAlleged = 100_000, CostsMultiplier = 1.1, PFileCost = 3000, DAnswerCost = 2000, PTrialCosts = 4000, DTrialCosts = 6000, PerRoundBargainingCost = 1000, RegretAversion = 0.25, LoserPaysMultiple = 1.5;
         private const byte NumLitigationQualityPoints = 8;
         private const byte NumSignals = 10;
         private const byte NumNoiseValues = 10; // must equal NumSignals in some situations
@@ -77,6 +77,7 @@ namespace ACESimTest
                 CourtNoiseStdev = 0.5,
                 PFilingCost = PFileCost,
                 DAnswerCost = DAnswerCost,
+                CostsMultiplier = CostsMultiplier,
                 PTrialCosts = PTrialCosts,
                 DTrialCosts = DTrialCosts,
                 RegretAversion = RegretAversion,
@@ -228,14 +229,14 @@ namespace ACESimTest
                 if (offer.isOfferToP)
                 {
                     double offerToP = EquallySpaced.GetLocationOfEquallySpacedPoint((byte) (offer.offerMove - 1), NumOffers, true);
-                    double roundAdjustedOfferToP = InitialWealth + offerToP * DamagesAlleged - PFileCost - offer.bargainingRoundNumber * PerRoundBargainingCost;
+                    double roundAdjustedOfferToP = InitialWealth + offerToP * DamagesAlleged - PFileCost * CostsMultiplier - offer.bargainingRoundNumber * PerRoundBargainingCost * CostsMultiplier;
                     if (bestOffers.bestRejectedOfferToP == null || roundAdjustedOfferToP > bestOffers.bestRejectedOfferToP)
                         bestOffers.bestRejectedOfferToP =  roundAdjustedOfferToP;
                 }
                 else
                 { 
                     double offerToD = EquallySpaced.GetLocationOfEquallySpacedPoint((byte)(offer.offerMove - 1), NumOffers, true);
-                    double roundAdjustedOfferToD = InitialWealth - offerToD * DamagesAlleged - DAnswerCost - offer.bargainingRoundNumber * PerRoundBargainingCost; // note that this is negative, because it's the change in wealth for D
+                    double roundAdjustedOfferToD = InitialWealth - offerToD * DamagesAlleged - DAnswerCost * CostsMultiplier - offer.bargainingRoundNumber * PerRoundBargainingCost * CostsMultiplier; // note that this is negative, because it's the change in wealth for D
                     if (bestOffers.bestRejectedOfferToD == null || roundAdjustedOfferToD > bestOffers.bestRejectedOfferToD)
                         bestOffers.bestRejectedOfferToD = roundAdjustedOfferToD;
                 }
@@ -459,13 +460,13 @@ namespace ACESimTest
             double pExpenses, dExpenses;
             if (myGameProgress.PFiles && myGameProgress.DAnswers)
             {
-                double pInitialExpenses = options.PFilingCost + numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound;
-                double dInitialExpenses = options.DAnswerCost + numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound;
+                double pInitialExpenses = options.PFilingCost * options.CostsMultiplier + numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound * options.CostsMultiplier;
+                double dInitialExpenses = options.DAnswerCost * options.CostsMultiplier + numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound * options.CostsMultiplier;
                 GetExpensesAfterFeeShifting(options, true, pWins, pInitialExpenses, dInitialExpenses, out pExpenses, out dExpenses);
             }
             else
             { // either p didn't file or p filed and d didn't answer
-                pExpenses = myGameProgress.PFiles ? options.PFilingCost : 0;
+                pExpenses = myGameProgress.PFiles ? options.PFilingCost * options.CostsMultiplier : 0;
                 dExpenses = 0;
             }
 
@@ -551,9 +552,9 @@ namespace ACESimTest
 
             myGameProgress.GameComplete.Should().BeTrue();
             myGameProgress.CaseSettles.Should().BeTrue();
-            double pFinalWealthExpected = options.PInitialWealth - options.PFilingCost + settlementProportion * options.DamagesToAllege - numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound;
-            double dFinalWealthExpected = options.DInitialWealth - options.DAnswerCost - settlementProportion * options.DamagesToAllege -
-                                          numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound;
+            double pFinalWealthExpected = options.PInitialWealth - options.PFilingCost * options.CostsMultiplier + settlementProportion * options.DamagesToAllege - numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound * options.CostsMultiplier;
+            double dFinalWealthExpected = options.DInitialWealth - options.DAnswerCost * options.CostsMultiplier - settlementProportion * options.DamagesToAllege -
+                                          numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound * options.CostsMultiplier;
             CheckFinalWelfare(myGameProgress, pFinalWealthExpected, dFinalWealthExpected, bestOffers);
 
             //var informationSetHistories = myGameProgress.GameHistory.GetInformationSetHistoryItems().ToList();
@@ -610,8 +611,8 @@ namespace ACESimTest
             var myGameProgress = MyGameRunner.PlayMyGameOnce(options, actions);
             myGameProgress.GameComplete.Should().BeTrue();
 
-            double pInitialExpenses = options.PFilingCost + numBargainingRounds * options.PerPartyCostsLeadingUpToBargainingRound + options.PTrialCosts;
-            double dInitialExpenses = options.DAnswerCost + numBargainingRounds * options.PerPartyCostsLeadingUpToBargainingRound + options.DTrialCosts;
+            double pInitialExpenses = options.PFilingCost * options.CostsMultiplier + numBargainingRounds * options.PerPartyCostsLeadingUpToBargainingRound * options.CostsMultiplier + options.PTrialCosts * options.CostsMultiplier;
+            double dInitialExpenses = options.DAnswerCost * options.CostsMultiplier + numBargainingRounds * options.PerPartyCostsLeadingUpToBargainingRound * options.CostsMultiplier + options.DTrialCosts * options.CostsMultiplier;
             GetExpensesAfterFeeShifting(options, false, plaintiffWins, pInitialExpenses, dInitialExpenses, out double pExpenses, out double dExpenses);
 
             double pFinalWealthExpected = options.PInitialWealth - pExpenses;
