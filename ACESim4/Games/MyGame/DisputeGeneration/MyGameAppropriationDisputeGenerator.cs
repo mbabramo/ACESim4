@@ -9,6 +9,8 @@ namespace ACESim
 {
     public class MyGameAppropriationDisputeGenerator : IMyGameDisputeGenerator
     {
+        public string GetGeneratorName() => "Appropriation";
+
         // Defendant receives information on the extent to which actions will be reflected in litigation quality (call this systemic randomness). Defendant must determine whether to appropriate value. With the lowest systemic randomness, appropriation is highly likely to make the litigation quality the strongest possible value for the plaintiff and nonappropriation is highly likely to make the litigation quality the weakest possible value for the plaintiff. With the highest systemic randomness, each litigation quality is equally likely, regardless of whether the defendant appropriates. Regardless of the level of systemic randomness, the probability of various litigation qualities is a geometric sequence, with the "correct" value being most likely.
 
         // Pre primary action chance: Determines the level of systemic randomness
