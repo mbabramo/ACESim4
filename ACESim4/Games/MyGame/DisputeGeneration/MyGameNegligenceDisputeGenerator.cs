@@ -9,6 +9,7 @@ namespace ACESim
 {
     class MyGameNegligenceDisputeGenerator : IMyGameDisputeGenerator
     {
+        public string GetGeneratorName() => "Negligence";
         // Defendant receives information that signals how quickly the marginal benefit of a precaution decreases with increased precaution level. 
 
         // Pre primary action chance: This determines how quickly the marginal benefit of precaution decreases. Let m = 1 - ppc / 20.0.

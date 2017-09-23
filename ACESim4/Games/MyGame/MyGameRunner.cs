@@ -62,27 +62,33 @@ namespace ACESim
         public static string EvolveMyGame()
         {
             var options = MyGameOptionsGenerator.Standard();
-            options.MyGameDisputeGenerator = new MyGameNegligenceDisputeGenerator();
-            //options.MyGameDisputeGenerator = new MyGameDiscriminationDisputeGenerator();
-            //options.MyGameDisputeGenerator = new MyGameAppropriationDisputeGenerator();
-            //options.MyGameDisputeGenerator = new MyGameContractDisputeGenerator();
-            //options.MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
-            //{
-            //    ProbabilityTrulyLiable_LitigationQuality75 = 0.75,
-            //    ProbabilityTrulyLiable_LitigationQuality90 = 0.90,
-            //    NumPointsToDetermineTrulyLiable = 100,
-            //};
-            //options.MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
-            //{
-            //    ExogenousProbabilityTrulyLiable = 0.5,
-            //    StdevNoiseToProduceLitigationQuality = 0.5
-            //};
-            //var options = MyGameOptionsGenerator.UsingRawSignals_10Points_1Round();
+            string combined = "";
+            foreach (IMyGameDisputeGenerator d in new IMyGameDisputeGenerator[]
+            {
+                new MyGameNegligenceDisputeGenerator(),
+                new MyGameAppropriationDisputeGenerator(), 
+                new MyGameContractDisputeGenerator(), 
+                new MyGameExogenousDisputeGenerator()
+                {
+                    ExogenousProbabilityTrulyLiable = 0.5,
+                    StdevNoiseToProduceLitigationQuality = 0.5
+                }
+            })
+            {
+                string generatorString = d.GetGeneratorName();
+                options.MyGameDisputeGenerator = d;
+                combined += ApplyDifferentRegimes(options, generatorString) + "\n";
+            }
+            return combined;
+        }
+
+        private static string ApplyDifferentRegimes(MyGameOptions options, string description)
+        {
             options.LoserPays = true;
-            string brRuleReport = PerformEvolution(options, "British", false);
+            string brRuleReport = PerformEvolution(options, description + " British", false);
             Debug.WriteLine(brRuleReport);
             options.LoserPays = false;
-            string amRuleReport = PerformEvolution(options, "American", true);
+            string amRuleReport = PerformEvolution(options, description + " American", true);
             Debug.WriteLine(amRuleReport);
             string combined = amRuleReport + brRuleReport;
             return combined;
@@ -96,7 +102,7 @@ namespace ACESim
             var evolutionSettings = GetEvolutionSettings();
             NWayTreeStorageRoot<IGameState>.EnableUseDictionary = false; // evolutionSettings.ParallelOptimization == false; // this is based on some limited performance testing; with parallelism, this seems to slow us down. Maybe it's not worth using. It might just be because of the lock.
             NWayTreeStorageRoot<IGameState>.ParallelEnabled = evolutionSettings.ParallelOptimization;
-            const int numRepetitions = 5;
+            const int numRepetitions = 50;
             string cumulativeReport = "";
             for (int i = 0; i < numRepetitions; i++)
             {

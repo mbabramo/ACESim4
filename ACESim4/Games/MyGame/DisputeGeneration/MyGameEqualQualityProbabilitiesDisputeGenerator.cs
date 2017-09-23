@@ -9,7 +9,8 @@ namespace ACESim
 {
     public class MyGameEqualQualityProbabilitiesDisputeGenerator : IMyGameDisputeGenerator
     {
-        
+
+        public string GetGeneratorName() => "EqualQual";
         /// <summary>
         /// If each litigation quality value is equally likely, then the probability that the defendant is truly liable when the uniform litigation quality is 0.75. A value higehr than 0.75 reflects the proposition that majorities are likely generally to be correct.
         /// </summary>

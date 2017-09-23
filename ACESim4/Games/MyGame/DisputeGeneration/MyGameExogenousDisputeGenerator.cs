@@ -9,6 +9,7 @@ namespace ACESim
 {
     public class MyGameExogenousDisputeGenerator : IMyGameDisputeGenerator
     {
+        public string GetGeneratorName() => "Exog";
         /// <summary>
         /// If litigation quality is generated from truly-liable status, and truly-liable status is exogenously determined, then the probability that the correct outcome is that the defendant truly is liable.
         /// </summary>
