@@ -62,6 +62,7 @@ namespace ACESim
         public static string EvolveMyGame()
         {
             var options = MyGameOptionsGenerator.Standard();
+            options.CostsMultiplier = 0.5; // DEBUG
             string combined = "";
             foreach (IMyGameDisputeGenerator d in new IMyGameDisputeGenerator[]
             {

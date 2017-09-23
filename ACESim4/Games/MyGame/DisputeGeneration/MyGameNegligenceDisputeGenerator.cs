@@ -58,10 +58,6 @@ namespace ACESim
                         benefitCostRatio = 0.25;
                     else if (benefitCostRatio > 4.0)
                         benefitCostRatio = 4.0;
-                    if (marginalBenefitSchedule == 1 && precautionLevelChosen == 11)
-                    {
-                        var DEBUG = 0;
-                    }
                     ShouldBeLiable[marginalBenefitSchedule - 1][precautionLevelChosen - 1] = benefitCostRatio > 1.0;
                     // (LitigationQuality - 1) / (NumLitigationQualityLevels - 1) = (benefitCostRatio - 0.25) / (4 - 0.25)
                     double litigationQuality = (benefitCostRatio - 0.25) * (myGameDefinition.Options.NumLitigationQualityPoints - 1.0) / (4 - 0.25) + 1.0;
