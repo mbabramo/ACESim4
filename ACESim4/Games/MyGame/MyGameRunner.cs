@@ -32,7 +32,7 @@ namespace ACESim
             EvolutionSettings evolutionSettings = new EvolutionSettings()
             {
                 MaxParallelDepth = 1, // we're parallelizing on the iteration level, so there is no need for further parallelization
-                ParallelOptimization = true,
+                ParallelOptimization = false,
 
                 InitialRandomSeed = 100,
 
@@ -62,7 +62,8 @@ namespace ACESim
         public static string EvolveMyGame()
         {
             var options = MyGameOptionsGenerator.Standard();
-            options.MyGameDisputeGenerator = new MyGameDiscriminationDisputeGenerator();
+            options.MyGameDisputeGenerator = new MyGameNegligenceDisputeGenerator();
+            //options.MyGameDisputeGenerator = new MyGameDiscriminationDisputeGenerator();
             //options.MyGameDisputeGenerator = new MyGameAppropriationDisputeGenerator();
             //options.MyGameDisputeGenerator = new MyGameContractDisputeGenerator();
             //options.MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()

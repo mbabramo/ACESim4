@@ -110,6 +110,7 @@
     <Compile Include="Games\MyGame\DisputeGeneration\MyGameContractDisputeGenerator.cs" />
     <Compile Include="Games\MyGame\DisputeGeneration\MyGameDiscriminationDisputeGenerator.cs" />
     <Compile Include="Games\MyGame\DisputeGeneration\MyGameEqualQualityProbabilitiesDisputeGenerator.cs" />
+    <Compile Include="Games\MyGame\DisputeGeneration\MyGameNegligenceDisputeGenerator.cs" />
     <Compile Include="Games\MyGame\MyGame.cs" />
     <Compile Include="Games\MyGame\MyGameActionsGenerator.cs" />
     <Compile Include="Games\MyGame\MyGameDecisions.cs" />

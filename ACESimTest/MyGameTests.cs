@@ -222,7 +222,6 @@ namespace ACESimTest
         private (double? bestRejectedOfferToP, double? bestRejectedOfferToD) GetBestOffers(
             List<(byte offerMove, byte bargainingRoundNumber, bool isOfferToP)> offers)
         {
-            Br.eak.IfAdded("A");
             (double? bestRejectedOfferToP, double? bestRejectedOfferToD) bestOffers = (null, null);
             foreach ((byte offerMove, byte bargainingRoundNumber, bool isOfferToP) offer in offers)
             {

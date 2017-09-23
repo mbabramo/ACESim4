@@ -30,6 +30,11 @@ namespace Br
             else
                 d[s] = d[s] + 1;
         }
+        public static void Remove(string s)
+        {
+            if (d.ContainsKey(s))
+                d.Remove(s);
+        }
         public static bool Contains(IEnumerable<string> s) => s.All(x => d.ContainsKey(x));
         public static bool Contains(string s) => d.ContainsKey(s);
         public static void IfAdded(string s)

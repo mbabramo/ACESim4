@@ -495,7 +495,7 @@ namespace ACESim
             string reportString = null;
             if (EvolutionSettings.ReportEveryNIterations != null && iteration % EvolutionSettings.ReportEveryNIterations == 0)
             {
-                Br.eak.Add("A");
+                Br.eak.Add("Report");
                 ActionStrategies previous = ActionStrategy;
                 if (EvolutionSettings.AlwaysUseAverageStrategyInReporting)
                     ActionStrategy = ActionStrategies.AverageStrategy;
@@ -522,6 +522,7 @@ namespace ACESim
                 if (EvolutionSettings.PrintInformationSets)
                     PrintInformationSets();
                 ActionStrategy = previous;
+                Br.eak.Remove("Report");
             }
             return reportString;
         }
