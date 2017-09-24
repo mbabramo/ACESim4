@@ -417,20 +417,34 @@ namespace ACESim
 
         public void AbramowiczProbingCFRIteration(int iteration)
         {
-            for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
+            bool success;
+            do
             {
-                IRandomProducer randomProducer =
-                    new ConsistentRandomSequenceProducer(iteration * 997 + playerBeingOptimized * 283 + GameNumber * 719);
-                HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
-                if (TraceProbingCFR)
+                try
                 {
-                    TabbedText.WriteLine($"Iteration {iteration} Optimize player {playerBeingOptimized}");
-                    TabbedText.Tabs++;
+                    success = true;
+                    for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
+                    {
+                        IRandomProducer randomProducer =
+                            new ConsistentRandomSequenceProducer(iteration * 997 + playerBeingOptimized * 283 + GameNumber * 719);
+                        HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
+                        if (TraceProbingCFR)
+                        {
+                            TabbedText.WriteLine($"Iteration {iteration} Optimize player {playerBeingOptimized}");
+                            TabbedText.Tabs++;
+                        }
+                        AbramowiczProbe_WalkTree(ref historyPoint, playerBeingOptimized, 1.0, randomProducer, iteration % 2 == 1, GameDefinition.DecisionsExecutionOrder[0], 0);
+                        if (TraceProbingCFR)
+                            TabbedText.Tabs--;
+                    }
                 }
-                AbramowiczProbe_WalkTree(ref historyPoint, playerBeingOptimized, 1.0, randomProducer, iteration % 2 == 1, GameDefinition.DecisionsExecutionOrder[0], 0);
-                if (TraceProbingCFR)
-                    TabbedText.Tabs--;
-            }
+                catch (Exception e)
+                { // not clear on why this is needed
+                    Console.WriteLine($"Error: {e}");
+                    Console.WriteLine(e.StackTrace);
+                    success = false;
+                }
+            } while (!success);
         }
 
         private static int GameNumber = 0;

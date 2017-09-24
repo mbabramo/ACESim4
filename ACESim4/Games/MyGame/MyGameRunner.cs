@@ -38,8 +38,8 @@ namespace ACESim
 
                 Algorithm = GameApproximationAlgorithm.AbramowiczProbing,
 
-                ReportEveryNIterations = 25_000,
-                NumRandomIterationsForSummaryTable = 10000,
+                ReportEveryNIterations = 100_000,
+                NumRandomIterationsForSummaryTable = 5_000,
                 PrintSummaryTable = true,
                 PrintInformationSets = false,
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
@@ -47,7 +47,7 @@ namespace ACESim
                 AlwaysUseAverageStrategyInReporting = false,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
 
-                TotalProbingCFRIterations = 25_000,
+                TotalProbingCFRIterations = 100_000,
                 EpsilonForMainPlayer = 0.5,
                 EpsilonForOpponentWhenExploring = 0.05,
                 MinBackupRegretsTrigger = 3,
@@ -61,8 +61,7 @@ namespace ACESim
 
         public static string EvolveMyGame()
         {
-            bool single = true;
-            NumRepetitions = 2;
+            bool single = false;
             if (single)
                 return EvolveMyGame_Single();
             else
@@ -77,16 +76,20 @@ namespace ACESim
                 ExogenousProbabilityTrulyLiable = 0.5,
                 StdevNoiseToProduceLitigationQuality = 0.5
             };
-            options.LoserPays = false;
-            options.MyGamePretrialDecisionGeneratorGenerator = new MyGameSideBet() { DamagesMultipleForChallengedToPay = 6.0, DamagesMultipleForChallengerToPay = 6.0 };
+            options.LoserPays = true;
+            options.LoserPaysMultiple = 10.0;
+            options.LoserPaysAfterAbandonment = true;
+            options.IncludeAgreementToBargainDecisions = true;
+            options.MyGamePretrialDecisionGeneratorGenerator = null;
+            //options.AdditionalTableOverrides = new List<(Func<Decision, GameProgress, byte>, string)>() { (MyGameActionsGenerator.PGivesNoGroundWithMaxSignal, "PGivesNoGroundWithMaxSignal") };
+            //options.MyGamePretrialDecisionGeneratorGenerator = new MyGameSideBet() { DamagesMultipleForChallengedToPay = 6.0, DamagesMultipleForChallengerToPay = 6.0 };
             //options.IncludeSignalsReport = true;
             //options.IncludeCourtSuccessReport = true;
             string sideBetReport = PerformEvolution(options, "SideBet", true);
             return sideBetReport;
         }
 
-
-        static int NumRepetitions = 3;
+        static int NumRepetitions = 10;
 
         public static string EvolveMyGame_Multiple()
         {
@@ -114,20 +117,39 @@ namespace ACESim
 
         private static string ApplyDifferentRegimes(MyGameOptions options, string description)
         {
-            string amRuleReport = "", brRuleReport = "", sideBetReport = "";
+            string amRuleReport = "", brRuleReport = "", brPlusReport ="", sideBetReport = "", sideBetLargeReport = "";
             options.LoserPays = true;
+            options.LoserPaysMultiple = 1.0;
+            options.LoserPaysAfterAbandonment = true;
+            options.IncludeAgreementToBargainDecisions = true;
             options.MyGamePretrialDecisionGeneratorGenerator = null;
             brRuleReport = PerformEvolution(options, description + " British", false);
             Debug.WriteLine(brRuleReport);
+
+            options.LoserPays = true;
+            options.LoserPaysMultiple = 10.0;
+            options.LoserPaysAfterAbandonment = true;
+            options.IncludeAgreementToBargainDecisions = true;
+            options.MyGamePretrialDecisionGeneratorGenerator = null;
+            brPlusReport = PerformEvolution(options, description + " BrPlus", false);
+            Debug.WriteLine(brPlusReport);
+
             options.LoserPays = false;
             options.MyGamePretrialDecisionGeneratorGenerator = null;
             amRuleReport = PerformEvolution(options, description + " American", true);
             Debug.WriteLine(amRuleReport);
+
             options.LoserPays = false;
-            options.MyGamePretrialDecisionGeneratorGenerator = new MyGameSideBet() {DamagesMultipleForChallengedToPay = 4.0, DamagesMultipleForChallengerToPay = 4.0};
+            options.MyGamePretrialDecisionGeneratorGenerator = new MyGameSideBet() {DamagesMultipleForChallengedToPay = 1.0, DamagesMultipleForChallengerToPay = 1.0};
             sideBetReport = PerformEvolution(options, description + " SideBet", true);
             Debug.WriteLine(sideBetReport);
-            string combined = amRuleReport + brRuleReport + sideBetReport;
+
+            options.LoserPays = false;
+            options.MyGamePretrialDecisionGeneratorGenerator = new MyGameSideBet() { DamagesMultipleForChallengedToPay = 5.0, DamagesMultipleForChallengerToPay = 5.0 };
+            sideBetLargeReport = PerformEvolution(options, description + " SideLarge", true);
+            Debug.WriteLine(sideBetLargeReport);
+
+            string combined = amRuleReport + brRuleReport + brPlusReport + sideBetReport + sideBetLargeReport;
             return combined;
         }
 
@@ -135,7 +157,7 @@ namespace ACESim
         {
             if (options.IncludeCourtSuccessReport || options.IncludeSignalsReport)
                 if (NumRepetitions > 1)
-                    throw new Exception("Can include multiple reports only with 1 repetition. Use console output rather than string copied.");
+                    throw new Exception("Can include multiple reports only with 1 repetition. Use console output rather than string copied."); // problem is that we can't merge the reports if NumRepetitions > 1 when we have more than one report. TODO: Fix this. 
             MyGameDefinition gameDefinition = new MyGameDefinition();
             gameDefinition.Setup(options);
             List<Strategy> starterStrategies = Strategy.GetStarterStrategies(gameDefinition);
