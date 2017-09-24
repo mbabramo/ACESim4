@@ -106,9 +106,8 @@ namespace ACESim
                             value = null;
                         else
                         {
-                            if (colItem is SimpleReportColumnFilter)
+                            if (colItem is SimpleReportColumnFilter cf)
                             {
-                                SimpleReportColumnFilter cf = (SimpleReportColumnFilter)colItem;
                                 value = (double?)StatCollectors[i].Average();
                                 if (EarlierReportToDivideColumnFiltersBy != null)
                                 {

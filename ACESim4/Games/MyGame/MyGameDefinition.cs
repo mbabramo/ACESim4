@@ -50,6 +50,7 @@ namespace ACESim
                 NumSignals = Options.NumSignals
             };
             Options.MyGameDisputeGenerator.Setup(this);
+            Options.MyGamePretrialDecisionGeneratorGenerator?.Setup(this);
         }
 
         private MyGameProgress MyGP(GameProgress gp) => gp as MyGameProgress;
@@ -116,7 +117,8 @@ namespace ACESim
         private List<Decision> GetDecisionsList()
         {
             var decisions = new List<Decision>();
-            AddLitigationQualityAndSignalsDecisions(decisions);
+            AddDisputeGeneratorDecisions(decisions);
+            AddSignalsDecisions(decisions);
             AddFileAndAnswerDecisions(decisions);
             for (int b = 0; b < Options.NumPotentialBargainingRounds; b++)
             {
@@ -126,11 +128,12 @@ namespace ACESim
                     AddAbandonOrDefaultDecisions(b, decisions);
                 AddPostBargainingRoundDummyDecision(b, decisions);
             }
+            AddPreTrialDecisions(decisions);
             AddCourtDecision(decisions);
             return decisions;
         }
 
-        private void AddLitigationQualityAndSignalsDecisions(List<Decision> decisions)
+        private void AddDisputeGeneratorDecisions(List<Decision> decisions)
         {
             // Litigation Quality. This is not known by a player unless the player has perfect information. 
             // The SignalChance player relies on this information in calculating the probabilities of different signals
@@ -142,9 +145,9 @@ namespace ACESim
                 (byte) MyGamePlayers.Resolution
             };
             if (Options.PNoiseStdev == 0)
-                playersKnowingLitigationQuality.Add((byte) MyGamePlayers.Plaintiff);
+                playersKnowingLitigationQuality.Add((byte)MyGamePlayers.Plaintiff);
             if (Options.DNoiseStdev == 0)
-                playersKnowingLitigationQuality.Add((byte) MyGamePlayers.Defendant);
+                playersKnowingLitigationQuality.Add((byte)MyGamePlayers.Defendant);
             Options.MyGameDisputeGenerator.GetActionsSetup(this, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance, out bool primaryActionCanTerminate, out bool postPrimaryChanceCanTerminate);
             CheckCompleteAfterPrimaryAction = primaryActionCanTerminate;
             CheckCompleteAfterPostPrimaryAction = postPrimaryChanceCanTerminate;
@@ -163,15 +166,19 @@ namespace ACESim
             decisions.Add(new Decision("LitigationQuality", "Qual", (byte)MyGamePlayers.QualityChance,
                     playersKnowingLitigationQuality.ToArray(), Options.NumLitigationQualityPoints, (byte)MyGameDecisions.LitigationQuality)
                 { StoreActionInGameCacheItem = GameHistoryCacheIndex_LitigationQuality, IsReversible = true, UnevenChanceActions = litigationQualityUnevenChance });
+        }
+        
+        private void AddSignalsDecisions(List<Decision> decisions)
+        {
             // Plaintiff and defendant signals. If a player has perfect information, then no signal is needed.
             if (Options.PNoiseStdev != 0)
                 decisions.Add(new Decision("PlaintiffNoise", "PN", (byte)MyGamePlayers.PNoiseChance,
                     null,
                     Options.NumNoiseValues, (byte)MyGameDecisions.PNoise, unevenChanceActions: false)
-                    {
-                        RequiresCustomInformationSetManipulation = true,
-                        IsReversible = true // custom ReverseDecision defined below
-                    });
+                {
+                    RequiresCustomInformationSetManipulation = true,
+                    IsReversible = true // custom ReverseDecision defined below
+                });
             if (Options.DNoiseStdev != 0)
                 decisions.Add(new Decision("DefendantNoise", "DN", (byte)MyGamePlayers.DNoiseChance,
                     null,
@@ -194,10 +201,7 @@ namespace ACESim
             discreteSignal = tableValue.Item1;
             uniformSignal = tableValue.Item2;
         }
-
-        public double CorrectnessGivenLitigationQuality;
-
-
+        
         private ValueTuple<byte, double>[,] PSignalsTable, DSignalsTable;
         public void CreateSignalsTables()
         {
@@ -435,7 +439,23 @@ namespace ACESim
                 };
             decisions.Add(dummyDecision);
         }
-        
+
+        private void AddPreTrialDecisions(List<Decision> decisions)
+        {
+            if (Options.MyGamePretrialDecisionGeneratorGenerator != null)
+            {
+                Options.MyGamePretrialDecisionGeneratorGenerator.GetActionsSetup(this, out byte pActions, out byte dActions, out byte[] playersToInformOfPAction, out byte[] playersToInformOfDAction);
+                if (pActions > 0)
+                {
+                    decisions.Add(new Decision("PPreTrial", "PPT", (byte) MyGamePlayers.Plaintiff, playersToInformOfPAction, pActions, (byte) MyGameDecisions.PPretrialAction) { IsReversible = true});
+                }
+                if (dActions > 0)
+                {
+                    decisions.Add(new Decision("DPreTrial", "DPT", (byte)MyGamePlayers.Defendant, playersToInformOfDAction, dActions, (byte)MyGameDecisions.DPretrialAction) { IsReversible = true });
+                }
+            }
+        }
+
         private void AddCourtDecision(List<Decision> decisions)
         {
             decisions.Add(new Decision("CourtDecision", "CD", (byte)MyGamePlayers.CourtChance,
@@ -576,8 +596,8 @@ namespace ACESim
                 if (numItemsInResolutionSetFromPreviousBargainingRound > 0)
                     gameHistory.RemoveItemsInInformationSetAndLog((byte) MyGamePlayers.Resolution, currentDecisionIndex, numItemsInResolutionSetFromPreviousBargainingRound, gameProgress);
 
-                if (Options.ForgetEarlierBargainingRounds)
-                {
+                if (Options.BargainingRoundRecall == MyGameBargainingRoundRecall.ForgetEarlierBargainingRounds || Options.BargainingRoundRecall == MyGameBargainingRoundRecall.RememberOnlyLastBargainingRound)
+                { // first remove everything, even if we want to remember the last bargaining round
                     byte numItemsInPlaintiffSetFromPreviousBargainingRound = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound);
                     if (numItemsInPlaintiffSetFromPreviousBargainingRound > 0)
                         gameHistory.RemoveItemsInInformationSetAndLog((byte) MyGamePlayers.Plaintiff, currentDecisionIndex, numItemsInPlaintiffSetFromPreviousBargainingRound, gameProgress);
@@ -593,10 +613,28 @@ namespace ACESim
                 gameHistory.AddToInformationSetAndLog(bargainingRound, currentDecisionIndex, (byte)MyGamePlayers.Plaintiff, gameProgress);
                 gameHistory.AddToInformationSetAndLog(bargainingRound, currentDecisionIndex, (byte)MyGamePlayers.Defendant, gameProgress);
 
-                // Reset the cache indices to reflect that there is only one item
-                gameHistory.SetCacheItemAtIndex(GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, (byte) 1);
-                gameHistory.SetCacheItemAtIndex(GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, (byte)1);
-                gameHistory.SetCacheItemAtIndex(GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, (byte)1);
+                byte numPlaintiffItems = 1, numDefendantItems = 1;
+                if (Options.BargainingRoundRecall == MyGameBargainingRoundRecall.RememberOnlyLastBargainingRound)
+                { // add back in opponent's last offer, if applicable, and increment the cache index
+                    byte lastPOffer = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_POffer);
+                    if (lastPOffer != 0)
+                    {
+                        gameHistory.AddToInformationSetAndLog(lastPOffer, currentDecisionIndex, (byte) MyGamePlayers.Defendant, gameProgress);
+                        numDefendantItems++;
+                    }
+                    byte lastDOffer = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_DOffer);
+                    if (lastDOffer != 0)
+                    {
+                        gameHistory.AddToInformationSetAndLog(lastDOffer, currentDecisionIndex, (byte) MyGamePlayers.Plaintiff, gameProgress);
+                        numPlaintiffItems++;
+                    }
+                }
+
+                // Reset the cache indices to reflect how many items we have placed for this bargaining round
+                gameHistory.SetCacheItemAtIndex(GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, (byte)1);
+                gameHistory.SetCacheItemAtIndex(GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, (byte)numPlaintiffItems);
+                gameHistory.SetCacheItemAtIndex(GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, (byte)numDefendantItems);
+
             }
         }
 

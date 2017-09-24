@@ -33,6 +33,7 @@ namespace ACESim
                 PNoiseStdev = 0.001,
                 DNoiseStdev = 0.001,
                 CourtNoiseStdev = 0.1,
+                CostsMultiplier = 1.0,
                 PTrialCosts = 1000,
                 DTrialCosts = 1000,
                 IncludeAgreementToBargainDecisions = false,
@@ -48,7 +49,7 @@ namespace ACESim
                     MaxDelta = 0.25
                 },
                 NumPotentialBargainingRounds = 4,
-                ForgetEarlierBargainingRounds = true,
+                BargainingRoundRecall = MyGameBargainingRoundRecall.ForgetEarlierBargainingRounds,
                 SubdivideOffers = false,
                 BargainingRoundsSimultaneous = true,
                 PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false, true, false, true, false },
@@ -82,6 +83,7 @@ namespace ACESim
                 PNoiseStdev = 0.3,
                 DNoiseStdev = 0.3,
                 CourtNoiseStdev = 0.3,
+                CostsMultiplier = 1.0,
                 PTrialCosts = 15000,
                 DTrialCosts = 15000,
                 RegretAversion = 0.0,
@@ -98,7 +100,7 @@ namespace ACESim
                     MaxDelta = 0.25
                 },
                 NumPotentialBargainingRounds = 3,
-                ForgetEarlierBargainingRounds = true,
+                BargainingRoundRecall = MyGameBargainingRoundRecall.RememberOnlyLastBargainingRound,
                 SubdivideOffers = false,
                 BargainingRoundsSimultaneous = true,
                 PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false, true, false, true, false },

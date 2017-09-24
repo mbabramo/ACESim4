@@ -125,6 +125,12 @@ namespace ACESim
                 case (byte)MyGameDecisions.PostBargainingRound:
                     MyProgress.BargainingRoundsComplete++;
                     break;
+                case (byte)MyGameDecisions.PPretrialAction:
+                    MyDefinition.Options.MyGamePretrialDecisionGeneratorGenerator.ProcessAction(MyDefinition, MyProgress, true, action);
+                    break;
+                case (byte)MyGameDecisions.DPretrialAction:
+                    MyDefinition.Options.MyGamePretrialDecisionGeneratorGenerator.ProcessAction(MyDefinition, MyProgress, false, action);
+                    break;
                 case (byte)MyGameDecisions.CourtDecision:
                     MyProgress.TrialOccurs = true;
                     double courtNoiseUniformDistribution =
@@ -194,7 +200,7 @@ namespace ACESim
             public bool TrialOccurs;
         }
 
-        public static MyGameOutcome CalculateGameOutcome(MyGameDefinition gameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions, double pInitialWealth, double dInitialWealth, double damagesAlleged, bool pFiles, bool pAbandons, bool dAnswers, bool dDefaults, double? settlementValue, bool pWinsAtTrial, byte bargainingRoundsComplete, double? pFinalWealthWithBestOffer, double? dFinalWealthWithBestOffer)
+        public static MyGameOutcome CalculateGameOutcome(MyGameDefinition gameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions, MyGamePretrialActions pretrialActions, double pInitialWealth, double dInitialWealth, double damagesAlleged, bool pFiles, bool pAbandons, bool dAnswers, bool dDefaults, double? settlementValue, bool pWinsAtTrial, byte bargainingRoundsComplete, double? pFinalWealthWithBestOffer, double? dFinalWealthWithBestOffer)
         {
             MyGameOutcome outcome = new MyGameOutcome();
 
@@ -258,6 +264,13 @@ namespace ACESim
             outcome.PChangeWealth += pEffectOfExpenses;
             outcome.DChangeWealth += dEffectOfExpenses;
 
+            if (gameDefinition.Options.MyGamePretrialDecisionGeneratorGenerator != null)
+            {
+                gameDefinition.Options.MyGamePretrialDecisionGeneratorGenerator.GetEffectOnPlayerWelfare(gameDefinition, outcome.TrialOccurs, pWinsAtTrial, damagesAlleged, pretrialActions, out double effectOnP, out double effectOnD);
+                outcome.PChangeWealth += effectOnP;
+                outcome.DChangeWealth += effectOnD;
+            }
+
             outcome.PFinalWealth = pWealthAfterPrimaryConduct + outcome.PChangeWealth;
             outcome.DFinalWealth = dWealthAfterPrimaryConduct + outcome.DChangeWealth;
             double pPerceivedFinalWealth = outcome.PFinalWealth;
@@ -278,7 +291,7 @@ namespace ACESim
 
         public override void FinalProcessing()
         {
-            var outcome = CalculateGameOutcome(MyDefinition, MyProgress.DisputeGeneratorActions, MyProgress.PInitialWealth, MyProgress.DInitialWealth, MyProgress.DamagesAlleged ?? 0, MyProgress.PFiles, MyProgress.PAbandons, MyProgress.DAnswers, MyProgress.DDefaults, MyProgress.SettlementValue, MyProgress.PWinsAtTrial, MyProgress.BargainingRoundsComplete, MyProgress.PFinalWealthWithBestOffer, MyProgress.DFinalWealthWithBestOffer);
+            var outcome = CalculateGameOutcome(MyDefinition, MyProgress.DisputeGeneratorActions, MyProgress.PretrialActions, MyProgress.PInitialWealth, MyProgress.DInitialWealth, MyProgress.DamagesAlleged ?? 0, MyProgress.PFiles, MyProgress.PAbandons, MyProgress.DAnswers, MyProgress.DDefaults, MyProgress.SettlementValue, MyProgress.PWinsAtTrial, MyProgress.BargainingRoundsComplete, MyProgress.PFinalWealthWithBestOffer, MyProgress.DFinalWealthWithBestOffer);
             MyProgress.DisputeArises = MyDefinition.Options.MyGameDisputeGenerator.PotentialDisputeArises(MyDefinition, MyProgress.DisputeGeneratorActions);
             MyProgress.PChangeWealth = outcome.PChangeWealth;
             MyProgress.DChangeWealth = outcome.DChangeWealth;

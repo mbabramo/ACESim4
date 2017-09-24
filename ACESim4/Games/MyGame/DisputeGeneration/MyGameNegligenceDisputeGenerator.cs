@@ -128,6 +128,8 @@ namespace ACESim
         {
             byte marginalBenefitSchedule = disputeGeneratorActions.PrePrimaryChanceAction;
             byte precautionLevelChosen = disputeGeneratorActions.PrimaryAction;
+            if (precautionLevelChosen == NumPrecautionLevels)
+                return false; // we assume that no higher precaution level is possible, so no liability should attach
             bool returnVal = ShouldBeLiable[marginalBenefitSchedule - 1][precautionLevelChosen - 1];
             return returnVal;
         }

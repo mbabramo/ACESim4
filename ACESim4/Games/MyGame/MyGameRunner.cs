@@ -59,22 +59,23 @@ namespace ACESim
             return evolutionSettings;
         }
 
+        const int numRepetitions = 5;
+
         public static string EvolveMyGame()
         {
             var options = MyGameOptionsGenerator.Standard();
-            options.CostsMultiplier = 0.5; // DEBUG
             string combined = "";
             foreach (IMyGameDisputeGenerator d in new IMyGameDisputeGenerator[]
             {
                 new MyGameNegligenceDisputeGenerator(),
-                new MyGameAppropriationDisputeGenerator(), 
-                new MyGameContractDisputeGenerator(), 
-                new MyGameDiscriminationDisputeGenerator(), 
-                new MyGameExogenousDisputeGenerator()
-                {
-                    ExogenousProbabilityTrulyLiable = 0.5,
-                    StdevNoiseToProduceLitigationQuality = 0.5
-                }
+                //new MyGameAppropriationDisputeGenerator(), 
+                //new MyGameContractDisputeGenerator(), 
+                //new MyGameDiscriminationDisputeGenerator(), 
+                //new MyGameExogenousDisputeGenerator()
+                //{
+                //    ExogenousProbabilityTrulyLiable = 0.5,
+                //    StdevNoiseToProduceLitigationQuality = 0.5
+                //}
             })
             {
                 string generatorString = d.GetGeneratorName();
@@ -104,7 +105,6 @@ namespace ACESim
             var evolutionSettings = GetEvolutionSettings();
             NWayTreeStorageRoot<IGameState>.EnableUseDictionary = false; // evolutionSettings.ParallelOptimization == false; // this is based on some limited performance testing; with parallelism, this seems to slow us down. Maybe it's not worth using. It might just be because of the lock.
             NWayTreeStorageRoot<IGameState>.ParallelEnabled = evolutionSettings.ParallelOptimization;
-            const int numRepetitions = 100;
             string cumulativeReport = "";
             for (int i = 0; i < numRepetitions; i++)
             {

@@ -12,6 +12,10 @@ namespace ACESim
         /// </summary>
         public IMyGameDisputeGenerator MyGameDisputeGenerator;
         /// <summary>
+        /// This can generate some additional decisions before trial. If null, none are generated.
+        /// </summary>
+        public IMyGamePretrialDecisionGenerator MyGamePretrialDecisionGeneratorGenerator;
+        /// <summary>
         /// The number of different quality points that a litigation can have. 
         /// </summary>
         public byte NumLitigationQualityPoints;
@@ -48,7 +52,7 @@ namespace ACESim
         /// <summary>
         /// If true, this is a partial recall game, in which players do not remember earlier bargaining rounds.
         /// </summary>
-        public bool ForgetEarlierBargainingRounds;
+        public MyGameBargainingRoundRecall BargainingRoundRecall;
         /// <summary>
         /// The number of discrete offers a party can make at any given time. For example, 10 signals might allow offers of 0.05, 0.15, ..., 0.95, but delta offers may allow offers to get gradually more precise.
         /// </summary>
