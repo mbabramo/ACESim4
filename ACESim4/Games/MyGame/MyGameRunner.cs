@@ -32,14 +32,14 @@ namespace ACESim
             EvolutionSettings evolutionSettings = new EvolutionSettings()
             {
                 MaxParallelDepth = 1, // we're parallelizing on the iteration level, so there is no need for further parallelization
-                ParallelOptimization = false,
+                ParallelOptimization = true,
 
                 InitialRandomSeed = 100,
 
                 Algorithm = GameApproximationAlgorithm.AbramowiczProbing,
 
-                ReportEveryNIterations = 100_000,
-                NumRandomIterationsForSummaryTable = 5000,
+                ReportEveryNIterations = 25_000,
+                NumRandomIterationsForSummaryTable = 10000,
                 PrintSummaryTable = true,
                 PrintInformationSets = false,
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
@@ -47,7 +47,7 @@ namespace ACESim
                 AlwaysUseAverageStrategyInReporting = false,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
 
-                TotalProbingCFRIterations = 100_000,
+                TotalProbingCFRIterations = 25_000,
                 EpsilonForMainPlayer = 0.5,
                 EpsilonForOpponentWhenExploring = 0.05,
                 MinBackupRegretsTrigger = 3,
@@ -59,23 +59,50 @@ namespace ACESim
             return evolutionSettings;
         }
 
-        const int numRepetitions = 5;
-
         public static string EvolveMyGame()
+        {
+            bool single = true;
+            NumRepetitions = 2;
+            if (single)
+                return EvolveMyGame_Single();
+            else
+                return EvolveMyGame_Multiple();
+        }
+
+        public static string EvolveMyGame_Single()
+        {
+            var options = MyGameOptionsGenerator.Standard();
+            options.MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
+            {
+                ExogenousProbabilityTrulyLiable = 0.5,
+                StdevNoiseToProduceLitigationQuality = 0.5
+            };
+            options.LoserPays = false;
+            options.MyGamePretrialDecisionGeneratorGenerator = new MyGameSideBet() { DamagesMultipleForChallengedToPay = 6.0, DamagesMultipleForChallengerToPay = 6.0 };
+            //options.IncludeSignalsReport = true;
+            //options.IncludeCourtSuccessReport = true;
+            string sideBetReport = PerformEvolution(options, "SideBet", true);
+            return sideBetReport;
+        }
+
+
+        static int NumRepetitions = 3;
+
+        public static string EvolveMyGame_Multiple()
         {
             var options = MyGameOptionsGenerator.Standard();
             string combined = "";
             foreach (IMyGameDisputeGenerator d in new IMyGameDisputeGenerator[]
             {
-                new MyGameNegligenceDisputeGenerator(),
+                //new MyGameNegligenceDisputeGenerator(),
                 //new MyGameAppropriationDisputeGenerator(), 
                 //new MyGameContractDisputeGenerator(), 
                 //new MyGameDiscriminationDisputeGenerator(), 
-                //new MyGameExogenousDisputeGenerator()
-                //{
-                //    ExogenousProbabilityTrulyLiable = 0.5,
-                //    StdevNoiseToProduceLitigationQuality = 0.5
-                //}
+                new MyGameExogenousDisputeGenerator()
+                {
+                    ExogenousProbabilityTrulyLiable = 0.5,
+                    StdevNoiseToProduceLitigationQuality = 0.5
+                }
             })
             {
                 string generatorString = d.GetGeneratorName();
@@ -87,18 +114,28 @@ namespace ACESim
 
         private static string ApplyDifferentRegimes(MyGameOptions options, string description)
         {
+            string amRuleReport = "", brRuleReport = "", sideBetReport = "";
             options.LoserPays = true;
-            string brRuleReport = PerformEvolution(options, description + " British", false);
+            options.MyGamePretrialDecisionGeneratorGenerator = null;
+            brRuleReport = PerformEvolution(options, description + " British", false);
             Debug.WriteLine(brRuleReport);
             options.LoserPays = false;
-            string amRuleReport = PerformEvolution(options, description + " American", true);
+            options.MyGamePretrialDecisionGeneratorGenerator = null;
+            amRuleReport = PerformEvolution(options, description + " American", true);
             Debug.WriteLine(amRuleReport);
-            string combined = amRuleReport + brRuleReport;
+            options.LoserPays = false;
+            options.MyGamePretrialDecisionGeneratorGenerator = new MyGameSideBet() {DamagesMultipleForChallengedToPay = 4.0, DamagesMultipleForChallengerToPay = 4.0};
+            sideBetReport = PerformEvolution(options, description + " SideBet", true);
+            Debug.WriteLine(sideBetReport);
+            string combined = amRuleReport + brRuleReport + sideBetReport;
             return combined;
         }
 
         private static string PerformEvolution(MyGameOptions options, string reportName, bool includeFirstLine)
         {
+            if (options.IncludeCourtSuccessReport || options.IncludeSignalsReport)
+                if (NumRepetitions > 1)
+                    throw new Exception("Can include multiple reports only with 1 repetition. Use console output rather than string copied.");
             MyGameDefinition gameDefinition = new MyGameDefinition();
             gameDefinition.Setup(options);
             List<Strategy> starterStrategies = Strategy.GetStarterStrategies(gameDefinition);
@@ -106,7 +143,7 @@ namespace ACESim
             NWayTreeStorageRoot<IGameState>.EnableUseDictionary = false; // evolutionSettings.ParallelOptimization == false; // this is based on some limited performance testing; with parallelism, this seems to slow us down. Maybe it's not worth using. It might just be because of the lock.
             NWayTreeStorageRoot<IGameState>.ParallelEnabled = evolutionSettings.ParallelOptimization;
             string cumulativeReport = "";
-            for (int i = 0; i < numRepetitions; i++)
+            for (int i = 0; i < NumRepetitions; i++)
             {
                 string reportIteration = i.ToString();
                 CounterfactualRegretMaximization developer =

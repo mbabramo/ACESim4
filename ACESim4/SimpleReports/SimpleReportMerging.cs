@@ -159,7 +159,8 @@ namespace ACESim
                 List<(string theString, double? theValue)> variableList = new List<(string theString, double? theValue)>();
                 foreach (string variableName in variableNames)
                 {
-                    var itemsForVariable = dictionaryOfLists[variableName];
+                    
+                   List<(string theString, double? theValue)> itemsForVariable = dictionaryOfLists.ContainsKey(variableName) ? dictionaryOfLists[variableName] : new List<(string theString, double? theValue)>();
                     if (variableName == "\"Iteration\"")
                         variableList.Add((GetSimpleReportAggregationName(simpleReportAggregation), null));
                     else if (variableName == "\"Filter\"")
