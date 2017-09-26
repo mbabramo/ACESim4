@@ -17,7 +17,7 @@ namespace ACESim
 
         // We use a struct here because this makes a big difference in performance, allowing GameHistory to be allocated on the stack. A disadvantage is that we must set the number of players, maximum size of different players' information sets, etc. in the GameHistory (which means that we need to change the code whenever we change games). We distinguish between full and partial players because this also produces a significant performance boost.
 
-        public const int CacheLength = 18; // the game and game definition can use the cache to store information. This is helpful when the game player is simulating the game without playing the underlying game. The game definition may, for example, need to be able to figure out which decision is next.
+        public const int CacheLength = 19; // the game and game definition can use the cache to store information. This is helpful when the game player is simulating the game without playing the underlying game. The game definition may, for example, need to be able to figure out which decision is next.
         public const byte Cache_SubdivisionAggregationIndex = 0; // Use this cache entry to aggregate subdivision decisions. Thus, do NOT use it for any other purpose.
 
         public const byte InformationSetTerminator = 255;
@@ -148,11 +148,11 @@ namespace ACESim
 
         #region Cache
 
-        public unsafe void IncrementItemAtCacheIndex(byte cacheIndexToIncrement)
+        public unsafe void IncrementItemAtCacheIndex(byte cacheIndexToIncrement, byte incrementBy = 1)
         {
             // Console.WriteLine($"Increment cache for {cacheIndexToIncrement}");
             fixed (byte* cachePtr = Cache)
-                *(cachePtr + (byte) cacheIndexToIncrement) = (byte) (*(cachePtr + (byte) cacheIndexToIncrement) + (byte) 1);
+                *(cachePtr + (byte) cacheIndexToIncrement) = (byte) (*(cachePtr + (byte) cacheIndexToIncrement) + incrementBy);
         }
 
         public unsafe void DecrementItemAtCacheIndex(byte cacheIndexToDecrement)
@@ -176,6 +176,8 @@ namespace ACESim
         public unsafe void SetCacheItemAtIndex(byte cacheIndexToReset, byte newValue)
         {
             // Console.WriteLine($"Set cache for {cacheIndexToReset} to {newValue}"); 
+            if (cacheIndexToReset >= CacheLength)
+                throw new NotImplementedException();
             fixed (byte* cachePtr = Cache)
                 *(cachePtr + (byte) cacheIndexToReset) = newValue;
         }

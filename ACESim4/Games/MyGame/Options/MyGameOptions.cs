@@ -16,6 +16,10 @@ namespace ACESim
         /// </summary>
         public IMyGamePretrialDecisionGenerator MyGamePretrialDecisionGeneratorGenerator;
         /// <summary>
+        /// This allows for making side bets in each bargaining round, if not null.
+        /// </summary>
+        public MyGameRunningSideBets MyGameRunningSideBets;
+        /// <summary>
         /// The number of different quality points that a litigation can have. 
         /// </summary>
         public byte NumLitigationQualityPoints;

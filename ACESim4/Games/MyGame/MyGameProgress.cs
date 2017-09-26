@@ -47,6 +47,7 @@ namespace ACESim
         public double DWelfare;
         public MyGameDisputeGeneratorActions DisputeGeneratorActions;
         public MyGamePretrialActions PretrialActions;
+        public MyGameRunningSideBetsActions RunningSideBetsActions;
 
         public override string ToString()
         {
@@ -83,13 +84,13 @@ namespace ACESim
             {
                 if (playersMovingSimultaneously || !pGoesFirstIfNotSimultaneous)
                 { // defendant has made an offer this round
-                    var pMissedOpportunity = MyGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, PInitialWealth, DInitialWealth, (double) DamagesAlleged, PFiles, PAbandons, DAnswers, DDefaults, (double) DLastOffer * (double)DamagesAlleged, true /* ignored */, (byte) (BargainingRoundsComplete + 1), null, null);
+                    var pMissedOpportunity = MyGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, PInitialWealth, DInitialWealth, (double) DamagesAlleged, PFiles, PAbandons, DAnswers, DDefaults, (double) DLastOffer * (double)DamagesAlleged, true /* ignored */, (byte) (BargainingRoundsComplete + 1), null, null);
                     if (pMissedOpportunity.PFinalWealth > PFinalWealthWithBestOffer || PFinalWealthWithBestOffer == null)
                         PFinalWealthWithBestOffer = pMissedOpportunity.PFinalWealth;
                 }
                 if (playersMovingSimultaneously || pGoesFirstIfNotSimultaneous)
                 { // plaintiff has made an offer this round
-                    var dMissedOpportunity = MyGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, PInitialWealth, DInitialWealth, (double)DamagesAlleged, PFiles, PAbandons, DAnswers, DDefaults, (double)PLastOffer * (double)DamagesAlleged, true /* ignored */, (byte)(BargainingRoundsComplete + 1), null, null);
+                    var dMissedOpportunity = MyGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, PInitialWealth, DInitialWealth, (double)DamagesAlleged, PFiles, PAbandons, DAnswers, DDefaults, (double)PLastOffer * (double)DamagesAlleged, true /* ignored */, (byte)(BargainingRoundsComplete + 1), null, null);
                     if (dMissedOpportunity.DFinalWealth > DFinalWealthWithBestOffer || DFinalWealthWithBestOffer == null)
                         DFinalWealthWithBestOffer = dMissedOpportunity.DFinalWealth;
                 }
@@ -198,6 +199,7 @@ namespace ACESim
             copy.PreDisputeSWelfare = PreDisputeSWelfare;
             copy.DisputeGeneratorActions = DisputeGeneratorActions;
             copy.PretrialActions = PretrialActions;
+            copy.RunningSideBetsActions = RunningSideBetsActions;
 
             return copy;
         }

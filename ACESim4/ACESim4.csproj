@@ -125,6 +125,8 @@
     <Compile Include="Games\MyGame\MyGameReportDefinition.cs" />
     <Compile Include="Games\MyGame\MyGameRunner.cs" />
     <Compile Include="Games\MyGame\Options\MyGameBargainingRoundRecall.cs" />
+    <Compile Include="Games\MyGame\RunningSideBets\MyGameRunningSideBetsActions.cs" />
+    <Compile Include="Games\MyGame\RunningSideBets\MyGameRunningSideBets.cs" />
     <Compile Include="Games\MyGame\PretrialDecisions\IMyGamePretrialDecisionGenerator.cs" />
     <Compile Include="Games\MyGame\PretrialDecisions\MyGameSideBet.cs" />
     <Compile Include="Games\MyGame\PretrialDecisions\MyGamePretrialActions.cs" />

@@ -51,6 +51,7 @@ namespace ACESim
             };
             Options.MyGameDisputeGenerator.Setup(this);
             Options.MyGamePretrialDecisionGeneratorGenerator?.Setup(this);
+            Options.MyGameRunningSideBets?.Setup(this);
         }
 
         private MyGameProgress MyGP(GameProgress gp) => gp as MyGameProgress;
@@ -106,6 +107,9 @@ namespace ACESim
         public byte GameHistoryCacheIndex_DResponse = 13;
         public byte GameHistoryCacheIndex_PReadyToAbandon = 14;
         public byte GameHistoryCacheIndex_DReadyToAbandon = 15;
+        public byte GameHistoryCacheIndex_PChips = 16;
+        public byte GameHistoryCacheIndex_DChips = 17;
+        public byte GameHistoryCacheIndex_TotalChipsSoFar = 18;
 
         public bool CheckCompleteAfterPrimaryAction;
         public bool CheckCompleteAfterPostPrimaryAction;
@@ -125,7 +129,11 @@ namespace ACESim
                 AddPreBargainingRoundDummyDecision(b, decisions);
                 AddDecisionsForBargainingRound(b, decisions);
                 if (Options.AllowAbandonAndDefaults)
+                {
+                    if (Options.MyGameRunningSideBets != null)
+                        AddRunningSideBetDecisions(b, decisions);
                     AddAbandonOrDefaultDecisions(b, decisions);
+                }
                 AddPostBargainingRoundDummyDecision(b, decisions);
             }
             AddPreTrialDecisions(decisions);
@@ -370,7 +378,34 @@ namespace ACESim
         {
             AddPotentiallySubdividableDecision(decisions, offerDecision, Options.SubdivideOffers, (byte)MyGameDecisions.SubdividableOffer, 2, Options.NumOffers);
         }
-        
+
+        private void AddRunningSideBetDecisions(int b, List<Decision> decisions)
+        {
+            var pRSideBet =
+                new Decision("pRSideBet" + (b + 1), "PRSB" + (b + 1), (byte)MyGamePlayers.Plaintiff, new byte[] { },
+                    (byte) (Options.MyGameRunningSideBets.MaxChipsPerRound + 1), (byte)MyGameDecisions.PChips)
+                {
+                    CustomByte = (byte)(b + 1),
+                    CanTerminateGame = false, 
+                    IncrementGameCacheItem = new byte[] { },
+                    StoreActionInGameCacheItem = GameHistoryCacheIndex_PChips,
+                    IsReversible = true
+                };
+            decisions.Add(pRSideBet);
+            var dRSideBet =
+                new Decision("dRSideBet" + (b + 1), "DRSB" + (b + 1), (byte)MyGamePlayers.Defendant, new byte[] { },
+                    (byte)(Options.MyGameRunningSideBets.MaxChipsPerRound + 1), (byte)MyGameDecisions.DChips)
+                {
+                    CustomByte = (byte)(b + 1),
+                    CanTerminateGame = false,
+                    IncrementGameCacheItem = new byte[] { },
+                    StoreActionInGameCacheItem = GameHistoryCacheIndex_DChips,
+                    IsReversible = true,
+                    RequiresCustomInformationSetManipulation = true
+                };
+            decisions.Add(dRSideBet);
+        }
+
         private void AddAbandonOrDefaultDecisions(int b, List<Decision> decisions)
         {
             // no need to notify other player, as if abandon/default takes place, this will be the last decision
@@ -582,6 +617,25 @@ namespace ACESim
                 gameHistory.AddToInformationSetAndLog(discreteSignal, currentDecisionIndex, decisionByteCode == (byte)MyGameDecisions.PNoise ? (byte) MyGamePlayers.Plaintiff : (byte) MyGamePlayers.Defendant, gameProgress);
                 // NOTE: We don't have to do anything like this for the court's information set. The court simply gets the actual litigation quality and the noise. When the game is actually being played, the court will combine these to determine whether the plaintiff wins. The plaintiff and defendant are non-chance players, and so we want to have the same information set for all situations with the same signal.  But with the court, that doesn't matter. We can have lots of information sets, covering the wide range of possibilities.
             }
+            else if (decisionByteCode == (byte) MyGameDecisions.DChips)
+            {
+                // Inform the players of the total number of chips bet in this round. This will allow the players to make a decision about whether to abandon/default this round. We separately add information on P/D chips to the players' information sets, because we want the players to have a sense of who is bidding more aggressively (thus allowing them to track their own bluffing). 
+                // We also have to update the resolution set with the same information. The reason is that if a player bets a certain number of chips and then withdraws, then the smaller of that number and the other player's bet is still counted.
+                // Note that below, we delete the information from the previous round but then add back in the total number of chips bet so far.
+
+                byte pChips = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PChips);
+                byte dChips = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_DChips);
+                byte maxChips = Math.Max(pChips, dChips);
+                gameHistory.AddToInformationSetAndLog(pChips, (byte) MyGameDecisions.DChips, (byte) MyGamePlayers.Plaintiff, gameProgress);
+                gameHistory.AddToInformationSetAndLog(dChips, (byte)MyGameDecisions.DChips, (byte)MyGamePlayers.Plaintiff, gameProgress);
+                gameHistory.AddToInformationSetAndLog(pChips, (byte)MyGameDecisions.DChips, (byte)MyGamePlayers.Defendant, gameProgress);
+                gameHistory.AddToInformationSetAndLog(dChips, (byte)MyGameDecisions.DChips, (byte)MyGamePlayers.Defendant, gameProgress);
+                gameHistory.AddToInformationSetAndLog(pChips, (byte)MyGameDecisions.DChips, (byte)MyGamePlayers.Resolution, gameProgress);
+                gameHistory.AddToInformationSetAndLog(dChips, (byte)MyGameDecisions.DChips, (byte)MyGamePlayers.Resolution, gameProgress);
+                gameHistory.IncrementItemAtCacheIndex(GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, 2);
+                gameHistory.IncrementItemAtCacheIndex(GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, 2);
+                gameHistory.IncrementItemAtCacheIndex(GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, 2);
+            }
             else if (decisionByteCode == (byte)MyGameDecisions.PreBargainingRound)
             {
                 // Clean up previous round after the bargaining round:
@@ -613,7 +667,7 @@ namespace ACESim
                 gameHistory.AddToInformationSetAndLog(bargainingRound, currentDecisionIndex, (byte)MyGamePlayers.Plaintiff, gameProgress);
                 gameHistory.AddToInformationSetAndLog(bargainingRound, currentDecisionIndex, (byte)MyGamePlayers.Defendant, gameProgress);
 
-                byte numPlaintiffItems = 1, numDefendantItems = 1;
+                byte numPlaintiffItems = 1, numDefendantItems = 1, numResolutionItems = 1;
                 if (Options.BargainingRoundRecall == MyGameBargainingRoundRecall.RememberOnlyLastBargainingRound)
                 { // add back in opponent's last offer, if applicable, and increment the cache index
                     byte lastPOffer = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_POffer);
@@ -629,11 +683,34 @@ namespace ACESim
                         numPlaintiffItems++;
                     }
                 }
+                if (Options.MyGameRunningSideBets != null)
+                { // Add the total number of chips bet so far to each player's information sets.
+                    byte totalChipsSoFar = 0;
+                    if (bargainingRound > 1)
+                    {
+                        byte pChipsLastRound = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PChips);
+                        byte dChipsLastRound = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_DChips);
+                        byte chipsLastRound = Math.Max(pChipsLastRound, dChipsLastRound);
+                        totalChipsSoFar = chipsLastRound;
+                        if (bargainingRound > 2)
+                        {
+                            byte chipsFromBeforeLastRound = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_TotalChipsSoFar); // chips from before last round exist only if we're in the third round or later
+                            totalChipsSoFar += chipsFromBeforeLastRound;
+                        }
+                    }
+                    gameHistory.SetCacheItemAtIndex(GameHistoryCacheIndex_TotalChipsSoFar, totalChipsSoFar); // so, at round n, this shows total chips from round n - 1
+                    gameHistory.AddToInformationSetAndLog(totalChipsSoFar, currentDecisionIndex, (byte) MyGamePlayers.Plaintiff, gameProgress);
+                    gameHistory.AddToInformationSetAndLog(totalChipsSoFar, currentDecisionIndex, (byte)MyGamePlayers.Defendant, gameProgress);
+                    gameHistory.AddToInformationSetAndLog(totalChipsSoFar, currentDecisionIndex, (byte)MyGamePlayers.Resolution, gameProgress);
+                    numPlaintiffItems++;
+                    numDefendantItems++;
+                    numResolutionItems++;
+                }
 
                 // Reset the cache indices to reflect how many items we have placed for this bargaining round
-                gameHistory.SetCacheItemAtIndex(GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, (byte)1);
-                gameHistory.SetCacheItemAtIndex(GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, (byte)numPlaintiffItems);
-                gameHistory.SetCacheItemAtIndex(GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, (byte)numDefendantItems);
+                gameHistory.SetCacheItemAtIndex(GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, numResolutionItems);
+                gameHistory.SetCacheItemAtIndex(GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, numPlaintiffItems);
+                gameHistory.SetCacheItemAtIndex(GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, numDefendantItems);
 
             }
         }

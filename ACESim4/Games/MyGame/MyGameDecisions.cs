@@ -23,6 +23,8 @@ namespace ACESim
         DOffer,
         PResponse, // 1 = yes, 2 = no
         DResponse,
+        PChips, // how many extra chips to bet (simultaneous with defendant; maximum controls)
+        DChips,
         PAbandon, // 1 = yes, 2 = no
         DDefault, // 1 = yes, 2 = no
         MutualGiveUp, // 1 = plaintiff gives up (defendant wins), 2 = defendant gives up (plaintiff wins)
