@@ -27,7 +27,7 @@ namespace ACESim
         bool ShouldEstimateImprovementOverTime = false;
         const int NumRandomGamePlaysForEstimatingImprovement = 1000;
 
-        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedBothMethods;
+        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
         bool AllowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => (AllowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)) && EvolutionSettings.Algorithm != GameApproximationAlgorithm.PureStrategyFinder;
 
@@ -166,9 +166,12 @@ namespace ACESim
             PrintSameGameResults();
         }
 
+        private static int DEBUG = 0;
+
         unsafe void ProcessInitializedGameProgress(GameProgress gameProgress)
         {
-            
+            DEBUG++;
+
             // First, add the utilities at the end of the tree for this path.
             byte* actions = stackalloc byte[GameFullHistory.MaxNumActions];
             gameProgress.GameFullHistory.GetActions(actions);
@@ -223,9 +226,19 @@ namespace ACESim
         {
             IGameState gameState;
             List<byte> actionsSoFar = historyPoint.GetActionsToHere(navigationSettings);
+            if (DEBUG == 96)
+            {
+                Br.eak.Add("X");
+            }
             (GameProgress progress, _) = GamePlayer.PlayPath(actionsSoFar, false);
             ProcessInitializedGameProgress(progress);
+            var DEBUG_P = progress.GameHistory.GetCurrentPlayerInformationString(0);
+            var DEBUG_D = progress.GameHistory.GetCurrentPlayerInformationString(1);
             NumInitializedGamePaths++; // Note: This may not be exact if we initialize the same game path twice (e.g., if we are playing in parallel)
+            if (DEBUG == 97)
+            {
+                var DEBUG2 = 341;
+            }
             gameState = historyPoint.GetGameStateForCurrentPlayer(navigationSettings);
             if (gameState == null)
                 throw new Exception("Internal error. Try using CachedBothMethods to try to identify where there is a problem with information sets.");

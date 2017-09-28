@@ -18,7 +18,7 @@ namespace ACESim.Util
     public delegate bool AllDelegate<T>(T input);
     public delegate bool AnyDelegate<T>(T input);
 
-    static class ListExtensions
+    public static class ListExtensions
     {
         public static int GetIndexOfDifference<T>(this List<T> x, List<T> y)
         {

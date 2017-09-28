@@ -61,8 +61,8 @@ namespace ACESim
 
         public static string EvolveMyGame()
         {
-            GameProgressLogger.LoggingOn = true; // DEBUG
-            GameProgressLogger.OutputLogMessages = true; // DEBUG
+            //GameProgressLogger.LoggingOn = true; 
+            //GameProgressLogger.OutputLogMessages = true; 
             bool single = false;
             if (single)
                 return EvolveMyGame_Single();

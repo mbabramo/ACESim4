@@ -13,8 +13,8 @@ namespace ACESim
     public unsafe struct InformationSetLog
     {
         // must also set similar values in GameHistory.
-        public const int MaxInformationSetLoggingLength = 900; // MUST equal MaxInformationSetLoggingLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLoggingLengthPerPartialPlayer * NumPartialPlayers. 
-        public const int MaxInformationSetLoggingLengthPerFullPlayer = 250;
+        public const int MaxInformationSetLoggingLength = 1050; // MUST equal MaxInformationSetLoggingLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLoggingLengthPerPartialPlayer * NumPartialPlayers. 
+        public const int MaxInformationSetLoggingLengthPerFullPlayer = 300;
         public const int MaxInformationSetLoggingLengthPerPartialPlayer = 30;
 
 
@@ -88,10 +88,6 @@ namespace ACESim
                 GameProgressLogger.Log($"Adding information {information} following decision {followingDecisionIndex} for Player number {playerIndex}");
                 string playerInformation = GetPlayerInformationAtPointString(playerIndex, null);
                 GameProgressLogger.Log($"Player {playerIndex} info: {playerInformation}");
-                if (followingDecisionIndex == 13)
-                {
-                    var DEBUG = 0;
-                }
             }
         }
 

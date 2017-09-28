@@ -44,8 +44,16 @@ namespace ACESim
             return AbramowiczProbe(ref historyPoint, randomProducer)[playerBeingOptimized];
         }
 
+        private static int DEBUGT = 0;
         public unsafe double[] AbramowiczProbe(ref HistoryPoint historyPoint, IRandomProducer randomProducer)
         {
+            DEBUGT++;
+            var DEBUGU = DEBUGT;
+            if (DEBUGU == 197)
+            {
+                var DEBUGV = 0;
+            }
+            var DEBUGP = historyPoint.HistoryToPoint.GetCurrentPlayerInformationString(0);
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             //if (TraceProbingCFR)
             //    TabbedText.WriteLine($"Probe optimizing player {playerBeingOptimized}");
@@ -64,6 +72,11 @@ namespace ACESim
             {
                 if (gameStateType == GameStateTypeEnum.Chance)
                     return AbramowiczProbe_ChanceNode(ref historyPoint, randomProducer, gameStateForCurrentPlayer);
+                if (DEBUGU == 196 || DEBUGU == 197)
+                {
+                    var DEBUGP2 = historyPoint.HistoryToPoint.GetCurrentPlayerInformationString(0);
+                    var DEBUGQ = 0;
+                }
                 if (gameStateType == GameStateTypeEnum.Tally)
                     return AbramowiczProbe_DecisionNode(ref historyPoint, randomProducer, gameStateForCurrentPlayer);
                 throw new NotImplementedException();

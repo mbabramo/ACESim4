@@ -32,6 +32,11 @@ namespace ACESim
         public byte[] PlayersToInform;
 
         /// <summary>
+        /// If any players are listed here, then they are informed only that the action has occurred.
+        /// </summary>
+        public byte[] PlayersToInformOfOccurrenceOnly;
+
+        /// <summary>
         /// If true, then players will be informed only after the next decision in the game. This is useful when two players "simultaneously" make decisions, i.e., the second player should not know of the first player's decision until after the second player makes a decision.
         /// </summary>
         public bool DeferNotificationOfPlayers;
@@ -248,7 +253,8 @@ namespace ACESim
                 subdivisionDecision.Subdividable_AggregateNumPossibleActions = NumPossibleActions;
                 subdivisionDecision.NumPossibleActions = Subdividable_NumOptionsPerBranch;
                 subdivisionDecision.Subdividable_IsSubdivision = true;
-                subdivisionDecision.PlayersToInform = PlayersToInform.ToArray(); // this will be applied only when simulating the last decision
+                subdivisionDecision.PlayersToInform = PlayersToInform?.ToArray(); // this will be applied only when simulating the last decision
+                subdivisionDecision.PlayersToInformOfOccurrenceOnly = PlayersToInformOfOccurrenceOnly?.ToArray();
                 if (i == 0)
                     subdivisionDecision.Subdividable_IsSubdivision_First = true;
                 else if (i == Subdividable_NumLevels - 1)

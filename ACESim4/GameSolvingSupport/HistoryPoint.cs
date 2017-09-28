@@ -111,7 +111,7 @@ namespace ACESim
                     {
                         if (gameStateFromGameTree == null)
                             return null; // the game tree hasn't been set yet, so no need to throw; just indicate this
-                        throw new Exception("Different value from two different approaches."); // NOTE: One possible cause of this error is that a player faces the same information set at two different points of the game. Each information set must lead to a unique decision. Thus, if a player makes two consecutive decisions with the same information set, you should add a dummy piece of information to the player's information set after the first decision to allow this to be distinguished. NOTE2: Another possible cause is that you may add to information set and log passing the decision byte code rather than the decision index.
+                        throw new Exception("Different value from two different approaches."); // NOTE: One possible cause of this error is that a player faces the same information set at two different points of the game. Each information set must lead to a unique decision. Thus, if a player makes two consecutive decisions with the same information set, you should add a dummy piece of information to the player's information set after the first decision to allow this to be distinguished. NOTE2: Another possible cause is that you may add to information set and log passing the decision byte code rather than the decision index. NOTE3: IT also could be that you define a decision as reversible when it is not.
                     }
                 }
                 GameState = gameStateFromGameTree;
@@ -330,7 +330,6 @@ namespace ACESim
             var playersStrategy = navigation.Strategies[informationSetHistory.PlayerIndex];
             bool isNecessarilyLast = false; // Not relevant now that we are storing final utilities decision.IsAlwaysPlayersLastDecision || informationSetHistory.IsTerminalAction;
             var informationSetHistoryCopy = informationSetHistory;
-            var DEBUG = Util.ListExtensions.GetPointerAsList_255Terminated(informationSetHistoryCopy.InformationSetForPlayer);
             NWayTreeStorage<IGameState> informationSetNode = playersStrategy.SetInformationSetTreeValueIfNotSet(
                         informationSetHistoryCopy.DecisionIndex, // this will be a choice at the root level of the information set
                         informationSetHistoryCopy.InformationSetForPlayer,

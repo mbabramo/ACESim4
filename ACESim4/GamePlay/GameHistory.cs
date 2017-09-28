@@ -22,7 +22,9 @@ namespace ACESim
 
         public const byte InformationSetTerminator = 255;
         public const byte StartDetourMarker = 252; // when starting a subdivision detour, we need to put in a marker to delineate the subdivision action from subsequent actions by same player. Note that this will precede the second subdivision decision
-        public const byte EndDetourMarker = 253; // when ending a subdivision detour, we need to put in a marker to delineate the subdivision action from other player's 
+        public const byte EndDetourMarker = 253; // when ending a subdivision detour, we need to put in a marker to delineate the subdivision action from other player's
+        public const byte 
+            DecisionHasOccurred = 251; // if reporting only that the decision has occurred, we do that here.
 
         public bool Complete;
         public fixed byte ActionsHistory[GameFullHistory.MaxHistoryLength];
@@ -35,8 +37,8 @@ namespace ACESim
 
         // Must also change values in InformationSetLog.
         public fixed byte InformationSets[MaxInformationSetLength];
-        public const int MaxInformationSetLength = 90; // MUST equal MaxInformationSetLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLengthPerPartialPlayer * NumPartialPlayers. 
-        public const int MaxInformationSetLengthPerFullPlayer = 25;
+        public const int MaxInformationSetLength = 105; // MUST equal MaxInformationSetLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLengthPerPartialPlayer * NumPartialPlayers. 
+        public const int MaxInformationSetLengthPerFullPlayer = 30;
         public const int MaxInformationSetLengthPerPartialPlayer = 3;
         public const int NumFullPlayers = 3; // includes main players and resolution player and any chance players that need full size information set
         public const int MaxNumPlayers = 8; // includes chance players that need a very limited information set
@@ -187,29 +189,17 @@ namespace ACESim
 
         #region History
 
-        private static int DEBUGX = 0;
-
-        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, byte[] playersToInform, byte[] cacheIndicesToIncrement, byte? storeActionInCacheIndex, GameProgress gameProgress, bool skipAddToHistory, bool deferNotification, bool delayPreviousDeferredNotification)
+        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, byte[] playersToInform, byte[] playersToInformOfOccurrenceOnly, byte[] cacheIndicesToIncrement, byte? storeActionInCacheIndex, GameProgress gameProgress, bool skipAddToHistory, bool deferNotification, bool delayPreviousDeferredNotification)
         {
-            Debug.WriteLine($"Add to history {decisionByteCode} for player {playerIndex} action {action} of {numPossibleActions}"); // DEBUG
-            if (decisionByteCode == 15 || decisionByteCode == 16 || decisionByteCode == 17 || decisionIndex == 13)
-            {
-                var DEBUG_PInfo1 = GetCurrentPlayerInformationString(0);
-                var DEBUG_DInfo1 = GetCurrentPlayerInformationString(1);
-                if (gameProgress != null)
-                { // DEBUG
-                    var DEBUG21 = gameProgress.GameFullHistory.GetInformationSetHistoryItems(gameProgress).ToList();
-                }
-                var DEBUG = 0;
-                DEBUGX++;
-            }
+            // Debug.WriteLine($"Add to history {decisionByteCode} for player {playerIndex} action {action} of {numPossibleActions}");
             if (!skipAddToHistory)
                 AddToSimpleActionsList(action);
-            gameProgress?.GameFullHistory.AddToHistory(decisionByteCode, decisionIndex, playerIndex, action, numPossibleActions, playersToInform, skipAddToHistory, cacheIndicesToIncrement, storeActionInCacheIndex, deferNotification, gameProgress);
-            if (gameProgress != null)
-            { // DEBUG
-                var DEBUG2 = gameProgress.GameFullHistory.GetInformationSetHistoryItems(gameProgress).ToList();
+
+            if (Br.eak.Contains("X") && playersToInformOfOccurrenceOnly != null)
+            {
+                Br.eak.Add("Y");
             }
+            gameProgress?.GameFullHistory.AddToHistory(decisionByteCode, decisionIndex, playerIndex, action, numPossibleActions, skipAddToHistory);
             LastDecisionIndexAdded = decisionIndex;
             if (!delayPreviousDeferredNotification)
             {
@@ -225,6 +215,18 @@ namespace ACESim
             }
             else if (playersToInform != null && playersToInform.Length > 0)
                 AddToInformationSetAndLog(action, decisionIndex, playerIndex, playersToInform, gameProgress);
+            if (playersToInformOfOccurrenceOnly != null && playersToInformOfOccurrenceOnly.Length > 0)
+                AddToInformationSetAndLog(DecisionHasOccurred, decisionIndex, playerIndex, playersToInformOfOccurrenceOnly, gameProgress);
+            if (Br.eak.Contains("Y") && gameProgress != null && playerIndex == 0)
+            {
+                var DEBUG7 = gameProgress.GameFullHistory.GetInformationSetHistoryItems(gameProgress).ToList();
+                var DEBUG6 = 0;
+            }
+            var DEBUG_P = gameProgress?.GameHistory.GetCurrentPlayerInformationString(0) ?? "";
+            if (DEBUG_P.Contains("7,2,1,2,1,2,1,2"))
+            {
+                var DEBUGX = 0;
+            }
             if (cacheIndicesToIncrement != null && cacheIndicesToIncrement.Length > 0)
                 foreach (byte cacheIndex in cacheIndicesToIncrement)
                     IncrementItemAtCacheIndex(cacheIndex);
