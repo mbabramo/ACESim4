@@ -106,6 +106,8 @@ namespace ACESim
                     MyDefinition.Options.MyGameRunningSideBets.SaveRunningSideBets(MyDefinition, MyProgress, action);
                     break;
                 case (byte)MyGameDecisions.PAbandon:
+                    var DEBUG_PInfo1 = MyProgress.GameHistory.GetCurrentPlayerInformationString(0);
+                    var DEBUG_DInfo1 = MyProgress.GameHistory.GetCurrentPlayerInformationString(1);
                     MyProgress.PReadyToAbandon = action == 1;
                     break;
                 case (byte)MyGameDecisions.DDefault:

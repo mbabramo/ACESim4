@@ -13,8 +13,8 @@ namespace ACESim
     public unsafe struct InformationSetLog
     {
         // must also set similar values in GameHistory.
-        public const int MaxInformationSetLoggingLength = 750; // MUST equal MaxInformationSetLoggingLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLoggingLengthPerPartialPlayer * NumPartialPlayers. 
-        public const int MaxInformationSetLoggingLengthPerFullPlayer = 200;
+        public const int MaxInformationSetLoggingLength = 900; // MUST equal MaxInformationSetLoggingLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLoggingLengthPerPartialPlayer * NumPartialPlayers. 
+        public const int MaxInformationSetLoggingLengthPerFullPlayer = 250;
         public const int MaxInformationSetLoggingLengthPerPartialPlayer = 30;
 
 
@@ -69,7 +69,6 @@ namespace ACESim
                 throw new NotImplementedException();
             fixed (byte* informationSetsLogPtr = InformationSetLogs)
             {
-                // Console.WriteLine($"Adding information {information} following decision {followingDecisionIndex} for Player number {playerIndex}"); 
                 byte* playerPointer = informationSetsLogPtr + InformationSetLoggingIndex(playerIndex);
                 byte* nextPlayerPointer = playerPointer + MaxInformationSetLoggingLengthForPlayer(playerIndex);
                 // advance to the end of the information set
@@ -83,6 +82,16 @@ namespace ACESim
                 *playerPointer = InformationSetTerminator; // terminator
                 if (playerPointer >= nextPlayerPointer)
                     throw new Exception("Internal error. Must increase size of information set.");
+            }
+            if (GameProgressLogger.LoggingOn)
+            {
+                GameProgressLogger.Log($"Adding information {information} following decision {followingDecisionIndex} for Player number {playerIndex}");
+                string playerInformation = GetPlayerInformationAtPointString(playerIndex, null);
+                GameProgressLogger.Log($"Player {playerIndex} info: {playerInformation}");
+                if (followingDecisionIndex == 13)
+                {
+                    var DEBUG = 0;
+                }
             }
         }
 

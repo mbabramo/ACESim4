@@ -32,7 +32,7 @@ namespace ACESim
             EvolutionSettings evolutionSettings = new EvolutionSettings()
             {
                 MaxParallelDepth = 1, // we're parallelizing on the iteration level, so there is no need for further parallelization
-                ParallelOptimization = true,
+                ParallelOptimization = false,
 
                 InitialRandomSeed = 100,
 
@@ -61,6 +61,8 @@ namespace ACESim
 
         public static string EvolveMyGame()
         {
+            GameProgressLogger.LoggingOn = true; // DEBUG
+            GameProgressLogger.OutputLogMessages = true; // DEBUG
             bool single = false;
             if (single)
                 return EvolveMyGame_Single();
@@ -117,39 +119,58 @@ namespace ACESim
 
         private static string ApplyDifferentRegimes(MyGameOptions options, string description)
         {
-            string amRuleReport = "", brRuleReport = "", brPlusReport ="", sideBetReport = "", sideBetLargeReport = "";
+            List<string> reports = new List<string>();
+            string report = null;
+
+            options.LoserPays = false;
+            options.MyGameRunningSideBets = new MyGameRunningSideBets()
+            {
+                MaxChipsPerRound = 2,
+                ValueOfChip = 50000
+            };
+            report = PerformEvolution(options, description + " RunSide", true);
+            Debug.WriteLine(report);
+            reports.Add(report);
+
             options.LoserPays = true;
             options.LoserPaysMultiple = 1.0;
             options.LoserPaysAfterAbandonment = true;
             options.IncludeAgreementToBargainDecisions = true;
             options.MyGamePretrialDecisionGeneratorGenerator = null;
-            brRuleReport = PerformEvolution(options, description + " British", false);
-            Debug.WriteLine(brRuleReport);
+            report = PerformEvolution(options, description + " British", false);
+            Debug.WriteLine(report);
+            reports.Add(report);
 
             options.LoserPays = true;
             options.LoserPaysMultiple = 10.0;
             options.LoserPaysAfterAbandonment = true;
             options.IncludeAgreementToBargainDecisions = true;
             options.MyGamePretrialDecisionGeneratorGenerator = null;
-            brPlusReport = PerformEvolution(options, description + " BrPlus", false);
-            Debug.WriteLine(brPlusReport);
+            report = PerformEvolution(options, description + " BrPlus", false);
+            Debug.WriteLine(report);
+            reports.Add(report);
 
             options.LoserPays = false;
             options.MyGamePretrialDecisionGeneratorGenerator = null;
-            amRuleReport = PerformEvolution(options, description + " American", true);
-            Debug.WriteLine(amRuleReport);
+            report = PerformEvolution(options, description + " American", true);
+            Debug.WriteLine(report);
+            reports.Add(report);
 
             options.LoserPays = false;
             options.MyGamePretrialDecisionGeneratorGenerator = new MyGameSideBet() {DamagesMultipleForChallengedToPay = 1.0, DamagesMultipleForChallengerToPay = 1.0};
-            sideBetReport = PerformEvolution(options, description + " SideBet", true);
-            Debug.WriteLine(sideBetReport);
+            report = PerformEvolution(options, description + " SideBet", true);
+            Debug.WriteLine(report);
+            reports.Add(report);
 
             options.LoserPays = false;
             options.MyGamePretrialDecisionGeneratorGenerator = new MyGameSideBet() { DamagesMultipleForChallengedToPay = 5.0, DamagesMultipleForChallengerToPay = 5.0 };
-            sideBetLargeReport = PerformEvolution(options, description + " SideLarge", true);
-            Debug.WriteLine(sideBetLargeReport);
+            report = PerformEvolution(options, description + " SideLarge", true);
+            Debug.WriteLine(report);
+            reports.Add(report);
 
-            string combined = amRuleReport + brRuleReport + brPlusReport + sideBetReport + sideBetLargeReport;
+            string combined = "";
+            foreach (string anotherReport in reports)
+                combined += anotherReport;
             return combined;
         }
 
@@ -160,6 +181,8 @@ namespace ACESim
                     throw new Exception("Can include multiple reports only with 1 repetition. Use console output rather than string copied."); // problem is that we can't merge the reports if NumRepetitions > 1 when we have more than one report. TODO: Fix this. 
             MyGameDefinition gameDefinition = new MyGameDefinition();
             gameDefinition.Setup(options);
+            if (GameProgressLogger.LoggingOn)
+                gameDefinition.PrintOutOrderingInformation();
             List<Strategy> starterStrategies = Strategy.GetStarterStrategies(gameDefinition);
             var evolutionSettings = GetEvolutionSettings();
             NWayTreeStorageRoot<IGameState>.EnableUseDictionary = false; // evolutionSettings.ParallelOptimization == false; // this is based on some limited performance testing; with parallelism, this seems to slow us down. Maybe it's not worth using. It might just be because of the lock.

@@ -45,6 +45,8 @@ namespace ACESim
                 ConfirmAdjustedIndexWithLock(adjustedIndex);
             else
                 ConfirmAdjustedIndex(adjustedIndex);
+            if (adjustedIndex == -1)
+                throw new NotImplementedException(); // ACESim note: might you have defined a decision where 0 is considered a valid action? don't do that -- always start numbering at 1
             return Branches[adjustedIndex];
         }
 

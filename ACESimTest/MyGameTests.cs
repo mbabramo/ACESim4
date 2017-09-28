@@ -11,43 +11,6 @@ namespace ACESimTest
     [TestClass]
     public class MyGameTests
     {
-        private int CaseNumber = 0;
-
-        private static void GetInformationSetStrings(MyGameProgress myGameProgress, out string pInformationSet,
-            out string dInformationSet, out string resolutionSet)
-        {
-            pInformationSet = myGameProgress.InformationSetLog.GetPlayerInformationAtPointString((byte)MyGamePlayers.Plaintiff, null);
-            dInformationSet = myGameProgress.InformationSetLog.GetPlayerInformationAtPointString((byte)MyGamePlayers.Defendant, null);
-            resolutionSet = myGameProgress.InformationSetLog.GetPlayerInformationAtPointString((byte)MyGamePlayers.Resolution, null);
-            string pInformationSet2 = myGameProgress.GameHistory.GetCurrentPlayerInformationString((byte)MyGamePlayers.Plaintiff);
-            string dInformationSet2 = myGameProgress.GameHistory.GetCurrentPlayerInformationString((byte)MyGamePlayers.Defendant);
-            string resolutionSet2 = myGameProgress.GameHistory.GetCurrentPlayerInformationString((byte)MyGamePlayers.Resolution);
-            pInformationSet.Should().Be(pInformationSet2);
-            dInformationSet.Should().Be(dInformationSet2);
-            resolutionSet.Should().Be(resolutionSet2);
-
-        }
-
-        private const double PartyNoise = 0.2, InitialWealth = 1_000_000, DamagesAlleged = 100_000, CostsMultiplier = 1.1, PFileCost = 3000, DAnswerCost = 2000, PTrialCosts = 4000, DTrialCosts = 6000, PerRoundBargainingCost = 1000, RegretAversion = 0.25, LoserPaysMultiple = 1.5, ValueOfChip = 8000;
-        private const byte MaxChipsPerRound = 3;
-        public double DamagesMultipleForChallengedToPay = 0.75;
-        public double DamagesMultipleForChallengerToPay = 1.25;
-        private const byte NumLitigationQualityPoints = 8;
-        private const byte NumSignals = 10;
-        private const byte NumNoiseValues = 10; // must equal NumSignals in some situations
-        private const byte NumOffers = 16;
-        private const byte NumCourtNoiseValues = 11;
-        public const byte ValueWhenCaseSettles = 4;
-        private const byte LitigationQuality = 3;
-        private const byte PSignalOrNoise = 5, DSignalOrNoise = 1;
-
-
-        public enum LoserPaysPolicy
-        {
-            NoLoserPays,
-            AfterTrialOnly,
-            EvenAfterAbandonOrDefault,
-        }
         public enum HowToSimulateBargainingFailure
         {
             PRefusesToBargain,
@@ -55,6 +18,21 @@ namespace ACESimTest
             BothRefuseToBargain,
             BothAgreeToBargain,
             BothHaveNoChoiceAndMustBargain // i.e., we don't have the decisions representing agreement to bargain
+        }
+
+
+        public enum LoserPaysPolicy
+        {
+            NoLoserPays,
+            AfterTrialOnly,
+            EvenAfterAbandonOrDefault
+        }
+
+        public enum RunningSideBetChallenges
+        {
+            None,
+            PChallenges2D1,
+            DChallenges2P1
         }
 
         public enum SideBetChallenges
@@ -67,16 +45,37 @@ namespace ACESimTest
             Irrelevant // i.e., we're not getting to trial, so doesn't matter now
         }
 
-        public enum RunningSideBetChallenges
+        private const double PartyNoise = 0.2, InitialWealth = 1_000_000, DamagesAlleged = 100_000, CostsMultiplier = 1.1, PFileCost = 3000, DAnswerCost = 2000, PTrialCosts = 4000, DTrialCosts = 6000, PerRoundBargainingCost = 1000, RegretAversion = 0.25, LoserPaysMultiple = 1.5, ValueOfChip = 8000;
+        private const byte MaxChipsPerRound = 3;
+        private const byte NumLitigationQualityPoints = 8;
+        private const byte NumSignals = 10;
+        private const byte NumNoiseValues = 10; // must equal NumSignals in some situations
+        private const byte NumOffers = 16;
+        private const byte NumCourtNoiseValues = 11;
+        public const byte ValueWhenCaseSettles = 4;
+        private const byte LitigationQuality = 3;
+        private const byte PSignalOrNoise = 5, DSignalOrNoise = 1;
+        private int CaseNumber;
+        public double DamagesMultipleForChallengedToPay = 0.75;
+        public double DamagesMultipleForChallengerToPay = 1.25;
+
+        private static void GetInformationSetStrings(MyGameProgress myGameProgress, out string pInformationSet,
+            out string dInformationSet, out string resolutionSet)
         {
-            None,
-            PChallenges2D1,
-            DChallenges2P1,
+            pInformationSet = myGameProgress.InformationSetLog.GetPlayerInformationAtPointString((byte) MyGamePlayers.Plaintiff, null);
+            dInformationSet = myGameProgress.InformationSetLog.GetPlayerInformationAtPointString((byte) MyGamePlayers.Defendant, null);
+            resolutionSet = myGameProgress.InformationSetLog.GetPlayerInformationAtPointString((byte) MyGamePlayers.Resolution, null);
+            string pInformationSet2 = myGameProgress.GameHistory.GetCurrentPlayerInformationString((byte) MyGamePlayers.Plaintiff);
+            string dInformationSet2 = myGameProgress.GameHistory.GetCurrentPlayerInformationString((byte) MyGamePlayers.Defendant);
+            string resolutionSet2 = myGameProgress.GameHistory.GetCurrentPlayerInformationString((byte) MyGamePlayers.Resolution);
+            pInformationSet.Should().Be(pInformationSet2);
+            dInformationSet.Should().Be(dInformationSet2);
+            resolutionSet.Should().Be(resolutionSet2);
         }
 
         private MyGameOptions GetGameOptions(bool allowAbandonAndDefaults, byte numBargainingRounds, bool subdivideOffers, MyGameBargainingRoundRecall bargainingRoundRecall, bool simultaneousBargainingRounds, LoserPaysPolicy loserPaysPolicy, HowToSimulateBargainingFailure simulatingBargainingFailure, SideBetChallenges sideBetChallenges, RunningSideBetChallenges runningSideBetChallenges)
         {
-            var options = new MyGameOptions()
+            var options = new MyGameOptions
             {
                 PInitialWealth = InitialWealth,
                 DInitialWealth = InitialWealth,
@@ -86,11 +85,11 @@ namespace ACESimTest
                 NumOffers = NumOffers,
                 NumCourtNoiseValues = NumCourtNoiseValues,
                 NumNoiseValues = NumNoiseValues,
-                MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
+                MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator
                 {
                     ProbabilityTrulyLiable_LitigationQuality75 = 0.75,
                     ProbabilityTrulyLiable_LitigationQuality90 = 0.90,
-                    NumPointsToDetermineTrulyLiable = 100,
+                    NumPointsToDetermineTrulyLiable = 100
                 },
                 PNoiseStdev = PartyNoise,
                 DNoiseStdev = PartyNoise,
@@ -101,14 +100,14 @@ namespace ACESimTest
                 PTrialCosts = PTrialCosts,
                 DTrialCosts = DTrialCosts,
                 RegretAversion = RegretAversion,
-                MyGamePretrialDecisionGeneratorGenerator = sideBetChallenges == SideBetChallenges.NoChallengesAllowed ? null : new MyGameSideBet() { DamagesMultipleForChallengedToPay = DamagesMultipleForChallengedToPay, DamagesMultipleForChallengerToPay = DamagesMultipleForChallengerToPay},
-                MyGameRunningSideBets = runningSideBetChallenges == RunningSideBetChallenges.None ? null : new MyGameRunningSideBets() { MaxChipsPerRound = MaxChipsPerRound, ValueOfChip = ValueOfChip },
+                MyGamePretrialDecisionGeneratorGenerator = sideBetChallenges == SideBetChallenges.NoChallengesAllowed ? null : new MyGameSideBet {DamagesMultipleForChallengedToPay = DamagesMultipleForChallengedToPay, DamagesMultipleForChallengerToPay = DamagesMultipleForChallengerToPay},
+                MyGameRunningSideBets = runningSideBetChallenges == RunningSideBetChallenges.None ? null : new MyGameRunningSideBets {MaxChipsPerRound = MaxChipsPerRound, ValueOfChip = ValueOfChip},
                 LoserPays = loserPaysPolicy != LoserPaysPolicy.NoLoserPays,
                 LoserPaysMultiple = LoserPaysMultiple,
                 LoserPaysAfterAbandonment = loserPaysPolicy == LoserPaysPolicy.EvenAfterAbandonOrDefault,
                 PerPartyCostsLeadingUpToBargainingRound = PerRoundBargainingCost,
                 AllowAbandonAndDefaults = allowAbandonAndDefaults,
-                DeltaOffersOptions = new DeltaOffersOptions()
+                DeltaOffersOptions = new DeltaOffersOptions
                 {
                     SubsequentOffersAreDeltas = false,
                     DeltaStartingValue = 0.01,
@@ -119,11 +118,11 @@ namespace ACESimTest
                 BargainingRoundRecall = bargainingRoundRecall,
                 SubdivideOffers = subdivideOffers,
                 BargainingRoundsSimultaneous = simultaneousBargainingRounds,
-                PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false, true, false, true, false },
+                PGoesFirstIfNotSimultaneous = new List<bool> {true, false, true, false, true, false, true, false},
                 IncludeSignalsReport = true
             };
-            options.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.PInitialWealth };
-            options.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.DInitialWealth };
+            options.PUtilityCalculator = new RiskNeutralUtilityCalculator {InitialWealth = options.PInitialWealth};
+            options.DUtilityCalculator = new RiskNeutralUtilityCalculator {InitialWealth = options.DInitialWealth};
             return options;
         }
 
@@ -135,7 +134,7 @@ namespace ACESimTest
 
         private string ConstructExpectedResolutionSet(byte litigationQuality, bool pFiles, bool dAnswers, HowToSimulateBargainingFailure simulatingBargainingFailure, List<(byte? pMove, byte? dMove)> bargainingRounds, bool simultaneousBargainingRounds, bool settlementReachedLastRound, bool allowAbandonAndDefault, bool pReadyToAbandonLastRound, bool dReadyToDefaultLastRound, bool ifBothDefaultPlaintiffLoses, bool caseGoesToTrial, byte courtResultAtTrial, SideBetChallenges sideBetChallenges, RunningSideBetChallenges runningSideBetChallenges)
         {
-            List<byte> l = new List<byte> {litigationQuality};
+            var l = new List<byte> {litigationQuality};
             if (pFiles)
             {
                 l.Add(1);
@@ -152,7 +151,7 @@ namespace ACESimTest
                         {
                             l.Add(bargainingRound);
                             if (runningSideBetChallenges != RunningSideBetChallenges.None)
-                                l.Add((byte) (2 * (numBargainingRoundsCompleted - 1))); // number of chips bet in previous rounds, i.e. higher bet in each of those rounds, which we are setting to 2
+                                l.Add((byte) (1 + 2 * (numBargainingRoundsCompleted - 1))); // number of chips bet in previous rounds, i.e. higher bet in each of those rounds, which we are setting to 2, plus 1 (since we have no 0 zction)
                             bool pAgreesToBargain = moveSet.pMove != null;
                             bool dAgreesToBargain = moveSet.dMove != null;
                             if (simulatingBargainingFailure != HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain)
@@ -162,7 +161,7 @@ namespace ACESimTest
                             }
                             if (pAgreesToBargain && dAgreesToBargain)
                             {
-                                bool pMovesFirst = (bargainingRound % 2 == 1) || simultaneousBargainingRounds;
+                                bool pMovesFirst = bargainingRound % 2 == 1 || simultaneousBargainingRounds;
                                 if (pMovesFirst)
                                 {
                                     l.Add((byte) moveSet.pMove);
@@ -174,10 +173,12 @@ namespace ACESimTest
                                     l.Add((byte) moveSet.pMove);
                                 }
                             }
-                            if (runningSideBetChallenges != RunningSideBetChallenges.None)
+                            bool caseHasSettled = settlementReachedLastRound && bargainingRound == numBargainingRoundsCompleted;
+                            if (runningSideBetChallenges != RunningSideBetChallenges.None && !caseHasSettled)
                             {
-                                byte pAction = runningSideBetChallenges == RunningSideBetChallenges.PChallenges2D1 ? (byte) 2 : (byte) 1;
-                                byte dAction = runningSideBetChallenges == RunningSideBetChallenges.DChallenges2P1 ? (byte)2 : (byte)1;
+                                // note that action is 1 more than number of chips bet
+                                byte pAction = runningSideBetChallenges == RunningSideBetChallenges.PChallenges2D1 ? (byte) 3 : (byte) 2;
+                                byte dAction = runningSideBetChallenges == RunningSideBetChallenges.DChallenges2P1 ? (byte) 3 : (byte) 2;
                                 l.Add(pAction);
                                 l.Add(dAction);
                             }
@@ -223,11 +224,15 @@ namespace ACESimTest
                     }
                 }
                 else
+                {
                     l.Add(2); // d doesn't answer
+                }
             }
             else
+            {
                 l.Add(2); // p doesn't file
-            return String.Join(",", l);
+            }
+            return string.Join(",", l);
         }
 
         private List<(byte? pMove, byte? dMove)> GetBargainingRoundMoves(bool simultaneousBargaining, byte numRoundsToInclude, bool settlementInLastRound, HowToSimulateBargainingFailure simulatingBargainingFailure, out List<(byte offerMove, byte bargainingRoundNumber, bool isOfferToP)> offers)
@@ -235,30 +240,33 @@ namespace ACESimTest
             offers = new List<(byte offerMove, byte bargainingRoundNumber, bool isOfferToP)>(); // we are also going to track offers; note that not every move is an offer
             bool ifNotSettlingPRefusesToBargain = simulatingBargainingFailure == HowToSimulateBargainingFailure.PRefusesToBargain || simulatingBargainingFailure == HowToSimulateBargainingFailure.BothRefuseToBargain;
             bool ifNotSettlingDRefusesToBargain = simulatingBargainingFailure == HowToSimulateBargainingFailure.DRefusesToBargain || simulatingBargainingFailure == HowToSimulateBargainingFailure.BothRefuseToBargain;
-            List<(byte? pMove, byte? dMove)> moves = new List<(byte? pMove, byte? dMove)>();
+            var moves = new List<(byte? pMove, byte? dMove)>();
             for (byte b = 1; b <= numRoundsToInclude; b++)
             {
                 bool settlingThisRound = settlementInLastRound && b == numRoundsToInclude;
                 if (!settlingThisRound && (ifNotSettlingPRefusesToBargain || ifNotSettlingDRefusesToBargain))
                 {
                     // Note that if one player refuses to bargain, then the other party's move will be ignored -- hence, the use of the dummy 255 here
-                    moves.Add((ifNotSettlingPRefusesToBargain ? (byte?) null : (byte?) 255, ifNotSettlingDRefusesToBargain ? (byte?) null : (byte?)255));
+                    moves.Add((ifNotSettlingPRefusesToBargain ? (byte?) null : (byte?) 255, ifNotSettlingDRefusesToBargain ? (byte?) null : (byte?) 255));
                 }
                 else
                 {
                     if (simultaneousBargaining)
                     {
                         if (settlingThisRound)
-                            moves.Add((ValueWhenCaseSettles, (byte) ValueWhenCaseSettles));
+                        {
+                            moves.Add((ValueWhenCaseSettles, ValueWhenCaseSettles));
+                        }
                         else
-                        { // we will have different ways of making settlement fail -- this will help us when testing regret aversion. The plaintiff may be regretful based on the generous offer from the defendant in bargaining round 2, and the defendant may be regretful based on the generous offer from the plaintiff in bargaining round 1.
+                        {
+                            // we will have different ways of making settlement fail -- this will help us when testing regret aversion. The plaintiff may be regretful based on the generous offer from the defendant in bargaining round 2, and the defendant may be regretful based on the generous offer from the plaintiff in bargaining round 1.
                             if (b == 1)
                                 moves.Add(((byte) (ValueWhenCaseSettles - 1), (byte) (ValueWhenCaseSettles - 2)));
                             else
-                                moves.Add(((byte)(ValueWhenCaseSettles + 2), (byte)(ValueWhenCaseSettles + 1)));
+                                moves.Add(((byte) (ValueWhenCaseSettles + 2), (byte) (ValueWhenCaseSettles + 1)));
                         }
                         offers.Add(((byte) moves.Last().pMove, b, false));
-                        offers.Add(((byte)moves.Last().dMove, b, true));
+                        offers.Add(((byte) moves.Last().dMove, b, true));
                     }
                     else
                     {
@@ -280,51 +288,57 @@ namespace ACESimTest
             List<(byte offerMove, byte bargainingRoundNumber, bool isOfferToP)> offers)
         {
             (double? bestRejectedOfferToP, double? bestRejectedOfferToD) bestOffers = (null, null);
-            foreach ((byte offerMove, byte bargainingRoundNumber, bool isOfferToP) offer in offers)
-            {
+            foreach (var offer in offers)
                 if (offer.isOfferToP)
                 {
                     double offerToP = EquallySpaced.GetLocationOfEquallySpacedPoint((byte) (offer.offerMove - 1), NumOffers, true);
                     double roundAdjustedOfferToP = InitialWealth + offerToP * DamagesAlleged - PFileCost * CostsMultiplier - offer.bargainingRoundNumber * PerRoundBargainingCost * CostsMultiplier;
                     if (bestOffers.bestRejectedOfferToP == null || roundAdjustedOfferToP > bestOffers.bestRejectedOfferToP)
-                        bestOffers.bestRejectedOfferToP =  roundAdjustedOfferToP;
+                        bestOffers.bestRejectedOfferToP = roundAdjustedOfferToP;
                 }
                 else
-                { 
-                    double offerToD = EquallySpaced.GetLocationOfEquallySpacedPoint((byte)(offer.offerMove - 1), NumOffers, true);
+                {
+                    double offerToD = EquallySpaced.GetLocationOfEquallySpacedPoint((byte) (offer.offerMove - 1), NumOffers, true);
                     double roundAdjustedOfferToD = InitialWealth - offerToD * DamagesAlleged - DAnswerCost * CostsMultiplier - offer.bargainingRoundNumber * PerRoundBargainingCost * CostsMultiplier; // note that this is negative, because it's the change in wealth for D
                     if (bestOffers.bestRejectedOfferToD == null || roundAdjustedOfferToD > bestOffers.bestRejectedOfferToD)
                         bestOffers.bestRejectedOfferToD = roundAdjustedOfferToD;
                 }
-            }
             return bestOffers;
         }
 
-        private (string pInformationSet, string dInformationSet) GetExpectedPartyInformationSets(byte litigationQuality, byte pNoise, byte dNoise, HowToSimulateBargainingFailure simulatingBargainingFailure, RunningSideBetChallenges runningSideBetChallenges, List<(byte? pMove, byte? dMove)> bargainingMoves, MyGameBargainingRoundRecall bargainingRoundRecall, bool simultaneousBargaining, bool subdivideOffers)
+        private (string pInformationSet, string dInformationSet) ConstructExpectedPartyInformationSets(byte litigationQuality, byte pNoise, byte dNoise, HowToSimulateBargainingFailure simulatingBargainingFailure, RunningSideBetChallenges runningSideBetChallenges, List<(byte? pMove, byte? dMove)> bargainingMoves, MyGameBargainingRoundRecall bargainingRoundRecall, bool simultaneousBargaining, bool subdivideOffers)
         {
             double litigationQualityUniform =
                 EquallySpaced.GetLocationOfEquallySpacedPoint(litigationQuality - 1, NumLitigationQualityPoints, false);
             MyGame.ConvertNoiseActionToDiscreteAndUniformSignal(pNoise, litigationQualityUniform, NumNoiseValues, PartyNoise, NumSignals, out byte pSignal, out _);
             MyGame.ConvertNoiseActionToDiscreteAndUniformSignal(dNoise, litigationQualityUniform, NumNoiseValues, PartyNoise, NumSignals, out byte dSignal, out _);
-            List<byte> pInfo = new List<byte>() { pSignal };
-            List<byte> dInfo = new List<byte>() { dSignal };
+            var pInfo = new List<byte> {pSignal};
+            var dInfo = new List<byte> {dSignal};
             int bargainingRoundCount = bargainingMoves.Count();
             bool resettingInfoEachBargainingRound = bargainingRoundRecall == MyGameBargainingRoundRecall.ForgetEarlierBargainingRounds || bargainingRoundRecall == MyGameBargainingRoundRecall.RememberOnlyLastBargainingRound;
             byte startingRound = resettingInfoEachBargainingRound ? (byte) bargainingRoundCount : (byte) 1;
             if (bargainingRoundCount != 0)
             {
                 byte? pLastOffer = null, dLastOffer = null;
-                // run through all bargaining rounds, but only add to pInfo and dInfo in startingRound and later. 
+                // run through all bargaining rounds, but only add offers to pInfo and dInfo in startingRound and later. 
+                var settled = false;
                 for (byte b = 1; b <= bargainingRoundCount; b++)
                 {
                     if (b >= startingRound)
                     {
                         pInfo.Add(b);
+                        dInfo.Add(b);
                         if (dLastOffer != null && bargainingRoundRecall == MyGameBargainingRoundRecall.RememberOnlyLastBargainingRound)
                             pInfo.Add((byte) dLastOffer);
-                        dInfo.Add(b);
                         if (pLastOffer != null && bargainingRoundRecall == MyGameBargainingRoundRecall.RememberOnlyLastBargainingRound)
-                            dInfo.Add((byte)pLastOffer);
+                            dInfo.Add((byte) pLastOffer);
+                        if (runningSideBetChallenges != RunningSideBetChallenges.None)
+                        {
+                            // add the total chips bet so far
+                            var chipsSoFar = (byte) (2 * (b - 1));
+                            pInfo.Add((byte) (chipsSoFar + 1));
+                            dInfo.Add((byte)(chipsSoFar + 1));
+                        }
                     }
                     (byte? pMove, byte? dMove) = bargainingMoves[b - 1];
                     if (simulatingBargainingFailure != HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain && b >= startingRound)
@@ -333,7 +347,6 @@ namespace ACESimTest
                         pInfo.Add(dMove == null ? (byte) 2 : (byte) 1);
                     }
                     if (pMove != null && dMove != null)
-                    {
                         if (simultaneousBargaining)
                         {
                             if (subdivideOffers && b >= startingRound)
@@ -349,6 +362,8 @@ namespace ACESimTest
                             }
                             pLastOffer = pMove;
                             dLastOffer = dMove;
+                            if (dMove >= pMove)
+                                settled = true;
                         }
                         else
                         {
@@ -361,6 +376,8 @@ namespace ACESimTest
                                     if (subdivideOffers)
                                         pInfo.Add(GameHistory.EndDetourMarker); // the first end detour marker comes to P after P's move.
                                     pInfo.Add((byte) dMove); // not a subdivision decision
+                                    if (dMove == 1)
+                                        settled = true;
                                 }
                                 pLastOffer = pMove;
                             }
@@ -373,22 +390,27 @@ namespace ACESimTest
                                     if (subdivideOffers)
                                         dInfo.Add(GameHistory.EndDetourMarker); // the first end detour marker comes to P after P's move.
                                     dInfo.Add((byte) pMove); // not a subdivision decision
+                                    if (pMove == 1)
+                                        settled = true;
                                 }
                                 dLastOffer = dMove;
                             }
                         }
-                    }
-                    if (runningSideBetChallenges != RunningSideBetChallenges.None)
+
+                    if (runningSideBetChallenges != RunningSideBetChallenges.None && b >= startingRound && !settled)
                     {
-                        byte pAction = runningSideBetChallenges == RunningSideBetChallenges.PChallenges2D1 ? (byte)2 : (byte)1;
-                        byte dAction = runningSideBetChallenges == RunningSideBetChallenges.DChallenges2P1 ? (byte)2 : (byte)1;
+                        // Note that the action is one more than the challenge number, since we use action 1 for a challenge of 0.
+                        byte pAction = runningSideBetChallenges == RunningSideBetChallenges.PChallenges2D1 ? (byte) 3 : (byte) 2;
+                        byte dAction = runningSideBetChallenges == RunningSideBetChallenges.DChallenges2P1 ? (byte) 3 : (byte) 2;
                         pInfo.Add(pAction);
+                        pInfo.Add(dAction);
+                        dInfo.Add(pAction);
                         dInfo.Add(dAction);
                     }
                 }
             }
 
-            return (String.Join(",", pInfo), String.Join(",", dInfo));
+            return (string.Join(",", pInfo), string.Join(",", dInfo));
         }
 
         private Func<Decision, GameProgress, byte> GetPlayerActions(bool pFiles, bool dAnswers, byte litigationQuality, byte pSignalOrNoise, byte dSignalOrNoise, HowToSimulateBargainingFailure simulatingBargainingFailure, SideBetChallenges sideBetChallenges, RunningSideBetChallenges runningSideBetChallenges, List<(byte? pMove, byte? dMove)> bargainingRoundMoves, bool simultaneousBargainingRounds, byte? pReadyToAbandonRound = null, byte? dReadyToDefaultRound = null, byte mutualGiveUpResult = 0, byte courtResult = 0)
@@ -402,10 +424,9 @@ namespace ACESimTest
                 if (simulatingBargainingFailure != HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain)
                 {
                     bargaining.Add(((byte) MyGameDecisions.PAgreeToBargain, b, pMove == null ? (byte) 2 : (byte) 1));
-                    bargaining.Add(((byte)MyGameDecisions.DAgreeToBargain, b, dMove == null ? (byte)2 : (byte)1));
+                    bargaining.Add(((byte) MyGameDecisions.DAgreeToBargain, b, dMove == null ? (byte) 2 : (byte) 1));
                 }
                 if (pMove != null && dMove != null)
-                {
                     if (simultaneousBargainingRounds)
                     {
                         bargaining.Add(((byte) MyGameDecisions.POffer, b, (byte) pMove));
@@ -424,12 +445,11 @@ namespace ACESimTest
                             bargaining.Add(((byte) MyGameDecisions.PResponse, b, (byte) pMove));
                         }
                     }
-                }
-                bargaining.Add(((byte)MyGameDecisions.PAbandon, b, pReadyToAbandonRound == b ? (byte)1 : (byte)2));
-                bargaining.Add(((byte)MyGameDecisions.DDefault, b, dReadyToDefaultRound == b ? (byte)1 : (byte)2));
+                bargaining.Add(((byte) MyGameDecisions.PAbandon, b, pReadyToAbandonRound == b ? (byte) 1 : (byte) 2));
+                bargaining.Add(((byte) MyGameDecisions.DDefault, b, dReadyToDefaultRound == b ? (byte) 1 : (byte) 2));
             }
             var actionsToPlay = DefineActions.ForTest(
-                new List<(byte decision, byte action)>()
+                new List<(byte decision, byte action)>
                 {
                     ((byte) MyGameDecisions.PostPrimaryActionChance, 17), // irrelevant -- just determines probability truly liable
                     ((byte) MyGameDecisions.PFile, pFiles ? (byte) 1 : (byte) 2),
@@ -437,18 +457,19 @@ namespace ACESimTest
                     ((byte) MyGameDecisions.LitigationQuality, litigationQuality),
                     ((byte) MyGameDecisions.PNoise, pSignalOrNoise),
                     ((byte) MyGameDecisions.DNoise, dSignalOrNoise),
-                    ((byte) MyGameDecisions.PreBargainingRound, (byte)1 /* only action -- dummy decision */),
+                    ((byte) MyGameDecisions.PreBargainingRound, (byte) 1 /* only action -- dummy decision */),
                     ((byte) MyGameDecisions.DNoise, dSignalOrNoise),
-                    ((byte)MyGameDecisions.MutualGiveUp, mutualGiveUpResult), // we'll only reach this if both try to give up, so it won't be called in multiple bargaining rounds
-                    ((byte)MyGameDecisions.PostBargainingRound, 1 /* only action */),
-                    ((byte)MyGameDecisions.PChips, runningSideBetChallenges == RunningSideBetChallenges.None ? (byte) 0 : (runningSideBetChallenges == RunningSideBetChallenges.DChallenges2P1 ? (byte) 1 : (byte) 2)),
-                    ((byte)MyGameDecisions.DChips, runningSideBetChallenges == RunningSideBetChallenges.None ? (byte) 0 : (runningSideBetChallenges == RunningSideBetChallenges.DChallenges2P1 ? (byte) 2 : (byte) 1)),
-                    ((byte)MyGameDecisions.PPretrialAction, sideBetChallenges == SideBetChallenges.PChallenges || sideBetChallenges == SideBetChallenges.BothChallenge ? (byte) 1 : (byte) 2),
-                    ((byte)MyGameDecisions.DPretrialAction, sideBetChallenges == SideBetChallenges.DChallenges || sideBetChallenges == SideBetChallenges.BothChallenge ? (byte) 1 : (byte) 2),
-                    ((byte) MyGameDecisions.CourtDecision, courtResult),
+                    ((byte) MyGameDecisions.MutualGiveUp, mutualGiveUpResult), // we'll only reach this if both try to give up, so it won't be called in multiple bargaining rounds
+                    ((byte) MyGameDecisions.PostBargainingRound, 1 /* only action */),
+                    // Notice that the chip actions are 1 more than the number of chips
+                    ((byte) MyGameDecisions.PChips, runningSideBetChallenges == RunningSideBetChallenges.None ? (byte) 0 : (runningSideBetChallenges == RunningSideBetChallenges.DChallenges2P1 ? (byte) 2 : (byte) 3)),
+                    ((byte) MyGameDecisions.DChips, runningSideBetChallenges == RunningSideBetChallenges.None ? (byte) 0 : (runningSideBetChallenges == RunningSideBetChallenges.DChallenges2P1 ? (byte) 3 : (byte) 2)),
+                    ((byte) MyGameDecisions.PPretrialAction, sideBetChallenges == SideBetChallenges.PChallenges || sideBetChallenges == SideBetChallenges.BothChallenge ? (byte) 1 : (byte) 2),
+                    ((byte) MyGameDecisions.DPretrialAction, sideBetChallenges == SideBetChallenges.DChallenges || sideBetChallenges == SideBetChallenges.BothChallenge ? (byte) 1 : (byte) 2),
+                    ((byte) MyGameDecisions.CourtDecision, courtResult)
                 },
                 bargaining
-                );
+            );
             return actionsToPlay;
         }
 
@@ -458,14 +479,16 @@ namespace ACESimTest
             // settings
             CaseNumber = 0;
             for (byte numPotentialBargainingRounds = 1; numPotentialBargainingRounds <= 3; numPotentialBargainingRounds++)
-                foreach (bool subdivideOffers in new bool[] { false, true })
-                    foreach (MyGameBargainingRoundRecall bargainingRoundRecall in new MyGameBargainingRoundRecall[] { MyGameBargainingRoundRecall.ForgetEarlierBargainingRounds, MyGameBargainingRoundRecall.RememberAllBargainingRounds, MyGameBargainingRoundRecall.RememberOnlyLastBargainingRound,   })
-                foreach (bool simultaneousBargainingRounds in new bool[] { true, false })
-                foreach (LoserPaysPolicy loserPaysPolicy in new LoserPaysPolicy[] { LoserPaysPolicy.NoLoserPays, LoserPaysPolicy.AfterTrialOnly, LoserPaysPolicy.EvenAfterAbandonOrDefault, })
-                foreach (HowToSimulateBargainingFailure simulatingBargainingFailure in new HowToSimulateBargainingFailure[] { HowToSimulateBargainingFailure.PRefusesToBargain, HowToSimulateBargainingFailure.DRefusesToBargain, HowToSimulateBargainingFailure.BothRefuseToBargain, HowToSimulateBargainingFailure.BothAgreeToBargain, HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain })
-                foreach (var runningSideBetChallenges in new[] { RunningSideBetChallenges.None, RunningSideBetChallenges.PChallenges2D1, RunningSideBetChallenges.DChallenges2P1 })
-                                    {
-                    CaseGivenUpVariousActions(numPotentialBargainingRounds, subdivideOffers, bargainingRoundRecall, simultaneousBargainingRounds, loserPaysPolicy, simulatingBargainingFailure, runningSideBetChallenges);
+                foreach (bool subdivideOffers in new[] {false, true})
+                foreach (var bargainingRoundRecall in new[] {MyGameBargainingRoundRecall.ForgetEarlierBargainingRounds, MyGameBargainingRoundRecall.RememberAllBargainingRounds, MyGameBargainingRoundRecall.RememberOnlyLastBargainingRound})
+                foreach (bool simultaneousBargainingRounds in new[] {true, false})
+                foreach (var loserPaysPolicy in new[] {LoserPaysPolicy.NoLoserPays, LoserPaysPolicy.AfterTrialOnly, LoserPaysPolicy.EvenAfterAbandonOrDefault})
+                foreach (var simulatingBargainingFailure in new[] {HowToSimulateBargainingFailure.PRefusesToBargain, HowToSimulateBargainingFailure.DRefusesToBargain, HowToSimulateBargainingFailure.BothRefuseToBargain, HowToSimulateBargainingFailure.BothAgreeToBargain, HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain})
+                foreach (var runningSideBetChallenges in new[] {RunningSideBetChallenges.None, RunningSideBetChallenges.PChallenges2D1, RunningSideBetChallenges.DChallenges2P1})
+                {
+                    bool incompatible = runningSideBetChallenges != RunningSideBetChallenges.None && simulatingBargainingFailure == HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain;
+                    if (!incompatible)
+                        CaseGivenUpVariousActions(numPotentialBargainingRounds, subdivideOffers, bargainingRoundRecall, simultaneousBargainingRounds, loserPaysPolicy, simulatingBargainingFailure, runningSideBetChallenges);
                 }
         }
 
@@ -476,34 +499,36 @@ namespace ACESimTest
                 for (byte abandonmentInRound = 0;
                     abandonmentInRound <= numPotentialBargainingRounds;
                     abandonmentInRound++)
-                    foreach (bool plaintiffGivesUp in new bool[] { true, false })
-                        foreach (bool defendantGivesUp in new bool[] { true, false })
-                            foreach (bool plaintiffWinsIfBothGiveUp in new bool[] { true, false })
-                            {
-                                if (!plaintiffGivesUp && !defendantGivesUp)
-                                    continue; // not interested in this case
-                                if ((!plaintiffGivesUp || !defendantGivesUp) && !plaintiffWinsIfBothGiveUp)
-                                    continue; // only need to test both values of plaintiff wins if both give up.
-                                if (CaseNumber == 4620)
-                                {
-                                    GameProgressLogger.LoggingOn = true;
-                                    GameProgressLogger.OutputLogMessages = true;
-                                }
-                                else
-                                {
-                                    GameProgressLogger.LoggingOn = false;
-                                    GameProgressLogger.OutputLogMessages = false;
-                                }
-                                CaseGivenUp_SpecificSettingsAndActions(numPotentialBargainingRounds, subdivideOffers, abandonmentInRound,
-                                    bargainingRoundRecall,
-                                    simultaneousBargainingRounds, (byte)LitigationQuality,
-                                    pReadyToAbandonRound: plaintiffGivesUp ? (byte?)abandonmentInRound : (byte?)null,
-                                    dReadyToDefaultRound: defendantGivesUp ? (byte?)abandonmentInRound : (byte?)null,
-                                    mutualGiveUpResult: plaintiffWinsIfBothGiveUp ? (byte)2 : (byte)1,
-                                    loserPaysPolicy: loserPaysPolicy,
-                                    simulatingBargainingFailure: simulatingBargainingFailure, runningSideBetChallenges: runningSideBetChallenges);
-                                CaseNumber++;
-                            }
+                    foreach (bool plaintiffGivesUp in new[] {true, false})
+                    foreach (bool defendantGivesUp in new[] {true, false})
+                    foreach (bool plaintiffWinsIfBothGiveUp in new[] {true, false})
+                    {
+                        if (!plaintiffGivesUp && !defendantGivesUp)
+                            continue; // not interested in this case
+                        if ((!plaintiffGivesUp || !defendantGivesUp) && !plaintiffWinsIfBothGiveUp)
+                            continue; // only need to test both values of plaintiff wins if both give up.
+                        if (CaseNumber == 999999)
+                        {
+                            Br.eak.Add("Case");
+                            GameProgressLogger.LoggingOn = true;
+                            GameProgressLogger.OutputLogMessages = true;
+                        }
+                        else
+                        {
+                            Br.eak.Remove("Case");
+                            GameProgressLogger.LoggingOn = false;
+                            GameProgressLogger.OutputLogMessages = false;
+                        }
+                        CaseGivenUp_SpecificSettingsAndActions(numPotentialBargainingRounds, subdivideOffers, abandonmentInRound,
+                            bargainingRoundRecall,
+                            simultaneousBargainingRounds, LitigationQuality,
+                            plaintiffGivesUp ? abandonmentInRound : (byte?) null,
+                            defendantGivesUp ? abandonmentInRound : (byte?) null,
+                            plaintiffWinsIfBothGiveUp ? (byte) 2 : (byte) 1,
+                            loserPaysPolicy,
+                            simulatingBargainingFailure, runningSideBetChallenges);
+                        CaseNumber++;
+                    }
             }
             catch (Exception e)
             {
@@ -516,16 +541,16 @@ namespace ACESimTest
             var bargainingRoundMoves = GetBargainingRoundMoves(simultaneousBargainingRounds,
                 abandonmentInRound ?? numPotentialBargainingRounds, false, simulatingBargainingFailure, out var offers);
             var bestOffers = GetBestOffers(offers);
-            byte numActualRounds = (byte)bargainingRoundMoves.Count();
-            var options = GetGameOptions(allowAbandonAndDefaults: true, numBargainingRounds: numPotentialBargainingRounds, subdivideOffers: subdivideOffers, bargainingRoundRecall: bargainingRoundRecall, simultaneousBargainingRounds: simultaneousBargainingRounds, loserPaysPolicy: loserPaysPolicy, simulatingBargainingFailure: simulatingBargainingFailure, sideBetChallenges: SideBetChallenges.NoChallengesAllowed, runningSideBetChallenges: runningSideBetChallenges);
+            var numActualRounds = (byte) bargainingRoundMoves.Count();
+            var options = GetGameOptions(true, numPotentialBargainingRounds, subdivideOffers, bargainingRoundRecall, simultaneousBargainingRounds, loserPaysPolicy, simulatingBargainingFailure, SideBetChallenges.NoChallengesAllowed, runningSideBetChallenges);
             bool pFiles = pReadyToAbandonRound != 0;
             bool dAnswers = pFiles && dReadyToDefaultRound != 0;
-            var actionsToPlay = GetPlayerActions(pFiles: pFiles, dAnswers: dAnswers, litigationQuality: litigationQuality, pSignalOrNoise: PSignalOrNoise,
-                dSignalOrNoise: DSignalOrNoise, bargainingRoundMoves: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds, pReadyToAbandonRound: pReadyToAbandonRound, dReadyToDefaultRound: dReadyToDefaultRound, mutualGiveUpResult: mutualGiveUpResult, simulatingBargainingFailure: simulatingBargainingFailure, sideBetChallenges: SideBetChallenges.NoChallengesAllowed, runningSideBetChallenges: runningSideBetChallenges);
+            var actionsToPlay = GetPlayerActions(pFiles, dAnswers, litigationQuality, PSignalOrNoise,
+                DSignalOrNoise, bargainingRoundMoves: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds, pReadyToAbandonRound: pReadyToAbandonRound, dReadyToDefaultRound: dReadyToDefaultRound, mutualGiveUpResult: mutualGiveUpResult, simulatingBargainingFailure: simulatingBargainingFailure, sideBetChallenges: SideBetChallenges.NoChallengesAllowed, runningSideBetChallenges: runningSideBetChallenges);
             var myGameProgress = MyGameRunner.PlayMyGameOnce(options, actionsToPlay);
 
-            bool pWins = (pReadyToAbandonRound == null && dReadyToDefaultRound != null) ||
-                         (pReadyToAbandonRound != null && dReadyToDefaultRound != null && pFiles && mutualGiveUpResult == (byte) 2);
+            bool pWins = pReadyToAbandonRound == null && dReadyToDefaultRound != null ||
+                         pReadyToAbandonRound != null && dReadyToDefaultRound != null && pFiles && mutualGiveUpResult == 2;
 
             double damages = pWins ? options.DamagesToAllege : 0;
 
@@ -558,7 +583,8 @@ namespace ACESimTest
                 GetExpensesAfterFeeShifting(options, true, pWins, pInitialExpenses, dInitialExpenses, out pExpenses, out dExpenses);
             }
             else
-            { // either p didn't file or p filed and d didn't answer
+            {
+                // either p didn't file or p filed and d didn't answer
                 pExpenses = myGameProgress.PFiles ? options.PFilingCost * options.CostsMultiplier : 0;
                 dExpenses = 0;
             }
@@ -567,9 +593,9 @@ namespace ACESimTest
             double pFinalWealthExpected = options.PInitialWealth + damages - pExpenses;
             double dFinalWealthExpected = options.DInitialWealth - damages - dExpenses;
 
-            if (runningSideBetChallenges != RunningSideBetChallenges.None)
+            if (pFiles && dAnswers && runningSideBetChallenges != RunningSideBetChallenges.None)
             {
-                byte chipsFromPreviousRounds = (byte) (2 * (numActualRounds - 1));
+                var chipsFromPreviousRounds = (byte) (2 * (numActualRounds - 1));
                 byte chipsThisRound = 0;
                 if (runningSideBetChallenges == RunningSideBetChallenges.DChallenges2P1 && myGameProgress.PAbandons)
                     chipsThisRound = 1;
@@ -579,21 +605,20 @@ namespace ACESimTest
                     chipsThisRound = 2;
                 if (runningSideBetChallenges == RunningSideBetChallenges.PChallenges2D1 && myGameProgress.DDefaults)
                     chipsThisRound = 1;
-                byte totalChips = (byte) (chipsFromPreviousRounds + chipsThisRound);
+                var totalChips = (byte) (chipsFromPreviousRounds + chipsThisRound);
                 double transferToP = ValueOfChip * totalChips;
                 if (myGameProgress.PAbandons)
                     transferToP = 0 - transferToP;
                 pFinalWealthExpected += transferToP;
                 dFinalWealthExpected -= transferToP;
-
             }
 
             CheckFinalWelfare(myGameProgress, pFinalWealthExpected, dFinalWealthExpected, bestOffers);
 
             //var informationSetHistories = myGameProgress.GameHistory.GetInformationSetHistoryItems().ToList();
             GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet, out string resolutionSet);
-            var expectedPartyInformationSets = GetExpectedPartyInformationSets(LitigationQuality, PSignalOrNoise, DSignalOrNoise, simulatingBargainingFailure, runningSideBetChallenges, bargainingRoundMoves, bargainingRoundRecall, simultaneousBargainingRounds, subdivideOffers);
-            string expectedResolutionSet = ConstructExpectedResolutionSet(litigationQuality: litigationQuality, pFiles: pFiles, dAnswers: dAnswers, simulatingBargainingFailure: simulatingBargainingFailure, bargainingRounds: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds, settlementReachedLastRound: false, allowAbandonAndDefault: true, pReadyToAbandonLastRound: pReadyToAbandonRound != null, dReadyToDefaultLastRound: dReadyToDefaultRound != null, ifBothDefaultPlaintiffLoses: mutualGiveUpResult == (byte)1, caseGoesToTrial: false, courtResultAtTrial: 0, sideBetChallenges: SideBetChallenges.Irrelevant, runningSideBetChallenges: runningSideBetChallenges);
+            var expectedPartyInformationSets = ConstructExpectedPartyInformationSets(LitigationQuality, PSignalOrNoise, DSignalOrNoise, simulatingBargainingFailure, runningSideBetChallenges, bargainingRoundMoves, bargainingRoundRecall, simultaneousBargainingRounds, subdivideOffers);
+            string expectedResolutionSet = ConstructExpectedResolutionSet(litigationQuality, pFiles, dAnswers, simulatingBargainingFailure, bargainingRoundMoves, simultaneousBargainingRounds, false, true, pReadyToAbandonRound != null, dReadyToDefaultRound != null, mutualGiveUpResult == 1, false, 0, SideBetChallenges.Irrelevant, runningSideBetChallenges);
             pInformationSet.Should().Be(expectedPartyInformationSets.pInformationSet);
             dInformationSet.Should().Be(expectedPartyInformationSets.dInformationSet);
             resolutionSet.Should().Be(expectedResolutionSet);
@@ -629,23 +654,32 @@ namespace ACESimTest
             try
             {
                 for (byte numPotentialBargainingRounds = 1; numPotentialBargainingRounds <= 3; numPotentialBargainingRounds++)
-                    foreach (bool subdivideOffers in new bool[] { false, true })
-                        foreach (MyGameBargainingRoundRecall bargainingRoundRecall in new MyGameBargainingRoundRecall[] { MyGameBargainingRoundRecall.ForgetEarlierBargainingRounds, MyGameBargainingRoundRecall.RememberAllBargainingRounds, MyGameBargainingRoundRecall.RememberOnlyLastBargainingRound, })
-                    foreach (bool simultaneousBargainingRounds in new bool[] { true, false })
-                    foreach (bool allowAbandonAndDefault in new bool[] { true, false })
-                    foreach (LoserPaysPolicy loserPaysPolicy in new LoserPaysPolicy[] { LoserPaysPolicy.NoLoserPays, LoserPaysPolicy.AfterTrialOnly, LoserPaysPolicy.EvenAfterAbandonOrDefault, })
-                    foreach (HowToSimulateBargainingFailure simulatingBargainingFailure in new HowToSimulateBargainingFailure[] { HowToSimulateBargainingFailure.PRefusesToBargain, HowToSimulateBargainingFailure.DRefusesToBargain, HowToSimulateBargainingFailure.BothRefuseToBargain, HowToSimulateBargainingFailure.BothAgreeToBargain, HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain })
+                    foreach (bool subdivideOffers in new[] {false, true})
+                    foreach (var bargainingRoundRecall in new[] {MyGameBargainingRoundRecall.ForgetEarlierBargainingRounds, MyGameBargainingRoundRecall.RememberAllBargainingRounds, MyGameBargainingRoundRecall.RememberOnlyLastBargainingRound})
+                    foreach (bool simultaneousBargainingRounds in new[] {true, false})
+                    foreach (bool allowAbandonAndDefault in new[] {true, false})
+                    foreach (var loserPaysPolicy in new[] {LoserPaysPolicy.NoLoserPays, LoserPaysPolicy.AfterTrialOnly, LoserPaysPolicy.EvenAfterAbandonOrDefault})
+                    foreach (var simulatingBargainingFailure in new[] {HowToSimulateBargainingFailure.PRefusesToBargain, HowToSimulateBargainingFailure.DRefusesToBargain, HowToSimulateBargainingFailure.BothRefuseToBargain, HowToSimulateBargainingFailure.BothAgreeToBargain, HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain})
                         for (byte settlementInRound = 1; settlementInRound <= numPotentialBargainingRounds; settlementInRound++)
-                            foreach (var runningSideBetChallenges in new[] { RunningSideBetChallenges.None, RunningSideBetChallenges.PChallenges2D1, RunningSideBetChallenges.DChallenges2P1 })
-                                                {
-                            if (CaseNumber == 9999999)
+                            foreach (var runningSideBetChallenges in new[] {RunningSideBetChallenges.None, RunningSideBetChallenges.PChallenges2D1, RunningSideBetChallenges.DChallenges2P1})
                             {
-                                GameProgressLogger.LoggingOn = true;
-                                GameProgressLogger.OutputLogMessages = true;
+                                if (CaseNumber == 999999)
+                                {
+                                    Br.eak.Add("Case");
+                                    GameProgressLogger.LoggingOn = true;
+                                    GameProgressLogger.OutputLogMessages = true;
+                                }
+                                else
+                                {
+                                    Br.eak.Remove("Case");
+                                    GameProgressLogger.LoggingOn = false;
+                                    GameProgressLogger.OutputLogMessages = false;
+                                }
+                                bool incompatible = runningSideBetChallenges != RunningSideBetChallenges.None && (!allowAbandonAndDefault || simulatingBargainingFailure == HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain);
+                                if (!incompatible)
+                                    SettlingCase_Helper(numPotentialBargainingRounds, subdivideOffers, settlementInRound, bargainingRoundRecall, simultaneousBargainingRounds, allowAbandonAndDefault, loserPaysPolicy, simulatingBargainingFailure, runningSideBetChallenges);
+                                CaseNumber++;
                             }
-                            SettlingCase_Helper(numPotentialBargainingRounds, subdivideOffers, settlementInRound, bargainingRoundRecall, simultaneousBargainingRounds, allowAbandonAndDefault, loserPaysPolicy, simulatingBargainingFailure, runningSideBetChallenges);
-                            CaseNumber++;
-                        }
             }
             catch (Exception e)
             {
@@ -658,13 +692,13 @@ namespace ACESimTest
             var bargainingRoundMoves = GetBargainingRoundMoves(simultaneousBargainingRounds,
                 settlementInRound ?? numPotentialBargainingRounds, settlementInRound != null, simulatingBargainingFailure, out var offers);
             var bestOffers = GetBestOffers(offers);
-            byte numActualRounds = (byte) bargainingRoundMoves.Count();
-            var options = GetGameOptions(allowAbandonAndDefaults: allowAbandonAndDefault, numBargainingRounds: numPotentialBargainingRounds, subdivideOffers: subdivideOffers, bargainingRoundRecall: bargainingRoundRecall, simultaneousBargainingRounds: simultaneousBargainingRounds, loserPaysPolicy: loserPaysPolicy, simulatingBargainingFailure: simulatingBargainingFailure, sideBetChallenges: SideBetChallenges.NoChallengesAllowed, runningSideBetChallenges: runningSideBetChallenges);
-            var actionsToPlay = GetPlayerActions(pFiles: true, dAnswers: true, litigationQuality: LitigationQuality, pSignalOrNoise: PSignalOrNoise,
-                dSignalOrNoise: DSignalOrNoise, simulatingBargainingFailure: simulatingBargainingFailure, bargainingRoundMoves: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds, sideBetChallenges: SideBetChallenges.NoChallengesAllowed, runningSideBetChallenges:runningSideBetChallenges);
+            var numActualRounds = (byte) bargainingRoundMoves.Count();
+            var options = GetGameOptions(allowAbandonAndDefault, numPotentialBargainingRounds, subdivideOffers, bargainingRoundRecall, simultaneousBargainingRounds, loserPaysPolicy, simulatingBargainingFailure, SideBetChallenges.NoChallengesAllowed, runningSideBetChallenges);
+            var actionsToPlay = GetPlayerActions(true, true, LitigationQuality, PSignalOrNoise,
+                DSignalOrNoise, simulatingBargainingFailure, bargainingRoundMoves: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds, sideBetChallenges: SideBetChallenges.NoChallengesAllowed, runningSideBetChallenges: runningSideBetChallenges);
             var myGameProgress = MyGameRunner.PlayMyGameOnce(options, actionsToPlay);
 
-            double settlementProportion = EquallySpaced.GetLocationOfEquallySpacedPoint((byte) (ValueWhenCaseSettles - 1), NumOffers, true);
+            double settlementProportion = EquallySpaced.GetLocationOfEquallySpacedPoint(ValueWhenCaseSettles - 1, NumOffers, true);
 
             myGameProgress.GameComplete.Should().BeTrue();
             myGameProgress.CaseSettles.Should().BeTrue();
@@ -675,8 +709,8 @@ namespace ACESimTest
 
             //var informationSetHistories = myGameProgress.GameHistory.GetInformationSetHistoryItems().ToList();
             GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet, out string resolutionSet);
-            var expectedPartyInformationSets = GetExpectedPartyInformationSets(LitigationQuality, PSignalOrNoise, DSignalOrNoise, simulatingBargainingFailure, runningSideBetChallenges, bargainingRoundMoves, bargainingRoundRecall, simultaneousBargainingRounds, subdivideOffers);
-            string expectedResolutionSet = ConstructExpectedResolutionSet_CaseSettles(litigationQuality: LitigationQuality, pFiles: true, dAnswers: true, simulatingBargainingFailure: simulatingBargainingFailure, bargainingRounds: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds, allowAbandonAndDefault: allowAbandonAndDefault, sideBetChallenges: SideBetChallenges.Irrelevant, runningSideBetChallenges:runningSideBetChallenges);
+            var expectedPartyInformationSets = ConstructExpectedPartyInformationSets(LitigationQuality, PSignalOrNoise, DSignalOrNoise, simulatingBargainingFailure, runningSideBetChallenges, bargainingRoundMoves, bargainingRoundRecall, simultaneousBargainingRounds, subdivideOffers);
+            string expectedResolutionSet = ConstructExpectedResolutionSet_CaseSettles(LitigationQuality, true, true, simulatingBargainingFailure, bargainingRoundMoves, simultaneousBargainingRounds, allowAbandonAndDefault, SideBetChallenges.Irrelevant, runningSideBetChallenges);
             pInformationSet.Should().Be(expectedPartyInformationSets.pInformationSet);
             dInformationSet.Should().Be(expectedPartyInformationSets.dInformationSet);
             resolutionSet.Should().Be(expectedResolutionSet);
@@ -688,33 +722,38 @@ namespace ACESimTest
             CaseNumber = 0;
             try
             {
-                foreach (bool allowAbandonAndDefaults in new[] { true, false })
-                foreach (MyGameBargainingRoundRecall bargainingRoundRecall in new MyGameBargainingRoundRecall[] { MyGameBargainingRoundRecall.ForgetEarlierBargainingRounds, MyGameBargainingRoundRecall.RememberAllBargainingRounds, MyGameBargainingRoundRecall.RememberOnlyLastBargainingRound, })
-                        foreach (byte numBargainingRounds in new byte[] { 1, 2 })
-                        foreach (bool subdivideOffers in new[] { false, true })
-                                foreach (bool plaintiffWins in new[] { true, false })
-                                foreach (bool simultaneousBargainingRounds in new[] { true, false })
-                                        foreach (var loserPaysPolicy in new[] { LoserPaysPolicy.NoLoserPays, LoserPaysPolicy.AfterTrialOnly, LoserPaysPolicy.EvenAfterAbandonOrDefault })
-                                            foreach (var simulatingBargainingFailure in new[] { HowToSimulateBargainingFailure.PRefusesToBargain, HowToSimulateBargainingFailure.DRefusesToBargain, HowToSimulateBargainingFailure.BothRefuseToBargain, HowToSimulateBargainingFailure.BothAgreeToBargain, HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain })
-                                                foreach (var sideBetChallenges in new[] { SideBetChallenges.NoChallengesAllowed, SideBetChallenges.BothChallenge, SideBetChallenges.NoOneChallenges, SideBetChallenges.PChallenges, SideBetChallenges.DChallenges, })
-                                                foreach (var runningSideBetChallenges in new[] { RunningSideBetChallenges.None, RunningSideBetChallenges.PChallenges2D1, RunningSideBetChallenges.DChallenges2P1})
-                                                {
-                                                    bool skipThis = false;
-                                                if (CaseNumber == 999999)
-                                                {
-                                                    GameProgressLogger.LoggingOn = true;
-                                                    GameProgressLogger.OutputLogMessages = true;
-                                                }
-                                                else
-                                                {
-                                                    //skipThis = true; 
-                                                    GameProgressLogger.LoggingOn = false;
-                                                    GameProgressLogger.OutputLogMessages = false;
-                                                    }
-                                                if (!skipThis)
-                                                    CaseTried_Helper(allowAbandonAndDefaults, bargainingRoundRecall, numBargainingRounds, subdivideOffers, plaintiffWins, simultaneousBargainingRounds, loserPaysPolicy, simulatingBargainingFailure, sideBetChallenges, runningSideBetChallenges);
-                                                CaseNumber++;
-                                            }
+                foreach (bool allowAbandonAndDefault in new[] {true, false})
+                foreach (var bargainingRoundRecall in new[] {MyGameBargainingRoundRecall.ForgetEarlierBargainingRounds, MyGameBargainingRoundRecall.RememberAllBargainingRounds, MyGameBargainingRoundRecall.RememberOnlyLastBargainingRound})
+                foreach (byte numBargainingRounds in new byte[] {1, 2})
+                foreach (bool subdivideOffers in new[] {false, true})
+                foreach (bool plaintiffWins in new[] {true, false})
+                foreach (bool simultaneousBargainingRounds in new[] {true, false})
+                foreach (var loserPaysPolicy in new[] {LoserPaysPolicy.NoLoserPays, LoserPaysPolicy.AfterTrialOnly, LoserPaysPolicy.EvenAfterAbandonOrDefault})
+                foreach (var simulatingBargainingFailure in new[] {HowToSimulateBargainingFailure.PRefusesToBargain, HowToSimulateBargainingFailure.DRefusesToBargain, HowToSimulateBargainingFailure.BothRefuseToBargain, HowToSimulateBargainingFailure.BothAgreeToBargain, HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain})
+                foreach (var sideBetChallenges in new[] {SideBetChallenges.NoChallengesAllowed, SideBetChallenges.BothChallenge, SideBetChallenges.NoOneChallenges, SideBetChallenges.PChallenges, SideBetChallenges.DChallenges})
+                foreach (var runningSideBetChallenges in new[] {RunningSideBetChallenges.None, RunningSideBetChallenges.PChallenges2D1, RunningSideBetChallenges.DChallenges2P1})
+                {
+                    var skipThis = false;
+                    if (CaseNumber == 999999)
+                    {
+                        Br.eak.Add("Case");
+                        GameProgressLogger.LoggingOn = true;
+                        GameProgressLogger.OutputLogMessages = true;
+                    }
+                    else
+                    {
+                        Br.eak.Remove("Case");
+                        //skipThis = true; 
+                        GameProgressLogger.LoggingOn = false;
+                        GameProgressLogger.OutputLogMessages = false;
+                    }
+                    bool incompatible = runningSideBetChallenges != RunningSideBetChallenges.None && (!allowAbandonAndDefault || simulatingBargainingFailure == HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain);
+                    if (incompatible)
+                        skipThis = true;
+                    if (!skipThis)
+                        CaseTried_Helper(allowAbandonAndDefault, bargainingRoundRecall, numBargainingRounds, subdivideOffers, plaintiffWins, simultaneousBargainingRounds, loserPaysPolicy, simulatingBargainingFailure, sideBetChallenges, runningSideBetChallenges);
+                    CaseNumber++;
+                }
             }
             catch (Exception e)
             {
@@ -727,7 +766,7 @@ namespace ACESimTest
             var options = GetGameOptions(allowAbandonAndDefaults, numBargainingRounds, subdivideOffers, bargainingRoundRecall, simultaneousBargainingRounds, loserPaysPolicy, simulatingBargainingFailure, sideBetChallenges, runningSideBetChallenges);
             var bargainingMoves = GetBargainingRoundMoves(simultaneousBargainingRounds, numBargainingRounds, false, simulatingBargainingFailure, out var offers);
             var bestOffers = GetBestOffers(offers);
-            byte courtResult = plaintiffWins ? (byte) NumCourtNoiseValues : (byte) 1; // we've used a high value of court noise above, so if the court has its highest possible noise, it will definitely conclude plaintiff has won, and if the court has its lowest possible noise, it will definitely conclude that defendant has won
+            byte courtResult = plaintiffWins ? NumCourtNoiseValues : (byte) 1; // we've used a high value of court noise above, so if the court has its highest possible noise, it will definitely conclude plaintiff has won, and if the court has its lowest possible noise, it will definitely conclude that defendant has won
             var actions = GetPlayerActions(true, true, LitigationQuality, PSignalOrNoise, DSignalOrNoise, simulatingBargainingFailure, sideBetChallenges, runningSideBetChallenges, bargainingMoves, simultaneousBargainingRounds, null, null, 0, courtResult);
             var myGameProgress = MyGameRunner.PlayMyGameOnce(options, actions);
             myGameProgress.GameComplete.Should().BeTrue();
@@ -741,8 +780,8 @@ namespace ACESimTest
             {
                 bool pChallengesD = sideBetChallenges == SideBetChallenges.PChallenges || sideBetChallenges == SideBetChallenges.BothChallenge;
                 bool dChallengesP = sideBetChallenges == SideBetChallenges.DChallenges || sideBetChallenges == SideBetChallenges.BothChallenge;
-                bool challengerLoses = (pChallengesD && !plaintiffWins) || (dChallengesP && plaintiffWins);
-                double multiplier = challengerLoses ? DamagesMultipleForChallengerToPay : DamagesMultipleForChallengedToPay ;
+                bool challengerLoses = pChallengesD && !plaintiffWins || dChallengesP && plaintiffWins;
+                double multiplier = challengerLoses ? DamagesMultipleForChallengerToPay : DamagesMultipleForChallengedToPay;
                 double totalTransfer = multiplier * DamagesAlleged;
                 if (plaintiffWins)
                     sideBetTransferFromP = 0 - totalTransfer;
@@ -750,8 +789,17 @@ namespace ACESimTest
                     sideBetTransferFromP = totalTransfer;
             }
 
-            double pFinalWealthExpected = options.PInitialWealth - pExpenses - sideBetTransferFromP;
-            double dFinalWealthExpected = options.DInitialWealth - dExpenses + sideBetTransferFromP;
+            double runningSideBetTransferFromP = 0;
+            if (runningSideBetChallenges != RunningSideBetChallenges.None)
+            {
+                // add the total chips bet so far
+                var chipsBet = (byte) (2 * numBargainingRounds);
+                double totalBet = chipsBet * ValueOfChip;
+                runningSideBetTransferFromP = plaintiffWins ? 0 - totalBet : totalBet;
+            }
+
+            double pFinalWealthExpected = options.PInitialWealth - pExpenses - sideBetTransferFromP - runningSideBetTransferFromP;
+            double dFinalWealthExpected = options.DInitialWealth - dExpenses + sideBetTransferFromP + runningSideBetTransferFromP;
             if (plaintiffWins)
             {
                 pFinalWealthExpected += options.DamagesToAllege;
@@ -760,10 +808,10 @@ namespace ACESimTest
             CheckFinalWelfare(myGameProgress, pFinalWealthExpected, dFinalWealthExpected, bestOffers);
             GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet,
                 out string resolutionSet);
-            var expectedPartyInformationSets = GetExpectedPartyInformationSets(LitigationQuality, PSignalOrNoise, DSignalOrNoise, simulatingBargainingFailure, runningSideBetChallenges, bargainingMoves,
+            var expectedPartyInformationSets = ConstructExpectedPartyInformationSets(LitigationQuality, PSignalOrNoise, DSignalOrNoise, simulatingBargainingFailure, runningSideBetChallenges, bargainingMoves,
                 bargainingRoundRecall, simultaneousBargainingRounds, subdivideOffers);
-            var expectedResolutionSet = ConstructExpectedResolutionSet(litigationQuality: LitigationQuality, pFiles: true, dAnswers: true, simulatingBargainingFailure: simulatingBargainingFailure, bargainingRounds: bargainingMoves,
-                simultaneousBargainingRounds: simultaneousBargainingRounds, settlementReachedLastRound: false, allowAbandonAndDefault: allowAbandonAndDefaults, pReadyToAbandonLastRound: false, dReadyToDefaultLastRound: false, ifBothDefaultPlaintiffLoses: false, caseGoesToTrial: true, courtResultAtTrial: courtResult, sideBetChallenges: sideBetChallenges, runningSideBetChallenges:runningSideBetChallenges);
+            string expectedResolutionSet = ConstructExpectedResolutionSet(LitigationQuality, true, true, simulatingBargainingFailure, bargainingMoves,
+                simultaneousBargainingRounds, false, allowAbandonAndDefaults, false, false, false, true, courtResult, sideBetChallenges, runningSideBetChallenges);
             pInformationSet.Should().Be(expectedPartyInformationSets.pInformationSet);
             dInformationSet.Should().Be(expectedPartyInformationSets.dInformationSet);
             resolutionSet.Should().Be(expectedResolutionSet);

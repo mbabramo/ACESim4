@@ -33,9 +33,10 @@ namespace ACESim
         // Information set structure. We have an information set buffer for each player. We need to be able to remove information from the information set for a player, but still to remember that it was there as of a particular point in time, so that we can figure out what the information set was as of a particular decision. (This is needed for reconstructing the game play.) We thus store information in pairs. The first byte consists of the decision byte code after which we are making changes. The second byte either consists of an item to add, or 254, indicating that we are removing an item from the information set. All of this is internal. When we get the information set, we get it as of a certain point, and thus we skip decision byte codes and automatically process deletions. 
         public bool Initialized;
 
+        // Must also change values in InformationSetLog.
         public fixed byte InformationSets[MaxInformationSetLength];
-        public const int MaxInformationSetLength = 75; // MUST equal MaxInformationSetLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLengthPerPartialPlayer * NumPartialPlayers. 
-        public const int MaxInformationSetLengthPerFullPlayer = 20;
+        public const int MaxInformationSetLength = 90; // MUST equal MaxInformationSetLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLengthPerPartialPlayer * NumPartialPlayers. 
+        public const int MaxInformationSetLengthPerFullPlayer = 25;
         public const int MaxInformationSetLengthPerPartialPlayer = 3;
         public const int NumFullPlayers = 3; // includes main players and resolution player and any chance players that need full size information set
         public const int MaxNumPlayers = 8; // includes chance players that need a very limited information set
@@ -186,11 +187,29 @@ namespace ACESim
 
         #region History
 
+        private static int DEBUGX = 0;
+
         public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, byte[] playersToInform, byte[] cacheIndicesToIncrement, byte? storeActionInCacheIndex, GameProgress gameProgress, bool skipAddToHistory, bool deferNotification, bool delayPreviousDeferredNotification)
         {
+            Debug.WriteLine($"Add to history {decisionByteCode} for player {playerIndex} action {action} of {numPossibleActions}"); // DEBUG
+            if (decisionByteCode == 15 || decisionByteCode == 16 || decisionByteCode == 17 || decisionIndex == 13)
+            {
+                var DEBUG_PInfo1 = GetCurrentPlayerInformationString(0);
+                var DEBUG_DInfo1 = GetCurrentPlayerInformationString(1);
+                if (gameProgress != null)
+                { // DEBUG
+                    var DEBUG21 = gameProgress.GameFullHistory.GetInformationSetHistoryItems(gameProgress).ToList();
+                }
+                var DEBUG = 0;
+                DEBUGX++;
+            }
             if (!skipAddToHistory)
                 AddToSimpleActionsList(action);
             gameProgress?.GameFullHistory.AddToHistory(decisionByteCode, decisionIndex, playerIndex, action, numPossibleActions, playersToInform, skipAddToHistory, cacheIndicesToIncrement, storeActionInCacheIndex, deferNotification, gameProgress);
+            if (gameProgress != null)
+            { // DEBUG
+                var DEBUG2 = gameProgress.GameFullHistory.GetInformationSetHistoryItems(gameProgress).ToList();
+            }
             LastDecisionIndexAdded = decisionIndex;
             if (!delayPreviousDeferredNotification)
             {
@@ -204,9 +223,9 @@ namespace ACESim
                 DeferredPlayerNumber = playerIndex;
                 DeferredPlayersToInform = playersToInform;
             }
-            else if (playersToInform != null)
+            else if (playersToInform != null && playersToInform.Length > 0)
                 AddToInformationSetAndLog(action, decisionIndex, playerIndex, playersToInform, gameProgress);
-            if (cacheIndicesToIncrement != null)
+            if (cacheIndicesToIncrement != null && cacheIndicesToIncrement.Length > 0)
                 foreach (byte cacheIndex in cacheIndicesToIncrement)
                     IncrementItemAtCacheIndex(cacheIndex);
             if (storeActionInCacheIndex != null)

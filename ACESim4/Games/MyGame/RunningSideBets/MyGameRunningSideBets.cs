@@ -30,7 +30,7 @@ namespace ACESim
         public void SaveRunningSideBets(MyGameDefinition myGameDefinition, MyGameProgress myGameProgress, byte dAction)
         {
             // We will be storing the plaintiff's action in the cache. So we can now modify game progress.
-            byte pAction = myGameProgress.GameHistory.GetCacheItemAtIndex(myGameDefinition.GameHistoryCacheIndex_PChips);
+            byte pAction = myGameProgress.GameHistory.GetCacheItemAtIndex(myGameDefinition.GameHistoryCacheIndex_PChipsAction);
             if (myGameProgress.RunningSideBetsActions.ActionsEachBargainingRound == null)
                 myGameProgress.RunningSideBetsActions.ActionsEachBargainingRound = new List<(byte PAction, byte DAction)>();
             myGameProgress.RunningSideBetsActions.ActionsEachBargainingRound.Add((pAction, dAction));

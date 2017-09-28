@@ -107,8 +107,8 @@ namespace ACESim
         public byte GameHistoryCacheIndex_DResponse = 13;
         public byte GameHistoryCacheIndex_PReadyToAbandon = 14;
         public byte GameHistoryCacheIndex_DReadyToAbandon = 15;
-        public byte GameHistoryCacheIndex_PChips = 16;
-        public byte GameHistoryCacheIndex_DChips = 17;
+        public byte GameHistoryCacheIndex_PChipsAction = 16;
+        public byte GameHistoryCacheIndex_DChipsAction = 17;
         public byte GameHistoryCacheIndex_TotalChipsSoFar = 18;
 
         public bool CheckCompleteAfterPrimaryAction;
@@ -388,7 +388,7 @@ namespace ACESim
                     CustomByte = (byte)(b + 1),
                     CanTerminateGame = false, 
                     IncrementGameCacheItem = new byte[] { },
-                    StoreActionInGameCacheItem = GameHistoryCacheIndex_PChips,
+                    StoreActionInGameCacheItem = GameHistoryCacheIndex_PChipsAction,
                     IsReversible = true
                 };
             decisions.Add(pRSideBet);
@@ -399,7 +399,7 @@ namespace ACESim
                     CustomByte = (byte)(b + 1),
                     CanTerminateGame = false,
                     IncrementGameCacheItem = new byte[] { },
-                    StoreActionInGameCacheItem = GameHistoryCacheIndex_DChips,
+                    StoreActionInGameCacheItem = GameHistoryCacheIndex_DChipsAction,
                     IsReversible = true,
                     RequiresCustomInformationSetManipulation = true
                 };
@@ -622,19 +622,23 @@ namespace ACESim
                 // Inform the players of the total number of chips bet in this round. This will allow the players to make a decision about whether to abandon/default this round. We separately add information on P/D chips to the players' information sets, because we want the players to have a sense of who is bidding more aggressively (thus allowing them to track their own bluffing). 
                 // We also have to update the resolution set with the same information. The reason is that if a player bets a certain number of chips and then withdraws, then the smaller of that number and the other player's bet is still counted.
                 // Note that below, we delete the information from the previous round but then add back in the total number of chips bet so far.
-
-                byte pChips = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PChips);
-                byte dChips = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_DChips);
-                byte maxChips = Math.Max(pChips, dChips);
-                gameHistory.AddToInformationSetAndLog(pChips, (byte) MyGameDecisions.DChips, (byte) MyGamePlayers.Plaintiff, gameProgress);
-                gameHistory.AddToInformationSetAndLog(dChips, (byte)MyGameDecisions.DChips, (byte)MyGamePlayers.Plaintiff, gameProgress);
-                gameHistory.AddToInformationSetAndLog(pChips, (byte)MyGameDecisions.DChips, (byte)MyGamePlayers.Defendant, gameProgress);
-                gameHistory.AddToInformationSetAndLog(dChips, (byte)MyGameDecisions.DChips, (byte)MyGamePlayers.Defendant, gameProgress);
-                gameHistory.AddToInformationSetAndLog(pChips, (byte)MyGameDecisions.DChips, (byte)MyGamePlayers.Resolution, gameProgress);
-                gameHistory.AddToInformationSetAndLog(dChips, (byte)MyGameDecisions.DChips, (byte)MyGamePlayers.Resolution, gameProgress);
+                
+                // the pChipsAction and dChipsAction here are 1 more than the number of chips bet
+                var DEBUG_PInfo = gameHistory.GetCurrentPlayerInformationString(0);
+                var DEBUG_DInfo = gameHistory.GetCurrentPlayerInformationString(1);
+                byte pChipsAction = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PChipsAction);
+                byte dChipsAction = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_DChipsAction);
+                gameHistory.AddToInformationSetAndLog(pChipsAction, currentDecisionIndex, (byte) MyGamePlayers.Plaintiff, gameProgress);
+                gameHistory.AddToInformationSetAndLog(dChipsAction, currentDecisionIndex, (byte)MyGamePlayers.Plaintiff, gameProgress);
+                gameHistory.AddToInformationSetAndLog(pChipsAction, currentDecisionIndex, (byte)MyGamePlayers.Defendant, gameProgress);
+                gameHistory.AddToInformationSetAndLog(dChipsAction, currentDecisionIndex, (byte)MyGamePlayers.Defendant, gameProgress);
+                gameHistory.AddToInformationSetAndLog(pChipsAction, currentDecisionIndex, (byte)MyGamePlayers.Resolution, gameProgress);
+                gameHistory.AddToInformationSetAndLog(dChipsAction, currentDecisionIndex, (byte)MyGamePlayers.Resolution, gameProgress);
                 gameHistory.IncrementItemAtCacheIndex(GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, 2);
                 gameHistory.IncrementItemAtCacheIndex(GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, 2);
                 gameHistory.IncrementItemAtCacheIndex(GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, 2);
+                var DEBUG_PInfo1 = gameHistory.GetCurrentPlayerInformationString(0);
+                var DEBUG_DInfo1 = gameHistory.GetCurrentPlayerInformationString(1);
             }
             else if (decisionByteCode == (byte)MyGameDecisions.PreBargainingRound)
             {
@@ -688,8 +692,9 @@ namespace ACESim
                     byte totalChipsSoFar = 0;
                     if (bargainingRound > 1)
                     {
-                        byte pChipsLastRound = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PChips);
-                        byte dChipsLastRound = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_DChips);
+                        // adjust for fact that chips action is 1 more than number of chips
+                        byte pChipsLastRound = (byte) (gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PChipsAction) - 1);
+                        byte dChipsLastRound = (byte) (gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_DChipsAction) - 1);
                         byte chipsLastRound = Math.Max(pChipsLastRound, dChipsLastRound);
                         totalChipsSoFar = chipsLastRound;
                         if (bargainingRound > 2)
@@ -699,9 +704,10 @@ namespace ACESim
                         }
                     }
                     gameHistory.SetCacheItemAtIndex(GameHistoryCacheIndex_TotalChipsSoFar, totalChipsSoFar); // so, at round n, this shows total chips from round n - 1
-                    gameHistory.AddToInformationSetAndLog(totalChipsSoFar, currentDecisionIndex, (byte) MyGamePlayers.Plaintiff, gameProgress);
-                    gameHistory.AddToInformationSetAndLog(totalChipsSoFar, currentDecisionIndex, (byte)MyGamePlayers.Defendant, gameProgress);
-                    gameHistory.AddToInformationSetAndLog(totalChipsSoFar, currentDecisionIndex, (byte)MyGamePlayers.Resolution, gameProgress);
+                    byte totalChipsSoFarAction = (byte) (totalChipsSoFar + 1); // can't use 0 as an action
+                    gameHistory.AddToInformationSetAndLog(totalChipsSoFarAction, currentDecisionIndex, (byte) MyGamePlayers.Plaintiff, gameProgress);
+                    gameHistory.AddToInformationSetAndLog(totalChipsSoFarAction, currentDecisionIndex, (byte)MyGamePlayers.Defendant, gameProgress);
+                    gameHistory.AddToInformationSetAndLog(totalChipsSoFarAction, currentDecisionIndex, (byte)MyGamePlayers.Resolution, gameProgress);
                     numPlaintiffItems++;
                     numDefendantItems++;
                     numResolutionItems++;
