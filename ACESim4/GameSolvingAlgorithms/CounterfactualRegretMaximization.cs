@@ -405,7 +405,7 @@ namespace ACESim
                 var playersStrategy = Strategies[informationSetHistory.PlayerIndex];
                 unsafe
                 {
-                    List<byte> informationSetList = ListExtensions.GetPointerAsList_255Terminated(informationSetHistoryCopy.InformationSetForPlayer);
+                    List<byte> informationSetList = informationSetHistoryCopy.GetInformationSetForPlayerAsList();
                     TabbedText.WriteLine($"Information set before action: {String.Join(",", informationSetList)}");
                     IGameState gameState = GetGameState(ref historyPoint);
                     TabbedText.WriteLine($"Game state before action: {gameState}");

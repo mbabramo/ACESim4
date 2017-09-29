@@ -22,14 +22,14 @@ namespace ACESim
                 HashTableStorage = new Dictionary<INWayTreeStorageKey, NWayTreeStorage<T>>();
         }
 
-        public unsafe NWayTreeStorage<T> SetValueIfNotSet(NWayTreeStorageKey key, bool historyComplete, Func<T> setter)
+        public unsafe NWayTreeStorage<T> SetValueIfNotSet(NWayTreeStorageKeyUnsafeStackOnly keyUnsafeStackOnly, bool historyComplete, Func<T> setter)
         {
             lock (this)
             {
-                NWayTreeStorage<T> node = GetNode_CreatingRestIfNecessary(key.PrefaceByte, key.Sequence, out bool created);
+                NWayTreeStorage<T> node = GetNode_CreatingRestIfNecessary(keyUnsafeStackOnly.PrefaceByte, keyUnsafeStackOnly.Sequence, out bool created);
                 if (created && HashTableStorage != null)
                 {
-                    HashTableStorage.Add(key.ToSafe(), node);
+                    HashTableStorage.Add(keyUnsafeStackOnly.ToSafe(), node);
                     //Debug.WriteLine($"Added {key}");
                 }
                 if (node.StoredValue == null || node.StoredValue.Equals(default(T)))
@@ -38,9 +38,9 @@ namespace ACESim
             }
         }
 
-        public unsafe T GetValue(NWayTreeStorageKey key)
+        public unsafe T GetValue(NWayTreeStorageKeyUnsafeStackOnly keyUnsafeStackOnly)
         {
-            var node = GetNode(key);
+            var node = GetNode(keyUnsafeStackOnly);
             if (node == null)
                 return default(T);
             return node.StoredValue;
@@ -57,21 +57,21 @@ namespace ACESim
             return tree.GetNode(restOfSequence, true, out created);
         }
 
-        private unsafe NWayTreeStorage<T> GetNode(NWayTreeStorageKey key)
+        private unsafe NWayTreeStorage<T> GetNode(NWayTreeStorageKeyUnsafeStackOnly keyUnsafeStackOnly)
         {
             if (HashTableStorage != null)
             {
-                bool found = HashTableStorage.TryGetValue(key, out NWayTreeStorage<T> foundNode);
+                bool found = HashTableStorage.TryGetValue(keyUnsafeStackOnly, out NWayTreeStorage<T> foundNode);
                 if (found)
                     return foundNode;
             }
-            NWayTreeStorageInternal<T> tree = (NWayTreeStorageInternal<T>)GetBranch(key.PrefaceByte);
+            NWayTreeStorageInternal<T> tree = (NWayTreeStorageInternal<T>)GetBranch(keyUnsafeStackOnly.PrefaceByte);
             if (tree == null)
             {
-                AddBranch(key.PrefaceByte, true);
-                tree = (NWayTreeStorageInternal<T>)GetBranch(key.PrefaceByte);
+                AddBranch(keyUnsafeStackOnly.PrefaceByte, true);
+                tree = (NWayTreeStorageInternal<T>)GetBranch(keyUnsafeStackOnly.PrefaceByte);
             }
-            return tree.GetNode(key.Sequence, false, out _);
+            return tree.GetNode(keyUnsafeStackOnly.Sequence, false, out _);
         }
     }
 }

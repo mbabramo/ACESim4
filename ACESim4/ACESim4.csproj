@@ -186,7 +186,7 @@
     <Compile Include="Util\NumberPrint.cs" />
     <Compile Include="Util\NWayTreeStorage.cs" />
     <Compile Include="Util\NWayTreeStorageInternal.cs" />
-    <Compile Include="Util\NWayTreeStorageKey.cs" />
+    <Compile Include="Util\NWayTreeStorageKeyUnsafeStackOnly.cs" />
     <Compile Include="Util\NWayTreeStorageKeySafe.cs" />
     <Compile Include="Util\NWayTreeStorageRoot.cs" />
     <Compile Include="Util\ObfuscationBruteForce.cs" />

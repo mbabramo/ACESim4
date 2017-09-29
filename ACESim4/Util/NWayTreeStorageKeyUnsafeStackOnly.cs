@@ -7,14 +7,16 @@ using ACESim4.Util;
 
 namespace ACESim
 {
-    public unsafe struct NWayTreeStorageKey : INWayTreeStorageKey
+    // This should be used ONLY on the stack. It may be preserved only so long as the sequence passed into it continues to be fixed in memory.
+
+    public unsafe struct NWayTreeStorageKeyUnsafeStackOnly : INWayTreeStorageKey
     {
         public byte PrefaceByte { get; set; }
         public byte* Sequence;
 
         public byte Element(int i) => Sequence[i];
 
-        public NWayTreeStorageKey(byte prefaceByte, byte* sequence)
+        public NWayTreeStorageKeyUnsafeStackOnly(byte prefaceByte, byte* sequence)
         {
             PrefaceByte = prefaceByte;
             Sequence = sequence;

@@ -24,13 +24,12 @@ namespace ACESim4.Util
             }
             return ~crc;
         }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe static int ComputeChecksum(NWayTreeStorageKey key)
+        
+        public static unsafe int ComputeChecksum(NWayTreeStorageKeyUnsafeStackOnly keyUnsafeStackOnly)
         {
             uint crc = 0xffffffff;
-            byte* ptr1 = key.Sequence;
-            byte index = (byte)(((crc) & 0xff) ^ key.PrefaceByte);
+            byte* ptr1 = keyUnsafeStackOnly.Sequence;
+            byte index = (byte)(((crc) & 0xff) ^ keyUnsafeStackOnly.PrefaceByte);
             crc = (uint)((crc >> 8) ^ table[index]);
             while (*ptr1 != 255)
             {
