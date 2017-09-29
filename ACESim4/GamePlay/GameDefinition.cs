@@ -339,7 +339,7 @@ namespace ACESim
             TabbedText.Tabs--;
         }
 
-        public static void PrintOutOrderedDecisionPoints(string heading, List<ActionPoint> decisionPointsToPrint)
+        private static void PrintOutOrderedDecisionPoints(string heading, List<ActionPoint> decisionPointsToPrint)
         {
             TabbedText.WriteLine("");
             TabbedText.WriteLine(heading);

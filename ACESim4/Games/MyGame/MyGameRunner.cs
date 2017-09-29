@@ -32,13 +32,13 @@ namespace ACESim
             EvolutionSettings evolutionSettings = new EvolutionSettings()
             {
                 MaxParallelDepth = 1, // we're parallelizing on the iteration level, so there is no need for further parallelization
-                ParallelOptimization = false,
+                ParallelOptimization = true,
 
                 InitialRandomSeed = 100,
 
                 Algorithm = GameApproximationAlgorithm.AbramowiczProbing,
 
-                ReportEveryNIterations = 100_000,
+                ReportEveryNIterations = 1_000_000,
                 NumRandomIterationsForSummaryTable = 5_000,
                 PrintSummaryTable = true,
                 PrintInformationSets = false,
@@ -47,7 +47,7 @@ namespace ACESim
                 AlwaysUseAverageStrategyInReporting = false,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
 
-                TotalProbingCFRIterations = 100_000,
+                TotalProbingCFRIterations = 1_000_000,
                 EpsilonForMainPlayer = 0.5,
                 EpsilonForOpponentWhenExploring = 0.05,
                 MinBackupRegretsTrigger = 3,
@@ -87,11 +87,11 @@ namespace ACESim
             //options.MyGamePretrialDecisionGeneratorGenerator = new MyGameSideBet() { DamagesMultipleForChallengedToPay = 6.0, DamagesMultipleForChallengerToPay = 6.0 };
             //options.IncludeSignalsReport = true;
             //options.IncludeCourtSuccessReport = true;
-            string sideBetReport = PerformEvolution(options, "SideBet", true);
+            string sideBetReport = RepeatedlyOptimize(options, "SideBet", true);
             return sideBetReport;
         }
 
-        static int NumRepetitions = 10;
+        static int NumRepetitions = 25;
 
         public static string EvolveMyGame_Multiple()
         {
@@ -122,22 +122,79 @@ namespace ACESim
             List<string> reports = new List<string>();
             string report = null;
 
+            options.BargainingRoundRecall = MyGameBargainingRoundRecall.RememberOnlyLastBargainingRound;
+
             options.LoserPays = false;
             options.MyGameRunningSideBets = new MyGameRunningSideBets()
             {
                 MaxChipsPerRound = 2,
                 ValueOfChip = 50000
             };
-            report = PerformEvolution(options, description + " RunSide", true);
+            options.CostsMultiplier = 1.0;
+            report = RepeatedlyOptimize(options, description + " RunSideRememb", true);
+            Debug.WriteLine(report);
+            reports.Add(report);
+
+            options.LoserPays = false;
+            options.MyGameRunningSideBets = new MyGameRunningSideBets()
+            {
+                MaxChipsPerRound = 2,
+                ValueOfChip = 50000
+            };
+            options.CostsMultiplier = 1.0;
+            report = RepeatedlyOptimize(options, description + " RunSide", true);
+            Debug.WriteLine(report);
+            reports.Add(report);
+
+            options.LoserPays = false;
+            options.MyGameRunningSideBets = new MyGameRunningSideBets()
+            {
+                MaxChipsPerRound = 2,
+                ValueOfChip = 100000
+            };
+            options.CostsMultiplier = 1.0;
+            report = RepeatedlyOptimize(options, description + " RunSideLarge", true);
+            Debug.WriteLine(report);
+            reports.Add(report);
+
+            options.LoserPays = false;
+            options.MyGameRunningSideBets = new MyGameRunningSideBets()
+            {
+                MaxChipsPerRound = 2,
+                ValueOfChip = 50000
+            };
+            options.CostsMultiplier = 2.0;
+            report = RepeatedlyOptimize(options, description + " RunSideExp", true);
             Debug.WriteLine(report);
             reports.Add(report);
 
             options.LoserPays = true;
             options.LoserPaysMultiple = 1.0;
-            options.LoserPaysAfterAbandonment = true;
+            options.LoserPaysAfterAbandonment = false;
             options.IncludeAgreementToBargainDecisions = true;
             options.MyGamePretrialDecisionGeneratorGenerator = null;
-            report = PerformEvolution(options, description + " British", false);
+            options.MyGameRunningSideBets = null;
+            options.CostsMultiplier = 1.0;
+            report = RepeatedlyOptimize(options, description + " British", false);
+            Debug.WriteLine(report);
+            reports.Add(report);
+
+            options.LoserPays = true;
+            options.LoserPaysMultiple = 1.0;
+            options.LoserPaysAfterAbandonment = false;
+            options.IncludeAgreementToBargainDecisions = true;
+            options.MyGamePretrialDecisionGeneratorGenerator = null;
+            options.MyGameRunningSideBets = null;
+            options.CostsMultiplier = 2.0;
+            report = RepeatedlyOptimize(options, description + " BritishExp", false);
+            Debug.WriteLine(report);
+            reports.Add(report);
+            
+            options.LoserPays = false;
+            options.MyGamePretrialDecisionGeneratorGenerator = null;
+            options.MyGameRunningSideBets = null;
+            options.CostsMultiplier = 1.0;
+            report = RepeatedlyOptimize(options, description + " American", true);
             Debug.WriteLine(report);
             reports.Add(report);
 
@@ -146,25 +203,25 @@ namespace ACESim
             options.LoserPaysAfterAbandonment = true;
             options.IncludeAgreementToBargainDecisions = true;
             options.MyGamePretrialDecisionGeneratorGenerator = null;
-            report = PerformEvolution(options, description + " BrPlus", false);
+            options.MyGameRunningSideBets = null;
+            options.CostsMultiplier = 1.0;
+            report = RepeatedlyOptimize(options, description + " BrPlus", false);
             Debug.WriteLine(report);
             reports.Add(report);
 
             options.LoserPays = false;
-            options.MyGamePretrialDecisionGeneratorGenerator = null;
-            report = PerformEvolution(options, description + " American", true);
-            Debug.WriteLine(report);
-            reports.Add(report);
-
-            options.LoserPays = false;
-            options.MyGamePretrialDecisionGeneratorGenerator = new MyGameSideBet() {DamagesMultipleForChallengedToPay = 1.0, DamagesMultipleForChallengerToPay = 1.0};
-            report = PerformEvolution(options, description + " SideBet", true);
+            options.MyGamePretrialDecisionGeneratorGenerator = new MyGameSideBet() { DamagesMultipleForChallengedToPay = 1.0, DamagesMultipleForChallengerToPay = 1.0 };
+            options.MyGameRunningSideBets = null;
+            options.CostsMultiplier = 1.0;
+            report = RepeatedlyOptimize(options, description + " SideBet", true);
             Debug.WriteLine(report);
             reports.Add(report);
 
             options.LoserPays = false;
             options.MyGamePretrialDecisionGeneratorGenerator = new MyGameSideBet() { DamagesMultipleForChallengedToPay = 5.0, DamagesMultipleForChallengerToPay = 5.0 };
-            report = PerformEvolution(options, description + " SideLarge", true);
+            options.MyGameRunningSideBets = null;
+            options.CostsMultiplier = 1.0;
+            report = RepeatedlyOptimize(options, description + " SideLarge", true);
             Debug.WriteLine(report);
             reports.Add(report);
 
@@ -174,7 +231,7 @@ namespace ACESim
             return combined;
         }
 
-        private static string PerformEvolution(MyGameOptions options, string reportName, bool includeFirstLine)
+        private static string RepeatedlyOptimize(MyGameOptions options, string reportName, bool includeFirstLine)
         {
             if (options.IncludeCourtSuccessReport || options.IncludeSignalsReport)
                 if (NumRepetitions > 1)
@@ -188,11 +245,13 @@ namespace ACESim
             NWayTreeStorageRoot<IGameState>.EnableUseDictionary = false; // evolutionSettings.ParallelOptimization == false; // this is based on some limited performance testing; with parallelism, this seems to slow us down. Maybe it's not worth using. It might just be because of the lock.
             NWayTreeStorageRoot<IGameState>.ParallelEnabled = evolutionSettings.ParallelOptimization;
             string cumulativeReport = "";
+            CounterfactualRegretMaximization developer =
+                new CounterfactualRegretMaximization(starterStrategies, evolutionSettings, gameDefinition);
             for (int i = 0; i < NumRepetitions; i++)
             {
                 string reportIteration = i.ToString();
-                CounterfactualRegretMaximization developer =
-                    new CounterfactualRegretMaximization(starterStrategies, evolutionSettings, gameDefinition);
+                if (i > 0)
+                    developer.Reinitialize();
                 string report = developer.DevelopStrategies();
                 string differentiatedReport = SimpleReportMerging.AddReportInformationColumns(report, reportName, reportIteration, i == 0);
                 cumulativeReport += differentiatedReport;

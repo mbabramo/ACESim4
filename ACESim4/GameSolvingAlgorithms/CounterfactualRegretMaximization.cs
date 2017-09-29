@@ -112,6 +112,23 @@ namespace ACESim
 
         #region Initialization
 
+
+        public void Reinitialize()
+        {
+            foreach (Strategy s in Strategies)
+            {
+                if (!s.PlayerInfo.PlayerIsChance)
+                {
+                    s.InformationSetTree.WalkTree(node =>
+                    {
+                        InformationSetNodeTally t = (InformationSetNodeTally)node.StoredValue;
+                        t?.Reinitialize();
+                    });
+                }
+            }
+            PreviousRegretMatchingState = null;
+        }
+
         public string DevelopStrategies()
         {
             string report = null;
@@ -149,7 +166,8 @@ namespace ACESim
 
             foreach (Strategy s in Strategies)
             {
-                s.CreateInformationSetTree(GameDefinition.DecisionsExecutionOrder.FirstOrDefault(x => x.PlayerNumber == s.PlayerInfo.PlayerIndex)?.NumPossibleActions ?? (byte)1, s.PlayerInfo.PlayerIndex <= NumNonChancePlayers || s.PlayerInfo.PlayerIndex == GameDefinition.PlayerIndex_ResolutionPlayer);
+                if (s.InformationSetTree == null)
+                    s.CreateInformationSetTree(GameDefinition.DecisionsExecutionOrder.FirstOrDefault(x => x.PlayerNumber == s.PlayerInfo.PlayerIndex)?.NumPossibleActions ?? (byte)1, s.PlayerInfo.PlayerIndex <= NumNonChancePlayers || s.PlayerInfo.PlayerIndex == GameDefinition.PlayerIndex_ResolutionPlayer);
             }
 
             if (SkipEveryPermutationInitialization)
@@ -166,12 +184,8 @@ namespace ACESim
             PrintSameGameResults();
         }
 
-        private static int DEBUG = 0;
-
         unsafe void ProcessInitializedGameProgress(GameProgress gameProgress)
         {
-            DEBUG++;
-
             // First, add the utilities at the end of the tree for this path.
             byte* actions = stackalloc byte[GameFullHistory.MaxNumActions];
             gameProgress.GameFullHistory.GetActions(actions);
@@ -226,19 +240,9 @@ namespace ACESim
         {
             IGameState gameState;
             List<byte> actionsSoFar = historyPoint.GetActionsToHere(navigationSettings);
-            if (DEBUG == 96)
-            {
-                Br.eak.Add("X");
-            }
             (GameProgress progress, _) = GamePlayer.PlayPath(actionsSoFar, false);
             ProcessInitializedGameProgress(progress);
-            var DEBUG_P = progress.GameHistory.GetCurrentPlayerInformationString(0);
-            var DEBUG_D = progress.GameHistory.GetCurrentPlayerInformationString(1);
             NumInitializedGamePaths++; // Note: This may not be exact if we initialize the same game path twice (e.g., if we are playing in parallel)
-            if (DEBUG == 97)
-            {
-                var DEBUG2 = 341;
-            }
             gameState = historyPoint.GetGameStateForCurrentPlayer(navigationSettings);
             if (gameState == null)
                 throw new Exception("Internal error. Try using CachedBothMethods to try to identify where there is a problem with information sets.");
@@ -263,15 +267,15 @@ namespace ACESim
                             if (t != null &&
                                 EvolutionSettings.RestrictToTheseInformationSets.Contains(t.InformationSetNumber))
                             {
-                                Console.WriteLine($"{t}");
+                                Debug.WriteLine($"{t}");
                             }
                         });
                     }
                     else
                     {
-                        Console.WriteLine($"{s.PlayerInfo}");
+                        Debug.WriteLine($"{s.PlayerInfo}");
                         string tree = s.GetInformationSetTreeString();
-                        Console.WriteLine(tree);
+                        Debug.WriteLine(tree);
                     }
                 }
             }
@@ -523,7 +527,7 @@ namespace ACESim
                 NumberAverageStrategySamplingExplorations = 0;
                 if (EvolutionSettings.PrintSummaryTable)
                     reportString = PrintSummaryTable(useRandomPaths);
-                MeasureRegretMatchingChanges();
+                MeasureRegretMatchingChanges(); // DEBUG
                 if (ShouldEstimateImprovementOverTime)
                     ReportEstimatedImprovementsOverTime();
                 if (doBestResponse)

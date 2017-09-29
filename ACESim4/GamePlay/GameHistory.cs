@@ -158,7 +158,7 @@ namespace ACESim
                 *(cachePtr + (byte) cacheIndexToIncrement) = (byte) (*(cachePtr + (byte) cacheIndexToIncrement) + incrementBy);
         }
 
-        public unsafe void DecrementItemAtCacheIndex(byte cacheIndexToDecrement)
+        public unsafe void DecrementItemAtCacheIndex(byte cacheIndexToDecrement, byte decrementBy = 1)
         {
             // Console.WriteLine($"Decrement cache for {cacheIndexToIncrement}");
             fixed (byte* cachePtr = Cache)
@@ -166,7 +166,7 @@ namespace ACESim
                 byte currentValue = *(cachePtr + (byte)cacheIndexToDecrement);
                 if (currentValue == 0)
                     throw new Exception();
-                *(cachePtr + (byte) cacheIndexToDecrement) = (byte) (currentValue - (byte) 1);
+                *(cachePtr + (byte) cacheIndexToDecrement) = (byte) (currentValue - (byte)decrementBy);
             }
         }
 
@@ -194,11 +194,7 @@ namespace ACESim
             // Debug.WriteLine($"Add to history {decisionByteCode} for player {playerIndex} action {action} of {numPossibleActions}");
             if (!skipAddToHistory)
                 AddToSimpleActionsList(action);
-
-            if (Br.eak.Contains("X") && playersToInformOfOccurrenceOnly != null)
-            {
-                Br.eak.Add("Y");
-            }
+            
             gameProgress?.GameFullHistory.AddToHistory(decisionByteCode, decisionIndex, playerIndex, action, numPossibleActions, skipAddToHistory);
             LastDecisionIndexAdded = decisionIndex;
             if (!delayPreviousDeferredNotification)
@@ -217,16 +213,6 @@ namespace ACESim
                 AddToInformationSetAndLog(action, decisionIndex, playerIndex, playersToInform, gameProgress);
             if (playersToInformOfOccurrenceOnly != null && playersToInformOfOccurrenceOnly.Length > 0)
                 AddToInformationSetAndLog(DecisionHasOccurred, decisionIndex, playerIndex, playersToInformOfOccurrenceOnly, gameProgress);
-            if (Br.eak.Contains("Y") && gameProgress != null && playerIndex == 0)
-            {
-                var DEBUG7 = gameProgress.GameFullHistory.GetInformationSetHistoryItems(gameProgress).ToList();
-                var DEBUG6 = 0;
-            }
-            var DEBUG_P = gameProgress?.GameHistory.GetCurrentPlayerInformationString(0) ?? "";
-            if (DEBUG_P.Contains("7,2,1,2,1,2,1,2"))
-            {
-                var DEBUGX = 0;
-            }
             if (cacheIndicesToIncrement != null && cacheIndicesToIncrement.Length > 0)
                 foreach (byte cacheIndex in cacheIndicesToIncrement)
                     IncrementItemAtCacheIndex(cacheIndex);
@@ -394,7 +380,8 @@ namespace ACESim
                     gameProgress.InformationSetLog.AddRemovalToInformationSetLog(followingDecisionIndex, playerIndex);
                 }
             RemoveItemsInInformationSet(playerIndex, numItemsToRemove);
-            GameProgressLogger.Log($"Player {playerIndex} information (removed {numItemsToRemove}): {GetCurrentPlayerInformationString(playerIndex)}");
+            if (GameProgressLogger.LoggingOn)
+                GameProgressLogger.Log($"Player {playerIndex} information (removed {numItemsToRemove}): {GetCurrentPlayerInformationString(playerIndex)}");
         }
 
         public unsafe void ReverseAdditionsToInformationSet(byte playerIndex, byte numItemsToRemove, GameProgress gameProgress = null)

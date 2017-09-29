@@ -123,10 +123,6 @@ namespace ACESim
                     Progress.IsFinalGamePath = false;
                 byte decisionIndex = (byte)CurrentDecisionIndex;
                 byte playerNumber = CurrentPlayerNumber;
-                if (Br.eak.Contains("X") && decisionIndex == 13)
-                {
-                    var DEBUG5 = 0;
-                }
                 UpdateGameHistory(ref Progress.GameHistory, GameDefinition, currentDecision, decisionIndex, action, Progress);
                 // We update game progress now (note that this will not be called when traversing the tree -- that's why we don't do this within UpdateGameHistory)
                 if (!currentDecision.Subdividable_IsSubdivision) // If it is a subdivision, we'll call this in Update

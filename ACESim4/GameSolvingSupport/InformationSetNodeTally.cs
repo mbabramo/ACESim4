@@ -32,7 +32,7 @@ namespace ACESim
         const int bestResponseDenominatorDimension = 3;
         const int storageDimension = 4;
         const int storageDimension2 = 5;
-        private const int cumulativeRegretBackupDimension = 5;
+        const int cumulativeRegretBackupDimension = 5;
 
         public InformationSetNodeTally(Decision decision, byte decisionIndex)
         {
@@ -41,6 +41,14 @@ namespace ACESim
             Initialize(totalDimensions, decision.NumPossibleActions);
             InformationSetNumber = InformationSetsSoFar;
             Interlocked.Increment(ref InformationSetsSoFar);
+        }
+
+        public void Reinitialize()
+        {
+            Initialize(totalDimensions, Decision.NumPossibleActions);
+            NumRegretIncrements = 0;
+            NumBackupRegretIncrements = 0;
+            NumBackupRegretsSinceLastRegretIncrement = 0;
         }
 
         public override string ToString()

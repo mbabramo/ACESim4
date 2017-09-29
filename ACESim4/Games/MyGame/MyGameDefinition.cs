@@ -402,7 +402,7 @@ namespace ACESim
                     CanTerminateGame = false,
                     IncrementGameCacheItem = new byte[] { },
                     StoreActionInGameCacheItem = GameHistoryCacheIndex_DChipsAction,
-                    IsReversible = false,
+                    IsReversible = true,
                     RequiresCustomInformationSetManipulation = true
                 };
             decisions.Add(dRSideBet);
@@ -727,6 +727,15 @@ namespace ACESim
             if (decisionByteCode == (byte)MyGameDecisions.PNoise || decisionByteCode == (byte)MyGameDecisions.DNoise)
             {
                 gameHistory.ReverseAdditionsToInformationSet(decisionByteCode == (byte)MyGameDecisions.PNoise ? (byte)MyGamePlayers.Plaintiff : (byte)MyGamePlayers.Defendant, 1, null);
+            }
+            else if (decisionByteCode == (byte)MyGameDecisions.DChips)
+            {
+                gameHistory.ReverseAdditionsToInformationSet((byte)MyGamePlayers.Plaintiff, 2, null);
+                gameHistory.ReverseAdditionsToInformationSet((byte)MyGamePlayers.Defendant, 2, null);
+                gameHistory.ReverseAdditionsToInformationSet((byte)MyGamePlayers.Resolution, 2, null);
+                gameHistory.DecrementItemAtCacheIndex(GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, 2);
+                gameHistory.DecrementItemAtCacheIndex(GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, 2);
+                gameHistory.DecrementItemAtCacheIndex(GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, 2);
             }
         }
 
