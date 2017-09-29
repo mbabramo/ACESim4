@@ -122,7 +122,7 @@ namespace ACESim
             List<string> reports = new List<string>();
             string report = null;
 
-            options.BargainingRoundRecall = MyGameBargainingRoundRecall.RememberOnlyLastBargainingRound;
+            options.BargainingRoundRecall = MyGameBargainingRoundRecall.ForgetEarlierBargainingRounds;
 
             options.LoserPays = false;
             options.MyGameRunningSideBets = new MyGameRunningSideBets()
@@ -252,7 +252,18 @@ namespace ACESim
                 string reportIteration = i.ToString();
                 if (i > 0)
                     developer.Reinitialize();
-                string report = developer.DevelopStrategies();
+                string report;
+                retry:
+                try
+                {
+                    report = developer.DevelopStrategies();
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine($"Error: {e}");
+                    Console.WriteLine(e.StackTrace);
+                    goto retry;
+                }
                 string differentiatedReport = SimpleReportMerging.AddReportInformationColumns(report, reportName, reportIteration, i == 0);
                 cumulativeReport += differentiatedReport;
             }
