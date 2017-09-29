@@ -70,18 +70,18 @@ namespace ACESim
             fixed (byte* informationSetsLogPtr = InformationSetLogs)
             {
                 byte* playerPointer = informationSetsLogPtr + InformationSetLoggingIndex(playerIndex);
-                byte* nextPlayerPointer = playerPointer + MaxInformationSetLoggingLengthForPlayer(playerIndex);
+                byte* nextPlayerPointerMinusTwo = playerPointer + MaxInformationSetLoggingLengthForPlayer(playerIndex) - 2;
                 // advance to the end of the information set
                 while (*playerPointer != InformationSetTerminator)
                     playerPointer += 2;
+                if (playerPointer >= nextPlayerPointerMinusTwo)
+                    throw new Exception("Internal error. Must increase size of information set.");
                 // now record the information
                 *playerPointer = followingDecisionIndex; // we must record the decision
                 playerPointer++;
                 *playerPointer = information;
                 playerPointer++;
                 *playerPointer = InformationSetTerminator; // terminator
-                if (playerPointer >= nextPlayerPointer)
-                    throw new Exception("Internal error. Must increase size of information set.");
             }
             if (GameProgressLogger.LoggingOn)
             {

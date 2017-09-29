@@ -927,17 +927,21 @@ namespace ACESim
 
         public void MeasureRegretMatchingChanges()
         {
-            NWayTreeStorage<List<double>>[] newRegretMatchingState = new NWayTreeStorage<List<double>>[NumNonChancePlayers];
-            for (int p = 0; p < NumNonChancePlayers; p++)
+            if (EvolutionSettings.MeasureRegretMatchingChanges)
             {
-                newRegretMatchingState[p] = Strategies[p].GetRegretMatchingTree();
-                if (PreviousRegretMatchingState != null)
+                // throw new NotImplementedException(); // we are running into some problem with StackOverflowExceptions with this code, possibly due to a problem with the unsafe code causing corruption. May have to do with the NWayTreeStorageKeyUnsafeStackOnly, although it seems like it is being used in a safe way.
+                NWayTreeStorage<List<double>>[] newRegretMatchingState = new NWayTreeStorage<List<double>>[NumNonChancePlayers];
+                for (int p = 0; p < NumNonChancePlayers; p++)
                 {
-                    (double totalChange, double proportionMixed) = MeasureRegretMatchingChange(PreviousRegretMatchingState[p], newRegretMatchingState[p]);
-                    Console.WriteLine($"Change size for player {p} change {totalChange} proportion mixed {proportionMixed}");
+                    newRegretMatchingState[p] = Strategies[p].GetRegretMatchingTree();
+                    if (PreviousRegretMatchingState != null)
+                    {
+                        (double totalChange, double proportionMixed) = MeasureRegretMatchingChange(PreviousRegretMatchingState[p], newRegretMatchingState[p]);
+                        Console.WriteLine($"Change size for player {p} change {totalChange} proportion mixed {proportionMixed}");
+                    }
                 }
+                PreviousRegretMatchingState = newRegretMatchingState;
             }
-            PreviousRegretMatchingState = newRegretMatchingState;
         }
 
         private (double totalChange, double proportionMixed) MeasureRegretMatchingChange(NWayTreeStorage<List<double>> previous, NWayTreeStorage<List<double>> replacement)

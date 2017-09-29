@@ -34,12 +34,12 @@ namespace ACESim
                 MaxParallelDepth = 1, // we're parallelizing on the iteration level, so there is no need for further parallelization
                 ParallelOptimization = true,
 
-                InitialRandomSeed = 100,
+                InitialRandomSeed = 1,
 
                 Algorithm = GameApproximationAlgorithm.AbramowiczProbing,
 
-                ReportEveryNIterations = 100_000,
-                NumRandomIterationsForSummaryTable = 5_000,
+                ReportEveryNIterations = 1_000_000,
+                NumRandomIterationsForSummaryTable = 1_000,
                 PrintSummaryTable = true,
                 PrintInformationSets = false,
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
@@ -47,7 +47,7 @@ namespace ACESim
                 AlwaysUseAverageStrategyInReporting = false,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
 
-                TotalProbingCFRIterations = 100_000,
+                TotalProbingCFRIterations = 1_000_000,
                 EpsilonForMainPlayer = 0.5,
                 EpsilonForOpponentWhenExploring = 0.05,
                 MinBackupRegretsTrigger = 3,
@@ -73,25 +73,27 @@ namespace ACESim
         public static string EvolveMyGame_Single()
         {
             var options = MyGameOptionsGenerator.Standard();
+            options.LoserPays = false;
+            options.MyGameRunningSideBets = new MyGameRunningSideBets()
+            {
+                MaxChipsPerRound = 2,
+                ValueOfChip = 50000,
+                CountAllChipsInAbandoningRound = true
+            };
+            options.CostsMultiplier = 1.0;
             options.MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
             {
                 ExogenousProbabilityTrulyLiable = 0.5,
-                StdevNoiseToProduceLitigationQuality = 0.5
+                StdevNoiseToProduceLitigationQuality = 0.1
             };
-            options.LoserPays = true;
-            options.LoserPaysMultiple = 10.0;
-            options.LoserPaysAfterAbandonment = true;
-            options.IncludeAgreementToBargainDecisions = true;
-            options.MyGamePretrialDecisionGeneratorGenerator = null;
-            //options.AdditionalTableOverrides = new List<(Func<Decision, GameProgress, byte>, string)>() { (MyGameActionsGenerator.PGivesNoGroundWithMaxSignal, "PGivesNoGroundWithMaxSignal") };
-            //options.MyGamePretrialDecisionGeneratorGenerator = new MyGameSideBet() { DamagesMultipleForChallengedToPay = 6.0, DamagesMultipleForChallengerToPay = 6.0 };
+            // options.AdditionalTableOverrides = new List<(Func<Decision, GameProgress, byte>, string)>() { (MyGameActionsGenerator.PBetsHeavilyWithGoodSignal, "PBetsHeavilyWithGoodSignal") };
             //options.IncludeSignalsReport = true;
             //options.IncludeCourtSuccessReport = true;
-            string sideBetReport = RepeatedlyOptimize(options, "SideBet", true);
-            return sideBetReport;
+            string report = RepeatedlyOptimize(options, "Report", true);
+            return report;
         }
 
-        static int NumRepetitions = 25;
+        static int NumRepetitions = 50;
 
         public static string EvolveMyGame_Multiple()
         {
@@ -106,7 +108,7 @@ namespace ACESim
                 new MyGameExogenousDisputeGenerator()
                 {
                     ExogenousProbabilityTrulyLiable = 0.5,
-                    StdevNoiseToProduceLitigationQuality = 0.5
+                    StdevNoiseToProduceLitigationQuality = 0.1
                 }
             })
             {
@@ -122,24 +124,12 @@ namespace ACESim
             List<string> reports = new List<string>();
             string report = null;
 
-            options.BargainingRoundRecall = MyGameBargainingRoundRecall.RememberOnlyLastBargainingRound; // DEBUG
-
             options.LoserPays = false;
             options.MyGameRunningSideBets = new MyGameRunningSideBets()
             {
                 MaxChipsPerRound = 2,
-                ValueOfChip = 50000
-            };
-            options.CostsMultiplier = 1.0;
-            report = RepeatedlyOptimize(options, description + " RunSideRememb", true);
-            Debug.WriteLine(report);
-            reports.Add(report);
-
-            options.LoserPays = false;
-            options.MyGameRunningSideBets = new MyGameRunningSideBets()
-            {
-                MaxChipsPerRound = 2,
-                ValueOfChip = 50000
+                ValueOfChip = 50000,
+                CountAllChipsInAbandoningRound = true
             };
             options.CostsMultiplier = 1.0;
             report = RepeatedlyOptimize(options, description + " RunSide", true);
@@ -150,7 +140,20 @@ namespace ACESim
             options.MyGameRunningSideBets = new MyGameRunningSideBets()
             {
                 MaxChipsPerRound = 2,
-                ValueOfChip = 100000
+                ValueOfChip = 50000,
+                CountAllChipsInAbandoningRound = false
+            };
+            options.CostsMultiplier = 1.0;
+            report = RepeatedlyOptimize(options, description + " RunSideEscap", true);
+            Debug.WriteLine(report);
+            reports.Add(report);
+
+            options.LoserPays = false;
+            options.MyGameRunningSideBets = new MyGameRunningSideBets()
+            {
+                MaxChipsPerRound = 2,
+                ValueOfChip = 100000,
+                CountAllChipsInAbandoningRound = true
             };
             options.CostsMultiplier = 1.0;
             report = RepeatedlyOptimize(options, description + " RunSideLarge", true);
@@ -163,8 +166,8 @@ namespace ACESim
                 MaxChipsPerRound = 2,
                 ValueOfChip = 50000
             };
-            options.CostsMultiplier = 2.0;
-            report = RepeatedlyOptimize(options, description + " RunSideExp", true);
+            options.CostsMultiplier = 3.0;
+            report = RepeatedlyOptimize(options, description + " RunSideVExp", true);
             Debug.WriteLine(report);
             reports.Add(report);
 
@@ -209,21 +212,21 @@ namespace ACESim
             Debug.WriteLine(report);
             reports.Add(report);
 
-            options.LoserPays = false;
-            options.MyGamePretrialDecisionGeneratorGenerator = new MyGameSideBet() { DamagesMultipleForChallengedToPay = 1.0, DamagesMultipleForChallengerToPay = 1.0 };
-            options.MyGameRunningSideBets = null;
-            options.CostsMultiplier = 1.0;
-            report = RepeatedlyOptimize(options, description + " SideBet", true);
-            Debug.WriteLine(report);
-            reports.Add(report);
+            //options.LoserPays = false;
+            //options.MyGamePretrialDecisionGeneratorGenerator = new MyGameSideBet() { DamagesMultipleForChallengedToPay = 1.0, DamagesMultipleForChallengerToPay = 1.0 };
+            //options.MyGameRunningSideBets = null;
+            //options.CostsMultiplier = 1.0;
+            //report = RepeatedlyOptimize(options, description + " SideBet", true);
+            //Debug.WriteLine(report);
+            //reports.Add(report);
 
-            options.LoserPays = false;
-            options.MyGamePretrialDecisionGeneratorGenerator = new MyGameSideBet() { DamagesMultipleForChallengedToPay = 5.0, DamagesMultipleForChallengerToPay = 5.0 };
-            options.MyGameRunningSideBets = null;
-            options.CostsMultiplier = 1.0;
-            report = RepeatedlyOptimize(options, description + " SideLarge", true);
-            Debug.WriteLine(report);
-            reports.Add(report);
+            //options.LoserPays = false;
+            //options.MyGamePretrialDecisionGeneratorGenerator = new MyGameSideBet() { DamagesMultipleForChallengedToPay = 5.0, DamagesMultipleForChallengerToPay = 5.0 };
+            //options.MyGameRunningSideBets = null;
+            //options.CostsMultiplier = 1.0;
+            //report = RepeatedlyOptimize(options, description + " SideLarge", true);
+            //Debug.WriteLine(report);
+            //reports.Add(report);
 
             string combined = "";
             foreach (string anotherReport in reports)

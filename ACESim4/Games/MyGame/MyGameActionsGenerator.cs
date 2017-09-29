@@ -8,6 +8,17 @@ namespace ACESim
 {
     public static class MyGameActionsGenerator
     {
+        public static byte PBetsHeavilyWithGoodSignal(Decision decision, GameProgress progress)
+        {
+            MyGameProgress p = (MyGameProgress)progress;
+            if (p.PSignalDiscrete >= 9)
+            {
+                if (decision.DecisionByteCode == (byte)MyGameDecisions.PChips)
+                    return 3; // 2 chips
+            }
+            return 0;
+        }
+
         public static byte PGivesNoGroundWithMaxSignal(Decision decision, GameProgress progress)
         {
             MyGameProgress p = (MyGameProgress)progress;

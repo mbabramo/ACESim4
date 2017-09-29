@@ -49,21 +49,10 @@ namespace ACESim
                 new SimpleReportColumnVariable("LitigQuality", (GameProgress gp) => MyGP(gp).LitigationQualityUniform),
                 new SimpleReportColumnFilter("PFiles", (GameProgress gp) => MyGP(gp).PFiles, false),
                 new SimpleReportColumnFilter("DAnswers", (GameProgress gp) => MyGP(gp).DAnswers, false),
-                new SimpleReportColumnVariable("PFirstOffer", (GameProgress gp) => MyGP(gp).PFirstOffer),
-                new SimpleReportColumnVariable("DFirstOffer", (GameProgress gp) => MyGP(gp).DFirstOffer),
-                new SimpleReportColumnVariable("PLastOffer", (GameProgress gp) => MyGP(gp).PLastOffer),
-                new SimpleReportColumnVariable("DLastOffer", (GameProgress gp) => MyGP(gp).DLastOffer),
-                new SimpleReportColumnFilter("Settles", (GameProgress gp) => MyGP(gp).SettlementValue != null, false),
-                new SimpleReportColumnVariable("ValIfSettled", (GameProgress gp) => MyGP(gp).SettlementValue),
-                new SimpleReportColumnFilter("PAbandons", (GameProgress gp) => MyGP(gp).PAbandons, false),
-                new SimpleReportColumnFilter("DDefaults", (GameProgress gp) => MyGP(gp).DDefaults, false),
-                new SimpleReportColumnFilter("BothReadyToGiveUp", (GameProgress gp) => MyGP(gp).BothReadyToGiveUp, false),
-                new SimpleReportColumnFilter("TrulyLiable", (GameProgress gp) => MyGP(gp).IsTrulyLiable, false),
-                new SimpleReportColumnVariable("PrimaryAction", (GameProgress gp) => (double) MyGP(gp).DisputeGeneratorActions.PrimaryAction),
             };
-            for (int b = 1; b <= Options.NumPotentialBargainingRounds; b++)
+            for (byte b = 1; b <= Options.NumPotentialBargainingRounds; b++)
             {
-                int bargainingRoundNum = b; // needed for closure -- otherwise b below will always be max value.
+                byte bargainingRoundNum = b; // needed for closure -- otherwise b below will always be max value.
                 if (Options.IncludeAgreementToBargainDecisions)
                 {
                     colItems.Add(
@@ -77,9 +66,26 @@ namespace ACESim
                     );
                 }
                 colItems.Add(
+                    new SimpleReportColumnVariable($"POffer{b}",
+                        (GameProgress gp) => MyGP(gp).GetOffer(true, bargainingRoundNum))
+                );
+                colItems.Add(
+                    new SimpleReportColumnVariable($"DOffer{b}",
+                        (GameProgress gp) => MyGP(gp).GetOffer(false, bargainingRoundNum))
+                );
+                colItems.Add(
                     new SimpleReportColumnFilter($"Settles{b}",
                         (GameProgress gp) => MyGP(gp).SettlementValue != null &&
                                              MyGP(gp).BargainingRoundsComplete == bargainingRoundNum, false)
+                );
+
+                colItems.Add(
+                    new SimpleReportColumnVariable($"PBet{b}",
+                        (GameProgress gp) => MyGP(gp).GetPlayerBet(true, bargainingRoundNum))
+                );
+                colItems.Add(
+                    new SimpleReportColumnVariable($"DBet{b}",
+                        (GameProgress gp) => MyGP(gp).GetPlayerBet(false, bargainingRoundNum))
                 );
                 if (Options.AllowAbandonAndDefaults)
                 {
@@ -87,7 +93,6 @@ namespace ACESim
                         new SimpleReportColumnFilter($"PAbandons{b}",
                             (GameProgress gp) => (MyGP(gp).PAbandons && bargainingRoundNum == MyGP(gp).BargainingRoundsComplete), false)
                     );
-
                     colItems.Add(
                         new SimpleReportColumnFilter($"DDefaults{b}",
                             (GameProgress gp) => (MyGP(gp).DDefaults && bargainingRoundNum == MyGP(gp).BargainingRoundsComplete), false)
@@ -99,6 +104,7 @@ namespace ACESim
                 new SimpleReportColumnFilter("Trial", (GameProgress gp) => MyGP(gp).TrialOccurs, false),
                 new SimpleReportColumnFilter("PWinsAtTrial", (GameProgress gp) => MyGP(gp).TrialOccurs && MyGP(gp).PWinsAtTrial == true, false),
                 new SimpleReportColumnFilter("DWinsAtTrial", (GameProgress gp) => MyGP(gp).TrialOccurs && MyGP(gp).PWinsAtTrial == false, false),
+                new SimpleReportColumnFilter("PWinPct", (GameProgress gp) => !MyGP(gp).TrialOccurs ? (bool?) null : MyGP(gp).PWinsAtTrial, false),
                 new SimpleReportColumnVariable("PWealth", (GameProgress gp) => MyGP(gp).PFinalWealth),
                 new SimpleReportColumnVariable("DWealth", (GameProgress gp) => MyGP(gp).DFinalWealth),
                 new SimpleReportColumnVariable("PWelfare", (GameProgress gp) => MyGP(gp).PWelfare),
@@ -107,6 +113,14 @@ namespace ACESim
                 new SimpleReportColumnVariable("False+", (GameProgress gp) => MyGP(gp).FalsePositiveExpenditures),
                 new SimpleReportColumnVariable("False-", (GameProgress gp) => MyGP(gp).FalseNegativeShortfall),
                 new SimpleReportColumnVariable("PDSWelfare", (GameProgress gp) => MyGP(gp).PreDisputeSWelfare),
+                new SimpleReportColumnVariable("Chips", (GameProgress gp) => MyGP(gp).NumChips),
+                new SimpleReportColumnFilter("Settles", (GameProgress gp) => MyGP(gp).SettlementValue != null, false),
+                new SimpleReportColumnVariable("ValIfSettled", (GameProgress gp) => MyGP(gp).SettlementValue),
+                new SimpleReportColumnFilter("PAbandons", (GameProgress gp) => MyGP(gp).PAbandons, false),
+                new SimpleReportColumnFilter("DDefaults", (GameProgress gp) => MyGP(gp).DDefaults, false),
+                new SimpleReportColumnFilter("BothReadyToGiveUp", (GameProgress gp) => MyGP(gp).BothReadyToGiveUp, false),
+                new SimpleReportColumnFilter("TrulyLiable", (GameProgress gp) => MyGP(gp).IsTrulyLiable, false),
+                new SimpleReportColumnVariable("PrimaryAction", (GameProgress gp) => (double) MyGP(gp).DisputeGeneratorActions.PrimaryAction),
             });
             var simpleReportFilters = new List<SimpleReportFilter>()
             {
@@ -115,7 +129,11 @@ namespace ACESim
                 new SimpleReportFilter("DisputeArises", (GameProgress gp) => MyGP(gp).DisputeArises),
                 new SimpleReportFilter("Litigated", (GameProgress gp) => MyGP(gp).PFiles && MyGP(gp).DAnswers),
                 new SimpleReportFilter("Settles", (GameProgress gp) => MyGP(gp).CaseSettles),
-                new SimpleReportFilter("Tried", (GameProgress gp) => !MyGP(gp).CaseSettles),
+                new SimpleReportFilter("Tried", (GameProgress gp) => MyGP(gp).TrialOccurs),
+                new SimpleReportFilter("Abandoned", (GameProgress gp) => MyGP(gp).PAbandons || MyGP(gp).DDefaults),
+                new SimpleReportFilter("OneRound", (GameProgress gp) => MyGP(gp).BargainingRoundsComplete == 1),
+                new SimpleReportFilter("TwoRounds", (GameProgress gp) => MyGP(gp).BargainingRoundsComplete == 2),
+                new SimpleReportFilter("ThreeRounds", (GameProgress gp) => MyGP(gp).BargainingRoundsComplete == 3),
                 new SimpleReportFilter("LowQuality",
                     (GameProgress gp) => MyGP(gp).LitigationQualityUniform <= 0.25),
                 new SimpleReportFilter("MediumQuality",
@@ -131,7 +149,7 @@ namespace ACESim
                     (GameProgress gp) => MyGP(gp).DSignalUniform > 0.25 && MyGP(gp).DSignalUniform < 0.75),
                 new SimpleReportFilter("HiPSignal", (GameProgress gp) => MyGP(gp).PSignalUniform >= 0.75),
                 new SimpleReportFilter("HiDSignal", (GameProgress gp) => MyGP(gp).DSignalUniform >= 0.75),
-                //new SimpleReportFilter("Custom", (GameProgress gp) => MyGP(gp).PSignalDiscrete == 9),
+                new SimpleReportFilter("Custom", (GameProgress gp) => MyGP(gp).PSignalUniform >= 0.7 && !MyGP(gp).DDefaults),
             };
             for (byte signal = 1; signal < 11; signal++)
             {
@@ -144,9 +162,25 @@ namespace ACESim
                 byte s = signal; // avoid closure
                 simpleReportFilters.Add(
                     new SimpleReportFilter("PSignal" + s, (GameProgress gp) => MyGP(gp).PSignalDiscrete == s));
+            }
+            for (byte signal = 1; signal <= Options.NumSignals; signal++)
+            {
+                byte s = signal; // avoid closure
                 simpleReportFilters.Add(
                     new SimpleReportFilter("DSignal" + s, (GameProgress gp) => MyGP(gp).DSignalDiscrete == s));
             }
+            //for (byte signal = 1; signal <= Options.NumSignals; signal++)
+            //{
+            //    byte s = signal; // avoid closure
+            //    simpleReportFilters.Add(
+            //        new SimpleReportFilter("LitigPSignal" + s, (GameProgress gp) => MyGP(gp).PSignalDiscrete == s && MyGP(gp).PFiles && MyGP(gp).DAnswers));
+            //}
+            //for (byte signal = 1; signal <= Options.NumSignals; signal++)
+            //{
+            //    byte s = signal; // avoid closure
+            //    simpleReportFilters.Add(
+            //        new SimpleReportFilter("LitigDSignal" + s, (GameProgress gp) => MyGP(gp).DSignalDiscrete == s && MyGP(gp).PFiles && MyGP(gp).DAnswers));
+            //}
             return new SimpleReportDefinition(
                 "MyGameReport",
                 null,
@@ -301,7 +335,7 @@ namespace ACESim
             }
         }
 
-        private Func<GameProgress, bool> GetOfferOrResponseFilter(bool plaintiffMakesOffer, int offerNumber,
+        private Func<GameProgress, bool?> GetOfferOrResponseFilter(bool plaintiffMakesOffer, int offerNumber,
             bool reportResponseToOffer, Tuple<double, double> offerRange)
         {
             if (reportResponseToOffer)

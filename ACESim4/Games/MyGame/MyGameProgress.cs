@@ -48,11 +48,12 @@ namespace ACESim
         public MyGameDisputeGeneratorActions DisputeGeneratorActions;
         public MyGamePretrialActions PretrialActions;
         public MyGameRunningSideBetsActions RunningSideBetsActions;
+        public byte NumChips;
 
         public override string ToString()
         {
             return
-                $"DisputeArises {DisputeArises} IsTrulyLiable {IsTrulyLiable} LitigationQualityDiscrete {LitigationQualityDiscrete} LitigationQualityUniform {LitigationQualityUniform} PSignalDiscrete {PSignalDiscrete} DSignalDiscrete {DSignalDiscrete} PSignalUniform {PSignalUniform} DSignalUniform {DSignalUniform} PFiles {PFiles} DAnswers {DAnswers} BargainingRoundsComplete {BargainingRoundsComplete} PLastAgreesToBargain {PLastAgreesToBargain} DLastAgreesToBargain {DLastAgreesToBargain} PLastOffer {PLastOffer} DLastOffer {DLastOffer} CaseSettles {CaseSettles} SettlementValue {SettlementValue} PAbandons {PAbandons} DDefaults {DDefaults} TrialOccurs {TrialOccurs} PWinsAtTrial {PWinsAtTrial} PFinalWealthWithBestOffer {PFinalWealthWithBestOffer} DFinalWealthWithBestOffer {DFinalWealthWithBestOffer} PFinalWealth {PFinalWealth} DFinalWealth {DFinalWealth} PWelfare {PWelfare} DWelfare {DWelfare} FalsePositiveExpenditures {FalsePositiveExpenditures} FalseNegativeShortfall {FalseNegativeShortfall} TotalExpensesIncurred {TotalExpensesIncurred} ";
+                $"DisputeArises {DisputeArises} IsTrulyLiable {IsTrulyLiable} LitigationQualityDiscrete {LitigationQualityDiscrete} LitigationQualityUniform {LitigationQualityUniform} PSignalDiscrete {PSignalDiscrete} DSignalDiscrete {DSignalDiscrete} PSignalUniform {PSignalUniform} DSignalUniform {DSignalUniform} PFiles {PFiles} DAnswers {DAnswers} BargainingRoundsComplete {BargainingRoundsComplete} PLastAgreesToBargain {PLastAgreesToBargain} DLastAgreesToBargain {DLastAgreesToBargain} PLastOffer {PLastOffer} DLastOffer {DLastOffer} CaseSettles {CaseSettles} SettlementValue {SettlementValue} PAbandons {PAbandons} DDefaults {DDefaults} TrialOccurs {TrialOccurs} PWinsAtTrial {PWinsAtTrial} PFinalWealthWithBestOffer {PFinalWealthWithBestOffer} DFinalWealthWithBestOffer {DFinalWealthWithBestOffer} PFinalWealth {PFinalWealth} DFinalWealth {DFinalWealth} PWelfare {PWelfare} DWelfare {DWelfare} FalsePositiveExpenditures {FalsePositiveExpenditures} FalseNegativeShortfall {FalseNegativeShortfall} TotalExpensesIncurred {TotalExpensesIncurred} NumChips {NumChips}";
         }
 
         public bool? PFirstAgreesToBargain => (bool?)PAgreesToBargain?.FirstOrDefault() ?? null;
@@ -67,7 +68,11 @@ namespace ACESim
         public double? DLastOffer => (double?)DOffers?.LastOrDefault() ?? null;
         public bool? PLastResponse => (bool?)PResponses?.LastOrDefault() ?? null;
         public bool? DLastResponse => (bool?)DResponses?.LastOrDefault() ?? null;
-        public bool BothPlayersHaveCompletedRound => POffers?.Count() == DResponses?.Count() && DOffers?.Count() == PResponses?.Count();
+        public bool SurvivesToRound(byte round) => BargainingRoundsComplete >= round;
+        public bool BothPlayersHaveCompletedRoundWithOfferResponse => POffers?.Count() == DResponses?.Count() && DOffers?.Count() == PResponses?.Count();
+
+
+
         public void ConcludeMainPortionOfBargainingRound(MyGameDefinition gameDefinition)
         {
             bool playersMovingSimultaneously = gameDefinition.Options.BargainingRoundsSimultaneous;
@@ -97,7 +102,14 @@ namespace ACESim
             }
         }
 
-
+        public byte? GetPlayerBet(bool plaintiff, byte round)
+        {
+            if (RunningSideBetsActions.ActionsEachBargainingRound == null)
+                return null;
+            if (!SurvivesToRound(round) || (SettlementValue != null && BargainingRoundsComplete == round))
+                return null;
+            return (byte) (RunningSideBetsActions.ActionsEachBargainingRound.Skip(round - 1).Select(x => plaintiff ? x.PAction : x.DAction).First() - 1);
+        }
 
         public double? GetOffer(bool plaintiff, int offerNumber)
         {

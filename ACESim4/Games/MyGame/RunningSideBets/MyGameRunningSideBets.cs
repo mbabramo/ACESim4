@@ -17,6 +17,10 @@ namespace ACESim
         /// The maximum number of chips per round. Each player will simultaneously bet a suggested number of chips up to this number, and the higher will control. The players must then decide whether to give up based on this maximum.
         /// </summary>
         public byte MaxChipsPerRound;
+        /// <summary>
+        /// If true, then a player who gives up after a round must pay the number of chips the opponent bet in that round, even if that is larger than the number of chips paid by the player.
+        /// </summary>
+        public bool CountAllChipsInAbandoningRound;
 
 
         public void Setup(MyGameDefinition myGameDefinition)
@@ -36,12 +40,12 @@ namespace ACESim
             myGameProgress.RunningSideBetsActions.ActionsEachBargainingRound.Add((pAction, dAction));
         }
 
-        public void GetEffectOnPlayerWelfare(MyGameDefinition myGameDefinition, byte? roundOfAbandonment, bool pAbandons, bool dDefaults, bool trialOccurs, bool pWinsAtTrial, MyGameRunningSideBetsActions runningSideBetsActions, out double effectOnP, out double effectOnD)
+        public void GetEffectOnPlayerWelfare(MyGameDefinition myGameDefinition, byte? roundOfAbandonment, bool pAbandons, bool dDefaults, bool trialOccurs, bool pWinsAtTrial, MyGameRunningSideBetsActions runningSideBetsActions, out double effectOnP, out double effectOnD, out byte totalChipsThatCount)
         {
-            byte numChipsBet = runningSideBetsActions.GetTotalChipsThatCount(roundOfAbandonment, pAbandons);
-            if (numChipsBet > 0 && (pAbandons || dDefaults || trialOccurs))
+            totalChipsThatCount = runningSideBetsActions.GetTotalChipsThatCount(roundOfAbandonment, pAbandons, myGameDefinition.Options.MyGameRunningSideBets.CountAllChipsInAbandoningRound);
+            if (totalChipsThatCount > 0 && (pAbandons || dDefaults || trialOccurs))
             {
-                double transferToP = numChipsBet * ValueOfChip;
+                double transferToP = totalChipsThatCount * ValueOfChip;
                 bool pWins = dDefaults || (trialOccurs && pWinsAtTrial);
                 if (!pWins)
                     transferToP = -transferToP;

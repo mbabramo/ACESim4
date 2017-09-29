@@ -204,6 +204,7 @@ namespace ACESim
             public double PWelfare;
             public double DWelfare;
             public bool TrialOccurs;
+            public byte NumChips;
         }
 
         public static MyGameOutcome CalculateGameOutcome(MyGameDefinition gameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions, MyGamePretrialActions pretrialActions, MyGameRunningSideBetsActions runningSideBetActions, double pInitialWealth, double dInitialWealth, double damagesAlleged, bool pFiles, bool pAbandons, bool dAnswers, bool dDefaults, double? settlementValue, bool pWinsAtTrial, byte bargainingRoundsComplete, double? pFinalWealthWithBestOffer, double? dFinalWealthWithBestOffer)
@@ -280,9 +281,10 @@ namespace ACESim
             if (gameDefinition.Options.MyGameRunningSideBets != null)
             {
                 byte? roundOfAbandonment = (pAbandons || dDefaults) ? (byte?) bargainingRoundsComplete : null;
-                gameDefinition.Options.MyGameRunningSideBets.GetEffectOnPlayerWelfare(gameDefinition, roundOfAbandonment, pAbandons, dDefaults, outcome.TrialOccurs, pWinsAtTrial, runningSideBetActions, out double effectOnP, out double effectOnD);
+                gameDefinition.Options.MyGameRunningSideBets.GetEffectOnPlayerWelfare(gameDefinition, roundOfAbandonment, pAbandons, dDefaults, outcome.TrialOccurs, pWinsAtTrial, runningSideBetActions, out double effectOnP, out double effectOnD, out byte totalChipsThatCount);
                 outcome.PChangeWealth += effectOnP;
                 outcome.DChangeWealth += effectOnD;
+                outcome.NumChips = totalChipsThatCount;
             }
 
             outcome.PFinalWealth = pWealthAfterPrimaryConduct + outcome.PChangeWealth;
@@ -314,6 +316,7 @@ namespace ACESim
             MyProgress.PWelfare = outcome.PWelfare;
             MyProgress.DWelfare = outcome.DWelfare;
             MyProgress.TrialOccurs = outcome.TrialOccurs;
+            MyProgress.NumChips = outcome.NumChips;
 
             CalculateSocialWelfareOutcomes();
 

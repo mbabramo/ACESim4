@@ -60,6 +60,66 @@ namespace ACESim
             return options;
         }
 
+
+        public static MyGameOptions SingleRound()
+        {
+            var options = new MyGameOptions()
+            {
+                PInitialWealth = 1000000,
+                DInitialWealth = 1000000,
+                DamagesToAllege = 100000,
+                NumLitigationQualityPoints = 10,
+                MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
+                {
+                    ProbabilityTrulyLiable_LitigationQuality75 = 0.75,
+                    ProbabilityTrulyLiable_LitigationQuality90 = 0.90,
+                    NumPointsToDetermineTrulyLiable = 100,
+                },
+                NumSignals = 10,
+                NumNoiseValues = 100,
+                NumCourtNoiseValues = 10,
+                NumOffers = 11,
+                PFilingCost = 5000,
+                DAnswerCost = 5000,
+                PNoiseStdev = 0.3,
+                DNoiseStdev = 0.3,
+                CourtNoiseStdev = 0.3,
+                CostsMultiplier = 1.0,
+                PTrialCosts = 25000,
+                DTrialCosts = 25000,
+                RegretAversion = 0.0,
+                IncludeAgreementToBargainDecisions = false,
+                PerPartyCostsLeadingUpToBargainingRound = 0,
+                AllowAbandonAndDefaults = true,
+                LoserPays = false,
+                LoserPaysMultiple = 1.0,
+                LoserPaysAfterAbandonment = false,
+                DeltaOffersOptions = new DeltaOffersOptions()
+                {
+                    SubsequentOffersAreDeltas = false,
+                    DeltaStartingValue = 0.01,
+                    MaxDelta = 0.25
+                },
+                NumPotentialBargainingRounds = 1,
+                BargainingRoundRecall = MyGameBargainingRoundRecall.RememberOnlyLastBargainingRound,
+                SubdivideOffers = false,
+                BargainingRoundsSimultaneous = true,
+                PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false, true, false, true, false },
+                IncludeSignalsReport = false,
+                IncludeCourtSuccessReport = false,
+            };
+            // options.AdditionalTableOverrides = new List<(Func<Decision, GameProgress, byte>, string)>() { (MyGameActionsGenerator.GamePlaysOutToTrial, "GamePlaysOutToTrial") };
+            options.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.PInitialWealth };
+            options.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.DInitialWealth };
+            //options.PUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth };
+            //options.DUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth };
+            //options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth, Alpha = 10 * 0.000001 };
+            //options.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth, Alpha = 10 * 0.000001 };
+            //options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth, Alpha = 10 * 0.000001 };
+            //options.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.DInitialWealth };
+            return options;
+        }
+
         public static MyGameOptions Standard()
         {
             var options = new MyGameOptions()
@@ -100,7 +160,7 @@ namespace ACESim
                     MaxDelta = 0.25
                 },
                 NumPotentialBargainingRounds = 3,
-                BargainingRoundRecall = MyGameBargainingRoundRecall.ForgetEarlierBargainingRounds, // DEBUG
+                BargainingRoundRecall = MyGameBargainingRoundRecall.RememberOnlyLastBargainingRound,
                 SubdivideOffers = false,
                 BargainingRoundsSimultaneous = true,
                 PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false, true, false, true, false },

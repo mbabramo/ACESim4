@@ -215,7 +215,7 @@ namespace ACESim
         public unsafe NWayTreeStorage<List<double>> GetRegretMatchingTree()
         {
             var regretMatchingTree = new NWayTreeStorageRoot<List<double>>(null, InformationSetTree.Branches.Length, false);
-            var nodes = InformationSetTree.GetAllTreeNodes();
+            List<(IGameState storedValue, List<byte> sequenceToHere)> nodes = InformationSetTree.GetAllTreeNodes();
             foreach (var node in nodes)
             {
                 if (node.storedValue is InformationSetNodeTally tallyNode)
