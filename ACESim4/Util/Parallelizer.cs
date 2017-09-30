@@ -38,7 +38,7 @@ namespace ACESim
             if (MaxDegreeOfParallelism == null)
                 return null;
             else
-                return new ParallelOptions() {MaxDegreeOfParallelism = = MaxDegreeOfParallelism};
+                return new ParallelOptions() {MaxDegreeOfParallelism = (int) MaxDegreeOfParallelism};
         }
 
         public static bool DisableParallel;
