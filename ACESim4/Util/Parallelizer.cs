@@ -12,6 +12,7 @@ namespace ACESim
     public static class Parallelizer
     {
         public static int ParallelDepth = 0;
+        public static int? MaxDegreeOfParallelism = 3;
         const int maxParallelDepth = 20;
         static object[] lockObj = new object[maxParallelDepth];
         internal static bool lockObjInitialized = false;
@@ -30,6 +31,14 @@ namespace ACESim
                 }
             }
             return lockObj[ParallelDepth];
+        }
+
+        public static ParallelOptions GetParallelOptions()
+        {
+            if (MaxDegreeOfParallelism == null)
+                return null;
+            else
+                return new ParallelOptions() {MaxDegreeOfParallelism = = MaxDegreeOfParallelism};
         }
 
         public static bool DisableParallel;
@@ -131,6 +140,7 @@ namespace ACESim
                 int initialParallelDepth = ParallelDepth;
                 IncrementParallelDepth();
                 Parallel.ForEach(Partitioner.Create(start, stopBeforeThis),
+                    GetParallelOptions(),
                     (range) =>
                     {
                         for (byte i = (byte) range.Item1; i < range.Item2; i++)
@@ -157,6 +167,7 @@ namespace ACESim
             {
                 IncrementParallelDepth();
                 Parallel.ForEach(Partitioner.Create(start, stopBeforeThis),
+                    GetParallelOptions(),
                     (range) =>
                     {
                         for (long i = range.Item1; i < range.Item2; i++)
@@ -273,6 +284,7 @@ namespace ACESim
                 IncrementParallelDepth();
                 RandomGenerator.ThrowExceptionIfCalled = true;
                 Parallel.ForEach(Partitioner.Create((long)0, numSuccessesRequired),
+                    GetParallelOptions(),
                     (range) =>
                     {
                         
@@ -355,6 +367,7 @@ namespace ACESim
             {
                 IncrementParallelDepth();
                 Parallel.ForEach(Partitioner.Create(0, totalIterations),
+                    GetParallelOptions(),
                     (range) =>
                     {
                         for (long i = range.Item1; i < range.Item2; i++)

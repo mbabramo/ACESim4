@@ -38,7 +38,7 @@ namespace ACESim
         public List<int> RestrictToTheseInformationSets = null;
         public bool PrintNonChanceInformationSetsOnly = true;
         public bool AlwaysUseAverageStrategyInReporting = true;
-        public int InitialRandomSeed = 0;
+        public int GameNumber = 0;
         internal int NumRandomIterationsForUtilityCalculation = 10000;
     }
 }

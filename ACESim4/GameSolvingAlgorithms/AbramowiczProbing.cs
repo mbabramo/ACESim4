@@ -456,8 +456,7 @@ namespace ACESim
         public unsafe string SolveAbramowiczProbingCFR()
         {
             string reportString = null;
-            if (GameNumber == 0)
-                GameNumber = EvolutionSettings.InitialRandomSeed;
+            GameNumber = EvolutionSettings.GameNumber;
             Console.WriteLine($"Game number {GameNumber}");
             Stopwatch s = new Stopwatch();
             if (NumNonChancePlayers > 2)
@@ -530,7 +529,6 @@ namespace ACESim
                             $"Iteration {ProbingCFRIterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)(ProbingCFRIterationNum + 1))))}");
                 }
             }
-            GameNumber++;
             return reportString; // final report
         }
 
