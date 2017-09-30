@@ -14,7 +14,8 @@ namespace ACESim
 
         private const int StartGameNumber = 1;
         private static bool SingleGameMode = false;
-        private static int NumRepetitions = 5;
+        private static int NumRepetitions = 25;
+        private static bool UseAzure = false;
         private static bool ParallelizeOptionSets = true;
         private static bool ParallelizeIndividualExecutions = false;
 
@@ -29,7 +30,7 @@ namespace ACESim
 
                 Algorithm = GameApproximationAlgorithm.AbramowiczProbing,
 
-                ReportEveryNIterations = 10_000,
+                ReportEveryNIterations = 1_000_000,
                 NumRandomIterationsForSummaryTable = 10_000,
                 PrintSummaryTable = true,
                 PrintInformationSets = false,
@@ -38,7 +39,7 @@ namespace ACESim
                 AlwaysUseAverageStrategyInReporting = false,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
 
-                TotalProbingCFRIterations = 10_000,
+                TotalProbingCFRIterations = 1_000_000,
                 EpsilonForMainPlayer = 0.5,
                 EpsilonForOpponentWhenExploring = 0.05,
                 MinBackupRegretsTrigger = 3,
@@ -86,7 +87,30 @@ namespace ACESim
 
         public static string EvolveMyGame_Multiple()
         {
-            List <(string reportName, MyGameOptions options)> optionSets = new List<(string reportName, MyGameOptions options)>();
+            var optionSets = GetOptionsSets();
+            if (UseAzure)
+            {
+                Console.WriteLine("Confirm that you have already published to Azure. Otherwise, you will get old results. Press G to continue on Azure.");
+                do
+                {
+                    while (!Console.KeyAvailable)
+                    {
+                        // Do something
+                    }
+                } while (Console.ReadKey(true).Key != ConsoleKey.G);
+                string combined = ProcessAllOptionSetsOnAzure().GetAwaiter().GetResult(); 
+                return combined;
+            }
+            else
+            {
+                string combined = ProcessAllOptionSetsLocally();
+                return combined;
+            }
+        }
+
+        private static List<(string reportName, MyGameOptions options)> GetOptionsSets()
+        {
+            List<(string reportName, MyGameOptions options)> optionSets = new List<(string reportName, MyGameOptions options)>();
 
             foreach (IMyGameDisputeGenerator d in new IMyGameDisputeGenerator[]
             {
@@ -105,8 +129,7 @@ namespace ACESim
                 options.MyGameDisputeGenerator = d;
                 optionSets.AddRange(GetOptionsVariations(d.GetGeneratorName(), () => options));
             }
-            string combined = ProcessAllOptionSetsLocally(optionSets, NumRepetitions);
-            return combined;
+            return optionSets;
         }
 
         private static List<(string reportName, MyGameOptions options)> GetOptionsVariations(string description, Func<MyGameOptions> initialOptionsFunc)
@@ -165,8 +188,10 @@ namespace ACESim
             return list;
         }
 
-        private static string ProcessAllOptionSetsLocally(List<(string reportName, MyGameOptions options)> optionSets, int numRepetitionsPerOptionSet)
+        private static string ProcessAllOptionSetsLocally()
         {
+            List<(string reportName, MyGameOptions options)> optionSets = GetOptionsSets();
+            int numRepetitionsPerOptionSet = NumRepetitions;
             string[] results = new string[optionSets.Count];
 
             void SingleOptionSetAction(int index)
@@ -183,12 +208,13 @@ namespace ACESim
             return combinedResults;
         }
 
-        private static async Task<string> ProcessAllOptionSetsRemotely(List<(string reportName, MyGameOptions options)> optionSets, int numRepetitionsPerOptionSet)
+        private static async Task<string> ProcessAllOptionSetsOnAzure()
         {
-
+            List<(string reportName, MyGameOptions options)> optionSets = GetOptionsSets();
+            int numRepetitionsPerOptionSet = NumRepetitions;
             List<Task<string>> tasks = new List<Task<string>>();
             for (int i = 0; i < optionSets.Count; i++)
-                tasks.Add(ProcessSingleOptionSet_Parallel(optionSets[i].options, optionSets[i].reportName, i == 0, StartGameNumber, numRepetitionsPerOptionSet));
+                tasks.Add(ProcessSingleOptionSet_Azure(i));
             var taskResults = await Task.WhenAll(tasks);
             List<string> stringResults = new List<string>();
             foreach (var taskResult in taskResults)
@@ -216,29 +242,53 @@ namespace ACESim
             return mergedReport;
         }
 
-        private static async Task<string> ProcessSingleOptionSet_Parallel(MyGameOptions options, string reportName, bool includeFirstLine, int startGameNumber, int numRepetitions)
+        private static async Task<string> ProcessSingleOptionSet_Azure(int optionSetIndex)
         {
+            bool includeFirstLine = optionSetIndex == 0;
+            List<(string reportName, MyGameOptions options)> optionSets = GetOptionsSets();
+            var options = optionSets[optionSetIndex].options;
+            string reportName = optionSets[optionSetIndex].reportName;
+            int numRepetitionsPerOptionSet = NumRepetitions;
             if (options.IncludeCourtSuccessReport || options.IncludeSignalsReport)
                 if (NumRepetitions > 1)
                     throw new Exception("Can include multiple reports only with 1 repetition. Use console output rather than string copied."); // problem is that we can't merge the reports if NumRepetitions > 1 when we have more than one report. TODO: Fix this. 
             var developer = GetDeveloper(options);
-            developer.EvolutionSettings.GameNumber = startGameNumber;
-            string[] combinedReports = new string[numRepetitions];
+            developer.EvolutionSettings.GameNumber = StartGameNumber;
+            string[] combinedReports = new string[NumRepetitions];
             List<Task<string>> tasks = new List<Task<string>>();
-            for (int i = 0; i < numRepetitions; i++)
-                tasks.Add(GetSingleRepetitionReport(options, reportName, i));
+            for (int i = 0; i < NumRepetitions; i++)
+            {
+                tasks.Add(GetSingleRepetitionReport_Azure(optionSetIndex, i));
+            }
             await Task.WhenAll(tasks);
 
-            for (int i = 0; i < numRepetitions; i++)
+            for (int i = 0; i < NumRepetitions; i++)
                 combinedReports[i] = tasks[i].Result;
             string combinedRepetitionsReport = String.Join("", combinedReports);
             string mergedReport = SimpleReportMerging.GetMergedReports(combinedRepetitionsReport, reportName, includeFirstLine);
             return mergedReport;
         }
 
-        private static Task<string> GetSingleRepetitionReport(MyGameOptions options, string reportName, int i)
+        private async static Task<string> GetSingleRepetitionReport_Azure(int optionSetIndex, int repetition)
         {
-            return Task.FromResult(GetSingleRepetitionReport(reportName, i, GetDeveloper(options)));
+            // DEBUG -- TODO add the Azure function
+            Task<string> t = Task<string>.Factory.StartNew(() => GetSingleRepetitionReport(optionSetIndex, repetition));
+            return await t;
+        }
+
+        private static string GetSingleRepetitionReport(int optionSetIndex, int repetition)
+        {
+            bool includeFirstLine = optionSetIndex == 0;
+            List<(string reportName, MyGameOptions options)> optionSets = GetOptionsSets();
+            var options = optionSets[optionSetIndex].options;
+            string reportName = optionSets[optionSetIndex].reportName;
+            int numRepetitionsPerOptionSet = NumRepetitions;
+            return GetSingleRepetitionReport(options, reportName, repetition);
+        }
+
+        private static string GetSingleRepetitionReport(MyGameOptions options, string reportName, int i)
+        {
+            return GetSingleRepetitionReport(reportName, i, GetDeveloper(options));
         }
 
         private static string GetSingleRepetitionReport(string reportName, int i, CounterfactualRegretMaximization developer)

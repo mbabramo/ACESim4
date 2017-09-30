@@ -119,7 +119,7 @@ namespace ACESim
             {
                 if (!s.PlayerInfo.PlayerIsChance)
                 {
-                    s.InformationSetTree.WalkTree(node =>
+                    s.InformationSetTree?.WalkTree(node =>
                     {
                         InformationSetNodeTally t = (InformationSetNodeTally)node.StoredValue;
                         t?.Reinitialize();

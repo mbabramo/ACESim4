@@ -21,13 +21,30 @@ namespace ACESim
         [STAThread]
         static void Main(string[] args)
         {
+            // DEBUG -- turn into class library
+
+            // DEBUG
+            string apiURL = "https://acesimfuncs.azurewebsites.net/api/MyTestFn?code=6a5YRX3LZqL3aIjJ8goCIXJC1P0astc5b5fxvBBMv5QwCjZcOS6/cw==&clientId=default";
+
+            var task = Util.RunAzureFunction.RunFunction(apiURL, new { first = "Michael", last = "Abramowicz"});
+            var resultX = task.GetAwaiter().GetResult();
+            var task2 = Util.RunAzureFunction.RunFunction(apiURL, new { first = "BadlyFormed" });
+            var resultY = task2.GetAwaiter().GetResult();
+
             string baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\MyGame";
             string strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
             string result = MyGameRunner.EvolveMyGame();
             System.Windows.Clipboard.SetText(result);
             Console.WriteLine();
             Console.WriteLine("Press Enter to end.");
-            Console.ReadLine();
+            do
+            {
+                while (!Console.KeyAvailable)
+                {
+                    // Do something
+                }
+            } while (Console.ReadKey(true).Key != ConsoleKey.Enter);
+            System.Windows.Clipboard.SetText(result);
         }
     }
 }

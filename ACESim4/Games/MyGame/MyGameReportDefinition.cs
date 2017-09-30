@@ -53,18 +53,15 @@ namespace ACESim
             for (byte b = 1; b <= Options.NumPotentialBargainingRounds; b++)
             {
                 byte bargainingRoundNum = b; // needed for closure -- otherwise b below will always be max value.
-                if (Options.IncludeAgreementToBargainDecisions)
-                {
-                    colItems.Add(
-                        new SimpleReportColumnFilter($"PBargains{b}",
-                            (GameProgress gp) => (MyGP(gp).PAgreesToBargain?.Count() ?? 0) >= bargainingRoundNum && MyGP(gp).PAgreesToBargain[bargainingRoundNum - 1], false)
-                    );
+                colItems.Add(
+                    new SimpleReportColumnFilter($"PBargains{b}",
+                        (GameProgress gp) => !Options.IncludeAgreementToBargainDecisions || ((MyGP(gp).PAgreesToBargain?.Count() ?? 0) >= bargainingRoundNum && MyGP(gp).PAgreesToBargain[bargainingRoundNum - 1]), false)
+                );
 
-                    colItems.Add(
-                        new SimpleReportColumnFilter($"DBargains{b}",
-                            (GameProgress gp) => (MyGP(gp).DAgreesToBargain?.Count() ?? 0) >= bargainingRoundNum && MyGP(gp).DAgreesToBargain[bargainingRoundNum - 1], false)
-                    );
-                }
+                colItems.Add(
+                    new SimpleReportColumnFilter($"DBargains{b}",
+                        (GameProgress gp) => !Options.IncludeAgreementToBargainDecisions || ((MyGP(gp).DAgreesToBargain?.Count() ?? 0) >= bargainingRoundNum && MyGP(gp).DAgreesToBargain[bargainingRoundNum - 1]), false)
+                );
                 colItems.Add(
                     new SimpleReportColumnVariable($"POffer{b}",
                         (GameProgress gp) => MyGP(gp).GetOffer(true, bargainingRoundNum))
@@ -87,17 +84,14 @@ namespace ACESim
                     new SimpleReportColumnVariable($"DBet{b}",
                         (GameProgress gp) => MyGP(gp).GetPlayerBet(false, bargainingRoundNum))
                 );
-                if (Options.AllowAbandonAndDefaults)
-                {
-                    colItems.Add(
-                        new SimpleReportColumnFilter($"PAbandons{b}",
-                            (GameProgress gp) => (MyGP(gp).PAbandons && bargainingRoundNum == MyGP(gp).BargainingRoundsComplete), false)
-                    );
-                    colItems.Add(
-                        new SimpleReportColumnFilter($"DDefaults{b}",
-                            (GameProgress gp) => (MyGP(gp).DDefaults && bargainingRoundNum == MyGP(gp).BargainingRoundsComplete), false)
-                    );
-                }
+                colItems.Add(
+                    new SimpleReportColumnFilter($"PAbandons{b}",
+                        (GameProgress gp) => (MyGP(gp).PAbandons && bargainingRoundNum == MyGP(gp).BargainingRoundsComplete), false)
+                );
+                colItems.Add(
+                    new SimpleReportColumnFilter($"DDefaults{b}",
+                        (GameProgress gp) => (MyGP(gp).DDefaults && bargainingRoundNum == MyGP(gp).BargainingRoundsComplete), false)
+                );
             }
             colItems.AddRange(new List<SimpleReportColumnItem>()
             {
