@@ -39,7 +39,7 @@ namespace ACESim
                 Algorithm = GameApproximationAlgorithm.AbramowiczProbing,
 
                 ReportEveryNIterations = 1_000_000,
-                NumRandomIterationsForSummaryTable = 1_000,
+                NumRandomIterationsForSummaryTable = 10_000,
                 PrintSummaryTable = true,
                 PrintInformationSets = false,
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
@@ -93,7 +93,7 @@ namespace ACESim
             return report;
         }
 
-        static int NumRepetitions = 50;
+        static int NumRepetitions = 25;
 
         public static string EvolveMyGame_Multiple()
         {
