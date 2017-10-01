@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace ACESim.Util
 {
@@ -19,10 +20,10 @@ namespace ACESim.Util
         {
             try
             {
-                string results = null; // DEBUG
-                //var client = new HttpClient();
-                //HttpResponseMessage response = await client.PostAsJsonAsync(apiURL, inputObject);
-                //var results = response.Content.ReadAsStringAsync().Result;
+                var client = new HttpClient();
+                var stringContent = new StringContent(JsonConvert.SerializeObject(inputObject), Encoding.UTF8, "application/json");
+                var response = await client.PostAsync(apiURL, stringContent);
+                var results = response.Content.ReadAsStringAsync().Result;
                 return new AzureFunctionResult() {Success = true, Info = results};
             }
             catch (Exception e)

@@ -25,6 +25,8 @@ namespace ACESim
 
             // DEBUG
             string apiURL = "https://acesimfuncs.azurewebsites.net/api/MyTestFn?code=6a5YRX3LZqL3aIjJ8goCIXJC1P0astc5b5fxvBBMv5QwCjZcOS6/cw==&clientId=default";
+            string apiURL2 = "https://acesimfuncs.azurewebsites.net/api/GetReport?code=GbM1qaVgKmlBFvbzMGzInPjMTuGmdsfzoMfV6K//wJVv811t4sFbnQ==&clientId=default";
+            Debug; // use above API in MyGameRunner
 
             var task = Util.RunAzureFunction.RunFunction(apiURL, new { first = "Michael", last = "Abramowicz"});
             var resultX = task.GetAwaiter().GetResult();

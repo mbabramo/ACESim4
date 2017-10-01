@@ -14,7 +14,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACESim", "ACESim\ACESim.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACESimClassLibrary", "ACESimClassLibrary\ACESimClassLibrary.csproj", "{2C5D32AB-22FD-4D4F-AE3C-0F514BC31CDD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FunctionApp3", "FunctionApp3\FunctionApp3.csproj", "{E9EDF7CB-0AE9-4FC4-AACC-79FCEFDD4CAA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FunctionApp3", "FunctionApp3\FunctionApp3.csproj", "{E9EDF7CB-0AE9-4FC4-AACC-79FCEFDD4CAA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

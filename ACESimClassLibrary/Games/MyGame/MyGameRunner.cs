@@ -30,7 +30,7 @@ namespace ACESim
 
                 Algorithm = GameApproximationAlgorithm.AbramowiczProbing,
 
-                ReportEveryNIterations = 1_000_000,
+                ReportEveryNIterations = 10_000,
                 NumRandomIterationsForSummaryTable = 10_000,
                 PrintSummaryTable = true,
                 PrintInformationSets = false,
@@ -39,7 +39,7 @@ namespace ACESim
                 AlwaysUseAverageStrategyInReporting = false,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
 
-                TotalProbingCFRIterations = 1_000_000,
+                TotalProbingCFRIterations = 10_000,
                 EpsilonForMainPlayer = 0.5,
                 EpsilonForOpponentWhenExploring = 0.05,
                 MinBackupRegretsTrigger = 3,
@@ -276,7 +276,7 @@ namespace ACESim
             return await t;
         }
 
-        private static string GetSingleRepetitionReport(int optionSetIndex, int repetition)
+        public static string GetSingleRepetitionReport(int optionSetIndex, int repetition)
         {
             bool includeFirstLine = optionSetIndex == 0;
             List<(string reportName, MyGameOptions options)> optionSets = GetOptionsSets();
