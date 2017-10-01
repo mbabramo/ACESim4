@@ -14,8 +14,8 @@ namespace ACESim
 
         private const int StartGameNumber = 1;
         private static bool SingleGameMode = false;
-        private static int NumRepetitions = 25;
-        private static bool UseAzure = false;
+        private static int NumRepetitions = 3;
+        private static bool UseAzure = true;
         private static bool ParallelizeOptionSets = true;
         private static bool ParallelizeIndividualExecutions = false;
 
@@ -90,15 +90,7 @@ namespace ACESim
             var optionSets = GetOptionsSets();
             if (UseAzure)
             {
-                Console.WriteLine("Confirm that you have already published to Azure. Otherwise, you will get old results. Press G to continue on Azure.");
-                do
-                {
-                    while (!Console.KeyAvailable)
-                    {
-                        // Do something
-                    }
-                } while (Console.ReadKey(true).Key != ConsoleKey.G);
-                string combined = ProcessAllOptionSetsOnAzure().GetAwaiter().GetResult(); 
+                string combined = ProcessAllOptionSetsOnAzure().GetAwaiter().GetResult();
                 return combined;
             }
             else
@@ -212,15 +204,35 @@ namespace ACESim
         {
             List<(string reportName, MyGameOptions options)> optionSets = GetOptionsSets();
             int numRepetitionsPerOptionSet = NumRepetitions;
+
+
+            if (optionSets.Any(x => x.options.IncludeCourtSuccessReport || x.options.IncludeSignalsReport))
+                throw new Exception("Multiple supports not supported with Azure option.");
+
+            Console.WriteLine($"Number of option sets: {optionSets.Count} repetitions {numRepetitionsPerOptionSet} => {optionSets.Count*numRepetitionsPerOptionSet}");
+            Console.WriteLine("Confirm that you have already published to Azure. Otherwise, you will get old results. Press G to continue on Azure.");
+            do
+            {
+                while (!Console.KeyAvailable)
+                {
+                    // Do something
+                }
+            } while (Console.ReadKey(true).Key != ConsoleKey.G);
+            Console.WriteLine("Processing on Azure...");
+
+            string azureBlobReportName = "Report" + DateTime.Now.ToString("yyyy-MM-dd-HH-mm");
+
             List<Task<string>> tasks = new List<Task<string>>();
             for (int i = 0; i < optionSets.Count; i++)
-                tasks.Add(ProcessSingleOptionSet_Azure(i));
+            {
+                tasks.Add(ProcessSingleOptionSet_Azure(i, azureBlobReportName));
+            }
             var taskResults = await Task.WhenAll(tasks);
             List<string> stringResults = new List<string>();
             foreach (var taskResult in taskResults)
                 stringResults.Add(taskResult);
             string combinedResults = String.Join("", stringResults);
-            AzureBlob.WriteTextToBlob("results", DateTime.Now.ToString("yyyy-MM-dd-HH-mm"), true, combinedResults);
+            AzureBlob.WriteTextToBlob("results", azureBlobReportName, true, combinedResults);
             return combinedResults;
         }
 
@@ -228,7 +240,7 @@ namespace ACESim
         {
             if (options.IncludeCourtSuccessReport || options.IncludeSignalsReport)
                 if (NumRepetitions > 1)
-                    throw new Exception("Can include multiple reports only with 1 repetition. Use console output rather than string copied."); // problem is that we can't merge the reports if NumRepetitions > 1 when we have more than one report. TODO: Fix this. 
+                    throw new Exception("Can include multiple reports only with 1 repetition. Use console output rather than string copied."); // problem is that we can't merge the reports if NumRepetitions > 1 when we have more than one report.  
             var developer = GetDeveloper(options);
             developer.EvolutionSettings.GameNumber = startGameNumber;
             List<string> combinedReports = new List<string>();
@@ -242,23 +254,20 @@ namespace ACESim
             return mergedReport;
         }
 
-        private static async Task<string> ProcessSingleOptionSet_Azure(int optionSetIndex)
+        private static async Task<string> ProcessSingleOptionSet_Azure(int optionSetIndex, string azureBlobReportName)
         {
             bool includeFirstLine = optionSetIndex == 0;
             List<(string reportName, MyGameOptions options)> optionSets = GetOptionsSets();
             var options = optionSets[optionSetIndex].options;
             string reportName = optionSets[optionSetIndex].reportName;
             int numRepetitionsPerOptionSet = NumRepetitions;
-            if (options.IncludeCourtSuccessReport || options.IncludeSignalsReport)
-                if (NumRepetitions > 1)
-                    throw new Exception("Can include multiple reports only with 1 repetition. Use console output rather than string copied."); // problem is that we can't merge the reports if NumRepetitions > 1 when we have more than one report. TODO: Fix this. 
             var developer = GetDeveloper(options);
             developer.EvolutionSettings.GameNumber = StartGameNumber;
             string[] combinedReports = new string[NumRepetitions];
             List<Task<string>> tasks = new List<Task<string>>();
             for (int i = 0; i < NumRepetitions; i++)
             {
-                tasks.Add(GetSingleRepetitionReport_Azure(optionSetIndex, i));
+                tasks.Add(GetSingleRepetitionReport_Azure(optionSetIndex, i, azureBlobReportName));
             }
             await Task.WhenAll(tasks);
 
@@ -269,21 +278,57 @@ namespace ACESim
             return mergedReport;
         }
 
-        private async static Task<string> GetSingleRepetitionReport_Azure(int optionSetIndex, int repetition)
+        private async static Task<string> GetSingleRepetitionReport_Azure(int optionSetIndex, int repetition, string azureBlobReportName)
         {
-            // DEBUG -- TODO add the Azure function
-            Task<string> t = Task<string>.Factory.StartNew(() => GetSingleRepetitionReport(optionSetIndex, repetition));
-            return await t;
+            string apiURL2 = "https://acesimfuncs.azurewebsites.net/api/GetReport?code=GbM1qaVgKmlBFvbzMGzInPjMTuGmdsfzoMfV6K//wJVv811t4sFbnQ==&clientId=default";
+            int retryInterval = 10; // start with 10 milliseconds delay after first failure
+            const int maxAttempts = 5; 
+            AzureFunctionResult result = null;
+            for (int attempt = 1; attempt <= maxAttempts; ++attempt)
+            {
+                try
+                {
+                    string azureBlobInterimReportName = azureBlobReportName + $" I{optionSetIndex}:{repetition}";
+                    var task = Util.RunAzureFunction.RunFunction(apiURL2, new { optionSet = $"{optionSetIndex}", repetition = $"{repetition}", azureBlobReportName = azureBlobReportName }, azureBlobInterimReportName);
+                    result = await task;
+                    if (result.Success)
+                    {
+                        Console.WriteLine($"Successfully processed {optionSetIndex}:{repetition}");
+                        return result.Info;
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Failure on {optionSetIndex}:{repetition} attempt {attempt} message {result.Info}");
+                    }
+                }
+                catch
+                {
+                }
+
+                System.Threading.Thread.Sleep(retryInterval);
+
+                retryInterval *= 2;
+            }
+
+            Console.WriteLine($"Complete failure on {optionSetIndex}:{repetition} message {result?.Info}");
+            return ""; // just return empty string on failure
+
+            // The following simulates the basic algorithm without actually using Azure.
+            // Task<string> t = Task<string>.Factory.StartNew(() => GetSingleRepetitionReport(optionSetIndex, repetition));
+            // return await t;
         }
 
-        public static string GetSingleRepetitionReport(int optionSetIndex, int repetition)
+        public static string GetSingleRepetitionReport(int optionSetIndex, int repetition, string azureBlobReportName)
         {
             bool includeFirstLine = optionSetIndex == 0;
             List<(string reportName, MyGameOptions options)> optionSets = GetOptionsSets();
             var options = optionSets[optionSetIndex].options;
             string reportName = optionSets[optionSetIndex].reportName;
             int numRepetitionsPerOptionSet = NumRepetitions;
-            return GetSingleRepetitionReport(options, reportName, repetition);
+            string result = GetSingleRepetitionReport(options, reportName, repetition);
+            string azureBlobInterimReportName = azureBlobReportName + $" I{optionSetIndex}:{repetition}";
+            AzureBlob.WriteTextToBlob("results", azureBlobInterimReportName, true, result); // we write to a blob in case this times out and also to allow individual report to be taken out
+            return result;
         }
 
         private static string GetSingleRepetitionReport(MyGameOptions options, string reportName, int i)

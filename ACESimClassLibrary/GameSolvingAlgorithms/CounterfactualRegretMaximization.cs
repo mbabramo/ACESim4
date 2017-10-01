@@ -527,7 +527,7 @@ namespace ACESim
                 NumberAverageStrategySamplingExplorations = 0;
                 if (EvolutionSettings.PrintSummaryTable)
                     reportString = PrintSummaryTable(useRandomPaths);
-                MeasureRegretMatchingChanges(); // DEBUG
+                MeasureRegretMatchingChanges();
                 if (ShouldEstimateImprovementOverTime)
                     ReportEstimatedImprovementsOverTime();
                 if (doBestResponse)

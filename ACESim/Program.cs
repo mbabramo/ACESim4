@@ -21,22 +21,10 @@ namespace ACESim
         [STAThread]
         static void Main(string[] args)
         {
-            // DEBUG -- turn into class library
-
-            // DEBUG
-            string apiURL = "https://acesimfuncs.azurewebsites.net/api/MyTestFn?code=6a5YRX3LZqL3aIjJ8goCIXJC1P0astc5b5fxvBBMv5QwCjZcOS6/cw==&clientId=default";
-            string apiURL2 = "https://acesimfuncs.azurewebsites.net/api/GetReport?code=GbM1qaVgKmlBFvbzMGzInPjMTuGmdsfzoMfV6K//wJVv811t4sFbnQ==&clientId=default";
-            Debug; // use above API in MyGameRunner
-
-            var task = Util.RunAzureFunction.RunFunction(apiURL, new { first = "Michael", last = "Abramowicz"});
-            var resultX = task.GetAwaiter().GetResult();
-            var task2 = Util.RunAzureFunction.RunFunction(apiURL, new { first = "BadlyFormed" });
-            var resultY = task2.GetAwaiter().GetResult();
-
             string baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\MyGame";
             string strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
-            string result = MyGameRunner.EvolveMyGame();
-            System.Windows.Clipboard.SetText(result);
+            string gameResult = MyGameRunner.EvolveMyGame();
+            System.Windows.Clipboard.SetText(gameResult);
             Console.WriteLine();
             Console.WriteLine("Press Enter to end.");
             do
@@ -46,7 +34,7 @@ namespace ACESim
                     // Do something
                 }
             } while (Console.ReadKey(true).Key != ConsoleKey.Enter);
-            System.Windows.Clipboard.SetText(result);
+            System.Windows.Clipboard.SetText(gameResult);
         }
     }
 }
