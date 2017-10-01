@@ -21,6 +21,18 @@ namespace ACESim
         /// If true, then a player who gives up after a round must pay the number of chips the opponent bet in that round, even if that is larger than the number of chips paid by the player.
         /// </summary>
         public bool CountAllChipsInAbandoningRound;
+        /// <summary>
+        /// The trial expenses will be multiplied by this if the side bets lead to doubling of litigation expenses.
+        /// </summary>
+        public double EffectOfDoublingStakesOnLitigationExpenses = 1.5;
+        /// <summary>
+        /// The trial expenses will be multiplied by this if the side bets lead to a 50% increase in litigation expenses
+        /// </summary>
+        public double EffectOf150PercentStakesOnLitigationExpenses = 1.3;
+        /// <summary>
+        /// The curvature of the effect of litigation expenses on curvature. This is automatically calculated.
+        /// </summary>
+        public double LitigationExpensesCurvature;
 
 
         public void Setup(MyGameDefinition myGameDefinition)
@@ -29,6 +41,14 @@ namespace ACESim
             myGameDefinition.Options.IncludeAgreementToBargainDecisions = true;
             // We need the chance to withdraw rather than accept a bet, as well.
             myGameDefinition.Options.AllowAbandonAndDefaults = true;
+
+            double ratioOfOriginalToRevisedStakes0 = 1.0 / 2.0;
+            double incrementToTrialExpensesMultiplier0 = EffectOfDoublingStakesOnLitigationExpenses - 1.0;
+            double ratioOfOriginalToRevisedStakes1 = 2.0 / 3.0;
+            double incrementToTrialExpensesMultiplier1 = EffectOf150PercentStakesOnLitigationExpenses - 1.0;
+            double ratioOfOriginalToRevisedStakes2 = 1.0;
+            double incrementToTrialExpensesMultiplier2 = 0;
+            LitigationExpensesCurvature = MonotonicCurve.CalculateCurvatureForThreePoints(ratioOfOriginalToRevisedStakes0, incrementToTrialExpensesMultiplier0, ratioOfOriginalToRevisedStakes1, incrementToTrialExpensesMultiplier1, ratioOfOriginalToRevisedStakes2, incrementToTrialExpensesMultiplier2);
         }
 
         public void SaveRunningSideBets(MyGameDefinition myGameDefinition, MyGameProgress myGameProgress, byte dAction)

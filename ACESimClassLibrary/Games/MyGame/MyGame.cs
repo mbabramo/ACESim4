@@ -237,6 +237,31 @@ namespace ACESim
                 outcome.PChangeWealth = (pWinsAtTrial ? damagesAlleged : 0);
                 outcome.DChangeWealth = (pWinsAtTrial ? -damagesAlleged : 0);
             }
+
+            if (gameDefinition.Options.MyGamePretrialDecisionGeneratorGenerator != null)
+            {
+                gameDefinition.Options.MyGamePretrialDecisionGeneratorGenerator.GetEffectOnPlayerWelfare(gameDefinition, outcome.TrialOccurs, pWinsAtTrial, damagesAlleged, pretrialActions, out double effectOnP, out double effectOnD);
+                outcome.PChangeWealth += effectOnP;
+                outcome.DChangeWealth += effectOnD;
+            }
+
+            double trialCostsMultiplier = 1.0;
+            if (gameDefinition.Options.MyGameRunningSideBets != null)
+            {
+                byte? roundOfAbandonment = (pAbandons || dDefaults) ? (byte?)bargainingRoundsComplete : null;
+                gameDefinition.Options.MyGameRunningSideBets.GetEffectOnPlayerWelfare(gameDefinition, roundOfAbandonment, pAbandons, dDefaults, outcome.TrialOccurs, pWinsAtTrial, runningSideBetActions, out double effectOnP, out double effectOnD, out byte totalChipsThatCount);
+                outcome.PChangeWealth += effectOnP;
+                outcome.DChangeWealth += effectOnD;
+                outcome.NumChips = totalChipsThatCount;
+                if (outcome.TrialOccurs)
+                {
+                    double ratioOfOriginalToRevisedStakes = gameDefinition.Options.DamagesToAllege / (gameDefinition.Options.DamagesToAllege + totalChipsThatCount * gameDefinition.Options.MyGameRunningSideBets.ValueOfChip);
+                    double incrementToTrialCostsMultiplier = MonotonicCurve.CalculateYValueForX(0, 1, gameDefinition.Options.MyGameRunningSideBets.LitigationExpensesCurvature, ratioOfOriginalToRevisedStakes);
+                    trialCostsMultiplier += incrementToTrialCostsMultiplier;
+                    debug;
+                }
+            }
+
             double pFilingCostIncurred = pFiles ? gameDefinition.Options.PFilingCost * gameDefinition.Options.CostsMultiplier : 0;
             double dAnswerCostIncurred = dAnswers ? gameDefinition.Options.DAnswerCost * gameDefinition.Options.CostsMultiplier : 0;
             double pTrialCostsIncurred = outcome.TrialOccurs ? gameDefinition.Options.PTrialCosts * gameDefinition.Options.CostsMultiplier : 0;
@@ -269,22 +294,6 @@ namespace ACESim
 
             outcome.PChangeWealth += pEffectOfExpenses;
             outcome.DChangeWealth += dEffectOfExpenses;
-
-            if (gameDefinition.Options.MyGamePretrialDecisionGeneratorGenerator != null)
-            {
-                gameDefinition.Options.MyGamePretrialDecisionGeneratorGenerator.GetEffectOnPlayerWelfare(gameDefinition, outcome.TrialOccurs, pWinsAtTrial, damagesAlleged, pretrialActions, out double effectOnP, out double effectOnD);
-                outcome.PChangeWealth += effectOnP;
-                outcome.DChangeWealth += effectOnD;
-            }
-
-            if (gameDefinition.Options.MyGameRunningSideBets != null)
-            {
-                byte? roundOfAbandonment = (pAbandons || dDefaults) ? (byte?) bargainingRoundsComplete : null;
-                gameDefinition.Options.MyGameRunningSideBets.GetEffectOnPlayerWelfare(gameDefinition, roundOfAbandonment, pAbandons, dDefaults, outcome.TrialOccurs, pWinsAtTrial, runningSideBetActions, out double effectOnP, out double effectOnD, out byte totalChipsThatCount);
-                outcome.PChangeWealth += effectOnP;
-                outcome.DChangeWealth += effectOnD;
-                outcome.NumChips = totalChipsThatCount;
-            }
 
             outcome.PFinalWealth = pWealthAfterPrimaryConduct + outcome.PChangeWealth;
             outcome.DFinalWealth = dWealthAfterPrimaryConduct + outcome.DChangeWealth;

@@ -24,7 +24,7 @@ namespace ACESim
             EvolutionSettings evolutionSettings = new EvolutionSettings()
             {
                 MaxParallelDepth = 1, // we're parallelizing on the iteration level, so there is no need for further parallelization
-                ParallelOptimization = ParallelizeIndividualExecutions && !ParallelizeOptionSets,
+                ParallelOptimization = !UseAzure && ParallelizeIndividualExecutions && !ParallelizeOptionSets,
 
                 GameNumber = StartGameNumber,
 
@@ -210,7 +210,7 @@ namespace ACESim
                 throw new Exception("Multiple supports not supported with Azure option.");
 
             Console.WriteLine($"Number of option sets: {optionSets.Count} repetitions {numRepetitionsPerOptionSet} => {optionSets.Count*numRepetitionsPerOptionSet}");
-            Console.WriteLine("Confirm that you have already published to Azure. Otherwise, you will get old results. Press G to continue on Azure.");
+            Console.WriteLine("IMPORTANT: This will run on Azure. Have you published to Azure? Press G to continue on Azure.");
             do
             {
                 while (!Console.KeyAvailable)
