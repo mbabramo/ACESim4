@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using ACESim;
 
-namespace ACESim4.Util
+namespace ACESim.Util
 {
     using System;
     public static class Crc32
