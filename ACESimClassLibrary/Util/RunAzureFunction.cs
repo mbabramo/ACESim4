@@ -20,7 +20,7 @@ namespace ACESim.Util
     {
         public static async Task<AzureFunctionResult> RunFunction<T>(string apiURL, T inputObject, string azureBlobInterimReportName)
         {
-            const int maxTimeout = 11 * 60 * 1000; // 11 minutes
+            const int maxTimeout = 60 * 60 * 1000; // 60 minutes
             Stopwatch s = new Stopwatch();
             s.Start();
             try
@@ -55,7 +55,7 @@ namespace ACESim.Util
         private static string Unescape(string escapedResult)
         {
             var withoutOuterQuoteMarks = System.Uri.UnescapeDataString(escapedResult.Trim('"'));
-            var finalResult = Regex.Replace(withoutOuterQuoteMarks, @"\\[rnt]", m =>
+            var almostFinalResult = Regex.Replace(withoutOuterQuoteMarks, @"\\[rnt]", m =>
             {
                 switch (m.Value)
                 {
@@ -65,6 +65,7 @@ namespace ACESim.Util
                     default: return m.Value;
                 }
             });
+            var finalResult = almostFinalResult.Replace("\\\"", "\"");
             return finalResult;
         }
     }

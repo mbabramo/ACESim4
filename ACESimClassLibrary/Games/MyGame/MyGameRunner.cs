@@ -14,8 +14,8 @@ namespace ACESim
 
         private const int StartGameNumber = 1;
         private static bool SingleGameMode = false;
-        private static int NumRepetitions = 3;
-        private static bool UseAzure = true;
+        private static int NumRepetitions = 25;
+        private static bool UseAzure = true; // MAKE SURE TO UPDATE THE FUNCTION APP AND CHECK THE NUMBER OF ITERATIONS, REPETITIONS, ETC.
         private static bool ParallelizeOptionSets = true;
         private static bool ParallelizeIndividualExecutions = false;
 
@@ -30,7 +30,7 @@ namespace ACESim
 
                 Algorithm = GameApproximationAlgorithm.AbramowiczProbing,
 
-                ReportEveryNIterations = 10_000,
+                ReportEveryNIterations = 500_000,
                 NumRandomIterationsForSummaryTable = 10_000,
                 PrintSummaryTable = true,
                 PrintInformationSets = false,
@@ -39,7 +39,7 @@ namespace ACESim
                 AlwaysUseAverageStrategyInReporting = false,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
 
-                TotalProbingCFRIterations = 10_000,
+                TotalProbingCFRIterations = 500_000,
                 EpsilonForMainPlayer = 0.5,
                 EpsilonForOpponentWhenExploring = 0.05,
                 MinBackupRegretsTrigger = 3,
@@ -274,8 +274,16 @@ namespace ACESim
             for (int i = 0; i < NumRepetitions; i++)
                 combinedReports[i] = tasks[i].Result;
             string combinedRepetitionsReport = String.Join("", combinedReports);
-            string mergedReport = SimpleReportMerging.GetMergedReports(combinedRepetitionsReport, reportName, includeFirstLine);
-            return mergedReport;
+            try // DEBUG
+            {
+                string mergedReport = SimpleReportMerging.GetMergedReports(combinedRepetitionsReport, reportName, includeFirstLine);
+                return mergedReport;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
         }
 
         private async static Task<string> GetSingleRepetitionReport_Azure(int optionSetIndex, int repetition, string azureBlobReportName)
