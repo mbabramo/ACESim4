@@ -453,11 +453,11 @@ namespace ACESim
         private bool DiscountingEnabled;
         private double CurrentDiscount;
 
-        public unsafe string SolveAbramowiczProbingCFR()
+        public unsafe string SolveAbramowiczProbingCFR(string reportName)
         {
             string reportString = null;
             GameNumber = EvolutionSettings.GameNumber;
-            Console.WriteLine($"Game number {GameNumber}");
+            Console.WriteLine($"{reportName } game number {GameNumber} ({DateTime.Now})");
             Stopwatch s = new Stopwatch();
             if (NumNonChancePlayers > 2)
                 throw new Exception(

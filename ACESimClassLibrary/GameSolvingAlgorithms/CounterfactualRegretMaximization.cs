@@ -129,7 +129,7 @@ namespace ACESim
             PreviousRegretMatchingState = null;
         }
 
-        public string DevelopStrategies()
+        public string DevelopStrategies(string reportName)
         {
             string report = null;
             Initialize();
@@ -142,7 +142,7 @@ namespace ACESim
                     report = SolveGibsonProbingCFR();
                     break;
                 case GameApproximationAlgorithm.AbramowiczProbing:
-                    report = SolveAbramowiczProbingCFR();
+                    report = SolveAbramowiczProbingCFR(reportName);
                     break;
                 case GameApproximationAlgorithm.Vanilla:
                     report = SolveVanillaCFR();
@@ -558,7 +558,8 @@ namespace ACESim
                 reportGenerator = GenerateReports_AllPaths;
             }
             var reports = GenerateReports(reportGenerator);
-            Console.WriteLine($"{reports.standardReport}");
+            if (!EvolutionSettings.SuppressReportPrinting) // DEBUG -- find better way to do this
+                Console.WriteLine($"{reports.standardReport}");
             return reports.csvReport;
             //Console.WriteLine($"Number initialized game paths: {NumInitializedGamePaths}");
         }

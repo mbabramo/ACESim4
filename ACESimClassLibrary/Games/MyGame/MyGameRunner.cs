@@ -11,9 +11,10 @@ namespace ACESim
 {
     public static class MyGameRunner
     {
+        private const bool UseRiskAversion = true; // DEBUG
         private const int StartGameNumber = 1;
         private static bool SingleGameMode = false;
-        private static int NumRepetitions = 100;
+        private static int NumRepetitions = 35;
         private static bool UseAzure = false; // MAKE SURE TO UPDATE THE FUNCTION APP AND CHECK THE NUMBER OF ITERATIONS, REPETITIONS, ETC. (NOTE: NOT REALLY FULLY WORKING.)
         private static bool ParallelizeOptionSets = true;
         private static bool ParallelizeIndividualExecutions = false;
@@ -24,6 +25,7 @@ namespace ACESim
             {
                 MaxParallelDepth = 1, // we're parallelizing on the iteration level, so there is no need for further parallelization
                 ParallelOptimization = !UseAzure && ParallelizeIndividualExecutions && !ParallelizeOptionSets,
+                SuppressReportPrinting = !SingleGameMode && ParallelizeOptionSets,
 
                 GameNumber = StartGameNumber,
 
@@ -117,6 +119,11 @@ namespace ACESim
             })
             {
                 var options = MyGameOptionsGenerator.Standard();
+                if (UseRiskAversion)
+                {
+                    options.PUtilityCalculator = new LogRiskAverseUtilityCalculator() {InitialWealth = options.PInitialWealth};
+                    options.DUtilityCalculator = new LogRiskAverseUtilityCalculator() {InitialWealth = options.DInitialWealth};
+                }
                 options.MyGameDisputeGenerator = d;
                 optionSets.AddRange(GetOptionsVariations(d.GetGeneratorName(), () => options));
             }
@@ -359,8 +366,7 @@ namespace ACESim
             retry:
             try
             {
-                Console.WriteLine(reportName);
-                report = developer.DevelopStrategies();
+                report = developer.DevelopStrategies(reportName);
             }
             catch (Exception e)
             {

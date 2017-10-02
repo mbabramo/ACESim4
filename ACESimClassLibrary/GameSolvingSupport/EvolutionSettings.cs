@@ -40,5 +40,6 @@ namespace ACESim
         public bool AlwaysUseAverageStrategyInReporting = true;
         public int GameNumber = 0;
         internal int NumRandomIterationsForUtilityCalculation = 10000;
+        internal bool SuppressReportPrinting;
     }
 }
