@@ -11,7 +11,8 @@ namespace ACESim
 {
     public static class MyGameRunner
     {
-        private const bool UseRiskAversion = true; // DEBUG
+        private const bool PRiskAverse = true; // DEBUG
+        public const bool DRiskAverse = false;
         private const int StartGameNumber = 1;
         private static bool SingleGameMode = false;
         private static int NumRepetitions = 35;
@@ -119,11 +120,10 @@ namespace ACESim
             })
             {
                 var options = MyGameOptionsGenerator.Standard();
-                if (UseRiskAversion)
-                {
+                if (PRiskAverse)
                     options.PUtilityCalculator = new LogRiskAverseUtilityCalculator() {InitialWealth = options.PInitialWealth};
+                if (DRiskAverse)
                     options.DUtilityCalculator = new LogRiskAverseUtilityCalculator() {InitialWealth = options.DInitialWealth};
-                }
                 options.MyGameDisputeGenerator = d;
                 optionSets.AddRange(GetOptionsVariations(d.GetGeneratorName(), () => options));
             }
