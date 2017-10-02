@@ -22,17 +22,13 @@ namespace ACESim
         /// </summary>
         public bool CountAllChipsInAbandoningRound;
         /// <summary>
-        /// The trial expenses will be multiplied by this if the side bets lead to doubling of litigation expenses.
+        /// As stakes go to infinity, trial costs go to this value
         /// </summary>
-        public double EffectOfDoublingStakesOnLitigationExpenses = 1.5;
+        public double TrialCostsMultiplierAsymptote = 3.0;
         /// <summary>
-        /// The trial expenses will be multiplied by this if the side bets lead to a 50% increase in litigation expenses
+        /// The trial costs multiplier with double stakes
         /// </summary>
-        public double EffectOf150PercentStakesOnLitigationExpenses = 1.3;
-        /// <summary>
-        /// The curvature of the effect of litigation expenses on curvature. This is automatically calculated.
-        /// </summary>
-        public double LitigationExpensesCurvature;
+        public double TrialCostsMultiplierWithDoubleStakes = 1.3;
 
 
         public void Setup(MyGameDefinition myGameDefinition)
@@ -41,14 +37,6 @@ namespace ACESim
             myGameDefinition.Options.IncludeAgreementToBargainDecisions = true;
             // We need the chance to withdraw rather than accept a bet, as well.
             myGameDefinition.Options.AllowAbandonAndDefaults = true;
-
-            double ratioOfOriginalToRevisedStakes0 = 1.0 / 2.0;
-            double incrementToTrialExpensesMultiplier0 = EffectOfDoublingStakesOnLitigationExpenses - 1.0;
-            double ratioOfOriginalToRevisedStakes1 = 2.0 / 3.0;
-            double incrementToTrialExpensesMultiplier1 = EffectOf150PercentStakesOnLitigationExpenses - 1.0;
-            double ratioOfOriginalToRevisedStakes2 = 1.0;
-            double incrementToTrialExpensesMultiplier2 = 0;
-            LitigationExpensesCurvature = MonotonicCurve.CalculateCurvatureForThreePoints(ratioOfOriginalToRevisedStakes0, incrementToTrialExpensesMultiplier0, ratioOfOriginalToRevisedStakes1, incrementToTrialExpensesMultiplier1, ratioOfOriginalToRevisedStakes2, incrementToTrialExpensesMultiplier2);
         }
 
         public void SaveRunningSideBets(MyGameDefinition myGameDefinition, MyGameProgress myGameProgress, byte dAction)
@@ -76,6 +64,17 @@ namespace ACESim
             {
                 effectOnP = effectOnD = 0;
             }
+        }
+
+        public double GetTrialCostsMultiplier(MyGameDefinition gameDefinition, double totalChipsThatCount)
+        {
+            if (TrialCostsMultiplierAsymptote == 1.0)
+                return 1.0;
+            double stakesRatio = (gameDefinition.Options.DamagesToAllege + totalChipsThatCount * ValueOfChip) / gameDefinition.Options.DamagesToAllege;
+            // y = (asymptote - 1)*(x - 1)/(x - k) + 1, where x is the stakes ratio and y is the spending ratio. Thus, when x = 1, y = 1. 
+            double k = (TrialCostsMultiplierAsymptote - 1.0)*(2.0 - 1.0) / (TrialCostsMultiplierWithDoubleStakes - 1.0) - 2.0;
+            double trialCostsMultiplier = (TrialCostsMultiplierAsymptote - 1.0) * (stakesRatio - 1) / (stakesRatio + k) + 1.0;
+            return trialCostsMultiplier;
         }
     }
 }

@@ -102,7 +102,7 @@ namespace ACESimTest
                 DTrialCosts = DTrialCosts,
                 RegretAversion = RegretAversion,
                 MyGamePretrialDecisionGeneratorGenerator = sideBetChallenges == SideBetChallenges.NoChallengesAllowed ? null : new MyGameSideBet {DamagesMultipleForChallengedToPay = DamagesMultipleForChallengedToPay, DamagesMultipleForChallengerToPay = DamagesMultipleForChallengerToPay},
-                MyGameRunningSideBets = runningSideBetChallenges == RunningSideBetChallenges.None ? null : new MyGameRunningSideBets {MaxChipsPerRound = MaxChipsPerRound, ValueOfChip = ValueOfChip},
+                MyGameRunningSideBets = runningSideBetChallenges == RunningSideBetChallenges.None ? null : new MyGameRunningSideBets {MaxChipsPerRound = MaxChipsPerRound, ValueOfChip = ValueOfChip, TrialCostsMultiplierAsymptote = 1.0},
                 LoserPays = loserPaysPolicy != LoserPaysPolicy.NoLoserPays,
                 LoserPaysMultiple = LoserPaysMultiple,
                 LoserPaysAfterAbandonment = loserPaysPolicy == LoserPaysPolicy.EvenAfterAbandonOrDefault,

@@ -254,18 +254,13 @@ namespace ACESim
                 outcome.DChangeWealth += effectOnD;
                 outcome.NumChips = totalChipsThatCount;
                 if (outcome.TrialOccurs)
-                {
-                    double ratioOfOriginalToRevisedStakes = gameDefinition.Options.DamagesToAllege / (gameDefinition.Options.DamagesToAllege + totalChipsThatCount * gameDefinition.Options.MyGameRunningSideBets.ValueOfChip);
-                    double incrementToTrialCostsMultiplier = MonotonicCurve.CalculateYValueForX(0, 1, gameDefinition.Options.MyGameRunningSideBets.LitigationExpensesCurvature, ratioOfOriginalToRevisedStakes);
-                    trialCostsMultiplier += incrementToTrialCostsMultiplier;
-                    debug;
-                }
+                    trialCostsMultiplier = gameDefinition.Options.MyGameRunningSideBets.GetTrialCostsMultiplier(gameDefinition, totalChipsThatCount);
             }
 
             double pFilingCostIncurred = pFiles ? gameDefinition.Options.PFilingCost * gameDefinition.Options.CostsMultiplier : 0;
             double dAnswerCostIncurred = dAnswers ? gameDefinition.Options.DAnswerCost * gameDefinition.Options.CostsMultiplier : 0;
-            double pTrialCostsIncurred = outcome.TrialOccurs ? gameDefinition.Options.PTrialCosts * gameDefinition.Options.CostsMultiplier : 0;
-            double dTrialCostsIncurred = outcome.TrialOccurs ? gameDefinition.Options.DTrialCosts * gameDefinition.Options.CostsMultiplier : 0;
+            double pTrialCostsIncurred = outcome.TrialOccurs ? gameDefinition.Options.PTrialCosts * gameDefinition.Options.CostsMultiplier * trialCostsMultiplier : 0;
+            double dTrialCostsIncurred = outcome.TrialOccurs ? gameDefinition.Options.DTrialCosts * gameDefinition.Options.CostsMultiplier * trialCostsMultiplier : 0;
             double perPartyBargainingCostsIncurred = gameDefinition.Options.PerPartyCostsLeadingUpToBargainingRound * gameDefinition.Options.CostsMultiplier * bargainingRoundsComplete;
             double pCostsInitiallyIncurred = pFilingCostIncurred + perPartyBargainingCostsIncurred + pTrialCostsIncurred;
             double dCostsInitiallyIncurred = dAnswerCostIncurred + perPartyBargainingCostsIncurred + dTrialCostsIncurred;

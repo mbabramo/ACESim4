@@ -14,8 +14,8 @@ namespace ACESim
 
         private const int StartGameNumber = 1;
         private static bool SingleGameMode = false;
-        private static int NumRepetitions = 25;
-        private static bool UseAzure = true; // MAKE SURE TO UPDATE THE FUNCTION APP AND CHECK THE NUMBER OF ITERATIONS, REPETITIONS, ETC.
+        private static int NumRepetitions = 100;
+        private static bool UseAzure = false; // MAKE SURE TO UPDATE THE FUNCTION APP AND CHECK THE NUMBER OF ITERATIONS, REPETITIONS, ETC. (NOTE: NOT REALLY FULLY WORKING.)
         private static bool ParallelizeOptionSets = true;
         private static bool ParallelizeIndividualExecutions = false;
 
@@ -30,7 +30,7 @@ namespace ACESim
 
                 Algorithm = GameApproximationAlgorithm.AbramowiczProbing,
 
-                ReportEveryNIterations = 500_000,
+                ReportEveryNIterations = 1_000_000,
                 NumRandomIterationsForSummaryTable = 10_000,
                 PrintSummaryTable = true,
                 PrintInformationSets = false,
@@ -39,7 +39,7 @@ namespace ACESim
                 AlwaysUseAverageStrategyInReporting = false,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
 
-                TotalProbingCFRIterations = 500_000,
+                TotalProbingCFRIterations = 1_000_000,
                 EpsilonForMainPlayer = 0.5,
                 EpsilonForOpponentWhenExploring = 0.05,
                 MinBackupRegretsTrigger = 3,
@@ -134,7 +134,9 @@ namespace ACESim
             {
                 MaxChipsPerRound = 2,
                 ValueOfChip = 50000,
-                CountAllChipsInAbandoningRound = true
+                CountAllChipsInAbandoningRound = true,
+                TrialCostsMultiplierAsymptote = 3.0,
+                TrialCostsMultiplierWithDoubleStakes = 1.3,
             };
             list.Add((description + " RunSide", options));
 
@@ -143,7 +145,9 @@ namespace ACESim
             {
                 MaxChipsPerRound = 2,
                 ValueOfChip = 50000,
-                CountAllChipsInAbandoningRound = false
+                CountAllChipsInAbandoningRound = false,
+                TrialCostsMultiplierAsymptote = 3.0,
+                TrialCostsMultiplierWithDoubleStakes = 1.3,
             };
             list.Add((description + " RunSideEscap", options));
 
@@ -152,18 +156,20 @@ namespace ACESim
             {
                 MaxChipsPerRound = 2,
                 ValueOfChip = 100000,
-                CountAllChipsInAbandoningRound = true
+                CountAllChipsInAbandoningRound = true,
+                TrialCostsMultiplierAsymptote = 3.0,
+                TrialCostsMultiplierWithDoubleStakes = 1.3,
             };
-            options.CostsMultiplier = 1.0;
             list.Add((description + " RunSideLarge", options));
 
             options = initialOptionsFunc();
             options.MyGameRunningSideBets = new MyGameRunningSideBets()
             {
                 MaxChipsPerRound = 2,
-                ValueOfChip = 50000
+                ValueOfChip = 50000,
+                TrialCostsMultiplierAsymptote = 3.0,
+                TrialCostsMultiplierWithDoubleStakes = 2.0,
             };
-            options.CostsMultiplier = 2.0;
             list.Add((description + " RunSideExp", options));
 
             options = initialOptionsFunc();

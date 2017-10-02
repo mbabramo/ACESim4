@@ -12,6 +12,51 @@ namespace ACESimTest
     public class MiscTests
     {
         [TestMethod]
+        public void TrialCostsMultiplierWorks()
+        {
+            MyGameRunningSideBets sideBets = new MyGameRunningSideBets()
+            {
+                TrialCostsMultiplierAsymptote = 3.0,
+                TrialCostsMultiplierWithDoubleStakes = 1.3,
+                ValueOfChip = 50_000
+            };
+            MyGameDefinition gameDefinition = new MyGameDefinition()
+            {
+                Options = new MyGameOptions()
+                {
+                    DamagesToAllege = 100_000,
+                    MyGameRunningSideBets = sideBets
+                }
+            };
+            sideBets.Setup(gameDefinition);
+
+            sideBets.GetTrialCostsMultiplier(gameDefinition, 0).Should().Be(1.0);
+            sideBets.GetTrialCostsMultiplier(gameDefinition, 1).Should().BeGreaterThan(1.15);
+            sideBets.GetTrialCostsMultiplier(gameDefinition, 2).Should().BeApproximately(1.3, 0.001);
+            sideBets.GetTrialCostsMultiplier(gameDefinition, 999).Should().BeApproximately(3.0, 0.1);
+
+            sideBets = new MyGameRunningSideBets()
+            {
+                TrialCostsMultiplierAsymptote = 1.0,
+                TrialCostsMultiplierWithDoubleStakes = 1.0,
+                ValueOfChip = 50_000
+            };
+            gameDefinition = new MyGameDefinition()
+            {
+                Options = new MyGameOptions()
+                {
+                    DamagesToAllege = 100_000,
+                    MyGameRunningSideBets = sideBets
+                }
+            };
+            sideBets.Setup(gameDefinition);
+
+            sideBets.GetTrialCostsMultiplier(gameDefinition, 0).Should().Be(1.0);
+            sideBets.GetTrialCostsMultiplier(gameDefinition, 1).Should().Be(1.0);
+            sideBets.GetTrialCostsMultiplier(gameDefinition, 2).Should().Be(1.0);
+        }
+
+        [TestMethod]
         public void SubdivisionDisaggregationWorks()
         {
             // Our subdivision calculations disaggregate one-based values into one-based actions.
