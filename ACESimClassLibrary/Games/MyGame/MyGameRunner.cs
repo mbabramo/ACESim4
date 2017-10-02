@@ -11,7 +11,6 @@ namespace ACESim
 {
     public static class MyGameRunner
     {
-
         private const int StartGameNumber = 1;
         private static bool SingleGameMode = false;
         private static int NumRepetitions = 100;
@@ -76,7 +75,7 @@ namespace ACESim
             options.MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
             {
                 ExogenousProbabilityTrulyLiable = 0.5,
-                StdevNoiseToProduceLitigationQuality = 0.1
+                StdevNoiseToProduceLitigationQuality = 0.3
             };
             // options.AdditionalTableOverrides = new List<(Func<Decision, GameProgress, byte>, string)>() { (MyGameActionsGenerator.PBetsHeavilyWithGoodSignal, "PBetsHeavilyWithGoodSignal") };
             //options.IncludeSignalsReport = true;
