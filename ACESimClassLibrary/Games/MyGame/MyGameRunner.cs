@@ -11,11 +11,14 @@ namespace ACESim
 {
     public static class MyGameRunner
     {
-        private const bool PRiskAverse = true; // DEBUG
+        private const bool PRiskAverse = false;
         public const bool DRiskAverse = false;
+        public const bool TestDisputeGeneratorVariations = true; // DEBUG
+        public const bool IncludeRunningSideBetVariations = false; // DEBUG
+
         private const int StartGameNumber = 1;
         private static bool SingleGameMode = false;
-        private static int NumRepetitions = 35;
+        private static int NumRepetitions = 100;
         private static bool UseAzure = false; // MAKE SURE TO UPDATE THE FUNCTION APP AND CHECK THE NUMBER OF ITERATIONS, REPETITIONS, ETC. (NOTE: NOT REALLY FULLY WORKING.)
         private static bool ParallelizeOptionSets = true;
         private static bool ParallelizeIndividualExecutions = false;
@@ -106,18 +109,27 @@ namespace ACESim
         {
             List<(string reportName, MyGameOptions options)> optionSets = new List<(string reportName, MyGameOptions options)>();
 
-            foreach (IMyGameDisputeGenerator d in new IMyGameDisputeGenerator[]
-            {
-                //new MyGameNegligenceDisputeGenerator(),
-                //new MyGameAppropriationDisputeGenerator(), 
-                //new MyGameContractDisputeGenerator(), 
-                //new MyGameDiscriminationDisputeGenerator(), 
-                new MyGameExogenousDisputeGenerator()
+            List<IMyGameDisputeGenerator> disputeGenerators;
+
+            if (TestDisputeGeneratorVariations)
+                disputeGenerators = new List<IMyGameDisputeGenerator>()
                 {
-                    ExogenousProbabilityTrulyLiable = 0.5,
-                    StdevNoiseToProduceLitigationQuality = 0.3
-                }
-            })
+                    new MyGameNegligenceDisputeGenerator(),
+                    new MyGameAppropriationDisputeGenerator(),
+                    new MyGameContractDisputeGenerator(),
+                    new MyGameDiscriminationDisputeGenerator(),
+                };
+            else
+                disputeGenerators = new List<IMyGameDisputeGenerator>()
+                {
+                    new MyGameExogenousDisputeGenerator()
+                    {
+                        ExogenousProbabilityTrulyLiable = 0.5,
+                        StdevNoiseToProduceLitigationQuality = 0.3
+                    }
+                };
+
+            foreach (IMyGameDisputeGenerator d in disputeGenerators)
             {
                 var options = MyGameOptionsGenerator.Standard();
                 if (PRiskAverse)
@@ -146,37 +158,40 @@ namespace ACESim
             };
             list.Add((description + " RunSide", options));
 
-            options = initialOptionsFunc();
-            options.MyGameRunningSideBets = new MyGameRunningSideBets()
+            if (IncludeRunningSideBetVariations)
             {
-                MaxChipsPerRound = 2,
-                ValueOfChip = 50000,
-                CountAllChipsInAbandoningRound = false,
-                TrialCostsMultiplierAsymptote = 3.0,
-                TrialCostsMultiplierWithDoubleStakes = 1.3,
-            };
-            list.Add((description + " RunSideEscap", options));
+                options = initialOptionsFunc();
+                options.MyGameRunningSideBets = new MyGameRunningSideBets()
+                {
+                    MaxChipsPerRound = 2,
+                    ValueOfChip = 50000,
+                    CountAllChipsInAbandoningRound = false,
+                    TrialCostsMultiplierAsymptote = 3.0,
+                    TrialCostsMultiplierWithDoubleStakes = 1.3,
+                };
+                list.Add((description + " RunSideEscap", options));
 
-            options = initialOptionsFunc();
-            options.MyGameRunningSideBets = new MyGameRunningSideBets()
-            {
-                MaxChipsPerRound = 2,
-                ValueOfChip = 100000,
-                CountAllChipsInAbandoningRound = true,
-                TrialCostsMultiplierAsymptote = 3.0,
-                TrialCostsMultiplierWithDoubleStakes = 1.3,
-            };
-            list.Add((description + " RunSideLarge", options));
+                options = initialOptionsFunc();
+                options.MyGameRunningSideBets = new MyGameRunningSideBets()
+                {
+                    MaxChipsPerRound = 2,
+                    ValueOfChip = 100000,
+                    CountAllChipsInAbandoningRound = true,
+                    TrialCostsMultiplierAsymptote = 3.0,
+                    TrialCostsMultiplierWithDoubleStakes = 1.3,
+                };
+                list.Add((description + " RunSideLarge", options));
 
-            options = initialOptionsFunc();
-            options.MyGameRunningSideBets = new MyGameRunningSideBets()
-            {
-                MaxChipsPerRound = 2,
-                ValueOfChip = 50000,
-                TrialCostsMultiplierAsymptote = 3.0,
-                TrialCostsMultiplierWithDoubleStakes = 2.0,
-            };
-            list.Add((description + " RunSideExp", options));
+                options = initialOptionsFunc();
+                options.MyGameRunningSideBets = new MyGameRunningSideBets()
+                {
+                    MaxChipsPerRound = 2,
+                    ValueOfChip = 50000,
+                    TrialCostsMultiplierAsymptote = 3.0,
+                    TrialCostsMultiplierWithDoubleStakes = 2.0,
+                };
+                list.Add((description + " RunSideExp", options));
+            }
 
             options = initialOptionsFunc();
             options.LoserPays = true;
