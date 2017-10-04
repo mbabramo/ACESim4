@@ -69,6 +69,12 @@ namespace ACESim
         public bool? PLastResponse => (bool?)PResponses?.LastOrDefault() ?? null;
         public bool? DLastResponse => (bool?)DResponses?.LastOrDefault() ?? null;
         public bool SurvivesToRound(byte round) => BargainingRoundsComplete >= round;
+        public bool SettlesInRound(byte round) => SettlementValue != null && BargainingRoundsComplete == round;
+        public bool DoesntSettleInRound(byte round) => SurvivesToRound(round) && !SettlesInRound(round);
+        public bool PAbandonsInRound(byte round) => DoesntSettleInRound(round) && PAbandons && BargainingRoundsComplete == round;
+        public bool PDoesntAbandonInRound(byte round) => DoesntSettleInRound(round) && !(PAbandons && BargainingRoundsComplete == round);
+        public bool DDefaultsInRound(byte round) => PDoesntAbandonInRound(round) && DDefaults && BargainingRoundsComplete == round;
+        public bool DDoesntDefaultInRound(byte round) => PDoesntAbandonInRound(round) && !(DDefaults && BargainingRoundsComplete == round);
         public bool BothPlayersHaveCompletedRoundWithOfferResponse => POffers?.Count() == DResponses?.Count() && DOffers?.Count() == PResponses?.Count();
 
 

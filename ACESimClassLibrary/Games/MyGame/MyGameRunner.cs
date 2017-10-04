@@ -13,14 +13,16 @@ namespace ACESim
     {
         private const bool PRiskAverse = false;
         public const bool DRiskAverse = false;
-        public const bool TestDisputeGeneratorVariations = true; // DEBUG
-        public const bool IncludeRunningSideBetVariations = false; // DEBUG
+        public const bool TestDisputeGeneratorVariations = false; 
+        public const bool IncludeRunningSideBetVariations = false; 
+        public const bool LimitToAmerican = false;
+        public const double CostsMultiplier = 2.0; // DEBUG
 
         private const int StartGameNumber = 1;
         private static bool SingleGameMode = false;
-        private static int NumRepetitions = 100;
+        private static int NumRepetitions = 30;
         private static bool UseAzure = false; // MAKE SURE TO UPDATE THE FUNCTION APP AND CHECK THE NUMBER OF ITERATIONS, REPETITIONS, ETC. (NOTE: NOT REALLY FULLY WORKING.)
-        private static bool ParallelizeOptionSets = true;
+        private static bool ParallelizeOptionSets = true; 
         private static bool ParallelizeIndividualExecutions = false;
 
         private static EvolutionSettings GetEvolutionSettings()
@@ -35,7 +37,7 @@ namespace ACESim
 
                 Algorithm = GameApproximationAlgorithm.AbramowiczProbing,
 
-                ReportEveryNIterations = 1_000_000,
+                ReportEveryNIterations = 10_000,
                 NumRandomIterationsForSummaryTable = 10_000,
                 PrintSummaryTable = true,
                 PrintInformationSets = false,
@@ -44,7 +46,7 @@ namespace ACESim
                 AlwaysUseAverageStrategyInReporting = false,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
 
-                TotalProbingCFRIterations = 1_000_000,
+                TotalProbingCFRIterations = 10_000,
                 EpsilonForMainPlayer = 0.5,
                 EpsilonForOpponentWhenExploring = 0.05,
                 MinBackupRegretsTrigger = 3,
@@ -132,6 +134,7 @@ namespace ACESim
             foreach (IMyGameDisputeGenerator d in disputeGenerators)
             {
                 var options = MyGameOptionsGenerator.Standard();
+                options.CostsMultiplier = CostsMultiplier;
                 if (PRiskAverse)
                     options.PUtilityCalculator = new LogRiskAverseUtilityCalculator() {InitialWealth = options.PInitialWealth};
                 if (DRiskAverse)
@@ -147,16 +150,19 @@ namespace ACESim
             var list = new List<(string reportName, MyGameOptions options)>();
             MyGameOptions options;
 
-            options = initialOptionsFunc();
-            options.MyGameRunningSideBets = new MyGameRunningSideBets()
+            if (!LimitToAmerican)
             {
-                MaxChipsPerRound = 2,
-                ValueOfChip = 50000,
-                CountAllChipsInAbandoningRound = true,
-                TrialCostsMultiplierAsymptote = 3.0,
-                TrialCostsMultiplierWithDoubleStakes = 1.3,
-            };
-            list.Add((description + " RunSide", options));
+                options = initialOptionsFunc();
+                options.MyGameRunningSideBets = new MyGameRunningSideBets()
+                {
+                    MaxChipsPerRound = 2,
+                    ValueOfChip = 50000,
+                    CountAllChipsInAbandoningRound = true,
+                    TrialCostsMultiplierAsymptote = 3.0,
+                    TrialCostsMultiplierWithDoubleStakes = 1.3,
+                };
+                list.Add((description + " RunSide", options));
+            }
 
             if (IncludeRunningSideBetVariations)
             {
@@ -193,13 +199,16 @@ namespace ACESim
                 list.Add((description + " RunSideExp", options));
             }
 
-            options = initialOptionsFunc();
-            options.LoserPays = true;
-            options.LoserPaysMultiple = 1.0;
-            options.LoserPaysAfterAbandonment = false;
-            options.IncludeAgreementToBargainDecisions = true;
-            options.CostsMultiplier = 1.0;
-            list.Add((description + " British", options));
+            if (!LimitToAmerican)
+            {
+                options = initialOptionsFunc();
+                options.LoserPays = true;
+                options.LoserPaysMultiple = 1.0;
+                options.LoserPaysAfterAbandonment = false;
+                options.IncludeAgreementToBargainDecisions = true;
+                options.CostsMultiplier = 1.0;
+                list.Add((description + " British", options));
+            }
 
             options = initialOptionsFunc();
             list.Add((description + " American", options));

@@ -49,6 +49,8 @@ namespace ACESim
                     bool isLower = aggregation == SimpleReportAggregations.LowerBound;
                     return x =>
                     {
+                        if (!x.Any())
+                            return isLower ? 0 : 1.0;
                         if (x.All(y => y == 0))
                             return 0;
                         else if (x.All(y => y == 1.0))

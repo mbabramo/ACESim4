@@ -94,11 +94,13 @@ namespace ACESim
 
                 // print rows
                 int i = 0;
+                Dictionary<string, double?> firstColumnValues = new Dictionary<string, double?>();
                 foreach (SimpleReportFilter rowFilter in Definition.RowFilters)
                 {
                     if (printMetaColumn)
                         Append(standardReport, csvReport, false, metaFilter.Name, metaColumnWidth, false);
                     Append(standardReport, csvReport, false, rowFilter.Name, rowFilterColumnWidth, false);
+                    int c = 0;
                     foreach (SimpleReportColumnItem colItem in Definition.ColumnItems)
                     {
                         double? value;
@@ -124,9 +126,14 @@ namespace ACESim
                                 value = cv.Stdev ? StatCollectors[i].StandardDeviation() : StatCollectors[i].Average();
                             }
                         }
+                        if (c == 0)
+                            firstColumnValues.Add(rowFilter.Name, value);
+                        else
+                            value = rowFilter.Manipulate(firstColumnValues, value);
                         string valueString = value == null ? "" : value.ToSignificantFigures();
                         Append(standardReport, csvReport, true, valueString, colItem.Width, colItem == lastColumn);
                         i++;
+                        c++;
                     }
                     standardReport.AppendLine();
                     csvReport.AppendLine();
