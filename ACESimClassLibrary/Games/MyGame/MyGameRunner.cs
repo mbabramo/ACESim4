@@ -16,7 +16,7 @@ namespace ACESim
         public const bool TestDisputeGeneratorVariations = false; 
         public const bool IncludeRunningSideBetVariations = false; 
         public const bool LimitToAmerican = false;
-        public const double CostsMultiplier = 2.0; // DEBUG
+        public const double CostsMultiplier = 5.0; // DEBUG
 
         private const int StartGameNumber = 1;
         private static bool SingleGameMode = false;
@@ -37,7 +37,7 @@ namespace ACESim
 
                 Algorithm = GameApproximationAlgorithm.AbramowiczProbing,
 
-                ReportEveryNIterations = 10_000,
+                ReportEveryNIterations = 1_000_000,
                 NumRandomIterationsForSummaryTable = 10_000,
                 PrintSummaryTable = true,
                 PrintInformationSets = false,
@@ -46,7 +46,7 @@ namespace ACESim
                 AlwaysUseAverageStrategyInReporting = false,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
 
-                TotalProbingCFRIterations = 10_000,
+                TotalProbingCFRIterations = 1_000_000,
                 EpsilonForMainPlayer = 0.5,
                 EpsilonForOpponentWhenExploring = 0.05,
                 MinBackupRegretsTrigger = 3,
