@@ -141,8 +141,8 @@ namespace ACESim
                 case GameApproximationAlgorithm.GibsonProbing:
                     report = SolveGibsonProbingCFR();
                     break;
-                case GameApproximationAlgorithm.AbramowiczProbing:
-                    report = SolveAbramowiczProbingCFR(reportName);
+                case GameApproximationAlgorithm.ExploratoryProbing:
+                    report = SolveExploratoryProbingCFR(reportName);
                     break;
                 case GameApproximationAlgorithm.Vanilla:
                     report = SolveVanillaCFR();
@@ -558,7 +558,7 @@ namespace ACESim
                 reportGenerator = GenerateReports_AllPaths;
             }
             var reports = GenerateReports(reportGenerator);
-            if (!EvolutionSettings.SuppressReportPrinting) // DEBUG -- find better way to do this
+            if (!EvolutionSettings.SuppressReportPrinting)
                 Console.WriteLine($"{reports.standardReport}");
             return reports.csvReport;
             //Console.WriteLine($"Number initialized game paths: {NumInitializedGamePaths}");

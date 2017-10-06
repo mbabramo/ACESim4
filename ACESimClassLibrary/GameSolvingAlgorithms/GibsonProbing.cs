@@ -224,9 +224,6 @@ namespace ACESim
 
         public void GibsonProbingCFRIteration(int iteration)
         {
-            CurrentEpsilonValue = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(
-                EvolutionSettings.FirstOpponentEpsilonValue, EvolutionSettings.LastOpponentEpsilonValue, 0.75,
-                (double)iteration / (double)EvolutionSettings.TotalProbingCFRIterations);
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
                 IRandomProducer randomProducer =
@@ -261,7 +258,7 @@ namespace ACESim
                 s.Start();
                 GibsonProbingCFRIteration(ProbingCFRIterationNum);
                 s.Stop();
-                reportString = GenerateReports(ProbingCFRIterationNum,
+                reportString = GenerateReports(ProbingCFRIterationNum + 1,
                     () =>
                         $"Iteration {ProbingCFRIterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)(ProbingCFRIterationNum + 1))))}");
             }

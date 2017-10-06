@@ -10,7 +10,7 @@ namespace ACESim
     {
         public bool ParallelOptimization = false;
         public int MaxParallelDepth = 1;
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.AbramowiczProbing;
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.ExploratoryProbing;
         public int TotalAvgStrategySamplingCFRIterations = 100000;
         public int TotalProbingCFRIterations = 100000;
         public int TotalVanillaCFRIterations = 100000;
@@ -26,6 +26,7 @@ namespace ACESim
         public int LastOpponentEpsilonIteration = 100000;
 
         // The following are for Abramowicz probing.
+        public bool PlayerBeingOptizedExploresOnOwnIterations = false;
         public double EpsilonForMainPlayer = 0.5;
         public double EpsilonForOpponentWhenExploring = 0.05;
         public int MinBackupRegretsTrigger = 5;

@@ -14,6 +14,11 @@ namespace ACESim
         public MyGameDefinition MyDefinition => (MyGameDefinition)GameDefinition;
         public MyGameProgress MyProgress => (MyGameProgress)Progress;
 
+        public MyGame()
+        {
+            
+        }
+
         public override void Initialize()
         {
             MyProgress.PInitialWealth = MyDefinition.Options.PInitialWealth;

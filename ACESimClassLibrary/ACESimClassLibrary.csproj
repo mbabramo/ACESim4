@@ -133,7 +133,7 @@
     <Compile Include="GamePlay\IterationID.cs" />
     <Compile Include="GamePlay\PlayerInfo.cs" />
     <Compile Include="GamePlay\SubdivisionCalculations.cs" />
-    <Compile Include="GameSolvingAlgorithms\AbramowiczProbing.cs" />
+    <Compile Include="GameSolvingAlgorithms\ExploratoryProbing.cs" />
     <Compile Include="GameSolvingAlgorithms\AverageStrategySampling.cs" />
     <Compile Include="GameSolvingAlgorithms\BestResponse.cs" />
     <Compile Include="GameSolvingAlgorithms\CounterfactualRegretMaximization.cs" />
@@ -154,6 +154,13 @@
     <Compile Include="GameSolvingSupport\IGameState.cs" />
     <Compile Include="GameSolvingSupport\InformationSetLookupApproach.cs" />
     <Compile Include="GameSolvingSupport\InformationSetNodeTally.cs" />
+    <Compile Include="Games\MultiRoundCooperationGame\MultiRoundCooperationGame.cs" />
+    <Compile Include="Games\MultiRoundCooperationGame\MultiRoundCooperationGameDecisions.cs" />
+    <Compile Include="Games\MultiRoundCooperationGame\MultiRoundCooperationGameDefinition.cs" />
+    <Compile Include="Games\MultiRoundCooperationGame\MultiRoundCooperationGameFactory.cs" />
+    <Compile Include="Games\MultiRoundCooperationGame\MultiRoundCooperationGamePlayers.cs" />
+    <Compile Include="Games\MultiRoundCooperationGame\MultiRoundCooperationGameProgress.cs" />
+    <Compile Include="Games\MultiRoundCooperationGame\MultiRoundCooperationGameRunner.cs" />
     <Compile Include="Games\MyGame\DisputeGeneration\IMyGameDisputeGenerator.cs" />
     <Compile Include="Games\MyGame\DisputeGeneration\MyGameAppropriationDisputeGenerator.cs" />
     <Compile Include="Games\MyGame\DisputeGeneration\MyGameContractDisputeGenerator.cs" />
@@ -267,6 +274,8 @@
     <Compile Include="Util\WeightedPercentileTracker.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Games\MultiRoundCooperationGame\Reports\simple game results.txt" />
+    <Content Include="Games\MultiRoundCooperationGame\MultiRoundCooperationGameInputs.xml" />
     <Content Include="Games\SimpleGame\Reports\simple game results.txt" />
     <Content Include="Games\SimpleGame\SimpleGameInputs.xml" />
   </ItemGroup>
@@ -278,6 +287,8 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="Games\MultiRoundCooperationGame\Iterations\" />
+    <Folder Include="Games\MultiRoundCooperationGame\Strategies\" />
     <Folder Include="Games\SimpleGame\Iterations\" />
     <Folder Include="Games\SimpleGame\Strategies\" />
   </ItemGroup>

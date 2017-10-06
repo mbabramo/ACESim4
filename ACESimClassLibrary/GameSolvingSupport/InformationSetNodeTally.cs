@@ -18,6 +18,7 @@ namespace ACESim
         public byte DecisionIndex;
         public byte PlayerIndex => Decision.PlayerNumber;
         public bool MustUseBackup;
+        public int NumTotalIncrements = 0;
         public int NumRegretIncrements = 0;
         public int NumBackupRegretIncrements = 0;
         public int NumBackupRegretsSinceLastRegretIncrement = 0;
@@ -46,6 +47,7 @@ namespace ACESim
         public void Reinitialize()
         {
             Initialize(totalDimensions, Decision.NumPossibleActions);
+            NumTotalIncrements = 0;
             NumRegretIncrements = 0;
             NumBackupRegretIncrements = 0;
             NumBackupRegretsSinceLastRegretIncrement = 0;
@@ -53,7 +55,7 @@ namespace ACESim
 
         public override string ToString()
         {
-            return $"Information set {InformationSetNumber}: DecisionByteCode {DecisionByteCode} (index {DecisionIndex}) PlayerIndex {PlayerIndex} Probabilities {GetRegretMatchingProbabilitiesString()} Regrets{(MustUseBackup ? "*" : "")} {GetCumulativeRegretsString()} Strategies {GetCumulativeStrategiesString()} RegretIncrements {NumRegretIncrements} NumBackupRegretsSinceLastRegretIncrement {NumBackupRegretsSinceLastRegretIncrement} NumBackupRegretIncrements {NumBackupRegretIncrements}";
+            return $"Information set {InformationSetNumber}: DecisionByteCode {DecisionByteCode} (index {DecisionIndex}) PlayerIndex {PlayerIndex} Probabilities {GetRegretMatchingProbabilitiesString()} Regrets{(MustUseBackup ? "*" : "")} {GetCumulativeRegretsString()} Strategies {GetCumulativeStrategiesString()} RegretIncrements {NumRegretIncrements} NumBackupRegretsSinceLastRegretIncrement {NumBackupRegretsSinceLastRegretIncrement} NumBackupRegretIncrements {NumBackupRegretIncrements} TotalIncrements {NumTotalIncrements}";
         }
 
         private void Initialize(int numDimensions, int numPossibleActions)
@@ -110,6 +112,7 @@ namespace ACESim
 
         public void IncrementCumulativeRegret_Parallel(int action, double amount, bool incrementBackup, int backupRegretsTrigger = int.MaxValue, bool incrementVisits = false)
         {
+            Interlocked.Increment(ref NumTotalIncrements);
             if (incrementBackup)
             {
                 InterlockedAdd(ref NodeInformation[cumulativeRegretBackupDimension, action - 1], amount);
@@ -148,6 +151,7 @@ namespace ACESim
 
         public void IncrementCumulativeRegret(int action, double amount, bool incrementBackup, int backupRegretsTrigger = int.MaxValue, bool incrementVisits = false)
         {
+            NumTotalIncrements++; // we always keep track of this
             if (incrementBackup)
             {
                 NodeInformation[cumulativeRegretBackupDimension, action - 1] += amount;

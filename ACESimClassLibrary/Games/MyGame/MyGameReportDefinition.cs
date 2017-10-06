@@ -228,20 +228,19 @@ namespace ACESim
                     new SimpleReportFilter("Quality" + q, (GameProgress gp) => MyGP(gp).LitigationQualityDiscrete == q));
             }
             rows.Add(new SimpleReportFilter("Truly Liable", (GameProgress gp) => MyGP(gp).IsTrulyLiable));
-            // DEBUG
-            //for (byte litigationQuality = 1; litigationQuality <= Options.NumLitigationQualityPoints; litigationQuality++)
-            //{
-            //    byte q = litigationQuality; // avoid closure
-            //    rows.Add(
-            //        new SimpleReportFilter("Quality (Truly Liable) " + q, (GameProgress gp) => MyGP(gp).IsTrulyLiable && MyGP(gp).LitigationQualityDiscrete == q) { MultiplyByAllColumnForRowWithName = "Quality (Truly Liable) " + q, DivideByAllColumnForRowWithName = "Truly Liable"});
-            //}
+            for (byte litigationQuality = 1; litigationQuality <= Options.NumLitigationQualityPoints; litigationQuality++)
+            {
+                byte q = litigationQuality; // avoid closure
+                rows.Add(
+                    new SimpleReportFilter("Quality (Truly Liable) " + q, (GameProgress gp) => MyGP(gp).IsTrulyLiable && MyGP(gp).LitigationQualityDiscrete == q)); // DEBUG{ MultiplyByAllColumnForRowWithName = "Quality (Truly Liable) " + q, DivideByAllColumnForRowWithName = "Truly Liable" });
+            }
             rows.Add(new SimpleReportFilter("Truly Not Liable", (GameProgress gp) => !MyGP(gp).IsTrulyLiable));
-            //for (byte litigationQuality = 1; litigationQuality <= Options.NumLitigationQualityPoints; litigationQuality++)
-            //{
-            //    byte q = litigationQuality; // avoid closure
-            //    rows.Add(
-            //        new SimpleReportFilter("Quality (Truly Not Liable) " + q, (GameProgress gp) => !MyGP(gp).IsTrulyLiable && MyGP(gp).LitigationQualityDiscrete == q) { MultiplyByAllColumnForRowWithName = "Quality (Truly Liable) " + q, DivideByAllColumnForRowWithName = "Truly Liable" });
-            //}
+            for (byte litigationQuality = 1; litigationQuality <= Options.NumLitigationQualityPoints; litigationQuality++)
+            {
+                byte q = litigationQuality; // avoid closure
+                rows.Add(
+                    new SimpleReportFilter("Quality (Truly Not Liable) " + q, (GameProgress gp) => !MyGP(gp).IsTrulyLiable && MyGP(gp).LitigationQualityDiscrete == q)); // DEBUG{ MultiplyByAllColumnForRowWithName = "Quality (Truly Liable) " + q, DivideByAllColumnForRowWithName = "Truly Liable" });
+            }
             //for (byte signal = 1; signal <= Options.NumSignals; signal++)
             //{
             //    byte s = signal; // avoid closure

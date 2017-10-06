@@ -210,7 +210,7 @@ namespace ACESim
             Stopwatch s = new Stopwatch();
             double[] lastUtilities = new double[NumNonChancePlayers];
 
-            bool usePruning = iteration >= 100;
+            bool usePruning = false; // iteration >= 100;
             ActionStrategy = usePruning ? ActionStrategies.RegretMatchingWithPruning : ActionStrategies.RegretMatching;
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
