@@ -12,7 +12,7 @@ namespace ACESim
     public static class Parallelizer
     {
         public static int ParallelDepth = 0;
-        public static int? MaxDegreeOfParallelism = 3;
+        public static int? MaxDegreeOfParallelism = 4;
         const int maxParallelDepth = 20;
         static object[] lockObj = new object[maxParallelDepth];
         internal static bool lockObjInitialized = false;
