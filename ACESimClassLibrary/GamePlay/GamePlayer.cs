@@ -278,17 +278,7 @@ namespace ACESim
             var p2 = progress.DeepCopy();
             return PlayGameFromSpecifiedPoint(p2);
         }
-
-        // We need to be able to play a subset of a very large number of iterations for a particular number (i.e., not using
-        // a strategy).    
-
-        ThreadLocal<int> lastDecisionNumber = new ThreadLocal<int>();
-        ThreadLocal<long> lastNumIterations = new ThreadLocal<long>();
-        // If we bring back the code to dispose of thread local, we must add true as a parameter to each of these constructors
-        ThreadLocal<List<IterationID>> lastIterationsToGet = new ThreadLocal<List<IterationID>>();
-        ThreadLocal<List<GameProgress>> lastPreplayedGames = new ThreadLocal<List<GameProgress>>();
-        ThreadLocal<List<double>> lastDecisionInputs = new ThreadLocal<List<double>>();
-        ThreadLocal<List<double>> lastOversamplingWeights = new ThreadLocal<List<double>>();
+        
 
         public void CheckConsistencyForSetOfIterations(long totalNumIterations, List<IterationID> iterationsToGet)
         {

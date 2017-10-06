@@ -1,5 +1,8 @@
+using System;
+
 namespace ACESim
 {
+    [Serializable]
     public struct DeltaOffersOptions
     {
         /// <summary>

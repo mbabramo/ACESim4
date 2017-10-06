@@ -14,14 +14,14 @@ namespace ACESim
         // IMPORTANT: Make sure to run in Release mode when not debugging.
         private const bool PRiskAverse = false;
         public const bool DRiskAverse = false;
-        public const bool TestDisputeGeneratorVariations = false; 
-        public const bool IncludeRunningSideBetVariations = true; 
+        public const bool TestDisputeGeneratorVariations = false;
+        public const bool IncludeRunningSideBetVariations = false; 
         public const bool LimitToAmerican = false;
         public const double CostsMultiplier = 1;
 
         private const int StartGameNumber = 1;
         private static bool SingleGameMode = false;
-        private static int NumRepetitions = 100;
+        private static int NumRepetitions = 3;
         private static bool UseAzure = false; // MAKE SURE TO UPDATE THE FUNCTION APP AND CHECK THE NUMBER OF ITERATIONS, REPETITIONS, ETC. (NOTE: NOT REALLY FULLY WORKING.)
         private static bool ParallelizeOptionSets = true; 
         private static bool ParallelizeIndividualExecutions = false;
@@ -38,7 +38,7 @@ namespace ACESim
 
                 Algorithm = GameApproximationAlgorithm.ExploratoryProbing,
 
-                ReportEveryNIterations = 1_000_000,
+                ReportEveryNIterations = 100_000,
                 NumRandomIterationsForSummaryTable = 10_000,
                 PrintSummaryTable = true,
                 PrintInformationSets = false,
@@ -47,7 +47,7 @@ namespace ACESim
                 AlwaysUseAverageStrategyInReporting = false,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
 
-                TotalProbingCFRIterations = 1_000_000,
+                TotalProbingCFRIterations = 100_000,
                 EpsilonForMainPlayer = 0.5,
                 EpsilonForOpponentWhenExploring = 0.05,
                 MinBackupRegretsTrigger = 10,
@@ -269,7 +269,7 @@ namespace ACESim
             foreach (var taskResult in taskResults)
                 stringResults.Add(taskResult);
             string combinedResults = String.Join("", stringResults);
-            AzureBlob.WriteTextToBlob("results", azureBlobReportName, true, combinedResults);
+            AzureBlob.WriteTextToBlob("results", azureBlobReportName + " allsets", true, combinedResults);
             return combinedResults;
         }
 
@@ -285,8 +285,11 @@ namespace ACESim
             {
                 string singleRepetitionReport = GetSingleRepetitionReport(reportName, i, developer);
                 combinedReports.Add(singleRepetitionReport);
+                AzureBlob.SerializeObject("results", reportName + " CRM", true, developer);
             }
             string combinedRepetitionsReport = String.Join("", combinedReports);
+            AzureBlob.WriteTextToBlob("results", reportName, true, combinedRepetitionsReport);
+
             string mergedReport = SimpleReportMerging.GetMergedReports(combinedRepetitionsReport, reportName, includeFirstLine);
             return mergedReport;
         }

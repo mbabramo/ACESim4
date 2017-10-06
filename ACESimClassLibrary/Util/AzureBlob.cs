@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Azure;
@@ -13,6 +14,41 @@ namespace ACESim.Util
 {
     public static class AzureBlob
     {
+        public static void SerializeObject(string containerName, string fileName, bool publicAccess, object theObject)
+        {
+            var blockBlob = GetBlockBlob(containerName, fileName, publicAccess);
+
+            var options = new BlobRequestOptions()
+            {
+                ServerTimeout = TimeSpan.FromMinutes(10)
+            };
+
+            using (var stream = new MemoryStream())
+            {
+                BinaryFormatter formatter = new BinaryFormatter();
+                formatter.Serialize(stream, theObject);
+                blockBlob.UploadFromStream(stream, null, options);
+            }
+        }
+
+        public static object GetSerializedObject(string containerName, string fileName)
+        {
+            var blockBlob = GetBlockBlob(containerName, fileName, true);
+
+            var options = new BlobRequestOptions()
+            {
+                ServerTimeout = TimeSpan.FromMinutes(10)
+            };
+
+            using (var stream = new MemoryStream())
+            {
+                blockBlob.DownloadToStream(stream, null, options);
+                BinaryFormatter formatter = new BinaryFormatter();
+                object theObject = formatter.Deserialize(stream);
+                return theObject;
+            }
+        }
+
         public static void WriteTextToBlob(string containerName, string fileName, bool publicAccess, string text)
         {
             var blockBlob = GetBlockBlob(containerName, fileName, publicAccess);

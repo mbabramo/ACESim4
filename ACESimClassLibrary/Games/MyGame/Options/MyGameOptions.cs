@@ -4,6 +4,7 @@ using System.Collections.Generic;
 
 namespace ACESim
 {
+    [Serializable]
     public struct MyGameOptions
     {
 

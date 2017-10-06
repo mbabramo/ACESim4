@@ -6,7 +6,8 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
-    class MyGameDiscriminationDisputeGenerator : IMyGameDisputeGenerator
+    [Serializable]
+    public class MyGameDiscriminationDisputeGenerator : IMyGameDisputeGenerator
     {
         public string GetGeneratorName() => "Discrimination";
         // Defendant businessperson must decide whether to fire employee. Defendant may or may not have a taste for racism. Plaintiff may or may not be a good worker. We assume that there is a social cost when a good employee is fired, and a social cost when a bad employee is not fired. Our goal is thus to make the employer with a taste for discrination act as much as possible as an employer without such a taste would act in the absence of a legal regime.

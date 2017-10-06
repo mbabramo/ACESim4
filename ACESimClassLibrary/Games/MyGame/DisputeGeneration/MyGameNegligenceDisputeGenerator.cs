@@ -7,7 +7,8 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
-    class MyGameNegligenceDisputeGenerator : IMyGameDisputeGenerator
+    [Serializable]
+    public class MyGameNegligenceDisputeGenerator : IMyGameDisputeGenerator
     {
         public string GetGeneratorName() => "Negligence";
         // Defendant receives information that signals how quickly the marginal benefit of a precaution decreases with increased precaution level. 

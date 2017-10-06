@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
+    [Serializable]
     public class MyGameContractDisputeGenerator : IMyGameDisputeGenerator
     {
         public string GetGeneratorName() => "Contract";
