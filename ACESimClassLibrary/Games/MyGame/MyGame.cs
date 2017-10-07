@@ -53,17 +53,15 @@ namespace ACESim
                         MyProgress.DSignalUniform = (double) MyProgress.LitigationQualityUniform;
 
                 break;
-                case (byte)MyGameDecisions.PNoise:
-                    MyProgress.PNoiseDiscrete = action;
-                    MyDefinition.ConvertNoiseToSignal(MyProgress.LitigationQualityDiscrete, action, true,
-                        out MyProgress.PSignalDiscrete, out MyProgress.PSignalUniform);
-                    GameProgressLogger.Log(() => $"P: Quality {MyProgress.LitigationQualityUniform} Noise action {action} => signal {MyProgress.PSignalDiscrete} ({MyProgress.PSignalUniform})");
+                case (byte)MyGameDecisions.PSignal:
+                    MyProgress.PSignalDiscrete = action;
+                    MyProgress.PSignalUniform = action * (1.0 / MyDefinition.Options.NumSignals);
+                    GameProgressLogger.Log(() => $"P: Quality {MyProgress.LitigationQualityUniform} => signal {MyProgress.PSignalDiscrete} ({MyProgress.PSignalUniform})");
                 break;
-                case (byte)MyGameDecisions.DNoise:
-                    MyProgress.DNoiseDiscrete = action;
-                    MyDefinition.ConvertNoiseToSignal(MyProgress.LitigationQualityDiscrete, action, false,
-                        out MyProgress.DSignalDiscrete, out MyProgress.DSignalUniform);
-                    //System.Diagnostics.Console.WriteLine($"D: Quality {MyProgress.LitigationQualityUniform} Noise action {action} => signal {MyProgress.DSignalDiscrete} ({MyProgress.DSignalUniform})");
+                case (byte)MyGameDecisions.DSignal:
+                    MyProgress.DSignalDiscrete = action;
+                    MyProgress.DSignalUniform = action * (1.0 / MyDefinition.Options.NumSignals);
+                    GameProgressLogger.Log(() => $"D: Quality {MyProgress.LitigationQualityUniform} => signal {MyProgress.DSignalDiscrete} ({MyProgress.DSignalUniform})");
                     break;
                 case (byte)MyGameDecisions.PFile:
                     MyProgress.PFiles = action == 1;
@@ -143,15 +141,8 @@ namespace ACESim
                     break;
                 case (byte)MyGameDecisions.CourtDecision:
                     MyProgress.TrialOccurs = true;
-                    double courtNoiseUniformDistribution =
-                        EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */,
-                            MyDefinition.Options.NumCourtNoiseValues, false);
-                    double courtNoiseNormalDraw = InvNormal.Calculate(courtNoiseUniformDistribution) *
-                                                    MyDefinition.Options.CourtNoiseStdev;
-                    double courtSignal = (double) MyProgress.LitigationQualityUniform + courtNoiseNormalDraw;
                     MyProgress.PWinsAtTrial =
-                        courtSignal >
-                        0.5; // we'll assume that P has burden of proof in case courtSignal is exactly equal to 0.5.
+                        action == 2;
                     //System.Diagnostics.Console.WriteLine($"Quality {MyProgress.LitigationQualityUniform} Court noise action {action} => {courtNoiseNormalDraw} => signal {courtSignal} PWins {MyProgress.PWinsAtTrial}");
                     break;
                 default:

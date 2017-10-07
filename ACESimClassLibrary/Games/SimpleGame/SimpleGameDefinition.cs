@@ -109,7 +109,7 @@ namespace ACESim
                 );
         }
 
-        public override double[] GetChanceActionProbabilities(byte decisionByteCode, GameProgress gameProgress)
+        public override double[] GetUnevenChanceActionProbabilities(byte decisionByteCode, GameProgress gameProgress)
         {
             if (decisionByteCode == (byte)SimpleGameDecisions.Chance)
                 return new double[] { ProbabilityChanceDecision1, 1.0 - ProbabilityChanceDecision1 };

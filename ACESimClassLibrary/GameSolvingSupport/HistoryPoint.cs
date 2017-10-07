@@ -344,7 +344,7 @@ namespace ACESim
                                     {
                                         Decision = decision,
                                         DecisionIndex = informationSetHistory.DecisionIndex,
-                                        Probabilities = navigation.GameDefinition.GetChanceActionProbabilities(decision.DecisionByteCode, gameProgress), // the probabilities depend on the current state of the game
+                                        Probabilities = navigation.GameDefinition.GetUnevenChanceActionProbabilities(decision.DecisionByteCode, gameProgress), // the probabilities depend on the current state of the game
                                     };
                                 else
                                     chanceNodeSettings = new ChanceNodeSettingsEqualProbabilities()

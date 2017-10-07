@@ -29,14 +29,6 @@ namespace ACESim
         /// </summary>
         public byte NumSignals;
         /// <summary>
-        /// The number of noise values that a party can receive to determine the discrete signal that the party receives. This is ignored if ActionIsNoiseNotSignal = false (effectively, NumNoiseValues is automatically equal to NumSignals in that case).
-        /// </summary>
-        public byte NumNoiseValues;
-        /// <summary>
-        /// The number of noise values that may distort the court's signal when it makes a decision. 
-        /// </summary>
-        public byte NumCourtNoiseValues;
-        /// <summary>
         /// The standard deviation of the noise used to obfuscate the plaintiff's estimate of the case strength. When the action is the signal, this determines the probabilities of each signal; when the action is the noise, this affects the conversion of the noise to a signal, considering the underlying true value.
         /// </summary>
         public double PNoiseStdev;

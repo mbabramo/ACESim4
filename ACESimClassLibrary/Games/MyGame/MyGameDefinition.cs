@@ -80,8 +80,8 @@ namespace ACESim
                     new PlayerInfo(PrePrimaryChanceName, (int) MyGamePlayers.PrePrimaryChance, true, false),
                     new PlayerInfo(PostPrimaryChanceName, (int) MyGamePlayers.PrePrimaryChance, true, false),
                     new PlayerInfo(LitigationQualityChanceName, (int) MyGamePlayers.QualityChance, true, false),
-                    new PlayerInfo(PlaintiffNoiseChanceName, (int) MyGamePlayers.PNoiseChance, true, false),
-                    new PlayerInfo(DefendantNoiseChanceName, (int) MyGamePlayers.DNoiseChance, true, false),
+                    new PlayerInfo(PlaintiffNoiseChanceName, (int) MyGamePlayers.PSignalChance, true, false),
+                    new PlayerInfo(DefendantNoiseChanceName, (int) MyGamePlayers.DSignalChance, true, false),
                     new PlayerInfo(BothGiveUpChanceName, (int) MyGamePlayers.BothGiveUpChance, true, false),
                     new PlayerInfo(PreBargainingRoundChanceName, (int) MyGamePlayers.PreBargainingRoundChance, true, false),
                     new PlayerInfo(PostBargainingRoundChanceName, (int) MyGamePlayers.PostBargainingRoundChance, true, false),
@@ -147,8 +147,8 @@ namespace ACESim
             // The SignalChance player relies on this information in calculating the probabilities of different signals
             List<byte> playersKnowingLitigationQuality = new List<byte>()
             {
-                (byte) MyGamePlayers.PNoiseChance,
-                (byte) MyGamePlayers.DNoiseChance,
+                (byte) MyGamePlayers.PSignalChance,
+                (byte) MyGamePlayers.DSignalChance,
                 (byte) MyGamePlayers.CourtChance,
                 (byte) MyGamePlayers.Resolution
             };
@@ -180,41 +180,28 @@ namespace ACESim
         {
             // Plaintiff and defendant signals. If a player has perfect information, then no signal is needed.
             if (Options.PNoiseStdev != 0)
-                decisions.Add(new Decision("PlaintiffNoise", "PN", (byte)MyGamePlayers.PNoiseChance,
-                    null,
-                    Options.NumNoiseValues, (byte)MyGameDecisions.PNoise, unevenChanceActions: false)
+                decisions.Add(new Decision("PlaintiffSignal", "PS", (byte)MyGamePlayers.PSignalChance,
+                    new byte[] {(byte) MyGamePlayers.Plaintiff},
+                    Options.NumSignals, (byte)MyGameDecisions.PSignal, unevenChanceActions: true)
                 {
-                    RequiresCustomInformationSetManipulation = true,
-                    IsReversible = true // custom ReverseDecision defined below
+                    IsReversible = true 
                 });
             if (Options.DNoiseStdev != 0)
-                decisions.Add(new Decision("DefendantNoise", "DN", (byte)MyGamePlayers.DNoiseChance,
-                    null,
-                    Options.NumNoiseValues, (byte)MyGameDecisions.DNoise, unevenChanceActions: false)
+                decisions.Add(new Decision("DefendantSignal", "DS", (byte)MyGamePlayers.DSignalChance,
+                    new byte[] { (byte)MyGamePlayers.Defendant },
+                    Options.NumSignals, (byte)MyGameDecisions.DSignal, unevenChanceActions: true)
                 {
-                    RequiresCustomInformationSetManipulation = true,
-                    IsReversible = true // custom ReverseDecision defined below
+                    IsReversible = true
                 });
             CreateSignalsTables();
         }
-
-        public void ConvertNoiseToSignal(byte litigationQuality, byte noise, bool plaintiff, out byte discreteSignal,
-            out double uniformSignal)
-        {
-            ValueTuple<byte, double> tableValue;
-            if (plaintiff)
-                tableValue = PSignalsTable[litigationQuality, noise];
-            else
-                tableValue = DSignalsTable[litigationQuality, noise];
-            discreteSignal = tableValue.Item1;
-            uniformSignal = tableValue.Item2;
-        }
         
-        private ValueTuple<byte, double>[,] PSignalsTable, DSignalsTable;
+        private double[][] PSignalsTable, DSignalsTable, CSignalsTable;
         public void CreateSignalsTables()
         {
-            PSignalsTable = new ValueTuple<byte, double>[Options.NumLitigationQualityPoints + 1, Options.NumNoiseValues + 1];
-            DSignalsTable = new ValueTuple<byte, double>[Options.NumLitigationQualityPoints + 1, Options.NumNoiseValues + 1];
+            PSignalsTable = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { Options.NumLitigationQualityPoints, Options.NumSignals });
+            DSignalsTable = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { Options.NumLitigationQualityPoints, Options.NumSignals });
+            CSignalsTable = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { Options.NumLitigationQualityPoints, 2 });
             for (byte litigationQuality = 1;
                 litigationQuality <= Options.NumLitigationQualityPoints;
                 litigationQuality++)
@@ -222,22 +209,29 @@ namespace ACESim
                 double litigationQualityUniform =
                     EquallySpaced.GetLocationOfEquallySpacedPoint(litigationQuality - 1,
                         Options.NumLitigationQualityPoints, false);
-                for (byte noise = 1; noise <= Options.NumNoiseValues; noise++)
-                {
-                    MyGame.ConvertNoiseActionToDiscreteAndUniformSignal(noise,
-                        litigationQualityUniform, Options.NumNoiseValues,
-                        Options.PNoiseStdev, Options.NumSignals,
-                        out byte pDiscreteSignal, out double pUniformSignal);
-                    PSignalsTable[litigationQuality, noise] = (pDiscreteSignal, pUniformSignal);
-                    MyGame.ConvertNoiseActionToDiscreteAndUniformSignal(noise,
-                        litigationQualityUniform, Options.NumNoiseValues,
-                        Options.DNoiseStdev, Options.NumSignals,
-                        out byte dDiscreteSignal, out double dUniformSignal);
-                    DSignalsTable[litigationQuality, noise] = (dDiscreteSignal, dUniformSignal);
-                }
+
+                DiscreteValueSignalParameters pParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = Options.NumLitigationQualityPoints, NumSignals = Options.NumSignals, StdevOfNormalDistribution = Options.PNoiseStdev, UseEndpoints = false };
+                PSignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, pParams);
+                DiscreteValueSignalParameters dParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = Options.NumLitigationQualityPoints, NumSignals = Options.NumSignals, StdevOfNormalDistribution = Options.DNoiseStdev, UseEndpoints = false };
+                DSignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, dParams);
+                DiscreteValueSignalParameters cParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = Options.NumLitigationQualityPoints, NumSignals = 2, StdevOfNormalDistribution = Options.CourtNoiseStdev, UseEndpoints = false };
+                CSignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, cParams);
             }
         }
-        
+
+        public double[] GetPSignalProbabilities(byte litigationQuality)
+        {
+            return PSignalsTable[litigationQuality - 1];
+        }
+        public double[] GetDSignalProbabilities(byte litigationQuality)
+        {
+            return DSignalsTable[litigationQuality - 1];
+        }
+        public double[] GetCSignalProbabilities(byte litigationQuality)
+        {
+            return CSignalsTable[litigationQuality - 1];
+        }
+
         private void AddFileAndAnswerDecisions(List<Decision> decisions)
         {
             var pFile =
@@ -498,8 +492,8 @@ namespace ACESim
         private void AddCourtDecision(List<Decision> decisions)
         {
             decisions.Add(new Decision("CourtDecision", "CD", (byte)MyGamePlayers.CourtChance,
-                    new byte[] { (byte)MyGamePlayers.Resolution }, Options.NumCourtNoiseValues, (byte)MyGameDecisions.CourtDecision,
-                    unevenChanceActions: false, criticalNode: true)
+                    new byte[] { (byte)MyGamePlayers.Resolution }, 2, (byte)MyGameDecisions.CourtDecision,
+                    unevenChanceActions: true, criticalNode: true)
                 { CanTerminateGame = true, AlwaysTerminatesGame = true, IsReversible = true }); // even chance options
         }
 
@@ -507,7 +501,7 @@ namespace ACESim
 
         #region Game play support 
         
-        public override double[] GetChanceActionProbabilities(byte decisionByteCode, GameProgress gameProgress)
+        public override double[] GetUnevenChanceActionProbabilities(byte decisionByteCode, GameProgress gameProgress)
         {
             if (decisionByteCode == (byte)MyGameDecisions.PrePrimaryActionChance)
             {
@@ -525,6 +519,24 @@ namespace ACESim
             {
                 var myGameProgress = ((MyGameProgress) gameProgress);
                 var probabilities = Options.MyGameDisputeGenerator.GetLitigationQualityProbabilities(this, myGameProgress.DisputeGeneratorActions);
+                return probabilities;
+            }
+            else if (decisionByteCode == (byte)MyGameDecisions.PSignal)
+            {
+                var myGameProgress = ((MyGameProgress)gameProgress);
+                var probabilities = GetPSignalProbabilities(myGameProgress.LitigationQualityDiscrete);
+                return probabilities;
+            }
+            else if (decisionByteCode == (byte)MyGameDecisions.DSignal)
+            {
+                var myGameProgress = ((MyGameProgress)gameProgress);
+                var probabilities = GetDSignalProbabilities(myGameProgress.LitigationQualityDiscrete);
+                return probabilities;
+            }
+            else if (decisionByteCode == (byte)MyGameDecisions.CourtDecision)
+            {
+                var myGameProgress = ((MyGameProgress)gameProgress);
+                var probabilities = GetCSignalProbabilities(myGameProgress.LitigationQualityDiscrete);
                 return probabilities;
             }
             else
@@ -613,15 +625,7 @@ namespace ACESim
         public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, ref GameHistory gameHistory, GameProgress gameProgress)
         {
             byte decisionByteCode = currentDecision.Subdividable_IsSubdivision ? currentDecision.Subdividable_CorrespondingDecisionByteCode : currentDecision.DecisionByteCode; // get the original decision byte code
-            if (decisionByteCode == (byte) MyGameDecisions.PNoise || decisionByteCode == (byte) MyGameDecisions.DNoise)
-            {
-                // When the action is the signal, we just send the signal that the player receives, because there are unequal chance probabilities. When the action is the noise, we have an even chance of each noise value. We can't just give the player the noise value; we have to take into account the litigation quality. So, we do that here.
-                byte litigationQuality = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_LitigationQuality);
-                ConvertNoiseToSignal(litigationQuality, actionChosen, decisionByteCode == (byte)MyGameDecisions.PNoise, out byte discreteSignal, out _);
-                gameHistory.AddToInformationSetAndLog(discreteSignal, currentDecisionIndex, decisionByteCode == (byte)MyGameDecisions.PNoise ? (byte) MyGamePlayers.Plaintiff : (byte) MyGamePlayers.Defendant, gameProgress);
-                // NOTE: We don't have to do anything like this for the court's information set. The court simply gets the actual litigation quality and the noise. When the game is actually being played, the court will combine these to determine whether the plaintiff wins. The plaintiff and defendant are non-chance players, and so we want to have the same information set for all situations with the same signal.  But with the court, that doesn't matter. We can have lots of information sets, covering the wide range of possibilities.
-            }
-            else if (decisionByteCode == (byte) MyGameDecisions.DChips)
+            if (decisionByteCode == (byte) MyGameDecisions.DChips)
             {
                 // Inform the players of the total number of chips bet in this round. This will allow the players to make a decision about whether to abandon/default this round. We separately add information on P/D chips to the players' information sets, because we want the players to have a sense of who is bidding more aggressively (thus allowing them to track their own bluffing). 
                 // We also have to update the resolution set with the same information. The reason is that if a player bets a certain number of chips and then withdraws, then the smaller of that number and the other player's bet is still counted.
@@ -724,11 +728,7 @@ namespace ACESim
             base.ReverseDecision(decisionToReverse, ref historyPoint, originalGameState);
             ref GameHistory gameHistory = ref historyPoint.HistoryToPoint;
             byte decisionByteCode = decisionToReverse.DecisionByteCode;
-            if (decisionByteCode == (byte)MyGameDecisions.PNoise || decisionByteCode == (byte)MyGameDecisions.DNoise)
-            {
-                gameHistory.ReverseAdditionsToInformationSet(decisionByteCode == (byte)MyGameDecisions.PNoise ? (byte)MyGamePlayers.Plaintiff : (byte)MyGamePlayers.Defendant, 1, null);
-            }
-            else if (decisionByteCode == (byte)MyGameDecisions.DChips)
+            if (decisionByteCode == (byte)MyGameDecisions.DChips)
             {
                 gameHistory.ReverseAdditionsToInformationSet((byte)MyGamePlayers.Plaintiff, 2, null);
                 gameHistory.ReverseAdditionsToInformationSet((byte)MyGamePlayers.Defendant, 2, null);

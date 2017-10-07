@@ -20,8 +20,8 @@ namespace ACESim
         public const double CostsMultiplier = 1;
 
         private const int StartGameNumber = 1;
-        private static bool SingleGameMode = false;
-        private static int NumRepetitions = 3;
+        private static bool SingleGameMode = false; 
+        private static int NumRepetitions = 100;
         private static bool UseAzure = false; // MAKE SURE TO UPDATE THE FUNCTION APP AND CHECK THE NUMBER OF ITERATIONS, REPETITIONS, ETC. (NOTE: NOT REALLY FULLY WORKING.)
         private static bool ParallelizeOptionSets = true; 
         private static bool ParallelizeIndividualExecutions = false;
@@ -38,7 +38,7 @@ namespace ACESim
 
                 Algorithm = GameApproximationAlgorithm.ExploratoryProbing,
 
-                ReportEveryNIterations = 100_000,
+                ReportEveryNIterations = 1_000_000,
                 NumRandomIterationsForSummaryTable = 10_000,
                 PrintSummaryTable = true,
                 PrintInformationSets = false,
@@ -47,7 +47,7 @@ namespace ACESim
                 AlwaysUseAverageStrategyInReporting = false,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
 
-                TotalProbingCFRIterations = 100_000,
+                TotalProbingCFRIterations = 1_000_000,
                 EpsilonForMainPlayer = 0.5,
                 EpsilonForOpponentWhenExploring = 0.05,
                 MinBackupRegretsTrigger = 10,
@@ -74,13 +74,8 @@ namespace ACESim
         {
             var options = MyGameOptionsGenerator.Standard();
             options.LoserPays = false;
-            options.MyGameRunningSideBets = new MyGameRunningSideBets()
-            {
-                MaxChipsPerRound = 2,
-                ValueOfChip = 50000,
-                CountAllChipsInAbandoningRound = true
-            };
             options.CostsMultiplier = 1.0;
+            options.IncludeSignalsReport = true;
             options.MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
             {
                 ExogenousProbabilityTrulyLiable = 0.5,
@@ -222,18 +217,19 @@ namespace ACESim
             List<(string reportName, MyGameOptions options)> optionSets = GetOptionsSets();
             int numRepetitionsPerOptionSet = NumRepetitions;
             string[] results = new string[optionSets.Count];
+            string initiationTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
 
             void SingleOptionSetAction(int index)
             {
                 var optionSet = optionSets[index];
-                string optionSetResults = ProcessSingleOptionSet_Serial(optionSet.options, optionSet.reportName, index == 0, StartGameNumber, numRepetitionsPerOptionSet);
+                string optionSetResults = ProcessSingleOptionSet_Serial(optionSet.options, $"{initiationTime} {optionSet.reportName}", index == 0, StartGameNumber, numRepetitionsPerOptionSet);
                 results[index] = optionSetResults;
             }
 
             Parallelizer.MaxDegreeOfParallelism = Environment.ProcessorCount;
             Parallelizer.Go(ParallelizeOptionSets, 0, optionSets.Count, (Action<int>) SingleOptionSetAction);
             string combinedResults = String.Join("", results);
-            AzureBlob.WriteTextToBlob("results", DateTime.Now.ToString("yyyy-MM-dd-HH-mm"), true, combinedResults);
+            AzureBlob.WriteTextToBlob("results", $"{initiationTime} AllCombined", true, combinedResults);
             return combinedResults;
         }
 

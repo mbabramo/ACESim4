@@ -354,7 +354,7 @@ namespace ACESim
             TabbedText.Tabs--;
         }
 
-        public virtual double[] GetChanceActionProbabilities(byte decisionByteCode, GameProgress gameProgress)
+        public virtual double[] GetUnevenChanceActionProbabilities(byte decisionByteCode, GameProgress gameProgress)
         {
             throw new NotImplementedException(); // subclass should define if needed
         }

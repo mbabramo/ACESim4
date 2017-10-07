@@ -559,7 +559,10 @@ namespace ACESim
             }
             var reports = GenerateReports(reportGenerator);
             if (!EvolutionSettings.SuppressReportPrinting)
+            {
+                Debug.WriteLine($"{reports.standardReport}");
                 Console.WriteLine($"{reports.standardReport}");
+            }
             return reports.csvReport;
             //Console.WriteLine($"Number initialized game paths: {NumInitializedGamePaths}");
         }

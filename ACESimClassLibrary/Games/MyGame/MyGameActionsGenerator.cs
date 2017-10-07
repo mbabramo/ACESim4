@@ -144,8 +144,8 @@ namespace ACESim
             switch (decision.DecisionByteCode)
             {
                 case (byte)MyGameDecisions.LitigationQuality:
-                case (byte)MyGameDecisions.PNoise:
-                case (byte)MyGameDecisions.DNoise:
+                case (byte)MyGameDecisions.PSignal:
+                case (byte)MyGameDecisions.DSignal:
                     return 1; // all irrelevant
 
                 case (byte)MyGameDecisions.POffer:
@@ -162,8 +162,8 @@ namespace ACESim
             switch (decision.DecisionByteCode)
             {
                 case (byte)MyGameDecisions.LitigationQuality:
-                case (byte)MyGameDecisions.PNoise:
-                case (byte)MyGameDecisions.DNoise:
+                case (byte)MyGameDecisions.PSignal:
+                case (byte)MyGameDecisions.DSignal:
                     return 1; // all irrelevant
 
                 case (byte)MyGameDecisions.POffer:
@@ -184,8 +184,8 @@ namespace ACESim
             switch (decision.DecisionByteCode)
             {
                 case (byte)MyGameDecisions.LitigationQuality:
-                case (byte)MyGameDecisions.PNoise:
-                case (byte)MyGameDecisions.DNoise:
+                case (byte)MyGameDecisions.PSignal:
+                case (byte)MyGameDecisions.DSignal:
                     return 1; // all irrelevant
 
                 case (byte)MyGameDecisions.POffer:
@@ -208,9 +208,9 @@ namespace ACESim
 
                 case (byte)MyGameDecisions.LitigationQuality:
                     return 3;
-                case (byte)MyGameDecisions.PNoise:
+                case (byte)MyGameDecisions.PSignal:
                     return 4;
-                case (byte)MyGameDecisions.DNoise:
+                case (byte)MyGameDecisions.DSignal:
                     return 2;
                 case (byte)MyGameDecisions.POffer:
                     return 5;
@@ -232,9 +232,9 @@ namespace ACESim
 
                 case (byte)MyGameDecisions.LitigationQuality:
                     return 3;
-                case (byte)MyGameDecisions.PNoise:
+                case (byte)MyGameDecisions.PSignal:
                     return 4;
-                case (byte)MyGameDecisions.DNoise:
+                case (byte)MyGameDecisions.DSignal:
                     return 2;
                 case (byte)MyGameDecisions.POffer:
                     return 5;
@@ -254,9 +254,9 @@ namespace ACESim
             {
                 case (byte)MyGameDecisions.LitigationQuality:
                     return 5;
-                case (byte)MyGameDecisions.PNoise:
+                case (byte)MyGameDecisions.PSignal:
                     return 9;
-                case (byte)MyGameDecisions.DNoise:
+                case (byte)MyGameDecisions.DSignal:
                     return 1; 
 
                 case (byte)MyGameDecisions.POffer:
@@ -264,7 +264,7 @@ namespace ACESim
                 case (byte)MyGameDecisions.DOffer:
                     return 4;
                 case (byte)MyGameDecisions.CourtDecision:
-                    return 8;
+                    return 2;
 
                 default:
                     throw new NotImplementedException();
