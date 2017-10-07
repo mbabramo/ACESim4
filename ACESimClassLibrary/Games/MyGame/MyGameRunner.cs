@@ -285,7 +285,7 @@ namespace ACESim
             {
                 string singleRepetitionReport = GetSingleRepetitionReport(reportName, i, developer);
                 combinedReports.Add(singleRepetitionReport);
-                AzureBlob.SerializeObject("results", reportName + " CRM", true, developer);
+                // AzureBlob.SerializeObject("results", reportName + " CRM", true, developer);
             }
             string combinedRepetitionsReport = String.Join("", combinedReports);
             AzureBlob.WriteTextToBlob("results", reportName, true, combinedRepetitionsReport);

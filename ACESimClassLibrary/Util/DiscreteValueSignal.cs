@@ -150,14 +150,14 @@ namespace ACESim.Util
         private static void CalculateCutoffs(DiscreteValueSignalParameters nsParams)
         {
             // Midpoints from uniform distribution: 
-            double[] midpoints = 
+            double[] sourcePoints = 
                 EquallySpaced.GetEquallySpacedPoints(nsParams.NumPointsInSourceUniformDistribution, nsParams.UseEndpoints);
             double stdev = nsParams.StdevOfNormalDistribution;
             if (stdev == 0)
                 stdev = 1E-10;
             double[] drawsFromNormalDistribution = PointsInInverseNormalDistribution.Select(x => x * stdev).ToArray();
             // Now, we make every combination of uniform and normal distribution draws, and add them together
-            var crossProduct = midpoints
+            var crossProduct = sourcePoints
                 .SelectMany(x => drawsFromNormalDistribution, (x, y) => new { uniformDistPoint = x, normDistValue = y }).ToArray();
             var distinctPointsOrdered = crossProduct.Select(x => x.uniformDistPoint + x.normDistValue).OrderBy(x => x).ToArray();
             // Now we want the cutoffs for the signals, making each signal equally likely. Note that if we want 2 signals, then we want 1 cutoff at 0.5 (i.e., 50th percentiles); if there are 10 signals, we want cutoffs at percentiles corresponding to .1, .2, ..., .9. 
@@ -171,7 +171,7 @@ namespace ACESim.Util
             for (int u = 0; u < nsParams.NumPointsInSourceUniformDistribution; u++)
             {
                 int[] numValuesAtEachSignal = new int[nsParams.NumSignals];
-                double uniformDistributionPoint = midpoints[u];
+                double uniformDistributionPoint = sourcePoints[u];
                 var crossProductFromThisUniformDistributionPoint = crossProduct.Where(x => x.uniformDistPoint == uniformDistributionPoint).ToArray();
                 int totalNumberForUniformDistributionPoint = 0;
                 foreach (var point in crossProductFromThisUniformDistributionPoint)
