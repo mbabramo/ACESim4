@@ -115,6 +115,7 @@ namespace ACESim
                 new SimpleReportColumnFilter("BothReadyToGiveUp", (GameProgress gp) => MyGP(gp).BothReadyToGiveUp, false),
                 new SimpleReportColumnFilter("TrulyLiable", (GameProgress gp) => MyGP(gp).IsTrulyLiable, false),
                 new SimpleReportColumnVariable("PrimaryAction", (GameProgress gp) => (double) MyGP(gp).DisputeGeneratorActions.PrimaryAction),
+                new SimpleReportColumnVariable("MutualOptimism", (GameProgress gp) => (double) MyGP(gp).PSignalDiscrete - (double) MyGP(gp).DSignalDiscrete),
             });
             // Now go through bargaining rounds again for our litigation flow diagram
             colItems.Add(

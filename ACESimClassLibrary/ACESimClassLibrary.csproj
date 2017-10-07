@@ -267,6 +267,7 @@
     <Compile Include="Util\StatCollector.cs" />
     <Compile Include="Util\SummaryStatistics.cs" />
     <Compile Include="Util\TabbedWriteLine.cs" />
+    <Compile Include="Util\TaskCoordinator.cs" />
     <Compile Include="Util\TestableDateTime.cs" />
     <Compile Include="Util\ThreadLocalDisposables.cs" />
     <Compile Include="Util\UtilityCalculations.cs" />

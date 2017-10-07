@@ -19,9 +19,12 @@ namespace ACESim
         public const bool LimitToAmerican = false;
         public const double CostsMultiplier = 1;
 
+        private const int ProbingIterations = 5_000;
+        private const int SummaryTableIterations = 1_000;
+
         private const int StartGameNumber = 1;
         private static bool SingleGameMode = false; 
-        private static int NumRepetitions = 100;
+        private static int NumRepetitions = 3;
         private static bool UseAzure = false; // MAKE SURE TO UPDATE THE FUNCTION APP AND CHECK THE NUMBER OF ITERATIONS, REPETITIONS, ETC. (NOTE: NOT REALLY FULLY WORKING.)
         private static bool ParallelizeOptionSets = true; 
         private static bool ParallelizeIndividualExecutions = false;
@@ -38,8 +41,8 @@ namespace ACESim
 
                 Algorithm = GameApproximationAlgorithm.ExploratoryProbing,
 
-                ReportEveryNIterations = 1_000_000,
-                NumRandomIterationsForSummaryTable = 10_000,
+                ReportEveryNIterations = ProbingIterations,
+                NumRandomIterationsForSummaryTable = SummaryTableIterations,
                 PrintSummaryTable = true,
                 PrintInformationSets = false,
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
@@ -47,7 +50,7 @@ namespace ACESim
                 AlwaysUseAverageStrategyInReporting = false,
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
 
-                TotalProbingCFRIterations = 1_000_000,
+                TotalProbingCFRIterations = ProbingIterations,
                 EpsilonForMainPlayer = 0.5,
                 EpsilonForOpponentWhenExploring = 0.05,
                 MinBackupRegretsTrigger = 10,
@@ -84,7 +87,7 @@ namespace ACESim
             // options.AdditionalTableOverrides = new List<(Func<Decision, GameProgress, byte>, string)>() { (MyGameActionsGenerator.PBetsHeavilyWithGoodSignal, "PBetsHeavilyWithGoodSignal") };
             //options.IncludeSignalsReport = true;
             //options.IncludeCourtSuccessReport = true;
-            string report = ProcessSingleOptionSet_Serial(options, "Report", true, StartGameNumber, NumRepetitions);
+            string report = ProcessSingleOptionSet_AllRepetitions(options, "Report", "Single", true);
             return report;
         }
 
@@ -93,7 +96,7 @@ namespace ACESim
             var optionSets = GetOptionsSets();
             if (UseAzure)
             {
-                string combined = ProcessAllOptionSetsOnAzure().GetAwaiter().GetResult();
+                string combined = ProcessAllOptionSetsOnAzureFunctions().GetAwaiter().GetResult();
                 return combined;
             }
             else
@@ -214,26 +217,147 @@ namespace ACESim
 
         private static string ProcessAllOptionSetsLocally()
         {
-            List<(string reportName, MyGameOptions options)> optionSets = GetOptionsSets();
+            List<(string optionSetName, MyGameOptions options)> optionSets = GetOptionsSets();
             int numRepetitionsPerOptionSet = NumRepetitions;
             string[] results = new string[optionSets.Count];
-            string initiationTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
+            string masterReportName = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
 
             void SingleOptionSetAction(int index)
             {
                 var optionSet = optionSets[index];
-                string optionSetResults = ProcessSingleOptionSet_Serial(optionSet.options, $"{initiationTime} {optionSet.reportName}", index == 0, StartGameNumber, numRepetitionsPerOptionSet);
+                string optionSetResults = ProcessSingleOptionSet_AllRepetitions(masterReportName, index);
                 results[index] = optionSetResults;
             }
 
             Parallelizer.MaxDegreeOfParallelism = Environment.ProcessorCount;
             Parallelizer.Go(ParallelizeOptionSets, 0, optionSets.Count, (Action<int>) SingleOptionSetAction);
-            string combinedResults = String.Join("", results);
-            AzureBlob.WriteTextToBlob("results", $"{initiationTime} AllCombined", true, combinedResults);
+            string combinedResults = CombineResultsOfAllOptionSets(results.ToList(), masterReportName);
             return combinedResults;
         }
 
-        private static async Task<string> ProcessAllOptionSetsOnAzure()
+        private static string ProcessSingleOptionSet_AllRepetitions(string masterReportName, int optionSetIndex)
+        {
+            bool includeFirstLine = optionSetIndex == 0;
+            var optionSet = GetOptionsSets()[optionSetIndex];
+            var options = optionSet.options;
+            return ProcessSingleOptionSet_AllRepetitions(options, masterReportName, optionSet.reportName, includeFirstLine);
+        }
+
+        private static string ProcessSingleOptionSet_AllRepetitions(MyGameOptions options, string masterReportName, string optionSetName, bool includeFirstLine)
+        {
+            string masterReportNamePlusOptionSet = $"{masterReportName} {optionSetName}";
+            if (options.IncludeCourtSuccessReport || options.IncludeSignalsReport)
+                if (NumRepetitions > 1)
+                    throw new Exception("Can include multiple reports only with 1 repetition. Use console output rather than string copied."); // problem is that we can't merge the reports if NumRepetitions > 1 when we have more than one report.  
+            var developer = GetDeveloper(options);
+            developer.EvolutionSettings.GameNumber = StartGameNumber;
+            List<string> combinedReports = new List<string>();
+            for (int i = 0; i < NumRepetitions; i++)
+            {
+                string singleRepetitionReport = GetSingleRepetitionReportAndSave(options, masterReportName, optionSetName, i, developer);
+                combinedReports.Add(singleRepetitionReport);
+                // AzureBlob.SerializeObject("results", reportName + " CRM", true, developer);
+            }
+            return CombineResultsOfRepetitionsOfOptionSets(masterReportName, optionSetName, includeFirstLine, combinedReports);
+        }
+
+        private static string CombineResultsOfAllOptionSets(List<string> results, string masterReportName)
+        {
+            if (results == null || true) // DEBUG
+            { // load all the Azure blobs to get the results to combine; this is useful if we haven't done all the results consecutively
+                results = new List<string>();
+                List<(string optionSetName, MyGameOptions options)> optionSets = GetOptionsSets();
+                foreach (var optionSet in optionSets)
+                {
+                    string masterReportNamePlusOptionSet = $"{masterReportName} {optionSet.optionSetName}";
+                    string result = AzureBlob.GetBlobText("results", masterReportNamePlusOptionSet);
+                    results.Add(result);
+                }
+            }
+            string combinedResults = String.Join("", results);
+            AzureBlob.WriteTextToBlob("results", $"{masterReportName} AllCombined", true, combinedResults);
+            return combinedResults;
+        }
+
+        private static string CombineResultsOfRepetitionsOfOptionSets(string masterReportName, string optionSetName, bool includeFirstLine, List<string> combinedReports)
+        {
+            string masterReportNamePlusOptionSet = $"{masterReportName} {optionSetName}";
+            if (combinedReports == null || true) // DEBUG
+            { // load all the Azure blobs to get the results to combine; this is useful if we haven't done all the results consecutively
+                combinedReports = new List<string>();
+                for (int repetition = 0; repetition < NumRepetitions; repetition++)
+                {
+                    string specificRepetitionReportName = masterReportNamePlusOptionSet + $" {repetition}";
+                    string result = AzureBlob.GetBlobText("results", specificRepetitionReportName);
+                    combinedReports.Add(result);
+                }
+            }
+            string combinedRepetitionsReport = String.Join("", combinedReports);
+            string mergedReport = SimpleReportMerging.GetMergedReports(combinedRepetitionsReport, optionSetName, includeFirstLine);
+            AzureBlob.WriteTextToBlob("results", masterReportNamePlusOptionSet, true, mergedReport);
+            return mergedReport;
+        }
+
+
+        public static string GetSingleRepetitionReport(int optionSetIndex, int repetition, string masterReportName, CounterfactualRegretMaximization developer = null)
+        {
+            bool includeFirstLine = optionSetIndex == 0;
+            List<(string reportName, MyGameOptions options)> optionSets = GetOptionsSets();
+            var options = optionSets[optionSetIndex].options;
+            int numRepetitionsPerOptionSet = NumRepetitions;
+            string result = GetSingleRepetitionReportAndSave(options, masterReportName, optionSets[optionSetIndex].reportName, repetition, developer);
+            return result;
+        }
+
+        private static string GetSingleRepetitionReportAndSave(MyGameOptions options, string masterReportName, string optionSetName, int repetition, CounterfactualRegretMaximization developer = null)
+        {
+            string masterReportNamePlusOptionSet = $"{masterReportName} {optionSetName}";
+            var result = GetSingleRepetitionReport(optionSetName, repetition, developer ?? GetDeveloper(options));
+            string azureBlobInterimReportName = masterReportNamePlusOptionSet + $" {repetition}";
+            AzureBlob.WriteTextToBlob("results", azureBlobInterimReportName, true, result); // we write to a blob in case this times out and also to allow individual report to be taken out
+            return result;
+        }
+
+        private static string GetSingleRepetitionReport(string optionSetName, int i, CounterfactualRegretMaximization developer)
+        {
+            developer.EvolutionSettings.GameNumber = StartGameNumber + i;
+            string reportIteration = i.ToString();
+            if (i > 0)
+                developer.Reinitialize();
+            string report;
+            retry:
+            try
+            {
+                report = developer.DevelopStrategies(optionSetName);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Error: {e}");
+                Console.WriteLine(e.StackTrace);
+                goto retry;
+            }
+            string singleRepetitionReport = SimpleReportMerging.AddReportInformationColumns(report, optionSetName, reportIteration, i == 0);
+            return singleRepetitionReport;
+        }
+
+        private static CounterfactualRegretMaximization GetDeveloper(MyGameOptions options)
+        {
+            MyGameDefinition gameDefinition = new MyGameDefinition();
+            gameDefinition.Setup(options);
+            if (GameProgressLogger.LoggingOn)
+                gameDefinition.PrintOutOrderingInformation();
+            List<Strategy> starterStrategies = Strategy.GetStarterStrategies(gameDefinition);
+            var evolutionSettings = GetEvolutionSettings();
+            NWayTreeStorageRoot<IGameState>.EnableUseDictionary = false; // evolutionSettings.ParallelOptimization == false; // this is based on some limited performance testing; with parallelism, this seems to slow us down. Maybe it's not worth using. It might just be because of the lock.
+            NWayTreeStorageRoot<IGameState>.ParallelEnabled = evolutionSettings.ParallelOptimization;
+            CounterfactualRegretMaximization developer =
+                new CounterfactualRegretMaximization(starterStrategies, evolutionSettings, gameDefinition);
+            return developer;
+        }
+
+        #region Azure functions
+
+        private static async Task<string> ProcessAllOptionSetsOnAzureFunctions()
         {
             List<(string reportName, MyGameOptions options)> optionSets = GetOptionsSets();
             int numRepetitionsPerOptionSet = NumRepetitions;
@@ -242,7 +366,7 @@ namespace ACESim
             if (optionSets.Any(x => x.options.IncludeCourtSuccessReport || x.options.IncludeSignalsReport))
                 throw new Exception("Multiple supports not supported with Azure option.");
 
-            Console.WriteLine($"Number of option sets: {optionSets.Count} repetitions {numRepetitionsPerOptionSet} => {optionSets.Count*numRepetitionsPerOptionSet}");
+            Console.WriteLine($"Number of option sets: {optionSets.Count} repetitions {numRepetitionsPerOptionSet} => {optionSets.Count * numRepetitionsPerOptionSet}");
             Console.WriteLine("IMPORTANT: This will run on Azure. Have you published to Azure? Press G to continue on Azure.");
             do
             {
@@ -258,7 +382,7 @@ namespace ACESim
             List<Task<string>> tasks = new List<Task<string>>();
             for (int i = 0; i < optionSets.Count; i++)
             {
-                tasks.Add(ProcessSingleOptionSet_Azure(i, azureBlobReportName));
+                tasks.Add(ProcessSingleOptionSet_AzureFunctions(i, azureBlobReportName));
             }
             var taskResults = await Task.WhenAll(tasks);
             List<string> stringResults = new List<string>();
@@ -269,28 +393,7 @@ namespace ACESim
             return combinedResults;
         }
 
-        private static string ProcessSingleOptionSet_Serial(MyGameOptions options, string reportName, bool includeFirstLine, int startGameNumber, int numRepetitions)
-        {
-            if (options.IncludeCourtSuccessReport || options.IncludeSignalsReport)
-                if (NumRepetitions > 1)
-                    throw new Exception("Can include multiple reports only with 1 repetition. Use console output rather than string copied."); // problem is that we can't merge the reports if NumRepetitions > 1 when we have more than one report.  
-            var developer = GetDeveloper(options);
-            developer.EvolutionSettings.GameNumber = startGameNumber;
-            List<string> combinedReports = new List<string>();
-            for (int i = 0; i < numRepetitions; i++)
-            {
-                string singleRepetitionReport = GetSingleRepetitionReport(reportName, i, developer);
-                combinedReports.Add(singleRepetitionReport);
-                // AzureBlob.SerializeObject("results", reportName + " CRM", true, developer);
-            }
-            string combinedRepetitionsReport = String.Join("", combinedReports);
-            AzureBlob.WriteTextToBlob("results", reportName, true, combinedRepetitionsReport);
-
-            string mergedReport = SimpleReportMerging.GetMergedReports(combinedRepetitionsReport, reportName, includeFirstLine);
-            return mergedReport;
-        }
-
-        private static async Task<string> ProcessSingleOptionSet_Azure(int optionSetIndex, string azureBlobReportName)
+        private static async Task<string> ProcessSingleOptionSet_AzureFunctions(int optionSetIndex, string azureBlobReportName)
         {
             bool includeFirstLine = optionSetIndex == 0;
             List<(string reportName, MyGameOptions options)> optionSets = GetOptionsSets();
@@ -303,7 +406,7 @@ namespace ACESim
             List<Task<string>> tasks = new List<Task<string>>();
             for (int i = 0; i < NumRepetitions; i++)
             {
-                tasks.Add(GetSingleRepetitionReport_Azure(optionSetIndex, i, azureBlobReportName));
+                tasks.Add(GetSingleRepetitionReport_AzureFunctions(optionSetIndex, i, azureBlobReportName));
             }
             await Task.WhenAll(tasks);
 
@@ -315,11 +418,11 @@ namespace ACESim
             return mergedReport;
         }
 
-        private async static Task<string> GetSingleRepetitionReport_Azure(int optionSetIndex, int repetition, string azureBlobReportName)
+        private async static Task<string> GetSingleRepetitionReport_AzureFunctions(int optionSetIndex, int repetition, string azureBlobReportName)
         {
             string apiURL2 = "https://acesimfuncs.azurewebsites.net/api/GetReport?code=GbM1qaVgKmlBFvbzMGzInPjMTuGmdsfzoMfV6K//wJVv811t4sFbnQ==&clientId=default";
             int retryInterval = 10; // start with 10 milliseconds delay after first failure
-            const int maxAttempts = 5; 
+            const int maxAttempts = 5;
             AzureFunctionResult result = null;
             for (int attempt = 1; attempt <= maxAttempts; ++attempt)
             {
@@ -354,61 +457,7 @@ namespace ACESim
             // Task<string> t = Task<string>.Factory.StartNew(() => GetSingleRepetitionReport(optionSetIndex, repetition));
             // return await t;
         }
-
-        public static string GetSingleRepetitionReport(int optionSetIndex, int repetition, string azureBlobReportName)
-        {
-            bool includeFirstLine = optionSetIndex == 0;
-            List<(string reportName, MyGameOptions options)> optionSets = GetOptionsSets();
-            var options = optionSets[optionSetIndex].options;
-            string reportName = optionSets[optionSetIndex].reportName;
-            int numRepetitionsPerOptionSet = NumRepetitions;
-            string result = GetSingleRepetitionReport(options, reportName, repetition);
-            string azureBlobInterimReportName = azureBlobReportName + $" I{optionSetIndex}:{repetition}";
-            AzureBlob.WriteTextToBlob("results", azureBlobInterimReportName, true, result); // we write to a blob in case this times out and also to allow individual report to be taken out
-            return result;
-        }
-
-        private static string GetSingleRepetitionReport(MyGameOptions options, string reportName, int i)
-        {
-            return GetSingleRepetitionReport(reportName, i, GetDeveloper(options));
-        }
-
-        private static string GetSingleRepetitionReport(string reportName, int i, CounterfactualRegretMaximization developer)
-        {
-            developer.EvolutionSettings.GameNumber = StartGameNumber + i;
-            string reportIteration = i.ToString();
-            if (i > 0)
-                developer.Reinitialize();
-            string report;
-            retry:
-            try
-            {
-                report = developer.DevelopStrategies(reportName);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine($"Error: {e}");
-                Console.WriteLine(e.StackTrace);
-                goto retry;
-            }
-            string singleRepetitionReport = SimpleReportMerging.AddReportInformationColumns(report, reportName, reportIteration, i == 0);
-            return singleRepetitionReport;
-        }
-
-        private static CounterfactualRegretMaximization GetDeveloper(MyGameOptions options)
-        {
-            MyGameDefinition gameDefinition = new MyGameDefinition();
-            gameDefinition.Setup(options);
-            if (GameProgressLogger.LoggingOn)
-                gameDefinition.PrintOutOrderingInformation();
-            List<Strategy> starterStrategies = Strategy.GetStarterStrategies(gameDefinition);
-            var evolutionSettings = GetEvolutionSettings();
-            NWayTreeStorageRoot<IGameState>.EnableUseDictionary = false; // evolutionSettings.ParallelOptimization == false; // this is based on some limited performance testing; with parallelism, this seems to slow us down. Maybe it's not worth using. It might just be because of the lock.
-            NWayTreeStorageRoot<IGameState>.ParallelEnabled = evolutionSettings.ParallelOptimization;
-            CounterfactualRegretMaximization developer =
-                new CounterfactualRegretMaximization(starterStrategies, evolutionSettings, gameDefinition);
-            return developer;
-        }
+        #endregion
 
         // The following is used by the test classes
         public static MyGameProgress PlayMyGameOnce(MyGameOptions options,

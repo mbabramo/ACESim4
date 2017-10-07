@@ -18,6 +18,11 @@ namespace ACESim.Util
         {
             var blockBlob = GetBlockBlob(containerName, fileName, publicAccess);
 
+            SerializeObject(theObject, blockBlob);
+        }
+
+        public static void SerializeObject(object theObject, CloudBlockBlob blockBlob)
+        {
             var options = new BlobRequestOptions()
             {
                 ServerTimeout = TimeSpan.FromMinutes(10)
@@ -35,6 +40,11 @@ namespace ACESim.Util
         {
             var blockBlob = GetBlockBlob(containerName, fileName, true);
 
+            return GetSerializedObject(blockBlob);
+        }
+
+        public static object GetSerializedObject(CloudBlockBlob blockBlob)
+        {
             var options = new BlobRequestOptions()
             {
                 ServerTimeout = TimeSpan.FromMinutes(10)
@@ -47,6 +57,38 @@ namespace ACESim.Util
                 object theObject = formatter.Deserialize(stream);
                 return theObject;
             }
+        }
+
+        public static object TransformSharedBlobObject(string containerName, string fileName, Func<object, object> transformFunction)
+        {
+            CloudBlockBlob blockBlob = GetLeasedBlockBlob(containerName, fileName, true);
+            object result;
+            if (!blockBlob.Exists())
+                result = transformFunction(null);
+            else
+                result = transformFunction(GetSerializedObject(containerName, fileName));
+            SerializeObject(result, blockBlob);
+            return result;
+        }
+
+        public static CloudBlockBlob GetLeasedBlockBlob(string containerName, string fileName, bool publicAccess)
+        {
+            retry:
+            try
+            {
+                var blockBlob = GetBlockBlob(containerName, fileName, publicAccess);
+                blockBlob.AcquireLease(TimeSpan.FromSeconds(15), null);
+                return blockBlob;
+            }
+            catch
+            {
+                goto retry;
+            }
+        }
+
+        public static void ReleaseBlobLease(CloudBlockBlob blockBlob)
+        {
+            blockBlob.ReleaseLease(AccessCondition.GenerateEmptyCondition());
         }
 
         public static void WriteTextToBlob(string containerName, string fileName, bool publicAccess, string text)
