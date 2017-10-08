@@ -11,11 +11,11 @@ namespace ACESim
     public static class MyGameRunner
     {
         // IMPORTANT: Make sure to run in Release mode when not debugging.
-        private const bool PRiskAverse = false;
-        public const bool DRiskAverse = false;
-        public const bool TestDisputeGeneratorVariations = false;
-        public const bool IncludeRunningSideBetVariations = false; 
-        public const bool LimitToAmerican = false;
+        private static bool PRiskAverse = true;
+        public static bool DRiskAverse = true;
+        public static bool TestDisputeGeneratorVariations = false;
+        public static bool IncludeRunningSideBetVariations = false; 
+        public static bool LimitToAmerican = false;
         public const double CostsMultiplier = 1;
 
         private const int ProbingIterations = 1_000_000;
@@ -24,10 +24,9 @@ namespace ACESim
         private const int StartGameNumber = 1;
         private static bool SingleGameMode = false; 
         private static int NumRepetitions = 10;
-
-        private static bool UseAzureFunctions = false; // MAKE SURE TO UPDATE THE FUNCTION APP AND CHECK THE NUMBER OF ITERATIONS, REPETITIONS, ETC. (NOTE: NOT REALLY FULLY WORKING.)
+        
         private static bool UseLocalSimulationOfDistributedProcessing = true; // this should be false if actually running on service fabric
-        public static string MasterReportNameForDistributedProcessing = "TEST3";
+        public static string MasterReportNameForDistributedProcessing = "TEST4";
         private static bool ParallelizeOptionSets = false; 
         private static bool ParallelizeIndividualExecutions = false;
 
@@ -36,7 +35,7 @@ namespace ACESim
             EvolutionSettings evolutionSettings = new EvolutionSettings()
             {
                 MaxParallelDepth = 1, // we're parallelizing on the iteration level, so there is no need for further parallelization
-                ParallelOptimization = !UseAzureFunctions && ParallelizeIndividualExecutions && !ParallelizeOptionSets,
+                ParallelOptimization = ParallelizeIndividualExecutions && !ParallelizeOptionSets,
                 SuppressReportPrinting = !SingleGameMode && (ParallelizeOptionSets || UseLocalSimulationOfDistributedProcessing),
 
                 GameNumber = StartGameNumber,
@@ -96,16 +95,8 @@ namespace ACESim
         public static async Task<string> EvolveMyGame_Multiple()
         {
             var optionSets = GetOptionsSets();
-            if (UseAzureFunctions)
-            {
-                string combined = ProcessAllOptionSetsOnAzureFunctions().GetAwaiter().GetResult();
-                return combined;
-            }
-            else
-            {
-                string combined = UseLocalSimulationOfDistributedProcessing ? await SimulateDistributedProcessingAlgorithm() : ProcessAllOptionSetsLocally();
-                return combined;
-            }
+            string combined = UseLocalSimulationOfDistributedProcessing ? await SimulateDistributedProcessingAlgorithm() : ProcessAllOptionSetsLocally();
+            return combined;
         }
 
         private static List<(string reportName, MyGameOptions options)> GetOptionsSets()
