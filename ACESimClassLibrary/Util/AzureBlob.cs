@@ -100,7 +100,7 @@ namespace ACESim.Util
                 string lease = blockBlob.AcquireLease(TimeSpan.FromSeconds(59), null);
                 return (lease, blockBlob);
             }
-            catch (Microsoft.WindowsAzure.Storage.StorageException e)
+            catch (Microsoft.WindowsAzure.Storage.StorageException)
             { // failed to acquire lease
                 goto retry;
             }

@@ -1,11 +1,10 @@
-﻿using System;
+﻿using ACESim.Util;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
-using ACESim.Util;
 
 namespace ACESim
 {
@@ -19,15 +18,16 @@ namespace ACESim
         public const bool LimitToAmerican = false;
         public const double CostsMultiplier = 1;
 
-        private const int ProbingIterations = 5_000;
-        private const int SummaryTableIterations = 1_000;
+        private const int ProbingIterations = 1_000_000;
+        private const int SummaryTableIterations = 10_000;
 
         private const int StartGameNumber = 1;
         private static bool SingleGameMode = false; 
-        private static int NumRepetitions = 3;
+        private static int NumRepetitions = 10;
 
         private static bool UseAzureFunctions = false; // MAKE SURE TO UPDATE THE FUNCTION APP AND CHECK THE NUMBER OF ITERATIONS, REPETITIONS, ETC. (NOTE: NOT REALLY FULLY WORKING.)
-        private static bool UseLocalSimulationOfDistributedProcessing = true;
+        private static bool UseLocalSimulationOfDistributedProcessing = true; // this should be false if actually running on service fabric
+        public static string MasterReportNameForDistributedProcessing = "TEST3";
         private static bool ParallelizeOptionSets = false; 
         private static bool ParallelizeIndividualExecutions = false;
 
@@ -64,13 +64,13 @@ namespace ACESim
             return evolutionSettings;
         }
 
-        public static string EvolveMyGame()
+        public static async Task<string> EvolveMyGame()
         {
             string result;
             if (SingleGameMode)
                 result = EvolveMyGame_Single();
             else
-                result = EvolveMyGame_Multiple();
+                result = await EvolveMyGame_Multiple();
             Console.WriteLine(result);
             return result;
         }
@@ -93,7 +93,7 @@ namespace ACESim
             return report;
         }
 
-        public static string EvolveMyGame_Multiple()
+        public static async Task<string> EvolveMyGame_Multiple()
         {
             var optionSets = GetOptionsSets();
             if (UseAzureFunctions)
@@ -103,7 +103,7 @@ namespace ACESim
             }
             else
             {
-                string combined = UseLocalSimulationOfDistributedProcessing ? SimulateDistributedProcessingAlgorithm() : ProcessAllOptionSetsLocally();
+                string combined = UseLocalSimulationOfDistributedProcessing ? await SimulateDistributedProcessingAlgorithm() : ProcessAllOptionSetsLocally();
                 return combined;
             }
         }
@@ -392,48 +392,47 @@ namespace ACESim
 
         #region Azure distributed processing
 
-        private static string SimulateDistributedProcessingAlgorithm()
+        private static async Task<string> SimulateDistributedProcessingAlgorithm()
         {
             string masterReportName = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
             bool singleThread = false;
             if (singleThread)
             {
-                ParticipateInDistributedProcessing(masterReportName);
+                await ParticipateInDistributedProcessing(masterReportName, new CancellationToken(false));
             }
             else
             {
                 List<Task> tasks = new List<Task>();
                 for (int i = 0; i < 10; i++)
-                    tasks.Add(Task.Factory.StartNew(() =>
-                        {
-                            ParticipateInDistributedProcessing(masterReportName);
-                        }
-                    ));
-                Task.WaitAll(tasks.ToArray());
+                    tasks.Add(ParticipateInDistributedProcessing(masterReportName, new CancellationToken(false)));
+                await Task.WhenAll(tasks.ToArray());
             }
             var result = AzureBlob.GetBlobText("results", $"{masterReportName} AllCombined");
             return result;
         }
 
-        public static void ParticipateInDistributedProcessing(string masterReportName)
+        public static Task ParticipateInDistributedProcessing(string masterReportName, CancellationToken cancellationToken, Action actionEachTime = null)
         {
             InitiateNonLocalOptionSetsProcessing(masterReportName);
             IndividualTask taskToDo = null, taskCompleted = null;
             bool complete = false;
             while (!complete)
             {
+                actionEachTime?.Invoke();
                 IndividualTask theCompletedTask = taskCompleted; // avoid problem with closure
                 var blockBlob = AzureBlob.GetLeasedBlockBlob("results", masterReportName + " Coordinator", true);
+                bool readyForAnotherTask = !cancellationToken.IsCancellationRequested;
                 AzureBlob.TransformSharedBlobObject(blockBlob.blob, blockBlob.lease, o =>
                 {
                     TaskCoordinator taskCoordinator = (TaskCoordinator)o;
-                    if (taskCoordinator != null)
-                        Debug.WriteLine(taskCoordinator);
-                    taskCoordinator.Update(theCompletedTask, out taskToDo);
+                    if (taskCoordinator == null)
+                        throw new NotImplementedException();
+                    Debug.WriteLine(taskCoordinator);
+                    taskCoordinator.Update(theCompletedTask, readyForAnotherTask, out taskToDo);
                     if (taskToDo != null)
                         Debug.WriteLine($"Task to do: {taskToDo}");
                     return taskCoordinator;
-                }); // return null if the object is already created
+                });
                 complete = taskToDo == null;
                 if (!complete)
                 {
@@ -442,6 +441,7 @@ namespace ACESim
                     taskCompleted = taskToDo;
                 }
             }
+            return Task.CompletedTask;
         }
 
         private static void CompleteIndividualTask(string masterReportName, IndividualTask taskToDo)

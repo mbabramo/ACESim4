@@ -26,7 +26,7 @@ namespace ACESim
             //string gameResult = MultiRoundCooperationGameRunner.EvolveGame();
             string baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\MyGame";
             string strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
-            string gameResult = MyGameRunner.EvolveMyGame();
+            string gameResult = MyGameRunner.EvolveMyGame().GetAwaiter().GetResult();
             System.Windows.Clipboard.SetText(gameResult);
             Console.WriteLine();
             Console.WriteLine("Press Enter to end.");

@@ -93,13 +93,18 @@ namespace ACESim.Util
         private IEnumerable<RepeatedTask> RepeatedTasks => Stages.SelectMany(x => x.RepeatedTasks);
         private IEnumerable<IndividualTask> IndividualTasks => RepeatedTasks.SelectMany(x => x.IndividualTasks);
 
-        public void Update(IndividualTask taskCompleted, out IndividualTask taskToDo)
+        public void Update(IndividualTask taskCompleted, bool readyForAnotherTask, out IndividualTask taskToDo)
         {
             RepeatedTask repeatedTask = null;
             if (taskCompleted != null)
             {
                 repeatedTask = RepeatedTasks.First(x => x.Name == taskCompleted.Name && x.ID == taskCompleted.ID);
                 repeatedTask.IndividualTasks[taskCompleted.Repetition].Complete = true;
+                if (!readyForAnotherTask)
+                {
+                    taskToDo = null;
+                    return;
+                }
                 taskToDo = repeatedTask.FirstIncomplete();
                 if (taskToDo != null)
                 {
