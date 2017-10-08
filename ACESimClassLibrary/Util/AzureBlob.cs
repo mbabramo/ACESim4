@@ -21,7 +21,7 @@ namespace ACESim.Util
             SerializeObject(theObject, blockBlob);
         }
 
-        public static void SerializeObject(object theObject, CloudBlockBlob blockBlob)
+        public static void SerializeObject(object theObject, CloudBlockBlob blockBlob, string leaseID = null)
         {
             var options = new BlobRequestOptions()
             {
@@ -32,7 +32,11 @@ namespace ACESim.Util
             {
                 BinaryFormatter formatter = new BinaryFormatter();
                 formatter.Serialize(stream, theObject);
-                blockBlob.UploadFromStream(stream, null, options);
+                stream.Seek(0, SeekOrigin.Begin);
+                AccessCondition accessCondition = leaseID == null ? null : new AccessCondition() {LeaseId = leaseID};
+                blockBlob.UploadFromStream(stream, accessCondition, options);
+                if (leaseID != null)
+                    blockBlob.ReleaseLease(accessCondition);
             }
         }
 
@@ -53,7 +57,10 @@ namespace ACESim.Util
             using (var stream = new MemoryStream())
             {
                 blockBlob.DownloadToStream(stream, null, options);
+                stream.Seek(0, SeekOrigin.Begin);
                 BinaryFormatter formatter = new BinaryFormatter();
+                if (stream.Length == 0)
+                    return null;
                 object theObject = formatter.Deserialize(stream);
                 return theObject;
             }
@@ -61,34 +68,48 @@ namespace ACESim.Util
 
         public static object TransformSharedBlobObject(string containerName, string fileName, Func<object, object> transformFunction)
         {
-            CloudBlockBlob blockBlob = GetLeasedBlockBlob(containerName, fileName, true);
+            var leasedBlob = GetLeasedBlockBlob(containerName, fileName, true);
+            return TransformSharedBlobObject(leasedBlob.blob, leasedBlob.lease, transformFunction);
+        }
+
+        public static object TransformSharedBlobObject(CloudBlockBlob blockBlob, string leaseID, Func<object, object> transformFunction)
+        {
             object result;
-            if (!blockBlob.Exists())
-                result = transformFunction(null);
+            var serializedObject = GetSerializedObject(blockBlob);
+            result = transformFunction(serializedObject);
+            if (result != null)
+                SerializeObject(result, blockBlob, leaseID);
             else
-                result = transformFunction(GetSerializedObject(containerName, fileName));
-            SerializeObject(result, blockBlob);
+                ReleaseBlobLease(blockBlob, leaseID);
             return result;
         }
 
-        public static CloudBlockBlob GetLeasedBlockBlob(string containerName, string fileName, bool publicAccess)
+        public static (string lease, CloudBlockBlob blob) GetLeasedBlockBlob(string containerName, string fileName, bool publicAccess)
         {
             retry:
             try
             {
                 var blockBlob = GetBlockBlob(containerName, fileName, publicAccess);
-                blockBlob.AcquireLease(TimeSpan.FromSeconds(15), null);
-                return blockBlob;
+                if (!blockBlob.Exists())
+                {
+                    using (MemoryStream ms = new MemoryStream())
+                    {
+                        blockBlob.UploadFromStream(ms); //Empty memory stream. Will create an empty blob.
+                    }
+                }
+                string lease = blockBlob.AcquireLease(TimeSpan.FromSeconds(59), null);
+                return (lease, blockBlob);
             }
-            catch
-            {
+            catch (Microsoft.WindowsAzure.Storage.StorageException e)
+            { // failed to acquire lease
                 goto retry;
             }
         }
 
-        public static void ReleaseBlobLease(CloudBlockBlob blockBlob)
+        public static void ReleaseBlobLease(CloudBlockBlob blockBlob, string leaseID)
         {
-            blockBlob.ReleaseLease(AccessCondition.GenerateEmptyCondition());
+            AccessCondition accessCondition = new AccessCondition() { LeaseId = leaseID };
+            blockBlob.ReleaseLease(accessCondition);
         }
 
         public static void WriteTextToBlob(string containerName, string fileName, bool publicAccess, string text)

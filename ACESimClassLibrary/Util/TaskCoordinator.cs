@@ -6,66 +6,120 @@ using System.Threading.Tasks;
 
 namespace ACESim.Util
 {
+    [Serializable]
     public class IndividualTask
     {
+        public string Name;
+        public int ID;
         public int Repetition; 
         public DateTime? Started;
         public bool Complete;
+
+        public IndividualTask(string name, int id, int repetition)
+        {
+            Name = name;
+            ID = id;
+            Repetition = repetition;
+        }
+
+        public override string ToString()
+        {
+            return $"{Name} {ID} {Repetition} Started:{Started} Complete:{Complete}";
+        }
     }
 
+    [Serializable]
     public class RepeatedTask
     {
-        public string ID;
+        public string Name;
+        public int ID;
         public IndividualTask[] IndividualTasks;
 
-        public RepeatedTask(string id, int repetitions)
+        public RepeatedTask(string name, int id, int repetitions)
         {
+            Name = name;
             ID = id;
             IndividualTasks = new IndividualTask[repetitions];
-            for (int i = 1; i <= repetitions; i++)
-                IndividualTasks[i - 1].Repetition = i;
+            for (int repetition = 0; repetition < repetitions; repetition++)
+            {
+                IndividualTasks[repetition] = new IndividualTask(Name, ID, repetition);
+            }
         }
 
         public bool Complete => IndividualTasks.All(x => x.Complete);
-        public int? LowestAvailable => Complete ? (int?) null : IndividualTasks.OrderBy(x => x.Complete).ThenBy(x => x.Started != null).ThenBy(x => x.Started).First().Repetition;
+        public int? IndexOfFirstIncomplete => Complete ? (int?) null : IndividualTasks.OrderBy(x => x.Complete).ThenBy(x => x.Started != null).ThenBy(x => x.Started).First().Repetition;
+
+        public IndividualTask FirstIncomplete()
+        {
+            int? lowestAvailable = IndexOfFirstIncomplete;
+            if (lowestAvailable == null)
+                return null;
+            return IndividualTasks[(int) lowestAvailable];
+        }
+
+        public override string ToString()
+        {
+            return String.Join("; ", IndividualTasks.Select(x => x.ToString()));
+        }
     }
 
+    [Serializable]
     public class TaskStage
     {
-        public List<RepeatedTask> Tasks = null;
-        public bool Complete => Tasks.All(x => x.Complete);
-        public RepeatedTask TaskWithLowestAvailable => Tasks.Where(x => !x.Complete).OrderBy(x => x.LowestAvailable).First();
+        public TaskStage(List<RepeatedTask> repeatedTasks)
+        {
+            RepeatedTasks = repeatedTasks;
+        }
+
+        public List<RepeatedTask> RepeatedTasks = null;
+        public bool Complete => RepeatedTasks.All(x => x.Complete);
+        public RepeatedTask TaskWithLowestAvailable => RepeatedTasks.Where(x => !x.Complete).OrderBy(x => x.IndexOfFirstIncomplete).First();
+        public override string ToString()
+        {
+            return String.Join("\n", RepeatedTasks.Select(x => x.ToString()));
+        }
     }
 
+    [Serializable]
     public class TaskCoordinator
     {
         public List<TaskStage> Stages;
-        public List<RepeatedTask> RepeatedTasks => Stages.SelectMany(x => x.Tasks).ToList();
-        public void Update(string idOfTaskCompleted, int? repetitionOfTaskCompleted, out string idOfNewTask, out int? repetitionOfNewTask)
+
+        public TaskCoordinator(List<TaskStage> stages)
+        {
+            Stages = stages;
+        }
+
+        private IEnumerable<RepeatedTask> RepeatedTasks => Stages.SelectMany(x => x.RepeatedTasks);
+        private IEnumerable<IndividualTask> IndividualTasks => RepeatedTasks.SelectMany(x => x.IndividualTasks);
+
+        public void Update(IndividualTask taskCompleted, out IndividualTask taskToDo)
         {
             RepeatedTask repeatedTask = null;
-            if (idOfTaskCompleted != null && repetitionOfTaskCompleted != null)
+            if (taskCompleted != null)
             {
-                repeatedTask = RepeatedTasks.First(x => x.ID == idOfTaskCompleted);
-                repeatedTask.IndividualTasks[(int) (repetitionOfTaskCompleted - 1)].Complete = true;
-                repetitionOfNewTask = repeatedTask.LowestAvailable;
-                if (repetitionOfNewTask != null)
+                repeatedTask = RepeatedTasks.First(x => x.Name == taskCompleted.Name && x.ID == taskCompleted.ID);
+                repeatedTask.IndividualTasks[taskCompleted.Repetition].Complete = true;
+                taskToDo = repeatedTask.FirstIncomplete();
+                if (taskToDo != null)
                 {
-                    repeatedTask.IndividualTasks[(int) (repetitionOfNewTask - 1)].Started = DateTime.Now;
-                    idOfNewTask = repeatedTask.ID;
+                    taskToDo.Started = DateTime.Now;
                     return;
                 }
             }
             var taskStage = Stages.FirstOrDefault(x => !x.Complete);
             if (taskStage == null)
             { // all stages complete
-                idOfNewTask = null;
-                repetitionOfNewTask = null;
+                taskToDo = null;
                 return; 
             }
             repeatedTask = taskStage.TaskWithLowestAvailable;
-            idOfNewTask = repeatedTask.ID;
-            repetitionOfNewTask = repeatedTask.LowestAvailable;
+            taskToDo = repeatedTask.FirstIncomplete();
+            taskToDo.Started = DateTime.Now;
+        }
+        public override string ToString()
+        {
+            return String.Join("\n\n", Stages.Select(x => x.ToString()));
         }
     }
 }

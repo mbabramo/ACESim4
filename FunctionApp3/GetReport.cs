@@ -34,7 +34,9 @@ namespace FunctionApp3
             string result;
             try
             {
-                result = ACESim.MyGameRunner.GetSingleRepetitionReport((int)data.optionSet, (int)data.repetition, (string) data.azureBlobReportName);
+                string masterReportName = DateTime.Now.ToString("REPORT");
+                // DEBUG
+                // result = ACESim.MyGameRunner.GetSingleRepetitionReportAndSave(masterReportName, (int)data.optionSet, (int)data.repetition, (string) data.azureBlobReportName);
             }
             catch (Exception e)
             {
