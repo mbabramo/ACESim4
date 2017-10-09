@@ -20,6 +20,34 @@ namespace ACESim
             if (gameStateForCurrentPlayer == null)
                 throw new Exception("Internal error. This action has not been initialized.");
             double[] probabilities = GetActionProbabilitiesAtHistoryPoint(gameStateForCurrentPlayer, actionStrategy, numPossibleActions, alwaysDoAction, navigateDuringActualGamePlay);
+
+            if (gameProgress.ReportingMode)
+            {
+                StatCollector sc = new StatCollector();
+                for (byte a = 0; a < numPossibleActions; a++)
+                {
+                    if (probabilities[a] > 0)
+                    {
+                        double value = EquallySpaced.GetLocationOfEquallySpacedPoint(a, probabilities.Length, false);
+                        sc.Add(value, probabilities[a]);
+                    }
+                }
+                gameProgress.Mixedness = sc.StandardDeviation();
+            }
+
+            //double highest = 0, second = 0;
+            //for (byte a = 0; a < numPossibleActions; a++)
+            //{
+            //    if (probabilities[a] > highest)
+            //    {
+            //        second = highest;
+            //        highest = probabilities[a];
+            //    }
+            //    else if (probabilities[a] > second)
+            //        second = highest;
+            //}
+            //gameProgress.Mixedness = 1.0 - (highest - second); // e.g., 0, if highest is 100%. 1.0, if top two choices are equal
+
             double cumTotal = 0;
             for (byte a = 0; a < numPossibleActions; a++)
             {

@@ -10,6 +10,8 @@ namespace ACESim
     public struct MyGameRunningSideBetsActions
     {
         public List<(byte PAction, byte DAction)> ActionsEachBargainingRound; // an action is 1 more than the number of chips bet
+        public List<(double PMixedness, double DMixedness)> MixednessEachBargainingRound; // an action is 1 more than the number of chips bet
+        public double TemporaryStoragePMixedness;
 
         public double GetFirstChipsRecommended(bool plaintiff)
         {

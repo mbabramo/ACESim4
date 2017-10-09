@@ -45,8 +45,12 @@ namespace ACESim
             // We will be storing the plaintiff's action in the cache. So we can now modify game progress.
             byte pAction = myGameProgress.GameHistory.GetCacheItemAtIndex(myGameDefinition.GameHistoryCacheIndex_PChipsAction);
             if (myGameProgress.RunningSideBetsActions.ActionsEachBargainingRound == null)
+            {
                 myGameProgress.RunningSideBetsActions.ActionsEachBargainingRound = new List<(byte PAction, byte DAction)>();
+                myGameProgress.RunningSideBetsActions.MixednessEachBargainingRound = new List<(double PMixedness, double DMixedness)>();
+            }
             myGameProgress.RunningSideBetsActions.ActionsEachBargainingRound.Add((pAction, dAction));
+            myGameProgress.RunningSideBetsActions.MixednessEachBargainingRound.Add((myGameProgress.RunningSideBetsActions.TemporaryStoragePMixedness, myGameProgress.Mixedness));
         }
 
         public void GetEffectOnPlayerWelfare(MyGameDefinition myGameDefinition, byte? roundOfAbandonment, bool pAbandons, bool dDefaults, bool trialOccurs, bool pWinsAtTrial, MyGameRunningSideBetsActions runningSideBetsActions, out double effectOnP, out double effectOnD, out byte totalChipsThatCount)

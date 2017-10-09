@@ -13,6 +13,7 @@ namespace ACESim
         public Func<GameProgress, bool> IsInFilter;
         public string MultiplyByAllColumnForRowWithName;
         public string DivideByAllColumnForRowWithName;
+        public bool UseSum;
 
         public SimpleReportFilter(string name, Func<GameProgress, bool> isInFilter)
         {

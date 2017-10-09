@@ -110,7 +110,10 @@ namespace ACESim
                         {
                             if (colItem is SimpleReportColumnFilter cf)
                             {
-                                value = (double?)StatCollectors[i].Average();
+                                if (rowFilter.UseSum)
+                                    value = StatCollectors[i].Average() * StatCollectors[i].Num();
+                                else
+                                    value = (double?)StatCollectors[i].Average();
                                 if (EarlierReportToDivideColumnFiltersBy != null)
                                 {
                                     double? earlierValue = EarlierReportToDivideColumnFiltersBy.StatCollectors[i].Average();

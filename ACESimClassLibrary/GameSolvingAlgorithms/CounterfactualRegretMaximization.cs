@@ -711,6 +711,7 @@ namespace ACESim
             var simpleReportDefinitions = GameDefinition.GetSimpleReportDefinitions();
             int simpleReportDefinitionsCount = simpleReportDefinitions.Count();
             ReportsBeingGenerated = new SimpleReport[simpleReportDefinitionsCount];
+            GamePlayer.ReportingMode = true;
             for (int i = 0; i < simpleReportDefinitionsCount; i++)
             {
                 ReportsBeingGenerated[i] = new SimpleReport(simpleReportDefinitions[i], simpleReportDefinitions[i].DivideColumnFiltersByImmediatelyEarlierReport ? ReportsBeingGenerated[i - 1] : null);
@@ -718,6 +719,7 @@ namespace ACESim
                 ReportsBeingGenerated[i].GetReport(standardReport, csvReport);
                 ReportsBeingGenerated[i] = null; // so we don't keep adding GameProgress to this report
             }
+            GamePlayer.ReportingMode = false;
             ReportsBeingGenerated = null;
             return (standardReport.ToString(), csvReport.ToString());
         }

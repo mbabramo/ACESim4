@@ -391,6 +391,7 @@ namespace ACESim
             else
             {
                 gameProgress = GameDefinition.GameFactory.CreateNewGameProgress(iterationIDArray?[iteration]);
+                gameProgress.ReportingMode = ReportingMode;
                 gameProgress.ActionOverrider = actionOverride;
             }
 
@@ -404,5 +405,7 @@ namespace ACESim
                 MostRecentlyCompletedGameProgress = game.Progress;
             }
         }
+
+        internal bool ReportingMode;
     }
 }

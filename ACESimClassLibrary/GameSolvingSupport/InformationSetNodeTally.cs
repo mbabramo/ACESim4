@@ -272,8 +272,6 @@ namespace ACESim
             return (total, numPositive);
         }
 
-
-
         public unsafe List<double> GetRegretMatchingProbabilities()
         {
             double* probabilitiesToSet = stackalloc double[NumPossibleActions];

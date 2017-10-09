@@ -84,10 +84,12 @@ namespace ACESim
                 case (byte)MyGameDecisions.POffer:
                     double offer = GetOfferBasedOnAction(action, true);
                     MyProgress.AddOffer(true, offer);
+                    MyProgress.AddOfferMixedness(true, MyProgress.Mixedness);
                 break;
                 case (byte)MyGameDecisions.DOffer:
                     offer = GetOfferBasedOnAction(action, false);
                     MyProgress.AddOffer(false, offer);
+                    MyProgress.AddOfferMixedness(false, MyProgress.Mixedness);
                     if (MyDefinition.Options.BargainingRoundsSimultaneous || MyDefinition.Options.PGoesFirstIfNotSimultaneous[MyProgress.BargainingRoundsComplete])
                     {
                         MyProgress.ConcludeMainPortionOfBargainingRound(MyDefinition);
@@ -102,7 +104,8 @@ namespace ACESim
                     MyProgress.ConcludeMainPortionOfBargainingRound(MyDefinition);
                     break;
                 case (byte)MyGameDecisions.PChips:
-                    // don't do anything yet -- the decision specifies that the action should be stored in the cache
+                    MyProgress.RunningSideBetsActions.TemporaryStoragePMixedness = MyProgress.Mixedness;
+                    // don't do anything else yet -- the decision specifies that the action should be stored in the cache
                     break;
                 case (byte)MyGameDecisions.DChips:
                     MyDefinition.Options.MyGameRunningSideBets.SaveRunningSideBets(MyDefinition, MyProgress, action);

@@ -25,10 +25,10 @@ namespace ACESim
         private static bool SingleGameMode = false; 
         private static int NumRepetitions = 10;
         
-        private static bool UseLocalSimulationOfDistributedProcessing = true; // this should be false if actually running on service fabric
-        public static string MasterReportNameForDistributedProcessing = "TEST4";
-        private static bool ParallelizeOptionSets = false; 
-        private static bool ParallelizeIndividualExecutions = false;
+        private static bool UseLocalSimulationOfDistributedProcessing = false; // this should be false if actually running on service fabric
+        public static string MasterReportNameForDistributedProcessing = "TEST5";
+        private static bool ParallelizeOptionSets = true; 
+        private static bool ParallelizeIndividualExecutions = false; // only affects SingleGameMode
 
         private static EvolutionSettings GetEvolutionSettings()
         {
@@ -79,12 +79,20 @@ namespace ACESim
             var options = MyGameOptionsGenerator.Standard();
             options.LoserPays = false;
             options.CostsMultiplier = 1.0;
-            options.IncludeSignalsReport = true;
+            options.IncludeSignalsReport = false;
             options.MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
             {
                 ExogenousProbabilityTrulyLiable = 0.5,
                 StdevNoiseToProduceLitigationQuality = 0.3
             };
+            //options.MyGameRunningSideBets = new MyGameRunningSideBets()
+            //{
+            //    MaxChipsPerRound = 2,
+            //    ValueOfChip = 50000,
+            //    CountAllChipsInAbandoningRound = true,
+            //    TrialCostsMultiplierAsymptote = 3.0,
+            //    TrialCostsMultiplierWithDoubleStakes = 1.3,
+            //};
             // options.AdditionalTableOverrides = new List<(Func<Decision, GameProgress, byte>, string)>() { (MyGameActionsGenerator.PBetsHeavilyWithGoodSignal, "PBetsHeavilyWithGoodSignal") };
             //options.IncludeSignalsReport = true;
             //options.IncludeCourtSuccessReport = true;

@@ -45,6 +45,8 @@ namespace ACESim
         public double DFinalWealth;
         public double PWelfare;
         public double DWelfare;
+        public List<double> POfferMixedness;
+        public List<double> DOfferMixedness;
         public MyGameDisputeGeneratorActions DisputeGeneratorActions;
         public MyGamePretrialActions PretrialActions;
         public MyGameRunningSideBetsActions RunningSideBetsActions;
@@ -135,6 +137,47 @@ namespace ACESim
                     return null;
             }
         }
+
+        public double? GetBetMixedness(bool plaintiff, int offerNumber)
+        {
+            if (RunningSideBetsActions.MixednessEachBargainingRound == null)
+                return null;
+            int offerNumberZeroBased = offerNumber - 1;
+            if (plaintiff)
+            {
+                if (RunningSideBetsActions.MixednessEachBargainingRound != null && RunningSideBetsActions.MixednessEachBargainingRound.Count() > offerNumberZeroBased)
+                    return RunningSideBetsActions.MixednessEachBargainingRound[offerNumberZeroBased].PMixedness;
+                else
+                    return null;
+            }
+            else
+            {
+                if (RunningSideBetsActions.MixednessEachBargainingRound != null && RunningSideBetsActions.MixednessEachBargainingRound.Count() > offerNumberZeroBased)
+                    return RunningSideBetsActions.MixednessEachBargainingRound[offerNumberZeroBased].PMixedness;
+                else
+                    return null;
+            }
+        }
+
+        public double? GetOfferMixedness(bool plaintiff, int offerNumber)
+        {
+            int offerNumberZeroBased = offerNumber - 1;
+            if (plaintiff)
+            {
+                if (POfferMixedness != null && POfferMixedness.Count() > offerNumberZeroBased)
+                    return POfferMixedness[offerNumberZeroBased];
+                else
+                    return null;
+            }
+            else
+            {
+                if (DOfferMixedness != null && DOfferMixedness.Count() > offerNumberZeroBased)
+                    return DOfferMixedness[offerNumberZeroBased];
+                else
+                    return null;
+            }
+        }
+
         public bool GetResponse(bool plaintiffResponse, int offerNumber)
         {
             int offerNumberZeroBased = offerNumber - 1;
@@ -194,6 +237,8 @@ namespace ACESim
             copy.DAgreesToBargain = DAgreesToBargain?.ToList();
             copy.POffers = POffers?.ToList();
             copy.DOffers = DOffers?.ToList();
+            copy.POfferMixedness = POfferMixedness?.ToList();
+            copy.DOfferMixedness = DOfferMixedness?.ToList();
             copy.PResponses = PResponses?.ToList();
             copy.DResponses = DResponses?.ToList();
             copy.CaseSettles = CaseSettles;
@@ -259,6 +304,22 @@ namespace ACESim
                 if (DOffers == null)
                     DOffers = new List<double>();
                 DOffers.Add(value);
+            }
+        }
+
+        public void AddOfferMixedness(bool plaintiff, double value)
+        {
+            if (plaintiff)
+            {
+                if (POfferMixedness == null)
+                    POfferMixedness = new List<double>();
+                POfferMixedness.Add(value);
+            }
+            else
+            {
+                if (DOfferMixedness == null)
+                    DOfferMixedness = new List<double>();
+                DOfferMixedness.Add(value);
             }
         }
 

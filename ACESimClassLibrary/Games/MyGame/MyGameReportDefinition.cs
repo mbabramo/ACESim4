@@ -6,6 +6,16 @@ namespace ACESim
 {
     public partial class MyGameDefinition
     {
+
+        // TODO: Getting parties' probability estimates. Right now, we know the parties' signals at various times and we can thus look at the distribution of those signals, including the possibility of separating into subsets of cases(e.g., truly liable or much more narrowly, cases in which the defendant has a signal of 6 and the plaintiff has given a particular offer). But we might also like to know more specifically the distribution of litigation quality estimates at various points.For any given information set, we should be able to calculate the actual litigation quality at each information set. That is, we would look at the game history and get a cached index with the litigation quality and then increment an array item held at the information set.Thus, we can imbue the distribution of signals with meaning given the point in the game. We could use a similar approach to estimate the other party's signals or anything else that might vary.
+        // A further benefit of something like this might be that we could measure how well informed parties are about the actual litigation quality at various points in the game. You could, for example, measure the average absolute difference between a party's estimate and the true value. We could then compare this across different game situations. So at various points, if in a mode where we are doing this, the game would request the relevant mode (perhaps set by noting that we are reporting in the game progress), seek out the information set, and get the relevant information. 
+
+        //How to do it: Ideally, we would calculate this AFTER optimization but BEFORE reporting, so that it gives us the most up-to-date information. Essentially, we want to have a probe from the beginning of the game. The probe doesn't have any effect on the evolution. But as we go through the probe, we would increment some other variable. When replaying at a particular point, we must take into account the possibility that the node has not been visited, in which case are distribution must be empty (in which case it won't factor into the average). 
+
+        //Reporting: If using our current reporting approach, then for each item in the distribution, we need a separate variable for each game point(e.g., defendant offer in bargaining round 3). The problem is that we need to know the party's estimate AT THAT POINT -- so, we can't just have a column variable for the party's estimate across all game situations and then filter down.  But this should still be helpful. We can make it a column variable (like how much a party bets at a certain point), indicating the average expected quality (rather than a distribution), and the average absolute error in this estimate.
+
+        // Alternative diagram A broader problem with the diagrams as we imagine them is that they aggregate all situations, so they don't show things from the perspective of a particular player.Arguably, this calls for creating a game tree based on a specific iteration of the game, showing each party's information. It would be cool, for a particular optimization, to be able to show a particular game tree. So we need to be able to produce a list of the different game steps. We could then have a graphic that shows the actual litigation quality, followed by a next column with the plaintiff's and defendant's estimates of litigation quality (as a distribution), followed by another column with the plaintiff's and defendant's distribution of offers, then the actual offer. We would then need some graphic illustrating the outcome for both parties (relative to the ideal one). In principal, we could find a "representative" optimization and then compare similar situations under two different rules. We might have a graphic that shows us cases getting resolved rapid fire for a particular initial situation.
+
         public override List<SimpleReportDefinition> GetSimpleReportDefinitions()
         {
             var reports = new List<SimpleReportDefinition>
@@ -71,6 +81,14 @@ namespace ACESim
                         (GameProgress gp) => MyGP(gp).GetOffer(false, bargainingRoundNum))
                 );
                 colItems.Add(
+                    new SimpleReportColumnVariable($"POfferMixedness{b}",
+                        (GameProgress gp) => MyGP(gp).GetOfferMixedness(true, bargainingRoundNum))
+                );
+                colItems.Add(
+                    new SimpleReportColumnVariable($"DOfferMixedness{b}",
+                        (GameProgress gp) => MyGP(gp).GetOfferMixedness(false, bargainingRoundNum))
+                );
+                colItems.Add(
                     new SimpleReportColumnFilter($"Settles{b}",
                         (GameProgress gp) => MyGP(gp).SettlementValue != null &&
                                              MyGP(gp).BargainingRoundsComplete == bargainingRoundNum, false)
@@ -83,6 +101,14 @@ namespace ACESim
                 colItems.Add(
                     new SimpleReportColumnVariable($"DBet{b}",
                         (GameProgress gp) => MyGP(gp).GetPlayerBet(false, bargainingRoundNum))
+                );
+                colItems.Add(
+                    new SimpleReportColumnVariable($"PBetMixedness{b}",
+                        (GameProgress gp) => MyGP(gp).GetBetMixedness(true, bargainingRoundNum))
+                );
+                colItems.Add(
+                    new SimpleReportColumnVariable($"DBetMixedness{b}",
+                        (GameProgress gp) => MyGP(gp).GetBetMixedness(false, bargainingRoundNum))
                 );
                 colItems.Add(
                     new SimpleReportColumnFilter($"PAbandons{b}",
@@ -229,18 +255,20 @@ namespace ACESim
                     new SimpleReportFilter("Quality" + q, (GameProgress gp) => MyGP(gp).LitigationQualityDiscrete == q));
             }
             rows.Add(new SimpleReportFilter("Truly Liable", (GameProgress gp) => MyGP(gp).IsTrulyLiable));
+            rows.Add(new SimpleReportFilter("Truly Liable Count", (GameProgress gp) => MyGP(gp).IsTrulyLiable) {UseSum = true});
             for (byte litigationQuality = 1; litigationQuality <= Options.NumLitigationQualityPoints; litigationQuality++)
             {
                 byte q = litigationQuality; // avoid closure
                 rows.Add(
-                    new SimpleReportFilter("Quality (Truly Liable) " + q, (GameProgress gp) => MyGP(gp).IsTrulyLiable && MyGP(gp).LitigationQualityDiscrete == q)); // DEBUG{ MultiplyByAllColumnForRowWithName = "Quality (Truly Liable) " + q, DivideByAllColumnForRowWithName = "Truly Liable" });
+                    new SimpleReportFilter("Quality (Truly Liable) " + q, (GameProgress gp) => MyGP(gp).IsTrulyLiable && MyGP(gp).LitigationQualityDiscrete == q) {UseSum = true}); // DEBUG{ MultiplyByAllColumnForRowWithName = "Quality (Truly Liable) " + q, DivideByAllColumnForRowWithName = "Truly Liable" });
             }
             rows.Add(new SimpleReportFilter("Truly Not Liable", (GameProgress gp) => !MyGP(gp).IsTrulyLiable));
+            rows.Add(new SimpleReportFilter("Truly Not Liable Count", (GameProgress gp) => !MyGP(gp).IsTrulyLiable) {UseSum = true});
             for (byte litigationQuality = 1; litigationQuality <= Options.NumLitigationQualityPoints; litigationQuality++)
             {
                 byte q = litigationQuality; // avoid closure
                 rows.Add(
-                    new SimpleReportFilter("Quality (Truly Not Liable) " + q, (GameProgress gp) => !MyGP(gp).IsTrulyLiable && MyGP(gp).LitigationQualityDiscrete == q)); // DEBUG{ MultiplyByAllColumnForRowWithName = "Quality (Truly Liable) " + q, DivideByAllColumnForRowWithName = "Truly Liable" });
+                    new SimpleReportFilter("Quality (Truly Not Liable) " + q, (GameProgress gp) => !MyGP(gp).IsTrulyLiable && MyGP(gp).LitigationQualityDiscrete == q) {UseSum = true}); // DEBUG{ MultiplyByAllColumnForRowWithName = "Quality (Truly Liable) " + q, DivideByAllColumnForRowWithName = "Truly Liable" });
             }
             //for (byte signal = 1; signal <= Options.NumSignals; signal++)
             //{

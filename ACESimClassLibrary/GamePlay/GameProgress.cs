@@ -29,6 +29,7 @@ namespace ACESim
         public bool PreparationForCurrentStepComplete;
         public bool IsFinalGamePath;
         public byte RandomNumbersUsed;
+        public double Mixedness;
 
         public GameProgress()
         {
@@ -85,6 +86,8 @@ namespace ACESim
         static ConcurrentQueue<GameProgress> RecycledGameProgressQueue = new ConcurrentQueue<GameProgress>();
         private static int NumRecycled;
         private const int MaxToRecycle = 500;
+        internal bool ReportingMode;
+
         public virtual void Recycle()
         {
             if (NumRecycled <= MaxToRecycle)
@@ -206,6 +209,8 @@ namespace ACESim
             copy.PreparationForCurrentStepComplete = this.PreparationForCurrentStepComplete;
             copy.IsFinalGamePath = this.IsFinalGamePath;
             copy.RandomNumbersUsed = this.RandomNumbersUsed;
+            copy.Mixedness = this.Mixedness;
+            copy.ReportingMode = this.ReportingMode;
         }
 
         private object GetFieldValueForReportFromGameModuleProgress(string variableNameForReport, int? listIndex, out bool found)
