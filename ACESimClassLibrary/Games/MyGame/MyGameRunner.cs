@@ -13,7 +13,7 @@ namespace ACESim
         // IMPORTANT: Make sure to run in Release mode when not debugging.
         private static bool PRiskAverse = true;
         public static bool DRiskAverse = true;
-        public static bool TestDisputeGeneratorVariations = false;
+        public static bool TestDisputeGeneratorVariations = true;
         public static bool IncludeRunningSideBetVariations = false; 
         public static bool LimitToAmerican = false;
         public const double CostsMultiplier = 1;
@@ -23,7 +23,7 @@ namespace ACESim
 
         private const int StartGameNumber = 1;
         private static bool SingleGameMode = false; 
-        private static int NumRepetitions = 10;
+        private static int NumRepetitions = 100;
         
         private static bool UseLocalSimulationOfDistributedProcessing = false; // this should be false if actually running on service fabric
         public static string MasterReportNameForDistributedProcessing = "TEST6";
