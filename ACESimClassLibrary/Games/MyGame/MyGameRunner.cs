@@ -26,7 +26,7 @@ namespace ACESim
         private static int NumRepetitions = 10;
         
         private static bool UseLocalSimulationOfDistributedProcessing = false; // this should be false if actually running on service fabric
-        public static string MasterReportNameForDistributedProcessing = "TEST5";
+        public static string MasterReportNameForDistributedProcessing = "TEST6";
         private static bool ParallelizeOptionSets = true; 
         private static bool ParallelizeIndividualExecutions = false; // only affects SingleGameMode
 

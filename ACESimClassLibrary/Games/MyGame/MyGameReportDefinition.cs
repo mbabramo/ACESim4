@@ -204,6 +204,7 @@ namespace ACESim
             var rows = new List<SimpleReportFilter>()
             {
                 new SimpleReportFilter("All", (GameProgress gp) => true),
+                new SimpleReportFilter("AllCount", (GameProgress gp) => true) {UseSum = true},
                 new SimpleReportFilter("NoDispute", (GameProgress gp) => !MyGP(gp).DisputeArises),
                 new SimpleReportFilter("DisputeArises", (GameProgress gp) => MyGP(gp).DisputeArises),
                 new SimpleReportFilter("Litigated", (GameProgress gp) => MyGP(gp).PFiles && MyGP(gp).DAnswers),
@@ -213,22 +214,22 @@ namespace ACESim
                 new SimpleReportFilter("OneRound", (GameProgress gp) => MyGP(gp).BargainingRoundsComplete == 1),
                 new SimpleReportFilter("TwoRounds", (GameProgress gp) => MyGP(gp).BargainingRoundsComplete == 2),
                 new SimpleReportFilter("ThreeRounds", (GameProgress gp) => MyGP(gp).BargainingRoundsComplete == 3),
-                new SimpleReportFilter("LowQuality",
-                    (GameProgress gp) => MyGP(gp).LitigationQualityUniform <= 0.25),
-                new SimpleReportFilter("MediumQuality",
-                    (GameProgress gp) => MyGP(gp).LitigationQualityUniform > 0.25 &&
-                                         MyGP(gp).LitigationQualityUniform < 0.75),
-                new SimpleReportFilter("HighQuality",
-                    (GameProgress gp) => MyGP(gp).LitigationQualityUniform >= 0.75),
-                new SimpleReportFilter("LowPSignal", (GameProgress gp) => MyGP(gp).PSignalUniform <= 0.25),
-                new SimpleReportFilter("LowDSignal", (GameProgress gp) => MyGP(gp).DSignalUniform <= 0.25),
-                new SimpleReportFilter("MedPSignal",
-                    (GameProgress gp) => MyGP(gp).PSignalUniform > 0.25 && MyGP(gp).PSignalUniform < 0.75),
-                new SimpleReportFilter("MedDSignal",
-                    (GameProgress gp) => MyGP(gp).DSignalUniform > 0.25 && MyGP(gp).DSignalUniform < 0.75),
-                new SimpleReportFilter("HiPSignal", (GameProgress gp) => MyGP(gp).PSignalUniform >= 0.75),
-                new SimpleReportFilter("HiDSignal", (GameProgress gp) => MyGP(gp).DSignalUniform >= 0.75),
-                new SimpleReportFilter("Custom", (GameProgress gp) => MyGP(gp).PSignalUniform >= 0.7 && !MyGP(gp).DDefaults),
+                //new SimpleReportFilter("LowQuality",
+                //    (GameProgress gp) => MyGP(gp).LitigationQualityUniform <= 0.25),
+                //new SimpleReportFilter("MediumQuality",
+                //    (GameProgress gp) => MyGP(gp).LitigationQualityUniform > 0.25 &&
+                //                         MyGP(gp).LitigationQualityUniform < 0.75),
+                //new SimpleReportFilter("HighQuality",
+                //    (GameProgress gp) => MyGP(gp).LitigationQualityUniform >= 0.75),
+                //new SimpleReportFilter("LowPSignal", (GameProgress gp) => MyGP(gp).PSignalUniform <= 0.25),
+                //new SimpleReportFilter("LowDSignal", (GameProgress gp) => MyGP(gp).DSignalUniform <= 0.25),
+                //new SimpleReportFilter("MedPSignal",
+                //    (GameProgress gp) => MyGP(gp).PSignalUniform > 0.25 && MyGP(gp).PSignalUniform < 0.75),
+                //new SimpleReportFilter("MedDSignal",
+                //    (GameProgress gp) => MyGP(gp).DSignalUniform > 0.25 && MyGP(gp).DSignalUniform < 0.75),
+                //new SimpleReportFilter("HiPSignal", (GameProgress gp) => MyGP(gp).PSignalUniform >= 0.75),
+                //new SimpleReportFilter("HiDSignal", (GameProgress gp) => MyGP(gp).DSignalUniform >= 0.75),
+                //new SimpleReportFilter("Custom", (GameProgress gp) => MyGP(gp).PSignalUniform >= 0.7 && !MyGP(gp).DDefaults),
             };
             for (byte signal = 1; signal < 11; signal++)
             {
@@ -236,58 +237,64 @@ namespace ACESim
                 rows.Add(
                     new SimpleReportFilter("PrePrimary" + s, (GameProgress gp) => MyGP(gp).DisputeGeneratorActions.PrePrimaryChanceAction == s));
             }
-            for (byte signal = 1; signal <= Options.NumSignals; signal++)
-            {
-                byte s = signal; // avoid closure
-                rows.Add(
-                    new SimpleReportFilter("PSignal" + s, (GameProgress gp) => MyGP(gp).PSignalDiscrete == s));
-            }
-            for (byte signal = 1; signal <= Options.NumSignals; signal++)
-            {
-                byte s = signal; // avoid closure
-                rows.Add(
-                    new SimpleReportFilter("DSignal" + s, (GameProgress gp) => MyGP(gp).DSignalDiscrete == s));
-            }
-            for (byte litigationQuality = 1; litigationQuality <= Options.NumLitigationQualityPoints; litigationQuality++)
-            {
-                byte q = litigationQuality; // avoid closure
-                rows.Add(
-                    new SimpleReportFilter("Quality" + q, (GameProgress gp) => MyGP(gp).LitigationQualityDiscrete == q));
-            }
             rows.Add(new SimpleReportFilter("Truly Liable", (GameProgress gp) => MyGP(gp).IsTrulyLiable));
-            rows.Add(new SimpleReportFilter("Truly Liable Count", (GameProgress gp) => MyGP(gp).IsTrulyLiable) {UseSum = true});
-            for (byte litigationQuality = 1; litigationQuality <= Options.NumLitigationQualityPoints; litigationQuality++)
-            {
-                byte q = litigationQuality; // avoid closure
-                rows.Add(
-                    new SimpleReportFilter("Quality (Truly Liable) " + q, (GameProgress gp) => MyGP(gp).IsTrulyLiable && MyGP(gp).LitigationQualityDiscrete == q) {UseSum = true}); // DEBUG{ MultiplyByAllColumnForRowWithName = "Quality (Truly Liable) " + q, DivideByAllColumnForRowWithName = "Truly Liable" });
-            }
+            rows.Add(new SimpleReportFilter("Truly Liable Count", (GameProgress gp) => MyGP(gp).IsTrulyLiable) { UseSum = true });
             rows.Add(new SimpleReportFilter("Truly Not Liable", (GameProgress gp) => !MyGP(gp).IsTrulyLiable));
-            rows.Add(new SimpleReportFilter("Truly Not Liable Count", (GameProgress gp) => !MyGP(gp).IsTrulyLiable) {UseSum = true});
-            for (byte litigationQuality = 1; litigationQuality <= Options.NumLitigationQualityPoints; litigationQuality++)
-            {
-                byte q = litigationQuality; // avoid closure
-                rows.Add(
-                    new SimpleReportFilter("Quality (Truly Not Liable) " + q, (GameProgress gp) => !MyGP(gp).IsTrulyLiable && MyGP(gp).LitigationQualityDiscrete == q) {UseSum = true}); // DEBUG{ MultiplyByAllColumnForRowWithName = "Quality (Truly Liable) " + q, DivideByAllColumnForRowWithName = "Truly Liable" });
-            }
-            //for (byte signal = 1; signal <= Options.NumSignals; signal++)
-            //{
-            //    byte s = signal; // avoid closure
-            //    simpleReportFilters.Add(
-            //        new SimpleReportFilter("LitigPSignal" + s, (GameProgress gp) => MyGP(gp).PSignalDiscrete == s && MyGP(gp).PFiles && MyGP(gp).DAnswers));
-            //}
-            //for (byte signal = 1; signal <= Options.NumSignals; signal++)
-            //{
-            //    byte s = signal; // avoid closure
-            //    simpleReportFilters.Add(
-            //        new SimpleReportFilter("LitigDSignal" + s, (GameProgress gp) => MyGP(gp).DSignalDiscrete == s && MyGP(gp).PFiles && MyGP(gp).DAnswers));
-            //}
+            rows.Add(new SimpleReportFilter("Truly Not Liable Count", (GameProgress gp) => !MyGP(gp).IsTrulyLiable) { UseSum = true });
+            AddRowsForQualityAndSignalDistributions("", false, rows, gp => true);
+            AddRowsForQualityAndSignalDistributions("Truly Liable ", false, rows, gp => MyGP(gp).IsTrulyLiable);
+            AddRowsForQualityAndSignalDistributions("Truly Not Liable ", false, rows, gp => !MyGP(gp).IsTrulyLiable);
+
             return new SimpleReportDefinition(
                 "MyGameReport",
                 null,
                 rows,
                 colItems
             );
+        }
+
+        private void AddRowsForQualityAndSignalDistributions(string prefix, bool includeAverages, List<SimpleReportFilter> rows, Func<GameProgress, bool> extraRequirement)
+        {
+            // Note that averages will not be weighted by the number of observations in the column. That's why counts may be more useful.
+            if (includeAverages)
+                for (byte litigationQuality = 1; litigationQuality <= Options.NumLitigationQualityPoints; litigationQuality++)
+                {
+                    byte q = litigationQuality; // avoid closure
+                    rows.Add(
+                        new SimpleReportFilter(prefix + "Quality" + q, (GameProgress gp) => MyGP(gp).LitigationQualityDiscrete == q && extraRequirement(gp)));
+                }
+            for (byte litigationQuality = 1; litigationQuality <= Options.NumLitigationQualityPoints; litigationQuality++)
+            {
+                byte q = litigationQuality; // avoid closure
+                rows.Add(
+                    new SimpleReportFilter(prefix + "Quality" + q + " Count", (GameProgress gp) => MyGP(gp).LitigationQualityDiscrete == q && extraRequirement(gp)) {UseSum = true});
+            }
+            if (includeAverages)
+                for (byte signal = 1; signal <= Options.NumSignals; signal++)
+                {
+                    byte s = signal; // avoid closure
+                    rows.Add(
+                        new SimpleReportFilter(prefix + "PSignal" + s, (GameProgress gp) => MyGP(gp).PSignalDiscrete == s && extraRequirement(gp)));
+                }
+            for (byte signal = 1; signal <= Options.NumSignals; signal++)
+            {
+                byte s = signal; // avoid closure
+                rows.Add(
+                    new SimpleReportFilter(prefix + "PSignal" + s + " Count", (GameProgress gp) => MyGP(gp).PSignalDiscrete == s && extraRequirement(gp)) {UseSum = true});
+            }
+            if (includeAverages)
+                for (byte signal = 1; signal <= Options.NumSignals; signal++)
+                {
+                    byte s = signal; // avoid closure
+                    rows.Add(
+                        new SimpleReportFilter(prefix + "DSignal" + s, (GameProgress gp) => MyGP(gp).DSignalDiscrete == s && extraRequirement(gp)));
+                }
+            for (byte signal = 1; signal <= Options.NumSignals; signal++)
+            {
+                byte s = signal; // avoid closure
+                rows.Add(
+                    new SimpleReportFilter(prefix + "DSignal" + s + " Count", (GameProgress gp) => MyGP(gp).DSignalDiscrete == s && extraRequirement(gp)) {UseSum = true});
+            }
         }
 
         private SimpleReportDefinition GetCourtSuccessReport()
