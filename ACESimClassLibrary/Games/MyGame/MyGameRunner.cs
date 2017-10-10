@@ -11,12 +11,12 @@ namespace ACESim
     public static class MyGameRunner
     {
         // IMPORTANT: Make sure to run in Release mode when not debugging.
-        private static bool PRiskAverse = true;
-        public static bool DRiskAverse = true;
-        public static bool TestDisputeGeneratorVariations = true;
+        private static bool PRiskAverse = false;
+        public static bool DRiskAverse = false;
+        public static bool TestDisputeGeneratorVariations = false;
         public static bool IncludeRunningSideBetVariations = false; 
         public static bool LimitToAmerican = false;
-        public const double CostsMultiplier = 1;
+        public static double[] CostsMultipliers = new double[] {0.1, 0.25, 0.5, 1.0, 1.5, 2.0, 4.0};
 
         private const int ProbingIterations = 1_000_000;
         private const int SummaryTableIterations = 10_000;
@@ -25,8 +25,8 @@ namespace ACESim
         private static bool SingleGameMode = false; 
         private static int NumRepetitions = 100;
         
-        private static bool UseLocalSimulationOfDistributedProcessing = false; // this should be false if actually running on service fabric
-        public static string MasterReportNameForDistributedProcessing = "TEST6";
+        private static bool LocalDistributedProcessing = true; // this should be false if actually running on service fabric
+        public static string MasterReportNameForDistributedProcessing = "VaryCosts";
         private static bool ParallelizeOptionSets = true; 
         private static bool ParallelizeIndividualExecutions = false; // only affects SingleGameMode
 
@@ -35,8 +35,8 @@ namespace ACESim
             EvolutionSettings evolutionSettings = new EvolutionSettings()
             {
                 MaxParallelDepth = 1, // we're parallelizing on the iteration level, so there is no need for further parallelization
-                ParallelOptimization = ParallelizeIndividualExecutions && !ParallelizeOptionSets,
-                SuppressReportPrinting = !SingleGameMode && (ParallelizeOptionSets || UseLocalSimulationOfDistributedProcessing),
+                ParallelOptimization = ParallelizeIndividualExecutions && !ParallelizeOptionSets && !LocalDistributedProcessing,
+                SuppressReportPrinting = !SingleGameMode && (ParallelizeOptionSets || LocalDistributedProcessing),
 
                 GameNumber = StartGameNumber,
 
@@ -103,7 +103,7 @@ namespace ACESim
         public static async Task<string> EvolveMyGame_Multiple()
         {
             var optionSets = GetOptionsSets();
-            string combined = UseLocalSimulationOfDistributedProcessing ? await SimulateDistributedProcessingAlgorithm() : ProcessAllOptionSetsLocally();
+            string combined = LocalDistributedProcessing ? await SimulateDistributedProcessingAlgorithm() : ProcessAllOptionSetsLocally();
             return combined;
         }
 
@@ -131,17 +131,22 @@ namespace ACESim
                     }
                 };
 
-            foreach (IMyGameDisputeGenerator d in disputeGenerators)
-            {
-                var options = MyGameOptionsGenerator.Standard();
-                options.CostsMultiplier = CostsMultiplier;
-                if (PRiskAverse)
-                    options.PUtilityCalculator = new LogRiskAverseUtilityCalculator() {InitialWealth = options.PInitialWealth};
-                if (DRiskAverse)
-                    options.DUtilityCalculator = new LogRiskAverseUtilityCalculator() {InitialWealth = options.DInitialWealth};
-                options.MyGameDisputeGenerator = d;
-                optionSets.AddRange(GetOptionsVariations(d.GetGeneratorName(), () => options));
-            }
+            foreach (double costMultiplier in CostsMultipliers)
+                foreach (IMyGameDisputeGenerator d in disputeGenerators)
+                {
+                    var options = MyGameOptionsGenerator.Standard();
+                    options.CostsMultiplier = costMultiplier;
+                    if (PRiskAverse)
+                        options.PUtilityCalculator = new LogRiskAverseUtilityCalculator() {InitialWealth = options.PInitialWealth};
+                    if (DRiskAverse)
+                        options.DUtilityCalculator = new LogRiskAverseUtilityCalculator() {InitialWealth = options.DInitialWealth};
+                    options.MyGameDisputeGenerator = d;
+                    string generatorName = d.GetGeneratorName();
+                    string fullName = generatorName;
+                    if (costMultiplier != 1)
+                        fullName += $" costs {costMultiplier}";
+                    optionSets.AddRange(GetOptionsVariations(fullName, () => options));
+                }
             return optionSets;
         }
 
@@ -357,20 +362,21 @@ namespace ACESim
             AzureBlob.WriteTextToBlob("results", masterReportNamePlusOptionSet, true, mergedReport);
             return mergedReport;
         }
-
-        private static int LastDeveloperOptionSetIndex = -1;
-        public static CounterfactualRegretMaximization LastDeveloper = null;
+        
+        public static Dictionary<int, (int optionSetIndex, CounterfactualRegretMaximization developer)> LastDeveloperOnThread = new Dictionary<int, (int optionSetIndex, CounterfactualRegretMaximization developer)>();
         public static object LockObj = new object();
         private static CounterfactualRegretMaximization GetDeveloper(int optionSetIndex)
         {
             lock (LockObj)
             {
-                if (LastDeveloperOptionSetIndex == optionSetIndex && !UseLocalSimulationOfDistributedProcessing)
-                    return LastDeveloper;
+                int currentThreadID = Thread.CurrentThread.ManagedThreadId;
+
+                if (LastDeveloperOnThread.ContainsKey(currentThreadID) && LastDeveloperOnThread[currentThreadID].optionSetIndex == optionSetIndex)
+                    return LastDeveloperOnThread[currentThreadID].developer;
                 var optionSet = GetOptionsSets()[optionSetIndex];
                 var options = optionSet.options;
-                LastDeveloper = GetDeveloper(options);
-                return LastDeveloper;
+                LastDeveloperOnThread[currentThreadID] = (optionSetIndex, GetDeveloper(options));
+                return LastDeveloperOnThread[currentThreadID].developer;
             }
         }
 
@@ -393,7 +399,7 @@ namespace ACESim
 
         private static async Task<string> SimulateDistributedProcessingAlgorithm()
         {
-            string masterReportName = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
+            string masterReportName = MasterReportNameForDistributedProcessing + " " + DateTime.Now.ToString("yyyy-MM-dd HH:mm");
             bool singleThread = false;
             if (singleThread)
             {
@@ -402,8 +408,8 @@ namespace ACESim
             else
             {
                 List<Task> tasks = new List<Task>();
-                for (int i = 0; i < 10; i++)
-                    tasks.Add(ParticipateInDistributedProcessing(masterReportName, new CancellationToken(false)));
+                for (int i = 0; i < Environment.ProcessorCount; i++)
+                    tasks.Add(Task.Run(() => ParticipateInDistributedProcessing(masterReportName, new CancellationToken(false))));
                 await Task.WhenAll(tasks.ToArray());
             }
             var result = AzureBlob.GetBlobText("results", $"{masterReportName} AllCombined");
