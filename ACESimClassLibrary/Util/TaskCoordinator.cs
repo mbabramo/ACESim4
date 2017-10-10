@@ -70,7 +70,6 @@ namespace ACESim.Util
         {
             RepeatedTasks = repeatedTasks;
         }
-
         public List<RepeatedTask> RepeatedTasks = null;
         public bool Complete => RepeatedTasks.All(x => x.Complete);
         public RepeatedTask TaskWithLowestAvailable => RepeatedTasks.Where(x => !x.Complete).OrderBy(x => x.IndexOfFirstIncomplete).First();
@@ -92,6 +91,8 @@ namespace ACESim.Util
 
         private IEnumerable<RepeatedTask> RepeatedTasks => Stages.SelectMany(x => x.RepeatedTasks);
         private IEnumerable<IndividualTask> IndividualTasks => RepeatedTasks.SelectMany(x => x.IndividualTasks);
+        public int IndividualTaskCount => IndividualTasks.Count();
+        public double ProportionComplete => (double) IndividualTasks.Count(x => x.Complete) / (double) IndividualTasks.Count();
 
         public void Update(IndividualTask taskCompleted, bool readyForAnotherTask, out IndividualTask taskToDo)
         {

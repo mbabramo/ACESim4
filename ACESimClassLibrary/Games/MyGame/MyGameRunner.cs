@@ -435,6 +435,7 @@ namespace ACESim
                         throw new NotImplementedException();
                     Debug.WriteLine(taskCoordinator);
                     taskCoordinator.Update(theCompletedTask, readyForAnotherTask, out taskToDo);
+                    Console.WriteLine($"Proportion complete: {taskCoordinator.ProportionComplete}");
                     if (taskToDo != null)
                         Debug.WriteLine($"Task to do: {taskToDo}");
                     return taskCoordinator;
