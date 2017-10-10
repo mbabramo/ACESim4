@@ -11,12 +11,13 @@ namespace ACESim
     public static class MyGameRunner
     {
         // IMPORTANT: Make sure to run in Release mode when not debugging.
+        private static bool HigherRiskAversion = true;
         private static bool PRiskAverse = false;
         public static bool DRiskAverse = false;
         public static bool TestDisputeGeneratorVariations = false;
         public static bool IncludeRunningSideBetVariations = false; 
         public static bool LimitToAmerican = false;
-        public static double[] CostsMultipliers = new double[] {0.1, 0.25, 0.5, 1.0, 1.5, 2.0, 4.0};
+        public static double[] CostsMultipliers = new double[] {1.0}; // 0.1, 0.25, 0.5, 1.0, 1.5, 2.0, 4.0};
 
         private const int ProbingIterations = 1_000_000;
         private const int SummaryTableIterations = 10_000;
@@ -26,7 +27,7 @@ namespace ACESim
         private static int NumRepetitions = 100;
         
         private static bool LocalDistributedProcessing = true; // this should be false if actually running on service fabric
-        public static string MasterReportNameForDistributedProcessing = "VaryCosts";
+        public static string MasterReportNameForDistributedProcessing = "HiRiskAverse";
         private static bool ParallelizeOptionSets = true; 
         private static bool ParallelizeIndividualExecutions = false; // only affects SingleGameMode
 
@@ -137,9 +138,9 @@ namespace ACESim
                     var options = MyGameOptionsGenerator.Standard();
                     options.CostsMultiplier = costMultiplier;
                     if (PRiskAverse)
-                        options.PUtilityCalculator = new LogRiskAverseUtilityCalculator() {InitialWealth = options.PInitialWealth};
+                        options.PUtilityCalculator = HigherRiskAversion ? (UtilityCalculator) new CARARiskAverseUtilityCalculator() { Alpha = 10.0 / 1000000.0 } : (UtilityCalculator) new LogRiskAverseUtilityCalculator() {InitialWealth = options.PInitialWealth};
                     if (DRiskAverse)
-                        options.DUtilityCalculator = new LogRiskAverseUtilityCalculator() {InitialWealth = options.DInitialWealth};
+                        options.DUtilityCalculator = HigherRiskAversion ? (UtilityCalculator)new CARARiskAverseUtilityCalculator() { Alpha = 10.0 / 1000000.0 } : (UtilityCalculator) new LogRiskAverseUtilityCalculator() {InitialWealth = options.DInitialWealth};
                     options.MyGameDisputeGenerator = d;
                     string generatorName = d.GetGeneratorName();
                     string fullName = generatorName;

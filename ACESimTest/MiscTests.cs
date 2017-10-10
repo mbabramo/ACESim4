@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using ACESim;
 using ACESim.Util;
@@ -74,6 +75,26 @@ namespace ACESimTest
             SubdivisionCalculations.GetOneBasedDisaggregatedAction(oneBasedAggregateValue: 3, oneBasedDisaggregatedLevel: 2, numLevels: 2, numOptionsPerLevel: 2).Should().Be(1);
             SubdivisionCalculations.GetOneBasedDisaggregatedAction(oneBasedAggregateValue: 4, oneBasedDisaggregatedLevel: 1, numLevels: 2, numOptionsPerLevel: 2).Should().Be(2);
             SubdivisionCalculations.GetOneBasedDisaggregatedAction(oneBasedAggregateValue: 4, oneBasedDisaggregatedLevel: 2, numLevels: 2, numOptionsPerLevel: 2).Should().Be(2);
+        }
+
+        [TestMethod]
+        public void RiskAversionWorks()
+        {
+            foreach (var calculator in new (string, UtilityCalculator)[] {("log", new LogRiskAverseUtilityCalculator()), ("CARA1", new CARARiskAverseUtilityCalculator() {Alpha = 1.0 / 1000000.0}), ("CARA5", new CARARiskAverseUtilityCalculator() {Alpha = 5.0 / 1000000.0}), ("CARA10", new CARARiskAverseUtilityCalculator() {Alpha = 10.0 / 1000000.0}) })
+            {
+                Debug.WriteLine(calculator.Item1);
+                double baseline = calculator.Item2.GetSubjectiveUtilityForWealthLevel(1.0 * 1_000_000);
+                for (double p = 0.1; p <= 2.0; p += 0.1)
+                {
+                    Debug.WriteLine($"{p} => {calculator.Item2.GetSubjectiveUtilityForWealthLevel(p * 1_000_000)}");
+
+                }
+                double lossOfUtilityTo900_000 = baseline - calculator.Item2.GetSubjectiveUtilityForWealthLevel(1.0 * 900_000);
+                double lossOfUtilityTo800_000 = baseline - calculator.Item2.GetSubjectiveUtilityForWealthLevel(1.0 * 800_000);
+                double ratio = lossOfUtilityTo800_000 / lossOfUtilityTo900_000;
+                Debug.WriteLine($"{ratio}");
+                //Debug.WriteLine($"{calculator.Item2.GetSubjectiveUtilityForWealthLevel(1.1 * 1_000_000) / calculator.Item2.GetSubjectiveUtilityForWealthLevel(0.9 * 1_000_000)}");
+            }
         }
 
         [TestMethod]

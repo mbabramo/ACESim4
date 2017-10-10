@@ -21,6 +21,8 @@ namespace ACESim
         [STAThread]
         static void Main(string[] args)
         {
+            
+
             //string baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\MultiRoundCooperationGame";
             //string strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
             //string gameResult = MultiRoundCooperationGameRunner.EvolveGame();
