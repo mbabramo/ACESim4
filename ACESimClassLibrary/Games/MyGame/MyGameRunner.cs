@@ -11,24 +11,24 @@ namespace ACESim
     public static class MyGameRunner
     {
         // IMPORTANT: Make sure to run in Release mode when not debugging.
-        private static bool HigherRiskAversion = true;
-        private static bool PRiskAverse = true;
-        public static bool DRiskAverse = true;
+        private static bool PRiskAverse = false;
+        public static bool DRiskAverse = false;
         public static bool TestDisputeGeneratorVariations = false;
-        public static bool IncludeRunningSideBetVariations = false; 
+        public static bool IncludeRunningSideBetVariations = false;
         public static bool LimitToAmerican = false;
-        public static double[] CostsMultipliers = new double[] {1.0}; // 0.1, 0.25, 0.5, 1.0, 1.5, 2.0, 4.0};
+        public static double[] CostsMultipliers = new double[] { 0.1, 0.25, 0.5, 1.0, 1.5, 2.0, 4.0 };
 
         private const int ProbingIterations = 1_000_000;
         private const int SummaryTableIterations = 10_000;
 
         private const int StartGameNumber = 1;
-        private static bool SingleGameMode = false; 
+        private static bool SingleGameMode = false;
         private static int NumRepetitions = 100;
-        
+
         private static bool LocalDistributedProcessing = true; // this should be false if actually running on service fabric
-        public static string MasterReportNameForDistributedProcessing = "HiRiskAverse";
-        private static bool ParallelizeOptionSets = true; 
+        public static string OverrideDateTimeString = "2017-10-10 15:18"; // DEBUG -- use this if termination finished unexpectedly
+        public static string MasterReportNameForDistributedProcessing = "VaryCosts";
+        private static bool ParallelizeOptionSets = true;
         private static bool ParallelizeIndividualExecutions = false; // only affects SingleGameMode
 
         private static EvolutionSettings GetEvolutionSettings()
@@ -138,9 +138,9 @@ namespace ACESim
                     var options = MyGameOptionsGenerator.Standard();
                     options.CostsMultiplier = costMultiplier;
                     if (PRiskAverse)
-                        options.PUtilityCalculator = HigherRiskAversion ? (UtilityCalculator) new CARARiskAverseUtilityCalculator() { Alpha = 10.0 / 1000000.0 } : (UtilityCalculator) new LogRiskAverseUtilityCalculator() {InitialWealth = options.PInitialWealth};
+                        options.PUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth };
                     if (DRiskAverse)
-                        options.DUtilityCalculator = HigherRiskAversion ? (UtilityCalculator)new CARARiskAverseUtilityCalculator() { Alpha = 10.0 / 1000000.0 } : (UtilityCalculator) new LogRiskAverseUtilityCalculator() {InitialWealth = options.DInitialWealth};
+                        options.DUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth };
                     options.MyGameDisputeGenerator = d;
                     string generatorName = d.GetGeneratorName();
                     string fullName = generatorName;
@@ -238,7 +238,7 @@ namespace ACESim
             }
 
             Parallelizer.MaxDegreeOfParallelism = Environment.ProcessorCount;
-            Parallelizer.Go(ParallelizeOptionSets, 0, optionSets.Count, (Action<int>) SingleOptionSetAction);
+            Parallelizer.Go(ParallelizeOptionSets, 0, optionSets.Count, (Action<int>)SingleOptionSetAction);
             string combinedResults = CombineResultsOfAllOptionSets(masterReportName, results.ToList());
             return combinedResults;
         }
@@ -363,7 +363,7 @@ namespace ACESim
             AzureBlob.WriteTextToBlob("results", masterReportNamePlusOptionSet, true, mergedReport);
             return mergedReport;
         }
-        
+
         public static Dictionary<int, (int optionSetIndex, CounterfactualRegretMaximization developer)> LastDeveloperOnThread = new Dictionary<int, (int optionSetIndex, CounterfactualRegretMaximization developer)>();
         public static object LockObj = new object();
         private static CounterfactualRegretMaximization GetDeveloper(int optionSetIndex)
@@ -400,7 +400,8 @@ namespace ACESim
 
         private static async Task<string> SimulateDistributedProcessingAlgorithm()
         {
-            string masterReportName = MasterReportNameForDistributedProcessing + " " + DateTime.Now.ToString("yyyy-MM-dd HH:mm");
+            string dateTimeString = OverrideDateTimeString ?? DateTime.Now.ToString("yyyy-MM-dd HH:mm");
+            string masterReportName = MasterReportNameForDistributedProcessing + " " + dateTimeString;
             bool singleThread = false;
             if (singleThread)
             {
@@ -435,7 +436,6 @@ namespace ACESim
                         throw new NotImplementedException();
                     Debug.WriteLine(taskCoordinator);
                     taskCoordinator.Update(theCompletedTask, readyForAnotherTask, out taskToDo);
-                    Console.WriteLine($"Proportion complete: {taskCoordinator.ProportionComplete}");
                     if (taskToDo != null)
                         Debug.WriteLine($"Task to do: {taskToDo}");
                     return taskCoordinator;
