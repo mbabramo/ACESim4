@@ -11,6 +11,7 @@ namespace ACESim
     public static class MyGameRunner
     {
         // IMPORTANT: Make sure to run in Release mode when not debugging.
+        private static bool HigherRiskAversion = false;
         private static bool PRiskAverse = false;
         public static bool DRiskAverse = false;
         public static bool TestDisputeGeneratorVariations = false;
