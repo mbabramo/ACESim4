@@ -11,9 +11,9 @@ namespace ACESim
     public static class MyGameRunner
     {
         // IMPORTANT: Make sure to run in Release mode when not debugging.
-        private static bool HigherRiskAversion = true;
-        private static bool PRiskAverse = true;
-        public static bool DRiskAverse = true;
+        private static bool HigherRiskAversion = false;
+        private static bool PRiskAverse = false;
+        public static bool DRiskAverse = false;
         public static bool TestDisputeGeneratorVariations = false;
         public static bool IncludeRunningSideBetVariations = false; 
         public static bool LimitToAmerican = false;
@@ -27,7 +27,7 @@ namespace ACESim
         private static int NumRepetitions = 100;
         
         private static bool LocalDistributedProcessing = true; // this should be false if actually running on service fabric
-        public static string MasterReportNameForDistributedProcessing = "HiRiskAverse";
+        public static string MasterReportNameForDistributedProcessing = "Basic";
         private static bool ParallelizeOptionSets = true; 
         private static bool ParallelizeIndividualExecutions = false; // only affects SingleGameMode
 

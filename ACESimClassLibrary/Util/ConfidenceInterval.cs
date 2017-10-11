@@ -38,7 +38,7 @@ namespace ACESim
             double bound = lowerBound ? statCollector.Average() - confInterval : statCollector.Average() + confInterval;
             if (doLogitTransformation)
                 bound = Math.Exp(bound) / (Math.Exp(bound) + 1.0);
-            if (cutoffIfAllInUnitInterval)
+            if (cutoffIfAllInUnitInterval && allInUnitInterval)
             {
                 if (bound < 0)
                     bound = 0;
