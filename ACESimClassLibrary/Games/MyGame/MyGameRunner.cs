@@ -14,10 +14,10 @@ namespace ACESim
         private static bool HigherRiskAversion = false;
         private static bool PRiskAverse = false;
         public static bool DRiskAverse = false;
-        public static bool TestDisputeGeneratorVariations = false;
+        public static bool TestDisputeGeneratorVariations = true;
         public static bool IncludeRunningSideBetVariations = false;
         public static bool LimitToAmerican = false;
-        public static double[] CostsMultipliers = new double[] { 0.1, 0.25, 0.5, 1.0, 1.5, 2.0, 4.0 };
+        public static double[] CostsMultipliers = new double[] { 1.0 }; // 0.1, 0.25, 0.5, 1.0, 1.5, 2.0, 4.0 };
 
         private const int ProbingIterations = 1_000_000;
         private const int SummaryTableIterations = 10_000;
@@ -27,8 +27,8 @@ namespace ACESim
         private static int NumRepetitions = 100;
 
         private static bool LocalDistributedProcessing = true; // this should be false if actually running on service fabric
-        public static string OverrideDateTimeString = "2017-10-10 15:18"; // DEBUG -- use this if termination finished unexpectedly
-        public static string MasterReportNameForDistributedProcessing = "VaryCosts";
+        public static string OverrideDateTimeString = null; // use this if termination finished unexpectedly
+        public static string MasterReportNameForDistributedProcessing = "Endog";
         private static bool ParallelizeOptionSets = true;
         private static bool ParallelizeIndividualExecutions = false; // only affects SingleGameMode
 
