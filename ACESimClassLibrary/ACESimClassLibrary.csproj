@@ -215,6 +215,7 @@
     <Compile Include="Util\CloneExtension.cs" />
     <Compile Include="Util\ClusteringByFirstItem.cs" />
     <Compile Include="Util\CombinationMaker.cs" />
+    <Compile Include="Util\ConfidenceInterval.cs" />
     <Compile Include="Util\ConsistentRandomSequenceProducer.cs" />
     <Compile Include="Util\ConstrainedOrder.cs" />
     <Compile Include="Util\ConstrainToRange.cs" />

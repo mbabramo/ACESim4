@@ -12,8 +12,8 @@ namespace ACESim
     {
         // IMPORTANT: Make sure to run in Release mode when not debugging.
         private static bool HigherRiskAversion = true;
-        private static bool PRiskAverse = false;
-        public static bool DRiskAverse = false;
+        private static bool PRiskAverse = true;
+        public static bool DRiskAverse = true;
         public static bool TestDisputeGeneratorVariations = false;
         public static bool IncludeRunningSideBetVariations = false; 
         public static bool LimitToAmerican = false;

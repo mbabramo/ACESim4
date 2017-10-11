@@ -47,35 +47,7 @@ namespace ACESim
                 case SimpleReportAggregations.LowerBound:
                 case SimpleReportAggregations.UpperBound:
                     bool isLower = aggregation == SimpleReportAggregations.LowerBound;
-                    return x =>
-                    {
-                        if (!x.Any())
-                            return isLower ? 0 : 1.0;
-                        if (x.All(y => y == 0))
-                            return 0;
-                        else if (x.All(y => y == 1.0))
-                            return 1.0;
-                        bool doLogitTransformation = x.All(y => y >= 0 && y <= 1);
-                        StatCollector statCollector = new StatCollector();
-                        foreach (double d in x)
-                        {
-                            double dTransformed = d;
-                            if (doLogitTransformation)
-                            {
-                                if (dTransformed == 0)
-                                    dTransformed = 1E-10;
-                                else if (dTransformed == 1)
-                                    dTransformed = 1.0 - 1E-10;
-                                dTransformed = Math.Log(dTransformed / (1.0 - dTransformed));
-                            }
-                            statCollector.Add(dTransformed);
-                        }
-                        double confInterval = statCollector.ConfInterval();
-                        double bound = isLower ? statCollector.Average() - confInterval : statCollector.Average() + confInterval;
-                        if (doLogitTransformation)
-                            bound = Math.Exp(bound) / (Math.Exp(bound) + 1.0);
-                        return bound;
-                    };
+                    return x => ConfidenceInterval.GetBoundWithLogitIfNeeded(isLower, false, true, x.ToList());
                 default:
                     throw new ArgumentOutOfRangeException(nameof(aggregation), aggregation, null);
             }

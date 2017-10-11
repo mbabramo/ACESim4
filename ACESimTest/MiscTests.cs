@@ -98,6 +98,18 @@ namespace ACESimTest
         }
 
         [TestMethod]
+        public void CheckConfidenceInterval()
+        {
+            // this is a minimal check to make sure that our logit transformation works
+            List<double> vals = Enumerable.Range(0, 100).Select(x => RandomGenerator.NextDouble() * 0.05).ToList();
+            double lowerBound = ConfidenceInterval.GetBoundWithLogitIfNeeded(true, false, true, vals);
+            double upperBound = ConfidenceInterval.GetBoundWithLogitIfNeeded(false, false, true, vals);
+            double average = vals.Average();
+            lowerBound.Should().BeLessThan(average);
+            upperBound.Should().BeGreaterThan(average);
+        }
+
+        [TestMethod]
         public void SubdivisionAggregationReversesDisaggregation()
         {
             const byte maxLevel = 3;
