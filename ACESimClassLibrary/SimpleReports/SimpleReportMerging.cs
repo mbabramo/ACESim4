@@ -13,14 +13,16 @@ namespace ACESim
             var averageReport = SimpleReportMerging.GetAggregationReport(cumulativeReport, reportName, SimpleReportAggregations.Average, includeFirstLine);
             var lowerBoundReport = SimpleReportMerging.GetAggregationReport(cumulativeReport, reportName, SimpleReportAggregations.LowerBound, false);
             var upperBoundReport = SimpleReportMerging.GetAggregationReport(cumulativeReport, reportName, SimpleReportAggregations.UpperBound, false);
-            return averageReport + lowerBoundReport + upperBoundReport;
+            var stdevReport = SimpleReportMerging.GetAggregationReport(cumulativeReport, reportName, SimpleReportAggregations.StandardDeviation, false);
+            return averageReport + lowerBoundReport + upperBoundReport + stdevReport;
         }
 
         public enum SimpleReportAggregations
         {
             Average,
             LowerBound,
-            UpperBound
+            UpperBound,
+            StandardDeviation
         }
 
         public static string GetSimpleReportAggregationName(SimpleReportAggregations aggregation)
@@ -33,6 +35,8 @@ namespace ACESim
                     return "\"LowerBound\"";
                 case SimpleReportAggregations.UpperBound:
                     return "\"UpperBound\"";
+                case SimpleReportAggregations.StandardDeviation:
+                    return "\"Stdev\"";
                 default:
                     throw new ArgumentOutOfRangeException(nameof(aggregation), aggregation, null);
             }
@@ -44,6 +48,8 @@ namespace ACESim
             {
                 case SimpleReportAggregations.Average:
                     return x => x.Average();
+                case SimpleReportAggregations.StandardDeviation:
+                    return x => x.Stdev();
                 case SimpleReportAggregations.LowerBound:
                 case SimpleReportAggregations.UpperBound:
                     bool isLower = aggregation == SimpleReportAggregations.LowerBound;
