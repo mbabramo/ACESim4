@@ -11,7 +11,7 @@ namespace ACESim
     public static class MyGameRunner
     {
         // IMPORTANT: Make sure to run in Release mode when not debugging.
-        private static bool HigherRiskAversion = false;
+        private static bool HigherRiskAversion = true;
         private static bool PRiskAverse = true;
         public static bool DRiskAverse = true;
         public static bool TestDisputeGeneratorVariations = false;
@@ -28,7 +28,7 @@ namespace ACESim
 
         private static bool LocalDistributedProcessing = true; // this should be false if actually running on service fabric
         public static string OverrideDateTimeString = null; // "2017-10-11 10:18"; // use this if termination finished unexpectedly
-        public static string MasterReportNameForDistributedProcessing = "LoRiskA";
+        public static string MasterReportNameForDistributedProcessing = "HiRiskA";
         private static bool ParallelizeOptionSets = true;
         private static bool ParallelizeIndividualExecutions = false; // only affects SingleGameMode
 
@@ -138,10 +138,20 @@ namespace ACESim
                 {
                     var options = MyGameOptionsGenerator.Standard();
                     options.CostsMultiplier = costMultiplier;
-                    if (PRiskAverse)
-                        options.PUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth };
-                    if (DRiskAverse)
-                        options.DUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth };
+                    if (HigherRiskAversion)
+                    {
+                        if (PRiskAverse)
+                            options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { Alpha = 10.0 / 1000000.0 };
+                        if (DRiskAverse)
+                            options.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { Alpha = 10.0 / 1000000.0 };
+                    }
+                    else
+                    {
+                        if (PRiskAverse)
+                            options.PUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth };
+                        if (DRiskAverse)
+                            options.DUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth };
+                    }
                     options.MyGameDisputeGenerator = d;
                     string generatorName = d.GetGeneratorName();
                     string fullName = generatorName;
@@ -437,6 +447,7 @@ namespace ACESim
                         throw new NotImplementedException();
                     Debug.WriteLine(taskCoordinator);
                     taskCoordinator.Update(theCompletedTask, readyForAnotherTask, out taskToDo);
+                    Console.WriteLine($"Percentage Complete {100.0 * taskCoordinator.ProportionComplete}%");
                     if (taskToDo != null)
                         Debug.WriteLine($"Task to do: {taskToDo}");
                     return taskCoordinator;
