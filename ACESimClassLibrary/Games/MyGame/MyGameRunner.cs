@@ -13,9 +13,9 @@ namespace ACESim
         // IMPORTANT: Make sure to run in Release mode when not debugging.
         private static bool HigherRiskAversion = true;
         private static bool PRiskAverse = true;
-        public static bool DRiskAverse = true;
+        public static bool DRiskAverse = false;
         public static bool TestDisputeGeneratorVariations = false;
-        public static bool IncludeRunningSideBetVariations = false;
+        public static bool IncludeRunningSideBetVariations = true;
         public static bool LimitToAmerican = false;
         public static double[] CostsMultipliers = new double[] { 1.0 }; // 0.1, 0.25, 0.5, 1.0, 1.5, 2.0, 4.0 };
 
@@ -28,7 +28,7 @@ namespace ACESim
 
         private static bool LocalDistributedProcessing = true; // this should be false if actually running on service fabric
         public static string OverrideDateTimeString = null; // "2017-10-11 10:18"; // use this if termination finished unexpectedly
-        public static string MasterReportNameForDistributedProcessing = "HiRiskA";
+        public static string MasterReportNameForDistributedProcessing = "HetRA";
         private static bool ParallelizeOptionSets = true;
         private static bool ParallelizeIndividualExecutions = false; // only affects SingleGameMode
 
