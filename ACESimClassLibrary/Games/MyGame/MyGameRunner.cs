@@ -11,13 +11,14 @@ namespace ACESim
     public static class MyGameRunner
     {
         // IMPORTANT: Make sure to run in Release mode when not debugging.
-        private static bool HigherRiskAversion = true;
-        private static bool PRiskAverse = true;
+        private static bool HigherRiskAversion = false;
+        private static bool PRiskAverse = false;
         public static bool DRiskAverse = false;
         public static bool TestDisputeGeneratorVariations = false;
-        public static bool IncludeRunningSideBetVariations = true;
+        public static bool IncludeRunningSideBetVariations = false;
         public static bool LimitToAmerican = false;
         public static double[] CostsMultipliers = new double[] { 1.0 }; // 0.1, 0.25, 0.5, 1.0, 1.5, 2.0, 4.0 };
+        public const double StdevPlayerNoise = 0.1; // baseline is 0.3
 
         private const int ProbingIterations = 1_000_000;
         private const int SummaryTableIterations = 10_000;
@@ -28,7 +29,7 @@ namespace ACESim
 
         private static bool LocalDistributedProcessing = true; // this should be false if actually running on service fabric
         public static string OverrideDateTimeString = null; // "2017-10-11 10:18"; // use this if termination finished unexpectedly
-        public static string MasterReportNameForDistributedProcessing = "HetRA";
+        public static string MasterReportNameForDistributedProcessing = "Noise01";
         private static bool ParallelizeOptionSets = true;
         private static bool ParallelizeIndividualExecutions = false; // only affects SingleGameMode
 
@@ -87,6 +88,7 @@ namespace ACESim
                 ExogenousProbabilityTrulyLiable = 0.5,
                 StdevNoiseToProduceLitigationQuality = 0.3
             };
+            options.PNoiseStdev = options.DNoiseStdev = StdevPlayerNoise;
             //options.MyGameRunningSideBets = new MyGameRunningSideBets()
             //{
             //    MaxChipsPerRound = 2,
@@ -137,6 +139,7 @@ namespace ACESim
                 foreach (IMyGameDisputeGenerator d in disputeGenerators)
                 {
                     var options = MyGameOptionsGenerator.Standard();
+                    options.PNoiseStdev = options.DNoiseStdev = StdevPlayerNoise;
                     options.CostsMultiplier = costMultiplier;
                     if (HigherRiskAversion)
                     {
@@ -223,7 +226,6 @@ namespace ACESim
                 options.LoserPaysMultiple = 1.0;
                 options.LoserPaysAfterAbandonment = false;
                 options.IncludeAgreementToBargainDecisions = true;
-                options.CostsMultiplier = 1.0;
                 list.Add((description + " British", options));
             }
 
