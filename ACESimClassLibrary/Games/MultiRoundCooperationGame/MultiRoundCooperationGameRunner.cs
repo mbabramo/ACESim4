@@ -24,7 +24,7 @@ namespace ACESim
 
                 GameNumber = StartGameNumber,
 
-                Algorithm = GameApproximationAlgorithm.ExploratoryProbing,
+                Algorithm = GameApproximationAlgorithm.Vanilla,
 
                 ReportEveryNIterations = 100_000,
                 NumRandomIterationsForSummaryTable = 1_000,
