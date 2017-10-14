@@ -15,6 +15,8 @@ namespace ACESim
 
         public static bool EnableOutput = true;
 
+        public static bool WriteToConsole = false;
+
         public static void WriteLine(object value)
         {
             StringBuilder local = new StringBuilder();
@@ -54,7 +56,12 @@ namespace ACESim
         {
             string localString = builder.ToString();
             if (EnableOutput)
-                Console.Write(localString);
+            {
+                if (WriteToConsole)
+                    Console.Write(localString);
+                else
+                    Debug.Write(localString);
+            }
             AccumulatedText.Append(localString);
         }
 
