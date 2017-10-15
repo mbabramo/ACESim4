@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace ACESim
 {
-    public partial class CounterfactualRegretMaximization
+    public partial class CounterfactualRegretMinimization
     {
         private bool TraceGEBR = false;
         private List<byte> TraceGEBR_SkipDecisions = new List<byte>() { };

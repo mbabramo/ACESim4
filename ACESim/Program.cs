@@ -17,16 +17,26 @@ namespace ACESim
 {
     class Program
     {
+        private static bool PlayMultiRoundCooperationGame = false;
 
         [STAThread]
         static void Main(string[] args)
         {
-            //string baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\MultiRoundCooperationGame";
-            //string strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
-            //string gameResult = MultiRoundCooperationGameRunner.EvolveGame();
-            string baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\MyGame";
-            string strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
-            string gameResult = MyGameRunner.EvolveMyGame().GetAwaiter().GetResult();
+            string baseOutputDirectory;
+            string strategiesPath;
+            string gameResult;
+            if (PlayMultiRoundCooperationGame)
+            {
+                baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\MultiRoundCooperationGame";
+                strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
+                gameResult = MultiRoundCooperationGameRunner.EvolveGame();
+            }
+            else
+            {
+                baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\MyGame";
+                strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
+                gameResult = MyGameRunner.EvolveMyGame().GetAwaiter().GetResult();
+            }
             System.Windows.Clipboard.SetText(gameResult);
             Console.WriteLine();
             Console.WriteLine("Press Enter to end.");

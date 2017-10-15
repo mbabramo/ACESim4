@@ -24,7 +24,7 @@ namespace ACESim
 
                 GameNumber = StartGameNumber,
 
-                Algorithm = GameApproximationAlgorithm.Vanilla,
+                Algorithm = GameApproximationAlgorithm.ExploratoryProbing,
 
                 ReportEveryNIterations = 100_000,
                 NumRandomIterationsForSummaryTable = 1_000,
@@ -37,7 +37,7 @@ namespace ACESim
 
                 TotalProbingCFRIterations = 100_000,
                 EpsilonForMainPlayer = 0.5,
-                EpsilonForOpponentWhenExploring = 1.0,
+                EpsilonForOpponentWhenExploring = 0.5,
                 MinBackupRegretsTrigger = 10,
                 TriggerIncreaseOverTime = 0,
 
@@ -69,7 +69,7 @@ namespace ACESim
             return mergedReport;
         }
         
-        private static string GetSingleRepetitionReport(string reportName, int i, CounterfactualRegretMaximization developer)
+        private static string GetSingleRepetitionReport(string reportName, int i, CounterfactualRegretMinimization developer)
         {
             developer.EvolutionSettings.GameNumber = StartGameNumber + i;
             string reportIteration = i.ToString();
@@ -93,7 +93,7 @@ namespace ACESim
             return singleRepetitionReport;
         }
 
-        private static CounterfactualRegretMaximization GetDeveloper()
+        private static CounterfactualRegretMinimization GetDeveloper()
         {
             MultiRoundCooperationGameDefinition gameDefinition = new MultiRoundCooperationGameDefinition();
             if (GameProgressLogger.LoggingOn)
@@ -102,8 +102,8 @@ namespace ACESim
             var evolutionSettings = GetEvolutionSettings();
             NWayTreeStorageRoot<IGameState>.EnableUseDictionary = false; // evolutionSettings.ParallelOptimization == false; // this is based on some limited performance testing; with parallelism, this seems to slow us down. Maybe it's not worth using. It might just be because of the lock.
             NWayTreeStorageRoot<IGameState>.ParallelEnabled = evolutionSettings.ParallelOptimization;
-            CounterfactualRegretMaximization developer =
-                new CounterfactualRegretMaximization(starterStrategies, evolutionSettings, gameDefinition);
+            CounterfactualRegretMinimization developer =
+                new CounterfactualRegretMinimization(starterStrategies, evolutionSettings, gameDefinition);
             return developer;
         }
     }

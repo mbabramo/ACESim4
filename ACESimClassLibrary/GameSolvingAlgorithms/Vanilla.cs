@@ -2,7 +2,7 @@
 
 namespace ACESim
 {
-    public partial class CounterfactualRegretMaximization
+    public partial class CounterfactualRegretMinimization
     {
         /// <summary>
         /// Performs an iteration of vanilla counterfactual regret minimization.

@@ -235,16 +235,16 @@ namespace ACESim
         private void AddFileAndAnswerDecisions(List<Decision> decisions)
         {
             var pFile =
-                new Decision("PFile", "PF", (byte)MyGamePlayers.Plaintiff, new byte[]  { (byte)MyGamePlayers.Resolution },
+                new Decision("PFile", "PF", (byte)MyGamePlayers.Plaintiff, new byte[]  { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
                     2, (byte)MyGameDecisions.PFile)
-                {
+                { // DEBUG: Maybe can eliminate notice to plaintiff and defendant here and below
                     CanTerminateGame = true, // not filing always terminates
                     IsReversible = true
                 };
             decisions.Add(pFile);
 
             var dAnswer =
-                new Decision("DAnswer", "DA", (byte)MyGamePlayers.Defendant, new byte[] { (byte)MyGamePlayers.Resolution },
+                new Decision("DAnswer", "DA", (byte)MyGamePlayers.Defendant, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
                     2, (byte)MyGameDecisions.DAnswer)
                 {
                     CanTerminateGame = true, // not answering terminates, with defendant paying full damages

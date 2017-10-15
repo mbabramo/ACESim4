@@ -136,7 +136,7 @@
     <Compile Include="GameSolvingAlgorithms\ExploratoryProbing.cs" />
     <Compile Include="GameSolvingAlgorithms\AverageStrategySampling.cs" />
     <Compile Include="GameSolvingAlgorithms\BestResponse.cs" />
-    <Compile Include="GameSolvingAlgorithms\CounterfactualRegretMaximization.cs" />
+    <Compile Include="GameSolvingAlgorithms\CounterfactualRegretMinimization.cs" />
     <Compile Include="GameSolvingAlgorithms\GibsonProbing.cs" />
     <Compile Include="GameSolvingAlgorithms\PureStrategiesFinder.cs" />
     <Compile Include="GameSolvingAlgorithms\Vanilla.cs" />

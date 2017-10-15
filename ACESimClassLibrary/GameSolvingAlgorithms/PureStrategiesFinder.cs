@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace ACESim
 {
-    public partial class CounterfactualRegretMaximization
+    public partial class CounterfactualRegretMinimization
     {
         // Find pure equilibria:
         // 1. Fully initialize game tree

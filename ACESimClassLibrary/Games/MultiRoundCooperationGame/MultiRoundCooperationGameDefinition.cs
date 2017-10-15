@@ -9,7 +9,7 @@ namespace ACESim
     [Serializable]
     public class MultiRoundCooperationGameDefinition : GameDefinition
     {
-        public int TotalRounds = 3;
+        public int TotalRounds = 5;
         public static bool AllRoundCooperationBonus = true;
 
         public MultiRoundCooperationGameDefinition() : base()

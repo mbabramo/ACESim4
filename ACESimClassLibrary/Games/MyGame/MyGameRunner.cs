@@ -15,7 +15,7 @@ namespace ACESim
         private static bool PRiskAverse = false;
         public static bool DRiskAverse = false;
         public static bool TestDisputeGeneratorVariations = false;
-        public static bool IncludeRunningSideBetVariations = true;
+        public static bool IncludeRunningSideBetVariations = false;
         public static bool LimitToAmerican = false;
         public static double[] CostsMultipliers = new double[] { 1.0 }; // 0.1, 0.25, 0.5, 1.0, 1.5, 2.0, 4.0 };
         public const double StdevPlayerNoise = 0.3; // baseline is 0.3
@@ -24,12 +24,12 @@ namespace ACESim
         private const int SummaryTableIterations = 10_000;
 
         private const int StartGameNumber = 1;
-        private static bool SingleGameMode = false;
-        private static int NumRepetitions = 100;
+        private static bool SingleGameMode = true;
+        private static int NumRepetitions = 1;
 
-        private static bool LocalDistributedProcessing = true; // this should be false if actually running on service fabric
+        private static bool LocalDistributedProcessing = false; // this should be false if actually running on service fabric
         public static string OverrideDateTimeString = null; // "2017-10-11 10:18"; // use this if termination finished unexpectedly
-        public static string MasterReportNameForDistributedProcessing = "SideBetV3";
+        public static string MasterReportNameForDistributedProcessing = "TEST3";
         private static bool ParallelizeOptionSets = true;
         private static bool ParallelizeIndividualExecutions = false; // only affects SingleGameMode
 
@@ -52,7 +52,7 @@ namespace ACESim
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
                 PrintGameTree = false,
                 AlwaysUseAverageStrategyInReporting = false,
-                BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
+                BestResponseEveryMIterations = ProbingIterations, // DEBUG EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
 
                 TotalProbingCFRIterations = ProbingIterations,
                 EpsilonForMainPlayer = 0.5,
@@ -89,6 +89,8 @@ namespace ACESim
                 StdevNoiseToProduceLitigationQuality = 0.3
             };
             options.PNoiseStdev = options.DNoiseStdev = StdevPlayerNoise;
+            //options.NumSignals = options.NumLitigationQualityPoints = options.NumOffers = 3; // DEBUG
+            //options.NumPotentialBargainingRounds = 1; // DEBUG
             //options.MyGameRunningSideBets = new MyGameRunningSideBets()
             //{
             //    MaxChipsPerRound = 2,
@@ -283,7 +285,7 @@ namespace ACESim
         }
 
 
-        public static string GetSingleRepetitionReportAndSave(string masterReportName, int optionSetIndex, int repetition, ref CounterfactualRegretMaximization developer)
+        public static string GetSingleRepetitionReportAndSave(string masterReportName, int optionSetIndex, int repetition, ref CounterfactualRegretMinimization developer)
         {
             bool includeFirstLine = optionSetIndex == 0;
             List<(string reportName, MyGameOptions options)> optionSets = GetOptionsSets();
@@ -293,7 +295,7 @@ namespace ACESim
             return result;
         }
 
-        public static string GetSingleRepetitionReportAndSave(string masterReportName, MyGameOptions options, string optionSetName, int repetition, ref CounterfactualRegretMaximization developer)
+        public static string GetSingleRepetitionReportAndSave(string masterReportName, MyGameOptions options, string optionSetName, int repetition, ref CounterfactualRegretMinimization developer)
         {
             string masterReportNamePlusOptionSet = $"{masterReportName} {optionSetName}";
             if (developer == null)
@@ -304,7 +306,7 @@ namespace ACESim
             return result;
         }
 
-        private static string GetSingleRepetitionReport(string optionSetName, int i, CounterfactualRegretMaximization developer)
+        private static string GetSingleRepetitionReport(string optionSetName, int i, CounterfactualRegretMinimization developer)
         {
             developer.EvolutionSettings.GameNumber = StartGameNumber + i;
             string reportIteration = i.ToString();
@@ -377,9 +379,9 @@ namespace ACESim
             return mergedReport;
         }
 
-        public static Dictionary<int, (int optionSetIndex, CounterfactualRegretMaximization developer)> LastDeveloperOnThread = new Dictionary<int, (int optionSetIndex, CounterfactualRegretMaximization developer)>();
+        public static Dictionary<int, (int optionSetIndex, CounterfactualRegretMinimization developer)> LastDeveloperOnThread = new Dictionary<int, (int optionSetIndex, CounterfactualRegretMinimization developer)>();
         public static object LockObj = new object();
-        private static CounterfactualRegretMaximization GetDeveloper(int optionSetIndex)
+        private static CounterfactualRegretMinimization GetDeveloper(int optionSetIndex)
         {
             lock (LockObj)
             {
@@ -394,7 +396,7 @@ namespace ACESim
             }
         }
 
-        private static CounterfactualRegretMaximization GetDeveloper(MyGameOptions options)
+        private static CounterfactualRegretMinimization GetDeveloper(MyGameOptions options)
         {
             MyGameDefinition gameDefinition = new MyGameDefinition();
             gameDefinition.Setup(options);
@@ -404,8 +406,8 @@ namespace ACESim
             var evolutionSettings = GetEvolutionSettings();
             NWayTreeStorageRoot<IGameState>.EnableUseDictionary = false; // evolutionSettings.ParallelOptimization == false; // this is based on some limited performance testing; with parallelism, this seems to slow us down. Maybe it's not worth using. It might just be because of the lock.
             NWayTreeStorageRoot<IGameState>.ParallelEnabled = evolutionSettings.ParallelOptimization;
-            CounterfactualRegretMaximization developer =
-                new CounterfactualRegretMaximization(starterStrategies, evolutionSettings, gameDefinition);
+            CounterfactualRegretMinimization developer =
+                new CounterfactualRegretMinimization(starterStrategies, evolutionSettings, gameDefinition);
             return developer;
         }
 
@@ -469,7 +471,7 @@ namespace ACESim
         {
             if (taskToDo.Name == "Optimize")
             {
-                CounterfactualRegretMaximization developer = GetDeveloper(taskToDo.ID);
+                CounterfactualRegretMinimization developer = GetDeveloper(taskToDo.ID);
                 GetSingleRepetitionReportAndSave(masterReportName, taskToDo.ID, taskToDo.Repetition, ref developer);
             }
             else if (taskToDo.Name == "CombineRepetitions")

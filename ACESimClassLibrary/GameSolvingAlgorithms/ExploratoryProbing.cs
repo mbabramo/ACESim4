@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace ACESim
 {
-    public partial class CounterfactualRegretMaximization
+    public partial class CounterfactualRegretMinimization
     {
         // Differences from Gibson:
         // 1. During the Probe, we visit all branches on a critical node.
@@ -464,6 +464,9 @@ namespace ACESim
 
         public unsafe string SolveExploratoryProbingCFR(string reportName)
         {
+            //TraceProbingCFR = true;
+            //GameProgressLogger.LoggingOn = true;
+            GameProgressLogger.OutputLogMessages = true;
             string reportString = null;
             GameNumber = EvolutionSettings.GameNumber;
             Console.WriteLine($"{reportName } game number {GameNumber} ({DateTime.Now})");

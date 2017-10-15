@@ -12,7 +12,7 @@ using System.Threading;
 namespace ACESim
 {
     [Serializable]
-    public partial class CounterfactualRegretMaximization : IStrategiesDeveloper
+    public partial class CounterfactualRegretMinimization : IStrategiesDeveloper
     {
 
         #region Options
@@ -80,12 +80,12 @@ namespace ACESim
 
         #region Construction
 
-        public CounterfactualRegretMaximization()
+        public CounterfactualRegretMinimization()
         {
             Navigation.SetGameStateFunction(GetGameState);
         }
 
-        public CounterfactualRegretMaximization(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition)
+        public CounterfactualRegretMinimization(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition)
         {
             Strategies = existingStrategyState;
             EvolutionSettings = evolutionSettings;
@@ -97,7 +97,7 @@ namespace ACESim
 
         public IStrategiesDeveloper DeepCopy()
         {
-            return new CounterfactualRegretMaximization()
+            return new CounterfactualRegretMinimization()
             {
                 Strategies = Strategies.Select(x => x.DeepCopy()).ToList(),
                 EvolutionSettings = EvolutionSettings,
@@ -649,7 +649,7 @@ namespace ACESim
             {
                 if (probabilities[action - 1] > 0)
                 {
-                    var nextHistoryPoint = historyPointCopy.GetBranch(Navigation, action, GameDefinition.DecisionsExecutionOrder[0], 0); // must use a copy because it's an anonymous method (but this won't be executed much so it isn't so costly). Note that we couldn't use switch-to-branch approach here because all threads are sharing historyPointCopy variable.
+                    var nextHistoryPoint = historyPointCopy.GetBranch(Navigation, action, GameDefinition.DecisionsExecutionOrder[nextDecisionIndex], nextDecisionIndex); // must use a copy because it's an anonymous method (but this won't be executed much so it isn't so costly). Note that we couldn't use switch-to-branch approach here because all threads are sharing historyPointCopy variable.
                     ProcessAllPaths_Recursive(ref nextHistoryPoint, completedGameProcessor, actionStrategy, probability * probabilities[action - 1], action, nextDecisionIndex);
                 }
             });

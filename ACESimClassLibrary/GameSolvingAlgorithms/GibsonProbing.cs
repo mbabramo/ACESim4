@@ -3,7 +3,7 @@ using System.Diagnostics;
 
 namespace ACESim
 {
-    public partial class CounterfactualRegretMaximization
+    public partial class CounterfactualRegretMinimization
     {
         public unsafe double GibsonProbe_SinglePlayer(ref HistoryPoint historyPoint, byte playerBeingOptimized,
             IRandomProducer randomProducer, Decision nextDecision, byte nextDecisionIndex)

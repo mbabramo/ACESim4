@@ -4,7 +4,7 @@ using System.Threading;
 
 namespace ACESim
 {
-    public partial class CounterfactualRegretMaximization
+    public partial class CounterfactualRegretMinimization
     {
         public unsafe double AverageStrategySampling_WalkTree(ref HistoryPoint historyPoint, byte playerBeingOptimized,
             double samplingProbabilityQ, Decision nextDecision, byte nextDecisionIndex)

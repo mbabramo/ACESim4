@@ -29,7 +29,7 @@ namespace ACESim
     {
         public static bool LoggingOn = false; // change this to enable logging -- but this slows things down a lot
         public static bool RecordLogMessages = true;
-        public static bool OutputLogMessages = false;
+        public static bool OutputLogMessages = true;
         public static bool PartialLoggingOn = false; // change this to allow partial logging -- might do this in code in specific places
         public static int MaxIncomplete = 1000;
         public static int Tabs = 0;
