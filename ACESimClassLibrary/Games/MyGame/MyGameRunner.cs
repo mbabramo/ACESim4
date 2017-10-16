@@ -29,9 +29,9 @@ namespace ACESim
 
         private static bool LocalDistributedProcessing = false; // this should be false if actually running on service fabric
         public static string OverrideDateTimeString = null; // "2017-10-11 10:18"; // use this if termination finished unexpectedly
-        public static string MasterReportNameForDistributedProcessing = "TEST3";
+        public static string MasterReportNameForDistributedProcessing = "TEST";
         private static bool ParallelizeOptionSets = true;
-        private static bool ParallelizeIndividualExecutions = false; // only affects SingleGameMode
+        private static bool ParallelizeIndividualExecutions = true; // DEBUG // only affects SingleGameMode
 
         private static EvolutionSettings GetEvolutionSettings()
         {
@@ -52,7 +52,7 @@ namespace ACESim
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
                 PrintGameTree = false,
                 AlwaysUseAverageStrategyInReporting = false,
-                BestResponseEveryMIterations = ProbingIterations, // DEBUG EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
+                BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
 
                 TotalProbingCFRIterations = ProbingIterations,
                 EpsilonForMainPlayer = 0.5,

@@ -18,6 +18,8 @@ Project("{A07B5EB6-E848-4116-A8D0-A826331D98C6}") = "DistributedProcessor", "Dis
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "distributed", "distributed\distributed.csproj", "{6A7F83D7-2F7E-4631-9C08-2A69D1F360C7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ControlExcel", "ControlExcel\ControlExcel.csproj", "{733188ED-6A9B-48E9-ABA4-CB89B9030F58}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -82,6 +84,18 @@ Global
 		{6A7F83D7-2F7E-4631-9C08-2A69D1F360C7}.Release|x64.ActiveCfg = Release|x64
 		{6A7F83D7-2F7E-4631-9C08-2A69D1F360C7}.Release|x64.Build.0 = Release|x64
 		{6A7F83D7-2F7E-4631-9C08-2A69D1F360C7}.Release|x86.ActiveCfg = Release|x64
+		{733188ED-6A9B-48E9-ABA4-CB89B9030F58}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{733188ED-6A9B-48E9-ABA4-CB89B9030F58}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{733188ED-6A9B-48E9-ABA4-CB89B9030F58}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{733188ED-6A9B-48E9-ABA4-CB89B9030F58}.Debug|x64.Build.0 = Debug|Any CPU
+		{733188ED-6A9B-48E9-ABA4-CB89B9030F58}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{733188ED-6A9B-48E9-ABA4-CB89B9030F58}.Debug|x86.Build.0 = Debug|Any CPU
+		{733188ED-6A9B-48E9-ABA4-CB89B9030F58}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{733188ED-6A9B-48E9-ABA4-CB89B9030F58}.Release|Any CPU.Build.0 = Release|Any CPU
+		{733188ED-6A9B-48E9-ABA4-CB89B9030F58}.Release|x64.ActiveCfg = Release|Any CPU
+		{733188ED-6A9B-48E9-ABA4-CB89B9030F58}.Release|x64.Build.0 = Release|Any CPU
+		{733188ED-6A9B-48E9-ABA4-CB89B9030F58}.Release|x86.ActiveCfg = Release|Any CPU
+		{733188ED-6A9B-48E9-ABA4-CB89B9030F58}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
