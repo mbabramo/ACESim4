@@ -141,9 +141,9 @@ namespace ControlExcel
         {
             Excel.Worksheet sourceWS = GetWorksheet("risk neutral");
             Excel.Worksheet targetWS = GetWorksheet("graph");
-            var originalColumnNames = new List<string>() {"PFiles", "DAnswers", "Settles1", "PAbandons1", "DDefaults1", "Settles2", "PAbandons2", "DDefaults2", "Settles3", "PAbandons3", "DDefaults3", "PWinsAtTrial", "DWinsAtTrial"};
+            var originalColumnNames = new List<string>() {"PFiles", "DAnswers", "Settles1", "PAbandons1", "DDefaults1", "Settles2", "PAbandons2", "DDefaults2", "Settles3", "PAbandons3", "DDefaults3", "P Loses", "P Wins"};
             List<int> stagesColumnNumbers = GetColumnNumbersMatching(sourceWS, originalColumnNames);
-            var graphColumnNames = new List<string>() { "P Doesn't File", "D Doesn't Answer", "Settles (1)", "P/D Quits (1)", "Settles (2)", "P/D Quits (2)", "Settles (3)", "P/D Quits (3)", "P Wins At Trial", "D Wins At Trial" };
+            var graphColumnNames = new List<string>() { "P Doesn't File", "D Doesn't Answer", "Settles (1)", "P/D Quits (1)", "Settles (2)", "P/D Quits (2)", "Settles (3)", "P/D Quits (3)", "D Wins At Trial", "P Wins At Trial" };
 
             SetCellValue(targetWS, 1, 1, "Stage");
             SetCellValues(targetWS, 1, 2, graphColumnNames);

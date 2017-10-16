@@ -121,8 +121,6 @@ namespace ACESim
             colItems.AddRange(new List<SimpleReportColumnItem>()
             {
                 new SimpleReportColumnFilter("Trial", (GameProgress gp) => MyGP(gp).TrialOccurs, false),
-                new SimpleReportColumnFilter("PWinsAtTrial", (GameProgress gp) => MyGP(gp).TrialOccurs && MyGP(gp).PWinsAtTrial == true, false),
-                new SimpleReportColumnFilter("DWinsAtTrial", (GameProgress gp) => MyGP(gp).TrialOccurs && MyGP(gp).PWinsAtTrial == false, false),
                 new SimpleReportColumnFilter("PWinPct", (GameProgress gp) => !MyGP(gp).TrialOccurs ? (bool?) null : MyGP(gp).PWinsAtTrial, false),
                 new SimpleReportColumnVariable("PWealth", (GameProgress gp) => MyGP(gp).PFinalWealth),
                 new SimpleReportColumnVariable("DWealth", (GameProgress gp) => MyGP(gp).DFinalWealth),
@@ -245,6 +243,65 @@ namespace ACESim
             AddRowsForQualityAndSignalDistributions("Truly Not Liable ", false, rows, gp => !MyGP(gp).IsTrulyLiable);
             rows.Add(new SimpleReportFilter("High Quality Count", (GameProgress gp) => MyGP(gp).LitigationQualityDiscrete >= 8) { UseSum = true });
             AddRowsForQualityAndSignalDistributions("High Quality Liable ", false, rows, gp => MyGP(gp).LitigationQualityDiscrete >= 8);
+            // Now include the litigation flow diagram in rows too, so we get get things like average total expenses for cases settling in particular round
+            rows.Add(
+                new SimpleReportFilter($"PDoesntFile",
+                    (GameProgress gp) => !MyGP(gp).PFiles)
+            );
+            rows.Add(
+                new SimpleReportFilter($"P Files",
+                    (GameProgress gp) => MyGP(gp).PFiles)
+            );
+            rows.Add(
+                new SimpleReportFilter($"DDoesntAnswer",
+                    (GameProgress gp) => MyGP(gp).PFiles && !MyGP(gp).DAnswers)
+            );
+            rows.Add(
+                new SimpleReportFilter($"D Answers",
+                    (GameProgress gp) => MyGP(gp).PFiles && MyGP(gp).DAnswers)
+            );
+            for (byte b = 1; b <= Options.NumPotentialBargainingRounds; b++)
+            {
+                byte bargainingRoundNum = b; // needed for closure -- otherwise b below will always be max value.
+
+                rows.Add(
+                    new SimpleReportFilter($"Settles{b}",
+                        (GameProgress gp) => MyGP(gp).SettlesInRound(bargainingRoundNum))
+                );
+
+                rows.Add(
+                    new SimpleReportFilter($"DoesntSettle{b}",
+                        (GameProgress gp) => MyGP(gp).DoesntSettleInRound(bargainingRoundNum))
+                );
+
+                rows.Add(
+                    new SimpleReportFilter($"PAbandons{b}",
+                        (GameProgress gp) => (MyGP(gp).PAbandonsInRound(bargainingRoundNum)))
+                );
+                rows.Add(
+                    new SimpleReportFilter($"PDoesntAbandon{b}",
+                        (GameProgress gp) => (MyGP(gp).PDoesntAbandonInRound(bargainingRoundNum)))
+                );
+                rows.Add(
+                    new SimpleReportFilter($"DDefaults{b}",
+                        (GameProgress gp) => (MyGP(gp).DDefaultsInRound(bargainingRoundNum)))
+                );
+                rows.Add(
+                    new SimpleReportFilter($"DDoesntDefault{b}",
+                        (GameProgress gp) => (MyGP(gp).DDoesntDefaultInRound(bargainingRoundNum)))
+                );
+            }
+
+            rows.Add(
+                new SimpleReportFilter($"P Loses",
+                    (GameProgress gp) => MyGP(gp).TrialOccurs && !MyGP(gp).PWinsAtTrial)
+            );
+
+            rows.Add(
+                new SimpleReportFilter($"P Wins",
+                    (GameProgress gp) => MyGP(gp).TrialOccurs && MyGP(gp).PWinsAtTrial)
+            );
+
 
             return new SimpleReportDefinition(
                 "MyGameReport",
@@ -296,6 +353,21 @@ namespace ACESim
                 rows.Add(
                     new SimpleReportFilter(prefix + "DSignal" + s + " Count", (GameProgress gp) => MyGP(gp).DSignalDiscrete == s && extraRequirement(gp)) {UseSum = true});
             }
+            // Add mutual optimism report
+            rows.Add(
+                new SimpleReportFilter(prefix + "MutOpt3 Count", (GameProgress gp) => MyGP(gp).PSignalDiscrete - MyGP(gp).DSignalDiscrete >= 3 && extraRequirement(gp)) { UseSum = true });
+            rows.Add(
+                new SimpleReportFilter(prefix + "MutOpt2 Count", (GameProgress gp) => MyGP(gp).PSignalDiscrete - MyGP(gp).DSignalDiscrete == 2 && extraRequirement(gp)) { UseSum = true });
+            rows.Add(
+                new SimpleReportFilter(prefix + "MutOpt1 Count", (GameProgress gp) => MyGP(gp).PSignalDiscrete - MyGP(gp).DSignalDiscrete == 1 && extraRequirement(gp)) { UseSum = true });
+            rows.Add(
+                new SimpleReportFilter(prefix + "MutOpt0 Count", (GameProgress gp) => MyGP(gp).PSignalDiscrete - MyGP(gp).DSignalDiscrete == 0 && extraRequirement(gp)) { UseSum = true });
+            rows.Add(
+                new SimpleReportFilter(prefix + "MutOpt-1 Count", (GameProgress gp) => MyGP(gp).PSignalDiscrete - MyGP(gp).DSignalDiscrete == -1 && extraRequirement(gp)) { UseSum = true });
+            rows.Add(
+                new SimpleReportFilter(prefix + "MutOpt-2 Count", (GameProgress gp) => MyGP(gp).PSignalDiscrete - MyGP(gp).DSignalDiscrete == -2 && extraRequirement(gp)) { UseSum = true });
+            rows.Add(
+                new SimpleReportFilter(prefix + "MutOpt-3 Count", (GameProgress gp) => MyGP(gp).PSignalDiscrete - MyGP(gp).DSignalDiscrete <= -3 && extraRequirement(gp)) { UseSum = true });
         }
 
         private SimpleReportDefinition GetCourtSuccessReport()
