@@ -147,36 +147,64 @@ namespace ControlExcel
 
             SetCellValue(targetWS, 1, 1, "Stage");
             SetCellValues(targetWS, 1, 2, graphColumnNames);
-            string sourceReport = "Exog American";
+            string sourceReport = "Exog British";
             string subset = "All";
-            string rowHead = "Completion Stage";
-            int targetRowNum = 2;
+            string rowHead = "British Rule";
+            int mainDataTarget = 2;
             int errorBarUpperTarget = 3;
-            int errorBarLowerTarget = 3;
-            var stats = new List<string>() {"Average", "LowerBound", "UpperBound"};
-            for (int s = 0; s < stats.Count(); s++)
+            int errorBarLowerTarget = 4;
+            List<double> averageResults = null;
+            for (int s = 0; s < 3; s++)
             {
-                int rowNum = GetRowNumber(sourceWS, sourceReport, subset, stats[s]);
+                string stat = "";
+                switch (s)
+                {
+                    case 0:
+                        stat = "Average";
+                        break;
+                    case 1:
+                        stat = "LowerBound";
+                        break;
+                    case 2:
+                        stat = "UpperBound";
+                        break;
+                }
+                int rowNum = GetRowNumber(sourceWS, sourceReport, subset, stat);
                 var results = GetResults(sourceWS, rowNum, stagesColumnNumbers);
+                List<double> adjustedResults = results;
                 string rowHeadPlus = rowHead;
-                if (s == 1)
-                    rowHeadPlus += " Lower Bound";
-                else if (s == 2)
-                    rowHeadPlus += " Upper Bound";
-                SetCellValue(targetWS, targetRowNum + s, 1, rowHeadPlus);
-                SetCellValues(targetWS, targetRowNum + s, 2, results);
-                SetCellsNumberFormat(targetWS, targetRowNum + s, 2, results.Count(), "0.0%");
+                int targetRowNum = 0;
+                switch (s)
+                {
+                    case 0:
+                        averageResults = results.ToList();
+                        targetRowNum = mainDataTarget;
+                        break;
+                    case 1:
+                        rowHeadPlus += " Lower Error";
+                        adjustedResults = results.Zip(averageResults, (r, a) => r - a).ToList();
+                        targetRowNum = errorBarLowerTarget;
+                        break;
+                    case 2:
+                        rowHeadPlus += " Upper Error";
+                        adjustedResults = results.Zip(averageResults, (r, a) => a - r).ToList();
+                        targetRowNum = errorBarUpperTarget;
+                        break;
+                }
+                SetCellValue(targetWS, targetRowNum, 1, rowHeadPlus);
+                SetCellValues(targetWS, targetRowNum, 2, adjustedResults);
+                SetCellsNumberFormat(targetWS, targetRowNum, 2, adjustedResults.Count(), "0.0%");
             }
             // since we subtracted p answers and d answers numbers from 100, we must adjust here
-            SwapCellValues(targetWS, targetRowNum + 1, 2, targetRowNum + 2, 2);
-            SwapCellValues(targetWS, targetRowNum + 1, 3, targetRowNum + 2, 3);
+            SwapCellValues(targetWS, errorBarUpperTarget, 2, errorBarLowerTarget, 2);
+            SwapCellValues(targetWS, errorBarUpperTarget, 3, errorBarLowerTarget, 3);
         }
 
         private static List<double> GetResults(Excel.Worksheet sourceWS, int rowNum, List<int> stagesColumnNumbers)
         {
             List<double> results = GetCellValues(sourceWS, rowNum, stagesColumnNumbers).Select(x => (double) x).ToList();
             double pFiles = results[0];
-            double dAnswers = results[0];
+            double dAnswers = results[1];
             double pDoesntFile = 1.0 - pFiles;
             double dDoesntAnswer = pFiles - dAnswers;
             List<(double settles, double pAbandons, double dDefaults)> bargainingRounds = new List<(double settles, double pAbandons, double dDefaults)>() {(results[2], results[3], results[4]), (results[5], results[6], results[7]), (results[8], results[9], results[10])};
