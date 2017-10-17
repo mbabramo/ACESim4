@@ -242,7 +242,7 @@ namespace ACESim
             rows.Add(new SimpleReportFilter("Truly Liable", (GameProgress gp) => MyGP(gp).IsTrulyLiable));
             rows.Add(new SimpleReportFilter("Truly Not Liable", (GameProgress gp) => !MyGP(gp).IsTrulyLiable));
             rows.Add(new SimpleReportFilter("AllCount", (GameProgress gp) => true) {UseSum = true});
-            AddRowsForQualityAndSignalDistributions("", false, rows, gp => true);
+            AddRowsForQualityAndSignalDistributions("", true, rows, gp => true);
             rows.Add(new SimpleReportFilter("Truly Liable Count", (GameProgress gp) => MyGP(gp).IsTrulyLiable) { UseSum = true });
             AddRowsForQualityAndSignalDistributions("Truly Liable ", false, rows, gp => MyGP(gp).IsTrulyLiable);
             rows.Add(new SimpleReportFilter("Truly Not Liable Count", (GameProgress gp) => !MyGP(gp).IsTrulyLiable) { UseSum = true });

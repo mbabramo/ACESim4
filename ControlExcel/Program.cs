@@ -184,7 +184,7 @@ namespace ControlExcel
 
 
 
-        private static List<double> GetStagesResults(Excel.Worksheet sourceWS, int rowOrColumnNumber, bool mainNumberIsRowNumber, List<int> columnsOrRowsNumbers, bool dataArePercents)
+        private static List<double> GetStagesResults(Excel.Worksheet sourceWS, int rowOrColumnNumber, bool mainNumberIsRowNumber, List<int> columnsOrRowsNumbers, bool dataArePercents, bool stages)
         {
             List<object> unprocessedResults;
             if (mainNumberIsRowNumber)
@@ -192,6 +192,8 @@ namespace ControlExcel
             else
                 unprocessedResults = GetCellValuesInColumn(sourceWS, columnsOrRowsNumbers, rowOrColumnNumber);
             List<double> results = ConvertCellValuesToDoubles(unprocessedResults);
+            if (!stages)
+                return results;
             double noDisputeArises = results[0];
             double pDoesntFile = results[1];
             double dDoesntAnswer = results[2];
@@ -218,17 +220,17 @@ namespace ControlExcel
             return cellValuesAsObjects.Select(x => (x is string && (string) x == "NaN") ? 0 : ((double?) x ?? 0)).ToList();
         }
 
-        private static void ProcessStageResults(string targetWorksheetName, string sourceWorksheetName, string sourceReport, List<string> crossStats, bool crossStatIsRow, List<string> rowHeads, int mainDataFirstRowTarget, bool omitNoDispute, bool divideByAllCount)
+        private static void ProcessStageResults(string targetWorksheetName, string sourceWorksheetName, string sourceReport, List<string> crossStats, bool crossStatIsRow, List<string> rowHeads, int mainDataFirstRowTarget, bool omitNoDispute, bool divideByAllCount, bool stages)
         {
             Excel.Worksheet targetWS;
             List<string> sourceColOrRowNames;
             List<string> graphColumnNames;
-            var sourceWS = GetWorksheetsAndColumnNames(targetWorksheetName, sourceWorksheetName, omitNoDispute, out targetWS, out sourceColOrRowNames, out graphColumnNames);
+            var sourceWS = GetWorksheetsAndColumnNames(targetWorksheetName, sourceWorksheetName, omitNoDispute, stages, out targetWS, out sourceColOrRowNames, out graphColumnNames);
 
             bool dataAreProportions = divideByAllCount;
             List<double> allRow = null;
             if (divideByAllCount)
-                allRow = GetStagesResults(sourceReport, "AllCount", crossStatIsRow, dataAreProportions, sourceWS, "Average", sourceColOrRowNames);
+                allRow = GetStagesResults(sourceReport, "AllCount", crossStatIsRow, dataAreProportions, sourceWS, "Average", sourceColOrRowNames, stages);
 
             SetCellValue(targetWS, 1, 1, "Stage");
             SetCellValues(targetWS, 1, 2, graphColumnNames);
@@ -236,7 +238,7 @@ namespace ControlExcel
             {
                 string stat = "Average";
                 string crossStat = crossStats[s];
-                List<double> results = GetStagesResults(sourceReport, crossStat, crossStatIsRow, dataAreProportions, sourceWS, stat, sourceColOrRowNames);
+                List<double> results = GetStagesResults(sourceReport, crossStat, crossStatIsRow, dataAreProportions, sourceWS, stat, sourceColOrRowNames, stages);
                 if (divideByAllCount)
                     results = results.Zip(allRow, (r, p) => p == 0 ? 0 : r / p).ToList();
 
@@ -252,16 +254,16 @@ namespace ControlExcel
         }
 
 
-        private static void ProcessStageResults(string targetWorksheetName, string sourceWorksheetName, string sourceReport, string crossStat, bool crossStatIsRow, string rowHead, int mainDataTarget, int errorBarLowerTarget, int errorBarUpperTarget, bool dataAreProportions, bool omitNoDispute, bool multiplyByProportionOfAll, bool omitErrorBars)
+        private static void ProcessStageResults(string targetWorksheetName, string sourceWorksheetName, string sourceReport, string crossStat, bool crossStatIsRow, string rowHead, int mainDataTarget, int errorBarLowerTarget, int errorBarUpperTarget, bool dataAreProportions, bool omitNoDispute, bool multiplyByProportionOfAll, bool omitErrorBars, bool stages)
         {
             Excel.Worksheet targetWS;
             List<string> sourceColOrRowNames;
             List<string> graphColumnNames;
-            var sourceWS = GetWorksheetsAndColumnNames(targetWorksheetName, sourceWorksheetName, omitNoDispute, out targetWS, out sourceColOrRowNames, out graphColumnNames);
+            var sourceWS = GetWorksheetsAndColumnNames(targetWorksheetName, sourceWorksheetName, omitNoDispute, stages, out targetWS, out sourceColOrRowNames, out graphColumnNames);
 
             List<double> proportionsOfSample = null;
             if (multiplyByProportionOfAll)
-                proportionsOfSample = GetStagesResults(sourceReport, "All", crossStatIsRow, dataAreProportions, sourceWS, "Average", sourceColOrRowNames);
+                proportionsOfSample = GetStagesResults(sourceReport, "All", crossStatIsRow, dataAreProportions, sourceWS, "Average", sourceColOrRowNames, stages);
 
             SetCellValue(targetWS, 1, 1, "Stage");
             SetCellValues(targetWS, 1, 2, graphColumnNames);
@@ -281,7 +283,7 @@ namespace ControlExcel
                         stat = "UpperBound";
                         break;
                 }
-                List<double> results = GetStagesResults(sourceReport, crossStat, crossStatIsRow, dataAreProportions, sourceWS, stat, sourceColOrRowNames);
+                List<double> results = GetStagesResults(sourceReport, crossStat, crossStatIsRow, dataAreProportions, sourceWS, stat, sourceColOrRowNames, stages);
                 if (multiplyByProportionOfAll)
                     results = results.Zip(proportionsOfSample, (r, p) => r * p).ToList();
 
@@ -328,18 +330,26 @@ namespace ControlExcel
             return adjustedResults;
         }
 
-        private static Excel.Worksheet GetWorksheetsAndColumnNames(string targetWorksheetName, string sourceWorksheetName, bool omitFirstColumn, out Excel.Worksheet targetWS, out List<string> sourceColOrRowNames, out List<string> graphColumnNames)
+        private static Excel.Worksheet GetWorksheetsAndColumnNames(string targetWorksheetName, string sourceWorksheetName, bool omitFirstColumn, bool stages, out Excel.Worksheet targetWS, out List<string> sourceColOrRowNames, out List<string> graphColumnNames)
         {
             Excel.Worksheet sourceWS = GetWorksheet(sourceWorksheetName);
             targetWS = GetWorksheet(targetWorksheetName);
-            sourceColOrRowNames = new List<string>() {"NoDispute", "PDoesntFile", "DDoesntAnswer", "Settles1", "PAbandons1", "DDefaults1", "Settles2", "PAbandons2", "DDefaults2", "Settles3", "PAbandons3", "DDefaults3", "P Loses", "P Wins"};
-            graphColumnNames = new List<string>() {"No Dispute", "P Doesn't File", "D Doesn't Answer", "Settles (1)", "P Abandons (1)", "D Defaults (1)", "Settles (2)", "P Abandons (2)", "D Defaults (2)", "Settles (3)", "P Abandons (3)", "D Defaults (3)", "D Wins At Trial", "P Wins At Trial"};
-            if (omitFirstColumn)
+            if (stages)
+            {
+                sourceColOrRowNames = new List<string>() {"NoDispute", "PDoesntFile", "DDoesntAnswer", "Settles1", "PAbandons1", "DDefaults1", "Settles2", "PAbandons2", "DDefaults2", "Settles3", "PAbandons3", "DDefaults3", "P Loses", "P Wins"};
+                graphColumnNames = new List<string>() {"No Dispute", "P Doesn't File", "D Doesn't Answer", "Settles (1)", "P Abandons (1)", "D Defaults (1)", "Settles (2)", "P Abandons (2)", "D Defaults (2)", "Settles (3)", "P Abandons (3)", "D Defaults (3)", "D Wins At Trial", "P Wins At Trial"};
+            }
+            else
+            {
+                sourceColOrRowNames = new List<string>() { "POffer1", "POffer2", "POffer3", "DOffer1", "DOffer2", "DOffer3", "LitigQuality" };
+                graphColumnNames = new List<string>() { "P Offer (1)", "P Offer (2)", "P Offer (3)", "D Offer (1)", "D Offer (2)", "D Offer (3)", "Litigation Quality" };
+            }
+            if (omitFirstColumn && stages)
                 graphColumnNames = graphColumnNames.Skip(1).ToList();
             return sourceWS;
         }
 
-        private static List<double> GetStagesResults(string sourceReport, string crossStat, bool crossStatIsRow, bool dataAreProportions, Excel.Worksheet sourceWS, string stat, List<string> sourceColOrRowNames)
+        private static List<double> GetStagesResults(string sourceReport, string crossStat, bool crossStatIsRow, bool dataAreProportions, Excel.Worksheet sourceWS, string stat, List<string> sourceColOrRowNames, bool stages)
         {
             int mainRowOrColumnNum;
             List<int> stagesColOrRowNumbers = null;
@@ -353,19 +363,38 @@ namespace ControlExcel
                 stagesColOrRowNumbers = GetRowNumbers(sourceWS, sourceReport, stat, sourceColOrRowNames);
                 mainRowOrColumnNum = GetColumnNumber(sourceWS, 1, crossStat);
             }
-            var results = GetStagesResults(sourceWS, mainRowOrColumnNum, crossStatIsRow, stagesColOrRowNumbers, dataAreProportions);
+            var results = GetStagesResults(sourceWS, mainRowOrColumnNum, crossStatIsRow, stagesColOrRowNumbers, dataAreProportions, stages);
             return results;
         }
 
         private static void CompletionStageGraph()
         {
             string targetWorksheetName = "completion stage graph";
-            string sourceWorksheetName = "risk neutral";
+            string sourceWorksheetName = "risk neutral basic";
             string sourceReport = "Exog British";
-            string rowHead = "Allocation of False Positive Costs (British Rule)";
+            string rowHead = "British Rule";
+            bool omitNoDispute = true;
+            bool omitErrorBars = false;
+            string crossStat = "All";
+            bool multiplyByPercentageOfAll = false;
+            bool crossStatIsPercent = true;
+            bool crossStatIsRow = false;
+            int mainDataTarget = 2;
+            int errorBarUpperTarget = 3;
+            int errorBarLowerTarget = 4;
+
+            ProcessStageResults(targetWorksheetName, sourceWorksheetName, sourceReport, crossStat, crossStatIsRow, rowHead, mainDataTarget, errorBarLowerTarget, errorBarUpperTarget, crossStatIsPercent, omitNoDispute, multiplyByPercentageOfAll, omitErrorBars, true);
+        }
+
+        private static void ErrorAllocationGraph()
+        {
+            string targetWorksheetName = "error allocation graph";
+            string sourceWorksheetName = "risk neutral basic";
+            string sourceReport = "Exog British";
+            string rowHead = "British Rule";
             bool omitNoDispute = true;
             bool omitErrorBars = true;
-            string crossStat = "False+"; // "All"
+            string crossStat = "False-";
             bool multiplyByPercentageOfAll = true;
             bool crossStatIsPercent = false;
             bool crossStatIsRow = false;
@@ -373,7 +402,31 @@ namespace ControlExcel
             int errorBarUpperTarget = 3;
             int errorBarLowerTarget = 4;
 
-            ProcessStageResults(targetWorksheetName, sourceWorksheetName, sourceReport, crossStat, crossStatIsRow, rowHead, mainDataTarget, errorBarLowerTarget, errorBarUpperTarget, crossStatIsPercent, omitNoDispute, multiplyByPercentageOfAll, omitErrorBars);
+            ProcessStageResults(targetWorksheetName, sourceWorksheetName, sourceReport, crossStat, crossStatIsRow, rowHead, mainDataTarget, errorBarLowerTarget, errorBarUpperTarget, crossStatIsPercent, omitNoDispute, multiplyByPercentageOfAll, omitErrorBars, true);
+        }
+
+
+        private static void OffersGraph()
+        {
+            string targetWorksheetName = "offers graph";
+            string sourceWorksheetName = "risk neutral basic";
+            string sourceReport = "Exog American";
+            bool omitNoDispute = true;
+            bool omitErrorBars = true;
+            List<string> crossStats = new List<string>() { "PSignal1 Count", "PSignal2 Count", "PSignal3 Count", "PSignal4 Count", "PSignal5 Count", "PSignal6 Count", "PSignal7 Count", "PSignal8 Count", "PSignal9 Count", "PSignal10 Count" };
+            List<string> rowHeads = new List<string>() { "P Signal 1", "P Signal 2", "P Signal 3", "P Signal 4", "P Signal 5", "P Signal 6", "P Signal 7", "P Signal 8", "P Signal 9", "P Signal 10", "D Signal 1", "D Signal 2", "D Signal 3", "D Signal 4", "D Signal 5", "D Signal 6", "D Signal 7", "D Signal 8", "D Signal 9", "D Signal 10" };
+            crossStats.Reverse();
+            rowHeads.Reverse();
+            //List<string> crossStats = new List<string>() { "MutOpt5 Count", "MutOpt4 Count", "MutOpt3 Count", "MutOpt2 Count", "MutOpt1 Count", "MutOpt0 Count", "MutOpt-1 Count", "MutOpt-2 Count", "MutOpt-3 Count", "MutOpt-4 Count", "MutOpt-5 Count" };
+            //List<string> rowHeads = new List<string>() { "Mutually Optimistic 5+", "Mutually Optimistic 4", "Mutually Optimistic 3", "Mutually Optimistic 2", "Mutually Optimistic 1", "Same Signal", "Mutually Pessimistic 1", "Mutually Pessimistic 2", "Mutually Pessimistic 3", "Mutually Pessimistic 4", "Mutually Pessimistic 5+" };
+            bool divideByAllCount = true;
+            bool crossStatIsPercent = false;
+            bool crossStatIsRow = true;
+            int mainDataTarget = 2;
+            int errorBarUpperTarget = 3;
+            int errorBarLowerTarget = 4;
+
+            ProcessStageResults(targetWorksheetName, sourceWorksheetName, sourceReport, crossStats, crossStatIsRow, rowHeads, mainDataTarget, omitNoDispute, divideByAllCount, false);
         }
 
         private static void DistributionAtStageGraph()
@@ -385,10 +438,10 @@ namespace ControlExcel
             bool omitErrorBars = true;
             List<string> crossStats = new List<string>() { "PSignal1 Count", "PSignal2 Count", "PSignal3 Count", "PSignal4 Count", "PSignal5 Count", "PSignal6 Count", "PSignal7 Count", "PSignal8 Count", "PSignal9 Count", "PSignal10 Count" };
             List<string> rowHeads = new List<string>() { "PSignal1", "PSignal2", "PSignal3", "PSignal4", "PSignal5", "PSignal6", "PSignal7", "PSignal8", "PSignal9", "PSignal10" };
-            //List<string> crossStats = new List<string>() { "MutOpt5 Count", "MutOpt4 Count", "MutOpt3 Count", "MutOpt2 Count", "MutOpt1 Count", "MutOpt0 Count", "MutOpt-1 Count", "MutOpt-2 Count", "MutOpt-3 Count", "MutOpt-4 Count", "MutOpt-5 Count" };
-            //List<string> rowHeads = new List<string>() { "Mutually Optimistic 5+", "Mutually Optimistic 4", "Mutually Optimistic 3", "Mutually Optimistic 2", "Mutually Optimistic 1", "Same Signal", "Mutually Pessimistic 1", "Mutually Pessimistic 2", "Mutually Pessimistic 3", "Mutually Pessimistic 4", "Mutually Pessimistic 5+" };
             crossStats.Reverse();
             rowHeads.Reverse();
+            //List<string> crossStats = new List<string>() { "MutOpt5 Count", "MutOpt4 Count", "MutOpt3 Count", "MutOpt2 Count", "MutOpt1 Count", "MutOpt0 Count", "MutOpt-1 Count", "MutOpt-2 Count", "MutOpt-3 Count", "MutOpt-4 Count", "MutOpt-5 Count" };
+            //List<string> rowHeads = new List<string>() { "Mutually Optimistic 5+", "Mutually Optimistic 4", "Mutually Optimistic 3", "Mutually Optimistic 2", "Mutually Optimistic 1", "Same Signal", "Mutually Pessimistic 1", "Mutually Pessimistic 2", "Mutually Pessimistic 3", "Mutually Pessimistic 4", "Mutually Pessimistic 5+" };
             bool divideByAllCount = true;
             bool crossStatIsPercent = false;
             bool crossStatIsRow = true;
@@ -396,7 +449,7 @@ namespace ControlExcel
             int errorBarUpperTarget = 3;
             int errorBarLowerTarget = 4;
 
-            ProcessStageResults(targetWorksheetName, sourceWorksheetName, sourceReport, crossStats, crossStatIsRow, rowHeads, mainDataTarget, omitNoDispute, divideByAllCount);
+            ProcessStageResults(targetWorksheetName, sourceWorksheetName, sourceReport, crossStats, crossStatIsRow, rowHeads, mainDataTarget, omitNoDispute, divideByAllCount, true);
         }
 
         private static void SocialWelfareComparisonGraph()
@@ -448,9 +501,11 @@ namespace ControlExcel
 
         static void Main(string[] args)
         {
-            SocialWelfareComparisonGraph();
+            //SocialWelfareComparisonGraph();
+            OffersGraph(); // needs work and more data
             //DistributionAtStageGraph();
             //CompletionStageGraph();
+            //ErrorAllocationGraph();
         }
     }
 }
