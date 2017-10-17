@@ -187,6 +187,12 @@ namespace ACESim
                     new SimpleReportColumnFilter($"DDoesntDefault{b}",
                         (GameProgress gp) => (MyGP(gp).DDoesntDefaultInRound(bargainingRoundNum)), false)
                 );
+                colItems.Add(
+                    new SimpleReportColumnFilter($"POrDQuits{b}",
+                        (GameProgress gp) => (MyGP(gp).PAbandonsInRound(bargainingRoundNum)) || (MyGP(gp).DDefaultsInRound(bargainingRoundNum)), false)
+                );
+
+                
             }
 
             colItems.Add(
@@ -290,6 +296,11 @@ namespace ACESim
                     new SimpleReportFilter($"DDoesntDefault{b}",
                         (GameProgress gp) => (MyGP(gp).DDoesntDefaultInRound(bargainingRoundNum)))
                 );
+
+                rows.Add(
+                    new SimpleReportFilter($"POrDQuits{b}",
+                        (GameProgress gp) => (MyGP(gp).PAbandonsInRound(bargainingRoundNum)) || (MyGP(gp).DDefaultsInRound(bargainingRoundNum)))
+                );
             }
 
             rows.Add(
@@ -355,7 +366,11 @@ namespace ACESim
             }
             // Add mutual optimism report
             rows.Add(
-                new SimpleReportFilter(prefix + "MutOpt3 Count", (GameProgress gp) => MyGP(gp).PSignalDiscrete - MyGP(gp).DSignalDiscrete >= 3 && extraRequirement(gp)) { UseSum = true });
+            new SimpleReportFilter(prefix + "MutOpt5 Count", (GameProgress gp) => MyGP(gp).PSignalDiscrete - MyGP(gp).DSignalDiscrete >= 5 && extraRequirement(gp)) { UseSum = true });
+            rows.Add(
+                new SimpleReportFilter(prefix + "MutOpt4 Count", (GameProgress gp) => MyGP(gp).PSignalDiscrete - MyGP(gp).DSignalDiscrete == 4 && extraRequirement(gp)) { UseSum = true });
+            rows.Add(
+                new SimpleReportFilter(prefix + "MutOpt3 Count", (GameProgress gp) => MyGP(gp).PSignalDiscrete - MyGP(gp).DSignalDiscrete == 3 && extraRequirement(gp)) { UseSum = true });
             rows.Add(
                 new SimpleReportFilter(prefix + "MutOpt2 Count", (GameProgress gp) => MyGP(gp).PSignalDiscrete - MyGP(gp).DSignalDiscrete == 2 && extraRequirement(gp)) { UseSum = true });
             rows.Add(
@@ -367,7 +382,11 @@ namespace ACESim
             rows.Add(
                 new SimpleReportFilter(prefix + "MutOpt-2 Count", (GameProgress gp) => MyGP(gp).PSignalDiscrete - MyGP(gp).DSignalDiscrete == -2 && extraRequirement(gp)) { UseSum = true });
             rows.Add(
-                new SimpleReportFilter(prefix + "MutOpt-3 Count", (GameProgress gp) => MyGP(gp).PSignalDiscrete - MyGP(gp).DSignalDiscrete <= -3 && extraRequirement(gp)) { UseSum = true });
+                new SimpleReportFilter(prefix + "MutOpt-3 Count", (GameProgress gp) => MyGP(gp).PSignalDiscrete - MyGP(gp).DSignalDiscrete == -3 && extraRequirement(gp)) { UseSum = true });
+            rows.Add(
+                new SimpleReportFilter(prefix + "MutOpt-4 Count", (GameProgress gp) => MyGP(gp).PSignalDiscrete - MyGP(gp).DSignalDiscrete == -4 && extraRequirement(gp)) { UseSum = true });
+            rows.Add(
+                new SimpleReportFilter(prefix + "MutOpt-5 Count", (GameProgress gp) => MyGP(gp).PSignalDiscrete - MyGP(gp).DSignalDiscrete <= -5 && extraRequirement(gp)) { UseSum = true });
         }
 
         private SimpleReportDefinition GetCourtSuccessReport()
