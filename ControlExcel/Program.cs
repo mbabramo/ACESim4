@@ -419,6 +419,7 @@ namespace ControlExcel
             rowHeads.Reverse();
             //List<string> crossStats = new List<string>() { "MutOpt5 Count", "MutOpt4 Count", "MutOpt3 Count", "MutOpt2 Count", "MutOpt1 Count", "MutOpt0 Count", "MutOpt-1 Count", "MutOpt-2 Count", "MutOpt-3 Count", "MutOpt-4 Count", "MutOpt-5 Count" };
             //List<string> rowHeads = new List<string>() { "Mutually Optimistic 5+", "Mutually Optimistic 4", "Mutually Optimistic 3", "Mutually Optimistic 2", "Mutually Optimistic 1", "Same Signal", "Mutually Pessimistic 1", "Mutually Pessimistic 2", "Mutually Pessimistic 3", "Mutually Pessimistic 4", "Mutually Pessimistic 5+" };
+#pragma warning disable CS0219
             bool divideByAllCount = true;
             bool crossStatIsPercent = false;
             bool crossStatIsRow = true;
@@ -448,6 +449,7 @@ namespace ControlExcel
             int mainDataTarget = 2;
             int errorBarUpperTarget = 3;
             int errorBarLowerTarget = 4;
+#pragma warning restore CS0219
 
             ProcessStageResults(targetWorksheetName, sourceWorksheetName, sourceReport, crossStats, crossStatIsRow, rowHeads, mainDataTarget, omitNoDispute, divideByAllCount, true);
         }
