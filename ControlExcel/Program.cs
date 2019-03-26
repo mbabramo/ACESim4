@@ -412,6 +412,7 @@ namespace ControlExcel
             string sourceWorksheetName = "risk neutral basic";
             string sourceReport = "Exog American";
             bool omitNoDispute = true;
+#pragma warning disable CS0219
             bool omitErrorBars = true;
             List<string> crossStats = new List<string>() { "PSignal1 Count", "PSignal2 Count", "PSignal3 Count", "PSignal4 Count", "PSignal5 Count", "PSignal6 Count", "PSignal7 Count", "PSignal8 Count", "PSignal9 Count", "PSignal10 Count" };
             List<string> rowHeads = new List<string>() { "P Signal 1", "P Signal 2", "P Signal 3", "P Signal 4", "P Signal 5", "P Signal 6", "P Signal 7", "P Signal 8", "P Signal 9", "P Signal 10", "D Signal 1", "D Signal 2", "D Signal 3", "D Signal 4", "D Signal 5", "D Signal 6", "D Signal 7", "D Signal 8", "D Signal 9", "D Signal 10" };
@@ -419,7 +420,6 @@ namespace ControlExcel
             rowHeads.Reverse();
             //List<string> crossStats = new List<string>() { "MutOpt5 Count", "MutOpt4 Count", "MutOpt3 Count", "MutOpt2 Count", "MutOpt1 Count", "MutOpt0 Count", "MutOpt-1 Count", "MutOpt-2 Count", "MutOpt-3 Count", "MutOpt-4 Count", "MutOpt-5 Count" };
             //List<string> rowHeads = new List<string>() { "Mutually Optimistic 5+", "Mutually Optimistic 4", "Mutually Optimistic 3", "Mutually Optimistic 2", "Mutually Optimistic 1", "Same Signal", "Mutually Pessimistic 1", "Mutually Pessimistic 2", "Mutually Pessimistic 3", "Mutually Pessimistic 4", "Mutually Pessimistic 5+" };
-#pragma warning disable CS0219
             bool divideByAllCount = true;
             bool crossStatIsPercent = false;
             bool crossStatIsRow = true;

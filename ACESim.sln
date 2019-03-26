@@ -4,9 +4,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 15.0.26730.16
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{FE8C46F8-2AAA-4D85-80A9-AF6F28233639}"
-	ProjectSection(SolutionItems) = preProject
-		Performance1.psess = Performance1.psess
-	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACESimTest", "ACESimTest\ACESimTest.csproj", "{4D068246-FC54-46B6-947A-4CCBF175279D}"
 EndProject
@@ -99,9 +96,6 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{4D068246-FC54-46B6-947A-4CCBF175279D} = {FE8C46F8-2AAA-4D85-80A9-AF6F28233639}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {CDDD0576-8D8D-4630-90D5-0092523C869F}
