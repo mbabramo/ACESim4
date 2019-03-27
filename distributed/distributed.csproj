@@ -102,12 +102,6 @@
     <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\ACESimClassLibrary\ACESimClassLibrary.csproj">
-      <Project>{2c5d32ab-22fd-4d4f-ae3c-0f514bc31cdd}</Project>
-      <Name>ACESimClassLibrary</Name>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

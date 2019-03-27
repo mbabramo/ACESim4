@@ -1,8 +1,0 @@
-﻿<ACESim>
-  <parentSettingsFile filename="TrialStandardInputs.xml" />
-  <parentSettingsFile filename="TrialStandardReport.xml" />
-  <defineTemplate name="TrialModule">
-    <setting name="TrialStandardModule" type="class" subclass="TrialStandardModule" codeGeneratorName="TrialStandardModule" codeGeneratorOptions="" >
-    </setting>
-  </defineTemplate>
-</ACESim>

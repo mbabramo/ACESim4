@@ -1,8 +1,0 @@
-﻿<ACESim>
-  <parentSettingsFile filename="NoBargainingBargainingInputs.xml" />
-  <parentSettingsFile filename="NoBargainingBargainingReport.xml" />
-  <defineTemplate name="BargainingModule">
-    <setting name="NoBargainingBargainingModule" type="class" subclass="NoBargainingBargainingModule" codeGeneratorName="NoBargainingBargainingModule" codeGeneratorOptions="" >
-    </setting>
-  </defineTemplate>
-</ACESim>

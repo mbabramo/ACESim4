@@ -1,8 +1,0 @@
-﻿<ACESim>
-  <parentSettingsFile filename="LitigationCostEndogenousEffortInputs.xml" />
-  <parentSettingsFile filename="LitigationCostEndogenousEffortReport.xml" />
-  <defineTemplate name="LitigationCostModule">
-    <setting name="LitigationCostEndogenousEffortModule" type="class" subclass="LitigationCostEndogenousEffortModule" codeGeneratorName="LitigationCostEndogenousEffortModule" codeGeneratorOptions="OptimizeInvestigationIntensity: $OptimizeInvestigationIntensity; OptimizeTrialPrep: $OptimizeTrialPrep; ExploreEndogenousEffortInvestigationEquilibria: $ExploreEndogenousEffortInvestigationEquilibria; ExploreEndogenousEffortTrialEquilibria: $ExploreEndogenousEffortTrialEquilibria; EndogenousEffortEquilibriumUsesSimpleMethod: $EndogenousEffortEquilibriumUsesSimpleMethod; EndogenousEffortEquilibriumSimpleMethodRepetitions: $EndogenousEffortEquilibriumSimpleMethodRepetitions" >
-    </setting>
-  </defineTemplate>
-</ACESim>

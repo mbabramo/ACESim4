@@ -1,8 +1,0 @@
-﻿<ACESim>
-  <parentSettingsFile filename="$ForbiddenActInputs.xml" />
-  <parentSettingsFile filename="ForbiddenActDisputeGeneratorReport.xml" />
-  <defineTemplate name="DisputeGeneratorModule">
-    <setting name="ForbiddenActDisputeGeneratorModule" type="class" subclass="ForbiddenActDisputeGeneratorModule" codeGeneratorName="ForbiddenActDisputeGeneratorModule" codeGeneratorOptions="" >
-    </setting>
-  </defineTemplate>
-</ACESim>

@@ -139,12 +139,6 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\ACESimClassLibrary\ACESimClassLibrary.csproj">
-      <Project>{2c5d32ab-22fd-4d4f-ae3c-0f514bc31cdd}</Project>
-      <Name>ACESimClassLibrary</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.5.2">
       <Visible>False</Visible>
       <ProductName>Microsoft .NET Framework 4.5.2 %28x86 and x64%29</ProductName>

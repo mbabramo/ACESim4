@@ -1,8 +1,0 @@
-﻿<ACESim>
-  <parentSettingsFile filename="ContinuousPrecautionDisputeGeneratorInputs.xml" />
-  <parentSettingsFile filename="ContinuousPrecautionDisputeGeneratorReport.xml" />
-  <defineTemplate name="DisputeGeneratorModule">
-    <setting name="ContinuousPrecautionDisputeGeneratorModule" type="class" subclass="ContinuousPrecautionDisputeGeneratorModule" codeGeneratorName="ContinuousPrecautionDisputeGeneratorModule" codeGeneratorOptions="" >
-    </setting>
-  </defineTemplate>
-</ACESim>

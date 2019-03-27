@@ -1,8 +1,0 @@
-﻿<ACESim>
-  <parentSettingsFile filename="TrialPerfectInputs.xml" />
-  <parentSettingsFile filename="TrialPerfectReport.xml" />
-  <defineTemplate name="TrialModule">
-    <setting name="TrialPerfectModule" type="class" subclass="TrialPerfectModule" codeGeneratorName="TrialPerfectModule" codeGeneratorOptions="" >
-    </setting>
-  </defineTemplate>
-</ACESim>

@@ -1,8 +1,0 @@
-﻿<ACESim>
-  <parentSettingsFile filename="RiskNeutralUtilityMaximizer.xml" />
-  
-  <defineTemplate name="PartiesInfo">
-    <insertTemplate name="RiskNeutralUtilityMaximizer" find1="Individual" replace1="Plaintiff" find2="InitialWealthValue" replace2="100000" />
-    <insertTemplate name="RiskNeutralUtilityMaximizer" find1="Individual" replace1="Defendant" find2="InitialWealthValue" replace2="100000"/>
-  </defineTemplate>
-</ACESim>
