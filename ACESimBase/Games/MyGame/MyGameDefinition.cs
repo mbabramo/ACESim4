@@ -165,7 +165,7 @@ namespace ACESim
             }
             if (primaryActions > 0)
             {
-                decisions.Add(new Decision("PrimaryActions", "Primary", (byte) MyGamePlayers.Defendant, primaryPlayersToInform, primaryActions, (byte) MyGameDecisions.PrimaryAction) {StoreActionInGameCacheItem = GameHistoryCacheIndex_PrimaryAction, IsReversible = true, CanTerminateGame = primaryActionCanTerminate});
+                decisions.Add(new Decision("PrimaryActions", "Primary", (byte) MyGamePlayers.Defendant /* DEBUG -- why defendant? */, primaryPlayersToInform, primaryActions, (byte) MyGameDecisions.PrimaryAction) {StoreActionInGameCacheItem = GameHistoryCacheIndex_PrimaryAction, IsReversible = true, CanTerminateGame = primaryActionCanTerminate});
             }
             if (postPrimaryChanceActions > 0)
             {
