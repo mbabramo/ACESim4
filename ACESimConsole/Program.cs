@@ -37,7 +37,7 @@ namespace ACESim
                 strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
                 gameResult = MyGameRunner.EvolveMyGame().GetAwaiter().GetResult();
             }
-            System.Windows.Clipboard.SetText(gameResult);
+            TextCopy.Clipboard.SetText(gameResult);
             Console.WriteLine();
             Console.WriteLine("Press Enter to end.");
             do
@@ -47,7 +47,7 @@ namespace ACESim
                     // Do something
                 }
             } while (Console.ReadKey(true).Key != ConsoleKey.Enter);
-            System.Windows.Clipboard.SetText(gameResult);
+            TextCopy.Clipboard.SetText(gameResult);
         }
     }
 }
