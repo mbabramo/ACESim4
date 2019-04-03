@@ -63,7 +63,7 @@ namespace ACESim
         }
 
 
-        public void AddToLog(byte information, byte followingDecisionIndex, byte playerIndex)
+        public void AddToLog(byte information, byte followingDecisionIndex, byte playerIndex, string[] playerNames)
         {
             if (playerIndex >= MaxNumPlayers)
                 throw new NotImplementedException();
@@ -85,7 +85,7 @@ namespace ACESim
             }
             if (GameProgressLogger.LoggingOn)
             {
-                GameProgressLogger.Log($"Adding information {information} following decision {followingDecisionIndex} for Player number {playerIndex}");
+                GameProgressLogger.Log($"Adding information {information} following decision {followingDecisionIndex} for Player {playerIndex} ({playerNames[playerIndex]})");
                 string playerInformation = GetPlayerInformationAtPointString(playerIndex, null);
                 GameProgressLogger.Log($"Player {playerIndex} info: {playerInformation}");
             }
@@ -199,13 +199,13 @@ namespace ACESim
             return b;
         }
 
-        public void AddRemovalToInformationSetLog(byte followingDecisionIndex, byte playerIndex)
+        public void AddRemovalToInformationSetLog(byte followingDecisionIndex, byte playerIndex, string[] playerNames)
         {
             if (playerIndex >= MaxNumPlayers)
                 throw new NotImplementedException();
             fixed (byte* informationSetsLogPtr = InformationSetLogs)
             {
-                AddToLog(RemoveItemFromInformationSet, followingDecisionIndex, playerIndex);
+                AddToLog(RemoveItemFromInformationSet, followingDecisionIndex, playerIndex, playerNames);
             }
         }
     }

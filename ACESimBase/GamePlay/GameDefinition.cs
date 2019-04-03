@@ -13,6 +13,8 @@ namespace ACESim
 
         public List<PlayerInfo> Players;
 
+        public string[] PlayerNames;
+
 
         /// <summary>
         /// The number of players in the game, including chance (if applicable).

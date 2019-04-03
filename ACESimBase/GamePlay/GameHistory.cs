@@ -274,7 +274,7 @@ namespace ACESim
                 foreach (byte playerToInformIndex in playersToInform)
                 {
                     AddToInformationSet(information, playerToInformIndex, informationSetsPtr);
-                    gameProgress?.InformationSetLog.AddToLog(information, followingDecisionIndex, playerToInformIndex);
+                    gameProgress?.InformationSetLog.AddToLog(information, followingDecisionIndex, playerToInformIndex, gameProgress.GameDefinition.PlayerNames);
                 }
             }
             if (GameProgressLogger.LoggingOn)
@@ -293,7 +293,7 @@ namespace ACESim
             {
                 AddToInformationSet(information, playerIndex, informationSetsPtr);
                 if (gameProgress != null)
-                    gameProgress.InformationSetLog.AddToLog(information, followingDecisionIndex, playerIndex);
+                    gameProgress.InformationSetLog.AddToLog(information, followingDecisionIndex, playerIndex, gameProgress.GameDefinition.PlayerNames);
             }
         }
 
@@ -377,7 +377,7 @@ namespace ACESim
             if (gameProgress != null)
                 for (byte b = 0; b < numItemsToRemove; b++)
                 {
-                    gameProgress.InformationSetLog.AddRemovalToInformationSetLog(followingDecisionIndex, playerIndex);
+                    gameProgress.InformationSetLog.AddRemovalToInformationSetLog(followingDecisionIndex, playerIndex, gameProgress.GameDefinition.PlayerNames);
                 }
             RemoveItemsInInformationSet(playerIndex, numItemsToRemove);
             if (GameProgressLogger.LoggingOn)

@@ -19,6 +19,7 @@ namespace ACESim
         public void Setup()
         {
             Players = GetPlayersList();
+            PlayerNames = Players.Select(x => x.PlayerName).ToArray();
             NumPlayers = (byte)Players.Count();
             DecisionsExecutionOrder = GetDecisionsList();
 
