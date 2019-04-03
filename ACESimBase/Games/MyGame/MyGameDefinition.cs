@@ -92,9 +92,9 @@ namespace ACESim
         public override byte PlayerIndex_ResolutionPlayer => (byte) MyGamePlayers.Resolution;
 
         // NOTE: Must skip 0, because that is used for subdivision aggregation decisions. Note that the first three may be augmented if we are using subdivision decisions
-        public byte GameHistoryCacheIndex_PrePrimaryChance = 1;
+        public byte GameHistoryCacheIndex_PrePrimaryChance = 1; // defined, for example, in discrimination game to determine whether employee is good or bad and whether employer has taste for discrimination
         public byte GameHistoryCacheIndex_PrimaryAction = 2;
-        public byte GameHistoryCacheIndex_PostPrimaryChance = 3;
+        public byte GameHistoryCacheIndex_PostPrimaryChance = 3; // e.g., exogenous dispute generator sometimes chooses between is truly liable and is not truly liable
         public byte GameHistoryCacheIndex_LitigationQuality = 4;
         public byte GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound = 5;
         public byte GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound = 6;

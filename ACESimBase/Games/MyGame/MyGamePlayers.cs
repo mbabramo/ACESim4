@@ -8,7 +8,7 @@ namespace ACESim
 {
     public enum MyGamePlayers : byte
     {
-        // NOTE: Order: Main players, the resolution player, chance players that may have uneven chance actions (and thus have information sets), then chance players with information sets, then other chance players (who don't need to be counted in the MaxNumPlayers with information sets).
+        // NOTE: Order: Main players, the resolution player, chance players with small information sets, then other chance players (who don't need to be counted in the MaxNumPlayers with information sets).
         // NOTE2: When adding players, also add in GetPlayersList. Also may need to change values in InformationSetLog and GameHistory, including value for MaxNumPlayers and other values dependent on this.
 
         // main players (full information sets)

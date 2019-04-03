@@ -10,7 +10,7 @@ namespace ACESim
     public class MyGameDiscriminationDisputeGenerator : IMyGameDisputeGenerator
     {
         public string GetGeneratorName() => "Discrimination";
-        // Defendant businessperson must decide whether to fire employee. Defendant may or may not have a taste for racism. Plaintiff may or may not be a good worker. We assume that there is a social cost when a good employee is fired, and a social cost when a bad employee is not fired. Our goal is thus to make the employer with a taste for discrination act as much as possible as an employer without such a taste would act in the absence of a legal regime.
+        // Defendant businessperson must decide whether to fire employee. Defendant may or may not have a taste for racism. Plaintiff may or may not be a good worker. We assume that there is a social cost when a good employee is fired, and a social cost when a bad employee is not fired. Our goal is thus to make the employer with a taste for discrimination act as much as possible as an employer without such a taste would act in the absence of a legal regime.
         // The plaintiff's case will be strongest when the employee is good and the employer is bad. Let's make this a 7 on average. For each factor that changes in the opposite direction, subtract 2 points. So we have a litigation quality of 3 on average when the employee is bad and the employer is good. Then, we'll evenly distribute plus or minus 2 points from there.
 
         // Pre primary action chance: Determines whether the employee is a good worker or a bad worker and whether the employer is good or bad.

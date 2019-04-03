@@ -169,6 +169,12 @@ namespace ACESim
                     false /* signals, unlike offers, do not use endpoints */);
         }
 
+        /// <summary>
+        /// Converts a discrete action representing an offer into a dollar offer by one of the parties
+        /// </summary>
+        /// <param name="action"></param>
+        /// <param name="plaintiffOffer">True if this is the plaintiffs offer, false otherwise</param>
+        /// <returns></returns>
         private double GetOfferBasedOnAction(byte action, bool plaintiffOffer)
         {
             double offer;
