@@ -63,7 +63,7 @@ namespace ACESim
         }
 
 
-        public void AddToLog(byte information, byte followingDecisionIndex, byte playerIndex, string[] playerNames)
+        public void AddToLog(byte information, byte followingDecisionIndex, byte playerIndex, string[] playerNames, List<ActionPoint> actionPoints)
         {
             if (playerIndex >= MaxNumPlayers)
                 throw new NotImplementedException();
@@ -85,9 +85,9 @@ namespace ACESim
             }
             if (GameProgressLogger.LoggingOn)
             {
-                GameProgressLogger.Log($"Adding information {information} following decision {followingDecisionIndex} for Player {playerIndex} ({playerNames[playerIndex]})");
+                GameProgressLogger.Log($"Adding information {information} following decision {followingDecisionIndex} ({actionPoints[followingDecisionIndex].Name}) for Player {playerIndex} ({playerNames[playerIndex]})");
                 string playerInformation = GetPlayerInformationAtPointString(playerIndex, null);
-                GameProgressLogger.Log($"Player {playerIndex} info: {playerInformation}");
+                GameProgressLogger.Log($"Player {playerIndex} ({playerNames[playerIndex]}) info: {playerInformation}");
             }
         }
 
@@ -199,13 +199,13 @@ namespace ACESim
             return b;
         }
 
-        public void AddRemovalToInformationSetLog(byte followingDecisionIndex, byte playerIndex, string[] playerNames)
+        public void AddRemovalToInformationSetLog(byte followingDecisionIndex, byte playerIndex, string[] playerNames, List<ActionPoint> actionPoints)
         {
             if (playerIndex >= MaxNumPlayers)
                 throw new NotImplementedException();
             fixed (byte* informationSetsLogPtr = InformationSetLogs)
             {
-                AddToLog(RemoveItemFromInformationSet, followingDecisionIndex, playerIndex, playerNames);
+                AddToLog(RemoveItemFromInformationSet, followingDecisionIndex, playerIndex, playerNames, actionPoints);
             }
         }
     }

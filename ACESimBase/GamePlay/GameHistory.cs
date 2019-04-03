@@ -274,7 +274,7 @@ namespace ACESim
                 foreach (byte playerToInformIndex in playersToInform)
                 {
                     AddToInformationSet(information, playerToInformIndex, informationSetsPtr);
-                    gameProgress?.InformationSetLog.AddToLog(information, followingDecisionIndex, playerToInformIndex, gameProgress.GameDefinition.PlayerNames);
+                    gameProgress?.InformationSetLog.AddToLog(information, followingDecisionIndex, playerToInformIndex, gameProgress.GameDefinition.PlayerNames, gameProgress.GameDefinition.DecisionPointsExecutionOrder);
                 }
             }
             if (GameProgressLogger.LoggingOn)
@@ -282,7 +282,7 @@ namespace ACESim
                 GameProgressLogger.Log($"player {playerIndex} informing {String.Join(", ", playersToInform)} info {information} following {followingDecisionIndex}");
                 foreach (byte playerToInformIndex in playersToInform)
                 {
-                    GameProgressLogger.Log($"Player {playerToInformIndex} information: {GetCurrentPlayerInformationString(playerToInformIndex)}");
+                    GameProgressLogger.Log($"Player {playerToInformIndex} ({gameProgress.GameDefinition.PlayerNames[playerToInformIndex]}) information: {GetCurrentPlayerInformationString(playerToInformIndex)}");
                 }
             }
         }
@@ -293,7 +293,7 @@ namespace ACESim
             {
                 AddToInformationSet(information, playerIndex, informationSetsPtr);
                 if (gameProgress != null)
-                    gameProgress.InformationSetLog.AddToLog(information, followingDecisionIndex, playerIndex, gameProgress.GameDefinition.PlayerNames);
+                    gameProgress.InformationSetLog.AddToLog(information, followingDecisionIndex, playerIndex, gameProgress.GameDefinition.PlayerNames, gameProgress.GameDefinition.DecisionPointsExecutionOrder);
             }
         }
 
@@ -377,7 +377,7 @@ namespace ACESim
             if (gameProgress != null)
                 for (byte b = 0; b < numItemsToRemove; b++)
                 {
-                    gameProgress.InformationSetLog.AddRemovalToInformationSetLog(followingDecisionIndex, playerIndex, gameProgress.GameDefinition.PlayerNames);
+                    gameProgress.InformationSetLog.AddRemovalToInformationSetLog(followingDecisionIndex, playerIndex, gameProgress.GameDefinition.PlayerNames, gameProgress.GameDefinition.DecisionPointsExecutionOrder);
                 }
             RemoveItemsInInformationSet(playerIndex, numItemsToRemove);
             if (GameProgressLogger.LoggingOn)
