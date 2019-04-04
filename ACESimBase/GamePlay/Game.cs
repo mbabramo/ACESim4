@@ -161,7 +161,7 @@ namespace ACESim
                     gameHistory.RemoveItemsInInformationSetAndLog(decision.PlayerNumber, decisionIndex, (byte) (decision.Subdividable_NumLevels + 1), gameProgress);
                     gameHistory.AddToInformationSetAndLog(GameHistory.EndDetourMarker, decisionIndex, decision.PlayerNumber, gameProgress); // this marks that we're done with the subdivision detour
                     GameProgressLogger.Log(() => $"Adding overall decision action {replacementAggregateValue} from {decision.PlayerNumber} to {string.Join(",", decision.PlayersToInform)} {(decision.DeferNotificationOfPlayers ? "with deferred notification" : "")}");
-                    // Add information to player's information sets (including deferred information, if applicable), but don't actaully add to history itself, because this isn't a decision that corresponds to a decision in the decisions list.
+                    // Add information to player's information sets (including deferred information, if applicable), but don't actually add to history itself, because this isn't a decision that corresponds to a decision in the decisions list.
                     gameHistory.AddToHistory(decision.Subdividable_CorrespondingDecisionByteCode, decisionIndex, decision.PlayerNumber, replacementAggregateValue, decision.AggregateNumPossibleActions, decision.PlayersToInform, decision.PlayersToInformOfOccurrenceOnly, decision.IncrementGameCacheItem, decision.StoreActionInGameCacheItem, gameProgress, skipAddToHistory: true, deferNotification: decision.DeferNotificationOfPlayers, delayPreviousDeferredNotification: false);
                     if (decision.RequiresCustomInformationSetManipulation)
                         gameDefinition.CustomInformationSetManipulation(decision, decisionIndex, action, ref gameHistory, gameProgress);
@@ -239,15 +239,12 @@ namespace ACESim
         }
 
         public static int NumGamesPlayedAltogether;
-        public static int NumGamesPlayedDuringEvolutionOfThisDecision;
         public static int? BreakAtNumGamesPlayedAltogether = null; 
-        public static int? BreakAtNumGamesPlayedDuringEvolutionOfThisDecision = null;
 
         public void RegisterGamePlayed()
         {
             Interlocked.Increment(ref NumGamesPlayedAltogether);
-            Interlocked.Increment(ref NumGamesPlayedDuringEvolutionOfThisDecision);
-            if (NumGamesPlayedDuringEvolutionOfThisDecision == BreakAtNumGamesPlayedDuringEvolutionOfThisDecision || NumGamesPlayedAltogether == BreakAtNumGamesPlayedAltogether)
+            if (NumGamesPlayedAltogether == BreakAtNumGamesPlayedAltogether)
             {
                 try
                 {
@@ -361,7 +358,6 @@ namespace ACESim
             {
                 Console.WriteLine("Exception found in PlayUpTo: " + ex.Message);
             }
-
         }
 
         public void AdvanceToOrCompleteNextStep()

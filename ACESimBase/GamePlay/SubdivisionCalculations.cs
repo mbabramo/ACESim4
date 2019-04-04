@@ -10,8 +10,8 @@ namespace ACESim
     {
         public static byte GetAggregatedDecision(byte zeroBasedAggregatedSoFar, byte oneBasedActionToAggregate, byte numOptionsPerLevel, bool isLast)
         {
-            byte increasePreviousValue = (byte)(zeroBasedAggregatedSoFar * numOptionsPerLevel); // e.g., if there are 2 options per branch, we now see that there is another branch, so we multiple what is aggregated so far by 2.
-            byte addingThisAction = (byte)(increasePreviousValue + oneBasedActionToAggregate - 1); // our actions are 1-based, but we need to do our arithmetic initially as if the actions were zero-based, since the first action means "don't add anything else.
+            byte increasePreviousValue = (byte)(zeroBasedAggregatedSoFar * numOptionsPerLevel); // e.g., if there are 2 options per branch, we now see that there is another branch, so we multiply what is aggregated so far by 2.
+            byte addingThisAction = (byte)(increasePreviousValue + oneBasedActionToAggregate - 1); // our actions are 1-based, but we need to do our arithmetic initially as if the actions were zero-based, since the first action means "don't add anything else."
             byte finalAction = isLast ? (byte)(addingThisAction + 1) : addingThisAction; // convert last decision back to a 1-based action 
             return finalAction;
         }

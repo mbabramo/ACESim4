@@ -373,12 +373,13 @@ namespace ACESim
         {
             if (playerIndex >= MaxNumPlayers)
                 throw new NotImplementedException();
-            // This takes the approach of keeping the information set as append-only storage. That is, we add a notation that we're removing an item from the information set. 
+            // This takes the approach of keeping the information set log as append-only storage. That is, we add a notation that we're removing an item from the information set. 
             if (gameProgress != null)
                 for (byte b = 0; b < numItemsToRemove; b++)
                 {
                     gameProgress.InformationSetLog.AddRemovalToInformationSetLog(followingDecisionIndex, playerIndex, gameProgress.GameDefinition.PlayerNames, gameProgress.GameDefinition.DecisionPointsExecutionOrder);
                 }
+            // Now, we actually change the information set by removing the items
             RemoveItemsInInformationSet(playerIndex, numItemsToRemove);
             if (GameProgressLogger.LoggingOn)
                 GameProgressLogger.Log($"Player {playerIndex} information (removed {numItemsToRemove}): {GetCurrentPlayerInformationString(playerIndex)}");

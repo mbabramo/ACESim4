@@ -90,7 +90,7 @@ namespace ACESim
 
 
         /// <summary>
-        /// Gets an earlier version of the GameHistory, including everything up to but not including the specified decision. Not tested.
+        /// Gets an earlier version of the GameHistory, including everything up to but not including the specified decision. 
         /// </summary>
         /// <returns></returns>        
         public byte? LastDecisionIndex()

@@ -87,12 +87,9 @@ namespace ACESim
             return InformationSetTree?.GetValue(new NWayTreeStorageKeyUnsafeStackOnly(DecisionIndexSubstitute, informationSet));
         }
 
-        #endregion 
+        #endregion
 
-        public unsafe byte ChooseAction(byte* informationSet, Func<double> randomNumberGenerator)
-        {
-            throw new NotImplementedException();
-        }
+        #region Serialization
 
         public StrategyState RememberStrategyState(IGameFactory gameFactory, GameDefinition gameDefinition)
         {
@@ -169,7 +166,6 @@ namespace ACESim
             }
         }
 
-
         public void RecallStrategyState(Strategy strategyWithStateAlreadyRecalled)
         {
             AllStrategies = strategyWithStateAlreadyRecalled.AllStrategies.ToList();
@@ -180,6 +176,10 @@ namespace ACESim
             path = Path.Combine(baseOutputDirectory, storedStrategiesSubdirectory);
             filenameBase = "strsta" + numStrategyStatesSerialized.ToString();
         }
+
+        #endregion
+
+        #region Strategy info
 
         public List<(InformationSetNodeTally, int)> GetTallyNodes(GameDefinition gameDefinition)
         {
@@ -229,5 +229,7 @@ namespace ACESim
             }
             return regretMatchingTree;
         }
+
+        #endregion
     }
 }

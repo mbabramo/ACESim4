@@ -25,7 +25,7 @@ namespace ACESim
         public double LastOpponentEpsilonValue = 0.05;
         public int LastOpponentEpsilonIteration = 100000;
 
-        // The following are for Abramowicz probing.
+        // The following are for exploratory probing.
         public bool PlayerBeingOptizedExploresOnOwnIterations = false;
         public double EpsilonForMainPlayer = 0.5;
         public double EpsilonForOpponentWhenExploring = 0.05;

@@ -62,7 +62,7 @@ namespace ACESim
             return numPossibleActions; // indicates a rare rounding error
         }
 
-        public static  double[] GetActionProbabilitiesAtHistoryPoint(IGameState gameStateForCurrentPlayer, ActionStrategies actionStrategy, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation)
+        private static double[] GetActionProbabilitiesAtHistoryPoint(IGameState gameStateForCurrentPlayer, ActionStrategies actionStrategy, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation)
         {
             GetActionProbabilitiesAtHistoryPoint_Helper(gameStateForCurrentPlayer, actionStrategy, numPossibleActions, alwaysDoAction, navigation, out double[] probabilities);
             return probabilities.Take(numPossibleActions).ToArray();

@@ -33,7 +33,7 @@ namespace ACESim
         const int bestResponseDenominatorDimension = 3;
         const int storageDimension = 4;
         const int storageDimension2 = 5;
-        const int cumulativeRegretBackupDimension = 5;
+        const int cumulativeRegretBackupDimension = 6;
 
         public InformationSetNodeTally(Decision decision, byte decisionIndex)
         {

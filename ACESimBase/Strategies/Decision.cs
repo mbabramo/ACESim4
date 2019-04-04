@@ -79,19 +79,16 @@ namespace ACESim
         /// <summary>
         /// If non-null, the decision will always result in this action. (Not yet implemented)
         /// </summary>
-        
         public byte? AlwaysDoAction;
 
         /// <summary>
         /// Indicates whether the decision is always the final decision by a player.
         /// </summary>
-        
         public bool IsAlwaysPlayersLastDecision;
 
         /// <summary>
         /// Indicates whether it is possible that the decision will terminate the game. This is needed so that we can identify decisions that may require that the GameHistory be marked as complete.
         /// </summary>
-        
         public bool CanTerminateGame;
 
         /// <summary>
@@ -102,38 +99,32 @@ namespace ACESim
         /// <summary>
         /// A game-specific code, often used simply to list the decisions in order.
         /// </summary>
-        
         public byte DecisionByteCode;
 
         /// <summary>
         /// A game-specific decision type code that can be used to provide information about the type of decision. For example, this can be
         /// used to determine whether the CurrentlyEvolvingDecision is of a particular type.
         /// </summary>
-        
         public string DecisionTypeCode;
 
         /// <summary>
         /// When this is set to 1 or more, the decision will be copied multiple times into the game definition. 
         /// </summary>
-        
         public int RepetitionsAfterFirst = 0;
 
         /// <summary>
         /// A file containing a version of the strategy to use before evolution.
         /// </summary>
-        
         public string PreevolvedStrategyFilename;
 
         /// <summary>
         /// Abbreviations for the items that will be in the information set at the time of this decision.
         /// </summary>
-        
         public List<string> InformationSetAbbreviations;
 
         /// <summary>
         /// This can be used to store some additional information about a decision.
         /// </summary>
-        
         public byte CustomByte;
 
         /// <summary>
@@ -142,9 +133,8 @@ namespace ACESim
         public bool CriticalNode;
 
         /// <summary>
-        /// This may be set for continuous actions, where a single decision should be broken up into multiple nodes. For example, if the choices are numbers 1-128, the first decision might be to choose between 1 and 64, the second between 65 and 128, etc. Note that the subdivisions will have Subdividable == false.
+        /// This may be set for continuous actions, where a single decision should be broken up into multiple nodes. For example, if the choices are numbers 1-128, the first decision might be to choose between 1 and 64, the second between 65 and 128, etc. Note that the automatically generated subdivisions will have Subdividable == false.
         /// </summary>
-
         public bool Subdividable;
 
         /// <summary>
