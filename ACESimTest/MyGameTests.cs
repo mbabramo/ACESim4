@@ -304,117 +304,167 @@ namespace ACESimTest
             return bestOffers;
         }
 
-        private (string pInformationSet, string dInformationSet) ConstructExpectedPartyInformationSets(byte litigationQuality, byte pSignal, byte dSignal, HowToSimulateBargainingFailure simulatingBargainingFailure, RunningSideBetChallenges runningSideBetChallenges, List<(byte? pMove, byte? dMove)> bargainingMoves, MyGameBargainingRoundRecall bargainingRoundRecall, bool simultaneousBargaining, bool subdivideOffers, bool allowAbandonAndDefault)
+        private (string pInformationSet, string dInformationSet, string pInformationSetExplanations, string dInformationSetExplanations) ConstructExpectedPartyInformationSets(byte litigationQuality, byte pSignal, byte dSignal, bool pFiles, bool dAnswers, HowToSimulateBargainingFailure simulatingBargainingFailure, RunningSideBetChallenges runningSideBetChallenges, List<(byte? pMove, byte? dMove)> bargainingMoves, MyGameBargainingRoundRecall bargainingRoundRecall, bool simultaneousBargaining, bool subdivideOffers, bool allowAbandonAndDefault)
         {
             double litigationQualityUniform =
                 EquallySpaced.GetLocationOfEquallySpacedPoint(litigationQuality - 1, NumLitigationQualityPoints, false);
             var pInfo = new List<byte> {pSignal};
             var dInfo = new List<byte> {dSignal};
-            int bargainingRoundCount = bargainingMoves.Count();
-            bool resettingInfoEachBargainingRound = bargainingRoundRecall == MyGameBargainingRoundRecall.ForgetEarlierBargainingRounds || bargainingRoundRecall == MyGameBargainingRoundRecall.RememberOnlyLastBargainingRound;
-            byte startingRound = resettingInfoEachBargainingRound ? (byte) bargainingRoundCount : (byte) 1;
-            if (bargainingRoundCount != 0)
+            var pInfoExplanations = new List<string> { $"pSignal {pSignal}" };
+            var dInfoExplanations = new List<string> { $"dSignal {dSignal}" };
+
+            byte pFilesByte = pFiles ? (byte) 1 : (byte) 2;
+            pInfo.Add(pFilesByte);
+            pInfoExplanations.Add($"PFiles {pFilesByte}");
+            dInfo.Add(pFilesByte);
+            dInfoExplanations.Add($"PFiles {pFilesByte}");
+            if (pFiles)
             {
-                byte? pLastOffer = null, dLastOffer = null;
-                // run through all bargaining rounds, but only add offers to pInfo and dInfo in startingRound and later. 
-                var settled = false;
-                for (byte b = 1; b <= bargainingRoundCount; b++)
+                byte dAnswersByte = dAnswers ? (byte)1 : (byte)2;
+                pInfo.Add(dAnswersByte);
+                pInfoExplanations.Add($"DAnswers {dAnswersByte}");
+                dInfo.Add(dAnswersByte);
+                dInfoExplanations.Add($"DAnswers {dAnswersByte}");
+            }
+
+            if (pFiles && dAnswers)
+            {
+                int bargainingRoundCount = bargainingMoves.Count();
+                bool resettingInfoEachBargainingRound = bargainingRoundRecall == MyGameBargainingRoundRecall.ForgetEarlierBargainingRounds || bargainingRoundRecall == MyGameBargainingRoundRecall.RememberOnlyLastBargainingRound;
+                byte startingRound = resettingInfoEachBargainingRound ? (byte)bargainingRoundCount : (byte)1;
+                if (bargainingRoundCount != 0)
                 {
-                    if (b >= startingRound)
+                    byte? pLastOffer = null, dLastOffer = null;
+                    // run through all bargaining rounds, but only add offers to pInfo and dInfo in startingRound and later. 
+                    var settled = false;
+                    for (byte b = 1; b <= bargainingRoundCount; b++)
                     {
-                        pInfo.Add(b);
-                        dInfo.Add(b);
-                        if (dLastOffer != null && bargainingRoundRecall == MyGameBargainingRoundRecall.RememberOnlyLastBargainingRound)
-                            pInfo.Add((byte) dLastOffer);
-                        if (pLastOffer != null && bargainingRoundRecall == MyGameBargainingRoundRecall.RememberOnlyLastBargainingRound)
-                            dInfo.Add((byte) pLastOffer);
-                        if (runningSideBetChallenges != RunningSideBetChallenges.None)
+                        if (b >= startingRound)
                         {
-                            // add the total chips bet so far
-                            var chipsSoFar = (byte) (2 * (b - 1));
-                            pInfo.Add((byte) (chipsSoFar + 1));
-                            dInfo.Add((byte)(chipsSoFar + 1));
-                        }
-                    }
-                    (byte? pMove, byte? dMove) = bargainingMoves[b - 1];
-                    if (simulatingBargainingFailure != HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain && b >= startingRound)
-                    {
-                        dInfo.Add(pMove == null ? (byte) 2 : (byte) 1);
-                        pInfo.Add(dMove == null ? (byte) 2 : (byte) 1);
-                    }
-                    if (pMove != null && dMove != null)
-                        if (simultaneousBargaining)
-                        {
-                            if (subdivideOffers && b >= startingRound)
+                            pInfo.Add(b);
+                            dInfo.Add(b);
+                            pInfoExplanations.Add($"Bargaining round {b}");
+                            dInfoExplanations.Add($"Bargaining round {b}");
+                            if (dLastOffer != null && bargainingRoundRecall == MyGameBargainingRoundRecall.RememberOnlyLastBargainingRound)
+                                pInfo.Add((byte)dLastOffer);
+                            if (pLastOffer != null && bargainingRoundRecall == MyGameBargainingRoundRecall.RememberOnlyLastBargainingRound)
+                                dInfo.Add((byte)pLastOffer);
+                            if (runningSideBetChallenges != RunningSideBetChallenges.None)
                             {
-                                // Note: The reason these are both at the beginning of the decision is that the decision is deferred
-                                pInfo.Add(GameHistory.EndDetourMarker);
-                                dInfo.Add(GameHistory.EndDetourMarker);
+                                // add the total chips bet so far
+                                var chipsSoFar = (byte)(2 * (b - 1));
+                                pInfo.Add((byte)(chipsSoFar + 1));
+                                dInfo.Add((byte)(chipsSoFar + 1));
+                                pInfoExplanations.Add($"Chips plus one {chipsSoFar}");
+                                dInfoExplanations.Add($"Chips plus one {chipsSoFar}");
                             }
-                            if (b >= startingRound)
-                            {
-                                dInfo.Add((byte) pMove);
-                                pInfo.Add((byte) dMove);
-                            }
-                            pLastOffer = pMove;
-                            dLastOffer = dMove;
-                            if (dMove >= pMove)
-                                settled = true;
                         }
-                        else
+                        (byte? pMove, byte? dMove) = bargainingMoves[b - 1];
+                        if (simulatingBargainingFailure != HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain && b >= startingRound)
                         {
-                            Br.eak.IfAdded("Case");
-                            if (b % 2 == 1)
+                            byte pBargains = pMove == null ? (byte)2 : (byte)1;
+                            dInfo.Add(pBargains);
+                            dInfoExplanations.Add($"pBargains {pBargains}");
+                            byte dBargains = dMove == null ? (byte)2 : (byte)1;
+                            pInfo.Add(dBargains);
+                            pInfoExplanations.Add($"dBargains {dBargains}");
+                        }
+                        if (pMove != null && dMove != null)
+                            if (simultaneousBargaining)
                             {
-                                // plaintiff offers
+                                if (subdivideOffers && b >= startingRound)
+                                {
+                                    // Note: The reason these are both at the beginning of the decision is that the decision is deferred
+                                    pInfo.Add(GameHistory.EndDetourMarker);
+                                    dInfo.Add(GameHistory.EndDetourMarker);
+                                    pInfoExplanations.Add($"EndDetour");
+                                    dInfoExplanations.Add($"EndDetour");
+                                }
                                 if (b >= startingRound)
                                 {
-                                    dInfo.Add((byte) pMove);
-                                    if (subdivideOffers)
-                                        pInfo.Add(GameHistory.EndDetourMarker); // the first end detour marker comes to P after P's move.
-                                    pInfo.Add((byte) dMove); // not a subdivision decision
-                                    if (dMove == 1)
-                                        settled = true;
-                                    dInfo.Add(GameHistory.DecisionHasOccurred);
+                                    dInfo.Add((byte)pMove);
+                                    pInfo.Add((byte)dMove);
+                                    dInfoExplanations.Add($"pMove {pMove}");
+                                    pInfoExplanations.Add($"dMove {dMove}");
                                 }
                                 pLastOffer = pMove;
+                                dLastOffer = dMove;
+                                if (dMove >= pMove)
+                                    settled = true;
                             }
                             else
                             {
-                                // defendant offers
-                                if (b >= startingRound)
+                                Br.eak.IfAdded("Case");
+                                if (b % 2 == 1)
                                 {
-                                    pInfo.Add((byte) dMove);
-                                    if (subdivideOffers)
-                                        dInfo.Add(GameHistory.EndDetourMarker); // the first end detour marker comes to P after P's move.
-                                    dInfo.Add((byte) pMove); // not a subdivision decision
-                                    if (pMove == 1)
-                                        settled = true;
-                                    pInfo.Add(GameHistory.DecisionHasOccurred);
+                                    // plaintiff offers
+                                    if (b >= startingRound)
+                                    {
+                                        dInfo.Add((byte)pMove);
+                                        dInfoExplanations.Add($"pMove {pMove}");
+                                        if (subdivideOffers)
+                                        {
+                                            pInfo.Add(GameHistory.EndDetourMarker); // the first end detour marker comes to P after P's move.
+                                            pInfoExplanations.Add($"EndDetour");
+                                        }
+                                        pInfo.Add((byte)dMove); // not a subdivision decision
+                                        pInfoExplanations.Add($"dMove {dMove}");
+                                        if (dMove == 1)
+                                            settled = true;
+                                        dInfo.Add(GameHistory.DecisionHasOccurred);
+                                        dInfoExplanations.Add($"DecisionOccurred");
+                                    }
+                                    pLastOffer = pMove;
                                 }
-                                dLastOffer = dMove;
+                                else
+                                {
+                                    // defendant offers
+                                    if (b >= startingRound)
+                                    {
+                                        pInfo.Add((byte)dMove);
+                                        pInfoExplanations.Add($"dMove {dMove}");
+                                        if (subdivideOffers)
+                                        {
+                                            dInfo.Add(GameHistory.EndDetourMarker); // the first end detour marker comes to P after P's move.
+                                            dInfoExplanations.Add("EndDetour");
+                                        }
+                                        dInfo.Add((byte)pMove); // not a subdivision decision
+                                        dInfoExplanations.Add($"pMove {pMove}");
+                                        if (pMove == 1)
+                                            settled = true;
+                                        pInfo.Add(GameHistory.DecisionHasOccurred);
+                                        pInfoExplanations.Add("DecisionOccurred");
+                                    }
+                                    dLastOffer = dMove;
+                                }
                             }
-                        }
 
-                    if (runningSideBetChallenges != RunningSideBetChallenges.None && b >= startingRound && !settled)
-                    {
-                        // Note that the action is one more than the challenge number, since we use action 1 for a challenge of 0.
-                        byte pAction = runningSideBetChallenges == RunningSideBetChallenges.PChallenges2D1 ? (byte) 3 : (byte) 2;
-                        byte dAction = runningSideBetChallenges == RunningSideBetChallenges.DChallenges2P1 ? (byte) 3 : (byte) 2;
-                        pInfo.Add(pAction);
-                        pInfo.Add(dAction);
-                        dInfo.Add(pAction);
-                        dInfo.Add(dAction);
-                    }
-                    if (allowAbandonAndDefault && !settled && b >= startingRound) // if a settlement was reached last round, we don't get to this decision
-                    {
-                        pInfo.Add(GameHistory.DecisionHasOccurred);
-                        dInfo.Add(GameHistory.DecisionHasOccurred);
+                        if (runningSideBetChallenges != RunningSideBetChallenges.None && b >= startingRound && !settled)
+                        {
+                            // Note that the action is one more than the challenge number, since we use action 1 for a challenge of 0.
+                            byte pAction = runningSideBetChallenges == RunningSideBetChallenges.PChallenges2D1 ? (byte)3 : (byte)2;
+                            byte dAction = runningSideBetChallenges == RunningSideBetChallenges.DChallenges2P1 ? (byte)3 : (byte)2;
+                            pInfo.Add(pAction);
+                            pInfoExplanations.Add($"Own side bet {pAction}");
+                            pInfo.Add(dAction);
+                            pInfoExplanations.Add($"Opponent side bet {dAction}");
+                            dInfo.Add(pAction);
+                            dInfoExplanations.Add($"Opponent side bet {pAction}");
+                            dInfo.Add(dAction);
+                            dInfoExplanations.Add($"Own side bet {dAction}");
+                        }
+                        if (allowAbandonAndDefault && !settled && b >= startingRound) // if a settlement was reached last round, we don't get to this decision
+                        {
+                            pInfo.Add(GameHistory.DecisionHasOccurred);
+                            pInfoExplanations.Add("DecisionOccurred");
+                            dInfo.Add(GameHistory.DecisionHasOccurred);
+                            dInfoExplanations.Add("DecisionOccurred");
+                        }
                     }
                 }
-            }
+            } // if filed & answered
 
-            return (string.Join(",", pInfo), string.Join(",", dInfo));
+            return (string.Join(",", pInfo), string.Join(",", dInfo), string.Join(",", pInfoExplanations), string.Join(",", dInfoExplanations));
         }
 
         private Func<Decision, GameProgress, byte> GetPlayerActions(bool pFiles, bool dAnswers, byte litigationQuality, byte pSignal, byte dSignal, HowToSimulateBargainingFailure simulatingBargainingFailure, SideBetChallenges sideBetChallenges, RunningSideBetChallenges runningSideBetChallenges, List<(byte? pMove, byte? dMove)> bargainingRoundMoves, bool simultaneousBargainingRounds, byte? pReadyToAbandonRound = null, byte? dReadyToDefaultRound = null, byte mutualGiveUpResult = 0, byte courtResult = 0)
@@ -621,7 +671,7 @@ namespace ACESimTest
 
             //var informationSetHistories = myGameProgress.GameHistory.GetInformationSetHistoryItems().ToList();
             GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet, out string resolutionSet);
-            var expectedPartyInformationSets = ConstructExpectedPartyInformationSets(LitigationQuality, PSignal, DSignal, simulatingBargainingFailure, runningSideBetChallenges, bargainingRoundMoves, bargainingRoundRecall, simultaneousBargainingRounds, subdivideOffers, true);
+            var expectedPartyInformationSets = ConstructExpectedPartyInformationSets(LitigationQuality, PSignal, DSignal, pFiles, dAnswers, simulatingBargainingFailure, runningSideBetChallenges, bargainingRoundMoves, bargainingRoundRecall, simultaneousBargainingRounds, subdivideOffers, true);
             string expectedResolutionSet = ConstructExpectedResolutionSet(litigationQuality, pFiles, dAnswers, simulatingBargainingFailure, bargainingRoundMoves, simultaneousBargainingRounds, false, true, pReadyToAbandonRound != null, dReadyToDefaultRound != null, mutualGiveUpResult == 1, false, 0, SideBetChallenges.Irrelevant, runningSideBetChallenges);
             pInformationSet.Should().Be(expectedPartyInformationSets.pInformationSet);
             dInformationSet.Should().Be(expectedPartyInformationSets.dInformationSet);
@@ -714,7 +764,7 @@ namespace ACESimTest
 
             //var informationSetHistories = myGameProgress.GameHistory.GetInformationSetHistoryItems().ToList();
             GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet, out string resolutionSet);
-            var expectedPartyInformationSets = ConstructExpectedPartyInformationSets(LitigationQuality, PSignal, DSignal, simulatingBargainingFailure, runningSideBetChallenges, bargainingRoundMoves, bargainingRoundRecall, simultaneousBargainingRounds, subdivideOffers, allowAbandonAndDefault);
+            var expectedPartyInformationSets = ConstructExpectedPartyInformationSets(LitigationQuality, PSignal, DSignal, true, true, simulatingBargainingFailure, runningSideBetChallenges, bargainingRoundMoves, bargainingRoundRecall, simultaneousBargainingRounds, subdivideOffers, allowAbandonAndDefault);
             string expectedResolutionSet = ConstructExpectedResolutionSet_CaseSettles(LitigationQuality, true, true, simulatingBargainingFailure, bargainingRoundMoves, simultaneousBargainingRounds, allowAbandonAndDefault, SideBetChallenges.Irrelevant, runningSideBetChallenges);
             pInformationSet.Should().Be(expectedPartyInformationSets.pInformationSet);
             dInformationSet.Should().Be(expectedPartyInformationSets.dInformationSet);
@@ -814,7 +864,7 @@ namespace ACESimTest
             CheckFinalWelfare(myGameProgress, pFinalWealthExpected, dFinalWealthExpected, bestOffers);
             GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet,
                 out string resolutionSet);
-            var expectedPartyInformationSets = ConstructExpectedPartyInformationSets(LitigationQuality, PSignal, DSignal, simulatingBargainingFailure, runningSideBetChallenges, bargainingMoves,
+            var expectedPartyInformationSets = ConstructExpectedPartyInformationSets(LitigationQuality, PSignal, DSignal, true, true, simulatingBargainingFailure, runningSideBetChallenges, bargainingMoves,
                 bargainingRoundRecall, simultaneousBargainingRounds, subdivideOffers, allowAbandonAndDefaults);
             string expectedResolutionSet = ConstructExpectedResolutionSet(LitigationQuality, true, true, simulatingBargainingFailure, bargainingMoves,
                 simultaneousBargainingRounds, false, allowAbandonAndDefaults, false, false, false, true, courtResult, sideBetChallenges, runningSideBetChallenges);
