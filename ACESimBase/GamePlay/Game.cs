@@ -318,7 +318,7 @@ namespace ACESim
                     }
                 }
                 GameProgressLogger.Log(() => "PLAY UNTIL COMPLETE");
-                bool logEachGame = true; // DEBUG
+                bool logEachGame = false; // DEBUG
                 if (logEachGame)
                 {
                     GameProgressLogger.LoggingOn = true;
