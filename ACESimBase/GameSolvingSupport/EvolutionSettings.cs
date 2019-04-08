@@ -26,7 +26,7 @@ namespace ACESim
         public int LastOpponentEpsilonIteration = 100000;
 
         // The following are for exploratory probing.
-        public bool PlayerBeingOptizedExploresOnOwnIterations = false;
+        public bool PlayerBeingOptimizedExploresOnOwnIterations = false; // DEBUG -- eliminate option
         public double EpsilonForMainPlayer = 0.5;
         public double EpsilonForOpponentWhenExploring = 0.05;
         public int MinBackupRegretsTrigger = 5;
