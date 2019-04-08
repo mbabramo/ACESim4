@@ -34,7 +34,7 @@ namespace ACESim
         private unsafe bool ShouldPruneIfPruning(double* piValues)
         {
             // If we are pruning, then we do prune when the probability of getting to this path is 0.
-            // But that doesn't mean that we should prune. The results from low probability paths can 
+            // But that doesn't mean that we should prune. The results from zero reach paths can 
             // still matter.
             bool allZero = true;
             for (int i = 0; i < NumNonChancePlayers; i++)
@@ -144,6 +144,7 @@ namespace ACESim
                     //else
                     //    for (int i = 0; i < MaxNumPlayers; i++)
                     //        *(equalProbabilityPiValuesToPass + i) = *(equalProbabilityNextPiValues + i);
+                    // DEBUG -- we could optimize this by (a) setting to a different method; and (b) creating an alternative action to use when not running in parallel, where that action would not copy the history point.
                     var historyPointCopy2 = historyPointCopy; // Need to do this because we need a separate copy for each thread
                     double probabilityAdjustedExpectedValueParticularAction =
                         VanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues,
