@@ -6,6 +6,11 @@ namespace ACESim
 {
     public partial class CounterfactualRegretMinimization
     {
+
+        double CurrentEpsilonValue; // set in algorithm.
+        //double epsilon = 0.05, beta = 1000000, tau = 1000; // note that beta will keep sampling even at first, but becomes less important later on. Epsilon ensures some exploration, and larger tau weights things later toward low-probability strategies
+        double avgss_epsilon = 0.05, avgss_beta = 100, avgss_tau = 1; // note that beta will keep sampling even at first, but becomes less important later on. Epsilon ensures some exploration, and larger tau weights things later toward low-probability strategies
+
         public unsafe double AverageStrategySampling_WalkTree(ref HistoryPoint historyPoint, byte playerBeingOptimized,
             double samplingProbabilityQ, Decision nextDecision, byte nextDecisionIndex)
         {
@@ -101,8 +106,8 @@ namespace ACESim
                     for (byte action = 1; action <= numPossibleActions; action++)
                     {
                         // Note that we may sample multiple actions here.
-                        double rho = Math.Max(epsilon,
-                            (beta + tau * cumulativeStrategies[action - 1]) / (beta + sumCumulativeStrategies));
+                        double rho = Math.Max(avgss_epsilon,
+                            (avgss_beta + avgss_tau * cumulativeStrategies[action - 1]) / (avgss_beta + sumCumulativeStrategies));
                         double rnd = RandomGenerator.NextDouble();
                         bool explore = rnd < rho;
                         if (TraceCFR)
