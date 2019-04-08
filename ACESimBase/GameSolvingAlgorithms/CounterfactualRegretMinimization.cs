@@ -19,9 +19,7 @@ namespace ACESim
         public const int MaxNumMainPlayers = 4; // this affects fixed-size stack-allocated buffers // TODO: Set to 2
         public const int MaxPossibleActions = 100; // same
 
-        bool TraceVanillaCFR = false;
-        bool TraceProbingCFR = false;
-        bool TraceAverageStrategySampling = false;
+        bool TraceCFR = false;
 
         bool ShouldEstimateImprovementOverTime = false;
         const int NumRandomGamePlaysForEstimatingImprovement = 1000;
@@ -296,7 +294,7 @@ namespace ACESim
         public unsafe double[] PrintGameTree_Helper(ref HistoryPoint historyPoint)
         {
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
-            //if (TraceProbingCFR)
+            //if (TraceCFR)
             //    TabbedText.WriteLine($"Probe optimizing player {playerBeingOptimized}");
             if (gameStateForCurrentPlayer is FinalUtilities finalUtilities)
             {

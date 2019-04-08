@@ -9,7 +9,7 @@ namespace ACESim
         public unsafe double AverageStrategySampling_WalkTree(ref HistoryPoint historyPoint, byte playerBeingOptimized,
             double samplingProbabilityQ, Decision nextDecision, byte nextDecisionIndex)
         {
-            if (TraceAverageStrategySampling)
+            if (TraceCFR)
                 TabbedText.WriteLine($"WalkTree sampling probability {samplingProbabilityQ}");
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             byte sampledAction = 0;
@@ -21,22 +21,22 @@ namespace ACESim
                 case GameStateTypeEnum.FinalUtilities:
                     FinalUtilities finalUtilities = (FinalUtilities) gameStateForCurrentPlayer;
                     var utility = finalUtilities.Utilities[playerBeingOptimized];
-                    if (TraceAverageStrategySampling)
+                    if (TraceCFR)
                         TabbedText.WriteLine($"Utility returned {utility}");
                     return utility / samplingProbabilityQ;
                 case GameStateTypeEnum.Chance:
                     ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings) gameStateForCurrentPlayer;
                     numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
                     sampledAction = chanceNodeSettings.SampleAction(numPossibleActions, RandomGenerator.NextDouble());
-                    if (TraceAverageStrategySampling)
+                    if (TraceCFR)
                         TabbedText.WriteLine(
                             $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} for chance decision {chanceNodeSettings.DecisionIndex}");
                     nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
-                    if (TraceAverageStrategySampling)
+                    if (TraceCFR)
                         TabbedText.Tabs++;
                     double walkTreeValue =
                         AverageStrategySampling_WalkTree(ref nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
-                    if (TraceAverageStrategySampling)
+                    if (TraceCFR)
                     {
                         TabbedText.Tabs--;
                         TabbedText.WriteLine($"Returning walk tree result {walkTreeValue}");
@@ -65,22 +65,22 @@ namespace ACESim
                                     cumulativeStrategyIncrement);
                             else
                                 informationSet.IncrementCumulativeStrategy(action, cumulativeStrategyIncrement);
-                            if (TraceAverageStrategySampling)
+                            if (TraceCFR)
                                 TabbedText.WriteLine(
                                     $"Incrementing cumulative strategy for {action} by {cumulativeStrategyIncrement} to {informationSet.GetCumulativeStrategy(action)}");
                         }
                         sampledAction = SampleAction(sigma_regretMatchedActionProbabilities, numPossibleActions,
                             RandomGenerator.NextDouble());
-                        if (TraceAverageStrategySampling)
+                        if (TraceCFR)
                             TabbedText.WriteLine(
                                 $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {playerAtPoint} decision {informationSet.DecisionIndex} with regret-matched prob {sigma_regretMatchedActionProbabilities[sampledAction - 1]}");
                         nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction, informationSet.Decision, informationSet.DecisionIndex);
-                        if (TraceAverageStrategySampling)
+                        if (TraceCFR)
                             TabbedText.Tabs++;
                         double walkTreeValue2 =
                             AverageStrategySampling_WalkTree(ref nextHistoryPoint, playerBeingOptimized,
                                 samplingProbabilityQ, informationSet.Decision, informationSet.DecisionIndex);
-                        if (TraceAverageStrategySampling)
+                        if (TraceCFR)
                         {
                             TabbedText.Tabs--;
                             TabbedText.WriteLine($"Returning walk tree result {walkTreeValue2}");
@@ -105,14 +105,14 @@ namespace ACESim
                             (beta + tau * cumulativeStrategies[action - 1]) / (beta + sumCumulativeStrategies));
                         double rnd = RandomGenerator.NextDouble();
                         bool explore = rnd < rho;
-                        if (TraceAverageStrategySampling)
+                        if (TraceCFR)
                         {
                             TabbedText.WriteLine(
                                 $"action {action}: {(explore ? "Explore" : "Do not explore")} rnd: {rnd} rho: {rho}");
                         }
                         if (explore)
                         {
-                            if (TraceAverageStrategySampling)
+                            if (TraceCFR)
                                 TabbedText.Tabs++;
                             nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                             counterfactualValues[action - 1] = AverageStrategySampling_WalkTree(ref nextHistoryPoint,
@@ -120,7 +120,7 @@ namespace ACESim
                             counterfactualSummation +=
                                 sigma_regretMatchedActionProbabilities[action - 1] *
                                 counterfactualValues[action - 1];
-                            if (TraceAverageStrategySampling)
+                            if (TraceCFR)
                                 TabbedText.Tabs--;
                         }
                         else
@@ -134,14 +134,14 @@ namespace ACESim
                             informationSet.IncrementCumulativeRegret_Parallel(action, cumulativeRegretIncrement, false);
                         else
                             informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement, false);
-                        if (TraceAverageStrategySampling)
+                        if (TraceCFR)
                         {
                             // v(a) is set to 0 for many of the a E A(I).The key to understanding this is that we're multiplying the utilities we get back by 1/q. So if there is a 1/3 probability of sampling, then we multiply the utility by 3. So, when we don't sample, we're adding 0 to the regrets; and when we sample, we're adding 3 * counterfactual value.Thus, v(a) is an unbiased predictor of value.Meanwhile, we're always subtracting the regret-matched probability-adjusted counterfactual values. 
                             TabbedText.WriteLine(
                                 $"Increasing cumulative regret for action {action} by {(counterfactualValues[action - 1])} - {counterfactualSummation} = {cumulativeRegretIncrement} to {informationSet.GetCumulativeRegret(action)}");
                         }
                     }
-                    if (TraceAverageStrategySampling)
+                    if (TraceCFR)
                     {
                         TabbedText.WriteLine($"Returning {counterfactualSummation}");
                     }
@@ -163,13 +163,13 @@ namespace ACESim
                 if (ShouldEstimateImprovementOverTime)
                     PrepareForImprovementOverTimeEstimation(playerBeingOptimized);
                 HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
-                if (TraceAverageStrategySampling)
+                if (TraceCFR)
                 {
                     TabbedText.WriteLine($"Optimize player {playerBeingOptimized}");
                     TabbedText.Tabs++;
                 }
                 AverageStrategySampling_WalkTree(ref historyPoint, playerBeingOptimized, 1.0, GameDefinition.DecisionsExecutionOrder[0], 0);
-                if (TraceAverageStrategySampling)
+                if (TraceCFR)
                     TabbedText.Tabs--;
                 if (ShouldEstimateImprovementOverTime)
                     UpdateImprovementOverTimeEstimation(playerBeingOptimized, iteration);

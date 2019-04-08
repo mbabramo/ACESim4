@@ -79,7 +79,7 @@ namespace ACESim
                 double probabilityOfAction = actionProbabilities[action - 1];
                 GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false,
                     nextPiValues); // reduce probability associated with player being optimized, without changing probabilities for other players
-                if (TraceVanillaCFR)
+                if (TraceCFR)
                 {
                     TabbedText.WriteLine(
                         $"decisionNum {decisionNum} optimizing player {playerBeingOptimized}  own decision {playerMakingDecision == playerBeingOptimized} action {action} probability {probabilityOfAction} ...");
@@ -89,7 +89,7 @@ namespace ACESim
                 expectedValueOfAction[action - 1] = VanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, usePruning);
                 expectedValue += probabilityOfAction * expectedValueOfAction[action - 1];
 
-                if (TraceVanillaCFR)
+                if (TraceCFR)
                 {
                     TabbedText.Tabs--;
                     TabbedText.WriteLine(
@@ -105,7 +105,7 @@ namespace ACESim
                     var regret = (expectedValueOfAction[action - 1] - expectedValue);
                     informationSet.IncrementCumulativeRegret(action, inversePi * regret, false);
                     informationSet.IncrementCumulativeStrategy(action, pi * actionProbabilities[action - 1]);
-                    if (TraceVanillaCFR)
+                    if (TraceCFR)
                     {
                         TabbedText.WriteLine($"PiValues {piValues[0]} {piValues[1]}");
                         TabbedText.WriteLine(
@@ -176,7 +176,7 @@ namespace ACESim
                     nextPiValues);
             double actionProbability = chanceNodeSettings.GetActionProbability(action);
             HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
-            if (TraceVanillaCFR)
+            if (TraceCFR)
             {
                 TabbedText.WriteLine(
                     $"Chance decisionNum {chanceNodeSettings.DecisionByteCode} action {action} probability {actionProbability} ...");
@@ -185,7 +185,7 @@ namespace ACESim
             double expectedValueParticularAction =
                 VanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, usePruning);
             var probabilityAdjustedExpectedValueParticularAction = actionProbability * expectedValueParticularAction;
-            if (TraceVanillaCFR)
+            if (TraceCFR)
             {
                 TabbedText.Tabs--;
                 TabbedText.WriteLine(
@@ -217,7 +217,7 @@ namespace ACESim
             {
                 double* initialPiValues = stackalloc double[MaxNumMainPlayers];
                 GetInitialPiValues(initialPiValues);
-                if (TraceVanillaCFR)
+                if (TraceCFR)
                     TabbedText.WriteLine($"Iteration {iteration} Player {playerBeingOptimized}");
                 s.Start();
                 HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
