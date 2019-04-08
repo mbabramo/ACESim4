@@ -17,7 +17,7 @@ namespace ACESim
 {
     class Program
     {
-        private static bool PlayMultiRoundCooperationGame = false;
+        private static bool PlayMultiRoundCooperationGame = true;
 
         [STAThread]
         static void Main(string[] args)

@@ -24,7 +24,7 @@ namespace ACESim
 
                 GameNumber = StartGameNumber,
 
-                Algorithm = GameApproximationAlgorithm.ExploratoryProbing,
+                Algorithm = GameApproximationAlgorithm.Vanilla,
 
                 ReportEveryNIterations = 100_000,
                 NumRandomIterationsForSummaryTable = 1_000,
@@ -42,7 +42,7 @@ namespace ACESim
                 TriggerIncreaseOverTime = 0,
 
                 TotalAvgStrategySamplingCFRIterations = 10000000,
-                TotalVanillaCFRIterations = 100_000_000,
+                TotalVanillaCFRIterations = 1_000,
             };
             return evolutionSettings;
         }
