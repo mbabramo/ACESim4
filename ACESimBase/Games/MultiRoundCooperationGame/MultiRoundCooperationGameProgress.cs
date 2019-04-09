@@ -23,10 +23,10 @@ namespace ACESim
         internal override void CopyFieldInfo(GameProgress copy)
         {
             base.CopyFieldInfo(copy);
-            MultiRoundCooperationGameProgress simpleGameProgress = (MultiRoundCooperationGameProgress)copy;
-            simpleGameProgress.P1Decisions = P1Decisions.ToList();
-            simpleGameProgress.P2Decisions = P2Decisions.ToList();
-            simpleGameProgress.ChanceDecision = ChanceDecision.ToList();
+            MultiRoundCooperationGameProgress LeducGameProgress = (MultiRoundCooperationGameProgress)copy;
+            LeducGameProgress.P1Decisions = P1Decisions.ToList();
+            LeducGameProgress.P2Decisions = P2Decisions.ToList();
+            LeducGameProgress.ChanceDecision = ChanceDecision.ToList();
         }
 
         public override double[] GetNonChancePlayerUtilities()
