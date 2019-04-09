@@ -64,17 +64,64 @@ namespace ACESim
             return decisions;
         }
 
-        private void AddRoundDecisions(bool preFlop, List<Decision> decisions)
+        private void AddRoundDecisions(bool beforeFlop, List<Decision> decisions)
         {
-            string roundDesignation = preFlop ? "A" : "B";
-            decisions.Add(new Decision($"P1D{roundDesignation}", $"P1D{roundDesignation}", (byte)LeducGamePlayers.Player1, new byte[] { (byte)LeducGamePlayers.Player1, (byte)LeducGamePlayers.Player2, (byte)LeducGamePlayers.Resolution }, NumActionsPerPlayer, (byte)LeducGameDecisions.P1Decision) { CanTerminateGame = !preFlop });
-            decisions.Add(new Decision($"P2D{roundDesignation}", $"P2D{roundDesignation}", (byte)LeducGamePlayers.Player2, new byte[] { (byte)LeducGamePlayers.Player1, (byte)LeducGamePlayers.Player2, (byte)LeducGamePlayers.Resolution }, NumActionsPerPlayer, (byte)LeducGameDecisions.P2Decision) { CanTerminateGame = true });
-            decisions.Add(new Decision($"P1R{roundDesignation}", $"P1R{roundDesignation}", (byte)LeducGamePlayers.Player1, new byte[] { (byte)LeducGamePlayers.Player1, (byte)LeducGamePlayers.Player2, (byte)LeducGamePlayers.Resolution }, NumActionsPerPlayer, (byte)LeducGameDecisions.P1Decision) { CanTerminateGame = true });
-            decisions.Add(new Decision($"P2R{roundDesignation}", $"P2R{roundDesignation}", (byte)LeducGamePlayers.Player2, new byte[] { (byte)LeducGamePlayers.Player1, (byte)LeducGamePlayers.Player2, (byte)LeducGamePlayers.Resolution }, NumActionsPerPlayer, (byte)LeducGameDecisions.P2Decision) { CanTerminateGame = true });
+            AddRoundDecision(beforeFlop, player1: true, followup: false, decisions: decisions, choiceOptions: ChoiceOptions.FoldExcluded);
+            AddRoundDecision(beforeFlop, player1: false, followup: false, decisions: decisions, choiceOptions: ChoiceOptions.AllAvailable);
+            AddRoundDecision(beforeFlop, player1: false, followup: false, decisions: decisions, choiceOptions: ChoiceOptions.FoldExcluded);
+            AddRoundDecision(beforeFlop, player1: true, followup: true, decisions: decisions, choiceOptions: ChoiceOptions.AllAvailable);
+            AddRoundDecision(beforeFlop, player1: true, followup: true, decisions: decisions, choiceOptions: ChoiceOptions.BetExcluded);
+            AddRoundDecision(beforeFlop, player1: false, followup: true, decisions: decisions, choiceOptions: ChoiceOptions.BetExcluded);
+        }
+
+        private enum ChoiceOptions
+        {
+            AllAvailable,
+            FoldExcluded,
+            BetExcluded
+        }
+
+        private void AddRoundDecision(bool beforeFlop, bool player1, bool followup, List<Decision> decisions, ChoiceOptions choiceOptions)
+        {
+            if (followup && choiceOptions == ChoiceOptions.FoldExcluded)
+                throw new Exception();
+            string roundDesignation = beforeFlop ? "Before" : "After";
+            string roundDesignationAbbreviation = beforeFlop ? "B" : "A";
+            string decisionOrFollowup = followup ? "R" : "F";
+            string choiceDesignation = choiceOptions == ChoiceOptions.AllAvailable ? "" : (choiceOptions == ChoiceOptions.BetExcluded ? "NoBet" : "NoFold");
+            byte[] playersToNotify = new byte[] { (byte)LeducGamePlayers.Player1, (byte)LeducGamePlayers.Player2, (byte)LeducGamePlayers.Resolution };
+            LeducGamePlayers player = player1 ? LeducGamePlayers.Player1 : LeducGamePlayers.Player2;
+            string playerAbbreviation = player1 ? "P1" : "P2";
+            LeducGameDecisions gameDecision = player1 ? (followup ? LeducGameDecisions.P1Response : LeducGameDecisions.P1Decision) : (followup ? LeducGameDecisions.P2Response : LeducGameDecisions.P2Decision);
+            bool canTerminateGame = true;
+            byte numActions = NumActionsPerPlayer;
+            byte customByte = 0; // signal of whether fold is excluded
+            if (choiceOptions == ChoiceOptions.FoldExcluded)
+            {
+                numActions--;
+                canTerminateGame = false;
+                customByte = 1;
+                if (!player1)
+                    gameDecision = LeducGameDecisions.P2DecisionFoldExcluded;
+            }
+            else if (choiceOptions == ChoiceOptions.BetExcluded)
+            {
+                numActions -= Options.OneBetSizeOnly ? (byte)1 : (byte)5;
+                if (player1 && followup)
+                    gameDecision = LeducGameDecisions.P1ResponseBetsExcluded;
+            }
+
+            decisions.Add(new Decision($"{playerAbbreviation}{decisionOrFollowup}{roundDesignation}{choiceDesignation}", $"{playerAbbreviation}{decisionOrFollowup}{roundDesignationAbbreviation}{choiceDesignation}", (byte)player, playersToNotify, NumActionsPerPlayer, (byte)LeducGameDecisions.P2Decision) { CanTerminateGame = canTerminateGame, CustomByte = customByte });
         }
 
         public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, ref GameHistory gameHistory, GameProgress gameProgress)
         {
+        }
+
+        public override bool SkipDecision(Decision decision, ref GameHistory gameHistory)
+        {
+            if (gameHistory.)
+            return base.SkipDecision(decision, ref gameHistory);
         }
 
         public override bool ShouldMarkGameHistoryComplete(Decision currentDecision, ref GameHistory gameHistory, byte actionChosen)

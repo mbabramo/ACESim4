@@ -33,9 +33,13 @@ namespace ACESim
                 case (byte)LeducGameDecisions.FlopChance:
                     MyState.FlopCard = action;
                     break;
-                case (byte)LeducGameDecisions.P1Decision:
+                case (byte)LeducGameDecisions.P1Decision: // fold is always excluded
+                case (byte)LeducGameDecisions.P2DecisionFoldExcluded:
+                    MyState.AddChoice((LeducPlayerChoice)action + 1);
+                    break;
                 case (byte)LeducGameDecisions.P2Decision:
                 case (byte)LeducGameDecisions.P1Response:
+                case (byte)LeducGameDecisions.P1ResponseBetsExcluded:
                 case (byte)LeducGameDecisions.P2Response:
                     MyState.AddChoice((LeducPlayerChoice)action);
                     break;

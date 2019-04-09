@@ -13,7 +13,9 @@ namespace ACESim
         FlopChance,
         P1Decision,
         P2Decision,
+        P2DecisionFoldExcluded, // when player 2 makes its initial decision but isn't allowed to fold; in p1's initial decision, fold is always excluded
         P1Response,
-        P2Response
+        P1ResponseBetsExcluded, // when player 1 responds to p2's bet but isn't allowed to bet (since they both bet); in player 2's response, bets are always excluded
+        P2Response,
     }
 }
