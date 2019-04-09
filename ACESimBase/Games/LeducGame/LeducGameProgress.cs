@@ -24,7 +24,7 @@ namespace ACESim
         {
             base.CopyFieldInfo(copy);
             LeducGameProgress LeducGameProgress = (LeducGameProgress)copy;
-            LeducGameProgress.GameState = GameState.DeepCopy();
+            LeducGameProgress.GameState = GameState?.DeepCopy();
         }
 
         public override double[] GetNonChancePlayerUtilities()

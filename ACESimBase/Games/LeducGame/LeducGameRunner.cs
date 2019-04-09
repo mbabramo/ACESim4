@@ -15,7 +15,7 @@ namespace ACESim
         private const int SummaryTableIterations = 10_000;
 
         private const int StartGameNumber = 1;
-        private static bool SingleGameMode = false;
+        private static bool SingleGameMode = true;
         private static int NumRepetitions = 100;
 
         private static bool LocalDistributedProcessing = true; // this should be false if actually running on service fabric
