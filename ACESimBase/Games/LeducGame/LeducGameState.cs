@@ -8,6 +8,8 @@ namespace ACESim
     {
         public int P1Card, P2Card, FlopCard;
 
+        public bool OneBetSizeOnly;
+
         public LeducBettingRound PreFlopRound, PostFlopRound;
 
         public int StakesPerPlayer => 1 + PreFlopRound.AgreedToBetsSum + (PostFlopRound == null ? 0 : PostFlopRound.AgreedToBetsSum * 2);
@@ -27,16 +29,10 @@ namespace ACESim
         public bool P2Folds => PreFlopRound.P2Folds || (PostFlopRound != null && PostFlopRound.P2Folds);
 
 
-        public LeducGameState()
+        public LeducGameState(bool oneBetSizeOnly)
         {
-        }
-
-        public LeducGameState(int p1Card, int p2Card, int flopCard)
-        {
-            P1Card = p1Card;
-            P2Card = p2Card;
-            FlopCard = flopCard;
-            PreFlopRound = new LeducBettingRound();
+            OneBetSizeOnly = oneBetSizeOnly;
+            PreFlopRound = new LeducBettingRound(oneBetSizeOnly);
         }
 
         public override string ToString()
@@ -57,7 +53,7 @@ namespace ACESim
                 return PostFlopRound;
             if (PreFlopRound.Complete)
             {
-                PostFlopRound = new LeducBettingRound();
+                PostFlopRound = new LeducBettingRound(OneBetSizeOnly);
                 return PostFlopRound;
             }
             return PreFlopRound;
@@ -122,7 +118,7 @@ namespace ACESim
 
         public LeducGameState DeepCopy()
         {
-            return new LeducGameState()
+            return new LeducGameState(OneBetSizeOnly)
             {
                 P1Card = P1Card,
                 P2Card = P2Card,

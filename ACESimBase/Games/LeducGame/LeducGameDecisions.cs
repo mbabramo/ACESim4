@@ -8,8 +8,12 @@ namespace ACESim
 {
     public enum LeducGameDecisions : byte
     {
+        P1Chance,
+        P2Chance,
+        FlopChance,
         P1Decision,
         P2Decision,
-        Chance
+        P1Response,
+        P2Response
     }
 }

@@ -72,7 +72,7 @@ namespace ACESim
 
         private static List<PlayerInfo> GetPlayersList()
         {
-            // IMPORTANT: Chance players MUST be listed after other players. Resolution player should be listed last.
+            // IMPORTANT: Chance players MUST be listed after other players. Resolution player should be listed afte4r main players.
             return new List<PlayerInfo>
                 {
                     new PlayerInfo(PlaintiffName, (int) MyGamePlayers.Plaintiff, false, true),

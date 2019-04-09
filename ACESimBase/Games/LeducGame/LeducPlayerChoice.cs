@@ -2,6 +2,7 @@
 {
     public enum LeducPlayerChoice
     {
+        NotAvailable, // using one-based actions
         Fold,
         CallOrCheck,
         BetOrRaise01,
