@@ -17,7 +17,14 @@ namespace ACESim
 {
     class Program
     {
-        private static bool PlayMultiRoundCooperationGame = true;
+        public enum AvailableGames
+        {
+            Leduc,
+            MultiRoundCooperation,
+            MyGame
+        }
+
+        public static AvailableGames GameToPlay = AvailableGames.Leduc;
 
         [STAThread]
         static void Main(string[] args)
@@ -25,17 +32,23 @@ namespace ACESim
             string baseOutputDirectory;
             string strategiesPath;
             string gameResult;
-            if (PlayMultiRoundCooperationGame)
+            switch (GameToPlay)
             {
-                baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\MultiRoundCooperationGame";
-                strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
-                gameResult = MultiRoundCooperationGameRunner.EvolveGame();
-            }
-            else
-            {
-                baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\MyGame";
-                strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
-                gameResult = MyGameRunner.EvolveMyGame().GetAwaiter().GetResult();
+                case AvailableGames.Leduc:
+                    baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\LeducGame";
+                    strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
+                    gameResult = LeducGameRunner.EvolveMyGame().GetAwaiter().GetResult();
+                    break;
+                case AvailableGames.MultiRoundCooperation:
+                    baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\MultiRoundCooperationGame";
+                    strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
+                    gameResult = MultiRoundCooperationGameRunner.EvolveGame();
+                    break;
+                case AvailableGames.MyGame:
+                    baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\MyGame";
+                    strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
+                    gameResult = MyGameRunner.EvolveMyGame().GetAwaiter().GetResult();
+                    break;
             }
             TextCopy.Clipboard.SetText(gameResult);
             Console.WriteLine();

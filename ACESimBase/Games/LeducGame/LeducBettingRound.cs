@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace ACESim
 {
@@ -7,11 +8,16 @@ namespace ACESim
     {
         public List<LeducChoiceRecord> Choices = new List<LeducChoiceRecord>();
 
-        public bool OneBetSizeOnly = false;
+        public bool OneBetSizeOnly;
+
+        public LeducBettingRound(bool oneBetSizeOnly)
+        {
+            OneBetSizeOnly = oneBetSizeOnly;
+        }
 
         public LeducBettingRound DeepCopy()
         {
-            return new LeducBettingRound()
+            return new LeducBettingRound(OneBetSizeOnly)
             {
                 Choices = Choices.Select(x => x.DeepCopy()).ToList()
             };

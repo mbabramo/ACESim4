@@ -13,15 +13,35 @@ namespace ACESim
     {
         public LeducGameDefinition MyDefinition => (LeducGameDefinition)GameDefinition;
         public LeducGameProgress MyProgress => (LeducGameProgress)Progress;
+        public LeducGameState MyState => MyProgress.GameState;
+
+        public override void Initialize()
+        {
+            MyProgress.GameState = new LeducGameState(MyDefinition.Options.OneBetSizeOnly);
+        }
 
         public override void UpdateGameProgressFollowingAction(byte currentDecisionByteCode, byte action)
         {
-            if (currentDecisionByteCode == (byte)LeducGameDecisions.P1Decision)
-                MyProgress.P1Decision = action;
-            else if (currentDecisionByteCode == (byte)LeducGameDecisions.P2Decision)
-                MyProgress.P2Decision = action;
-            else if (currentDecisionByteCode == (byte)LeducGameDecisions.Chance)
-                MyProgress.ChanceDecision = action;
+            switch (currentDecisionByteCode)
+            {
+                case (byte)LeducGameDecisions.P1Chance:
+                    MyState.P1Card = action;
+                    break;
+                case (byte)LeducGameDecisions.P2Chance:
+                    MyState.P2Card = action;
+                    break;
+                case (byte)LeducGameDecisions.FlopChance:
+                    MyState.FlopCard = action;
+                    break;
+                case (byte)LeducGameDecisions.P1Decision:
+                case (byte)LeducGameDecisions.P2Decision:
+                case (byte)LeducGameDecisions.P1Response:
+                case (byte)LeducGameDecisions.P2Response:
+                    MyState.AddChoice((LeducPlayerChoice)action);
+                    break;
+                default:
+                    throw new Exception();
+            }
         }
 
 
