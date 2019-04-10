@@ -1,6 +1,6 @@
 ﻿namespace ACESim
 {
-    public enum LeducPlayerChoice
+    public enum LeducPlayerChoice : byte
     {
         NotAvailable, // using one-based actions
         Fold,

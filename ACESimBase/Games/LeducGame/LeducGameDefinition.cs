@@ -48,6 +48,64 @@ namespace ACESim
 
         public override byte PlayerIndex_ResolutionPlayer => (byte) LeducGamePlayers.Resolution;
 
+        // must skip 0
+        public byte GameHistoryCacheIndex_P1Action_Initial_BeforeFlop = 1;
+        public byte GameHistoryCacheIndex_P2Action_Initial_BeforeFlop = 2;
+        public byte GameHistoryCacheIndex_P1Action_Followup_BeforeFlop = 3;
+        public byte GameHistoryCacheIndex_P2Action_Followup_BeforeFlop = 4;
+        public byte GameHistoryCacheIndex_P1Action_Initial_AfterFlop = 5;
+        public byte GameHistoryCacheIndex_P2Action_Initial_AfterFlop = 6;
+        public byte GameHistoryCacheIndex_P1Action_Followup_AfterFlop = 7;
+        public byte GameHistoryCacheIndex_P2Action_Followup_AfterFlop = 8;
+
+        private LeducGameDecisions? GetNextPlayerDecision(GameHistory history)
+        {
+            history.LastDecisionIndexAdded
+            var p1Initial = GetCachedPlayerChoice(history, true, false, false);
+            if (p1Initial == null)
+                return LeducGameDecisions.P1Decision;
+        }
+
+        private LeducPlayerChoice? GetCachedPlayerChoice(GameHistory history, bool player1, bool beforeFlop, bool followup)
+        {
+            // We need to look up the cache index. But then we also need to adjust for the possibility that this may have been a decision in which "fold" was excluded as a possibility. (We do not need to adjust for the exclusion of particular bets, since those are at the end of the enum.)
+            byte v = GetCacheValue(history, player1, beforeFlop, followup);
+            if (v == 0)
+                return null;
+            if (player1 && !followup)
+                v++; // fold was not a permissible value, so increment
+            else if (!player1 && !followup)
+            {
+                LeducPlayerChoice p1Choice = (LeducPlayerChoice) GetCachedPlayerChoice(history, true, beforeFlop, false);
+                if (p1Choice == LeducPlayerChoice.CallOrCheck)
+                    v++; // here, fold was not permissible for p2 based on p1's action
+            }
+            return (LeducPlayerChoice)v;
+        }
+
+        private byte GetCacheValue(GameHistory history, bool player1, bool beforeFlop, bool followup)
+        {
+            return history.GetCacheItemAtIndex(GetCacheIndex(player1, beforeFlop, followup));
+        }
+
+        private byte GetCacheIndex(bool player1, bool beforeFlop, bool followup)
+        {
+            if (player1)
+            {
+                if (beforeFlop)
+                    return followup ? GameHistoryCacheIndex_P1Action_Followup_BeforeFlop : GameHistoryCacheIndex_P1Action_Initial_BeforeFlop;
+                else
+                    return followup ? GameHistoryCacheIndex_P1Action_Followup_AfterFlop : GameHistoryCacheIndex_P1Action_Initial_AfterFlop;
+            }
+            else
+            {
+                if (beforeFlop)
+                    return followup ? GameHistoryCacheIndex_P2Action_Followup_BeforeFlop : GameHistoryCacheIndex_P2Action_Initial_BeforeFlop;
+                else
+                    return followup ? GameHistoryCacheIndex_P2Action_Followup_AfterFlop : GameHistoryCacheIndex_P2Action_Initial_AfterFlop;
+            }
+        }
+
         private List<Decision> GetDecisionsList()
         {
             var decisions = new List<Decision>
@@ -110,8 +168,28 @@ namespace ACESim
                 if (player1 && followup)
                     gameDecision = LeducGameDecisions.P1ResponseBetsExcluded;
             }
+            byte? cacheIndex = null;
+            switch (gameDecision)
+            {
+                case LeducGameDecisions.P1Decision:
+                    cacheIndex = beforeFlop ? GameHistoryCacheIndex_P1Action_Initial_BeforeFlop : GameHistoryCacheIndex_P1Action_Initial_AfterFlop;
+                    break;
+                case LeducGameDecisions.P2Decision:
+                case LeducGameDecisions.P2DecisionFoldExcluded:
+                    cacheIndex = beforeFlop ? GameHistoryCacheIndex_P2Action_BeforeFlop : GameHistoryCacheIndex_P2Action_AfterFlop;
+                    break;
+                case LeducGameDecisions.P1Response:
+                case LeducGameDecisions.P1ResponseBetsExcluded:
+                    cacheIndex = beforeFlop ? GameHistoryCacheIndex_P1Action_Followup_BeforeFlop : GameHistoryCacheIndex_P1Action_Followup_AfterFlop;
+                    break;
+                case LeducGameDecisions.P2Response:
+                    cacheIndex = beforeFlop ? GameHistoryCacheIndex_P2Action_Followup_BeforeFlop : GameHistoryCacheIndex_P2Action_Followup_AfterFlop;
+                    break;
+                default:
+                    break;
+            }
 
-            decisions.Add(new Decision($"{playerAbbreviation}{decisionOrFollowup}{roundDesignation}{choiceDesignation}", $"{playerAbbreviation}{decisionOrFollowup}{roundDesignationAbbreviation}{choiceDesignation}", (byte)player, playersToNotify, NumActionsPerPlayer, (byte)LeducGameDecisions.P2Decision) { CanTerminateGame = canTerminateGame, CustomByte = customByte });
+            decisions.Add(new Decision($"{playerAbbreviation}{decisionOrFollowup}{roundDesignation}{choiceDesignation}", $"{playerAbbreviation}{decisionOrFollowup}{roundDesignationAbbreviation}{choiceDesignation}", (byte)player, playersToNotify, NumActionsPerPlayer, (byte)LeducGameDecisions.P2Decision) { CanTerminateGame = canTerminateGame, CustomByte = customByte, StoreActionInGameCacheItem = cacheIndex });
         }
 
         public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, ref GameHistory gameHistory, GameProgress gameProgress)
@@ -120,7 +198,7 @@ namespace ACESim
 
         public override bool SkipDecision(Decision decision, ref GameHistory gameHistory)
         {
-            if (gameHistory.)
+            if (decision.DecisionByteCode == (byte) LeducGameDecisions.P2Decision)
             return base.SkipDecision(decision, ref gameHistory);
         }
 
@@ -129,8 +207,8 @@ namespace ACESim
             if (!currentDecision.CanTerminateGame)
                 return false;
             byte decisionByteCode = currentDecision.DecisionByteCode;
-            bool isPlayerDecision = (decisionByteCode == (byte)LeducGameDecisions.P1Decision || decisionByteCode == (byte)LeducGameDecisions.P2Decision || decisionByteCode == (byte)LeducGameDecisions.P1Response || decisionByteCode == (byte)LeducGameDecisions.P2Response) ;
-            return isPlayerDecision && actionChosen == (byte)LeducPlayerChoice.Fold;
+            bool isPlayerDecisionWithPossibilityOfFold = decisionByteCode == (byte)LeducGameDecisions.P2Decision || decisionByteCode == (byte)LeducGameDecisions.P1Response || decisionByteCode == (byte) LeducGameDecisions.P1ResponseBetsExcluded || decisionByteCode == (byte)LeducGameDecisions.P2Response;
+            return isPlayerDecisionWithPossibilityOfFold && actionChosen == (byte)LeducPlayerChoice.Fold;
         }
 
 
