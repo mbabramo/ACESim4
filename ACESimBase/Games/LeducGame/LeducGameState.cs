@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace ACESim
@@ -59,6 +60,10 @@ namespace ACESim
             return PreFlopRound;
         }
 
+        public bool InPreFlop => !GameIsComplete() && GetCurrentBettingRound() == PreFlopRound;
+
+        public bool InFollowup => GetCurrentBettingRound().NumChoicesThisRound > 2;
+
         public IEnumerable<LeducPlayerChoice> GetAvailableChoices()
         {
             LeducBettingRound r = GetCurrentBettingRound();
@@ -67,6 +72,9 @@ namespace ACESim
                 yield return move;
             }
         }
+
+        public bool FoldAvailable() => GetAvailableChoices().Any(x => x == LeducPlayerChoice.Fold);
+        public bool BetAvailable() => GetAvailableChoices().Any(x => x == LeducPlayerChoice.BetOrRaise01);
 
         public void AddChoice(LeducPlayerChoice choice)
         {

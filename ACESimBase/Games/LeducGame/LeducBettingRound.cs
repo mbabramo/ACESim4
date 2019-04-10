@@ -23,6 +23,8 @@ namespace ACESim
             };
         }
 
+        public int NumChoicesThisRound => Choices.Count();
+
         public int NumBetsThisRound => Choices.Where(x => x.Choice != LeducPlayerChoice.Fold && x.Choice != LeducPlayerChoice.CallOrCheck).Count();
 
         private int CountBetTotal(LeducPlayerChoice choice)
