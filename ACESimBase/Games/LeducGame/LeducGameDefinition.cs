@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using ACESim.Util;
@@ -9,8 +10,12 @@ namespace ACESim
     [Serializable]
     public class LeducGameDefinition : GameDefinition
     {
+        #region Properties and initialization
+
         public LeducGameOptions Options;
         public byte NumActionsPerPlayer => Options.OneBetSizeOnly ? (byte) 3 : (byte) 7;
+        LeducGameProgress LeducGP(GameProgress gp) => gp as LeducGameProgress;
+        LeducGameState LeducGameState(GameProgress gp) => LeducGP(gp).GameState;
 
         public LeducGameDefinition() : base()
         {
@@ -28,9 +33,9 @@ namespace ACESim
             Initialize(gameFactory);
         }
 
-        LeducGameProgress LeducGP(GameProgress gp) => gp as LeducGameProgress;
-        LeducGameState LeducGameState(GameProgress gp) => LeducGP(gp).GameState;
+        #endregion
 
+        #region Players and decisions
 
         private static List<PlayerInfo> GetPlayersList()
         {
@@ -39,10 +44,10 @@ namespace ACESim
                 {
                     new PlayerInfo("P1", (int) LeducGamePlayers.Player1, false, true),
                     new PlayerInfo("P2", (int) LeducGamePlayers.Player2, false, true),
-                    new PlayerInfo("P1C", (int) LeducGamePlayers.Player1Chance, true, false),
+                    new PlayerInfo("R", (int) LeducGamePlayers.Resolution, true, false),
                     new PlayerInfo("P2C", (int) LeducGamePlayers.Player2Chance, true, false),
                     new PlayerInfo("FC", (int) LeducGamePlayers.FlopChance, true, false),
-                    new PlayerInfo("R", (int) LeducGamePlayers.Resolution, true, false),
+                    new PlayerInfo("P1C", (int) LeducGamePlayers.Player1Chance, true, false),
                 };
         }
 
@@ -56,9 +61,9 @@ namespace ACESim
                 new Decision("P2C", "P2C", (byte) LeducGamePlayers.Player2Chance, new byte[] { (byte) LeducGamePlayers.Player2, (byte) LeducGamePlayers.Resolution, (byte) LeducGamePlayers.FlopChance }, 6, (byte) LeducGameDecisions.P2Chance, unevenChanceActions: true)  { StoreActionInGameCacheItem = GameHistoryCacheIndex_P2Card }
             };
             AddRoundDecisions(true, decisions);
-            AddRoundDecisions(false, decisions);
             decisions.Add(
-                new Decision("FC", "FC", (byte)LeducGamePlayers.FlopChance, new byte[] { (byte)LeducGamePlayers.Player1, (byte)LeducGamePlayers.Player2, (byte)LeducGamePlayers.Resolution, (byte)LeducGamePlayers.FlopChance }, 6, (byte)LeducGameDecisions.FlopChance, unevenChanceActions: true) { StoreActionInGameCacheItem = GameHistoryCacheIndex_FlopCard });
+                new Decision("FC", "FC", (byte)LeducGamePlayers.FlopChance, new byte[] { (byte)LeducGamePlayers.Player1, (byte)LeducGamePlayers.Player2, (byte)LeducGamePlayers.Resolution }, 6, (byte)LeducGameDecisions.FlopChance, unevenChanceActions: true) { StoreActionInGameCacheItem = GameHistoryCacheIndex_FlopCard });
+            AddRoundDecisions(false, decisions);
             foreach (Decision d in decisions)
                 d.IsReversible = true;
             return decisions;
@@ -87,7 +92,7 @@ namespace ACESim
                 throw new Exception();
             string roundDesignation = beforeFlop ? "Before" : "After";
             string roundDesignationAbbreviation = beforeFlop ? "B" : "A";
-            string decisionOrFollowup = followup ? "R" : "F";
+            string initialOrFollowup = followup ? "F" : "I";
             string choiceDesignation = choiceOptions == ChoiceOptions.AllAvailable ? "" : (choiceOptions == ChoiceOptions.BetExcluded ? "NoBet" : "NoFold");
             byte[] playersToNotify = new byte[] { (byte)LeducGamePlayers.Player1, (byte)LeducGamePlayers.Player2, (byte)LeducGamePlayers.Resolution };
             LeducGamePlayers player = player1 ? LeducGamePlayers.Player1 : LeducGamePlayers.Player2;
@@ -131,32 +136,12 @@ namespace ACESim
                     break;
             }
 
-            decisions.Add(new Decision($"{playerAbbreviation}{decisionOrFollowup}{roundDesignation}{choiceDesignation}", $"{playerAbbreviation}{decisionOrFollowup}{roundDesignationAbbreviation}{choiceDesignation}", (byte)player, playersToNotify, NumActionsPerPlayer, (byte)LeducGameDecisions.P2Decision) { CanTerminateGame = canTerminateGame, CustomByte = customByte, StoreActionInGameCacheItem = cacheIndex });
+            decisions.Add(new Decision($"{playerAbbreviation}{initialOrFollowup}{roundDesignation}{choiceDesignation}", $"{playerAbbreviation}{initialOrFollowup}{roundDesignationAbbreviation}{choiceDesignation}", (byte)player, playersToNotify, NumActionsPerPlayer, (byte) gameDecision) { CanTerminateGame = canTerminateGame, CustomByte = customByte, StoreActionInGameCacheItem = cacheIndex });
         }
 
-        public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, ref GameHistory gameHistory, GameProgress gameProgress)
-        {
-        }
-
-        public override bool SkipDecision(Decision decision, ref GameHistory gameHistory)
-        {
-            if (decision.DecisionByteCode == (byte)LeducGameDecisions.P1Chance || decision.DecisionByteCode == (byte)LeducGameDecisions.P2Chance || decision.DecisionByteCode == (byte)LeducGameDecisions.FlopChance)
-                return false;
-            LeducGameDecisions? d = GetNextPlayerDecision(gameHistory);
-            if (d == null)
-                throw new Exception();
-            return ((byte)(LeducGameDecisions)d) != decision.DecisionByteCode;
-        }
-
-        public override bool ShouldMarkGameHistoryComplete(Decision currentDecision, ref GameHistory gameHistory, byte actionChosen)
-        {
-            if (!currentDecision.CanTerminateGame)
-                return false;
-            byte decisionByteCode = currentDecision.DecisionByteCode;
-            bool isPlayerDecisionWithPossibilityOfFold = decisionByteCode == (byte)LeducGameDecisions.P2Decision || decisionByteCode == (byte)LeducGameDecisions.P1Response || decisionByteCode == (byte) LeducGameDecisions.P1ResponseBetsExcluded || decisionByteCode == (byte)LeducGameDecisions.P2Response;
-            return isPlayerDecisionWithPossibilityOfFold && actionChosen == (byte)LeducPlayerChoice.Fold;
-        }
-
+        #endregion
+        
+        #region Reporting
 
         public override List<SimpleReportDefinition> GetSimpleReportDefinitions()
         {
@@ -194,6 +179,86 @@ namespace ACESim
                 );
         }
 
+        #endregion
+
+        #region Game situations
+
+        public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, ref GameHistory gameHistory, GameProgress gameProgress)
+        {
+        }
+
+        public override bool ShouldMarkGameHistoryComplete(Decision currentDecision, ref GameHistory gameHistory, byte actionChosen)
+        {
+            if (!currentDecision.CanTerminateGame)
+                return false;
+            byte decisionByteCode = currentDecision.DecisionByteCode;
+            bool isPlayerDecisionWithPossibilityOfFold = decisionByteCode == (byte)LeducGameDecisions.P2Decision || decisionByteCode == (byte)LeducGameDecisions.P1Response || decisionByteCode == (byte)LeducGameDecisions.P1ResponseBetsExcluded || decisionByteCode == (byte)LeducGameDecisions.P2Response;
+            bool isComplete = isPlayerDecisionWithPossibilityOfFold && actionChosen == (byte)LeducPlayerChoice.Fold;
+            return isComplete;
+        }
+
+        long DEBUG1 = 0;
+
+        public override bool SkipDecision(Decision decision, ref GameHistory gameHistory)
+        {
+            if (decision.DecisionByteCode == (byte)LeducGameDecisions.P1Chance || decision.DecisionByteCode == (byte)LeducGameDecisions.P2Chance || decision.DecisionByteCode == (byte)LeducGameDecisions.FlopChance)
+                return false;
+            LeducGameDecisions? d = GetNextPlayerDecision(gameHistory);
+            if (d == null)
+                throw new Exception("Skip should not be called on complete game.");
+            bool skip = ((byte)(LeducGameDecisions)d) != decision.DecisionByteCode;
+            Debug.WriteLine($"Skip at {DEBUG1++} {skip} decision {decision} next game decision {d}"); // DEBUG
+            return skip;
+        }
+
+
+        private static bool[] trueAndFalse = new bool[] { true, false };
+        private static bool[] falseAndTrue = new bool[] { false, true };
+        private LeducGameState ReconstructGameState(GameHistory history)
+        {
+            // NOTE: We reconstruct the game state to determine what the next decision is, so that we can skip decisions (including determining which version of a decision, e.g. with or without the fold option) to use. This is pretty inefficient, since we could answer those questions without allocating memory, but it is relatively simple and initialization speed should not matter much with this game.
+            LeducGameState gs = new LeducGameState(Options.OneBetSizeOnly);
+            gs.P1Card = history.GetCacheItemAtIndex(GameHistoryCacheIndex_P1Card);
+            gs.P2Card = history.GetCacheItemAtIndex(GameHistoryCacheIndex_P2Card);
+            gs.FlopCard = history.GetCacheItemAtIndex(GameHistoryCacheIndex_FlopCard);
+
+            foreach (bool beforeFlop in trueAndFalse)
+                foreach (bool followup in falseAndTrue)
+                    foreach (bool player1 in trueAndFalse)
+                    {
+                        LeducPlayerChoice? c = GetCachedPlayerChoice(history, player1: player1, beforeFlop: beforeFlop, followup: followup);
+                        if (c != null)
+                            gs.AddChoice((LeducPlayerChoice)c);
+                    }
+            return gs;
+        }
+
+        private LeducGameDecisions? GetNextPlayerDecision(GameHistory history)
+        {
+            LeducGameState gs = ReconstructGameState(history);
+            if (gs.GameIsComplete())
+                return null;
+            if (gs.P1Card == 0)
+                return null;
+            bool preFlop = gs.InPreFlop;
+            bool followup = gs.InFollowup;
+            bool player1 = gs.GetTurn() == LeducTurn.P1;
+            if (!followup)
+            {
+                if (player1)
+                    return LeducGameDecisions.P1Decision;
+                else
+                    return gs.FoldAvailable() ? LeducGameDecisions.P2Decision : LeducGameDecisions.P2DecisionFoldExcluded;
+            }
+            else
+            {
+                if (player1)
+                    return gs.BetAvailable() ? LeducGameDecisions.P1Response : LeducGameDecisions.P1ResponseBetsExcluded;
+                else
+                    return LeducGameDecisions.P2Response;
+            }
+        }
+
         public override double[] GetUnevenChanceActionProbabilities(byte decisionByteCode, GameProgress gameProgress)
         {
             LeducGameState gameState = LeducGameState(gameProgress);
@@ -219,8 +284,9 @@ namespace ACESim
             throw new NotImplementedException();
         }
 
-        #region Cache and game reconstruction
+        #endregion
 
+        #region Cache
 
         // must skip 0
         public byte GameHistoryCacheIndex_P1Action_Initial_BeforeFlop = 1;
@@ -235,55 +301,6 @@ namespace ACESim
         public byte GameHistoryCacheIndex_P1Card = 9;
         public byte GameHistoryCacheIndex_P2Card = 10;
         public byte GameHistoryCacheIndex_FlopCard = 11;
-
-
-        private static bool[] trueAndFalse = new bool[] { true, false };
-        private static bool[] falseAndTrue = new bool[] { false, true };
-        private LeducGameState ReconstructGameState(GameHistory history)
-        {
-            // NOTE: We reconstruct the game state to determine what the next decision is, so that we can skip decisions (including determining which version of a decision, e.g. with or without the fold option) to use. This is pretty inefficient, since we could answer those questions without allocating memory, but it is relatively simple and initialization speed should not matter much with this game.
-            LeducGameState gs = new LeducGameState(Options.OneBetSizeOnly);
-            gs.P1Card = history.GetCacheItemAtIndex(GameHistoryCacheIndex_P1Card);
-            gs.P2Card = history.GetCacheItemAtIndex(GameHistoryCacheIndex_P2Card);
-            gs.FlopCard = history.GetCacheItemAtIndex(GameHistoryCacheIndex_FlopCard);
-
-            foreach (bool beforeFlop in trueAndFalse)
-                foreach (bool followup in falseAndTrue)
-                    foreach (bool player1 in trueAndFalse)
-                    {
-                        LeducPlayerChoice? c = GetCachedPlayerChoice(history, player1: player1, beforeFlop: beforeFlop, followup: followup);
-                        if (c == null)
-                            return gs;
-                        gs.AddChoice((LeducPlayerChoice)c);
-                    }
-            return gs;
-        }
-
-        private LeducGameDecisions? GetNextPlayerDecision(GameHistory history)
-        {
-            LeducGameState gs = ReconstructGameState(history);
-            if (gs.GameIsComplete())
-                return null;
-            if (gs.P1Card == 0)
-                return null;
-            bool preFlop = gs.InPreFlop;
-            bool followup = gs.InFollowup;
-            bool player1 = gs.GetTurn() == LeducTurn.P1;
-            if (followup)
-            {
-                if (player1)
-                    return LeducGameDecisions.P1Decision;
-                else
-                    return gs.FoldAvailable() ? LeducGameDecisions.P2Decision : LeducGameDecisions.P2DecisionFoldExcluded;
-            }
-            else
-            {
-                if (player1)
-                    return gs.BetAvailable() ? LeducGameDecisions.P1Response : LeducGameDecisions.P1ResponseBetsExcluded;
-                else
-                    return LeducGameDecisions.P2Response;
-            }
-        }
 
         private LeducPlayerChoice? GetCachedPlayerChoice(GameHistory history, bool player1, bool beforeFlop, bool followup)
         {

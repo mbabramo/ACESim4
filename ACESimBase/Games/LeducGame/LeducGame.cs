@@ -35,7 +35,7 @@ namespace ACESim
                     break;
                 case (byte)LeducGameDecisions.P1Decision: // fold is always excluded
                 case (byte)LeducGameDecisions.P2DecisionFoldExcluded:
-                    MyState.AddChoice((LeducPlayerChoice)action + 1);
+                    MyState.AddChoice((LeducPlayerChoice)action + 1 /* i.e., skip fold */);
                     break;
                 case (byte)LeducGameDecisions.P2Decision:
                 case (byte)LeducGameDecisions.P1Response:
@@ -46,6 +46,8 @@ namespace ACESim
                 default:
                     throw new Exception();
             }
+            if (GameProgressLogger.LoggingOn)
+                GameProgressLogger.Log($"State: {MyState} NextTurn: {MyState.GetTurn()} Choices: {String.Join(",", MyState.GetAvailableChoices())}");
         }
 
 
