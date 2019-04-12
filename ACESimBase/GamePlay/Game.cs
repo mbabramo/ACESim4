@@ -315,13 +315,17 @@ namespace ACESim
                     }
                 }
                 GameProgressLogger.Log(() => "PLAY UNTIL COMPLETE");
+                // NOTE: These can also be enabled in GameProgressLogger. This will not turn off logging if turned on.
                 bool logEachGame = false; // DEBUG
+                bool detailedLogging = false;
                 if (logEachGame)
                 {
                     GameProgressLogger.LoggingOn = true;
                     GameProgressLogger.OutputLogMessages = true;
                     GameProgressLogger.Log("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
                 }
+                if (detailedLogging)
+                    GameProgressLogger.DetailedLogging = true;
                 GameProgressLogger.Log(() => "Iteration: " + Progress.IterationID.ToString());
                 RegisterGamePlayed();
                 while (!Progress.GameComplete)
