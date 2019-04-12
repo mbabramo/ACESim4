@@ -388,6 +388,8 @@ namespace ACESim
             if (decisionToReverse.IncrementGameCacheItem != null)
                 foreach (byte cacheIndex in decisionToReverse.IncrementGameCacheItem)
                     gameHistory.DecrementItemAtCacheIndex(cacheIndex);
+            if (decisionToReverse.StoreActionInGameCacheItem != null)
+                gameHistory.SetCacheItemAtIndex((byte)decisionToReverse.StoreActionInGameCacheItem, 0); // DEBUG -- make sure this doesn't affect main games adversely
             gameHistory.RemoveLastActionFromSimpleActionsList();
             gameHistory.Complete = false; // just in case it was marked true
             historyPoint.GameState = originalGameState;

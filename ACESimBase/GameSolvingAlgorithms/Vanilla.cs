@@ -15,6 +15,10 @@ namespace ACESim
         {
             if (usePruning && ShouldPruneIfPruning(piValues))
                 return 0;
+            if (Br.eak.Contains("SKIPPED"))
+            {
+                var DEBUG = 0;
+            }
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
             if (gameStateType == GameStateTypeEnum.FinalUtilities)

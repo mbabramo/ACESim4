@@ -280,10 +280,11 @@ namespace ACESim
             if (GameProgressLogger.LoggingOn)
             {
                 GameProgressLogger.Log($"player {playerIndex} informing {String.Join(", ", playersToInform)} info {information} following {followingDecisionIndex}");
-                foreach (byte playerToInformIndex in playersToInform)
-                {
-                    GameProgressLogger.Log($"Player {playerToInformIndex} ({gameProgress.GameDefinition.PlayerNames[playerToInformIndex]}) information: {GetCurrentPlayerInformationString(playerToInformIndex)}");
-                }
+                if (gameProgress != null)
+                    foreach (byte playerToInformIndex in playersToInform)
+                    {
+                        GameProgressLogger.Log($"Player {playerToInformIndex} ({gameProgress.GameDefinition.PlayerNames[playerToInformIndex]}) information: {GetCurrentPlayerInformationString(playerToInformIndex)}");
+                    }
             }
         }
 

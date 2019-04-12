@@ -62,7 +62,7 @@ namespace ACESim
 
         public bool InPreFlop => !GameIsComplete() && GetCurrentBettingRound() == PreFlopRound;
 
-        public bool InFollowup => GetCurrentBettingRound().NumChoicesThisRound > 2;
+        public bool InFollowup => GetCurrentBettingRound().NumChoicesThisRound >= 2;
 
         public IEnumerable<LeducPlayerChoice> GetAvailableChoices()
         {

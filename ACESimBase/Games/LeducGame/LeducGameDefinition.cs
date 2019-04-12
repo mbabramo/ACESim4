@@ -13,7 +13,7 @@ namespace ACESim
         #region Properties and initialization
 
         public LeducGameOptions Options;
-        public byte NumActionsPerPlayer => Options.OneBetSizeOnly ? (byte) 3 : (byte) 7;
+        public byte MaxNumActionsPerPlayer_IncludingFoldAndAllBets => Options.OneBetSizeOnly ? (byte) 3 : (byte) 7;
         LeducGameProgress LeducGP(GameProgress gp) => gp as LeducGameProgress;
         LeducGameState LeducGameState(GameProgress gp) => LeducGP(gp).GameState;
 
@@ -99,7 +99,7 @@ namespace ACESim
             string playerAbbreviation = player1 ? "P1" : "P2";
             LeducGameDecisions gameDecision = player1 ? (followup ? LeducGameDecisions.P1Response : LeducGameDecisions.P1Decision) : (followup ? LeducGameDecisions.P2Response : LeducGameDecisions.P2Decision);
             bool canTerminateGame = true;
-            byte numActions = NumActionsPerPlayer;
+            byte numActions = MaxNumActionsPerPlayer_IncludingFoldAndAllBets;
             byte customByte = 0; // signal of whether fold is excluded
             if (choiceOptions == ChoiceOptions.FoldExcluded)
             {
@@ -136,7 +136,7 @@ namespace ACESim
                     break;
             }
 
-            decisions.Add(new Decision($"{playerAbbreviation}{initialOrFollowup}{roundDesignation}{choiceDesignation}", $"{playerAbbreviation}{initialOrFollowup}{roundDesignationAbbreviation}{choiceDesignation}", (byte)player, playersToNotify, NumActionsPerPlayer, (byte) gameDecision) { CanTerminateGame = canTerminateGame, CustomByte = customByte, StoreActionInGameCacheItem = cacheIndex });
+            decisions.Add(new Decision($"{playerAbbreviation}{initialOrFollowup}{roundDesignation}{choiceDesignation}", $"{playerAbbreviation}{initialOrFollowup}{roundDesignationAbbreviation}{choiceDesignation}", (byte)player, playersToNotify, numActions, (byte) gameDecision) { CanTerminateGame = canTerminateGame, CustomByte = customByte, StoreActionInGameCacheItem = cacheIndex });
         }
 
         #endregion
@@ -193,11 +193,26 @@ namespace ACESim
                 return false;
             byte decisionByteCode = currentDecision.DecisionByteCode;
             bool isPlayerDecisionWithPossibilityOfFold = decisionByteCode == (byte)LeducGameDecisions.P2Decision || decisionByteCode == (byte)LeducGameDecisions.P1Response || decisionByteCode == (byte)LeducGameDecisions.P1ResponseBetsExcluded || decisionByteCode == (byte)LeducGameDecisions.P2Response;
-            bool isComplete = isPlayerDecisionWithPossibilityOfFold && actionChosen == (byte)LeducPlayerChoice.Fold;
-            return isComplete;
+            bool foldHasOccurred = isPlayerDecisionWithPossibilityOfFold && actionChosen == (byte)LeducPlayerChoice.Fold;
+            if (foldHasOccurred)
+                return true;
+            // Since a fold hasn't occurred, the game will end if we're after the flop and a player after the initial decision has checked or P2 has followed up.
+            byte p1AfterFlop = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_P1Action_Initial_AfterFlop);
+            if (p1AfterFlop == 0)
+                return false; // after flop betting hasn't started
+            byte p2AfterFlop = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_P2Action_Initial_AfterFlop);
+            if (p2AfterFlop == (byte)LeducPlayerChoice.CallOrCheck)
+                return true; // no more betting
+            byte p1ResponseAfterFlop = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_P1Action_Followup_AfterFlop);
+            if (p1ResponseAfterFlop == (byte)LeducPlayerChoice.CallOrCheck)
+                return true; // no more betting
+            byte p2ResponseAfterFlop = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_P2Action_Followup_AfterFlop);
+            if (p2ResponseAfterFlop > 0)
+                return true; // all decisions complete (since not a fold, must be because of a check)
+            return false;
         }
 
-        long DEBUG1 = 0;
+        public static long DEBUG1 = 0;
 
         public override bool SkipDecision(Decision decision, ref GameHistory gameHistory)
         {
@@ -205,9 +220,17 @@ namespace ACESim
                 return false;
             LeducGameDecisions? d = GetNextPlayerDecision(gameHistory);
             if (d == null)
-                throw new Exception("Skip should not be called on complete game.");
+                return true;
             bool skip = ((byte)(LeducGameDecisions)d) != decision.DecisionByteCode;
-            Debug.WriteLine($"Skip at {DEBUG1++} {skip} decision {decision} next game decision {d}"); // DEBUG
+            if (DEBUG1 == 26)
+                Br.eak.Add("SKIPPED");
+            if (DEBUG1 == 832)
+            {
+                var DEBUGX = 0;
+            }
+            if (GameProgressLogger.LoggingOn)
+                Debug.WriteLine($"Skip at {DEBUG1} {skip} decision {decision} next game decision {d}"); // DEBUG
+            DEBUG1++;
             return skip;
         }
 
