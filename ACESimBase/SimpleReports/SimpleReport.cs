@@ -75,6 +75,8 @@ namespace ACESim
         {
             standardReport.AppendLine(Definition.Name);
             int? metaColumnWidth = null, rowFilterColumnWidth = null;
+            if (!Definition.RowFilters.Any() || !Definition.ColumnItems.Any())
+                return;
             metaColumnWidth = Math.Max(9, Definition.MetaFilters.Max(x => x.Name.Length) + 3);
             rowFilterColumnWidth = Math.Max(9, Definition.RowFilters.Max(x => x.Name.Length) + 3);
             SimpleReportColumnItem lastColumn = Definition.ColumnItems.Last();
