@@ -85,8 +85,7 @@ namespace ACESim
             {
                 //var informationSetHistories = HistoryToPoint.GetInformationSetHistoryItems().Select(x => x.ToString());
                 navigation.GameDefinition.GetNextDecision(ref HistoryToPoint, out Decision nextDecision, out byte nextDecisionIndex);
-                if (nextDecision == null)
-                    throw new Exception("Another decision was expected. This could occur if a game was prematurely marked as complete or was not marked as complete when it should have been so marked.");
+                // If nextDecision is null, then there are no more player decisions. (If this seems wrong, it could be a result of an error in whether to mark a game complete.) When there are no more player decisions, the resolution "player" is used.
                 byte nextPlayer = nextDecision?.PlayerNumber ?? navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
                 byte* informationSetsPtr = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
                 // string playerInformationString = HistoryToPoint.GetPlayerInformationString(currentPlayer, nextDecision?.DecisionByteCode);
@@ -95,7 +94,7 @@ namespace ACESim
                 {
                     var informationSetList = Util.ListExtensions.GetPointerAsList_255Terminated(informationSetsPtr);
                     var actionsToHere = String.Join(",", HistoryToPoint.GetActionsAsList());
-                    GameProgressLogger.Log($"Player {nextPlayer} decision: {nextDecision.Name} information set: {String.Join(",", informationSetList)} actions to here: {actionsToHere}");
+                    GameProgressLogger.Log($"Player {nextPlayer} decision: {nextDecision?.Name ?? "Resolution"} information set: {String.Join(",", informationSetList)} actions to here: {actionsToHere}");
                 }
                 if (nextDecision != null)
                     gameStateFromGameHistory = navigation.Strategies[nextPlayer].GetInformationSetTreeValue(nextDecisionIndex, informationSetsPtr);

@@ -98,13 +98,12 @@ namespace ACESim
             LeducGamePlayers player = player1 ? LeducGamePlayers.Player1 : LeducGamePlayers.Player2;
             string playerAbbreviation = player1 ? "P1" : "P2";
             LeducGameDecisions gameDecision = player1 ? (followup ? LeducGameDecisions.P1Response : LeducGameDecisions.P1Decision) : (followup ? LeducGameDecisions.P2Response : LeducGameDecisions.P2Decision);
-            bool canTerminateGame = true;
+            bool canTerminateGame = !player1 || followup; // only first decision can't terminate. otherwise, one can terminate either with fold or with a call (e.g., if other player has called).
             byte numActions = MaxNumActionsPerPlayer_IncludingFoldAndAllBets;
             byte customByte = 0; // signal of whether fold is excluded
             if (choiceOptions == ChoiceOptions.FoldExcluded)
             {
                 numActions--;
-                canTerminateGame = false;
                 customByte = 1;
                 if (!player1)
                     gameDecision = LeducGameDecisions.P2DecisionFoldExcluded;
@@ -224,6 +223,8 @@ namespace ACESim
             LeducGameDecisions? d = GetNextPlayerDecision(gameHistory);
             if (d == null)
                 return true;
+            if (decision.DecisionByteCode == (byte)LeducGameDecisions.FlopChance)
+                return false;
             bool skip = ((byte)(LeducGameDecisions)d) != decision.DecisionByteCode;
             if (DEBUG1 == 26)
                 Br.eak.Add("SKIPPED");

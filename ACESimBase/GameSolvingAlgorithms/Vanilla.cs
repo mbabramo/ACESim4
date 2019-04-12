@@ -10,6 +10,7 @@ namespace ACESim
         /// <param name="historyPoint">The game tree, pointing to the particular point in the game where we are located</param>
         /// <param name="playerBeingOptimized">0 for first player, etc. Note that this corresponds in Lanctot to 1, 2, etc. We are using zero-basing for player index (even though we are 1-basing actions).</param>
         /// <returns></returns>
+        public static long DEBUGE = 0;
         public unsafe double VanillaCFR(ref HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues,
             bool usePruning)
         {
@@ -19,6 +20,7 @@ namespace ACESim
             {
                 var DEBUG = 0;
             }
+            DEBUGE++;
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
             if (gameStateType == GameStateTypeEnum.FinalUtilities)
