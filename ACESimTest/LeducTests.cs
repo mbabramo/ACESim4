@@ -11,6 +11,8 @@ namespace ACESimTest
     [TestClass]
     public class LeducTests
     {
+        // TODO: Add test for version with bets of 1-5. For each combination, we need to make a separate entry for each permutation of bets.
+
         public class DecisionRecord
         {
             public LeducGameDecisions decision;
@@ -25,6 +27,8 @@ namespace ACESimTest
                 fold = f;
                 bet = b;
             }
+
+            public DecisionRecord DeepCopied => new DecisionRecord(decision, action, fold, bet);
 
             public DecisionRecord WithBetDoubled => new DecisionRecord(decision, action, fold, bet * 2);
 
@@ -165,14 +169,62 @@ namespace ACESimTest
             return p1 > p2;
         }
 
+        byte[] betSizesFirstRound = new byte[] { 1, 2, 4, 8, 16 };
+        byte[] betSizesSecondRound = new byte[] { 2, 4, 8, 16, 32 };
+        private IEnumerable<List<DecisionRecord>> ReplaceBetWithAllCombinations(List<DecisionRecord> original, int skip = 0)
+        {
+            var exactCopy = original.Select(x => x.DeepCopied).ToList();
+            yield return exactCopy;
+            for (int i = 1; i <= 4; i++)
+            {
+                var mutatedCopy = exactCopy.Select(x => x.DeepCopied).ToList();
+                DecisionRecord recordToCopy = mutatedCopy.Skip(skip).FirstOrDefault(x => x.bet != 0 && !(x.decision == LeducGameDecisions.P1Chance));
+                if (recordToCopy == null)
+                    yield break;
+                recordToCopy.action += (byte) i;
+                recordToCopy.bet = recordToCopy.bet == 1 ? betSizesFirstRound[i] : betSizesSecondRound[i];
+                yield return mutatedCopy;
+            }
+            foreach (var recursive in ReplaceBetWithAllCombinations(exactCopy, skip + 1))
+                yield return recursive;
+        }
+
+        private List<DecisionRecord> SetNegativeBetsOnFold(List<DecisionRecord> original)
+        {
+            var fold = original.SingleOrDefault(x => x.fold);
+            if (fold != null)
+            {
+                var lastBet = original.Last(x => !x.fold && !(x.decision == LeducGameDecisions.P1Chance) && x.bet != 0);
+                fold.bet = 0 - lastBet.bet; // undo the effect of the last bet
+            }
+            return original;
+        }
+
         [TestMethod]
-        public void PlayAllLeducCombinations()
+        public void TestOneBetLeduc()
         {
             var permutations = AllDecisionCombinations();
             LeducGameOptions options = new LeducGameOptions()
             {
                 OneBetSizeOnly = true
             };
+            Helper(permutations, options);
+        }
+
+        [TestMethod]
+        public void TestFiveBetLeduc()
+        {
+            var permutations = AllDecisionCombinations().SelectMany(x => ReplaceBetWithAllCombinations(x)).Select(x => SetNegativeBetsOnFold(x)).ToList();
+            
+            LeducGameOptions options = new LeducGameOptions()
+            {
+                OneBetSizeOnly = false
+            };
+            Helper(permutations, options);
+        }
+
+        private void Helper(List<List<DecisionRecord>> permutations, LeducGameOptions options)
+        {
             int permutation = -1;
             foreach (var decisionsForGame in permutations)
             {

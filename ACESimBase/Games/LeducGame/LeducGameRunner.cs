@@ -36,14 +36,14 @@ namespace ACESim
 
                 Algorithm = GameApproximationAlgorithm.Vanilla,
 
-                ReportEveryNIterations = 1000,
+                ReportEveryNIterations = 100000,
                 NumRandomIterationsForSummaryTable = SummaryTableIterations,
                 PrintSummaryTable = true,
-                PrintInformationSets = false,
+                PrintInformationSets = true,
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
-                PrintGameTree = true,
+                PrintGameTree = false,
                 AlwaysUseAverageStrategyInReporting = true,
-                BestResponseEveryMIterations = 1000,
+                BestResponseEveryMIterations = 100000,
 
                 TotalProbingCFRIterations = ProbingIterations,
                 EpsilonForMainPlayer = 0.5,
