@@ -277,7 +277,7 @@ namespace ACESim
                     gameProgress?.InformationSetLog.AddToLog(information, followingDecisionIndex, playerToInformIndex, gameProgress.GameDefinition.PlayerNames, gameProgress.GameDefinition.DecisionPointsExecutionOrder);
                 }
             }
-            if (GameProgressLogger.LoggingOn)
+            if (GameProgressLogger.LoggingOn && GameProgressLogger.DetailedLogging)
             {
                 GameProgressLogger.Log($"player {playerIndex} informing {String.Join(", ", playersToInform)} info {information} following {followingDecisionIndex}");
                 if (gameProgress != null)
@@ -382,7 +382,7 @@ namespace ACESim
                 }
             // Now, we actually change the information set by removing the items
             RemoveItemsInInformationSet(playerIndex, numItemsToRemove);
-            if (GameProgressLogger.LoggingOn)
+            if (GameProgressLogger.LoggingOn && GameProgressLogger.DetailedLogging)
                 GameProgressLogger.Log($"Player {playerIndex} information (removed {numItemsToRemove}): {GetCurrentPlayerInformationString(playerIndex)}");
         }
 

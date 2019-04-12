@@ -83,7 +83,7 @@ namespace ACESim
                 playerPointer++;
                 *playerPointer = InformationSetTerminator; // terminator
             }
-            if (GameProgressLogger.LoggingOn)
+            if (GameProgressLogger.LoggingOn && GameProgressLogger.DetailedLogging)
             {
                 GameProgressLogger.Log($"Adding information {information} following decision {followingDecisionIndex} ({actionPoints[followingDecisionIndex].Name}) for Player {playerIndex} ({playerNames[playerIndex]})");
                 string playerInformation = GetPlayerInformationAtPointString(playerIndex, null);

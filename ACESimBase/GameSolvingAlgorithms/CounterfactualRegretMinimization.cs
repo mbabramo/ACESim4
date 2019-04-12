@@ -24,7 +24,7 @@ namespace ACESim
         bool ShouldEstimateImprovementOverTime = false;
         const int NumRandomGamePlaysForEstimatingImprovement = 1000;
 
-        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameTreeOnly; // DEBUG
+        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedBothMethods; // DEBUGTREE
         bool AllowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => (AllowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)) && EvolutionSettings.Algorithm != GameApproximationAlgorithm.PureStrategyFinder;
 
@@ -178,6 +178,8 @@ namespace ACESim
             PrintSameGameResults();
         }
 
+        public static int DEBUGQ = 0;
+
         unsafe void ProcessInitializedGameProgress(GameProgress gameProgress)
         {
             // First, add the utilities at the end of the tree for this path.
@@ -197,7 +199,8 @@ namespace ACESim
             int i = 1;
             foreach (var informationSetHistory in informationSetHistories)
             {
-                GameProgressLogger.Log(() => $"Setting information set point based on player's information set: {informationSetHistory}");
+                if (GameProgressLogger.DetailedLogging || true) // DEBUG
+                    GameProgressLogger.Log(() => $"{DEBUGQ++} Setting information set point based on player's information set: {informationSetHistory}");
                 GameProgressLogger.Tabs++;
                 //var informationSetHistoryString = informationSetHistory.ToString();
                 historyPoint.SetInformationIfNotSet(Navigation, gameProgress, informationSetHistory);

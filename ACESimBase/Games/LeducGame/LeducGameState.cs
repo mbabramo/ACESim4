@@ -52,7 +52,7 @@ namespace ACESim
         {
             if (PostFlopRound != null)
                 return PostFlopRound;
-            if (PreFlopRound.Complete)
+            if (PreFlopRound.Complete && !PreFlopRound.SomeoneFolds)
             {
                 PostFlopRound = new LeducBettingRound(OneBetSizeOnly);
                 return PostFlopRound;

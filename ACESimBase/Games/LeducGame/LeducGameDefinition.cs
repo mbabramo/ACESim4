@@ -200,7 +200,10 @@ namespace ACESim
             byte p1AfterFlop = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_P1Action_Initial_AfterFlop);
             if (p1AfterFlop == 0)
                 return false; // after flop betting hasn't started
+            p1AfterFlop++; // fold not available, so must add 1 to action to match LeducPlayerChoice
             byte p2AfterFlop = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_P2Action_Initial_AfterFlop);
+            if (p1AfterFlop == (byte)LeducPlayerChoice.CallOrCheck)
+                p2AfterFlop++; // again, fold excluded
             if (p2AfterFlop == (byte)LeducPlayerChoice.CallOrCheck)
                 return true; // no more betting
             byte p1ResponseAfterFlop = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_P1Action_Followup_AfterFlop);
@@ -216,7 +219,7 @@ namespace ACESim
 
         public override bool SkipDecision(Decision decision, ref GameHistory gameHistory)
         {
-            if (decision.DecisionByteCode == (byte)LeducGameDecisions.P1Chance || decision.DecisionByteCode == (byte)LeducGameDecisions.P2Chance || decision.DecisionByteCode == (byte)LeducGameDecisions.FlopChance)
+            if (decision.DecisionByteCode == (byte)LeducGameDecisions.P1Chance || decision.DecisionByteCode == (byte)LeducGameDecisions.P2Chance)
                 return false;
             LeducGameDecisions? d = GetNextPlayerDecision(gameHistory);
             if (d == null)
@@ -228,8 +231,8 @@ namespace ACESim
             {
                 var DEBUGX = 0;
             }
-            if (GameProgressLogger.LoggingOn)
-                Debug.WriteLine($"Skip at {DEBUG1} {skip} decision {decision} next game decision {d}"); // DEBUG
+            if (GameProgressLogger.LoggingOn && GameProgressLogger.DetailedLogging)
+                GameProgressLogger.Log($"Skip at {DEBUG1} {skip} decision {decision} next game decision {d}"); // DEBUG
             DEBUG1++;
             return skip;
         }

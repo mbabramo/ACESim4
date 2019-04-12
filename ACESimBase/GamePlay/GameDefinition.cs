@@ -413,11 +413,12 @@ namespace ACESim
                 return;
             }
             nextDecisionIndex = (byte)lastDecisionIndex;
+            int numDecisionsExecutionOrder = DecisionsExecutionOrder.Count();
             do
             {
                 nextDecisionIndex++;
                 decision = DecisionsExecutionOrder[nextDecisionIndex];
-            } while (SkipDecision(decision, ref gameHistory));
+            } while (nextDecisionIndex < numDecisionsExecutionOrder - 1 && SkipDecision(decision, ref gameHistory));
         }
 
         public virtual bool SkipDecision(Decision decision, ref GameHistory gameHistory)
