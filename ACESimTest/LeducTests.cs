@@ -11,8 +11,6 @@ namespace ACESimTest
     [TestClass]
     public class LeducTests
     {
-        // TODO: Add test for version with bets of 1-5. For each combination, we need to make a separate entry for each permutation of bets.
-
         public class DecisionRecord
         {
             public LeducGameDecisions decision;
@@ -178,7 +176,7 @@ namespace ACESimTest
             for (int i = 1; i <= 4; i++)
             {
                 var mutatedCopy = exactCopy.Select(x => x.DeepCopied).ToList();
-                DecisionRecord recordToCopy = mutatedCopy.Skip(skip).FirstOrDefault(x => x.bet != 0 && !(x.decision == LeducGameDecisions.P1Chance));
+                DecisionRecord recordToCopy = mutatedCopy.Skip(skip).FirstOrDefault(x => x.bet > 0 && !(x.decision == LeducGameDecisions.P1Chance));
                 if (recordToCopy == null)
                     yield break;
                 recordToCopy.action += (byte) i;
