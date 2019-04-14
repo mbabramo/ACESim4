@@ -238,7 +238,7 @@ namespace ACESim
                 double cumulativeRegretIncrement = inverseSamplingProbabilityQ *
                                                    (counterfactualValues[action - 1] - summation);
                 bool incrementVisits = action == numPossibleActions; // we increment visits only once per information set. This incrementing is how we keep track of whether we are accumulating backup visits without main visits, in which case we switch to that set.
-                if (DiscountingEnabled)
+                if (BackupDiscountingEnabled)
                     cumulativeRegretIncrement *= CurrentDiscount;
                 if (EvolutionSettings.ParallelOptimization)
                     informationSet.IncrementCumulativeRegret_Parallel(action, cumulativeRegretIncrement, isExploratoryIteration, BackupRegretsTrigger, incrementVisits);
@@ -458,7 +458,7 @@ namespace ACESim
         private static int GameNumber = 0;
 
         private int BackupRegretsTrigger;
-        private bool DiscountingEnabled;
+        private bool BackupDiscountingEnabled;
         private double CurrentDiscount;
 
         public unsafe string SolveExploratoryProbingCFR(string reportName)
@@ -489,12 +489,12 @@ namespace ACESim
                     : iterationsPerPhase;
                 int startingIteration = ProbingCFRIterationNum;
                 int stopPhaseBefore = startingIteration + iterationsThisPhase;
-                DiscountingEnabled = false;
+                BackupDiscountingEnabled = false;
                 foreach (var discount in Discounts)
                 {
                     if (startingIteration < discount.endAfterIterationsProportion * EvolutionSettings.TotalProbingCFRIterations)
                     {
-                        DiscountingEnabled = true;
+                        BackupDiscountingEnabled = true;
                         CurrentDiscount = discount.discount;
                         break; // once we find a discount, we're done
                     }

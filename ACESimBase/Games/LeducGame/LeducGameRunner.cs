@@ -10,6 +10,9 @@ namespace ACESim
 {
     public static class LeducGameRunner
     {
+        public const bool OneBetSizeOnly = false;
+        public const bool UseDiscounting = true;
+        public const int ReportInterval = 1000;
 
         private const int ProbingIterations = 1_000_000;
         private const int SummaryTableIterations = 10_000;
@@ -18,16 +21,17 @@ namespace ACESim
         private static bool SingleGameMode = true;
         private static int NumRepetitions = 100;
 
-        private static bool LocalDistributedProcessing = true; // this should be false if actually running on service fabric
+        private static bool LocalDistributedProcessing = false; // this should be false if actually running on service fabric or if running a single option set locally
         public static string OverrideDateTimeString = null; // "2017-10-11 10:18"; // use this if termination finished unexpectedly
-        public static string MasterReportNameForDistributedProcessing = "AMONLY";
-        private static bool ParallelizeOptionSets = true;
-        private static bool ParallelizeIndividualExecutions = false; // only affects SingleGameMode
+        public static string MasterReportNameForDistributedProcessing = "R1";
+        private static bool ParallelizeOptionSets = false; // must be false to parallelize individual executions
+        private static bool ParallelizeIndividualExecutions = true; // only affects SingleGameMode
 
         private static EvolutionSettings GetEvolutionSettings()
         {
             EvolutionSettings evolutionSettings = new EvolutionSettings()
             {
+                UseRegretAndStrategyDiscounting = UseDiscounting,
                 MaxParallelDepth = 1, // we're parallelizing on the iteration level, so there is no need for further parallelization
                 ParallelOptimization = ParallelizeIndividualExecutions && !ParallelizeOptionSets && !LocalDistributedProcessing,
                 SuppressReportPrinting = !SingleGameMode && (ParallelizeOptionSets || LocalDistributedProcessing),
@@ -36,14 +40,14 @@ namespace ACESim
 
                 Algorithm = GameApproximationAlgorithm.Vanilla,
 
-                ReportEveryNIterations = 100000,
+                ReportEveryNIterations = ReportInterval,
                 NumRandomIterationsForSummaryTable = SummaryTableIterations,
                 PrintSummaryTable = true,
                 PrintInformationSets = true,
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
                 PrintGameTree = false,
                 AlwaysUseAverageStrategyInReporting = true,
-                BestResponseEveryMIterations = 100000,
+                BestResponseEveryMIterations = ReportInterval,
 
                 TotalProbingCFRIterations = ProbingIterations,
                 EpsilonForMainPlayer = 0.5,
@@ -70,7 +74,7 @@ namespace ACESim
 
         public static string EvolveLeducGame_Single()
         {
-            var options = new LeducGameOptions() { OneBetSizeOnly = true };
+            var options = new LeducGameOptions() { OneBetSizeOnly = OneBetSizeOnly };
             string report = ProcessSingleOptionSet(options, "Report", "Single", true);
             return report;
         }

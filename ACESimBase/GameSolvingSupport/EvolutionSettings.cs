@@ -42,5 +42,12 @@ namespace ACESim
         public int GameNumber = 0;
         internal int NumRandomIterationsForUtilityCalculation = 10000;
         internal bool SuppressReportPrinting;
+
+        // For Vanilla algorithm:
+        // From Solving Imperfect Information Games with Discounted Regret Minimization -- optimal values (for situations in which pruning may be used)
+        public bool UseRegretAndStrategyDiscounting = false;
+        public const double Discounting_Alpha = 1.5; // multiply accumulated positive regrets by t^alpha / (t^alpha + 1)
+        public const double Discounting_Beta = 0.5; // multiply accumulated negative regrets by t^alpha / (t^alpha + 1)
+        public const double Discounting_Gamma = 2.0; // multiply contributions to average strategy by (t / t + 1)^gamma
     }
 }

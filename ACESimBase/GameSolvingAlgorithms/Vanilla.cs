@@ -1,26 +1,22 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 
 namespace ACESim
 {
     public partial class CounterfactualRegretMinimization
     {
+
         /// <summary>
         /// Performs an iteration of vanilla counterfactual regret minimization.
         /// </summary>
         /// <param name="historyPoint">The game tree, pointing to the particular point in the game where we are located</param>
         /// <param name="playerBeingOptimized">0 for first player, etc. Note that this corresponds in Lanctot to 1, 2, etc. We are using zero-basing for player index (even though we are 1-basing actions).</param>
         /// <returns></returns>
-        public static long DEBUGE = 0;
         public unsafe double VanillaCFR(ref HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues,
             bool usePruning)
         {
             if (usePruning && ShouldPruneIfPruning(piValues))
                 return 0;
-            if (Br.eak.Contains("SKIPPED"))
-            {
-                var DEBUG = 0;
-            }
-            DEBUGE++;
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
             if (gameStateType == GameStateTypeEnum.FinalUtilities)
@@ -109,8 +105,17 @@ namespace ACESim
                     double inversePi = GetInversePiValue(piValues, playerBeingOptimized);
                     double pi = piValues[playerBeingOptimized];
                     var regret = (expectedValueOfAction[action - 1] - expectedValue);
-                    informationSet.IncrementCumulativeRegret(action, inversePi * regret, false);
-                    informationSet.IncrementCumulativeStrategy(action, pi * actionProbabilities[action - 1]);
+                    if (EvolutionSettings.UseRegretAndStrategyDiscounting)
+                    {
+                        informationSet.IncrementCumulativeRegret(action, inversePi * regret * (regret > 0 ? PositiveRegretsAdjustment : NegativeRegretsAdjustment), false);
+                    }
+                    else
+                        informationSet.IncrementCumulativeRegret(action, inversePi * regret, false);
+                    double contributionToAverageStrategy = EvolutionSettings.UseRegretAndStrategyDiscounting ? pi * actionProbabilities[action - 1] * AverageStrategyAdjustment : pi * actionProbabilities[action - 1];
+                    if (EvolutionSettings.ParallelOptimization)
+                        informationSet.IncrementCumulativeStrategy_Parallel(action, contributionToAverageStrategy);
+                    else
+                        informationSet.IncrementCumulativeStrategy(action, contributionToAverageStrategy);
                     if (TraceCFR)
                     {
                         TabbedText.WriteLine($"PiValues {piValues[0]} {piValues[1]}");
@@ -211,8 +216,17 @@ namespace ACESim
             return reportString;
         }
 
+        double VanillaIteration, PositiveRegretsAdjustment, NegativeRegretsAdjustment, AverageStrategyAdjustment;
         private unsafe string VanillaCFRIteration(int iteration)
         {
+            VanillaIteration = iteration;
+
+            double positivePower = Math.Pow(VanillaIteration, EvolutionSettings.Discounting_Alpha);
+            double negativePower = Math.Pow(VanillaIteration, EvolutionSettings.Discounting_Beta);
+            PositiveRegretsAdjustment = positivePower / (positivePower + 1.0);
+            NegativeRegretsAdjustment = negativePower / (negativePower + 1.0);
+            AverageStrategyAdjustment = Math.Pow(VanillaIteration / (VanillaIteration + 1.0), EvolutionSettings.Discounting_Gamma);
+
             string reportString = null;
             Stopwatch s = new Stopwatch();
             double[] lastUtilities = new double[NumNonChancePlayers];

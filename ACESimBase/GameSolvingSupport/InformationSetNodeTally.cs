@@ -489,7 +489,6 @@ namespace ACESim
             for (byte a = 0; a < NumPossibleActions; a++)
                 NodeInformation[cumulativeStrategyDimension, a] = 0;
         }
-        
 
         public void ClearMainTally()
         {
