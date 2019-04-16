@@ -214,8 +214,6 @@ namespace ACESim
             return false;
         }
 
-        public static long DEBUG1 = 0;
-
         public override bool SkipDecision(Decision decision, ref GameHistory gameHistory)
         {
             if (decision.DecisionByteCode == (byte)LeducGameDecisions.P1Chance || decision.DecisionByteCode == (byte)LeducGameDecisions.P2Chance)
@@ -226,15 +224,6 @@ namespace ACESim
             if (decision.DecisionByteCode == (byte)LeducGameDecisions.FlopChance)
                 return false;
             bool skip = ((byte)(LeducGameDecisions)d) != decision.DecisionByteCode;
-            if (DEBUG1 == 26)
-                Br.eak.Add("SKIPPED");
-            if (DEBUG1 == 832)
-            {
-                var DEBUGX = 0;
-            }
-            if (GameProgressLogger.LoggingOn && GameProgressLogger.DetailedLogging)
-                GameProgressLogger.Log($"Skip at {DEBUG1} {skip} decision {decision} next game decision {d}"); // DEBUG
-            DEBUG1++;
             return skip;
         }
 
