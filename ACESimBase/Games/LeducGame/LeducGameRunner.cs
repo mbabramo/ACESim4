@@ -10,9 +10,9 @@ namespace ACESim
 {
     public static class LeducGameRunner
     {
-        public const bool OneBetSizeOnly = true;
+        public const bool OneBetSizeOnly = false;
         public const bool UseDiscounting = true;
-        public const int ReportInterval = 100;
+        public const int ReportInterval = 1;
 
         private const int SummaryTableIterations = 10_000;
 
@@ -35,7 +35,7 @@ namespace ACESim
                 UseRegretAndStrategyDiscounting = UseDiscounting,
                 MaxParallelDepth = 1, // we're parallelizing on the iteration level, so there is no need for further parallelization
                 ParallelOptimization = ParallelizeIndividualExecutions && !ParallelizeOptionSets && !LocalDistributedProcessing,
-                SuppressReportPrinting = !SingleGameMode && (ParallelizeOptionSets || LocalDistributedProcessing),
+                SuppressReportPrinting = true, // !SingleGameMode && (ParallelizeOptionSets || LocalDistributedProcessing),
 
                 GameNumber = StartGameNumber,
 
@@ -43,7 +43,7 @@ namespace ACESim
 
                 ReportEveryNIterations = ReportInterval,
                 NumRandomIterationsForSummaryTable = SummaryTableIterations,
-                PrintSummaryTable = false,
+                GenerateReportsByPlaying = true,
                 PrintInformationSets = true,
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
                 PrintGameTree = false,

@@ -33,7 +33,7 @@ namespace ACESim
         public int MinBackupRegretsTrigger = 5;
         public int TriggerIncreaseOverTime = 45;
 
-        public bool PrintSummaryTable;
+        public bool GenerateReportsByPlaying;
         public int NumRandomIterationsForSummaryTable = 10000;
         public bool PrintGameTree = false;
         public bool PrintInformationSets = false;

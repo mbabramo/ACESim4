@@ -523,7 +523,7 @@ namespace ACESim
                 if (EvolutionSettings.Algorithm == GameApproximationAlgorithm.AverageStrategySampling)
                     Console.WriteLine($"{NumberAverageStrategySamplingExplorations / (double)EvolutionSettings.ReportEveryNIterations}");
                 NumberAverageStrategySamplingExplorations = 0;
-                if (EvolutionSettings.PrintSummaryTable)
+                if (EvolutionSettings.GenerateReportsByPlaying)
                     reportString = GenerateReportsByPlaying(useRandomPaths);
                 MeasureRegretMatchingChanges();
                 if (ShouldEstimateImprovementOverTime)

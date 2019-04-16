@@ -28,7 +28,7 @@ namespace ACESim
 
                 ReportEveryNIterations = 100_000,
                 NumRandomIterationsForSummaryTable = 1_000,
-                PrintSummaryTable = true,
+                GenerateReportsByPlaying = true,
                 PrintInformationSets = true,
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
                 PrintGameTree = false,
