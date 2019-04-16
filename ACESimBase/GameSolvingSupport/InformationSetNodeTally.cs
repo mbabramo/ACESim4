@@ -35,6 +35,10 @@ namespace ACESim
         const int storageDimension2 = 5;
         const int cumulativeRegretBackupDimension = 6;
 
+        public bool RegretExtremesSet = false;
+        public double MinRegret, MaxRegret;
+        public double NormalizedRegret(double r) => MaxRegret == MinRegret ? 1.0 : r / (MaxRegret - MinRegret);
+
         public InformationSetNodeTally(Decision decision, byte decisionIndex)
         {
             Decision = decision;
@@ -112,6 +116,31 @@ namespace ACESim
 
         public void IncrementCumulativeRegret_Parallel(int action, double amount, bool incrementBackup, int backupRegretsTrigger = int.MaxValue, bool incrementVisits = false)
         {
+            if (!RegretExtremesSet)
+            {
+                lock(this)
+                {
+                    MinRegret = amount;
+                    MaxRegret = amount;
+                }
+            }
+            else
+            {
+                if (amount > MaxRegret)
+                {
+                    lock(this)
+                    {
+                        MaxRegret = amount;
+                    }
+                }
+                else if (amount < MinRegret)
+                {
+                    lock(this)
+                    {
+                        MinRegret = amount;
+                    }
+                }
+            }
             Interlocked.Increment(ref NumTotalIncrements);
             if (incrementBackup)
             {
@@ -151,6 +180,22 @@ namespace ACESim
 
         public void IncrementCumulativeRegret(int action, double amount, bool incrementBackup, int backupRegretsTrigger = int.MaxValue, bool incrementVisits = false)
         {
+            if (!RegretExtremesSet)
+            {
+                MinRegret = amount;
+                MaxRegret = amount;
+            }
+            else
+            {
+                if (amount > MaxRegret)
+                {
+                    MaxRegret = amount;
+                }
+                else if (amount < MinRegret)
+                {
+                    MinRegret = amount;
+                }
+            }
             NumTotalIncrements++; // we always keep track of this
             if (incrementBackup)
             {
@@ -317,15 +362,17 @@ namespace ACESim
 
         public unsafe void GetHedgeProbabilities(double* probabilitiesToSet)
         {
+            
             double* exponentials = stackalloc double[NumPossibleActions];
-            double nu = Math.Sqrt(2 * Math.Log(NumPossibleActions) / (double)(NumRegretIncrements + 1.0));
+            double iteration = (double)(NumRegretIncrements + 1.0);
+            double nu = Math.Sqrt(2 * Math.Log(NumPossibleActions) / iteration);
             bool done = false;
             while (!done)
             { // without this outer loop, there is a risk that when using parallel code, our regret matching probabilities will not add up to 1
                 double sum = 0;
                 for (byte a = 1; a <= NumPossibleActions; a++)
                 {
-                    double exponentialForAction = Math.Exp(nu * GetCumulativeRegret(a));
+                    double exponentialForAction = Math.Exp(nu * NormalizedRegret(GetCumulativeRegret(a) / iteration));
                     exponentials[a - 1] = exponentialForAction;
                     sum += exponentialForAction;
                 }
