@@ -174,7 +174,7 @@ namespace ACESim
         private unsafe double HedgeProbe_WalkTree_DecisionNode_PlayerBeingOptimized(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNodeTally informationSet, byte numPossibleActions, double randomDouble, byte playerAtPoint, double* sigmaRegretMatchedActionProbabilities)
         {
             double* samplingProbabilities = stackalloc double[numPossibleActions];
-            informationSet.GetEpsilonAdjustedHedgeProbabilities(samplingProbabilities, 0); // DEBUG -- not using Epsilon yet // EvolutionSettings.EpsilonForMainPlayer);
+            informationSet.GetEpsilonAdjustedHedgeProbabilities(samplingProbabilities, EvolutionSettings.EpsilonForMainPlayer);
             byte sampledAction = SampleAction(samplingProbabilities, numPossibleActions, randomDouble);
             if (TraceCFR)
                 TabbedText.WriteLine(
