@@ -12,9 +12,8 @@ namespace ACESim
     {
         public const bool OneBetSizeOnly = false;
         public const bool UseDiscounting = true;
-        public const int ReportInterval = 1000;
+        public const int ReportInterval = 100;
 
-        private const int ProbingIterations = 1_000_000;
         private const int SummaryTableIterations = 10_000;
 
         private const int StartGameNumber = 1;
@@ -27,6 +26,8 @@ namespace ACESim
         private static bool ParallelizeOptionSets = false; // must be false to parallelize individual executions
         private static bool ParallelizeIndividualExecutions = true; // only affects SingleGameMode
 
+        private const int VanillaIterations = 10_000;
+        private const int SamplingIterations = 1_000_000;
         private static EvolutionSettings GetEvolutionSettings()
         {
             EvolutionSettings evolutionSettings = new EvolutionSettings()
@@ -49,14 +50,15 @@ namespace ACESim
                 AlwaysUseAverageStrategyInReporting = true,
                 BestResponseEveryMIterations = ReportInterval,
 
-                TotalProbingCFRIterations = ProbingIterations,
+                TotalAvgStrategySamplingCFRIterations = SamplingIterations,
+                TotalVanillaCFRIterations = VanillaIterations,
+
+                // probing settings
+                TotalProbingCFRIterations = SamplingIterations,
                 EpsilonForMainPlayer = 0.5,
                 EpsilonForOpponentWhenExploring = 0.05,
                 MinBackupRegretsTrigger = 10,
                 TriggerIncreaseOverTime = 0,
-
-                TotalAvgStrategySamplingCFRIterations = 10000000,
-                TotalVanillaCFRIterations = 100_000_000,
             };
             return evolutionSettings;
         }

@@ -217,6 +217,7 @@ namespace ACESim
         }
 
         double VanillaIteration, PositiveRegretsAdjustment, NegativeRegretsAdjustment, AverageStrategyAdjustment;
+        Stopwatch VanillaIterationStopwatch = new Stopwatch();
         private unsafe string VanillaCFRIteration(int iteration)
         {
             VanillaIteration = iteration;
@@ -228,7 +229,6 @@ namespace ACESim
             AverageStrategyAdjustment = Math.Pow(VanillaIteration / (VanillaIteration + 1.0), EvolutionSettings.Discounting_Gamma);
 
             string reportString = null;
-            Stopwatch s = new Stopwatch();
             double[] lastUtilities = new double[NumNonChancePlayers];
 
             bool usePruning = false; // iteration >= 100;
@@ -239,16 +239,16 @@ namespace ACESim
                 GetInitialPiValues(initialPiValues);
                 if (TraceCFR)
                     TabbedText.WriteLine($"Iteration {iteration} Player {playerBeingOptimized}");
-                s.Start();
+                VanillaIterationStopwatch.Start();
                 HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
                 lastUtilities[playerBeingOptimized] =
                     VanillaCFR(ref historyPoint, playerBeingOptimized, initialPiValues, usePruning);
-                s.Stop();
+                VanillaIterationStopwatch.Stop();
             }
 
             reportString = GenerateReports(iteration,
                 () =>
-                    $"Iteration {iteration} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double) iteration + 1.0)))}");
+                    $"Iteration {iteration} Overall milliseconds per iteration {((VanillaIterationStopwatch.ElapsedMilliseconds / ((double) iteration + 1.0)))}");
             return reportString;
         }
     }

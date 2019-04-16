@@ -568,11 +568,14 @@ namespace ACESim
         {
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
+                Stopwatch s = new Stopwatch();
+                s.Start();
                 double bestResponseUtility = CalculateBestResponse(playerBeingOptimized, ActionStrategy);
+                s.Stop();
                 double bestResponseImprovement = bestResponseUtility - UtilityCalculations[playerBeingOptimized].Average();
                 if (!useRandomPaths && bestResponseImprovement < 0 && Math.Abs(bestResponseImprovement) > Math.Abs(bestResponseUtility)/1E-8)
                     throw new Exception("Best response function worse."); // it can be slightly negative as a result of rounding error or if we are using random paths as a result of sampling error
-                Console.WriteLine($"Player {playerBeingOptimized} utility with {(EvolutionSettings.AlwaysUseAverageStrategyInReporting ? "average strategy" : "regret matching")} against opponent using average strategy {UtilityCalculations[playerBeingOptimized].Average()} using best response {bestResponseUtility} best response improvement {bestResponseImprovement}");
+                Console.WriteLine($"Player {playerBeingOptimized} utility against opponent using average strategy: playing {(EvolutionSettings.AlwaysUseAverageStrategyInReporting ? "average strategy" : "regret matching")}  {UtilityCalculations[playerBeingOptimized].Average()} playing best response {bestResponseUtility} (in {s.ElapsedMilliseconds} milliseconds) best response improvement {bestResponseImprovement}");
             }
         }
 

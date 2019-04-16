@@ -9,7 +9,7 @@ namespace ACESim
         private bool TraceGEBR = false;
         private List<byte> TraceGEBR_SkipDecisions = new List<byte>() { };
 
-        // TODO: Accelerated best response
+        // TODO: Accelerated best response (may not achieve great savings)
         // Preparation. Each information set node tally should contain the information set of the player. In addition, for each decision, we should have a list of all information sets for that player.
         // 1. If we are optimizing player X, identify all decisions by player X. 
         // 2. Play from start of game, to X's first decision. Whenever we get to an X information set (at that first decision), create a string with information on the information set of all players besides X, including the resolution player. Use this as a dictionary to the HistoryPoint and the accumulated probability that others (including chance) will play to here. If we get to an information set where there is already something in the dictionary, then we increase this probability. Note that we are using a single HistoryPoint to represent a number of different histories, but all of these histories reflect the same information sets for other players, so all of these information sets will, given the same subsequent actions, lead to the same outcome.
@@ -73,8 +73,7 @@ namespace ACESim
                     byte playerMakingDecision = informationSet.PlayerIndex;
                     if (playerMakingDecision == playerIndex)
                     {
-                        if (!depthOfPlayerDecisions.Contains(depth))
-                            depthOfPlayerDecisions.Add(depth);
+                        depthOfPlayerDecisions.Add(depth);
                         informationSet.ResetBestResponseData();
                     }
                     decision = informationSet.Decision;
