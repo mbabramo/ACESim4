@@ -573,10 +573,10 @@ namespace ACESim
                 s.Start();
                 double bestResponseUtility = CalculateBestResponse(playerBeingOptimized, ActionStrategy);
                 s.Stop();
-                double bestResponseImprovement = bestResponseUtility - UtilityCalculations[playerBeingOptimized].Average();
+                double bestResponseImprovement = bestResponseUtility - UtilityCalculationsArray.StatCollectors[playerBeingOptimized].Average();
                 if (!useRandomPaths && bestResponseImprovement < 0 && Math.Abs(bestResponseImprovement) > Math.Abs(bestResponseUtility)/1E-8)
                     throw new Exception("Best response function worse."); // it can be slightly negative as a result of rounding error or if we are using random paths as a result of sampling error
-                Console.WriteLine($"Player {playerBeingOptimized} utility against opponent using average strategy: playing {(EvolutionSettings.AlwaysUseAverageStrategyInReporting ? "average strategy" : "regret matching")}  {UtilityCalculations[playerBeingOptimized].Average()} playing best response {bestResponseUtility} (in {s.ElapsedMilliseconds} milliseconds) best response improvement {bestResponseImprovement}");
+                Console.WriteLine($"Player {playerBeingOptimized} utility against opponent using average strategy: playing {(EvolutionSettings.AlwaysUseAverageStrategyInReporting ? "average strategy" : "regret matching")}  {UtilityCalculationsArray.StatCollectors[playerBeingOptimized].Average()} playing best response {bestResponseUtility} (in {s.ElapsedMilliseconds} milliseconds) best response improvement {bestResponseImprovement}");
             }
         }
 
@@ -589,9 +589,8 @@ namespace ACESim
         private void GenerateReports_RandomPaths(GamePlayer player, Func<Decision, GameProgress, byte> actionOverride)
         {
             var gameProgresses = GetRandomCompleteGames(player, EvolutionSettings.NumRandomIterationsForSummaryTable, actionOverride);
-            UtilityCalculations = new StatCollector[NumNonChancePlayers];
-            for (int p = 0; p < NumNonChancePlayers; p++)
-                UtilityCalculations[p] = new StatCollector();
+            UtilityCalculationsArray = new StatCollectorArray();
+            UtilityCalculationsArray.Initialize(NumNonChancePlayers);
             // start Task Parallel Library consumer/producer pattern
             // we'll set up step1, step2, and step3 (but not in that order, since step 1 triggers step 2)
             var step2_buffer = new BufferBlock<Tuple<GameProgress, double>>(new DataflowBlockOptions { BoundedCapacity = 10000 });
@@ -725,14 +724,12 @@ namespace ACESim
             return (standardReport.ToString(), csvReport.ToString());
         }
 
-        StatCollector[] UtilityCalculations;
         private StatCollectorArray UtilityCalculationsArray;
 
         private void GenerateReports_AllPaths(GamePlayer player, Func<Decision, GameProgress, byte> actionOverride)
         {
-            UtilityCalculations = new StatCollector[NumNonChancePlayers];
-            for (int p = 0; p < NumNonChancePlayers; p++)
-                UtilityCalculations[p] = new StatCollector();
+            UtilityCalculationsArray = new StatCollectorArray();
+            UtilityCalculationsArray.Initialize(NumNonChancePlayers);
             // start Task Parallel Library consumer/producer pattern
             // we'll set up step1, step2, and step3 (but not in that order, since step 1 triggers step 2)
             var step2_buffer = new BufferBlock<Tuple<GameProgress, double>>(new DataflowBlockOptions { BoundedCapacity = 10000 });
@@ -744,10 +741,7 @@ namespace ACESim
                 (GameProgress progress, _) = player.PlayPath(actions, false);
                 // do the simple aggregation of utilities. note that this is different from the value returned by vanilla, since that uses regret matching, instead of average strategies.
                 double[] utilities = GetUtilities(ref completedGame);
-                for (int p = 0; p < NumNonChancePlayers; p++)
-                {
-                    UtilityCalculations[p].Add(utilities[p], probabilityOfPath);
-                }
+                UtilityCalculationsArray.Add(utilities, probabilityOfPath);
                 // consume the result for reports
                 step2_buffer.SendAsync(new Tuple<GameProgress, double>(progress, probabilityOfPath));
             };
@@ -758,7 +752,7 @@ namespace ACESim
             step3_consumer.Wait(); // wait until all have been processed
 
             for (int p = 0; p < NumNonChancePlayers; p++)
-                if (Math.Abs(UtilityCalculations[p].sumOfWeights - 1.0) > 0.001)
+                if (Math.Abs(UtilityCalculationsArray.StatCollectors[p].sumOfWeights - 1.0) > 0.001)
                     throw new Exception("Imperfect sampling.");
         }
 
