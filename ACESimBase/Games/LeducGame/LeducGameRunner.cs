@@ -12,7 +12,7 @@ namespace ACESim
     {
         public const bool OneBetSizeOnly = true;
         public const bool UseRegretAndStrategyDiscounting = true;
-        public const GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.Vanilla;
+        public const GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.GibsonProbing;
 
         private const int StartGameNumber = 1;
         private static bool SingleGameMode = true;
@@ -25,8 +25,8 @@ namespace ACESim
         private static bool ParallelizeIndividualExecutions = true; // only affects SingleGameMode
 
         private const int VanillaIterations = 10_000;
-        private const int SamplingIterations = 1_000_000;
-        public static int ReportInterval => Algorithm == GameApproximationAlgorithm.Vanilla ? (OneBetSizeOnly ? 1000 : 100) : 10_000;
+        private const int SamplingIterations = 100_000_000;
+        public static int ReportInterval => Algorithm == GameApproximationAlgorithm.Vanilla ? (OneBetSizeOnly ? 1000 : 100) : 100_000;
         private const bool UseRandomPathsForBestResponse = false;
         private const int NumRandomGamePaths = 1_000;
         
