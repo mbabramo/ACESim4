@@ -11,9 +11,8 @@ namespace ACESim
     public static class LeducGameRunner
     {
         public const bool OneBetSizeOnly = false;
-        public const bool UseDiscounting = true;
-        public const int ReportInterval = 100;
-        private const int NumRandomGamePaths = 1_000;
+        public const bool UseRegretAndStrategyDiscounting = true;
+        public const GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.Vanilla;
 
         private const int StartGameNumber = 1;
         private static bool SingleGameMode = true;
@@ -27,20 +26,24 @@ namespace ACESim
 
         private const int VanillaIterations = 10_000;
         private const int SamplingIterations = 1_000_000;
+        public static int ReportInterval => Algorithm == GameApproximationAlgorithm.Vanilla ? (OneBetSizeOnly ? 1000 : 100) : 10_000;
+        private const bool UseRandomPathsForBestResponse = false;
+        private const int NumRandomGamePaths = 1_000;
+        
         private static EvolutionSettings GetEvolutionSettings()
         {
             EvolutionSettings evolutionSettings = new EvolutionSettings()
             {
-                UseRegretAndStrategyDiscounting = UseDiscounting,
                 MaxParallelDepth = 1, // we're parallelizing on the iteration level, so there is no need for further parallelization
                 ParallelOptimization = ParallelizeIndividualExecutions && !ParallelizeOptionSets && !LocalDistributedProcessing,
                 SuppressReportPrinting = true, // !SingleGameMode && (ParallelizeOptionSets || LocalDistributedProcessing),
 
                 GameNumber = StartGameNumber,
 
-                Algorithm = GameApproximationAlgorithm.Vanilla,
+                Algorithm = Algorithm,
 
                 ReportEveryNIterations = ReportInterval,
+                UseRandomPathsForBestResponse = UseRandomPathsForBestResponse,
                 NumRandomIterationsForSummaryTable = NumRandomGamePaths,
                 GenerateReportsByPlaying = true,
                 PrintInformationSets = true,
@@ -49,11 +52,15 @@ namespace ACESim
                 AlwaysUseAverageStrategyInReporting = true,
                 BestResponseEveryMIterations = ReportInterval,
 
+                // iterations
                 TotalAvgStrategySamplingCFRIterations = SamplingIterations,
+                TotalProbingCFRIterations = SamplingIterations,
                 TotalVanillaCFRIterations = VanillaIterations,
 
+                // algorithm settings
+                UseRegretAndStrategyDiscounting = UseRegretAndStrategyDiscounting,
+
                 // probing settings
-                TotalProbingCFRIterations = SamplingIterations,
                 EpsilonForMainPlayer = 0.5,
                 EpsilonForOpponentWhenExploring = 0.05,
                 MinBackupRegretsTrigger = 10,
