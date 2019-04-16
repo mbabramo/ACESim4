@@ -6,6 +6,7 @@ namespace ACESim
         Probing,
         GibsonProbing,
         ExploratoryProbing,
+        HedgeProbing,
         AverageStrategySampling,
         PureStrategyFinder,
     }

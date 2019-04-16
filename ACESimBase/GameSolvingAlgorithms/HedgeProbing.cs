@@ -174,10 +174,7 @@ namespace ACESim
         private unsafe double HedgeProbe_WalkTree_DecisionNode_PlayerBeingOptimized(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNodeTally informationSet, byte numPossibleActions, double randomDouble, byte playerAtPoint, double* sigmaRegretMatchedActionProbabilities)
         {
             double* samplingProbabilities = stackalloc double[numPossibleActions];
-            if (isHedgeIteration || EvolutionSettings.PlayerBeingOptimizedExploresOnOwnIterations)
-                informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(samplingProbabilities, EvolutionSettings.EpsilonForMainPlayer);
-            else
-                informationSet.GetRegretMatchingProbabilities(samplingProbabilities);
+            informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(samplingProbabilities, EvolutionSettings.EpsilonForMainPlayer);
             byte sampledAction = SampleAction(samplingProbabilities, numPossibleActions, randomDouble);
             if (TraceCFR)
                 TabbedText.WriteLine(
@@ -207,9 +204,9 @@ namespace ACESim
                 double cumulativeRegretIncrement = inverseSamplingProbabilityQ *
                                                    (counterfactualValues[action - 1] - summation);
                 if (EvolutionSettings.ParallelOptimization)
-                    informationSet.IncrementCumulativeRegret_Parallel(action, cumulativeRegretIncrement, isHedgeIteration);
+                    informationSet.IncrementCumulativeRegret_Parallel(action, cumulativeRegretIncrement, false);
                 else
-                    informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement, isHedgeIteration);
+                    informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement, false);
                 if (bestAction == 0 || cumulativeRegretIncrement > bestCumulativeRegretIncrement)
                 {
                     bestAction = action;
@@ -270,23 +267,19 @@ namespace ACESim
 
         private unsafe double HedgeProbe_WalkTree_DecisionNode_OtherPlayer(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNodeTally informationSet, double* sigmaRegretMatchedActionProbabilities, byte numPossibleActions, double randomDouble, byte playerAtPoint)
         {
-            if (!isHedgeIteration)
-                informationSet.GetRegretMatchingProbabilities(sigmaRegretMatchedActionProbabilities);
-            else // Difference from Gibson. The opponent will use epsilon exploration (but only during the Hedge phase).
-                informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(sigmaRegretMatchedActionProbabilities, EvolutionSettings.EpsilonForOpponentWhenExploring);
-            if (!isHedgeIteration)
-                for (byte action = 1; action <= numPossibleActions; action++)
-                {
-                    double cumulativeStrategyIncrement =
-                        sigmaRegretMatchedActionProbabilities[action - 1] / samplingProbabilityQ;
-                    if (EvolutionSettings.ParallelOptimization)
-                        informationSet.IncrementCumulativeStrategy_Parallel(action, cumulativeStrategyIncrement);
-                    else
-                        informationSet.IncrementCumulativeStrategy(action, cumulativeStrategyIncrement);
-                    if (TraceCFR)
-                        TabbedText.WriteLine(
-                            $"Incrementing cumulative strategy for {action} by {cumulativeStrategyIncrement} to {informationSet.GetCumulativeStrategy(action)}");
-                }
+            informationSet.GetRegretMatchingProbabilities(sigmaRegretMatchedActionProbabilities);
+            for (byte action = 1; action <= numPossibleActions; action++)
+            {
+                double cumulativeStrategyIncrement =
+                    sigmaRegretMatchedActionProbabilities[action - 1] / samplingProbabilityQ;
+                if (EvolutionSettings.ParallelOptimization)
+                    informationSet.IncrementCumulativeStrategy_Parallel(action, cumulativeStrategyIncrement);
+                else
+                    informationSet.IncrementCumulativeStrategy(action, cumulativeStrategyIncrement);
+                if (TraceCFR)
+                    TabbedText.WriteLine(
+                        $"Incrementing cumulative strategy for {action} by {cumulativeStrategyIncrement} to {informationSet.GetCumulativeStrategy(action)}");
+            }
             byte sampledAction = SampleAction(sigmaRegretMatchedActionProbabilities, numPossibleActions,
                 randomDouble);
             if (TraceCFR)

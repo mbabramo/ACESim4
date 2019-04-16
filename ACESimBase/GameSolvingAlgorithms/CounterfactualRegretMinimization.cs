@@ -138,6 +138,9 @@ namespace ACESim
                 case GameApproximationAlgorithm.ExploratoryProbing:
                     report = SolveExploratoryProbingCFR(reportName);
                     break;
+                case GameApproximationAlgorithm.HedgeProbing:
+                    report = SolveHedgeProbingCFR(reportName);
+                    break;
                 case GameApproximationAlgorithm.Vanilla:
                     report = SolveVanillaCFR();
                     break;

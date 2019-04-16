@@ -12,7 +12,7 @@ namespace ACESim
     {
         public const bool OneBetSizeOnly = true;
         public const bool UseRegretAndStrategyDiscounting = true;
-        public const GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.GibsonProbing;
+        public const GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.HedgeProbing;
 
         private const int StartGameNumber = 1;
         private static bool SingleGameMode = true;
