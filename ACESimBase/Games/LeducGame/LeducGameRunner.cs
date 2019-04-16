@@ -10,9 +10,9 @@ namespace ACESim
 {
     public static class LeducGameRunner
     {
-        public const bool OneBetSizeOnly = true;
+        public const bool OneBetSizeOnly = false;
         public const bool UseDiscounting = true;
-        public const int ReportInterval = 100_000;
+        public const int ReportInterval = 100;
         private const int NumRandomGamePaths = 1_000;
 
         private const int StartGameNumber = 1;
@@ -38,7 +38,7 @@ namespace ACESim
 
                 GameNumber = StartGameNumber,
 
-                Algorithm = GameApproximationAlgorithm.ExploratoryProbing,
+                Algorithm = GameApproximationAlgorithm.Vanilla,
 
                 ReportEveryNIterations = ReportInterval,
                 NumRandomIterationsForSummaryTable = NumRandomGamePaths,
