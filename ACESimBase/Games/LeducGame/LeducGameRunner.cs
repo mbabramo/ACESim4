@@ -10,7 +10,7 @@ namespace ACESim
 {
     public static class LeducGameRunner
     {
-        public const bool OneBetSizeOnly = false;
+        public const bool OneBetSizeOnly = true;
         public const bool UseDiscounting = true;
         public const int ReportInterval = 100;
 
@@ -43,7 +43,7 @@ namespace ACESim
 
                 ReportEveryNIterations = ReportInterval,
                 NumRandomIterationsForSummaryTable = SummaryTableIterations,
-                PrintSummaryTable = true,
+                PrintSummaryTable = false,
                 PrintInformationSets = true,
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
                 PrintGameTree = false,
