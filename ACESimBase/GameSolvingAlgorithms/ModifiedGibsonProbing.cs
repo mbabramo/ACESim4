@@ -15,13 +15,13 @@ namespace ACESim
 
         // TODO: Can we store utilities for the resolution set in the penultimate node? That is, if we see that the next nodes all contain a final utilities, then maybe we can record what those final utilities are, and thus save the need to traverse each of those possibilities.
 
-        public unsafe double HedgeProbe_SinglePlayer(HistoryPoint historyPoint, byte playerBeingOptimized,
+        public unsafe double ModifiedGibsonProbe_SinglePlayer(HistoryPoint historyPoint, byte playerBeingOptimized,
             IRandomProducer randomProducer)
         {
-            return HedgeProbe(ref historyPoint, randomProducer)[playerBeingOptimized];
+            return ModifiedGibsonProbe(ref historyPoint, randomProducer)[playerBeingOptimized];
         }
 
-        public unsafe double[] HedgeProbe(ref HistoryPoint historyPoint, IRandomProducer randomProducer)
+        public unsafe double[] ModifiedGibsonProbe(ref HistoryPoint historyPoint, IRandomProducer randomProducer)
         {
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             //if (TraceCFR)
@@ -40,28 +40,28 @@ namespace ACESim
             else
             {
                 if (gameStateType == GameStateTypeEnum.Chance)
-                    return HedgeProbe_ChanceNode(ref historyPoint, randomProducer, gameStateForCurrentPlayer);
+                    return ModifiedGibsonProbe_ChanceNode(ref historyPoint, randomProducer, gameStateForCurrentPlayer);
                 if (gameStateType == GameStateTypeEnum.Tally)
-                    return HedgeProbe_DecisionNode(ref historyPoint, randomProducer, gameStateForCurrentPlayer);
+                    return ModifiedGibsonProbe_DecisionNode(ref historyPoint, randomProducer, gameStateForCurrentPlayer);
                 throw new NotImplementedException();
             }
         }
 
-        private unsafe double[] HedgeProbe_DecisionNode(ref HistoryPoint historyPoint, IRandomProducer randomProducer, IGameState gameStateForCurrentPlayer)
+        private unsafe double[] ModifiedGibsonProbe_DecisionNode(ref HistoryPoint historyPoint, IRandomProducer randomProducer, IGameState gameStateForCurrentPlayer)
         {
             InformationSetNodeTally informationSet = (InformationSetNodeTally)gameStateForCurrentPlayer;
             byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
             double* actionProbabilities = stackalloc double[numPossibleActions];
-            informationSet.GetHedgeProbabilities(actionProbabilities);
+            informationSet.GetRegretMatchingProbabilities(actionProbabilities);
             byte sampledAction = SampleAction(actionProbabilities, numPossibleActions,
                 randomProducer.GetDoubleAtIndex(informationSet.DecisionIndex));
             if (TraceCFR)
                 TabbedText.WriteLine(
                     $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {informationSet.PlayerIndex}");
-            return CompleteHedgeProbe_InPlace(ref historyPoint, randomProducer, sampledAction, informationSet.Decision, informationSet.DecisionIndex);
+            return CompleteModifiedGibsonProbe_InPlace(ref historyPoint, randomProducer, sampledAction, informationSet.Decision, informationSet.DecisionIndex);
         }
 
-        private double[] HedgeProbe_ChanceNode(ref HistoryPoint historyPoint, IRandomProducer randomProducer, IGameState gameStateForCurrentPlayer)
+        private double[] ModifiedGibsonProbe_ChanceNode(ref HistoryPoint historyPoint, IRandomProducer randomProducer, IGameState gameStateForCurrentPlayer)
         {
             ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings)gameStateForCurrentPlayer;
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
@@ -74,7 +74,7 @@ namespace ACESim
                     {
                         double probability = chanceNodeSettings.GetActionProbability(a);
                         IGameState gameStateOriginal = historyPoint.GameState; // DEBUG -- can we move this out of the for loop?
-                        double[] result = CompleteHedgeProbe_InPlace(ref historyPoint, randomProducer, a, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
+                        double[] result = CompleteModifiedGibsonProbe_InPlace(ref historyPoint, randomProducer, a, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
                         GameDefinition.ReverseDecision(chanceNodeSettings.Decision, ref historyPoint, gameStateOriginal);
                         for (byte p = 0; p < NumNonChancePlayers; p++)
                             combined[p] += probability * result[p];
@@ -87,7 +87,7 @@ namespace ACESim
                     for (byte a = 1; a <= numPossibleActions; a++)
                     {
                         double probability = chanceNodeSettings.GetActionProbability(a);
-                        double[] result = CompleteHedgeProbe(ref historyPoint, randomProducer, a, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
+                        double[] result = CompleteModifiedGibsonProbe(ref historyPoint, randomProducer, a, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
                         for (byte p = 0; p < NumNonChancePlayers; p++)
                             combined[p] += probability * result[p];
                     }
@@ -101,16 +101,16 @@ namespace ACESim
                 if (TraceCFR)
                     TabbedText.WriteLine(
                         $"{sampledAction}: Sampled chance action {sampledAction} of {numPossibleActions} with probability {chanceNodeSettings.GetActionProbability(sampledAction)}");
-                return CompleteHedgeProbe_InPlace(ref historyPoint, randomProducer, sampledAction, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
+                return CompleteModifiedGibsonProbe_InPlace(ref historyPoint, randomProducer, sampledAction, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
             }
         }
 
-        private double[] CompleteHedgeProbe(ref HistoryPoint historyPoint, IRandomProducer randomProducer, byte sampledAction, Decision nextDecision, byte nextDecisionIndex)
+        private double[] CompleteModifiedGibsonProbe(ref HistoryPoint historyPoint, IRandomProducer randomProducer, byte sampledAction, Decision nextDecision, byte nextDecisionIndex)
         {
             HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction, nextDecision, nextDecisionIndex);
             if (TraceCFR)
                 TabbedText.Tabs++;
-            double[] probeResult = HedgeProbe(ref nextHistoryPoint, randomProducer);
+            double[] probeResult = ModifiedGibsonProbe(ref nextHistoryPoint, randomProducer);
             if (TraceCFR)
             {
                 TabbedText.Tabs--;
@@ -121,12 +121,12 @@ namespace ACESim
         }
 
 
-        private double[] CompleteHedgeProbe_InPlace(ref HistoryPoint historyPoint, IRandomProducer randomProducer, byte sampledAction, Decision nextDecision, byte nextDecisionIndex)
+        private double[] CompleteModifiedGibsonProbe_InPlace(ref HistoryPoint historyPoint, IRandomProducer randomProducer, byte sampledAction, Decision nextDecision, byte nextDecisionIndex)
         {
             historyPoint.SwitchToBranch(Navigation, sampledAction, nextDecision, nextDecisionIndex);
             if (TraceCFR)
                 TabbedText.Tabs++;
-            double[] probeResult = HedgeProbe(ref historyPoint, randomProducer);
+            double[] probeResult = ModifiedGibsonProbe(ref historyPoint, randomProducer);
             if (TraceCFR)
             {
                 TabbedText.Tabs--;
@@ -136,7 +136,7 @@ namespace ACESim
             return probeResult;
         }
 
-        public unsafe double HedgeProbe_WalkTree(ref HistoryPoint historyPoint, byte playerBeingOptimized,
+        public unsafe double ModifiedGibsonProbe_WalkTree(ref HistoryPoint historyPoint, byte playerBeingOptimized,
             double samplingProbabilityQ, IRandomProducer randomProducer, Decision nextDecision, byte nextDecisionIndex)
         {
             if (TraceCFR)
@@ -150,31 +150,31 @@ namespace ACESim
                 return utility;
             }
             else if (gameStateForCurrentPlayer is ChanceNodeSettings chanceNodeSettings)
-                return HedgeProbe_WalkTree_ChanceNode(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, chanceNodeSettings);
+                return ModifiedGibsonProbe_WalkTree_ChanceNode(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, chanceNodeSettings);
             else if (gameStateForCurrentPlayer is InformationSetNodeTally informationSet)
             {
-                return HedgeProbe_WalkTree_DecisionNode(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, informationSet);
+                return ModifiedGibsonProbe_WalkTree_DecisionNode(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, informationSet);
             }
             else
                 throw new NotImplementedException();
         }
 
-        private unsafe double HedgeProbe_WalkTree_DecisionNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNodeTally informationSet)
+        private unsafe double ModifiedGibsonProbe_WalkTree_DecisionNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNodeTally informationSet)
         {
             byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
             double* sigmaRegretMatchedActionProbabilities = stackalloc double[numPossibleActions];
-            informationSet.GetHedgeProbabilities(sigmaRegretMatchedActionProbabilities);
+            informationSet.GetRegretMatchingProbabilities(sigmaRegretMatchedActionProbabilities);
             byte playerAtPoint = informationSet.PlayerIndex;
             double randomDouble = randomProducer.GetDoubleAtIndex(informationSet.DecisionIndex);
             if (playerAtPoint != playerBeingOptimized)
-                return HedgeProbe_WalkTree_DecisionNode_OtherPlayer(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, informationSet, sigmaRegretMatchedActionProbabilities, numPossibleActions, randomDouble, playerAtPoint);
-            return HedgeProbe_WalkTree_DecisionNode_PlayerBeingOptimized(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, informationSet, numPossibleActions, randomDouble, playerAtPoint, sigmaRegretMatchedActionProbabilities);
+                return ModifiedGibsonProbe_WalkTree_DecisionNode_OtherPlayer(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, informationSet, sigmaRegretMatchedActionProbabilities, numPossibleActions, randomDouble, playerAtPoint);
+            return ModifiedGibsonProbe_WalkTree_DecisionNode_PlayerBeingOptimized(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, informationSet, numPossibleActions, randomDouble, playerAtPoint, sigmaRegretMatchedActionProbabilities);
         }
 
-        private unsafe double HedgeProbe_WalkTree_DecisionNode_PlayerBeingOptimized(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNodeTally informationSet, byte numPossibleActions, double randomDouble, byte playerAtPoint, double* sigmaRegretMatchedActionProbabilities)
+        private unsafe double ModifiedGibsonProbe_WalkTree_DecisionNode_PlayerBeingOptimized(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNodeTally informationSet, byte numPossibleActions, double randomDouble, byte playerAtPoint, double* sigmaRegretMatchedActionProbabilities)
         {
             double* samplingProbabilities = stackalloc double[numPossibleActions];
-            informationSet.GetEpsilonAdjustedHedgeProbabilities(samplingProbabilities, 0); // DEBUG -- not using Epsilon yet // EvolutionSettings.EpsilonForMainPlayer);
+            informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(samplingProbabilities, EvolutionSettings.EpsilonForMainPlayer);
             byte sampledAction = SampleAction(samplingProbabilities, numPossibleActions, randomDouble);
             if (TraceCFR)
                 TabbedText.WriteLine(
@@ -187,13 +187,13 @@ namespace ACESim
                 {
                     IGameState gameStateOriginal = historyPoint.GameState; // DEBUG -- move out of loop?
                     historyPoint.SwitchToBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
-                    summation = HedgeProbe_CalculateCounterfactualValues(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, informationSet, sigmaRegretMatchedActionProbabilities, action, sampledAction, samplingProbabilities, counterfactualValues, summation);
+                    summation = ModifiedGibsonProbe_CalculateCounterfactualValues(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, informationSet, sigmaRegretMatchedActionProbabilities, action, sampledAction, samplingProbabilities, counterfactualValues, summation);
                     GameDefinition.ReverseDecision(informationSet.Decision, ref historyPoint, gameStateOriginal);
                 }
                 else
                 {
                     // must put this in a separate method to avoid cost of creating HistoryPoint in this method when not in this loop
-                    summation = HedgeProbe_CalculateCounterfactualValues_NewHistoryPoint(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, informationSet, sigmaRegretMatchedActionProbabilities, action, summation, sampledAction, samplingProbabilities, counterfactualValues);
+                    summation = ModifiedGibsonProbe_CalculateCounterfactualValues_NewHistoryPoint(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, informationSet, sigmaRegretMatchedActionProbabilities, action, summation, sampledAction, samplingProbabilities, counterfactualValues);
                 }
             }
             double inverseSamplingProbabilityQ = (1.0 / samplingProbabilityQ);
@@ -204,9 +204,9 @@ namespace ACESim
                 double cumulativeRegretIncrement = inverseSamplingProbabilityQ *
                                                    (counterfactualValues[action - 1] - summation);
                 if (EvolutionSettings.ParallelOptimization)
-                    informationSet.IncrementCumulativeRegret_Parallel(action, cumulativeRegretIncrement, false, int.MaxValue, action == numPossibleActions);
+                    informationSet.IncrementCumulativeRegret_Parallel(action, cumulativeRegretIncrement, false);
                 else
-                    informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement, false, int.MaxValue, action == numPossibleActions);
+                    informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement, false);
                 if (bestAction == 0 || cumulativeRegretIncrement > bestCumulativeRegretIncrement)
                 {
                     bestAction = action;
@@ -222,14 +222,14 @@ namespace ACESim
             return summation;
         }
 
-        private unsafe double HedgeProbe_CalculateCounterfactualValues_NewHistoryPoint(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNodeTally informationSet, double* sigmaRegretMatchedActionProbabilities, byte action, double summation, byte sampledAction, double* samplingProbabilities, double* counterfactualValues)
+        private unsafe double ModifiedGibsonProbe_CalculateCounterfactualValues_NewHistoryPoint(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNodeTally informationSet, double* sigmaRegretMatchedActionProbabilities, byte action, double summation, byte sampledAction, double* samplingProbabilities, double* counterfactualValues)
         {
             HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
-            summation = HedgeProbe_CalculateCounterfactualValues(ref nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, informationSet, sigmaRegretMatchedActionProbabilities, action, sampledAction, samplingProbabilities, counterfactualValues, summation);
+            summation = ModifiedGibsonProbe_CalculateCounterfactualValues(ref nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, informationSet, sigmaRegretMatchedActionProbabilities, action, sampledAction, samplingProbabilities, counterfactualValues, summation);
             return summation;
         }
 
-        private unsafe double HedgeProbe_CalculateCounterfactualValues(ref HistoryPoint nextHistoryPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNodeTally informationSet, double* sigmaRegretMatchedActionProbabilities, byte action, byte sampledAction, double* samplingProbabilities, double* counterfactualValues, double summation)
+        private unsafe double ModifiedGibsonProbe_CalculateCounterfactualValues(ref HistoryPoint nextHistoryPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNodeTally informationSet, double* sigmaRegretMatchedActionProbabilities, byte action, byte sampledAction, double* samplingProbabilities, double* counterfactualValues, double summation)
         {
             if (action == sampledAction)
             {
@@ -240,7 +240,7 @@ namespace ACESim
                     TabbedText.Tabs++;
                 double samplingProbabilityQPrime = samplingProbabilityQ * samplingProbabilities[action - 1];
                 // IMPORTANT: Unlike Gibson probing, we don't record the result of the walk through the tree.
-                HedgeProbe_WalkTree(ref nextHistoryPoint, playerBeingOptimized,
+                ModifiedGibsonProbe_WalkTree(ref nextHistoryPoint, playerBeingOptimized,
                     samplingProbabilityQPrime, randomProducer, informationSet.Decision, informationSet.DecisionIndex);
                 if (TraceCFR)
                     TabbedText.Tabs--;
@@ -248,11 +248,11 @@ namespace ACESim
             // IMPORTANT: Unlike Gibson probing, we use a probe to calculate all counterfactual values. 
             if (TraceCFR)
                 TabbedText.WriteLine(
-                    $"{action}: HedgeProbing action {action} for player {informationSet.PlayerIndex} decision {informationSet.DecisionIndex}");
+                    $"{action}: ModifiedGibsonProbing action {action} for player {informationSet.PlayerIndex} decision {informationSet.DecisionIndex}");
             if (TraceCFR)
                 TabbedText.Tabs++;
             counterfactualValues[action - 1] =
-                HedgeProbe_SinglePlayer(nextHistoryPoint, playerBeingOptimized, randomProducer);
+                ModifiedGibsonProbe_SinglePlayer(nextHistoryPoint, playerBeingOptimized, randomProducer);
             double summationDelta = sigmaRegretMatchedActionProbabilities[action - 1] *
                                     counterfactualValues[action - 1];
             summation += summationDelta;
@@ -265,9 +265,9 @@ namespace ACESim
             return summation;
         }
 
-        private unsafe double HedgeProbe_WalkTree_DecisionNode_OtherPlayer(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNodeTally informationSet, double* sigmaRegretMatchedActionProbabilities, byte numPossibleActions, double randomDouble, byte playerAtPoint)
+        private unsafe double ModifiedGibsonProbe_WalkTree_DecisionNode_OtherPlayer(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNodeTally informationSet, double* sigmaRegretMatchedActionProbabilities, byte numPossibleActions, double randomDouble, byte playerAtPoint)
         {
-            informationSet.GetHedgeProbabilities(sigmaRegretMatchedActionProbabilities);
+            informationSet.GetRegretMatchingProbabilities(sigmaRegretMatchedActionProbabilities);
             for (byte action = 1; action <= numPossibleActions; action++)
             {
                 double cumulativeStrategyIncrement =
@@ -286,16 +286,16 @@ namespace ACESim
                 TabbedText.WriteLine(
                     $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {playerAtPoint} decision {informationSet.DecisionIndex} with regret-matched prob {sigmaRegretMatchedActionProbabilities[sampledAction - 1]}");
             if (historyPoint.BranchingIsReversible(Navigation, informationSet.Decision))
-                return HedgeProbe_WalkTree_DecisionNode_OtherPlayer_Reversible(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, informationSet, sampledAction);
-            return HedgeProbe_WalkTree_DecisionNode_OtherPlayer_NotReversible(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, informationSet, sampledAction);
+                return ModifiedGibsonProbe_WalkTree_DecisionNode_OtherPlayer_Reversible(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, informationSet, sampledAction);
+            return ModifiedGibsonProbe_WalkTree_DecisionNode_OtherPlayer_NotReversible(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, informationSet, sampledAction);
         }
 
-        private double HedgeProbe_WalkTree_DecisionNode_OtherPlayer_NotReversible(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNodeTally informationSet, byte sampledAction)
+        private double ModifiedGibsonProbe_WalkTree_DecisionNode_OtherPlayer_NotReversible(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNodeTally informationSet, byte sampledAction)
         {
             HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction, informationSet.Decision, informationSet.DecisionIndex);
             if (TraceCFR)
                 TabbedText.Tabs++;
-            double walkTreeValue2 = HedgeProbe_WalkTree(ref nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ,
+            double walkTreeValue2 = ModifiedGibsonProbe_WalkTree(ref nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ,
                 randomProducer, informationSet.Decision, informationSet.DecisionIndex);
             if (TraceCFR)
             {
@@ -305,13 +305,13 @@ namespace ACESim
             return walkTreeValue2;
         }
 
-        private double HedgeProbe_WalkTree_DecisionNode_OtherPlayer_Reversible(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNodeTally informationSet, byte sampledAction)
+        private double ModifiedGibsonProbe_WalkTree_DecisionNode_OtherPlayer_Reversible(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNodeTally informationSet, byte sampledAction)
         {
             IGameState gameStateOriginal = historyPoint.GameState;
             historyPoint.SwitchToBranch(Navigation, sampledAction, informationSet.Decision, informationSet.DecisionIndex);
             if (TraceCFR)
                 TabbedText.Tabs++;
-            double walkTreeValue = HedgeProbe_WalkTree(ref historyPoint, playerBeingOptimized, samplingProbabilityQ,
+            double walkTreeValue = ModifiedGibsonProbe_WalkTree(ref historyPoint, playerBeingOptimized, samplingProbabilityQ,
                 randomProducer, informationSet.Decision, informationSet.DecisionIndex);
             if (TraceCFR)
             {
@@ -322,7 +322,7 @@ namespace ACESim
             return walkTreeValue;
         }
 
-        private double HedgeProbe_WalkTree_ChanceNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, ChanceNodeSettings chanceNodeSettings)
+        private double ModifiedGibsonProbe_WalkTree_ChanceNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, ChanceNodeSettings chanceNodeSettings)
         {
             byte sampledAction;
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
@@ -333,15 +333,15 @@ namespace ACESim
             // TODO: Take into account critical node status. Right now, our critical node matters only for our probes, i.e. for later decisions. But we might have an early chance node that should be critical.
             if (historyPoint.BranchingIsReversible(Navigation, chanceNodeSettings.Decision))
             {
-                return HedgeProbe_WalkTree_ChanceNode_Reversible(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, chanceNodeSettings, sampledAction, numPossibleActions);
+                return ModifiedGibsonProbe_WalkTree_ChanceNode_Reversible(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, chanceNodeSettings, sampledAction, numPossibleActions);
             }
             else
             {
-                return HedgeProbe_WalkTree_ChanceNode_NotReversible(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, chanceNodeSettings, sampledAction, numPossibleActions);
+                return ModifiedGibsonProbe_WalkTree_ChanceNode_NotReversible(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, chanceNodeSettings, sampledAction, numPossibleActions);
             }
         }
 
-        private double HedgeProbe_WalkTree_ChanceNode_NotReversible(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, ChanceNodeSettings chanceNodeSettings, byte sampledAction, byte numPossibleActions)
+        private double ModifiedGibsonProbe_WalkTree_ChanceNode_NotReversible(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, ChanceNodeSettings chanceNodeSettings, byte sampledAction, byte numPossibleActions)
         {
             if (TraceCFR)
                 TabbedText.WriteLine(
@@ -350,7 +350,7 @@ namespace ACESim
             if (TraceCFR)
                 TabbedText.Tabs++;
             // var actionsToHere = nextHistoryPoint.GetActionsToHereString(Navigation);
-            double walkTreeValue = HedgeProbe_WalkTree(ref nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ,
+            double walkTreeValue = ModifiedGibsonProbe_WalkTree(ref nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ,
                 randomProducer, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
             if (TraceCFR)
             {
@@ -360,7 +360,7 @@ namespace ACESim
             return walkTreeValue;
         }
 
-        private double HedgeProbe_WalkTree_ChanceNode_Reversible(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, ChanceNodeSettings chanceNodeSettings, byte sampledAction, byte numPossibleActions)
+        private double ModifiedGibsonProbe_WalkTree_ChanceNode_Reversible(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, ChanceNodeSettings chanceNodeSettings, byte sampledAction, byte numPossibleActions)
         {
             if (TraceCFR)
                 TabbedText.WriteLine(
@@ -370,7 +370,7 @@ namespace ACESim
             if (TraceCFR)
                 TabbedText.Tabs++;
             // var actionsToHere = nextHistoryPoint.GetActionsToHereString(Navigation);
-            double walkTreeValue = HedgeProbe_WalkTree(ref historyPoint, playerBeingOptimized, samplingProbabilityQ,
+            double walkTreeValue = ModifiedGibsonProbe_WalkTree(ref historyPoint, playerBeingOptimized, samplingProbabilityQ,
                 randomProducer, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
             GameDefinition.ReverseDecision(chanceNodeSettings.Decision, ref historyPoint, gameStateOriginal);
             if (TraceCFR)
@@ -382,7 +382,7 @@ namespace ACESim
         }
 
 
-        public void HedgeProbingCFRIteration(int iteration)
+        public void ModifiedGibsonProbingCFRIteration(int iteration)
         {
             bool success;
             do
@@ -400,7 +400,7 @@ namespace ACESim
                             TabbedText.WriteLine($"Iteration {iteration} Optimize player {playerBeingOptimized}");
                             TabbedText.Tabs++;
                         }
-                        HedgeProbe_WalkTree(ref historyPoint, playerBeingOptimized, 1.0, randomProducer, GameDefinition.DecisionsExecutionOrder[0], 0);
+                        ModifiedGibsonProbe_WalkTree(ref historyPoint, playerBeingOptimized, 1.0, randomProducer, GameDefinition.DecisionsExecutionOrder[0], 0);
                         if (TraceCFR)
                             TabbedText.Tabs--;
                     }
@@ -414,7 +414,7 @@ namespace ACESim
             } while (!success);
         }
 
-        public unsafe string SolveHedgeProbingCFR(string reportName)
+        public unsafe string SolveModifiedGibsonProbingCFR(string reportName)
         {
             //TraceCFR = true;
             //GameProgressLogger.LoggingOn = true;
@@ -440,7 +440,7 @@ namespace ACESim
                     stopBefore = stopPhaseBefore;
                 else
                 {
-                    int stopToReportBefore = HedgeProbing_GetNextMultipleOf(ProbingCFRIterationNum, (int)EvolutionSettings.ReportEveryNIterations);
+                    int stopToReportBefore = ModifiedGibsonProbing_GetNextMultipleOf(ProbingCFRIterationNum, (int)EvolutionSettings.ReportEveryNIterations);
                     stopBefore = Math.Min(stopPhaseBefore, stopToReportBefore);
                 }
                 s.Start();
@@ -451,7 +451,7 @@ namespace ACESim
                     //else
                     //    TraceCFR = false;
                     ProbingCFREffectiveIteration = iteration;
-                    HedgeProbingCFRIteration(iteration);
+                    ModifiedGibsonProbingCFRIteration(iteration);
                 }
                 );
                 s.Stop();
@@ -463,7 +463,7 @@ namespace ACESim
             return reportString; // final report
         }
 
-        private int HedgeProbing_GetNextMultipleOf(int value, int multiple)
+        private int ModifiedGibsonProbing_GetNextMultipleOf(int value, int multiple)
         {
             int rem = value % multiple;
             int result = value - rem;

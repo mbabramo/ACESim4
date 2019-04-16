@@ -307,6 +307,39 @@ namespace ACESim
             return returnVal;
         }
 
+        public unsafe void GetEpsilonAdjustedHedgeProbabilities(double* probabilitiesToSet, double epsilon)
+        {
+            GetHedgeProbabilities(probabilitiesToSet);
+            double equalProbabilities = 1.0 / NumPossibleActions;
+            for (byte a = 1; a <= NumPossibleActions; a++)
+                probabilitiesToSet[a - 1] = epsilon * equalProbabilities + (1.0 - epsilon) * probabilitiesToSet[a - 1];
+        }
+
+        public unsafe void GetHedgeProbabilities(double* probabilitiesToSet)
+        {
+            double* exponentials = stackalloc double[NumPossibleActions];
+            double nu = Math.Sqrt(2 * Math.Log(NumPossibleActions) / (double)(NumRegretIncrements + 1.0));
+            bool done = false;
+            while (!done)
+            { // without this outer loop, there is a risk that when using parallel code, our regret matching probabilities will not add up to 1
+                double sum = 0;
+                for (byte a = 1; a <= NumPossibleActions; a++)
+                {
+                    double exponentialForAction = Math.Exp(nu * GetCumulativeRegret(a));
+                    exponentials[a - 1] = exponentialForAction;
+                    sum += exponentialForAction;
+                }
+                
+                double total = 0;
+                for (byte a = 1; a <= NumPossibleActions; a++)
+                {
+                    probabilitiesToSet[a - 1] = exponentials[a - 1] / sum;
+                    total += probabilitiesToSet[a - 1];
+                }
+                done = Math.Abs(1.0 - total) < 1E-7;
+            }
+        }
+
         public unsafe void GetRegretMatchingProbabilities(double* probabilitiesToSet)
         {
             bool done = false;

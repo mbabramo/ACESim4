@@ -5,6 +5,7 @@ namespace ACESim
         Vanilla,
         Probing,
         GibsonProbing,
+        ModifiedGibsonProbing,
         ExploratoryProbing,
         HedgeProbing,
         AverageStrategySampling,
