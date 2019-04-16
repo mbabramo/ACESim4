@@ -10,7 +10,7 @@ namespace ACESim
 {
     public static class LeducGameRunner
     {
-        public const bool OneBetSizeOnly = false;
+        public const bool OneBetSizeOnly = true;
         public const bool UseRegretAndStrategyDiscounting = true;
         public const GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.Vanilla;
 
