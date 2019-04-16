@@ -362,7 +362,9 @@ namespace ACESim
 
         public unsafe void GetHedgeProbabilities(double* probabilitiesToSet)
         {
-            
+            //DEBUG
+            //GetRegretMatchingProbabilities(probabilitiesToSet);
+            //return;
             double* exponentials = stackalloc double[NumPossibleActions];
             double iteration = (double)(NumRegretIncrements + 1.0);
             double nu = Math.Sqrt(2 * Math.Log(NumPossibleActions) / iteration);
