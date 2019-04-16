@@ -354,6 +354,9 @@ namespace ACESim
 
         public unsafe void GetEpsilonAdjustedHedgeProbabilities(double* probabilitiesToSet, double epsilon)
         {
+            // DEBUG
+            GetEpsilonAdjustedRegretMatchingProbabilities(probabilitiesToSet, epsilon);
+            return;
             GetHedgeProbabilities(probabilitiesToSet);
             double equalProbabilities = 1.0 / NumPossibleActions;
             for (byte a = 1; a <= NumPossibleActions; a++)
@@ -363,8 +366,8 @@ namespace ACESim
         public unsafe void GetHedgeProbabilities(double* probabilitiesToSet)
         {
             //DEBUG
-            //GetRegretMatchingProbabilities(probabilitiesToSet);
-            //return;
+            GetRegretMatchingProbabilities(probabilitiesToSet);
+            return;
             double* exponentials = stackalloc double[NumPossibleActions];
             double iteration = (double)(NumRegretIncrements + 1.0);
             double nu = Math.Sqrt(2 * Math.Log(NumPossibleActions) / iteration);
