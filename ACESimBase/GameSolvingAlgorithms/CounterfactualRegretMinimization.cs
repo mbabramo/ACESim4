@@ -513,17 +513,18 @@ namespace ACESim
                 ActionStrategies previous = ActionStrategy;
                 if (EvolutionSettings.AlwaysUseAverageStrategyInReporting)
                     ActionStrategy = ActionStrategies.AverageStrategy;
-                bool useRandomPaths = SkipEveryPermutationInitialization || NumInitializedGamePaths > EvolutionSettings.NumRandomIterationsForSummaryTable;
                 bool doBestResponse = (EvolutionSettings.BestResponseEveryMIterations != null && iteration % EvolutionSettings.BestResponseEveryMIterations == 0 && EvolutionSettings.BestResponseEveryMIterations != EvolutionSettings.EffectivelyNever && iteration != 0);
-                if (doBestResponse)
-                    useRandomPaths = false;
+                bool useRandomPaths = 
+                    (!doBestResponse || EvolutionSettings.UseRandomPathsForBestResponse) && 
+                        (SkipEveryPermutationInitialization || 
+                        NumInitializedGamePaths > EvolutionSettings.NumRandomIterationsForSummaryTable);
                 Console.WriteLine("");
                 Console.WriteLine(prefaceFn());
                 if (EvolutionSettings.Algorithm == GameApproximationAlgorithm.AverageStrategySampling)
                     Console.WriteLine($"{NumberAverageStrategySamplingExplorations / (double)EvolutionSettings.ReportEveryNIterations}");
                 NumberAverageStrategySamplingExplorations = 0;
                 if (EvolutionSettings.PrintSummaryTable)
-                    reportString = PrintSummaryTable(useRandomPaths);
+                    reportString = GenerateReportsByPlaying(useRandomPaths);
                 MeasureRegretMatchingChanges();
                 if (ShouldEstimateImprovementOverTime)
                     ReportEstimatedImprovementsOverTime();
@@ -541,7 +542,7 @@ namespace ACESim
             return reportString;
         }
 
-        private unsafe string PrintSummaryTable(bool useRandomPaths)
+        private unsafe string GenerateReportsByPlaying(bool useRandomPaths)
         {
             Action<GamePlayer, Func<Decision, GameProgress, byte>> reportGenerator;
             if (useRandomPaths)
@@ -554,7 +555,7 @@ namespace ACESim
                 Console.WriteLine($"Result using all paths");
                 reportGenerator = GenerateReports_AllPaths;
             }
-            var reports = GenerateReports(reportGenerator);
+            var reports = GenerateReportsByPlaying(reportGenerator);
             if (!EvolutionSettings.SuppressReportPrinting)
             {
                 Debug.WriteLine($"{reports.standardReport}");
@@ -703,7 +704,7 @@ namespace ACESim
 
         SimpleReport[] ReportsBeingGenerated = null;
 
-        public (string standardReport, string csvReport) GenerateReports(Action<GamePlayer, Func<Decision, GameProgress, byte>> generator)
+        public (string standardReport, string csvReport) GenerateReportsByPlaying(Action<GamePlayer, Func<Decision, GameProgress, byte>> generator)
         {
             Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, GetGameState);
             StringBuilder standardReport = new StringBuilder();
