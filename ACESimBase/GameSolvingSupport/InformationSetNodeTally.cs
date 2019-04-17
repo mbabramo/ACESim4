@@ -596,6 +596,8 @@ namespace ACESim
                 {
                     if (UpdatingHedge == null)
                     { // Initialize
+                        if (NumPossibleActions == 0)
+                            throw new Exception("NumPossibleActions not initialized");
                         for (int a = 1; a <= NumPossibleActions; a++)
                             NodeInformation[piDimension, a - 1] = 1.0 / (double)NumPossibleActions;
                         UpdatingHedge = new SimpleExclusiveLock();
@@ -649,7 +651,7 @@ namespace ACESim
                 }
             }
             // Now, calculate Nu
-            Nu = Math.Min(1.0 / E, C * Math.Sqrt(Math.Log((NumPossibleActions) / V)));
+            Nu = Math.Min(1.0 / E, C * Math.Sqrt(Math.Log(NumPossibleActions) / V));
             // Great, we can now calculate the p values. p. 333. First, we'll store the numerators, and then we'll divide by the denominator.
             double denominatorForAllActions = 0;
             for (int a = 1; a <= NumPossibleActions; a++)
@@ -657,12 +659,17 @@ namespace ACESim
                 NodeInformation[cumulativeRegretDimension, a - 1] += NodeInformation[lastRegretDimension, a - 1];
                 double numeratorForThisAction = Math.Exp(Nu * NodeInformation[cumulativeRegretDimension, a - 1]);
                 NodeInformation[temporaryDimension, a - 1] = numeratorForThisAction; // alternative implementation would reuse lastRegretDimension
-                if (double.IsInfinity(numeratorForThisAction))
+                if (double.IsNaN(numeratorForThisAction))
                     throw new Exception("Regrets too high. Must scale all regrets.");
                 denominatorForAllActions += numeratorForThisAction;
             }
             for (int a = 1; a <= NumPossibleActions; a++)
-                NodeInformation[piDimension, a - 1] = NodeInformation[temporaryDimension, a - 1] / denominatorForAllActions;
+            {
+                double quotient = NodeInformation[temporaryDimension, a - 1] / denominatorForAllActions;
+                NodeInformation[piDimension, a - 1] = quotient;
+                if (double.IsNaN(quotient))
+                    throw new Exception("Regrets too high. Must scale all regrets");
+            }
         }
 
         public unsafe void GetEpsilonAdjustedHedgeProbabilities(double* probabilitiesToSet, double epsilon)
