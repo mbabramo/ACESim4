@@ -78,6 +78,10 @@ namespace ACESim
             NumRegretIncrements = 0;
             NumBackupRegretIncrements = 0;
             NumBackupRegretsSinceLastRegretIncrement = 0;
+            V = 0;
+            MaxAbsRegretDiff = 0;
+            E = 1;
+            UpdatingHedge = null;
         }
 
         public override string ToString()

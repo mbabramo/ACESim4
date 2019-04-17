@@ -24,7 +24,7 @@ namespace ACESim
 
                 GameNumber = StartGameNumber,
 
-                Algorithm = GameApproximationAlgorithm.Vanilla,
+                Algorithm = GameApproximationAlgorithm.HedgeProbing,
 
                 ReportEveryNIterations = 100_000,
                 NumRandomIterationsForSummaryTable = 1_000,
@@ -35,13 +35,13 @@ namespace ACESim
                 AlwaysUseAverageStrategyInReporting = true, // IMPORTANT NOTE: Using average strategy here
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
 
-                TotalProbingCFRIterations = 100_000,
                 EpsilonForMainPlayer = 0.5,
                 EpsilonForOpponentWhenExploring = 0.5,
                 MinBackupRegretsTrigger = 10,
                 TriggerIncreaseOverTime = 0,
 
                 TotalAvgStrategySamplingCFRIterations = 10000000,
+                TotalProbingCFRIterations = 10000000,
                 TotalVanillaCFRIterations = 1_000,
             };
             return evolutionSettings;

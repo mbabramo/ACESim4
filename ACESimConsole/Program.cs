@@ -24,7 +24,7 @@ namespace ACESim
             MyGame
         }
 
-        public static AvailableGames GameToPlay = AvailableGames.Leduc;
+        public static AvailableGames GameToPlay = AvailableGames.MultiRoundCooperation;
 
         [STAThread]
         static void Main(string[] args)
