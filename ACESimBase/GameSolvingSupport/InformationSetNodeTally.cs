@@ -20,8 +20,10 @@ namespace ACESim
         public bool MustUseBackup;
         public int NumTotalIncrements = 0;
         public int NumRegretIncrements = 0;
+
         public int NumBackupRegretIncrements = 0;
         public int NumBackupRegretsSinceLastRegretIncrement = 0;
+
 
         double[,] NodeInformation;
 
@@ -31,13 +33,27 @@ namespace ACESim
         const int cumulativeStrategyDimension = 1;
         const int bestResponseNumeratorDimension = 2;
         const int bestResponseDenominatorDimension = 3;
+        // for hedge probing
+        const int piDimension = 4;
+        const int lastRegretDimension = 5;
+        const int temporaryDimension = 6;
+        // for exploratory probing
         const int storageDimension = 4;
         const int storageDimension2 = 5;
         const int cumulativeRegretBackupDimension = 6;
 
-        public bool RegretExtremesSet = false;
-        public double MinRegret, MaxRegret;
-        public double NormalizedRegret(double r) => MaxRegret == MinRegret ? 1.0 : r / (MaxRegret - MinRegret);
+
+        public bool UpdatingHedge = false; // set to true while updating to avoid parallelism problems
+        double V = 0; // V parameter in Cesa-Bianchi
+        double MaxAbsRegretDiff = 0;
+        double E = 1;
+        double Nu;
+        static double C = Math.Sqrt((2 * (Math.Sqrt(2) - 1.0)) / (Math.Exp(1.0) - 2));
+
+        public InformationSetNodeTally()
+        {
+
+        }
 
         public InformationSetNodeTally(Decision decision, byte decisionIndex)
         {
@@ -122,6 +138,7 @@ namespace ACESim
                 {
                     MinRegret = amount;
                     MaxRegret = amount;
+                    RegretExtremesSet = true;
                 }
             }
             else
@@ -184,6 +201,7 @@ namespace ACESim
             {
                 MinRegret = amount;
                 MaxRegret = amount;
+                RegretExtremesSet = true;
             }
             else
             {
@@ -237,6 +255,9 @@ namespace ACESim
             double v = NodeInformation[cumulativeStrategyDimension, action - 1];
             return v;
         }
+
+        Debug;
+        // DEBUG -- we need to have a special increment mode for Hedge. Among other things, we need to check whether we're already incrementing (because of parallelization). If so, we're done. Also, we need to set up the pi values at the end of the iteration.
 
         public void IncrementCumulativeStrategy_Parallel(int action, double amount)
         {
@@ -352,22 +373,82 @@ namespace ACESim
             return returnVal;
         }
 
+        private unsafe void UpdateHedgeInfoAfterIteration()
+        {
+            double firstSum = 0, secondSum = 0;
+            double minLastRegret = 0, maxLastRegret = 0;
+            for (int a = 1; a <= NumPossibleActions; a++)
+            {
+                double lastPi = NodeInformation[piDimension, a - 1];
+                double lastRegret = NodeInformation[lastRegretDimension, a - 1];
+                if (a == 1)
+                    minLastRegret = maxLastRegret = lastRegret;
+                else if (lastRegret > maxLastRegret)
+                    maxLastRegret = lastRegret;
+                else if (lastRegret < minLastRegret)
+                    minLastRegret = lastRegret;
+                double product = lastPi * lastRegret;
+                firstSum += product * lastRegret; // i.e., pi * regret^2
+                secondSum += product;
+            }
+            double deltaV = firstSum - secondSum * secondSum;
+            V += deltaV;
+            // update e, if necessary
+            double absRegretDiff = Math.Abs(maxLastRegret - minLastRegret);
+            if (absRegretDiff > MaxAbsRegretDiff)
+            {
+                MaxAbsRegretDiff = absRegretDiff;
+                if (MaxAbsRegretDiff > 0)
+                {
+                    int k = (int)Math.Floor(Math.Log(MaxAbsRegretDiff, 2.0));
+                    E = Math.Pow(2.0, k);
+                }
+            }
+            // Now, calculate Nu
+            Nu = Math.Min(1.0 / E, C * Math.Sqrt(Math.Log((NumRegretIncrements + 1.0) / V)));
+            // Great, we can now calculate the p values. First, we'll store the numerators, and then we'll divide by the denominator.
+            double denominator = 0;
+            for (int a = 1; a <= NumPossibleActions; a++)
+            {
+                NodeInformation[cumulativeRegretDimension, a - 1] += NodeInformation[lastRegretDimension, a - 1];
+                double numerator = Math.Exp(Nu * NodeInformation[cumulativeRegretDimension, a - 1]);
+                NodeInformation[temporaryDimension, a - 1] = numerator;
+                if (double.IsInfinity(numerator))
+                    throw new Exception("Regrets too high. Must scale all regrets.");
+                denominator += numerator;
+            }
+            for (int a = 1; a <= NumPossibleActions; a++)
+                NodeInformation[piDimension, a - 1] = NodeInformation[temporaryDimension, a - 1] / denominator;
+        }
+
         public unsafe void GetEpsilonAdjustedHedgeProbabilities(double* probabilitiesToSet, double epsilon)
         {
-            // DEBUG
-            GetEpsilonAdjustedRegretMatchingProbabilities(probabilitiesToSet, epsilon);
-            return;
+            //// DEBUG
+            //GetEpsilonAdjustedRegretMatchingProbabilities(probabilitiesToSet, epsilon);
+            //return;
             GetHedgeProbabilities(probabilitiesToSet);
             double equalProbabilities = 1.0 / NumPossibleActions;
             for (byte a = 1; a <= NumPossibleActions; a++)
                 probabilitiesToSet[a - 1] = epsilon * equalProbabilities + (1.0 - epsilon) * probabilitiesToSet[a - 1];
         }
 
+        public unsafe double[] GetHedgeProbabilities_DEBUG()
+        {
+            const int numPossibleActions = 3;
+            double[] array = new double[numPossibleActions];
+
+            double* actionProbabilities = stackalloc double[numPossibleActions];
+            GetHedgeProbabilities(actionProbabilities);
+            for (int a = 0; a < numPossibleActions; a++)
+                array[a] = actionProbabilities[a];
+            return array;
+        }
+
         public unsafe void GetHedgeProbabilities(double* probabilitiesToSet)
         {
-            //DEBUG
-            GetRegretMatchingProbabilities(probabilitiesToSet);
-            return;
+            ////DEBUG
+            //GetRegretMatchingProbabilities(probabilitiesToSet);
+            //return;
             double* exponentials = stackalloc double[NumPossibleActions];
             double iteration = (double)(NumRegretIncrements + 1.0);
             double nu = Math.Sqrt(2 * Math.Log(NumPossibleActions) / iteration);

@@ -381,7 +381,6 @@ namespace ACESim
             return walkTreeValue;
         }
 
-
         public void HedgeProbingCFRIteration(int iteration)
         {
             bool success;
