@@ -638,6 +638,8 @@ namespace ACESim
                 secondSum += product;
             }
             double varZt = firstSum - secondSum * secondSum; // see Cesa-Bianchi-2007 p. 333
+            if (varZt < 0)
+                varZt = 0; // rounding error
             V += varZt; // p. 334
             // update e, if necessary (p. 336)
             double absRegretDiff = Math.Abs(maxLastRegret - minLastRegret);
@@ -652,6 +654,8 @@ namespace ACESim
             }
             // Now, calculate Nu
             Nu = Math.Min(1.0 / E, C * Math.Sqrt(Math.Log(NumPossibleActions) / V));
+            if (double.IsNaN(Nu))
+                throw new Exception();
             // Great, we can now calculate the p values. p. 333. First, we'll store the numerators, and then we'll divide by the denominator.
             double denominatorForAllActions = 0;
             for (int a = 1; a <= NumPossibleActions; a++)
