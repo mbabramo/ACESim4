@@ -199,15 +199,13 @@ namespace ACESim
             double inverseSamplingProbabilityQ = (1.0 / samplingProbabilityQ);
             byte bestAction = 0;
             double bestCumulativeRegretIncrement = 0;
+            informationSet.InitiateHedgeUpdate();
             for (byte action = 1; action <= numPossibleActions; action++)
             {
                 double cumulativeRegretIncrement = inverseSamplingProbabilityQ *
                                                    (counterfactualValues[action - 1] - summation);
-                if (EvolutionSettings.ParallelOptimization)
-                    informationSet.IncrementCumulativeRegret_Parallel(action, cumulativeRegretIncrement, false, int.MaxValue, action == numPossibleActions);
-                else
-                    informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement, false, int.MaxValue, action == numPossibleActions);
-                if (bestAction == 0 || cumulativeRegretIncrement > bestCumulativeRegretIncrement)
+                informationSet.HedgeSetLastRegret(action, cumulativeRegretIncrement);
+                if (bestAction == 0 || cumulativeRegretIncrement > bestCumulativeRegretIncrement) // DEBUG -- delete these variables.
                 {
                     bestAction = action;
                     bestCumulativeRegretIncrement = cumulativeRegretIncrement;
@@ -219,6 +217,7 @@ namespace ACESim
                         $"Increasing cumulative regret for action {action} in {informationSet.InformationSetNumber} by {inverseSamplingProbabilityQ} * ({(counterfactualValues[action - 1])} - {summation}) = {cumulativeRegretIncrement} to {informationSet.GetCumulativeRegret(action)}");
                 }
             }
+            informationSet.ConcludeHedgeUpdate();
             return summation;
         }
 

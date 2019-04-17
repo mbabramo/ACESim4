@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ACESimBase.Util;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -45,7 +46,7 @@ namespace ACESim
         const int cumulativeRegretBackupDimension = 6;
 
 
-        public bool UpdatingHedge = false; // set to true while updating to avoid parallelism problems
+        public SimpleExclusiveLock UpdatingHedge;
         double V = 0; // V parameter in Cesa-Bianchi
         double MaxAbsRegretDiff = 0;
         double E = 1;
@@ -587,6 +588,35 @@ namespace ACESim
 
         #region Hedge
 
+        public void InitiateHedgeUpdate()
+        {
+            if (UpdatingHedge == null)
+            {
+                lock (this)
+                {
+                    if (UpdatingHedge == null)
+                    { // Initialize
+                        for (int a = 1; a <= NumPossibleActions; a++)
+                            NodeInformation[piDimension, a - 1] = 1.0 / (double)NumPossibleActions;
+                        UpdatingHedge = new SimpleExclusiveLock();
+                    }
+                }
+            }
+            UpdatingHedge.Enter();
+        }
+
+        public void ConcludeHedgeUpdate()
+        {
+            UpdateHedgeInfoAfterIteration();
+            UpdatingHedge.Exit();
+        }
+
+        public void HedgeSetLastRegret(byte action, double regret)
+        {
+            NodeInformation[lastRegretDimension, action - 1] = regret;
+            NumRegretIncrements++;
+        }
+
         private unsafe void UpdateHedgeInfoAfterIteration()
         {
             double firstSum = 0, secondSum = 0;
@@ -637,57 +667,43 @@ namespace ACESim
 
         public unsafe void GetEpsilonAdjustedHedgeProbabilities(double* probabilitiesToSet, double epsilon)
         {
-            Debug;
-            //// DEBUG
-            //GetEpsilonAdjustedRegretMatchingProbabilities(probabilitiesToSet, epsilon);
-            //return;
             GetHedgeProbabilities(probabilitiesToSet);
             double equalProbabilities = 1.0 / NumPossibleActions;
             for (byte a = 1; a <= NumPossibleActions; a++)
                 probabilitiesToSet[a - 1] = epsilon * equalProbabilities + (1.0 - epsilon) * probabilitiesToSet[a - 1];
         }
 
-        public unsafe double[] GetHedgeProbabilities_DEBUG()
-        {
-            const int numPossibleActions = 3;
-            double[] array = new double[numPossibleActions];
-
-            double* actionProbabilities = stackalloc double[numPossibleActions];
-            GetHedgeProbabilities(actionProbabilities);
-            for (int a = 0; a < numPossibleActions; a++)
-                array[a] = actionProbabilities[a];
-            return array;
-        }
-
         public unsafe void GetHedgeProbabilities(double* probabilitiesToSet)
         {
-            Debug;
-            ////DEBUG
-            //GetRegretMatchingProbabilities(probabilitiesToSet);
-            //return;
-            double* exponentials = stackalloc double[NumPossibleActions];
-            double iteration = (double)(NumRegretIncrements + 1.0);
-            double nu = Math.Sqrt(2 * Math.Log(NumPossibleActions) / iteration);
+            if (UpdatingHedge == null)
+            {
+                InitiateHedgeUpdate(); // will initialize if still necessary
+                ConcludeHedgeUpdate();
+            }
             bool done = false;
             while (!done)
             { // without this outer loop, there is a risk that when using parallel code, our regret matching probabilities will not add up to 1
-                double sum = 0;
-                for (byte a = 1; a <= NumPossibleActions; a++)
-                {
-                    double exponentialForAction = Math.Exp(nu * NormalizedRegret(GetCumulativeRegret(a) / iteration));
-                    exponentials[a - 1] = exponentialForAction;
-                    sum += exponentialForAction;
-                }
-                
                 double total = 0;
                 for (byte a = 1; a <= NumPossibleActions; a++)
                 {
-                    probabilitiesToSet[a - 1] = exponentials[a - 1] / sum;
+                    probabilitiesToSet[a - 1] = NodeInformation[piDimension, a - 1];
                     total += probabilitiesToSet[a - 1];
                 }
                 done = Math.Abs(1.0 - total) < 1E-7;
             }
         }
+
+        public unsafe double[] GetHedgeProbabilitiesAsArray()
+        {
+            double[] array = new double[NumPossibleActions];
+
+            double* actionProbabilities = stackalloc double[NumPossibleActions];
+            GetHedgeProbabilities(actionProbabilities);
+            for (int a = 0; a < NumPossibleActions; a++)
+                array[a] = actionProbabilities[a];
+            return array;
+        }
+
 
         #endregion
 
