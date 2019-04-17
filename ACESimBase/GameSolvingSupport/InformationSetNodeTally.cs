@@ -11,6 +11,8 @@ namespace ACESim
     [Serializable]
     public class InformationSetNodeTally : IGameState
     {
+        #region Properties, members, and constants
+
         public static int InformationSetsSoFar = 0;
         public int InformationSetNumber; // could delete this once things are working, but may be useful in testing scenarios
         public Decision Decision;
@@ -49,6 +51,10 @@ namespace ACESim
         double E = 1;
         double Nu;
         static double C = Math.Sqrt((2 * (Math.Sqrt(2) - 1.0)) / (Math.Exp(1.0) - 2));
+
+        #endregion
+
+        #region Construction and initialization
 
         public InformationSetNodeTally()
         {
@@ -93,6 +99,68 @@ namespace ACESim
                     NodeInformation[i, j] = 0;
         }
 
+        public void ClearAverageStrategyTally()
+        {
+            for (byte a = 0; a < NumPossibleActions; a++)
+                NodeInformation[cumulativeStrategyDimension, a] = 0;
+        }
+
+        public void ClearMainTally()
+        {
+            for (byte a = 0; a < NumPossibleActions; a++)
+                NodeInformation[cumulativeRegretDimension, a] = 0;
+            MustUseBackup = true; // as long as the main tally is cleared, we have to use the backup tally -- if we set something in the main tally, then this will automatically change
+        }
+
+        public void ClearBackupTally()
+        {
+            for (byte a = 0; a < NumPossibleActions; a++)
+                NodeInformation[cumulativeRegretBackupDimension, a] = 0;
+        }
+
+        public void CopyFromOneDimensionToAnother(byte dimensionCopyingFrom, byte dimensionCopyingTo)
+        {
+            for (byte a = 0; a < NumPossibleActions; a++)
+                NodeInformation[dimensionCopyingTo, a] = NodeInformation[dimensionCopyingFrom, a];
+        }
+
+        public void SubtractOutValues(byte dimensionSubtractingFrom, byte dimensionWithValuesToSubtract)
+        {
+            for (byte a = 0; a < NumPossibleActions; a++)
+                NodeInformation[dimensionSubtractingFrom, a] -= NodeInformation[dimensionWithValuesToSubtract, a];
+        }
+
+        public void CopyBackupTallyToMainTally()
+        {
+            CopyFromOneDimensionToAnother(cumulativeRegretBackupDimension, cumulativeRegretDimension);
+        }
+
+        public void CopyMainTallyToBackupTally()
+        {
+            CopyFromOneDimensionToAnother(cumulativeRegretDimension, cumulativeRegretBackupDimension);
+        }
+
+        public void StoreCurrentTallyValues()
+        {
+            CopyFromOneDimensionToAnother(cumulativeRegretDimension, storageDimension);
+            CopyFromOneDimensionToAnother(cumulativeRegretBackupDimension, storageDimension2);
+        }
+
+        public void SubtractOutStoredTallyValues()
+        {
+            SubtractOutValues(cumulativeRegretDimension, storageDimension);
+            SubtractOutValues(cumulativeRegretBackupDimension, storageDimension2);
+        }
+
+        public GameStateTypeEnum GetGameStateType()
+        {
+            return GameStateTypeEnum.Tally;
+        }
+
+        #endregion
+
+        #region Best response
+
         public byte GetBestResponseAction()
         {
             double bestRatio = 0;
@@ -124,40 +192,62 @@ namespace ACESim
             NodeInformation[bestResponseNumeratorDimension, action - 1] += piInverse * expectedValue;
             NodeInformation[bestResponseDenominatorDimension, action - 1] += piInverse;
         }
-        
+
+        #endregion
+
+        #region Cumulative regrets and backup regrets
+
+        public string GetCumulativeRegretsString()
+        {
+            List<double> probs = new List<double>();
+            for (byte a = 1; a <= NumPossibleActions; a++)
+                probs.Add(GetCumulativeRegret(a));
+            return String.Join(", ", probs.Select(x => $"{x:N2}"));
+        }
+
         public double GetCumulativeRegret(int action)
         {
             return MustUseBackup ? NodeInformation[cumulativeRegretBackupDimension, action - 1] : NodeInformation[cumulativeRegretDimension, action - 1];
         }
 
+        public double GetPositiveCumulativeRegret(int action)
+        {
+            double cumulativeRegret = MustUseBackup ? NodeInformation[cumulativeRegretBackupDimension, action - 1] : NodeInformation[cumulativeRegretDimension, action - 1];
+            if (cumulativeRegret > 0)
+                return cumulativeRegret;
+            return 0;
+        }
+
+        public double GetSumPositiveCumulativeRegrets()
+        {
+            double total = 0;
+            for (int i = 0; i < NumPossibleActions; i++)
+            {
+                double cumulativeRegret = MustUseBackup ? NodeInformation[cumulativeRegretBackupDimension, i] : NodeInformation[cumulativeRegretDimension, i];
+                if (cumulativeRegret > 0)
+                    total += cumulativeRegret;
+            }
+            return total;
+        }
+
+        public (double, int) GetSumPositiveCumulativeRegrets_AndNumberPositive()
+        {
+            double total = 0;
+            int numPositive = 0;
+            for (int i = 0; i < NumPossibleActions; i++)
+            {
+                double cumulativeRegret = MustUseBackup ? NodeInformation[cumulativeRegretBackupDimension, i] : NodeInformation[cumulativeRegretDimension, i];
+                if (cumulativeRegret > 0)
+                {
+                    total += cumulativeRegret;
+                    numPositive++;
+                }
+            }
+            return (total, numPositive);
+        }
+
         public void IncrementCumulativeRegret_Parallel(int action, double amount, bool incrementBackup, int backupRegretsTrigger = int.MaxValue, bool incrementVisits = false)
         {
-            if (!RegretExtremesSet)
-            {
-                lock(this)
-                {
-                    MinRegret = amount;
-                    MaxRegret = amount;
-                    RegretExtremesSet = true;
-                }
-            }
-            else
-            {
-                if (amount > MaxRegret)
-                {
-                    lock(this)
-                    {
-                        MaxRegret = amount;
-                    }
-                }
-                else if (amount < MinRegret)
-                {
-                    lock(this)
-                    {
-                        MinRegret = amount;
-                    }
-                }
-            }
             Interlocked.Increment(ref NumTotalIncrements);
             if (incrementBackup)
             {
@@ -197,23 +287,6 @@ namespace ACESim
 
         public void IncrementCumulativeRegret(int action, double amount, bool incrementBackup, int backupRegretsTrigger = int.MaxValue, bool incrementVisits = false)
         {
-            if (!RegretExtremesSet)
-            {
-                MinRegret = amount;
-                MaxRegret = amount;
-                RegretExtremesSet = true;
-            }
-            else
-            {
-                if (amount > MaxRegret)
-                {
-                    MaxRegret = amount;
-                }
-                else if (amount < MinRegret)
-                {
-                    MinRegret = amount;
-                }
-            }
             NumTotalIncrements++; // we always keep track of this
             if (incrementBackup)
             {
@@ -240,14 +313,16 @@ namespace ACESim
             MustUseBackup = (NumRegretIncrements == 0) || NumBackupRegretsSinceLastRegretIncrement >= backupRegretsTrigger;
         }
 
-        public void SetActionToCertainty(byte action, byte numPossibleActions)
+        #endregion
+
+        #region Cumulative strategies
+
+        public unsafe string GetCumulativeStrategiesString()
         {
-            for (byte a = 1; a <= numPossibleActions; a++)
-            {
-                NodeInformation[cumulativeStrategyDimension, a - 1] =
-                NodeInformation[cumulativeRegretDimension, a - 1] = 
-                    (a == action) ? 1.0 : 0;
-            }
+            List<double> probs = new List<double>();
+            for (byte a = 1; a <= NumPossibleActions; a++)
+                probs.Add(NodeInformation[cumulativeStrategyDimension, a - 1]);
+            return String.Join(", ", probs.Select(x => $"{x:N2}"));
         }
 
         public double GetCumulativeStrategy(int action)
@@ -255,9 +330,6 @@ namespace ACESim
             double v = NodeInformation[cumulativeStrategyDimension, action - 1];
             return v;
         }
-
-        Debug;
-        // DEBUG -- we need to have a special increment mode for Hedge. Among other things, we need to check whether we're already incrementing (because of parallelization). If so, we're done. Also, we need to set up the pi values at the end of the iteration.
 
         public void IncrementCumulativeStrategy_Parallel(int action, double amount)
         {
@@ -302,41 +374,19 @@ namespace ACESim
 
         }
 
-        public double GetPositiveCumulativeRegret(int action)
+        public void SetActionToCertainty(byte action, byte numPossibleActions)
         {
-            double cumulativeRegret = MustUseBackup ? NodeInformation[cumulativeRegretBackupDimension, action - 1] : NodeInformation[cumulativeRegretDimension, action - 1];
-            if (cumulativeRegret > 0)
-                return cumulativeRegret;
-            return 0;
+            for (byte a = 1; a <= numPossibleActions; a++)
+            {
+                NodeInformation[cumulativeStrategyDimension, a - 1] =
+                NodeInformation[cumulativeRegretDimension, a - 1] =
+                    (a == action) ? 1.0 : 0;
+            }
         }
 
-        public double GetSumPositiveCumulativeRegrets()
-        {
-            double total = 0;
-            for (int i = 0; i < NumPossibleActions; i++)
-            {
-                double cumulativeRegret = MustUseBackup ? NodeInformation[cumulativeRegretBackupDimension, i] : NodeInformation[cumulativeRegretDimension, i];
-                if (cumulativeRegret > 0)
-                    total += cumulativeRegret;
-            }
-            return total;
-        }
+        #endregion
 
-        public (double,int) GetSumPositiveCumulativeRegrets_AndNumberPositive()
-        {
-            double total = 0;
-            int numPositive = 0;
-            for (int i = 0; i < NumPossibleActions; i++)
-            {
-                double cumulativeRegret = MustUseBackup ? NodeInformation[cumulativeRegretBackupDimension, i] : NodeInformation[cumulativeRegretDimension, i];
-                if (cumulativeRegret > 0)
-                {
-                    total += cumulativeRegret;
-                    numPositive++;
-                }
-            }
-            return (total, numPositive);
-        }
+        #region Regret matching
 
         public unsafe List<double> GetRegretMatchingProbabilities()
         {
@@ -357,7 +407,6 @@ namespace ACESim
             return returnVal;
         }
 
-
         public unsafe List<double> GetRegretMatchingProbabilities_WithEvenProbabilitiesIfUsingBackup()
         {
             // NOTE: Not thread-safe
@@ -371,106 +420,6 @@ namespace ACESim
             List<double> returnVal = Util.ListExtensions.GetPointerAsList(probabilitiesToSet, NumPossibleActions);
             MustUseBackup = mustUseBackupPrevious;
             return returnVal;
-        }
-
-        private unsafe void UpdateHedgeInfoAfterIteration()
-        {
-            double firstSum = 0, secondSum = 0;
-            double minLastRegret = 0, maxLastRegret = 0;
-            for (int a = 1; a <= NumPossibleActions; a++)
-            {
-                double lastPi = NodeInformation[piDimension, a - 1];
-                double lastRegret = NodeInformation[lastRegretDimension, a - 1];
-                if (a == 1)
-                    minLastRegret = maxLastRegret = lastRegret;
-                else if (lastRegret > maxLastRegret)
-                    maxLastRegret = lastRegret;
-                else if (lastRegret < minLastRegret)
-                    minLastRegret = lastRegret;
-                double product = lastPi * lastRegret;
-                firstSum += product * lastRegret; // i.e., pi * regret^2
-                secondSum += product;
-            }
-            double deltaV = firstSum - secondSum * secondSum;
-            V += deltaV;
-            // update e, if necessary
-            double absRegretDiff = Math.Abs(maxLastRegret - minLastRegret);
-            if (absRegretDiff > MaxAbsRegretDiff)
-            {
-                MaxAbsRegretDiff = absRegretDiff;
-                if (MaxAbsRegretDiff > 0)
-                {
-                    int k = (int)Math.Floor(Math.Log(MaxAbsRegretDiff, 2.0));
-                    E = Math.Pow(2.0, k);
-                }
-            }
-            // Now, calculate Nu
-            Nu = Math.Min(1.0 / E, C * Math.Sqrt(Math.Log((NumRegretIncrements + 1.0) / V)));
-            // Great, we can now calculate the p values. First, we'll store the numerators, and then we'll divide by the denominator.
-            double denominator = 0;
-            for (int a = 1; a <= NumPossibleActions; a++)
-            {
-                NodeInformation[cumulativeRegretDimension, a - 1] += NodeInformation[lastRegretDimension, a - 1];
-                double numerator = Math.Exp(Nu * NodeInformation[cumulativeRegretDimension, a - 1]);
-                NodeInformation[temporaryDimension, a - 1] = numerator;
-                if (double.IsInfinity(numerator))
-                    throw new Exception("Regrets too high. Must scale all regrets.");
-                denominator += numerator;
-            }
-            for (int a = 1; a <= NumPossibleActions; a++)
-                NodeInformation[piDimension, a - 1] = NodeInformation[temporaryDimension, a - 1] / denominator;
-        }
-
-        public unsafe void GetEpsilonAdjustedHedgeProbabilities(double* probabilitiesToSet, double epsilon)
-        {
-            //// DEBUG
-            //GetEpsilonAdjustedRegretMatchingProbabilities(probabilitiesToSet, epsilon);
-            //return;
-            GetHedgeProbabilities(probabilitiesToSet);
-            double equalProbabilities = 1.0 / NumPossibleActions;
-            for (byte a = 1; a <= NumPossibleActions; a++)
-                probabilitiesToSet[a - 1] = epsilon * equalProbabilities + (1.0 - epsilon) * probabilitiesToSet[a - 1];
-        }
-
-        public unsafe double[] GetHedgeProbabilities_DEBUG()
-        {
-            const int numPossibleActions = 3;
-            double[] array = new double[numPossibleActions];
-
-            double* actionProbabilities = stackalloc double[numPossibleActions];
-            GetHedgeProbabilities(actionProbabilities);
-            for (int a = 0; a < numPossibleActions; a++)
-                array[a] = actionProbabilities[a];
-            return array;
-        }
-
-        public unsafe void GetHedgeProbabilities(double* probabilitiesToSet)
-        {
-            ////DEBUG
-            //GetRegretMatchingProbabilities(probabilitiesToSet);
-            //return;
-            double* exponentials = stackalloc double[NumPossibleActions];
-            double iteration = (double)(NumRegretIncrements + 1.0);
-            double nu = Math.Sqrt(2 * Math.Log(NumPossibleActions) / iteration);
-            bool done = false;
-            while (!done)
-            { // without this outer loop, there is a risk that when using parallel code, our regret matching probabilities will not add up to 1
-                double sum = 0;
-                for (byte a = 1; a <= NumPossibleActions; a++)
-                {
-                    double exponentialForAction = Math.Exp(nu * NormalizedRegret(GetCumulativeRegret(a) / iteration));
-                    exponentials[a - 1] = exponentialForAction;
-                    sum += exponentialForAction;
-                }
-                
-                double total = 0;
-                for (byte a = 1; a <= NumPossibleActions; a++)
-                {
-                    probabilitiesToSet[a - 1] = exponentials[a - 1] / sum;
-                    total += probabilitiesToSet[a - 1];
-                }
-                done = Math.Abs(1.0 - total) < 1E-7;
-            }
         }
 
         public unsafe void GetRegretMatchingProbabilities(double* probabilitiesToSet)
@@ -494,7 +443,7 @@ namespace ACESim
                 }
                 if (sumPositiveCumulativeRegrets == 0)
                 {
-                    double equalProbability = 1.0 / (double) NumPossibleActions;
+                    double equalProbability = 1.0 / (double)NumPossibleActions;
                     for (byte a = 1; a <= NumPossibleActions; a++)
                         probabilitiesToSet[a - 1] = equalProbability;
                     done = true;
@@ -512,22 +461,6 @@ namespace ACESim
             }
         }
 
-        public unsafe string GetCumulativeStrategiesString()
-        {
-            List<double> probs = new List<double>();
-            for (byte a = 1; a <= NumPossibleActions; a++)
-                probs.Add(NodeInformation[cumulativeStrategyDimension, a - 1]);
-            return String.Join(", ", probs.Select(x => $"{x:N2}"));
-        }
-
-        public string GetCumulativeRegretsString()
-        {
-            List<double> probs = new List<double>();
-            for (byte a = 1; a <= NumPossibleActions; a++)
-                probs.Add(GetCumulativeRegret(a));
-            return String.Join(", ", probs.Select(x => $"{x:N2}"));
-        }
-
         public string GetRegretMatchingProbabilitiesString()
         {
             var probs = GetRegretMatchingProbabilitiesList();
@@ -541,7 +474,7 @@ namespace ACESim
             double sumPositiveCumulativeRegrets = GetSumPositiveCumulativeRegrets();
             if (sumPositiveCumulativeRegrets == 0)
             {
-                double equalProbability = 1.0 / (double) NumPossibleActions;
+                double equalProbability = 1.0 / (double)NumPossibleActions;
                 for (byte a = 1; a <= NumPossibleActions; a++)
                     probs.Add(equalProbability);
             }
@@ -638,7 +571,7 @@ namespace ACESim
             double firstActionRegrets = GetCumulativeRegret(1);
             double secondActionRegrets = GetCumulativeRegret(2);
             if (firstActionRegrets <= 0 & secondActionRegrets <= 0)
-                return 0.5*scoreAction1 + 0.5*scoreAction2;
+                return 0.5 * scoreAction1 + 0.5 * scoreAction2;
             else if (firstActionRegrets <= 0)
                 return scoreAction2;
             else if (secondActionRegrets <= 0)
@@ -650,63 +583,113 @@ namespace ACESim
             }
         }
 
-        public void ClearAverageStrategyTally()
+        #endregion
+
+        #region Hedge
+
+        private unsafe void UpdateHedgeInfoAfterIteration()
         {
-            for (byte a = 0; a < NumPossibleActions; a++)
-                NodeInformation[cumulativeStrategyDimension, a] = 0;
+            double firstSum = 0, secondSum = 0;
+            double minLastRegret = 0, maxLastRegret = 0;
+            for (int a = 1; a <= NumPossibleActions; a++)
+            {
+                double lastPi = NodeInformation[piDimension, a - 1];
+                double lastRegret = NodeInformation[lastRegretDimension, a - 1];
+                if (a == 1)
+                    minLastRegret = maxLastRegret = lastRegret;
+                else if (lastRegret > maxLastRegret)
+                    maxLastRegret = lastRegret;
+                else if (lastRegret < minLastRegret)
+                    minLastRegret = lastRegret;
+                double product = lastPi * lastRegret;
+                firstSum += product * lastRegret; // i.e., pi * regret^2
+                secondSum += product;
+            }
+            double varZt = firstSum - secondSum * secondSum; // see Cesa-Bianchi-2007 p. 333
+            V += varZt; // p. 334
+            // update e, if necessary (p. 336)
+            double absRegretDiff = Math.Abs(maxLastRegret - minLastRegret);
+            if (absRegretDiff > MaxAbsRegretDiff)
+            {
+                MaxAbsRegretDiff = absRegretDiff;
+                if (MaxAbsRegretDiff > 0)
+                {
+                    int k = (int)Math.Ceiling(Math.Log(MaxAbsRegretDiff, 2.0));
+                    E = Math.Pow(2.0, k);
+                }
+            }
+            // Now, calculate Nu
+            Nu = Math.Min(1.0 / E, C * Math.Sqrt(Math.Log((NumPossibleActions) / V)));
+            // Great, we can now calculate the p values. p. 333. First, we'll store the numerators, and then we'll divide by the denominator.
+            double denominatorForAllActions = 0;
+            for (int a = 1; a <= NumPossibleActions; a++)
+            {
+                NodeInformation[cumulativeRegretDimension, a - 1] += NodeInformation[lastRegretDimension, a - 1];
+                double numeratorForThisAction = Math.Exp(Nu * NodeInformation[cumulativeRegretDimension, a - 1]);
+                NodeInformation[temporaryDimension, a - 1] = numeratorForThisAction; // alternative implementation would reuse lastRegretDimension
+                if (double.IsInfinity(numeratorForThisAction))
+                    throw new Exception("Regrets too high. Must scale all regrets.");
+                denominatorForAllActions += numeratorForThisAction;
+            }
+            for (int a = 1; a <= NumPossibleActions; a++)
+                NodeInformation[piDimension, a - 1] = NodeInformation[temporaryDimension, a - 1] / denominatorForAllActions;
         }
 
-        public void ClearMainTally()
+        public unsafe void GetEpsilonAdjustedHedgeProbabilities(double* probabilitiesToSet, double epsilon)
         {
-            for (byte a = 0; a < NumPossibleActions; a++)
-                NodeInformation[cumulativeRegretDimension, a] = 0;
-            MustUseBackup = true; // as long as the main tally is cleared, we have to use the backup tally -- if we set something in the main tally, then this will automatically change
+            Debug;
+            //// DEBUG
+            //GetEpsilonAdjustedRegretMatchingProbabilities(probabilitiesToSet, epsilon);
+            //return;
+            GetHedgeProbabilities(probabilitiesToSet);
+            double equalProbabilities = 1.0 / NumPossibleActions;
+            for (byte a = 1; a <= NumPossibleActions; a++)
+                probabilitiesToSet[a - 1] = epsilon * equalProbabilities + (1.0 - epsilon) * probabilitiesToSet[a - 1];
         }
 
-        public void ClearBackupTally()
+        public unsafe double[] GetHedgeProbabilities_DEBUG()
         {
-            for (byte a = 0; a < NumPossibleActions; a++)
-                NodeInformation[cumulativeRegretBackupDimension, a] = 0;
+            const int numPossibleActions = 3;
+            double[] array = new double[numPossibleActions];
+
+            double* actionProbabilities = stackalloc double[numPossibleActions];
+            GetHedgeProbabilities(actionProbabilities);
+            for (int a = 0; a < numPossibleActions; a++)
+                array[a] = actionProbabilities[a];
+            return array;
         }
 
-        public void CopyFromOneDimensionToAnother(byte dimensionCopyingFrom, byte dimensionCopyingTo)
+        public unsafe void GetHedgeProbabilities(double* probabilitiesToSet)
         {
-            for (byte a = 0; a < NumPossibleActions; a++)
-                NodeInformation[dimensionCopyingTo, a] = NodeInformation[dimensionCopyingFrom, a];
+            Debug;
+            ////DEBUG
+            //GetRegretMatchingProbabilities(probabilitiesToSet);
+            //return;
+            double* exponentials = stackalloc double[NumPossibleActions];
+            double iteration = (double)(NumRegretIncrements + 1.0);
+            double nu = Math.Sqrt(2 * Math.Log(NumPossibleActions) / iteration);
+            bool done = false;
+            while (!done)
+            { // without this outer loop, there is a risk that when using parallel code, our regret matching probabilities will not add up to 1
+                double sum = 0;
+                for (byte a = 1; a <= NumPossibleActions; a++)
+                {
+                    double exponentialForAction = Math.Exp(nu * NormalizedRegret(GetCumulativeRegret(a) / iteration));
+                    exponentials[a - 1] = exponentialForAction;
+                    sum += exponentialForAction;
+                }
+                
+                double total = 0;
+                for (byte a = 1; a <= NumPossibleActions; a++)
+                {
+                    probabilitiesToSet[a - 1] = exponentials[a - 1] / sum;
+                    total += probabilitiesToSet[a - 1];
+                }
+                done = Math.Abs(1.0 - total) < 1E-7;
+            }
         }
 
-        public void SubtractOutValues(byte dimensionSubtractingFrom, byte dimensionWithValuesToSubtract)
-        {
-            for (byte a = 0; a < NumPossibleActions; a++)
-                NodeInformation[dimensionSubtractingFrom, a] -= NodeInformation[dimensionWithValuesToSubtract, a];
-        }
-
-        public void CopyBackupTallyToMainTally()
-        {
-            CopyFromOneDimensionToAnother(cumulativeRegretBackupDimension, cumulativeRegretDimension);
-        }
-
-        public void CopyMainTallyToBackupTally()
-        {
-            CopyFromOneDimensionToAnother(cumulativeRegretDimension, cumulativeRegretBackupDimension);
-        }
-
-        public void StoreCurrentTallyValues()
-        {
-            CopyFromOneDimensionToAnother(cumulativeRegretDimension, storageDimension);
-            CopyFromOneDimensionToAnother(cumulativeRegretBackupDimension, storageDimension2);
-        }
-
-        public void SubtractOutStoredTallyValues()
-        {
-            SubtractOutValues(cumulativeRegretDimension, storageDimension);
-            SubtractOutValues(cumulativeRegretBackupDimension, storageDimension2);
-        }
-
-        public GameStateTypeEnum GetGameStateType()
-        {
-            return GameStateTypeEnum.Tally;
-        }
+        #endregion
 
     }
 }
