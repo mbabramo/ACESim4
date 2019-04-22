@@ -163,6 +163,10 @@ namespace ACESim
         {
             byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
             double* sigmaRegretMatchedActionProbabilities = stackalloc double[numPossibleActions];
+            if (playerBeingOptimized == 1 && informationSet?.InformationSetNumber == 0 && informationSet.NumRegretIncrements >= 20000)
+            {
+                var DEBUG = 0;
+            }
             informationSet.GetHedgeProbabilities(sigmaRegretMatchedActionProbabilities);
             byte playerAtPoint = informationSet.PlayerIndex;
             double randomDouble = randomProducer.GetDoubleAtIndex(informationSet.DecisionIndex);

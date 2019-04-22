@@ -15,7 +15,7 @@ namespace ACESim
 
         public static bool EnableOutput = true;
 
-        public static bool WriteToConsole = false;
+        public static bool WriteToConsole = true;
 
         public static void WriteLine(object value)
         {

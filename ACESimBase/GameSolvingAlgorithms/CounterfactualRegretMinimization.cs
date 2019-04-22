@@ -270,15 +270,15 @@ namespace ACESim
                             if (t != null &&
                                 EvolutionSettings.RestrictToTheseInformationSets.Contains(t.InformationSetNumber))
                             {
-                                Debug.WriteLine($"{t}");
+                                Console.WriteLine($"{t}");
                             }
                         });
                     }
                     else
                     {
-                        Debug.WriteLine($"{s.PlayerInfo}");
+                        Console.WriteLine($"{s.PlayerInfo}");
                         string tree = s.GetInformationSetTreeString();
-                        Debug.WriteLine(tree);
+                        Console.WriteLine(tree);
                     }
                 }
             }
@@ -334,10 +334,13 @@ namespace ACESim
                     byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
                     double[] cumUtilities = null;
                     double* actionProbabilities = stackalloc double[numPossibleActions];
-                    informationSet.GetRegretMatchingProbabilities(actionProbabilities);
+                    if (informationSet.UpdatingHedge != null)
+                        informationSet.GetHedgeProbabilities(actionProbabilities);
+                    else
+                        informationSet.GetRegretMatchingProbabilities(actionProbabilities);
                     for (byte action = 1; action <= numPossibleActions; action++)
                     {
-                        TabbedText.WriteLine($"{action} (P{informationSet.PlayerIndex}): p={actionProbabilities[action - 1]:N2} (from regrets {informationSet.GetCumulativeRegretsString()})");
+                        TabbedText.WriteLine($"{action} (P{informationSet.PlayerIndex}): p={actionProbabilities[action - 1]:N2} (from regrets {informationSet.GetCumulativeRegretsString()} in information set {informationSet.InformationSetNumber} based on {informationSet.NumRegretIncrements} increments)");
                         HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                         TabbedText.Tabs++;
                         double[] utilitiesAtNextHistoryPoint = PrintGameTree_Helper(ref nextHistoryPoint);

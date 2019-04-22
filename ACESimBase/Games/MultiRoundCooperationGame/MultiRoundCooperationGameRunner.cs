@@ -26,12 +26,12 @@ namespace ACESim
 
                 Algorithm = GameApproximationAlgorithm.HedgeProbing,
 
-                ReportEveryNIterations = 100_000,
+                ReportEveryNIterations = 5,
                 NumRandomIterationsForSummaryTable = 1_000,
                 GenerateReportsByPlaying = true,
                 PrintInformationSets = true,
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
-                PrintGameTree = false,
+                PrintGameTree = true,
                 AlwaysUseAverageStrategyInReporting = true, // IMPORTANT NOTE: Using average strategy here
                 BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
 
