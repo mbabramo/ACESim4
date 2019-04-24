@@ -43,16 +43,20 @@ namespace ACESim
         // for normalized hedge
         const int regretIncrementsDimension = 5;
         const int adjustedWeightsDimension = 6;
-        const double NormalizedHedgeEpsilon = 0.5;
         // for exploratory probing
         const int storageDimension = 4;
         const int storageDimension2 = 5;
         const int cumulativeRegretBackupDimension = 6;
 
         // Normalized hedge
-        int LastUpdatedIteration = -1;
-
         public SimpleExclusiveLock UpdatingHedge;
+        const double NormalizedHedgeEpsilon = 0.5;
+        int LastUpdatedIteration = -1;
+        public byte LastBestResponseAction = 0;
+        public bool BestResponseWeightsUpdatedSinceLast = false;
+        public double[] LastBestResponseExpectedValues;
+
+        // hedge probing
         double V = 0; // V parameter in Cesa-Bianchi
         double MaxAbsRegretDiff = 0;
         double E = 1;
@@ -174,17 +178,25 @@ namespace ACESim
 
         public byte GetBestResponseAction()
         {
+            if (BestResponseWeightsUpdatedSinceLast == false)
+                return LastBestResponseAction;
             double bestRatio = 0;
             int best = 0;
             for (int a = 1; a <= NumPossibleActions; a++)
             {
-                double ratio = NodeInformation[bestResponseNumeratorDimension, a - 1] / NodeInformation[bestResponseDenominatorDimension, a - 1];
+                double denominator = NodeInformation[bestResponseDenominatorDimension, a - 1];
+                if (denominator == 0)
+                    return 0; // no best response data available
+                double ratio = NodeInformation[bestResponseNumeratorDimension, a - 1] / denominator;
                 if (a == 1 || ratio > bestRatio)
                 {
                     best = a;
                     bestRatio = ratio;
                 }
             }
+            LastBestResponseAction = (byte)best;
+            BestResponseWeightsUpdatedSinceLast = false;
+            ResetBestResponseData();
             return (byte) best;
         }
 
@@ -202,6 +214,7 @@ namespace ACESim
         {
             NodeInformation[bestResponseNumeratorDimension, action - 1] += piInverse * expectedValue;
             NodeInformation[bestResponseDenominatorDimension, action - 1] += piInverse;
+            BestResponseWeightsUpdatedSinceLast = true;
         }
 
         #endregion
@@ -606,6 +619,8 @@ namespace ACESim
                 UpdatingHedge.Enter();
                 if (iteration > LastUpdatedIteration)
                 {
+                    GetBestResponseAction(); // calculate best response, if data is available
+                    // remember last regret
                     double minLastRegret = 0, maxLastRegret = 0;
                     for (int a = 1; a <= NumPossibleActions; a++)
                     {
@@ -633,7 +648,7 @@ namespace ACESim
                         NodeInformation[regretIncrementsDimension, a - 1] = 0; // reset for next iteration
                     }
                     if (sumWeights < 1E-20)
-                    { // increase all weights to avoid all weights being round off to zero
+                    { // increase all weights to avoid all weights being round off to zero -- since this affects only relative probabilities at the information set, this won't matter
                         for (int a = 1; a <= NumPossibleActions; a++)
                         {
                             NodeInformation[adjustedWeightsDimension, a - 1] *= 1E+15;

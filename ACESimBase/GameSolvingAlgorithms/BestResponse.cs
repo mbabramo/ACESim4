@@ -20,7 +20,7 @@ namespace ACESim
         {
             HashSet<byte> depthsOfPlayerDecisions = new HashSet<byte>();
             var startHistoryPoint = GetStartOfGameHistoryPoint();
-            GEBRPass1(ref startHistoryPoint, playerIndex, 1,
+            GEBRPass1_ResetData(ref startHistoryPoint, playerIndex, 1,
                 depthsOfPlayerDecisions); // setup counting first decision as depth 1
             List<byte> depthsOrdered = depthsOfPlayerDecisions.OrderByDescending(x => x).ToList();
             depthsOrdered.Add(0); // last depth to play should return outcome
@@ -41,7 +41,7 @@ namespace ACESim
             return bestResponseUtility;
         }
 
-        public void GEBRPass1(ref HistoryPoint historyPoint, byte playerIndex, byte depth,
+        public void GEBRPass1_ResetData(ref HistoryPoint historyPoint, byte playerIndex, byte depth,
             HashSet<byte> depthOfPlayerDecisions)
         {
             if (historyPoint.IsComplete(Navigation))
@@ -76,7 +76,7 @@ namespace ACESim
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
                     var nextHistory = historyPoint.GetBranch(Navigation, action, decision, decisionIndex);
-                    GEBRPass1(ref nextHistory, playerIndex, (byte) (depth + 1), depthOfPlayerDecisions);
+                    GEBRPass1_ResetData(ref nextHistory, playerIndex, (byte) (depth + 1), depthOfPlayerDecisions);
                 }
             }
         }
@@ -182,6 +182,7 @@ namespace ACESim
                         expectedValueSum += product;
                     else if (playerMakingDecision == playerIndex && depthToTarget == depthSoFar)
                     {
+                        // This is the key part -- incrementing best responses. Note that the expected value is NOT here multiplied by this player's probability of playing to the next stage. The overall best response will depend on how often other players play to this point. We'll be calling this for EACH history that leads to this information set.
                         informationSet.IncrementBestResponse(action, inversePi, expectedValue);
                         if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionIndex))
                         {
