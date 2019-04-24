@@ -40,11 +40,17 @@ namespace ACESim
         const int piDimension = 4;
         const int lastRegretDimension = 5;
         const int temporaryDimension = 6;
+        // for normalized hedge
+        const int regretIncrementsDimension = 5;
+        const int adjustedWeightsDimension = 6;
+        const double NormalizedHedgeEpsilon = 0.5;
         // for exploratory probing
         const int storageDimension = 4;
         const int storageDimension2 = 5;
         const int cumulativeRegretBackupDimension = 6;
 
+        // Normalized hedge
+        int LastUpdatedIteration = -1;
 
         public SimpleExclusiveLock UpdatingHedge;
         double V = 0; // V parameter in Cesa-Bianchi
@@ -590,9 +596,67 @@ namespace ACESim
 
         #endregion
 
-        #region Hedge
+        #region Normalized Hedge
 
-        public void InitiateHedgeUpdate()
+        private void UpdateNormalizedHedgeIfNecessary(int iteration)
+        {
+            if (iteration > LastUpdatedIteration)
+            {
+                InitializeNormalizedHedgeIfNecessary();
+                UpdatingHedge.Enter();
+                if (iteration > LastUpdatedIteration)
+                {
+                    double minLastRegret = 0, maxLastRegret = 0;
+                    for (int a = 1; a <= NumPossibleActions; a++)
+                    {
+                        double lastRegret = NodeInformation[regretIncrementsDimension, a - 1];
+                        if (a == 1)
+                            minLastRegret = maxLastRegret = lastRegret;
+                        else if (lastRegret > maxLastRegret)
+                            maxLastRegret = lastRegret;
+                        else if (lastRegret < minLastRegret)
+                            minLastRegret = lastRegret;
+                    }
+                    // normalize regrets to costs between 0 and 1. the key assumption is that each iteration takes into account ALL possible outcomes (as in a vanilla hedge CFR algorithm)
+                    double sumWeights = 0;
+                    for (int a = 1; a <= NumPossibleActions; a++)
+                    {
+                        double regretIncrements = NodeInformation[regretIncrementsDimension, a - 1];
+                        double normalizedCost = maxLastRegret == minLastRegret ? 0.5 : 1.0 - (regretIncrements - minLastRegret) / (maxLastRegret - minLastRegret);
+                        double weightAdjustment = Math.Pow(1 - NormalizedHedgeEpsilon, normalizedCost);
+                        double weight = NodeInformation[adjustedWeightsDimension, a - 1];
+                        weight *= weightAdjustment;
+                        if (double.IsNaN(weight))
+                            throw new Exception();
+                        NodeInformation[adjustedWeightsDimension, a - 1] = weight;
+                        sumWeights += weight;
+                        NodeInformation[regretIncrementsDimension, a - 1] = 0; // reset for next iteration
+                    }
+                    if (sumWeights < 1E-20)
+                    { // increase all weights to avoid all weights being round off to zero
+                        for (int a = 1; a <= NumPossibleActions; a++)
+                        {
+                            NodeInformation[adjustedWeightsDimension, a - 1] *= 1E+15;
+                        }
+                        sumWeights *= 1E+15;
+                    }
+                    // Finally, calculate the hedge adjusted probabilities
+                    for (int a = 1; a <= NumPossibleActions; a++)
+                    {
+                        double probability = NodeInformation[adjustedWeightsDimension, a - 1] / sumWeights;
+                        if (probability == 0)
+                            probability = Double.Epsilon; // always maintain at least the smallest possible positive probability
+                        if (double.IsNaN(probability))
+                            throw new Exception();
+                        NodeInformation[piDimension, a - 1] = probability;
+                    }
+                    LastUpdatedIteration = iteration;
+                }
+                UpdatingHedge.Exit();
+            }
+        }
+
+        private void InitializeNormalizedHedgeIfNecessary()
         {
             if (UpdatingHedge == null)
             {
@@ -602,13 +666,102 @@ namespace ACESim
                     { // Initialize
                         if (NumPossibleActions == 0)
                             throw new Exception("NumPossibleActions not initialized");
+                        double probability = 1.0 / (double)NumPossibleActions;
+                        if (double.IsNaN(probability))
+                            throw new Exception(); // DEBUG
                         for (int a = 1; a <= NumPossibleActions; a++)
-                            NodeInformation[piDimension, a - 1] = 1.0 / (double)NumPossibleActions;
+                        {
+                            NodeInformation[adjustedWeightsDimension, a - 1] = 1.0;
+                            NodeInformation[piDimension, a - 1] = probability;
+                        }
                         UpdatingHedge = new SimpleExclusiveLock();
                     }
                 }
             }
+        }
+
+        public void NormalizedHedgeIncrementLastRegret(byte action, double regretTimesInversePi)
+        {
+            IncrementDouble(ref NodeInformation[lastRegretDimension, action - 1], regretTimesInversePi);
+        }
+
+        private static double IncrementDouble(ref double location1, double value)
+        {
+            double newCurrentValue = location1; // non-volatile read, so may be stale
+            while (true)
+            {
+                double currentValue = newCurrentValue;
+                double newValue = currentValue + value;
+                newCurrentValue = Interlocked.CompareExchange(ref location1, newValue, currentValue);
+                if (newCurrentValue == currentValue)
+                    return newValue;
+            }
+        }
+
+        public unsafe void GetEpsilonAdjustedNormalizedHedgeProbabilities(double* probabilitiesToSet, double epsilon, int iteration)
+        {
+            GetNormalizedHedgeProbabilities(probabilitiesToSet, iteration);
+            double equalProbabilities = 1.0 / NumPossibleActions;
+            for (byte a = 1; a <= NumPossibleActions; a++)
+                probabilitiesToSet[a - 1] = epsilon * equalProbabilities + (1.0 - epsilon) * probabilitiesToSet[a - 1];
+        }
+
+        public unsafe void GetNormalizedHedgeProbabilities(double* probabilitiesToSet, int iteration)
+        {
+            UpdateNormalizedHedgeIfNecessary(iteration);
+            bool done = false;
+            while (!done)
+            { // without this outer loop, there is a risk that when using parallel code, our probabilities will not add up to 1
+                double total = 0;
+                for (byte a = 1; a <= NumPossibleActions; a++)
+                {
+                    probabilitiesToSet[a - 1] = NodeInformation[piDimension, a - 1];
+                    total += probabilitiesToSet[a - 1];
+                }
+                done = Math.Abs(1.0 - total) < 1E-7;
+            }
+        }
+
+        public unsafe double[] GetNormalizedHedgeProbabilitiesAsArray(int iteration)
+        {
+            double[] array = new double[NumPossibleActions];
+
+            double* actionProbabilities = stackalloc double[NumPossibleActions];
+            GetNormalizedHedgeProbabilities(actionProbabilities, iteration);
+            for (int a = 0; a < NumPossibleActions; a++)
+                array[a] = actionProbabilities[a];
+            return array;
+        }
+
+        #endregion
+
+        #region Hedge
+
+        public void InitiateHedgeUpdate()
+        {
+            InitializeHedgeIfNecessary();
             UpdatingHedge.Enter();
+        }
+
+        private void InitializeHedgeIfNecessary()
+        {
+            if (UpdatingHedge == null)
+            {
+                lock (this)
+                {
+                    if (UpdatingHedge == null)
+                    { // Initialize
+                        if (NumPossibleActions == 0)
+                            throw new Exception("NumPossibleActions not initialized");
+                        double probability = 1.0 / (double)NumPossibleActions;
+                        if (double.IsNaN(probability))
+                            throw new Exception(); // DEBUG
+                        for (int a = 1; a <= NumPossibleActions; a++)
+                            NodeInformation[piDimension, a - 1] = probability;
+                        UpdatingHedge = new SimpleExclusiveLock();
+                    }
+                }
+            }
         }
 
         public void ConcludeHedgeUpdate()
@@ -697,7 +850,7 @@ namespace ACESim
             }
             bool done = false;
             while (!done)
-            { // without this outer loop, there is a risk that when using parallel code, our regret matching probabilities will not add up to 1
+            { // without this outer loop, there is a risk that when using parallel code, our probabilities will not add up to 1
                 double total = 0;
                 for (byte a = 1; a <= NumPossibleActions; a++)
                 {

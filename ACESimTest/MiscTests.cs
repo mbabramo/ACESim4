@@ -98,28 +98,6 @@ namespace ACESimTest
         }
 
         [TestMethod]
-        public void DEBUG()
-        {
-            Decision d = new Decision() { NumPossibleActions = 2 };
-            InformationSetNodeTally t = new InformationSetNodeTally(d, 0);
-            for (int i = 0; i < 10_000_000; i++)
-            {
-                t.IncrementCumulativeRegret(1, 4.0, false, int.MaxValue, false);
-                t.IncrementCumulativeRegret(2, -4.0, false, int.MaxValue, true);
-            }
-
-            var result = t.GetHedgeProbabilities_DEBUG();
-            for (int j = 0; j < 2; j++)
-            {
-                double cumRegret = t.GetCumulativeRegret(j + 1);
-                double cumRegretPerIter = cumRegret / t.NumRegretIncrements;
-                double normalized = t.NormalizedRegret(cumRegretPerIter);
-                double exp = Math.Exp(0.5 * normalized);
-                Debug.WriteLine($"Player {j} Cum regrets {cumRegretPerIter} normalized {normalized} exp {exp}");
-            }
-        }
-
-        [TestMethod]
         public void CheckConfidenceInterval()
         {
             // this is a minimal check to make sure that our logit transformation works
