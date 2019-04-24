@@ -1,4 +1,5 @@
-﻿using ACESimBase.Util;
+﻿using ACESim.Util;
+using ACESimBase.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -275,7 +276,7 @@ namespace ACESim
             Interlocked.Increment(ref NumTotalIncrements);
             if (incrementBackup)
             {
-                InterlockedAdd(ref NodeInformation[cumulativeRegretBackupDimension, action - 1], amount);
+                Interlocking.Add(ref NodeInformation[cumulativeRegretBackupDimension, action - 1], amount);
                 if (incrementVisits)
                 {
                     Interlocked.Increment(ref NumBackupRegretIncrements);
@@ -284,28 +285,12 @@ namespace ACESim
                 }
                 return;
             }
-            InterlockedAdd(ref NodeInformation[cumulativeRegretDimension, action - 1], amount);
+            Interlocking.Add(ref NodeInformation[cumulativeRegretDimension, action - 1], amount);
             if (incrementVisits)
             {
                 Interlocked.Increment(ref NumRegretIncrements);
                 NumBackupRegretsSinceLastRegretIncrement = 0;
                 SetMustUseBackup(backupRegretsTrigger);
-            }
-        }
-
-        private static double InterlockedAdd(ref double location1, double value)
-        {
-            // Note: There is no Interlocked.Add for doubles, but this accomplishes the same thing, without using a lock.
-            double newCurrentValue = location1; // non-volatile read, so may be stale
-            if (double.IsNaN(value))
-                throw new Exception("Not a double");
-            while (true)
-            {
-                double currentValue = newCurrentValue;
-                double newValue = currentValue + value;
-                newCurrentValue = Interlocked.CompareExchange(ref location1, newValue, currentValue);
-                if (newCurrentValue == currentValue)
-                    return newValue;
             }
         }
 
@@ -357,7 +342,7 @@ namespace ACESim
 
         public void IncrementCumulativeStrategy_Parallel(int action, double amount)
         {
-            InterlockedAdd(ref NodeInformation[cumulativeStrategyDimension, action - 1], amount);
+            Interlocking.Add(ref NodeInformation[cumulativeStrategyDimension, action - 1], amount);
         }
 
         public void IncrementCumulativeStrategy(int action, double amount)

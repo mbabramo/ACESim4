@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ACESim.Util;
+using System;
 using System.Diagnostics;
 
 namespace ACESim
@@ -160,7 +161,7 @@ namespace ACESim
                     double probabilityAdjustedExpectedValueParticularAction =
                         VanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues,
                             chanceNodeSettings, equalProbabilityNextPiValues, expectedValue, action, usePruning);
-                    expectedValue += probabilityAdjustedExpectedValueParticularAction;
+                    Interlocking.Add(ref expectedValue, probabilityAdjustedExpectedValueParticularAction);
                 });
 
             return expectedValue;

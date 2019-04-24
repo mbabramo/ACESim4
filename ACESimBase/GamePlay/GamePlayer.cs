@@ -60,7 +60,7 @@ namespace ACESim
             playPathsFn(gp => 
             {
                 actionToTake(gp);
-                Interlocked.Increment(ref numPathsPlayed);
+                System.Threading.Interlocked.Increment(ref numPathsPlayed);
             }) ;
             s.Stop();
             Console.WriteLine("PlayAllPathsTime " + s.ElapsedMilliseconds);
@@ -158,7 +158,7 @@ namespace ACESim
                         byte endingValue = GameDefinition.DecisionsExecutionOrder[pathToExpand].NumPossibleActions;
                         for (byte i = startingValue; i <= endingValue; i++)
                         {
-                            Interlocked.Increment(ref numPending);
+                            System.Threading.Interlocked.Increment(ref numPending);
                             List<byte> next2 = new List<byte>();
                             for (int j = 0; j < pathToExpand; j++)
                                 next2.Add(next[j]);
@@ -168,7 +168,7 @@ namespace ACESim
                         }
                     }
                 }
-                Interlocked.Decrement(ref numPending);
+                System.Threading.Interlocked.Decrement(ref numPending);
                 if (numPending == 0)
                     bufferBlock.Complete();
                 return gameProgress;
@@ -183,7 +183,7 @@ namespace ACESim
             });
 
             PathInfo startingPath = new PathInfo(new List<byte> { }, -1);
-            Interlocked.Increment(ref numPending);
+            System.Threading.Interlocked.Increment(ref numPending);
             bufferBlock.Post(startingPath);
             Task.WaitAll(bufferBlock.Completion, transformBlock.Completion, actionBlock.Completion);
             //
