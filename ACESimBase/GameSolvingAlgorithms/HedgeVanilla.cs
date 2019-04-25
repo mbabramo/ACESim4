@@ -6,16 +6,13 @@ namespace ACESim
 {
     public partial class CounterfactualRegretMinimization
     {
-
-        Debug; // must also have invpi for average strategies
-
         /// <summary>
         /// Performs an iteration of vanilla counterfactual regret minimization.
         /// </summary>
         /// <param name="historyPoint">The game tree, pointing to the particular point in the game where we are located</param>
         /// <param name="playerBeingOptimized">0 for first player, etc. Note that this corresponds in Lanctot to 1, 2, etc. We are using zero-basing for player index (even though we are 1-basing actions).</param>
         /// <returns></returns>
-        public unsafe HedgeVanillaUtilities HedgeVanillaCFR(ref HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues,
+        public unsafe HedgeVanillaUtilities HedgeVanillaCFR(ref HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues, double* avgStratPiValues,
             bool usePruning)
         {
             if (usePruning && ShouldPruneIfPruning(piValues))
@@ -31,17 +28,19 @@ namespace ACESim
             else if (gameStateType == GameStateTypeEnum.Chance)
             {
                 ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings)gameStateForCurrentPlayer;
-                return HedgeVanillaCFR_ChanceNode(ref historyPoint, playerBeingOptimized, piValues, usePruning);
+                return HedgeVanillaCFR_ChanceNode(ref historyPoint, playerBeingOptimized, piValues, avgStratPiValues, usePruning);
             }
             else
-                return HedgeVanillaCFR_DecisionNode(ref historyPoint, playerBeingOptimized, piValues, usePruning);
+                return HedgeVanillaCFR_DecisionNode(ref historyPoint, playerBeingOptimized, piValues, avgStratPiValues, usePruning);
         }
 
         private unsafe HedgeVanillaUtilities HedgeVanillaCFR_DecisionNode(ref HistoryPoint historyPoint, byte playerBeingOptimized,
-            double* piValues, bool usePruning)
+            double* piValues, double* avgStratPiValues, bool usePruning)
         {
-            double* nextPiValues = stackalloc double[MaxNumMainPlayers];
             double inversePi = GetInversePiValue(piValues, playerBeingOptimized);
+            double inversePiAvgStrat = GetInversePiValue(avgStratPiValues, playerBeingOptimized);
+            double* nextPiValues = stackalloc double[MaxNumMainPlayers];
+            double* nextAvgStratPiValues = stackalloc double[MaxNumMainPlayers];
             //var actionsToHere = historyPoint.GetActionsToHere(Navigation);
             //var historyPointString = historyPoint.ToString();
 
@@ -66,8 +65,10 @@ namespace ACESim
             for (byte action = 1; action <= numPossibleActions; action++)
             {
                 double probabilityOfAction = actionProbabilities[action - 1];
+                double probabilityOfActionAvgStrat = informationSet.GetHedgeSavedAverageStrategy(action);
                 GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false,
                     nextPiValues); // reduce probability associated with player being optimized, without changing probabilities for other players
+                GetNextPiValues(avgStratPiValues, playerMakingDecision, probabilityOfActionAvgStrat, false, nextAvgStratPiValues);
                 if (TraceCFR)
                 {
                     TabbedText.WriteLine(
@@ -75,7 +76,7 @@ namespace ACESim
                     TabbedText.Tabs++;
                 }
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
-                HedgeVanillaUtilities innerResult = HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, usePruning);
+                HedgeVanillaUtilities innerResult = HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, usePruning);
                 expectedValueOfAction[action - 1] = innerResult.HedgeVsHedge;
                 double averageStrategyProbability = informationSet.GetHedgeSavedAverageStrategy(action);
                 if (playerMakingDecision == playerBeingOptimized)
@@ -83,7 +84,7 @@ namespace ACESim
                     if (informationSet.LastBestResponseAction == action)
                     {
                         // Because this is the best response action, the best response utility that we get should be propagated back directly. Meanwhile, we want to keep track of all the times that we traverse through this information set, weighing the best response results (which may vary, since our terminal nodes may vary) by the inversePi.
-                        informationSet.IncrementBestResponse(action, inversePiAverageStrategies, innerResult.BestResponseToAverageStrategy);
+                        informationSet.IncrementBestResponse(action, inversePiAvgStrat, innerResult.BestResponseToAverageStrategy);
                         result.BestResponseToAverageStrategy = innerResult.BestResponseToAverageStrategy;
                     }
                     // The other result utilities are just the probability adjusted utilities. 
@@ -131,7 +132,7 @@ namespace ACESim
         }
 
         private unsafe HedgeVanillaUtilities HedgeVanillaCFR_ChanceNode(ref HistoryPoint historyPoint, byte playerBeingOptimized,
-            double* piValues, bool usePruning)
+            double* piValues, double* avgStratPiValues, bool usePruning)
         {
             HedgeVanillaUtilities result = default;
             double* equalProbabilityNextPiValues = stackalloc double[MaxNumMainPlayers];
@@ -150,7 +151,7 @@ namespace ACESim
                 action =>
                 {
                     var historyPointCopy2 = historyPointCopy; // Need to do this because we need a separate copy for each thread
-                    HedgeVanillaUtilities probabilityAdjustedInnerResult =  HedgeVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues,
+                    HedgeVanillaUtilities probabilityAdjustedInnerResult =  HedgeVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues, avgStratPiValues,
                             chanceNodeSettings, equalProbabilityNextPiValues, action, usePruning);
                     result.IncrementBasedOnProbabilityAdjusted(ref probabilityAdjustedInnerResult);
                 });
@@ -158,9 +159,11 @@ namespace ACESim
             return result;
         }
 
-        private unsafe HedgeVanillaUtilities HedgeVanillaCFR_ChanceNode_NextAction(ref HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues, ChanceNodeSettings chanceNodeSettings, double* equalProbabilityNextPiValues, byte action, bool usePruning)
+        private unsafe HedgeVanillaUtilities HedgeVanillaCFR_ChanceNode_NextAction(ref HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues, double* avgStratPiValues, ChanceNodeSettings chanceNodeSettings, double* equalProbabilityNextPiValues, byte action, bool usePruning)
         {
             double* nextPiValues = stackalloc double[MaxNumMainPlayers];
+            double* nextAvgStratPiValues = stackalloc double[MaxNumMainPlayers];
+            double actionProbability = chanceNodeSettings.GetActionProbability(action);
             if (equalProbabilityNextPiValues != null)
             {
                 double* locTarget = nextPiValues;
@@ -173,9 +176,12 @@ namespace ACESim
                 }
             }
             else // must set probability separately for each action we take
-                GetNextPiValues(piValues, playerBeingOptimized, chanceNodeSettings.GetActionProbability(action), true,
+            {
+                GetNextPiValues(piValues, playerBeingOptimized, actionProbability, true,
                     nextPiValues);
-            double actionProbability = chanceNodeSettings.GetActionProbability(action);
+                GetNextPiValues(avgStratPiValues, playerBeingOptimized, actionProbability, true,
+                    nextAvgStratPiValues);
+            }
             HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
             if (TraceCFR)
             {
@@ -184,7 +190,7 @@ namespace ACESim
                 TabbedText.Tabs++;
             }
             HedgeVanillaUtilities result =
-                HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, usePruning);
+                HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, usePruning);
             if (TraceCFR)
             {
                 TabbedText.Tabs--;
@@ -234,12 +240,14 @@ namespace ACESim
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
                 double* initialPiValues = stackalloc double[MaxNumMainPlayers];
+                double* initialAvgStratPiValues = stackalloc double[MaxNumMainPlayers];
                 GetInitialPiValues(initialPiValues);
+                GetInitialPiValues(initialAvgStratPiValues);
                 if (TraceCFR)
                     TabbedText.WriteLine($"Iteration {iteration} Player {playerBeingOptimized}");
                 HedgeVanillaIterationStopwatch.Start();
                 HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
-                HedgeVanillaUtilities result = HedgeVanillaCFR(ref historyPoint, playerBeingOptimized, initialPiValues, usePruning);
+                HedgeVanillaUtilities result = HedgeVanillaCFR(ref historyPoint, playerBeingOptimized, initialPiValues, initialAvgStratPiValues, usePruning);
                 if (iteration % 10 == 0)
                     TabbedText.WriteLine($"Iteration {iteration} Player {playerBeingOptimized} {result}");
                 HedgeVanillaIterationStopwatch.Stop();
