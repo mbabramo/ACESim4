@@ -118,7 +118,7 @@ namespace ACESim
             if (UpdatingHedge != null)
             {
                 var probs = GetHedgeProbabilitiesAsArray();
-                return String.Join(",", probs.Select(x => $"{x:N2}"));
+                return String.Join(",", probs.Select(x => $"{x:N6}"));
             }
             return GetRegretMatchingProbabilitiesString();
         }

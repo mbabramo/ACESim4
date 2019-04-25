@@ -90,7 +90,7 @@ namespace ACESim
                 {
                     TabbedText.Tabs--;
                     TabbedText.WriteLine(
-                        $"... action {action}{(informationSet.LastBestResponseAction == action ? "*" : "")} expected value {expectedValueOfAction[action - 1]} best response expected value {bestResponseExpectedValues[playerBeingOptimized]} cum expected value {expectedValue}");
+                        $"... action {action}{(informationSet.LastBestResponseAction == action ? "*" : "")} expected value {expectedValueOfAction[action - 1]} best response expected value {bestResponseExpectedValues[playerBeingOptimized]} cum expected value {expectedValue}{(action == numPossibleActions ? "*" : "")}");
                 }
             }
             if (playerMakingDecision == playerBeingOptimized)
@@ -225,10 +225,10 @@ namespace ACESim
             bool usePruning = false; // iteration >= 100;
             ActionStrategy = usePruning ? ActionStrategies.RegretMatchingWithPruning : ActionStrategies.RegretMatching;
 
-            if (iteration == 3510)
-            {
-                //TraceCFR = true; // DEBUG
-            }
+            //if (iteration == 501)
+            //{
+            //    TraceCFR = true; // DEBUG
+            //}
 
             double* bestResponseExpectedValues = stackalloc double[MaxNumMainPlayers];
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
@@ -241,7 +241,7 @@ namespace ACESim
                 HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
                 lastUtilities[playerBeingOptimized] =
                     HedgeVanillaCFR(ref historyPoint, playerBeingOptimized, initialPiValues, usePruning, bestResponseExpectedValues);
-                if (iteration % 100 == 0)
+                if (iteration % 10 == 0)
                     TabbedText.WriteLine($"Iteration {iteration} Player {playerBeingOptimized} utility {lastUtilities[playerBeingOptimized]} best response value {bestResponseExpectedValues[playerBeingOptimized]}");
                 HedgeVanillaIterationStopwatch.Stop();
             }
