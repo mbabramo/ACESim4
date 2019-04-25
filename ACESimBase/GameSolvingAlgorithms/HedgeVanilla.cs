@@ -60,6 +60,7 @@ namespace ACESim
                 informationSet.GetNormalizedHedgeProbabilities(actionProbabilities, HedgeVanillaIterationInt);
             }
             double* expectedValueOfAction = stackalloc double[numPossibleActions];
+            double* innerBestResponseExpectedValues = stackalloc double[NumNonChancePlayers];
             double expectedValue = 0;
             for (byte action = 1; action <= numPossibleActions; action++)
             {
@@ -73,13 +74,15 @@ namespace ACESim
                     TabbedText.Tabs++;
                 }
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
-                expectedValueOfAction[action - 1] = HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, usePruning, bestResponseExpectedValues);
+                expectedValueOfAction[action - 1] = HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, usePruning, innerBestResponseExpectedValues);
                 for (int p = 0; p < NumNonChancePlayers; p++)
                 {
                     if (playerMakingDecision == playerBeingOptimized)
                         informationSet.IncrementBestResponse(action, inversePi, expectedValueOfAction[action - 1]);
                     if (informationSet.LastBestResponseAction == action)
-                        bestResponseExpectedValues[p] = expectedValueOfAction[action - 1];
+                    {
+                        bestResponseExpectedValues[p] = innerBestResponseExpectedValues[action - 1];
+                    }
                 }
                 expectedValue += probabilityOfAction * expectedValueOfAction[action - 1];
 
@@ -87,7 +90,7 @@ namespace ACESim
                 {
                     TabbedText.Tabs--;
                     TabbedText.WriteLine(
-                        $"... action {action} expected value {expectedValueOfAction[action - 1]} cum expected value {expectedValue}");
+                        $"... action {action}{(informationSet.LastBestResponseAction == action ? "*" : "")} expected value {expectedValueOfAction[action - 1]} best response expected value {bestResponseExpectedValues[playerBeingOptimized]} cum expected value {expectedValue}");
                 }
             }
             if (playerMakingDecision == playerBeingOptimized)
@@ -222,6 +225,11 @@ namespace ACESim
             bool usePruning = false; // iteration >= 100;
             ActionStrategy = usePruning ? ActionStrategies.RegretMatchingWithPruning : ActionStrategies.RegretMatching;
 
+            if (iteration == 3510)
+            {
+                //TraceCFR = true; // DEBUG
+            }
+
             double* bestResponseExpectedValues = stackalloc double[MaxNumMainPlayers];
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
@@ -233,6 +241,8 @@ namespace ACESim
                 HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
                 lastUtilities[playerBeingOptimized] =
                     HedgeVanillaCFR(ref historyPoint, playerBeingOptimized, initialPiValues, usePruning, bestResponseExpectedValues);
+                if (iteration % 100 == 0)
+                    TabbedText.WriteLine($"Iteration {iteration} Player {playerBeingOptimized} utility {lastUtilities[playerBeingOptimized]} best response value {bestResponseExpectedValues[playerBeingOptimized]}");
                 HedgeVanillaIterationStopwatch.Stop();
             }
 

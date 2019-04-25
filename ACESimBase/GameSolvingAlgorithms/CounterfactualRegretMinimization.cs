@@ -343,7 +343,7 @@ namespace ACESim
                         informationSet.GetRegretMatchingProbabilities(actionProbabilities);
                     for (byte action = 1; action <= numPossibleActions; action++)
                     {
-                        TabbedText.WriteLine($"{action} (P{informationSet.PlayerIndex}): p={actionProbabilities[action - 1]:N2} (from regrets {informationSet.GetCumulativeRegretsString()} in information set {informationSet.InformationSetNumber} based on {informationSet.NumRegretIncrements} increments)");
+                        TabbedText.WriteLine($"{action} (P{informationSet.PlayerIndex}): p={actionProbabilities[action - 1]:N2} ({informationSet.ToStringAbbreviated()})");
                         HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                         TabbedText.Tabs++;
                         double[] utilitiesAtNextHistoryPoint = PrintGameTree_Helper(ref nextHistoryPoint);
@@ -585,10 +585,19 @@ namespace ACESim
                 s.Start();
                 double bestResponseUtility = CalculateBestResponse(playerBeingOptimized, ActionStrategy);
                 s.Stop();
-                double bestResponseImprovement = bestResponseUtility - UtilityCalculationsArray.StatCollectors[playerBeingOptimized].Average();
-                if (!useRandomPaths && bestResponseImprovement < 0 && Math.Abs(bestResponseImprovement) > Math.Abs(bestResponseUtility)/1E-8)
-                    throw new Exception("Best response function worse."); // it can be slightly negative as a result of rounding error or if we are using random paths as a result of sampling error
-                Console.WriteLine($"Player {playerBeingOptimized} utility against opponent using average strategy: playing {(EvolutionSettings.AlwaysUseAverageStrategyInReporting ? "average strategy" : "regret matching")}  {UtilityCalculationsArray.StatCollectors[playerBeingOptimized].Average()} playing best response {bestResponseUtility} (in {s.ElapsedMilliseconds} milliseconds) best response improvement {bestResponseImprovement}");
+                bool utilityCalculationsCollected = UtilityCalculationsArray.StatCollectors[playerBeingOptimized].Num() > 0;
+                string utilityReport = "", improvementReport = "";
+                if (utilityCalculationsCollected)
+                {
+                    string opponentStrategy = $"playing {(EvolutionSettings.AlwaysUseAverageStrategyInReporting ? "average strategy" : "regret matching")}";
+                    utilityReport = $"{opponentStrategy} {UtilityCalculationsArray.StatCollectors[playerBeingOptimized].Average()} ";
+                    double bestResponseImprovement = bestResponseUtility - UtilityCalculationsArray.StatCollectors[playerBeingOptimized].Average();
+                    if (!useRandomPaths && bestResponseImprovement < 0 && Math.Abs(bestResponseImprovement) > Math.Abs(bestResponseUtility) / 1E-8)
+                        throw new Exception("Best response function worse."); // it can be slightly negative as a result of rounding error or if we are using random paths as a result of sampling error
+                    improvementReport = $" best response improvement {bestResponseImprovement}";
+                }
+
+                Console.WriteLine($"Player {playerBeingOptimized} utility (opponent using average strategy): {utilityReport}playing best response {bestResponseUtility} (in {s.ElapsedMilliseconds} milliseconds){improvementReport}");
             }
         }
 

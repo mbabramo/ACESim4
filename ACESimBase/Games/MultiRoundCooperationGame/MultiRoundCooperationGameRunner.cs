@@ -26,7 +26,8 @@ namespace ACESim
                 GameNumber = StartGameNumber,
 
                 Algorithm = GameApproximationAlgorithm.HedgeVanilla,
-
+                
+                UseRandomPathsForBestResponse = false,
                 ReportEveryNIterations = 1000,
                 NumRandomIterationsForSummaryTable = 1_000,
                 GenerateReportsByPlaying = true,
@@ -34,7 +35,7 @@ namespace ACESim
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
                 PrintGameTree = false,
                 AlwaysUseAverageStrategyInReporting = true, // IMPORTANT NOTE: Using average strategy here
-                BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
+                BestResponseEveryMIterations = 1000, //EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
 
                 EpsilonForMainPlayer = 0.5,
                 EpsilonForOpponentWhenExploring = 0.5,

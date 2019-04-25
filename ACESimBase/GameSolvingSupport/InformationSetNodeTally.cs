@@ -95,9 +95,32 @@ namespace ACESim
             UpdatingHedge = null;
         }
 
+        public string ToStringAbbreviated()
+        {
+            return $"Information set {InformationSetNumber}: Probabilities {GetProbabilitiesString()} {GetBestResponseStringIfAvailable()}RegretIncrements {NumRegretIncrements}";
+        }
+
         public override string ToString()
         {
-            return $"Information set {InformationSetNumber}: DecisionByteCode {DecisionByteCode} (index {DecisionIndex}) PlayerIndex {PlayerIndex} Probabilities {GetRegretMatchingProbabilitiesString()} Regrets{(MustUseBackup ? "*" : "")} {GetCumulativeRegretsString()} Strategies {GetCumulativeStrategiesString()} RegretIncrements {NumRegretIncrements} NumBackupRegretsSinceLastRegretIncrement {NumBackupRegretsSinceLastRegretIncrement} NumBackupRegretIncrements {NumBackupRegretIncrements} TotalIncrements {NumTotalIncrements}";
+            return $"Information set {InformationSetNumber}: DecisionByteCode {DecisionByteCode} (index {DecisionIndex}) PlayerIndex {PlayerIndex} Probabilities {GetProbabilitiesString()} {GetBestResponseStringIfAvailable()}Regrets{(MustUseBackup ? "*" : "")} {GetCumulativeRegretsString()} Strategies {GetCumulativeStrategiesString()} RegretIncrements {NumRegretIncrements} NumBackupRegretsSinceLastRegretIncrement {NumBackupRegretsSinceLastRegretIncrement} NumBackupRegretIncrements {NumBackupRegretIncrements} TotalIncrements {NumTotalIncrements}";
+        }
+
+        public string GetBestResponseStringIfAvailable()
+        {
+            if (LastBestResponseAction == 0)
+                return "";
+            return $"BestResponse {LastBestResponseAction} ";
+            //return $"BestResponse {LastBestResponseAction} {NodeInformation[bestResponseNumeratorDimension, PlayerIndex]}/{NodeInformation[bestResponseDenominatorDimension, PlayerIndex]}";
+        }
+
+        public string GetProbabilitiesString()
+        {
+            if (UpdatingHedge != null)
+            {
+                var probs = GetHedgeProbabilitiesAsArray();
+                return String.Join(",", probs.Select(x => $"{x:N2}"));
+            }
+            return GetRegretMatchingProbabilitiesString();
         }
 
         private void Initialize(int numDimensions, int numPossibleActions)
@@ -630,6 +653,7 @@ namespace ACESim
                             throw new Exception();
                         NodeInformation[adjustedWeightsDimension, a - 1] = weight;
                         sumWeights += weight;
+                        NodeInformation[cumulativeRegretDimension, a - 1] += NodeInformation[regretIncrementsDimension, a - 1];
                         NodeInformation[regretIncrementsDimension, a - 1] = 0; // reset for next iteration
                     }
                     if (sumWeights < 1E-20)
@@ -683,6 +707,7 @@ namespace ACESim
         public void NormalizedHedgeIncrementLastRegret(byte action, double regretTimesInversePi)
         {
             IncrementDouble(ref NodeInformation[lastRegretDimension, action - 1], regretTimesInversePi);
+            Interlocked.Increment(ref NumRegretIncrements);
         }
 
         private static double IncrementDouble(ref double location1, double value)
