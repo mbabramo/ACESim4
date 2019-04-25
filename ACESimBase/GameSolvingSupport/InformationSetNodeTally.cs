@@ -38,12 +38,13 @@ namespace ACESim
         const int bestResponseNumeratorDimension = 2;
         const int bestResponseDenominatorDimension = 3;
         // for hedge probing
-        const int piDimension = 4;
+        const int hedgeProbabilityDimension = 4;
         const int lastRegretDimension = 5;
         const int temporaryDimension = 6;
-        // for normalized hedge
+        // for normalized hedge (including also hedge probability dimension)
         const int regretIncrementsDimension = 5;
         const int adjustedWeightsDimension = 6;
+        const int averageStrategyProbabilityDimension = 7;
         // for exploratory probing
         const int storageDimension = 4;
         const int storageDimension2 = 5;
@@ -641,7 +642,7 @@ namespace ACESim
                             minLastRegret = lastRegret;
                     }
                     // normalize regrets to costs between 0 and 1. the key assumption is that each iteration takes into account ALL possible outcomes (as in a vanilla hedge CFR algorithm)
-                    double sumWeights = 0;
+                    double sumWeights = 0, sumAverageStrategies = 0;
                     for (int a = 1; a <= NumPossibleActions; a++)
                     {
                         double regretIncrements = NodeInformation[regretIncrementsDimension, a - 1];
@@ -655,6 +656,7 @@ namespace ACESim
                         sumWeights += weight;
                         NodeInformation[cumulativeRegretDimension, a - 1] += NodeInformation[regretIncrementsDimension, a - 1];
                         NodeInformation[regretIncrementsDimension, a - 1] = 0; // reset for next iteration
+                        sumAverageStrategies += NodeInformation[cumulativeStrategyDimension, a - 1];
                     }
                     if (sumWeights < 1E-20)
                     { // increase all weights to avoid all weights being round off to zero -- since this affects only relative probabilities at the information set, this won't matter
@@ -667,12 +669,18 @@ namespace ACESim
                     // Finally, calculate the hedge adjusted probabilities
                     for (int a = 1; a <= NumPossibleActions; a++)
                     {
-                        double probability = NodeInformation[adjustedWeightsDimension, a - 1] / sumWeights;
-                        if (probability == 0)
-                            probability = Double.Epsilon; // always maintain at least the smallest possible positive probability
-                        if (double.IsNaN(probability))
+                        double probabilityHedge = NodeInformation[adjustedWeightsDimension, a - 1] / sumWeights;
+                        if (probabilityHedge == 0)
+                            probabilityHedge = Double.Epsilon; // always maintain at least the smallest possible positive probability
+                        if (double.IsNaN(probabilityHedge))
                             throw new Exception();
-                        NodeInformation[piDimension, a - 1] = probability;
+                        NodeInformation[hedgeProbabilityDimension, a - 1] = probabilityHedge;
+                        double probabilityAverageStrategy = NodeInformation[cumulativeStrategyDimension, a - 1] / sumAverageStrategies;
+                        if (probabilityAverageStrategy == 0)
+                            probabilityAverageStrategy = Double.Epsilon; // always maintain at least the smallest possible positive probability
+                        if (double.IsNaN(probabilityAverageStrategy))
+                            throw new Exception();
+                        NodeInformation[averageStrategyProbabilityDimension, a - 1] = probabilityAverageStrategy;
                     }
                     LastUpdatedIteration = iteration;
                 }
@@ -696,7 +704,7 @@ namespace ACESim
                         for (int a = 1; a <= NumPossibleActions; a++)
                         {
                             NodeInformation[adjustedWeightsDimension, a - 1] = 1.0;
-                            NodeInformation[piDimension, a - 1] = probability;
+                            NodeInformation[hedgeProbabilityDimension, a - 1] = probability;
                         }
                         UpdatingHedge = new SimpleExclusiveLock();
                     }
@@ -740,7 +748,7 @@ namespace ACESim
                 double total = 0;
                 for (byte a = 1; a <= NumPossibleActions; a++)
                 {
-                    probabilitiesToSet[a - 1] = NodeInformation[piDimension, a - 1];
+                    probabilitiesToSet[a - 1] = NodeInformation[hedgeProbabilityDimension, a - 1];
                     total += probabilitiesToSet[a - 1];
                 }
                 done = Math.Abs(1.0 - total) < 1E-7;
@@ -782,7 +790,7 @@ namespace ACESim
                         if (double.IsNaN(probability))
                             throw new Exception(); // DEBUG
                         for (int a = 1; a <= NumPossibleActions; a++)
-                            NodeInformation[piDimension, a - 1] = probability;
+                            NodeInformation[hedgeProbabilityDimension, a - 1] = probability;
                         UpdatingHedge = new SimpleExclusiveLock();
                     }
                 }
@@ -807,7 +815,7 @@ namespace ACESim
             double minLastRegret = 0, maxLastRegret = 0;
             for (int a = 1; a <= NumPossibleActions; a++)
             {
-                double lastPi = NodeInformation[piDimension, a - 1];
+                double lastPi = NodeInformation[hedgeProbabilityDimension, a - 1];
                 double lastRegret = NodeInformation[lastRegretDimension, a - 1];
                 if (a == 1)
                     minLastRegret = maxLastRegret = lastRegret;
@@ -852,7 +860,7 @@ namespace ACESim
             for (int a = 1; a <= NumPossibleActions; a++)
             {
                 double quotient = NodeInformation[temporaryDimension, a - 1] / denominatorForAllActions;
-                NodeInformation[piDimension, a - 1] = quotient;
+                NodeInformation[hedgeProbabilityDimension, a - 1] = quotient;
                 if (double.IsNaN(quotient))
                     throw new Exception("Regrets too high. Must scale all regrets");
             }
@@ -879,7 +887,7 @@ namespace ACESim
                 double total = 0;
                 for (byte a = 1; a <= NumPossibleActions; a++)
                 {
-                    probabilitiesToSet[a - 1] = NodeInformation[piDimension, a - 1];
+                    probabilitiesToSet[a - 1] = NodeInformation[hedgeProbabilityDimension, a - 1];
                     total += probabilitiesToSet[a - 1];
                 }
                 done = Math.Abs(1.0 - total) < 1E-7;
