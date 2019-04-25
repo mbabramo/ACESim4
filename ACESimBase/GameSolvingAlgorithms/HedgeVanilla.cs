@@ -7,6 +7,8 @@ namespace ACESim
     public partial class CounterfactualRegretMinimization
     {
 
+        Debug; // must also have invpi for average strategies
+
         public struct HedgeVanillaResult
         {
             /// <summary>
@@ -21,6 +23,13 @@ namespace ACESim
             /// The utility from the player being optimized playing an approximate best response to the other player's use of average strategies. This can be compared to average strategy performance against average strategies; this will be higher, but not much in Epsilon equilibrium. In addition, this can be used in CFR-BR for the player not being optimized, when we have skipped iterations of the player being optimized.
             /// </summary>
             public double UtilityBestResponseToAverageStrategy;
+
+            public void IncrementBasedOnOtherPlayer(ref HedgeVanillaResult other, double averageStrategyProbability, double hedgeProbability)
+            {
+                UtilityHedgeVsHedge += other.UtilityHedgeVsHedge * hedgeProbability;
+                UtilityAverageStrategyVsAverageStrategy += other.UtilityAverageStrategyVsAverageStrategy * averageStrategyProbability;
+                UtilityBestResponseToAverageStrategy += other.UtilityBestResponseToAverageStrategy * averageStrategyProbability;
+            }
         }
 
         /// <summary>
@@ -29,31 +38,30 @@ namespace ACESim
         /// <param name="historyPoint">The game tree, pointing to the particular point in the game where we are located</param>
         /// <param name="playerBeingOptimized">0 for first player, etc. Note that this corresponds in Lanctot to 1, 2, etc. We are using zero-basing for player index (even though we are 1-basing actions).</param>
         /// <returns></returns>
-        public unsafe double HedgeVanillaCFR(ref HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues,
-            bool usePruning, double* bestResponseExpectedValues)
+        public unsafe HedgeVanillaResult HedgeVanillaCFR(ref HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues,
+            bool usePruning)
         {
             if (usePruning && ShouldPruneIfPruning(piValues))
-                return 0;
+                return new HedgeVanillaResult { UtilityAverageStrategyVsAverageStrategy = 0, UtilityBestResponseToAverageStrategy = 0, UtilityHedgeVsHedge = 0 };
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
             if (gameStateType == GameStateTypeEnum.FinalUtilities)
             {
                 FinalUtilities finalUtilities = (FinalUtilities)gameStateForCurrentPlayer;
-                for (int p = 0; p < NumNonChancePlayers; p++)
-                    bestResponseExpectedValues[p] = finalUtilities.Utilities[p];
-                return bestResponseExpectedValues[playerBeingOptimized];
+                double util = finalUtilities.Utilities[playerBeingOptimized];
+                return new HedgeVanillaResult { UtilityAverageStrategyVsAverageStrategy = util, UtilityBestResponseToAverageStrategy = util, UtilityHedgeVsHedge = util };
             }
             else if (gameStateType == GameStateTypeEnum.Chance)
             {
                 ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings)gameStateForCurrentPlayer;
-                return HedgeVanillaCFR_ChanceNode(ref historyPoint, playerBeingOptimized, piValues, usePruning, bestResponseExpectedValues);
+                return HedgeVanillaCFR_ChanceNode(ref historyPoint, playerBeingOptimized, piValues, usePruning);
             }
             else
-                return HedgeVanillaCFR_DecisionNode(ref historyPoint, playerBeingOptimized, piValues, usePruning, bestResponseExpectedValues);
+                return HedgeVanillaCFR_DecisionNode(ref historyPoint, playerBeingOptimized, piValues, usePruning);
         }
 
-        private unsafe double HedgeVanillaCFR_DecisionNode(ref HistoryPoint historyPoint, byte playerBeingOptimized,
-            double* piValues, bool usePruning, double* bestResponseExpectedValues)
+        private unsafe HedgeVanillaResult HedgeVanillaCFR_DecisionNode(ref HistoryPoint historyPoint, byte playerBeingOptimized,
+            double* piValues, bool usePruning)
         {
             double* nextPiValues = stackalloc double[MaxNumMainPlayers];
             double inversePi = GetInversePiValue(piValues, playerBeingOptimized);
@@ -76,8 +84,8 @@ namespace ACESim
                 informationSet.GetNormalizedHedgeProbabilities(actionProbabilities, HedgeVanillaIterationInt);
             }
             double* expectedValueOfAction = stackalloc double[numPossibleActions];
-            double* innerBestResponseExpectedValues = stackalloc double[NumNonChancePlayers];
             double expectedValue = 0;
+            HedgeVanillaResult result = default;
             for (byte action = 1; action <= numPossibleActions; action++)
             {
                 double probabilityOfAction = actionProbabilities[action - 1];
@@ -90,15 +98,25 @@ namespace ACESim
                     TabbedText.Tabs++;
                 }
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
-                expectedValueOfAction[action - 1] = HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, usePruning, innerBestResponseExpectedValues);
-                for (int p = 0; p < NumNonChancePlayers; p++)
+                HedgeVanillaResult innerResult = HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, usePruning);
+                expectedValueOfAction[action - 1] = innerResult.UtilityHedgeVsHedge;
+                double averageStrategyProbability = informationSet.GetHedgeSavedAverageStrategy(action);
+                if (playerMakingDecision == playerBeingOptimized)
                 {
-                    if (playerMakingDecision == playerBeingOptimized)
-                        informationSet.IncrementBestResponse(action, inversePi, expectedValueOfAction[action - 1]);
                     if (informationSet.LastBestResponseAction == action)
                     {
-                        bestResponseExpectedValues[p] = innerBestResponseExpectedValues[action - 1];
+                        // Because this is the best response action, the best response utility that we get should be propagated back directly. Meanwhile, we want to keep track of all the times that we traverse through this information set, weighing the best response results (which may vary, since our terminal nodes may vary) by the inversePi.
+                        informationSet.IncrementBestResponse(action, inversePiAverageStrategies, innerResult.UtilityBestResponseToAverageStrategy);
+                        result.UtilityBestResponseToAverageStrategy = innerResult.UtilityBestResponseToAverageStrategy;
                     }
+                    // The other result utilities are just the probability adjusted utilities. 
+                    result.UtilityHedgeVsHedge += probabilityOfAction * innerResult.UtilityHedgeVsHedge;
+                    result.UtilityAverageStrategyVsAverageStrategy += averageStrategyProbability * innerResult.UtilityAverageStrategyVsAverageStrategy;
+                }
+                else
+                {
+                    // This isn't the decision being optimized, so we essentially just need to pass through the player being optimized's utilities, weighting by the probability for each action (which will depend on whether we are using average strategy or hedge to calculate the utilities).
+                    result.IncrementBasedOnOtherPlayer(ref innerResult, averageStrategyProbability, probabilityOfAction);
                 }
                 expectedValue += probabilityOfAction * expectedValueOfAction[action - 1];
 

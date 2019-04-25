@@ -718,6 +718,11 @@ namespace ACESim
             Interlocked.Increment(ref NumRegretIncrements);
         }
 
+        public double GetHedgeSavedAverageStrategy(byte action)
+        {
+            return NodeInformation[averageStrategyProbabilityDimension, action - 1];
+        }
+
         private static double IncrementDouble(ref double location1, double value)
         {
             double newCurrentValue = location1; // non-volatile read, so may be stale
