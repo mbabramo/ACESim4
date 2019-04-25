@@ -7,6 +7,22 @@ namespace ACESim
     public partial class CounterfactualRegretMinimization
     {
 
+        public struct HedgeVanillaResult
+        {
+            /// <summary>
+            /// The utility from the player being optimized playing Hedge against Hedge. This is used to set counterfactual values and regret.
+            /// </summary>
+            public double UtilityHedgeVsHedge;
+            /// <summary>
+            /// The utility from the player being optimized playing an average strategy against the other player playing an average strategy. This can be used to compare with best response to average strategies; in an epsilon-equilibrium, they should be very close.
+            /// </summary>
+            public double UtilityAverageStrategyVsAverageStrategy;
+            /// <summary>
+            /// The utility from the player being optimized playing an approximate best response to the other player's use of average strategies. This can be compared to average strategy performance against average strategies; this will be higher, but not much in Epsilon equilibrium. In addition, this can be used in CFR-BR for the player not being optimized, when we have skipped iterations of the player being optimized.
+            /// </summary>
+            public double UtilityBestResponseToAverageStrategy;
+        }
+
         /// <summary>
         /// Performs an iteration of vanilla counterfactual regret minimization.
         /// </summary>
