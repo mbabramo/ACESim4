@@ -24,7 +24,7 @@ namespace ACESim
             MyGame
         }
 
-        public static AvailableGames GameToPlay = AvailableGames.MultiRoundCooperation;
+        public static AvailableGames GameToPlay = AvailableGames.MyGame;
 
         [STAThread]
         static void Main(string[] args)

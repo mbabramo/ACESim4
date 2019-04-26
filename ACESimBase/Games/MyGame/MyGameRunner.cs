@@ -21,7 +21,10 @@ namespace ACESim
         public const double StdevPlayerNoise = 0.3; // baseline is 0.3
 
         private const int ProbingIterations = 1_000_000;
+        private const int VanillaIterations = 10_000;
         private const int SummaryTableIterations = 10_000;
+
+        private const bool UseRegretAndStrategyDiscounting = true;
 
         private const int StartGameNumber = 1;
         private static bool SingleGameMode = false;
@@ -30,7 +33,7 @@ namespace ACESim
         private static bool LocalDistributedProcessing = true; // this should be false if actually running on service fabric
         public static string OverrideDateTimeString = null; // "2017-10-11 10:18"; // use this if termination finished unexpectedly
         public static string MasterReportNameForDistributedProcessing = "AMONLY";
-        private static bool ParallelizeOptionSets = true;
+        private static bool ParallelizeOptionSets = false;
         private static bool ParallelizeIndividualExecutions = false; // only affects SingleGameMode
 
         private static EvolutionSettings GetEvolutionSettings()
@@ -43,16 +46,17 @@ namespace ACESim
 
                 GameNumber = StartGameNumber,
 
-                Algorithm = GameApproximationAlgorithm.ExploratoryProbing,
+                Algorithm = GameApproximationAlgorithm.HedgeVanilla,
 
-                ReportEveryNIterations = ProbingIterations,
+                UseRandomPathsForBestResponse = false,
+                ReportEveryNIterations = 100,
+                BestResponseEveryMIterations = 100, // DEBUG EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
                 NumRandomIterationsForSummaryTable = SummaryTableIterations,
                 GenerateReportsByPlaying = true,
                 PrintInformationSets = false,
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
                 PrintGameTree = false,
                 AlwaysUseAverageStrategyInReporting = false,
-                BestResponseEveryMIterations = EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
 
                 TotalProbingCFRIterations = ProbingIterations,
                 EpsilonForMainPlayer = 0.5,
@@ -60,8 +64,10 @@ namespace ACESim
                 MinBackupRegretsTrigger = 10,
                 TriggerIncreaseOverTime = 0,
 
-                TotalAvgStrategySamplingCFRIterations = 10000000,
-                TotalVanillaCFRIterations = 100_000_000,
+                UseRegretAndStrategyDiscounting = UseRegretAndStrategyDiscounting,
+
+                TotalAvgStrategySamplingCFRIterations = ProbingIterations,
+                TotalVanillaCFRIterations = VanillaIterations,
             };
             return evolutionSettings;
         }
