@@ -13,7 +13,7 @@ namespace ACESim
     {
         public static int StartGameNumber = 10000;
         public static int NumRepetitions = 10;
-        public const bool UseRegretAndStrategyDiscounting = true;
+        public const bool UseRegretAndStrategyDiscounting = false;
 
         private static EvolutionSettings GetEvolutionSettings()
         {
@@ -28,14 +28,14 @@ namespace ACESim
                 Algorithm = GameApproximationAlgorithm.HedgeVanilla,
                 
                 UseRandomPathsForBestResponse = false,
-                ReportEveryNIterations = 10,
+                ReportEveryNIterations = 100,
                 NumRandomIterationsForSummaryTable = 1_000,
                 GenerateReportsByPlaying = true,
                 PrintInformationSets = false,
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
-                PrintGameTree = true,
+                PrintGameTree = false,
                 AlwaysUseAverageStrategyInReporting = true, // IMPORTANT NOTE: Using average strategy here
-                BestResponseEveryMIterations = 10, //EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
+                BestResponseEveryMIterations = 100, //EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
 
                 EpsilonForMainPlayer = 0.5,
                 EpsilonForOpponentWhenExploring = 0.5,

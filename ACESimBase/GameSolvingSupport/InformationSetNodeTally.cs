@@ -32,7 +32,7 @@ namespace ACESim
         double[,] NodeInformation;
 
         int NumPossibleActions => Decision.NumPossibleActions;
-        const int totalDimensions = 7;
+        const int totalDimensions = 8;
         const int cumulativeRegretDimension = 0;
         const int cumulativeStrategyDimension = 1;
         const int bestResponseNumeratorDimension = 2;
@@ -675,12 +675,15 @@ namespace ACESim
                         if (double.IsNaN(probabilityHedge))
                             throw new Exception();
                         NodeInformation[hedgeProbabilityDimension, a - 1] = probabilityHedge;
-                        double probabilityAverageStrategy = NodeInformation[cumulativeStrategyDimension, a - 1] / sumAverageStrategies;
-                        if (probabilityAverageStrategy == 0)
-                            probabilityAverageStrategy = Double.Epsilon; // always maintain at least the smallest possible positive probability
-                        if (double.IsNaN(probabilityAverageStrategy))
-                            throw new Exception();
-                        NodeInformation[averageStrategyProbabilityDimension, a - 1] = probabilityAverageStrategy;
+                        if (sumAverageStrategies > 0)
+                        {
+                            double probabilityAverageStrategy = NodeInformation[cumulativeStrategyDimension, a - 1] / sumAverageStrategies;
+                            if (probabilityAverageStrategy == 0)
+                                probabilityAverageStrategy = Double.Epsilon; // always maintain at least the smallest possible positive probability
+                            if (double.IsNaN(probabilityAverageStrategy))
+                                throw new Exception();
+                            NodeInformation[averageStrategyProbabilityDimension, a - 1] = probabilityAverageStrategy;
+                        }
                     }
                     LastUpdatedIteration = iteration;
                 }
@@ -705,6 +708,7 @@ namespace ACESim
                         {
                             NodeInformation[adjustedWeightsDimension, a - 1] = 1.0;
                             NodeInformation[hedgeProbabilityDimension, a - 1] = probability;
+                            NodeInformation[averageStrategyProbabilityDimension, a - 1] = probability;
                         }
                         UpdatingHedge = new SimpleExclusiveLock();
                     }
