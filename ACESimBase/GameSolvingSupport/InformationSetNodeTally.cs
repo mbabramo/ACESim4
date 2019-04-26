@@ -642,7 +642,7 @@ namespace ACESim
                             minLastRegret = lastRegret;
                     }
                     // normalize regrets to costs between 0 and 1. the key assumption is that each iteration takes into account ALL possible outcomes (as in a vanilla hedge CFR algorithm)
-                    double sumWeights = 0, sumAverageStrategies = 0;
+                    double sumWeights = 0, sumCumulativeStrategies = 0;
                     for (int a = 1; a <= NumPossibleActions; a++)
                     {
                         double regretIncrements = NodeInformation[regretIncrementsDimension, a - 1];
@@ -656,7 +656,7 @@ namespace ACESim
                         sumWeights += weight;
                         NodeInformation[cumulativeRegretDimension, a - 1] += NodeInformation[regretIncrementsDimension, a - 1];
                         NodeInformation[regretIncrementsDimension, a - 1] = 0; // reset for next iteration
-                        sumAverageStrategies += NodeInformation[cumulativeStrategyDimension, a - 1];
+                        sumCumulativeStrategies += NodeInformation[cumulativeStrategyDimension, a - 1];
                     }
                     if (sumWeights < 1E-20)
                     { // increase all weights to avoid all weights being round off to zero -- since this affects only relative probabilities at the information set, this won't matter
@@ -675,9 +675,9 @@ namespace ACESim
                         if (double.IsNaN(probabilityHedge))
                             throw new Exception();
                         NodeInformation[hedgeProbabilityDimension, a - 1] = probabilityHedge;
-                        if (sumAverageStrategies > 0)
+                        if (sumCumulativeStrategies > 0)
                         {
-                            double probabilityAverageStrategy = NodeInformation[cumulativeStrategyDimension, a - 1] / sumAverageStrategies;
+                            double probabilityAverageStrategy = NodeInformation[cumulativeStrategyDimension, a - 1] / sumCumulativeStrategies;
                             if (probabilityAverageStrategy == 0)
                                 probabilityAverageStrategy = Double.Epsilon; // always maintain at least the smallest possible positive probability
                             if (double.IsNaN(probabilityAverageStrategy))

@@ -747,6 +747,8 @@ namespace ACESim
 
         private StatCollectorArray UtilityCalculationsArray;
 
+        public static double DEBUGSum = 0;
+
         private void GenerateReports_AllPaths(GamePlayer player, Func<Decision, GameProgress, byte> actionOverride)
         {
             UtilityCalculationsArray = new StatCollectorArray();
@@ -758,6 +760,7 @@ namespace ACESim
             void step1_playPath(ref HistoryPoint completedGame, double probabilityOfPath)
             {
                 // play each path and then asynchronously consume the result, including the probability of the game path
+                DEBUGSum += probabilityOfPath;
                 List<byte> actions = completedGame.GetActionsToHere(Navigation);
                 (GameProgress progress, _) = player.PlayPath(actions, false);
                 // do the simple aggregation of utilities. note that this is different from the value returned by vanilla, since that uses regret matching, instead of average strategies.
