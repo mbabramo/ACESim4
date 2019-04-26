@@ -13,7 +13,7 @@ namespace ACESim
     {
         public static int StartGameNumber = 10000;
         public static int NumRepetitions = 10;
-        public const bool UseRegretAndStrategyDiscounting = false;
+        public const bool UseRegretAndStrategyDiscounting = true;
 
         private static EvolutionSettings GetEvolutionSettings()
         {
