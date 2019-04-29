@@ -230,7 +230,7 @@ namespace ACESim
             double[] lastUtilities = new double[NumNonChancePlayers];
 
             bool usePruning = false; // iteration >= 100;
-            ActionStrategy = usePruning ? ActionStrategies.RegretMatchingWithPruning : ActionStrategies.RegretMatching;
+            ActionStrategy = ActionStrategies.NormalizedHedge;
 
             //if (iteration == 501)
             //{

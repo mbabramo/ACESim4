@@ -116,6 +116,8 @@ namespace ACESim
                     TabbedText.Tabs++;
                 byte action = GameDefinition.DecisionsExecutionOrder[decisionIndex].AlwaysDoAction ??
                               informationSet.GetBestResponseAction();
+                if (action == 0)
+                    throw new Exception("Invalid action."); // This may happen if using regret matching for opponent's strategy after evolving it with hedge.
                 double expectedValue;
                 if (historyPoint.BranchingIsReversible(Navigation, informationSet.Decision))
                 {

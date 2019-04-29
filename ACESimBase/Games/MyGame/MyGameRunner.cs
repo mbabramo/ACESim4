@@ -27,7 +27,7 @@ namespace ACESim
         private const bool UseRegretAndStrategyDiscounting = true;
 
         private const int StartGameNumber = 1;
-        private static bool SingleGameMode = false;
+        private static bool SingleGameMode = true;
         private static int NumRepetitions = 100;
 
         private static bool LocalDistributedProcessing = true; // this should be false if actually running on service fabric
@@ -85,7 +85,7 @@ namespace ACESim
 
         public static string EvolveMyGame_Single()
         {
-            var options = MyGameOptionsGenerator.Standard();
+            var options = MyGameOptionsGenerator.SingleRound();
             options.LoserPays = false;
             options.CostsMultiplier = 1.0;
             options.IncludeSignalsReport = false;

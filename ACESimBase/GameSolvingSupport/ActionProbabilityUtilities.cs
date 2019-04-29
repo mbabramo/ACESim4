@@ -88,13 +88,17 @@ namespace ACESim
             }
             else
             { // not a chance node or a leaf node
-                InformationSetNodeTally nodeTally = (InformationSetNodeTally)gameStateForCurrentPlayer; 
+                InformationSetNodeTally nodeTally = (InformationSetNodeTally)gameStateForCurrentPlayer;
                 if (alwaysDoAction != null)
                     SetProbabilitiesToAlwaysDoParticularAction(numPossibleActions, probabilities, (byte)alwaysDoAction);
                 else if (actionStrategy == ActionStrategies.RegretMatching)
                     nodeTally.GetRegretMatchingProbabilities(probabilities);
                 else if (actionStrategy == ActionStrategies.RegretMatchingWithPruning)
                     nodeTally.GetRegretMatchingProbabilities_WithPruning(probabilities);
+                else if (actionStrategy == ActionStrategies.NormalizedHedge)
+                    nodeTally.GetNormalizedHedgeProbabilities(probabilities, iteration);
+                else if (actionStrategy == ActionStrategies.Hedge)
+                    nodeTally.GetHedgeProbabilities(probabilities);
                 else if (actionStrategy == ActionStrategies.AverageStrategy)
                     nodeTally.GetAverageStrategies(probabilities);
                 else

@@ -211,7 +211,7 @@ namespace ACESim
             {
                 double denominator = NodeInformation[bestResponseDenominatorDimension, a - 1];
                 if (denominator == 0)
-                    return 0; // no best response data available
+                    return 0; // no best response data available // DEBUG -- figure out why this happens.
                 double ratio = NodeInformation[bestResponseNumeratorDimension, a - 1] / denominator;
                 if (a == 1 || ratio > bestRatio)
                 {

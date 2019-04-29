@@ -11,6 +11,8 @@ namespace ACESim
         RegretMatching,
         AverageStrategy,
         BestResponse,
-        RegretMatchingWithPruning
+        RegretMatchingWithPruning,
+        NormalizedHedge,
+        Hedge
     }
 }

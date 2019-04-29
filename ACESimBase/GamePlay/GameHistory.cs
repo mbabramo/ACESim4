@@ -223,6 +223,8 @@ namespace ACESim
 
         public void AddToSimpleActionsList(byte action)
         {
+            if (action == 0)
+                throw new Exception(); // DEBUG
             fixed (byte* historyPtr = ActionsHistory)
             {
                 *(historyPtr + NextIndexInHistoryActionsOnly) = action;
