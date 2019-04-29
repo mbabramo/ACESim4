@@ -144,14 +144,28 @@ namespace ACESim
                 if (alwaysDoAction != null)
                     ActionProbabilityUtilities.SetProbabilitiesToAlwaysDoParticularAction(numPossibleActions,
                         actionProbabilities, (byte) alwaysDoAction);
-                else if (opponentsActionStrategy == ActionStrategies.RegretMatching)
-                    informationSet.GetRegretMatchingProbabilities(actionProbabilities);
-                else if (opponentsActionStrategy == ActionStrategies.RegretMatchingWithPruning)
-                    informationSet.GetRegretMatchingProbabilities_WithPruning(actionProbabilities);
-                else if (opponentsActionStrategy == ActionStrategies.AverageStrategy)
-                    informationSet.GetAverageStrategies(actionProbabilities);
-                else
-                    throw new NotImplementedException();
+                else switch (opponentsActionStrategy)
+                    {
+                        case ActionStrategies.RegretMatching:
+                            informationSet.GetRegretMatchingProbabilities(actionProbabilities);
+                            break;
+                        case ActionStrategies.AverageStrategy:
+                            informationSet.GetAverageStrategies(actionProbabilities);
+                            break;
+                        case ActionStrategies.BestResponse:
+                            throw new NotSupportedException();
+                        case ActionStrategies.RegretMatchingWithPruning:
+                            informationSet.GetRegretMatchingProbabilities_WithPruning(actionProbabilities);
+                            break;
+                        case ActionStrategies.NormalizedHedge:
+                            informationSet.GetNormalizedHedgeProbabilities(actionProbabilities);
+                            break;
+                        case ActionStrategies.Hedge:
+                            informationSet.GetHedgeProbabilities(actionProbabilities);
+                            break;
+                        default:
+                            throw new NotImplementedException();
+                    }
                 double expectedValueSum = 0;
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {

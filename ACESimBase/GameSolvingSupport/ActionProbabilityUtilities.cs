@@ -91,18 +91,29 @@ namespace ACESim
                 InformationSetNodeTally nodeTally = (InformationSetNodeTally)gameStateForCurrentPlayer;
                 if (alwaysDoAction != null)
                     SetProbabilitiesToAlwaysDoParticularAction(numPossibleActions, probabilities, (byte)alwaysDoAction);
-                else if (actionStrategy == ActionStrategies.RegretMatching)
-                    nodeTally.GetRegretMatchingProbabilities(probabilities);
-                else if (actionStrategy == ActionStrategies.RegretMatchingWithPruning)
-                    nodeTally.GetRegretMatchingProbabilities_WithPruning(probabilities);
-                else if (actionStrategy == ActionStrategies.NormalizedHedge)
-                    nodeTally.GetNormalizedHedgeProbabilities(probabilities, iteration);
-                else if (actionStrategy == ActionStrategies.Hedge)
-                    nodeTally.GetHedgeProbabilities(probabilities);
-                else if (actionStrategy == ActionStrategies.AverageStrategy)
-                    nodeTally.GetAverageStrategies(probabilities);
                 else
-                    throw new NotImplementedException();
+                    switch (actionStrategy)
+                    {
+                        case ActionStrategies.RegretMatching:
+                            nodeTally.GetRegretMatchingProbabilities(probabilities);
+                            break;
+                        case ActionStrategies.AverageStrategy:
+                            nodeTally.GetAverageStrategies(probabilities);
+                            break;
+                        case ActionStrategies.BestResponse:
+                            throw new NotSupportedException();
+                        case ActionStrategies.RegretMatchingWithPruning:
+                            nodeTally.GetRegretMatchingProbabilities_WithPruning(probabilities);
+                            break;
+                        case ActionStrategies.NormalizedHedge:
+                            nodeTally.GetNormalizedHedgeProbabilities(probabilities);
+                            break;
+                        case ActionStrategies.Hedge:
+                            nodeTally.GetHedgeProbabilities(probabilities);
+                            break;
+                        default:
+                            throw new NotImplementedException();
+                    }
             }
         }
 

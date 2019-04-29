@@ -54,6 +54,7 @@ namespace ACESim
         public SimpleExclusiveLock UpdatingHedge;
         const double NormalizedHedgeEpsilon = 0.5;
         int LastUpdatedIteration = -1;
+        bool UpdatedForUnknownIteration;
         public byte LastBestResponseAction = 0;
         public bool BestResponseWeightsUpdatedSinceLast = false;
         public double[] LastBestResponseExpectedValues;
@@ -748,9 +749,22 @@ namespace ACESim
                 probabilitiesToSet[a - 1] = epsilon * equalProbabilities + (1.0 - epsilon) * probabilitiesToSet[a - 1];
         }
 
-        public unsafe void GetNormalizedHedgeProbabilities(double* probabilitiesToSet, int iteration)
+        public unsafe void GetNormalizedHedgeProbabilities(double* probabilitiesToSet, int iteration = -1)
         {
-            UpdateNormalizedHedgeIfNecessary(iteration);
+            if (iteration == -1)
+            {
+                // we don't know what iteration it is, so let's update only if a flag isn't set; once it's set, that means that it's been updated for the next iteration
+                if (!UpdatedForUnknownIteration)
+                {
+                    UpdateNormalizedHedgeIfNecessary(LastUpdatedIteration + 1);
+                    UpdatedForUnknownIteration = true;
+                }
+            }
+            else
+            {
+                UpdatedForUnknownIteration = false;
+                UpdateNormalizedHedgeIfNecessary(iteration);
+            }
             bool done = false;
             while (!done)
             { // without this outer loop, there is a risk that when using parallel code, our probabilities will not add up to 1

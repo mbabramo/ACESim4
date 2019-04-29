@@ -559,12 +559,12 @@ namespace ACESim
             Action<GamePlayer, Func<Decision, GameProgress, byte>> reportGenerator;
             if (useRandomPaths)
             {
-                Console.WriteLine($"Result using {EvolutionSettings.NumRandomIterationsForSummaryTable} randomly chosen paths");
+                Console.WriteLine($"Result using {EvolutionSettings.NumRandomIterationsForSummaryTable} randomly chosen paths playing {ActionStrategy}");
                 reportGenerator = GenerateReports_RandomPaths;
             }
             else
             {
-                Console.WriteLine($"Result using all paths");
+                Console.WriteLine($"Result using all paths playing {ActionStrategy}");
                 reportGenerator = GenerateReports_AllPaths;
             }
             var reports = GenerateReportsByPlaying(reportGenerator);
@@ -586,10 +586,17 @@ namespace ACESim
                 double bestResponseUtility = CalculateBestResponse(playerBeingOptimized, ActionStrategy);
                 s.Stop();
                 bool utilityCalculationsCollected = UtilityCalculationsArray.StatCollectors[playerBeingOptimized].Num() > 0;
+                string actionStrategyString;
+                if (EvolutionSettings.AlwaysUseAverageStrategyInReporting || ActionStrategy == ActionStrategies.AverageStrategy)
+                    actionStrategyString = "average strategy";
+                else if (ActionStrategy == ActionStrategies.Hedge || ActionStrategy == ActionStrategies.NormalizedHedge)
+                    actionStrategyString = "hedge";
+                else
+                    actionStrategyString = "regret matching";
                 string utilityReport = "", improvementReport = "";
                 if (utilityCalculationsCollected)
                 {
-                    string opponentStrategy = $"playing {(EvolutionSettings.AlwaysUseAverageStrategyInReporting ? "average strategy" : "regret matching")}";
+                    string opponentStrategy = $"playing {actionStrategyString}";
                     utilityReport = $"{opponentStrategy} {UtilityCalculationsArray.StatCollectors[playerBeingOptimized].Average()} ";
                     double bestResponseImprovement = bestResponseUtility - UtilityCalculationsArray.StatCollectors[playerBeingOptimized].Average();
                     if (!useRandomPaths && bestResponseImprovement < 0 && Math.Abs(bestResponseImprovement) > Math.Abs(bestResponseUtility) / 1E-8)

@@ -21,7 +21,7 @@ namespace ACESim
 
             public override string ToString()
             {
-                return $"Playing hedge: {HedgeVsHedge} avgstrat {AverageStrategyVsAverageStrategy} bestres {BestResponseToAverageStrategy}";
+                return $"Playing hedge: {HedgeVsHedge} avgstrat {AverageStrategyVsAverageStrategy} approxbestres {BestResponseToAverageStrategy}";
             }
 
             public void IncrementBasedOnNotYetProbabilityAdjusted(ref HedgeVanillaUtilities other, double averageStrategyProbability, double hedgeProbability)

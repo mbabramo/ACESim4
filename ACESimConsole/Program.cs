@@ -29,6 +29,8 @@ namespace ACESim
         [STAThread]
         static void Main(string[] args)
         {
+            Console.SetBufferSize(1000, 32766);
+
             string baseOutputDirectory;
             string strategiesPath;
             string gameResult = null;
