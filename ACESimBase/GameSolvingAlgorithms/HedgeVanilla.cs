@@ -248,12 +248,12 @@ namespace ACESim
                 HedgeVanillaIterationStopwatch.Start();
                 HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
                 HedgeVanillaUtilities result = HedgeVanillaCFR(ref historyPoint, playerBeingOptimized, initialPiValues, initialAvgStratPiValues, usePruning);
-                if (iteration % 10 == 0)
+                if (iteration % 10 == 0 && iteration != 0)
                     TabbedText.WriteLine($"Iteration {iteration} Player {playerBeingOptimized} {result}");
                 HedgeVanillaIterationStopwatch.Stop();
             }
 
-            reportString = GenerateReports(iteration,
+            reportString = iteration == 0 ? "" : GenerateReports(iteration,
                 () =>
                     $"Iteration {iteration} Overall milliseconds per iteration {((HedgeVanillaIterationStopwatch.ElapsedMilliseconds / ((double)iteration + 1.0)))}");
             return reportString;

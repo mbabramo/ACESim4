@@ -67,8 +67,8 @@ namespace ACESim
                 PInitialWealth = 1000000,
                 DInitialWealth = 1000000,
                 DamagesToAllege = 100000,
-                NumLitigationQualityPoints = 4,
-                NumSignals = 4,
+                NumLitigationQualityPoints = 5,
+                NumSignals = 5,
                 NumOffers = 5,
                 MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
                 {
@@ -97,7 +97,7 @@ namespace ACESim
                     DeltaStartingValue = 0.01,
                     MaxDelta = 0.25
                 },
-                NumPotentialBargainingRounds = 1,
+                NumPotentialBargainingRounds = 3,
                 BargainingRoundRecall = MyGameBargainingRoundRecall.RememberAllBargainingRounds,
                 SubdivideOffers = false,
                 BargainingRoundsSimultaneous = true,

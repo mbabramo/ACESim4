@@ -22,7 +22,7 @@ namespace ACESim
 
         private const int ProbingIterations = 1_000_000;
         private const int VanillaIterations = 10_000;
-        private const int SummaryTableIterations = 10_000;
+        private const int SummaryTableIterations = 1_000;
 
         private const bool UseRegretAndStrategyDiscounting = true;
 
@@ -34,14 +34,14 @@ namespace ACESim
         public static string OverrideDateTimeString = null; // "2017-10-11 10:18"; // use this if termination finished unexpectedly
         public static string MasterReportNameForDistributedProcessing = "AMONLY";
         private static bool ParallelizeOptionSets = false;
-        private static bool ParallelizeIndividualExecutions = false; // only affects SingleGameMode
+        private static bool ParallelizeIndividualExecutions = true; // only affects SingleGameMode
 
         private static EvolutionSettings GetEvolutionSettings()
         {
             EvolutionSettings evolutionSettings = new EvolutionSettings()
             {
-                MaxParallelDepth = 1, // we're parallelizing on the iteration level, so there is no need for further parallelization
-                ParallelOptimization = ParallelizeIndividualExecutions && !ParallelizeOptionSets && !LocalDistributedProcessing,
+                MaxParallelDepth = 2, // we're parallelizing on the iteration level, so there is no need for further parallelization
+                ParallelOptimization = ParallelizeIndividualExecutions && !ParallelizeOptionSets && (SingleGameMode || !LocalDistributedProcessing),
                 SuppressReportPrinting = !SingleGameMode && (ParallelizeOptionSets || LocalDistributedProcessing),
 
                 GameNumber = StartGameNumber,
