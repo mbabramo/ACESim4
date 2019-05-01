@@ -20,9 +20,9 @@ namespace ACESim
         public static double[] CostsMultipliers = new double[] { 1.0 }; // 0.1, 0.25, 0.5, 1.0, 1.5, 2.0, 4.0 };
         public const double StdevPlayerNoise = 0.3; // baseline is 0.3
 
-        private const GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.HedgeVanilla;
+        private const GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.ExploratoryProbing;
 
-        private const int ProbingIterations = 1_000_000;
+        private const int ProbingIterations = 20_000_000;
         private const int VanillaIterations = 1_000;
         private const int SummaryTableIterations = 1_000;
 
@@ -30,7 +30,7 @@ namespace ACESim
 
         private const int StartGameNumber = 1;
         private static bool SingleGameMode = true;
-        private static int NumRepetitions = 100;
+        private static int NumRepetitions = 1;
 
         private static bool LocalDistributedProcessing = true; // this should be false if actually running on service fabric
         public static string OverrideDateTimeString = null; // "2017-10-11 10:18"; // use this if termination finished unexpectedly
@@ -52,7 +52,7 @@ namespace ACESim
 
                 UseRandomPathsForBestResponse = false,
                 ReportEveryNIterations = Algorithm == GameApproximationAlgorithm.ExploratoryProbing ? 500_000 : 100,
-                BestResponseEveryMIterations = 1_000, // DEBUG EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
+                BestResponseEveryMIterations = 100, // DEBUG EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
                 NumRandomIterationsForSummaryTable = SummaryTableIterations,
                 GenerateReportsByPlaying = true,
                 PrintInformationSets = false,
@@ -110,7 +110,8 @@ namespace ACESim
             // options.AdditionalTableOverrides = new List<(Func<Decision, GameProgress, byte>, string)>() { (MyGameActionsGenerator.PBetsHeavilyWithGoodSignal, "PBetsHeavilyWithGoodSignal") };
             //options.IncludeSignalsReport = true;
             //options.IncludeCourtSuccessReport = true;
-            string report = ProcessSingleOptionSet(options, "Report", "Single", true);
+            string report = "";
+            ProcessSingleOptionSet(options, "Report", "Single", true);
             return report;
         }
 

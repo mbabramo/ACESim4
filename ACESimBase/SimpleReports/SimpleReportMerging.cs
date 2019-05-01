@@ -70,7 +70,7 @@ namespace ACESim
         {
             int numMainLines;
             StringBuilder sb = new StringBuilder();
-            using (StringReader reader = new StringReader(report ?? null))
+            using (StringReader reader = new StringReader(report ?? ""))
             {
                 string line;
                 bool isFirst = true;
