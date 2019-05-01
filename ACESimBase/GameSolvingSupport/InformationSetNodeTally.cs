@@ -28,9 +28,6 @@ namespace ACESim
         public int NumBackupRegretIncrements = 0;
         public int NumBackupRegretsSinceLastRegretIncrement = 0;
 
-        public int DEBUG_SKIPPING;
-
-
         double[,] NodeInformation;
 
         int NumPossibleActions => Decision.NumPossibleActions;
@@ -214,7 +211,7 @@ namespace ACESim
             {
                 double denominator = NodeInformation[bestResponseDenominatorDimension, a - 1];
                 if (denominator == 0)
-                    return 0; // no best response data available // DEBUG -- figure out why this happens.
+                    return 0; // no best response data available
                 double ratio = NodeInformation[bestResponseNumeratorDimension, a - 1] / denominator;
                 if (a == 1 || ratio > bestRatio)
                 {
@@ -706,7 +703,7 @@ namespace ACESim
                             throw new Exception("NumPossibleActions not initialized");
                         double probability = 1.0 / (double)NumPossibleActions;
                         if (double.IsNaN(probability))
-                            throw new Exception(); // DEBUG
+                            throw new Exception();
                         for (int a = 1; a <= NumPossibleActions; a++)
                         {
                             NodeInformation[adjustedWeightsDimension, a - 1] = 1.0;
@@ -813,7 +810,7 @@ namespace ACESim
                             throw new Exception("NumPossibleActions not initialized");
                         double probability = 1.0 / (double)NumPossibleActions;
                         if (double.IsNaN(probability))
-                            throw new Exception(); // DEBUG
+                            throw new Exception(); 
                         for (int a = 1; a <= NumPossibleActions; a++)
                             NodeInformation[hedgeProbabilityDimension, a - 1] = probability;
                         UpdatingHedge = new SimpleExclusiveLock();

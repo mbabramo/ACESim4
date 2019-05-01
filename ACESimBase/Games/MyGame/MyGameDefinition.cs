@@ -238,7 +238,7 @@ namespace ACESim
             var pFile =
                 new Decision("PFile", "PF", (byte)MyGamePlayers.Plaintiff, new byte[]  { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
                     2, (byte)MyGameDecisions.PFile)
-                { // DEBUG: Maybe can eliminate notice to plaintiff and defendant here and below
+                { // TODO: Maybe can eliminate notice to plaintiff and defendant here and below
                     CanTerminateGame = true, // not filing always terminates
                     IsReversible = true
                 };

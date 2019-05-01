@@ -155,7 +155,7 @@ namespace ACESim
                     //else
                     //    for (int i = 0; i < MaxNumPlayers; i++)
                     //        *(equalProbabilityPiValuesToPass + i) = *(equalProbabilityNextPiValues + i);
-                    // DEBUG -- we could optimize this by (a) setting to a different method; and (b) creating an alternative action to use when not running in parallel, where that action would not copy the history point.
+                    // TODO -- we could optimize this by (a) setting to a different method; and (b) creating an alternative action to use when not running in parallel, where that action would not copy the history point.
                     var historyPointCopy2 = historyPointCopy; // Need to do this because we need a separate copy for each thread
                     double probabilityAdjustedExpectedValueParticularAction =
                         VanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues,

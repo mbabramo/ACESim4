@@ -66,13 +66,6 @@ namespace ACESim
                 double probabilityOfAction = actionProbabilities[action - 1];
                 if (EvolutionSettings.PruneOnOpponentStrategy && playerBeingOptimized != playerMakingDecision && probabilityOfAction < EvolutionSettings.PruneOnOpponentStrategyThreshold)
                     continue;
-                if (playerBeingOptimized == playerMakingDecision)
-                {
-                    if (probabilityOfAction < 1E-10)
-                        informationSet.DEBUG_SKIPPING = informationSet.DEBUG_SKIPPING | (int)(1 << action);
-                    else if (probabilityOfAction > 1E-8 && ((informationSet.DEBUG_SKIPPING & (int)(1 << action)) != 0))
-                        throw new Exception("DEBUG.");
-                }
                 double probabilityOfActionAvgStrat = informationSet.GetHedgeSavedAverageStrategy(action);
                 GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false,
                     nextPiValues); // reduce probability associated with player being optimized, without changing probabilities for other players
@@ -237,13 +230,7 @@ namespace ACESim
             string reportString = null;
             double[] lastUtilities = new double[NumNonChancePlayers];
 
-            bool usePruning = false; // iteration >= 100;
             ActionStrategy = ActionStrategies.NormalizedHedge;
-
-            //if (iteration == 501)
-            //{
-            //    TraceCFR = true; // DEBUG
-            //}
             
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {

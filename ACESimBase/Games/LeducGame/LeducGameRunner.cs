@@ -35,7 +35,7 @@ namespace ACESim
             EvolutionSettings evolutionSettings = new EvolutionSettings()
             {
                 MaxParallelDepth = 1, // we're parallelizing on the iteration level, so there is no need for further parallelization
-                ParallelOptimization = false, // DEBUG ParallelizeIndividualExecutions && !ParallelizeOptionSets && !LocalDistributedProcessing,
+                ParallelOptimization = false, // ParallelizeIndividualExecutions && !ParallelizeOptionSets && !LocalDistributedProcessing,
                 SuppressReportPrinting = true, // !SingleGameMode && (ParallelizeOptionSets || LocalDistributedProcessing),
 
                 GameNumber = StartGameNumber,

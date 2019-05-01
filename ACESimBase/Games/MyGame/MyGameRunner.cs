@@ -99,8 +99,8 @@ namespace ACESim
                 StdevNoiseToProduceLitigationQuality = 0.3
             };
             options.PNoiseStdev = options.DNoiseStdev = StdevPlayerNoise;
-            //options.NumSignals = options.NumLitigationQualityPoints = options.NumOffers = 3; // DEBUG
-            //options.NumPotentialBargainingRounds = 1; // DEBUG
+            //options.NumSignals = options.NumLitigationQualityPoints = options.NumOffers = 3; 
+            //options.NumPotentialBargainingRounds = 1;
             //options.MyGameRunningSideBets = new MyGameRunningSideBets()
             //{
             //    MaxChipsPerRound = 2,

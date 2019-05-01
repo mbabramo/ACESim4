@@ -11,7 +11,7 @@ namespace ACESim
         // 1. During the Probe, we visit all branches on a critical node.
         // 2. The counterfactual value of an action selected for the player being selected is determined based on a probe. The walk through the tree is used solely for purposes of sampling.
 
-        // DEBUG -- TODO: Try using https://github.com/josetr/IL.InitLocals. We are spending a lot of time resetting the stack and thus clearing everything allocated via stackalloc. But we shouldn't really need to, since we copy data into whatever we stack allocate.
+        // TODO: Try using https://github.com/josetr/IL.InitLocals. We are spending a lot of time resetting the stack and thus clearing everything allocated via stackalloc. But we shouldn't really need to, since we copy data into whatever we stack allocate.
 
         // TODO: Can we store utilities for the resolution set in the penultimate node? That is, if we see that the next nodes all contain a final utilities, then maybe we can record what those final utilities are, and thus save the need to traverse each of those possibilities.
 
@@ -69,11 +69,11 @@ namespace ACESim
             { // Must sample every action at this node.
                 if (historyPoint.BranchingIsReversible(Navigation, chanceNodeSettings.Decision))
                 {
-                    double[] combined = new double[NumNonChancePlayers]; // DEBUG -- can we use an array pool? Or use a pointer?
+                    double[] combined = new double[NumNonChancePlayers]; // TODO -- can we use an array pool? Or use a pointer?
                     for (byte a = 1; a <= numPossibleActions; a++)
                     {
                         double probability = chanceNodeSettings.GetActionProbability(a);
-                        IGameState gameStateOriginal = historyPoint.GameState; // DEBUG -- can we move this out of the for loop?
+                        IGameState gameStateOriginal = historyPoint.GameState; // TODO -- can we move this out of the for loop?
                         double[] result = CompleteModifiedGibsonProbe_InPlace(ref historyPoint, randomProducer, a, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
                         GameDefinition.ReverseDecision(chanceNodeSettings.Decision, ref historyPoint, gameStateOriginal);
                         for (byte p = 0; p < NumNonChancePlayers; p++)
@@ -83,7 +83,7 @@ namespace ACESim
                 }
                 else
                 {
-                    double[] combined = new double[NumNonChancePlayers];  // DEBUG -- can we use an array pool?
+                    double[] combined = new double[NumNonChancePlayers];  // TODO -- can we use an array pool?
                     for (byte a = 1; a <= numPossibleActions; a++)
                     {
                         double probability = chanceNodeSettings.GetActionProbability(a);
@@ -185,7 +185,7 @@ namespace ACESim
             {
                 if (historyPoint.BranchingIsReversible(Navigation, informationSet.Decision))
                 {
-                    IGameState gameStateOriginal = historyPoint.GameState; // DEBUG -- move out of loop?
+                    IGameState gameStateOriginal = historyPoint.GameState; // TODO -- move out of loop?
                     historyPoint.SwitchToBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                     summation = ModifiedGibsonProbe_CalculateCounterfactualValues(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, informationSet, sigmaRegretMatchedActionProbabilities, action, sampledAction, samplingProbabilities, counterfactualValues, summation);
                     GameDefinition.ReverseDecision(informationSet.Decision, ref historyPoint, gameStateOriginal);

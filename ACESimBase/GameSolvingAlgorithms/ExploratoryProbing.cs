@@ -12,7 +12,7 @@ namespace ACESim
         // 2. The counterfactual value of an action selected for the player being selected is determined based on a probe. The walk through the tree is used solely for purposes of sampling.
         // 3. Backup regrets set on alternate iterations. We alternate normal with exploratory iterations, where both players engage in epsilon exploration. In an exploratory iteration, we increment backup cumulative regrets, but only where the main regrets are empty. This ensures that if a node will not be visited without exploration, we still develop our best estimate of the correct value based on exploration. Note that this provides robustness but means that T in the regret bound guarantees will consist only of the normal iterations.
 
-        // DEBUG -- TODO: Try using https://github.com/josetr/IL.InitLocals. We are spending a lot of time resetting the stack and thus clearing everything allocated via stackalloc. But we shouldn't really need to, since we copy data into whatever we stack allocate.
+        // TODO: Try using https://github.com/josetr/IL.InitLocals. We are spending a lot of time resetting the stack and thus clearing everything allocated via stackalloc. But we shouldn't really need to, since we copy data into whatever we stack allocate.
 
 
         // TODO: possible speedup: Skip probes on many zero-probability moves. So, if we're exploring, and a move is zero probability based on regret matching, then it won't affect any other node's measurement of counterfactual regret. However, we still periodically want to measure this node's counterfactual regret. So, we might still explore this node as our main path, but skip using it as a probe.
@@ -100,11 +100,11 @@ namespace ACESim
             { // Must sample every action at this node.
                 if (historyPoint.BranchingIsReversible(Navigation, chanceNodeSettings.Decision))
                 {
-                    double[] combined = new double[NumNonChancePlayers]; // DEBUG -- can we use an array pool? Or use a pointer?
+                    double[] combined = new double[NumNonChancePlayers]; // TODO -- can we use an array pool? Or use a pointer?
                     for (byte a = 1; a <= numPossibleActions; a++)
                     {
                         double probability = chanceNodeSettings.GetActionProbability(a);
-                        IGameState gameStateOriginal = historyPoint.GameState; // DEBUG -- can we move this out of the for loop?
+                        IGameState gameStateOriginal = historyPoint.GameState; // TODO -- can we move this out of the for loop?
                         double[] result = CompleteExploratoryProbe_InPlace(ref historyPoint, randomProducer, a, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
                         GameDefinition.ReverseDecision(chanceNodeSettings.Decision, ref historyPoint, gameStateOriginal);
                         for (byte p = 0; p < NumNonChancePlayers; p++)
@@ -114,7 +114,7 @@ namespace ACESim
                 }
                 else
                 {
-                    double[] combined = new double[NumNonChancePlayers];  // DEBUG -- can we use an array pool?
+                    double[] combined = new double[NumNonChancePlayers];  // TODO -- can we use an array pool?
                     for (byte a = 1; a <= numPossibleActions; a++)
                     {
                         double probability = chanceNodeSettings.GetActionProbability(a);
@@ -219,7 +219,7 @@ namespace ACESim
             {
                 if (historyPoint.BranchingIsReversible(Navigation, informationSet.Decision))
                 {
-                    IGameState gameStateOriginal = historyPoint.GameState; // DEBUG -- move out of loop?
+                    IGameState gameStateOriginal = historyPoint.GameState; // TODO -- move out of loop?
                     historyPoint.SwitchToBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                     summation = CalculateCounterfactualValues(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, isExploratoryIteration, informationSet, sigmaRegretMatchedActionProbabilities, action, sampledAction, samplingProbabilities, counterfactualValues, summation);
                     GameDefinition.ReverseDecision(informationSet.Decision, ref historyPoint, gameStateOriginal);

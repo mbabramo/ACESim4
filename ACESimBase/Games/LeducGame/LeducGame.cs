@@ -47,9 +47,8 @@ namespace ACESim
                     throw new Exception();
             }
             if (GameProgressLogger.LoggingOn)
-                GameProgressLogger.Log($"State: {MyState} NextTurn: {MyState.GetTurn()} Choices: {String.Join(",", MyState.GetAvailableChoices())} {DEBUGW++}");
+                GameProgressLogger.Log($"State: {MyState} NextTurn: {MyState.GetTurn()} Choices: {String.Join(",", MyState.GetAvailableChoices())}");
         }
-        public static long DEBUGW = 0;
 
 
         public override void FinalProcessing()
