@@ -244,11 +244,21 @@ namespace ACESim
             IGameState gameState;
             List<byte> actionsSoFar = historyPoint.GetActionsToHere(navigationSettings);
             (GameProgress progress, _) = GamePlayer.PlayPath(actionsSoFar, false);
+            for (int i = 0; i < 20; i++)
+            {
+                gameState = ProcessProgress(ref historyPoint, navigationSettings, progress);
+                if (gameState != null)
+                return gameState;
+            }
+            throw new Exception("Internal error. The path was not processed correctly. Try using CachedBothMethods to try to identify where there is a problem with information sets.");
+        }
+
+        private unsafe IGameState ProcessProgress(ref HistoryPoint historyPoint, HistoryNavigationInfo navigationSettings, GameProgress progress)
+        {
+            IGameState gameState;
             ProcessInitializedGameProgress(progress);
             NumInitializedGamePaths++; // Note: This may not be exact if we initialize the same game path twice (e.g., if we are playing in parallel)
             gameState = historyPoint.GetGameStateForCurrentPlayer(navigationSettings);
-            if (gameState == null)
-                throw new Exception("Internal error. Try using CachedBothMethods to try to identify where there is a problem with information sets.");
             return gameState;
         }
 

@@ -24,7 +24,7 @@ namespace ACESim
 
         private const int ProbingIterations = 20_000_000;
         private const int VanillaIterations = 5_000;
-        private const int VanillaReportEveryNIterations = 1_000;
+        private const int VanillaReportEveryNIterations = 10;
         private const int VanillaBestResponseEveryMIterations = 1_000;
         private const int SummaryTableIterations = 1_000;
 
@@ -44,7 +44,7 @@ namespace ACESim
         {
             EvolutionSettings evolutionSettings = new EvolutionSettings()
             {
-                MaxParallelDepth = 2, // we're parallelizing on the iteration level, so there is no need for further parallelization
+                MaxParallelDepth = 3, // we're parallelizing on the iteration level, so there is no need for further parallelization
                 ParallelOptimization = ParallelizeIndividualExecutions && !ParallelizeOptionSets && (SingleGameMode || !LocalDistributedProcessing),
                 SuppressReportPrinting = !SingleGameMode && (ParallelizeOptionSets || LocalDistributedProcessing),
 
