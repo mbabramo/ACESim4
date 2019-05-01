@@ -12,6 +12,7 @@ namespace ACESim
         /// <param name="historyPoint">The game tree, pointing to the particular point in the game where we are located</param>
         /// <param name="playerBeingOptimized">0 for first player, etc. Note that this corresponds in Lanctot to 1, 2, etc. We are using zero-basing for player index (even though we are 1-basing actions).</param>
         /// <returns></returns>
+        [InitLocals(false)]
         public unsafe HedgeVanillaUtilities HedgeVanillaCFR(ref HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues, double* avgStratPiValues)
         {
             //if (usePruning && ShouldPruneIfPruning(piValues))
@@ -33,6 +34,7 @@ namespace ACESim
                 return HedgeVanillaCFR_DecisionNode(ref historyPoint, playerBeingOptimized, piValues, avgStratPiValues);
         }
 
+        [InitLocals(false)]
         private unsafe HedgeVanillaUtilities HedgeVanillaCFR_DecisionNode(ref HistoryPoint historyPoint, byte playerBeingOptimized,
             double* piValues, double* avgStratPiValues)
         {
@@ -132,6 +134,7 @@ namespace ACESim
             return result;
         }
 
+        [InitLocals(false)]
         private unsafe HedgeVanillaUtilities HedgeVanillaCFR_ChanceNode(ref HistoryPoint historyPoint, byte playerBeingOptimized,
             double* piValues, double* avgStratPiValues)
         {
@@ -160,6 +163,7 @@ namespace ACESim
             return result;
         }
 
+        [InitLocals(false)]
         private unsafe HedgeVanillaUtilities HedgeVanillaCFR_ChanceNode_NextAction(ref HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues, double* avgStratPiValues, ChanceNodeSettings chanceNodeSettings, double* equalProbabilityNextPiValues, byte action)
         {
             double* nextPiValues = stackalloc double[MaxNumMainPlayers];
