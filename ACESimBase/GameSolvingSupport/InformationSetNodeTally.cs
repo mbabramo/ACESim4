@@ -28,6 +28,8 @@ namespace ACESim
         public int NumBackupRegretIncrements = 0;
         public int NumBackupRegretsSinceLastRegretIncrement = 0;
 
+        public int DEBUG_SKIPPING;
+
 
         double[,] NodeInformation;
 

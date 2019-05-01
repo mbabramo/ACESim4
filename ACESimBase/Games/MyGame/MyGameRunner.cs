@@ -20,10 +20,12 @@ namespace ACESim
         public static double[] CostsMultipliers = new double[] { 1.0 }; // 0.1, 0.25, 0.5, 1.0, 1.5, 2.0, 4.0 };
         public const double StdevPlayerNoise = 0.3; // baseline is 0.3
 
-        private const GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.ExploratoryProbing;
+        private const GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.HedgeVanilla;
 
         private const int ProbingIterations = 20_000_000;
-        private const int VanillaIterations = 1_000;
+        private const int VanillaIterations = 5_000;
+        private const int VanillaReportEveryNIterations = 1_000;
+        private const int VanillaBestResponseEveryMIterations = 1_000;
         private const int SummaryTableIterations = 1_000;
 
         private const bool UseRegretAndStrategyDiscounting = true;
@@ -36,7 +38,7 @@ namespace ACESim
         public static string OverrideDateTimeString = null; // "2017-10-11 10:18"; // use this if termination finished unexpectedly
         public static string MasterReportNameForDistributedProcessing = "AMONLY";
         private static bool ParallelizeOptionSets = false;
-        private static bool ParallelizeIndividualExecutions = true; // only affects SingleGameMode
+        private static bool ParallelizeIndividualExecutions = true; // only affects SingleGameMode or if no local distributed processing
 
         private static EvolutionSettings GetEvolutionSettings()
         {
@@ -51,8 +53,8 @@ namespace ACESim
                 Algorithm = Algorithm,
 
                 UseRandomPathsForBestResponse = false,
-                ReportEveryNIterations = Algorithm == GameApproximationAlgorithm.ExploratoryProbing ? 500_000 : 100,
-                BestResponseEveryMIterations = 100, // DEBUG EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
+                ReportEveryNIterations = Algorithm == GameApproximationAlgorithm.ExploratoryProbing ? 500_000 : VanillaReportEveryNIterations,
+                BestResponseEveryMIterations = Algorithm == GameApproximationAlgorithm.ExploratoryProbing ? EvolutionSettings.EffectivelyNever : VanillaBestResponseEveryMIterations, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
                 NumRandomIterationsForSummaryTable = SummaryTableIterations,
                 GenerateReportsByPlaying = true,
                 PrintInformationSets = false,
