@@ -22,6 +22,7 @@ namespace ACESim
         public static string OverrideDateTimeString = null; // "2017-10-11 10:18"; // use this if termination finished unexpectedly
         public static string MasterReportNameForDistributedProcessing = "R1";
         private static bool ParallelizeOptionSets = false; // must be false to parallelize individual executions
+        private static bool ParallelizeIndividualExecutions = true; // only affects SingleGameMode
 
         private const int VanillaIterations = 10_000;
         private const int SamplingIterations = 100_000_000;
