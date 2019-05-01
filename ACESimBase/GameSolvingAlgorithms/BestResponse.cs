@@ -117,7 +117,7 @@ namespace ACESim
                 byte action = GameDefinition.DecisionsExecutionOrder[decisionIndex].AlwaysDoAction ??
                               informationSet.GetBestResponseAction();
                 if (action == 0)
-                    throw new Exception("Invalid action."); // This may happen if using regret matching for opponent's strategy after evolving it with hedge.
+                    return 0; // This may happen if using regret matching for opponent's strategy after evolving it with hedge. It would be a problem if using VanillaHedging.
                 double expectedValue;
                 if (historyPoint.BranchingIsReversible(Navigation, informationSet.Decision))
                 {

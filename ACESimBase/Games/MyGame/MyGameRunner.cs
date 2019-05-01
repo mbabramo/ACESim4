@@ -20,8 +20,10 @@ namespace ACESim
         public static double[] CostsMultipliers = new double[] { 1.0 }; // 0.1, 0.25, 0.5, 1.0, 1.5, 2.0, 4.0 };
         public const double StdevPlayerNoise = 0.3; // baseline is 0.3
 
+        private const GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.HedgeVanilla;
+
         private const int ProbingIterations = 1_000_000;
-        private const int VanillaIterations = 10_000;
+        private const int VanillaIterations = 1_000;
         private const int SummaryTableIterations = 1_000;
 
         private const bool UseRegretAndStrategyDiscounting = true;
@@ -46,17 +48,17 @@ namespace ACESim
 
                 GameNumber = StartGameNumber,
 
-                Algorithm = GameApproximationAlgorithm.HedgeVanilla,
+                Algorithm = Algorithm,
 
                 UseRandomPathsForBestResponse = false,
-                ReportEveryNIterations = 100,
-                BestResponseEveryMIterations = 100, // DEBUG EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
+                ReportEveryNIterations = Algorithm == GameApproximationAlgorithm.ExploratoryProbing ? 500_000 : 100,
+                BestResponseEveryMIterations = 1_000, // DEBUG EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
                 NumRandomIterationsForSummaryTable = SummaryTableIterations,
                 GenerateReportsByPlaying = true,
                 PrintInformationSets = false,
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
                 PrintGameTree = false,
-                AlwaysUseAverageStrategyInReporting = false,
+                AlwaysUseAverageStrategyInReporting = true,
 
                 TotalProbingCFRIterations = ProbingIterations,
                 EpsilonForMainPlayer = 0.5,
