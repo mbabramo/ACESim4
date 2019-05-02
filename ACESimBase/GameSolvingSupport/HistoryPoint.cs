@@ -78,7 +78,7 @@ namespace ACESim
                     return GameState;
                 }
                 // Otherwise, when playing the actual game, we use the GameHistory object, so we'll set this object as the "cached" object even though it's cached.
-                navigation.LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
+                navigation = navigation.WithLookupApproach(InformationSetLookupApproach.CachedGameHistoryOnly);
                 HistoryToPoint = GameProgress.GameHistory;
             }
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)

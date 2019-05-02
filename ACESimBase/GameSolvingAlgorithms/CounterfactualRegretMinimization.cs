@@ -80,7 +80,7 @@ namespace ACESim
 
         public CounterfactualRegretMinimization()
         {
-            Navigation.SetGameStateFunction(GetGameState);
+            Navigation = Navigation.WithGameStateFunction(GetGameState);
         }
 
         public CounterfactualRegretMinimization(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition)
@@ -263,7 +263,7 @@ namespace ACESim
             throw new Exception("Internal error. The path was not processed correctly. Try using CachedBothMethods to try to identify where there is a problem with information sets.");
         }
 
-        private unsafe IGameState ProcessProgress(ref HistoryPoint historyPoint, HistoryNavigationInfo navigationSettings, GameProgress progress)
+        private unsafe IGameState ProcessProgress(ref HistoryPoint historyPoint, in HistoryNavigationInfo navigationSettings, GameProgress progress)
         {
             IGameState gameState;
             ProcessInitializedGameProgress(progress);

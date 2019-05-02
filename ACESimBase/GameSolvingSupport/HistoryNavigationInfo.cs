@@ -7,17 +7,17 @@ using System.Threading.Tasks;
 namespace ACESim
 {
     [Serializable]
-    public struct HistoryNavigationInfo
+    public readonly struct HistoryNavigationInfo
     {
-        public InformationSetLookupApproach LookupApproach;
-        public List<Strategy> Strategies;
-        public GameDefinition GameDefinition;
-        public List<InformationSetNodeTally> InformationSets;
+        public readonly InformationSetLookupApproach LookupApproach;
+        public readonly List<Strategy> Strategies;
+        public readonly GameDefinition GameDefinition;
+        public readonly List<InformationSetNodeTally> InformationSets;
 
         public delegate IGameState GameStateFunction(ref HistoryPoint historyPoint, HistoryNavigationInfo? navigation);
 
         [NonSerialized]
-        public GameStateFunction StoredGameStateFunction;
+        public readonly GameStateFunction StoredGameStateFunction;
 
         public HistoryNavigationInfo(InformationSetLookupApproach lookupApproach, List<Strategy> strategies, GameDefinition gameDefinition, List<InformationSetNodeTally> informationSets, GameStateFunction gameStateFunction)
         {
@@ -30,10 +30,10 @@ namespace ACESim
 
         // The reason that we need to refer to the algorithm to set game state is that when we are navigating, we sometimes arrive at a game path that hasn't been played. We need the algorithm to play the game and add it to the navigation tree. 
 
-        public void SetGameStateFunction(GameStateFunction getGameStateFunction)
-        {
-            StoredGameStateFunction = getGameStateFunction;
-        }
+        public HistoryNavigationInfo WithGameStateFunction(GameStateFunction gameStateFunction) => new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, InformationSets, gameStateFunction);
+
+
+        public HistoryNavigationInfo WithLookupApproach(InformationSetLookupApproach lookupApproach) => new HistoryNavigationInfo(lookupApproach, Strategies, GameDefinition, InformationSets, StoredGameStateFunction);
 
         public IGameState GetGameState(ref HistoryPoint historyPoint)
         {

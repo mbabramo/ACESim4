@@ -10,12 +10,11 @@ namespace ACESim
     [Serializable]
     public static class ActionProbabilityUtilities
     {
-        public static byte ChooseActionBasedOnRandomNumber(GameProgress gameProgress, double randomNumber, ActionStrategies actionStrategy, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation)
+        public static byte ChooseActionBasedOnRandomNumber(GameProgress gameProgress, double randomNumber, ActionStrategies actionStrategy, byte numPossibleActions, byte? alwaysDoAction, in HistoryNavigationInfo navigation)
         {
             // We're not necessarily using the same navigation approach as is used during CFRDevelopment, because the game tree may not be set up at the time this is called.
             HistoryPoint historyPoint = new HistoryPoint(null, gameProgress.GameHistory, gameProgress);
-            HistoryNavigationInfo navigateDuringActualGamePlay = navigation;
-            navigateDuringActualGamePlay.LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
+            HistoryNavigationInfo navigateDuringActualGamePlay = navigation.WithLookupApproach(InformationSetLookupApproach.CachedGameHistoryOnly);
             IGameState gameStateForCurrentPlayer = navigateDuringActualGamePlay.GetGameState(ref historyPoint);
             if (gameStateForCurrentPlayer == null)
                 throw new Exception("Internal error. This action has not been initialized.");
