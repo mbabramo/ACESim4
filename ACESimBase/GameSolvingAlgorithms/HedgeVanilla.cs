@@ -79,7 +79,7 @@ namespace ACESim
                 double probabilityOfAction = actionProbabilities[action - 1];
                 if (EvolutionSettings.PruneOnOpponentStrategy && playerBeingOptimized != playerMakingDecision && probabilityOfAction < EvolutionSettings.PruneOnOpponentStrategyThreshold)
                     continue;
-                double probabilityOfActionAvgStrat = informationSet.GetHedgeSavedAverageStrategy(action);
+                double probabilityOfActionAvgStrat = informationSet.GetNormalizedHedgeAverageStrategy(action);
                 GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false,
                     nextPiValues); // reduce probability associated with player being optimized, without changing probabilities for other players
                 GetNextPiValues(avgStratPiValues, playerMakingDecision, probabilityOfActionAvgStrat, false, nextAvgStratPiValues);
@@ -92,7 +92,7 @@ namespace ACESim
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                 HedgeVanillaUtilities innerResult = HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues);
                 expectedValueOfAction[action - 1] = innerResult.HedgeVsHedge;
-                double averageStrategyProbability = informationSet.GetHedgeSavedAverageStrategy(action);
+                double averageStrategyProbability = informationSet.GetNormalizedHedgeAverageStrategy(action);
                 if (playerMakingDecision == playerBeingOptimized)
                 {
                     if (informationSet.LastBestResponseAction == action)

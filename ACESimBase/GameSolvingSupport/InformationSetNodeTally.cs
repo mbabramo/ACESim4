@@ -734,7 +734,7 @@ namespace ACESim
             //Interlocked.Increment(ref NumRegretIncrements);
         }
 
-        public double GetHedgeSavedAverageStrategy(byte action)
+        public double GetNormalizedHedgeAverageStrategy(byte action)
         {
             return NodeInformation[averageStrategyProbabilityDimension, action - 1];
         }
