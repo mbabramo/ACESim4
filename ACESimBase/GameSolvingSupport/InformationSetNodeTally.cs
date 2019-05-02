@@ -620,73 +620,15 @@ namespace ACESim
 
         #region Normalized Hedge
 
+        // Note: The first two methods must be used if we don't have a guarantee that updating will take place before each iteration.
+
         private void UpdateNormalizedHedgeIfNecessary(int iteration)
         {
             if (iteration > LastUpdatedIteration)
             {
                 InitializeNormalizedHedgeIfNecessary();
                 UpdatingHedge.Enter();
-                if (iteration > LastUpdatedIteration)
-                {
-                    GetBestResponseAction(); // calculate best response, if data is available
-                    // remember last regret
-                    double minLastRegret = 0, maxLastRegret = 0;
-                    for (int a = 1; a <= NumPossibleActions; a++)
-                    {
-                        double lastRegret = NodeInformation[regretIncrementsDimension, a - 1];
-                        if (a == 1)
-                            minLastRegret = maxLastRegret = lastRegret;
-                        else if (lastRegret > maxLastRegret)
-                            maxLastRegret = lastRegret;
-                        else if (lastRegret < minLastRegret)
-                            minLastRegret = lastRegret;
-                    }
-                    // normalize regrets to costs between 0 and 1. the key assumption is that each iteration takes into account ALL possible outcomes (as in a vanilla hedge CFR algorithm)
-                    double sumWeights = 0, sumCumulativeStrategies = 0;
-                    for (int a = 1; a <= NumPossibleActions; a++)
-                    {
-                        double regretIncrements = NodeInformation[regretIncrementsDimension, a - 1];
-                        double normalizedCost = maxLastRegret == minLastRegret ? 0.5 : 1.0 - (regretIncrements - minLastRegret) / (maxLastRegret - minLastRegret);
-                        double weightAdjustment = Math.Pow(1 - NormalizedHedgeEpsilon, normalizedCost);
-                        double weight = NodeInformation[adjustedWeightsDimension, a - 1];
-                        weight *= weightAdjustment;
-                        if (double.IsNaN(weight))
-                            throw new Exception();
-                        NodeInformation[adjustedWeightsDimension, a - 1] = weight;
-                        sumWeights += weight;
-                        NodeInformation[cumulativeRegretDimension, a - 1] += NodeInformation[regretIncrementsDimension, a - 1];
-                        NodeInformation[regretIncrementsDimension, a - 1] = 0; // reset for next iteration
-                        sumCumulativeStrategies += NodeInformation[cumulativeStrategyDimension, a - 1];
-                    }
-                    if (sumWeights < 1E-20)
-                    { // increase all weights to avoid all weights being round off to zero -- since this affects only relative probabilities at the information set, this won't matter
-                        for (int a = 1; a <= NumPossibleActions; a++)
-                        {
-                            NodeInformation[adjustedWeightsDimension, a - 1] *= 1E+15;
-                        }
-                        sumWeights *= 1E+15;
-                    }
-                    // Finally, calculate the hedge adjusted probabilities
-                    for (int a = 1; a <= NumPossibleActions; a++)
-                    {
-                        double probabilityHedge = NodeInformation[adjustedWeightsDimension, a - 1] / sumWeights;
-                        if (probabilityHedge == 0)
-                            probabilityHedge = Double.Epsilon; // always maintain at least the smallest possible positive probability
-                        if (double.IsNaN(probabilityHedge))
-                            throw new Exception();
-                        NodeInformation[hedgeProbabilityDimension, a - 1] = probabilityHedge;
-                        if (sumCumulativeStrategies > 0)
-                        {
-                            double probabilityAverageStrategy = NodeInformation[cumulativeStrategyDimension, a - 1] / sumCumulativeStrategies;
-                            if (probabilityAverageStrategy == 0)
-                                probabilityAverageStrategy = Double.Epsilon; // always maintain at least the smallest possible positive probability
-                            if (double.IsNaN(probabilityAverageStrategy))
-                                throw new Exception();
-                            NodeInformation[averageStrategyProbabilityDimension, a - 1] = probabilityAverageStrategy;
-                        }
-                    }
-                    LastUpdatedIteration = iteration;
-                }
+                UpdateNormalizedHedge(iteration);
                 UpdatingHedge.Exit();
             }
         }
@@ -699,27 +641,97 @@ namespace ACESim
                 {
                     if (UpdatingHedge == null)
                     { // Initialize
-                        if (NumPossibleActions == 0)
-                            throw new Exception("NumPossibleActions not initialized");
-                        double probability = 1.0 / (double)NumPossibleActions;
-                        if (double.IsNaN(probability))
-                            throw new Exception();
-                        for (int a = 1; a <= NumPossibleActions; a++)
-                        {
-                            NodeInformation[adjustedWeightsDimension, a - 1] = 1.0;
-                            NodeInformation[hedgeProbabilityDimension, a - 1] = probability;
-                            NodeInformation[averageStrategyProbabilityDimension, a - 1] = probability;
-                        }
-                        UpdatingHedge = new SimpleExclusiveLock();
+                        InitializeNormalizedHedge();
                     }
                 }
             }
         }
 
+        public void UpdateNormalizedHedge(int iteration)
+        {
+            if (iteration > LastUpdatedIteration)
+            {
+                GetBestResponseAction(); // calculate best response, if data is available
+                                         // remember last regret
+                double minLastRegret = 0, maxLastRegret = 0;
+                for (int a = 1; a <= NumPossibleActions; a++)
+                {
+                    double lastRegret = NodeInformation[regretIncrementsDimension, a - 1];
+                    if (a == 1)
+                        minLastRegret = maxLastRegret = lastRegret;
+                    else if (lastRegret > maxLastRegret)
+                        maxLastRegret = lastRegret;
+                    else if (lastRegret < minLastRegret)
+                        minLastRegret = lastRegret;
+                }
+                // normalize regrets to costs between 0 and 1. the key assumption is that each iteration takes into account ALL possible outcomes (as in a vanilla hedge CFR algorithm)
+                double sumWeights = 0, sumCumulativeStrategies = 0;
+                for (int a = 1; a <= NumPossibleActions; a++)
+                {
+                    double regretIncrements = NodeInformation[regretIncrementsDimension, a - 1];
+                    double normalizedCost = maxLastRegret == minLastRegret ? 0.5 : 1.0 - (regretIncrements - minLastRegret) / (maxLastRegret - minLastRegret);
+                    double weightAdjustment = Math.Pow(1 - NormalizedHedgeEpsilon, normalizedCost);
+                    double weight = NodeInformation[adjustedWeightsDimension, a - 1];
+                    weight *= weightAdjustment;
+                    if (double.IsNaN(weight))
+                        throw new Exception();
+                    NodeInformation[adjustedWeightsDimension, a - 1] = weight;
+                    sumWeights += weight;
+                    NodeInformation[cumulativeRegretDimension, a - 1] += NodeInformation[regretIncrementsDimension, a - 1];
+                    NodeInformation[regretIncrementsDimension, a - 1] = 0; // reset for next iteration
+                    sumCumulativeStrategies += NodeInformation[cumulativeStrategyDimension, a - 1];
+                }
+                if (sumWeights < 1E-20)
+                { // increase all weights to avoid all weights being round off to zero -- since this affects only relative probabilities at the information set, this won't matter
+                    for (int a = 1; a <= NumPossibleActions; a++)
+                    {
+                        NodeInformation[adjustedWeightsDimension, a - 1] *= 1E+15;
+                    }
+                    sumWeights *= 1E+15;
+                }
+                // Finally, calculate the hedge adjusted probabilities
+                for (int a = 1; a <= NumPossibleActions; a++)
+                {
+                    double probabilityHedge = NodeInformation[adjustedWeightsDimension, a - 1] / sumWeights;
+                    if (probabilityHedge == 0)
+                        probabilityHedge = Double.Epsilon; // always maintain at least the smallest possible positive probability
+                    if (double.IsNaN(probabilityHedge))
+                        throw new Exception();
+                    NodeInformation[hedgeProbabilityDimension, a - 1] = probabilityHedge;
+                    if (sumCumulativeStrategies > 0)
+                    {
+                        double probabilityAverageStrategy = NodeInformation[cumulativeStrategyDimension, a - 1] / sumCumulativeStrategies;
+                        if (probabilityAverageStrategy == 0)
+                            probabilityAverageStrategy = Double.Epsilon; // always maintain at least the smallest possible positive probability
+                        if (double.IsNaN(probabilityAverageStrategy))
+                            throw new Exception();
+                        NodeInformation[averageStrategyProbabilityDimension, a - 1] = probabilityAverageStrategy;
+                    }
+                }
+                LastUpdatedIteration = iteration;
+            }
+        }
+
+        public void InitializeNormalizedHedge()
+        {
+            if (NumPossibleActions == 0)
+                throw new Exception("NumPossibleActions not initialized");
+            double probability = 1.0 / (double)NumPossibleActions;
+            if (double.IsNaN(probability))
+                throw new Exception();
+            for (int a = 1; a <= NumPossibleActions; a++)
+            {
+                NodeInformation[adjustedWeightsDimension, a - 1] = 1.0;
+                NodeInformation[hedgeProbabilityDimension, a - 1] = probability;
+                NodeInformation[averageStrategyProbabilityDimension, a - 1] = probability;
+            }
+            UpdatingHedge = new SimpleExclusiveLock();
+        }
+
         public void NormalizedHedgeIncrementLastRegret(byte action, double regretTimesInversePi)
         {
-            IncrementDouble(ref NodeInformation[lastRegretDimension, action - 1], regretTimesInversePi);
-            Interlocked.Increment(ref NumRegretIncrements);
+            Interlocking.Add(ref NodeInformation[lastRegretDimension, action - 1], regretTimesInversePi);
+            //Interlocked.Increment(ref NumRegretIncrements);
         }
 
         public double GetHedgeSavedAverageStrategy(byte action)
@@ -727,53 +739,19 @@ namespace ACESim
             return NodeInformation[averageStrategyProbabilityDimension, action - 1];
         }
 
-        private static double IncrementDouble(ref double location1, double value)
-        {
-            double newCurrentValue = location1; // non-volatile read, so may be stale
-            while (true)
-            {
-                double currentValue = newCurrentValue;
-                double newValue = currentValue + value;
-                newCurrentValue = Interlocked.CompareExchange(ref location1, newValue, currentValue);
-                if (newCurrentValue == currentValue)
-                    return newValue;
-            }
-        }
-
-        public unsafe void GetEpsilonAdjustedNormalizedHedgeProbabilities(double* probabilitiesToSet, double epsilon, int iteration)
-        {
-            GetNormalizedHedgeProbabilities(probabilitiesToSet, iteration);
-            double equalProbabilities = 1.0 / NumPossibleActions;
-            for (byte a = 1; a <= NumPossibleActions; a++)
-                probabilitiesToSet[a - 1] = epsilon * equalProbabilities + (1.0 - epsilon) * probabilitiesToSet[a - 1];
-        }
+        //public unsafe void GetEpsilonAdjustedNormalizedHedgeProbabilities(double* probabilitiesToSet, double epsilon, int iteration)
+        //{
+        //    GetNormalizedHedgeProbabilities(probabilitiesToSet, iteration);
+        //    double equalProbabilities = 1.0 / NumPossibleActions;
+        //    for (byte a = 1; a <= NumPossibleActions; a++)
+        //        probabilitiesToSet[a - 1] = epsilon * equalProbabilities + (1.0 - epsilon) * probabilitiesToSet[a - 1];
+        //}
 
         public unsafe void GetNormalizedHedgeProbabilities(double* probabilitiesToSet, int iteration = -1)
         {
-            if (iteration == -1)
+            for (byte a = 1; a <= NumPossibleActions; a++)
             {
-                // we don't know what iteration it is, so let's update only if a flag isn't set; once it's set, that means that it's been updated for the next iteration
-                if (!UpdatedForUnknownIteration)
-                {
-                    UpdateNormalizedHedgeIfNecessary(LastUpdatedIteration + 1);
-                    UpdatedForUnknownIteration = true;
-                }
-            }
-            else
-            {
-                UpdatedForUnknownIteration = false;
-                UpdateNormalizedHedgeIfNecessary(iteration);
-            }
-            bool done = false;
-            while (!done)
-            { // without this outer loop, there is a risk that when using parallel code, our probabilities will not add up to 1
-                double total = 0;
-                for (byte a = 1; a <= NumPossibleActions; a++)
-                {
-                    probabilitiesToSet[a - 1] = NodeInformation[hedgeProbabilityDimension, a - 1];
-                    total += probabilitiesToSet[a - 1];
-                }
-                done = Math.Abs(1.0 - total) < 1E-7;
+                probabilitiesToSet[a - 1] = NodeInformation[hedgeProbabilityDimension, a - 1];
             }
         }
 

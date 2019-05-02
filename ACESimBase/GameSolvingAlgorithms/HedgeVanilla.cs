@@ -1,11 +1,24 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace ACESim
 {
     public partial class CounterfactualRegretMinimization
     {
+        public void InitializeInformationSets()
+        {
+            int numInformationSets = InformationSets.Count;
+            Parallel.For(0, numInformationSets, n => InformationSets[n].InitializeNormalizedHedge());
+        }
+
+        public void UpdateInformationSets(int iteration)
+        {
+            int numInformationSets = InformationSets.Count;
+            Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateNormalizedHedge(iteration));
+        }
+
         /// <summary>
         /// Performs an iteration of vanilla counterfactual regret minimization.
         /// </summary>
@@ -206,6 +219,7 @@ namespace ACESim
         public unsafe string SolveHedgeVanillaCFR()
         {
             string reportString = null;
+            InitializeInformationSets();
             for (int iteration = 1; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
                 reportString = HedgeVanillaCFRIteration(iteration);
@@ -247,6 +261,8 @@ namespace ACESim
                 if (iteration % 10 == 0)
                     TabbedText.WriteLine($"Iteration {iteration} Player {playerBeingOptimized} {result} Overall milliseconds per iteration {((HedgeVanillaIterationStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
             }
+
+            UpdateInformationSets(iteration);
 
             reportString = GenerateReports(iteration,
                 () =>
