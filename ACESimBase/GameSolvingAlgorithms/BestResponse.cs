@@ -20,6 +20,7 @@ namespace ACESim
         {
             HashSet<byte> depthsOfPlayerDecisions = new HashSet<byte>();
             var startHistoryPoint = GetStartOfGameHistoryPoint();
+            NumGameStates = 0;
             GEBRPass1_ResetData(ref startHistoryPoint, playerIndex, 1,
                 depthsOfPlayerDecisions); // setup counting first decision as depth 1
             List<byte> depthsOrdered = depthsOfPlayerDecisions.OrderByDescending(x => x).ToList();
@@ -41,9 +42,12 @@ namespace ACESim
             return bestResponseUtility;
         }
 
+        int NumGameStates = 0;
+
         public void GEBRPass1_ResetData(ref HistoryPoint historyPoint, byte playerIndex, byte depth,
             HashSet<byte> depthOfPlayerDecisions)
         {
+            NumGameStates++;
             if (historyPoint.IsComplete(Navigation))
                 return;
             else

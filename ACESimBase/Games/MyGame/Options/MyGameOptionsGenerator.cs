@@ -97,10 +97,10 @@ namespace ACESim
                     DeltaStartingValue = 0.01,
                     MaxDelta = 0.25
                 },
-                NumPotentialBargainingRounds = 2,
+                NumPotentialBargainingRounds = 3,
                 BargainingRoundRecall = MyGameBargainingRoundRecall.RememberAllBargainingRounds,
                 SubdivideOffers = false,
-                BargainingRoundsSimultaneous = true,
+                BargainingRoundsSimultaneous = false,
                 PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false, true, false, true, false },
                 IncludeSignalsReport = false,
                 IncludeCourtSuccessReport = false,
