@@ -30,7 +30,7 @@ namespace ACESim
 
         double[,] NodeInformation;
 
-        int NumPossibleActions => Decision.NumPossibleActions;
+        public int NumPossibleActions => Decision.NumPossibleActions;
         const int totalDimensions = 8;
         const int cumulativeRegretDimension = 0;
         const int cumulativeStrategyDimension = 1;
@@ -747,7 +747,7 @@ namespace ACESim
         //        probabilitiesToSet[a - 1] = epsilon * equalProbabilities + (1.0 - epsilon) * probabilitiesToSet[a - 1];
         //}
 
-        public unsafe void GetNormalizedHedgeProbabilities(double* probabilitiesToSet, int iteration = -1)
+        public unsafe void GetNormalizedHedgeProbabilities(double* probabilitiesToSet)
         {
             for (byte a = 1; a <= NumPossibleActions; a++)
             {

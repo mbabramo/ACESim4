@@ -280,7 +280,12 @@ namespace ACESim
             NWayTreeStorage<IGameState> informationSetNode = strategy.SetInformationSetTreeValueIfNotSet(
                         resolutionInformationSet,
                         true,
-                        () => new FinalUtilities(gameProgress.GetNonChancePlayerUtilities())
+                        () =>
+                        {
+                            var finalUtilitiesResult = new FinalUtilities(gameProgress.GetNonChancePlayerUtilities());
+                            navigation.FinalUtilitiesNodes.Add(finalUtilitiesResult);
+                            return finalUtilitiesResult;
+                        }
                         );
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
                 TreePoint.StoredValue = informationSetNode.StoredValue;
@@ -358,6 +363,7 @@ namespace ACESim
                                         DecisionIndex = informationSetHistory.DecisionIndex,
                                         EachProbability = 1.0 / (double)decision.NumPossibleActions,
                                     };
+                                navigation.ChanceNodes.Add(chanceNodeSettings);
                                 return chanceNodeSettings;
                             }
                             else

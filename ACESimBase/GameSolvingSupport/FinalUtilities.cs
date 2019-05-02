@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ACESim
@@ -10,10 +11,14 @@ namespace ACESim
     public class FinalUtilities : IGameState
     {
         public double[] Utilities;
+        public static int FinalUtilitiesNodesSoFar = 0;
+        public int FinalUtilitiesNodeNumber;
 
         public FinalUtilities(double[] utilities)
         {
             Utilities = utilities;
+            FinalUtilitiesNodeNumber = FinalUtilitiesNodesSoFar;
+            Interlocked.Increment(ref FinalUtilitiesNodesSoFar);
         }
 
         public override string ToString()

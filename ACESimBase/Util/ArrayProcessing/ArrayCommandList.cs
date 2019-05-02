@@ -6,7 +6,7 @@ namespace ACESimBase.Util.ArrayProcessing
 {
     public class ArrayCommandList
     {
-        const int MaxNumCommands = 1_000_000;
+        const int MaxNumCommands = 10_000_000;
         public ArrayCommand[] UnderlyingCommands;
         int CurrentCommandIndex;
 
@@ -20,25 +20,36 @@ namespace ACESimBase.Util.ArrayProcessing
             UnderlyingCommands[CurrentCommandIndex++] = command;
         }
 
-        public int AddCopyToCommand(int sourceIndex)
+        public int AddCopyToNewCommand(int sourceIndex)
         {
             int index = CurrentCommandIndex;
-            AddCommand(new ArrayCommand(ArrayCommandType.Copy, index, sourceIndex));
+            AddCommand(new ArrayCommand(ArrayCommandType.CopyToNew, index, sourceIndex));
             return index;
         }
 
-        public int AddMultiplyByCommand(double value)
+        public int AddSetToNewCommand(double value)
         {
             int index = CurrentCommandIndex;
-            AddCommand(new ArrayCommand(ArrayCommandType.MultipyBy, index, value));
+            AddCommand(new ArrayCommand(ArrayCommandType.SetToNew, index, value));
             return index;
         }
 
-        public int AddIncrementCommand(double value)
+        public int[] AddSetToNewCommands(double[] values)
         {
-            int index = CurrentCommandIndex;
+            int[] indices = new int[values.Length];
+            for (int i = 0; i < values.Length; i++)
+                indices[i] = AddSetToNewCommand(values[i]);
+            return indices;
+        }
+
+        public void AddMultiplyByCommand(int index, double value)
+        {
+            AddCommand(new ArrayCommand(ArrayCommandType.MultiplyBy, index, value));
+        }
+
+        public void AddIncrementCommand(int index, double value)
+        {
             AddCommand(new ArrayCommand(ArrayCommandType.IncrementBy, index, value));
-            return index;
         }
 
         public void ExecuteAll(double[] array)
@@ -49,10 +60,10 @@ namespace ACESimBase.Util.ArrayProcessing
                 ArrayCommand command = UnderlyingCommands[CurrentCommandIndex];
                 switch (command.CommandType)
                 {
-                    case ArrayCommandType.Copy:
+                    case ArrayCommandType.CopyToNew:
                         array[command.Index] = command.SourceIndex;
                         break;
-                    case ArrayCommandType.MultipyBy:
+                    case ArrayCommandType.MultiplyBy:
                         array[command.Index] *= command.Value;
                         break;
                     case ArrayCommandType.IncrementBy:

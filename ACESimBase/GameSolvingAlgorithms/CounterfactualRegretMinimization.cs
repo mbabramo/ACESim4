@@ -16,7 +16,7 @@ namespace ACESim
 
         #region Options
 
-        public static bool StoreInformationSetsInList = true;
+        public static bool StoreGameStateNodesInLists = true;
 
         public const int MaxNumMainPlayers = 4; // this affects fixed-size stack-allocated buffers // TODO: Set to 2
         public const int MaxPossibleActions = 100; // same
@@ -40,6 +40,10 @@ namespace ACESim
         public EvolutionSettings EvolutionSettings { get; set; }
 
         public List<InformationSetNodeTally> InformationSets { get; set; }
+
+        public List<ChanceNodeSettings> ChanceNodes { get; set; }
+
+        public List<FinalUtilities> FinalUtilitiesNodes { get; set; }
 
         public GameDefinition GameDefinition { get; set; }
 
@@ -165,9 +169,13 @@ namespace ACESim
 
         public unsafe void Initialize()
         {
-            if (StoreInformationSetsInList)
+            if (StoreGameStateNodesInLists)
+            {
                 InformationSets = new List<InformationSetNodeTally>();
-            Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, InformationSets, GetGameState);
+                ChanceNodes = new List<ChanceNodeSettings>();
+                FinalUtilitiesNodes = new List<FinalUtilities>();
+            }
+            Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, InformationSets, ChanceNodes, FinalUtilitiesNodes, GetGameState);
             foreach (Strategy strategy in Strategies)
                 strategy.Navigation = Navigation;
 
@@ -187,12 +195,12 @@ namespace ACESim
 
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
-            if (StoreInformationSetsInList && GamePlayer.PlayAllPathsIsParallel)
+            if (StoreGameStateNodesInLists && GamePlayer.PlayAllPathsIsParallel)
                 throw new NotImplementedException();
             NumInitializedGamePaths = GamePlayer.PlayAllPaths(ProcessInitializedGameProgress);
             stopwatch.Stop();
             string parallelString = GamePlayer.PlayAllPathsIsParallel ? " (higher number in parallel)" : "";
-            string informationSetsString = StoreInformationSetsInList ? $" Total information sets: {InformationSets.Count()}" : "";
+            string informationSetsString = StoreGameStateNodesInLists ? $" Total information sets: {InformationSets.Count()} chance nodes: {ChanceNodes.Count()} final nodes: {FinalUtilitiesNodes.Count()}" : "";
             Console.WriteLine($"Initialized. Total paths{parallelString}: {NumInitializedGamePaths}{informationSetsString} Total initialization milliseconds {stopwatch.ElapsedMilliseconds}");
             PrintSameGameResults();
         }
@@ -703,7 +711,7 @@ namespace ACESim
         public double[] GetAverageUtilities()
         {
             double[] cumulated = new double[NumNonChancePlayers];
-            Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, InformationSets, GetGameState);
+            Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, InformationSets, ChanceNodes, FinalUtilitiesNodes, GetGameState);
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
             GetAverageUtilities_Helper(ref historyPoint, cumulated, 1.0);
             return cumulated;
@@ -750,7 +758,7 @@ namespace ACESim
 
         public (string standardReport, string csvReport) GenerateReportsByPlaying(Action<GamePlayer, Func<Decision, GameProgress, byte>> generator)
         {
-            Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, InformationSets, GetGameState);
+            Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, InformationSets, ChanceNodes, FinalUtilitiesNodes, GetGameState);
             StringBuilder standardReport = new StringBuilder();
             StringBuilder csvReport = new StringBuilder();
             var simpleReportDefinitions = GameDefinition.GetSimpleReportDefinitions();

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ACESim
@@ -9,12 +10,20 @@ namespace ACESim
     [Serializable]
     public abstract class ChanceNodeSettings : IGameState
     {
+        public static int ChanceNodesSoFar = 0;
+        public int ChanceNodeNumber;
         public Decision Decision;
         public byte DecisionIndex;
         public byte PlayerNum => Decision.PlayerNumber;
         public byte DecisionByteCode => Decision.DecisionByteCode;
         public bool CriticalNode => Decision.CriticalNode;
         public abstract double GetActionProbability(int action);
+
+        public ChanceNodeSettings()
+        {
+            ChanceNodeNumber = ChanceNodesSoFar;
+            Interlocked.Increment(ref ChanceNodesSoFar);
+        }
 
         public byte SampleAction(byte numPossibleActions, double randomNumber)
         {

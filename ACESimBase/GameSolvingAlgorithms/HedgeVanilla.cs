@@ -1,5 +1,7 @@
-﻿using System;
+﻿using ACESimBase.Util.ArrayProcessing;
+using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -7,6 +9,8 @@ namespace ACESim
 {
     public partial class CounterfactualRegretMinimization
     {
+        #region Game state management
+
         public void InitializeInformationSets()
         {
             int numInformationSets = InformationSets.Count;
@@ -18,6 +22,238 @@ namespace ACESim
             int numInformationSets = InformationSets.Count;
             Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateNormalizedHedge(iteration));
         }
+
+        #endregion
+
+        #region Unrolled algorithm
+
+        // We can achieve considerable improvements in performance by unrolling the algorithm. Instead of traversing the tree, we simply have a series of simple commands that can be processed on an array. The challenge is that we need to create this series fo commands. 
+
+
+        private void Unroll_CreateUnrolledCommandList()
+        {
+            Unrolled_Commands = new ArrayCommandList();
+            Unroll_InitializeInitialIndexes();
+            ActionStrategy = ActionStrategies.NormalizedHedge;
+            HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
+            for (byte p = 0; p < NumNonChancePlayers; p++)
+            {
+                Unroll_HedgeVanillaCFR(ref historyPoint, p, Unrolled_InitialPiValues, Unrolled_InitialPiValues);
+            }
+        }
+
+        private void Unroll_ExecuteUnrolledCommands(bool firstExecution)
+        {
+            double[] array = new double[10_000_000];
+            Unroll_CopyInformationSetsToArray(array, firstExecution);
+            Unrolled_Commands.ExecuteAll(array);
+            todo; // copy information from array
+        }
+
+        // Let's store the index in the array at which we will place the various types of information set information.
+
+        private const int NumPiecesInfoPerInformationSet = 3;
+        private int[] Unrolled_InformationSetsIndices;
+        private int[] Unrolled_ChanceNodesIndices;
+        private int[] Unrolled_FinalUtilitiesNodesIndices;
+        private int FirstIndexAfterNodes = -1;
+        private int[] Unrolled_InitialPiValues = null;
+        private ArrayCommandList Unrolled_Commands;
+
+        private int Unrolled_GetInformationSetIndex(int informationSetNumber) => Unrolled_InformationSetsIndices[NumPiecesInfoPerInformationSet * informationSetNumber];
+
+        private int Unrolled_GetInformationSetIndex_AverageStrategies(int informationSetNumber) => Unrolled_GetInformationSetIndex(informationSetNumber);
+        private int Unrolled_GetInformationSetIndex_HedgeProbabilities(int informationSetNumber) => Unrolled_GetInformationSetIndex(informationSetNumber) + 1;
+        private int Unrolled_GetInformationSetIndex_LastRegret(int informationSetNumber) => Unrolled_GetInformationSetIndex(informationSetNumber) + 2;
+
+        private int Unrolled_GetChanceNodeIndex(int chanceNodeNumber) => Unrolled_ChanceNodesIndices[chanceNodeNumber];
+        private int Unrolled_GetFinalUtilitiesNodesIndex(int finalUtilitiesNodeNumber, byte playerBeingOptimized) => Unrolled_FinalUtilitiesNodesIndices[finalUtilitiesNodeNumber] + playerBeingOptimized;
+
+        private void Unroll_InitializeInitialIndexes()
+        {
+            int index = 0;
+            Unrolled_ChanceNodesIndices = new int[ChanceNodes.Count];
+            for (int i = 0; i < ChanceNodes.Count; i++)
+            {
+                Unrolled_ChanceNodesIndices[i] = index;
+                int numItems = ChanceNodes[i].Decision.NumPossibleActions;
+                index += numItems;
+            }
+            Unrolled_FinalUtilitiesNodesIndices = new int[FinalUtilitiesNodes.Count];
+            for (int i = 0; i < FinalUtilitiesNodes.Count; i++)
+            {
+                Unrolled_FinalUtilitiesNodesIndices[i] = index;
+                int numItems = FinalUtilitiesNodes[i].Utilities.Length;
+                index += numItems;
+            }
+            Unrolled_InformationSetsIndices = new int[InformationSets.Count];
+            for (int i = 0; i < InformationSets.Count; i++)
+            {
+                Unrolled_InformationSetsIndices[i] = index;
+                int numItems = NumPiecesInfoPerInformationSet * InformationSets[i].NumPossibleActions;
+                index += numItems;
+            }
+            FirstIndexAfterNodes = index;
+        }
+
+
+        public unsafe int[] Unroll_HedgeVanillaCFR(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues)
+        {
+            IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
+            GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
+            if (gameStateType == GameStateTypeEnum.FinalUtilities)
+            {
+                FinalUtilities finalUtilities = (FinalUtilities)gameStateForCurrentPlayer;
+                // Note: An alternative approach would be to add the utility value found here to the unrolled commands, instead of looking it up in the array. But this approach makes it possible to change some game parameters and thus the final utilities without regenerating commands.
+                int finalUtilIndex = Unrolled_GetFinalUtilitiesNodesIndex(finalUtilities.FinalUtilitiesNodeNumber, playerBeingOptimized);
+                return new int[] { finalUtilIndex, finalUtilIndex, finalUtilIndex };
+            }
+            else if (gameStateType == GameStateTypeEnum.Chance)
+            {
+                return Unroll_HedgeVanillaCFR_ChanceNode(ref historyPoint, playerBeingOptimized, piValues, avgStratPiValues);
+            }
+            else
+                return Unroll_HedgeVanillaCFR_DecisionNode(ref historyPoint, playerBeingOptimized, piValues, avgStratPiValues);
+        }
+
+        private unsafe int[] Unroll_HedgeVanillaCFR_ChanceNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues)
+        {
+            int[] result = default;
+            int[] equalProbabilityNextPiValues = new int[NumNonChancePlayers];
+            IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
+            ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings)gameStateForCurrentPlayer;
+            byte numPossibleActions = chanceNodeSettings.Decision.NumPossibleActions;
+            bool equalProbabilities = chanceNodeSettings.AllProbabilitiesEqual();
+            if (equalProbabilities) // can set next probabilities once for all actions
+                Unroll_GetNextPiValues(piValues, playerBeingOptimized, chanceNodeSettings.GetActionProbability(1), true,
+                    equalProbabilityNextPiValues);
+            else
+                equalProbabilityNextPiValues = null;
+            var historyPointCopy = historyPoint; // can't use historyPoint in anonymous method below. This is costly, so it might be worth optimizing if we use HedgeVanillaCFR much.
+            Parallelizer.GoByte(EvolutionSettings.ParallelOptimization, EvolutionSettings.MaxParallelDepth, 1,
+                (byte)(numPossibleActions + 1),
+                action =>
+                {
+                    var historyPointCopy2 = historyPointCopy; // Need to do this because we need a separate copy for each thread
+                    HedgeVanillaUtilities probabilityAdjustedInnerResult = HedgeVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues, avgStratPiValues,
+                            chanceNodeSettings, equalProbabilityNextPiValues, action);
+                    result.IncrementBasedOnProbabilityAdjusted(ref probabilityAdjustedInnerResult);
+                });
+
+            return result;
+        }
+
+        private unsafe HedgeVanillaUtilities Unroll_HedgeVanillaCFR_ChanceNode_NextAction(ref HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues, double* avgStratPiValues, ChanceNodeSettings chanceNodeSettings, double* equalProbabilityNextPiValues, byte action)
+        {
+            double* nextPiValues = stackalloc double[MaxNumMainPlayers];
+            double* nextAvgStratPiValues = stackalloc double[MaxNumMainPlayers];
+            double actionProbability = chanceNodeSettings.GetActionProbability(action);
+            if (equalProbabilityNextPiValues != null)
+            {
+                double* locTarget = nextPiValues;
+                double* locSource = equalProbabilityNextPiValues;
+                for (int i = 0; i < NumNonChancePlayers; i++)
+                {
+                    (*locTarget) = (*locSource);
+                    locTarget++;
+                    locSource++;
+                }
+            }
+            else // must set probability separately for each action we take
+            {
+                GetNextPiValues(piValues, playerBeingOptimized, actionProbability, true,
+                    nextPiValues);
+                GetNextPiValues(avgStratPiValues, playerBeingOptimized, actionProbability, true,
+                    nextAvgStratPiValues);
+            }
+            HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
+            if (TraceCFR)
+            {
+                TabbedText.WriteLine(
+                    $"Chance decisionNum {chanceNodeSettings.DecisionByteCode} action {action} probability {actionProbability} ...");
+                TabbedText.Tabs++;
+            }
+            HedgeVanillaUtilities result =
+                HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues);
+            if (TraceCFR)
+            {
+                TabbedText.Tabs--;
+                TabbedText.WriteLine(
+                    $"... action {action} value {result.HedgeVsHedge} probability {actionProbability} expected value contribution {result.HedgeVsHedge * actionProbability}");
+            }
+            result.MakeProbabilityAdjusted(actionProbability);
+
+            return result;
+        }
+
+
+        private unsafe int[] Unroll_GetNextPiValues(int[] currentPiValues, byte playerIndex, int probabilityToMultiplyBy, bool changeOtherPlayers)
+        {
+            int[] nextPiValues = new int[NumNonChancePlayers];
+            for (byte p = 0; p < NumNonChancePlayers; p++)
+            {
+                int currentPiValue = currentPiValues[p];
+                int nextPiValue;
+                if (p == playerIndex)
+                {
+                    if (changeOtherPlayers)
+                        nextPiValue = currentPiValue;
+                    else
+                    {
+                        int index = Unrolled_Commands.AddCopyToNewCommand(currentPiValue);
+                        Unrolled_Commands.AddMultiplyByCommand(probabilityToMultiplyBy);
+                    }
+                    nextPiValue = changeOtherPlayers ? currentPiValue : Unrolled_Commands.AddMultiplyByCommand() currentPiValue* probabilityToMultiplyBy;
+                }
+                else
+                    nextPiValue = changeOtherPlayers ? currentPiValue * probabilityToMultiplyBy : currentPiValue;
+                nextPiValues[p] = nextPiValue;
+            }
+        }
+
+        private void Unroll_CopyInformationSetsToArray(double[] array, bool copyChanceAndFinalUtilitiesNodes)
+        {
+            if (copyChanceAndFinalUtilitiesNodes)
+            { // these only need to be copied once -- not every iteration
+                Parallel.For(0, ChanceNodes.Count, x =>
+                {
+                    var chanceNode = ChanceNodes[x];
+                    int initialIndex = Unrolled_GetChanceNodeIndex(chanceNode.ChanceNodeNumber);
+                    for (byte a = 1; a <= chanceNode.Decision.NumPossibleActions; a++)
+                    {
+                        array[initialIndex++] = chanceNode.GetActionProbability(a);
+                    }
+                });
+                Parallel.For(0, FinalUtilitiesNodes.Count, x =>
+                {
+                    var finalUtilitiesNode = FinalUtilitiesNodes[x];
+                    int initialIndex = Unrolled_GetChanceNodeIndex(finalUtilitiesNode.FinalUtilitiesNodeNumber);
+                    for (byte p = 0; p < finalUtilitiesNode.Utilities.Length; p++)
+                    {
+                        array[initialIndex++] = finalUtilitiesNode.Utilities[p];
+                    }
+                });
+            }
+            Parallel.For(0, InformationSets.Count, x =>
+            {
+                var infoSet = InformationSets[x];
+                int initialIndex = Unrolled_GetInformationSetIndex(infoSet.InformationSetNumber);
+                for (byte a = 1; a <= infoSet.NumPossibleActions; a++)
+                {
+                    array[initialIndex++] = infoSet.GetNormalizedHedgeAverageStrategy(a);
+                    array[initialIndex++] = infoSet.GetNormalizedHedgeProbabilities(a);
+                    array[initialIndex++] = 0; // initialize last regret to zero
+                }
+            });
+            Unrolled_InitialPiValues = new int[NumNonChancePlayers];
+            for (byte p = 0; p < NumNonChancePlayers; p++)
+            {
+                array[FirstIndexAfterNodes] = 1.0;
+                Unrolled_InitialPiValues[p] = FirstIndexAfterNodes++;
+            }
+        }
+
+        #endregion
 
         /// <summary>
         /// Performs an iteration of vanilla counterfactual regret minimization.
@@ -39,7 +275,6 @@ namespace ACESim
             }
             else if (gameStateType == GameStateTypeEnum.Chance)
             {
-                ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings)gameStateForCurrentPlayer;
                 return HedgeVanillaCFR_ChanceNode(ref historyPoint, playerBeingOptimized, piValues, avgStratPiValues);
             }
             else
