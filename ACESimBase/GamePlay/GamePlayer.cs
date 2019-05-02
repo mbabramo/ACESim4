@@ -23,7 +23,10 @@ namespace ACESim
         public GameProgress StartingProgress;
 
         public List<double> AverageInputs;
-        public bool DoParallel;
+
+        public bool PlayAllPathsIsParallel => DoParallelIfNotDisabled && !DisableParallelForPlayAllPaths;
+        public bool DoParallelIfNotDisabled;
+        public bool DisableParallelForPlayAllPaths = true; // it seems this is always faster NOT in parallel right now. Maybe with more processors it will be faster in parallel
 
         // parameterless constructor for serialization
         public GamePlayer()
@@ -33,7 +36,7 @@ namespace ACESim
         public GamePlayer(List<Strategy> strategies, bool doParallel, GameDefinition gameDefinition)
         {
             Strategies = strategies;
-            DoParallel = doParallel;
+            DoParallelIfNotDisabled = doParallel;
             GameDefinition = gameDefinition;
             StartingProgress = GameDefinition.GameFactory.CreateNewGameProgress(new IterationID(1));
         }
@@ -54,8 +57,7 @@ namespace ACESim
         {
             Stopwatch s = new Stopwatch();
             s.Start();
-            bool disableParallel = true; // it seems this is always faster NOT in parallel right now. Maybe with more processors it will be faster in parallel
-            Action<Action<GameProgress>> playPathsFn = DoParallel && !disableParallel ? (Action<Action<GameProgress>>) PlayAllPaths_Parallel : PlayAllPaths_Serial;
+            Action<Action<GameProgress>> playPathsFn = DoParallelIfNotDisabled && !DisableParallelForPlayAllPaths ? (Action<Action<GameProgress>>) PlayAllPaths_Parallel : PlayAllPaths_Serial;
             int numPathsPlayed = 0;
             playPathsFn(gp => 
             {
@@ -359,7 +361,7 @@ namespace ACESim
             // Copy bestStrategies to play with
             List<Strategy> strategiesToPlayWith = Strategies.ToList();
 
-            Parallelizer.Go(DoParallel, 0, numIterations, i =>
+            Parallelizer.Go(DoParallelIfNotDisabled, 0, numIterations, i =>
             {
                 // Remove comments from the following to log specific items
                 GameProgressLogger.LoggingOn = false;

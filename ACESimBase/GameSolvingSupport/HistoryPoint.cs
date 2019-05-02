@@ -333,6 +333,7 @@ namespace ACESim
             var playerInfo = navigation.GameDefinition.Players[informationSetHistory.PlayerIndex];
             var playersStrategy = navigation.Strategies[informationSetHistory.PlayerIndex];
             bool isNecessarilyLast = false; // Not relevant now that we are storing final utilities decision.IsAlwaysPlayersLastDecision || informationSetHistory.IsTerminalAction;
+            bool creatingInformationSet = false; // verify inner lock working correctly
             var informationSetHistoryCopy = informationSetHistory;
             NWayTreeStorage<IGameState> informationSetNode = playersStrategy.SetInformationSetTreeValueIfNotSet(
                         informationSetHistoryCopy.DecisionIndex, // this will be a choice at the root level of the information set
@@ -361,7 +362,12 @@ namespace ACESim
                             }
                             else
                             {
+                                if (creatingInformationSet)
+                                    throw new Exception("Internal exception. Lock failing.");
+                                creatingInformationSet = true;
                                 InformationSetNodeTally nodeInfo = new InformationSetNodeTally(decision, informationSetHistory.DecisionIndex);
+                                navigation.InformationSets.Add(nodeInfo);
+                                creatingInformationSet = false;
                                 return nodeInfo;
                             }
                         }

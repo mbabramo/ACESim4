@@ -12,16 +12,19 @@ namespace ACESim
         public InformationSetLookupApproach LookupApproach;
         public List<Strategy> Strategies;
         public GameDefinition GameDefinition;
+        public List<InformationSetNodeTally> InformationSets;
+
         public delegate IGameState GameStateFunction(ref HistoryPoint historyPoint, HistoryNavigationInfo? navigation);
 
         [NonSerialized]
         public GameStateFunction StoredGameStateFunction;
 
-        public HistoryNavigationInfo(InformationSetLookupApproach lookupApproach, List<Strategy> strategies, GameDefinition gameDefinition, GameStateFunction gameStateFunction)
+        public HistoryNavigationInfo(InformationSetLookupApproach lookupApproach, List<Strategy> strategies, GameDefinition gameDefinition, List<InformationSetNodeTally> informationSets, GameStateFunction gameStateFunction)
         {
             LookupApproach = lookupApproach;
             Strategies = strategies;
             GameDefinition = gameDefinition;
+            InformationSets = informationSets;
             StoredGameStateFunction = gameStateFunction;
         }
 
