@@ -6,7 +6,6 @@ namespace ACESimBase.Util.ArrayProcessing
 {
     public enum ArrayCommandType : byte
     {
-        SetToNew,
         CopyToNew,
         MultiplyBy,
         IncrementBy,

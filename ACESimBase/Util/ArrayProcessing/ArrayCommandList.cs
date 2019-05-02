@@ -27,29 +27,14 @@ namespace ACESimBase.Util.ArrayProcessing
             return index;
         }
 
-        public int AddSetToNewCommand(double value)
+        public void AddMultiplyByCommand(int index, int sourceIndex)
         {
-            int index = CurrentCommandIndex;
-            AddCommand(new ArrayCommand(ArrayCommandType.SetToNew, index, value));
-            return index;
+            AddCommand(new ArrayCommand(ArrayCommandType.MultiplyBy, index, sourceIndex));
         }
 
-        public int[] AddSetToNewCommands(double[] values)
+        public void AddIncrementCommand(int index, int sourceIndex)
         {
-            int[] indices = new int[values.Length];
-            for (int i = 0; i < values.Length; i++)
-                indices[i] = AddSetToNewCommand(values[i]);
-            return indices;
-        }
-
-        public void AddMultiplyByCommand(int index, double value)
-        {
-            AddCommand(new ArrayCommand(ArrayCommandType.MultiplyBy, index, value));
-        }
-
-        public void AddIncrementCommand(int index, double value)
-        {
-            AddCommand(new ArrayCommand(ArrayCommandType.IncrementBy, index, value));
+            AddCommand(new ArrayCommand(ArrayCommandType.IncrementBy, index, sourceIndex));
         }
 
         public void ExecuteAll(double[] array)
@@ -64,10 +49,10 @@ namespace ACESimBase.Util.ArrayProcessing
                         array[command.Index] = command.SourceIndex;
                         break;
                     case ArrayCommandType.MultiplyBy:
-                        array[command.Index] *= command.Value;
+                        array[command.Index] *= array[command.SourceIndex];
                         break;
                     case ArrayCommandType.IncrementBy:
-                        array[command.Index] += command.Value;
+                        array[command.Index] += array[command.SourceIndex];
                         break;
                     default:
                         throw new NotImplementedException();
