@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ACESim.Util;
+using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -63,6 +64,14 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             AddCommand(new ArrayCommand(ArrayCommandType.MultiplyBy, index, indexOfMultiplier));
         }
+
+        public int MultiplyToNew(int index1, int index2)
+        {
+            int result = CopyToNew(index1);
+            MultiplyBy(result, index2);
+            return result;
+        }
+
         public void IncrementArrayBy(int[] indices, int indexOfIncrement)
         {
             for (int i = 0; i < indices.Length; i++)
@@ -78,6 +87,13 @@ namespace ACESimBase.Util.ArrayProcessing
         public void Increment(int index, int indexOfIncrement)
         {
             AddCommand(new ArrayCommand(ArrayCommandType.IncrementBy, index, indexOfIncrement));
+        }
+
+        public int AddToNew(int index1, int index2)
+        {
+            int result = CopyToNew(index1);
+            Increment(result, index2);
+            return result;
         }
 
         public void ExecuteAll(double[] array)
@@ -103,10 +119,10 @@ namespace ACESimBase.Util.ArrayProcessing
                     array[command.Index] = array[command.SourceIndex];
                     break;
                 case ArrayCommandType.MultiplyBy:
-                    array[command.Index] *= array[command.SourceIndex];
+                    Interlocking.Multiply(ref array[command.Index], array[command.SourceIndex]);
                     break;
                 case ArrayCommandType.IncrementBy:
-                    array[command.Index] += array[command.SourceIndex];
+                    Interlocking.Add(ref array[command.Index], array[command.SourceIndex]);
                     break;
                 default:
                     throw new NotImplementedException();

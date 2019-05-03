@@ -167,16 +167,9 @@ namespace ACESim
         private unsafe int[] Unroll_HedgeVanillaCFR_ChanceNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues)
         {
             int[] result = Unrolled_Commands.NewZeroArray(3); // initialize to zero -- equivalent of HedgeVanillaUtilities
-            int[] equalProbabilityNextPiValues = null;
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings)gameStateForCurrentPlayer;
             byte numPossibleActions = chanceNodeSettings.Decision.NumPossibleActions;
-            equalProbabilityNextPiValues = null;
-            bool equalProbabilities = chanceNodeSettings.AllProbabilitiesEqual();
-            if (equalProbabilities) // can set next probabilities once for all actions
-            {
-                equalProbabilityNextPiValues = Unroll_GetNextPiValues(piValues, playerBeingOptimized, Unrolled_GetChanceNodeIndex_ProbabilityForAction(chanceNodeSettings.ChanceNodeNumber, (byte)1), true);
-            }
             var historyPointCopy = historyPoint; // can't use historyPoint in anonymous method below. This is costly, so it might be worth optimizing if we use HedgeVanillaCFR much.
             //DEBUG -- add parallelism back
             //Parallelizer.GoByte(EvolutionSettings.ParallelOptimization, EvolutionSettings.MaxParallelDepth, 1,
@@ -186,47 +179,25 @@ namespace ACESim
             {
                 var historyPointCopy2 = historyPointCopy; // Need to do this because we need a separate copy for each thread
                 int[] probabilityAdjustedInnerResult = Unroll_HedgeVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues, avgStratPiValues,
-                        chanceNodeSettings, equalProbabilityNextPiValues, action);
+                        chanceNodeSettings, action);
                 Unrolled_Commands.IncrementArrayBy(result, probabilityAdjustedInnerResult);
             }
 
             return result;
         }
 
-        private unsafe int[] Unroll_HedgeVanillaCFR_ChanceNode_NextAction(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, ChanceNodeSettings chanceNodeSettings, int[] equalProbabilityNextPiValues, byte action)
+        private unsafe int[] Unroll_HedgeVanillaCFR_ChanceNode_NextAction(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, ChanceNodeSettings chanceNodeSettings, byte action)
         {
-            int[] nextPiValues = default;
-            int[] nextAvgStratPiValues = default; 
-            if (equalProbabilityNextPiValues != null)
-            {
-                nextPiValues = equalProbabilityNextPiValues;
-            }
-            else // must set probability separately for each action we take
-            {
-                int actionProbability = Unrolled_GetChanceNodeIndex_ProbabilityForAction(chanceNodeSettings.ChanceNodeNumber, action);
-                nextPiValues = Unroll_GetNextPiValues(piValues, playerBeingOptimized, actionProbability, true);
-                nextAvgStratPiValues = Unroll_GetNextPiValues(avgStratPiValues, playerBeingOptimized, actionProbability, true);
-            }
+            int actionProbability = Unrolled_GetChanceNodeIndex_ProbabilityForAction(chanceNodeSettings.ChanceNodeNumber, action);
+            int[] nextPiValues = Unroll_GetNextPiValues(piValues, playerBeingOptimized, actionProbability, true);
+            int[] nextAvgStratPiValues = Unroll_GetNextPiValues(avgStratPiValues, playerBeingOptimized, actionProbability, true);
             HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
-            if (TraceCFR)
-            {
-                TabbedText.WriteLine(
-                    $"Chance decisionNum {chanceNodeSettings.DecisionByteCode} action {action} probability {actionProbability} ...");
-                TabbedText.Tabs++;
-            }
-            HedgeVanillaUtilities result =
-                HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues);
-            if (TraceCFR)
-            {
-                TabbedText.Tabs--;
-                TabbedText.WriteLine(
-                    $"... action {action} value {result.HedgeVsHedge} probability {actionProbability} expected value contribution {result.HedgeVsHedge * actionProbability}");
-            }
-            result.MakeProbabilityAdjusted(actionProbability);
+            int[] result =
+                Unroll_HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues);
+            Unrolled_Commands.MultiplyArrayBy(result, actionProbability);
 
             return result;
         }
-
 
         private unsafe int[] Unroll_GetNextPiValues(int[] currentPiValues, byte playerIndex, int probabilityToMultiplyBy, bool changeOtherPlayers)
         {
@@ -240,21 +211,16 @@ namespace ACESim
                     if (changeOtherPlayers)
                         nextPiValue = currentPiValue;
                     else
-                    {
-                        int index = Unrolled_Commands.CopyToNew(currentPiValue);
-                        Unrolled_Commands.MultiplyBy(index, probabilityToMultiplyBy);
-                    }
+                        nextPiValue = Unrolled_Commands.MultiplyToNew(currentPiValue, probabilityToMultiplyBy);
                 }
                 else
                 {
                     if (changeOtherPlayers)
-                    {
-                        int index = Unrolled_Commands.CopyToNew(currentPiValue);
-                        Unrolled_Commands.MultiplyBy(index, probabilityToMultiplyBy);
-                    }
+                        nextPiValue = Unrolled_Commands.MultiplyToNew(currentPiValue, probabilityToMultiplyBy);
                     else
                         nextPiValue = currentPiValue;
                 }
+                nextPiValues[p] = nextPiValue;
             }
             return nextPiValues;
         }
@@ -310,7 +276,7 @@ namespace ACESim
             else
             {
                 // TODO: Consider pruning here
-                informationSet.GetNormalizedHedgeProbabilities(actionProbabilities, HedgeVanillaIterationInt);
+                informationSet.GetNormalizedHedgeProbabilities(actionProbabilities);
             }
             double* expectedValueOfAction = stackalloc double[numPossibleActions];
             double expectedValue = 0;
@@ -393,62 +359,28 @@ namespace ACESim
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings)gameStateForCurrentPlayer;
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
-            double* equalProbabilityNextPiValues = stackalloc double[MaxNumMainPlayers];
-            double* equalProbabilityNextAvgStratPiValues = stackalloc double[MaxNumMainPlayers];
-            bool equalProbabilities = chanceNodeSettings.AllProbabilitiesEqual();
-            if (equalProbabilities) // can set next probabilities once for all actions, instead of doing it each time separately in loop
-            {
-                GetNextPiValues(piValues, playerBeingOptimized, chanceNodeSettings.GetActionProbability(1), true,
-                    equalProbabilityNextPiValues);
-                GetNextPiValues(piValues, playerBeingOptimized, chanceNodeSettings.GetActionProbability(1), true,
-                    equalProbabilityNextAvgStratPiValues);
-            }
-            else
-            {
-                equalProbabilityNextPiValues = equalProbabilityNextAvgStratPiValues = null;
-            }
             var historyPointCopy = historyPoint; // can't use historyPoint in anonymous method below. This is costly, so it might be worth optimizing if we use HedgeVanillaCFR much.
             Parallelizer.GoByte(EvolutionSettings.ParallelOptimization, EvolutionSettings.MaxParallelDepth, 1,
                 (byte)(numPossibleActions + 1),
                 action =>
                 {
                     var historyPointCopy2 = historyPointCopy; // Need to do this because we need a separate copy for each thread
-                    HedgeVanillaUtilities probabilityAdjustedInnerResult =  HedgeVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues, avgStratPiValues,
-                            chanceNodeSettings, equalProbabilityNextPiValues, equalProbabilityNextAvgStratPiValues, action);
+                    HedgeVanillaUtilities probabilityAdjustedInnerResult =  HedgeVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues, avgStratPiValues, chanceNodeSettings, action);
                     result.IncrementBasedOnProbabilityAdjusted(ref probabilityAdjustedInnerResult);
                 });
 
             return result;
         }
 
-        private unsafe HedgeVanillaUtilities HedgeVanillaCFR_ChanceNode_NextAction(ref HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues, double* avgStratPiValues, ChanceNodeSettings chanceNodeSettings, double* equalProbabilityNextPiValues, double* equalProbabilityNextAvgStratPiValues, byte action)
+        private unsafe HedgeVanillaUtilities HedgeVanillaCFR_ChanceNode_NextAction(ref HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues, double* avgStratPiValues, ChanceNodeSettings chanceNodeSettings, byte action)
         {
             double* nextPiValues = stackalloc double[MaxNumMainPlayers];
             double* nextAvgStratPiValues = stackalloc double[MaxNumMainPlayers];
             double actionProbability = chanceNodeSettings.GetActionProbability(action);
-            if (equalProbabilityNextPiValues != null)
-            { // can just copy
-                double* locTarget = nextPiValues;
-                double* locSource = equalProbabilityNextPiValues;
-                double* locTarget2 = nextAvgStratPiValues;
-                double* locSource2 = equalProbabilityNextAvgStratPiValues;
-                for (int i = 0; i < NumNonChancePlayers; i++)
-                {
-                    (*locTarget) = (*locSource);
-                    locTarget++;
-                    locSource++;
-                    (*locTarget2) = (*locSource2);
-                    locTarget2++;
-                    locSource2++;
-                }
-            }
-            else // must set probability based on the particular action taken here
-            {
-                GetNextPiValues(piValues, playerBeingOptimized, actionProbability, true,
-                    nextPiValues);
-                GetNextPiValues(avgStratPiValues, playerBeingOptimized, actionProbability, true,
-                    nextAvgStratPiValues);
-            }
+            GetNextPiValues(piValues, playerBeingOptimized, actionProbability, true,
+                nextPiValues);
+            GetNextPiValues(avgStratPiValues, playerBeingOptimized, actionProbability, true,
+                nextAvgStratPiValues);
             HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
             if (TraceCFR)
             {
