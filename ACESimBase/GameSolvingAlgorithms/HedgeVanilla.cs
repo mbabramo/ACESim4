@@ -50,7 +50,7 @@ namespace ACESim
 
         private void Unroll_CreateUnrolledCommandList()
         {
-            const int max_num_commands = 10_000_000;
+            const int max_num_commands = 50_000_000;
             Unroll_InitializeInitialIndexes();
             Unrolled_Commands = new ArrayCommandList(max_num_commands, null, Unrolled_InitialArrayIndex);
             ActionStrategy = ActionStrategies.NormalizedHedge;
@@ -59,7 +59,7 @@ namespace ACESim
             {
                 Unroll_HedgeVanillaCFR(ref historyPoint, p, Unrolled_InitialPiValuesIndices, Unrolled_InitialPiValuesIndices);
             }
-            Unroll_SizeOfArray = Unrolled_Commands.NextArrayIndex;
+            Unroll_SizeOfArray = Unrolled_Commands.MaxArrayIndex + 1;
         }
 
         private void Unroll_ExecuteUnrolledCommands(double[] array, bool firstExecution)

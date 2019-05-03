@@ -11,6 +11,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public ArrayCommand[] UnderlyingCommands;
         public int NextCommandIndex;
         public int NextArrayIndex;
+        public int MaxArrayIndex;
         public double[] InitialArray;
 
         public ArrayCommandList(int maxNumCommands, double[] initialArray, int initialArrayIndex)
@@ -23,9 +24,9 @@ namespace ACESimBase.Util.ArrayProcessing
         private void AddCommand(ArrayCommand command)
         {
             UnderlyingCommands[NextCommandIndex] = command;
-            if (InitialArray != null)
-                ExecuteCommand(InitialArray, command);
             NextCommandIndex++;
+            if (NextArrayIndex > MaxArrayIndex)
+                MaxArrayIndex = NextArrayIndex;
         }
 
         // First, methods to create commands that use new spots in the array
@@ -208,18 +209,80 @@ namespace ACESimBase.Util.ArrayProcessing
         public void ExecuteAll(double[] array)
         {
             int MaxCommandIndex = NextCommandIndex;
-            bool skipNext = false;
-            int goTo = -1;
+            bool skipNext;
+            int goTo;
             for (NextCommandIndex = 0; NextCommandIndex < MaxCommandIndex; NextCommandIndex++)
             {
                 ArrayCommand command = UnderlyingCommands[NextCommandIndex];
-                ExecuteCommand(array, command, ref skipNext, ref goTo);
+                skipNext = false;
+                goTo = -1;
+                switch (command.CommandType)
+                {
+                    case ArrayCommandType.ZeroNew:
+                        array[command.Index] = 0;
+                        break;
+                    case ArrayCommandType.CopyTo:
+                        array[command.Index] = array[command.SourceIndex];
+                        break;
+                    case ArrayCommandType.MultiplyBy:
+                        array[command.Index] *= array[command.SourceIndex];
+                        break;
+                    case ArrayCommandType.IncrementBy:
+                        array[command.Index] += array[command.SourceIndex];
+                        break;
+                    case ArrayCommandType.DecrementBy:
+                        array[command.Index] += array[command.SourceIndex];
+                        break;
+                    case ArrayCommandType.MultiplyByInterlocked:
+                        Interlocking.Multiply(ref array[command.Index], array[command.SourceIndex]);
+                        break;
+                    case ArrayCommandType.IncrementByInterlocked:
+                        Interlocking.Add(ref array[command.Index], array[command.SourceIndex]);
+                        break;
+                    case ArrayCommandType.DecrementByInterlocked:
+                        Interlocking.Subtract(ref array[command.Index], array[command.SourceIndex]);
+                        break;
+                    case ArrayCommandType.EqualsOtherArrayIndex:
+                        bool conditionMet = array[command.Index] == array[command.SourceIndex];
+                        if (!conditionMet)
+                            skipNext = true;
+                        break;
+                    case ArrayCommandType.NotEqualsOtherArrayIndex:
+                        conditionMet = array[command.Index] != array[command.SourceIndex];
+                        if (!conditionMet)
+                            skipNext = true;
+                        break;
+                    case ArrayCommandType.GreaterThanOtherArrayIndex:
+                        conditionMet = array[command.Index] > array[command.SourceIndex];
+                        if (!conditionMet)
+                            skipNext = true;
+                        break;
+                    case ArrayCommandType.LessThanOtherArrayIndex:
+                        conditionMet = array[command.Index] < array[command.SourceIndex];
+                        if (!conditionMet)
+                            skipNext = true;
+                        break;
+                    case ArrayCommandType.EqualsValue:
+                        conditionMet = array[command.Index] == command.SourceIndex;
+                        if (!conditionMet)
+                            skipNext = true;
+                        break;
+                    case ArrayCommandType.NotEqualsValue:
+                        conditionMet = array[command.Index] != command.SourceIndex;
+                        if (!conditionMet)
+                            skipNext = true;
+                        break;
+                    case ArrayCommandType.GoTo:
+                        goTo = command.Index;
+                        break;
+                    default:
+                        throw new NotImplementedException();
+                }
                 if (skipNext)
                     NextCommandIndex++; // in addition to increment in for statement
                 else if (goTo != -1)
                     NextCommandIndex = goTo;
             }
-
         }
 
         /// <summary>
@@ -231,70 +294,7 @@ namespace ACESimBase.Util.ArrayProcessing
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ExecuteCommand(double[] array, in ArrayCommand command, ref bool skipNext, ref int goTo)
         {
-            skipNext = false;
-            goTo = -1;
-            switch (command.CommandType)
-            {
-                case ArrayCommandType.ZeroNew:
-                    array[command.Index] = 0;
-                    break;
-                case ArrayCommandType.CopyTo:
-                    array[command.Index] = array[command.SourceIndex];
-                    break;
-                case ArrayCommandType.MultiplyBy:
-                    array[command.Index] *= array[command.SourceIndex];
-                    break;
-                case ArrayCommandType.IncrementBy:
-                    array[command.Index] += array[command.SourceIndex];
-                    break;
-                case ArrayCommandType.DecrementBy:
-                    array[command.Index] += array[command.SourceIndex];
-                    break;
-                case ArrayCommandType.MultiplyByInterlocked:
-                    Interlocking.Multiply(ref array[command.Index], array[command.SourceIndex]);
-                    break;
-                case ArrayCommandType.IncrementByInterlocked:
-                    Interlocking.Add(ref array[command.Index], array[command.SourceIndex]);
-                    break;
-                case ArrayCommandType.DecrementByInterlocked:
-                    Interlocking.Subtract(ref array[command.Index], array[command.SourceIndex]);
-                    break;
-                case ArrayCommandType.EqualsOtherArrayIndex:
-                    bool conditionMet = array[command.Index] == array[command.SourceIndex];
-                    if (!conditionMet)
-                        skipNext = true;
-                    break;
-                case ArrayCommandType.NotEqualsOtherArrayIndex:
-                    conditionMet = array[command.Index] != array[command.SourceIndex];
-                    if (!conditionMet)
-                        skipNext = true;
-                    break;
-                case ArrayCommandType.GreaterThanOtherArrayIndex:
-                    conditionMet = array[command.Index] > array[command.SourceIndex];
-                    if (!conditionMet)
-                        skipNext = true;
-                    break;
-                case ArrayCommandType.LessThanOtherArrayIndex:
-                    conditionMet = array[command.Index] < array[command.SourceIndex];
-                    if (!conditionMet)
-                        skipNext = true;
-                    break;
-                case ArrayCommandType.EqualsValue:
-                    conditionMet = array[command.Index] == command.SourceIndex;
-                    if (!conditionMet)
-                        skipNext = true;
-                    break;
-                case ArrayCommandType.NotEqualsValue:
-                    conditionMet = array[command.Index] != command.SourceIndex;
-                    if (!conditionMet)
-                        skipNext = true;
-                    break;
-                case ArrayCommandType.GoTo:
-                    goTo = command.Index;
-                    break;
-                default:
-                    throw new NotImplementedException();
-            }
+            
         }
 
         #endregion
