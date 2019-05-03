@@ -13,11 +13,11 @@ namespace ACESimBase.Util.ArrayProcessing
         public int NextArrayIndex;
         public double[] InitialArray;
 
-        public ArrayCommandList(int maxNumCommands, double[] initialArray, int nextArrayIndex)
+        public ArrayCommandList(int maxNumCommands, double[] initialArray, int initialArrayIndex)
         {
             UnderlyingCommands = new ArrayCommand[maxNumCommands];
             InitialArray = initialArray;
-            NextArrayIndex = nextArrayIndex;
+            NextArrayIndex = initialArrayIndex;
         }
 
         private void AddCommand(ArrayCommand command)

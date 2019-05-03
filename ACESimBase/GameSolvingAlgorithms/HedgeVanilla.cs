@@ -25,15 +25,19 @@ namespace ACESim
 
         #endregion
 
-        #region Unrolled algorithm
+        #region Unrolled preparation
 
         // We can achieve considerable improvements in performance by unrolling the algorithm. Instead of traversing the tree, we simply have a series of simple commands that can be processed on an array. The challenge is that we need to create this series fo commands. 
 
 
+        private ArrayCommandList Unrolled_Commands;
+        private int Unroll_SizeOfArray;
+
         private void Unroll_CreateUnrolledCommandList()
         {
-            Unrolled_Commands = new ArrayCommandList();
+            const int max_num_commands = 10_000_000;
             Unroll_InitializeInitialIndexes();
+            Unrolled_Commands = new ArrayCommandList(max_num_commands, null, InitialArrayIndex);
             ActionStrategy = ActionStrategies.NormalizedHedge;
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
             for (byte p = 0; p < NumNonChancePlayers; p++)
@@ -44,10 +48,10 @@ namespace ACESim
 
         private void Unroll_ExecuteUnrolledCommands(bool firstExecution)
         {
-            double[] array = new double[10_000_000];
+            double[] array = new double[Unroll_SizeOfArray];
             Unroll_CopyInformationSetsToArray(array, firstExecution);
             Unrolled_Commands.ExecuteAll(array);
-            todo; // copy information from array
+            Unroll_CopyArrayToInformationSets(array);
         }
 
         // Let's store the index in the array at which we will place the various types of information set information.
@@ -56,14 +60,26 @@ namespace ACESim
         private int[] Unrolled_InformationSetsIndices;
         private int[] Unrolled_ChanceNodesIndices;
         private int[] Unrolled_FinalUtilitiesNodesIndices;
-        private int FirstIndexAfterNodes = -1;
+        private int InitialPiValuesIndex = -1;
+        private int InitialArrayIndex = -1;
         private int[] Unrolled_InitialPiValues = null;
-        private ArrayCommandList Unrolled_Commands;
 
         private int Unrolled_GetInformationSetIndex_InitialIndex(int informationSetNumber) => Unrolled_InformationSetsIndices[Unroll_NumPiecesInfoPerInformationSet * informationSetNumber];
 
-        private int Unrolled_GetInformationSetIndex_AverageStrategies(int informationSetNumber, byte action) => Unrolled_GetInformationSetIndex_InitialIndex(informationSetNumber) + (Unroll_NumPiecesInfoPerInformationSet * (action - 1));
-        private int Unrolled_GetInformationSetIndex_HedgeProbabilities(int informationSetNumber, byte action) => Unrolled_GetInformationSetIndex_InitialIndex(informationSetNumber) + (Unroll_NumPiecesInfoPerInformationSet * (action - 1)) + 1;
+        private int Unrolled_GetInformationSetIndex_AverageStrategy(int informationSetNumber, byte action) => Unrolled_GetInformationSetIndex_InitialIndex(informationSetNumber) + (Unroll_NumPiecesInfoPerInformationSet * (action - 1));
+        private int Unrolled_GetInformationSetIndex_HedgeProbability(int informationSetNumber, byte action) => Unrolled_GetInformationSetIndex_InitialIndex(informationSetNumber) + (Unroll_NumPiecesInfoPerInformationSet * (action - 1)) + 1;
+
+        private int[] Unrolled_GetInformationSetIndex_HedgeProbabilities_All(int informationSetNumber, byte numPossibleActions)
+        {
+            int[] probabilities = new int[numPossibleActions];
+            int initialIndex = Unrolled_GetInformationSetIndex_InitialIndex(informationSetNumber);
+            for (int action = 1; action <= numPossibleActions; action++)
+            {
+                probabilities[action - 1] = initialIndex + (Unroll_NumPiecesInfoPerInformationSet * (action - 1)) + 1;
+            }
+            return probabilities;
+        }
+
         private int Unrolled_GetInformationSetIndex_LastRegret(int informationSetNumber, byte action) => Unrolled_GetInformationSetIndex_InitialIndex(informationSetNumber) + (Unroll_NumPiecesInfoPerInformationSet * (action - 1)) + 2;
 
         private int Unrolled_GetChanceNodeIndex(int chanceNodeNumber) => Unrolled_ChanceNodesIndices[chanceNodeNumber];
@@ -99,7 +115,8 @@ namespace ACESim
                 int numItems = Unroll_NumPiecesInfoPerInformationSet * InformationSets[i].NumPossibleActions;
                 index += numItems;
             }
-            FirstIndexAfterNodes = index;
+            InitialPiValuesIndex = index;
+            InitialArrayIndex = index + NumNonChancePlayers;
         }
 
         private void Unroll_CopyInformationSetsToArray(double[] array, bool copyChanceAndFinalUtilitiesNodes)
@@ -132,18 +149,35 @@ namespace ACESim
                 for (byte a = 1; a <= infoSet.NumPossibleActions; a++)
                 {
                     array[initialIndex++] = infoSet.GetNormalizedHedgeAverageStrategy(a);
-                    array[initialIndex++] = infoSet.GetNormalizedHedgeProbabilities(a);
+                    array[initialIndex++] = infoSet.GetNormalizedHedgeProbability(a);
                     array[initialIndex++] = 0; // initialize last regret to zero
                 }
             });
             Unrolled_InitialPiValues = new int[NumNonChancePlayers];
             for (byte p = 0; p < NumNonChancePlayers; p++)
             {
-                array[FirstIndexAfterNodes] = 1.0;
-                Unrolled_InitialPiValues[p] = FirstIndexAfterNodes++;
+                array[InitialPiValuesIndex + p] = 1.0;
+                Unrolled_InitialPiValues[p] = InitialPiValuesIndex + p;
             }
         }
 
+        private void Unroll_CopyArrayToInformationSets(double[] array)
+        {
+
+            Parallel.For(0, InformationSets.Count, x =>
+            {
+                var infoSet = InformationSets[x];
+                for (byte action = 1; action <= infoSet.NumPossibleActions; action++)
+                {
+                    int index = Unrolled_GetInformationSetIndex_LastRegret(infoSet.InformationSetNumber, action);
+                    infoSet.NormalizedHedgeIncrementLastRegret(action, array[index]);
+                }
+            });
+        }
+
+        #endregion
+
+        #region Unrolled algorithm
 
         public unsafe int[] Unroll_HedgeVanillaCFR(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues)
         {
@@ -177,33 +211,23 @@ namespace ACESim
             byte decisionNum = informationSet.DecisionIndex;
             byte playerMakingDecision = informationSet.PlayerIndex;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
-            double* actionProbabilities = stackalloc double[numPossibleActions];
-            byte? alwaysDoAction = GameDefinition.DecisionsExecutionOrder[decisionNum].AlwaysDoAction;
-            if (alwaysDoAction != null)
-                ActionProbabilityUtilities.SetProbabilitiesToAlwaysDoParticularAction(numPossibleActions,
-                    actionProbabilities, (byte)alwaysDoAction);
-            else
-            {
-                // TODO: Consider pruning here
-                informationSet.GetNormalizedHedgeProbabilities(actionProbabilities);
-            }
-            double* expectedValueOfAction = stackalloc double[numPossibleActions];
+            int[] actionProbabilities = Unrolled_GetInformationSetIndex_HedgeProbabilities_All(informationSet.InformationSetNumber, numPossibleActions);
+            int[] expectedValueOfAction = new int[numPossibleActions];
             double expectedValue = 0;
-            HedgeVanillaUtilities result = default;
+            int[] result = new int[3];
             for (byte action = 1; action <= numPossibleActions; action++)
             {
-                int probabilityOfAction = Unrolled_GetInformationSetIndex_HedgeProbabilities(informationSet.InformationSetNumber, action);
+                int probabilityOfAction = Unrolled_GetInformationSetIndex_HedgeProbability(informationSet.InformationSetNumber, action);
                 if (EvolutionSettings.PruneOnOpponentStrategy)
                     throw new NotImplementedException();
                 //if (EvolutionSettings.PruneOnOpponentStrategy && playerBeingOptimized != playerMakingDecision && probabilityOfAction < EvolutionSettings.PruneOnOpponentStrategyThreshold)
                 //    continue;
-                int probabilityOfActionAvgStrat = Unrolled_GetInformationSetIndex_AverageStrategies(informationSet.InformationSetNumber, action);
+                int probabilityOfActionAvgStrat = Unrolled_GetInformationSetIndex_AverageStrategy(informationSet.InformationSetNumber, action);
                 int[] nextPiValues = Unroll_GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false); // reduce probability associated with player being optimized, without changing probabilities for other players
                 int[] nextAvgStratPiValues = Unroll_GetNextPiValues(avgStratPiValues, playerMakingDecision, probabilityOfActionAvgStrat, false);
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                 int[] innerResult = Unroll_HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues);
-                expectedValueOfAction[action - 1] = innerResult.HedgeVsHedge;
-                double averageStrategyProbability = informationSet.GetNormalizedHedgeAverageStrategy(action);
+                expectedValueOfAction[action - 1] = innerResult[0]; // hedge vs. hedge
                 if (playerMakingDecision == playerBeingOptimized)
                 {
                     if (informationSet.LastBestResponseAction == action)

@@ -751,8 +751,13 @@ namespace ACESim
         {
             for (byte a = 1; a <= NumPossibleActions; a++)
             {
-                probabilitiesToSet[a - 1] = NodeInformation[hedgeProbabilityDimension, a - 1];
+                probabilitiesToSet[a - 1] = GetNormalizedHedgeProbability(a);
             }
+        }
+
+        public unsafe double GetNormalizedHedgeProbability(byte a)
+        {
+            return NodeInformation[hedgeProbabilityDimension, a - 1];
         }
 
         public unsafe double[] GetNormalizedHedgeProbabilitiesAsArray(int iteration)
