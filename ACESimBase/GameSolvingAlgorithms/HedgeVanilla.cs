@@ -33,6 +33,21 @@ namespace ACESim
         private ArrayCommandList Unrolled_Commands;
         private int Unroll_SizeOfArray;
 
+
+
+        public unsafe string Unroll_SolveHedgeVanillaCFR()
+        {
+            string reportString = null;
+            InitializeInformationSets();
+            Unroll_CreateUnrolledCommandList();
+            double[] array = new double[Unroll_SizeOfArray];
+            for (int iteration = 1; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
+            {
+                Unroll_ExecuteUnrolledCommands(array, iteration == 1);
+            }
+            return reportString;
+        }
+
         private void Unroll_CreateUnrolledCommandList()
         {
             const int max_num_commands = 10_000_000;
@@ -47,9 +62,8 @@ namespace ACESim
             Unroll_SizeOfArray = Unrolled_Commands.NextArrayIndex;
         }
 
-        private void Unroll_ExecuteUnrolledCommands(bool firstExecution)
+        private void Unroll_ExecuteUnrolledCommands(double[] array, bool firstExecution)
         {
-            double[] array = new double[Unroll_SizeOfArray];
             Unroll_CopyInformationSetsToArray(array, firstExecution);
             Unrolled_Commands.ExecuteAll(array);
             Unroll_CopyArrayToInformationSets(array);
@@ -135,6 +149,7 @@ namespace ACESim
                 int numItems = Unroll_NumPiecesInfoPerInformationSetAction * InformationSets[i].NumPossibleActions + 1; // the plus 1 is for the last best response
                 index += numItems;
             }
+            Unrolled_InitialPiValuesIndices = new int[NumNonChancePlayers];
             for (int p = 0; p < NumNonChancePlayers; p++)
                 Unrolled_InitialPiValuesIndices[p] = index++;
             Unrolled_AverageStrategyAdjustmentIndex = index++;
@@ -157,7 +172,7 @@ namespace ACESim
                 Parallel.For(0, FinalUtilitiesNodes.Count, x =>
                 {
                     var finalUtilitiesNode = FinalUtilitiesNodes[x];
-                    int initialIndex = Unrolled_GetChanceNodeIndex(finalUtilitiesNode.FinalUtilitiesNodeNumber);
+                    int initialIndex = Unrolled_GetFinalUtilitiesNodesIndex(finalUtilitiesNode.FinalUtilitiesNodeNumber, 0);
                     for (byte p = 0; p < finalUtilitiesNode.Utilities.Length; p++)
                     {
                         array[initialIndex++] = finalUtilitiesNode.Utilities[p];
@@ -389,6 +404,8 @@ namespace ACESim
 
         public unsafe string SolveHedgeVanillaCFR()
         {
+            if (EvolutionSettings.UnrollAlgorithm)
+                return Unroll_SolveHedgeVanillaCFR();
             string reportString = null;
             InitializeInformationSets();
             for (int iteration = 1; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)

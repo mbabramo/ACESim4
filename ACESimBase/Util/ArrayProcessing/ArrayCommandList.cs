@@ -208,12 +208,16 @@ namespace ACESimBase.Util.ArrayProcessing
         public void ExecuteAll(double[] array)
         {
             int MaxCommandIndex = NextCommandIndex;
+            bool skipNext = false;
+            int goTo = -1;
             for (NextCommandIndex = 0; NextCommandIndex < MaxCommandIndex; NextCommandIndex++)
             {
                 ArrayCommand command = UnderlyingCommands[NextCommandIndex];
-                bool skipNext = ExecuteCommand(array, command);
+                ExecuteCommand(array, command, ref skipNext, ref goTo);
                 if (skipNext)
                     NextCommandIndex++; // in addition to increment in for statement
+                else if (goTo != -1)
+                    NextCommandIndex = goTo;
             }
 
         }
@@ -225,8 +229,10 @@ namespace ACESimBase.Util.ArrayProcessing
         /// <param name="command"></param>
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool ExecuteCommand(double[] array, in ArrayCommand command)
+        public void ExecuteCommand(double[] array, in ArrayCommand command, ref bool skipNext, ref int goTo)
         {
+            skipNext = false;
+            goTo = -1;
             switch (command.CommandType)
             {
                 case ArrayCommandType.ZeroNew:
@@ -255,26 +261,40 @@ namespace ACESimBase.Util.ArrayProcessing
                     break;
                 case ArrayCommandType.EqualsOtherArrayIndex:
                     bool conditionMet = array[command.Index] == array[command.SourceIndex];
-                    return !conditionMet;
+                    if (!conditionMet)
+                        skipNext = true;
+                    break;
                 case ArrayCommandType.NotEqualsOtherArrayIndex:
                     conditionMet = array[command.Index] != array[command.SourceIndex];
-                    return !conditionMet;
+                    if (!conditionMet)
+                        skipNext = true;
+                    break;
                 case ArrayCommandType.GreaterThanOtherArrayIndex:
                     conditionMet = array[command.Index] > array[command.SourceIndex];
-                    return !conditionMet;
+                    if (!conditionMet)
+                        skipNext = true;
+                    break;
                 case ArrayCommandType.LessThanOtherArrayIndex:
                     conditionMet = array[command.Index] < array[command.SourceIndex];
-                    return !conditionMet;
+                    if (!conditionMet)
+                        skipNext = true;
+                    break;
                 case ArrayCommandType.EqualsValue:
                     conditionMet = array[command.Index] == command.SourceIndex;
-                    return !conditionMet;
+                    if (!conditionMet)
+                        skipNext = true;
+                    break;
                 case ArrayCommandType.NotEqualsValue:
                     conditionMet = array[command.Index] != command.SourceIndex;
-                    return !conditionMet;
+                    if (!conditionMet)
+                        skipNext = true;
+                    break;
+                case ArrayCommandType.GoTo:
+                    goTo = command.Index;
+                    break;
                 default:
                     throw new NotImplementedException();
             }
-            return false; // don't skip next
         }
 
         #endregion
