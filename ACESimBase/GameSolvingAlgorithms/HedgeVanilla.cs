@@ -164,6 +164,98 @@ namespace ACESim
                 return Unroll_HedgeVanillaCFR_DecisionNode(ref historyPoint, playerBeingOptimized, piValues, avgStratPiValues);
         }
 
+        private unsafe int[] Unroll_HedgeVanillaCFR_DecisionNode(ref HistoryPoint historyPoint, byte playerBeingOptimized,
+            int[] piValues, int[] avgStratPiValues)
+        {
+            int inversePi = Unroll_GetInversePiValue(piValues, playerBeingOptimized);
+            int inversePiAvgStrat = Unroll_GetInversePiValue(avgStratPiValues, playerBeingOptimized);
+            //var actionsToHere = historyPoint.GetActionsToHere(Navigation);
+            //var historyPointString = historyPoint.ToString();
+
+            IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
+            var informationSet = (InformationSetNodeTally)gameStateForCurrentPlayer;
+            byte decisionNum = informationSet.DecisionIndex;
+            byte playerMakingDecision = informationSet.PlayerIndex;
+            byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
+            double* actionProbabilities = stackalloc double[numPossibleActions];
+            byte? alwaysDoAction = GameDefinition.DecisionsExecutionOrder[decisionNum].AlwaysDoAction;
+            if (alwaysDoAction != null)
+                ActionProbabilityUtilities.SetProbabilitiesToAlwaysDoParticularAction(numPossibleActions,
+                    actionProbabilities, (byte)alwaysDoAction);
+            else
+            {
+                // TODO: Consider pruning here
+                informationSet.GetNormalizedHedgeProbabilities(actionProbabilities);
+            }
+            double* expectedValueOfAction = stackalloc double[numPossibleActions];
+            double expectedValue = 0;
+            HedgeVanillaUtilities result = default;
+            for (byte action = 1; action <= numPossibleActions; action++)
+            {
+                int probabilityOfAction = Unrolled_GetInformationSetIndex_HedgeProbabilities(informationSet.InformationSetNumber, action);
+                if (EvolutionSettings.PruneOnOpponentStrategy)
+                    throw new NotImplementedException();
+                //if (EvolutionSettings.PruneOnOpponentStrategy && playerBeingOptimized != playerMakingDecision && probabilityOfAction < EvolutionSettings.PruneOnOpponentStrategyThreshold)
+                //    continue;
+                int probabilityOfActionAvgStrat = Unrolled_GetInformationSetIndex_AverageStrategies(informationSet.InformationSetNumber, action);
+                int[] nextPiValues = Unroll_GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false); // reduce probability associated with player being optimized, without changing probabilities for other players
+                int[] nextAvgStratPiValues = Unroll_GetNextPiValues(avgStratPiValues, playerMakingDecision, probabilityOfActionAvgStrat, false);
+                HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
+                int[] innerResult = Unroll_HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues);
+                expectedValueOfAction[action - 1] = innerResult.HedgeVsHedge;
+                double averageStrategyProbability = informationSet.GetNormalizedHedgeAverageStrategy(action);
+                if (playerMakingDecision == playerBeingOptimized)
+                {
+                    if (informationSet.LastBestResponseAction == action)
+                    {
+                        // Because this is the best response action, the best response utility that we get should be propagated back directly. Meanwhile, we want to keep track of all the times that we traverse through this information set, weighing the best response results (which may vary, since our terminal nodes may vary) by the inversePi.
+                        informationSet.IncrementBestResponse(action, inversePiAvgStrat, innerResult.BestResponseToAverageStrategy);
+                        result.BestResponseToAverageStrategy = innerResult.BestResponseToAverageStrategy;
+                    }
+                    // The other result utilities are just the probability adjusted utilities. 
+                    result.HedgeVsHedge += probabilityOfAction * innerResult.HedgeVsHedge;
+                    result.AverageStrategyVsAverageStrategy += averageStrategyProbability * innerResult.AverageStrategyVsAverageStrategy;
+                }
+                else
+                {
+                    // This isn't the decision being optimized, so we essentially just need to pass through the player being optimized's utilities, weighting by the probability for each action (which will depend on whether we are using average strategy or hedge to calculate the utilities).
+                    result.IncrementBasedOnNotYetProbabilityAdjusted(ref innerResult, averageStrategyProbability, probabilityOfAction);
+                }
+                expectedValue += probabilityOfAction * expectedValueOfAction[action - 1];
+
+                if (TraceCFR)
+                {
+                    TabbedText.Tabs--;
+                    TabbedText.WriteLine(
+                        $"... action {action}{(informationSet.LastBestResponseAction == action ? "*" : "")} expected value {expectedValueOfAction[action - 1]} best response expected value {result.BestResponseToAverageStrategy} cum expected value {expectedValue}{(action == numPossibleActions ? "*" : "")}");
+                }
+            }
+            if (playerMakingDecision == playerBeingOptimized)
+            {
+                for (byte action = 1; action <= numPossibleActions; action++)
+                {
+                    double pi = piValues[playerBeingOptimized];
+                    var regret = (expectedValueOfAction[action - 1] - expectedValue);
+                    // NOTE: With normalized hedge, we do NOT discount regrets, because we're normalizing regrets at the end of each iteration.
+                    informationSet.NormalizedHedgeIncrementLastRegret(action, inversePi * regret);
+                    double contributionToAverageStrategy = pi * actionProbabilities[action - 1];
+                    if (EvolutionSettings.UseRegretAndStrategyDiscounting)
+                        contributionToAverageStrategy *= AverageStrategyAdjustment;
+                    if (EvolutionSettings.ParallelOptimization)
+                        informationSet.IncrementCumulativeStrategy_Parallel(action, contributionToAverageStrategy);
+                    else
+                        informationSet.IncrementCumulativeStrategy(action, contributionToAverageStrategy);
+                    if (TraceCFR)
+                    {
+                        TabbedText.WriteLine($"PiValues {piValues[0]} {piValues[1]}");
+                        TabbedText.WriteLine(
+                            $"Regrets: Action {action} regret {regret} prob-adjust {inversePi * regret} new regret {informationSet.GetCumulativeRegret(action)} strategy inc {pi * actionProbabilities[action - 1]} new cum strategy {informationSet.GetCumulativeStrategy(action)}");
+                    }
+                }
+            }
+            return result;
+        }
+
         private unsafe int[] Unroll_HedgeVanillaCFR_ChanceNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues)
         {
             int[] result = Unrolled_Commands.NewZeroArray(3); // initialize to zero -- equivalent of HedgeVanillaUtilities
@@ -225,7 +317,85 @@ namespace ACESim
             return nextPiValues;
         }
 
+        private unsafe int Unroll_GetInversePiValue(int[] piValues, byte playerIndex)
+        {
+            if (NumNonChancePlayers == 2)
+                return piValues[(byte)1 - playerIndex];
+            bool firstPlayerOtherThanMainFound = false;
+            int indexForInversePiValue = -1;
+            for (byte p = 0; p < NumNonChancePlayers; p++)
+                if (p != playerIndex)
+                {
+                    if (firstPlayerOtherThanMainFound)
+                    {
+                        Unrolled_Commands.MultiplyBy(indexForInversePiValue, piValues[p]);
+                    }
+                    else
+                    {
+                        indexForInversePiValue = Unrolled_Commands.CopyToNew(piValues[p]);
+                        firstPlayerOtherThanMainFound = true;
+                    }
+                }
+            return indexForInversePiValue;
+        }
+
         #endregion
+
+        #region Core algorithm
+
+        public unsafe string SolveHedgeVanillaCFR()
+        {
+            string reportString = null;
+            InitializeInformationSets();
+            for (int iteration = 1; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
+            {
+                reportString = HedgeVanillaCFRIteration(iteration);
+            }
+            return reportString;
+        }
+
+        double HedgeVanillaIteration;
+        int HedgeVanillaIterationInt;
+        Stopwatch HedgeVanillaIterationStopwatch = new Stopwatch();
+        private unsafe string HedgeVanillaCFRIteration(int iteration)
+        {
+            HedgeVanillaIteration = iteration;
+            HedgeVanillaIterationInt = iteration;
+
+            double positivePower = Math.Pow(HedgeVanillaIteration, EvolutionSettings.Discounting_Alpha);
+            double negativePower = Math.Pow(HedgeVanillaIteration, EvolutionSettings.Discounting_Beta);
+            PositiveRegretsAdjustment = positivePower / (positivePower + 1.0);
+            NegativeRegretsAdjustment = negativePower / (negativePower + 1.0);
+            AverageStrategyAdjustment = Math.Pow(HedgeVanillaIteration / (HedgeVanillaIteration), EvolutionSettings.Discounting_Gamma);
+
+            string reportString = null;
+            double[] lastUtilities = new double[NumNonChancePlayers];
+
+            ActionStrategy = ActionStrategies.NormalizedHedge;
+
+            for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
+            {
+                double* initialPiValues = stackalloc double[MaxNumMainPlayers];
+                double* initialAvgStratPiValues = stackalloc double[MaxNumMainPlayers];
+                GetInitialPiValues(initialPiValues);
+                GetInitialPiValues(initialAvgStratPiValues);
+                if (TraceCFR)
+                    TabbedText.WriteLine($"Iteration {iteration} Player {playerBeingOptimized}");
+                HedgeVanillaIterationStopwatch.Start();
+                HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
+                HedgeVanillaUtilities result = HedgeVanillaCFR(ref historyPoint, playerBeingOptimized, initialPiValues, initialAvgStratPiValues);
+                HedgeVanillaIterationStopwatch.Stop();
+                if (iteration % 10 == 0)
+                    TabbedText.WriteLine($"Iteration {iteration} Player {playerBeingOptimized} {result} Overall milliseconds per iteration {((HedgeVanillaIterationStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
+            }
+
+            UpdateInformationSets(iteration);
+
+            reportString = GenerateReports(iteration,
+                () =>
+                    $"Iteration {iteration} Overall milliseconds per iteration {((HedgeVanillaIterationStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
+            return reportString;
+        }
 
         /// <summary>
         /// Performs an iteration of vanilla counterfactual regret minimization.
@@ -299,7 +469,6 @@ namespace ACESim
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                 HedgeVanillaUtilities innerResult = HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues);
                 expectedValueOfAction[action - 1] = innerResult.HedgeVsHedge;
-                double averageStrategyProbability = informationSet.GetNormalizedHedgeAverageStrategy(action);
                 if (playerMakingDecision == playerBeingOptimized)
                 {
                     if (informationSet.LastBestResponseAction == action)
@@ -310,12 +479,12 @@ namespace ACESim
                     }
                     // The other result utilities are just the probability adjusted utilities. 
                     result.HedgeVsHedge += probabilityOfAction * innerResult.HedgeVsHedge;
-                    result.AverageStrategyVsAverageStrategy += averageStrategyProbability * innerResult.AverageStrategyVsAverageStrategy;
+                    result.AverageStrategyVsAverageStrategy += probabilityOfActionAvgStrat * innerResult.AverageStrategyVsAverageStrategy;
                 }
                 else
                 {
                     // This isn't the decision being optimized, so we essentially just need to pass through the player being optimized's utilities, weighting by the probability for each action (which will depend on whether we are using average strategy or hedge to calculate the utilities).
-                    result.IncrementBasedOnNotYetProbabilityAdjusted(ref innerResult, averageStrategyProbability, probabilityOfAction);
+                    result.IncrementBasedOnNotYetProbabilityAdjusted(ref innerResult, probabilityOfActionAvgStrat, probabilityOfAction);
                 }
                 expectedValue += probabilityOfAction * expectedValueOfAction[action - 1];
 
@@ -401,58 +570,7 @@ namespace ACESim
             return result;
         }
 
-        public unsafe string SolveHedgeVanillaCFR()
-        {
-            string reportString = null;
-            InitializeInformationSets();
-            for (int iteration = 1; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
-            {
-                reportString = HedgeVanillaCFRIteration(iteration);
-            }
-            return reportString;
-        }
+        #endregion
 
-        double HedgeVanillaIteration;
-        int HedgeVanillaIterationInt;
-        Stopwatch HedgeVanillaIterationStopwatch = new Stopwatch();
-        private unsafe string HedgeVanillaCFRIteration(int iteration)
-        {
-            HedgeVanillaIteration = iteration;
-            HedgeVanillaIterationInt = iteration;
-
-            double positivePower = Math.Pow(HedgeVanillaIteration, EvolutionSettings.Discounting_Alpha);
-            double negativePower = Math.Pow(HedgeVanillaIteration, EvolutionSettings.Discounting_Beta);
-            PositiveRegretsAdjustment = positivePower / (positivePower + 1.0);
-            NegativeRegretsAdjustment = negativePower / (negativePower + 1.0);
-            AverageStrategyAdjustment = Math.Pow(HedgeVanillaIteration / (HedgeVanillaIteration), EvolutionSettings.Discounting_Gamma);
-
-            string reportString = null;
-            double[] lastUtilities = new double[NumNonChancePlayers];
-
-            ActionStrategy = ActionStrategies.NormalizedHedge;
-            
-            for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
-            {
-                double* initialPiValues = stackalloc double[MaxNumMainPlayers];
-                double* initialAvgStratPiValues = stackalloc double[MaxNumMainPlayers];
-                GetInitialPiValues(initialPiValues);
-                GetInitialPiValues(initialAvgStratPiValues);
-                if (TraceCFR)
-                    TabbedText.WriteLine($"Iteration {iteration} Player {playerBeingOptimized}");
-                HedgeVanillaIterationStopwatch.Start();
-                HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
-                HedgeVanillaUtilities result = HedgeVanillaCFR(ref historyPoint, playerBeingOptimized, initialPiValues, initialAvgStratPiValues);
-                HedgeVanillaIterationStopwatch.Stop();
-                if (iteration % 10 == 0)
-                    TabbedText.WriteLine($"Iteration {iteration} Player {playerBeingOptimized} {result} Overall milliseconds per iteration {((HedgeVanillaIterationStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
-            }
-
-            UpdateInformationSets(iteration);
-
-            reportString = GenerateReports(iteration,
-                () =>
-                    $"Iteration {iteration} Overall milliseconds per iteration {((HedgeVanillaIterationStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
-            return reportString;
-        }
     }
 }

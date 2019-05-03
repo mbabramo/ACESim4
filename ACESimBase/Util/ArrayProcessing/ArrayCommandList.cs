@@ -9,13 +9,15 @@ namespace ACESimBase.Util.ArrayProcessing
     public class ArrayCommandList
     {
         public ArrayCommand[] UnderlyingCommands;
-        int NextCommandIndex;
+        public int NextCommandIndex;
+        public int NextArrayIndex;
         public double[] InitialArray;
 
-        public ArrayCommandList(int maxNumCommands, double[] initialArray)
+        public ArrayCommandList(int maxNumCommands, double[] initialArray, int nextArrayIndex)
         {
             UnderlyingCommands = new ArrayCommand[maxNumCommands];
             InitialArray = initialArray;
+            NextArrayIndex = nextArrayIndex;
         }
 
         private void AddCommand(ArrayCommand command)
@@ -25,6 +27,8 @@ namespace ACESimBase.Util.ArrayProcessing
                 ExecuteCommand(InitialArray, command);
             NextCommandIndex++;
         }
+
+        // First, methods to create commands that use new spots in the array
 
         public int[] NewZeroArray(int arraySize)
         {
@@ -36,64 +40,77 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public int NewZero()
         {
-            int index = NextCommandIndex;
-            AddCommand(new ArrayCommand(ArrayCommandType.ZeroNew, index, -1));
-            return index;
+            AddCommand(new ArrayCommand(ArrayCommandType.ZeroNew, NextArrayIndex, -1));
+            return NextArrayIndex++;
         }
 
         public int CopyToNew(int sourceIndex)
         {
-            int index = NextCommandIndex;
-            AddCommand(new ArrayCommand(ArrayCommandType.CopyToNew, index, sourceIndex));
-            return index;
-        }
-
-        public void MultiplyArrayBy(int[] indices, int indexOfMultiplier)
-        {
-            for (int i = 0; i < indices.Length; i++)
-                MultiplyBy(indices[i], indexOfMultiplier);
-        }
-
-        public void MultiplyArrayBy(int[] indices, int[] indicesOfMultipliers)
-        {
-            for (int i = 0; i < indices.Length; i++)
-                MultiplyBy(indices[i], indicesOfMultipliers[i]);
-        }
-
-        public void MultiplyBy(int index, int indexOfMultiplier)
-        {
-            AddCommand(new ArrayCommand(ArrayCommandType.MultiplyBy, index, indexOfMultiplier));
-        }
-
-        public int MultiplyToNew(int index1, int index2)
-        {
-            int result = CopyToNew(index1);
-            MultiplyBy(result, index2);
-            return result;
-        }
-
-        public void IncrementArrayBy(int[] indices, int indexOfIncrement)
-        {
-            for (int i = 0; i < indices.Length; i++)
-                Increment(indices[i], indexOfIncrement);
-        }
-
-        public void IncrementArrayBy(int[] indices, int[] indicesOfIncrements)
-        {
-            for (int i = 0; i < indices.Length; i++)
-                Increment(indices[i], indicesOfIncrements[i]);
-        }
-
-        public void Increment(int index, int indexOfIncrement)
-        {
-            AddCommand(new ArrayCommand(ArrayCommandType.IncrementBy, index, indexOfIncrement));
+            AddCommand(new ArrayCommand(ArrayCommandType.CopyTo, NextArrayIndex, sourceIndex));
+            return NextArrayIndex++;
         }
 
         public int AddToNew(int index1, int index2)
         {
             int result = CopyToNew(index1);
-            Increment(result, index2);
+            Increment(result, index2, false);
             return result;
+        }
+
+        public int MultiplyToNew(int index1, int index2)
+        {
+            int result = CopyToNew(index1);
+            MultiplyBy(result, index2, false);
+            return result;
+        }
+
+        // Next, methods that modify existing array items in place
+
+        public void CopyToExisting(int index, int sourceIndex)
+        {
+            AddCommand(new ArrayCommand(ArrayCommandType.CopyTo, index, sourceIndex));
+        }
+
+        public void MultiplyArrayBy(int[] indices, int indexOfMultiplier, bool interlocked)
+        {
+            for (int i = 0; i < indices.Length; i++)
+                MultiplyBy(indices[i], indexOfMultiplier, interlocked);
+        }
+
+        public void MultiplyArrayBy(int[] indices, int[] indicesOfMultipliers, bool interlocked)
+        {
+            for (int i = 0; i < indices.Length; i++)
+                MultiplyBy(indices[i], indicesOfMultipliers[i], interlocked);
+        }
+
+        public void MultiplyBy(int index, int indexOfMultiplier, bool interlocked)
+        {
+            AddCommand(new ArrayCommand(ArrayCommandType.MultiplyBy, index, indexOfMultiplier));
+        }
+
+        public void IncrementArrayBy(int[] indices, int indexOfIncrement, bool interlocked)
+        {
+            for (int i = 0; i < indices.Length; i++)
+                Increment(indices[i], indexOfIncrement, interlocked);
+        }
+
+        public void IncrementArrayBy(int[] indices, int[] indicesOfIncrements, bool interlocked)
+        {
+            for (int i = 0; i < indices.Length; i++)
+                Increment(indices[i], indicesOfIncrements[i], interlocked);
+        }
+
+        public void Increment(int index, int indexOfIncrement, bool interlocked)
+        {
+            AddCommand(new ArrayCommand(ArrayCommandType.IncrementBy, index, indexOfIncrement));
+        }
+
+        public void IncrementByProduct(int index, int indexOfIncrementProduct1, int indexOfIncrementProduct2, bool interlocked)
+        {
+            int spaceForProduct = CopyToNew(indexOfIncrementProduct1);
+            MultiplyBy(spaceForProduct, indexOfIncrementProduct2, interlocked);
+            Increment(index, spaceForProduct, interlocked);
+            NextArrayIndex--; // we've set aside an array index to be used for this command. But we no longer need it, so we can now allocate it to some other purpose (e.g., incrementing by another product)
         }
 
         public void ExecuteAll(double[] array)
@@ -115,13 +132,19 @@ namespace ACESimBase.Util.ArrayProcessing
                 case ArrayCommandType.ZeroNew:
                     array[command.Index] = 0;
                     break;
-                case ArrayCommandType.CopyToNew:
+                case ArrayCommandType.CopyTo:
                     array[command.Index] = array[command.SourceIndex];
                     break;
                 case ArrayCommandType.MultiplyBy:
-                    Interlocking.Multiply(ref array[command.Index], array[command.SourceIndex]);
+                    array[command.Index] *= array[command.SourceIndex];
                     break;
                 case ArrayCommandType.IncrementBy:
+                    array[command.Index] += array[command.SourceIndex];
+                    break;
+                case ArrayCommandType.MultiplyByInterlocked:
+                    Interlocking.Multiply(ref array[command.Index], array[command.SourceIndex]);
+                    break;
+                case ArrayCommandType.IncrementByInterlocked:
                     Interlocking.Add(ref array[command.Index], array[command.SourceIndex]);
                     break;
                 default:

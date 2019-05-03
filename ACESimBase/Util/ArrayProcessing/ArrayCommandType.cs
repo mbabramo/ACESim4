@@ -7,8 +7,10 @@ namespace ACESimBase.Util.ArrayProcessing
     public enum ArrayCommandType : byte
     {
         ZeroNew,
-        CopyToNew,
+        CopyTo,
         MultiplyBy,
         IncrementBy,
+        MultiplyByInterlocked,
+        IncrementByInterlocked,
     }
 }

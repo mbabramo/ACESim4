@@ -50,7 +50,7 @@ namespace ACESim
         public const double Discounting_Alpha = 1.5; // multiply accumulated positive regrets by t^alpha / (t^alpha + 1)
         public const double Discounting_Beta = 0.5; // multiply accumulated negative regrets by t^alpha / (t^alpha + 1)
         public const double Discounting_Gamma = 200;  // DEBUG 2 // multiply contributions to average strategy by (t / t + 1)^gamma, which approaches 1 as t -> inf. Higher gamma means more discounting. If gamma equals 20, then we still get to 80% of the maximum in a mere 100 iterations. In other words, very early iterations are heavily discounted, but after a while, there is very little discounting.
-        public const bool PruneOnOpponentStrategy = true;
+        public const bool PruneOnOpponentStrategy = false;
         public const double PruneOnOpponentStrategyThreshold = 1E-8;
     }
 }
