@@ -113,19 +113,119 @@ namespace ACESimBase.Util.ArrayProcessing
             NextArrayIndex--; // we've set aside an array index to be used for this command. But we no longer need it, so we can now allocate it to some other purpose (e.g., incrementing by another product)
         }
 
+        public void DecrementArrayBy(int[] indices, int indexOfDecrement, bool interlocked)
+        {
+            for (int i = 0; i < indices.Length; i++)
+                Decrement(indices[i], indexOfDecrement, interlocked);
+        }
+
+        public void DecrementArrayBy(int[] indices, int[] indicesOfDecrements, bool interlocked)
+        {
+            for (int i = 0; i < indices.Length; i++)
+                Decrement(indices[i], indicesOfDecrements[i], interlocked);
+        }
+
+        public void Decrement(int index, int indexOfDecrement, bool interlocked)
+        {
+            AddCommand(new ArrayCommand(ArrayCommandType.DecrementBy, index, indexOfDecrement));
+        }
+
+        public void DecrementByProduct(int index, int indexOfDecrementProduct1, int indexOfDecrementProduct2, bool interlocked)
+        {
+            int spaceForProduct = CopyToNew(indexOfDecrementProduct1);
+            MultiplyBy(spaceForProduct, indexOfDecrementProduct2, interlocked);
+            Decrement(index, spaceForProduct, interlocked);
+            NextArrayIndex--; // we've set aside an array index to be used for this command. But we no longer need it, so we can now allocate it to some other purpose (e.g., Decrementing by another product)
+        }
+
+        // Flow control. We do flow control by a combination of comparison commands and go to commands. When a comparison is made, if the comparison fails, the next command is skipped. Thus, the combination of the comparison and the go to command ensures that the go to command will be obeyed only if the comparison succeeds.
+
+        public void InsertEqualsOtherArrayIndexCommand(int index1, int index2)
+        {
+            AddCommand(new ArrayCommand(ArrayCommandType.EqualsOtherArrayIndex, index1, index2));
+        }
+
+        public void InsertNotEqualsOtherArrayIndexCommand(int index1, int index2)
+        {
+            AddCommand(new ArrayCommand(ArrayCommandType.NotEqualsOtherArrayIndex, index1, index2));
+        }
+
+        public void InsertGreaterThanOtherArrayIndexCommand(int index1, int index2)
+        {
+            AddCommand(new ArrayCommand(ArrayCommandType.GreaterThanOtherArrayIndex, index1, index2));
+        }
+
+        public void InsertLessThanOtherArrayIndexCommand(int index1, int index2)
+        {
+            AddCommand(new ArrayCommand(ArrayCommandType.LessThanOtherArrayIndex, index1, index2));
+        }
+
+        /// <summary>
+        /// Inserts a command to make a comparison between the item at index1 and an integral value that is provided. This can be useful to achieve iteration over an index variable.
+        /// </summary>
+        /// <param name="index1"></param>
+        /// <param name="valueToCompareTo"></param>
+        public void InsertEqualsValueCommand(int index1, int valueToCompareTo)
+        {
+            AddCommand(new ArrayCommand(ArrayCommandType.EqualsValue, index1, valueToCompareTo));
+        }
+
+        public void InsertNotEqualsValueCommand(int index1, int valueToCompareTo)
+        {
+            AddCommand(new ArrayCommand(ArrayCommandType.NotEqualsValue, index1, valueToCompareTo));
+        }
+
+        public void InsertGoToCommand(int commandIndexToReplace, int commandIndexToGoTo)
+        {
+            AddCommand(new ArrayCommand(ArrayCommandType.GoTo, commandIndexToGoTo, -1 /* ignored */));
+        }
+
+        /// <summary>
+        ///  Inserts a blank command. This is useful to demarcate a command spot, which might be a spot to go to later or which might later be replaced with a goto command once the goto location is determined.
+        /// </summary>
+        /// <returns>The command index (not an array index, as with most comamnds)</returns>
+        public int InsertBlankCommand()
+        {
+            int commandIndex = NextCommandIndex; // not the array index
+            AddCommand(new ArrayCommand(ArrayCommandType.Blank, -1, -1));
+            return commandIndex;
+        }
+
+        /// <summary>
+        /// Replaces a command (ordinarily a blank command) with a go to command, thus allowing the client code to add statements once the goto is complete.
+        /// </summary>
+        /// <param name="commandIndexToReplace">The command index to replace (ordinarily representing a blank command)</param>
+        /// <param name="commandIndexToGoTo">The command index to go to (or, by default, the next command)</param>
+        public void ReplaceCommandWithGoToCommand(int commandIndexToReplace, int commandIndexToGoTo = -1)
+        {
+            if (commandIndexToGoTo == -1)
+                commandIndexToGoTo = NextCommandIndex;
+            UnderlyingCommands[commandIndexToReplace] = new ArrayCommand(ArrayCommandType.GoTo, commandIndexToGoTo, -1 /* ignored */);
+        }
+
+        #region Execution
+
         public void ExecuteAll(double[] array)
         {
             int MaxCommandIndex = NextCommandIndex;
             for (NextCommandIndex = 0; NextCommandIndex < MaxCommandIndex; NextCommandIndex++)
             {
                 ArrayCommand command = UnderlyingCommands[NextCommandIndex];
-                ExecuteCommand(array, command);
+                bool skipNext = ExecuteCommand(array, command);
+                if (skipNext)
+                    NextCommandIndex++; // in addition to increment in for statement
             }
 
         }
 
+        /// <summary>
+        /// Executes a command. Returns true if the next command should be skipped.
+        /// </summary>
+        /// <param name="array"></param>
+        /// <param name="command"></param>
+        /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ExecuteCommand(double[] array, in ArrayCommand command)
+        public bool ExecuteCommand(double[] array, in ArrayCommand command)
         {
             switch (command.CommandType)
             {
@@ -141,15 +241,42 @@ namespace ACESimBase.Util.ArrayProcessing
                 case ArrayCommandType.IncrementBy:
                     array[command.Index] += array[command.SourceIndex];
                     break;
+                case ArrayCommandType.DecrementBy:
+                    array[command.Index] += array[command.SourceIndex];
+                    break;
                 case ArrayCommandType.MultiplyByInterlocked:
                     Interlocking.Multiply(ref array[command.Index], array[command.SourceIndex]);
                     break;
                 case ArrayCommandType.IncrementByInterlocked:
                     Interlocking.Add(ref array[command.Index], array[command.SourceIndex]);
                     break;
+                case ArrayCommandType.DecrementByInterlocked:
+                    Interlocking.Subtract(ref array[command.Index], array[command.SourceIndex]);
+                    break;
+                case ArrayCommandType.EqualsOtherArrayIndex:
+                    bool conditionMet = array[command.Index] == array[command.SourceIndex];
+                    return !conditionMet;
+                case ArrayCommandType.NotEqualsOtherArrayIndex:
+                    conditionMet = array[command.Index] != array[command.SourceIndex];
+                    return !conditionMet;
+                case ArrayCommandType.GreaterThanOtherArrayIndex:
+                    conditionMet = array[command.Index] > array[command.SourceIndex];
+                    return !conditionMet;
+                case ArrayCommandType.LessThanOtherArrayIndex:
+                    conditionMet = array[command.Index] < array[command.SourceIndex];
+                    return !conditionMet;
+                case ArrayCommandType.EqualsValue:
+                    conditionMet = array[command.Index] == command.SourceIndex;
+                    return !conditionMet;
+                case ArrayCommandType.NotEqualsValue:
+                    conditionMet = array[command.Index] != command.SourceIndex;
+                    return !conditionMet;
                 default:
                     throw new NotImplementedException();
             }
+            return false; // don't skip next
         }
+
+        #endregion
     }
 }

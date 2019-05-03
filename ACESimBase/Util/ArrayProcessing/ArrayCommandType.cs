@@ -10,7 +10,17 @@ namespace ACESimBase.Util.ArrayProcessing
         CopyTo,
         MultiplyBy,
         IncrementBy,
+        DecrementBy,
         MultiplyByInterlocked,
         IncrementByInterlocked,
+        DecrementByInterlocked,
+        EqualsOtherArrayIndex,
+        NotEqualsOtherArrayIndex,
+        GreaterThanOtherArrayIndex,
+        LessThanOtherArrayIndex,
+        EqualsValue,
+        NotEqualsValue,
+        GoTo,
+        Blank
     }
 }

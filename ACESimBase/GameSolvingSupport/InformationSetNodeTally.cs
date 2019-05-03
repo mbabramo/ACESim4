@@ -53,7 +53,6 @@ namespace ACESim
         public SimpleExclusiveLock UpdatingHedge;
         const double NormalizedHedgeEpsilon = 0.5;
         int LastUpdatedIteration = -1;
-        bool UpdatedForUnknownIteration;
         public byte LastBestResponseAction = 0;
         public bool BestResponseWeightsUpdatedSinceLast = false;
         public double[] LastBestResponseExpectedValues;
@@ -765,7 +764,7 @@ namespace ACESim
             double[] array = new double[NumPossibleActions];
 
             double* actionProbabilities = stackalloc double[NumPossibleActions];
-            GetNormalizedHedgeProbabilities(actionProbabilities, iteration);
+            GetNormalizedHedgeProbabilities(actionProbabilities);
             for (int a = 0; a < NumPossibleActions; a++)
                 array[a] = actionProbabilities[a];
             return array;
