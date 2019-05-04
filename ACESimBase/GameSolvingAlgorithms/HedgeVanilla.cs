@@ -40,6 +40,8 @@ namespace ACESim
             string reportString = null;
             InitializeInformationSets();
             Unroll_CreateUnrolledCommandList();
+            if (TraceCFR)
+                TraceCommandList();
             double[] array = new double[Unroll_SizeOfArray];
             for (int iteration = 1; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
@@ -48,10 +50,16 @@ namespace ACESim
             return reportString;
         }
 
+        public void TraceCommandList()
+        {
+            string currentString = TabbedText.AccumulatedText.ToString();
+            Debug; // must find 
+        }
+
         private void Unroll_CreateUnrolledCommandList()
         {
             const int max_num_commands = 50_000_000;
-            Unroll_InitializeInitialIndexes();
+            Unroll_InitializeInitialArrayIndices();
             Unrolled_Commands = new ArrayCommandList(max_num_commands, null, Unrolled_InitialArrayIndex);
             ActionStrategy = ActionStrategies.NormalizedHedge;
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
@@ -127,9 +135,9 @@ namespace ACESim
         }
         private int Unrolled_GetFinalUtilitiesNodesIndex(int finalUtilitiesNodeNumber, byte playerBeingOptimized) => Unrolled_FinalUtilitiesNodesIndices[finalUtilitiesNodeNumber] + playerBeingOptimized;
 
-        private void Unroll_InitializeInitialIndexes()
+        private void Unroll_InitializeInitialArrayIndices()
         {
-            int index = 0;
+            int index = 1; // skip index 0 because we want to be able to identify references to index 0 as errors
             Unrolled_ChanceNodesIndices = new int[ChanceNodes.Count];
             for (int i = 0; i < ChanceNodes.Count; i++)
             {
@@ -256,7 +264,7 @@ namespace ACESim
             int[] actionProbabilities = Unrolled_GetInformationSetIndex_HedgeProbabilities_All(informationSet.InformationSetNumber, numPossibleActions);
             int[] expectedValueOfAction = new int[numPossibleActions];
             int expectedValue = Unrolled_Commands.NewZero();
-            int[] result = new int[3];
+            int[] result = Unrolled_Commands.NewZeroArray(3);
             for (byte action = 1; action <= numPossibleActions; action++)
             {
                 int probabilityOfAction = Unrolled_GetInformationSetIndex_HedgeProbability(informationSet.InformationSetNumber, action);
@@ -373,6 +381,8 @@ namespace ACESim
                 Unroll_HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues);
             if (TraceCFR)
             {
+                if (result[Unroll_Result_HedgeVsHedgeIndex] == 0)
+                    throw new Exception("DEBUG");
                 // save current hedge result before multiplying
                 int currentHedgeResult = Unrolled_Commands.CopyToNew(result[Unroll_Result_HedgeVsHedgeIndex]);
                 Unrolled_Commands.MultiplyArrayBy(result, actionProbability, false);
