@@ -1,4 +1,5 @@
-﻿using ACESimBase.Util.ArrayProcessing;
+﻿using ACESimBase.Util;
+using ACESimBase.Util.ArrayProcessing;
 using System;
 using System.Diagnostics;
 using System.Linq;
@@ -40,20 +41,23 @@ namespace ACESim
             string reportString = null;
             InitializeInformationSets();
             Unroll_CreateUnrolledCommandList();
-            if (TraceCFR)
-                TraceCommandList();
             double[] array = new double[Unroll_SizeOfArray];
             for (int iteration = 1; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
                 Unroll_ExecuteUnrolledCommands(array, iteration == 1);
+                if (TraceCFR)
+                { // only trace through iteration
+                    TraceCommandList(array);
+                    return "";
+                }
             }
             return reportString;
         }
 
-        public void TraceCommandList()
+        public void TraceCommandList(double[] array)
         {
-            string currentString = TabbedText.AccumulatedText.ToString();
-            Debug; // must find 
+            string traceStringWithArrayStubs = TabbedText.AccumulatedText.ToString();
+            string replaced = StringUtil.ReplaceArrayDesignationWithArrayItem(traceStringWithArrayStubs, array);
         }
 
         private void Unroll_CreateUnrolledCommandList()
@@ -277,8 +281,9 @@ namespace ACESim
                 int[] nextAvgStratPiValues = Unroll_GetNextPiValues(avgStratPiValues, playerMakingDecision, probabilityOfActionAvgStrat, false);
                 if (TraceCFR)
                 {
+                    int probabilityOfActionCopy = Unrolled_Commands.CopyToNew(probabilityOfAction);
                     TabbedText.WriteLine(
-                        $"code {informationSet.DecisionByteCode} ({GameDefinition.DecisionsExecutionOrder.FirstOrDefault(x => x.DecisionByteCode == informationSet.DecisionByteCode)?.Name}) optimizing player {playerBeingOptimized}  {(playerMakingDecision == playerBeingOptimized ? "own decision" : "opp decision")} action {action} probability ARRAY{probabilityOfAction} ...");
+                        $"code {informationSet.DecisionByteCode} ({GameDefinition.DecisionsExecutionOrder.FirstOrDefault(x => x.DecisionByteCode == informationSet.DecisionByteCode)?.Name}) optimizing player {playerBeingOptimized}  {(playerMakingDecision == playerBeingOptimized ? "own decision" : "opp decision")} action {action} probability ARRAY{probabilityOfActionCopy} ...");
                     TabbedText.Tabs++;
                 }
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
@@ -302,17 +307,33 @@ namespace ACESim
                 }
                 else
                 {
+                    //if (TraceCFR)
+                    //{
+                    //    //DEBUG
+                    //    TabbedText.WriteLine(
+                    //        $"... BEFORE prob ARRAY{probabilityOfAction} results: ARRAY{result[Unroll_Result_HedgeVsHedgeIndex]} ARRAY{result[Unroll_Result_AverageStrategyIndex]} ARRAY{result[Unroll_Result_BestResponseIndex]} inner:  ARRAY{innerResult[Unroll_Result_HedgeVsHedgeIndex]} ARRAY{innerResult[Unroll_Result_AverageStrategyIndex]} ARRAY{innerResult[Unroll_Result_BestResponseIndex]} ");
+                    //}
                     Unrolled_Commands.IncrementByProduct(result[Unroll_Result_HedgeVsHedgeIndex], probabilityOfAction, innerResult[Unroll_Result_HedgeVsHedgeIndex], false);
                     Unrolled_Commands.IncrementByProduct(result[Unroll_Result_AverageStrategyIndex], probabilityOfActionAvgStrat, innerResult[Unroll_Result_AverageStrategyIndex], false);
                     Unrolled_Commands.IncrementByProduct(result[Unroll_Result_BestResponseIndex], probabilityOfActionAvgStrat, innerResult[Unroll_Result_BestResponseIndex], false);
+
+                    //if (TraceCFR)
+                    //{
+                    //    //DEBUG
+                    //    TabbedText.WriteLine(
+                    //        $"... AFTER prob ARRAY{probabilityOfAction} results: ARRAY{result[Unroll_Result_HedgeVsHedgeIndex]} ARRAY{result[Unroll_Result_AverageStrategyIndex]} ARRAY{result[Unroll_Result_BestResponseIndex]} ");
+                    //}
                 }
                 Unrolled_Commands.IncrementByProduct(expectedValue, probabilityOfAction, expectedValueOfAction[action - 1], false);
 
                 if (TraceCFR)
                 {
+                    int expectedValueOfActionCopy = Unrolled_Commands.CopyToNew(expectedValueOfAction[action - 1]);
+                    int bestResponseExpectedValueCopy = Unrolled_Commands.CopyToNew(result[Unroll_Result_BestResponseIndex]);
+                    int cumExpectedValueCopy = Unrolled_Commands.CopyToNew(expectedValue);
                     TabbedText.Tabs--;
                     TabbedText.WriteLine(
-                        $"... action {action} expected value ARRAY{expectedValueOfAction[action - 1]} best response expected value ARRAY{result[Unroll_Result_BestResponseIndex]} cum expected value ARRAY{expectedValue}{(action == numPossibleActions ? "*" : "")}");
+                        $"... action {action} expected value ARRAY{expectedValueOfActionCopy} best response expected value ARRAY{bestResponseExpectedValueCopy} cum expected value ARRAY{cumExpectedValueCopy}{(action == numPossibleActions ? "*" : "")}");
                 }
             }
             if (playerMakingDecision == playerBeingOptimized)
@@ -333,9 +354,15 @@ namespace ACESim
                     Unrolled_Commands.Increment(cumulativeStrategy, contributionToAverageStrategy, true);
                     if (TraceCFR)
                     {
-                        TabbedText.WriteLine($"PiValues ARRAY{piValues[0]} ARRAY{piValues[1]}");
+                        int piValuesZeroCopy = Unrolled_Commands.CopyToNew(piValues[0]);
+                        int piValuesOneCopy = Unrolled_Commands.CopyToNew(piValues[1]);
+                        int regretCopy = Unrolled_Commands.CopyToNew(regret);
+                        int inversePiCopy = Unrolled_Commands.CopyToNew(inversePi);
+                        int contributionToAverageStrategyCopy = Unrolled_Commands.CopyToNew(contributionToAverageStrategy);
+                        int cumulativeStrategyCopy = Unrolled_Commands.CopyToNew(cumulativeStrategy);
+                        TabbedText.WriteLine($"PiValues ARRAY{piValuesZeroCopy} ARRAY{piValuesOneCopy}");
                         TabbedText.WriteLine(
-                            $"Regrets: Action {action} regret ARRAY{regret} inversePi ARRAY{inversePi} avg_strat_incrememnt ARRAY{contributionToAverageStrategy} cum_strategy ARRAY{cumulativeStrategy}");
+                            $"Regrets: Action {action} regret ARRAY{regretCopy} inversePi ARRAY{inversePiCopy} avg_strat_incrememnt ARRAY{contributionToAverageStrategyCopy} cum_strategy ARRAY{cumulativeStrategyCopy}");
                     }
                 }
             }
@@ -373,22 +400,25 @@ namespace ACESim
 
             if (TraceCFR)
             {
+                int actionProbabilityCopy = Unrolled_Commands.CopyToNew(actionProbability);
                 TabbedText.WriteLine(
-                    $"Chance code {chanceNodeSettings.DecisionByteCode} ({GameDefinition.DecisionsExecutionOrder.FirstOrDefault(x => x.DecisionByteCode == chanceNodeSettings.DecisionByteCode).Name}) action {action} probability ARRAY{actionProbability} ...");
+                    $"Chance code {chanceNodeSettings.DecisionByteCode} ({GameDefinition.DecisionsExecutionOrder.FirstOrDefault(x => x.DecisionByteCode == chanceNodeSettings.DecisionByteCode).Name}) action {action} probability ARRAY{actionProbabilityCopy} ...");
                 TabbedText.Tabs++;
             }
             int[] result =
                 Unroll_HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues);
             if (TraceCFR)
             {
-                if (result[Unroll_Result_HedgeVsHedgeIndex] == 0)
-                    throw new Exception("DEBUG");
                 // save current hedge result before multiplying
-                int currentHedgeResult = Unrolled_Commands.CopyToNew(result[Unroll_Result_HedgeVsHedgeIndex]);
+                int beforeMultipleHedgeCopy = Unrolled_Commands.CopyToNew(result[Unroll_Result_HedgeVsHedgeIndex]);
+                int actionProbabilityCopy = Unrolled_Commands.CopyToNew(actionProbability);
+
                 Unrolled_Commands.MultiplyArrayBy(result, actionProbability, false);
+                int resultHedgeCopy = Unrolled_Commands.CopyToNew(result[Unroll_Result_HedgeVsHedgeIndex]);
+
                 TabbedText.Tabs--;
                 TabbedText.WriteLine(
-                    $"... action {action} value ARRAY{currentHedgeResult} probability ARRAY{actionProbability} expected value contribution ARRAY{result[Unroll_Result_HedgeVsHedgeIndex]}");
+                    $"... action {action} value ARRAY{beforeMultipleHedgeCopy} probability ARRAY{actionProbabilityCopy} expected value contribution ARRAY{resultHedgeCopy}");
             }
             else
                 Unrolled_Commands.MultiplyArrayBy(result, actionProbability, false);
@@ -558,6 +588,10 @@ namespace ACESim
             double* expectedValueOfAction = stackalloc double[numPossibleActions];
             double expectedValue = 0;
             HedgeVanillaUtilities result = default;
+            if (informationSet.DecisionByteCode == 14)
+            {
+                var DEBUG = 0;
+            }
             for (byte action = 1; action <= numPossibleActions; action++)
             {
                 double probabilityOfAction = actionProbabilities[action - 1];
