@@ -231,7 +231,7 @@ namespace ACESimBase.Util.ArrayProcessing
                         array[command.Index] += array[command.SourceIndex];
                         break;
                     case ArrayCommandType.DecrementBy:
-                        array[command.Index] += array[command.SourceIndex];
+                        array[command.Index] -= array[command.SourceIndex];
                         break;
                     case ArrayCommandType.MultiplyByInterlocked:
                         Interlocking.Multiply(ref array[command.Index], array[command.SourceIndex]);

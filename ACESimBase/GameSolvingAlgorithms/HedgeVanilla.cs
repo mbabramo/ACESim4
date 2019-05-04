@@ -292,7 +292,7 @@ namespace ACESim
                 }
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                 int[] innerResult = Unroll_HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues);
-                expectedValueOfAction[action - 1] = innerResult[Unroll_Result_HedgeVsHedgeIndex];
+                Unrolled_Commands.CopyToExisting(expectedValueOfAction[action - 1], innerResult[Unroll_Result_HedgeVsHedgeIndex]);
                 if (playerMakingDecision == playerBeingOptimized)
                 {
                     int lastBestResponseActionIndex = Unrolled_GetInformationSetIndex_LastBestResponse(informationSet.InformationSetNumber, (byte) informationSet.NumPossibleActions);
@@ -345,9 +345,20 @@ namespace ACESim
             {
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
-                    int pi = piValues[playerBeingOptimized];
+                    int pi = Unrolled_Commands.CopyToNew(piValues[playerBeingOptimized]);
                     int regret = Unrolled_Commands.CopyToNew(expectedValueOfAction[action - 1]);
                     Unrolled_Commands.Decrement(regret, expectedValue, false);
+                    if (TraceCFR)
+                    { // DEBUG
+                        int piValuesZeroCopy = Unrolled_Commands.CopyToNew(piValues[0]);
+                        int piValuesOneCopy = Unrolled_Commands.CopyToNew(piValues[1]);
+                        int regretCopy = Unrolled_Commands.CopyToNew(regret);
+                        int inversePiCopy = Unrolled_Commands.CopyToNew(inversePi);
+                        int exLagCopy = Unrolled_Commands.CopyToNew(expectedValueOfAction[action - 1]);
+                        int exCopy = Unrolled_Commands.CopyToNew(expectedValue);
+                        TabbedText.WriteLine(
+                            $"Extra regrets Action {action} regret ARRAY{regretCopy} = ARRAY{exLagCopy} - ARRAY{exCopy} ; inversePi ARRAY{inversePiCopy} avg_strat_incrememnt");
+                    }
                     int lastRegret = Unrolled_GetInformationSetIndex_LastRegret(informationSet.InformationSetNumber, action);
                     Unrolled_Commands.IncrementByProduct(lastRegret, inversePi, regret, true);
                     // now contribution to average strategy
@@ -442,7 +453,7 @@ namespace ACESim
                 if (p == playerIndex)
                 {
                     if (changeOtherPlayers)
-                        nextPiValue = currentPiValue;
+                        nextPiValue = Unrolled_Commands.CopyToNew(currentPiValue);
                     else
                         nextPiValue = Unrolled_Commands.MultiplyToNew(currentPiValue, probabilityToMultiplyBy);
                 }
@@ -451,7 +462,7 @@ namespace ACESim
                     if (changeOtherPlayers)
                         nextPiValue = Unrolled_Commands.MultiplyToNew(currentPiValue, probabilityToMultiplyBy);
                     else
-                        nextPiValue = currentPiValue;
+                        nextPiValue = Unrolled_Commands.CopyToNew(currentPiValue);
                 }
                 nextPiValues[p] = nextPiValue;
             }
@@ -461,7 +472,7 @@ namespace ACESim
         private unsafe int Unroll_GetInversePiValue(int[] piValues, byte playerIndex)
         {
             if (NumNonChancePlayers == 2)
-                return piValues[(byte)1 - playerIndex];
+                return Unrolled_Commands.CopyToNew(piValues[(byte)1 - playerIndex]);
             bool firstPlayerOtherThanMainFound = false;
             int indexForInversePiValue = -1;
             for (byte p = 0; p < NumNonChancePlayers; p++)
@@ -648,6 +659,11 @@ namespace ACESim
                 {
                     double pi = piValues[playerBeingOptimized];
                     var regret = (expectedValueOfAction[action - 1] - expectedValue);
+                    if (TraceCFR)
+                    { // DEBUG
+                        TabbedText.WriteLine(
+                            $"Extra regrets Action {action} regret {regret} = {expectedValueOfAction[action - 1]} - {expectedValue} ; inversePi {inversePi} avg_strat_incrememnt");
+                    }
                     // NOTE: With normalized hedge, we do NOT discount regrets, because we're normalizing regrets at the end of each iteration.
                     informationSet.NormalizedHedgeIncrementLastRegret(action, inversePi * regret);
                     double contributionToAverageStrategy = pi * actionProbabilities[action - 1];
