@@ -524,7 +524,7 @@ namespace ACESim
                 if (TraceCFR)
                 {
                     TabbedText.WriteLine(
-                        $"decisionNum {decisionNum} optimizing player {playerBeingOptimized}  own decision {playerMakingDecision == playerBeingOptimized} action {action} probability {probabilityOfAction} ...");
+                        $"code {informationSet.DecisionByteCode} ({GameDefinition.DecisionsExecutionOrder.FirstOrDefault(x => x.DecisionByteCode == informationSet.DecisionByteCode)?.Name}) optimizing player {playerBeingOptimized}  {(playerMakingDecision == playerBeingOptimized ? "own decision" : "opp decision")} action {action} probability {probabilityOfAction} ...");
                     TabbedText.Tabs++;
                 }
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
@@ -615,7 +615,7 @@ namespace ACESim
             if (TraceCFR)
             {
                 TabbedText.WriteLine(
-                    $"Chance decisionNum {chanceNodeSettings.DecisionByteCode} action {action} probability {actionProbability} ...");
+                    $"Chance code {chanceNodeSettings.DecisionByteCode} ({GameDefinition.DecisionsExecutionOrder.FirstOrDefault(x => x.DecisionByteCode == chanceNodeSettings.DecisionByteCode).Name}) action {action} probability {actionProbability} ...");
                 TabbedText.Tabs++;
             }
             HedgeVanillaUtilities result =
