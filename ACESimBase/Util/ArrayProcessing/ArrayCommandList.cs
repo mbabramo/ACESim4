@@ -273,7 +273,7 @@ namespace ACESimBase.Util.ArrayProcessing
                             skipNext = true;
                         break;
                     case ArrayCommandType.GoTo:
-                        goTo = command.Index;
+                        goTo = command.Index - 1; // because we are going to increment in the for loop
                         break;
                     default:
                         throw new NotImplementedException();

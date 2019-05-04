@@ -243,7 +243,11 @@ namespace ACESim
                 FinalUtilities finalUtilities = (FinalUtilities)gameStateForCurrentPlayer;
                 // Note: An alternative approach would be to add the utility value found here to the unrolled commands, instead of looking it up in the array. But this approach makes it possible to change some game parameters and thus the final utilities without regenerating commands.
                 int finalUtilIndex = Unrolled_GetFinalUtilitiesNodesIndex(finalUtilities.FinalUtilitiesNodeNumber, playerBeingOptimized);
-                return new int[] { finalUtilIndex, finalUtilIndex, finalUtilIndex };
+                // Note: We must copy this so that we don't change the final utilities themselves.
+                int finalUtilIndexCopy1 = Unrolled_Commands.CopyToNew(finalUtilIndex);
+                int finalUtilIndexCopy2 = Unrolled_Commands.CopyToNew(finalUtilIndex);
+                int finalUtilIndexCopy3 = Unrolled_Commands.CopyToNew(finalUtilIndex);
+                return new int[] { finalUtilIndexCopy1, finalUtilIndexCopy2, finalUtilIndexCopy3 };
             }
             else if (gameStateType == GameStateTypeEnum.Chance)
             {
@@ -293,13 +297,14 @@ namespace ACESim
                 {
                     int lastBestResponseActionIndex = Unrolled_GetInformationSetIndex_LastBestResponse(informationSet.InformationSetNumber, (byte) informationSet.NumPossibleActions);
                     Unrolled_Commands.InsertNotEqualsValueCommand(lastBestResponseActionIndex, (int)action);
+                    result[Unroll_Result_BestResponseIndex] = Unrolled_Commands.CopyToNew(result[Unroll_Result_BestResponseIndex]); // we copy this here so that we have a new value whether we execute the inner loop or not
                     int goToCommandIndex = Unrolled_Commands.InsertBlankCommand();
                     // the following is executed only if lastBestResponseActionIndex == action
                         int bestResponseNumerator = Unrolled_GetInformationSetIndex_BestResponseNumerator(informationSet.InformationSetNumber, action);
                         int bestResponseDenominator = Unrolled_GetInformationSetIndex_BestResponseNumerator(informationSet.InformationSetNumber, action);
                         Unrolled_Commands.IncrementByProduct(bestResponseNumerator, inversePiAvgStrat, innerResult[Unroll_Result_BestResponseIndex], true);
                         Unrolled_Commands.Increment(bestResponseNumerator, inversePiAvgStrat, true);
-                        result[Unroll_Result_BestResponseIndex] = innerResult[Unroll_Result_BestResponseIndex];
+                        Unrolled_Commands.CopyToExisting(result[Unroll_Result_BestResponseIndex], innerResult[Unroll_Result_BestResponseIndex]);
                     // end of loop
                     Unrolled_Commands.ReplaceCommandWithGoToCommand(goToCommandIndex, Unrolled_Commands.NextCommandIndex); // completes the go to statement
                     Unrolled_Commands.IncrementByProduct(result[Unroll_Result_HedgeVsHedgeIndex], probabilityOfAction, innerResult[Unroll_Result_HedgeVsHedgeIndex], false);
@@ -414,6 +419,7 @@ namespace ACESim
                 int actionProbabilityCopy = Unrolled_Commands.CopyToNew(actionProbability);
 
                 Unrolled_Commands.MultiplyArrayBy(result, actionProbability, false);
+
                 int resultHedgeCopy = Unrolled_Commands.CopyToNew(result[Unroll_Result_HedgeVsHedgeIndex]);
 
                 TabbedText.Tabs--;
