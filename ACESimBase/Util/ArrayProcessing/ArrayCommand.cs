@@ -16,5 +16,9 @@ namespace ACESimBase.Util.ArrayProcessing
             Index = index;
             SourceIndex = sourceIndex;
         }
+
+        public ArrayCommand WithIndex(int index) => ArrayCommand(CommandType, index, SourceIndex);
+
+        public ArrayCommand WithSourceIndex(int sourceIndex) => ArrayCommand(CommandType, Index, sourceIndex);
     }
 }

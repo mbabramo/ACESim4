@@ -1,6 +1,7 @@
 ﻿using ACESim.Util;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 
@@ -8,23 +9,109 @@ namespace ACESimBase.Util.ArrayProcessing
 {
     public class ArrayCommandList
     {
-        public const bool UseInterlockingWhereRequested = true; // can disable interlocking if we know this won't be run in parallel
+        public const bool UseInterlockingWhereRequested = false; // DEBUG // can disable interlocking if we know this won't be run in parallel
 
         public ArrayCommand[] UnderlyingCommands;
+        public int[] ArrayIndexFirstUsed, ArrayIndexLastUsed;
         public int NextCommandIndex;
+        public int InitialArrayIndex;
         public int NextArrayIndex;
         public int MaxArrayIndex;
-        public double[] InitialArray;
 
-        public ArrayCommandList(int maxNumCommands, double[] initialArray, int initialArrayIndex)
+        public ArrayCommandList(int maxNumCommands, int initialArrayIndex)
         {
             UnderlyingCommands = new ArrayCommand[maxNumCommands];
-            InitialArray = initialArray;
-            NextArrayIndex = initialArrayIndex;
+            ArrayIndexFirstUsed = new int[maxNumCommands]; // these are the max size that might be necessary
+            ArrayIndexLastUsed = new int[maxNumCommands];
+            InitialArrayIndex = NextArrayIndex = MaxArrayIndex = initialArrayIndex;
+            MaxArrayIndex--;
+        }
+
+        // Keep track of the first and last time an array index is used
+        public void UpdateArrayIndexUsed(int arrayIndex)
+        {
+            if (arrayIndex > 0)
+            {
+                if (ArrayIndexFirstUsed[arrayIndex] == 0)
+                {
+                    ArrayIndexFirstUsed[arrayIndex] = NextCommandIndex;
+                }
+                ArrayIndexLastUsed[arrayIndex] = NextCommandIndex;
+            }
+        }
+
+        public void ConsolidateArrayIndices()
+        {
+            // go through command indices again. If we get to a command where an array is used for the last time, then we add it to a recycling queue. Then, when we get to a command where an array is used for the first time, if there is something available in the recycling queue, we use it. Meanwhile, we maintain a translation dictionary, so that we can translate.
+            int lastArrayIndex = NextArrayIndex - 1;
+            int lastCommandIndex = NextCommandIndex - 1;
+
+            Queue<int> recycling = new Queue<int>();
+            Dictionary<int, int> translation = new Dictionary<int, int>();
+            int[] indices = new int[2];
+            int revisedMaxArrayIndex = -1;
+            for (int c = 0; c < lastCommandIndex; c++)
+            {
+                var command = UnderlyingCommands[c];
+                if (command.CommandType != ArrayCommandType.GoTo)
+                {
+                    indices[0] = command.Index;
+                    indices[1] = command.SourceIndex;
+                    for (int i = 0; i <= 1; i++)
+                    {
+                        int originalIndexOrSourceIndex = indices[i];
+                        if (originalIndexOrSourceIndex > InitialArrayIndex)
+                        { // we're only recycling the array indices created in the array command list
+                            bool isFirstUse = ArrayIndexFirstUsed[originalIndexOrSourceIndex] == c;
+                            bool isLastUse = ArrayIndexLastUsed[originalIndexOrSourceIndex] == c;
+                            if (isFirstUse)
+                            {
+                                if (isLastUse)
+                                    throw new Exception("Internal exception. An array index should not be created and never read.");
+                                if (recycling.Any())
+                                {
+                                    translation[originalIndexOrSourceIndex] = recycling.Dequeue();
+                                }
+                            }
+
+                            if (translation.ContainsKey(originalIndexOrSourceIndex))
+                            {
+                                int translated = translation[originalIndexOrSourceIndex];
+                                if (i == 0)
+                                    command = command.WithIndex(translated);
+                                else
+                                    command = command.WithSourceIndex(translated);
+                                if (isLastUse)
+                                {
+                                    translation.Remove(originalIndexOrSourceIndex);
+                                    recycling.Enqueue(translated);
+                                }
+                            }
+                            else if (isLastUse)
+                            { // this was not recycled, but it now can be.
+                                recycling.Enqueue(originalIndexOrSourceIndex);
+                            }
+                        }
+                    }
+                    UnderlyingCommands[c] = command;
+                    if (command.Index > revisedMaxArrayIndex)
+                        revisedMaxArrayIndex = command.Index;
+                    if (command.SourceIndex > revisedMaxArrayIndex)
+                        revisedMaxArrayIndex = command.SourceIndex;
+                }
+            }
+            MaxArrayIndex = revisedMaxArrayIndex;
+            ArrayIndexFirstUsed = null;
+            ArrayIndexLastUsed = null;
         }
 
         private void AddCommand(ArrayCommand command)
         {
+            if (command.CommandType != ArrayCommandType.GoTo)
+            {
+                UpdateArrayIndexUsed(command.Index);
+                UpdateArrayIndexUsed(command.SourceIndex);
+            }
             UnderlyingCommands[NextCommandIndex] = command;
             NextCommandIndex++;
             if (NextArrayIndex > MaxArrayIndex)
@@ -227,6 +314,11 @@ namespace ACESimBase.Util.ArrayProcessing
                         array[command.Index] = array[command.SourceIndex];
                         break;
                     case ArrayCommandType.MultiplyBy:
+                        // DEBUG -- breaking it down this way reveals that about half of the time is from the array accesses (second is basically free) and half from multiplication
+                        //double getTarget = array[command.Index];
+                        //double getSource = array[command.SourceIndex];
+                        //getTarget *= getSource;
+                        //array[command.Index] = getTarget;
                         array[command.Index] *= array[command.SourceIndex];
                         break;
                     case ArrayCommandType.IncrementBy:

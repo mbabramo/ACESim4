@@ -8,6 +8,9 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
+
+    // DEBUG TODO 1. add pruning to unrolled. 2. local variables to unrolled (consider using a separate array; also consider using unsafe code) 3. parallel in unrolled
+
     public partial class CounterfactualRegretMinimization
     {
         #region Game state management
@@ -70,7 +73,7 @@ namespace ACESim
         {
             const int max_num_commands = 50_000_000;
             Unroll_InitializeInitialArrayIndices();
-            Unroll_Commands = new ArrayCommandList(max_num_commands, null, Unroll_InitialArrayIndex);
+            Unroll_Commands = new ArrayCommandList(max_num_commands, Unroll_InitialArrayIndex);
             ActionStrategy = ActionStrategies.NormalizedHedge;
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
             Unroll_IterationResultForPlayersIndices = new int[NumNonChancePlayers][];
@@ -81,6 +84,7 @@ namespace ACESim
                     TabbedText.WriteLine($"Unrolling for Player {p}");
                 Unroll_IterationResultForPlayersIndices[p] = Unroll_HedgeVanillaCFR(ref historyPoint, p, Unroll_InitialPiValuesIndices, Unroll_InitialPiValuesIndices);
             }
+            Unroll_Commands.ConsolidateArrayIndices();
             Unroll_SizeOfArray = Unroll_Commands.MaxArrayIndex + 1;
         }
 
