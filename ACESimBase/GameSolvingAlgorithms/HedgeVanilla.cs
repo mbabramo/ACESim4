@@ -43,7 +43,14 @@ namespace ACESim
             {
                 HedgeVanillaIteration = iteration;
                 HedgeVanillaIterationInt = iteration;
+                HedgeVanillaIterationStopwatch.Start();
                 Unroll_ExecuteUnrolledCommands(array, iteration == 1);
+                HedgeVanillaIterationStopwatch.Stop();
+                MiniReport(iteration, Unroll_IterationResultForPlayers);
+                UpdateInformationSets(iteration);
+                reportString = GenerateReports(iteration,
+                    () =>
+                        $"Iteration {iteration} Overall milliseconds per iteration {((HedgeVanillaIterationStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
                 if (TraceCFR)
                 { // only trace through iteration
                     TraceCommandList(array);
@@ -66,11 +73,13 @@ namespace ACESim
             Unroll_Commands = new ArrayCommandList(max_num_commands, null, Unroll_InitialArrayIndex);
             ActionStrategy = ActionStrategies.NormalizedHedge;
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
+            Unroll_IterationResultForPlayersIndices = new int[NumNonChancePlayers][];
+            Unroll_IterationResultForPlayers = new HedgeVanillaUtilities[NumNonChancePlayers]; // array items from indices above will be copied here
             for (byte p = 0; p < NumNonChancePlayers; p++)
             {
                 if (TraceCFR)
                     TabbedText.WriteLine($"Unrolling for Player {p}");
-                Unroll_HedgeVanillaCFR(ref historyPoint, p, Unroll_InitialPiValuesIndices, Unroll_InitialPiValuesIndices);
+                Unroll_IterationResultForPlayersIndices[p] = Unroll_HedgeVanillaCFR(ref historyPoint, p, Unroll_InitialPiValuesIndices, Unroll_InitialPiValuesIndices);
             }
             Unroll_SizeOfArray = Unroll_Commands.MaxArrayIndex + 1;
         }
@@ -80,6 +89,18 @@ namespace ACESim
             Unroll_CopyInformationSetsToArray(array, firstExecution);
             Unroll_Commands.ExecuteAll(array);
             Unroll_CopyArrayToInformationSets(array);
+            Unroll_DetermineIterationResultForEachPlayer(array);
+        }
+
+        private void Unroll_DetermineIterationResultForEachPlayer(double[] array)
+        {
+            for (byte p = 0; p < NumNonChancePlayers; p++)
+                Unroll_IterationResultForPlayers[p] = new HedgeVanillaUtilities()
+                {
+                    HedgeVsHedge = array[Unroll_IterationResultForPlayersIndices[p][Unroll_Result_HedgeVsHedgeIndex]],
+                    AverageStrategyVsAverageStrategy = array[Unroll_IterationResultForPlayersIndices[p][Unroll_Result_AverageStrategyIndex]],
+                    BestResponseToAverageStrategy = array[Unroll_IterationResultForPlayersIndices[p][Unroll_Result_BestResponseIndex]],
+                };
         }
 
         // Let's store the index in the array at which we will place the various types of information set information.
@@ -92,7 +113,8 @@ namespace ACESim
         private const int Unroll_InformationSetPerActionOrder_BestResponseDenominator = 4;
         private const int Unroll_InformationSetPerActionOrder_CumulativeStrategy = 5;
 
-
+        private int[][] Unroll_IterationResultForPlayersIndices;
+        private HedgeVanillaUtilities[] Unroll_IterationResultForPlayers;
         private int[] Unroll_InformationSetsIndices;
         private int[] Unroll_ChanceNodesIndices;
         private int[] Unroll_FinalUtilitiesNodesIndices;
@@ -523,6 +545,7 @@ namespace ACESim
 
             ActionStrategy = ActionStrategies.NormalizedHedge;
 
+            HedgeVanillaUtilities[] results = new HedgeVanillaUtilities[NumNonChancePlayers];
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
                 double* initialPiValues = stackalloc double[MaxNumMainPlayers];
@@ -533,11 +556,10 @@ namespace ACESim
                     TabbedText.WriteLine($"Iteration {iteration} Player {playerBeingOptimized}");
                 HedgeVanillaIterationStopwatch.Start();
                 HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
-                HedgeVanillaUtilities result = HedgeVanillaCFR(ref historyPoint, playerBeingOptimized, initialPiValues, initialAvgStratPiValues);
+                results[playerBeingOptimized] = HedgeVanillaCFR(ref historyPoint, playerBeingOptimized, initialPiValues, initialAvgStratPiValues);
                 HedgeVanillaIterationStopwatch.Stop();
-                if (iteration % 10 == 0)
-                    TabbedText.WriteLine($"Iteration {iteration} Player {playerBeingOptimized} {result} Overall milliseconds per iteration {((HedgeVanillaIterationStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
             }
+            MiniReport(iteration, results);
 
             UpdateInformationSets(iteration);
 
@@ -545,6 +567,19 @@ namespace ACESim
                 () =>
                     $"Iteration {iteration} Overall milliseconds per iteration {((HedgeVanillaIterationStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
             return reportString;
+        }
+
+        private unsafe void MiniReport(int iteration, HedgeVanillaUtilities[] results)
+        {
+            const int MiniReportEveryPIterations = 10;
+            if (iteration % MiniReportEveryPIterations == 0)
+            {
+                TabbedText.WriteLine($"Iteration {iteration}");
+                TabbedText.Tabs++;
+                for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
+                    TabbedText.WriteLine($"Player {playerBeingOptimized} {results[playerBeingOptimized]} Overall milliseconds per iteration {((HedgeVanillaIterationStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
+                TabbedText.Tabs--;
+            }
         }
 
         private unsafe void CalculateDiscountingAdjustments()
