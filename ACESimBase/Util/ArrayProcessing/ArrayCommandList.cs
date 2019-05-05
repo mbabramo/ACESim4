@@ -40,17 +40,27 @@ namespace ACESimBase.Util.ArrayProcessing
             }
         }
 
-        public void ConsolidateArrayIndices()
+        private void SpecifyResultIndices(IEnumerable<int> indices)
         {
+            foreach (int i in indices)
+                ArrayIndexLastUsed[i] = int.MaxValue; // we have never used this
+        }
+
+        public void ConsolidateArrayIndices(IEnumerable<int> resultIndices)
+        {
+            SpecifyResultIndices(resultIndices);
+
             // go through command indices again. If we get to a command where an array is used for the last time, then we add it to a recycling queue. Then, when we get to a command where an array is used for the first time, if there is something available in the recycling queue, we use it. Meanwhile, we maintain a translation dictionary, so that we can translate.
             int lastArrayIndex = NextArrayIndex - 1;
             int lastCommandIndex = NextCommandIndex - 1;
+
+            int nextArrayIndexToUse = InitialArrayIndex;
 
             Queue<int> recycling = new Queue<int>();
             Dictionary<int, int> translation = new Dictionary<int, int>();
             int[] indices = new int[2];
             int revisedMaxArrayIndex = -1;
-            for (int c = 0; c < lastCommandIndex; c++)
+            for (int c = 0; c <= lastCommandIndex; c++)
             {
                 var command = UnderlyingCommands[c];
                 if (command.CommandType != ArrayCommandType.GoTo)
@@ -67,11 +77,17 @@ namespace ACESimBase.Util.ArrayProcessing
                             if (isFirstUse)
                             {
                                 if (isLastUse)
-                                    throw new Exception("Internal exception. An array index should not be created and never read.");
+                                {
+                                    // We never actually use this later in the command list, so this command has no effect and we can ignore it. Note that if this were a result of the algorithm as a whole, then it would not be designated as a last use.
+                                    command = new ArrayCommand(ArrayCommandType.Blank, -1, -1);
+                                    break;
+                                }
                                 if (recycling.Any())
                                 {
                                     translation[originalIndexOrSourceIndex] = recycling.Dequeue();
                                 }
+                                else
+                                    translation[originalIndexOrSourceIndex] = nextArrayIndexToUse++;
                             }
 
                             if (translation.ContainsKey(originalIndexOrSourceIndex))
@@ -100,6 +116,7 @@ namespace ACESimBase.Util.ArrayProcessing
                         revisedMaxArrayIndex = command.SourceIndex;
                 }
             }
+            NextArrayIndex = nextArrayIndexToUse;
             MaxArrayIndex = revisedMaxArrayIndex;
             ArrayIndexFirstUsed = null;
             ArrayIndexLastUsed = null;
@@ -115,7 +132,7 @@ namespace ACESimBase.Util.ArrayProcessing
             UnderlyingCommands[NextCommandIndex] = command;
             NextCommandIndex++;
             if (NextArrayIndex > MaxArrayIndex)
-                MaxArrayIndex = NextArrayIndex;
+                MaxArrayIndex = NextArrayIndex - 1;
         }
 
         // First, methods to create commands that use new spots in the array
@@ -368,6 +385,8 @@ namespace ACESimBase.Util.ArrayProcessing
                         break;
                     case ArrayCommandType.GoTo:
                         goTo = command.Index - 1; // because we are going to increment in the for loop
+                        break;
+                    case ArrayCommandType.Blank:
                         break;
                     default:
                         throw new NotImplementedException();

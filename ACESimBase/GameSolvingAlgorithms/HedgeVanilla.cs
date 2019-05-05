@@ -1,6 +1,7 @@
 ﻿using ACESimBase.Util;
 using ACESimBase.Util.ArrayProcessing;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
@@ -78,13 +79,16 @@ namespace ACESim
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
             Unroll_IterationResultForPlayersIndices = new int[NumNonChancePlayers][];
             Unroll_IterationResultForPlayers = new HedgeVanillaUtilities[NumNonChancePlayers]; // array items from indices above will be copied here
+            List<int> resultIndices = new List<int>();
             for (byte p = 0; p < NumNonChancePlayers; p++)
             {
                 if (TraceCFR)
                     TabbedText.WriteLine($"Unrolling for Player {p}");
                 Unroll_IterationResultForPlayersIndices[p] = Unroll_HedgeVanillaCFR(ref historyPoint, p, Unroll_InitialPiValuesIndices, Unroll_InitialPiValuesIndices);
+                foreach (int resultIndex in Unroll_IterationResultForPlayersIndices[p])
+                    resultIndices.Add(resultIndex);
             }
-            Unroll_Commands.ConsolidateArrayIndices();
+            Unroll_Commands.ConsolidateArrayIndices(resultIndices);
             Unroll_SizeOfArray = Unroll_Commands.MaxArrayIndex + 1;
         }
 
