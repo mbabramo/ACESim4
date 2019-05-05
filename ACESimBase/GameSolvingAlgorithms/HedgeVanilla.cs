@@ -44,6 +44,8 @@ namespace ACESim
             double[] array = new double[Unroll_SizeOfArray];
             for (int iteration = 1; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
+                HedgeVanillaIteration = iteration;
+                HedgeVanillaIterationInt = iteration;
                 Unroll_ExecuteUnrolledCommands(array, iteration == 1);
                 if (TraceCFR)
                 { // only trace through iteration
@@ -212,6 +214,7 @@ namespace ACESim
             {
                 array[Unrolled_InitialPiValuesIndices[p]] = 1.0;
             }
+            CalculateDiscountingAdjustments();
             array[Unrolled_AverageStrategyAdjustmentIndex] = AverageStrategyAdjustment;
         }
 
@@ -270,7 +273,7 @@ namespace ACESim
             byte playerMakingDecision = informationSet.PlayerIndex;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
             int[] actionProbabilities = Unrolled_GetInformationSetIndex_HedgeProbabilities_All(informationSet.InformationSetNumber, numPossibleActions);
-            int[] expectedValueOfAction = new int[numPossibleActions];
+            int[] expectedValueOfAction = Unrolled_Commands.NewZeroArray(numPossibleActions);
             int expectedValue = Unrolled_Commands.NewZero();
             int[] result = Unrolled_Commands.NewZeroArray(3);
             for (byte action = 1; action <= numPossibleActions; action++)
@@ -338,7 +341,7 @@ namespace ACESim
                     int cumExpectedValueCopy = Unrolled_Commands.CopyToNew(expectedValue);
                     TabbedText.Tabs--;
                     TabbedText.WriteLine(
-                        $"... action {action} expected value ARRAY{expectedValueOfActionCopy} best response expected value ARRAY{bestResponseExpectedValueCopy} cum expected value ARRAY{cumExpectedValueCopy}{(action == numPossibleActions ? "*" : "")}");
+                        $"... action {action} expected value ARRAY{expectedValueOfActionCopy} best response expected value ARRAY{bestResponseExpectedValueCopy} cum expected value ARRAY{cumExpectedValueCopy}{(action == numPossibleActions && IncludeAsteriskForBestResponseInTrace ? "*" : "")}");
                 }
             }
             if (playerMakingDecision == playerBeingOptimized)
@@ -370,15 +373,16 @@ namespace ACESim
                     Unrolled_Commands.Increment(cumulativeStrategy, contributionToAverageStrategy, true);
                     if (TraceCFR)
                     {
+                        int piCopy = Unrolled_Commands.CopyToNew(pi);
                         int piValuesZeroCopy = Unrolled_Commands.CopyToNew(piValues[0]);
                         int piValuesOneCopy = Unrolled_Commands.CopyToNew(piValues[1]);
                         int regretCopy = Unrolled_Commands.CopyToNew(regret);
                         int inversePiCopy = Unrolled_Commands.CopyToNew(inversePi);
                         int contributionToAverageStrategyCopy = Unrolled_Commands.CopyToNew(contributionToAverageStrategy);
                         int cumulativeStrategyCopy = Unrolled_Commands.CopyToNew(cumulativeStrategy);
-                        TabbedText.WriteLine($"PiValues ARRAY{piValuesZeroCopy} ARRAY{piValuesOneCopy}");
+                        TabbedText.WriteLine($"PiValues ARRAY{piValuesZeroCopy} ARRAY{piValuesOneCopy} pi for optimized ARRAY{piCopy} AvgStrategyAdjustment ARRAY{Unrolled_AverageStrategyAdjustmentIndex}");
                         TabbedText.WriteLine(
-                            $"Regrets: Action {action} regret ARRAY{regretCopy} inversePi ARRAY{inversePiCopy} avg_strat_incrememnt ARRAY{contributionToAverageStrategyCopy} cum_strategy ARRAY{cumulativeStrategyCopy}");
+                            $"Regrets: Action {action} probability ARRAY{actionProbabilities[action - 1]} regret ARRAY{regretCopy} inversePi ARRAY{inversePiCopy} avg_strat_incrememnt ARRAY{contributionToAverageStrategyCopy} cum_strategy ARRAY{cumulativeStrategyCopy}");
                     }
                 }
             }
@@ -515,12 +519,7 @@ namespace ACESim
         {
             HedgeVanillaIteration = iteration;
             HedgeVanillaIterationInt = iteration;
-
-            double positivePower = Math.Pow(HedgeVanillaIteration, EvolutionSettings.Discounting_Alpha);
-            double negativePower = Math.Pow(HedgeVanillaIteration, EvolutionSettings.Discounting_Beta);
-            PositiveRegretsAdjustment = positivePower / (positivePower + 1.0);
-            NegativeRegretsAdjustment = negativePower / (negativePower + 1.0);
-            AverageStrategyAdjustment = Math.Pow(HedgeVanillaIteration / (HedgeVanillaIteration), EvolutionSettings.Discounting_Gamma);
+            CalculateDiscountingAdjustments();
 
             string reportString = null;
             double[] lastUtilities = new double[NumNonChancePlayers];
@@ -551,6 +550,15 @@ namespace ACESim
             return reportString;
         }
 
+        private unsafe void CalculateDiscountingAdjustments()
+        {
+            double positivePower = Math.Pow(HedgeVanillaIteration, EvolutionSettings.Discounting_Alpha);
+            double negativePower = Math.Pow(HedgeVanillaIteration, EvolutionSettings.Discounting_Beta);
+            PositiveRegretsAdjustment = positivePower / (positivePower + 1.0);
+            NegativeRegretsAdjustment = negativePower / (negativePower + 1.0);
+            AverageStrategyAdjustment = Math.Pow(HedgeVanillaIteration / (HedgeVanillaIteration), EvolutionSettings.Discounting_Gamma);
+        }
+
         /// <summary>
         /// Performs an iteration of vanilla counterfactual regret minimization.
         /// </summary>
@@ -576,6 +584,8 @@ namespace ACESim
             else
                 return HedgeVanillaCFR_DecisionNode(ref historyPoint, playerBeingOptimized, piValues, avgStratPiValues);
         }
+
+        bool IncludeAsteriskForBestResponseInTrace = false;
 
         private unsafe HedgeVanillaUtilities HedgeVanillaCFR_DecisionNode(ref HistoryPoint historyPoint, byte playerBeingOptimized,
             double* piValues, double* avgStratPiValues)
@@ -650,7 +660,7 @@ namespace ACESim
                 {
                     TabbedText.Tabs--;
                     TabbedText.WriteLine(
-                        $"... action {action}{(informationSet.LastBestResponseAction == action ? "*" : "")} expected value {expectedValueOfAction[action - 1]} best response expected value {result.BestResponseToAverageStrategy} cum expected value {expectedValue}{(action == numPossibleActions ? "*" : "")}");
+                        $"... action {action}{(informationSet.LastBestResponseAction == action && IncludeAsteriskForBestResponseInTrace ? "*" : "")} expected value {expectedValueOfAction[action - 1]} best response expected value {result.BestResponseToAverageStrategy} cum expected value {expectedValue}{(action == numPossibleActions && IncludeAsteriskForBestResponseInTrace ? "*" : "")}");
                 }
             }
             if (playerMakingDecision == playerBeingOptimized)
@@ -675,10 +685,10 @@ namespace ACESim
                         informationSet.IncrementCumulativeStrategy(action, contributionToAverageStrategy);
                     if (TraceCFR)
                     {
-                        TabbedText.WriteLine($"PiValues {piValues[0]} {piValues[1]}");
+                        TabbedText.WriteLine($"PiValues {piValues[0]} {piValues[1]} pi for optimized {pi}");
                         //TabbedText.WriteLine($"Regrets: Action {action} regret {regret} prob-adjust {inversePi * regret} new regret {informationSet.GetCumulativeRegret(action)} strategy inc {pi * actionProbabilities[action - 1]} new cum strategy {informationSet.GetCumulativeStrategy(action)}");
                         TabbedText.WriteLine(
-                            $"Regrets: Action {action} regret {regret} inversePi {inversePi} avg_strat_incrememnt {contributionToAverageStrategy} cum_strategy {informationSet.GetCumulativeStrategy(action)}");
+                            $"Regrets: Action {action} probability {actionProbabilities[action - 1]} regret {regret} inversePi {inversePi} avg_strat_incrememnt {contributionToAverageStrategy} cum_strategy {informationSet.GetCumulativeStrategy(action)}");
                     }
                 }
             }
