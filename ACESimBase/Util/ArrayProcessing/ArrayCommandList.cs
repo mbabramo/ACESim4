@@ -8,6 +8,8 @@ namespace ACESimBase.Util.ArrayProcessing
 {
     public class ArrayCommandList
     {
+        public const bool UseInterlockingWhereRequested = true; // can disable interlocking if we know this won't be run in parallel
+
         public ArrayCommand[] UnderlyingCommands;
         public int NextCommandIndex;
         public int NextArrayIndex;
@@ -86,7 +88,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void MultiplyBy(int index, int indexOfMultiplier, bool interlocked)
         {
-            AddCommand(new ArrayCommand(ArrayCommandType.MultiplyBy, index, indexOfMultiplier));
+            AddCommand(new ArrayCommand(interlocked && UseInterlockingWhereRequested ? ArrayCommandType.MultiplyByInterlocked : ArrayCommandType.MultiplyBy, index, indexOfMultiplier));
         }
 
         public void IncrementArrayBy(int[] indices, int indexOfIncrement, bool interlocked)
@@ -103,7 +105,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void Increment(int index, int indexOfIncrement, bool interlocked)
         {
-            AddCommand(new ArrayCommand(ArrayCommandType.IncrementBy, index, indexOfIncrement));
+            AddCommand(new ArrayCommand(interlocked && UseInterlockingWhereRequested ? ArrayCommandType.IncrementByInterlocked : ArrayCommandType.IncrementBy, index, indexOfIncrement));
         }
 
         public void IncrementByProduct(int index, int indexOfIncrementProduct1, int indexOfIncrementProduct2, bool interlocked)
@@ -128,7 +130,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void Decrement(int index, int indexOfDecrement, bool interlocked)
         {
-            AddCommand(new ArrayCommand(ArrayCommandType.DecrementBy, index, indexOfDecrement));
+            AddCommand(new ArrayCommand(interlocked && UseInterlockingWhereRequested ? ArrayCommandType.DecrementByInterlocked : ArrayCommandType.DecrementBy, index, indexOfDecrement));
         }
 
         public void DecrementByProduct(int index, int indexOfDecrementProduct1, int indexOfDecrementProduct2, bool interlocked)
