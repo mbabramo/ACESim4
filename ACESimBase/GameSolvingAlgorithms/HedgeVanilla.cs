@@ -30,7 +30,7 @@ namespace ACESim
 
         // We can achieve considerable improvements in performance by unrolling the algorithm. Instead of traversing the tree, we simply have a series of simple commands that can be processed on an array. The challenge is that we need to create this series of commands. This section prepares for the copying of data between information sets and the array. We can compare the outcomes of the regular algorithm and the unrolled version (which should always be equal) by using TraceCFR = true.
 
-        private ArrayCommandList Unrolled_Commands;
+        private ArrayCommandList Unroll_Commands;
         private int Unroll_SizeOfArray;
 
         public unsafe string Unroll_SolveHedgeVanillaCFR()
@@ -63,22 +63,22 @@ namespace ACESim
         {
             const int max_num_commands = 50_000_000;
             Unroll_InitializeInitialArrayIndices();
-            Unrolled_Commands = new ArrayCommandList(max_num_commands, null, Unrolled_InitialArrayIndex);
+            Unroll_Commands = new ArrayCommandList(max_num_commands, null, Unroll_InitialArrayIndex);
             ActionStrategy = ActionStrategies.NormalizedHedge;
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
             for (byte p = 0; p < NumNonChancePlayers; p++)
             {
                 if (TraceCFR)
                     TabbedText.WriteLine($"Unrolling for Player {p}");
-                Unroll_HedgeVanillaCFR(ref historyPoint, p, Unrolled_InitialPiValuesIndices, Unrolled_InitialPiValuesIndices);
+                Unroll_HedgeVanillaCFR(ref historyPoint, p, Unroll_InitialPiValuesIndices, Unroll_InitialPiValuesIndices);
             }
-            Unroll_SizeOfArray = Unrolled_Commands.MaxArrayIndex + 1;
+            Unroll_SizeOfArray = Unroll_Commands.MaxArrayIndex + 1;
         }
 
         private void Unroll_ExecuteUnrolledCommands(double[] array, bool firstExecution)
         {
             Unroll_CopyInformationSetsToArray(array, firstExecution);
-            Unrolled_Commands.ExecuteAll(array);
+            Unroll_Commands.ExecuteAll(array);
             Unroll_CopyArrayToInformationSets(array);
         }
 
@@ -93,28 +93,28 @@ namespace ACESim
         private const int Unroll_InformationSetPerActionOrder_CumulativeStrategy = 5;
 
 
-        private int[] Unrolled_InformationSetsIndices;
-        private int[] Unrolled_ChanceNodesIndices;
-        private int[] Unrolled_FinalUtilitiesNodesIndices;
-        private int[] Unrolled_InitialPiValuesIndices = null;
-        private int Unrolled_AverageStrategyAdjustmentIndex = -1;
-        private int Unrolled_InitialArrayIndex = -1;
+        private int[] Unroll_InformationSetsIndices;
+        private int[] Unroll_ChanceNodesIndices;
+        private int[] Unroll_FinalUtilitiesNodesIndices;
+        private int[] Unroll_InitialPiValuesIndices = null;
+        private int Unroll_AverageStrategyAdjustmentIndex = -1;
+        private int Unroll_InitialArrayIndex = -1;
 
         // The following indices correspond to the order in HedgeVanillaUtilities
         private const int Unroll_Result_HedgeVsHedgeIndex = 0;
         private const int Unroll_Result_AverageStrategyIndex = 1;
         private const int Unroll_Result_BestResponseIndex = 2;
 
-        private int Unrolled_GetInformationSetIndex_LastBestResponse(int informationSetNumber, byte numPossibleActions) => Unrolled_InformationSetsIndices[informationSetNumber] + (Unroll_NumPiecesInfoPerInformationSetAction * numPossibleActions);
+        private int Unroll_GetInformationSetIndex_LastBestResponse(int informationSetNumber, byte numPossibleActions) => Unroll_InformationSetsIndices[informationSetNumber] + (Unroll_NumPiecesInfoPerInformationSetAction * numPossibleActions);
 
-        private int Unrolled_GetInformationSetIndex_AverageStrategy(int informationSetNumber, byte action) => Unrolled_InformationSetsIndices[informationSetNumber] + (Unroll_NumPiecesInfoPerInformationSetAction * (action - 1)) + Unroll_InformationSetPerActionOrder_AverageStrategy;
+        private int Unroll_GetInformationSetIndex_AverageStrategy(int informationSetNumber, byte action) => Unroll_InformationSetsIndices[informationSetNumber] + (Unroll_NumPiecesInfoPerInformationSetAction * (action - 1)) + Unroll_InformationSetPerActionOrder_AverageStrategy;
 
-        private int Unrolled_GetInformationSetIndex_HedgeProbability(int informationSetNumber, byte action) => Unrolled_InformationSetsIndices[informationSetNumber] + (Unroll_NumPiecesInfoPerInformationSetAction * (action - 1)) + Unroll_InformationSetPerActionOrder_HedgeProbability;
+        private int Unroll_GetInformationSetIndex_HedgeProbability(int informationSetNumber, byte action) => Unroll_InformationSetsIndices[informationSetNumber] + (Unroll_NumPiecesInfoPerInformationSetAction * (action - 1)) + Unroll_InformationSetPerActionOrder_HedgeProbability;
 
-        private int[] Unrolled_GetInformationSetIndex_HedgeProbabilities_All(int informationSetNumber, byte numPossibleActions)
+        private int[] Unroll_GetInformationSetIndex_HedgeProbabilities_All(int informationSetNumber, byte numPossibleActions)
         {
             int[] probabilities = new int[numPossibleActions];
-            int initialIndex = Unrolled_InformationSetsIndices[informationSetNumber];
+            int initialIndex = Unroll_InformationSetsIndices[informationSetNumber];
             for (int action = 1; action <= numPossibleActions; action++)
             {
                 probabilities[action - 1] = initialIndex + (Unroll_NumPiecesInfoPerInformationSetAction * (action - 1)) + Unroll_InformationSetPerActionOrder_HedgeProbability;
@@ -122,51 +122,51 @@ namespace ACESim
             return probabilities;
         }
 
-        private int Unrolled_GetInformationSetIndex_LastRegret(int informationSetNumber, byte action) => Unrolled_InformationSetsIndices[informationSetNumber] + (Unroll_NumPiecesInfoPerInformationSetAction * (action - 1)) + Unroll_InformationSetPerActionOrder_LastRegret;
+        private int Unroll_GetInformationSetIndex_LastRegret(int informationSetNumber, byte action) => Unroll_InformationSetsIndices[informationSetNumber] + (Unroll_NumPiecesInfoPerInformationSetAction * (action - 1)) + Unroll_InformationSetPerActionOrder_LastRegret;
 
-        private int Unrolled_GetInformationSetIndex_BestResponseNumerator(int informationSetNumber, byte action) => Unrolled_InformationSetsIndices[informationSetNumber] + (Unroll_NumPiecesInfoPerInformationSetAction * (action - 1)) + Unroll_InformationSetPerActionOrder_BestResponseNumerator;
+        private int Unroll_GetInformationSetIndex_BestResponseNumerator(int informationSetNumber, byte action) => Unroll_InformationSetsIndices[informationSetNumber] + (Unroll_NumPiecesInfoPerInformationSetAction * (action - 1)) + Unroll_InformationSetPerActionOrder_BestResponseNumerator;
 
-        private int Unrolled_GetInformationSetIndex_BestResponseDenominator(int informationSetNumber, byte action) => Unrolled_InformationSetsIndices[informationSetNumber] + (Unroll_NumPiecesInfoPerInformationSetAction * (action - 1)) + Unroll_InformationSetPerActionOrder_BestResponseDenominator;
-        private int Unrolled_GetInformationSetIndex_CumulativeStrategy(int informationSetNumber, byte action) => Unrolled_InformationSetsIndices[informationSetNumber] + (Unroll_NumPiecesInfoPerInformationSetAction * (action - 1)) + Unroll_InformationSetPerActionOrder_CumulativeStrategy;
+        private int Unroll_GetInformationSetIndex_BestResponseDenominator(int informationSetNumber, byte action) => Unroll_InformationSetsIndices[informationSetNumber] + (Unroll_NumPiecesInfoPerInformationSetAction * (action - 1)) + Unroll_InformationSetPerActionOrder_BestResponseDenominator;
+        private int Unroll_GetInformationSetIndex_CumulativeStrategy(int informationSetNumber, byte action) => Unroll_InformationSetsIndices[informationSetNumber] + (Unroll_NumPiecesInfoPerInformationSetAction * (action - 1)) + Unroll_InformationSetPerActionOrder_CumulativeStrategy;
 
-        private int Unrolled_GetChanceNodeIndex(int chanceNodeNumber) => Unrolled_ChanceNodesIndices[chanceNodeNumber];
-        private int Unrolled_GetChanceNodeIndex_ProbabilityForAction(int chanceNodeNumber, byte action) => Unrolled_ChanceNodesIndices[chanceNodeNumber] + (byte) (action - 1);
-        private int[] Unrolled_GetChanceNodeIndices(int chanceNodeNumber, byte numPossibleActions)
+        private int Unroll_GetChanceNodeIndex(int chanceNodeNumber) => Unroll_ChanceNodesIndices[chanceNodeNumber];
+        private int Unroll_GetChanceNodeIndex_ProbabilityForAction(int chanceNodeNumber, byte action) => Unroll_ChanceNodesIndices[chanceNodeNumber] + (byte) (action - 1);
+        private int[] Unroll_GetChanceNodeIndices(int chanceNodeNumber, byte numPossibleActions)
         {
-            int firstIndex = Unrolled_GetChanceNodeIndex(chanceNodeNumber);
+            int firstIndex = Unroll_GetChanceNodeIndex(chanceNodeNumber);
             return Enumerable.Range(0, numPossibleActions).Select(x => firstIndex + x).ToArray();
         }
-        private int Unrolled_GetFinalUtilitiesNodesIndex(int finalUtilitiesNodeNumber, byte playerBeingOptimized) => Unrolled_FinalUtilitiesNodesIndices[finalUtilitiesNodeNumber] + playerBeingOptimized;
+        private int Unroll_GetFinalUtilitiesNodesIndex(int finalUtilitiesNodeNumber, byte playerBeingOptimized) => Unroll_FinalUtilitiesNodesIndices[finalUtilitiesNodeNumber] + playerBeingOptimized;
 
         private void Unroll_InitializeInitialArrayIndices()
         {
             int index = 1; // skip index 0 because we want to be able to identify references to index 0 as errors
-            Unrolled_ChanceNodesIndices = new int[ChanceNodes.Count];
+            Unroll_ChanceNodesIndices = new int[ChanceNodes.Count];
             for (int i = 0; i < ChanceNodes.Count; i++)
             {
-                Unrolled_ChanceNodesIndices[i] = index;
+                Unroll_ChanceNodesIndices[i] = index;
                 int numItems = ChanceNodes[i].Decision.NumPossibleActions;
                 index += numItems;
             }
-            Unrolled_FinalUtilitiesNodesIndices = new int[FinalUtilitiesNodes.Count];
+            Unroll_FinalUtilitiesNodesIndices = new int[FinalUtilitiesNodes.Count];
             for (int i = 0; i < FinalUtilitiesNodes.Count; i++)
             {
-                Unrolled_FinalUtilitiesNodesIndices[i] = index;
+                Unroll_FinalUtilitiesNodesIndices[i] = index;
                 int numItems = FinalUtilitiesNodes[i].Utilities.Length;
                 index += numItems;
             }
-            Unrolled_InformationSetsIndices = new int[InformationSets.Count];
+            Unroll_InformationSetsIndices = new int[InformationSets.Count];
             for (int i = 0; i < InformationSets.Count; i++)
             {
-                Unrolled_InformationSetsIndices[i] = index;
+                Unroll_InformationSetsIndices[i] = index;
                 int numItems = Unroll_NumPiecesInfoPerInformationSetAction * InformationSets[i].NumPossibleActions + 1; // the plus 1 is for the last best response
                 index += numItems;
             }
-            Unrolled_InitialPiValuesIndices = new int[NumNonChancePlayers];
+            Unroll_InitialPiValuesIndices = new int[NumNonChancePlayers];
             for (int p = 0; p < NumNonChancePlayers; p++)
-                Unrolled_InitialPiValuesIndices[p] = index++;
-            Unrolled_AverageStrategyAdjustmentIndex = index++;
-            Unrolled_InitialArrayIndex = index;
+                Unroll_InitialPiValuesIndices[p] = index++;
+            Unroll_AverageStrategyAdjustmentIndex = index++;
+            Unroll_InitialArrayIndex = index;
         }
 
         private void Unroll_CopyInformationSetsToArray(double[] array, bool copyChanceAndFinalUtilitiesNodes)
@@ -176,7 +176,7 @@ namespace ACESim
                 Parallel.For(0, ChanceNodes.Count, x =>
                 {
                     var chanceNode = ChanceNodes[x];
-                    int initialIndex = Unrolled_GetChanceNodeIndex(chanceNode.ChanceNodeNumber);
+                    int initialIndex = Unroll_GetChanceNodeIndex(chanceNode.ChanceNodeNumber);
                     for (byte a = 1; a <= chanceNode.Decision.NumPossibleActions; a++)
                     {
                         array[initialIndex++] = chanceNode.GetActionProbability(a);
@@ -185,7 +185,7 @@ namespace ACESim
                 Parallel.For(0, FinalUtilitiesNodes.Count, x =>
                 {
                     var finalUtilitiesNode = FinalUtilitiesNodes[x];
-                    int initialIndex = Unrolled_GetFinalUtilitiesNodesIndex(finalUtilitiesNode.FinalUtilitiesNodeNumber, 0);
+                    int initialIndex = Unroll_GetFinalUtilitiesNodesIndex(finalUtilitiesNode.FinalUtilitiesNodeNumber, 0);
                     for (byte p = 0; p < finalUtilitiesNode.Utilities.Length; p++)
                     {
                         array[initialIndex++] = finalUtilitiesNode.Utilities[p];
@@ -195,7 +195,7 @@ namespace ACESim
             Parallel.For(0, InformationSets.Count, x =>
             {
                 var infoSet = InformationSets[x];
-                int initialIndex = Unrolled_InformationSetsIndices[infoSet.InformationSetNumber];
+                int initialIndex = Unroll_InformationSetsIndices[infoSet.InformationSetNumber];
                 for (byte action = 1; action <= infoSet.NumPossibleActions; action++)
                 {
                     array[initialIndex++] = infoSet.GetNormalizedHedgeAverageStrategy(action);
@@ -209,10 +209,10 @@ namespace ACESim
             });
             for (byte p = 0; p < NumNonChancePlayers; p++)
             {
-                array[Unrolled_InitialPiValuesIndices[p]] = 1.0;
+                array[Unroll_InitialPiValuesIndices[p]] = 1.0;
             }
             CalculateDiscountingAdjustments();
-            array[Unrolled_AverageStrategyAdjustmentIndex] = AverageStrategyAdjustment;
+            array[Unroll_AverageStrategyAdjustmentIndex] = AverageStrategyAdjustment;
         }
 
         private void Unroll_CopyArrayToInformationSets(double[] array)
@@ -222,9 +222,9 @@ namespace ACESim
                 var infoSet = InformationSets[x];
                 for (byte action = 1; action <= infoSet.NumPossibleActions; action++)
                 {
-                    int index = Unrolled_GetInformationSetIndex_LastRegret(infoSet.InformationSetNumber, action);
+                    int index = Unroll_GetInformationSetIndex_LastRegret(infoSet.InformationSetNumber, action);
                     infoSet.NormalizedHedgeIncrementLastRegret(action, array[index]);
-                    index = Unrolled_GetInformationSetIndex_CumulativeStrategy(infoSet.InformationSetNumber, action);
+                    index = Unroll_GetInformationSetIndex_CumulativeStrategy(infoSet.InformationSetNumber, action);
                     infoSet.IncrementCumulativeStrategy(action, array[index]);
                 }
             });
@@ -242,11 +242,11 @@ namespace ACESim
             {
                 FinalUtilities finalUtilities = (FinalUtilities)gameStateForCurrentPlayer;
                 // Note: An alternative approach would be to add the utility value found here to the unrolled commands, instead of looking it up in the array. But this approach makes it possible to change some game parameters and thus the final utilities without regenerating commands.
-                int finalUtilIndex = Unrolled_GetFinalUtilitiesNodesIndex(finalUtilities.FinalUtilitiesNodeNumber, playerBeingOptimized);
+                int finalUtilIndex = Unroll_GetFinalUtilitiesNodesIndex(finalUtilities.FinalUtilitiesNodeNumber, playerBeingOptimized);
                 // Note: We must copy this so that we don't change the final utilities themselves.
-                int finalUtilIndexCopy1 = Unrolled_Commands.CopyToNew(finalUtilIndex);
-                int finalUtilIndexCopy2 = Unrolled_Commands.CopyToNew(finalUtilIndex);
-                int finalUtilIndexCopy3 = Unrolled_Commands.CopyToNew(finalUtilIndex);
+                int finalUtilIndexCopy1 = Unroll_Commands.CopyToNew(finalUtilIndex);
+                int finalUtilIndexCopy2 = Unroll_Commands.CopyToNew(finalUtilIndex);
+                int finalUtilIndexCopy3 = Unroll_Commands.CopyToNew(finalUtilIndex);
                 return new int[] { finalUtilIndexCopy1, finalUtilIndexCopy2, finalUtilIndexCopy3 };
             }
             else if (gameStateType == GameStateTypeEnum.Chance)
@@ -269,46 +269,46 @@ namespace ACESim
             byte decisionNum = informationSet.DecisionIndex;
             byte playerMakingDecision = informationSet.PlayerIndex;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
-            int[] actionProbabilities = Unrolled_GetInformationSetIndex_HedgeProbabilities_All(informationSet.InformationSetNumber, numPossibleActions);
-            int[] expectedValueOfAction = Unrolled_Commands.NewZeroArray(numPossibleActions);
-            int expectedValue = Unrolled_Commands.NewZero();
-            int[] result = Unrolled_Commands.NewZeroArray(3);
+            int[] actionProbabilities = Unroll_GetInformationSetIndex_HedgeProbabilities_All(informationSet.InformationSetNumber, numPossibleActions);
+            int[] expectedValueOfAction = Unroll_Commands.NewZeroArray(numPossibleActions);
+            int expectedValue = Unroll_Commands.NewZero();
+            int[] result = Unroll_Commands.NewZeroArray(3);
             for (byte action = 1; action <= numPossibleActions; action++)
             {
-                int probabilityOfAction = Unrolled_GetInformationSetIndex_HedgeProbability(informationSet.InformationSetNumber, action);
+                int probabilityOfAction = Unroll_GetInformationSetIndex_HedgeProbability(informationSet.InformationSetNumber, action);
                 if (EvolutionSettings.PruneOnOpponentStrategy)
                     throw new NotImplementedException();
                 //if (EvolutionSettings.PruneOnOpponentStrategy && playerBeingOptimized != playerMakingDecision && probabilityOfAction < EvolutionSettings.PruneOnOpponentStrategyThreshold)
                 //    continue;
-                int probabilityOfActionAvgStrat = Unrolled_GetInformationSetIndex_AverageStrategy(informationSet.InformationSetNumber, action);
+                int probabilityOfActionAvgStrat = Unroll_GetInformationSetIndex_AverageStrategy(informationSet.InformationSetNumber, action);
                 int[] nextPiValues = Unroll_GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false); // reduce probability associated with player being optimized, without changing probabilities for other players
                 int[] nextAvgStratPiValues = Unroll_GetNextPiValues(avgStratPiValues, playerMakingDecision, probabilityOfActionAvgStrat, false);
                 if (TraceCFR)
                 {
-                    int probabilityOfActionCopy = Unrolled_Commands.CopyToNew(probabilityOfAction);
+                    int probabilityOfActionCopy = Unroll_Commands.CopyToNew(probabilityOfAction);
                     TabbedText.WriteLine(
                         $"code {informationSet.DecisionByteCode} ({GameDefinition.DecisionsExecutionOrder.FirstOrDefault(x => x.DecisionByteCode == informationSet.DecisionByteCode)?.Name}) optimizing player {playerBeingOptimized}  {(playerMakingDecision == playerBeingOptimized ? "own decision" : "opp decision")} action {action} probability ARRAY{probabilityOfActionCopy} ...");
                     TabbedText.Tabs++;
                 }
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                 int[] innerResult = Unroll_HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues);
-                Unrolled_Commands.CopyToExisting(expectedValueOfAction[action - 1], innerResult[Unroll_Result_HedgeVsHedgeIndex]);
+                Unroll_Commands.CopyToExisting(expectedValueOfAction[action - 1], innerResult[Unroll_Result_HedgeVsHedgeIndex]);
                 if (playerMakingDecision == playerBeingOptimized)
                 {
-                    int lastBestResponseActionIndex = Unrolled_GetInformationSetIndex_LastBestResponse(informationSet.InformationSetNumber, (byte) informationSet.NumPossibleActions);
-                    Unrolled_Commands.InsertNotEqualsValueCommand(lastBestResponseActionIndex, (int)action);
-                    result[Unroll_Result_BestResponseIndex] = Unrolled_Commands.CopyToNew(result[Unroll_Result_BestResponseIndex]); // we copy this here so that we have a new value whether we execute the inner loop or not
-                    int goToCommandIndex = Unrolled_Commands.InsertBlankCommand();
+                    int lastBestResponseActionIndex = Unroll_GetInformationSetIndex_LastBestResponse(informationSet.InformationSetNumber, (byte) informationSet.NumPossibleActions);
+                    Unroll_Commands.InsertNotEqualsValueCommand(lastBestResponseActionIndex, (int)action);
+                    result[Unroll_Result_BestResponseIndex] = Unroll_Commands.CopyToNew(result[Unroll_Result_BestResponseIndex]); // we copy this here so that we have a new value whether we execute the inner loop or not
+                    int goToCommandIndex = Unroll_Commands.InsertBlankCommand();
                     // the following is executed only if lastBestResponseActionIndex == action
-                        int bestResponseNumerator = Unrolled_GetInformationSetIndex_BestResponseNumerator(informationSet.InformationSetNumber, action);
-                        int bestResponseDenominator = Unrolled_GetInformationSetIndex_BestResponseNumerator(informationSet.InformationSetNumber, action);
-                        Unrolled_Commands.IncrementByProduct(bestResponseNumerator, inversePiAvgStrat, innerResult[Unroll_Result_BestResponseIndex], true);
-                        Unrolled_Commands.Increment(bestResponseNumerator, inversePiAvgStrat, true);
-                        Unrolled_Commands.CopyToExisting(result[Unroll_Result_BestResponseIndex], innerResult[Unroll_Result_BestResponseIndex]);
+                        int bestResponseNumerator = Unroll_GetInformationSetIndex_BestResponseNumerator(informationSet.InformationSetNumber, action);
+                        int bestResponseDenominator = Unroll_GetInformationSetIndex_BestResponseNumerator(informationSet.InformationSetNumber, action);
+                        Unroll_Commands.IncrementByProduct(bestResponseNumerator, inversePiAvgStrat, innerResult[Unroll_Result_BestResponseIndex], true);
+                        Unroll_Commands.Increment(bestResponseNumerator, inversePiAvgStrat, true);
+                        Unroll_Commands.CopyToExisting(result[Unroll_Result_BestResponseIndex], innerResult[Unroll_Result_BestResponseIndex]);
                     // end of loop
-                    Unrolled_Commands.ReplaceCommandWithGoToCommand(goToCommandIndex, Unrolled_Commands.NextCommandIndex); // completes the go to statement
-                    Unrolled_Commands.IncrementByProduct(result[Unroll_Result_HedgeVsHedgeIndex], probabilityOfAction, innerResult[Unroll_Result_HedgeVsHedgeIndex], false);
-                    Unrolled_Commands.IncrementByProduct(result[Unroll_Result_AverageStrategyIndex], probabilityOfActionAvgStrat, innerResult[Unroll_Result_AverageStrategyIndex], false);
+                    Unroll_Commands.ReplaceCommandWithGoToCommand(goToCommandIndex, Unroll_Commands.NextCommandIndex); // completes the go to statement
+                    Unroll_Commands.IncrementByProduct(result[Unroll_Result_HedgeVsHedgeIndex], probabilityOfAction, innerResult[Unroll_Result_HedgeVsHedgeIndex], false);
+                    Unroll_Commands.IncrementByProduct(result[Unroll_Result_AverageStrategyIndex], probabilityOfActionAvgStrat, innerResult[Unroll_Result_AverageStrategyIndex], false);
                 }
                 else
                 {
@@ -318,9 +318,9 @@ namespace ACESim
                     //    TabbedText.WriteLine(
                     //        $"... BEFORE prob ARRAY{probabilityOfAction} results: ARRAY{result[Unroll_Result_HedgeVsHedgeIndex]} ARRAY{result[Unroll_Result_AverageStrategyIndex]} ARRAY{result[Unroll_Result_BestResponseIndex]} inner:  ARRAY{innerResult[Unroll_Result_HedgeVsHedgeIndex]} ARRAY{innerResult[Unroll_Result_AverageStrategyIndex]} ARRAY{innerResult[Unroll_Result_BestResponseIndex]} ");
                     //}
-                    Unrolled_Commands.IncrementByProduct(result[Unroll_Result_HedgeVsHedgeIndex], probabilityOfAction, innerResult[Unroll_Result_HedgeVsHedgeIndex], false);
-                    Unrolled_Commands.IncrementByProduct(result[Unroll_Result_AverageStrategyIndex], probabilityOfActionAvgStrat, innerResult[Unroll_Result_AverageStrategyIndex], false);
-                    Unrolled_Commands.IncrementByProduct(result[Unroll_Result_BestResponseIndex], probabilityOfActionAvgStrat, innerResult[Unroll_Result_BestResponseIndex], false);
+                    Unroll_Commands.IncrementByProduct(result[Unroll_Result_HedgeVsHedgeIndex], probabilityOfAction, innerResult[Unroll_Result_HedgeVsHedgeIndex], false);
+                    Unroll_Commands.IncrementByProduct(result[Unroll_Result_AverageStrategyIndex], probabilityOfActionAvgStrat, innerResult[Unroll_Result_AverageStrategyIndex], false);
+                    Unroll_Commands.IncrementByProduct(result[Unroll_Result_BestResponseIndex], probabilityOfActionAvgStrat, innerResult[Unroll_Result_BestResponseIndex], false);
 
                     //if (TraceCFR)
                     //{
@@ -329,13 +329,13 @@ namespace ACESim
                     //        $"... AFTER prob ARRAY{probabilityOfAction} results: ARRAY{result[Unroll_Result_HedgeVsHedgeIndex]} ARRAY{result[Unroll_Result_AverageStrategyIndex]} ARRAY{result[Unroll_Result_BestResponseIndex]} ");
                     //}
                 }
-                Unrolled_Commands.IncrementByProduct(expectedValue, probabilityOfAction, expectedValueOfAction[action - 1], false);
+                Unroll_Commands.IncrementByProduct(expectedValue, probabilityOfAction, expectedValueOfAction[action - 1], false);
 
                 if (TraceCFR)
                 {
-                    int expectedValueOfActionCopy = Unrolled_Commands.CopyToNew(expectedValueOfAction[action - 1]);
-                    int bestResponseExpectedValueCopy = Unrolled_Commands.CopyToNew(result[Unroll_Result_BestResponseIndex]);
-                    int cumExpectedValueCopy = Unrolled_Commands.CopyToNew(expectedValue);
+                    int expectedValueOfActionCopy = Unroll_Commands.CopyToNew(expectedValueOfAction[action - 1]);
+                    int bestResponseExpectedValueCopy = Unroll_Commands.CopyToNew(result[Unroll_Result_BestResponseIndex]);
+                    int cumExpectedValueCopy = Unroll_Commands.CopyToNew(expectedValue);
                     TabbedText.Tabs--;
                     TabbedText.WriteLine(
                         $"... action {action} expected value ARRAY{expectedValueOfActionCopy} best response expected value ARRAY{bestResponseExpectedValueCopy} cum expected value ARRAY{cumExpectedValueCopy}{(action == numPossibleActions && IncludeAsteriskForBestResponseInTrace ? "*" : "")}");
@@ -345,38 +345,38 @@ namespace ACESim
             {
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
-                    int pi = Unrolled_Commands.CopyToNew(piValues[playerBeingOptimized]);
-                    int regret = Unrolled_Commands.CopyToNew(expectedValueOfAction[action - 1]);
-                    Unrolled_Commands.Decrement(regret, expectedValue, false);
+                    int pi = Unroll_Commands.CopyToNew(piValues[playerBeingOptimized]);
+                    int regret = Unroll_Commands.CopyToNew(expectedValueOfAction[action - 1]);
+                    Unroll_Commands.Decrement(regret, expectedValue, false);
                     //if (TraceCFR)
                     //{ // DEBUG
-                    //    int piValuesZeroCopy = Unrolled_Commands.CopyToNew(piValues[0]);
-                    //    int piValuesOneCopy = Unrolled_Commands.CopyToNew(piValues[1]);
-                    //    int regretCopy = Unrolled_Commands.CopyToNew(regret);
-                    //    int inversePiCopy = Unrolled_Commands.CopyToNew(inversePi);
-                    //    int exLagCopy = Unrolled_Commands.CopyToNew(expectedValueOfAction[action - 1]);
-                    //    int exCopy = Unrolled_Commands.CopyToNew(expectedValue);
+                    //    int piValuesZeroCopy = Unroll_Commands.CopyToNew(piValues[0]);
+                    //    int piValuesOneCopy = Unroll_Commands.CopyToNew(piValues[1]);
+                    //    int regretCopy = Unroll_Commands.CopyToNew(regret);
+                    //    int inversePiCopy = Unroll_Commands.CopyToNew(inversePi);
+                    //    int exLagCopy = Unroll_Commands.CopyToNew(expectedValueOfAction[action - 1]);
+                    //    int exCopy = Unroll_Commands.CopyToNew(expectedValue);
                     //    TabbedText.WriteLine(
                     //        $"Extra regrets Action {action} regret ARRAY{regretCopy} = ARRAY{exLagCopy} - ARRAY{exCopy} ; inversePi ARRAY{inversePiCopy} avg_strat_incrememnt");
                     //}
-                    int lastRegret = Unrolled_GetInformationSetIndex_LastRegret(informationSet.InformationSetNumber, action);
-                    Unrolled_Commands.IncrementByProduct(lastRegret, inversePi, regret, true);
+                    int lastRegret = Unroll_GetInformationSetIndex_LastRegret(informationSet.InformationSetNumber, action);
+                    Unroll_Commands.IncrementByProduct(lastRegret, inversePi, regret, true);
                     // now contribution to average strategy
-                    int contributionToAverageStrategy = Unrolled_Commands.CopyToNew(pi);
-                    Unrolled_Commands.MultiplyBy(contributionToAverageStrategy, actionProbabilities[action - 1], false);
+                    int contributionToAverageStrategy = Unroll_Commands.CopyToNew(pi);
+                    Unroll_Commands.MultiplyBy(contributionToAverageStrategy, actionProbabilities[action - 1], false);
                     if (EvolutionSettings.UseRegretAndStrategyDiscounting)
-                        Unrolled_Commands.MultiplyBy(contributionToAverageStrategy, Unrolled_AverageStrategyAdjustmentIndex, false);
-                    int cumulativeStrategy = Unrolled_GetInformationSetIndex_CumulativeStrategy(informationSet.InformationSetNumber, action);
-                    Unrolled_Commands.Increment(cumulativeStrategy, contributionToAverageStrategy, true);
+                        Unroll_Commands.MultiplyBy(contributionToAverageStrategy, Unroll_AverageStrategyAdjustmentIndex, false);
+                    int cumulativeStrategy = Unroll_GetInformationSetIndex_CumulativeStrategy(informationSet.InformationSetNumber, action);
+                    Unroll_Commands.Increment(cumulativeStrategy, contributionToAverageStrategy, true);
                     if (TraceCFR)
                     {
-                        int piCopy = Unrolled_Commands.CopyToNew(pi);
-                        int piValuesZeroCopy = Unrolled_Commands.CopyToNew(piValues[0]);
-                        int piValuesOneCopy = Unrolled_Commands.CopyToNew(piValues[1]);
-                        int regretCopy = Unrolled_Commands.CopyToNew(regret);
-                        int inversePiCopy = Unrolled_Commands.CopyToNew(inversePi);
-                        int contributionToAverageStrategyCopy = Unrolled_Commands.CopyToNew(contributionToAverageStrategy);
-                        int cumulativeStrategyCopy = Unrolled_Commands.CopyToNew(cumulativeStrategy);
+                        int piCopy = Unroll_Commands.CopyToNew(pi);
+                        int piValuesZeroCopy = Unroll_Commands.CopyToNew(piValues[0]);
+                        int piValuesOneCopy = Unroll_Commands.CopyToNew(piValues[1]);
+                        int regretCopy = Unroll_Commands.CopyToNew(regret);
+                        int inversePiCopy = Unroll_Commands.CopyToNew(inversePi);
+                        int contributionToAverageStrategyCopy = Unroll_Commands.CopyToNew(contributionToAverageStrategy);
+                        int cumulativeStrategyCopy = Unroll_Commands.CopyToNew(cumulativeStrategy);
                         TabbedText.WriteLine($"PiValues ARRAY{piValuesZeroCopy} ARRAY{piValuesOneCopy} pi for optimized ARRAY{piCopy}");
                         TabbedText.WriteLine(
                             $"Regrets: Action {action} probability ARRAY{actionProbabilities[action - 1]} regret ARRAY{regretCopy} inversePi ARRAY{inversePiCopy} avg_strat_incrememnt ARRAY{contributionToAverageStrategyCopy} cum_strategy ARRAY{cumulativeStrategyCopy}");
@@ -388,7 +388,7 @@ namespace ACESim
 
         private unsafe int[] Unroll_HedgeVanillaCFR_ChanceNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues)
         {
-            int[] result = Unrolled_Commands.NewZeroArray(3); // initialize to zero -- equivalent of HedgeVanillaUtilities
+            int[] result = Unroll_Commands.NewZeroArray(3); // initialize to zero -- equivalent of HedgeVanillaUtilities
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings)gameStateForCurrentPlayer;
             byte numPossibleActions = chanceNodeSettings.Decision.NumPossibleActions;
@@ -402,7 +402,7 @@ namespace ACESim
                 var historyPointCopy2 = historyPointCopy; // Need to do this because we need a separate copy for each thread
                 int[] probabilityAdjustedInnerResult = Unroll_HedgeVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues, avgStratPiValues,
                         chanceNodeSettings, action);
-                Unrolled_Commands.IncrementArrayBy(result, probabilityAdjustedInnerResult, false);
+                Unroll_Commands.IncrementArrayBy(result, probabilityAdjustedInnerResult, false);
             }
 
             return result;
@@ -410,14 +410,14 @@ namespace ACESim
 
         private unsafe int[] Unroll_HedgeVanillaCFR_ChanceNode_NextAction(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, ChanceNodeSettings chanceNodeSettings, byte action)
         {
-            int actionProbability = Unrolled_GetChanceNodeIndex_ProbabilityForAction(chanceNodeSettings.ChanceNodeNumber, action);
+            int actionProbability = Unroll_GetChanceNodeIndex_ProbabilityForAction(chanceNodeSettings.ChanceNodeNumber, action);
             int[] nextPiValues = Unroll_GetNextPiValues(piValues, playerBeingOptimized, actionProbability, true);
             int[] nextAvgStratPiValues = Unroll_GetNextPiValues(avgStratPiValues, playerBeingOptimized, actionProbability, true);
             HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
 
             if (TraceCFR)
             {
-                int actionProbabilityCopy = Unrolled_Commands.CopyToNew(actionProbability);
+                int actionProbabilityCopy = Unroll_Commands.CopyToNew(actionProbability);
                 TabbedText.WriteLine(
                     $"Chance code {chanceNodeSettings.DecisionByteCode} ({GameDefinition.DecisionsExecutionOrder.FirstOrDefault(x => x.DecisionByteCode == chanceNodeSettings.DecisionByteCode).Name}) action {action} probability ARRAY{actionProbabilityCopy} ...");
                 TabbedText.Tabs++;
@@ -427,19 +427,19 @@ namespace ACESim
             if (TraceCFR)
             {
                 // save current hedge result before multiplying
-                int beforeMultipleHedgeCopy = Unrolled_Commands.CopyToNew(result[Unroll_Result_HedgeVsHedgeIndex]);
-                int actionProbabilityCopy = Unrolled_Commands.CopyToNew(actionProbability);
+                int beforeMultipleHedgeCopy = Unroll_Commands.CopyToNew(result[Unroll_Result_HedgeVsHedgeIndex]);
+                int actionProbabilityCopy = Unroll_Commands.CopyToNew(actionProbability);
 
-                Unrolled_Commands.MultiplyArrayBy(result, actionProbability, false);
+                Unroll_Commands.MultiplyArrayBy(result, actionProbability, false);
 
-                int resultHedgeCopy = Unrolled_Commands.CopyToNew(result[Unroll_Result_HedgeVsHedgeIndex]);
+                int resultHedgeCopy = Unroll_Commands.CopyToNew(result[Unroll_Result_HedgeVsHedgeIndex]);
 
                 TabbedText.Tabs--;
                 TabbedText.WriteLine(
                     $"... action {action} value ARRAY{beforeMultipleHedgeCopy} probability ARRAY{actionProbabilityCopy} expected value contribution ARRAY{resultHedgeCopy}");
             }
             else
-                Unrolled_Commands.MultiplyArrayBy(result, actionProbability, false);
+                Unroll_Commands.MultiplyArrayBy(result, actionProbability, false);
 
             return result;
         }
@@ -454,16 +454,16 @@ namespace ACESim
                 if (p == playerIndex)
                 {
                     if (changeOtherPlayers)
-                        nextPiValue = Unrolled_Commands.CopyToNew(currentPiValue);
+                        nextPiValue = Unroll_Commands.CopyToNew(currentPiValue);
                     else
-                        nextPiValue = Unrolled_Commands.MultiplyToNew(currentPiValue, probabilityToMultiplyBy);
+                        nextPiValue = Unroll_Commands.MultiplyToNew(currentPiValue, probabilityToMultiplyBy);
                 }
                 else
                 {
                     if (changeOtherPlayers)
-                        nextPiValue = Unrolled_Commands.MultiplyToNew(currentPiValue, probabilityToMultiplyBy);
+                        nextPiValue = Unroll_Commands.MultiplyToNew(currentPiValue, probabilityToMultiplyBy);
                     else
-                        nextPiValue = Unrolled_Commands.CopyToNew(currentPiValue);
+                        nextPiValue = Unroll_Commands.CopyToNew(currentPiValue);
                 }
                 nextPiValues[p] = nextPiValue;
             }
@@ -473,7 +473,7 @@ namespace ACESim
         private unsafe int Unroll_GetInversePiValue(int[] piValues, byte playerIndex)
         {
             if (NumNonChancePlayers == 2)
-                return Unrolled_Commands.CopyToNew(piValues[(byte)1 - playerIndex]);
+                return Unroll_Commands.CopyToNew(piValues[(byte)1 - playerIndex]);
             bool firstPlayerOtherThanMainFound = false;
             int indexForInversePiValue = -1;
             for (byte p = 0; p < NumNonChancePlayers; p++)
@@ -481,11 +481,11 @@ namespace ACESim
                 {
                     if (firstPlayerOtherThanMainFound)
                     {
-                        Unrolled_Commands.MultiplyBy(indexForInversePiValue, piValues[p], false);
+                        Unroll_Commands.MultiplyBy(indexForInversePiValue, piValues[p], false);
                     }
                     else
                     {
-                        indexForInversePiValue = Unrolled_Commands.CopyToNew(piValues[p]);
+                        indexForInversePiValue = Unroll_Commands.CopyToNew(piValues[p]);
                         firstPlayerOtherThanMainFound = true;
                     }
                 }
