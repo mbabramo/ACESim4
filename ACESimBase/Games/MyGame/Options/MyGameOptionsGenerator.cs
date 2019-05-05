@@ -67,9 +67,9 @@ namespace ACESim
                 PInitialWealth = 1000000,
                 DInitialWealth = 1000000,
                 DamagesToAllege = 100000,
-                NumLitigationQualityPoints = 2,
-                NumSignals = 2,
-                NumOffers = 2,
+                NumLitigationQualityPoints = 4,
+                NumSignals = 4,
+                NumOffers = 4,
                 MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
                 {
                     ProbabilityTrulyLiable_LitigationQuality75 = 0.75,
@@ -87,7 +87,7 @@ namespace ACESim
                 RegretAversion = 0.0,
                 IncludeAgreementToBargainDecisions = false,
                 PerPartyCostsLeadingUpToBargainingRound = 15_000,
-                AllowAbandonAndDefaults = false, // DEBUG
+                AllowAbandonAndDefaults = true, 
                 LoserPays = false,
                 LoserPaysMultiple = 1.0,
                 LoserPaysAfterAbandonment = false,
@@ -97,7 +97,7 @@ namespace ACESim
                     DeltaStartingValue = 0.01,
                     MaxDelta = 0.25
                 },
-                NumPotentialBargainingRounds = 1,
+                NumPotentialBargainingRounds = 2,
                 BargainingRoundRecall = MyGameBargainingRoundRecall.RememberAllBargainingRounds,
                 SubdivideOffers = false,
                 BargainingRoundsSimultaneous = false,
