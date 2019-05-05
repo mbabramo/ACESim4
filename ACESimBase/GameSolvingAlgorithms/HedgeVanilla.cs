@@ -28,13 +28,10 @@ namespace ACESim
 
         #region Unrolled preparation
 
-        // We can achieve considerable improvements in performance by unrolling the algorithm. Instead of traversing the tree, we simply have a series of simple commands that can be processed on an array. The challenge is that we need to create this series fo commands. 
-
+        // We can achieve considerable improvements in performance by unrolling the algorithm. Instead of traversing the tree, we simply have a series of simple commands that can be processed on an array. The challenge is that we need to create this series of commands. This section prepares for the copying of data between information sets and the array. We can compare the outcomes of the regular algorithm and the unrolled version (which should always be equal) by using TraceCFR = true.
 
         private ArrayCommandList Unrolled_Commands;
         private int Unroll_SizeOfArray;
-
-
 
         public unsafe string Unroll_SolveHedgeVanillaCFR()
         {
@@ -351,17 +348,17 @@ namespace ACESim
                     int pi = Unrolled_Commands.CopyToNew(piValues[playerBeingOptimized]);
                     int regret = Unrolled_Commands.CopyToNew(expectedValueOfAction[action - 1]);
                     Unrolled_Commands.Decrement(regret, expectedValue, false);
-                    if (TraceCFR)
-                    { // DEBUG
-                        int piValuesZeroCopy = Unrolled_Commands.CopyToNew(piValues[0]);
-                        int piValuesOneCopy = Unrolled_Commands.CopyToNew(piValues[1]);
-                        int regretCopy = Unrolled_Commands.CopyToNew(regret);
-                        int inversePiCopy = Unrolled_Commands.CopyToNew(inversePi);
-                        int exLagCopy = Unrolled_Commands.CopyToNew(expectedValueOfAction[action - 1]);
-                        int exCopy = Unrolled_Commands.CopyToNew(expectedValue);
-                        TabbedText.WriteLine(
-                            $"Extra regrets Action {action} regret ARRAY{regretCopy} = ARRAY{exLagCopy} - ARRAY{exCopy} ; inversePi ARRAY{inversePiCopy} avg_strat_incrememnt");
-                    }
+                    //if (TraceCFR)
+                    //{ // DEBUG
+                    //    int piValuesZeroCopy = Unrolled_Commands.CopyToNew(piValues[0]);
+                    //    int piValuesOneCopy = Unrolled_Commands.CopyToNew(piValues[1]);
+                    //    int regretCopy = Unrolled_Commands.CopyToNew(regret);
+                    //    int inversePiCopy = Unrolled_Commands.CopyToNew(inversePi);
+                    //    int exLagCopy = Unrolled_Commands.CopyToNew(expectedValueOfAction[action - 1]);
+                    //    int exCopy = Unrolled_Commands.CopyToNew(expectedValue);
+                    //    TabbedText.WriteLine(
+                    //        $"Extra regrets Action {action} regret ARRAY{regretCopy} = ARRAY{exLagCopy} - ARRAY{exCopy} ; inversePi ARRAY{inversePiCopy} avg_strat_incrememnt");
+                    //}
                     int lastRegret = Unrolled_GetInformationSetIndex_LastRegret(informationSet.InformationSetNumber, action);
                     Unrolled_Commands.IncrementByProduct(lastRegret, inversePi, regret, true);
                     // now contribution to average strategy
@@ -380,7 +377,7 @@ namespace ACESim
                         int inversePiCopy = Unrolled_Commands.CopyToNew(inversePi);
                         int contributionToAverageStrategyCopy = Unrolled_Commands.CopyToNew(contributionToAverageStrategy);
                         int cumulativeStrategyCopy = Unrolled_Commands.CopyToNew(cumulativeStrategy);
-                        TabbedText.WriteLine($"PiValues ARRAY{piValuesZeroCopy} ARRAY{piValuesOneCopy} pi for optimized ARRAY{piCopy} AvgStrategyAdjustment ARRAY{Unrolled_AverageStrategyAdjustmentIndex}");
+                        TabbedText.WriteLine($"PiValues ARRAY{piValuesZeroCopy} ARRAY{piValuesOneCopy} pi for optimized ARRAY{piCopy}");
                         TabbedText.WriteLine(
                             $"Regrets: Action {action} probability ARRAY{actionProbabilities[action - 1]} regret ARRAY{regretCopy} inversePi ARRAY{inversePiCopy} avg_strat_incrememnt ARRAY{contributionToAverageStrategyCopy} cum_strategy ARRAY{cumulativeStrategyCopy}");
                     }
@@ -669,11 +666,11 @@ namespace ACESim
                 {
                     double pi = piValues[playerBeingOptimized];
                     var regret = (expectedValueOfAction[action - 1] - expectedValue);
-                    if (TraceCFR)
-                    { // DEBUG
-                        TabbedText.WriteLine(
-                            $"Extra regrets Action {action} regret {regret} = {expectedValueOfAction[action - 1]} - {expectedValue} ; inversePi {inversePi} avg_strat_incrememnt");
-                    }
+                    //if (TraceCFR)
+                    //{ // DEBUG
+                    //    TabbedText.WriteLine(
+                    //        $"Extra regrets Action {action} regret {regret} = {expectedValueOfAction[action - 1]} - {expectedValue} ; inversePi {inversePi} avg_strat_incrememnt");
+                    //}
                     // NOTE: With normalized hedge, we do NOT discount regrets, because we're normalizing regrets at the end of each iteration.
                     informationSet.NormalizedHedgeIncrementLastRegret(action, inversePi * regret);
                     double contributionToAverageStrategy = pi * actionProbabilities[action - 1];
