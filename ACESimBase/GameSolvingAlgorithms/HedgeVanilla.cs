@@ -293,9 +293,9 @@ namespace ACESim
         {
             Unroll_Commands.IncrementDepth();
 
-            int inversePi = Unroll_Commands.NewZero();
+            int inversePi = Unroll_Commands.NewUninitialized();
             Unroll_GetInversePiValue(piValues, playerBeingOptimized, inversePi);
-            int inversePiAvgStrat = Unroll_Commands.NewZero();
+            int inversePiAvgStrat = Unroll_Commands.NewUninitialized();
             Unroll_GetInversePiValue(avgStratPiValues, playerBeingOptimized, inversePiAvgStrat);
             //var actionsToHere = historyPoint.GetActionsToHere(Navigation);
             //var historyPointString = historyPoint.ToString();
@@ -306,8 +306,8 @@ namespace ACESim
             byte playerMakingDecision = informationSet.PlayerIndex;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
             int[] actionProbabilities = Unroll_GetInformationSetIndex_HedgeProbabilities_All(informationSet.InformationSetNumber, numPossibleActions);
-            int[] expectedValueOfAction = Unroll_Commands.NewZeroArray(numPossibleActions);
-            int expectedValue = Unroll_Commands.NewZero();
+            int[] expectedValueOfAction = Unroll_Commands.NewUninitializedArray(numPossibleActions);
+            int expectedValue = Unroll_Commands.NewUninitialized();
             for (byte action = 1; action <= numPossibleActions; action++)
             {
                 int probabilityOfAction = Unroll_GetInformationSetIndex_HedgeProbability(informationSet.InformationSetNumber, action);
@@ -316,9 +316,9 @@ namespace ACESim
                 //if (EvolutionSettings.PruneOnOpponentStrategy && playerBeingOptimized != playerMakingDecision && probabilityOfAction < EvolutionSettings.PruneOnOpponentStrategyThreshold)
                 //    continue;
                 int probabilityOfActionAvgStrat = Unroll_GetInformationSetIndex_AverageStrategy(informationSet.InformationSetNumber, action);
-                int[] nextPiValues = Unroll_Commands.NewZeroArray(NumNonChancePlayers);
+                int[] nextPiValues = Unroll_Commands.NewUninitializedArray(NumNonChancePlayers);
                 Unroll_GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false, nextPiValues); // reduce probability associated with player being optimized, without changing probabilities for other players
-                int[] nextAvgStratPiValues = Unroll_Commands.NewZeroArray(NumNonChancePlayers);
+                int[] nextAvgStratPiValues = Unroll_Commands.NewUninitializedArray(NumNonChancePlayers);
                 Unroll_GetNextPiValues(avgStratPiValues, playerMakingDecision, probabilityOfActionAvgStrat, false, nextAvgStratPiValues);
                 if (TraceCFR)
                 {
@@ -437,7 +437,7 @@ namespace ACESim
             for (byte action = 1; action <= numPossibleActions; action++)
             {
                 var historyPointCopy2 = historyPointCopy; // Need to do this because we need a separate copy for each thread
-                int[] probabilityAdjustedInnerResult = Unroll_Commands.NewZeroArray(3);
+                int[] probabilityAdjustedInnerResult = Unroll_Commands.NewUninitializedArray(3);
                 Unroll_HedgeVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues, avgStratPiValues,
                         chanceNodeSettings, action, probabilityAdjustedInnerResult);
                 Unroll_Commands.IncrementArrayBy(resultArray, probabilityAdjustedInnerResult, false);
@@ -450,9 +450,9 @@ namespace ACESim
         {
             Unroll_Commands.IncrementDepth();
             int actionProbability = Unroll_GetChanceNodeIndex_ProbabilityForAction(chanceNodeSettings.ChanceNodeNumber, action);
-            int[] nextPiValues = Unroll_Commands.NewZeroArray(NumNonChancePlayers);
+            int[] nextPiValues = Unroll_Commands.NewUninitializedArray(NumNonChancePlayers);
             Unroll_GetNextPiValues(piValues, playerBeingOptimized, actionProbability, true, nextPiValues);
-            int[] nextAvgStratPiValues = Unroll_Commands.NewZeroArray(NumNonChancePlayers);
+            int[] nextAvgStratPiValues = Unroll_Commands.NewUninitializedArray(NumNonChancePlayers);
             Unroll_GetNextPiValues(avgStratPiValues, playerBeingOptimized, actionProbability, true, nextAvgStratPiValues);
             HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
 

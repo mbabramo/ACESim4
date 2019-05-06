@@ -70,6 +70,19 @@ namespace ACESimBase.Util.ArrayProcessing
             return NextArrayIndex++;
         }
 
+        public int[] NewUninitializedArray(int arraySize)
+        {
+            int[] result = new int[arraySize];
+            for (int i = 0; i < arraySize; i++)
+                result[i] = NewUninitialized();
+            return result;
+        }
+
+        public int NewUninitialized()
+        {
+            return NextArrayIndex++;
+        }
+
         public int CopyToNew(int sourceIndex)
         {
             AddCommand(new ArrayCommand(ArrayCommandType.CopyTo, NextArrayIndex, sourceIndex));
