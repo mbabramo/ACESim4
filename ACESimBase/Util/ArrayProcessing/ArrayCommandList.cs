@@ -27,9 +27,15 @@ namespace ACESimBase.Util.ArrayProcessing
             MaxArrayIndex--;
         }
 
+        #region Array consolidation
+
         // Keep track of the first and last time an array index is used
         public void UpdateArrayIndexUsed(int arrayIndex)
         {
+            if (arrayIndex == 7207)
+            {
+                var DEBUG = 0;
+            }
             if (arrayIndex > 0)
             {
                 if (ArrayIndexFirstUsed[arrayIndex] == 0)
@@ -46,9 +52,13 @@ namespace ACESimBase.Util.ArrayProcessing
                 ArrayIndexLastUsed[i] = int.MaxValue; // we have never used this
         }
 
-        public void ConsolidateArrayIndices(IEnumerable<int> resultIndices)
+        public IEnumerable<int> ConsolidateArrayIndices(IEnumerable<int> resultIndices)
         {
+            // the algorithm produces certain final results, in the form of indices into the array.
+            // now that we are consolidating array indices created by the algorithm, we must translate
+            // these.
             SpecifyResultIndices(resultIndices);
+            Dictionary<int, int> translatedResultIndices = new Dictionary<int, int>();
 
             // go through command indices again. If we get to a command where an array is used for the last time, then we add it to a recycling queue. Then, when we get to a command where an array is used for the first time, if there is something available in the recycling queue, we use it. Meanwhile, we maintain a translation dictionary, so that we can translate.
             int lastArrayIndex = NextArrayIndex - 1;
@@ -70,12 +80,18 @@ namespace ACESimBase.Util.ArrayProcessing
                     for (int i = 0; i <= 1; i++)
                     {
                         int originalIndexOrSourceIndex = indices[i];
-                        if (originalIndexOrSourceIndex > InitialArrayIndex)
+                        if (originalIndexOrSourceIndex >= InitialArrayIndex)
                         { // we're only recycling the array indices created in the array command list
-                            bool isFirstUse = ArrayIndexFirstUsed[originalIndexOrSourceIndex] == c;
-                            bool isLastUse = ArrayIndexLastUsed[originalIndexOrSourceIndex] == c;
+                            int firstUse = ArrayIndexFirstUsed[originalIndexOrSourceIndex];
+                            int lastUse = ArrayIndexLastUsed[originalIndexOrSourceIndex];
+                            if (c < firstUse || c > lastUse)
+                                throw new Exception();
+                            bool isFirstUse = firstUse == c;
+                            bool isLastUse = lastUse == c;
                             if (isFirstUse)
                             {
+                                if (lastUse > firstUse + 1000)
+                                    System.Diagnostics.Debug.WriteLine($"first {firstUse} last {lastUse} difference {lastUse - firstUse} source {(i == 1 ? "Yes" : "No")}");
                                 if (isLastUse)
                                 {
                                     // We never actually use this later in the command list, so this command has no effect and we can ignore it. Note that if this were a result of the algorithm as a whole, then it would not be designated as a last use.
@@ -88,6 +104,9 @@ namespace ACESimBase.Util.ArrayProcessing
                                 }
                                 else
                                     translation[originalIndexOrSourceIndex] = nextArrayIndexToUse++;
+                                // if this is a result of the algorithm, we must record the translation fo the old result index into the new one
+                                if (lastUse == int.MaxValue)
+                                    translatedResultIndices[originalIndexOrSourceIndex] = translation[originalIndexOrSourceIndex];
                             }
 
                             if (translation.ContainsKey(originalIndexOrSourceIndex))
@@ -120,10 +139,17 @@ namespace ACESimBase.Util.ArrayProcessing
             MaxArrayIndex = revisedMaxArrayIndex;
             ArrayIndexFirstUsed = null;
             ArrayIndexLastUsed = null;
+            return resultIndices.Select(x => translatedResultIndices[x]);
         }
+
+        #endregion
+
+        #region Commands
 
         private void AddCommand(ArrayCommand command)
         {
+            if (NextCommandIndex == 0 && command.CommandType != ArrayCommandType.Blank)
+                InsertBlankCommand();
             if (command.CommandType != ArrayCommandType.GoTo)
             {
                 UpdateArrayIndexUsed(command.Index);
@@ -309,6 +335,8 @@ namespace ACESimBase.Util.ArrayProcessing
                 commandIndexToGoTo = NextCommandIndex;
             UnderlyingCommands[commandIndexToReplace] = new ArrayCommand(ArrayCommandType.GoTo, commandIndexToGoTo, -1 /* ignored */);
         }
+
+        #endregion
 
         #region Execution
 

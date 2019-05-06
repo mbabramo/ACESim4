@@ -88,7 +88,16 @@ namespace ACESim
                 foreach (int resultIndex in Unroll_IterationResultForPlayersIndices[p])
                     resultIndices.Add(resultIndex);
             }
-            Unroll_Commands.ConsolidateArrayIndices(resultIndices);
+            bool consolidateArrayIndices = true;
+            if (consolidateArrayIndices)
+            {
+                var translatedResultIndices = Unroll_Commands.ConsolidateArrayIndices(resultIndices).ToList();
+                int k = 0;
+                for (byte p = 0; p < NumNonChancePlayers; p++)
+                    for (int j = 0; j < Unroll_IterationResultForPlayersIndices[p].Length; j++)
+                        Unroll_IterationResultForPlayersIndices[p][j] = translatedResultIndices[k++];
+            }
+
             Unroll_SizeOfArray = Unroll_Commands.MaxArrayIndex + 1;
         }
 
