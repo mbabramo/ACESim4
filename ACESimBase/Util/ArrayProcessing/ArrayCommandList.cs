@@ -17,6 +17,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public int InitialArrayIndex;
         public int NextArrayIndex;
         public int MaxArrayIndex;
+        public int UnrollDepth;
 
         public ArrayCommandList(int maxNumCommands, int initialArrayIndex)
         {
@@ -25,6 +26,7 @@ namespace ACESimBase.Util.ArrayProcessing
             ArrayIndexLastUsed = new int[maxNumCommands];
             InitialArrayIndex = NextArrayIndex = MaxArrayIndex = initialArrayIndex;
             MaxArrayIndex--;
+            UnrollDepth = 0;
         }
 
         #region Array consolidation
@@ -207,6 +209,14 @@ namespace ACESimBase.Util.ArrayProcessing
         public void CopyToExisting(int index, int sourceIndex)
         {
             AddCommand(new ArrayCommand(ArrayCommandType.CopyTo, index, sourceIndex));
+        }
+
+        public void CopyToExisting(int[] indices, int[] sourceIndices)
+        {
+            for (int i = 0; i < indices.Length; i++)
+            {
+                CopyToExisting(indices[i], sourceIndices[i]);
+            }
         }
 
         public void MultiplyArrayBy(int[] indices, int indexOfMultiplier, bool interlocked)

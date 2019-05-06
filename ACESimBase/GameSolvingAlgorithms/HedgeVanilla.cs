@@ -84,7 +84,8 @@ namespace ACESim
             {
                 if (TraceCFR)
                     TabbedText.WriteLine($"Unrolling for Player {p}");
-                Unroll_IterationResultForPlayersIndices[p] = Unroll_HedgeVanillaCFR(ref historyPoint, p, Unroll_InitialPiValuesIndices, Unroll_InitialPiValuesIndices);
+                Unroll_IterationResultForPlayersIndices[p] = Unroll_Commands.NewZeroArray(3);
+                Unroll_HedgeVanillaCFR(ref historyPoint, p, Unroll_InitialPiValuesIndices, Unroll_InitialPiValuesIndices, Unroll_IterationResultForPlayersIndices[p], ref Unroll_Commands.UnrollDepth);
                 foreach (int resultIndex in Unroll_IterationResultForPlayersIndices[p])
                     resultIndices.Add(resultIndex);
             }
@@ -273,8 +274,9 @@ namespace ACESim
 
         #region Unrolled algorithm
 
-        public unsafe int[] Unroll_HedgeVanillaCFR(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues)
+        public unsafe void Unroll_HedgeVanillaCFR(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, ref int unrollDepth)
         {
+            unrollDepth++;
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
             if (gameStateType == GameStateTypeEnum.FinalUtilities)
@@ -283,23 +285,27 @@ namespace ACESim
                 // Note: An alternative approach would be to add the utility value found here to the unrolled commands, instead of looking it up in the array. But this approach makes it possible to change some game parameters and thus the final utilities without regenerating commands.
                 int finalUtilIndex = Unroll_GetFinalUtilitiesNodesIndex(finalUtilities.FinalUtilitiesNodeNumber, playerBeingOptimized);
                 // Note: We must copy this so that we don't change the final utilities themselves.
-                int finalUtilIndexCopy1 = Unroll_Commands.CopyToNew(finalUtilIndex);
-                int finalUtilIndexCopy2 = Unroll_Commands.CopyToNew(finalUtilIndex);
-                int finalUtilIndexCopy3 = Unroll_Commands.CopyToNew(finalUtilIndex);
-                return new int[] { finalUtilIndexCopy1, finalUtilIndexCopy2, finalUtilIndexCopy3 };
+                Unroll_Commands.CopyToExisting(resultArray[0], finalUtilIndex);
+                Unroll_Commands.CopyToExisting(resultArray[1], finalUtilIndex);
+                Unroll_Commands.CopyToExisting(resultArray[2], finalUtilIndex);
             }
             else if (gameStateType == GameStateTypeEnum.Chance)
             {
-                return Unroll_HedgeVanillaCFR_ChanceNode(ref historyPoint, playerBeingOptimized, piValues, avgStratPiValues);
+                Unroll_HedgeVanillaCFR_ChanceNode(ref historyPoint, playerBeingOptimized, piValues, avgStratPiValues, resultArray, ref unrollDepth);
             }
             else
-                return Unroll_HedgeVanillaCFR_DecisionNode(ref historyPoint, playerBeingOptimized, piValues, avgStratPiValues);
+                Unroll_HedgeVanillaCFR_DecisionNode(ref historyPoint, playerBeingOptimized, piValues, avgStratPiValues, resultArray, ref unrollDepth);
+            unrollDepth--;
         }
 
-        private unsafe int[] Unroll_HedgeVanillaCFR_DecisionNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues)
+        private unsafe void Unroll_HedgeVanillaCFR_DecisionNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, ref int unrollDepth)
         {
-            int inversePi = Unroll_GetInversePiValue(piValues, playerBeingOptimized);
-            int inversePiAvgStrat = Unroll_GetInversePiValue(avgStratPiValues, playerBeingOptimized);
+            unrollDepth++;
+
+            int inversePi = Unroll_Commands.NewZero();
+            Unroll_GetInversePiValue(piValues, playerBeingOptimized, inversePi, ref unrollDepth);
+            int inversePiAvgStrat = Unroll_Commands.NewZero();
+            Unroll_GetInversePiValue(avgStratPiValues, playerBeingOptimized, inversePiAvgStrat, ref unrollDepth);
             //var actionsToHere = historyPoint.GetActionsToHere(Navigation);
             //var historyPointString = historyPoint.ToString();
 
@@ -311,7 +317,6 @@ namespace ACESim
             int[] actionProbabilities = Unroll_GetInformationSetIndex_HedgeProbabilities_All(informationSet.InformationSetNumber, numPossibleActions);
             int[] expectedValueOfAction = Unroll_Commands.NewZeroArray(numPossibleActions);
             int expectedValue = Unroll_Commands.NewZero();
-            int[] result = Unroll_Commands.NewZeroArray(3);
             for (byte action = 1; action <= numPossibleActions; action++)
             {
                 int probabilityOfAction = Unroll_GetInformationSetIndex_HedgeProbability(informationSet.InformationSetNumber, action);
@@ -320,8 +325,10 @@ namespace ACESim
                 //if (EvolutionSettings.PruneOnOpponentStrategy && playerBeingOptimized != playerMakingDecision && probabilityOfAction < EvolutionSettings.PruneOnOpponentStrategyThreshold)
                 //    continue;
                 int probabilityOfActionAvgStrat = Unroll_GetInformationSetIndex_AverageStrategy(informationSet.InformationSetNumber, action);
-                int[] nextPiValues = Unroll_GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false); // reduce probability associated with player being optimized, without changing probabilities for other players
-                int[] nextAvgStratPiValues = Unroll_GetNextPiValues(avgStratPiValues, playerMakingDecision, probabilityOfActionAvgStrat, false);
+                int[] nextPiValues = Unroll_Commands.NewZeroArray(NumNonChancePlayers);
+                Unroll_GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false, nextPiValues, ref unrollDepth); // reduce probability associated with player being optimized, without changing probabilities for other players
+                int[] nextAvgStratPiValues = Unroll_Commands.NewZeroArray(NumNonChancePlayers);
+                Unroll_GetNextPiValues(avgStratPiValues, playerMakingDecision, probabilityOfActionAvgStrat, false, nextAvgStratPiValues, ref unrollDepth);
                 if (TraceCFR)
                 {
                     int probabilityOfActionCopy = Unroll_Commands.CopyToNew(probabilityOfAction);
@@ -330,24 +337,24 @@ namespace ACESim
                     TabbedText.Tabs++;
                 }
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
-                int[] innerResult = Unroll_HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues);
+                int[] innerResult = Unroll_Commands.NewZeroArray(3);
+                Unroll_HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, innerResult, ref unrollDepth);
                 Unroll_Commands.CopyToExisting(expectedValueOfAction[action - 1], innerResult[Unroll_Result_HedgeVsHedgeIndex]);
                 if (playerMakingDecision == playerBeingOptimized)
                 {
                     int lastBestResponseActionIndex = Unroll_GetInformationSetIndex_LastBestResponse(informationSet.InformationSetNumber, (byte) informationSet.NumPossibleActions);
                     Unroll_Commands.InsertNotEqualsValueCommand(lastBestResponseActionIndex, (int)action);
-                    result[Unroll_Result_BestResponseIndex] = Unroll_Commands.CopyToNew(result[Unroll_Result_BestResponseIndex]); // we copy this here so that we have a new value whether we execute the inner loop or not
                     int goToCommandIndex = Unroll_Commands.InsertBlankCommand();
                     // the following is executed only if lastBestResponseActionIndex == action
                         int bestResponseNumerator = Unroll_GetInformationSetIndex_BestResponseNumerator(informationSet.InformationSetNumber, action);
                         int bestResponseDenominator = Unroll_GetInformationSetIndex_BestResponseNumerator(informationSet.InformationSetNumber, action);
                         Unroll_Commands.IncrementByProduct(bestResponseNumerator, inversePiAvgStrat, innerResult[Unroll_Result_BestResponseIndex], true);
                         Unroll_Commands.Increment(bestResponseNumerator, inversePiAvgStrat, true);
-                        Unroll_Commands.CopyToExisting(result[Unroll_Result_BestResponseIndex], innerResult[Unroll_Result_BestResponseIndex]);
+                        Unroll_Commands.CopyToExisting(resultArray[Unroll_Result_BestResponseIndex], innerResult[Unroll_Result_BestResponseIndex]);
                     // end of loop
                     Unroll_Commands.ReplaceCommandWithGoToCommand(goToCommandIndex, Unroll_Commands.NextCommandIndex); // completes the go to statement
-                    Unroll_Commands.IncrementByProduct(result[Unroll_Result_HedgeVsHedgeIndex], probabilityOfAction, innerResult[Unroll_Result_HedgeVsHedgeIndex], false);
-                    Unroll_Commands.IncrementByProduct(result[Unroll_Result_AverageStrategyIndex], probabilityOfActionAvgStrat, innerResult[Unroll_Result_AverageStrategyIndex], false);
+                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_HedgeVsHedgeIndex], probabilityOfAction, innerResult[Unroll_Result_HedgeVsHedgeIndex], false);
+                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_AverageStrategyIndex], probabilityOfActionAvgStrat, innerResult[Unroll_Result_AverageStrategyIndex], false);
                 }
                 else
                 {
@@ -357,9 +364,9 @@ namespace ACESim
                     //    TabbedText.WriteLine(
                     //        $"... BEFORE prob ARRAY{probabilityOfAction} results: ARRAY{result[Unroll_Result_HedgeVsHedgeIndex]} ARRAY{result[Unroll_Result_AverageStrategyIndex]} ARRAY{result[Unroll_Result_BestResponseIndex]} inner:  ARRAY{innerResult[Unroll_Result_HedgeVsHedgeIndex]} ARRAY{innerResult[Unroll_Result_AverageStrategyIndex]} ARRAY{innerResult[Unroll_Result_BestResponseIndex]} ");
                     //}
-                    Unroll_Commands.IncrementByProduct(result[Unroll_Result_HedgeVsHedgeIndex], probabilityOfAction, innerResult[Unroll_Result_HedgeVsHedgeIndex], false);
-                    Unroll_Commands.IncrementByProduct(result[Unroll_Result_AverageStrategyIndex], probabilityOfActionAvgStrat, innerResult[Unroll_Result_AverageStrategyIndex], false);
-                    Unroll_Commands.IncrementByProduct(result[Unroll_Result_BestResponseIndex], probabilityOfActionAvgStrat, innerResult[Unroll_Result_BestResponseIndex], false);
+                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_HedgeVsHedgeIndex], probabilityOfAction, innerResult[Unroll_Result_HedgeVsHedgeIndex], false);
+                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_AverageStrategyIndex], probabilityOfActionAvgStrat, innerResult[Unroll_Result_AverageStrategyIndex], false);
+                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_BestResponseIndex], probabilityOfActionAvgStrat, innerResult[Unroll_Result_BestResponseIndex], false);
 
                     //if (TraceCFR)
                     //{
@@ -373,7 +380,7 @@ namespace ACESim
                 if (TraceCFR)
                 {
                     int expectedValueOfActionCopy = Unroll_Commands.CopyToNew(expectedValueOfAction[action - 1]);
-                    int bestResponseExpectedValueCopy = Unroll_Commands.CopyToNew(result[Unroll_Result_BestResponseIndex]);
+                    int bestResponseExpectedValueCopy = Unroll_Commands.CopyToNew(resultArray[Unroll_Result_BestResponseIndex]);
                     int cumExpectedValueCopy = Unroll_Commands.CopyToNew(expectedValue);
                     TabbedText.Tabs--;
                     TabbedText.WriteLine(
@@ -422,13 +429,12 @@ namespace ACESim
                     }
                 }
             }
-            int[] resultCopied = Unroll_Commands.CopyToNew(result);
-            return resultCopied;
+            unrollDepth--;
         }
 
-        private unsafe int[] Unroll_HedgeVanillaCFR_ChanceNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues)
+        private unsafe void Unroll_HedgeVanillaCFR_ChanceNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, ref int unrollDepth)
         {
-            int[] result = Unroll_Commands.NewZeroArray(3); // initialize to zero -- equivalent of HedgeVanillaUtilities
+            unrollDepth++;
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings)gameStateForCurrentPlayer;
             byte numPossibleActions = chanceNodeSettings.Decision.NumPossibleActions;
@@ -440,20 +446,23 @@ namespace ACESim
             for (byte action = 1; action <= numPossibleActions; action++)
             {
                 var historyPointCopy2 = historyPointCopy; // Need to do this because we need a separate copy for each thread
-                int[] probabilityAdjustedInnerResult = Unroll_HedgeVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues, avgStratPiValues,
-                        chanceNodeSettings, action);
-                Unroll_Commands.IncrementArrayBy(result, probabilityAdjustedInnerResult, false);
+                int[] probabilityAdjustedInnerResult = Unroll_Commands.NewZeroArray(3);
+                Unroll_HedgeVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues, avgStratPiValues,
+                        chanceNodeSettings, action, probabilityAdjustedInnerResult, ref unrollDepth);
+                Unroll_Commands.IncrementArrayBy(resultArray, probabilityAdjustedInnerResult, false);
             }
-
-            int[] resultCopied = Unroll_Commands.CopyToNew(result);
-            return resultCopied;
+            
+            unrollDepth--;
         }
 
-        private unsafe int[] Unroll_HedgeVanillaCFR_ChanceNode_NextAction(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, ChanceNodeSettings chanceNodeSettings, byte action)
+        private unsafe void Unroll_HedgeVanillaCFR_ChanceNode_NextAction(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, ChanceNodeSettings chanceNodeSettings, byte action, int[] resultArray, ref int unrollDepth)
         {
+            unrollDepth++;
             int actionProbability = Unroll_GetChanceNodeIndex_ProbabilityForAction(chanceNodeSettings.ChanceNodeNumber, action);
-            int[] nextPiValues = Unroll_GetNextPiValues(piValues, playerBeingOptimized, actionProbability, true);
-            int[] nextAvgStratPiValues = Unroll_GetNextPiValues(avgStratPiValues, playerBeingOptimized, actionProbability, true);
+            int[] nextPiValues = Unroll_Commands.NewZeroArray(NumNonChancePlayers);
+            Unroll_GetNextPiValues(piValues, playerBeingOptimized, actionProbability, true, nextPiValues, ref unrollDepth);
+            int[] nextAvgStratPiValues = Unroll_Commands.NewZeroArray(NumNonChancePlayers);
+            Unroll_GetNextPiValues(avgStratPiValues, playerBeingOptimized, actionProbability, true, nextAvgStratPiValues, ref unrollDepth);
             HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
 
             if (TraceCFR)
@@ -463,76 +472,73 @@ namespace ACESim
                     $"Chance code {chanceNodeSettings.DecisionByteCode} ({GameDefinition.DecisionsExecutionOrder.FirstOrDefault(x => x.DecisionByteCode == chanceNodeSettings.DecisionByteCode).Name}) action {action} probability ARRAY{actionProbabilityCopy} ...");
                 TabbedText.Tabs++;
             }
-            int[] result =
-                Unroll_HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues);
+            int[] innerResult = Unroll_Commands.NewZeroArray(3);
+            Unroll_HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, innerResult, ref unrollDepth);
+            Unroll_Commands.CopyToExisting(resultArray, innerResult);
             if (TraceCFR)
             {
                 // save current hedge result before multiplying
-                int beforeMultipleHedgeCopy = Unroll_Commands.CopyToNew(result[Unroll_Result_HedgeVsHedgeIndex]);
+                int beforeMultipleHedgeCopy = Unroll_Commands.CopyToNew(resultArray[Unroll_Result_HedgeVsHedgeIndex]);
                 int actionProbabilityCopy = Unroll_Commands.CopyToNew(actionProbability);
 
-                Unroll_Commands.MultiplyArrayBy(result, actionProbability, false);
+                Unroll_Commands.MultiplyArrayBy(resultArray, actionProbability, false);
 
-                int resultHedgeCopy = Unroll_Commands.CopyToNew(result[Unroll_Result_HedgeVsHedgeIndex]);
+                int resultHedgeCopy = Unroll_Commands.CopyToNew(resultArray[Unroll_Result_HedgeVsHedgeIndex]);
 
                 TabbedText.Tabs--;
                 TabbedText.WriteLine(
                     $"... action {action} value ARRAY{beforeMultipleHedgeCopy} probability ARRAY{actionProbabilityCopy} expected value contribution ARRAY{resultHedgeCopy}");
             }
             else
-                Unroll_Commands.MultiplyArrayBy(result, actionProbability, false);
+                Unroll_Commands.MultiplyArrayBy(resultArray, actionProbability, false);
 
-            int[] resultCopied = Unroll_Commands.CopyToNew(result);
-
-            return resultCopied;
+            unrollDepth--;
         }
 
-        private unsafe int[] Unroll_GetNextPiValues(int[] currentPiValues, byte playerIndex, int probabilityToMultiplyBy, bool changeOtherPlayers)
+        private unsafe void Unroll_GetNextPiValues(int[] currentPiValues, byte playerIndex, int probabilityToMultiplyBy, bool changeOtherPlayers, int[] resultArray, ref int unrollDepth)
         {
-            int[] nextPiValues = new int[NumNonChancePlayers]; // unlike the GetNextPiValues, we create the array here and then return it
+            unrollDepth++;
             for (byte p = 0; p < NumNonChancePlayers; p++)
             {
                 int currentPiValue = currentPiValues[p];
-                int nextPiValue;
+                Unroll_Commands.CopyToExisting(resultArray[p], currentPiValue);
                 if (p == playerIndex)
                 {
-                    if (changeOtherPlayers)
-                        nextPiValue = Unroll_Commands.CopyToNew(currentPiValue);
-                    else
-                        nextPiValue = Unroll_Commands.MultiplyToNew(currentPiValue, probabilityToMultiplyBy);
+                    if (!changeOtherPlayers)
+                        Unroll_Commands.MultiplyBy(resultArray[p], probabilityToMultiplyBy, false);
                 }
                 else
                 {
                     if (changeOtherPlayers)
-                        nextPiValue = Unroll_Commands.MultiplyToNew(currentPiValue, probabilityToMultiplyBy);
-                    else
-                        nextPiValue = Unroll_Commands.CopyToNew(currentPiValue);
+                        Unroll_Commands.MultiplyBy(resultArray[p], probabilityToMultiplyBy, false);
                 }
-                nextPiValues[p] = nextPiValue;
             }
-            return nextPiValues;
+            unrollDepth--;
         }
 
-        private unsafe int Unroll_GetInversePiValue(int[] piValues, byte playerIndex)
+        private unsafe void Unroll_GetInversePiValue(int[] piValues, byte playerIndex, int inversePiValueResult, ref int unrollDepth)
         {
+            unrollDepth++;
             if (NumNonChancePlayers == 2)
-                return Unroll_Commands.CopyToNew(piValues[(byte)1 - playerIndex]);
-            bool firstPlayerOtherThanMainFound = false;
-            int indexForInversePiValue = -1;
-            for (byte p = 0; p < NumNonChancePlayers; p++)
-                if (p != playerIndex)
-                {
-                    if (firstPlayerOtherThanMainFound)
+                Unroll_Commands.CopyToExisting(inversePiValueResult, piValues[(byte)1 - playerIndex]);
+            else
+            {
+                bool firstPlayerOtherThanMainFound = false;
+                for (byte p = 0; p < NumNonChancePlayers; p++)
+                    if (p != playerIndex)
                     {
-                        Unroll_Commands.MultiplyBy(indexForInversePiValue, piValues[p], false);
+                        if (firstPlayerOtherThanMainFound)
+                        {
+                            Unroll_Commands.MultiplyBy(inversePiValueResult, piValues[p], false);
+                        }
+                        else
+                        {
+                            Unroll_Commands.CopyToExisting(inversePiValueResult, piValues[p]);
+                            firstPlayerOtherThanMainFound = true;
+                        }
                     }
-                    else
-                    {
-                        indexForInversePiValue = Unroll_Commands.CopyToNew(piValues[p]);
-                        firstPlayerOtherThanMainFound = true;
-                    }
-                }
-            return indexForInversePiValue;
+            }
+            unrollDepth--;
         }
 
         #endregion
