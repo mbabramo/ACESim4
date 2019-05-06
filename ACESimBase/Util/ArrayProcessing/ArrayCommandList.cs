@@ -16,6 +16,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public int InitialArrayIndex;
         public int NextArrayIndex;
         public int MaxArrayIndex;
+        public bool DoNotReuseArrayIndices = false;
         public Stack<int> PerDepthStartArrayIndices;
 
         public ArrayCommandList(int maxNumCommands, int initialArrayIndex)

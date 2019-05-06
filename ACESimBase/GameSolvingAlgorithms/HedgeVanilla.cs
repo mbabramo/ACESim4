@@ -75,6 +75,8 @@ namespace ACESim
             const int max_num_commands = 50_000_000;
             Unroll_InitializeInitialArrayIndices();
             Unroll_Commands = new ArrayCommandList(max_num_commands, Unroll_InitialArrayIndex);
+            if (TraceCFR)
+                Unroll_Commands.DoNotReuseArrayIndices = true;
             ActionStrategy = ActionStrategies.NormalizedHedge;
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
             Unroll_IterationResultForPlayersIndices = new int[NumNonChancePlayers][];
