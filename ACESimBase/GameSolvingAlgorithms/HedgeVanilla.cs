@@ -422,7 +422,8 @@ namespace ACESim
                     }
                 }
             }
-            return result;
+            int[] resultCopied = Unroll_Commands.CopyToNew(result);
+            return resultCopied;
         }
 
         private unsafe int[] Unroll_HedgeVanillaCFR_ChanceNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues)
@@ -444,7 +445,8 @@ namespace ACESim
                 Unroll_Commands.IncrementArrayBy(result, probabilityAdjustedInnerResult, false);
             }
 
-            return result;
+            int[] resultCopied = Unroll_Commands.CopyToNew(result);
+            return resultCopied;
         }
 
         private unsafe int[] Unroll_HedgeVanillaCFR_ChanceNode_NextAction(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, ChanceNodeSettings chanceNodeSettings, byte action)
@@ -480,7 +482,9 @@ namespace ACESim
             else
                 Unroll_Commands.MultiplyArrayBy(result, actionProbability, false);
 
-            return result;
+            int[] resultCopied = Unroll_Commands.CopyToNew(result);
+
+            return resultCopied;
         }
 
         private unsafe int[] Unroll_GetNextPiValues(int[] currentPiValues, byte playerIndex, int probabilityToMultiplyBy, bool changeOtherPlayers)

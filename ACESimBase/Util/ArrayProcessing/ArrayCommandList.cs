@@ -90,8 +90,8 @@ namespace ACESimBase.Util.ArrayProcessing
                             bool isLastUse = lastUse == c;
                             if (isFirstUse)
                             {
-                                if (lastUse > firstUse + 1000)
-                                    System.Diagnostics.Debug.WriteLine($"first {firstUse} last {lastUse} difference {lastUse - firstUse} source {(i == 1 ? "Yes" : "No")}");
+                                //if (lastUse > firstUse + 1000)
+                                //    System.Diagnostics.Debug.WriteLine($"first {firstUse} last {lastUse} difference {lastUse - firstUse} source {(i == 1 ? "Yes" : "No")}"); // DEBUG
                                 if (isLastUse)
                                 {
                                     // We never actually use this later in the command list, so this command has no effect and we can ignore it. Note that if this were a result of the algorithm as a whole, then it would not be designated as a last use.
@@ -181,6 +181,11 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             AddCommand(new ArrayCommand(ArrayCommandType.CopyTo, NextArrayIndex, sourceIndex));
             return NextArrayIndex++;
+        }
+
+        public int[] CopyToNew(int[] sourceIndices)
+        {
+            return sourceIndices.Select(x => CopyToNew(x)).ToArray();
         }
 
         public int AddToNew(int index1, int index2)
