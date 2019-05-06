@@ -12,136 +12,32 @@ namespace ACESimBase.Util.ArrayProcessing
         public const bool UseInterlockingWhereRequested = false; // DEBUG // can disable interlocking if we know this won't be run in parallel
 
         public ArrayCommand[] UnderlyingCommands;
-        public int[] ArrayIndexFirstUsed, ArrayIndexLastUsed;
         public int NextCommandIndex;
         public int InitialArrayIndex;
         public int NextArrayIndex;
         public int MaxArrayIndex;
-        public int UnrollDepth;
+        public Stack<int> PerDepthStartArrayIndices;
 
         public ArrayCommandList(int maxNumCommands, int initialArrayIndex)
         {
             UnderlyingCommands = new ArrayCommand[maxNumCommands];
-            ArrayIndexFirstUsed = new int[maxNumCommands]; // these are the max size that might be necessary
-            ArrayIndexLastUsed = new int[maxNumCommands];
             InitialArrayIndex = NextArrayIndex = MaxArrayIndex = initialArrayIndex;
             MaxArrayIndex--;
-            UnrollDepth = 0;
+            PerDepthStartArrayIndices = new Stack<int>();
         }
 
-        #region Array consolidation
+        #region Depth management
 
-        // Keep track of the first and last time an array index is used
-        public void UpdateArrayIndexUsed(int arrayIndex)
+        // We are simulating a stack. When entering a new depth level, we remember the next array index. Then, when exiting this depth level, we revert to this array index. A consequence of this is that depth i + 1 can return values to depth <= i only by copying to array indices already set at this earlier depth. 
+
+        public void IncrementDepth()
         {
-            if (arrayIndex == 7207)
-            {
-                var DEBUG = 0;
-            }
-            if (arrayIndex > 0)
-            {
-                if (ArrayIndexFirstUsed[arrayIndex] == 0)
-                {
-                    ArrayIndexFirstUsed[arrayIndex] = NextCommandIndex;
-                }
-                ArrayIndexLastUsed[arrayIndex] = NextCommandIndex;
-            }
+            PerDepthStartArrayIndices.Push(NextArrayIndex);
         }
 
-        private void SpecifyResultIndices(IEnumerable<int> indices)
+        public void DecrementDepth()
         {
-            foreach (int i in indices)
-                ArrayIndexLastUsed[i] = int.MaxValue; // we have never used this
-        }
-
-        public IEnumerable<int> ConsolidateArrayIndices(IEnumerable<int> resultIndices)
-        {
-            // the algorithm produces certain final results, in the form of indices into the array.
-            // now that we are consolidating array indices created by the algorithm, we must translate
-            // these.
-            SpecifyResultIndices(resultIndices);
-            Dictionary<int, int> translatedResultIndices = new Dictionary<int, int>();
-
-            // go through command indices again. If we get to a command where an array is used for the last time, then we add it to a recycling queue. Then, when we get to a command where an array is used for the first time, if there is something available in the recycling queue, we use it. Meanwhile, we maintain a translation dictionary, so that we can translate.
-            int lastArrayIndex = NextArrayIndex - 1;
-            int lastCommandIndex = NextCommandIndex - 1;
-
-            int nextArrayIndexToUse = InitialArrayIndex;
-
-            Queue<int> recycling = new Queue<int>();
-            Dictionary<int, int> translation = new Dictionary<int, int>();
-            int[] indices = new int[2];
-            int revisedMaxArrayIndex = -1;
-            for (int c = 0; c <= lastCommandIndex; c++)
-            {
-                var command = UnderlyingCommands[c];
-                if (command.CommandType != ArrayCommandType.GoTo)
-                {
-                    indices[0] = command.Index;
-                    indices[1] = command.SourceIndex;
-                    for (int i = 0; i <= 1; i++)
-                    {
-                        int originalIndexOrSourceIndex = indices[i];
-                        if (originalIndexOrSourceIndex >= InitialArrayIndex)
-                        { // we're only recycling the array indices created in the array command list
-                            int firstUse = ArrayIndexFirstUsed[originalIndexOrSourceIndex];
-                            int lastUse = ArrayIndexLastUsed[originalIndexOrSourceIndex];
-                            if (c < firstUse || c > lastUse)
-                                throw new Exception();
-                            bool isFirstUse = firstUse == c;
-                            bool isLastUse = lastUse == c;
-                            if (isFirstUse)
-                            {
-                                //if (lastUse > firstUse + 1000)
-                                //    System.Diagnostics.Debug.WriteLine($"first {firstUse} last {lastUse} difference {lastUse - firstUse} source {(i == 1 ? "Yes" : "No")}"); // DEBUG
-                                if (isLastUse)
-                                {
-                                    // We never actually use this later in the command list, so this command has no effect and we can ignore it. Note that if this were a result of the algorithm as a whole, then it would not be designated as a last use.
-                                    command = new ArrayCommand(ArrayCommandType.Blank, -1, -1);
-                                    break;
-                                }
-                                if (recycling.Any())
-                                {
-                                    translation[originalIndexOrSourceIndex] = recycling.Dequeue();
-                                }
-                                else
-                                    translation[originalIndexOrSourceIndex] = nextArrayIndexToUse++;
-                                // if this is a result of the algorithm, we must record the translation fo the old result index into the new one
-                                if (lastUse == int.MaxValue)
-                                    translatedResultIndices[originalIndexOrSourceIndex] = translation[originalIndexOrSourceIndex];
-                            }
-
-                            if (translation.ContainsKey(originalIndexOrSourceIndex))
-                            {
-                                int translated = translation[originalIndexOrSourceIndex];
-                                if (i == 0)
-                                    command = command.WithIndex(translated);
-                                else
-                                    command = command.WithSourceIndex(translated);
-                                if (isLastUse)
-                                {
-                                    translation.Remove(originalIndexOrSourceIndex);
-                                    recycling.Enqueue(translated);
-                                }
-                            }
-                            else if (isLastUse)
-                            { // this was not recycled, but it now can be.
-                                recycling.Enqueue(originalIndexOrSourceIndex);
-                            }
-                        }
-                    }
-                    UnderlyingCommands[c] = command;
-                    if (command.Index > revisedMaxArrayIndex)
-                        revisedMaxArrayIndex = command.Index;
-                    if (command.SourceIndex > revisedMaxArrayIndex)
-                        revisedMaxArrayIndex = command.SourceIndex;
-                }
-            }
-            NextArrayIndex = nextArrayIndexToUse;
-            MaxArrayIndex = revisedMaxArrayIndex;
-            ArrayIndexFirstUsed = null;
-            ArrayIndexLastUsed = null;
-            return resultIndices.Select(x => translatedResultIndices[x]);
+            NextArrayIndex = PerDepthStartArrayIndices.Pop();
         }
 
         #endregion
@@ -152,11 +48,6 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             if (NextCommandIndex == 0 && command.CommandType != ArrayCommandType.Blank)
                 InsertBlankCommand();
-            if (command.CommandType != ArrayCommandType.GoTo)
-            {
-                UpdateArrayIndexUsed(command.Index);
-                UpdateArrayIndexUsed(command.SourceIndex);
-            }
             UnderlyingCommands[NextCommandIndex] = command;
             NextCommandIndex++;
             if (NextArrayIndex > MaxArrayIndex)
