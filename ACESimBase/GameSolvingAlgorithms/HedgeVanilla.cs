@@ -79,17 +79,14 @@ namespace ACESim
                 Unroll_Commands.DoNotReuseArrayIndices = true;
             ActionStrategy = ActionStrategies.NormalizedHedge;
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
-            Unroll_IterationResultForPlayersIndices = new int[NumNonChancePlayers][];
-            Unroll_IterationResultForPlayers = new HedgeVanillaUtilities[NumNonChancePlayers]; // array items from indices above will be copied here
             List<int> resultIndices = new List<int>();
+            var initialPiValuesCopied = Unroll_Commands.CopyToNew(Unroll_InitialPiValuesIndices);
+            var initialPiValues2Copied = Unroll_Commands.CopyToNew(Unroll_InitialPiValuesIndices);
             for (byte p = 0; p < NumNonChancePlayers; p++)
             {
                 if (TraceCFR)
                     TabbedText.WriteLine($"Unrolling for Player {p}");
-                Unroll_IterationResultForPlayersIndices[p] = Unroll_Commands.NewZeroArray(3);
-                Unroll_HedgeVanillaCFR(ref historyPoint, p, Unroll_InitialPiValuesIndices, Unroll_InitialPiValuesIndices, Unroll_IterationResultForPlayersIndices[p]);
-                foreach (int resultIndex in Unroll_IterationResultForPlayersIndices[p])
-                    resultIndices.Add(resultIndex);
+                Unroll_HedgeVanillaCFR(ref historyPoint, p, initialPiValuesCopied, initialPiValues2Copied, Unroll_IterationResultForPlayersIndices[p]);
             }
 
             Unroll_SizeOfArray = Unroll_Commands.MaxArrayIndex + 1;
@@ -105,6 +102,7 @@ namespace ACESim
 
         private void Unroll_DetermineIterationResultForEachPlayer(double[] array)
         {
+            Unroll_IterationResultForPlayers = new HedgeVanillaUtilities[NumNonChancePlayers]; // array items from indices above will be copied here
             for (byte p = 0; p < NumNonChancePlayers; p++)
                 Unroll_IterationResultForPlayers[p] = new HedgeVanillaUtilities()
                 {
@@ -196,8 +194,14 @@ namespace ACESim
                 index += numItems;
             }
             Unroll_InitialPiValuesIndices = new int[NumNonChancePlayers];
+            Unroll_IterationResultForPlayersIndices = new int[NumNonChancePlayers][];
             for (int p = 0; p < NumNonChancePlayers; p++)
+            {
                 Unroll_InitialPiValuesIndices[p] = index++;
+                Unroll_IterationResultForPlayersIndices[p] = new int[3];
+                for (int i = 0; i < 3; i++)
+                    Unroll_IterationResultForPlayersIndices[p][i] = index++;
+            }
             Unroll_AverageStrategyAdjustmentIndex = index++;
             Unroll_InitialArrayIndex = index;
         }
@@ -243,6 +247,8 @@ namespace ACESim
             for (byte p = 0; p < NumNonChancePlayers; p++)
             {
                 array[Unroll_InitialPiValuesIndices[p]] = 1.0;
+                for (int i = 0; i < 3; i++)
+                    array[Unroll_IterationResultForPlayersIndices[p][i]] = 0;
             }
             CalculateDiscountingAdjustments();
             array[Unroll_AverageStrategyAdjustmentIndex] = AverageStrategyAdjustment;
