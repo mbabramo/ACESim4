@@ -16,12 +16,20 @@ namespace ACESimBase.Util.ArrayProcessing
         public int InitialArrayIndex;
         public int NextArrayIndex;
         public int MaxArrayIndex;
+
+        // Ordered sources: We keep a list of indices of the data passed to the algorithm each iteration. We then copy this data into the OrderedSources array in the order in which it will be needed. This helps performance and also with parallelism.
+        public bool UseOrderedSources = true;
+        public List<int> OrderedSourceIndices; 
+        public double[] OrderedSources;
+        public int CurrentOrderedSourceIndex;
+
         public bool DoNotReuseArrayIndices = false;
         public Stack<int> PerDepthStartArrayIndices;
 
         public ArrayCommandList(int maxNumCommands, int initialArrayIndex)
         {
             UnderlyingCommands = new ArrayCommand[maxNumCommands];
+            OrderedSourceIndices = new List<int>();
             InitialArrayIndex = NextArrayIndex = MaxArrayIndex = initialArrayIndex;
             MaxArrayIndex--;
             PerDepthStartArrayIndices = new Stack<int>();
@@ -86,7 +94,14 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public int CopyToNew(int sourceIndex)
         {
-            AddCommand(new ArrayCommand(ArrayCommandType.CopyTo, NextArrayIndex, sourceIndex));
+            if (UseOrderedSources && sourceIndex < InitialArrayIndex)
+            {
+                // Instead of copying from the source, we will add this index to our list of indices. This will improve performance, because we can preconstruct our sources and then just read from these consecutively.
+                OrderedSourceIndices.Add(sourceIndex);
+                AddCommand(new ArrayCommand(ArrayCommandType.NextSource, NextArrayIndex, -1));
+            }
+            else
+                AddCommand(new ArrayCommand(ArrayCommandType.CopyTo, NextArrayIndex, sourceIndex));
             return NextArrayIndex++;
         }
 
@@ -345,6 +360,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public unsafe void ExecuteAll(double[] array)
         {
+            PrepareOrderedSources(array);
             int MaxCommandIndex = NextCommandIndex;
             bool skipNext;
             int goTo;
@@ -364,6 +380,9 @@ namespace ACESimBase.Util.ArrayProcessing
                             break;
                         case ArrayCommandType.CopyTo:
                             array[(*command).Index] = array[(*command).SourceIndex];
+                            break;
+                        case ArrayCommandType.NextSource:
+                            array[(*command).Index] = OrderedSources[CurrentOrderedSourceIndex++];
                             break;
                         case ArrayCommandType.MultiplyBy:
                             // DEBUG -- breaking it down this way reveals that about half of the time is from the array accesses (second is basically free) and half from multiplication
@@ -435,16 +454,16 @@ namespace ACESimBase.Util.ArrayProcessing
             }
         }
 
-        /// <summary>
-        /// Executes a command. Returns true if the next command should be skipped.
-        /// </summary>
-        /// <param name="array"></param>
-        /// <param name="command"></param>
-        /// <returns></returns>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void ExecuteCommand(double[] array, in ArrayCommand command, ref bool skipNext, ref int goTo)
+        public void PrepareOrderedSources(double[] array)
         {
-            
+            int count = OrderedSourceIndices.Count();
+            if (OrderedSources == null)
+                OrderedSources = new double[count];
+            for (CurrentOrderedSourceIndex = 0; CurrentOrderedSourceIndex < count; CurrentOrderedSourceIndex++)
+            {
+                OrderedSources[CurrentOrderedSourceIndex] = array[OrderedSourceIndices[CurrentOrderedSourceIndex]];
+            }
+            CurrentOrderedSourceIndex = 0;
         }
 
         #endregion

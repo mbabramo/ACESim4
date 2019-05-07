@@ -8,6 +8,7 @@ namespace ACESimBase.Util.ArrayProcessing
     {
         ZeroNew,
         CopyTo,
+        NextSource,
         MultiplyBy,
         IncrementBy,
         DecrementBy,
