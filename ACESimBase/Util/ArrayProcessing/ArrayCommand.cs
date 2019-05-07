@@ -14,7 +14,9 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             CommandType = type;
             if (index < -1 || sourceIndex < -1)
-                throw new Exception();
+                throw new Exception("Invalid index or source index. This may occur when decrementing, using ordered sources and destinations. It indicates that an index int the original array was used directly. Instead, all sources in the initial array must be copied using CopyToNew, and then destinations must be written to using Increment. Determine which command index this is by looking in the call stack; then intercept this command being written in AddCommand and figure out the source of the array index and change it so that it is copied.");
+            if (type == ArrayCommandType.MultiplyBy && sourceIndex == -1)
+                throw new Exception("DEBUG");
             Index = index;
             SourceIndex = sourceIndex;
         }
@@ -24,7 +26,16 @@ namespace ACESimBase.Util.ArrayProcessing
             return $"{CommandType} {Index} source:{SourceIndex}";
         }
 
-        public ArrayCommand WithDecrements(int decrement) => new ArrayCommand(CommandType, Index == -1 ? -1 : Index - decrement, SourceIndex == -1 ? -1 : SourceIndex - decrement);
+        public ArrayCommand Clone() => new ArrayCommand(CommandType, Index, SourceIndex);
+
+        public ArrayCommand WithArrayIndexDecrements(int decrement)
+        {
+            if (CommandType == ArrayCommandType.GoTo || CommandType == ArrayCommandType.AfterGoTo)
+                return Clone();
+            if (CommandType == ArrayCommandType.EqualsValue || CommandType == ArrayCommandType.NotEqualsValue) // source index does not represent an array index
+                return new ArrayCommand(CommandType, Index == -1 ? -1 : Index - decrement, SourceIndex); 
+            return new ArrayCommand(CommandType, Index == -1 ? -1 : Index - decrement, SourceIndex == -1 ? -1 : SourceIndex - decrement);
+        }
 
         public ArrayCommand WithIndex(int index) => new ArrayCommand(CommandType, index, SourceIndex);
 

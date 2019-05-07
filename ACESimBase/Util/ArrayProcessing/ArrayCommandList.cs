@@ -49,10 +49,10 @@ namespace ACESimBase.Util.ArrayProcessing
             PerDepthStartArrayIndices.Push(NextArrayIndex);
         }
 
-        public void DecrementDepth()
+        public void DecrementDepth(bool completeCommandList = false)
         {
             NextArrayIndex = PerDepthStartArrayIndices.Pop();
-            if (!PerDepthStartArrayIndices.Any())
+            if (!PerDepthStartArrayIndices.Any() && completeCommandList)
                 CompleteCommandList();
         }
 
@@ -63,7 +63,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 // The input array will no longer be needed when processing commands. Thus, we should instead adjust indices so that all indices refer to a smaller array, consisting only of the virtual stack.
                 for (int i = 0; i < NextCommandIndex; i++)
                 {
-                    UnderlyingCommands[i] = UnderlyingCommands[i].WithDecrements(InitialArrayIndex);
+                    UnderlyingCommands[i] = UnderlyingCommands[i].WithArrayIndexDecrements(InitialArrayIndex);
                 }
             }
         }
@@ -74,8 +74,13 @@ namespace ACESimBase.Util.ArrayProcessing
 
         private void AddCommand(ArrayCommand command)
         {
+            if (NextCommandIndex == 724)
+            {
+                var DEBUG = 0;
+            }
             if (NextCommandIndex == 0 && command.CommandType != ArrayCommandType.Blank)
                 InsertBlankCommand();
+
             UnderlyingCommands[NextCommandIndex] = command;
             NextCommandIndex++;
             if (NextArrayIndex > MaxArrayIndex)
@@ -468,6 +473,7 @@ namespace ACESimBase.Util.ArrayProcessing
                             if (!conditionMet)
                                 skipNext = true;
                             break;
+                            // in next two, sourceindex represents a value, not an array index
                         case ArrayCommandType.EqualsValue:
                             conditionMet = array[(*command).Index] == (*command).SourceIndex;
                             if (!conditionMet)
@@ -479,9 +485,11 @@ namespace ACESimBase.Util.ArrayProcessing
                                 skipNext = true;
                             break;
                         case ArrayCommandType.GoTo:
+                            // index here represents a command index -- not an array index
                             goTo = (*command).Index - 1; // because we are going to increment in the for loop
                             break;
                         case ArrayCommandType.AfterGoTo:
+                            // indices here are indices but not into the original array
                             CurrentOrderedDestinationIndex = (*command).Index;
                             CurrentOrderedSourceIndex = (*command).SourceIndex;
                             break;
