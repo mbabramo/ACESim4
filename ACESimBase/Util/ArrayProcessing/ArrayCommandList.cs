@@ -269,7 +269,7 @@ namespace ACESimBase.Util.ArrayProcessing
             for (NextCommandIndex = 0; NextCommandIndex < MaxCommandIndex; NextCommandIndex++)
             {
                 ArrayCommand command = UnderlyingCommands[NextCommandIndex];
-                System.Diagnostics.Debug.WriteLine(command);
+                //System.Diagnostics.Debug.WriteLine(command);
                 skipNext = false;
                 goTo = -1;
                 switch (command.CommandType)
