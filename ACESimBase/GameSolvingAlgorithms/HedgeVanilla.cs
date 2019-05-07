@@ -341,13 +341,13 @@ namespace ACESim
                     // the following is executed only if lastBestResponseActionIndex == action
                         int bestResponseNumerator = Unroll_GetInformationSetIndex_BestResponseNumerator(informationSet.InformationSetNumber, action);
                         int bestResponseDenominator = Unroll_GetInformationSetIndex_BestResponseNumerator(informationSet.InformationSetNumber, action);
-                        Unroll_Commands.IncrementByProduct(bestResponseNumerator, inversePiAvgStrat, innerResult[Unroll_Result_BestResponseIndex], true);
-                        Unroll_Commands.Increment(bestResponseNumerator, inversePiAvgStrat, true);
+                        Unroll_Commands.IncrementByProduct(bestResponseNumerator, inversePiAvgStrat, innerResult[Unroll_Result_BestResponseIndex]);
+                        Unroll_Commands.Increment(bestResponseDenominator, inversePiAvgStrat);
                         Unroll_Commands.CopyToExisting(resultArray[Unroll_Result_BestResponseIndex], innerResult[Unroll_Result_BestResponseIndex]);
                     // end of loop
                     Unroll_Commands.ReplaceCommandWithGoToCommand(goToCommandIndex, Unroll_Commands.NextCommandIndex); // completes the go to statement
-                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_HedgeVsHedgeIndex], probabilityOfAction, innerResult[Unroll_Result_HedgeVsHedgeIndex], false);
-                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_AverageStrategyIndex], probabilityOfActionAvgStrat, innerResult[Unroll_Result_AverageStrategyIndex], false);
+                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_HedgeVsHedgeIndex], probabilityOfAction, innerResult[Unroll_Result_HedgeVsHedgeIndex]);
+                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_AverageStrategyIndex], probabilityOfActionAvgStrat, innerResult[Unroll_Result_AverageStrategyIndex]);
                 }
                 else
                 {
@@ -357,9 +357,9 @@ namespace ACESim
                     //    TabbedText.WriteLine(
                     //        $"... BEFORE prob ARRAY{probabilityOfAction} results: ARRAY{result[Unroll_Result_HedgeVsHedgeIndex]} ARRAY{result[Unroll_Result_AverageStrategyIndex]} ARRAY{result[Unroll_Result_BestResponseIndex]} inner:  ARRAY{innerResult[Unroll_Result_HedgeVsHedgeIndex]} ARRAY{innerResult[Unroll_Result_AverageStrategyIndex]} ARRAY{innerResult[Unroll_Result_BestResponseIndex]} ");
                     //}
-                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_HedgeVsHedgeIndex], probabilityOfAction, innerResult[Unroll_Result_HedgeVsHedgeIndex], false);
-                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_AverageStrategyIndex], probabilityOfActionAvgStrat, innerResult[Unroll_Result_AverageStrategyIndex], false);
-                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_BestResponseIndex], probabilityOfActionAvgStrat, innerResult[Unroll_Result_BestResponseIndex], false);
+                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_HedgeVsHedgeIndex], probabilityOfAction, innerResult[Unroll_Result_HedgeVsHedgeIndex]);
+                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_AverageStrategyIndex], probabilityOfActionAvgStrat, innerResult[Unroll_Result_AverageStrategyIndex]);
+                    Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_BestResponseIndex], probabilityOfActionAvgStrat, innerResult[Unroll_Result_BestResponseIndex]);
 
                     //if (TraceCFR)
                     //{
@@ -368,7 +368,7 @@ namespace ACESim
                     //        $"... AFTER prob ARRAY{probabilityOfAction} results: ARRAY{result[Unroll_Result_HedgeVsHedgeIndex]} ARRAY{result[Unroll_Result_AverageStrategyIndex]} ARRAY{result[Unroll_Result_BestResponseIndex]} ");
                     //}
                 }
-                Unroll_Commands.IncrementByProduct(expectedValue, probabilityOfAction, expectedValueOfAction[action - 1], false);
+                Unroll_Commands.IncrementByProduct(expectedValue, probabilityOfAction, expectedValueOfAction[action - 1]);
 
                 if (TraceCFR)
                 {
@@ -386,7 +386,7 @@ namespace ACESim
                 {
                     int pi = Unroll_Commands.CopyToNew(piValues[playerBeingOptimized]);
                     int regret = Unroll_Commands.CopyToNew(expectedValueOfAction[action - 1]);
-                    Unroll_Commands.Decrement(regret, expectedValue, false);
+                    Unroll_Commands.Decrement(regret, expectedValue);
                     //if (TraceCFR)
                     //{ // DEBUG
                     //    int piValuesZeroCopy = Unroll_Commands.CopyToNew(piValues[0]);
@@ -399,14 +399,14 @@ namespace ACESim
                     //        $"Extra regrets Action {action} regret ARRAY{regretCopy} = ARRAY{exLagCopy} - ARRAY{exCopy} ; inversePi ARRAY{inversePiCopy} avg_strat_incrememnt");
                     //}
                     int lastRegret = Unroll_GetInformationSetIndex_LastRegret(informationSet.InformationSetNumber, action);
-                    Unroll_Commands.IncrementByProduct(lastRegret, inversePi, regret, true);
+                    Unroll_Commands.IncrementByProduct(lastRegret, inversePi, regret);
                     // now contribution to average strategy
                     int contributionToAverageStrategy = Unroll_Commands.CopyToNew(pi);
-                    Unroll_Commands.MultiplyBy(contributionToAverageStrategy, actionProbabilities[action - 1], false);
+                    Unroll_Commands.MultiplyBy(contributionToAverageStrategy, actionProbabilities[action - 1]);
                     if (EvolutionSettings.UseRegretAndStrategyDiscounting)
-                        Unroll_Commands.MultiplyBy(contributionToAverageStrategy, Unroll_AverageStrategyAdjustmentIndex, false);
+                        Unroll_Commands.MultiplyBy(contributionToAverageStrategy, Unroll_AverageStrategyAdjustmentIndex);
                     int cumulativeStrategy = Unroll_GetInformationSetIndex_CumulativeStrategy(informationSet.InformationSetNumber, action);
-                    Unroll_Commands.Increment(cumulativeStrategy, contributionToAverageStrategy, true);
+                    Unroll_Commands.Increment(cumulativeStrategy, contributionToAverageStrategy);
                     if (TraceCFR)
                     {
                         int piCopy = Unroll_Commands.CopyToNew(pi);
@@ -442,7 +442,7 @@ namespace ACESim
                 int[] probabilityAdjustedInnerResult = Unroll_Commands.NewUninitializedArray(3);
                 Unroll_HedgeVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues, avgStratPiValues,
                         chanceNodeSettings, action, probabilityAdjustedInnerResult);
-                Unroll_Commands.IncrementArrayBy(resultArray, probabilityAdjustedInnerResult, false);
+                Unroll_Commands.IncrementArrayBy(resultArray, probabilityAdjustedInnerResult);
             }
             
             Unroll_Commands.DecrementDepth();
@@ -474,7 +474,7 @@ namespace ACESim
                 int beforeMultipleHedgeCopy = Unroll_Commands.CopyToNew(resultArray[Unroll_Result_HedgeVsHedgeIndex]);
                 int actionProbabilityCopy = Unroll_Commands.CopyToNew(actionProbability);
 
-                Unroll_Commands.MultiplyArrayBy(resultArray, actionProbability, false);
+                Unroll_Commands.MultiplyArrayBy(resultArray, actionProbability);
 
                 int resultHedgeCopy = Unroll_Commands.CopyToNew(resultArray[Unroll_Result_HedgeVsHedgeIndex]);
 
@@ -483,7 +483,7 @@ namespace ACESim
                     $"... action {action} value ARRAY{beforeMultipleHedgeCopy} probability ARRAY{actionProbabilityCopy} expected value contribution ARRAY{resultHedgeCopy}");
             }
             else
-                Unroll_Commands.MultiplyArrayBy(resultArray, actionProbability, false);
+                Unroll_Commands.MultiplyArrayBy(resultArray, actionProbability);
 
             Unroll_Commands.DecrementDepth();
         }
@@ -498,12 +498,12 @@ namespace ACESim
                 if (p == playerIndex)
                 {
                     if (!changeOtherPlayers)
-                        Unroll_Commands.MultiplyBy(resultArray[p], probabilityToMultiplyBy, false);
+                        Unroll_Commands.MultiplyBy(resultArray[p], probabilityToMultiplyBy);
                 }
                 else
                 {
                     if (changeOtherPlayers)
-                        Unroll_Commands.MultiplyBy(resultArray[p], probabilityToMultiplyBy, false);
+                        Unroll_Commands.MultiplyBy(resultArray[p], probabilityToMultiplyBy);
                 }
             }
             Unroll_Commands.DecrementDepth();
@@ -522,7 +522,7 @@ namespace ACESim
                     {
                         if (firstPlayerOtherThanMainFound)
                         {
-                            Unroll_Commands.MultiplyBy(inversePiValueResult, piValues[p], false);
+                            Unroll_Commands.MultiplyBy(inversePiValueResult, piValues[p]);
                         }
                         else
                         {

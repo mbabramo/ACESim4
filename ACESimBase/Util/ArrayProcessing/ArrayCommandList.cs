@@ -9,7 +9,7 @@ namespace ACESimBase.Util.ArrayProcessing
 {
     public class ArrayCommandList
     {
-        public const bool UseInterlockingWhereRequested = false; // DEBUG // can disable interlocking if we know this won't be run in parallel
+        public const bool InterlockWhereModifyingInitialSource = false; // DEBUG // can disable interlocking if we know this won't be run in parallel
 
         public ArrayCommand[] UnderlyingCommands;
         public int NextCommandIndex;
@@ -113,14 +113,14 @@ namespace ACESimBase.Util.ArrayProcessing
         public int AddToNew(int index1, int index2)
         {
             int result = CopyToNew(index1);
-            Increment(result, index2, false);
+            Increment(result, index2);
             return result;
         }
 
         public int MultiplyToNew(int index1, int index2)
         {
             int result = CopyToNew(index1);
-            MultiplyBy(result, index2, false);
+            MultiplyBy(result, index2);
             return result;
         }
 
@@ -128,6 +128,10 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void CopyToExisting(int index, int sourceIndex)
         {
+            if (UseOrderedSources && index < InitialArrayIndex)
+            {
+                throw new NotSupportedException("Only incrementing source item is currently supported.");
+            }
             AddCommand(new ArrayCommand(ArrayCommandType.CopyTo, index, sourceIndex));
         }
 
@@ -139,70 +143,70 @@ namespace ACESimBase.Util.ArrayProcessing
             }
         }
 
-        public void MultiplyArrayBy(int[] indices, int indexOfMultiplier, bool interlocked)
+        public void MultiplyArrayBy(int[] indices, int indexOfMultiplier)
         {
             for (int i = 0; i < indices.Length; i++)
-                MultiplyBy(indices[i], indexOfMultiplier, interlocked);
+                MultiplyBy(indices[i], indexOfMultiplier);
         }
 
-        public void MultiplyArrayBy(int[] indices, int[] indicesOfMultipliers, bool interlocked)
+        public void MultiplyArrayBy(int[] indices, int[] indicesOfMultipliers)
         {
             for (int i = 0; i < indices.Length; i++)
-                MultiplyBy(indices[i], indicesOfMultipliers[i], interlocked);
+                MultiplyBy(indices[i], indicesOfMultipliers[i]);
         }
 
-        public void MultiplyBy(int index, int indexOfMultiplier, bool interlocked)
+        public void MultiplyBy(int index, int indexOfMultiplier)
         {
-            AddCommand(new ArrayCommand(interlocked && UseInterlockingWhereRequested ? ArrayCommandType.MultiplyByInterlocked : ArrayCommandType.MultiplyBy, index, indexOfMultiplier));
+            AddCommand(new ArrayCommand(index < InitialArrayIndex && InterlockWhereModifyingInitialSource ? ArrayCommandType.MultiplyByInterlocked : ArrayCommandType.MultiplyBy, index, indexOfMultiplier));
         }
 
-        public void IncrementArrayBy(int[] indices, int indexOfIncrement, bool interlocked)
-        {
-            for (int i = 0; i < indices.Length; i++)
-                Increment(indices[i], indexOfIncrement, interlocked);
-        }
-
-        public void IncrementArrayBy(int[] indices, int[] indicesOfIncrements, bool interlocked)
+        public void IncrementArrayBy(int[] indices, int indexOfIncrement)
         {
             for (int i = 0; i < indices.Length; i++)
-                Increment(indices[i], indicesOfIncrements[i], interlocked);
+                Increment(indices[i], indexOfIncrement);
         }
 
-        public void Increment(int index, int indexOfIncrement, bool interlocked)
+        public void IncrementArrayBy(int[] indices, int[] indicesOfIncrements)
         {
-            AddCommand(new ArrayCommand(interlocked && UseInterlockingWhereRequested ? ArrayCommandType.IncrementByInterlocked : ArrayCommandType.IncrementBy, index, indexOfIncrement));
+            for (int i = 0; i < indices.Length; i++)
+                Increment(indices[i], indicesOfIncrements[i]);
         }
 
-        public void IncrementByProduct(int index, int indexOfIncrementProduct1, int indexOfIncrementProduct2, bool interlocked)
+        public void Increment(int index, int indexOfIncrement)
+        {
+            AddCommand(new ArrayCommand(index < InitialArrayIndex && InterlockWhereModifyingInitialSource ? ArrayCommandType.IncrementByInterlocked : ArrayCommandType.IncrementBy, index, indexOfIncrement));
+        }
+
+        public void IncrementByProduct(int index, int indexOfIncrementProduct1, int indexOfIncrementProduct2)
         {
             int spaceForProduct = CopyToNew(indexOfIncrementProduct1);
-            MultiplyBy(spaceForProduct, indexOfIncrementProduct2, interlocked);
-            Increment(index, spaceForProduct, interlocked);
+            MultiplyBy(spaceForProduct, indexOfIncrementProduct2);
+            Increment(index, spaceForProduct);
             NextArrayIndex--; // we've set aside an array index to be used for this command. But we no longer need it, so we can now allocate it to some other purpose (e.g., incrementing by another product)
         }
 
-        public void DecrementArrayBy(int[] indices, int indexOfDecrement, bool interlocked)
+        public void DecrementArrayBy(int[] indices, int indexOfDecrement)
         {
             for (int i = 0; i < indices.Length; i++)
-                Decrement(indices[i], indexOfDecrement, interlocked);
+                Decrement(indices[i], indexOfDecrement);
         }
 
-        public void DecrementArrayBy(int[] indices, int[] indicesOfDecrements, bool interlocked)
+        public void DecrementArrayBy(int[] indices, int[] indicesOfDecrements)
         {
             for (int i = 0; i < indices.Length; i++)
-                Decrement(indices[i], indicesOfDecrements[i], interlocked);
+                Decrement(indices[i], indicesOfDecrements[i]);
         }
 
-        public void Decrement(int index, int indexOfDecrement, bool interlocked)
+        public void Decrement(int index, int indexOfDecrement)
         {
-            AddCommand(new ArrayCommand(interlocked && UseInterlockingWhereRequested ? ArrayCommandType.DecrementByInterlocked : ArrayCommandType.DecrementBy, index, indexOfDecrement));
+            AddCommand(new ArrayCommand(index < InitialArrayIndex && InterlockWhereModifyingInitialSource ? ArrayCommandType.DecrementByInterlocked : ArrayCommandType.DecrementBy, index, indexOfDecrement));
         }
 
-        public void DecrementByProduct(int index, int indexOfDecrementProduct1, int indexOfDecrementProduct2, bool interlocked)
+        public void DecrementByProduct(int index, int indexOfDecrementProduct1, int indexOfDecrementProduct2)
         {
             int spaceForProduct = CopyToNew(indexOfDecrementProduct1);
-            MultiplyBy(spaceForProduct, indexOfDecrementProduct2, interlocked);
-            Decrement(index, spaceForProduct, interlocked);
+            MultiplyBy(spaceForProduct, indexOfDecrementProduct2);
+            Decrement(index, spaceForProduct);
             NextArrayIndex--; // we've set aside an array index to be used for this command. But we no longer need it, so we can now allocate it to some other purpose (e.g., Decrementing by another product)
         }
 
