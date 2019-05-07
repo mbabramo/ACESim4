@@ -4,13 +4,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace ACESimBase.Util.ArrayProcessing
 {
     public class ArrayCommandList
     {
-        public const bool InterlockWhereModifyingInitialSource = true;
+        public const bool InterlockWhereModifyingInitialSource = false; // DEBUG // can disable interlocking if we know this won't be run in parallel
 
         public ArrayCommand[] UnderlyingCommands;
         public int NextCommandIndex;
@@ -59,7 +58,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void CompleteCommandList()
         {
-            if (UseOrderedSources && UseOrderedDestinations)
+            if (UseOrderedSources)
             {
                 // The input array will no longer be needed when processing commands. Thus, we should instead adjust indices so that all indices refer to a smaller array, consisting only of the virtual stack.
                 for (int i = 0; i < NextCommandIndex; i++)
@@ -413,7 +412,7 @@ namespace ACESimBase.Util.ArrayProcessing
             fixed (ArrayCommand* overall = &UnderlyingCommands[0])
             fixed (double* arrayPointer = &array[0])
             {
-                double* arrayPortion = UseOrderedSources && UseOrderedDestinations ? (arrayPointer + InitialArrayIndex) : arrayPointer;
+                double* arrayPortion = UseOrderedSources ? (arrayPointer + InitialArrayIndex) : arrayPointer;
                 ArrayCommand* command = overall;
                 ArrayCommand* lastCommand = command + MaxCommandIndex;
                 while (command <= lastCommand)
@@ -516,8 +515,6 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void PrepareOrderedSourcesAndDestinations(double[] array)
         {
-            if (!UseOrderedSources && !UseOrderedDestinations)
-                return;
             int sourcesCount = OrderedSourceIndices.Count();
             int destinationsCount = OrderedDestinationIndices.Count();
             if (OrderedSources == null)
@@ -526,10 +523,10 @@ namespace ACESimBase.Util.ArrayProcessing
                 OrderedDestinations = new double[destinationsCount];
             }
             CurrentOrderedSourceIndex = 0;
-            Parallel.ForEach(OrderedSourceIndices, orderedSourceIndex =>
+            foreach (int orderedSourceIndex in OrderedSourceIndices)
             {
                 OrderedSources[CurrentOrderedSourceIndex++] = array[orderedSourceIndex];
-            });
+            }
             for (int i = 0; i < destinationsCount; i++)
                 OrderedDestinations[i] = 0;
             CurrentOrderedSourceIndex = 0;
@@ -539,15 +536,15 @@ namespace ACESimBase.Util.ArrayProcessing
         static object DestinationCopier = new object();
         public void CopyOrderedDestinations(double[] array)
         {
-            if (!UseOrderedDestinations)
-                return;
             lock (DestinationCopier)
             {
                 CurrentOrderedDestinationIndex = 0;
-                Parallel.ForEach(OrderedDestinationIndices, destinationIndex =>
+                foreach (int destinationIndex in OrderedDestinationIndices)
                 {
                     array[destinationIndex] += OrderedDestinations[CurrentOrderedDestinationIndex++];
-                });
+                    if (double.IsNaN(array[destinationIndex]))
+                        throw new Exception();
+                }
             }
         }
 
