@@ -18,10 +18,13 @@ namespace ACESimBase.Util.ArrayProcessing
         public int MaxArrayIndex;
 
         // Ordered sources: We keep a list of indices of the data passed to the algorithm each iteration. We then copy this data into the OrderedSources array in the order in which it will be needed. This helps performance and also with parallelism.
-        public bool UseOrderedSources = true;
+        public bool UseOrderedSourcesAndDestinations = false;
         public List<int> OrderedSourceIndices; 
         public double[] OrderedSources;
         public int CurrentOrderedSourceIndex;
+        public List<int> OrderedDestinationIndices;
+        public double[] OrderedDestinations;
+        public int CurrentOrderedDestinationIndex;
 
         public bool DoNotReuseArrayIndices = false;
         public Stack<int> PerDepthStartArrayIndices;
@@ -30,6 +33,7 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             UnderlyingCommands = new ArrayCommand[maxNumCommands];
             OrderedSourceIndices = new List<int>();
+            OrderedDestinationIndices = new List<int>();
             InitialArrayIndex = NextArrayIndex = MaxArrayIndex = initialArrayIndex;
             MaxArrayIndex--;
             PerDepthStartArrayIndices = new Stack<int>();
@@ -94,7 +98,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public int CopyToNew(int sourceIndex)
         {
-            if (UseOrderedSources && sourceIndex < InitialArrayIndex)
+            if (UseOrderedSourcesAndDestinations && sourceIndex < InitialArrayIndex)
             {
                 // Instead of copying from the source, we will add this index to our list of indices. This will improve performance, because we can preconstruct our sources and then just read from these consecutively.
                 OrderedSourceIndices.Add(sourceIndex);
@@ -128,7 +132,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void CopyToExisting(int index, int sourceIndex)
         {
-            if (UseOrderedSources && index < InitialArrayIndex)
+            if (UseOrderedSourcesAndDestinations && index < InitialArrayIndex)
             {
                 throw new NotSupportedException("Only incrementing source item is currently supported.");
             }
@@ -157,6 +161,8 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void MultiplyBy(int index, int indexOfMultiplier)
         {
+            if (index < InitialArrayIndex)
+                throw new NotSupportedException(); // use approach of increment to avoid interlocking code
             AddCommand(new ArrayCommand(index < InitialArrayIndex && InterlockWhereModifyingInitialSource ? ArrayCommandType.MultiplyByInterlocked : ArrayCommandType.MultiplyBy, index, indexOfMultiplier));
         }
 
@@ -174,7 +180,13 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void Increment(int index, int indexOfIncrement)
         {
-            AddCommand(new ArrayCommand(index < InitialArrayIndex && InterlockWhereModifyingInitialSource ? ArrayCommandType.IncrementByInterlocked : ArrayCommandType.IncrementBy, index, indexOfIncrement));
+            if (UseOrderedSourcesAndDestinations && index < InitialArrayIndex)
+            {
+                OrderedDestinationIndices.Add(index);
+                AddCommand(new ArrayCommand(ArrayCommandType.NextDestination, -1, indexOfIncrement));
+            }
+            else
+                AddCommand(new ArrayCommand(index < InitialArrayIndex && InterlockWhereModifyingInitialSource ? ArrayCommandType.IncrementByInterlocked : ArrayCommandType.IncrementBy, index, indexOfIncrement));
         }
 
         public void IncrementByProduct(int index, int indexOfIncrementProduct1, int indexOfIncrementProduct2)
@@ -199,6 +211,8 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void Decrement(int index, int indexOfDecrement)
         {
+            if (index < InitialArrayIndex)
+                throw new NotSupportedException(); // use approach of increment to avoid interlocking code
             AddCommand(new ArrayCommand(index < InitialArrayIndex && InterlockWhereModifyingInitialSource ? ArrayCommandType.DecrementByInterlocked : ArrayCommandType.DecrementBy, index, indexOfDecrement));
         }
 
@@ -250,6 +264,11 @@ namespace ACESimBase.Util.ArrayProcessing
         public void InsertGoToCommand(int commandIndexToReplace, int commandIndexToGoTo)
         {
             AddCommand(new ArrayCommand(ArrayCommandType.GoTo, commandIndexToGoTo, -1 /* ignored */));
+        }
+
+        public void InsertAfterGoToTargetCommand()
+        {
+            AddCommand(new ArrayCommand(ArrayCommandType.AfterGoTo, OrderedDestinationIndices.Count(), OrderedSourceIndices.Count()));
         }
 
         /// <summary>
@@ -388,6 +407,9 @@ namespace ACESimBase.Util.ArrayProcessing
                         case ArrayCommandType.NextSource:
                             array[(*command).Index] = OrderedSources[CurrentOrderedSourceIndex++];
                             break;
+                        case ArrayCommandType.NextDestination:
+                            OrderedDestinations[CurrentOrderedDestinationIndex++] = array[(*command).SourceIndex];
+                            break;
                         case ArrayCommandType.MultiplyBy:
                             // DEBUG -- breaking it down this way reveals that about half of the time is from the array accesses (second is basically free) and half from multiplication
                             //double getTarget = array[(*command).Index];
@@ -444,6 +466,10 @@ namespace ACESimBase.Util.ArrayProcessing
                         case ArrayCommandType.GoTo:
                             goTo = (*command).Index - 1; // because we are going to increment in the for loop
                             break;
+                        case ArrayCommandType.AfterGoTo:
+                            CurrentOrderedDestinationIndex = (*command).Index;
+                            CurrentOrderedSourceIndex = (*command).SourceIndex;
+                            break;
                         case ArrayCommandType.Blank:
                             break;
                         default:
@@ -456,18 +482,36 @@ namespace ACESimBase.Util.ArrayProcessing
                     command += 1;
                 }
             }
+            CopyOrderedDestinations(array);
         }
 
         public void PrepareOrderedSources(double[] array)
         {
-            int count = OrderedSourceIndices.Count();
+            int sourcesCount = OrderedSourceIndices.Count();
+            int destinationsCount = OrderedDestinationIndices.Count();
             if (OrderedSources == null)
-                OrderedSources = new double[count];
-            for (CurrentOrderedSourceIndex = 0; CurrentOrderedSourceIndex < count; CurrentOrderedSourceIndex++)
             {
-                OrderedSources[CurrentOrderedSourceIndex] = array[OrderedSourceIndices[CurrentOrderedSourceIndex]];
+                OrderedSources = new double[sourcesCount];
+                OrderedDestinations = new double[destinationsCount];
             }
             CurrentOrderedSourceIndex = 0;
+            foreach (int orderedSourceIndex in OrderedSourceIndices)
+            {
+                OrderedSources[CurrentOrderedSourceIndex++] = array[orderedSourceIndex];
+            }
+            CurrentOrderedSourceIndex = 0;
+            CurrentOrderedDestinationIndex = 0;
+        }
+
+        static object DestinationCopier = new object();
+        public void CopyOrderedDestinations(double[] array)
+        {
+            lock (DestinationCopier)
+            {
+                CurrentOrderedDestinationIndex = 0;
+                foreach (int destinationIndex in OrderedDestinationIndices)
+                    array[destinationIndex] += OrderedDestinations[CurrentOrderedDestinationIndex++];
+            }
         }
 
         #endregion

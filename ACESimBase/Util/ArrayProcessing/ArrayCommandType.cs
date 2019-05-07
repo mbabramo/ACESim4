@@ -9,6 +9,7 @@ namespace ACESimBase.Util.ArrayProcessing
         ZeroNew,
         CopyTo,
         NextSource,
+        NextDestination,
         MultiplyBy,
         IncrementBy,
         DecrementBy,
@@ -22,6 +23,7 @@ namespace ACESimBase.Util.ArrayProcessing
         EqualsValue,
         NotEqualsValue,
         GoTo,
-        Blank
+        AfterGoTo,
+        Blank,
     }
 }
