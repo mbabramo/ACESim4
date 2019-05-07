@@ -18,7 +18,8 @@ namespace ACESimBase.Util.ArrayProcessing
         public int MaxArrayIndex;
 
         // Ordered sources: We keep a list of indices of the data passed to the algorithm each iteration. We then copy this data into the OrderedSources array in the order in which it will be needed. This helps performance and also with parallelism.
-        public bool UseOrderedSourcesAndDestinations = false;
+        public bool UseOrderedSources = true;
+        public bool UseOrderedDestinations = true;
         public List<int> OrderedSourceIndices; 
         public double[] OrderedSources;
         public int CurrentOrderedSourceIndex;
@@ -98,7 +99,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public int CopyToNew(int sourceIndex)
         {
-            if (UseOrderedSourcesAndDestinations && sourceIndex < InitialArrayIndex)
+            if (UseOrderedSources && sourceIndex < InitialArrayIndex)
             {
                 // Instead of copying from the source, we will add this index to our list of indices. This will improve performance, because we can preconstruct our sources and then just read from these consecutively.
                 OrderedSourceIndices.Add(sourceIndex);
@@ -132,7 +133,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void CopyToExisting(int index, int sourceIndex)
         {
-            if (UseOrderedSourcesAndDestinations && index < InitialArrayIndex)
+            if (UseOrderedDestinations && index < InitialArrayIndex)
             {
                 throw new NotSupportedException("Only incrementing source item is currently supported.");
             }
@@ -180,7 +181,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void Increment(int index, int indexOfIncrement)
         {
-            if (UseOrderedSourcesAndDestinations && index < InitialArrayIndex)
+            if (UseOrderedDestinations && index < InitialArrayIndex)
             {
                 OrderedDestinationIndices.Add(index);
                 AddCommand(new ArrayCommand(ArrayCommandType.NextDestination, -1, indexOfIncrement));
