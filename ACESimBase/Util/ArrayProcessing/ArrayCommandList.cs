@@ -18,8 +18,8 @@ namespace ACESimBase.Util.ArrayProcessing
         public int MaxArrayIndex;
 
         // Ordered sources: We keep a list of indices of the data passed to the algorithm each iteration. We then copy this data into the OrderedSources array in the order in which it will be needed. This helps performance and also with parallelism.
-        public bool UseOrderedSources = false;
-        public bool UseOrderedDestinations = false;
+        public bool UseOrderedSources = true;
+        public bool UseOrderedDestinations = true;
         public List<int> OrderedSourceIndices; 
         public double[] OrderedSources;
         public int CurrentOrderedSourceIndex;
@@ -58,7 +58,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void CompleteCommandList()
         {
-            if (UseOrderedSources && UseOrderedDestinations)
+            if (UseOrderedSources)
             {
                 // The input array will no longer be needed when processing commands. Thus, we should instead adjust indices so that all indices refer to a smaller array, consisting only of the virtual stack.
                 for (int i = 0; i < NextCommandIndex; i++)
@@ -74,7 +74,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         private void AddCommand(ArrayCommand command)
         {
-            if (NextCommandIndex == 724)
+            if (NextCommandIndex == 129829)
             {
                 var DEBUG = 0;
             }
@@ -202,6 +202,8 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             if (UseOrderedDestinations && index < InitialArrayIndex)
             {
+                if (indexOfIncrement < InitialArrayIndex)
+                    throw new Exception("Must increment from the array command list stack, not from the original array.");
                 OrderedDestinationIndices.Add(index);
                 AddCommand(new ArrayCommand(ArrayCommandType.NextDestination, -1, indexOfIncrement));
             }
@@ -403,32 +405,47 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public unsafe void ExecuteAll(double[] array)
         {
-            PrepareOrderedSources(array);
+            PrepareOrderedSourcesAndDestinations(array);
             int MaxCommandIndex = NextCommandIndex;
             bool skipNext;
             int goTo;
             fixed (ArrayCommand* overall = &UnderlyingCommands[0])
+            fixed (double* arrayPointer = &array[0])
             {
+                double* arrayPortion = UseOrderedSources ? (arrayPointer + InitialArrayIndex) : arrayPointer;
                 ArrayCommand* command = overall;
                 ArrayCommand* lastCommand = command + MaxCommandIndex;
+                int DEBUGindex = -1;
                 while (command <= lastCommand)
                 {
+                    DEBUGindex++;
                     //System.Diagnostics.Debug.WriteLine(*command);
                     skipNext = false;
                     goTo = -1;
+                    if ((*command).Index == 267 && DEBUGindex == 130551)
+                    {
+                        var DEBUG2 = 0;
+                    }
                     switch ((*command).CommandType)
                     {
                         case ArrayCommandType.ZeroNew:
-                            array[(*command).Index] = 0;
+                            arrayPortion[(*command).Index] = 0;
                             break;
                         case ArrayCommandType.CopyTo:
-                            array[(*command).Index] = array[(*command).SourceIndex];
+                            arrayPortion[(*command).Index] = arrayPortion[(*command).SourceIndex];
+                            if (double.IsInfinity(arrayPortion[(*command).Index]))
+                                throw new Exception("DEBUG");
                             break;
                         case ArrayCommandType.NextSource:
-                            array[(*command).Index] = OrderedSources[CurrentOrderedSourceIndex++];
+                            arrayPortion[(*command).Index] = OrderedSources[CurrentOrderedSourceIndex++];
+                            if (double.IsInfinity(arrayPortion[(*command).Index]))
+                                throw new Exception("DEBUG");
                             break;
                         case ArrayCommandType.NextDestination:
-                            OrderedDestinations[CurrentOrderedDestinationIndex++] = array[(*command).SourceIndex];
+                            double value = arrayPortion[(*command).SourceIndex];
+                            if (double.IsNaN(value) || double.IsInfinity(value))
+                                throw new Exception("DEBUG");
+                            OrderedDestinations[CurrentOrderedDestinationIndex++] = value;
                             break;
                         case ArrayCommandType.MultiplyBy:
                             // DEBUG -- breaking it down this way reveals that about half of the time is from the array accesses (second is basically free) and half from multiplication
@@ -436,51 +453,51 @@ namespace ACESimBase.Util.ArrayProcessing
                             //double getSource = array[(*command).SourceIndex];
                             //getTarget *= getSource;
                             //array[(*command).Index] = getTarget;
-                            array[(*command).Index] *= array[(*command).SourceIndex];
+                            arrayPortion[(*command).Index] *= arrayPortion[(*command).SourceIndex];
                             break;
                         case ArrayCommandType.IncrementBy:
-                            array[(*command).Index] += array[(*command).SourceIndex];
+                            arrayPortion[(*command).Index] += arrayPortion[(*command).SourceIndex];
                             break;
                         case ArrayCommandType.DecrementBy:
-                            array[(*command).Index] -= array[(*command).SourceIndex];
+                            arrayPortion[(*command).Index] -= arrayPortion[(*command).SourceIndex];
                             break;
                         case ArrayCommandType.MultiplyByInterlocked:
-                            Interlocking.Multiply(ref array[(*command).Index], array[(*command).SourceIndex]);
+                            Interlocking.Multiply(ref arrayPortion[(*command).Index], arrayPortion[(*command).SourceIndex]);
                             break;
                         case ArrayCommandType.IncrementByInterlocked:
-                            Interlocking.Add(ref array[(*command).Index], array[(*command).SourceIndex]);
+                            Interlocking.Add(ref arrayPortion[(*command).Index], arrayPortion[(*command).SourceIndex]);
                             break;
                         case ArrayCommandType.DecrementByInterlocked:
-                            Interlocking.Subtract(ref array[(*command).Index], array[(*command).SourceIndex]);
+                            Interlocking.Subtract(ref arrayPortion[(*command).Index], arrayPortion[(*command).SourceIndex]);
                             break;
                         case ArrayCommandType.EqualsOtherArrayIndex:
-                            bool conditionMet = array[(*command).Index] == array[(*command).SourceIndex];
+                            bool conditionMet = arrayPortion[(*command).Index] == arrayPortion[(*command).SourceIndex];
                             if (!conditionMet)
                                 skipNext = true;
                             break;
                         case ArrayCommandType.NotEqualsOtherArrayIndex:
-                            conditionMet = array[(*command).Index] != array[(*command).SourceIndex];
+                            conditionMet = arrayPortion[(*command).Index] != arrayPortion[(*command).SourceIndex];
                             if (!conditionMet)
                                 skipNext = true;
                             break;
                         case ArrayCommandType.GreaterThanOtherArrayIndex:
-                            conditionMet = array[(*command).Index] > array[(*command).SourceIndex];
+                            conditionMet = arrayPortion[(*command).Index] > arrayPortion[(*command).SourceIndex];
                             if (!conditionMet)
                                 skipNext = true;
                             break;
                         case ArrayCommandType.LessThanOtherArrayIndex:
-                            conditionMet = array[(*command).Index] < array[(*command).SourceIndex];
+                            conditionMet = arrayPortion[(*command).Index] < arrayPortion[(*command).SourceIndex];
                             if (!conditionMet)
                                 skipNext = true;
                             break;
                             // in next two, sourceindex represents a value, not an array index
                         case ArrayCommandType.EqualsValue:
-                            conditionMet = array[(*command).Index] == (*command).SourceIndex;
+                            conditionMet = arrayPortion[(*command).Index] == (*command).SourceIndex;
                             if (!conditionMet)
                                 skipNext = true;
                             break;
                         case ArrayCommandType.NotEqualsValue:
-                            conditionMet = array[(*command).Index] != (*command).SourceIndex;
+                            conditionMet = arrayPortion[(*command).Index] != (*command).SourceIndex;
                             if (!conditionMet)
                                 skipNext = true;
                             break;
@@ -498,6 +515,8 @@ namespace ACESimBase.Util.ArrayProcessing
                         default:
                             throw new NotImplementedException();
                     }
+                    if (double.IsInfinity(array[267]) || array[15] > 900000)
+                        throw new Exception("DEBUG");
                     if (skipNext)
                         command += sizeof(ArrayCommand); // in addition to increment below
                     else if (goTo != -1)
@@ -508,7 +527,7 @@ namespace ACESimBase.Util.ArrayProcessing
             CopyOrderedDestinations(array);
         }
 
-        public void PrepareOrderedSources(double[] array)
+        public void PrepareOrderedSourcesAndDestinations(double[] array)
         {
             int sourcesCount = OrderedSourceIndices.Count();
             int destinationsCount = OrderedDestinationIndices.Count();
@@ -522,6 +541,8 @@ namespace ACESimBase.Util.ArrayProcessing
             {
                 OrderedSources[CurrentOrderedSourceIndex++] = array[orderedSourceIndex];
             }
+            for (int i = 0; i < destinationsCount; i++)
+                OrderedDestinations[i] = 0;
             CurrentOrderedSourceIndex = 0;
             CurrentOrderedDestinationIndex = 0;
         }
@@ -529,11 +550,17 @@ namespace ACESimBase.Util.ArrayProcessing
         static object DestinationCopier = new object();
         public void CopyOrderedDestinations(double[] array)
         {
+            if (OrderedDestinationIndices.Any(x => x < 50))
+                throw new Exception("DEBUG");
             lock (DestinationCopier)
             {
                 CurrentOrderedDestinationIndex = 0;
                 foreach (int destinationIndex in OrderedDestinationIndices)
+                {
                     array[destinationIndex] += OrderedDestinations[CurrentOrderedDestinationIndex++];
+                    if (double.IsNaN(array[destinationIndex]))
+                        throw new Exception();
+                }
             }
         }
 

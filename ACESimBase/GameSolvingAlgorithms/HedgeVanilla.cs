@@ -206,6 +206,15 @@ namespace ACESim
             Unroll_InitialArrayIndex = index;
         }
 
+        private void DEBUG(double[] array)
+        {
+            for (int i = 0; i < array.Length; i++)
+            {
+                if (double.IsNaN(array[i]) || double.IsInfinity(array[i]))
+                    throw new Exception();
+            }
+        }
+
         private void Unroll_CopyInformationSetsToArray(double[] array, bool copyChanceAndFinalUtilitiesNodes)
         {
             if (copyChanceAndFinalUtilitiesNodes)
@@ -252,10 +261,13 @@ namespace ACESim
             }
             CalculateDiscountingAdjustments();
             array[Unroll_AverageStrategyAdjustmentIndex] = AverageStrategyAdjustment;
+            DEBUG(array);
         }
 
         private void Unroll_CopyArrayToInformationSets(double[] array)
         {
+            for (int i = 0; i < array.Length; i++)
+                System.Diagnostics.Debug.WriteLine($"{i}: {array[i]}");
             Parallel.For(0, InformationSets.Count, x =>
             {
                 var infoSet = InformationSets[x];
@@ -598,7 +610,7 @@ namespace ACESim
 
         private unsafe void MiniReport(int iteration, HedgeVanillaUtilities[] results)
         {
-            const int MiniReportEveryPIterations = 10;
+            const int MiniReportEveryPIterations = 1;
             if (iteration % MiniReportEveryPIterations == 0)
             {
                 TabbedText.WriteLine($"Iteration {iteration}");
