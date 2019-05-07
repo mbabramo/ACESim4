@@ -415,17 +415,11 @@ namespace ACESimBase.Util.ArrayProcessing
                 double* arrayPortion = UseOrderedSources ? (arrayPointer + InitialArrayIndex) : arrayPointer;
                 ArrayCommand* command = overall;
                 ArrayCommand* lastCommand = command + MaxCommandIndex;
-                int DEBUGindex = -1;
                 while (command <= lastCommand)
                 {
-                    DEBUGindex++;
                     //System.Diagnostics.Debug.WriteLine(*command);
                     skipNext = false;
                     goTo = -1;
-                    if ((*command).Index == 267 && DEBUGindex == 130551)
-                    {
-                        var DEBUG2 = 0;
-                    }
                     switch ((*command).CommandType)
                     {
                         case ArrayCommandType.ZeroNew:
@@ -433,18 +427,12 @@ namespace ACESimBase.Util.ArrayProcessing
                             break;
                         case ArrayCommandType.CopyTo:
                             arrayPortion[(*command).Index] = arrayPortion[(*command).SourceIndex];
-                            if (double.IsInfinity(arrayPortion[(*command).Index]))
-                                throw new Exception("DEBUG");
                             break;
                         case ArrayCommandType.NextSource:
                             arrayPortion[(*command).Index] = OrderedSources[CurrentOrderedSourceIndex++];
-                            if (double.IsInfinity(arrayPortion[(*command).Index]))
-                                throw new Exception("DEBUG");
                             break;
                         case ArrayCommandType.NextDestination:
                             double value = arrayPortion[(*command).SourceIndex];
-                            if (double.IsNaN(value) || double.IsInfinity(value))
-                                throw new Exception("DEBUG");
                             OrderedDestinations[CurrentOrderedDestinationIndex++] = value;
                             break;
                         case ArrayCommandType.MultiplyBy:
@@ -515,8 +503,6 @@ namespace ACESimBase.Util.ArrayProcessing
                         default:
                             throw new NotImplementedException();
                     }
-                    if (double.IsInfinity(array[267]) || array[15] > 900000)
-                        throw new Exception("DEBUG");
                     if (skipNext)
                         command += sizeof(ArrayCommand); // in addition to increment below
                     else if (goTo != -1)
@@ -550,8 +536,6 @@ namespace ACESimBase.Util.ArrayProcessing
         static object DestinationCopier = new object();
         public void CopyOrderedDestinations(double[] array)
         {
-            if (OrderedDestinationIndices.Any(x => x < 50))
-                throw new Exception("DEBUG");
             lock (DestinationCopier)
             {
                 CurrentOrderedDestinationIndex = 0;

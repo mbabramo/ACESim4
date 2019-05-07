@@ -206,15 +206,6 @@ namespace ACESim
             Unroll_InitialArrayIndex = index;
         }
 
-        private void DEBUG(double[] array)
-        {
-            for (int i = 0; i < array.Length; i++)
-            {
-                if (double.IsNaN(array[i]) || double.IsInfinity(array[i]))
-                    throw new Exception();
-            }
-        }
-
         private void Unroll_CopyInformationSetsToArray(double[] array, bool copyChanceAndFinalUtilitiesNodes)
         {
             if (copyChanceAndFinalUtilitiesNodes)
@@ -261,13 +252,12 @@ namespace ACESim
             }
             CalculateDiscountingAdjustments();
             array[Unroll_AverageStrategyAdjustmentIndex] = AverageStrategyAdjustment;
-            DEBUG(array);
         }
 
         private void Unroll_CopyArrayToInformationSets(double[] array)
         {
-            for (int i = 0; i < array.Length; i++)
-                System.Diagnostics.Debug.WriteLine($"{i}: {array[i]}");
+            //for (int i = 0; i < array.Length; i++)
+            //    System.Diagnostics.Debug.WriteLine($"{i}: {array[i]}"); // DEBUG
             Parallel.For(0, InformationSets.Count, x =>
             {
                 var infoSet = InformationSets[x];
@@ -370,22 +360,9 @@ namespace ACESim
                 }
                 else
                 {
-                    //if (TraceCFR)
-                    //{
-                    //    //DEBUG
-                    //    TabbedText.WriteLine(
-                    //        $"... BEFORE prob ARRAY{probabilityOfAction} results: ARRAY{result[Unroll_Result_HedgeVsHedgeIndex]} ARRAY{result[Unroll_Result_AverageStrategyIndex]} ARRAY{result[Unroll_Result_BestResponseIndex]} inner:  ARRAY{innerResult[Unroll_Result_HedgeVsHedgeIndex]} ARRAY{innerResult[Unroll_Result_AverageStrategyIndex]} ARRAY{innerResult[Unroll_Result_BestResponseIndex]} ");
-                    //}
                     Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_HedgeVsHedgeIndex], probabilityOfAction, innerResult[Unroll_Result_HedgeVsHedgeIndex]);
                     Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_AverageStrategyIndex], probabilityOfActionAvgStrat, innerResult[Unroll_Result_AverageStrategyIndex]);
                     Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_BestResponseIndex], probabilityOfActionAvgStrat, innerResult[Unroll_Result_BestResponseIndex]);
-
-                    //if (TraceCFR)
-                    //{
-                    //    //DEBUG
-                    //    TabbedText.WriteLine(
-                    //        $"... AFTER prob ARRAY{probabilityOfAction} results: ARRAY{result[Unroll_Result_HedgeVsHedgeIndex]} ARRAY{result[Unroll_Result_AverageStrategyIndex]} ARRAY{result[Unroll_Result_BestResponseIndex]} ");
-                    //}
                 }
                 Unroll_Commands.IncrementByProduct(expectedValue, probabilityOfAction, expectedValueOfAction[action - 1]);
 
@@ -406,17 +383,6 @@ namespace ACESim
                     int pi = Unroll_Commands.CopyToNew(piValues[playerBeingOptimized]);
                     int regret = Unroll_Commands.CopyToNew(expectedValueOfAction[action - 1]);
                     Unroll_Commands.Decrement(regret, expectedValue);
-                    //if (TraceCFR)
-                    //{ // DEBUG
-                    //    int piValuesZeroCopy = Unroll_Commands.CopyToNew(piValues[0]);
-                    //    int piValuesOneCopy = Unroll_Commands.CopyToNew(piValues[1]);
-                    //    int regretCopy = Unroll_Commands.CopyToNew(regret);
-                    //    int inversePiCopy = Unroll_Commands.CopyToNew(inversePi);
-                    //    int exLagCopy = Unroll_Commands.CopyToNew(expectedValueOfAction[action - 1]);
-                    //    int exCopy = Unroll_Commands.CopyToNew(expectedValue);
-                    //    TabbedText.WriteLine(
-                    //        $"Extra regrets Action {action} regret ARRAY{regretCopy} = ARRAY{exLagCopy} - ARRAY{exCopy} ; inversePi ARRAY{inversePiCopy} avg_strat_incrememnt");
-                    //}
                     int lastRegret = Unroll_GetInformationSetIndex_LastRegret(informationSet.InformationSetNumber, action);
                     Unroll_Commands.IncrementByProduct(lastRegret, inversePi, regret);
                     // now contribution to average strategy
@@ -610,7 +576,7 @@ namespace ACESim
 
         private unsafe void MiniReport(int iteration, HedgeVanillaUtilities[] results)
         {
-            const int MiniReportEveryPIterations = 1;
+            const int MiniReportEveryPIterations = 10;
             if (iteration % MiniReportEveryPIterations == 0)
             {
                 TabbedText.WriteLine($"Iteration {iteration}");
@@ -686,10 +652,6 @@ namespace ACESim
             double* expectedValueOfAction = stackalloc double[numPossibleActions];
             double expectedValue = 0;
             HedgeVanillaUtilities result = default;
-            if (informationSet.DecisionByteCode == 14)
-            {
-                var DEBUG = 0;
-            }
             for (byte action = 1; action <= numPossibleActions; action++)
             {
                 double probabilityOfAction = actionProbabilities[action - 1];
@@ -740,11 +702,6 @@ namespace ACESim
                 {
                     double pi = piValues[playerBeingOptimized];
                     var regret = (expectedValueOfAction[action - 1] - expectedValue);
-                    //if (TraceCFR)
-                    //{ // DEBUG
-                    //    TabbedText.WriteLine(
-                    //        $"Extra regrets Action {action} regret {regret} = {expectedValueOfAction[action - 1]} - {expectedValue} ; inversePi {inversePi} avg_strat_incrememnt");
-                    //}
                     // NOTE: With normalized hedge, we do NOT discount regrets, because we're normalizing regrets at the end of each iteration.
                     informationSet.NormalizedHedgeIncrementLastRegret(action, inversePi * regret);
                     double contributionToAverageStrategy = pi * actionProbabilities[action - 1];
