@@ -260,14 +260,16 @@ namespace ACESimBase.Util.ArrayProcessing
 
         #region Execution
 
-        public void ExecuteAll(double[] array)
+        public void ExecuteAll_Safe(double[] array)
         {
+            // This is the safe code version of ExecuteAll. We should generally use the unsafe version, because it is faster.
             int MaxCommandIndex = NextCommandIndex;
             bool skipNext;
             int goTo;
             for (NextCommandIndex = 0; NextCommandIndex < MaxCommandIndex; NextCommandIndex++)
             {
                 ArrayCommand command = UnderlyingCommands[NextCommandIndex];
+                System.Diagnostics.Debug.WriteLine(command);
                 skipNext = false;
                 goTo = -1;
                 switch (command.CommandType)
@@ -279,11 +281,6 @@ namespace ACESimBase.Util.ArrayProcessing
                         array[command.Index] = array[command.SourceIndex];
                         break;
                     case ArrayCommandType.MultiplyBy:
-                        // DEBUG -- breaking it down this way reveals that about half of the time is from the array accesses (second is basically free) and half from multiplication
-                        //double getTarget = array[command.Index];
-                        //double getSource = array[command.SourceIndex];
-                        //getTarget *= getSource;
-                        //array[command.Index] = getTarget;
                         array[command.Index] *= array[command.SourceIndex];
                         break;
                     case ArrayCommandType.IncrementBy:
@@ -343,6 +340,98 @@ namespace ACESimBase.Util.ArrayProcessing
                     NextCommandIndex++; // in addition to increment in for statement
                 else if (goTo != -1)
                     NextCommandIndex = goTo;
+            }
+        }
+
+        public unsafe void ExecuteAll(double[] array)
+        {
+            int MaxCommandIndex = NextCommandIndex;
+            bool skipNext;
+            int goTo;
+            fixed (ArrayCommand* overall = &UnderlyingCommands[0])
+            {
+                ArrayCommand* command = overall;
+                ArrayCommand* lastCommand = command + MaxCommandIndex;
+                while (command <= lastCommand)
+                {
+                    //System.Diagnostics.Debug.WriteLine(*command);
+                    skipNext = false;
+                    goTo = -1;
+                    switch ((*command).CommandType)
+                    {
+                        case ArrayCommandType.ZeroNew:
+                            array[(*command).Index] = 0;
+                            break;
+                        case ArrayCommandType.CopyTo:
+                            array[(*command).Index] = array[(*command).SourceIndex];
+                            break;
+                        case ArrayCommandType.MultiplyBy:
+                            // DEBUG -- breaking it down this way reveals that about half of the time is from the array accesses (second is basically free) and half from multiplication
+                            //double getTarget = array[(*command).Index];
+                            //double getSource = array[(*command).SourceIndex];
+                            //getTarget *= getSource;
+                            //array[(*command).Index] = getTarget;
+                            array[(*command).Index] *= array[(*command).SourceIndex];
+                            break;
+                        case ArrayCommandType.IncrementBy:
+                            array[(*command).Index] += array[(*command).SourceIndex];
+                            break;
+                        case ArrayCommandType.DecrementBy:
+                            array[(*command).Index] -= array[(*command).SourceIndex];
+                            break;
+                        case ArrayCommandType.MultiplyByInterlocked:
+                            Interlocking.Multiply(ref array[(*command).Index], array[(*command).SourceIndex]);
+                            break;
+                        case ArrayCommandType.IncrementByInterlocked:
+                            Interlocking.Add(ref array[(*command).Index], array[(*command).SourceIndex]);
+                            break;
+                        case ArrayCommandType.DecrementByInterlocked:
+                            Interlocking.Subtract(ref array[(*command).Index], array[(*command).SourceIndex]);
+                            break;
+                        case ArrayCommandType.EqualsOtherArrayIndex:
+                            bool conditionMet = array[(*command).Index] == array[(*command).SourceIndex];
+                            if (!conditionMet)
+                                skipNext = true;
+                            break;
+                        case ArrayCommandType.NotEqualsOtherArrayIndex:
+                            conditionMet = array[(*command).Index] != array[(*command).SourceIndex];
+                            if (!conditionMet)
+                                skipNext = true;
+                            break;
+                        case ArrayCommandType.GreaterThanOtherArrayIndex:
+                            conditionMet = array[(*command).Index] > array[(*command).SourceIndex];
+                            if (!conditionMet)
+                                skipNext = true;
+                            break;
+                        case ArrayCommandType.LessThanOtherArrayIndex:
+                            conditionMet = array[(*command).Index] < array[(*command).SourceIndex];
+                            if (!conditionMet)
+                                skipNext = true;
+                            break;
+                        case ArrayCommandType.EqualsValue:
+                            conditionMet = array[(*command).Index] == (*command).SourceIndex;
+                            if (!conditionMet)
+                                skipNext = true;
+                            break;
+                        case ArrayCommandType.NotEqualsValue:
+                            conditionMet = array[(*command).Index] != (*command).SourceIndex;
+                            if (!conditionMet)
+                                skipNext = true;
+                            break;
+                        case ArrayCommandType.GoTo:
+                            goTo = (*command).Index - 1; // because we are going to increment in the for loop
+                            break;
+                        case ArrayCommandType.Blank:
+                            break;
+                        default:
+                            throw new NotImplementedException();
+                    }
+                    if (skipNext)
+                        command += sizeof(ArrayCommand); // in addition to increment below
+                    else if (goTo != -1)
+                        command = overall + goTo ;
+                    command += 1;
+                }
             }
         }
 

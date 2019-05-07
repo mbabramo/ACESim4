@@ -17,6 +17,11 @@ namespace ACESimBase.Util.ArrayProcessing
             SourceIndex = sourceIndex;
         }
 
+        public override string ToString()
+        {
+            return $"{CommandType} {Index} source:{SourceIndex}";
+        }
+
         public ArrayCommand WithIndex(int index) => new ArrayCommand(CommandType, index, SourceIndex);
 
         public ArrayCommand WithSourceIndex(int sourceIndex) => new ArrayCommand(CommandType, Index, sourceIndex);
