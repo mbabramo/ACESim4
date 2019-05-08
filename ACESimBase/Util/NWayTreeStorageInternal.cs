@@ -248,7 +248,7 @@ namespace ACESim
                     for (int branch = 1; branch <= Branches.Length; branch++)
                     {
                         if (Branches[branch - 1] != null && !Branches[branch - 1].Equals(default(T)))
-                            Branches[branch - 1].WalkTree(action);
+                            Branches[branch - 1].WalkTree(action, parallel);
                     }
                 }
                 else
@@ -256,7 +256,7 @@ namespace ACESim
                     Parallel.For(1, Branches.Length + 1, branch =>
                     {
                         if (Branches[branch - 1] != null && !Branches[branch - 1].Equals(default(T)))
-                            Branches[branch - 1].WalkTree(action);
+                            Branches[branch - 1].WalkTree(action, parallel);
                     });
                 }
             }

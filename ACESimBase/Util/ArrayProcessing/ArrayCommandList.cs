@@ -472,7 +472,11 @@ namespace ACESimBase.Util.ArrayProcessing
                         var commandChunk = node.StoredValue;
                         ExecuteHelper(array, commandChunk.StartCommandRange, commandChunk.EndCommandRangeExclusive - 1, commandChunk.StartSourceIndices, commandChunk.StartDestinationIndices, commandChunk.EndDestinationIndicesExclusive);
                     }
-                }, null);
+                }, n =>
+                {
+                    var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
+                    return node.StoredValue.ChildrenParallelizable;
+                });
 
             }
             else
