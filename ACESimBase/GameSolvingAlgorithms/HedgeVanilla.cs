@@ -277,7 +277,7 @@ namespace ACESim
 
         public unsafe void Unroll_HedgeVanillaCFR(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray)
         {
-            Unroll_Commands.IncrementDepth(true);
+            Unroll_Commands.IncrementDepth(false);
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
             if (gameStateType == GameStateTypeEnum.FinalUtilities)
@@ -296,7 +296,7 @@ namespace ACESim
             }
             else
                 Unroll_HedgeVanillaCFR_DecisionNode(ref historyPoint, playerBeingOptimized, piValues, avgStratPiValues, resultArray);
-            Unroll_Commands.DecrementDepth(true, playerBeingOptimized == NumNonChancePlayers - 1);
+            Unroll_Commands.DecrementDepth(false, playerBeingOptimized == NumNonChancePlayers - 1);
         }
 
         private unsafe void Unroll_HedgeVanillaCFR_DecisionNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray)
@@ -417,25 +417,29 @@ namespace ACESim
             ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings)gameStateForCurrentPlayer;
             byte numPossibleActions = chanceNodeSettings.Decision.NumPossibleActions;
             var historyPointCopy = historyPoint; // can't use historyPoint in anonymous method below. This is costly, so it might be worth optimizing if we use HedgeVanillaCFR much.
-            //DEBUG -- add parallelism back
-            //Parallelizer.GoByte(EvolutionSettings.ParallelOptimization, EvolutionSettings.MaxParallelDepth, 1,
-            //    (byte)(numPossibleActions + 1),
-            //    action =>
+            if (chanceNodeSettings.Decision.Unroll_Parallelize)
+                Unroll_Commands.StartCommandChunk(true, chanceNodeSettings.Decision.Name);
             for (byte action = 1; action <= numPossibleActions; action++)
             {
+                if (chanceNodeSettings.Decision.Unroll_Parallelize)
+                    Unroll_Commands.StartCommandChunk(false, chanceNodeSettings.Decision.Name + "=" + action.ToString());
                 var historyPointCopy2 = historyPointCopy; // Need to do this because we need a separate copy for each thread
                 int[] probabilityAdjustedInnerResult = Unroll_Commands.NewUninitializedArray(3);
                 Unroll_HedgeVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues, avgStratPiValues,
                         chanceNodeSettings, action, probabilityAdjustedInnerResult);
                 Unroll_Commands.IncrementArrayBy(resultArray, probabilityAdjustedInnerResult);
+                if (chanceNodeSettings.Decision.Unroll_Parallelize)
+                    Unroll_Commands.EndCommandChunk();
             }
-            
+            if (chanceNodeSettings.Decision.Unroll_Parallelize)
+                Unroll_Commands.EndCommandChunk();
+
             Unroll_Commands.DecrementDepth(false);
         }
 
         private unsafe void Unroll_HedgeVanillaCFR_ChanceNode_NextAction(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, ChanceNodeSettings chanceNodeSettings, byte action, int[] resultArray)
         {
-            Unroll_Commands.IncrementDepth(true);
+            Unroll_Commands.IncrementDepth(false);
             int actionProbability = Unroll_Commands.CopyToNew(Unroll_GetChanceNodeIndex_ProbabilityForAction(chanceNodeSettings.ChanceNodeNumber, action));
             int[] nextPiValues = Unroll_Commands.NewUninitializedArray(NumNonChancePlayers);
             Unroll_GetNextPiValues(piValues, playerBeingOptimized, actionProbability, true, nextPiValues);
@@ -470,7 +474,7 @@ namespace ACESim
             else
                 Unroll_Commands.MultiplyArrayBy(resultArray, actionProbability);
 
-            Unroll_Commands.DecrementDepth(true);
+            Unroll_Commands.DecrementDepth(false);
         }
 
         private unsafe void Unroll_GetNextPiValues(int[] currentPiValues, byte playerIndex, int probabilityToMultiplyBy, bool changeOtherPlayers, int[] resultArray)

@@ -87,19 +87,21 @@ namespace ACESimBase.Util.ArrayProcessing
             public int StartCommandRange, EndCommandRangeExclusive;
             public int StartSourceIndices, EndSourceIndicesExclusive;
             public int StartDestinationIndices, EndDestinationIndicesExclusive;
+            internal string Name;
 
             public override string ToString()
             {
-                return $"{(ChildrenParallelizable ? "P" : "")}[{StartCommandRange},{EndCommandRangeExclusive})";
+                return $"{Name}{(Name != null ? " " : "")}{EndCommandRangeExclusive - StartCommandRange} Commands:[{StartCommandRange},{EndCommandRangeExclusive})  Sources:[{StartSourceIndices},{EndSourceIndicesExclusive}) Destinations:[{StartDestinationIndices},{EndDestinationIndicesExclusive}) {(ChildrenParallelizable ? "In parallel:" : "")}";
             }
         }
 
-        public void StartCommandChunk(bool runChildrenInParallel)
+        public void StartCommandChunk(bool runChildrenInParallel, string name = "")
         {
             byte nextChild = (byte)(CurrentNode.StoredValue.LastChild + 1);
             NWayTreeStorageInternal<ArrayCommandChunk> childNode = new NWayTreeStorageInternal<ArrayCommandChunk>(CurrentNode);
             childNode.StoredValue = new ArrayCommandChunk()
             {
+                Name = name,
                 ChildrenParallelizable = runChildrenInParallel,
                 StartCommandRange = NextCommandIndex,
                 StartSourceIndices = OrderedSourceIndices?.Count() ?? 0,

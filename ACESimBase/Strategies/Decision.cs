@@ -181,6 +181,16 @@ namespace ACESim
         /// </summary>
         public bool Subdividable_IsSubdivision_Last;
 
+        /// <summary>
+        /// Indicates that when using an unrolling algorithm, different versions of the decision should be run in parallel.
+        /// </summary>
+        public bool Unroll_Parallelize;
+
+        /// <summary>
+        /// Indicates that when unrolling, the subsequent set of commands will be identical regardless of the action value taken. In other words, this should be true if the structure of the game remains the same for any action, even though of course the optimal decisions will depend on the action taken.
+        /// </summary>
+        public bool Unroll_Parallelize_Identical;
+
         public Decision()
         {
 

@@ -162,19 +162,19 @@ namespace ACESim
             CheckCompleteAfterPostPrimaryAction = postPrimaryChanceCanTerminate;
             if (prePrimaryChanceActions > 0)
             {
-                decisions.Add(new Decision("PrePrimaryChanceActions", "PrePrimary", (byte) MyGamePlayers.PrePrimaryChance, prePrimaryPlayersToInform, prePrimaryChanceActions, (byte) MyGameDecisions.PrePrimaryActionChance) {StoreActionInGameCacheItem = GameHistoryCacheIndex_PrePrimaryChance, IsReversible = true, UnevenChanceActions = prePrimaryUnevenChance});
+                decisions.Add(new Decision("PrePrimaryChanceActions", "PrePrimary", (byte) MyGamePlayers.PrePrimaryChance, prePrimaryPlayersToInform, prePrimaryChanceActions, (byte) MyGameDecisions.PrePrimaryActionChance) {StoreActionInGameCacheItem = GameHistoryCacheIndex_PrePrimaryChance, IsReversible = true, UnevenChanceActions = prePrimaryUnevenChance, Unroll_Parallelize = true, Unroll_Parallelize_Identical = true});
             }
             if (primaryActions > 0)
             {
-                decisions.Add(new Decision("PrimaryActions", "Primary", (byte) MyGamePlayers.Defendant /* DEBUG -- why defendant? */, primaryPlayersToInform, primaryActions, (byte) MyGameDecisions.PrimaryAction) {StoreActionInGameCacheItem = GameHistoryCacheIndex_PrimaryAction, IsReversible = true, CanTerminateGame = primaryActionCanTerminate});
+                decisions.Add(new Decision("PrimaryActions", "Primary", (byte) MyGamePlayers.Defendant /* DEBUG -- why defendant? */, primaryPlayersToInform, primaryActions, (byte) MyGameDecisions.PrimaryAction) {StoreActionInGameCacheItem = GameHistoryCacheIndex_PrimaryAction, IsReversible = true, CanTerminateGame = primaryActionCanTerminate, Unroll_Parallelize = true, Unroll_Parallelize_Identical = true });
             }
             if (postPrimaryChanceActions > 0)
             {
-                decisions.Add(new Decision("PostPrimaryChanceActions", "PostPrimary", (byte) MyGamePlayers.PostPrimaryChance, postPrimaryPlayersToInform, postPrimaryChanceActions, (byte) MyGameDecisions.PostPrimaryActionChance) {StoreActionInGameCacheItem = GameHistoryCacheIndex_PostPrimaryChance, IsReversible = true, UnevenChanceActions = postPrimaryUnevenChance, CanTerminateGame = postPrimaryChanceCanTerminate});
+                decisions.Add(new Decision("PostPrimaryChanceActions", "PostPrimary", (byte) MyGamePlayers.PostPrimaryChance, postPrimaryPlayersToInform, postPrimaryChanceActions, (byte) MyGameDecisions.PostPrimaryActionChance) {StoreActionInGameCacheItem = GameHistoryCacheIndex_PostPrimaryChance, IsReversible = true, UnevenChanceActions = postPrimaryUnevenChance, CanTerminateGame = postPrimaryChanceCanTerminate, Unroll_Parallelize = true, Unroll_Parallelize_Identical = true });
             }
             decisions.Add(new Decision("LitigationQuality", "Qual", (byte)MyGamePlayers.QualityChance,
                     playersKnowingLitigationQuality.ToArray(), Options.NumLitigationQualityPoints, (byte)MyGameDecisions.LitigationQuality)
-                { StoreActionInGameCacheItem = GameHistoryCacheIndex_LitigationQuality, IsReversible = true, UnevenChanceActions = litigationQualityUnevenChance });
+                { StoreActionInGameCacheItem = GameHistoryCacheIndex_LitigationQuality, IsReversible = true, UnevenChanceActions = litigationQualityUnevenChance, Unroll_Parallelize = true, Unroll_Parallelize_Identical = true });
         }
         
         private void AddSignalsDecisions(List<Decision> decisions)
