@@ -24,7 +24,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public double[] OrderedSources;
         // Ordered destinations: Similarly, when the unrolled algorithm changes the data passed to it (for example, incrementing regrets in CFR), instead of directly incrementing the data, we develop in advance a list of the indices that will be changed. Then, when running the algorithm, we store the actual data that needs to be changed in an array, and on completion of the algorithm, we run through that array and change the data at the specified index for each item. This enhances parallelism because we don't have to lock around each data change, instead locking only around the final set of changes. This also may facilitate spreading the algorithm across machines, since each CPU can simply report the set of changes to make.
         public bool UseOrderedDestinations = true;
-        public bool ReuseDestinations = true; // if true, then we will not add a new ordered destination index for a destination location already used within code executed not in parallel. Instead, we will just increment the previous destination.
+        public bool ReuseDestinations = false; // DEBUG // if true, then we will not add a new ordered destination index for a destination location already used within code executed not in parallel. Instead, we will just increment the previous destination.
         public List<int> OrderedDestinationIndices;
         public double[] OrderedDestinations;
         public Dictionary<int, int> ReusableOrderedDestinationIndices;
@@ -143,25 +143,25 @@ namespace ACESimBase.Util.ArrayProcessing
             while (CurrentCommandTreeLocation.Any())
                 EndCommandChunk();
             CommandTree.WalkTree(x => InsertMissingBranches((NWayTreeStorageInternal < ArrayCommandChunk > ) x));
-            var result = CommandTree.ToString();
+            var commandTreeString = CommandTree.ToString();
         }
 
-        private void InsertMissingBranches(NWayTreeStorageInternal<ArrayCommandChunk> x)
+        private void InsertMissingBranches(NWayTreeStorageInternal<ArrayCommandChunk> node)
         {
-            byte lastChild = x.StoredValue.LastChild;
+            byte lastChild = node.StoredValue.LastChild;
             if (lastChild > 0)
             {
                 List<NWayTreeStorageInternal<ArrayCommandChunk>> children = new List<NWayTreeStorageInternal<ArrayCommandChunk>>();
-                int currentCommandIndex = x.StoredValue.StartCommandRange;
-                int currentSourceIndex = x.StoredValue.StartSourceIndices;
-                int currentDestinationIndex = x.StoredValue.StartDestinationIndices;
+                int currentCommandIndex = node.StoredValue.StartCommandRange;
+                int currentSourceIndex = node.StoredValue.StartSourceIndices;
+                int currentDestinationIndex = node.StoredValue.StartDestinationIndices;
                 for (byte c = 1; c <= lastChild; c++)
                 {
-                    var branch = (NWayTreeStorageInternal<ArrayCommandChunk>) x.GetBranch(c);
+                    var branch = (NWayTreeStorageInternal<ArrayCommandChunk>) node.GetBranch(c);
                     var next = branch.StoredValue;
                     if (branch.StoredValue.StartCommandRange > currentCommandIndex)
                     { // there is a missing command range -- insert it
-                        var toInsert = new NWayTreeStorageInternal<ArrayCommandChunk>(x);
+                        var toInsert = new NWayTreeStorageInternal<ArrayCommandChunk>(node);
                         toInsert.StoredValue = new ArrayCommandChunk()
                         {
                             ChildrenParallelizable = false,
@@ -178,8 +178,23 @@ namespace ACESimBase.Util.ArrayProcessing
                     currentCommandIndex = next.EndCommandRangeExclusive;
                     currentSourceIndex = next.EndSourceIndicesExclusive;
                     currentDestinationIndex = next.EndDestinationIndicesExclusive;
+                    if (c == lastChild && (currentCommandIndex < node.StoredValue.EndCommandRangeExclusive || currentSourceIndex < node.StoredValue.EndSourceIndicesExclusive || currentDestinationIndex < node.StoredValue.EndDestinationIndicesExclusive))
+                    {
+                        var toInsert = new NWayTreeStorageInternal<ArrayCommandChunk>(node);
+                        toInsert.StoredValue = new ArrayCommandChunk()
+                        {
+                            ChildrenParallelizable = false,
+                            StartCommandRange = currentCommandIndex,
+                            EndCommandRangeExclusive = node.StoredValue.EndCommandRangeExclusive,
+                            StartSourceIndices = currentSourceIndex,
+                            EndSourceIndicesExclusive = node.StoredValue.EndSourceIndicesExclusive,
+                            StartDestinationIndices = currentDestinationIndex,
+                            EndDestinationIndicesExclusive = node.StoredValue.EndDestinationIndicesExclusive,
+                        };
+                        children.Add(toInsert);
+                    }
                 }
-                x.Branches = children.ToArray();
+                node.Branches = children.ToArray();
             }
         }
 
@@ -449,24 +464,31 @@ namespace ACESimBase.Util.ArrayProcessing
             PrepareOrderedSourcesAndDestinations(array);
             if (Parallelize)
             {
+                //var DEBUG = array.ToArray();
                 CommandTree.WalkTree(n =>
                 {
                     var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
                     if (node.Branches == null || !node.Branches.Any())
                     {
                         var commandChunk = node.StoredValue;
-                        ExecuteHelper(array, commandChunk.StartCommandRange, commandChunk.EndCommandRangeExclusive - 1, commandChunk.StartSourceIndices, commandChunk.StartDestinationIndices);
+                        ExecuteHelper(array, commandChunk.StartCommandRange, commandChunk.EndCommandRangeExclusive - 1, commandChunk.StartSourceIndices, commandChunk.StartDestinationIndices, commandChunk.EndDestinationIndicesExclusive);
                     }
                 }, null);
+                //ExecuteHelper(DEBUG, 0, MaxCommandIndex, 0, 0, OrderedDestinationIndices.Count());
+                //for (int i = 0; i < array.Count(); i++)
+                //    if (array[i] != DEBUG[i] && i != 2564)
+                //        throw new Exception();
+
             }
             else
-                ExecuteHelper(array, 0, MaxCommandIndex, 0, 0);
+                ExecuteHelper(array, 0, MaxCommandIndex, 0, 0, OrderedDestinationIndices.Count());
         }
 
         static int DEBUGCount = 0;
 
-        private unsafe void ExecuteHelper(double[] array, int startCommandIndex, int endCommandIndexInclusive, int currentOrderedSourceIndex, int currentOrderedDestinationIndex)
+        private unsafe void ExecuteHelper(double[] array, int startCommandIndex, int endCommandIndexInclusive, int currentOrderedSourceIndex, int startOrderedDestinationIndex, int endOrderedDestinationIndex)
         {
+            int currentOrderedDestinationIndex = startOrderedDestinationIndex;
             bool skipNext;
             int goTo;
             fixed (ArrayCommand* overall = &UnderlyingCommands[0])
@@ -584,7 +606,7 @@ namespace ACESimBase.Util.ArrayProcessing
                     command++;
                 }
             }
-            CopyOrderedDestinations(array);
+            CopyOrderedDestinations(array, startOrderedDestinationIndex, endOrderedDestinationIndex);
         }
 
         public void PrepareOrderedSourcesAndDestinations(double[] array)
@@ -606,16 +628,17 @@ namespace ACESimBase.Util.ArrayProcessing
         }
 
         static object DestinationCopier = new object();
-        public void CopyOrderedDestinations(double[] array)
+        public void CopyOrderedDestinations(double[] array, int startOrderedDestinationIndex, int endOrderedDestinationIndexExclusive)
         {
             lock (DestinationCopier)
             {
-                int currentOrderedDestinationIndex = 0;
-                foreach (int destinationIndex in OrderedDestinationIndices)
+                for (int currentOrderedDestinationIndex = startOrderedDestinationIndex; currentOrderedDestinationIndex < endOrderedDestinationIndexExclusive; currentOrderedDestinationIndex++)
                 {
-                    array[destinationIndex] += OrderedDestinations[currentOrderedDestinationIndex++];
+                    int destinationIndex = OrderedDestinationIndices[currentOrderedDestinationIndex];
+                    array[destinationIndex] += OrderedDestinations[currentOrderedDestinationIndex];
                     if (double.IsNaN(array[destinationIndex]))
                         throw new Exception();
+                    //System.Diagnostics.Debug.WriteLine($"{currentOrderedDestinationIndex}: {OrderedDestinations[currentOrderedDestinationIndex]} => {array[destinationIndex]}");
                 }
             }
         }
