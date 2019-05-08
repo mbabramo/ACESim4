@@ -238,15 +238,28 @@ namespace ACESim
             return nextTree;
         }
 
-        public override void WalkTree(Action<NWayTreeStorage<T>> action)
+        public override void WalkTree(Action<NWayTreeStorage<T>> action, Func<NWayTreeStorage<T>, bool> parallel = null)
         {
             action(this);
             if (Branches != null)
-                for (int branch = 1; branch <= Branches.Length; branch++)
+            {
+                if (parallel == null || parallel(this) == false)
                 {
-                    if (Branches[branch - 1] != null && !Branches[branch - 1].Equals(default(T)))
-                        Branches[branch - 1].WalkTree(action);
+                    for (int branch = 1; branch <= Branches.Length; branch++)
+                    {
+                        if (Branches[branch - 1] != null && !Branches[branch - 1].Equals(default(T)))
+                            Branches[branch - 1].WalkTree(action);
+                    }
                 }
+                else
+                {
+                    Parallel.For(1, Branches.Length + 1, branch =>
+                    {
+                        if (Branches[branch - 1] != null && !Branches[branch - 1].Equals(default(T)))
+                            Branches[branch - 1].WalkTree(action);
+                    });
+                }
+            }
         }
 
         internal override void ToTreeString(StringBuilder s, int? branch, int level, string branchWord)
