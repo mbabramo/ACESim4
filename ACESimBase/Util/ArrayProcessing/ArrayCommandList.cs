@@ -16,9 +16,11 @@ namespace ACESimBase.Util.ArrayProcessing
         public int NextArrayIndex;
         public int MaxArrayIndex;
 
-        // Ordered sources: We keep a list of indices of the data passed to the algorithm each iteration. We then copy this data into the OrderedSources array in the order in which it will be needed. This helps performance and also with parallelism.
+        // Ordered sources: We initially develop a list of indices of the data passed to the algorithm each iteration. Before each iteration, we copy the data corresponding to these indices into the OrderedSources array in the order in which it will be needed. A command that otherwise would copy from the original data instead loads the next item in ordered sources. This may slightly improve performance because a sequence of original data will be cached. More importantly, it can improve parallelism: When a player chooses among many actions that are structurally equivalent (that is, they do not change how the game is played from that point on), we can run the same code with different slices of the OrderedSources array.
+        // Ordered destinations: Similarly, when the unrolled algorithm changes the data passed to it (for example, incrementing regrets in CFR), instead of directly changing the data, we develop in advance a list of the indices that will be changed. Then, when running the algorithm, we store the actual data that needs to be changed in an array, and on completion of the algorithm, we run through that array and change the data at the specified index for each item. This enhances parallelism because we don't have to lock around each data change, instead locking only around the final set of changes. This also may facilitate spreading the algorithm across machines, since each CPU can simply report the set of changes to make.
         public bool UseOrderedSources = true;
         public bool UseOrderedDestinations = false;
+        public bool ReuseDestinations = false;
         public bool Parallelize;
         public bool InterlockWhereModifyingInitialSource => Parallelize && !UseOrderedDestinations;
         public List<int> OrderedSourceIndices; 
