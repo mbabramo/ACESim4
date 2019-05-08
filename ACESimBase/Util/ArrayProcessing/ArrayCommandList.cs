@@ -17,18 +17,18 @@ namespace ACESimBase.Util.ArrayProcessing
         public int MaxArrayIndex;
 
         // Ordered sources: We initially develop a list of indices of the data passed to the algorithm each iteration. Before each iteration, we copy the data corresponding to these indices into the OrderedSources array in the order in which it will be needed. A command that otherwise would copy from the original data instead loads the next item in ordered sources. This may slightly improve performance because a sequence of original data will be cached. More importantly, it can improve parallelism: When a player chooses among many actions that are structurally equivalent (that is, they do not change how the game is played from that point on), we can run the same code with different slices of the OrderedSources array.
-        // Ordered destinations: Similarly, when the unrolled algorithm changes the data passed to it (for example, incrementing regrets in CFR), instead of directly changing the data, we develop in advance a list of the indices that will be changed. Then, when running the algorithm, we store the actual data that needs to be changed in an array, and on completion of the algorithm, we run through that array and change the data at the specified index for each item. This enhances parallelism because we don't have to lock around each data change, instead locking only around the final set of changes. This also may facilitate spreading the algorithm across machines, since each CPU can simply report the set of changes to make.
         public bool UseOrderedSources = true;
-        public bool UseOrderedDestinations = false;
-        public bool ReuseDestinations = false;
-        public bool Parallelize;
-        public bool InterlockWhereModifyingInitialSource => Parallelize && !UseOrderedDestinations;
-        public List<int> OrderedSourceIndices; 
+        public List<int> OrderedSourceIndices;
         public double[] OrderedSources;
         public int CurrentOrderedSourceIndex;
+        // Ordered destinations: Similarly, when the unrolled algorithm changes the data passed to it (for example, incrementing regrets in CFR), instead of directly changing the data, we develop in advance a list of the indices that will be changed. Then, when running the algorithm, we store the actual data that needs to be changed in an array, and on completion of the algorithm, we run through that array and change the data at the specified index for each item. This enhances parallelism because we don't have to lock around each data change, instead locking only around the final set of changes. This also may facilitate spreading the algorithm across machines, since each CPU can simply report the set of changes to make.
+        public bool UseOrderedDestinations = false;
         public List<int> OrderedDestinationIndices;
         public double[] OrderedDestinations;
         public int CurrentOrderedDestinationIndex;
+        public bool ReuseDestinations = false;
+        public bool Parallelize;
+        public bool InterlockWhereModifyingInitialSource => Parallelize && !UseOrderedDestinations;
 
         public bool DoNotReuseArrayIndices = false;
         public Stack<int> PerDepthStartArrayIndices;
@@ -323,89 +323,6 @@ namespace ACESimBase.Util.ArrayProcessing
         #endregion
 
         #region Execution
-
-        public void ExecuteAll_Safe(double[] array)
-        {
-            // This is the safe code version of ExecuteAll. We should generally use the unsafe version, because it is faster.
-            int MaxCommandIndex = NextCommandIndex;
-            bool skipNext;
-            int goTo;
-            for (NextCommandIndex = 0; NextCommandIndex < MaxCommandIndex; NextCommandIndex++)
-            {
-                ArrayCommand command = UnderlyingCommands[NextCommandIndex];
-                //System.Diagnostics.Debug.WriteLine(command);
-                skipNext = false;
-                goTo = -1;
-                switch (command.CommandType)
-                {
-                    case ArrayCommandType.ZeroNew:
-                        array[command.Index] = 0;
-                        break;
-                    case ArrayCommandType.CopyTo:
-                        array[command.Index] = array[command.SourceIndex];
-                        break;
-                    case ArrayCommandType.MultiplyBy:
-                        array[command.Index] *= array[command.SourceIndex];
-                        break;
-                    case ArrayCommandType.IncrementBy:
-                        array[command.Index] += array[command.SourceIndex];
-                        break;
-                    case ArrayCommandType.DecrementBy:
-                        array[command.Index] -= array[command.SourceIndex];
-                        break;
-                    case ArrayCommandType.MultiplyByInterlocked:
-                        Interlocking.Multiply(ref array[command.Index], array[command.SourceIndex]);
-                        break;
-                    case ArrayCommandType.IncrementByInterlocked:
-                        Interlocking.Add(ref array[command.Index], array[command.SourceIndex]);
-                        break;
-                    case ArrayCommandType.DecrementByInterlocked:
-                        Interlocking.Subtract(ref array[command.Index], array[command.SourceIndex]);
-                        break;
-                    case ArrayCommandType.EqualsOtherArrayIndex:
-                        bool conditionMet = array[command.Index] == array[command.SourceIndex];
-                        if (!conditionMet)
-                            skipNext = true;
-                        break;
-                    case ArrayCommandType.NotEqualsOtherArrayIndex:
-                        conditionMet = array[command.Index] != array[command.SourceIndex];
-                        if (!conditionMet)
-                            skipNext = true;
-                        break;
-                    case ArrayCommandType.GreaterThanOtherArrayIndex:
-                        conditionMet = array[command.Index] > array[command.SourceIndex];
-                        if (!conditionMet)
-                            skipNext = true;
-                        break;
-                    case ArrayCommandType.LessThanOtherArrayIndex:
-                        conditionMet = array[command.Index] < array[command.SourceIndex];
-                        if (!conditionMet)
-                            skipNext = true;
-                        break;
-                    case ArrayCommandType.EqualsValue:
-                        conditionMet = array[command.Index] == command.SourceIndex;
-                        if (!conditionMet)
-                            skipNext = true;
-                        break;
-                    case ArrayCommandType.NotEqualsValue:
-                        conditionMet = array[command.Index] != command.SourceIndex;
-                        if (!conditionMet)
-                            skipNext = true;
-                        break;
-                    case ArrayCommandType.GoTo:
-                        goTo = command.Index - 1; // because we are going to increment in the for loop
-                        break;
-                    case ArrayCommandType.Blank:
-                        break;
-                    default:
-                        throw new NotImplementedException();
-                }
-                if (skipNext)
-                    NextCommandIndex++; // in addition to increment in for statement
-                else if (goTo != -1)
-                    NextCommandIndex = goTo;
-            }
-        }
 
         public unsafe void ExecuteAll(double[] array)
         {
