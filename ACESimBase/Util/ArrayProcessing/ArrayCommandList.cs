@@ -62,18 +62,22 @@ namespace ACESimBase.Util.ArrayProcessing
 
         // We are simulating a stack. When entering a new depth level, we remember the next array index. Then, when exiting this depth level, we revert to this array index. A consequence of this is that depth i + 1 can return values to depth <= i only by copying to array indices already set at this earlier depth. 
 
-        public void IncrementDepth()
+        public void IncrementDepth(bool separateCommandChunk)
         {
             PerDepthStartArrayIndices.Push(NextArrayIndex);
-            StartCommandChunk(false);
+            if (separateCommandChunk)
+                StartCommandChunk(false);
         }
 
-        public void DecrementDepth(bool completeCommandList = false)
+        public void DecrementDepth(bool separateCommandChunk, bool completeCommandList = false)
         {
             NextArrayIndex = PerDepthStartArrayIndices.Pop();
-            EndCommandChunk();
+            if (separateCommandChunk)
+                EndCommandChunk();
             if (!PerDepthStartArrayIndices.Any() && completeCommandList)
+            {
                 CompleteCommandList();
+            }
         }
 
         public class ArrayCommandChunk
@@ -83,18 +87,27 @@ namespace ACESimBase.Util.ArrayProcessing
             public int StartCommandRange, EndCommandRangeExclusive;
             public int StartSourceIndices, EndSourceIndicesExclusive;
             public int StartDestinationIndices, EndDestinationIndicesExclusive;
+
+            public override string ToString()
+            {
+                return $"{(ChildrenParallelizable ? "P" : "")}[{StartCommandRange},{EndCommandRangeExclusive})";
+            }
         }
 
         public void StartCommandChunk(bool runChildrenInParallel)
         {
             byte nextChild = (byte)(CurrentNode.StoredValue.LastChild + 1);
-            CurrentNode.SetBranch(nextChild, CurrentNode);
+            NWayTreeStorageInternal<ArrayCommandChunk> childNode = new NWayTreeStorageInternal<ArrayCommandChunk>(CurrentNode);
+            childNode.StoredValue = new ArrayCommandChunk()
+            {
+                ChildrenParallelizable = runChildrenInParallel,
+                StartCommandRange = NextCommandIndex,
+                StartSourceIndices = OrderedSourceIndices?.Count() ?? 0,
+                StartDestinationIndices = OrderedDestinationIndices?.Count() ?? 0
+            };
+            CurrentNode.SetBranch(nextChild, childNode);
             CurrentNode.StoredValue.LastChild = nextChild;
             CurrentCommandTreeLocation.Add(nextChild);
-            CurrentCommandChunk.ChildrenParallelizable = runChildrenInParallel;
-            CurrentCommandChunk.StartCommandRange = NextCommandIndex;
-            CurrentCommandChunk.StartSourceIndices = OrderedSourceIndices?.Count() ?? 0;
-            CurrentCommandChunk.StartDestinationIndices = OrderedDestinationIndices?.Count() ?? 0;
         }
 
         public void EndCommandChunk()
@@ -114,6 +127,51 @@ namespace ACESimBase.Util.ArrayProcessing
                 {
                     UnderlyingCommands[i] = UnderlyingCommands[i].WithArrayIndexDecrements(InitialArrayIndex);
                 }
+            }
+            CompleteCommandTree();
+        }
+
+        private void CompleteCommandTree()
+        {
+            EndCommandChunk();
+            CommandTree.WalkTree(x => InsertMissingBranches((NWayTreeStorageInternal < ArrayCommandChunk > ) x));
+            var result = CommandTree.ToString();
+        }
+
+        private void InsertMissingBranches(NWayTreeStorageInternal<ArrayCommandChunk> x)
+        {
+            byte lastChild = x.StoredValue.LastChild;
+            if (lastChild > 0)
+            {
+                List<NWayTreeStorageInternal<ArrayCommandChunk>> children = new List<NWayTreeStorageInternal<ArrayCommandChunk>>();
+                int currentCommandIndex = x.StoredValue.StartCommandRange;
+                int currentSourceIndex = x.StoredValue.StartSourceIndices;
+                int currentDestinationIndex = x.StoredValue.StartDestinationIndices;
+                for (byte c = 1; c <= lastChild; c++)
+                {
+                    var branch = (NWayTreeStorageInternal<ArrayCommandChunk>) x.GetBranch(c);
+                    var next = branch.StoredValue;
+                    if (branch.StoredValue.StartCommandRange > currentCommandIndex)
+                    { // there is a missing command range -- insert it
+                        var toInsert = new NWayTreeStorageInternal<ArrayCommandChunk>(x);
+                        toInsert.StoredValue = new ArrayCommandChunk()
+                        {
+                            ChildrenParallelizable = false,
+                            StartCommandRange = currentCommandIndex,
+                            EndCommandRangeExclusive = next.StartCommandRange,
+                            StartSourceIndices = currentSourceIndex,
+                            EndSourceIndicesExclusive = next.StartSourceIndices,
+                            StartDestinationIndices = currentDestinationIndex,
+                            EndDestinationIndicesExclusive = next.StartDestinationIndices,
+                        };
+                        children.Add(toInsert);
+                    }
+                    children.Add(branch);
+                    currentCommandIndex = next.EndCommandRangeExclusive;
+                    currentSourceIndex = next.EndSourceIndicesExclusive;
+                    currentDestinationIndex = next.EndDestinationIndicesExclusive;
+                }
+                x.Branches = children.ToArray();
             }
         }
 

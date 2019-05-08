@@ -19,6 +19,16 @@ namespace ACESim
             Branches = null; // initialize to null
         }
 
+        public override string ToString(int level)
+        {
+            StringBuilder b = new StringBuilder();
+            b.Append(base.ToString(level));
+            if (Branches != null)
+                foreach (var branch in Branches)
+                    b.Append(branch.ToString(level + 1));
+            return b.ToString();
+        }
+
         public override List<byte> GetSequenceToHere(NWayTreeStorage<T> child = null)
         {
             List<byte> p = base.GetSequenceToHere(child);

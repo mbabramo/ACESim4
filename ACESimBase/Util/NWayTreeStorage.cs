@@ -40,6 +40,16 @@ namespace ACESim
             }
         }
 
+        public override string ToString()
+        {
+            return ToString(0);
+        }
+
+        public virtual string ToString(int level)
+        {
+            return new string('\t', level) + StoredValue.ToString() + "\r\n";
+        }
+
         private void SetStoredValueWithLock(T value)
         {
             lock (this)
