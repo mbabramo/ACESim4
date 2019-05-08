@@ -13,6 +13,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public ArrayCommand[] UnderlyingCommands;
         public int NextCommandIndex;
+        public int MaxCommandIndex;
         public int InitialArrayIndex;
         public int NextArrayIndex;
         public int MaxArrayIndex;
@@ -125,10 +126,11 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void CompleteCommandList()
         {
+            MaxCommandIndex = NextCommandIndex;
             if (UseOrderedSources && UseOrderedDestinations)
             {
                 // The input array will no longer be needed when processing commands. Thus, we should instead adjust indices so that all indices refer to a smaller array, consisting only of the virtual stack.
-                for (int i = 0; i < NextCommandIndex; i++)
+                for (int i = 0; i < MaxCommandIndex; i++)
                 {
                     UnderlyingCommands[i] = UnderlyingCommands[i].WithArrayIndexDecrements(InitialArrayIndex);
                 }
@@ -444,18 +446,20 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public unsafe void ExecuteAll(double[] array)
         {
+            ExecuteHelper(array, InitialArrayIndex, MaxCommandIndex, 0, 0);
+        }
+
+        private unsafe void ExecuteHelper(double[] array, int startCommandIndex, int stopCommandIndex, int currentOrderedSourceIndex, int currentOrderedDestinationIndex)
+        {
             PrepareOrderedSourcesAndDestinations(array);
-            int currentOrderedSourceIndex = 0;
-            int currentOrderedDestinationIndex = 0;
-            int MaxCommandIndex = NextCommandIndex;
             bool skipNext;
             int goTo;
             fixed (ArrayCommand* overall = &UnderlyingCommands[0])
             fixed (double* arrayPointer = &array[0])
             {
-                double* arrayPortion = UseOrderedSources && UseOrderedDestinations ? (arrayPointer + InitialArrayIndex) : arrayPointer;
+                double* arrayPortion = UseOrderedSources && UseOrderedDestinations ? (arrayPointer + startCommandIndex) : arrayPointer;
                 ArrayCommand* command = overall;
-                ArrayCommand* lastCommand = command + MaxCommandIndex;
+                ArrayCommand* lastCommand = command + stopCommandIndex;
                 while (command <= lastCommand)
                 {
                     //System.Diagnostics.Debug.WriteLine(*command);
