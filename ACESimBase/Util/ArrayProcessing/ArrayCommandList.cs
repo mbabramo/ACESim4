@@ -9,7 +9,6 @@ namespace ACESimBase.Util.ArrayProcessing
 {
     public class ArrayCommandList
     {
-        public const bool InterlockWhereModifyingInitialSource = false; // DEBUG // can disable interlocking if we know this won't be run in parallel
 
         public ArrayCommand[] UnderlyingCommands;
         public int NextCommandIndex;
@@ -19,7 +18,9 @@ namespace ACESimBase.Util.ArrayProcessing
 
         // Ordered sources: We keep a list of indices of the data passed to the algorithm each iteration. We then copy this data into the OrderedSources array in the order in which it will be needed. This helps performance and also with parallelism.
         public bool UseOrderedSources = true;
-        public bool UseOrderedDestinations = true;
+        public bool UseOrderedDestinations = false;
+        public bool Parallelize;
+        public bool InterlockWhereModifyingInitialSource => Parallelize && !UseOrderedDestinations;
         public List<int> OrderedSourceIndices; 
         public double[] OrderedSources;
         public int CurrentOrderedSourceIndex;
@@ -30,7 +31,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public bool DoNotReuseArrayIndices = false;
         public Stack<int> PerDepthStartArrayIndices;
 
-        public ArrayCommandList(int maxNumCommands, int initialArrayIndex)
+        public ArrayCommandList(int maxNumCommands, int initialArrayIndex, bool parallelize)
         {
             UnderlyingCommands = new ArrayCommand[maxNumCommands];
             OrderedSourceIndices = new List<int>();
@@ -38,6 +39,7 @@ namespace ACESimBase.Util.ArrayProcessing
             InitialArrayIndex = NextArrayIndex = MaxArrayIndex = initialArrayIndex;
             MaxArrayIndex--;
             PerDepthStartArrayIndices = new Stack<int>();
+            Parallelize = parallelize;
         }
 
         #region Depth management
@@ -58,7 +60,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void CompleteCommandList()
         {
-            if (UseOrderedSources)
+            if (UseOrderedSources && UseOrderedDestinations)
             {
                 // The input array will no longer be needed when processing commands. Thus, we should instead adjust indices so that all indices refer to a smaller array, consisting only of the virtual stack.
                 for (int i = 0; i < NextCommandIndex; i++)
@@ -412,7 +414,7 @@ namespace ACESimBase.Util.ArrayProcessing
             fixed (ArrayCommand* overall = &UnderlyingCommands[0])
             fixed (double* arrayPointer = &array[0])
             {
-                double* arrayPortion = UseOrderedSources ? (arrayPointer + InitialArrayIndex) : arrayPointer;
+                double* arrayPortion = UseOrderedSources && UseOrderedDestinations ? (arrayPointer + InitialArrayIndex) : arrayPointer;
                 ArrayCommand* command = overall;
                 ArrayCommand* lastCommand = command + MaxCommandIndex;
                 while (command <= lastCommand)
