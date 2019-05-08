@@ -446,22 +446,41 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public unsafe void ExecuteAll(double[] array)
         {
-            ExecuteHelper(array, InitialArrayIndex, MaxCommandIndex, 0, 0);
+            PrepareOrderedSourcesAndDestinations(array);
+            if (Parallelize)
+            {
+                CommandTree.WalkTree(n =>
+                {
+                    var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
+                    if (node.Branches == null || !node.Branches.Any())
+                    {
+                        var commandChunk = node.StoredValue;
+                        ExecuteHelper(array, commandChunk.StartCommandRange, commandChunk.EndCommandRangeExclusive - 1, commandChunk.StartSourceIndices, commandChunk.StartDestinationIndices);
+                    }
+                }, null);
+            }
+            else
+                ExecuteHelper(array, 0, MaxCommandIndex, 0, 0);
         }
 
-        private unsafe void ExecuteHelper(double[] array, int startCommandIndex, int stopCommandIndex, int currentOrderedSourceIndex, int currentOrderedDestinationIndex)
+        static int DEBUGCount = 0;
+
+        private unsafe void ExecuteHelper(double[] array, int startCommandIndex, int endCommandIndexInclusive, int currentOrderedSourceIndex, int currentOrderedDestinationIndex)
         {
-            PrepareOrderedSourcesAndDestinations(array);
             bool skipNext;
             int goTo;
             fixed (ArrayCommand* overall = &UnderlyingCommands[0])
             fixed (double* arrayPointer = &array[0])
             {
-                double* arrayPortion = UseOrderedSources && UseOrderedDestinations ? (arrayPointer + startCommandIndex) : arrayPointer;
-                ArrayCommand* command = overall;
-                ArrayCommand* lastCommand = command + stopCommandIndex;
+                double* arrayPortion = UseOrderedSources && UseOrderedDestinations ? (arrayPointer + InitialArrayIndex) : arrayPointer;
+                ArrayCommand* command = overall + startCommandIndex;
+                ArrayCommand* lastCommand = overall + endCommandIndexInclusive;
+                var DEBUG = startCommandIndex - 1;
                 while (command <= lastCommand)
                 {
+                    DEBUGCount++;
+                    DEBUG++;
+                    var DEBUG2 = UnderlyingCommands[DEBUG];
                     //System.Diagnostics.Debug.WriteLine(*command);
                     skipNext = false;
                     goTo = -1;
@@ -556,8 +575,13 @@ namespace ACESimBase.Util.ArrayProcessing
                     if (skipNext)
                         command += sizeof(ArrayCommand); // in addition to increment below
                     else if (goTo != -1)
-                        command = overall + goTo ;
-                    command += 1;
+                    {
+                        if (goTo < startCommandIndex || goTo > endCommandIndexInclusive)
+                            throw new Exception("Goto command cannot flow out of command chunk.");
+                        DEBUG = goTo;
+                        command = overall + goTo;
+                    }
+                    command++;
                 }
             }
             CopyOrderedDestinations(array);
