@@ -118,6 +118,9 @@ namespace ACESimBase.Util.ArrayProcessing
             CurrentCommandChunk.EndSourceIndicesExclusive = OrderedSourceIndices?.Count() ?? 0;
             CurrentCommandChunk.EndDestinationIndicesExclusive = OrderedDestinationIndices?.Count() ?? 0;
             CurrentCommandTreeLocation = CurrentCommandTreeLocation.Take(CurrentCommandTreeLocation.Count() - 1).ToList(); // remove last item
+            CurrentCommandChunk.EndCommandRangeExclusive = NextCommandIndex;
+            CurrentCommandChunk.EndSourceIndicesExclusive = OrderedSourceIndices?.Count() ?? 0;
+            CurrentCommandChunk.EndDestinationIndicesExclusive = OrderedDestinationIndices?.Count() ?? 0;
         }
 
         public void CompleteCommandList()
@@ -135,7 +138,8 @@ namespace ACESimBase.Util.ArrayProcessing
 
         private void CompleteCommandTree()
         {
-            EndCommandChunk();
+            while (CurrentCommandTreeLocation.Any())
+                EndCommandChunk();
             CommandTree.WalkTree(x => InsertMissingBranches((NWayTreeStorageInternal < ArrayCommandChunk > ) x));
             var result = CommandTree.ToString();
         }

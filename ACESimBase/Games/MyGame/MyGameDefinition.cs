@@ -185,14 +185,18 @@ namespace ACESim
                     new byte[] {(byte) MyGamePlayers.Plaintiff},
                     Options.NumSignals, (byte)MyGameDecisions.PSignal, unevenChanceActions: true)
                 {
-                    IsReversible = true 
+                    IsReversible = true,
+                    Unroll_Parallelize = true,
+                    Unroll_Parallelize_Identical = true
                 });
             if (Options.DNoiseStdev != 0)
                 decisions.Add(new Decision("DefendantSignal", "DS", (byte)MyGamePlayers.DSignalChance,
                     new byte[] { (byte)MyGamePlayers.Defendant },
                     Options.NumSignals, (byte)MyGameDecisions.DSignal, unevenChanceActions: true)
                 {
-                    IsReversible = true
+                    IsReversible = true,
+                    Unroll_Parallelize = true,
+                    Unroll_Parallelize_Identical = true
                 });
             CreateSignalsTables();
         }

@@ -82,12 +82,17 @@ namespace ACESim
             List<int> resultIndices = new List<int>();
             var initialPiValuesCopied = Unroll_Commands.CopyToNew(Unroll_InitialPiValuesIndices);
             var initialPiValues2Copied = Unroll_Commands.CopyToNew(Unroll_InitialPiValuesIndices);
+
+            Unroll_Commands.StartCommandChunk(false, "Iteration");
             for (byte p = 0; p < NumNonChancePlayers; p++)
             {
+                Unroll_Commands.StartCommandChunk(false, "Optimizing player " + p.ToString());
                 if (TraceCFR)
                     TabbedText.WriteLine($"Unrolling for Player {p}");
                 Unroll_HedgeVanillaCFR(ref historyPoint, p, initialPiValuesCopied, initialPiValues2Copied, Unroll_IterationResultForPlayersIndices[p]);
+                Unroll_Commands.EndCommandChunk();
             }
+            Unroll_Commands.EndCommandChunk();
 
             Unroll_SizeOfArray = Unroll_Commands.MaxArrayIndex + 1;
         }
