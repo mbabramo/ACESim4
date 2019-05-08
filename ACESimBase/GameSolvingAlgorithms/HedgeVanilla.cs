@@ -74,7 +74,7 @@ namespace ACESim
         {
             const int max_num_commands = 50_000_000;
             Unroll_InitializeInitialArrayIndices();
-            Unroll_Commands = new ArrayCommandList(max_num_commands, Unroll_InitialArrayIndex);
+            Unroll_Commands = new ArrayCommandList(max_num_commands, Unroll_InitialArrayIndex, false);
             if (TraceCFR)
                 Unroll_Commands.DoNotReuseArrayIndices = true;
             ActionStrategy = ActionStrategies.NormalizedHedge;

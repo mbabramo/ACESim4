@@ -20,12 +20,10 @@ namespace ACESimBase.Util.ArrayProcessing
         public bool UseOrderedSources = true;
         public List<int> OrderedSourceIndices;
         public double[] OrderedSources;
-        public int CurrentOrderedSourceIndex;
         // Ordered destinations: Similarly, when the unrolled algorithm changes the data passed to it (for example, incrementing regrets in CFR), instead of directly changing the data, we develop in advance a list of the indices that will be changed. Then, when running the algorithm, we store the actual data that needs to be changed in an array, and on completion of the algorithm, we run through that array and change the data at the specified index for each item. This enhances parallelism because we don't have to lock around each data change, instead locking only around the final set of changes. This also may facilitate spreading the algorithm across machines, since each CPU can simply report the set of changes to make.
-        public bool UseOrderedDestinations = false;
+        public bool UseOrderedDestinations = true;
         public List<int> OrderedDestinationIndices;
         public double[] OrderedDestinations;
-        public int CurrentOrderedDestinationIndex;
         public bool ReuseDestinations = false;
         public bool Parallelize;
         public bool InterlockWhereModifyingInitialSource => Parallelize && !UseOrderedDestinations;
@@ -327,6 +325,8 @@ namespace ACESimBase.Util.ArrayProcessing
         public unsafe void ExecuteAll(double[] array)
         {
             PrepareOrderedSourcesAndDestinations(array);
+            int currentOrderedSourceIndex = 0;
+            int currentOrderedDestinationIndex = 0;
             int MaxCommandIndex = NextCommandIndex;
             bool skipNext;
             int goTo;
@@ -350,11 +350,11 @@ namespace ACESimBase.Util.ArrayProcessing
                             arrayPortion[(*command).Index] = arrayPortion[(*command).SourceIndex];
                             break;
                         case ArrayCommandType.NextSource:
-                            arrayPortion[(*command).Index] = OrderedSources[CurrentOrderedSourceIndex++];
+                            arrayPortion[(*command).Index] = OrderedSources[currentOrderedSourceIndex++];
                             break;
                         case ArrayCommandType.NextDestination:
                             double value = arrayPortion[(*command).SourceIndex];
-                            OrderedDestinations[CurrentOrderedDestinationIndex++] = value;
+                            OrderedDestinations[currentOrderedDestinationIndex++] = value;
                             break;
                         case ArrayCommandType.MultiplyBy:
                             // DEBUG -- breaking it down this way reveals that about half of the time is from the array accesses (second is basically free) and half from multiplication
@@ -416,8 +416,8 @@ namespace ACESimBase.Util.ArrayProcessing
                             break;
                         case ArrayCommandType.AfterGoTo:
                             // indices here are indices but not into the original array
-                            CurrentOrderedDestinationIndex = (*command).Index;
-                            CurrentOrderedSourceIndex = (*command).SourceIndex;
+                            currentOrderedDestinationIndex = (*command).Index;
+                            currentOrderedSourceIndex = (*command).SourceIndex;
                             break;
                         case ArrayCommandType.Blank:
                             break;
@@ -443,15 +443,13 @@ namespace ACESimBase.Util.ArrayProcessing
                 OrderedSources = new double[sourcesCount];
                 OrderedDestinations = new double[destinationsCount];
             }
-            CurrentOrderedSourceIndex = 0;
+            int currentOrderedSourceIndex = 0;
             foreach (int orderedSourceIndex in OrderedSourceIndices)
             {
-                OrderedSources[CurrentOrderedSourceIndex++] = array[orderedSourceIndex];
+                OrderedSources[currentOrderedSourceIndex++] = array[orderedSourceIndex];
             }
             for (int i = 0; i < destinationsCount; i++)
                 OrderedDestinations[i] = 0;
-            CurrentOrderedSourceIndex = 0;
-            CurrentOrderedDestinationIndex = 0;
         }
 
         static object DestinationCopier = new object();
@@ -459,10 +457,10 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             lock (DestinationCopier)
             {
-                CurrentOrderedDestinationIndex = 0;
+                int currentOrderedDestinationIndex = 0;
                 foreach (int destinationIndex in OrderedDestinationIndices)
                 {
-                    array[destinationIndex] += OrderedDestinations[CurrentOrderedDestinationIndex++];
+                    array[destinationIndex] += OrderedDestinations[currentOrderedDestinationIndex++];
                     if (double.IsNaN(array[destinationIndex]))
                         throw new Exception();
                 }
