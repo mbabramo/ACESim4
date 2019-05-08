@@ -34,6 +34,8 @@ namespace ACESimBase.Util.ArrayProcessing
                 return Clone();
             if (CommandType == ArrayCommandType.EqualsValue || CommandType == ArrayCommandType.NotEqualsValue) // source index does not represent an array index
                 return new ArrayCommand(CommandType, Index == -1 ? -1 : Index - decrement, SourceIndex); 
+            if (CommandType == ArrayCommandType.ReusedDestination) // index does not represent an array index
+                return new ArrayCommand(CommandType, Index, SourceIndex == -1 ? -1 : SourceIndex - decrement);
             return new ArrayCommand(CommandType, Index == -1 ? -1 : Index - decrement, SourceIndex == -1 ? -1 : SourceIndex - decrement);
         }
 

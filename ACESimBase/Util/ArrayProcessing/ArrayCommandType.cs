@@ -10,6 +10,7 @@ namespace ACESimBase.Util.ArrayProcessing
         CopyTo,
         NextSource,
         NextDestination,
+        ReusedDestination,
         MultiplyBy,
         IncrementBy,
         DecrementBy,
