@@ -1,4 +1,5 @@
-﻿using ACESim.Util;
+﻿using ACESim;
+using ACESim.Util;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,15 +23,20 @@ namespace ACESimBase.Util.ArrayProcessing
         public double[] OrderedSources;
         // Ordered destinations: Similarly, when the unrolled algorithm changes the data passed to it (for example, incrementing regrets in CFR), instead of directly incrementing the data, we develop in advance a list of the indices that will be changed. Then, when running the algorithm, we store the actual data that needs to be changed in an array, and on completion of the algorithm, we run through that array and change the data at the specified index for each item. This enhances parallelism because we don't have to lock around each data change, instead locking only around the final set of changes. This also may facilitate spreading the algorithm across machines, since each CPU can simply report the set of changes to make.
         public bool UseOrderedDestinations = true;
+        public bool ReuseDestinations = true; // if true, then we will not add a new ordered destination index for a destination location already used within code executed not in parallel. Instead, we will just increment the previous destination.
         public List<int> OrderedDestinationIndices;
         public double[] OrderedDestinations;
-        public bool ReuseDestinations = true; // if true, then we will not add a new ordered destination index for a destination location already used within code executed not in parallel. Instead, we will just increment the previous destination.
         public Dictionary<int, int> ReusableOrderedDestinationIndices;
         public bool Parallelize;
         public bool InterlockWhereModifyingInitialSource => Parallelize && !UseOrderedDestinations;
 
         public bool DoNotReuseArrayIndices = false;
         public Stack<int> PerDepthStartArrayIndices;
+
+        NWayTreeStorageInternal<ArrayCommandChunk> CommandTree;
+        List<byte> CurrentCommandTreeLocation = new List<byte>();
+        NWayTreeStorageInternal<ArrayCommandChunk> CurrentNode => (NWayTreeStorageInternal<ArrayCommandChunk>) CommandTree.GetNode(CurrentCommandTreeLocation);
+        ArrayCommandChunk CurrentCommandChunk => CurrentNode.StoredValue;
 
         public ArrayCommandList(int maxNumCommands, int initialArrayIndex, bool parallelize)
         {
@@ -42,22 +48,61 @@ namespace ACESimBase.Util.ArrayProcessing
             MaxArrayIndex--;
             PerDepthStartArrayIndices = new Stack<int>();
             Parallelize = parallelize;
+            CommandTree = new NWayTreeStorageInternal<ArrayCommandChunk>(null);
+            CommandTree.StoredValue = new ArrayCommandChunk()
+            {
+                ChildrenParallelizable = false,
+                StartCommandRange = 0,
+                StartSourceIndices = 0,
+                StartDestinationIndices = 0
+            };
         }
 
-        #region Depth management
+        #region Depth management and parallelism
 
         // We are simulating a stack. When entering a new depth level, we remember the next array index. Then, when exiting this depth level, we revert to this array index. A consequence of this is that depth i + 1 can return values to depth <= i only by copying to array indices already set at this earlier depth. 
 
         public void IncrementDepth()
         {
             PerDepthStartArrayIndices.Push(NextArrayIndex);
+            StartCommandChunk(false);
         }
 
         public void DecrementDepth(bool completeCommandList = false)
         {
             NextArrayIndex = PerDepthStartArrayIndices.Pop();
+            EndCommandChunk();
             if (!PerDepthStartArrayIndices.Any() && completeCommandList)
                 CompleteCommandList();
+        }
+
+        public class ArrayCommandChunk
+        {
+            public bool ChildrenParallelizable;
+            public byte LastChild;
+            public int StartCommandRange, EndCommandRangeExclusive;
+            public int StartSourceIndices, EndSourceIndicesExclusive;
+            public int StartDestinationIndices, EndDestinationIndicesExclusive;
+        }
+
+        public void StartCommandChunk(bool runChildrenInParallel)
+        {
+            byte nextChild = (byte)(CurrentNode.StoredValue.LastChild + 1);
+            CurrentNode.SetBranch(nextChild, CurrentNode);
+            CurrentNode.StoredValue.LastChild = nextChild;
+            CurrentCommandTreeLocation.Add(nextChild);
+            CurrentCommandChunk.ChildrenParallelizable = runChildrenInParallel;
+            CurrentCommandChunk.StartCommandRange = NextCommandIndex;
+            CurrentCommandChunk.StartSourceIndices = OrderedSourceIndices?.Count() ?? 0;
+            CurrentCommandChunk.StartDestinationIndices = OrderedDestinationIndices?.Count() ?? 0;
+        }
+
+        public void EndCommandChunk()
+        {
+            CurrentCommandChunk.EndCommandRangeExclusive = NextCommandIndex;
+            CurrentCommandChunk.EndSourceIndicesExclusive = OrderedSourceIndices?.Count() ?? 0;
+            CurrentCommandChunk.EndDestinationIndicesExclusive = OrderedDestinationIndices?.Count() ?? 0;
+            CurrentCommandTreeLocation = CurrentCommandTreeLocation.Take(CurrentCommandTreeLocation.Count() - 1).ToList(); // remove last item
         }
 
         public void CompleteCommandList()

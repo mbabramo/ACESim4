@@ -67,6 +67,15 @@ namespace ACESim
         }
 
         public string SequenceToHereString => String.Join(",", GetSequenceToHere());
+        
+        public virtual NWayTreeStorage<T> GetNode(IEnumerable<byte> sequenceFromHere)
+        {
+            if (!sequenceFromHere.Any())
+                return this;
+            var branchByte = sequenceFromHere.First();
+            var branch = GetBranch(branchByte);
+            return branch.GetNode(sequenceFromHere.Skip(1));
+        }
 
         public virtual NWayTreeStorage<T> GetBranch(byte index)
         {
