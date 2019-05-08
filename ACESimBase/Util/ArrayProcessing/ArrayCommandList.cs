@@ -464,7 +464,6 @@ namespace ACESimBase.Util.ArrayProcessing
             PrepareOrderedSourcesAndDestinations(array);
             if (Parallelize)
             {
-                //var DEBUG = array.ToArray();
                 CommandTree.WalkTree(n =>
                 {
                     var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
@@ -474,17 +473,11 @@ namespace ACESimBase.Util.ArrayProcessing
                         ExecuteHelper(array, commandChunk.StartCommandRange, commandChunk.EndCommandRangeExclusive - 1, commandChunk.StartSourceIndices, commandChunk.StartDestinationIndices, commandChunk.EndDestinationIndicesExclusive);
                     }
                 }, null);
-                //ExecuteHelper(DEBUG, 0, MaxCommandIndex, 0, 0, OrderedDestinationIndices.Count());
-                //for (int i = 0; i < array.Count(); i++)
-                //    if (array[i] != DEBUG[i] && i != 2564)
-                //        throw new Exception();
 
             }
             else
                 ExecuteHelper(array, 0, MaxCommandIndex, 0, 0, OrderedDestinationIndices.Count());
         }
-
-        static int DEBUGCount = 0;
 
         private unsafe void ExecuteHelper(double[] array, int startCommandIndex, int endCommandIndexInclusive, int currentOrderedSourceIndex, int startOrderedDestinationIndex, int endOrderedDestinationIndex)
         {
@@ -497,12 +490,8 @@ namespace ACESimBase.Util.ArrayProcessing
                 double* arrayPortion = UseOrderedSources && UseOrderedDestinations ? (arrayPointer + InitialArrayIndex) : arrayPointer;
                 ArrayCommand* command = overall + startCommandIndex;
                 ArrayCommand* lastCommand = overall + endCommandIndexInclusive;
-                var DEBUG = startCommandIndex - 1;
                 while (command <= lastCommand)
                 {
-                    DEBUGCount++;
-                    DEBUG++;
-                    var DEBUG2 = UnderlyingCommands[DEBUG];
                     //System.Diagnostics.Debug.WriteLine(*command);
                     skipNext = false;
                     goTo = -1;
@@ -600,7 +589,6 @@ namespace ACESimBase.Util.ArrayProcessing
                     {
                         if (goTo < startCommandIndex || goTo > endCommandIndexInclusive)
                             throw new Exception("Goto command cannot flow out of command chunk.");
-                        DEBUG = goTo;
                         command = overall + goTo;
                     }
                     command++;
