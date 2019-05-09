@@ -111,7 +111,7 @@ namespace ACESimBase.Util.ArrayProcessing
             {
                 if (ParentVirtualStack != VirtualStack && ParentVirtualStack != null)
                 {
-                    int stackSize = Math.Min(ParentVirtualStack.Length, HighestRelativeSourceIndex);
+                    int stackSize = Math.Min(VirtualStack.Length, ParentVirtualStack.Length);
                     for (int i = 0; i < stackSize; i++)
                         VirtualStack[i] = ParentVirtualStack[i];
                 }
@@ -542,8 +542,9 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public unsafe void ExecuteAll(double[] array)
         {
+            bool useSafe = true;            // DEBUG -- compare speed
             PrepareOrderedSourcesAndDestinations(array);
-            if (Parallelize && false) // DEBUG
+            if (Parallelize)
             {
                 if (!UseOrderedSources || !UseOrderedDestinations)
                     throw new Exception("Must use ordered sources and destinations with parallelizable");
@@ -554,11 +555,14 @@ namespace ACESimBase.Util.ArrayProcessing
                     {
                         var commandChunk = node.StoredValue;
                         commandChunk.CopyParentVirtualStack();
-                        // DEBUG -- compare speed
-                        //ExecuteSectionOfCommands_Safe(new Span<double>(commandChunk.VirtualStack), commandChunk.StartCommandRange, commandChunk.EndCommandRangeExclusive - 1, commandChunk.StartSourceIndices, commandChunk.StartDestinationIndices, commandChunk.EndDestinationIndicesExclusive);
-                        fixed (double* arrayPointer = commandChunk.VirtualStack)
+                        if (useSafe)
+                            ExecuteSectionOfCommands_Safe(new Span<double>(commandChunk.VirtualStack), commandChunk.StartCommandRange, commandChunk.EndCommandRangeExclusive - 1, commandChunk.StartSourceIndices, commandChunk.StartDestinationIndices, commandChunk.EndDestinationIndicesExclusive);
+                        else
                         {
-                            ExecuteSectionOfCommands(arrayPointer, commandChunk.StartCommandRange, commandChunk.EndCommandRangeExclusive - 1, commandChunk.StartSourceIndices, commandChunk.StartDestinationIndices, commandChunk.EndDestinationIndicesExclusive);
+                            fixed (double* arrayPointer = commandChunk.VirtualStack)
+                            {
+                                ExecuteSectionOfCommands(arrayPointer, commandChunk.StartCommandRange, commandChunk.EndCommandRangeExclusive - 1, commandChunk.StartSourceIndices, commandChunk.StartDestinationIndices, commandChunk.EndDestinationIndicesExclusive);
+                            }
                         }
                     }
                 }, n =>
@@ -570,12 +574,18 @@ namespace ACESimBase.Util.ArrayProcessing
             }
             else
             {
-                //Span<double> arrayPortion = UseOrderedSources && UseOrderedDestinations ? new Span<double>(array).Slice(FirstScratchIndex) : new Span<double>(array);
-                //ExecuteSectionOfCommands_Safe(arrayPortion, 0, MaxCommandIndex, 0, 0, OrderedDestinationIndices.Count());
-                fixed (double* arrayPointer = array)
+                if (useSafe)
                 {
-                    double* arrayPortion = UseOrderedSources && UseOrderedDestinations ? (arrayPointer + FirstScratchIndex) : arrayPointer;
-                    ExecuteSectionOfCommands(arrayPortion, 0, MaxCommandIndex, 0, 0, OrderedDestinationIndices.Count());
+                    Span<double> arrayPortion = UseOrderedSources && UseOrderedDestinations ? new Span<double>(array).Slice(FirstScratchIndex) : new Span<double>(array);
+                    ExecuteSectionOfCommands_Safe(arrayPortion, 0, MaxCommandIndex, 0, 0, OrderedDestinationIndices.Count());
+                }
+                else
+                {
+                    fixed (double* arrayPointer = array)
+                    {
+                        double* arrayPortion = UseOrderedSources && UseOrderedDestinations ? (arrayPointer + FirstScratchIndex) : arrayPointer;
+                        ExecuteSectionOfCommands(arrayPortion, 0, MaxCommandIndex, 0, 0, OrderedDestinationIndices.Count());
+                    }
                 }
             }
             //for (int i = 0; i < OrderedDestinations.Length; i++)
