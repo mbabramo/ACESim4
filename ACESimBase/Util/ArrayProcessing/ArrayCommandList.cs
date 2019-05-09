@@ -15,7 +15,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public ArrayCommand[] UnderlyingCommands;
         public int NextCommandIndex;
         public int MaxCommandIndex;
-        public int InitialArrayIndex;
+        public int FirstScratchIndex;
         public int NextArrayIndex;
         public int MaxArrayIndex;
 
@@ -32,7 +32,10 @@ namespace ACESimBase.Util.ArrayProcessing
         public bool Parallelize;
         public bool InterlockWhereModifyingInitialSource => Parallelize && !UseOrderedDestinations;
 
-        public bool DoNotReuseArrayIndices = false;
+        // If true, then when a command refers to an array index, 0 refers to FirstScratchIndex.
+        public bool ScratchIndicesStartAt0 => UseOrderedSources && UseOrderedDestinations;
+        public int FullArraySize => FirstScratchIndex + (Parallelize ? 0 : MaxArrayIndex);
+        
         public Stack<int> PerDepthStartArrayIndices;
 
         NWayTreeStorageInternal<ArrayCommandChunk> CommandTree;
@@ -46,8 +49,12 @@ namespace ACESimBase.Util.ArrayProcessing
             OrderedSourceIndices = new List<int>();
             OrderedDestinationIndices = new List<int>();
             ReusableOrderedDestinationIndices = new Dictionary<int, int>();
-            InitialArrayIndex = NextArrayIndex = MaxArrayIndex = initialArrayIndex;
-            MaxArrayIndex--;
+            FirstScratchIndex = initialArrayIndex;
+            if (ScratchIndicesStartAt0)
+                NextArrayIndex = 0;
+            else
+                NextArrayIndex = FirstScratchIndex;
+            MaxArrayIndex = NextArrayIndex - 1;
             PerDepthStartArrayIndices = new Stack<int>();
             Parallelize = parallelize;
             CommandTree = new NWayTreeStorageInternal<ArrayCommandChunk>(null);
@@ -251,9 +258,9 @@ namespace ACESimBase.Util.ArrayProcessing
             }
             if (lastArrayIndex == 0)
                 return 0;
-            if (UseOrderedSources && UseOrderedDestinations)
-                return lastArrayIndex; // we've already decremented
-            return lastArrayIndex - InitialArrayIndex;
+            if (ScratchIndicesStartAt0)
+                return lastArrayIndex;
+            return lastArrayIndex - FirstScratchIndex;
         }
 
         private int HighestTargetIndexInCommandRange(int startRange, int endRangeExclusive)
@@ -265,9 +272,9 @@ namespace ACESimBase.Util.ArrayProcessing
             }
             if (lastArrayIndex == 0)
                 return 0;
-            if (UseOrderedSources && UseOrderedDestinations)
+            if (ScratchIndicesStartAt0)
                 return lastArrayIndex; // we've already decremented
-            return lastArrayIndex - InitialArrayIndex;
+            return lastArrayIndex - FirstScratchIndex;
         }
 
 
@@ -279,11 +286,15 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             if (NextCommandIndex == 0 && command.CommandType != ArrayCommandType.Blank)
                 InsertBlankCommand();
+            if (NextCommandIndex == 1347326)
+            {
+                var DEBUG = 0;
+            }
 
             UnderlyingCommands[NextCommandIndex] = command;
             NextCommandIndex++;
             if (NextArrayIndex > MaxArrayIndex)
-                MaxArrayIndex = NextArrayIndex - 1;
+                MaxArrayIndex = NextArrayIndex;
         }
 
         // First, methods to create commands that use new spots in the array
@@ -338,7 +349,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public int AddToNew(int index1, bool fromOriginalSources, int index2)
         {
             int result = CopyToNew(index1, fromOriginalSources);
-            Increment(result, index2);
+            Increment(result, false, index2);
             return result;
         }
 
@@ -378,50 +389,54 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void MultiplyBy(int index, int indexOfMultiplier)
         {
-            if (index < InitialArrayIndex)
+            if (!ScratchIndicesStartAt0 && index < FirstScratchIndex)
                 throw new NotSupportedException(); // use approach of increment to avoid interlocking code
-            AddCommand(new ArrayCommand(index < InitialArrayIndex && InterlockWhereModifyingInitialSource ? ArrayCommandType.MultiplyByInterlocked : ArrayCommandType.MultiplyBy, index, indexOfMultiplier));
+            AddCommand(new ArrayCommand(ArrayCommandType.MultiplyBy, index, indexOfMultiplier));
         }
 
-        public void IncrementArrayBy(int[] indices, int indexOfIncrement)
+        public void IncrementArrayBy(int[] indices, bool targetOriginals,  int indexOfIncrement)
         {
             for (int i = 0; i < indices.Length; i++)
-                Increment(indices[i], indexOfIncrement);
+                Increment(indices[i], targetOriginals, indexOfIncrement);
         }
 
-        public void IncrementArrayBy(int[] indices, int[] indicesOfIncrements)
+        public void IncrementArrayBy(int[] indices, bool targetOriginals, int[] indicesOfIncrements)
         {
             for (int i = 0; i < indices.Length; i++)
-                Increment(indices[i], indicesOfIncrements[i]);
+                Increment(indices[i], targetOriginals, indicesOfIncrements[i]);
         }
 
-        public void Increment(int index, int indexOfIncrement)
+        public void Increment(int index, bool targetOriginal, int indexOfIncrement)
         {
-            if (UseOrderedDestinations && index < InitialArrayIndex)
+            if (targetOriginal)
             {
-                if (indexOfIncrement < InitialArrayIndex)
-                    throw new Exception("Must increment from the array command list stack, not from the original array.");
-                if (ReuseDestinations && ReusableOrderedDestinationIndices.ContainsKey(index))
+                if (UseOrderedDestinations)
                 {
-                    AddCommand(new ArrayCommand(ArrayCommandType.ReusedDestination, ReusableOrderedDestinationIndices[index], indexOfIncrement));
+                    // DEBUG TODO -- reset Reusables in new parallel group
+                    if (ReuseDestinations && ReusableOrderedDestinationIndices.ContainsKey(index))
+                    {
+                        AddCommand(new ArrayCommand(ArrayCommandType.ReusedDestination, ReusableOrderedDestinationIndices[index], indexOfIncrement));
+                    }
+                    else
+                    {
+                        OrderedDestinationIndices.Add(index);
+                        if (ReuseDestinations)
+                            ReusableOrderedDestinationIndices.Add(index, OrderedDestinationIndices.Count() - 1);
+                        AddCommand(new ArrayCommand(ArrayCommandType.NextDestination, -1, indexOfIncrement));
+                    }
                 }
                 else
-                {
-                    OrderedDestinationIndices.Add(index);
-                    if (ReuseDestinations)
-                        ReusableOrderedDestinationIndices.Add(index, OrderedDestinationIndices.Count() - 1);
-                    AddCommand(new ArrayCommand(ArrayCommandType.NextDestination, -1, indexOfIncrement));
-                }
+                    AddCommand(new ArrayCommand(InterlockWhereModifyingInitialSource ? ArrayCommandType.IncrementByInterlocked : ArrayCommandType.IncrementBy, index, indexOfIncrement));
             }
             else
-                AddCommand(new ArrayCommand(index < InitialArrayIndex && InterlockWhereModifyingInitialSource ? ArrayCommandType.IncrementByInterlocked : ArrayCommandType.IncrementBy, index, indexOfIncrement));
+                AddCommand(new ArrayCommand(ArrayCommandType.IncrementBy, index, indexOfIncrement));
         }
 
-        public void IncrementByProduct(int index, int indexOfIncrementProduct1, int indexOfIncrementProduct2)
+        public void IncrementByProduct(int index, bool targetOriginal, int indexOfIncrementProduct1, int indexOfIncrementProduct2)
         {
             int spaceForProduct = CopyToNew(indexOfIncrementProduct1, false);
             MultiplyBy(spaceForProduct, indexOfIncrementProduct2);
-            Increment(index, spaceForProduct);
+            Increment(index, targetOriginal, spaceForProduct);
             NextArrayIndex--; // we've set aside an array index to be used for this command. But we no longer need it, so we can now allocate it to some other purpose (e.g., incrementing by another product)
         }
 
@@ -439,9 +454,9 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void Decrement(int index, int indexOfDecrement)
         {
-            if (index < InitialArrayIndex)
+            if (!ScratchIndicesStartAt0 && index < FirstScratchIndex)
                 throw new NotSupportedException(); // use approach of increment to avoid interlocking code
-            AddCommand(new ArrayCommand(index < InitialArrayIndex && InterlockWhereModifyingInitialSource ? ArrayCommandType.DecrementByInterlocked : ArrayCommandType.DecrementBy, index, indexOfDecrement));
+            AddCommand(new ArrayCommand(ArrayCommandType.DecrementBy, index, indexOfDecrement));
         }
 
         public void DecrementByProduct(int index, int indexOfDecrementProduct1, int indexOfDecrementProduct2)
@@ -554,13 +569,16 @@ namespace ACESimBase.Util.ArrayProcessing
             }
             else
             {
-                Console.WriteLine("Enter");
-                fixed (double* arrayPointer = array)
-                {
-                    double* arrayPortion = UseOrderedSources && UseOrderedDestinations ? (arrayPointer + InitialArrayIndex) : arrayPointer;
-                    ExecuteSectionOfCommands(arrayPortion, 0, MaxCommandIndex, 0, 0, OrderedDestinationIndices.Count());
-                }
-                Console.WriteLine("Exit");
+                Span<double> arrayPortion = UseOrderedSources && UseOrderedDestinations ? new Span<double>(array).Slice(FirstScratchIndex) : new Span<double>(array);
+                ExecuteSectionOfCommands_Safe(arrayPortion, 0, MaxCommandIndex, 0, 0, OrderedDestinationIndices.Count());
+                // DEBUG
+                //Console.WriteLine("Enter");
+                //fixed (double* arrayPointer = array)
+                //{
+                //    double* arrayPortion = UseOrderedSources && UseOrderedDestinations ? (arrayPointer + InitialArrayIndex) : arrayPointer;
+                //    ExecuteSectionOfCommands(arrayPortion, 0, MaxCommandIndex, 0, 0, OrderedDestinationIndices.Count());
+                //}
+                //Console.WriteLine("Exit");
             }
             //for (int i = 0; i < OrderedDestinations.Length; i++)
             //    System.Diagnostics.Debug.WriteLine($"{i}: {OrderedDestinations[i]}");
@@ -591,6 +609,115 @@ namespace ACESimBase.Util.ArrayProcessing
             //    commandLog.AppendLine($"{item.Key}: {item.Value}");
         }
 
+
+        private unsafe void ExecuteSectionOfCommands_Safe(Span<double> arrayPortion, int startCommandIndex, int endCommandIndexInclusive, int currentOrderedSourceIndex, int startOrderedDestinationIndex, int endOrderedDestinationIndex)
+        {
+            int currentOrderedDestinationIndex = startOrderedDestinationIndex;
+            bool skipNext;
+            int goTo;
+            int commandIndex = startCommandIndex;
+            while (commandIndex <= endCommandIndexInclusive)
+            {
+                ArrayCommand command = UnderlyingCommands[commandIndex];
+                //System.Diagnostics.Debug.WriteLine(*command);
+                skipNext = false;
+                goTo = -1;
+                switch (command.CommandType)
+                {
+                    case ArrayCommandType.ZeroNew:
+                        arrayPortion[command.Index] = 0;
+                        break;
+                    case ArrayCommandType.CopyTo:
+                        arrayPortion[command.Index] = arrayPortion[command.SourceIndex];
+                        break;
+                    case ArrayCommandType.NextSource:
+                        arrayPortion[command.Index] = OrderedSources[currentOrderedSourceIndex++];
+                        break;
+                    case ArrayCommandType.NextDestination:
+                        double value = arrayPortion[command.SourceIndex];
+                        OrderedDestinations[currentOrderedDestinationIndex++] = value;
+                        break;
+                    case ArrayCommandType.ReusedDestination:
+                        value = arrayPortion[command.SourceIndex];
+                        int reusedDestination = command.Index;
+                        OrderedDestinations[reusedDestination] += value;
+                        break;
+                    case ArrayCommandType.MultiplyBy:
+                        arrayPortion[command.Index] *= arrayPortion[command.SourceIndex];
+                        break;
+                    case ArrayCommandType.IncrementBy:
+                        arrayPortion[command.Index] += arrayPortion[command.SourceIndex];
+                        break;
+                    case ArrayCommandType.DecrementBy:
+                        arrayPortion[command.Index] -= arrayPortion[command.SourceIndex];
+                        break;
+                    case ArrayCommandType.MultiplyByInterlocked:
+                        Interlocking.Multiply(ref arrayPortion[command.Index], arrayPortion[command.SourceIndex]);
+                        break;
+                    case ArrayCommandType.IncrementByInterlocked:
+                        Interlocking.Add(ref arrayPortion[command.Index], arrayPortion[command.SourceIndex]);
+                        break;
+                    case ArrayCommandType.DecrementByInterlocked:
+                        Interlocking.Subtract(ref arrayPortion[command.Index], arrayPortion[command.SourceIndex]);
+                        break;
+                    case ArrayCommandType.EqualsOtherArrayIndex:
+                        bool conditionMet = arrayPortion[command.Index] == arrayPortion[command.SourceIndex];
+                        if (!conditionMet)
+                            skipNext = true;
+                        break;
+                    case ArrayCommandType.NotEqualsOtherArrayIndex:
+                        conditionMet = arrayPortion[command.Index] != arrayPortion[command.SourceIndex];
+                        if (!conditionMet)
+                            skipNext = true;
+                        break;
+                    case ArrayCommandType.GreaterThanOtherArrayIndex:
+                        conditionMet = arrayPortion[command.Index] > arrayPortion[command.SourceIndex];
+                        if (!conditionMet)
+                            skipNext = true;
+                        break;
+                    case ArrayCommandType.LessThanOtherArrayIndex:
+                        conditionMet = arrayPortion[command.Index] < arrayPortion[command.SourceIndex];
+                        if (!conditionMet)
+                            skipNext = true;
+                        break;
+                    // in next two, sourceindex represents a value, not an array index
+                    case ArrayCommandType.EqualsValue:
+                        conditionMet = arrayPortion[command.Index] == command.SourceIndex;
+                        if (!conditionMet)
+                            skipNext = true;
+                        break;
+                    case ArrayCommandType.NotEqualsValue:
+                        conditionMet = arrayPortion[command.Index] != command.SourceIndex;
+                        if (!conditionMet)
+                            skipNext = true;
+                        break;
+                    case ArrayCommandType.GoTo:
+                        // index here represents a command index -- not an array index
+                        goTo = command.Index - 1; // because we are going to increment in the for loop
+                        break;
+                    case ArrayCommandType.AfterGoTo:
+                        // indices here are indices but not into the original array
+                        currentOrderedDestinationIndex = command.Index;
+                        currentOrderedSourceIndex = command.SourceIndex;
+                        break;
+                    case ArrayCommandType.Blank:
+                        break;
+                    default:
+                        throw new NotImplementedException();
+                }
+                //LogCommand((int) (command - overall), array);
+                if (skipNext)
+                    commandIndex++; // in addition to increment below
+                else if (goTo != -1)
+                {
+                    if (goTo < startCommandIndex || goTo > endCommandIndexInclusive)
+                        throw new Exception("Goto command cannot flow out of command chunk.");
+                    commandIndex = goTo;
+                }
+                commandIndex++;
+            }
+        }
+
         private unsafe void ExecuteSectionOfCommands(double* arrayPortion, int startCommandIndex, int endCommandIndexInclusive, int currentOrderedSourceIndex, int startOrderedDestinationIndex, int endOrderedDestinationIndex)
         {
             int currentOrderedDestinationIndex = startOrderedDestinationIndex;
@@ -602,14 +729,6 @@ namespace ACESimBase.Util.ArrayProcessing
                 ArrayCommand* lastCommand = overall + endCommandIndexInclusive;
                 while (command <= lastCommand)
                 {
-                    if (command < overall)
-                        throw new Exception("DEBUG");
-                    var DEBUG0 = (*command).GetSourceIndexIfUsed();
-                    if (DEBUG0 != -1 && DEBUG0 > 5000)
-                        throw new Exception("DEBUG");
-                    DEBUG0 = (*command).GetTargetIndexIfUsed();
-                    if (DEBUG0 != -1 && DEBUG0 < 0)
-                        throw new Exception("DEBUG");
                     //System.Diagnostics.Debug.WriteLine(*command);
                     skipNext = false;
                     goTo = -1;
@@ -698,7 +817,7 @@ namespace ACESimBase.Util.ArrayProcessing
                     }
                     //LogCommand((int) (command - overall), array);
                     if (skipNext)
-                        command += sizeof(ArrayCommand); // in addition to increment below
+                        command++; // in addition to increment below
                     else if (goTo != -1)
                     {
                         if (goTo < startCommandIndex || goTo > endCommandIndexInclusive)
