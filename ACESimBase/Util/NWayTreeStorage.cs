@@ -111,6 +111,11 @@ namespace ACESim
             return l;
         }
 
+        public virtual void WalkTree_LeavesFirst(Action<NWayTreeStorage<T>> action, Func<NWayTreeStorage<T>, bool> parallel = null)
+        {
+            action(this);
+        }
+
         public virtual void WalkTree(Action<NWayTreeStorage<T>> action, Func<NWayTreeStorage<T>, bool> parallel = null)
         {
             action(this);

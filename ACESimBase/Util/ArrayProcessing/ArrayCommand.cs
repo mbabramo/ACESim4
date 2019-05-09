@@ -28,6 +28,20 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public ArrayCommand Clone() => new ArrayCommand(CommandType, Index, SourceIndex);
 
+        public int GetSourceIndexIfUsed()
+        {
+            if (CommandType == ArrayCommandType.GoTo || CommandType == ArrayCommandType.AfterGoTo || CommandType == ArrayCommandType.EqualsValue || CommandType == ArrayCommandType.NotEqualsValue)
+                return -1;
+            return SourceIndex;
+        }
+
+        public int GetTargetIndexIfUsed()
+        {
+            if (CommandType == ArrayCommandType.GoTo || CommandType == ArrayCommandType.AfterGoTo || CommandType == ArrayCommandType.ReusedDestination)
+                return -1;
+            return Index;
+        }
+
         public ArrayCommand WithArrayIndexDecrements(int decrement)
         {
             if (CommandType == ArrayCommandType.GoTo || CommandType == ArrayCommandType.AfterGoTo)

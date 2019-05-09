@@ -238,6 +238,34 @@ namespace ACESim
             return nextTree;
         }
 
+        public override void WalkTree_LeavesFirst(Action<NWayTreeStorage<T>> action, Func<NWayTreeStorage<T>, bool> parallel = null)
+        {
+            if (Branches != null)
+            {
+                if (parallel == null || parallel(this) == false)
+                {
+                    for (int branch = 1; branch <= Branches.Length; branch++)
+                    {
+                        if (Branches[branch - 1] != null && !Branches[branch - 1].Equals(default(T)))
+                            Branches[branch - 1].WalkTree_LeavesFirst(action, parallel);
+                    }
+                }
+                else
+                {
+                    List<int> branches = Enumerable.Range(1, Branches.Length).ToList();
+                    //The commented out code randomizes order without executing code simultaneously.
+                    //RandomSubset.Shuffle(branches, 5); 
+                    //foreach (int branch in branches)
+                    Parallel.ForEach(branches, branch =>
+                    {
+                        if (Branches[branch - 1] != null && !Branches[branch - 1].Equals(default(T)))
+                            Branches[branch - 1].WalkTree_LeavesFirst(action, parallel);
+                    });
+                }
+            }
+            action(this);
+        }
+
         public override void WalkTree(Action<NWayTreeStorage<T>> action, Func<NWayTreeStorage<T>, bool> parallel = null)
         {
             action(this);
