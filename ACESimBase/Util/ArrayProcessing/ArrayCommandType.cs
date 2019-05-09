@@ -26,5 +26,6 @@ namespace ACESimBase.Util.ArrayProcessing
         GoTo,
         AfterGoTo,
         Blank,
+        IncrementParent,
     }
 }

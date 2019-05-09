@@ -626,7 +626,7 @@ namespace ACESimBase.Util.ArrayProcessing
         }
 
 
-        private unsafe void ExecuteSectionOfCommands_Safe(Span<double> arrayPortion, int startCommandIndex, int endCommandIndexInclusive, int currentOrderedSourceIndex, int startOrderedDestinationIndex, int endOrderedDestinationIndex)
+        private unsafe void ExecuteSectionOfCommands_Safe(Span<double> arrayPortion, Span<double> parentArrayPortion, int startCommandIndex, int endCommandIndexInclusive, int currentOrderedSourceIndex, int startOrderedDestinationIndex, int endOrderedDestinationIndex)
         {
             System.Diagnostics.Debug.WriteLine($"command {startCommandIndex}-{endCommandIndexInclusive}"); // DEBUG'
             int currentOrderedDestinationIndex = startOrderedDestinationIndex;
@@ -677,6 +677,9 @@ namespace ACESimBase.Util.ArrayProcessing
                         break;
                     case ArrayCommandType.IncrementByInterlocked:
                         Interlocking.Add(ref arrayPortion[command.Index], arrayPortion[command.SourceIndex]);
+                        break;
+                    case ArrayCommandType.IncrementParent:
+                        Interlocking.Add(ref parentArrayPortion[command.Index], arrayPortion[command.SourceIndex]);
                         break;
                     case ArrayCommandType.DecrementByInterlocked:
                         Interlocking.Subtract(ref arrayPortion[command.Index], arrayPortion[command.SourceIndex]);
@@ -739,7 +742,7 @@ namespace ACESimBase.Util.ArrayProcessing
             }
         }
 
-        private unsafe void ExecuteSectionOfCommands(double* arrayPortion, int startCommandIndex, int endCommandIndexInclusive, int currentOrderedSourceIndex, int startOrderedDestinationIndex, int endOrderedDestinationIndex)
+        private unsafe void ExecuteSectionOfCommands(double* arrayPortion, double *parentArrayPortion, int startCommandIndex, int endCommandIndexInclusive, int currentOrderedSourceIndex, int startOrderedDestinationIndex, int endOrderedDestinationIndex)
         {
             int currentOrderedDestinationIndex = startOrderedDestinationIndex;
             bool skipNext;
@@ -787,6 +790,9 @@ namespace ACESimBase.Util.ArrayProcessing
                             break;
                         case ArrayCommandType.IncrementByInterlocked:
                             Interlocking.Add(ref arrayPortion[(*command).Index], arrayPortion[(*command).SourceIndex]);
+                            break;
+                        case ArrayCommandType.IncrementParent:
+                            Interlocking.Add(ref parentArrayPortion[(*command).Index], arrayPortion[(*command).SourceIndex]);
                             break;
                         case ArrayCommandType.DecrementByInterlocked:
                             Interlocking.Subtract(ref arrayPortion[(*command).Index], arrayPortion[(*command).SourceIndex]);
