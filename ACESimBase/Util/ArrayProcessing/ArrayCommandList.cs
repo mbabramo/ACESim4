@@ -1,6 +1,7 @@
 ﻿using ACESim;
 using ACESim.Util;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -40,6 +41,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public Stack<int> PerDepthStartArrayIndices;
 
         NWayTreeStorageInternal<ArrayCommandChunk> CommandTree;
+        string CommandTreeString;
         List<byte> CurrentCommandTreeLocation = new List<byte>();
         NWayTreeStorageInternal<ArrayCommandChunk> CurrentNode => (NWayTreeStorageInternal<ArrayCommandChunk>) CommandTree.GetNode(CurrentCommandTreeLocation);
         ArrayCommandChunk CurrentCommandChunk => CurrentNode.StoredValue;
@@ -90,6 +92,7 @@ namespace ACESimBase.Util.ArrayProcessing
             }
         }
 
+        int NextVirtualStackID = 0;
         public class ArrayCommandChunk
         {
             public bool ChildrenParallelizable;
@@ -97,20 +100,22 @@ namespace ACESimBase.Util.ArrayProcessing
             public int StartCommandRange, EndCommandRangeExclusive;
             public int StartSourceIndices, EndSourceIndicesExclusive;
             public int StartDestinationIndices, EndDestinationIndicesExclusive;
-            public int HighestRelativeSourceIndex, HighestRelativeTargetIndex;
             public double[] VirtualStack;
-            internal double[] ParentVirtualStack;
+            public int VirtualStackID;
+            public double[] ParentVirtualStack;
+            public int ParentVirtualStackID;
             internal string Name;
 
             public override string ToString()
             {
-                return $"{Name}{(Name != null ? " " : "")}{EndCommandRangeExclusive - StartCommandRange} Commands:[{StartCommandRange},{EndCommandRangeExclusive})  Sources:[{StartSourceIndices},{EndSourceIndicesExclusive}) Destinations:[{StartDestinationIndices},{EndDestinationIndicesExclusive}) {(ChildrenParallelizable ? "In parallel:" : "")}";
+                return $"{Name}{(Name != null ? " " : "")}{EndCommandRangeExclusive - StartCommandRange} Commands:[{StartCommandRange},{EndCommandRangeExclusive})  Sources:[{StartSourceIndices},{EndSourceIndicesExclusive}) Destinations:[{StartDestinationIndices},{EndDestinationIndicesExclusive}) VirtualStackID {VirtualStackID} {(ChildrenParallelizable ? "In parallel:" : "")}";
             }
 
             public void CopyParentVirtualStack()
             {
                 if (ParentVirtualStack != VirtualStack && ParentVirtualStack != null)
                 {
+                    System.Diagnostics.Debug.WriteLine($"Copying stack from {ParentVirtualStackID} to {VirtualStackID}");
                     int stackSize = Math.Min(VirtualStack.Length, ParentVirtualStack.Length);
                     for (int i = 0; i < stackSize; i++)
                         VirtualStack[i] = ParentVirtualStack[i];
@@ -153,7 +158,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 EndCommandChunk();
             CommandTree.WalkTree(x => InsertMissingBranches((NWayTreeStorageInternal<ArrayCommandChunk>)x));
             SetupVirtualStacks();
-            var commandTreeString = CommandTree.ToString();
+            CommandTreeString = CommandTree.ToString();
         }
 
         private void InsertMissingBranches(NWayTreeStorageInternal<ArrayCommandChunk> node)
@@ -231,6 +236,7 @@ namespace ACESimBase.Util.ArrayProcessing
             //}
             //// initially assume that we need a separate virtual stack on each node
             c.VirtualStack = new double[MaxArrayIndex];
+            c.VirtualStackID = NextVirtualStackID++;
         }
 
         private void SetupVirtualStackRelationships(NWayTreeStorageInternal<ArrayCommandChunk> node)
@@ -241,10 +247,13 @@ namespace ACESimBase.Util.ArrayProcessing
                 {
                     // if a node has sequential children, then those children share the same virtual stack
                     node.StoredValue.VirtualStack = node.Parent.StoredValue.VirtualStack;
+                    node.StoredValue.VirtualStackID = node.Parent.StoredValue.VirtualStackID;
+                    node.StoredValue.ParentVirtualStackID = node.Parent.StoredValue.VirtualStackID;
                 }
                 else
                 {
                     node.StoredValue.ParentVirtualStack = node.Parent.StoredValue.VirtualStack;
+                    node.StoredValue.ParentVirtualStackID = node.Parent.StoredValue.VirtualStackID;
                 }
             }
         }
@@ -551,10 +560,10 @@ namespace ACESimBase.Util.ArrayProcessing
                 CommandTree.WalkTree(n =>
                 {
                     var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
+                    var commandChunk = node.StoredValue;
+                    commandChunk.CopyParentVirtualStack();
                     if (node.Branches == null || !node.Branches.Any())
                     {
-                        var commandChunk = node.StoredValue;
-                        commandChunk.CopyParentVirtualStack();
                         if (useSafe)
                             ExecuteSectionOfCommands_Safe(new Span<double>(commandChunk.VirtualStack), commandChunk.StartCommandRange, commandChunk.EndCommandRangeExclusive - 1, commandChunk.StartSourceIndices, commandChunk.StartDestinationIndices, commandChunk.EndDestinationIndicesExclusive);
                         else
@@ -590,36 +599,36 @@ namespace ACESimBase.Util.ArrayProcessing
             }
             //for (int i = 0; i < OrderedDestinations.Length; i++)
             //    System.Diagnostics.Debug.WriteLine($"{i}: {OrderedDestinations[i]}");
-            //PrintCommandLog();
+            PrintCommandLog();
             CopyOrderedDestinations(array, 0, OrderedDestinationIndices.Count());
         }
 
-        //Dictionary<int, double> arrayValueAfterCommand = null;
+        ConcurrentDictionary<int, double> arrayValueAfterCommand = null;
         StringBuilder commandLog = new StringBuilder();
-        private void LogCommand(int commandIndex, double[] array)
+        private void LogCommand(int commandIndex, Span<double> array)
         {
-            return;
-            //ArrayCommand command = UnderlyingCommands[commandIndex];
-            //if (command.CommandType == ArrayCommandType.GoTo || command.CommandType == ArrayCommandType.AfterGoTo || command.CommandType == ArrayCommandType.ReusedDestination || command.CommandType == ArrayCommandType.Blank)
-            //    return;
-            //if (arrayValueAfterCommand == null || arrayValueAfterCommand.ContainsKey(commandIndex))
-            //    arrayValueAfterCommand = new Dictionary<int, double>();
-            //if (command.CommandType == ArrayCommandType.NextDestination)
-            //    arrayValueAfterCommand[commandIndex] = array[command.SourceIndex + InitialArrayIndex];
-            //else
-            //    arrayValueAfterCommand[commandIndex] = array[command.Index + InitialArrayIndex];
+            ArrayCommand command = UnderlyingCommands[commandIndex];
+            if (command.CommandType == ArrayCommandType.GoTo || command.CommandType == ArrayCommandType.AfterGoTo || command.CommandType == ArrayCommandType.ReusedDestination || command.CommandType == ArrayCommandType.Blank)
+                return;
+            if (arrayValueAfterCommand == null || arrayValueAfterCommand.ContainsKey(commandIndex))
+                arrayValueAfterCommand = new ConcurrentDictionary<int, double>();
+            if (command.CommandType == ArrayCommandType.NextDestination)
+                arrayValueAfterCommand[commandIndex] = array[command.SourceIndex];
+            else
+                arrayValueAfterCommand[commandIndex] = array[command.Index];
         }
 
         private void PrintCommandLog()
         {
-            //var ordered = arrayValueAfterCommand.OrderBy(x => x.Key).ToList();
-            //foreach (var item in ordered)
-            //    commandLog.AppendLine($"{item.Key}: {item.Value}");
+            var ordered = arrayValueAfterCommand.OrderBy(x => x.Key).ToList();
+            foreach (var item in ordered)
+                commandLog.AppendLine($"{item.Key}: {item.Value}");
         }
 
 
         private unsafe void ExecuteSectionOfCommands_Safe(Span<double> arrayPortion, int startCommandIndex, int endCommandIndexInclusive, int currentOrderedSourceIndex, int startOrderedDestinationIndex, int endOrderedDestinationIndex)
         {
+            System.Diagnostics.Debug.WriteLine($"command {startCommandIndex}-{endCommandIndexInclusive}"); // DEBUG'
             int currentOrderedDestinationIndex = startOrderedDestinationIndex;
             bool skipNext;
             int goTo;
@@ -627,6 +636,10 @@ namespace ACESimBase.Util.ArrayProcessing
             while (commandIndex <= endCommandIndexInclusive)
             {
                 ArrayCommand command = UnderlyingCommands[commandIndex];
+                if (commandIndex == 11 || command.Index == 1)
+                {
+                    var DEBUG = 0;
+                }
                 //System.Diagnostics.Debug.WriteLine(*command);
                 skipNext = false;
                 goTo = -1;
@@ -713,7 +726,7 @@ namespace ACESimBase.Util.ArrayProcessing
                     default:
                         throw new NotImplementedException();
                 }
-                //LogCommand((int) (command - overall), array);
+                LogCommand(commandIndex, arrayPortion);
                 if (skipNext)
                     commandIndex++; // in addition to increment below
                 else if (goTo != -1)

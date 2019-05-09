@@ -67,9 +67,9 @@ namespace ACESim
                 PInitialWealth = 1000000,
                 DInitialWealth = 1000000,
                 DamagesToAllege = 100000,
-                NumLitigationQualityPoints = 4,
-                NumSignals = 4,
-                NumOffers = 4,
+                NumLitigationQualityPoints = 2,
+                NumSignals = 2,
+                NumOffers = 2,
                 MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
                 {
                     ProbabilityTrulyLiable_LitigationQuality75 = 0.75,
