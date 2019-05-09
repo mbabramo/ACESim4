@@ -295,7 +295,7 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             if (NextCommandIndex == 0 && command.CommandType != ArrayCommandType.Blank)
                 InsertBlankCommand();
-            if (NextCommandIndex == 1347326)
+            if (NextCommandIndex == 3334)
             {
                 var DEBUG = 0;
             }
@@ -603,7 +603,7 @@ namespace ACESimBase.Util.ArrayProcessing
             CopyOrderedDestinations(array, 0, OrderedDestinationIndices.Count());
         }
 
-        ConcurrentDictionary<int, double> arrayValueAfterCommand = null;
+        ConcurrentDictionary<int, string> arrayValueAfterCommand = null;
         StringBuilder commandLog = new StringBuilder();
         private void LogCommand(int commandIndex, Span<double> array)
         {
@@ -611,11 +611,11 @@ namespace ACESimBase.Util.ArrayProcessing
             if (command.CommandType == ArrayCommandType.GoTo || command.CommandType == ArrayCommandType.AfterGoTo || command.CommandType == ArrayCommandType.ReusedDestination || command.CommandType == ArrayCommandType.Blank)
                 return;
             if (arrayValueAfterCommand == null || arrayValueAfterCommand.ContainsKey(commandIndex))
-                arrayValueAfterCommand = new ConcurrentDictionary<int, double>();
+                arrayValueAfterCommand = new ConcurrentDictionary<int, string>();
             if (command.CommandType == ArrayCommandType.NextDestination)
-                arrayValueAfterCommand[commandIndex] = array[command.SourceIndex];
+                arrayValueAfterCommand[commandIndex] = $"{array[command.SourceIndex]} is next destination (from {command.SourceIndex}";
             else
-                arrayValueAfterCommand[commandIndex] = array[command.Index];
+                arrayValueAfterCommand[commandIndex] = $"{array[command.Index]} is in index {command.Index} from {command.SourceIndex} {(command.SourceIndex != -1 ? array[command.SourceIndex].ToString() : "")}";
         }
 
         private void PrintCommandLog()
@@ -636,7 +636,7 @@ namespace ACESimBase.Util.ArrayProcessing
             while (commandIndex <= endCommandIndexInclusive)
             {
                 ArrayCommand command = UnderlyingCommands[commandIndex];
-                if (commandIndex == 11 || command.Index == 1)
+                if (commandIndex == 3334)
                 {
                     var DEBUG = 0;
                 }

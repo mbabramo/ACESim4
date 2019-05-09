@@ -430,7 +430,9 @@ namespace ACESim
                 int[] probabilityAdjustedInnerResult = Unroll_Commands.NewUninitializedArray(3);
                 Unroll_HedgeVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues, avgStratPiValues,
                         chanceNodeSettings, action, probabilityAdjustedInnerResult, false);
+                // If we just increment the result array, then when the parallel code concludes, the result will be gone.
                 Unroll_Commands.IncrementArrayBy(resultArray, isUltimateResult, probabilityAdjustedInnerResult);
+                
                 if (chanceNodeSettings.Decision.Unroll_Parallelize)
                     Unroll_Commands.EndCommandChunk();
             }
