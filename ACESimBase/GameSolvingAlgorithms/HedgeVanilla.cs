@@ -262,7 +262,7 @@ namespace ACESim
         private void Unroll_CopyArrayToInformationSets(double[] array)
         {
             //for (int i = 0; i < array.Length; i++)
-            //    System.Diagnostics.Debug.WriteLine($"{i}: {array[i]}"); // DEBUG
+            //    System.Diagnostics.Debug.WriteLine($"{i}: {array[i]}");
             Parallel.For(0, InformationSets.Count, x =>
             {
                 var infoSet = InformationSets[x];
