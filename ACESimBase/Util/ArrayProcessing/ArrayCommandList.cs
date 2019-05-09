@@ -90,7 +90,7 @@ namespace ACESimBase.Util.ArrayProcessing
             public int StartSourceIndices, EndSourceIndicesExclusive;
             public int StartDestinationIndices, EndDestinationIndicesExclusive;
             public int HighestRelativeSourceIndex, HighestRelativeTargetIndex;
-            public int VirtualStackSize => 5000; // DEBUG Math.Max(HighestRelativeSourceIndex, HighestRelativeTargetIndex);
+            public int VirtualStackSize => 100000; // DEBUG Math.Max(HighestRelativeSourceIndex, HighestRelativeTargetIndex);
             public double[] VirtualStack;
             internal double[] ParentVirtualStack;
             internal string Name;
@@ -142,19 +142,6 @@ namespace ACESimBase.Util.ArrayProcessing
         public void CompleteCommandList()
         {
             MaxCommandIndex = NextCommandIndex;
-            if (UseOrderedSources && UseOrderedDestinations)
-            {
-                // The input array will no longer be needed when processing commands. Thus, we should instead adjust indices so that all indices refer to a smaller array, consisting only of the virtual stack.
-                for (int i = 0; i < MaxCommandIndex; i++)
-                {
-                    UnderlyingCommands[i] = UnderlyingCommands[i].WithArrayIndexDecrements(InitialArrayIndex);
-                }
-            }
-            CompleteCommandTree();
-        }
-
-        private void CompleteCommandTree()
-        {
             while (CurrentCommandTreeLocation.Any())
                 EndCommandChunk();
             CommandTree.WalkTree(x => InsertMissingBranches((NWayTreeStorageInternal<ArrayCommandChunk>)x));
@@ -216,6 +203,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         private void SetupVirtualStacks()
         {
+            return; // DEBUG
             CommandTree.WalkTree_LeavesFirst(x => SetupVirtualStack((NWayTreeStorageInternal<ArrayCommandChunk>) x));
             CommandTree.WalkTree(x => SetupVirtualStackRelationships((NWayTreeStorageInternal<ArrayCommandChunk>)x)); // must visit from top to bottom, since we may share the same virtual stack across multiple levels
         }
@@ -227,7 +215,7 @@ namespace ACESimBase.Util.ArrayProcessing
             if (isLeaf)
             {
                 c.HighestRelativeSourceIndex = HighestSourceIndexInCommandRange(c.StartCommandRange, c.EndCommandRangeExclusive);
-                c.HighestRelativeTargetIndex = HighestSourceIndexInCommandRange(c.StartCommandRange, c.EndCommandRangeExclusive);
+                c.HighestRelativeTargetIndex = HighestTargetIndexInCommandRange(c.StartCommandRange, c.EndCommandRangeExclusive);
             }
             else
             {
@@ -329,9 +317,9 @@ namespace ACESimBase.Util.ArrayProcessing
         //    return NextArrayIndex++;
         //}
 
-        public int CopyToNew(int sourceIndex)
+        public int CopyToNew(int sourceIndex, bool fromOriginalSources)
         {
-            if (UseOrderedSources && sourceIndex < InitialArrayIndex)
+            if (UseOrderedSources && fromOriginalSources)
             {
                 // Instead of copying from the source, we will add this index to our list of indices. This will improve performance, because we can preconstruct our sources and then just read from these consecutively.
                 OrderedSourceIndices.Add(sourceIndex);
@@ -342,21 +330,21 @@ namespace ACESimBase.Util.ArrayProcessing
             return NextArrayIndex++;
         }
 
-        public int[] CopyToNew(int[] sourceIndices)
+        public int[] CopyToNew(int[] sourceIndices, bool fromOriginalSources)
         {
-            return sourceIndices.Select(x => CopyToNew(x)).ToArray();
+            return sourceIndices.Select(x => CopyToNew(x, fromOriginalSources)).ToArray();
         }
 
-        public int AddToNew(int index1, int index2)
+        public int AddToNew(int index1, bool fromOriginalSources, int index2)
         {
-            int result = CopyToNew(index1);
+            int result = CopyToNew(index1, fromOriginalSources);
             Increment(result, index2);
             return result;
         }
 
-        public int MultiplyToNew(int index1, int index2)
+        public int MultiplyToNew(int index1, bool fromOriginalSources, int index2)
         {
-            int result = CopyToNew(index1);
+            int result = CopyToNew(index1, fromOriginalSources);
             MultiplyBy(result, index2);
             return result;
         }
@@ -365,10 +353,6 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void CopyToExisting(int index, int sourceIndex)
         {
-            if (UseOrderedDestinations && index < InitialArrayIndex)
-            {
-                throw new NotSupportedException("Only incrementing source item is currently supported.");
-            }
             AddCommand(new ArrayCommand(ArrayCommandType.CopyTo, index, sourceIndex));
         }
 
@@ -435,7 +419,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void IncrementByProduct(int index, int indexOfIncrementProduct1, int indexOfIncrementProduct2)
         {
-            int spaceForProduct = CopyToNew(indexOfIncrementProduct1);
+            int spaceForProduct = CopyToNew(indexOfIncrementProduct1, false);
             MultiplyBy(spaceForProduct, indexOfIncrementProduct2);
             Increment(index, spaceForProduct);
             NextArrayIndex--; // we've set aside an array index to be used for this command. But we no longer need it, so we can now allocate it to some other purpose (e.g., incrementing by another product)
@@ -462,7 +446,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public void DecrementByProduct(int index, int indexOfDecrementProduct1, int indexOfDecrementProduct2)
         {
-            int spaceForProduct = CopyToNew(indexOfDecrementProduct1);
+            int spaceForProduct = CopyToNew(indexOfDecrementProduct1, false);
             MultiplyBy(spaceForProduct, indexOfDecrementProduct2);
             Decrement(index, spaceForProduct);
             NextArrayIndex--; // we've set aside an array index to be used for this command. But we no longer need it, so we can now allocate it to some other purpose (e.g., Decrementing by another product)
@@ -545,7 +529,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public unsafe void ExecuteAll(double[] array)
         {
             PrepareOrderedSourcesAndDestinations(array);
-            if (Parallelize && true) // DEBUG
+            if (Parallelize && false) // DEBUG
             {
                 if (!UseOrderedSources || !UseOrderedDestinations)
                     throw new Exception("Must use ordered sources and destinations with parallelizable");
@@ -570,11 +554,13 @@ namespace ACESimBase.Util.ArrayProcessing
             }
             else
             {
+                Console.WriteLine("Enter");
                 fixed (double* arrayPointer = array)
                 {
                     double* arrayPortion = UseOrderedSources && UseOrderedDestinations ? (arrayPointer + InitialArrayIndex) : arrayPointer;
                     ExecuteSectionOfCommands(arrayPortion, 0, MaxCommandIndex, 0, 0, OrderedDestinationIndices.Count());
                 }
+                Console.WriteLine("Exit");
             }
             //for (int i = 0; i < OrderedDestinations.Length; i++)
             //    System.Diagnostics.Debug.WriteLine($"{i}: {OrderedDestinations[i]}");
@@ -616,6 +602,14 @@ namespace ACESimBase.Util.ArrayProcessing
                 ArrayCommand* lastCommand = overall + endCommandIndexInclusive;
                 while (command <= lastCommand)
                 {
+                    if (command < overall)
+                        throw new Exception("DEBUG");
+                    var DEBUG0 = (*command).GetSourceIndexIfUsed();
+                    if (DEBUG0 != -1 && DEBUG0 > 5000)
+                        throw new Exception("DEBUG");
+                    DEBUG0 = (*command).GetTargetIndexIfUsed();
+                    if (DEBUG0 != -1 && DEBUG0 < 0)
+                        throw new Exception("DEBUG");
                     //System.Diagnostics.Debug.WriteLine(*command);
                     skipNext = false;
                     goTo = -1;
