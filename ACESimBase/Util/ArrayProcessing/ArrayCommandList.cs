@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading;
 
 namespace ACESimBase.Util.ArrayProcessing
 {
@@ -460,6 +461,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public unsafe void ExecuteAll(double[] array)
         {
             PrepareOrderedSourcesAndDestinations(array);
+            problem; // the idea was that we were going to have local arrays, not just array portions. Otherwise, we're reusing the same stack -- not good. 
             if (Parallelize)
             {
                 CommandTree.WalkTree(n =>
@@ -482,6 +484,7 @@ namespace ACESimBase.Util.ArrayProcessing
             //for (int i = 0; i < OrderedDestinations.Length; i++)
             //    System.Diagnostics.Debug.WriteLine($"{i}: {OrderedDestinations[i]}");
             //PrintCommandLog();
+            CopyOrderedDestinations(array, 0, OrderedDestinationIndices.Count());
         }
 
         Dictionary<int, double> arrayValueAfterCommand;
@@ -537,7 +540,6 @@ namespace ACESimBase.Util.ArrayProcessing
                         case ArrayCommandType.NextDestination:
                             double value = arrayPortion[(*command).SourceIndex];
                             OrderedDestinations[currentOrderedDestinationIndex++] = value;
-                            //System.Diagnostics.Debug.WriteLine($"{currentOrderedDestinationIndex - 1} {value}"); // DEBUG
                             break;
                         case ArrayCommandType.ReusedDestination:
                             value = arrayPortion[(*command).SourceIndex];
@@ -545,11 +547,6 @@ namespace ACESimBase.Util.ArrayProcessing
                             OrderedDestinations[reusedDestination] += value;
                             break;
                         case ArrayCommandType.MultiplyBy:
-                            // DEBUG -- breaking it down this way reveals that about half of the time is from the array accesses (second is basically free) and half from multiplication
-                            //double getTarget = array[(*command).Index];
-                            //double getSource = array[(*command).SourceIndex];
-                            //getTarget *= getSource;
-                            //array[(*command).Index] = getTarget;
                             arrayPortion[(*command).Index] *= arrayPortion[(*command).SourceIndex];
                             break;
                         case ArrayCommandType.IncrementBy:
@@ -624,7 +621,6 @@ namespace ACESimBase.Util.ArrayProcessing
                     command++;
                 }
             }
-            CopyOrderedDestinations(array, startOrderedDestinationIndex, endOrderedDestinationIndex);
         }
 
         public void PrepareOrderedSourcesAndDestinations(double[] array)
@@ -648,12 +644,14 @@ namespace ACESimBase.Util.ArrayProcessing
         static object DestinationCopier = new object();
         public void CopyOrderedDestinations(double[] array, int startOrderedDestinationIndex, int endOrderedDestinationIndexExclusive)
         {
+            // DEBUG -- should be able to remove lock and interlocking
             lock (DestinationCopier)
             {
                 for (int currentOrderedDestinationIndex = startOrderedDestinationIndex; currentOrderedDestinationIndex < endOrderedDestinationIndexExclusive; currentOrderedDestinationIndex++)
                 {
                     int destinationIndex = OrderedDestinationIndices[currentOrderedDestinationIndex];
-                    array[destinationIndex] += OrderedDestinations[currentOrderedDestinationIndex];
+                    Interlocking.Add(ref array[destinationIndex], OrderedDestinations[currentOrderedDestinationIndex]);
+                    //array[destinationIndex] += OrderedDestinations[currentOrderedDestinationIndex];
                     //System.Diagnostics.Debug.WriteLine($"{currentOrderedDestinationIndex}: {OrderedDestinations[currentOrderedDestinationIndex]} => {array[destinationIndex]}");
                 }
             }
