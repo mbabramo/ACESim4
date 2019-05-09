@@ -204,7 +204,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         private void AddCommand(ArrayCommand command)
         {
-            if (NextCommandIndex == 129829)
+            if (NextCommandIndex == 73)
             {
                 var DEBUG = 0;
             }
@@ -233,18 +233,20 @@ namespace ACESimBase.Util.ArrayProcessing
             return NextArrayIndex++;
         }
 
-        public int[] NewUninitializedArray(int arraySize)
-        {
-            int[] result = new int[arraySize];
-            for (int i = 0; i < arraySize; i++)
-                result[i] = NewUninitialized();
-            return result;
-        }
+        public int[] NewUninitializedArray(int arraySize) => NewZeroArray(arraySize);
+        // DEBUG
+        //{
+        //    int[] result = new int[arraySize];
+        //    for (int i = 0; i < arraySize; i++)
+        //        result[i] = NewUninitialized();
+        //    return result;
+        //}
 
-        public int NewUninitialized()
-        {
-            return NextArrayIndex++;
-        }
+        public int NewUninitialized() => NewZero();
+        // DEBUG
+        //{
+        //    return NextArrayIndex++;
+        //}
 
         public int CopyToNew(int sourceIndex)
         {
@@ -462,7 +464,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public unsafe void ExecuteAll(double[] array)
         {
             PrepareOrderedSourcesAndDestinations(array);
-            if (Parallelize)
+            if (Parallelize && true)
             {
                 CommandTree.WalkTree(n =>
                 {
@@ -481,6 +483,32 @@ namespace ACESimBase.Util.ArrayProcessing
             }
             else
                 ExecuteHelper(array, 0, MaxCommandIndex, 0, 0, OrderedDestinationIndices.Count());
+            for (int i = 0; i < OrderedDestinations.Length; i++)
+                System.Diagnostics.Debug.WriteLine($"{i}: {OrderedDestinations[i]}");
+            PrintCommandLog(); // DEBUG
+            CopyOrderedDestinations(array, 0, OrderedDestinationIndices.Count()); // DEBUG -- move in ExecuteHelper
+        }
+
+        Dictionary<int, double> arrayValueAfterCommand;
+        StringBuilder commandLog = new StringBuilder();
+        private void LogCommand(int commandIndex, double[] array)
+        {
+            ArrayCommand command = UnderlyingCommands[commandIndex];
+            if (command.CommandType == ArrayCommandType.GoTo || command.CommandType == ArrayCommandType.AfterGoTo || command.CommandType == ArrayCommandType.ReusedDestination || command.CommandType == ArrayCommandType.Blank)
+                return;
+            if (arrayValueAfterCommand == null || arrayValueAfterCommand.ContainsKey(commandIndex))
+                arrayValueAfterCommand = new Dictionary<int, double>();
+            if (command.CommandType == ArrayCommandType.NextDestination)
+                arrayValueAfterCommand[commandIndex] = array[command.SourceIndex + InitialArrayIndex];
+            else
+                arrayValueAfterCommand[commandIndex] = array[command.Index + InitialArrayIndex];
+        }
+
+        private void PrintCommandLog()
+        {
+            var ordered = arrayValueAfterCommand.OrderBy(x => x.Key).ToList();
+            foreach (var item in ordered)
+                commandLog.AppendLine($"{item.Key}: {item.Value}");
         }
 
         private unsafe void ExecuteHelper(double[] array, int startCommandIndex, int endCommandIndexInclusive, int currentOrderedSourceIndex, int startOrderedDestinationIndex, int endOrderedDestinationIndex)
@@ -496,6 +524,10 @@ namespace ACESimBase.Util.ArrayProcessing
                 ArrayCommand* lastCommand = overall + endCommandIndexInclusive;
                 while (command <= lastCommand)
                 {
+                    if ((int)(command - overall) == 190)
+                    {
+                        var DEBUG = 0;
+                    }
                     //System.Diagnostics.Debug.WriteLine(*command);
                     skipNext = false;
                     goTo = -1;
@@ -512,7 +544,12 @@ namespace ACESimBase.Util.ArrayProcessing
                             break;
                         case ArrayCommandType.NextDestination:
                             double value = arrayPortion[(*command).SourceIndex];
+                            if (currentOrderedDestinationIndex == 0)
+                            {
+                                var DEBUG = 0;
+                            }
                             OrderedDestinations[currentOrderedDestinationIndex++] = value;
+                            //System.Diagnostics.Debug.WriteLine($"{currentOrderedDestinationIndex - 1} {value}"); // DEBUG
                             break;
                         case ArrayCommandType.ReusedDestination:
                             value = arrayPortion[(*command).SourceIndex];
@@ -526,12 +563,18 @@ namespace ACESimBase.Util.ArrayProcessing
                             //getTarget *= getSource;
                             //array[(*command).Index] = getTarget;
                             arrayPortion[(*command).Index] *= arrayPortion[(*command).SourceIndex];
+                            if (double.IsNaN(arrayPortion[(*command).Index]))
+                                throw new Exception("DEBUG");
                             break;
                         case ArrayCommandType.IncrementBy:
                             arrayPortion[(*command).Index] += arrayPortion[(*command).SourceIndex];
+                            if (double.IsNaN(arrayPortion[(*command).Index]))
+                                throw new Exception("DEBUG");
                             break;
                         case ArrayCommandType.DecrementBy:
                             arrayPortion[(*command).Index] -= arrayPortion[(*command).SourceIndex];
+                            if (double.IsNaN(arrayPortion[(*command).Index]))
+                                throw new Exception("DEBUG");
                             break;
                         case ArrayCommandType.MultiplyByInterlocked:
                             Interlocking.Multiply(ref arrayPortion[(*command).Index], arrayPortion[(*command).SourceIndex]);
@@ -587,6 +630,11 @@ namespace ACESimBase.Util.ArrayProcessing
                         default:
                             throw new NotImplementedException();
                     }
+                    if (arrayPortion[284] != 0)
+                    {
+                        var DEBUG = 0;
+                    }
+                    LogCommand((int) (command - overall), array);
                     if (skipNext)
                         command += sizeof(ArrayCommand); // in addition to increment below
                     else if (goTo != -1)
@@ -598,7 +646,7 @@ namespace ACESimBase.Util.ArrayProcessing
                     command++;
                 }
             }
-            CopyOrderedDestinations(array, startOrderedDestinationIndex, endOrderedDestinationIndex);
+            // DEBUG CopyOrderedDestinations(array, startOrderedDestinationIndex, endOrderedDestinationIndex);
         }
 
         public void PrepareOrderedSourcesAndDestinations(double[] array)
@@ -628,8 +676,6 @@ namespace ACESimBase.Util.ArrayProcessing
                 {
                     int destinationIndex = OrderedDestinationIndices[currentOrderedDestinationIndex];
                     array[destinationIndex] += OrderedDestinations[currentOrderedDestinationIndex];
-                    if (double.IsNaN(array[destinationIndex]))
-                        throw new Exception();
                     //System.Diagnostics.Debug.WriteLine($"{currentOrderedDestinationIndex}: {OrderedDestinations[currentOrderedDestinationIndex]} => {array[destinationIndex]}");
                 }
             }

@@ -14,9 +14,9 @@ namespace ACESim
             return theList.Take(count).ToList();
         }
 
-        public static void Shuffle<T>(IList<T> list)
+        public static void Shuffle<T>(IList<T> list, int seed = 0)
         {
-            Random rng = new Random();
+            Random rng = seed == 0 ? new Random() : new Random(seed);
             int n = list.Count;
             while (n > 1)
             {

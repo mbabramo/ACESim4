@@ -253,11 +253,14 @@ namespace ACESim
                 }
                 else
                 {
-                    Parallel.For(1, Branches.Length + 1, branch =>
+                    List<int> branches = Enumerable.Range(1, Branches.Length).ToList();
+                    RandomSubset.Shuffle(branches, 5); // DEBUG
+                    foreach (int branch in branches) // DEBUG
+                    // DEBUGParallel.ForEach(branches, branch =>
                     {
                         if (Branches[branch - 1] != null && !Branches[branch - 1].Equals(default(T)))
                             Branches[branch - 1].WalkTree(action, parallel);
-                    });
+                    };
                 }
             }
         }
