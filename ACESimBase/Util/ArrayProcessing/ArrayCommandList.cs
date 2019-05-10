@@ -44,7 +44,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public Stack<int> PerDepthStartArrayIndices;
         int NextVirtualStackID = 0;
 
-        bool RepeatIdenticalRanges = true; // instead of repeating identical sequences of commands, we run the same sequence twice
+        bool RepeatIdenticalRanges = false; // instead of repeating identical sequences of commands, we run the same sequence twice
         public Stack<int?> RepeatingExistingCommandRangeStack;
         public bool RepeatingExistingCommandRange = false;
 

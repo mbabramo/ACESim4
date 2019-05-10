@@ -357,7 +357,9 @@ namespace ACESim
                         Unroll_Commands.Increment(bestResponseDenominator, true, inversePiAvgStrat);
                         Unroll_Commands.CopyToExisting(resultArray[Unroll_Result_BestResponseIndex], innerResult[Unroll_Result_BestResponseIndex]);
                     // end of loop
-                    Unroll_Commands.ReplaceCommandWithGoToCommand(goToCommandIndex, Unroll_Commands.NextCommandIndex); // completes the go to statement
+                    int skipOneCommand = Unroll_Commands.InsertBlankCommand();
+                    Unroll_Commands.ReplaceCommandWithGoToCommand(skipOneCommand, Unroll_Commands.NextCommandIndex + 1); // skips the "after go to command"
+                    Unroll_Commands.ReplaceCommandWithGoToCommand(goToCommandIndex, Unroll_Commands.NextCommandIndex); // completes the go to statement -- going to the AfterGoToTargetCommand
                     // DEBUG -- now that we are using relative go to, this isn't right
                     Unroll_Commands.InsertAfterGoToTargetCommand(); // indicates the first step after go to (resets the current source and destination indices)
                     Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_HedgeVsHedgeIndex], false, probabilityOfAction, innerResult[Unroll_Result_HedgeVsHedgeIndex]);
