@@ -44,7 +44,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public Stack<int> PerDepthStartArrayIndices;
         int NextVirtualStackID = 0;
 
-        bool RepeatIdenticalRanges = false; // instead of repeating identical sequences of commands, we run the same sequence twice
+        bool RepeatIdenticalRanges = true; // instead of repeating identical sequences of commands, we run the same sequence twice
         public Stack<int?> RepeatingExistingCommandRangeStack;
         public bool RepeatingExistingCommandRange = false;
 
@@ -429,6 +429,10 @@ namespace ACESimBase.Util.ArrayProcessing
                     else
                     {
                         OrderedDestinationIndices.Add(index);
+                        if (index == 861)
+                        {
+                            var DEBUG = 0;
+                        }
                         if (ReuseDestinations)
                             ReusableOrderedDestinationIndices.Add(index, OrderedDestinationIndices.Count() - 1);
                         AddCommand(new ArrayCommand(ArrayCommandType.NextDestination, -1, indexOfIncrement));
@@ -665,7 +669,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         #region Command execution
 
-        bool UseSafeCode = false;
+        bool UseSafeCode = true; // DEBUG
 
         public unsafe void ExecuteAll(double[] array)
         {
@@ -703,6 +707,7 @@ namespace ACESimBase.Util.ArrayProcessing
             //for (int i = 0; i < OrderedDestinations.Length; i++)
             //    System.Diagnostics.Debug.WriteLine($"{i}: {OrderedDestinations[i]}");
             //PrintCommandLog();
+
             CopyOrderedDestinations(array, 0, OrderedDestinationIndices.Count());
         }
 
@@ -747,6 +752,10 @@ namespace ACESimBase.Util.ArrayProcessing
             int commandIndex = startCommandIndex;
             while (commandIndex <= endCommandIndexInclusive)
             {
+                if (commandIndex == 9131)
+                {
+                    var DEBUGQ = 0;
+                }
                 ArrayCommand command = UnderlyingCommands[commandIndex];
                 //System.Diagnostics.Debug.WriteLine(*command);
                 skipNext = false;
@@ -1004,11 +1013,12 @@ namespace ACESimBase.Util.ArrayProcessing
         static object DestinationCopier = new object();
         public void CopyOrderedDestinations(double[] array, int startOrderedDestinationIndex, int endOrderedDestinationIndexExclusive)
         {
-            Parallel.For(startOrderedDestinationIndex, endOrderedDestinationIndexExclusive, currentOrderedDestinationIndex =>
+            // NOTE: We can't use a parallel for here, because we might affect the same destination multiple times. (We could using Interlocking.Add, but that seems to take much longer.) This is also the same reason that we can't call this within each command segment. Alternatively, we could lock around the copying code.
+            for (int currentOrderedDestinationIndex = startOrderedDestinationIndex; currentOrderedDestinationIndex < endOrderedDestinationIndexExclusive; currentOrderedDestinationIndex++)
             {
                 int destinationIndex = OrderedDestinationIndices[currentOrderedDestinationIndex];
                 array[destinationIndex] += OrderedDestinations[currentOrderedDestinationIndex];
-            });
+            }
         }
 
         #endregion
