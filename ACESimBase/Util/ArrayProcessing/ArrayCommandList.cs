@@ -508,11 +508,6 @@ namespace ACESimBase.Util.ArrayProcessing
             AddCommand(new ArrayCommand(ArrayCommandType.NotEqualsValue, index1, valueToCompareTo));
         }
 
-        public void InsertGoToCommand(int commandIndexToReplace, int commandIndexToGoTo)
-        {
-            AddCommand(new ArrayCommand(ArrayCommandType.GoTo, commandIndexToGoTo, -1 /* ignored */));
-        }
-
         // When we skip some code, we need to set the ordered indices to the spots where they would have been had we not skipped the code. To make sure that this is the same when we repeat code multiple times but for different source indices, the AfterGoToTarget will store the delta
 
         public Stack<(int sourceIndex, int destinationIndex)> GoToSpots = new Stack<(int sourceIndex, int destinationIndex)>();
@@ -547,7 +542,7 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             if (commandIndexToGoTo == -1)
                 commandIndexToGoTo = NextCommandIndex;
-            UnderlyingCommands[commandIndexToReplace] = new ArrayCommand(ArrayCommandType.GoTo, commandIndexToGoTo, -1 /* ignored */);
+            UnderlyingCommands[commandIndexToReplace] = new ArrayCommand(ArrayCommandType.GoTo, commandIndexToGoTo - commandIndexToReplace, -1 /* ignored */);
         }
 
         #endregion
@@ -721,7 +716,7 @@ namespace ACESimBase.Util.ArrayProcessing
                         break;
                     case ArrayCommandType.GoTo:
                         // index here represents a command index -- not an array index
-                        goTo = command.Index - 1; // because we are going to increment in the for loop
+                        goTo += command.Index - 1; // because we are going to increment in the for loop
                         break;
                     case ArrayCommandType.AfterGoTo:
                         // indices here are indices but not into the original array
@@ -740,7 +735,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 {
                     if (goTo < startCommandIndex || goTo > endCommandIndexInclusive)
                         throw new Exception("Goto command cannot flow out of command chunk.");
-                    commandIndex = goTo;
+                    commandIndex += goTo;
                 }
                 commandIndex++;
             }
@@ -751,10 +746,10 @@ namespace ACESimBase.Util.ArrayProcessing
             int currentOrderedDestinationIndex = startOrderedDestinationIndex;
             bool skipNext;
             int goTo;
-            fixed (ArrayCommand* overall = &UnderlyingCommands[0])
+            fixed (ArrayCommand* firstInSection = &UnderlyingCommands[0])
             {
-                ArrayCommand* command = overall + startCommandIndex;
-                ArrayCommand* lastCommand = overall + endCommandIndexInclusive;
+                ArrayCommand* command = firstInSection + startCommandIndex;
+                ArrayCommand* lastCommand = firstInSection + endCommandIndexInclusive;
                 while (command <= lastCommand)
                 {
                     //System.Diagnostics.Debug.WriteLine(*command);
@@ -850,7 +845,7 @@ namespace ACESimBase.Util.ArrayProcessing
                     {
                         if (goTo < startCommandIndex || goTo > endCommandIndexInclusive)
                             throw new Exception("Goto command cannot flow out of command chunk.");
-                        command = overall + goTo;
+                        command += goTo;
                     }
                     command++;
                 }
