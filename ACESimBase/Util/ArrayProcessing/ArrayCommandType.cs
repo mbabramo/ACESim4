@@ -25,6 +25,7 @@ namespace ACESimBase.Util.ArrayProcessing
         NotEqualsValue,
         GoTo,
         AfterGoTo,
+        SkipNext,
         Blank,
     }
 }
