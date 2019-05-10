@@ -28,8 +28,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public double[] OrderedSources;
         // Ordered destinations: Similarly, when the unrolled algorithm changes the data passed to it (for example, incrementing regrets in CFR), instead of directly incrementing the data, we develop in advance a list of the indices that will be changed. Then, when running the algorithm, we store the actual data that needs to be changed in an array, and on completion of the algorithm, we run through that array and change the data at the specified index for each item. This enhances parallelism because we don't have to lock around each data change, instead locking only around the final set of changes. This also may facilitate spreading the algorithm across machines, since each CPU can simply report the set of changes to make.
         public bool UseOrderedDestinations = true;
-        public bool ReuseDestinations = false; // DEBUG 
-                                               // TODO -- reset Reusables in new parallel group // if true, then we will not add a new ordered destination index for a destination location already used within code executed not in parallel. Instead, we will just increment the previous destination.
+        public bool ReuseDestinations = false; // if true, then we will not add a new ordered destination index for a destination location already used within code executed not in parallel. Instead, we will just increment the previous destination.
         public List<int> OrderedDestinationIndices;
         public double[] OrderedDestinations;
         public Dictionary<int, int> ReusableOrderedDestinationIndices;
@@ -95,10 +94,14 @@ namespace ACESimBase.Util.ArrayProcessing
         }
 
         int NextVirtualStackID = 0;
-
+        
         public void StartCommandChunk(bool runChildrenInParallel, string name = "")
         {
-            byte nextChild = (byte)(CurrentNode.StoredValue.LastChild + 1);
+            var currentNode = CurrentNode;
+            var currentNodeIsInParallel = CurrentNode?.StoredValue.ChildrenParallelizable ?? false;
+            if (currentNodeIsInParallel)
+                ReusableOrderedDestinationIndices = new Dictionary<int, int>();
+            byte nextChild = (byte)(currentNode.StoredValue.LastChild + 1);
             NWayTreeStorageInternal<ArrayCommandChunk> childNode = new NWayTreeStorageInternal<ArrayCommandChunk>(CurrentNode);
             childNode.StoredValue = new ArrayCommandChunk()
             {
