@@ -28,7 +28,8 @@ namespace ACESimBase.Util.ArrayProcessing
         public double[] OrderedSources;
         // Ordered destinations: Similarly, when the unrolled algorithm changes the data passed to it (for example, incrementing regrets in CFR), instead of directly incrementing the data, we develop in advance a list of the indices that will be changed. Then, when running the algorithm, we store the actual data that needs to be changed in an array, and on completion of the algorithm, we run through that array and change the data at the specified index for each item. This enhances parallelism because we don't have to lock around each data change, instead locking only around the final set of changes. This also may facilitate spreading the algorithm across machines, since each CPU can simply report the set of changes to make.
         public bool UseOrderedDestinations = true;
-        public bool ReuseDestinations = false; // DEBUG // if true, then we will not add a new ordered destination index for a destination location already used within code executed not in parallel. Instead, we will just increment the previous destination.
+        public bool ReuseDestinations = false; // DEBUG 
+                                               // TODO -- reset Reusables in new parallel group // if true, then we will not add a new ordered destination index for a destination location already used within code executed not in parallel. Instead, we will just increment the previous destination.
         public List<int> OrderedDestinationIndices;
         public double[] OrderedDestinations;
         public Dictionary<int, int> ReusableOrderedDestinationIndices;
@@ -123,10 +124,6 @@ namespace ACESimBase.Util.ArrayProcessing
             CurrentCommandChunk.EndCommandRangeExclusive = NextCommandIndex;
             CurrentCommandChunk.EndSourceIndicesExclusive = OrderedSourceIndices?.Count() ?? 0;
             CurrentCommandChunk.EndDestinationIndicesExclusive = OrderedDestinationIndices?.Count() ?? 0;
-            if (copyIncrementsToParent != null)
-            {
-                //Debug.WriteLine($"Planning copy from chunk {commandChunkBeingEnded.ID}: {commandChunkBeingEnded.StartCommandRange}-{commandChunkBeingEnded.EndCommandRangeExclusive}"); // DEBUG
-            }
             commandChunkBeingEnded.CopyIncrementsToParent = copyIncrementsToParent;
         }
 
@@ -261,10 +258,6 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             if (NextCommandIndex == 0 && command.CommandType != ArrayCommandType.Blank)
                 InsertBlankCommand();
-            if (NextCommandIndex == 6615 || NextCommandIndex == 6618)
-            {
-                var DEBUG = 0;
-            }
             UnderlyingCommands[NextCommandIndex] = command;
             NextCommandIndex++;
             if (NextArrayIndex > MaxArrayIndex)
@@ -386,7 +379,6 @@ namespace ACESimBase.Util.ArrayProcessing
             {
                 if (UseOrderedDestinations)
                 {
-                    // DEBUG TODO -- reset Reusables in new parallel group
                     if (ReuseDestinations && ReusableOrderedDestinationIndices.ContainsKey(index))
                     {
                         AddCommand(new ArrayCommand(ArrayCommandType.ReusedDestination, ReusableOrderedDestinationIndices[index], indexOfIncrement));
@@ -517,7 +509,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public unsafe void ExecuteAll(double[] array)
         {
-            bool useSafe = true;            // DEBUG -- compare speed
+            bool useSafe = true; // DEBUG -- compare speed
             PrepareOrderedSourcesAndDestinations(array);
             if (Parallelize)
             {
@@ -600,7 +592,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         private unsafe void ExecuteSectionOfCommands_Safe(Span<double> arrayPortion, int startCommandIndex, int endCommandIndexInclusive, int currentOrderedSourceIndex, int startOrderedDestinationIndex, int endOrderedDestinationIndex)
         {
-            //System.Diagnostics.Debug.WriteLine($"command {startCommandIndex}-{endCommandIndexInclusive}"); // DEBUG'
+            //System.Diagnostics.Debug.WriteLine($"command {startCommandIndex}-{endCommandIndexInclusive}");
             int currentOrderedDestinationIndex = startOrderedDestinationIndex;
             bool skipNext;
             int goTo;
@@ -608,11 +600,6 @@ namespace ACESimBase.Util.ArrayProcessing
             while (commandIndex <= endCommandIndexInclusive)
             {
                 ArrayCommand command = UnderlyingCommands[commandIndex];
-                if (commandIndex == 6615 || commandIndex == 6618)
-                {
-                    Debug.WriteLine("Executing command 13212");
-                    var DEBUG = 0;
-                }
                 //System.Diagnostics.Debug.WriteLine(*command);
                 skipNext = false;
                 goTo = -1;
@@ -852,10 +839,6 @@ namespace ACESimBase.Util.ArrayProcessing
                 {
                     int destinationIndex = OrderedDestinationIndices[currentOrderedDestinationIndex];
                     //Interlocking.Add(ref array[destinationIndex], OrderedDestinations[currentOrderedDestinationIndex]);
-                    if (destinationIndex == 12)
-                    {
-                        var DEBUG = 0;
-                    }
                     array[destinationIndex] += OrderedDestinations[currentOrderedDestinationIndex];
                     //System.Diagnostics.Debug.WriteLine($"{currentOrderedDestinationIndex}: {OrderedDestinations[currentOrderedDestinationIndex]} => {array[destinationIndex]}");
                 });

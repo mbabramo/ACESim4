@@ -257,45 +257,18 @@ namespace ACESim
                     //The commented out code randomizes order without executing code simultaneously.
                     // DEBUG
                     //RandomSubset.Shuffle(branches, 5); 
-                    foreach (int branch in branches)
-                    //Parallel.ForEach(branches, branch =>
+                    //foreach (int branch in branches)
+                    Parallel.ForEach(branches, branch =>
                     {
                         if (Branches[branch - 1] != null && !Branches[branch - 1].Equals(default(T)))
                             Branches[branch - 1].WalkTree(beforeDescending, afterAscending, parallel);
-                    }
+                    });
                 }
             }
             afterAscending?.Invoke(this);
         }
 
-        // DEBUG TODO: replace with call to WalkTree above with null for afterAscending
-        public override void WalkTree(Action<NWayTreeStorage<T>> action, Func<NWayTreeStorage<T>, bool> parallel = null)
-        {
-            action(this);
-            if (Branches != null)
-            {
-                if (parallel == null || parallel(this) == false)
-                {
-                    for (int branch = 1; branch <= Branches.Length; branch++)
-                    {
-                        if (Branches[branch - 1] != null && !Branches[branch - 1].Equals(default(T)))
-                            Branches[branch - 1].WalkTree(action, parallel);
-                    }
-                }
-                else
-                {
-                    List<int> branches = Enumerable.Range(1, Branches.Length).ToList();
-                    //The commented out code randomizes order without executing code simultaneously.
-                    //RandomSubset.Shuffle(branches, 5);
-                    //foreach (int branch in branches)
-                    Parallel.ForEach(branches, branch =>
-                    {
-                        if (Branches[branch - 1] != null && !Branches[branch - 1].Equals(default(T)))
-                            Branches[branch - 1].WalkTree(action, parallel);
-                    });
-                }
-            }
-        }
+        public override void WalkTree(Action<NWayTreeStorage<T>> action, Func<NWayTreeStorage<T>, bool> parallel = null) => WalkTree(action, null, parallel);
 
         internal override void ToTreeString(StringBuilder s, int? branch, int level, string branchWord)
         {

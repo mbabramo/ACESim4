@@ -60,7 +60,7 @@ namespace ACESimBase.Util.ArrayProcessing
             {
                 if (ParentVirtualStack != VirtualStack && ParentVirtualStack != null && CopyIncrementsToParent != null)
                 {
-                    //Debug.WriteLine($"Copying increments for chunk {ID} {String.Join(",", CopyIncrementsToParent.Select(x => VirtualStack[x]))}"); // DEBUG
+                    //Debug.WriteLine($"Copying increments for chunk {ID} {String.Join(",", CopyIncrementsToParent.Select(x => VirtualStack[x]))}");
                     foreach (int index in CopyIncrementsToParent)
                     {
                         double value = VirtualStack[index];
