@@ -289,11 +289,10 @@ namespace ACESimBase.Util.ArrayProcessing
         //    return result;
         //}
 
-        public int NewUninitialized() => NewZero();
-        // DEBUG
-        //{
-        //    return NextArrayIndex++;
-        //}
+        public int NewUninitialized()
+        {
+            return NextArrayIndex++;
+        }
 
         public int CopyToNew(int sourceIndex, bool fromOriginalSources)
         {

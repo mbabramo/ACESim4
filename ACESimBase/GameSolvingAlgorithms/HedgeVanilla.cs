@@ -320,7 +320,7 @@ namespace ACESim
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
             int[] actionProbabilities = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_HedgeProbabilities_All(informationSet.InformationSetNumber, numPossibleActions), true);
             int[] expectedValueOfAction = Unroll_Commands.NewUninitializedArray(numPossibleActions);
-            int expectedValue = Unroll_Commands.NewUninitialized();
+            int expectedValue = Unroll_Commands.NewZero();
             for (byte action = 1; action <= numPossibleActions; action++)
             {
                 int probabilityOfAction = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_HedgeProbability(informationSet.InformationSetNumber, action), true);
