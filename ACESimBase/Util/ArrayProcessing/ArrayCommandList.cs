@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace ACESimBase.Util.ArrayProcessing
 {
-    public class ArrayCommandList
+    public partial class ArrayCommandList
     {
 
         public ArrayCommand[] UnderlyingCommands;
@@ -93,35 +93,6 @@ namespace ACESimBase.Util.ArrayProcessing
         }
 
         int NextVirtualStackID = 0;
-        public class ArrayCommandChunk
-        {
-            public bool ChildrenParallelizable;
-            public byte LastChild;
-            public int StartCommandRange, EndCommandRangeExclusive;
-            public int StartSourceIndices, EndSourceIndicesExclusive;
-            public int StartDestinationIndices, EndDestinationIndicesExclusive;
-            public double[] VirtualStack;
-            public int VirtualStackID;
-            public double[] ParentVirtualStack;
-            public int ParentVirtualStackID;
-            internal string Name;
-
-            public override string ToString()
-            {
-                return $"{Name}{(Name != null ? " " : "")}{EndCommandRangeExclusive - StartCommandRange} Commands:[{StartCommandRange},{EndCommandRangeExclusive})  Sources:[{StartSourceIndices},{EndSourceIndicesExclusive}) Destinations:[{StartDestinationIndices},{EndDestinationIndicesExclusive}) VirtualStackID {VirtualStackID} {(ChildrenParallelizable ? "In parallel:" : "")}";
-            }
-
-            public void CopyParentVirtualStack()
-            {
-                if (ParentVirtualStack != VirtualStack && ParentVirtualStack != null)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Copying stack from {ParentVirtualStackID} to {VirtualStackID}");
-                    int stackSize = Math.Min(VirtualStack.Length, ParentVirtualStack.Length);
-                    for (int i = 0; i < stackSize; i++)
-                        VirtualStack[i] = ParentVirtualStack[i];
-                }
-            }
-        }
 
         public void StartCommandChunk(bool runChildrenInParallel, string name = "")
         {
@@ -140,7 +111,7 @@ namespace ACESimBase.Util.ArrayProcessing
             CurrentCommandTreeLocation.Add(nextChild);
         }
 
-        public void EndCommandChunk()
+        public void EndCommandChunk(int[] copyChildIncrementsHere = null)
         {
             CurrentCommandChunk.EndCommandRangeExclusive = NextCommandIndex;
             CurrentCommandChunk.EndSourceIndicesExclusive = OrderedSourceIndices?.Count() ?? 0;
@@ -149,6 +120,11 @@ namespace ACESimBase.Util.ArrayProcessing
             CurrentCommandChunk.EndCommandRangeExclusive = NextCommandIndex;
             CurrentCommandChunk.EndSourceIndicesExclusive = OrderedSourceIndices?.Count() ?? 0;
             CurrentCommandChunk.EndDestinationIndicesExclusive = OrderedDestinationIndices?.Count() ?? 0;
+            if (copyChildIncrementsHere != null && copyChildIncrementsHere.First() > 600)
+            {
+                var DEBUG = 0;
+            }
+            CurrentCommandChunk.CopyChildIncrementsHere = copyChildIncrementsHere;
         }
 
         public void CompleteCommandList()
@@ -222,19 +198,6 @@ namespace ACESimBase.Util.ArrayProcessing
         private void SetupVirtualStack(NWayTreeStorageInternal<ArrayCommandChunk> node)
         {
             ArrayCommandChunk c = node.StoredValue;
-            // DEBUG
-            //bool isLeaf = node.Branches == null || node.Branches.Length == 0;
-            //if (isLeaf)
-            //{
-            //    c.HighestRelativeSourceIndex = HighestSourceIndexInCommandRange(c.StartCommandRange, c.EndCommandRangeExclusive);
-            //    c.HighestRelativeTargetIndex = HighestTargetIndexInCommandRange(c.StartCommandRange, c.EndCommandRangeExclusive);
-            //}
-            //else
-            //{
-            //    c.HighestRelativeSourceIndex = node.Branches.Max(x => x.StoredValue.HighestRelativeSourceIndex);
-            //    c.HighestRelativeTargetIndex = node.Branches.Max(x => x.StoredValue.HighestRelativeTargetIndex); 
-            //}
-            //// initially assume that we need a separate virtual stack on each node
             c.VirtualStack = new double[MaxArrayIndex];
             c.VirtualStackID = NextVirtualStackID++;
         }
@@ -252,6 +215,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 }
                 else
                 {
+                    node.StoredValue.CopyIncrementsToParent = node.Parent.StoredValue.CopyChildIncrementsHere;
                     node.StoredValue.ParentVirtualStack = node.Parent.StoredValue.VirtualStack;
                     node.StoredValue.ParentVirtualStackID = node.Parent.StoredValue.VirtualStackID;
                 }
@@ -574,6 +538,7 @@ namespace ACESimBase.Util.ArrayProcessing
                             }
                         }
                     }
+                    commandChunk.CopyIncrementsToParentIfNecessary();
                 }, n =>
                 {
                     var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
@@ -599,7 +564,7 @@ namespace ACESimBase.Util.ArrayProcessing
             }
             //for (int i = 0; i < OrderedDestinations.Length; i++)
             //    System.Diagnostics.Debug.WriteLine($"{i}: {OrderedDestinations[i]}");
-            PrintCommandLog();
+            //PrintCommandLog();
             CopyOrderedDestinations(array, 0, OrderedDestinationIndices.Count());
         }
 
@@ -726,7 +691,7 @@ namespace ACESimBase.Util.ArrayProcessing
                     default:
                         throw new NotImplementedException();
                 }
-                LogCommand(commandIndex, arrayPortion);
+                //LogCommand(commandIndex, arrayPortion);
                 if (skipNext)
                     commandIndex++; // in addition to increment below
                 else if (goTo != -1)
@@ -879,6 +844,10 @@ namespace ACESimBase.Util.ArrayProcessing
                 {
                     int destinationIndex = OrderedDestinationIndices[currentOrderedDestinationIndex];
                     //Interlocking.Add(ref array[destinationIndex], OrderedDestinations[currentOrderedDestinationIndex]);
+                    if (destinationIndex == 12)
+                    {
+                        var DEBUG = 0;
+                    }
                     array[destinationIndex] += OrderedDestinations[currentOrderedDestinationIndex];
                     //System.Diagnostics.Debug.WriteLine($"{currentOrderedDestinationIndex}: {OrderedDestinations[currentOrderedDestinationIndex]} => {array[destinationIndex]}");
                 });
