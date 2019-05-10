@@ -832,18 +832,11 @@ namespace ACESimBase.Util.ArrayProcessing
         static object DestinationCopier = new object();
         public void CopyOrderedDestinations(double[] array, int startOrderedDestinationIndex, int endOrderedDestinationIndexExclusive)
         {
-            // DEBUG -- should be able to remove lock and interlocking
-            //lock (DestinationCopier)
+            Parallel.For(startOrderedDestinationIndex, endOrderedDestinationIndexExclusive, currentOrderedDestinationIndex =>
             {
-                Parallel.For(startOrderedDestinationIndex, endOrderedDestinationIndexExclusive, currentOrderedDestinationIndex =>
-                //for (int currentOrderedDestinationIndex = startOrderedDestinationIndex; currentOrderedDestinationIndex < endOrderedDestinationIndexExclusive; currentOrderedDestinationIndex++)
-                {
-                    int destinationIndex = OrderedDestinationIndices[currentOrderedDestinationIndex];
-                    //Interlocking.Add(ref array[destinationIndex], OrderedDestinations[currentOrderedDestinationIndex]);
-                    array[destinationIndex] += OrderedDestinations[currentOrderedDestinationIndex];
-                    //System.Diagnostics.Debug.WriteLine($"{currentOrderedDestinationIndex}: {OrderedDestinations[currentOrderedDestinationIndex]} => {array[destinationIndex]}");
-                });
-            }
+                int destinationIndex = OrderedDestinationIndices[currentOrderedDestinationIndex];
+                array[destinationIndex] += OrderedDestinations[currentOrderedDestinationIndex];
+            });
         }
 
         #endregion
