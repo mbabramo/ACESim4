@@ -280,16 +280,15 @@ namespace ACESimBase.Util.ArrayProcessing
             return NextArrayIndex++;
         }
 
-        public int[] NewUninitializedArray(int arraySize) => NewZeroArray(arraySize);
-        // DEBUG
-        //{
-        //    int[] result = new int[arraySize];
-        //    for (int i = 0; i < arraySize; i++)
-        //        result[i] = NewUninitialized();
-        //    return result;
-        //}
+        public int[] NewUninitializedArray(int arraySize)
+        {
+            int[] result = new int[arraySize];
+            for (int i = 0; i<arraySize; i++)
+                result[i] = NewUninitialized();
+            return result;
+        }
 
-        public int NewUninitialized()
+    public int NewUninitialized()
         {
             return NextArrayIndex++;
         }
