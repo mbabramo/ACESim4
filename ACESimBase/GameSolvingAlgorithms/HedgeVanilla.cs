@@ -429,7 +429,7 @@ namespace ACESim
             {
                 if (chanceNodeSettings.Decision.Unroll_Parallelize)
                 {
-                    Unroll_Commands.StartCommandChunk(true, firstCommandToRepeat, chanceNodeSettings.Decision.Name + "=" + action.ToString());
+                    Unroll_Commands.StartCommandChunk(false /* inner commands are run sequentially */, firstCommandToRepeat, chanceNodeSettings.Decision.Name + "=" + action.ToString());
                     if (action == 1 && chanceNodeSettings.Decision.Unroll_Parallelize_Identical)
                         firstCommandToRepeat = Unroll_Commands.NextCommandIndex;
                 }

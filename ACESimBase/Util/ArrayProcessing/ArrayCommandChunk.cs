@@ -38,7 +38,7 @@ namespace ACESimBase.Util.ArrayProcessing
             {
                 if (ParentVirtualStack != VirtualStack && ParentVirtualStack != null)
                 {
-                    //System.Diagnostics.Debug.WriteLine($"Copying stack from {ParentVirtualStackID} to {VirtualStackID}");
+                    System.Diagnostics.Debug.WriteLine($"Copying stack from {ParentVirtualStackID} to {VirtualStackID}"); // DEBUG
                     int stackSize = Math.Min(VirtualStack.Length, ParentVirtualStack.Length);
                     for (int i = 0; i < stackSize; i++)
                         VirtualStack[i] = ParentVirtualStack[i];

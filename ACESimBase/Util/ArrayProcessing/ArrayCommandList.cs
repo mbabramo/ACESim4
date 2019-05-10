@@ -552,7 +552,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public unsafe void ExecuteAll(double[] array)
         {
-            bool useSafe = false;
+            bool useSafe = true;
             PrepareOrderedSourcesAndDestinations(array);
             if (Parallelize)
             {
@@ -606,7 +606,7 @@ namespace ACESimBase.Util.ArrayProcessing
             }
             //for (int i = 0; i < OrderedDestinations.Length; i++)
             //    System.Diagnostics.Debug.WriteLine($"{i}: {OrderedDestinations[i]}");
-            //PrintCommandLog();
+            PrintCommandLog();
             CopyOrderedDestinations(array, 0, OrderedDestinationIndices.Count());
         }
 
@@ -642,6 +642,10 @@ namespace ACESimBase.Util.ArrayProcessing
             int commandIndex = startCommandIndex;
             while (commandIndex <= endCommandIndexInclusive)
             {
+                if (commandIndex == 9 || commandIndex == 22)
+                {
+                    var DEBUG = 0;
+                }
                 ArrayCommand command = UnderlyingCommands[commandIndex];
                 //System.Diagnostics.Debug.WriteLine(*command);
                 skipNext = false;
@@ -729,7 +733,7 @@ namespace ACESimBase.Util.ArrayProcessing
                     default:
                         throw new NotImplementedException();
                 }
-                //LogCommand(commandIndex, arrayPortion);
+                LogCommand(commandIndex, arrayPortion);
                 if (skipNext)
                     commandIndex++; // in addition to increment below
                 else if (goTo != -1)
@@ -837,7 +841,6 @@ namespace ACESimBase.Util.ArrayProcessing
                         default:
                             throw new NotImplementedException();
                     }
-                    //LogCommand((int) (command - overall), array);
                     if (skipNext)
                         command++; // in addition to increment below
                     else if (goTo != -1)
