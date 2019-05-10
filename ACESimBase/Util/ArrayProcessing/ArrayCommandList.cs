@@ -3,6 +3,7 @@ using ACESim.Util;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -111,20 +112,22 @@ namespace ACESimBase.Util.ArrayProcessing
             CurrentCommandTreeLocation.Add(nextChild);
         }
 
-        public void EndCommandChunk(int[] copyChildIncrementsHere = null)
+        public void EndCommandChunk(int[] copyIncrementsToParent = null)
         {
-            CurrentCommandChunk.EndCommandRangeExclusive = NextCommandIndex;
-            CurrentCommandChunk.EndSourceIndicesExclusive = OrderedSourceIndices?.Count() ?? 0;
-            CurrentCommandChunk.EndDestinationIndicesExclusive = OrderedDestinationIndices?.Count() ?? 0;
+            var commandChunkBeingEnded = CurrentCommandChunk;
+            commandChunkBeingEnded.EndCommandRangeExclusive = NextCommandIndex;
+            commandChunkBeingEnded.EndSourceIndicesExclusive = OrderedSourceIndices?.Count() ?? 0;
+            commandChunkBeingEnded.EndDestinationIndicesExclusive = OrderedDestinationIndices?.Count() ?? 0;
+            // now update parent
             CurrentCommandTreeLocation = CurrentCommandTreeLocation.Take(CurrentCommandTreeLocation.Count() - 1).ToList(); // remove last item
             CurrentCommandChunk.EndCommandRangeExclusive = NextCommandIndex;
             CurrentCommandChunk.EndSourceIndicesExclusive = OrderedSourceIndices?.Count() ?? 0;
             CurrentCommandChunk.EndDestinationIndicesExclusive = OrderedDestinationIndices?.Count() ?? 0;
-            if (copyChildIncrementsHere != null && copyChildIncrementsHere.First() > 600)
+            if (copyIncrementsToParent != null)
             {
-                var DEBUG = 0;
+                Debug.WriteLine($"Planning copy from chunk {commandChunkBeingEnded.ID}: {commandChunkBeingEnded.StartCommandRange}-{commandChunkBeingEnded.EndCommandRangeExclusive}"); // DEBUG
             }
-            CurrentCommandChunk.CopyChildIncrementsHere = copyChildIncrementsHere;
+            commandChunkBeingEnded.CopyIncrementsToParent = copyIncrementsToParent;
         }
 
         public void CompleteCommandList()
@@ -215,7 +218,6 @@ namespace ACESimBase.Util.ArrayProcessing
                 }
                 else
                 {
-                    node.StoredValue.CopyIncrementsToParent = node.Parent.StoredValue.CopyChildIncrementsHere;
                     node.StoredValue.ParentVirtualStack = node.Parent.StoredValue.VirtualStack;
                     node.StoredValue.ParentVirtualStackID = node.Parent.StoredValue.VirtualStackID;
                 }
@@ -259,7 +261,7 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             if (NextCommandIndex == 0 && command.CommandType != ArrayCommandType.Blank)
                 InsertBlankCommand();
-            if (NextCommandIndex == 3334)
+            if (NextCommandIndex == 13212)
             {
                 var DEBUG = 0;
             }
@@ -521,7 +523,8 @@ namespace ACESimBase.Util.ArrayProcessing
             {
                 if (!UseOrderedSources || !UseOrderedDestinations)
                     throw new Exception("Must use ordered sources and destinations with parallelizable");
-                CommandTree.WalkTree(n =>
+                Debug;
+                CommandTree.WalkTree_LeavesFirst(n =>
                 {
                     var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
                     var commandChunk = node.StoredValue;
@@ -564,7 +567,7 @@ namespace ACESimBase.Util.ArrayProcessing
             }
             //for (int i = 0; i < OrderedDestinations.Length; i++)
             //    System.Diagnostics.Debug.WriteLine($"{i}: {OrderedDestinations[i]}");
-            //PrintCommandLog();
+            PrintCommandLog();
             CopyOrderedDestinations(array, 0, OrderedDestinationIndices.Count());
         }
 
@@ -601,8 +604,9 @@ namespace ACESimBase.Util.ArrayProcessing
             while (commandIndex <= endCommandIndexInclusive)
             {
                 ArrayCommand command = UnderlyingCommands[commandIndex];
-                if (commandIndex == 3334)
+                if (commandIndex == 13212)
                 {
+                    Debug.WriteLine("Executing command 13212");
                     var DEBUG = 0;
                 }
                 //System.Diagnostics.Debug.WriteLine(*command);
@@ -691,7 +695,7 @@ namespace ACESimBase.Util.ArrayProcessing
                     default:
                         throw new NotImplementedException();
                 }
-                //LogCommand(commandIndex, arrayPortion);
+                LogCommand(commandIndex, arrayPortion);
                 if (skipNext)
                     commandIndex++; // in addition to increment below
                 else if (goTo != -1)

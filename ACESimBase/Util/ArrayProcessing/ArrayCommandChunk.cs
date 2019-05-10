@@ -1,5 +1,7 @@
 ﻿using ACESim.Util;
 using System;
+using System.Diagnostics;
+using System.Linq;
 
 namespace ACESimBase.Util.ArrayProcessing
 {
@@ -7,6 +9,8 @@ namespace ACESimBase.Util.ArrayProcessing
     {
         public class ArrayCommandChunk
         {
+            public static int NextID = 0;
+            public int ID;
             public bool ChildrenParallelizable;
             public byte LastChild;
             public int StartCommandRange, EndCommandRangeExclusive;
@@ -17,12 +21,17 @@ namespace ACESimBase.Util.ArrayProcessing
             public double[] ParentVirtualStack;
             public int ParentVirtualStackID;
             internal string Name;
-            internal int[] CopyChildIncrementsHere;
             internal int[] CopyIncrementsToParent;
+
+            public ArrayCommandChunk()
+            {
+                ID = NextID++;
+            }
+
 
             public override string ToString()
             {
-                return $"{Name}{(Name != null ? " " : "")}{EndCommandRangeExclusive - StartCommandRange} Commands:[{StartCommandRange},{EndCommandRangeExclusive})  Sources:[{StartSourceIndices},{EndSourceIndicesExclusive}) Destinations:[{StartDestinationIndices},{EndDestinationIndicesExclusive}) VirtualStackID {VirtualStackID} {(ChildrenParallelizable ? "In parallel:" : "")}";
+                return $"ID{ID}: {Name}{(Name != null ? " " : "")}{EndCommandRangeExclusive - StartCommandRange} Commands:[{StartCommandRange},{EndCommandRangeExclusive})  Sources:[{StartSourceIndices},{EndSourceIndicesExclusive}) Destinations:[{StartDestinationIndices},{EndDestinationIndicesExclusive}) VirtualStackID {VirtualStackID} {(ChildrenParallelizable ? "In parallel:" : "")}";
             }
 
             public void CopyParentVirtualStack()
@@ -44,6 +53,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 }
                 if (ParentVirtualStack != VirtualStack && ParentVirtualStack != null && CopyIncrementsToParent != null)
                 {
+                    Debug.WriteLine($"Copying increments for chunk {ID} {String.Join(",", CopyIncrementsToParent.Select(x => VirtualStack[x]))}"); // DEBUG
                     foreach (int index in CopyIncrementsToParent)
                     {
                         double value = VirtualStack[index];
