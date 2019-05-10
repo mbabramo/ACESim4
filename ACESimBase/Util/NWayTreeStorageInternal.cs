@@ -254,16 +254,14 @@ namespace ACESim
                 else
                 {
                     List<int> branches = Enumerable.Range(1, Branches.Length).ToList();
-                    //The commented out code randomizes order without executing code simultaneously.
+                    //The commented out code randomizes order without executing code simultaneously. You can also comment out just the first to run in order instead of in parallel.
                     //RandomSubset.Shuffle(branches, 5); 
-                    foreach (int branch in branches)
-
-                        //DEBUG
-                    //Parallel.ForEach(branches, branch =>
+                    //foreach (int branch in branches)
+                    Parallel.ForEach(branches, branch =>
                     {
                         if (Branches[branch - 1] != null && !Branches[branch - 1].Equals(default(T)))
                             Branches[branch - 1].WalkTree(beforeDescending, afterAscending, parallel);
-                    }//);
+                    });
                 }
             }
             afterAscending?.Invoke(this);
