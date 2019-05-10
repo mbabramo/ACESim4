@@ -15,6 +15,8 @@ namespace ACESimBase.Util.ArrayProcessing
     public partial class ArrayCommandList
     {
 
+        #region Fields and settings
+
         public ArrayCommand[] UnderlyingCommands;
         public int NextCommandIndex;
         public int MaxCommandIndex;
@@ -52,6 +54,10 @@ namespace ACESimBase.Util.ArrayProcessing
         NWayTreeStorageInternal<ArrayCommandChunk> CurrentNode => (NWayTreeStorageInternal<ArrayCommandChunk>) CommandTree.GetNode(CurrentCommandTreeLocation);
         ArrayCommandChunk CurrentCommandChunk => CurrentNode.StoredValue;
 
+        #endregion
+
+        #region Construction and command tree creation
+
         public ArrayCommandList(int maxNumCommands, int initialArrayIndex, bool parallelize)
         {
             UnderlyingCommands = new ArrayCommand[maxNumCommands];
@@ -76,8 +82,6 @@ namespace ACESimBase.Util.ArrayProcessing
                 StartDestinationIndices = 0
             };
         }
-
-        #region Depth management and parallelism
 
         // We are simulating a stack. When entering a new depth level, we remember the next array index. Then, when exiting this depth level, we revert to this array index. A consequence of this is that depth i + 1 can return values to depth <= i only by copying to array indices already set at this earlier depth. 
 
@@ -272,7 +276,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         #endregion
 
-        #region Commands
+        #region Command creation
 
         private void AddCommand(ArrayCommand command)
         {
@@ -548,7 +552,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         #endregion
 
-        #region Execution
+        #region Command execution
 
         bool UseSafeCode = false;
 
@@ -622,29 +626,6 @@ namespace ACESimBase.Util.ArrayProcessing
                 }
             }
         }
-
-        ConcurrentDictionary<int, string> arrayValueAfterCommand = null;
-        StringBuilder commandLog = new StringBuilder();
-        private void LogCommand(int commandIndex, Span<double> array)
-        {
-            ArrayCommand command = UnderlyingCommands[commandIndex];
-            if (command.CommandType == ArrayCommandType.GoTo || command.CommandType == ArrayCommandType.AfterGoTo || command.CommandType == ArrayCommandType.ReusedDestination || command.CommandType == ArrayCommandType.Blank)
-                return;
-            if (arrayValueAfterCommand == null || arrayValueAfterCommand.ContainsKey(commandIndex))
-                arrayValueAfterCommand = new ConcurrentDictionary<int, string>();
-            if (command.CommandType == ArrayCommandType.NextDestination)
-                arrayValueAfterCommand[commandIndex] = $"{array[command.SourceIndex]} is next destination (from {command.SourceIndex}";
-            else
-                arrayValueAfterCommand[commandIndex] = $"{array[command.Index]} is in index {command.Index} from {command.SourceIndex} {(command.SourceIndex != -1 ? array[command.SourceIndex].ToString() : "")}";
-        }
-
-        private void PrintCommandLog()
-        {
-            var ordered = arrayValueAfterCommand.OrderBy(x => x.Key).ToList();
-            foreach (var item in ordered)
-                commandLog.AppendLine($"{item.Key}: {item.Value}");
-        }
-
 
         private unsafe void ExecuteSectionOfCommands_Safe(Span<double> arrayPortion, int startCommandIndex, int endCommandIndexInclusive, int currentOrderedSourceIndex, int startOrderedDestinationIndex, int endOrderedDestinationIndex)
         {
@@ -860,6 +841,36 @@ namespace ACESimBase.Util.ArrayProcessing
                 }
             }
         }
+
+        #endregion
+
+        #region Logging
+
+        ConcurrentDictionary<int, string> arrayValueAfterCommand = null;
+        StringBuilder commandLog = new StringBuilder();
+        private void LogCommand(int commandIndex, Span<double> array)
+        {
+            ArrayCommand command = UnderlyingCommands[commandIndex];
+            if (command.CommandType == ArrayCommandType.GoTo || command.CommandType == ArrayCommandType.AfterGoTo || command.CommandType == ArrayCommandType.ReusedDestination || command.CommandType == ArrayCommandType.Blank)
+                return;
+            if (arrayValueAfterCommand == null || arrayValueAfterCommand.ContainsKey(commandIndex))
+                arrayValueAfterCommand = new ConcurrentDictionary<int, string>();
+            if (command.CommandType == ArrayCommandType.NextDestination)
+                arrayValueAfterCommand[commandIndex] = $"{array[command.SourceIndex]} is next destination (from {command.SourceIndex}";
+            else
+                arrayValueAfterCommand[commandIndex] = $"{array[command.Index]} is in index {command.Index} from {command.SourceIndex} {(command.SourceIndex != -1 ? array[command.SourceIndex].ToString() : "")}";
+        }
+
+        private void PrintCommandLog()
+        {
+            var ordered = arrayValueAfterCommand.OrderBy(x => x.Key).ToList();
+            foreach (var item in ordered)
+                commandLog.AppendLine($"{item.Key}: {item.Value}");
+        }
+
+        #endregion
+
+        #region Copying ordered sources
 
         public void PrepareOrderedSourcesAndDestinations(double[] array)
         {
