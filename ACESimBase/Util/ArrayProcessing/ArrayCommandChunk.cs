@@ -20,6 +20,7 @@ namespace ACESimBase.Util.ArrayProcessing
             public int VirtualStackID;
             public double[] ParentVirtualStack;
             public int ParentVirtualStackID;
+            public string CompiledCode;
             internal string Name;
             internal int[] CopyIncrementsToParent;
 

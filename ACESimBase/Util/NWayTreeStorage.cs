@@ -12,7 +12,7 @@ namespace ACESim
         public static bool ParallelEnabled = true; // set this to false to disable running in parallel
         public NWayTreeStorageInternal<T> Parent;
 
-        private T _StoredValue;
+        public T _StoredValue;
         public T StoredValue
         {
             get
