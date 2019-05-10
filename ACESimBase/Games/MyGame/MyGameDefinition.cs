@@ -166,7 +166,7 @@ namespace ACESim
             }
             if (primaryActions > 0)
             {
-                decisions.Add(new Decision("PrimaryActions", "Primary", (byte) MyGamePlayers.Defendant /* DEBUG -- why defendant? */, primaryPlayersToInform, primaryActions, (byte) MyGameDecisions.PrimaryAction) {StoreActionInGameCacheItem = GameHistoryCacheIndex_PrimaryAction, IsReversible = true, CanTerminateGame = primaryActionCanTerminate, Unroll_Parallelize = true, Unroll_Parallelize_Identical = true });
+                decisions.Add(new Decision("PrimaryActions", "Primary", (byte) MyGamePlayers.PrePrimaryChance /* there is no primary chance player */, primaryPlayersToInform, primaryActions, (byte) MyGameDecisions.PrimaryAction) {StoreActionInGameCacheItem = GameHistoryCacheIndex_PrimaryAction, IsReversible = true, CanTerminateGame = primaryActionCanTerminate, Unroll_Parallelize = true, Unroll_Parallelize_Identical = true });
             }
             if (postPrimaryChanceActions > 0)
             {

@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace ACESim
 {
 
-    // DEBUG TODO 1. add pruning to unrolled. 2. local variables to unrolled (consider using a separate array; also consider using unsafe code) 3. parallel in unrolled
+    // DEBUG TODO 1. add pruning to unrolled. 2. compile unrolled
 
     public partial class CounterfactualRegretMinimization
     {
