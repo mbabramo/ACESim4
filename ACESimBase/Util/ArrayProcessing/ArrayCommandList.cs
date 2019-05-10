@@ -194,7 +194,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         private void SetupVirtualStacks()
         {
-            CommandTree.WalkTree_LeavesFirst(x => SetupVirtualStack((NWayTreeStorageInternal<ArrayCommandChunk>) x));
+            CommandTree.WalkTree(null, x => SetupVirtualStack((NWayTreeStorageInternal<ArrayCommandChunk>) x));
             CommandTree.WalkTree(x => SetupVirtualStackRelationships((NWayTreeStorageInternal<ArrayCommandChunk>)x)); // must visit from top to bottom, since we may share the same virtual stack across multiple levels
         }
 
@@ -261,7 +261,7 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             if (NextCommandIndex == 0 && command.CommandType != ArrayCommandType.Blank)
                 InsertBlankCommand();
-            if (NextCommandIndex == 13212)
+            if (NextCommandIndex == 6615 || NextCommandIndex == 6618)
             {
                 var DEBUG = 0;
             }
@@ -523,12 +523,16 @@ namespace ACESimBase.Util.ArrayProcessing
             {
                 if (!UseOrderedSources || !UseOrderedDestinations)
                     throw new Exception("Must use ordered sources and destinations with parallelizable");
-                Debug;
-                CommandTree.WalkTree_LeavesFirst(n =>
+                CommandTree.WalkTree(n =>
                 {
                     var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
                     var commandChunk = node.StoredValue;
                     commandChunk.CopyParentVirtualStack();
+                    commandChunk.ResetIncrementsForParent(); // the parent virtual stack may have already received increments from another node being run in parallel to this one. So, we set that to zero here to avoid double-counting.
+                }, n =>
+                {
+                    var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
+                    var commandChunk = node.StoredValue;
                     if (node.Branches == null || !node.Branches.Any())
                     {
                         if (useSafe)
@@ -604,7 +608,7 @@ namespace ACESimBase.Util.ArrayProcessing
             while (commandIndex <= endCommandIndexInclusive)
             {
                 ArrayCommand command = UnderlyingCommands[commandIndex];
-                if (commandIndex == 13212)
+                if (commandIndex == 6615 || commandIndex == 6618)
                 {
                     Debug.WriteLine("Executing command 13212");
                     var DEBUG = 0;

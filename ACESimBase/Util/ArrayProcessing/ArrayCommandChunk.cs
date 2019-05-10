@@ -45,12 +45,19 @@ namespace ACESimBase.Util.ArrayProcessing
                 }
             }
 
+            public void ResetIncrementsForParent()
+            {
+                if (ParentVirtualStack != VirtualStack && ParentVirtualStack != null && CopyIncrementsToParent != null)
+                {
+                    foreach (int index in CopyIncrementsToParent)
+                    {
+                        VirtualStack[index] = 0;
+                    }
+                }
+            }
+
             public void CopyIncrementsToParentIfNecessary()
             {
-                if (CopyIncrementsToParent != null)
-                {
-                    var DEBUG = 0;
-                }
                 if (ParentVirtualStack != VirtualStack && ParentVirtualStack != null && CopyIncrementsToParent != null)
                 {
                     Debug.WriteLine($"Copying increments for chunk {ID} {String.Join(",", CopyIncrementsToParent.Select(x => VirtualStack[x]))}"); // DEBUG
