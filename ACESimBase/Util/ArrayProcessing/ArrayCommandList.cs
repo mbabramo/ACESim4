@@ -97,10 +97,11 @@ namespace ACESimBase.Util.ArrayProcessing
         }
 
         int NextVirtualStackID = 0;
+        bool RepeatIdenticalRanges = false; // instead of repeating identical sequences of commands, we run the same sequence twice
         
         public void StartCommandChunk(bool runChildrenInParallel, int? identicalStartCommandRange, string name = "")
         {
-            if (runChildrenInParallel && identicalStartCommandRange is int identical)
+            if (RepeatIdenticalRanges && runChildrenInParallel && identicalStartCommandRange is int identical)
             {
                 Debug.WriteLine($"Starting identical range (instead of {NextCommandIndex} using {identicalStartCommandRange}");
                 RepeatingExistingCommandRangeStack.Push(identicalStartCommandRange);
@@ -716,7 +717,7 @@ namespace ACESimBase.Util.ArrayProcessing
                         break;
                     case ArrayCommandType.GoTo:
                         // index here represents a command index -- not an array index
-                        goTo += command.Index - 1; // because we are going to increment in the for loop
+                        goTo = command.Index - 1; // because we are going to increment in the for loop
                         break;
                     case ArrayCommandType.AfterGoTo:
                         // indices here are indices but not into the original array
@@ -733,8 +734,6 @@ namespace ACESimBase.Util.ArrayProcessing
                     commandIndex++; // in addition to increment below
                 else if (goTo != -1)
                 {
-                    if (goTo < startCommandIndex || goTo > endCommandIndexInclusive)
-                        throw new Exception("Goto command cannot flow out of command chunk.");
                     commandIndex += goTo;
                 }
                 commandIndex++;
@@ -843,8 +842,6 @@ namespace ACESimBase.Util.ArrayProcessing
                         command++; // in addition to increment below
                     else if (goTo != -1)
                     {
-                        if (goTo < startCommandIndex || goTo > endCommandIndexInclusive)
-                            throw new Exception("Goto command cannot flow out of command chunk.");
                         command += goTo;
                     }
                     command++;
