@@ -23,9 +23,8 @@ namespace ACESimBase.Util.ArrayProcessing
         LessThanOtherArrayIndex,
         EqualsValue,
         NotEqualsValue,
-        GoTo,
-        AfterGoTo,
-        SkipNext,
+        If,
+        EndIf,
         Blank,
     }
 }

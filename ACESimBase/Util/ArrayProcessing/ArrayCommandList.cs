@@ -286,7 +286,7 @@ namespace ACESimBase.Util.ArrayProcessing
             if (RepeatingExistingCommandRange)
             {
                 ArrayCommand existingCommand = UnderlyingCommands[NextCommandIndex];
-                if (!command.Equals(existingCommand) && existingCommand.CommandType != ArrayCommandType.GoTo) // note that goto may be specified later
+                if (!command.Equals(existingCommand) && existingCommand.CommandType != ArrayCommandType.If) // note that goto may be specified later
                     throw new Exception("Expected repeated command to be equal but it wasn't");
                 NextCommandIndex++;
                 return;
@@ -518,22 +518,18 @@ namespace ACESimBase.Util.ArrayProcessing
             AddCommand(new ArrayCommand(ArrayCommandType.NotEqualsValue, index1, valueToCompareTo));
         }
 
-        // When we skip some code, we need to set the ordered indices to the spots where they would have been had we not skipped the code. To make sure that this is the same when we repeat code multiple times but for different source indices, the AfterGoToTarget will store the delta
-
-        public Stack<(int sourceIndex, int destinationIndex)> GoToSpots = new Stack<(int sourceIndex, int destinationIndex)>();
-        public void RememberOrderedIndicesAtGoToSpot()
+        public void InsertIfCommand()
         {
-            GoToSpots.Push((OrderedSourceIndices.Count(), OrderedDestinationIndices.Count()));
+            AddCommand(new ArrayCommand(ArrayCommandType.If, -1, -1));
         }
 
-        public void InsertAfterGoToTargetCommand()
+        public void InsertEndIfCommand()
         {
-            (int sourceIndex, int destinationIndex) = GoToSpots.Pop();
-            AddCommand(new ArrayCommand(ArrayCommandType.AfterGoTo, OrderedDestinationIndices.Count() - destinationIndex, OrderedSourceIndices.Count() - sourceIndex));
+            AddCommand(new ArrayCommand(ArrayCommandType.EndIf, -1, -1));
         }
 
         /// <summary>
-        ///  Inserts a blank command. This is useful to demarcate a command spot, which might be a spot to go to later or which might later be replaced with a goto command once the goto location is determined.
+        ///  Inserts a blank command.
         /// </summary>
         /// <returns>The command index (not an array index, as with most comamnds)</returns>
         public int InsertBlankCommand()
@@ -543,23 +539,9 @@ namespace ACESimBase.Util.ArrayProcessing
             return commandIndex;
         }
 
-        /// <summary>
-        /// Replaces a command (ordinarily a blank command) with a go to command, thus allowing the client code to add statements once the goto is complete.
-        /// </summary>
-        /// <param name="commandIndexToReplace">The command index to replace (ordinarily representing a blank command)</param>
-        /// <param name="commandIndexToGoTo">The command index to go to (or, by default, the next command)</param>
-        public void ReplaceCommandWithGoToCommand(int commandIndexToReplace, int commandIndexToGoTo = -1)
-        {
-            if (commandIndexToGoTo == -1)
-                commandIndexToGoTo = NextCommandIndex;
-            UnderlyingCommands[commandIndexToReplace] = new ArrayCommand(ArrayCommandType.GoTo, commandIndexToGoTo - commandIndexToReplace, -1 /* ignored */);
-        }
-
         #endregion
 
         #region Code generation
-
-
 
         private void GenerateCode(NWayTreeStorageInternal<ArrayCommandChunk> node)
         {
@@ -646,17 +628,12 @@ bool condition = true;
                     case ArrayCommandType.NotEqualsValue:
                         b.AppendLine($"condition = item_{target} != (double) {source};");
                         break;
-                    case ArrayCommandType.GoTo:
-                        b.AppendLine($@"if (!condition) 
+                    case ArrayCommandType.If:
+                        b.AppendLine($@"if (condition) 
 {{");
                         break;
-                    case ArrayCommandType.AfterGoTo:
-                        b.AppendLine($@"}}
-else
-{{
-    currentOrderedDestinationIndex += {target};
-    currentOrderedSourceIndex += {source};
-}}");
+                    case ArrayCommandType.EndIf:
+                        b.AppendLine($@"}}");
                         break;
                     case ArrayCommandType.Blank:
                         break;
@@ -681,7 +658,7 @@ else
 
         #region Command execution
 
-        bool UseSafeCode = true; // DEBUG
+        bool UseSafeCode = false;
 
         public unsafe void ExecuteAll(double[] array)
         {
@@ -757,15 +734,16 @@ else
 
         private unsafe void ExecuteSectionOfCommands_Safe(Span<double> arrayPortion, int startCommandIndex, int endCommandIndexInclusive, int currentOrderedSourceIndex, int currentOrderedDestinationIndex)
         {
-            bool skipNext;
-            int goTo;
+            bool conditionMet = false;
             int commandIndex = startCommandIndex;
             while (commandIndex <= endCommandIndexInclusive)
             {
+                if (commandIndex == 292)
+                {
+                    var DEBUG = 0;
+                }
                 ArrayCommand command = UnderlyingCommands[commandIndex];
                 //System.Diagnostics.Debug.WriteLine(*command);
-                skipNext = false;
-                goTo = -1;
                 switch (command.CommandType)
                 {
                     case ArrayCommandType.Zero:
@@ -805,44 +783,44 @@ else
                         Interlocking.Subtract(ref arrayPortion[command.Index], arrayPortion[command.SourceIndex]);
                         break;
                     case ArrayCommandType.EqualsOtherArrayIndex:
-                        bool conditionMet = arrayPortion[command.Index] == arrayPortion[command.SourceIndex];
-                        if (!conditionMet)
-                            skipNext = true;
+                        conditionMet = arrayPortion[command.Index] == arrayPortion[command.SourceIndex];
                         break;
                     case ArrayCommandType.NotEqualsOtherArrayIndex:
                         conditionMet = arrayPortion[command.Index] != arrayPortion[command.SourceIndex];
-                        if (!conditionMet)
-                            skipNext = true;
                         break;
                     case ArrayCommandType.GreaterThanOtherArrayIndex:
                         conditionMet = arrayPortion[command.Index] > arrayPortion[command.SourceIndex];
-                        if (!conditionMet)
-                            skipNext = true;
                         break;
                     case ArrayCommandType.LessThanOtherArrayIndex:
                         conditionMet = arrayPortion[command.Index] < arrayPortion[command.SourceIndex];
-                        if (!conditionMet)
-                            skipNext = true;
                         break;
                     // in next two, sourceindex represents a value, not an array index
                     case ArrayCommandType.EqualsValue:
                         conditionMet = arrayPortion[command.Index] == command.SourceIndex;
-                        if (!conditionMet)
-                            skipNext = true;
                         break;
                     case ArrayCommandType.NotEqualsValue:
                         conditionMet = arrayPortion[command.Index] != command.SourceIndex;
+                        break;
+                    case ArrayCommandType.If:
                         if (!conditionMet)
-                            skipNext = true;
+                        {
+                            int numIf = 1;
+                            while (numIf > 0)
+                            {
+                                commandIndex++;
+                                var commandType = UnderlyingCommands[commandIndex].CommandType;
+                                if (commandType == ArrayCommandType.If)
+                                    numIf++;
+                                else if (commandType == ArrayCommandType.EndIf)
+                                    numIf--;
+                                else if (commandType == ArrayCommandType.NextSource)
+                                    currentOrderedSourceIndex++;
+                                else if (commandType == ArrayCommandType.NextDestination)
+                                    currentOrderedDestinationIndex++;
+                            }
+                        }
                         break;
-                    case ArrayCommandType.GoTo:
-                        // index here represents a command index -- not an array index
-                        goTo = command.Index - 1; // because we are going to increment in the for loop
-                        break;
-                    case ArrayCommandType.AfterGoTo:
-                        // indices here are indices but not into the original array
-                        currentOrderedDestinationIndex += command.Index;
-                        currentOrderedSourceIndex += command.SourceIndex;
+                    case ArrayCommandType.EndIf:
                         break;
                     case ArrayCommandType.Blank:
                         break;
@@ -850,20 +828,13 @@ else
                         throw new NotImplementedException();
                 }
                 //LogCommand(commandIndex, arrayPortion);
-                if (skipNext)
-                    commandIndex++; // in addition to increment below
-                else if (goTo != -1)
-                {
-                    commandIndex += goTo;
-                }
                 commandIndex++;
             }
         }
 
         private unsafe void ExecuteSectionOfCommands_Unsafe(double* arrayPortion, int startCommandIndex, int endCommandIndexInclusive, int currentOrderedSourceIndex, int currentOrderedDestinationIndex)
         {
-            bool skipNext;
-            int goTo;
+            bool conditionMet = false;
             fixed (ArrayCommand* firstInSection = &UnderlyingCommands[0])
             {
                 ArrayCommand* command = firstInSection + startCommandIndex;
@@ -871,8 +842,6 @@ else
                 while (command <= lastCommand)
                 {
                     //System.Diagnostics.Debug.WriteLine(*command);
-                    skipNext = false;
-                    goTo = -1;
                     switch ((*command).CommandType)
                     {
                         case ArrayCommandType.Zero:
@@ -912,55 +881,49 @@ else
                             Interlocking.Subtract(ref arrayPortion[(*command).Index], arrayPortion[(*command).SourceIndex]);
                             break;
                         case ArrayCommandType.EqualsOtherArrayIndex:
-                            bool conditionMet = arrayPortion[(*command).Index] == arrayPortion[(*command).SourceIndex];
-                            if (!conditionMet)
-                                skipNext = true;
+                            conditionMet = arrayPortion[(*command).Index] == arrayPortion[(*command).SourceIndex];
                             break;
                         case ArrayCommandType.NotEqualsOtherArrayIndex:
                             conditionMet = arrayPortion[(*command).Index] != arrayPortion[(*command).SourceIndex];
-                            if (!conditionMet)
-                                skipNext = true;
                             break;
                         case ArrayCommandType.GreaterThanOtherArrayIndex:
                             conditionMet = arrayPortion[(*command).Index] > arrayPortion[(*command).SourceIndex];
-                            if (!conditionMet)
-                                skipNext = true;
                             break;
                         case ArrayCommandType.LessThanOtherArrayIndex:
                             conditionMet = arrayPortion[(*command).Index] < arrayPortion[(*command).SourceIndex];
-                            if (!conditionMet)
-                                skipNext = true;
                             break;
                             // in next two, sourceindex represents a value, not an array index
                         case ArrayCommandType.EqualsValue:
                             conditionMet = arrayPortion[(*command).Index] == (*command).SourceIndex;
-                            if (!conditionMet)
-                                skipNext = true;
                             break;
                         case ArrayCommandType.NotEqualsValue:
                             conditionMet = arrayPortion[(*command).Index] != (*command).SourceIndex;
+                            break;
+                        case ArrayCommandType.If:
                             if (!conditionMet)
-                                skipNext = true;
+                            {
+                                int numIf = 1;
+                                while (numIf > 0)
+                                {
+                                    command++;
+                                    var commandType = (*command).CommandType;
+                                    if (commandType == ArrayCommandType.If)
+                                        numIf++;
+                                    else if (commandType == ArrayCommandType.EndIf)
+                                        numIf--;
+                                    else if (commandType == ArrayCommandType.NextSource)
+                                        currentOrderedSourceIndex++;
+                                    else if (commandType == ArrayCommandType.NextDestination)
+                                        currentOrderedDestinationIndex++;
+                                }
+                            }
                             break;
-                        case ArrayCommandType.GoTo:
-                            // index here represents a command index -- not an array index
-                            goTo = (*command).Index - 1; // because we are going to increment in the for loop
-                            break;
-                        case ArrayCommandType.AfterGoTo:
-                            // indices here are indices but not into the original array
-                            currentOrderedDestinationIndex += (*command).Index;
-                            currentOrderedSourceIndex += (*command).SourceIndex;
+                        case ArrayCommandType.EndIf:
                             break;
                         case ArrayCommandType.Blank:
                             break;
                         default:
                             throw new NotImplementedException();
-                    }
-                    if (skipNext)
-                        command++; // in addition to increment below
-                    else if (goTo != -1)
-                    {
-                        command += goTo;
                     }
                     command++;
                 }
@@ -976,7 +939,7 @@ else
         private void LogCommand(int commandIndex, Span<double> array)
         {
             ArrayCommand command = UnderlyingCommands[commandIndex];
-            if (command.CommandType == ArrayCommandType.GoTo || command.CommandType == ArrayCommandType.AfterGoTo || command.CommandType == ArrayCommandType.ReusedDestination || command.CommandType == ArrayCommandType.Blank)
+            if (command.CommandType == ArrayCommandType.If || command.CommandType == ArrayCommandType.EndIf || command.CommandType == ArrayCommandType.ReusedDestination || command.CommandType == ArrayCommandType.Blank)
                 return;
             if (arrayValueAfterCommand == null || arrayValueAfterCommand.ContainsKey(commandIndex))
                 arrayValueAfterCommand = new ConcurrentDictionary<int, string>();

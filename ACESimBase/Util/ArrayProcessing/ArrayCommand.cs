@@ -28,14 +28,14 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public int GetSourceIndexIfUsed()
         {
-            if (CommandType == ArrayCommandType.GoTo || CommandType == ArrayCommandType.AfterGoTo || CommandType == ArrayCommandType.EqualsValue || CommandType == ArrayCommandType.NotEqualsValue)
+            if (CommandType == ArrayCommandType.If || CommandType == ArrayCommandType.EndIf || CommandType == ArrayCommandType.EqualsValue || CommandType == ArrayCommandType.NotEqualsValue)
                 return -1;
             return SourceIndex;
         }
 
         public int GetTargetIndexIfUsed()
         {
-            if (CommandType == ArrayCommandType.GoTo || CommandType == ArrayCommandType.AfterGoTo || CommandType == ArrayCommandType.ReusedDestination)
+            if (CommandType == ArrayCommandType.If || CommandType == ArrayCommandType.EndIf || CommandType == ArrayCommandType.ReusedDestination)
                 return -1;
             return Index;
         }

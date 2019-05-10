@@ -347,21 +347,15 @@ namespace ACESim
                 if (playerMakingDecision == playerBeingOptimized)
                 {
                     int lastBestResponseActionIndex = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_LastBestResponse(informationSet.InformationSetNumber, (byte) informationSet.NumPossibleActions), true);
-                    Unroll_Commands.InsertNotEqualsValueCommand(lastBestResponseActionIndex, (int)action);
-                    int goToCommandIndex = Unroll_Commands.InsertBlankCommand();
-                    Unroll_Commands.RememberOrderedIndicesAtGoToSpot();
-                    // the following is executed only if lastBestResponseActionIndex == action
+                    Unroll_Commands.InsertEqualsValueCommand(lastBestResponseActionIndex, (int)action);
+                    Unroll_Commands.InsertIfCommand();
                         int bestResponseNumerator = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_BestResponseNumerator(informationSet.InformationSetNumber, action), true);
                         int bestResponseDenominator = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_BestResponseNumerator(informationSet.InformationSetNumber, action), true);
                         Unroll_Commands.IncrementByProduct(bestResponseNumerator, true, inversePiAvgStrat, innerResult[Unroll_Result_BestResponseIndex]);
                         Unroll_Commands.Increment(bestResponseDenominator, true, inversePiAvgStrat);
                         Unroll_Commands.CopyToExisting(resultArray[Unroll_Result_BestResponseIndex], innerResult[Unroll_Result_BestResponseIndex]);
                     // end of loop
-                    int skipOneCommand = Unroll_Commands.InsertBlankCommand();
-                    Unroll_Commands.ReplaceCommandWithGoToCommand(skipOneCommand, Unroll_Commands.NextCommandIndex + 1); // skips the "after go to command"
-                    Unroll_Commands.ReplaceCommandWithGoToCommand(goToCommandIndex, Unroll_Commands.NextCommandIndex); // completes the go to statement -- going to the AfterGoToTargetCommand
-                    // DEBUG -- now that we are using relative go to, this isn't right
-                    Unroll_Commands.InsertAfterGoToTargetCommand(); // indicates the first step after go to (resets the current source and destination indices)
+                    Unroll_Commands.InsertEndIfCommand();
                     Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_HedgeVsHedgeIndex], false, probabilityOfAction, innerResult[Unroll_Result_HedgeVsHedgeIndex]);
                     Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_AverageStrategyIndex], false, probabilityOfActionAvgStrat, innerResult[Unroll_Result_AverageStrategyIndex]);
                 }
