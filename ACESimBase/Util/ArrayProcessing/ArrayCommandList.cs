@@ -40,6 +40,9 @@ namespace ACESimBase.Util.ArrayProcessing
         public int FullArraySize => FirstScratchIndex + (Parallelize ? 0 : MaxArrayIndex);
         
         public Stack<int> PerDepthStartArrayIndices;
+        int NextVirtualStackID = 0;
+
+        bool RepeatIdenticalRanges = true; // instead of repeating identical sequences of commands, we run the same sequence twice
         public Stack<int?> RepeatingExistingCommandRangeStack;
         public bool RepeatingExistingCommandRange = false;
 
@@ -95,13 +98,10 @@ namespace ACESimBase.Util.ArrayProcessing
                 CompleteCommandList();
             }
         }
-
-        int NextVirtualStackID = 0;
-        bool RepeatIdenticalRanges = false; // instead of repeating identical sequences of commands, we run the same sequence twice
         
         public void StartCommandChunk(bool runChildrenInParallel, int? identicalStartCommandRange, string name = "")
         {
-            if (RepeatIdenticalRanges && runChildrenInParallel && identicalStartCommandRange is int identical)
+            if (RepeatIdenticalRanges && identicalStartCommandRange is int identical)
             {
                 Debug.WriteLine($"Starting identical range (instead of {NextCommandIndex} using {identicalStartCommandRange}");
                 RepeatingExistingCommandRangeStack.Push(identicalStartCommandRange);
