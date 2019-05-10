@@ -125,7 +125,7 @@ namespace ACESimBase.Util.ArrayProcessing
             CurrentCommandChunk.EndDestinationIndicesExclusive = OrderedDestinationIndices?.Count() ?? 0;
             if (copyIncrementsToParent != null)
             {
-                Debug.WriteLine($"Planning copy from chunk {commandChunkBeingEnded.ID}: {commandChunkBeingEnded.StartCommandRange}-{commandChunkBeingEnded.EndCommandRangeExclusive}"); // DEBUG
+                //Debug.WriteLine($"Planning copy from chunk {commandChunkBeingEnded.ID}: {commandChunkBeingEnded.StartCommandRange}-{commandChunkBeingEnded.EndCommandRangeExclusive}"); // DEBUG
             }
             commandChunkBeingEnded.CopyIncrementsToParent = copyIncrementsToParent;
         }
@@ -571,7 +571,7 @@ namespace ACESimBase.Util.ArrayProcessing
             }
             //for (int i = 0; i < OrderedDestinations.Length; i++)
             //    System.Diagnostics.Debug.WriteLine($"{i}: {OrderedDestinations[i]}");
-            PrintCommandLog();
+            //PrintCommandLog();
             CopyOrderedDestinations(array, 0, OrderedDestinationIndices.Count());
         }
 
@@ -600,7 +600,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         private unsafe void ExecuteSectionOfCommands_Safe(Span<double> arrayPortion, int startCommandIndex, int endCommandIndexInclusive, int currentOrderedSourceIndex, int startOrderedDestinationIndex, int endOrderedDestinationIndex)
         {
-            System.Diagnostics.Debug.WriteLine($"command {startCommandIndex}-{endCommandIndexInclusive}"); // DEBUG'
+            //System.Diagnostics.Debug.WriteLine($"command {startCommandIndex}-{endCommandIndexInclusive}"); // DEBUG'
             int currentOrderedDestinationIndex = startOrderedDestinationIndex;
             bool skipNext;
             int goTo;
@@ -699,7 +699,7 @@ namespace ACESimBase.Util.ArrayProcessing
                     default:
                         throw new NotImplementedException();
                 }
-                LogCommand(commandIndex, arrayPortion);
+                //LogCommand(commandIndex, arrayPortion);
                 if (skipNext)
                     commandIndex++; // in addition to increment below
                 else if (goTo != -1)
