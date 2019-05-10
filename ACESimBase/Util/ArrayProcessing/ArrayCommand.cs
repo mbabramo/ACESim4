@@ -39,20 +39,21 @@ namespace ACESimBase.Util.ArrayProcessing
                 return -1;
             return Index;
         }
-
-        public ArrayCommand WithArrayIndexDecrements(int decrement)
-        {
-            if (CommandType == ArrayCommandType.GoTo || CommandType == ArrayCommandType.AfterGoTo)
-                return Clone();
-            if (CommandType == ArrayCommandType.EqualsValue || CommandType == ArrayCommandType.NotEqualsValue) // source index does not represent an array index
-                return new ArrayCommand(CommandType, Index == -1 ? -1 : Index - decrement, SourceIndex); 
-            if (CommandType == ArrayCommandType.ReusedDestination) // index does not represent an array index
-                return new ArrayCommand(CommandType, Index, SourceIndex == -1 ? -1 : SourceIndex - decrement);
-            return new ArrayCommand(CommandType, Index == -1 ? -1 : Index - decrement, SourceIndex == -1 ? -1 : SourceIndex - decrement);
-        }
+        
 
         public ArrayCommand WithIndex(int index) => new ArrayCommand(CommandType, index, SourceIndex);
 
         public ArrayCommand WithSourceIndex(int sourceIndex) => new ArrayCommand(CommandType, Index, sourceIndex);
+
+        public override bool Equals(object obj)
+        {
+            ArrayCommand ac = (ArrayCommand)obj;
+            return ac.CommandType == CommandType && ac.Index == Index && ac.SourceIndex == SourceIndex;
+        }
+
+        public override int GetHashCode()
+        {
+            return (CommandType, Index, SourceIndex).GetHashCode();
+        }
     }
 }

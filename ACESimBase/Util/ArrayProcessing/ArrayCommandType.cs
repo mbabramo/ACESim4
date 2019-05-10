@@ -6,7 +6,7 @@ namespace ACESimBase.Util.ArrayProcessing
 {
     public enum ArrayCommandType : byte
     {
-        ZeroNew,
+        Zero,
         CopyTo,
         NextSource,
         NextDestination,

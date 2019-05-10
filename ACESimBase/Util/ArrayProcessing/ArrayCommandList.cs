@@ -40,6 +40,8 @@ namespace ACESimBase.Util.ArrayProcessing
         public int FullArraySize => FirstScratchIndex + (Parallelize ? 0 : MaxArrayIndex);
         
         public Stack<int> PerDepthStartArrayIndices;
+        public Stack<int?> RepeatingExistingCommandRangeStack;
+        public bool RepeatingExistingCommandRange = false;
 
         NWayTreeStorageInternal<ArrayCommandChunk> CommandTree;
         string CommandTreeString;
@@ -60,6 +62,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 NextArrayIndex = FirstScratchIndex;
             MaxArrayIndex = NextArrayIndex - 1;
             PerDepthStartArrayIndices = new Stack<int>();
+            RepeatingExistingCommandRangeStack = new Stack<int?>();
             Parallelize = parallelize;
             CommandTree = new NWayTreeStorageInternal<ArrayCommandChunk>(null);
             CommandTree.StoredValue = new ArrayCommandChunk()
@@ -79,7 +82,7 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             PerDepthStartArrayIndices.Push(NextArrayIndex);
             if (separateCommandChunk)
-                StartCommandChunk(false);
+                StartCommandChunk(false, null);
         }
 
         public void DecrementDepth(bool separateCommandChunk, bool completeCommandList = false)
@@ -95,8 +98,15 @@ namespace ACESimBase.Util.ArrayProcessing
 
         int NextVirtualStackID = 0;
         
-        public void StartCommandChunk(bool runChildrenInParallel, string name = "")
+        public void StartCommandChunk(bool runChildrenInParallel, int? identicalStartCommandRange, string name = "")
         {
+            if (runChildrenInParallel && identicalStartCommandRange is int identical)
+            {
+                Debug.WriteLine($"Starting identical range (instead of {NextCommandIndex} using {identicalStartCommandRange}");
+                RepeatingExistingCommandRangeStack.Push(identicalStartCommandRange);
+                NextCommandIndex = identical;
+                RepeatingExistingCommandRange = true;
+            }
             var currentNode = CurrentNode;
             var currentNodeIsInParallel = CurrentNode?.StoredValue.ChildrenParallelizable ?? false;
             if (currentNodeIsInParallel)
@@ -116,7 +126,7 @@ namespace ACESimBase.Util.ArrayProcessing
             CurrentCommandTreeLocation.Add(nextChild);
         }
 
-        public void EndCommandChunk(int[] copyIncrementsToParent = null)
+        public void EndCommandChunk(int[] copyIncrementsToParent = null, bool endingRepeatedChunk = false)
         {
             var commandChunkBeingEnded = CurrentCommandChunk;
             commandChunkBeingEnded.EndCommandRangeExclusive = NextCommandIndex;
@@ -128,6 +138,12 @@ namespace ACESimBase.Util.ArrayProcessing
             CurrentCommandChunk.EndSourceIndicesExclusive = OrderedSourceIndices?.Count() ?? 0;
             CurrentCommandChunk.EndDestinationIndicesExclusive = OrderedDestinationIndices?.Count() ?? 0;
             commandChunkBeingEnded.CopyIncrementsToParent = copyIncrementsToParent;
+            if (endingRepeatedChunk && RepeatingExistingCommandRangeStack.Any())
+            {
+                RepeatingExistingCommandRangeStack.Pop();
+                if (!RepeatingExistingCommandRangeStack.Any())
+                    RepeatingExistingCommandRange = false;
+            }
         }
 
         public void CompleteCommandList()
@@ -261,6 +277,14 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             if (NextCommandIndex == 0 && command.CommandType != ArrayCommandType.Blank)
                 InsertBlankCommand();
+            if (RepeatingExistingCommandRange)
+            {
+                ArrayCommand existingCommand = UnderlyingCommands[NextCommandIndex];
+                if (!command.Equals(existingCommand) && existingCommand.CommandType != ArrayCommandType.GoTo) // note that goto may be specified later
+                    throw new Exception("Expected repeated command to be equal but it wasn't");
+                NextCommandIndex++;
+                return;
+            }
             if (NextCommandIndex >= UnderlyingCommands.Length)
                 throw new Exception("Commands array size must be increased.");
             UnderlyingCommands[NextCommandIndex] = command;
@@ -281,7 +305,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public int NewZero()
         {
-            AddCommand(new ArrayCommand(ArrayCommandType.ZeroNew, NextArrayIndex, -1));
+            AddCommand(new ArrayCommand(ArrayCommandType.Zero, NextArrayIndex, -1));
             return NextArrayIndex++;
         }
 
@@ -293,7 +317,7 @@ namespace ACESimBase.Util.ArrayProcessing
             return result;
         }
 
-    public int NewUninitialized()
+        public int NewUninitialized()
         {
             return NextArrayIndex++;
         }
@@ -331,6 +355,17 @@ namespace ACESimBase.Util.ArrayProcessing
         }
 
         // Next, methods that modify existing array items in place
+
+        public void ZeroExisting(int[] indices)
+        {
+            foreach (int index in indices)
+                ZeroExisting(index);
+        }
+
+        public void ZeroExisting(int index)
+        {
+            AddCommand(new ArrayCommand(ArrayCommandType.Zero, index, -1));
+        }
 
         public void CopyToExisting(int index, int sourceIndex)
         {
@@ -478,9 +513,18 @@ namespace ACESimBase.Util.ArrayProcessing
             AddCommand(new ArrayCommand(ArrayCommandType.GoTo, commandIndexToGoTo, -1 /* ignored */));
         }
 
+        // When we skip some code, we need to set the ordered indices to the spots where they would have been had we not skipped the code. To make sure that this is the same when we repeat code multiple times but for different source indices, the AfterGoToTarget will store the delta
+
+        public Stack<(int sourceIndex, int destinationIndex)> GoToSpots = new Stack<(int sourceIndex, int destinationIndex)>();
+        public void RememberOrderedIndicesAtGoToSpot()
+        {
+            GoToSpots.Push((OrderedSourceIndices.Count(), OrderedDestinationIndices.Count()));
+        }
+
         public void InsertAfterGoToTargetCommand()
         {
-            AddCommand(new ArrayCommand(ArrayCommandType.AfterGoTo, OrderedDestinationIndices.Count(), OrderedSourceIndices.Count()));
+            (int sourceIndex, int destinationIndex) = GoToSpots.Pop();
+            AddCommand(new ArrayCommand(ArrayCommandType.AfterGoTo, OrderedDestinationIndices.Count() - destinationIndex, OrderedSourceIndices.Count() - sourceIndex));
         }
 
         /// <summary>
@@ -608,7 +652,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 goTo = -1;
                 switch (command.CommandType)
                 {
-                    case ArrayCommandType.ZeroNew:
+                    case ArrayCommandType.Zero:
                         arrayPortion[command.Index] = 0;
                         break;
                     case ArrayCommandType.CopyTo:
@@ -681,8 +725,8 @@ namespace ACESimBase.Util.ArrayProcessing
                         break;
                     case ArrayCommandType.AfterGoTo:
                         // indices here are indices but not into the original array
-                        currentOrderedDestinationIndex = command.Index;
-                        currentOrderedSourceIndex = command.SourceIndex;
+                        currentOrderedDestinationIndex += command.Index;
+                        currentOrderedSourceIndex += command.SourceIndex;
                         break;
                     case ArrayCommandType.Blank:
                         break;
@@ -718,7 +762,7 @@ namespace ACESimBase.Util.ArrayProcessing
                     goTo = -1;
                     switch ((*command).CommandType)
                     {
-                        case ArrayCommandType.ZeroNew:
+                        case ArrayCommandType.Zero:
                             arrayPortion[(*command).Index] = 0;
                             break;
                         case ArrayCommandType.CopyTo:
@@ -791,8 +835,8 @@ namespace ACESimBase.Util.ArrayProcessing
                             break;
                         case ArrayCommandType.AfterGoTo:
                             // indices here are indices but not into the original array
-                            currentOrderedDestinationIndex = (*command).Index;
-                            currentOrderedSourceIndex = (*command).SourceIndex;
+                            currentOrderedDestinationIndex += (*command).Index;
+                            currentOrderedSourceIndex += (*command).SourceIndex;
                             break;
                         case ArrayCommandType.Blank:
                             break;

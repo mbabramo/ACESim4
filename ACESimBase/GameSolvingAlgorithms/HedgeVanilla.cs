@@ -81,10 +81,10 @@ namespace ACESim
             var initialPiValuesCopied = Unroll_Commands.CopyToNew(Unroll_InitialPiValuesIndices, true);
             var initialPiValues2Copied = Unroll_Commands.CopyToNew(Unroll_InitialPiValuesIndices, true);
 
-            Unroll_Commands.StartCommandChunk(false, "Iteration");
+            Unroll_Commands.StartCommandChunk(false, null, "Iteration");
             for (byte p = 0; p < NumNonChancePlayers; p++)
             {
-                Unroll_Commands.StartCommandChunk(false, "Optimizing player " + p.ToString());
+                Unroll_Commands.StartCommandChunk(false, null, "Optimizing player " + p.ToString());
                 if (TraceCFR)
                     TabbedText.WriteLine($"Unrolling for Player {p}");
                 Unroll_HedgeVanillaCFR(ref historyPoint, p, initialPiValuesCopied, initialPiValues2Copied, Unroll_IterationResultForPlayersIndices[p], true);
@@ -349,6 +349,7 @@ namespace ACESim
                     int lastBestResponseActionIndex = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_LastBestResponse(informationSet.InformationSetNumber, (byte) informationSet.NumPossibleActions), true);
                     Unroll_Commands.InsertNotEqualsValueCommand(lastBestResponseActionIndex, (int)action);
                     int goToCommandIndex = Unroll_Commands.InsertBlankCommand();
+                    Unroll_Commands.RememberOrderedIndicesAtGoToSpot();
                     // the following is executed only if lastBestResponseActionIndex == action
                         int bestResponseNumerator = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_BestResponseNumerator(informationSet.InformationSetNumber, action), true);
                         int bestResponseDenominator = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_BestResponseNumerator(informationSet.InformationSetNumber, action), true);
@@ -420,20 +421,27 @@ namespace ACESim
             ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings)gameStateForCurrentPlayer;
             byte numPossibleActions = chanceNodeSettings.Decision.NumPossibleActions;
             var historyPointCopy = historyPoint; // can't use historyPoint in anonymous method below. This is costly, so it might be worth optimizing if we use HedgeVanillaCFR much.
+            int[] probabilityAdjustedInnerResult = Unroll_Commands.NewUninitializedArray(3); // must allocate this outside the parallel loop, because if we have commands writing to an array created in the parallel loop, the array indices will change
             if (chanceNodeSettings.Decision.Unroll_Parallelize)
-                Unroll_Commands.StartCommandChunk(true, chanceNodeSettings.Decision.Name);
+                Unroll_Commands.StartCommandChunk(true, null, chanceNodeSettings.Decision.Name);
+            int? firstCommandToRepeat = null;
             for (byte action = 1; action <= numPossibleActions; action++)
             {
                 if (chanceNodeSettings.Decision.Unroll_Parallelize)
-                    Unroll_Commands.StartCommandChunk(false, chanceNodeSettings.Decision.Name + "=" + action.ToString());
+                {
+                    Unroll_Commands.StartCommandChunk(false, firstCommandToRepeat, chanceNodeSettings.Decision.Name + "=" + action.ToString());
+                    if (action == 1 && chanceNodeSettings.Decision.Unroll_Parallelize_Identical)
+                        firstCommandToRepeat = Unroll_Commands.NextCommandIndex;
+                }
                 var historyPointCopy2 = historyPointCopy; // Need to do this because we need a separate copy for each thread
-                int[] probabilityAdjustedInnerResult = Unroll_Commands.NewUninitializedArray(3);
-                Unroll_HedgeVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues, avgStratPiValues,
+                Unroll_Commands.ZeroExisting(probabilityAdjustedInnerResult);
+                Unroll_HedgeVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, 
+                    playerBeingOptimized, piValues, avgStratPiValues,
                         chanceNodeSettings, action, probabilityAdjustedInnerResult, false);
                 Unroll_Commands.IncrementArrayBy(resultArray, isUltimateResult, probabilityAdjustedInnerResult);
                 
                 if (chanceNodeSettings.Decision.Unroll_Parallelize)
-                    Unroll_Commands.EndCommandChunk(isUltimateResult ? null : resultArray);
+                    Unroll_Commands.EndCommandChunk(isUltimateResult ? null : resultArray, action != 1);
             }
             if (chanceNodeSettings.Decision.Unroll_Parallelize)
                 Unroll_Commands.EndCommandChunk();

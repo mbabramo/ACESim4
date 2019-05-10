@@ -38,7 +38,7 @@ namespace ACESim
         public static string OverrideDateTimeString = null; // "2017-10-11 10:18"; // use this if termination finished unexpectedly
         public static string MasterReportNameForDistributedProcessing = "AMONLY";
         private static bool ParallelizeOptionSets = false;
-        private static bool ParallelizeIndividualExecutions = true; // only affects SingleGameMode or if no local distributed processing
+        private static bool ParallelizeIndividualExecutions = false; // only affects SingleGameMode or if no local distributed processing
 
         private static EvolutionSettings GetEvolutionSettings()
         {
