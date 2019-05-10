@@ -72,7 +72,7 @@ namespace ACESim
 
         private void Unroll_CreateUnrolledCommandList()
         {
-            const int max_num_commands = 50_000_000;
+            const int max_num_commands = 150_000_000;
             Unroll_InitializeInitialArrayIndices();
             Unroll_Commands = new ArrayCommandList(max_num_commands, Unroll_InitialArrayIndex, EvolutionSettings.ParallelOptimization);
             ActionStrategy = ActionStrategies.NormalizedHedge;
