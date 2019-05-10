@@ -103,7 +103,7 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             if (RepeatIdenticalRanges && identicalStartCommandRange is int identical)
             {
-                Debug.WriteLine($"Starting identical range (instead of {NextCommandIndex} using {identicalStartCommandRange}");
+                //Debug.WriteLine($"Repeating identical range (instead of {NextCommandIndex} using {identicalStartCommandRange})");
                 RepeatingExistingCommandRangeStack.Push(identicalStartCommandRange);
                 NextCommandIndex = identical;
                 RepeatingExistingCommandRange = true;
@@ -550,9 +550,10 @@ namespace ACESimBase.Util.ArrayProcessing
 
         #region Execution
 
+        bool UseSafeCode = false;
+
         public unsafe void ExecuteAll(double[] array)
         {
-            bool useSafe = true;
             PrepareOrderedSourcesAndDestinations(array);
             if (Parallelize)
             {
@@ -570,15 +571,7 @@ namespace ACESimBase.Util.ArrayProcessing
                     var commandChunk = node.StoredValue;
                     if (node.Branches == null || !node.Branches.Any())
                     {
-                        if (useSafe)
-                            ExecuteSectionOfCommands_Safe(new Span<double>(commandChunk.VirtualStack), commandChunk.StartCommandRange, commandChunk.EndCommandRangeExclusive - 1, commandChunk.StartSourceIndices, commandChunk.StartDestinationIndices, commandChunk.EndDestinationIndicesExclusive);
-                        else
-                        {
-                            fixed (double* arrayPointer = commandChunk.VirtualStack)
-                            {
-                                ExecuteSectionOfCommands(arrayPointer, commandChunk.StartCommandRange, commandChunk.EndCommandRangeExclusive - 1, commandChunk.StartSourceIndices, commandChunk.StartDestinationIndices, commandChunk.EndDestinationIndicesExclusive);
-                            }
-                        }
+                        ExecuteSectionOfCommands(commandChunk);
                     }
                     commandChunk.CopyIncrementsToParentIfNecessary();
                 }, n =>
@@ -590,24 +583,44 @@ namespace ACESimBase.Util.ArrayProcessing
             }
             else
             {
-                if (useSafe)
-                {
-                    Span<double> arrayPortion = UseOrderedSources && UseOrderedDestinations ? new Span<double>(array).Slice(FirstScratchIndex) : new Span<double>(array);
-                    ExecuteSectionOfCommands_Safe(arrayPortion, 0, MaxCommandIndex, 0, 0, OrderedDestinationIndices.Count());
-                }
-                else
-                {
-                    fixed (double* arrayPointer = array)
-                    {
-                        double* arrayPortion = UseOrderedSources && UseOrderedDestinations ? (arrayPointer + FirstScratchIndex) : arrayPointer;
-                        ExecuteSectionOfCommands(arrayPortion, 0, MaxCommandIndex, 0, 0, OrderedDestinationIndices.Count());
-                    }
-                }
+                array = ExecuteAllCommands(array);
             }
             //for (int i = 0; i < OrderedDestinations.Length; i++)
             //    System.Diagnostics.Debug.WriteLine($"{i}: {OrderedDestinations[i]}");
             //PrintCommandLog();
             CopyOrderedDestinations(array, 0, OrderedDestinationIndices.Count());
+        }
+
+        private unsafe double[] ExecuteAllCommands(double[] array)
+        {
+            if (UseSafeCode)
+            {
+                Span<double> arrayPortion = UseOrderedSources && UseOrderedDestinations ? new Span<double>(array).Slice(FirstScratchIndex) : new Span<double>(array);
+                ExecuteSectionOfCommands_Safe(arrayPortion, 0, MaxCommandIndex, 0, 0, OrderedDestinationIndices.Count());
+            }
+            else
+            {
+                fixed (double* arrayPointer = array)
+                {
+                    double* arrayPortion = UseOrderedSources && UseOrderedDestinations ? (arrayPointer + FirstScratchIndex) : arrayPointer;
+                    ExecuteSectionOfCommands_Unsafe(arrayPortion, 0, MaxCommandIndex, 0, 0, OrderedDestinationIndices.Count());
+                }
+            }
+
+            return array;
+        }
+
+        private unsafe void ExecuteSectionOfCommands(ArrayCommandChunk commandChunk)
+        {
+            if (UseSafeCode)
+                ExecuteSectionOfCommands_Safe(new Span<double>(commandChunk.VirtualStack), commandChunk.StartCommandRange, commandChunk.EndCommandRangeExclusive - 1, commandChunk.StartSourceIndices, commandChunk.StartDestinationIndices, commandChunk.EndDestinationIndicesExclusive);
+            else
+            {
+                fixed (double* arrayPointer = commandChunk.VirtualStack)
+                {
+                    ExecuteSectionOfCommands_Unsafe(arrayPointer, commandChunk.StartCommandRange, commandChunk.EndCommandRangeExclusive - 1, commandChunk.StartSourceIndices, commandChunk.StartDestinationIndices, commandChunk.EndDestinationIndicesExclusive);
+                }
+            }
         }
 
         ConcurrentDictionary<int, string> arrayValueAfterCommand = null;
@@ -740,7 +753,7 @@ namespace ACESimBase.Util.ArrayProcessing
             }
         }
 
-        private unsafe void ExecuteSectionOfCommands(double* arrayPortion, int startCommandIndex, int endCommandIndexInclusive, int currentOrderedSourceIndex, int startOrderedDestinationIndex, int endOrderedDestinationIndex)
+        private unsafe void ExecuteSectionOfCommands_Unsafe(double* arrayPortion, int startCommandIndex, int endCommandIndexInclusive, int currentOrderedSourceIndex, int startOrderedDestinationIndex, int endOrderedDestinationIndex)
         {
             int currentOrderedDestinationIndex = startOrderedDestinationIndex;
             bool skipNext;
