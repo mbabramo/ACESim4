@@ -670,7 +670,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public unsafe void ExecuteAll(double[] array)
         {
             PrepareOrderedSourcesAndDestinations(array);
-            if (Parallelize)
+            if (Parallelize || RepeatIdenticalRanges)
             {
                 if (!UseOrderedSources || !UseOrderedDestinations)
                     throw new Exception("Must use ordered sources and destinations with parallelizable");
@@ -692,7 +692,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 }, n =>
                 {
                     var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
-                    return node.StoredValue.ChildrenParallelizable;
+                    return Parallelize && node.StoredValue.ChildrenParallelizable;
                 });
 
             }
