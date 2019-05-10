@@ -552,6 +552,117 @@ namespace ACESimBase.Util.ArrayProcessing
 
         #endregion
 
+        #region Code generation
+
+        private string GenerateCodeForCommands(int startCommandIndex, int endCommandIndexInclusive)
+        {
+            StringBuilder b = new StringBuilder();
+            b.AppendLine($@"public static void Execute{startCommandIndex}to{endCommandIndexInclusive}(Span<double> arrayPortion, double[] orderedSources, double[] orderedDestinations, int currentOrderedSourceIndex, int startOrderedDestinationIndex)
+{{
+    bool condition = true;
+");
+
+            // copy span to local variables
+            for (int i = 0; i < FirstScratchIndex; i++)
+            {
+                b.AppendLine($"\titem_{i} = arrayPortion[i];");
+            }
+            b.AppendLine();
+
+            // generate code for commands
+            int commandIndex = startCommandIndex;
+            while (commandIndex <= endCommandIndexInclusive)
+            {
+                ArrayCommand command = UnderlyingCommands[commandIndex];
+                int target = command.Index;
+                int source = command.SourceIndex;
+                switch (command.CommandType)
+                {
+                    case ArrayCommandType.Zero:
+                        b.AppendLine($"\titem_{target} = 0;");
+                        break;
+                    case ArrayCommandType.CopyTo:
+                        b.AppendLine($"\titem_{target} = item_{source};");
+                        break;
+                    case ArrayCommandType.NextSource:
+                        b.AppendLine($"\titem_{target} = orderedSources[currentOrderedSourceIndex++];");
+                        break;
+                    case ArrayCommandType.NextDestination:
+                        b.AppendLine($"\tOrderedDestinations[currentOrderedDestinationIndex++] = item_{source};");
+                        break;
+                    case ArrayCommandType.ReusedDestination:
+                        b.AppendLine($"\tOrderedDestinations[{target}] += item_{source};");
+                        break;
+                    case ArrayCommandType.MultiplyBy:
+                        b.AppendLine($"\titem_{target} *= item_{source};");
+                        break;
+                    case ArrayCommandType.IncrementBy:
+                        b.AppendLine($"\titem_{target} += item_{source};");
+                        break;
+                    case ArrayCommandType.DecrementBy:
+                        b.AppendLine($"\titem_{target} -= item_{source};");
+                        break;
+                    case ArrayCommandType.MultiplyByInterlocked:
+                        b.AppendLine($"\titem_{target} *= item_{source};");
+                        break;
+                    case ArrayCommandType.IncrementByInterlocked:
+                        b.AppendLine($"\titem_{target} += item_{source};");
+                        break;
+                    case ArrayCommandType.DecrementByInterlocked:
+                        b.AppendLine($"\titem_{target} -= item_{source};");
+                        break;
+                    case ArrayCommandType.EqualsOtherArrayIndex:
+                        b.AppendLine($"\tcondition = item_{target} == item_{source};");
+                        break;
+                    case ArrayCommandType.NotEqualsOtherArrayIndex:
+                        b.AppendLine($"\tcondition = item_{target} != item_{source};");
+                        break;
+                    case ArrayCommandType.GreaterThanOtherArrayIndex:
+                        b.AppendLine($"\tcondition = item_{target} > item_{source};");
+                        break;
+                    case ArrayCommandType.LessThanOtherArrayIndex:
+                        b.AppendLine($"\tcondition = item_{target} < item_{source};");
+                        break;
+                    // in next two, sourceindex represents a value, not an array index
+                    case ArrayCommandType.EqualsValue:
+                        b.AppendLine($"\tcondition = item_{target} == (double) {source};");
+                        break;
+                    case ArrayCommandType.NotEqualsValue:
+                        b.AppendLine($"\tcondition = item_{target} != (double) {source};");
+                        break;
+                    case ArrayCommandType.GoTo:
+                        b.AppendLine($@"\tif (!condition) 
+\t{{");
+                        break;
+                    case ArrayCommandType.AfterGoTo:
+                        b.AppendLine($@"\t}}
+\telse
+\t{{
+    currentOrderedDestinationIndex += {target};
+    currentOrderedSourceIndex += {source};
+\t}}");
+                        break;
+                    case ArrayCommandType.Blank:
+                        break;
+                    default:
+                        throw new NotImplementedException();
+                }
+                commandIndex++;
+            }
+
+            // copy local variables back to array
+            b.AppendLine();
+            for (int i = 0; i < FirstScratchIndex; i++)
+            {
+                b.AppendLine($"\tarrayPortion[i] = item[i];");
+            }
+            b.AppendLine("}}");
+
+            return b.ToString();
+        }
+
+        #endregion
+
         #region Command execution
 
         bool UseSafeCode = false;
@@ -600,14 +711,14 @@ namespace ACESimBase.Util.ArrayProcessing
             if (UseSafeCode)
             {
                 Span<double> arrayPortion = UseOrderedSources && UseOrderedDestinations ? new Span<double>(array).Slice(FirstScratchIndex) : new Span<double>(array);
-                ExecuteSectionOfCommands_Safe(arrayPortion, 0, MaxCommandIndex, 0, 0, OrderedDestinationIndices.Count());
+                ExecuteSectionOfCommands_Safe(arrayPortion, 0, MaxCommandIndex, 0, 0);
             }
             else
             {
                 fixed (double* arrayPointer = array)
                 {
                     double* arrayPortion = UseOrderedSources && UseOrderedDestinations ? (arrayPointer + FirstScratchIndex) : arrayPointer;
-                    ExecuteSectionOfCommands_Unsafe(arrayPortion, 0, MaxCommandIndex, 0, 0, OrderedDestinationIndices.Count());
+                    ExecuteSectionOfCommands_Unsafe(arrayPortion, 0, MaxCommandIndex, 0, 0);
                 }
             }
 
@@ -617,17 +728,17 @@ namespace ACESimBase.Util.ArrayProcessing
         private unsafe void ExecuteSectionOfCommands(ArrayCommandChunk commandChunk)
         {
             if (UseSafeCode)
-                ExecuteSectionOfCommands_Safe(new Span<double>(commandChunk.VirtualStack), commandChunk.StartCommandRange, commandChunk.EndCommandRangeExclusive - 1, commandChunk.StartSourceIndices, commandChunk.StartDestinationIndices, commandChunk.EndDestinationIndicesExclusive);
+                ExecuteSectionOfCommands_Safe(new Span<double>(commandChunk.VirtualStack), commandChunk.StartCommandRange, commandChunk.EndCommandRangeExclusive - 1, commandChunk.StartSourceIndices, commandChunk.StartDestinationIndices);
             else
             {
                 fixed (double* arrayPointer = commandChunk.VirtualStack)
                 {
-                    ExecuteSectionOfCommands_Unsafe(arrayPointer, commandChunk.StartCommandRange, commandChunk.EndCommandRangeExclusive - 1, commandChunk.StartSourceIndices, commandChunk.StartDestinationIndices, commandChunk.EndDestinationIndicesExclusive);
+                    ExecuteSectionOfCommands_Unsafe(arrayPointer, commandChunk.StartCommandRange, commandChunk.EndCommandRangeExclusive - 1, commandChunk.StartSourceIndices, commandChunk.StartDestinationIndices);
                 }
             }
         }
 
-        private unsafe void ExecuteSectionOfCommands_Safe(Span<double> arrayPortion, int startCommandIndex, int endCommandIndexInclusive, int currentOrderedSourceIndex, int startOrderedDestinationIndex, int endOrderedDestinationIndex)
+        private unsafe void ExecuteSectionOfCommands_Safe(Span<double> arrayPortion, int startCommandIndex, int endCommandIndexInclusive, int currentOrderedSourceIndex, int startOrderedDestinationIndex)
         {
             //System.Diagnostics.Debug.WriteLine($"command {startCommandIndex}-{endCommandIndexInclusive}");
             int currentOrderedDestinationIndex = startOrderedDestinationIndex;
@@ -734,7 +845,7 @@ namespace ACESimBase.Util.ArrayProcessing
             }
         }
 
-        private unsafe void ExecuteSectionOfCommands_Unsafe(double* arrayPortion, int startCommandIndex, int endCommandIndexInclusive, int currentOrderedSourceIndex, int startOrderedDestinationIndex, int endOrderedDestinationIndex)
+        private unsafe void ExecuteSectionOfCommands_Unsafe(double* arrayPortion, int startCommandIndex, int endCommandIndexInclusive, int currentOrderedSourceIndex, int startOrderedDestinationIndex)
         {
             int currentOrderedDestinationIndex = startOrderedDestinationIndex;
             bool skipNext;
