@@ -507,7 +507,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         public unsafe void ExecuteAll(double[] array)
         {
-            bool useSafe = true; // DEBUG -- compare speed
+            bool useSafe = false;
             PrepareOrderedSourcesAndDestinations(array);
             if (Parallelize)
             {
