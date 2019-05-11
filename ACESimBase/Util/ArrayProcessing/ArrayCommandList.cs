@@ -9,6 +9,11 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using System.IO;
+using Microsoft.CodeAnalysis.Emit;
+using System.Reflection;
 
 namespace ACESimBase.Util.ArrayProcessing
 {
@@ -53,6 +58,9 @@ namespace ACESimBase.Util.ArrayProcessing
         List<byte> CurrentCommandTreeLocation = new List<byte>();
         NWayTreeStorageInternal<ArrayCommandChunk> CurrentNode => (NWayTreeStorageInternal<ArrayCommandChunk>) CommandTree.GetNode(CurrentCommandTreeLocation);
         ArrayCommandChunk CurrentCommandChunk => CurrentNode.StoredValue;
+
+        StringBuilder CodeGenerationBuilder = new StringBuilder();
+        HashSet<string> CompiledFunctions = new HashSet<string>();
 
         #endregion
 
@@ -217,7 +225,46 @@ namespace ACESimBase.Util.ArrayProcessing
             CommandTree.WalkTree(null, x => SetupVirtualStack((NWayTreeStorageInternal<ArrayCommandChunk>) x));
             CommandTree.WalkTree(x => SetupVirtualStackRelationships((NWayTreeStorageInternal<ArrayCommandChunk>)x)); // must visit from top to bottom, since we may share the same virtual stack across multiple levels
             CommandTreeString = CommandTree.ToString();
+
+            CodeGenerationBuilder.AppendLine($@"using System;
+    public class MyCodeGen {{");
             CommandTree.WalkTree(x => GenerateCode((NWayTreeStorageInternal<ArrayCommandChunk>)x));
+            CodeGenerationBuilder.AppendLine($@"}}");
+            var s = CodeGenerationBuilder.ToString();
+            SyntaxTree tree = CSharpSyntaxTree.ParseText(s);
+            string assemblyName = Path.GetRandomFileName();
+            MetadataReference[] references = new MetadataReference[]
+            {
+    MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+    MetadataReference.CreateFromFile(typeof(Enumerable).Assembly.Location)
+            };
+
+            CSharpCompilation compilation = CSharpCompilation.Create(
+                assemblyName,
+                syntaxTrees: new[] { tree },
+                references: references,
+                options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+            using (var ms = new MemoryStream())
+            {
+                EmitResult result = compilation.Emit(ms);
+
+                if (!result.Success)
+                {
+                    IEnumerable<Diagnostic> failures = result.Diagnostics.Where(diagnostic =>
+                        diagnostic.IsWarningAsError ||
+                        diagnostic.Severity == DiagnosticSeverity.Error);
+
+                    foreach (Diagnostic diagnostic in failures)
+                    {
+                        Console.Error.WriteLine("{0}: {1}", diagnostic.Id, diagnostic.GetMessage());
+                    }
+                }
+                else
+                {
+                    ms.Seek(0, SeekOrigin.Begin);
+                    Assembly assembly = Assembly.Load(ms.ToArray());
+                }
+            }
         }
 
         private void SetupVirtualStack(NWayTreeStorageInternal<ArrayCommandChunk> node)
@@ -547,7 +594,16 @@ namespace ACESimBase.Util.ArrayProcessing
         {
             if (node.Branches == null || !node.Branches.Any())
             {
-                node.StoredValue.CompiledCode = GenerateCodeForCommands(node.StoredValue.StartCommandRange, node.StoredValue.EndCommandRangeExclusive - 1);
+                int startCommandIndex = node.StoredValue.StartCommandRange;
+                int endCommandIndexInclusive = node.StoredValue.EndCommandRangeExclusive - 1;
+                string fnName = $"Execute{startCommandIndex}to{endCommandIndexInclusive}";
+                if (!CompiledFunctions.Contains(fnName))
+                {
+                    CodeGenerationBuilder.AppendLine("");
+                    CodeGenerationBuilder.AppendLine(GenerateCodeForCommands(startCommandIndex, endCommandIndexInclusive));
+                    CodeGenerationBuilder.AppendLine("");
+                    CompiledFunctions.Add(fnName);
+                }
             }
         }
 
