@@ -222,49 +222,10 @@ namespace ACESimBase.Util.ArrayProcessing
         private void CompleteCommandTree()
         {
             CommandTree.WalkTree(x => InsertMissingBranches((NWayTreeStorageInternal<ArrayCommandChunk>)x));
-            CommandTree.WalkTree(null, x => SetupVirtualStack((NWayTreeStorageInternal<ArrayCommandChunk>) x));
+            CommandTree.WalkTree(null, x => SetupVirtualStack((NWayTreeStorageInternal<ArrayCommandChunk>)x));
             CommandTree.WalkTree(x => SetupVirtualStackRelationships((NWayTreeStorageInternal<ArrayCommandChunk>)x)); // must visit from top to bottom, since we may share the same virtual stack across multiple levels
             CommandTreeString = CommandTree.ToString();
-
-            CodeGenerationBuilder.AppendLine($@"using System;
-    public class MyCodeGen {{");
-            CommandTree.WalkTree(x => GenerateCode((NWayTreeStorageInternal<ArrayCommandChunk>)x));
-            CodeGenerationBuilder.AppendLine($@"}}");
-            var s = CodeGenerationBuilder.ToString();
-            SyntaxTree tree = CSharpSyntaxTree.ParseText(s);
-            string assemblyName = Path.GetRandomFileName();
-            MetadataReference[] references = new MetadataReference[]
-            {
-    MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
-    MetadataReference.CreateFromFile(typeof(Enumerable).Assembly.Location)
-            };
-
-            CSharpCompilation compilation = CSharpCompilation.Create(
-                assemblyName,
-                syntaxTrees: new[] { tree },
-                references: references,
-                options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
-            using (var ms = new MemoryStream())
-            {
-                EmitResult result = compilation.Emit(ms);
-
-                if (!result.Success)
-                {
-                    IEnumerable<Diagnostic> failures = result.Diagnostics.Where(diagnostic =>
-                        diagnostic.IsWarningAsError ||
-                        diagnostic.Severity == DiagnosticSeverity.Error);
-
-                    foreach (Diagnostic diagnostic in failures)
-                    {
-                        Console.Error.WriteLine("{0}: {1}", diagnostic.Id, diagnostic.GetMessage());
-                    }
-                }
-                else
-                {
-                    ms.Seek(0, SeekOrigin.Begin);
-                    Assembly assembly = Assembly.Load(ms.ToArray());
-                }
-            }
+            CompileCode();
         }
 
         private void SetupVirtualStack(NWayTreeStorageInternal<ArrayCommandChunk> node)
@@ -590,28 +551,96 @@ namespace ACESimBase.Util.ArrayProcessing
 
         #region Code generation
 
+        Type CompiledCodeType;
+
+        private void CompileCode()
+        {
+            if (!RepeatIdenticalRanges || !UseOrderedDestinations || !UseOrderedSources)
+                return;
+
+            CodeGenerationBuilder.AppendLine($@"using System;
+
+    namespace CommandTreeCompilations
+    {{
+    public static class CompiledCode 
+    {{");
+            CommandTree.WalkTree(x => GenerateCode((NWayTreeStorageInternal<ArrayCommandChunk>)x));
+            CodeGenerationBuilder.AppendLine($@"}}
+}}");
+            var s = CodeGenerationBuilder.ToString();
+            SyntaxTree tree = CSharpSyntaxTree.ParseText(s);
+            string assemblyName = Path.GetRandomFileName();
+            MetadataReference[] references = new MetadataReference[]
+            {
+                MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
+                MetadataReference.CreateFromFile(typeof(Enumerable).Assembly.Location)
+            };
+
+            CSharpCompilation compilation = CSharpCompilation.Create(
+                assemblyName,
+                syntaxTrees: new[] { tree },
+                references: references,
+                options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
+            using (var ms = new MemoryStream())
+            {
+                EmitResult result = compilation.Emit(ms);
+
+                if (!result.Success)
+                {
+                    IEnumerable<Diagnostic> failures = result.Diagnostics.Where(diagnostic =>
+                        diagnostic.IsWarningAsError ||
+                        diagnostic.Severity == DiagnosticSeverity.Error);
+
+                    foreach (Diagnostic diagnostic in failures)
+                    {
+                        Console.Error.WriteLine("{0}: {1}", diagnostic.Id, diagnostic.GetMessage());
+                    }
+                }
+                else
+                {
+                    ms.Seek(0, SeekOrigin.Begin);
+                    Assembly assembly = Assembly.Load(ms.ToArray());
+                    CompiledCodeType = assembly.GetType("CommandTreeCompilations.CompiledCode");
+                }
+            }
+        }
+
+        private bool ExecuteCompiledCode(ArrayCommandChunk chunk)
+        {
+            int startCommandIndex = chunk.StartCommandRange;
+            int endCommandIndexInclusive = chunk.EndCommandRangeExclusive - 1;
+            string fnName = $"Execute{startCommandIndex}to{endCommandIndexInclusive}";
+            if (!CompiledFunctions.Contains(fnName))
+                return false;
+            var method = CompiledCodeType.GetMethod(fnName);
+            method.Invoke(null, new object[] { chunk.VirtualStack, OrderedSources, OrderedDestinations, chunk.StartSourceIndices, chunk.StartDestinationIndices });
+            return true;
+        }
+
         private void GenerateCode(NWayTreeStorageInternal<ArrayCommandChunk> node)
         {
             if (node.Branches == null || !node.Branches.Any())
             {
                 int startCommandIndex = node.StoredValue.StartCommandRange;
                 int endCommandIndexInclusive = node.StoredValue.EndCommandRangeExclusive - 1;
-                string fnName = $"Execute{startCommandIndex}to{endCommandIndexInclusive}";
-                if (!CompiledFunctions.Contains(fnName))
+                if (endCommandIndexInclusive - startCommandIndex > 25) // DEBUG -- might actually make sense to generate code for small functions if we can figure out which indices are used
                 {
-                    CodeGenerationBuilder.AppendLine("");
-                    CodeGenerationBuilder.AppendLine(GenerateCodeForCommands(startCommandIndex, endCommandIndexInclusive));
-                    CodeGenerationBuilder.AppendLine("");
-                    CompiledFunctions.Add(fnName);
+                    string fnName = $"Execute{startCommandIndex}to{endCommandIndexInclusive}";
+                    if (!CompiledFunctions.Contains(fnName))
+                    {
+                        CodeGenerationBuilder.AppendLine("");
+                        CodeGenerationBuilder.AppendLine(GenerateSourceTextForChunk(startCommandIndex, endCommandIndexInclusive));
+                        CodeGenerationBuilder.AppendLine("");
+                        CompiledFunctions.Add(fnName);
+                    }
                 }
             }
         }
 
-
-        private string GenerateCodeForCommands(int startCommandIndex, int endCommandIndexInclusive)
+        private string GenerateSourceTextForChunk(int startCommandIndex, int endCommandIndexInclusive)
         {
             StringBuilder b = new StringBuilder();
-            b.AppendLine($@"public static void Execute{startCommandIndex}to{endCommandIndexInclusive}(Span<double> arrayPortion, double[] orderedSources, double[] orderedDestinations, int currentOrderedSourceIndex, int currentOrderedDestinationIndex)
+            b.AppendLine($@"public static void Execute{startCommandIndex}to{endCommandIndexInclusive}(double[] virtualStack, double[] orderedSources, double[] orderedDestinations, int currentOrderedSourceIndex, int currentOrderedDestinationIndex)
 {{
 bool condition = true;
 ");
@@ -619,7 +648,7 @@ bool condition = true;
             // copy span to local variables
             for (int i = 0; i < FirstScratchIndex; i++)
             {
-                b.AppendLine($"double item_{i} = arrayPortion[{i}];");
+                b.AppendLine($"double item_{i} = virtualStack[{i}];");
             }
             b.AppendLine();
             
@@ -703,7 +732,7 @@ bool condition = true;
             b.AppendLine();
             for (int i = 0; i < FirstScratchIndex; i++)
             {
-                b.AppendLine($"arrayPortion[{i}] = item_{i};");
+                b.AppendLine($"virtualStack[{i}] = item_{i};");
             }
             b.AppendLine($"}}");
 
@@ -760,15 +789,15 @@ bool condition = true;
         {
             if (UseSafeCode)
             {
-                Span<double> arrayPortion = UseOrderedSources && UseOrderedDestinations ? new Span<double>(array).Slice(FirstScratchIndex) : new Span<double>(array);
-                ExecuteSectionOfCommands_Safe(arrayPortion, 0, MaxCommandIndex, 0, 0);
+                Span<double> virtualStack = UseOrderedSources && UseOrderedDestinations ? new Span<double>(array).Slice(FirstScratchIndex) : new Span<double>(array);
+                ExecuteSectionOfCommands_Safe(virtualStack, 0, MaxCommandIndex, 0, 0);
             }
             else
             {
                 fixed (double* arrayPointer = array)
                 {
-                    double* arrayPortion = UseOrderedSources && UseOrderedDestinations ? (arrayPointer + FirstScratchIndex) : arrayPointer;
-                    ExecuteSectionOfCommands_Unsafe(arrayPortion, 0, MaxCommandIndex, 0, 0);
+                    double* virtualStack = UseOrderedSources && UseOrderedDestinations ? (arrayPointer + FirstScratchIndex) : arrayPointer;
+                    ExecuteSectionOfCommands_Unsafe(virtualStack, 0, MaxCommandIndex, 0, 0);
                 }
             }
 
@@ -777,18 +806,22 @@ bool condition = true;
 
         private unsafe void ExecuteSectionOfCommands(ArrayCommandChunk commandChunk)
         {
-            if (UseSafeCode)
-                ExecuteSectionOfCommands_Safe(new Span<double>(commandChunk.VirtualStack), commandChunk.StartCommandRange, commandChunk.EndCommandRangeExclusive - 1, commandChunk.StartSourceIndices, commandChunk.StartDestinationIndices);
-            else
+            bool isCompiled = ExecuteCompiledCode(commandChunk);
+            if (!isCompiled)
             {
-                fixed (double* arrayPointer = commandChunk.VirtualStack)
+                if (UseSafeCode)
+                    ExecuteSectionOfCommands_Safe(new Span<double>(commandChunk.VirtualStack), commandChunk.StartCommandRange, commandChunk.EndCommandRangeExclusive - 1, commandChunk.StartSourceIndices, commandChunk.StartDestinationIndices);
+                else
                 {
-                    ExecuteSectionOfCommands_Unsafe(arrayPointer, commandChunk.StartCommandRange, commandChunk.EndCommandRangeExclusive - 1, commandChunk.StartSourceIndices, commandChunk.StartDestinationIndices);
+                    fixed (double* arrayPointer = commandChunk.VirtualStack)
+                    {
+                        ExecuteSectionOfCommands_Unsafe(arrayPointer, commandChunk.StartCommandRange, commandChunk.EndCommandRangeExclusive - 1, commandChunk.StartSourceIndices, commandChunk.StartDestinationIndices);
+                    }
                 }
             }
         }
 
-        private unsafe void ExecuteSectionOfCommands_Safe(Span<double> arrayPortion, int startCommandIndex, int endCommandIndexInclusive, int currentOrderedSourceIndex, int currentOrderedDestinationIndex)
+        private unsafe void ExecuteSectionOfCommands_Safe(Span<double> virtualStack, int startCommandIndex, int endCommandIndexInclusive, int currentOrderedSourceIndex, int currentOrderedDestinationIndex)
         {
             bool conditionMet = false;
             int commandIndex = startCommandIndex;
@@ -803,59 +836,59 @@ bool condition = true;
                 switch (command.CommandType)
                 {
                     case ArrayCommandType.Zero:
-                        arrayPortion[command.Index] = 0;
+                        virtualStack[command.Index] = 0;
                         break;
                     case ArrayCommandType.CopyTo:
-                        arrayPortion[command.Index] = arrayPortion[command.SourceIndex];
+                        virtualStack[command.Index] = virtualStack[command.SourceIndex];
                         break;
                     case ArrayCommandType.NextSource:
-                        arrayPortion[command.Index] = OrderedSources[currentOrderedSourceIndex++];
+                        virtualStack[command.Index] = OrderedSources[currentOrderedSourceIndex++];
                         break;
                     case ArrayCommandType.NextDestination:
-                        double value = arrayPortion[command.SourceIndex];
+                        double value = virtualStack[command.SourceIndex];
                         OrderedDestinations[currentOrderedDestinationIndex++] = value;
                         break;
                     case ArrayCommandType.ReusedDestination:
-                        value = arrayPortion[command.SourceIndex];
+                        value = virtualStack[command.SourceIndex];
                         int reusedDestination = command.Index;
                         OrderedDestinations[reusedDestination] += value;
                         break;
                     case ArrayCommandType.MultiplyBy:
-                        arrayPortion[command.Index] *= arrayPortion[command.SourceIndex];
+                        virtualStack[command.Index] *= virtualStack[command.SourceIndex];
                         break;
                     case ArrayCommandType.IncrementBy:
-                        arrayPortion[command.Index] += arrayPortion[command.SourceIndex];
+                        virtualStack[command.Index] += virtualStack[command.SourceIndex];
                         break;
                     case ArrayCommandType.DecrementBy:
-                        arrayPortion[command.Index] -= arrayPortion[command.SourceIndex];
+                        virtualStack[command.Index] -= virtualStack[command.SourceIndex];
                         break;
                     case ArrayCommandType.MultiplyByInterlocked:
-                        Interlocking.Multiply(ref arrayPortion[command.Index], arrayPortion[command.SourceIndex]);
+                        Interlocking.Multiply(ref virtualStack[command.Index], virtualStack[command.SourceIndex]);
                         break;
                     case ArrayCommandType.IncrementByInterlocked:
-                        Interlocking.Add(ref arrayPortion[command.Index], arrayPortion[command.SourceIndex]);
+                        Interlocking.Add(ref virtualStack[command.Index], virtualStack[command.SourceIndex]);
                         break;
                     case ArrayCommandType.DecrementByInterlocked:
-                        Interlocking.Subtract(ref arrayPortion[command.Index], arrayPortion[command.SourceIndex]);
+                        Interlocking.Subtract(ref virtualStack[command.Index], virtualStack[command.SourceIndex]);
                         break;
                     case ArrayCommandType.EqualsOtherArrayIndex:
-                        conditionMet = arrayPortion[command.Index] == arrayPortion[command.SourceIndex];
+                        conditionMet = virtualStack[command.Index] == virtualStack[command.SourceIndex];
                         break;
                     case ArrayCommandType.NotEqualsOtherArrayIndex:
-                        conditionMet = arrayPortion[command.Index] != arrayPortion[command.SourceIndex];
+                        conditionMet = virtualStack[command.Index] != virtualStack[command.SourceIndex];
                         break;
                     case ArrayCommandType.GreaterThanOtherArrayIndex:
-                        conditionMet = arrayPortion[command.Index] > arrayPortion[command.SourceIndex];
+                        conditionMet = virtualStack[command.Index] > virtualStack[command.SourceIndex];
                         break;
                     case ArrayCommandType.LessThanOtherArrayIndex:
-                        conditionMet = arrayPortion[command.Index] < arrayPortion[command.SourceIndex];
+                        conditionMet = virtualStack[command.Index] < virtualStack[command.SourceIndex];
                         break;
                     // in next two, sourceindex represents a value, not an array index
                     case ArrayCommandType.EqualsValue:
-                        conditionMet = arrayPortion[command.Index] == command.SourceIndex;
+                        conditionMet = virtualStack[command.Index] == command.SourceIndex;
                         break;
                     case ArrayCommandType.NotEqualsValue:
-                        conditionMet = arrayPortion[command.Index] != command.SourceIndex;
+                        conditionMet = virtualStack[command.Index] != command.SourceIndex;
                         break;
                     case ArrayCommandType.If:
                         if (!conditionMet)
@@ -883,12 +916,12 @@ bool condition = true;
                     default:
                         throw new NotImplementedException();
                 }
-                //LogCommand(commandIndex, arrayPortion);
+                //LogCommand(commandIndex, virtualStack);
                 commandIndex++;
             }
         }
 
-        private unsafe void ExecuteSectionOfCommands_Unsafe(double* arrayPortion, int startCommandIndex, int endCommandIndexInclusive, int currentOrderedSourceIndex, int currentOrderedDestinationIndex)
+        private unsafe void ExecuteSectionOfCommands_Unsafe(double* virtualStack, int startCommandIndex, int endCommandIndexInclusive, int currentOrderedSourceIndex, int currentOrderedDestinationIndex)
         {
             bool conditionMet = false;
             fixed (ArrayCommand* firstInSection = &UnderlyingCommands[0])
@@ -901,59 +934,59 @@ bool condition = true;
                     switch ((*command).CommandType)
                     {
                         case ArrayCommandType.Zero:
-                            arrayPortion[(*command).Index] = 0;
+                            virtualStack[(*command).Index] = 0;
                             break;
                         case ArrayCommandType.CopyTo:
-                            arrayPortion[(*command).Index] = arrayPortion[(*command).SourceIndex];
+                            virtualStack[(*command).Index] = virtualStack[(*command).SourceIndex];
                             break;
                         case ArrayCommandType.NextSource:
-                            arrayPortion[(*command).Index] = OrderedSources[currentOrderedSourceIndex++];
+                            virtualStack[(*command).Index] = OrderedSources[currentOrderedSourceIndex++];
                             break;
                         case ArrayCommandType.NextDestination:
-                            double value = arrayPortion[(*command).SourceIndex];
+                            double value = virtualStack[(*command).SourceIndex];
                             OrderedDestinations[currentOrderedDestinationIndex++] = value;
                             break;
                         case ArrayCommandType.ReusedDestination:
-                            value = arrayPortion[(*command).SourceIndex];
+                            value = virtualStack[(*command).SourceIndex];
                             int reusedDestination = (*command).Index;
                             OrderedDestinations[reusedDestination] += value;
                             break;
                         case ArrayCommandType.MultiplyBy:
-                            arrayPortion[(*command).Index] *= arrayPortion[(*command).SourceIndex];
+                            virtualStack[(*command).Index] *= virtualStack[(*command).SourceIndex];
                             break;
                         case ArrayCommandType.IncrementBy:
-                            arrayPortion[(*command).Index] += arrayPortion[(*command).SourceIndex];
+                            virtualStack[(*command).Index] += virtualStack[(*command).SourceIndex];
                             break;
                         case ArrayCommandType.DecrementBy:
-                            arrayPortion[(*command).Index] -= arrayPortion[(*command).SourceIndex];
+                            virtualStack[(*command).Index] -= virtualStack[(*command).SourceIndex];
                             break;
                         case ArrayCommandType.MultiplyByInterlocked:
-                            Interlocking.Multiply(ref arrayPortion[(*command).Index], arrayPortion[(*command).SourceIndex]);
+                            Interlocking.Multiply(ref virtualStack[(*command).Index], virtualStack[(*command).SourceIndex]);
                             break;
                         case ArrayCommandType.IncrementByInterlocked:
-                            Interlocking.Add(ref arrayPortion[(*command).Index], arrayPortion[(*command).SourceIndex]);
+                            Interlocking.Add(ref virtualStack[(*command).Index], virtualStack[(*command).SourceIndex]);
                             break;
                         case ArrayCommandType.DecrementByInterlocked:
-                            Interlocking.Subtract(ref arrayPortion[(*command).Index], arrayPortion[(*command).SourceIndex]);
+                            Interlocking.Subtract(ref virtualStack[(*command).Index], virtualStack[(*command).SourceIndex]);
                             break;
                         case ArrayCommandType.EqualsOtherArrayIndex:
-                            conditionMet = arrayPortion[(*command).Index] == arrayPortion[(*command).SourceIndex];
+                            conditionMet = virtualStack[(*command).Index] == virtualStack[(*command).SourceIndex];
                             break;
                         case ArrayCommandType.NotEqualsOtherArrayIndex:
-                            conditionMet = arrayPortion[(*command).Index] != arrayPortion[(*command).SourceIndex];
+                            conditionMet = virtualStack[(*command).Index] != virtualStack[(*command).SourceIndex];
                             break;
                         case ArrayCommandType.GreaterThanOtherArrayIndex:
-                            conditionMet = arrayPortion[(*command).Index] > arrayPortion[(*command).SourceIndex];
+                            conditionMet = virtualStack[(*command).Index] > virtualStack[(*command).SourceIndex];
                             break;
                         case ArrayCommandType.LessThanOtherArrayIndex:
-                            conditionMet = arrayPortion[(*command).Index] < arrayPortion[(*command).SourceIndex];
+                            conditionMet = virtualStack[(*command).Index] < virtualStack[(*command).SourceIndex];
                             break;
                             // in next two, sourceindex represents a value, not an array index
                         case ArrayCommandType.EqualsValue:
-                            conditionMet = arrayPortion[(*command).Index] == (*command).SourceIndex;
+                            conditionMet = virtualStack[(*command).Index] == (*command).SourceIndex;
                             break;
                         case ArrayCommandType.NotEqualsValue:
-                            conditionMet = arrayPortion[(*command).Index] != (*command).SourceIndex;
+                            conditionMet = virtualStack[(*command).Index] != (*command).SourceIndex;
                             break;
                         case ArrayCommandType.If:
                             if (!conditionMet)
