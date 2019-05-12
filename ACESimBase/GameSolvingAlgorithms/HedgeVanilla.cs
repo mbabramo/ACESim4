@@ -10,6 +10,8 @@ using System.Threading.Tasks;
 namespace ACESim
 {
 
+    // DEBUG TODO: Fix the reporting -- after generating reports every n iterations including best response, the within-iteration best response values are no longer valid. Perhaps relatedly, the best response values for player 0 are always 0 and those for player 1 are wrong (maybe that represents the improvement, but it is wrong too -- so maybe we should just delete it).
+
     // DEBUG TODO 1. add pruning to unrolled. 2. compile unrolled -- now, we need support for pasting code in directly, thensdc        (a) fix error, (b) make it so that we don't copy all of the stack, instead use bitmaps for first and last access 3. structural skipping (e.g., pre primary chance actions -- we only have to do one; beyond that, we can figure out how to skip litigation quality, by (a) adjusting the probabilities on the signals the parties receive so that they are cnosistent with one another, and (b) adjusting the final utilities to reflect the probability distribution of litigation quality) 4. ordered indices structure -- could we figure out when we can use the same ordered indices? it may differ based on player being optimized.
 
     public partial class CounterfactualRegretMinimization
