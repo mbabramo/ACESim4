@@ -19,8 +19,10 @@ namespace ACESimBase.Util.ArrayProcessing
             public int StartDestinationIndices, EndDestinationIndicesExclusive;
             public double[] VirtualStack;
             public int VirtualStackID;
-            public int?[] FirstUseOfSourceIndex, FirstUseOfTargetIndex, LastUseOfTargetIndex;
-            public int[] SourceIndicesUsed;
+            // The following indicate when indices in the virtual stack are first and last used. If the first use is an assignment, then FirstSetInStack will be non-null for the index; if the first use is a read, then FirstReadFromStack will be non-null for the index. LastSetInStack will be non-null if the index is written to.
+            public int?[] FirstReadFromStack, FirstSetInStack, LastSetInStack, LastUsed, TranslationToLocalIndex;
+            public int[] IndicesReadFromStack;
+            public int[] IndicesInitiallySetInStack;
             public double[] ParentVirtualStack;
             public int ParentVirtualStackID;
             public string CompiledCode;
@@ -43,7 +45,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 if (ParentVirtualStack != VirtualStack && ParentVirtualStack != null)
                 {
                     //System.Diagnostics.Debug.WriteLine($"Copying stack from {ParentVirtualStackID} to {VirtualStackID}");
-                    foreach (int index in SourceIndicesUsed)
+                    foreach (int index in IndicesReadFromStack)
                         VirtualStack[index] = ParentVirtualStack[index];
                     //int stackSize = Math.Min(VirtualStack.Length, ParentVirtualStack.Length);
                     //for (int i = 0; i < stackSize; i++)
