@@ -656,6 +656,7 @@ namespace ACESimBase.Util.ArrayProcessing
         private string GenerateSourceTextForChunk(int startCommandIndex, int endCommandIndexInclusive, int virtualStackSize)
         {
             StringBuilder b = new StringBuilder();
+            // Note: We know what the ordered source and destination indices are for the first time this chunk is executed. But we are creating code that can be reused each time we have the same set of commands. Thus, we pass these in as parameters.
             b.AppendLine($@"public static void Execute{startCommandIndex}to{endCommandIndexInclusive}(double[] virtualStack, double[] orderedSources, double[] orderedDestinations, int currentOrderedSourceIndex, int currentOrderedDestinationIndex)
 {{
 bool condition = true;
@@ -667,7 +668,11 @@ bool condition = true;
                 b.AppendLine($"double item_{i} = virtualStack[{i}];");
             }
             b.AppendLine();
-            
+
+            // when mving to next source or destination in the if block, we need to count the number of increments, so that when we close the if block, we can advance that number of spots.
+            List<int> sourceIncrementsInIfBlock = new List<int>();
+            List<int> destinationIncrementsInIfBlock = new List<int>();
+
             // generate code for commands
             int commandIndex = startCommandIndex;
             while (commandIndex <= endCommandIndexInclusive)
@@ -685,11 +690,16 @@ bool condition = true;
                         break;
                     case ArrayCommandType.NextSource:
                         b.AppendLine($"item_{target} = orderedSources[currentOrderedSourceIndex++];");
+                        for (int j = 0; j < sourceIncrementsInIfBlock.Count; j++)
+                            sourceIncrementsInIfBlock[j]++;
                         break;
                     case ArrayCommandType.NextDestination:
                         b.AppendLine($"orderedDestinations[currentOrderedDestinationIndex++] = item_{source};");
+                        for (int j = 0; j < destinationIncrementsInIfBlock.Count; j++)
+                            destinationIncrementsInIfBlock[j]++;
                         break;
                     case ArrayCommandType.ReusedDestination:
+                        // target here refers to the ordered destinations index rather than what was originally an index into the virtual stack
                         b.AppendLine($"orderedDestinations[{target}] += item_{source};");
                         break;
                     case ArrayCommandType.MultiplyBy:
@@ -722,7 +732,7 @@ bool condition = true;
                     case ArrayCommandType.LessThanOtherArrayIndex:
                         b.AppendLine($"condition = item_{target} < item_{source};");
                         break;
-                    // in next two, sourceindex represents a value, not an array index
+                    // in next two, sourceindex represents a value, not an index to virtual stack
                     case ArrayCommandType.EqualsValue:
                         b.AppendLine($"condition = item_{target} == (double) {source};");
                         break;
@@ -734,7 +744,20 @@ bool condition = true;
 {{");
                         break;
                     case ArrayCommandType.EndIf:
-                        b.AppendLine($@"}}");
+                        // here is where we adjust for the fast that source and destination increments were incremented in the if block. We need to advance to the same index as if the code had executed.
+                        int sourceIncrements = sourceIncrementsInIfBlock.Last();
+                        int destinationIncrements = destinationIncrementsInIfBlock.Last();
+                        sourceIncrementsInIfBlock.RemoveAt(sourceIncrementsInIfBlock.Count() - 1);
+                        destinationIncrementsInIfBlock.RemoveAt(destinationIncrementsInIfBlock.Count() - 1);
+                        if (sourceIncrements == 0 && destinationIncrements == 0)
+                            b.AppendLine("}");
+                        else
+                            b.AppendLine($@"}}
+else
+{{
+    currentOrderedSourceIndex += {sourceIncrements};
+    currentOrderedDestinationIndex += {destinationIncrements};
+}}");
                         break;
                     case ArrayCommandType.Blank:
                         break;
@@ -878,6 +901,7 @@ bool condition = true;
                     case ArrayCommandType.DecrementBy:
                         virtualStack[command.Index] -= virtualStack[command.SourceIndex];
                         break;
+                    // DEBUG: We should be able to remove interlocked options, because we're always using the virtual stack, rather than a common destination.
                     case ArrayCommandType.MultiplyByInterlocked:
                         Interlocking.Multiply(ref virtualStack[command.Index], virtualStack[command.SourceIndex]);
                         break;
