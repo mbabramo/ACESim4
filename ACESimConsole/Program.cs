@@ -29,40 +29,61 @@ namespace ACESim
         [STAThread]
         static void Main(string[] args)
         {
-            Console.SetBufferSize(1000, 32766);
+            Execute();
+            // the following is supposed to create a large stack, but it either doesn't work (or isn't large enough for our purposes, which seems unlikely)
+            //Thread t = new Thread(delegate ()
+            //{
+            //    Execute();
+            //}, 1024 * 1024 * 1024);
+            //t.Start();
+            //while (t.IsAlive)
+            //    Thread.Sleep(500);
+        }
 
-            string baseOutputDirectory;
-            string strategiesPath;
-            string gameResult = null;
-            switch (GameToPlay)
+        private static void Execute()
+        {
+            try
             {
-                case AvailableGames.Leduc:
-                    baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\LeducGame";
-                    strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
-                    gameResult = LeducGameRunner.EvolveLeducGame().GetAwaiter().GetResult();
-                    break;
-                case AvailableGames.MultiRoundCooperation:
-                    baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\MultiRoundCooperationGame";
-                    strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
-                    gameResult = MultiRoundCooperationGameRunner.EvolveGame();
-                    break;
-                case AvailableGames.MyGame:
-                    baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\MyGame";
-                    strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
-                    gameResult = MyGameRunner.EvolveMyGame().GetAwaiter().GetResult();
-                    break;
-            }
-            TextCopy.Clipboard.SetText(gameResult);
-            Console.WriteLine();
-            Console.WriteLine("Press Enter to end.");
-            do
-            {
-                while (!Console.KeyAvailable)
+                Console.SetBufferSize(1000, 32766);
+
+                string baseOutputDirectory;
+                string strategiesPath;
+                string gameResult = null;
+                switch (GameToPlay)
                 {
-                    // Do something
+                    case AvailableGames.Leduc:
+                        baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\LeducGame";
+                        strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
+                        gameResult = LeducGameRunner.EvolveLeducGame().GetAwaiter().GetResult();
+                        break;
+                    case AvailableGames.MultiRoundCooperation:
+                        baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\MultiRoundCooperationGame";
+                        strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
+                        gameResult = MultiRoundCooperationGameRunner.EvolveGame();
+                        break;
+                    case AvailableGames.MyGame:
+                        baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\MyGame";
+                        strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
+                        gameResult = MyGameRunner.EvolveMyGame().GetAwaiter().GetResult();
+                        break;
                 }
-            } while (Console.ReadKey(true).Key != ConsoleKey.Enter);
-            TextCopy.Clipboard.SetText(gameResult);
+                TextCopy.Clipboard.SetText(gameResult);
+                Console.WriteLine();
+                Console.WriteLine("Press Enter to end.");
+                do
+                {
+                    while (!Console.KeyAvailable)
+                    {
+                        // Do something
+                    }
+                } while (Console.ReadKey(true).Key != ConsoleKey.Enter);
+                TextCopy.Clipboard.SetText(gameResult);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+                Console.WriteLine(e.StackTrace);
+            }
         }
     }
 }
