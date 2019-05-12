@@ -161,5 +161,24 @@ namespace ACESim
             }
             return new double[] {riskOfInjury, 1.0 - riskOfInjury};
         }
+        public (bool unrollParallelize, bool unrollIdentical) GetPrePrimaryUnrollSettings()
+        {
+            return (false, false);
+        }
+
+        public (bool unrollParallelize, bool unrollIdentical) GetPrimaryUnrollSettings()
+        {
+            return (false, false);
+        }
+
+        public (bool unrollParallelize, bool unrollIdentical) GetPostPrimaryUnrollSettings()
+        {
+            return (false, false);
+        }
+
+        public (bool unrollParallelize, bool unrollIdentical) GetLitigationQualityUnrollSettings()
+        {
+            return (false, false);
+        }
     }
 }

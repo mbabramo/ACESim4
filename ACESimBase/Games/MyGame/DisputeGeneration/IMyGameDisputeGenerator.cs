@@ -19,6 +19,12 @@ namespace ACESim
         double[] GetLitigationQualityProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions);
         double GetLitigationIndependentSocialWelfare(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions);
         double[] GetLitigationIndependentWealthEffects(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions);
+
+        (bool unrollParallelize, bool unrollIdentical) GetPrePrimaryUnrollSettings();
+        (bool unrollParallelize, bool unrollIdentical) GetPrimaryUnrollSettings();
+        (bool unrollParallelize, bool unrollIdentical) GetPostPrimaryUnrollSettings();
+        (bool unrollParallelize, bool unrollIdentical) GetLitigationQualityUnrollSettings();
+
         string GetGeneratorName();
     }
 }

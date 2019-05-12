@@ -101,5 +101,25 @@ namespace ACESim
         {
             throw new NotImplementedException(); // we use even chance probabilities
         }
+
+        public (bool unrollParallelize, bool unrollIdentical) GetPrePrimaryUnrollSettings()
+        {
+            return (false, false);
+        }
+
+        public (bool unrollParallelize, bool unrollIdentical) GetPrimaryUnrollSettings()
+        {
+            return (false, false);
+        }
+
+        public (bool unrollParallelize, bool unrollIdentical) GetPostPrimaryUnrollSettings()
+        {
+            return (false, false);
+        }
+
+        public (bool unrollParallelize, bool unrollIdentical) GetLitigationQualityUnrollSettings()
+        {
+            return (false, false);
+        }
     }
 }

@@ -102,5 +102,25 @@ namespace ACESim
         {
             return ProbabilityOfTrulyLiabilityValues;
         }
+
+        public (bool unrollParallelize, bool unrollIdentical) GetPrePrimaryUnrollSettings()
+        {
+            return (true, true);
+        }
+
+        public (bool unrollParallelize, bool unrollIdentical) GetPrimaryUnrollSettings()
+        {
+            return (true, true);
+        }
+
+        public (bool unrollParallelize, bool unrollIdentical) GetPostPrimaryUnrollSettings()
+        {
+            return (true, true);
+        }
+
+        public (bool unrollParallelize, bool unrollIdentical) GetLitigationQualityUnrollSettings()
+        {
+            return (true, true);
+        }
     }
 }
