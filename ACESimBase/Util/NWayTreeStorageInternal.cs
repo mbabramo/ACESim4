@@ -278,7 +278,6 @@ namespace ACESim
                     if (Branches[branch2 - 1] != null && !Branches[branch2 - 1].Equals(default(T)))
                         Branches[branch2 - 1].ToTreeString(s, branch2, level + 1, branchWord);
                 }
-
         }
     }
 }

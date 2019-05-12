@@ -51,7 +51,7 @@ namespace ACESimBase.Util.ArrayProcessing
 
         bool RepeatIdenticalRanges = true; // instead of repeating identical sequences of commands, we run the same sequence twice
         public Stack<int?> RepeatingExistingCommandRangeStack;
-        public bool RepeatingExistingCommandRange = false;
+        public bool RepeatingExistingCommandRange = false; // when this is true, we don't need to add new commands
 
         NWayTreeStorageInternal<ArrayCommandChunk> CommandTree;
         string CommandTreeString;
@@ -222,7 +222,7 @@ namespace ACESimBase.Util.ArrayProcessing
         private void CompleteCommandTree()
         {
             CommandTree.WalkTree(x => InsertMissingBranches((NWayTreeStorageInternal<ArrayCommandChunk>)x));
-            CommandTree.WalkTree(null, x => SetupVirtualStack((NWayTreeStorageInternal<ArrayCommandChunk>)x));
+            CommandTree.WalkTree(null, x => SetupVirtualStack((NWayTreeStorageInternal<ArrayCommandChunk>)x)); // setting up bottom to top
             CommandTree.WalkTree(x => SetupVirtualStackRelationships((NWayTreeStorageInternal<ArrayCommandChunk>)x)); // must visit from top to bottom, since we may share the same virtual stack across multiple levels
             CommandTreeString = CommandTree.ToString();
             CompileCode();
@@ -233,6 +233,46 @@ namespace ACESimBase.Util.ArrayProcessing
             ArrayCommandChunk c = node.StoredValue;
             c.VirtualStack = new double[MaxArrayIndex];
             c.VirtualStackID = NextVirtualStackID++;
+            if (node.Branches == null || node.Branches.Length == 0)
+            {
+                c.FirstUseOfSourceIndex = new int?[MaxArrayIndex];
+                c.LastUseOfTargetIndex = new int?[MaxArrayIndex];
+                c.SourceIndicesUsed = DetermineWhenIndicesFirstLastUsed(c.StartCommandRange, c.EndCommandRangeExclusive, c.FirstUseOfSourceIndex, c.LastUseOfTargetIndex);
+            }
+            else
+            {
+                DetermineSourcesUsedFromChildren(node);
+            }
+        }
+
+        private static void DetermineSourcesUsedFromChildren(NWayTreeStorageInternal<ArrayCommandChunk> node)
+        {
+            ArrayCommandChunk c = node.StoredValue;
+            HashSet<int> childrenSourceIndicesUsed = new HashSet<int>();
+            foreach (var branch in node.Branches)
+                foreach (int index in branch.StoredValue.SourceIndicesUsed)
+                    childrenSourceIndicesUsed.Add(index);
+            c.SourceIndicesUsed = childrenSourceIndicesUsed.OrderBy(x => x).ToArray();
+        }
+
+        private int[] DetermineWhenIndicesFirstLastUsed(int startRange, int endRangeExclusive, int?[] firstUseOfSource, int?[] lastUseOfTarget)
+        {
+            for (int i = startRange; i < endRangeExclusive; i++)
+            {
+                int j = UnderlyingCommands[i].GetSourceIndexIfUsed();
+                if (j != -1)
+                {
+                    if (firstUseOfSource[j] == null)
+                        firstUseOfSource[j] = i;
+                }
+                j = UnderlyingCommands[i].GetTargetIndexIfUsed();
+                if (j != -1)
+                {
+                    lastUseOfTarget[j] = i;
+                }
+            }
+            int[] sourceIndicesUsed = Enumerable.Range(0, firstUseOfSource.Length).Where(x => firstUseOfSource[x] != null).ToArray();
+            return sourceIndicesUsed;
         }
 
         private void SetupVirtualStackRelationships(NWayTreeStorageInternal<ArrayCommandChunk> node)
@@ -259,7 +299,7 @@ namespace ACESimBase.Util.ArrayProcessing
             int lastArrayIndex = 0;
             for (int i = 0; i < endRangeExclusive; i++)
             {
-                lastArrayIndex = Math.Max(lastArrayIndex, UnderlyingCommands[i].GetTargetIndexIfUsed());
+                lastArrayIndex = Math.Max(lastArrayIndex, UnderlyingCommands[i].GetSourceIndexIfUsed());
             }
             if (lastArrayIndex == 0)
                 return 0;

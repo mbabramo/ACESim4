@@ -1,5 +1,6 @@
 ﻿using ACESim.Util;
 using System;
+using System.Collections;
 using System.Diagnostics;
 using System.Linq;
 
@@ -18,6 +19,8 @@ namespace ACESimBase.Util.ArrayProcessing
             public int StartDestinationIndices, EndDestinationIndicesExclusive;
             public double[] VirtualStack;
             public int VirtualStackID;
+            public int?[] FirstUseOfSourceIndex, LastUseOfTargetIndex;
+            public int[] SourceIndicesUsed;
             public double[] ParentVirtualStack;
             public int ParentVirtualStackID;
             public string CompiledCode;
@@ -40,9 +43,11 @@ namespace ACESimBase.Util.ArrayProcessing
                 if (ParentVirtualStack != VirtualStack && ParentVirtualStack != null)
                 {
                     //System.Diagnostics.Debug.WriteLine($"Copying stack from {ParentVirtualStackID} to {VirtualStackID}");
-                    int stackSize = Math.Min(VirtualStack.Length, ParentVirtualStack.Length);
-                    for (int i = 0; i < stackSize; i++)
-                        VirtualStack[i] = ParentVirtualStack[i];
+                    foreach (int index in SourceIndicesUsed)
+                        VirtualStack[index] = ParentVirtualStack[index];
+                    //int stackSize = Math.Min(VirtualStack.Length, ParentVirtualStack.Length);
+                    //for (int i = 0; i < stackSize; i++)
+                    //    VirtualStack[i] = ParentVirtualStack[i];
                 }
             }
 
