@@ -766,15 +766,12 @@ namespace ACESimBase.Util.ArrayProcessing
 bool condition = true;
 ");
 
-            // DEBUG -- undo translation
-            for (int i = 0; i < c.TranslationToLocalIndex.Length; i++)
-                c.TranslationToLocalIndex[i] = i; 
-
             // declare local variables
             if (CopyVirtualStackToLocalVariables)
             {
                 // we don't just use virtual stack indices -- we translate to local variable indices, so that we can reuse where possible
                 int maxLocalVar = c.TranslationToLocalIndex.Where(x => x != null).Select(x => (int)x).Max();
+                Console.WriteLine("Local variables:" + maxLocalVar);
                 for (int i = 0; i <= maxLocalVar; i++)
                     b.AppendLine($"double item_{i};");
                 b.AppendLine();
@@ -783,6 +780,11 @@ bool condition = true;
             // when moving to next source or destination in the if block, we need to count the number of increments, so that when we close the if block, we can advance that number of spots.
             List<int> sourceIncrementsInIfBlock = new List<int>();
             List<int> destinationIncrementsInIfBlock = new List<int>();
+
+            // we limit the max number of local vars that we will create to avoid stack overflow. later indices in the virtual stack have priority, because these are reused the most often.
+            const int maxLocalVariables = 300;
+            int numLocalVariables = c.TranslationToLocalIndex.Where(x => x != null).Select(x => (int)x).Max();
+            int minLocalVarNumber = numLocalVariables - maxLocalVariables;
 
             // generate code for commands
             int commandIndex = startCommandIndex;
@@ -801,24 +803,26 @@ bool condition = true;
                     int? targetFirstReadFromStack = null;
                     if (sourceIfVirtualStackIndex != -1)
                         sourceFirstReadFromStack = c.FirstReadFromStack[sourceIfVirtualStackIndex];
-                    if (sourceFirstReadFromStack == commandIndex)
-                        b.AppendLine($"item_{c.TranslationToLocalIndex[source]} = virtualStack[{source}];");
+                    if (source > -1 && c.TranslationToLocalIndex[source] > minLocalVarNumber)
+                        if (sourceFirstReadFromStack == commandIndex)
+                            b.AppendLine($"item_{c.TranslationToLocalIndex[source]} = virtualStack[{source}];");
                     if (targetIfVirtualStackIndex != -1)
                     {
                         targetFirstReadFromStack = c.FirstReadFromStack[targetIfVirtualStackIndex];
                         targetLastSetToStack = c.LastSetInStack[targetIfVirtualStackIndex];
                     }
-                    if (targetFirstReadFromStack == commandIndex)
-                        b.AppendLine($"item_{c.TranslationToLocalIndex[target]} = virtualStack[{target}];");
+                    if (target > -1 && c.TranslationToLocalIndex[target] > minLocalVarNumber)
+                        if (targetFirstReadFromStack == commandIndex)
+                            b.AppendLine($"item_{c.TranslationToLocalIndex[target]} = virtualStack[{target}];");
                 }
 
                 string itemSourceString = $"virtualStack[{source}]";
                 string itemTargetString = $"virtualStack[{target}]";
                 if (CopyVirtualStackToLocalVariables)
                 {
-                    if (source != -1)
+                    if (source != -1 && c.TranslationToLocalIndex[source] > minLocalVarNumber)
                         itemSourceString = $"item_{c.TranslationToLocalIndex[source]}";
-                    if (target != -1)
+                    if (target != -1 && c.TranslationToLocalIndex[target] > minLocalVarNumber)
                         itemTargetString = $"item_{c.TranslationToLocalIndex[target]}";
                 }
                 switch (command.CommandType)
@@ -911,7 +915,8 @@ else
 
                 if (CopyVirtualStackToLocalVariables && targetLastSetToStack == commandIndex)
                 {
-                    b.AppendLine($"virtualStack[{target}] = item_{c.TranslationToLocalIndex[target]};");
+                    if (target > -1 && c.TranslationToLocalIndex[target] > minLocalVarNumber)
+                        b.AppendLine($"virtualStack[{target}] = item_{c.TranslationToLocalIndex[target]};");
                     // can't do the following, because local var may be used again in another source (this is just where we set it for the last time): b.AppendLine($"item_{c.TranslationToLocalIndex[target]} = 0;");
                 }
                 commandIndex++;
