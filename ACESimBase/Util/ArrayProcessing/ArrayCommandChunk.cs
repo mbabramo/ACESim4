@@ -19,7 +19,7 @@ namespace ACESimBase.Util.ArrayProcessing
             public int StartDestinationIndices, EndDestinationIndicesExclusive;
             public double[] VirtualStack;
             public int VirtualStackID;
-            public int?[] FirstUseOfSourceIndex, LastUseOfTargetIndex;
+            public int?[] FirstUseOfSourceIndex, FirstUseOfTargetIndex, LastUseOfTargetIndex;
             public int[] SourceIndicesUsed;
             public double[] ParentVirtualStack;
             public int ParentVirtualStackID;
