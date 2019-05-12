@@ -191,6 +191,11 @@ namespace ACESim
         /// </summary>
         public bool Unroll_Parallelize_Identical;
 
+        /// <summary>
+        /// Indicates that the decision does not affect players' strategies and thus we do not need to consider all values when optimizing. This may be a value that is used to calculate other values that do matter or a value useful solely for reporting.  
+        /// </summary>
+        public bool HasNoEffectOnOptimalStrategy;
+
         public Decision()
         {
 

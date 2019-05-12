@@ -25,6 +25,8 @@ namespace ACESim
         (bool unrollParallelize, bool unrollIdentical) GetPostPrimaryUnrollSettings();
         (bool unrollParallelize, bool unrollIdentical) GetLitigationQualityUnrollSettings();
 
+        bool PostPrimaryDoesNotAffectStrategy();
+
         string GetGeneratorName();
     }
 }

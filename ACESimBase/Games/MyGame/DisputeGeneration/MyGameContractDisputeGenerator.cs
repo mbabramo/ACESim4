@@ -140,5 +140,6 @@ namespace ACESim
         {
             return (false, false);
         }
+        public bool PostPrimaryDoesNotAffectStrategy() => false;
     }
 }
