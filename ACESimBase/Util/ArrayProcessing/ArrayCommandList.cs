@@ -766,13 +766,18 @@ namespace ACESimBase.Util.ArrayProcessing
 bool condition = true;
 ");
 
+
+            // we limit the max number of local vars that we will create (if copying at all) to avoid stack overflow. later indices in the virtual stack have priority, because these are reused the most often.
+            const int maxLocalVariables = 200;
+            int numLocalVariables = c.TranslationToLocalIndex.Where(x => x != null).Select(x => (int)x).Max();
+            int minLocalVarNumber = numLocalVariables - maxLocalVariables;
             // declare local variables
             if (CopyVirtualStackToLocalVariables)
             {
                 // we don't just use virtual stack indices -- we translate to local variable indices, so that we can reuse where possible
                 int maxLocalVar = c.TranslationToLocalIndex.Where(x => x != null).Select(x => (int)x).Max();
                 Console.WriteLine("Local variables:" + maxLocalVar);
-                for (int i = 0; i <= maxLocalVar; i++)
+                for (int i = minLocalVarNumber + 1; i <= maxLocalVar; i++)
                     b.AppendLine($"double item_{i};");
                 b.AppendLine();
             }
@@ -780,11 +785,6 @@ bool condition = true;
             // when moving to next source or destination in the if block, we need to count the number of increments, so that when we close the if block, we can advance that number of spots.
             List<int> sourceIncrementsInIfBlock = new List<int>();
             List<int> destinationIncrementsInIfBlock = new List<int>();
-
-            // we limit the max number of local vars that we will create to avoid stack overflow. later indices in the virtual stack have priority, because these are reused the most often.
-            const int maxLocalVariables = 300;
-            int numLocalVariables = c.TranslationToLocalIndex.Where(x => x != null).Select(x => (int)x).Max();
-            int minLocalVarNumber = numLocalVariables - maxLocalVariables;
 
             // generate code for commands
             int commandIndex = startCommandIndex;
