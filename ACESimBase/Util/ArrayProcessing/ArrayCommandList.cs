@@ -780,7 +780,7 @@ bool condition = true;
                 // we don't just use virtual stack indices -- we translate to local variable indices, so that we can reuse where possible
                 int maxLocalVar = c.TranslationToLocalIndex.Where(x => x != null).Select(x => (int)x).Max();
                 for (int i = 0; i <= maxLocalVar; i++)
-                    b.AppendLine($"double item_{i} = 0;");
+                    b.AppendLine($"double item_{i};");
                 b.AppendLine();
             }
 
@@ -916,7 +916,7 @@ else
                 if (CopyVirtualStackToLocalVariables && targetLastSetToStack == commandIndex)
                 {
                     b.AppendLine($"virtualStack[{target}] = item_{c.TranslationToLocalIndex[target]};");
-                    b.AppendLine($"item_{c.TranslationToLocalIndex[target]} = 0;");
+                    // can't do the following, because local var may be used again in another source (this is just where we set it for the last time): b.AppendLine($"item_{c.TranslationToLocalIndex[target]} = 0;");
                 }
                 commandIndex++;
             }
