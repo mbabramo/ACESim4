@@ -134,7 +134,6 @@ namespace ACESim
         private int[] Unroll_FinalUtilitiesNodesIndices;
         private int[] Unroll_InitialPiValuesIndices = null;
         private int Unroll_AverageStrategyAdjustmentIndex = -1;
-        private int Unroll_One = -1; // index of array value that is always 1.0
         private int Unroll_InitialArrayIndex = -1;
 
         // The following indices correspond to the order in HedgeVanillaUtilities
@@ -209,7 +208,6 @@ namespace ACESim
                     Unroll_IterationResultForPlayersIndices[p][i] = index++;
             }
             Unroll_AverageStrategyAdjustmentIndex = index++;
-            Unroll_One = index++;
             Unroll_InitialArrayIndex = index;
         }
 
@@ -259,7 +257,6 @@ namespace ACESim
             }
             CalculateDiscountingAdjustments();
             array[Unroll_AverageStrategyAdjustmentIndex] = AverageStrategyAdjustment;
-            array[Unroll_One] = 1.0;
         }
 
         private void Unroll_CopyArrayToInformationSets(double[] array)
@@ -422,8 +419,6 @@ namespace ACESim
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings)gameStateForCurrentPlayer;
             byte numPossibleActions = chanceNodeSettings.Decision.NumPossibleActions;
-            if (chanceNodeSettings.Decision.DoesNotAffectOptimalStrategy)
-                numPossibleActions = (byte)1; // ignore all other actions // DEBUG
             var historyPointCopy = historyPoint; // can't use historyPoint in anonymous method below. This is costly, so it might be worth optimizing if we use HedgeVanillaCFR much.
             int[] probabilityAdjustedInnerResult = Unroll_Commands.NewUninitializedArray(3); // must allocate this outside the parallel loop, because if we have commands writing to an array created in the parallel loop, the array indices will change
             if (chanceNodeSettings.Decision.Unroll_Parallelize)
@@ -441,7 +436,7 @@ namespace ACESim
                 Unroll_Commands.ZeroExisting(probabilityAdjustedInnerResult);
                 Unroll_HedgeVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, 
                     playerBeingOptimized, piValues, avgStratPiValues,
-                        chanceNodeSettings, action, probabilityAdjustedInnerResult, false, chanceNodeSettings.Decision.DoesNotAffectOptimalStrategy);
+                        chanceNodeSettings, action, probabilityAdjustedInnerResult, false);
                 Unroll_Commands.IncrementArrayBy(resultArray, isUltimateResult, probabilityAdjustedInnerResult);
                 
                 if (chanceNodeSettings.Decision.Unroll_Parallelize)
@@ -453,10 +448,10 @@ namespace ACESim
             Unroll_Commands.DecrementDepth(false);
         }
 
-        private unsafe void Unroll_HedgeVanillaCFR_ChanceNode_NextAction(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, ChanceNodeSettings chanceNodeSettings, byte action, int[] resultArray, bool isUltimateResult, bool useActionProbabilityOf1)
+        private unsafe void Unroll_HedgeVanillaCFR_ChanceNode_NextAction(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, ChanceNodeSettings chanceNodeSettings, byte action, int[] resultArray, bool isUltimateResult)
         {
             Unroll_Commands.IncrementDepth(false);
-            int actionProbability = Unroll_Commands.CopyToNew(useActionProbabilityOf1 ? Unroll_One : Unroll_GetChanceNodeIndex_ProbabilityForAction(chanceNodeSettings.ChanceNodeNumber, action), true);
+            int actionProbability = Unroll_Commands.CopyToNew(Unroll_GetChanceNodeIndex_ProbabilityForAction(chanceNodeSettings.ChanceNodeNumber, action), true);
             int[] nextPiValues = Unroll_Commands.NewUninitializedArray(NumNonChancePlayers);
             Unroll_GetNextPiValues(piValues, playerBeingOptimized, actionProbability, true, nextPiValues);
             int[] nextAvgStratPiValues = Unroll_Commands.NewUninitializedArray(NumNonChancePlayers);
@@ -750,26 +745,24 @@ namespace ACESim
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings)gameStateForCurrentPlayer;
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
-            if (chanceNodeSettings.Decision.DoesNotAffectOptimalStrategy)
-                numPossibleActions = (byte)1; // ignore all other actions // DEBUG
             var historyPointCopy = historyPoint; // can't use historyPoint in anonymous method below. This is costly, so it might be worth optimizing if we use HedgeVanillaCFR much.
             Parallelizer.GoByte(EvolutionSettings.ParallelOptimization, EvolutionSettings.MaxParallelDepth, 1,
                 (byte)(numPossibleActions + 1),
                 action =>
                 {
                     var historyPointCopy2 = historyPointCopy; // Need to do this because we need a separate copy for each thread
-                    HedgeVanillaUtilities probabilityAdjustedInnerResult =  HedgeVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues, avgStratPiValues, chanceNodeSettings, action, chanceNodeSettings.Decision.DoesNotAffectOptimalStrategy);
+                    HedgeVanillaUtilities probabilityAdjustedInnerResult =  HedgeVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues, avgStratPiValues, chanceNodeSettings, action);
                     result.IncrementBasedOnProbabilityAdjusted(ref probabilityAdjustedInnerResult);
                 });
 
             return result;
         }
 
-        private unsafe HedgeVanillaUtilities HedgeVanillaCFR_ChanceNode_NextAction(ref HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues, double* avgStratPiValues, ChanceNodeSettings chanceNodeSettings, byte action, bool useActionProbabilityOf1)
+        private unsafe HedgeVanillaUtilities HedgeVanillaCFR_ChanceNode_NextAction(ref HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues, double* avgStratPiValues, ChanceNodeSettings chanceNodeSettings, byte action)
         {
             double* nextPiValues = stackalloc double[MaxNumMainPlayers];
             double* nextAvgStratPiValues = stackalloc double[MaxNumMainPlayers];
-            double actionProbability = useActionProbabilityOf1 ? 1.0 : chanceNodeSettings.GetActionProbability(action);
+            double actionProbability = chanceNodeSettings.GetActionProbability(action);
             GetNextPiValues(piValues, playerBeingOptimized, actionProbability, true,
                 nextPiValues);
             GetNextPiValues(avgStratPiValues, playerBeingOptimized, actionProbability, true,

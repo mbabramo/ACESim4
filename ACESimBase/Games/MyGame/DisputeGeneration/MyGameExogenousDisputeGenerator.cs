@@ -123,6 +123,6 @@ namespace ACESim
         {
             return (true, true);
         }
-        public bool PostPrimaryDoesNotAffectStrategy() => false; // DEBUG
+        public bool PostPrimaryDoesNotAffectStrategy() => true;
     }
 }
