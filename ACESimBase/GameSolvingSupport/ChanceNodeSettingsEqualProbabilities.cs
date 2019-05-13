@@ -11,7 +11,7 @@ namespace ACESim
     {
         public double EachProbability;
 
-        public override double GetActionProbability(int action)
+        public override double GetActionProbability(int action, int nondistributedActions = -1)
         {
             return EachProbability;
         }

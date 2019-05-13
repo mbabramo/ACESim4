@@ -10,6 +10,6 @@ namespace ACESim
     {
         FinalUtilities,
         Chance,
-        Tally
+        InformationSet
     }
 }

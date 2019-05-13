@@ -22,43 +22,43 @@ namespace ACESim
         public byte NumPlayers;
 
         public virtual byte PlayerIndex_ResolutionPlayer => throw new NotImplementedException();
-        
+
         public List<GameModule> GameModules;
 
-        
+
         public List<string> GameModuleNamesGameReliesOn;
 
-        
+
         public List<int> GameModuleNumbersGameReliesOn;
 
-        
+
         public List<ActionGroupRepetition> AutomaticRepetitions;
 
         /// <summary>
         /// A list of all execution groups, in execution order. Note that a single decision may be included multiple times, but if so, it must be evolved mutliple times
         /// </summary>
-        
+
         public List<ActionGroup> ExecutionOrder;
 
         /// <summary>
         /// In a nonmodular game, the game definition should set these directly. In a modular game, this will be set automatically from the decisions in ExecutionOrder. Either way, each instance in this list represents a separately evolved decision. So, if a decision is repeated in execution, a single Decision object will be included multiple times. The index into this list represents the decision number
         /// </summary>
-        
+
         public List<Decision> DecisionsExecutionOrder;
 
-        
+
         public List<ActionPoint> DecisionPointsExecutionOrder;
 
         /// <summary>
         /// The index into ExecutionOrder for each decision in DecisionPointsExecutionOrder.
         /// </summary>
-        
+
         private List<int> ExecutionOrderIndexForEachDecision;
 
         /// <summary>
         /// The index into ActionPoints within the ActionGroup indexed by ActionGroupNumberForEachDecision.
         /// </summary>
-        
+
         private List<int> ActionPointIndexForEachDecision;
 
         public ActionPoint DecisionPointForDecisionNumber(int decisionNumber)
@@ -69,10 +69,10 @@ namespace ACESim
         public GameModule GetOriginalGameModuleForDecisionNumber(int decisionNumber)
         {
             ActionPoint dp = DecisionPointForDecisionNumber(decisionNumber);
-            return GameModules[(int) dp.ActionGroup.ModuleNumber];
+            return GameModules[(int)dp.ActionGroup.ModuleNumber];
         }
 
-        
+
         private bool DecisionsSetFromModules = false; // have we initialized this yet
 
         public virtual void Initialize(IGameFactory gameFactory)
@@ -82,7 +82,7 @@ namespace ACESim
             DecisionsSetFromModules = true;
 
             if (GameModules == null)
-                InitializeNonmodularGame(); 
+                InitializeNonmodularGame();
             else
                 InitializeModularGame();
 
@@ -166,7 +166,7 @@ namespace ACESim
                 for (int j = 0; j < initialList.Count; j++)
                     if (i != j)
                     {
-                        OrderingConstraint? constraint = GameModules[(int) initialList[i].ModuleNumber].DetermineOrderingConstraint(initialList, initialList[i], initialList[j], forEvolution);
+                        OrderingConstraint? constraint = GameModules[(int)initialList[i].ModuleNumber].DetermineOrderingConstraint(initialList, initialList[i], initialList[j], forEvolution);
                         if (constraint != null)
                         {
                             constraints.Add(new ConstrainedPair<ActionGroup>() { Constraint = (OrderingConstraint)constraint, First = initialList[i], Second = initialList[j] });
@@ -188,14 +188,14 @@ namespace ACESim
 
             return modifiedList;
         }
-        
+
 
         private void SetFirstAndPreviousRepetitionsForTags(List<ActionGroup> actionGroupList)
         {
             foreach (ActionGroup ag in actionGroupList)
                 ag.SetFirstAndPreviousRepetitionsFromList(actionGroupList);
         }
-        
+
         private void AddAutomaticExecutionRepetitions(List<ActionGroup> actionGroupList)
         {
             foreach (ActionGroupRepetition agr in AutomaticRepetitions)
@@ -308,7 +308,7 @@ namespace ACESim
                             decisionsProcessedWithinModules[(int)ag.ModuleNumber]++;
                             lastRepetitionTagProcessedForModule[(int)ag.ModuleNumber] = ag.RepetitionTagString();
                         }
-                        
+
                         DecisionsExecutionOrder.Add(dp.Decision); // note that the same Decision object can be included multiple times on this list
                         DecisionPointsExecutionOrder.Add(dp);
                         decisionNumber++;
@@ -354,6 +354,16 @@ namespace ACESim
                 TabbedText.WriteLine($"{dp.DecisionNumber} {dp.Decision}");
             }
             TabbedText.Tabs--;
+        }
+
+        public virtual void CalculateNondistributedDecisionMultipliers()
+        {
+            int multiplier = 1;
+            foreach (var decision in DecisionsExecutionOrder.Where(x => x.NondistributedDecision))
+            {
+                decision.NondistributedDecisionMultiplier = multiplier;
+                multiplier *= (decision.NumPossibleActions + 1); // plus one since the actions are one-based (a zero would indicate a skipped decision).
+            }
         }
 
         public virtual double[] GetUnevenChanceActionProbabilities(byte decisionByteCode, GameProgress gameProgress)

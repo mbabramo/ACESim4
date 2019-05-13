@@ -47,7 +47,7 @@ namespace ACESim
                         TabbedText.WriteLine($"Returning walk tree result {walkTreeValue}");
                     }
                     return walkTreeValue;
-                case GameStateTypeEnum.Tally:
+                case GameStateTypeEnum.InformationSet:
                     InformationSetNodeTally informationSet = (InformationSetNodeTally) gameStateForCurrentPlayer;
                     numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
                     double* sigma_regretMatchedActionProbabilities = stackalloc double[numPossibleActions];

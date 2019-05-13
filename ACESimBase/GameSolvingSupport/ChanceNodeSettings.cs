@@ -17,7 +17,8 @@ namespace ACESim
         public byte PlayerNum => Decision.PlayerNumber;
         public byte DecisionByteCode => Decision.DecisionByteCode;
         public bool CriticalNode => Decision.CriticalNode;
-        public abstract double GetActionProbability(int action);
+
+        public abstract double GetActionProbability(int action, int nondistributedActions = -1);
 
         public ChanceNodeSettings()
         {

@@ -72,6 +72,26 @@ namespace ACESim
         public bool UnevenChanceActions;
 
         /// <summary>
+        /// If this is a chance decision and this is true, then in optimization and best response calculation, we do not need to sample every value of this decision in walking through the tree. This is because the values are relevant only insofar as they affect the values of later chance decisions. Instead we just use a dummy value for this decision, and then we arrive at a distributor chance decisions, the unequal chance probabilities will be based on a distribution of what these decisions are, given the nondistributed decisions.
+        /// </summary>
+        public bool DistributedDecision;
+
+        /// <summary>
+        /// True if this is a decision whose values must be sampled individually; that is, the value of these variables is relevant to later player decisions.
+        /// </summary>
+        public bool NondistributedDecision; 
+
+        /// <summary>
+        /// True if this is a chance decision with uneven chance probabilities where those probabilities can be based on the distribution of earlier DistributedDecision for each permutation of the NondistributedDecisions.
+        /// </summary>
+        public bool DistributorChanceDecision;
+
+        /// <summary>
+        /// When passing forward nondistributed decision values, we combine them into a single value. The game definition sets a multiplier for each nondistributed decision to enable calculate of the nondistributed decision value. 
+        /// </summary>
+        public int NondistributedDecisionMultiplier;
+
+        /// <summary>
         /// Whether the decision is bipolar (i.e., there are only two possible actions).
         /// </summary>
         public bool Bipolar => NumPossibleActions == 2;
@@ -190,11 +210,6 @@ namespace ACESim
         /// Indicates that when unrolling, the subsequent set of commands will be identical regardless of the action value taken. In other words, this should be true if the structure of the game remains the same for any action, even though of course the optimal decisions will depend on the action taken.
         /// </summary>
         public bool Unroll_Parallelize_Identical;
-
-        /// <summary>
-        /// Indicates that the decision does not affect players' strategies and thus we do not need to consider all values when optimizing. This may be a value that is used to calculate other values that do matter or a value useful solely for reporting.  
-        /// </summary>
-        public bool HasNoEffectOnOptimalStrategy;
 
         public Decision()
         {

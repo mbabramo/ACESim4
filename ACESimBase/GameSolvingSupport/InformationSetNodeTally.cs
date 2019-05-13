@@ -193,7 +193,7 @@ namespace ACESim
 
         public GameStateTypeEnum GetGameStateType()
         {
-            return GameStateTypeEnum.Tally;
+            return GameStateTypeEnum.InformationSet;
         }
 
         #endregion

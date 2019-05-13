@@ -41,7 +41,7 @@ namespace ACESim
             {
                 if (gameStateType == GameStateTypeEnum.Chance)
                     return ModifiedGibsonProbe_ChanceNode(ref historyPoint, randomProducer, gameStateForCurrentPlayer);
-                if (gameStateType == GameStateTypeEnum.Tally)
+                if (gameStateType == GameStateTypeEnum.InformationSet)
                     return ModifiedGibsonProbe_DecisionNode(ref historyPoint, randomProducer, gameStateForCurrentPlayer);
                 throw new NotImplementedException();
             }

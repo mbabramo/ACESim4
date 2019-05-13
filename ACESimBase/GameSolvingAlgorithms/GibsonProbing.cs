@@ -42,7 +42,7 @@ namespace ACESim
                         TabbedText.WriteLine(
                             $"{sampledAction}: Sampled chance action {sampledAction} of {numPossibleActions} with probability {chanceNodeSettings.GetActionProbability(sampledAction)}");
                 }
-                else if (gameStateType == GameStateTypeEnum.Tally)
+                else if (gameStateType == GameStateTypeEnum.InformationSet)
                 {
                     InformationSetNodeTally informationSet = (InformationSetNodeTally)gameStateForCurrentPlayer;
                     byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
