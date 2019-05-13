@@ -21,7 +21,7 @@ namespace ACESim
         public const int MaxNumMainPlayers = 4; // this affects fixed-size stack-allocated buffers // TODO: Set to 2
         public const int MaxPossibleActions = 100; // same
 
-        bool TraceCFR = false;
+        bool TraceCFR = true; // DEBUG
 
         bool ShouldEstimateImprovementOverTime = false;
         const int NumRandomGamePlaysForEstimatingImprovement = 1000;

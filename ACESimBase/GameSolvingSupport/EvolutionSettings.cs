@@ -35,7 +35,7 @@ namespace ACESim
 
         public bool GenerateReportsByPlaying;
         public int NumRandomIterationsForSummaryTable = 10000;
-        public bool PrintGameTree = false;
+        public bool PrintGameTree = true;
         public bool PrintInformationSets = false;
         public List<int> RestrictToTheseInformationSets = null;
         public bool PrintNonChanceInformationSetsOnly = true;
@@ -53,6 +53,6 @@ namespace ACESim
         public const bool PruneOnOpponentStrategy = false;
         public const double PruneOnOpponentStrategyThreshold = 1E-8;
 
-        public bool UnrollAlgorithm = true;
+        public bool UnrollAlgorithm = false; // DEBUG
     }
 }
