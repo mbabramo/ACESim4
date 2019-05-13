@@ -17,16 +17,16 @@ namespace ACESim
         /// </summary>
         /// <param name="piChance">The probability that chance would play up to this decision</param>
         /// <param name="nondistributedActions">An integer distinctly representing all nondistributed decisions differentiating the probabilities at this chance node, given the distribution of distributed decisions.</param>
-        public void RegisterNondistributedActionsProbability(double piChance, int nondistributedActions)
+        /// <param name="probabilityIncrements">The unequal chance probabilities that would obtain given the distributed and nondistributed actions.</param>
+        public void RegisterNondistributedActionsProbability(double piChance, int nondistributedActions, double[] probabilityIncrements)
         {
             if (ProbabilitiesGivenNondistributedActions == null)
                 ProbabilitiesGivenNondistributedActions = new Dictionary<int, double[]>();
             if (!ProbabilitiesGivenNondistributedActions.ContainsKey(nondistributedActions))
                 ProbabilitiesGivenNondistributedActions[nondistributedActions] = new double[Decision.NumPossibleActions];
             double[] currentValues = ProbabilitiesGivenNondistributedActions[nondistributedActions];
-            double[] increment = GetActionProbabilities(piChance);
             for (int i = 0; i < currentValues.Length; i++)
-                currentValues[i] += increment[i];
+                currentValues[i] += probabilityIncrements[i] * piChance;
         }
 
         public void NormalizeNondistributedActionProbabilities()
