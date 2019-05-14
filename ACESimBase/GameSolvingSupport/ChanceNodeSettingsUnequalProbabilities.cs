@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -26,7 +27,9 @@ namespace ACESim
                 ProbabilitiesForNondistributedActions = new double[probabilityIncrements.Length];
             for (int i = 0; i < probabilityIncrements.Length; i++)
                 ProbabilitiesForNondistributedActions[i] += piChance * probabilityIncrements[i];
+            Debug.WriteLine($"DEBUG {ProbabilitiesForNondistributedActions[0]} {ProbabilitiesForNondistributedActions[1]} {DEBUG2++}");
         }
+        int DEBUG2 = 0;
 
         /// <summary>
         /// This is used to calculate the distributed uneven chance probabilities, given particular nondistributed actions.

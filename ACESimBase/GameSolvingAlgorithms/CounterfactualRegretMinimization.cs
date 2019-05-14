@@ -1097,7 +1097,7 @@ namespace ACESim
                 var probabilities = unequal.Probabilities; // this should be already set as the standard unequal chance probabilities (independent of the nondistributed decisions)
                 // Now we need to register this set of probabilities with the corresponding chance node where the distributed actions are 1. The idea is that when optimizing, we'll only have to use action=1 for the distributed decisions (we'll still have to visit all nondistributed decisions).
                 ChanceNodeSettingsUnequalProbabilities correspondingNode;
-                string key = distributedActionsString + "decision" + decision.DecisionByteCode;
+                string key = distributedActionsString + "decision" + decision.DecisionByteCode + (decision.NondistributedDecision ? "_afternondistributed:" + nondistributedActions.ToString() : "");
                 if (chanceNodeAggregatingSkipped.ContainsKey(key))
                     correspondingNode = chanceNodeAggregatingSkipped[key];
                 else
@@ -1105,9 +1105,15 @@ namespace ACESim
                     correspondingNode = unequal; // this must be the flattened one
                     chanceNodeAggregatingSkipped[key] = unequal;
                 }
-                Debug.WriteLine($"Registering {nondistributedActions} with probability {piChance}: probabilities to distribute: {String.Join(",", probabilities)}");
+                Debug.WriteLine($"Registering decision {decision.Name} with probability {piChance}: nondistributed actions {nondistributedActions} key {key} probabilities to distribute: {String.Join(",", probabilities)}");
                 if (decision.NondistributedDecision)
-                    correspondingNode.RegisterProbabilityForNondistributedAction(piChanceExcludingNondistributed, probabilities);
+                {
+                    if (key == "2:1;3:1;decision5_afternondistributed:1")
+                    {
+                        var DEBUG = 0;
+                    }
+                    correspondingNode.RegisterProbabilityForNondistributedAction(piChance /* DEBUG exclude nondistributed ? */ , probabilities);
+                }
                 else
                 { // distributor decision
                     correspondingNode.RegisterProbabilityIncrementsGivenNondistributedActions(piChance, nondistributedActions, probabilities);
