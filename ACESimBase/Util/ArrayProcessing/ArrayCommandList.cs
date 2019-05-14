@@ -40,7 +40,6 @@ namespace ACESimBase.Util.ArrayProcessing
         public double[] OrderedDestinations;
         public Dictionary<int, int> ReusableOrderedDestinationIndices;
         public bool Parallelize;
-        public bool InterlockWhereModifyingInitialSource => Parallelize && !UseOrderedDestinations;
 
         // If true, then when a command refers to an array index, 0 refers to FirstScratchIndex.
         public bool ScratchIndicesStartAt0 => UseOrderedSources && UseOrderedDestinations;
@@ -277,7 +276,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 {
                     if (firstReadFromStack[virtualStackIndex] == null && firstSetInStack[virtualStackIndex] == null)
                     {
-                        if (UnderlyingCommands[commandIndex].CommandType >= ArrayCommandType.MultiplyBy && UnderlyingCommands[commandIndex].CommandType <= ArrayCommandType.DecrementByInterlocked)
+                        if (UnderlyingCommands[commandIndex].CommandType >= ArrayCommandType.MultiplyBy && UnderlyingCommands[commandIndex].CommandType <= ArrayCommandType.DecrementBy)
                             firstReadFromStack[virtualStackIndex] = commandIndex;
                         else
                             firstSetInStack[virtualStackIndex] = commandIndex;
@@ -538,7 +537,7 @@ namespace ACESimBase.Util.ArrayProcessing
                     }
                 }
                 else
-                    AddCommand(new ArrayCommand(InterlockWhereModifyingInitialSource ? ArrayCommandType.IncrementByInterlocked : ArrayCommandType.IncrementBy, index, indexOfIncrement));
+                    AddCommand(new ArrayCommand(ArrayCommandType.IncrementBy, index, indexOfIncrement));
             }
             else
                 AddCommand(new ArrayCommand(ArrayCommandType.IncrementBy, index, indexOfIncrement));
@@ -856,15 +855,6 @@ bool condition = true;
                     case ArrayCommandType.DecrementBy:
                         b.AppendLine($"{itemTargetString} -= {itemSourceString};");
                         break;
-                    case ArrayCommandType.MultiplyByInterlocked:
-                        b.AppendLine($"{itemTargetString} *= {itemSourceString};");
-                        break;
-                    case ArrayCommandType.IncrementByInterlocked:
-                        b.AppendLine($"{itemTargetString} += {itemSourceString};");
-                        break;
-                    case ArrayCommandType.DecrementByInterlocked:
-                        b.AppendLine($"{itemTargetString} -= {itemSourceString};");
-                        break;
                     case ArrayCommandType.EqualsOtherArrayIndex:
                         b.AppendLine($"condition = {itemTargetString} == {itemSourceString};");
                         break;
@@ -1046,16 +1036,6 @@ else
                     case ArrayCommandType.DecrementBy:
                         virtualStack[command.Index] -= virtualStack[command.SourceIndex];
                         break;
-                    // DEBUG: We should be able to remove interlocked options, because we're always using the virtual stack, rather than a common destination.
-                    case ArrayCommandType.MultiplyByInterlocked:
-                        Interlocking.Multiply(ref virtualStack[command.Index], virtualStack[command.SourceIndex]);
-                        break;
-                    case ArrayCommandType.IncrementByInterlocked:
-                        Interlocking.Add(ref virtualStack[command.Index], virtualStack[command.SourceIndex]);
-                        break;
-                    case ArrayCommandType.DecrementByInterlocked:
-                        Interlocking.Subtract(ref virtualStack[command.Index], virtualStack[command.SourceIndex]);
-                        break;
                     case ArrayCommandType.EqualsOtherArrayIndex:
                         conditionMet = virtualStack[command.Index] == virtualStack[command.SourceIndex];
                         break;
@@ -1144,15 +1124,6 @@ else
                             break;
                         case ArrayCommandType.DecrementBy:
                             virtualStack[(*command).Index] -= virtualStack[(*command).SourceIndex];
-                            break;
-                        case ArrayCommandType.MultiplyByInterlocked:
-                            Interlocking.Multiply(ref virtualStack[(*command).Index], virtualStack[(*command).SourceIndex]);
-                            break;
-                        case ArrayCommandType.IncrementByInterlocked:
-                            Interlocking.Add(ref virtualStack[(*command).Index], virtualStack[(*command).SourceIndex]);
-                            break;
-                        case ArrayCommandType.DecrementByInterlocked:
-                            Interlocking.Subtract(ref virtualStack[(*command).Index], virtualStack[(*command).SourceIndex]);
                             break;
                         case ArrayCommandType.EqualsOtherArrayIndex:
                             conditionMet = virtualStack[(*command).Index] == virtualStack[(*command).SourceIndex];
