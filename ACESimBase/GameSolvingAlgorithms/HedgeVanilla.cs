@@ -89,7 +89,7 @@ namespace ACESim
                 Unroll_Commands.StartCommandChunk(false, null, "Optimizing player " + p.ToString());
                 if (TraceCFR)
                     TabbedText.WriteLine($"Unrolling for Player {p}");
-                Unroll_HedgeVanillaCFR(ref historyPoint, p, initialPiValuesCopied, initialPiValues2Copied, Unroll_IterationResultForPlayersIndices[p], true);
+                Unroll_HedgeVanillaCFR(ref historyPoint, p, initialPiValuesCopied, initialPiValues2Copied, Unroll_IterationResultForPlayersIndices[p], true, 0);
                 Unroll_Commands.EndCommandChunk();
             }
             Unroll_Commands.EndCommandChunk();
@@ -134,6 +134,7 @@ namespace ACESim
         private Dictionary<(int chanceNodeNumber, int nondistributedActions), int> Unroll_ChanceNodesIndices_NondistributedActions;
         private int[] Unroll_FinalUtilitiesNodesIndices;
         private int[] Unroll_InitialPiValuesIndices = null;
+        private int Unroll_One = -1;
         private int Unroll_AverageStrategyAdjustmentIndex = -1;
         private int Unroll_InitialArrayIndex = -1;
 
@@ -172,7 +173,7 @@ namespace ACESim
         private int Unroll_GetChanceNodeIndex_ProbabilityForAction(int chanceNodeNumber, int nondistributedActions, byte action)
         {
             var key = (chanceNodeNumber, nondistributedActions);
-            if (nondistributedActions == -1 || !Unroll_ChanceNodesIndices_NondistributedActions.ContainsKey(key))
+            if (nondistributedActions == -1 || Unroll_ChanceNodesIndices_NondistributedActions == null || !Unroll_ChanceNodesIndices_NondistributedActions.ContainsKey(key))
             {
                 return Unroll_GetChanceNodeIndex_ProbabilityForAction(chanceNodeNumber, action);
             }
@@ -232,6 +233,7 @@ namespace ACESim
                 for (int i = 0; i < 3; i++)
                     Unroll_IterationResultForPlayersIndices[p][i] = index++;
             }
+            Unroll_One = index++;
             Unroll_AverageStrategyAdjustmentIndex = index++;
             Unroll_InitialArrayIndex = index;
         }
@@ -293,6 +295,7 @@ namespace ACESim
                     array[Unroll_IterationResultForPlayersIndices[p][i]] = 0;
             }
             CalculateDiscountingAdjustments();
+            array[Unroll_One] = 1.0;
             array[Unroll_AverageStrategyAdjustmentIndex] = AverageStrategyAdjustment;
         }
 
@@ -317,7 +320,7 @@ namespace ACESim
 
         #region Unrolled algorithm
 
-        public unsafe void Unroll_HedgeVanillaCFR(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool isUltimateResult)
+        public unsafe void Unroll_HedgeVanillaCFR(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool isUltimateResult, int nondistributedActions)
         {
             Unroll_Commands.IncrementDepth(false);
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
@@ -334,14 +337,14 @@ namespace ACESim
             }
             else if (gameStateType == GameStateTypeEnum.Chance)
             {
-                Unroll_HedgeVanillaCFR_ChanceNode(ref historyPoint, playerBeingOptimized, piValues, avgStratPiValues, resultArray, isUltimateResult);
+                Unroll_HedgeVanillaCFR_ChanceNode(ref historyPoint, playerBeingOptimized, piValues, avgStratPiValues, resultArray, isUltimateResult, nondistributedActions);
             }
             else
-                Unroll_HedgeVanillaCFR_DecisionNode(ref historyPoint, playerBeingOptimized, piValues, avgStratPiValues, resultArray, isUltimateResult);
+                Unroll_HedgeVanillaCFR_DecisionNode(ref historyPoint, playerBeingOptimized, piValues, avgStratPiValues, resultArray, isUltimateResult, nondistributedActions);
             Unroll_Commands.DecrementDepth(false, playerBeingOptimized == NumNonChancePlayers - 1);
         }
 
-        private unsafe void Unroll_HedgeVanillaCFR_DecisionNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool isUltimateResult)
+        private unsafe void Unroll_HedgeVanillaCFR_DecisionNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool isUltimateResult, int nondistributedActions)
         {
             Unroll_Commands.IncrementDepth(false);
 
@@ -362,6 +365,9 @@ namespace ACESim
             int expectedValue = Unroll_Commands.NewZero();
             for (byte action = 1; action <= numPossibleActions; action++)
             {
+                int nondistributedActionsNext = nondistributedActions;
+                if (informationSet.Decision.NondistributedDecision)
+                    nondistributedActionsNext += action * informationSet.Decision.NondistributedDecisionMultiplier;
                 int probabilityOfAction = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_HedgeProbability(informationSet.InformationSetNumber, action), true);
                 if (EvolutionSettings.PruneOnOpponentStrategy)
                     throw new NotImplementedException();
@@ -381,7 +387,7 @@ namespace ACESim
                 }
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                 int[] innerResult = Unroll_Commands.NewZeroArray(3);
-                Unroll_HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, innerResult, false);
+                Unroll_HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, innerResult, false, nondistributedActionsNext);
                 Unroll_Commands.CopyToExisting(expectedValueOfAction[action - 1], innerResult[Unroll_Result_HedgeVsHedgeIndex]);
                 if (playerMakingDecision == playerBeingOptimized)
                 {
@@ -450,18 +456,21 @@ namespace ACESim
             Unroll_Commands.DecrementDepth(false);
         }
 
-        private unsafe void Unroll_HedgeVanillaCFR_ChanceNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool isUltimateResult)
+        private unsafe void Unroll_HedgeVanillaCFR_ChanceNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool isUltimateResult, int nondistributedActions)
         {
             Unroll_Commands.IncrementDepth(false);
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings)gameStateForCurrentPlayer;
             byte numPossibleActions = chanceNodeSettings.Decision.NumPossibleActions;
+            byte numPossibleActionsToExplore = numPossibleActions;
+            if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedDecision)
+                numPossibleActionsToExplore = 1;
             var historyPointCopy = historyPoint; // can't use historyPoint in anonymous method below. This is costly, so it might be worth optimizing if we use HedgeVanillaCFR much.
             int[] probabilityAdjustedInnerResult = Unroll_Commands.NewUninitializedArray(3); // must allocate this outside the parallel loop, because if we have commands writing to an array created in the parallel loop, the array indices will change
             if (chanceNodeSettings.Decision.Unroll_Parallelize)
                 Unroll_Commands.StartCommandChunk(true, null, chanceNodeSettings.Decision.Name);
             int? firstCommandToRepeat = null;
-            for (byte action = 1; action <= numPossibleActions; action++)
+            for (byte action = 1; action <= numPossibleActionsToExplore; action++)
             {
                 if (chanceNodeSettings.Decision.Unroll_Parallelize)
                 {
@@ -473,7 +482,7 @@ namespace ACESim
                 Unroll_Commands.ZeroExisting(probabilityAdjustedInnerResult);
                 Unroll_HedgeVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, 
                     playerBeingOptimized, piValues, avgStratPiValues,
-                        chanceNodeSettings, action, probabilityAdjustedInnerResult, false);
+                        chanceNodeSettings, action, probabilityAdjustedInnerResult, false, nondistributedActions);
                 Unroll_Commands.IncrementArrayBy(resultArray, isUltimateResult, probabilityAdjustedInnerResult);
                 
                 if (chanceNodeSettings.Decision.Unroll_Parallelize)
@@ -485,10 +494,16 @@ namespace ACESim
             Unroll_Commands.DecrementDepth(false);
         }
 
-        private unsafe void Unroll_HedgeVanillaCFR_ChanceNode_NextAction(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, ChanceNodeSettings chanceNodeSettings, byte action, int[] resultArray, bool isUltimateResult)
+        private unsafe void Unroll_HedgeVanillaCFR_ChanceNode_NextAction(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, ChanceNodeSettings chanceNodeSettings, byte action, int[] resultArray, bool isUltimateResult, int nondistributedActions)
         {
             Unroll_Commands.IncrementDepth(false);
-            int actionProbability = Unroll_Commands.CopyToNew(Unroll_GetChanceNodeIndex_ProbabilityForAction(chanceNodeSettings.ChanceNodeNumber, action), true);
+            int actionProbabilityIndex = Unroll_GetChanceNodeIndex_ProbabilityForAction(chanceNodeSettings.ChanceNodeNumber, nondistributedActions, action);
+            int actionProbability = Unroll_Commands.CopyToNew(actionProbabilityIndex, true);
+            int nondistributedActionsNext = nondistributedActions;
+            if (chanceNodeSettings.Decision.NondistributedDecision)
+                nondistributedActionsNext += action * chanceNodeSettings.Decision.NondistributedDecisionMultiplier;
+            if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedDecision)
+                actionProbability = Unroll_Commands.CopyToNew(Unroll_One, true);
             int[] nextPiValues = Unroll_Commands.NewUninitializedArray(NumNonChancePlayers);
             Unroll_GetNextPiValues(piValues, playerBeingOptimized, actionProbability, true, nextPiValues);
             int[] nextAvgStratPiValues = Unroll_Commands.NewUninitializedArray(NumNonChancePlayers);
@@ -503,7 +518,7 @@ namespace ACESim
                 TabbedText.Tabs++;
             }
             int[] innerResult = Unroll_Commands.NewZeroArray(3);
-            Unroll_HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, innerResult, false);
+            Unroll_HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, innerResult, false, nondistributedActionsNext);
             Unroll_Commands.CopyToExisting(resultArray, innerResult);
             if (TraceCFR)
             {
