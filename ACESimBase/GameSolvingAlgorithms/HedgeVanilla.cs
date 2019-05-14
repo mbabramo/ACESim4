@@ -131,6 +131,7 @@ namespace ACESim
         private HedgeVanillaUtilities[] Unroll_IterationResultForPlayers;
         private int[] Unroll_InformationSetsIndices;
         private int[] Unroll_ChanceNodesIndices;
+        private Dictionary<(int chanceNodeNumber, int nondistributedActions), int> Unroll_ChanceNodesIndices_NondistributedActions;
         private int[] Unroll_FinalUtilitiesNodesIndices;
         private int[] Unroll_InitialPiValuesIndices = null;
         private int Unroll_AverageStrategyAdjustmentIndex = -1;
@@ -167,6 +168,18 @@ namespace ACESim
 
         private int Unroll_GetChanceNodeIndex(int chanceNodeNumber) => Unroll_ChanceNodesIndices[chanceNodeNumber];
         private int Unroll_GetChanceNodeIndex_ProbabilityForAction(int chanceNodeNumber, byte action) => Unroll_ChanceNodesIndices[chanceNodeNumber] + (byte) (action - 1);
+
+        private int Unroll_GetChanceNodeIndex_ProbabilityForAction(int chanceNodeNumber, int nondistributedActions, byte action)
+        {
+            var key = (chanceNodeNumber, nondistributedActions);
+            if (nondistributedActions == -1 || !Unroll_ChanceNodesIndices_NondistributedActions.ContainsKey(key))
+            {
+                return Unroll_GetChanceNodeIndex_ProbabilityForAction(chanceNodeNumber, action);
+            }
+            else
+                return Unroll_ChanceNodesIndices_NondistributedActions[key] + (byte)(action - 1);
+        }
+
         private int[] Unroll_GetChanceNodeIndices(int chanceNodeNumber, byte numPossibleActions)
         {
             int firstIndex = Unroll_GetChanceNodeIndex(chanceNodeNumber);
@@ -178,11 +191,23 @@ namespace ACESim
         {
             int index = 1; // skip index 0 because we want to be able to identify references to index 0 as errors
             Unroll_ChanceNodesIndices = new int[ChanceNodes.Count];
+            if (EvolutionSettings.DistributeChanceDecisions)
+                Unroll_ChanceNodesIndices_NondistributedActions = new Dictionary<(int chanceNodeNumber, int nondistributedActions), int>();
             for (int i = 0; i < ChanceNodes.Count; i++)
             {
-                Unroll_ChanceNodesIndices[i] = index;
                 int numItems = ChanceNodes[i].Decision.NumPossibleActions;
+                Unroll_ChanceNodesIndices[i] = index;
                 index += numItems;
+                if (ChanceNodes[i] is ChanceNodeSettingsUnequalProbabilities unequal && unequal.ProbabilitiesForNondistributedActions != null)
+                {
+                    // This node has information relevant to distributed chance actions. We thus need to remember where the indices are for the chance node 
+                    var keys = unequal.ProbabilitiesForNondistributedActions.Keys.OrderBy(x => x).ToList();
+                    foreach (int nondistributedActions in keys)
+                    {
+                        Unroll_ChanceNodesIndices_NondistributedActions[(i /* == ChanceNodes[i].ChanceNodeNumber */, nondistributedActions)] = index;
+                        index += numItems;
+                    }
+                }
             }
             Unroll_FinalUtilitiesNodesIndices = new int[FinalUtilitiesNodes.Count];
             for (int i = 0; i < FinalUtilitiesNodes.Count; i++)
@@ -215,13 +240,25 @@ namespace ACESim
         {
             if (copyChanceAndFinalUtilitiesNodes)
             { // these only need to be copied once -- not every iteration
-                Parallel.For(0, ChanceNodes.Count, x =>
+                Parallel.For(0, ChanceNodes.Count, i =>
                 {
-                    var chanceNode = ChanceNodes[x];
+                    var chanceNode = ChanceNodes[i];
                     int initialIndex = Unroll_GetChanceNodeIndex(chanceNode.ChanceNodeNumber);
                     for (byte a = 1; a <= chanceNode.Decision.NumPossibleActions; a++)
                     {
                         array[initialIndex++] = chanceNode.GetActionProbability(a);
+                    }
+                    if (ChanceNodes[i] is ChanceNodeSettingsUnequalProbabilities unequal && unequal.ProbabilitiesForNondistributedActions != null)
+                    {
+                        // This node has information relevant to distributed chance actions. We thus need to remember where the indices are for the chance node 
+                        var keys = unequal.ProbabilitiesForNondistributedActions.Keys.OrderBy(x => x).ToList();
+                        foreach (int nondistributedActions in keys)
+                        {
+                            for (byte a = 1; a <= chanceNode.Decision.NumPossibleActions; a++)
+                            {
+                                array[initialIndex++] = chanceNode.GetActionProbability(a, nondistributedActions);
+                            }
+                        }
                     }
                 });
                 Parallel.For(0, FinalUtilitiesNodes.Count, x =>
