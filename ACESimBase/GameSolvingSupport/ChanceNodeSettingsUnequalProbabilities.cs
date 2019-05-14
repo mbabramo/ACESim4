@@ -57,7 +57,7 @@ namespace ACESim
 
         public override double GetActionProbability(int action, int nondistributedActions = -1)
         {
-            if (nondistributedActions != -1)
+            if (nondistributedActions != -1 && ProbabilitiesGivenNondistributedActions != null)
                 return ProbabilitiesGivenNondistributedActions[nondistributedActions][action - 1];
             return Probabilities[action - 1];
         }
