@@ -749,8 +749,11 @@ namespace ACESim
             ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings)gameStateForCurrentPlayer;
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
             var historyPointCopy = historyPoint; // can't use historyPoint in anonymous method below. This is costly, so it might be worth optimizing if we use HedgeVanillaCFR much.
+            byte numPossibleActionsToExplore = numPossibleActions;
+            if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedDecision)
+                numPossibleActionsToExplore = 1;
             Parallelizer.GoByte(EvolutionSettings.ParallelOptimization, EvolutionSettings.MaxParallelDepth, 1,
-                (byte)(numPossibleActions + 1),
+                (byte)(numPossibleActionsToExplore + 1),
                 action =>
                 {
                     var historyPointCopy2 = historyPointCopy; // Need to do this because we need a separate copy for each thread
@@ -769,6 +772,8 @@ namespace ACESim
             double* nextPiValues = stackalloc double[MaxNumMainPlayers];
             double* nextAvgStratPiValues = stackalloc double[MaxNumMainPlayers];
             double actionProbability = chanceNodeSettings.GetActionProbability(action, nondistributedActions);
+            if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedDecision)
+                actionProbability = 1.0;
             GetNextPiValues(piValues, playerBeingOptimized, actionProbability, true,
                 nextPiValues);
             GetNextPiValues(avgStratPiValues, playerBeingOptimized, actionProbability, true,

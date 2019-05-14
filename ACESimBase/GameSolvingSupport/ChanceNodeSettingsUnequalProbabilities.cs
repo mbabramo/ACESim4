@@ -10,7 +10,23 @@ namespace ACESim
     public class ChanceNodeSettingsUnequalProbabilities : ChanceNodeSettings
     {
         public double[] Probabilities;
+        // The remaining settings are for distributed chance actions.
+        public double[] ProbabilitiesForNondistributedActions;
         public Dictionary<int, double[]> ProbabilitiesGivenNondistributedActions;
+        bool DistributionComplete;
+
+        /// <summary>
+        /// This is used to calculate the uneven chance probabilities for a nondistributed action.
+        /// </summary>
+        /// <param name="piChance"></param>
+        /// <param name="probabilityIncrements"></param>
+        public void RegisterProbabilityForNondistributedAction(double piChance, double[] probabilityIncrements)
+        {
+            if (ProbabilitiesForNondistributedActions == null)
+                ProbabilitiesForNondistributedActions = new double[probabilityIncrements.Length];
+            for (int i = 0; i < probabilityIncrements.Length; i++)
+                ProbabilitiesForNondistributedActions[i] += piChance * probabilityIncrements[i];
+        }
 
         /// <summary>
         /// This is used to calculate the distributed uneven chance probabilities, given particular nondistributed actions.
@@ -18,7 +34,7 @@ namespace ACESim
         /// <param name="piChance">The probability that chance would play up to this decision</param>
         /// <param name="nondistributedActions">An integer distinctly representing all nondistributed decisions differentiating the probabilities at this chance node, given the distribution of distributed decisions.</param>
         /// <param name="probabilityIncrements">The unequal chance probabilities that would obtain given the distributed and nondistributed actions.</param>
-        public void RegisterNondistributedActionsProbability(double piChance, int nondistributedActions, double[] probabilityIncrements)
+        public void RegisterProbabilityIncrementsGivenNondistributedActions(double piChance, int nondistributedActions, double[] probabilityIncrements)
         {
             if (ProbabilitiesGivenNondistributedActions == null)
                 ProbabilitiesGivenNondistributedActions = new Dictionary<int, double[]>();
@@ -31,6 +47,16 @@ namespace ACESim
 
         public void NormalizeNondistributedActionProbabilities()
         {
+            if (ProbabilitiesForNondistributedActions != null)
+            {
+                double[] unnormalized = ProbabilitiesForNondistributedActions;
+                double sum = unnormalized.Sum();
+                if (sum > 0)
+                {
+                    double[] normalized = unnormalized.Select(x => x / sum).ToArray();
+                    ProbabilitiesForNondistributedActions = normalized;
+                }
+            }
             if (ProbabilitiesGivenNondistributedActions != null)
             {
                 var keys = ProbabilitiesGivenNondistributedActions.Keys.ToList();
@@ -45,6 +71,7 @@ namespace ACESim
                     }
                 }
             }
+            DistributionComplete = true;
         }
 
         public double[] GetActionProbabilities(double weight = 1.0)
@@ -57,8 +84,13 @@ namespace ACESim
 
         public override double GetActionProbability(int action, int nondistributedActions = -1)
         {
-            if (nondistributedActions != -1 && ProbabilitiesGivenNondistributedActions != null)
-                return ProbabilitiesGivenNondistributedActions[nondistributedActions][action - 1];
+            if (DistributionComplete)
+            {
+                if (ProbabilitiesForNondistributedActions != null)
+                    return ProbabilitiesForNondistributedActions[action - 1];
+                if (ProbabilitiesGivenNondistributedActions != null)
+                    return ProbabilitiesGivenNondistributedActions[nondistributedActions][action - 1];
+            }
             return Probabilities[action - 1];
         }
 
