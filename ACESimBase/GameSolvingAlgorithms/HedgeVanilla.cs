@@ -757,10 +757,7 @@ namespace ACESim
                 action =>
                 {
                     var historyPointCopy2 = historyPointCopy; // Need to do this because we need a separate copy for each thread
-                    int nondistributedActionsNext = nondistributedActions;
-                    if (chanceNodeSettings.Decision.NondistributedDecision)
-                        nondistributedActionsNext += action * chanceNodeSettings.Decision.NondistributedDecisionMultiplier;
-                    HedgeVanillaUtilities probabilityAdjustedInnerResult =  HedgeVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues, avgStratPiValues, chanceNodeSettings, action, nondistributedActionsNext);
+                    HedgeVanillaUtilities probabilityAdjustedInnerResult =  HedgeVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues, avgStratPiValues, chanceNodeSettings, action, nondistributedActions);
                     result.IncrementBasedOnProbabilityAdjusted(ref probabilityAdjustedInnerResult);
                 });
 
@@ -772,6 +769,9 @@ namespace ACESim
             double* nextPiValues = stackalloc double[MaxNumMainPlayers];
             double* nextAvgStratPiValues = stackalloc double[MaxNumMainPlayers];
             double actionProbability = chanceNodeSettings.GetActionProbability(action, nondistributedActions);
+            int nondistributedActionsNext = nondistributedActions;
+            if (chanceNodeSettings.Decision.NondistributedDecision)
+                nondistributedActionsNext += action * chanceNodeSettings.Decision.NondistributedDecisionMultiplier;
             if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedDecision)
                 actionProbability = 1.0;
             GetNextPiValues(piValues, playerBeingOptimized, actionProbability, true,
@@ -786,7 +786,7 @@ namespace ACESim
                 TabbedText.Tabs++;
             }
             HedgeVanillaUtilities result =
-                HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, nondistributedActions);
+                HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, nondistributedActionsNext);
             if (TraceCFR)
             {
                 TabbedText.Tabs--;

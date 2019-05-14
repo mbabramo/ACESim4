@@ -12,8 +12,7 @@ namespace ACESim
     {
         public double[] Probabilities;
         // The remaining settings are for distributed chance actions.
-        public double[] ProbabilitiesForNondistributedActions;
-        public Dictionary<int, double[]> ProbabilitiesGivenNondistributedActions;
+        public Dictionary<int, double[]> ProbabilitiesForNondistributedActions;
         bool DistributionComplete;
 
         /// <summary>
@@ -21,29 +20,13 @@ namespace ACESim
         /// </summary>
         /// <param name="piChance"></param>
         /// <param name="probabilityIncrements"></param>
-        public void RegisterProbabilityForNondistributedAction(double piChance, double[] probabilityIncrements)
+        public void RegisterProbabilityForNondistributedAction(double piChance, int nondistributedActions, double[] probabilityIncrements)
         {
             if (ProbabilitiesForNondistributedActions == null)
-                ProbabilitiesForNondistributedActions = new double[probabilityIncrements.Length];
-            for (int i = 0; i < probabilityIncrements.Length; i++)
-                ProbabilitiesForNondistributedActions[i] += piChance * probabilityIncrements[i];
-            Debug.WriteLine($"DEBUG {ProbabilitiesForNondistributedActions[0]} {ProbabilitiesForNondistributedActions[1]} {DEBUG2++}");
-        }
-        int DEBUG2 = 0;
-
-        /// <summary>
-        /// This is used to calculate the distributed uneven chance probabilities, given particular nondistributed actions.
-        /// </summary>
-        /// <param name="piChance">The probability that chance would play up to this decision</param>
-        /// <param name="nondistributedActions">An integer distinctly representing all nondistributed decisions differentiating the probabilities at this chance node, given the distribution of distributed decisions.</param>
-        /// <param name="probabilityIncrements">The unequal chance probabilities that would obtain given the distributed and nondistributed actions.</param>
-        public void RegisterProbabilityIncrementsGivenNondistributedActions(double piChance, int nondistributedActions, double[] probabilityIncrements)
-        {
-            if (ProbabilitiesGivenNondistributedActions == null)
-                ProbabilitiesGivenNondistributedActions = new Dictionary<int, double[]>();
-            if (!ProbabilitiesGivenNondistributedActions.ContainsKey(nondistributedActions))
-                ProbabilitiesGivenNondistributedActions[nondistributedActions] = new double[Decision.NumPossibleActions];
-            double[] currentValues = ProbabilitiesGivenNondistributedActions[nondistributedActions];
+                ProbabilitiesForNondistributedActions = new Dictionary<int, double[]>();
+            if (!ProbabilitiesForNondistributedActions.ContainsKey(nondistributedActions))
+                ProbabilitiesForNondistributedActions[nondistributedActions] = new double[Decision.NumPossibleActions];
+            double[] currentValues = ProbabilitiesForNondistributedActions[nondistributedActions];
             for (int i = 0; i < currentValues.Length; i++)
                 currentValues[i] += probabilityIncrements[i] * piChance;
         }
@@ -52,25 +35,15 @@ namespace ACESim
         {
             if (ProbabilitiesForNondistributedActions != null)
             {
-                double[] unnormalized = ProbabilitiesForNondistributedActions;
-                double sum = unnormalized.Sum();
-                if (sum > 0)
-                {
-                    double[] normalized = unnormalized.Select(x => x / sum).ToArray();
-                    ProbabilitiesForNondistributedActions = normalized;
-                }
-            }
-            if (ProbabilitiesGivenNondistributedActions != null)
-            {
-                var keys = ProbabilitiesGivenNondistributedActions.Keys.ToList();
+                var keys = ProbabilitiesForNondistributedActions.Keys.ToList();
                 foreach (int nondistributedActions in keys)
                 {
-                    double[] unnormalized = ProbabilitiesGivenNondistributedActions[nondistributedActions];
+                    double[] unnormalized = ProbabilitiesForNondistributedActions[nondistributedActions];
                     double sum = unnormalized.Sum();
                     if (sum > 0)
                     {
                         double[] normalized = unnormalized.Select(x => x / sum).ToArray();
-                        ProbabilitiesGivenNondistributedActions[nondistributedActions] = normalized;
+                        ProbabilitiesForNondistributedActions[nondistributedActions] = normalized;
                     }
                 }
             }
@@ -87,13 +60,8 @@ namespace ACESim
 
         public override double GetActionProbability(int action, int nondistributedActions = -1)
         {
-            if (DistributionComplete)
-            {
-                if (ProbabilitiesForNondistributedActions != null)
-                    return ProbabilitiesForNondistributedActions[action - 1];
-                if (ProbabilitiesGivenNondistributedActions != null)
-                    return ProbabilitiesGivenNondistributedActions[nondistributedActions][action - 1];
-            }
+            if (nondistributedActions != -1 && DistributionComplete && ProbabilitiesForNondistributedActions != null)
+                return ProbabilitiesForNondistributedActions[nondistributedActions][action - 1];
             return Probabilities[action - 1];
         }
 

@@ -1037,7 +1037,7 @@ namespace ACESim
         // The principal challenge is to determine the probabilities that must be played in the distributor chance decision. The approach here is to initialize by walking once through the entire tree (skipping some intermediate non-chance decisions once we have gotten to the chance decisions). We keep track of the probability that chance plays to each chance point. When we arrive at a nondistributed chance decision (such as the estimates), we aggregate a measure that will be unique for every tuple of such estimates. When we arrive at a distributor chance decision (such as the one that determines ultimate payouts), we find the corresponding distributor chance decision node with action = 1 for the nondistributed chance decisions. At that node, we keep a table linking the nondistributed chance decisions aggregate measure to probabilities. At the corresponding node, we increment the probabilities that would obtain on the nondistributed chance decision reached multiplied by the probability of playing to that point. 
         // An additional challenge is to determine the probability of each nondistributed action. We use essentially the same approach, incrementing these probabilities in the first chance settings node corresponding to the nondistributed action. 
 
-        // DEBUG TODO 3. then we need to actually change the optimization so that we distribute during HedgeVanilla -- essentially if we have the probabilities dictionary in the unequal chance node settings, then we'll use it. 4. make sure that we get the same results (include a setting to disable distributing chance decisions).
+        // DEBUG TODO 3. then we need to actually change the optimization so that we distribute during HedgeVanilla -- essentially if we have the probabilities dictionary in the unequal chance node settings, then we'll use it. 4. make sure that we get the same results (include a setting to disable distributing chance decisions). 5. delete pi-excluding...
 
         public void DistributeChanceDecisions()
         {
@@ -1045,25 +1045,25 @@ namespace ACESim
                 return; // nothing to do
             var chanceNodeAggregatingSkipped = new Dictionary<string, ChanceNodeSettingsUnequalProbabilities>();
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
-            DistributeChanceDecisions_WalkNode(ref historyPoint, 1.0 /* 100% probability of playing to beginning */, 1.0 /* same */, 0 /* no nondistributed actions yet */, "", chanceNodeAggregatingSkipped);
+            DistributeChanceDecisions_WalkNode(ref historyPoint, 1.0 /* 100% probability of playing to beginning */, 0 /* no nondistributed actions yet */, "", chanceNodeAggregatingSkipped);
             foreach (var chanceNode in Navigation.ChanceNodes)
                 if (chanceNode is ChanceNodeSettingsUnequalProbabilities unequal)
                     unequal.NormalizeNondistributedActionProbabilities();
         }
 
-        private unsafe bool DistributeChanceDecisions_WalkNode(ref HistoryPoint historyPoint, double piChance, double piChanceExcludingNondistributed, int nondistributedActions, string distributedActionsString, Dictionary<string, ChanceNodeSettingsUnequalProbabilities> chanceNodeAggregatingSkipped)
+        private unsafe bool DistributeChanceDecisions_WalkNode(ref HistoryPoint historyPoint, double piChance, int nondistributedActions, string distributedActionsString, Dictionary<string, ChanceNodeSettingsUnequalProbabilities> chanceNodeAggregatingSkipped)
         {
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             GameStateTypeEnum gameStateTypeEnum = gameStateForCurrentPlayer.GetGameStateType();
             if (gameStateTypeEnum == GameStateTypeEnum.Chance)
-                return DistributeChanceDecisions_ChanceNode(ref historyPoint, piChance, piChanceExcludingNondistributed, nondistributedActions, distributedActionsString, chanceNodeAggregatingSkipped);
+                return DistributeChanceDecisions_ChanceNode(ref historyPoint, piChance, nondistributedActions, distributedActionsString, chanceNodeAggregatingSkipped);
             else if (gameStateTypeEnum == GameStateTypeEnum.InformationSet)
-                return DistributeChanceDecisions_DecisionNode(ref historyPoint, piChance, piChanceExcludingNondistributed, nondistributedActions, distributedActionsString, chanceNodeAggregatingSkipped);
+                return DistributeChanceDecisions_DecisionNode(ref historyPoint, piChance, nondistributedActions, distributedActionsString, chanceNodeAggregatingSkipped);
             else
                 return false; // don't stop non-chance decisions; we need to backtrack and then move forwards to get to a chance decision
         }
 
-        private unsafe bool DistributeChanceDecisions_DecisionNode(ref HistoryPoint historyPoint, double piChance, double piChanceExcludingNondistributed, int nondistributedActions, string distributedActionsString, Dictionary<string, ChanceNodeSettingsUnequalProbabilities> chanceNodeAggregatingSkipped)
+        private unsafe bool DistributeChanceDecisions_DecisionNode(ref HistoryPoint historyPoint, double piChance, int nondistributedActions, string distributedActionsString, Dictionary<string, ChanceNodeSettingsUnequalProbabilities> chanceNodeAggregatingSkipped)
         {
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             var informationSet = (InformationSetNodeTally)gameStateForCurrentPlayer;
@@ -1075,14 +1075,14 @@ namespace ACESim
                 if (informationSet.Decision.NondistributedDecision)
                     nondistributedActionsNext += action * informationSet.Decision.NondistributedDecisionMultiplier;
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
-                bool stopNonChanceDecisions = DistributeChanceDecisions_WalkNode(ref nextHistoryPoint, piChance, piChanceExcludingNondistributed, nondistributedActionsNext, distributedActionsString, chanceNodeAggregatingSkipped);
+                bool stopNonChanceDecisions = DistributeChanceDecisions_WalkNode(ref nextHistoryPoint, piChance, nondistributedActionsNext, distributedActionsString, chanceNodeAggregatingSkipped);
                 if (stopNonChanceDecisions && !informationSet.Decision.NondistributedDecision) // once we have returned from a distributor decision and are working backwards, we just need to get back to the previous chance decision, so we don't need to walk every possible player action in the tree
                     return stopNonChanceDecisions;
             }
             return false; // don't stop non-chance decisions
         }
 
-        private unsafe bool DistributeChanceDecisions_ChanceNode(ref HistoryPoint historyPoint, double piChance, double piChanceExcludingNondistributed, int nondistributedActions, string distributedActionsString, Dictionary<string, ChanceNodeSettingsUnequalProbabilities> chanceNodeAggregatingSkipped)
+        private unsafe bool DistributeChanceDecisions_ChanceNode(ref HistoryPoint historyPoint, double piChance, int nondistributedActions, string distributedActionsString, Dictionary<string, ChanceNodeSettingsUnequalProbabilities> chanceNodeAggregatingSkipped)
         {
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings)gameStateForCurrentPlayer;
@@ -1106,22 +1106,13 @@ namespace ACESim
                     chanceNodeAggregatingSkipped[key] = unequal;
                 }
                 Debug.WriteLine($"Registering decision {decision.Name} with probability {piChance}: nondistributed actions {nondistributedActions} key {key} probabilities to distribute: {String.Join(",", probabilities)}");
-                if (decision.NondistributedDecision)
+                correspondingNode.RegisterProbabilityForNondistributedAction(piChance, nondistributedActions, probabilities);
+                if (decision.DistributorChanceDecision)
                 {
-                    if (key == "2:1;3:1;decision5_afternondistributed:1")
-                    {
-                        var DEBUG = 0;
-                    }
-                    correspondingNode.RegisterProbabilityForNondistributedAction(piChance /* DEBUG exclude nondistributed ? */ , probabilities);
-                }
-                else
-                { // distributor decision
-                    correspondingNode.RegisterProbabilityIncrementsGivenNondistributedActions(piChance, nondistributedActions, probabilities);
-
                     for (byte action = 1; action <= numPossibleActions; action++)
                     {
                         HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
-                        DistributeChanceDecisions_WalkNode(ref nextHistoryPoint, piChance /* because one distributor decision will not depend on another, we won't adjust piChance */, piChanceExcludingNondistributed /* distributor decision isn't nondistributed */, nondistributedActions, distributedActionsString, chanceNodeAggregatingSkipped);
+                        DistributeChanceDecisions_WalkNode(ref nextHistoryPoint, piChance /* because one distributor decision will not depend on another, we won't adjust piChance */, nondistributedActions, distributedActionsString, chanceNodeAggregatingSkipped);
                     };
 
                     return true; // we're going back up the tree after a distributor decision, so we don'tneed to walk through all other action decisions
@@ -1141,7 +1132,7 @@ namespace ACESim
                 if (chanceNodeSettings.Decision.Name.Contains("Signal") || chanceNodeSettings.Decision.Name.Contains("LitigationQuality") || chanceNodeSettings.Decision.Name.Contains("PrePrimary"))
                     Debug.WriteLine($"{chanceNodeSettings.Decision.Name}: action: {action} probability: {actionProbability} cumulative probability {piChanceNext}");
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
-                bool stopNonChanceDecisions = DistributeChanceDecisions_WalkNode(ref nextHistoryPoint, piChanceNext, piChanceExcludingNondistributed, nondistributedActionsNext, chanceNodeSettings.Decision.DistributedDecision ? distributedActionsString + chanceNodeSettings.DecisionByteCode + ":1;" : distributedActionsString, chanceNodeAggregatingSkipped);
+                bool stopNonChanceDecisions = DistributeChanceDecisions_WalkNode(ref nextHistoryPoint, piChanceNext, nondistributedActionsNext, chanceNodeSettings.Decision.DistributedDecision ? distributedActionsString + chanceNodeSettings.DecisionByteCode + ":1;" : distributedActionsString, chanceNodeAggregatingSkipped);
                 if (stopNonChanceDecisions && chanceNodeSettings.Decision.NumPossibleActions == 1)
                     return true; // this is just a dummy chance decision, so we need to backtrack to a real chance decision
             };
