@@ -9,9 +9,6 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
-
-    // DEBUG TODO: Make generalized best response work with distributed chance actions
-
     // DEBUG TODO: Fix the reporting -- after generating reports every n iterations including best response, the within-iteration best response values are no longer valid. Perhaps relatedly, the best response values for player 0 are always 0 and those for player 1 are wrong (maybe that represents the improvement, but it is wrong too -- so maybe we should just delete it).
 
     // DEBUG TODO 1. add pruning to unrolled.
@@ -743,6 +740,10 @@ namespace ACESim
                 expectedValueOfAction[action - 1] = innerResult.HedgeVsHedge;
                 if (playerMakingDecision == playerBeingOptimized)
                 {
+                    if (playerBeingOptimized == 0)
+                    {
+                        var DEBUG = 0;
+                    }
                     if (informationSet.LastBestResponseAction == action)
                     {
                         // Because this is the best response action, the best response utility that we get should be propagated back directly. Meanwhile, we want to keep track of all the times that we traverse through this information set, weighing the best response results (which may vary, since our terminal nodes may vary) by the inversePi.

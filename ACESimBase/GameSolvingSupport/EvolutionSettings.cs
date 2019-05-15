@@ -55,6 +55,6 @@ namespace ACESim
         public const double PruneOnOpponentStrategyThreshold = 1E-8;
 
         public bool DistributeChanceDecisions = false; // DEBUG -- while fixing reporting results
-        public bool UnrollAlgorithm = true; 
+        public bool UnrollAlgorithm = false; // DEBUG
     }
 }

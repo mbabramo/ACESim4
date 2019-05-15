@@ -26,7 +26,7 @@ namespace ACESim
         private const int VanillaIterations = 1_000;
         private const int VanillaReportEveryNIterations = 1_000;
         private const int VanillaBestResponseEveryMIterations = 1_000;
-        private const int MiniReportEveryPIterations = 1_000;
+        private const int MiniReportEveryPIterations = 1; // DEBUG
         private const int SummaryTableIterations = 10_000;
 
         private const bool UseRegretAndStrategyDiscounting = true;
