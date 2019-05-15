@@ -15,7 +15,7 @@ namespace ACESim
             /// </summary>
             public double AverageStrategyVsAverageStrategy;
             /// <summary>
-            /// The utility from the player being optimized playing an approximate best response to the other player's use of average strategies. This can be compared to average strategy performance against average strategies; this will be higher, but not much in Epsilon equilibrium. In addition, this can be used in CFR-BR for the player not being optimized, when we have skipped iterations of the player being optimized.
+            /// The utility from the player being optimized playing an approximate best response to the other player's use of average strategies. This can be compared to average strategy performance against average strategies; this will be higher, but not much in Epsilon equilibrium.
             /// </summary>
             public double BestResponseToAverageStrategy;
 

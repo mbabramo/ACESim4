@@ -27,7 +27,7 @@ namespace ACESim
 
                 Algorithm = GameApproximationAlgorithm.HedgeVanilla,
                 
-                UseRandomPathsForBestResponse = false,
+                UseRandomPathsForReporting = false,
                 ReportEveryNIterations = 100,
                 NumRandomIterationsForSummaryTable = 1_000,
                 GenerateReportsByPlaying = true,

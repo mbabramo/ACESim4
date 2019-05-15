@@ -43,7 +43,7 @@ namespace ACESim
                 Algorithm = Algorithm,
 
                 ReportEveryNIterations = ReportInterval,
-                UseRandomPathsForBestResponse = UseRandomPathsForBestResponse,
+                UseRandomPathsForReporting = UseRandomPathsForBestResponse,
                 NumRandomIterationsForSummaryTable = NumRandomGamePaths,
                 GenerateReportsByPlaying = true,
                 PrintInformationSets = true,

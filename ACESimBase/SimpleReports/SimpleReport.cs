@@ -135,7 +135,7 @@ namespace ACESim
                             firstColumnValues.Add(rowFilter.Name, value);
                         else
                             value = rowFilter.Manipulate(firstColumnValues, value);
-                        string valueString = value == null ? "" : value.ToSignificantFigures();
+                        string valueString = value == null ? "" : value.ToSignificantFigures(6); // DEBUG -- go back to usual 4
                         Append(standardReport, csvReport, true, valueString, colItem.Width, colItem == lastColumn);
                         i++;
                         c++;

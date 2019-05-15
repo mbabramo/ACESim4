@@ -26,7 +26,7 @@ namespace ACESim
         private const int VanillaIterations = 5_000;
         private const int VanillaReportEveryNIterations = 1_000;
         private const int VanillaBestResponseEveryMIterations = 1_000;
-        private const int SummaryTableIterations = 1_000;
+        private const int SummaryTableIterations = 100_000;
 
         private const bool UseRegretAndStrategyDiscounting = true;
 
@@ -38,7 +38,7 @@ namespace ACESim
         public static string OverrideDateTimeString = null; // "2017-10-11 10:18"; // use this if termination finished unexpectedly
         public static string MasterReportNameForDistributedProcessing = "AMONLY";
         private static bool ParallelizeOptionSets = false;
-        private static bool ParallelizeIndividualExecutions = false; // only affects SingleGameMode or if no local distributed processing
+        private static bool ParallelizeIndividualExecutions = true; // only affects SingleGameMode or if no local distributed processing
 
         private static EvolutionSettings GetEvolutionSettings()
         {
@@ -52,7 +52,7 @@ namespace ACESim
 
                 Algorithm = Algorithm,
 
-                UseRandomPathsForBestResponse = false,
+                UseRandomPathsForReporting = false, // DEBUG
                 ReportEveryNIterations = Algorithm == GameApproximationAlgorithm.ExploratoryProbing ? 500_000 : VanillaReportEveryNIterations,
                 BestResponseEveryMIterations = Algorithm == GameApproximationAlgorithm.ExploratoryProbing ? EvolutionSettings.EffectivelyNever : VanillaBestResponseEveryMIterations, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
                 NumRandomIterationsForSummaryTable = SummaryTableIterations,
@@ -60,7 +60,7 @@ namespace ACESim
                 PrintInformationSets = false,
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
                 PrintGameTree = false,
-                AlwaysUseAverageStrategyInReporting = true,
+                AlwaysUseAverageStrategyInReporting = true, 
 
                 TotalProbingCFRIterations = ProbingIterations,
                 EpsilonForMainPlayer = 0.5,

@@ -552,10 +552,11 @@ namespace ACESim
                 if (EvolutionSettings.AlwaysUseAverageStrategyInReporting)
                     ActionStrategy = ActionStrategies.AverageStrategy;
                 bool doBestResponse = (EvolutionSettings.BestResponseEveryMIterations != null && iteration % EvolutionSettings.BestResponseEveryMIterations == 0 && EvolutionSettings.BestResponseEveryMIterations != EvolutionSettings.EffectivelyNever && iteration != 0);
-                bool useRandomPaths = 
-                    (!doBestResponse || EvolutionSettings.UseRandomPathsForBestResponse) && 
-                        (SkipEveryPermutationInitialization || 
-                        NumInitializedGamePaths > EvolutionSettings.NumRandomIterationsForSummaryTable);
+                bool useRandomPaths =
+                    EvolutionSettings.UseRandomPathsForReporting
+                    //&& (SkipEveryPermutationInitialization ||
+                    //   NumInitializedGamePaths > EvolutionSettings.NumRandomIterationsForSummaryTable)
+                        ;
                 Console.WriteLine("");
                 Console.WriteLine(prefaceFn());
                 if (EvolutionSettings.Algorithm == GameApproximationAlgorithm.AverageStrategySampling)
