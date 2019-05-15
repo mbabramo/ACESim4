@@ -26,7 +26,7 @@ namespace ACESim
         private const int VanillaIterations = 10_000;
         private const int VanillaReportEveryNIterations = 1_000;
         private const int VanillaBestResponseEveryMIterations = 1_000;
-        private const int MiniReportEveryPIterations = 1; // DEBUG
+        private const int MiniReportEveryPIterations = 100; // DEBUG
         private const int SummaryTableIterations = 10_000;
 
         private const bool UseRegretAndStrategyDiscounting = true;
@@ -39,7 +39,7 @@ namespace ACESim
         public static string OverrideDateTimeString = null; // "2017-10-11 10:18"; // use this if termination finished unexpectedly
         public static string MasterReportNameForDistributedProcessing = "AMONLY";
         private static bool ParallelizeOptionSets = false;
-        private static bool ParallelizeIndividualExecutions = true; // only affects SingleGameMode or if no local distributed processing
+        private static bool ParallelizeIndividualExecutions = false; // DEBUG // only affects SingleGameMode or if no local distributed processing
 
         private static EvolutionSettings GetEvolutionSettings()
         {

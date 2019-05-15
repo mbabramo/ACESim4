@@ -275,6 +275,10 @@ namespace ACESim
             Parallel.For(0, InformationSets.Count, x =>
             {
                 var infoSet = InformationSets[x];
+                if (infoSet.InformationSetNumber == 4)
+                {
+                    var DEBUG = 0;
+                }
                 int initialIndex = Unroll_InformationSetsIndices[infoSet.InformationSetNumber];
                 for (byte action = 1; action <= infoSet.NumPossibleActions; action++)
                 {
@@ -311,6 +315,13 @@ namespace ACESim
                     infoSet.NormalizedHedgeIncrementLastRegret(action, array[index]);
                     index = Unroll_GetInformationSetIndex_CumulativeStrategy(infoSet.InformationSetNumber, action);
                     infoSet.IncrementCumulativeStrategy(action, array[index]);
+                    if (infoSet.InformationSetNumber == 4)
+                    {
+                        var DEBUG = 0;
+                    }
+                    int indexNumerator = Unroll_GetInformationSetIndex_BestResponseNumerator(infoSet.InformationSetNumber, action);
+                    int indexDenominator = Unroll_GetInformationSetIndex_BestResponseDenominator(infoSet.InformationSetNumber, action);
+                    infoSet.SetBestResponse_NumeratorAndDenominator(action, array[indexNumerator], array[indexDenominator]);
                 }
             });
         }
@@ -393,12 +404,15 @@ namespace ACESim
                     int lastBestResponseActionIndex = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_LastBestResponse(informationSet.InformationSetNumber, (byte) informationSet.NumPossibleActions), true);
                     Unroll_Commands.InsertEqualsValueCommand(lastBestResponseActionIndex, (int)action);
                     Unroll_Commands.InsertIfCommand();
-                        //int bestResponseNumerator = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_BestResponseNumerator(informationSet.InformationSetNumber, action), true);
-                        //int bestResponseDenominator = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_BestResponseNumerator(informationSet.InformationSetNumber, action), true);
+                        int bestResponseNumerator = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_BestResponseNumerator(informationSet.InformationSetNumber, action), true);
+                        int bestResponseDenominator = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_BestResponseDenominator(informationSet.InformationSetNumber, action), true);
+                        if (informationSet.InformationSetNumber == 4)
+                        {
+                            var DEBUG = 0;
+                        }
                         //Unroll_Commands.IncrementByProduct(bestResponseNumerator, true, inversePiAvgStrat, innerResult[Unroll_Result_BestResponseIndex]);
                         //Unroll_Commands.Increment(bestResponseDenominator, true, inversePiAvgStrat);
-                        //Unroll_Commands.CopyToExisting(resultArray[Unroll_Result_BestResponseIndex], innerResult[Unroll_Result_BestResponseIndex]);
-                    // end of loop
+                        Unroll_Commands.CopyToExisting(resultArray[Unroll_Result_BestResponseIndex], innerResult[Unroll_Result_BestResponseIndex]);
                     Unroll_Commands.InsertEndIfCommand();
                     Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_HedgeVsHedgeIndex], false, probabilityOfAction, innerResult[Unroll_Result_HedgeVsHedgeIndex]);
                     Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_AverageStrategyIndex], false, probabilityOfActionAvgStrat, innerResult[Unroll_Result_AverageStrategyIndex]);

@@ -212,6 +212,12 @@ namespace ACESim
             NodeInformation[bestResponseDenominatorDimension, action - 1] += piInverse;
         }
 
+        public void SetBestResponse_NumeratorAndDenominator(int action, double numerator, double denominator)
+        {
+            NodeInformation[bestResponseNumeratorDimension, action - 1] = numerator;
+            NodeInformation[bestResponseDenominatorDimension, action - 1] = denominator;
+        }
+
         #endregion
 
         #region Cumulative regrets and backup regrets
