@@ -23,10 +23,11 @@ namespace ACESim
         private const GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.HedgeVanilla;
 
         private const int ProbingIterations = 20_000_000;
-        private const int VanillaIterations = 5_000;
+        private const int VanillaIterations = 1_000;
         private const int VanillaReportEveryNIterations = 1_000;
         private const int VanillaBestResponseEveryMIterations = 1_000;
-        private const int SummaryTableIterations = 100_000;
+        private const int MiniReportEveryPIterations = 1_000;
+        private const int SummaryTableIterations = 10_000;
 
         private const bool UseRegretAndStrategyDiscounting = true;
 
@@ -55,6 +56,7 @@ namespace ACESim
                 UseRandomPathsForReporting = false, // DEBUG
                 ReportEveryNIterations = Algorithm == GameApproximationAlgorithm.ExploratoryProbing ? 500_000 : VanillaReportEveryNIterations,
                 BestResponseEveryMIterations = Algorithm == GameApproximationAlgorithm.ExploratoryProbing ? EvolutionSettings.EffectivelyNever : VanillaBestResponseEveryMIterations, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
+                MiniReportEveryPIterations = Algorithm == GameApproximationAlgorithm.ExploratoryProbing ? EvolutionSettings.EffectivelyNever : MiniReportEveryPIterations,
                 NumRandomIterationsForSummaryTable = SummaryTableIterations,
                 GenerateReportsByPlaying = true,
                 PrintInformationSets = false,

@@ -645,8 +645,7 @@ namespace ACESim
 
         private unsafe void MiniReport(int iteration, HedgeVanillaUtilities[] results)
         {
-            const int MiniReportEveryPIterations = 10;
-            if (iteration % MiniReportEveryPIterations == 0)
+            if (iteration % EvolutionSettings.MiniReportEveryPIterations == 0)
             {
                 TabbedText.WriteLine($"Iteration {iteration}");
                 TabbedText.Tabs++;

@@ -787,7 +787,7 @@ namespace ACESim
             UtilityCalculationsArray.Initialize(NumNonChancePlayers);
             // start Task Parallel Library consumer/producer pattern
             // we'll set up step1, step2, and step3 (but not in that order, since step 1 triggers step 2)
-            var step2_buffer = new BufferBlock<Tuple<GameProgress, double>>(new DataflowBlockOptions { BoundedCapacity = 10000 });
+            var step2_buffer = new BufferBlock<Tuple<GameProgress, double>>(new DataflowBlockOptions { BoundedCapacity = 10_000 });
             var step3_consumer = AddGameProgressToReport(step2_buffer);
             void step1_playPath(ref HistoryPoint completedGame, double probabilityOfPath)
             {
@@ -798,7 +798,16 @@ namespace ACESim
                 double[] utilities = GetUtilities(ref completedGame);
                 UtilityCalculationsArray.Add(utilities, probabilityOfPath);
                 // consume the result for reports
-                step2_buffer.SendAsync(new Tuple<GameProgress, double>(progress, probabilityOfPath));
+                bool messageAccepted;
+                do
+                {
+                    // TODO: If we change this to async and use SendAsync instead of post, we may get better performance. We still need to check
+                    // whether the message was accepted (though it will be rejected then only in unusual circumstances, not just because the buffer
+                    // is full).
+                    messageAccepted = step2_buffer.Post(new Tuple<GameProgress, double>(progress, probabilityOfPath));
+                    if (!messageAccepted)
+                        Thread.Sleep(10);
+                } while (!messageAccepted);
             };
             // Now, we have to send the paths through all of these steps and make sure that step 3 is completely finished.
             var startHistoryPoint = GetStartOfGameHistoryPoint();
