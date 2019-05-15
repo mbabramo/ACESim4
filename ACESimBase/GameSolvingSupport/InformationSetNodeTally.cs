@@ -40,8 +40,7 @@ namespace ACESim
         const int hedgeProbabilityDimension = 4;
         const int lastRegretDimension = 5;
         const int temporaryDimension = 6;
-        // for normalized hedge (including also hedge probability dimension)
-        const int regretIncrementsDimension = 5;
+        // for normalized hedge (including also hedge probability dimension and last regret dimension)
         const int adjustedWeightsDimension = 6;
         const int averageStrategyProbabilityDimension = 7;
         // for exploratory probing
@@ -603,7 +602,7 @@ namespace ACESim
             LastBestResponseAction = 1;
             for (byte a = 1; a <= NumPossibleActions; a++)
             {
-                double lastRegret = NodeInformation[regretIncrementsDimension, a - 1];
+                double lastRegret = NodeInformation[lastRegretDimension, a - 1];
                 if (a == 1)
                     minLastRegret = maxLastRegret = lastRegret;
                 else if (lastRegret > maxLastRegret)
@@ -619,7 +618,7 @@ namespace ACESim
             double sumWeights = 0, sumCumulativeStrategies = 0;
             for (int a = 1; a <= NumPossibleActions; a++)
             {
-                double regretIncrements = NodeInformation[regretIncrementsDimension, a - 1];
+                double regretIncrements = NodeInformation[lastRegretDimension, a - 1];
                 double normalizedCost = maxLastRegret == minLastRegret ? 0.5 : 1.0 - (regretIncrements - minLastRegret) / (maxLastRegret - minLastRegret);
                 double weightAdjustment = Math.Pow(1 - NormalizedHedgeEpsilon, normalizedCost);
                 double weight = NodeInformation[adjustedWeightsDimension, a - 1];
@@ -628,8 +627,8 @@ namespace ACESim
                     throw new Exception();
                 NodeInformation[adjustedWeightsDimension, a - 1] = weight;
                 sumWeights += weight;
-                NodeInformation[cumulativeRegretDimension, a - 1] += NodeInformation[regretIncrementsDimension, a - 1];
-                NodeInformation[regretIncrementsDimension, a - 1] = 0; // reset for next iteration
+                NodeInformation[cumulativeRegretDimension, a - 1] += NodeInformation[lastRegretDimension, a - 1];
+                NodeInformation[lastRegretDimension, a - 1] = 0; // reset for next iteration
                 sumCumulativeStrategies += NodeInformation[cumulativeStrategyDimension, a - 1];
             }
             if (sumWeights < 1E-20)
