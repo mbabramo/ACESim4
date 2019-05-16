@@ -9,10 +9,6 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
-    // DEBUG TODO: Fix the reporting -- after generating reports every n iterations including best response, the within-iteration best response values are no longer valid. Perhaps relatedly, the best response values for player 0 are always 0 and those for player 1 are wrong (maybe that represents the improvement, but it is wrong too -- so maybe we should just delete it).
-
-    // DEBUG TODO 1. add pruning to unrolled.
-
     public partial class CounterfactualRegretMinimization
     {
         #region Game state management
@@ -275,10 +271,6 @@ namespace ACESim
             Parallel.For(0, InformationSets.Count, x =>
             {
                 var infoSet = InformationSets[x];
-                if (infoSet.InformationSetNumber == 4)
-                {
-                    var DEBUG = 0;
-                }
                 int initialIndex = Unroll_InformationSetsIndices[infoSet.InformationSetNumber];
                 for (byte action = 1; action <= infoSet.NumPossibleActions; action++)
                 {
@@ -315,10 +307,6 @@ namespace ACESim
                     infoSet.NormalizedHedgeIncrementLastRegret(action, array[index]);
                     index = Unroll_GetInformationSetIndex_CumulativeStrategy(infoSet.InformationSetNumber, action);
                     infoSet.IncrementCumulativeStrategy(action, array[index]);
-                    if (infoSet.InformationSetNumber == 4)
-                    {
-                        var DEBUG = 0;
-                    }
                     int indexNumerator = Unroll_GetInformationSetIndex_BestResponseNumerator(infoSet.InformationSetNumber, action);
                     int indexDenominator = Unroll_GetInformationSetIndex_BestResponseDenominator(infoSet.InformationSetNumber, action);
                     infoSet.SetBestResponse_NumeratorAndDenominator(action, array[indexNumerator], array[indexDenominator]); // this is the final value based on the probability-adjusted increments within the algorithm
@@ -751,10 +739,6 @@ namespace ACESim
                 expectedValueOfAction[action - 1] = innerResult.HedgeVsHedge;
                 if (playerMakingDecision == playerBeingOptimized)
                 {
-                    if (playerBeingOptimized == 0)
-                    {
-                        var DEBUG = 0;
-                    }
                     if (informationSet.LastBestResponseAction == action)
                     {
                         // Because this is the best response action, the best response utility that we get should be propagated back directly.

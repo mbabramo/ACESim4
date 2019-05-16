@@ -200,10 +200,6 @@ namespace ACESim
 
         public void DetermineBestResponseAction()
         {
-            if (InformationSetNumber == 4)
-            {
-                var DEBUG = 0;
-            }
             double bestRatio = 0;
             int best = 0;
             for (int a = 1; a <= NumPossibleActions; a++)
@@ -693,10 +689,6 @@ namespace ACESim
 
         public void InitializeNormalizedHedge()
         {
-            if (InformationSetNumber == 4)
-            {
-                var DEBUG = 0;
-            }
             if (NumPossibleActions == 0)
                 throw new Exception("NumPossibleActions not initialized");
             double probability = 1.0 / (double)NumPossibleActions;

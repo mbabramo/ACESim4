@@ -26,8 +26,8 @@ namespace ACESim
         private const int VanillaIterations = 10_000;
         private const int VanillaReportEveryNIterations = 1_000;
         private const int VanillaBestResponseEveryMIterations = 1_000;
-        private const int MiniReportEveryPIterations = 100; // DEBUG
-        private const int SummaryTableIterations = 10_000;
+        private const int MiniReportEveryPIterations = 100;
+        private const int SummaryTableIterations = 1_000;
 
         private const bool UseRegretAndStrategyDiscounting = true;
 
@@ -39,7 +39,7 @@ namespace ACESim
         public static string OverrideDateTimeString = null; // "2017-10-11 10:18"; // use this if termination finished unexpectedly
         public static string MasterReportNameForDistributedProcessing = "AMONLY";
         private static bool ParallelizeOptionSets = false;
-        private static bool ParallelizeIndividualExecutions = false; // DEBUG // only affects SingleGameMode or if no local distributed processing
+        private static bool ParallelizeIndividualExecutions = true; // only affects SingleGameMode or if no local distributed processing
 
         private static EvolutionSettings GetEvolutionSettings()
         {
@@ -53,7 +53,7 @@ namespace ACESim
 
                 Algorithm = Algorithm,
 
-                UseRandomPathsForReporting = false, // DEBUG
+                UseRandomPathsForReporting = false,
                 ReportEveryNIterations = Algorithm == GameApproximationAlgorithm.ExploratoryProbing ? 500_000 : VanillaReportEveryNIterations,
                 BestResponseEveryMIterations = Algorithm == GameApproximationAlgorithm.ExploratoryProbing ? EvolutionSettings.EffectivelyNever : VanillaBestResponseEveryMIterations, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
                 MiniReportEveryPIterations = Algorithm == GameApproximationAlgorithm.ExploratoryProbing ? EvolutionSettings.EffectivelyNever : MiniReportEveryPIterations,
