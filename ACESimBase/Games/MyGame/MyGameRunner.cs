@@ -154,7 +154,7 @@ namespace ACESim
             foreach (double costMultiplier in CostsMultipliers)
                 foreach (IMyGameDisputeGenerator d in disputeGenerators)
                 {
-                    var options = MyGameOptionsGenerator.Standard();
+                    var options = MyGameOptionsGenerator.BaseForMultipleOptionsSets();
                     options.PNoiseStdev = options.DNoiseStdev = StdevPlayerNoise;
                     options.CostsMultiplier = costMultiplier;
                     if (HigherRiskAversion)

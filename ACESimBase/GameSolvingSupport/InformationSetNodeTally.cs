@@ -624,6 +624,10 @@ namespace ACESim
 
         public void UpdateNormalizedHedge(int iteration)
         {
+            if (InformationSetNumber == 4)
+            {
+                Debug.WriteLine($"{iteration}");
+            }
             double minLastRegret = 0, maxLastRegret = 0;
             for (byte a = 1; a <= NumPossibleActions; a++)
             {

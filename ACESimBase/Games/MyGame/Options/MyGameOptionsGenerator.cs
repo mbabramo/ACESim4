@@ -10,56 +10,7 @@ namespace ACESim
     public static class MyGameOptionsGenerator
     {
 
-
-        public static MyGameOptions PerfectInformation()
-        {
-            var options = new MyGameOptions()
-            {
-                PInitialWealth = 1000000,
-                DInitialWealth = 1000000,
-                DamagesToAllege = 100000,
-                NumLitigationQualityPoints = 10,
-                MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
-                {
-                    ProbabilityTrulyLiable_LitigationQuality75 = 0.75,
-                    ProbabilityTrulyLiable_LitigationQuality90 = 0.90,
-                    NumPointsToDetermineTrulyLiable = 100,
-                },
-                NumSignals = 10,
-                NumOffers = 10,
-                PFilingCost = 0,
-                DAnswerCost = 0,
-                PNoiseStdev = 0.001,
-                DNoiseStdev = 0.001,
-                CourtNoiseStdev = 0.1,
-                CostsMultiplier = 1.0,
-                PTrialCosts = 1000,
-                DTrialCosts = 1000,
-                IncludeAgreementToBargainDecisions = false,
-                PerPartyCostsLeadingUpToBargainingRound = 1000,
-                AllowAbandonAndDefaults = false,
-                LoserPays = false,
-                LoserPaysMultiple = 1.0,
-                LoserPaysAfterAbandonment = true,
-                DeltaOffersOptions = new DeltaOffersOptions()
-                {
-                    SubsequentOffersAreDeltas = false,
-                    DeltaStartingValue = 0.01,
-                    MaxDelta = 0.25
-                },
-                NumPotentialBargainingRounds = 4,
-                BargainingRoundRecall = MyGameBargainingRoundRecall.ForgetEarlierBargainingRounds,
-                SubdivideOffers = false,
-                BargainingRoundsSimultaneous = true,
-                PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false, true, false, true, false },
-                IncludeSignalsReport = false,
-            };
-            options.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.PInitialWealth };
-            options.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.DInitialWealth };
-            return options;
-        }
-
-        static bool ambitious = true;
+        static bool ambitious = false;
         static bool superSimple = false;
 
         public static MyGameOptions SingleRound() => ambitious ? SingleRound_Ambitious() : (superSimple ? SingleRound_SuperSimple() : SingleRound_Usual());
@@ -177,7 +128,6 @@ namespace ACESim
             return options;
         }
 
-
         public static MyGameOptions SingleRound_Ambitious()
         {
             var options = new MyGameOptions()
@@ -235,7 +185,55 @@ namespace ACESim
             return options;
         }
 
-        public static MyGameOptions Standard()
+        public static MyGameOptions PerfectInformation()
+        {
+            var options = new MyGameOptions()
+            {
+                PInitialWealth = 1000000,
+                DInitialWealth = 1000000,
+                DamagesToAllege = 100000,
+                NumLitigationQualityPoints = 10,
+                MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
+                {
+                    ProbabilityTrulyLiable_LitigationQuality75 = 0.75,
+                    ProbabilityTrulyLiable_LitigationQuality90 = 0.90,
+                    NumPointsToDetermineTrulyLiable = 100,
+                },
+                NumSignals = 10,
+                NumOffers = 10,
+                PFilingCost = 0,
+                DAnswerCost = 0,
+                PNoiseStdev = 0.001,
+                DNoiseStdev = 0.001,
+                CourtNoiseStdev = 0.1,
+                CostsMultiplier = 1.0,
+                PTrialCosts = 1000,
+                DTrialCosts = 1000,
+                IncludeAgreementToBargainDecisions = false,
+                PerPartyCostsLeadingUpToBargainingRound = 1000,
+                AllowAbandonAndDefaults = false,
+                LoserPays = false,
+                LoserPaysMultiple = 1.0,
+                LoserPaysAfterAbandonment = true,
+                DeltaOffersOptions = new DeltaOffersOptions()
+                {
+                    SubsequentOffersAreDeltas = false,
+                    DeltaStartingValue = 0.01,
+                    MaxDelta = 0.25
+                },
+                NumPotentialBargainingRounds = 4,
+                BargainingRoundRecall = MyGameBargainingRoundRecall.ForgetEarlierBargainingRounds,
+                SubdivideOffers = false,
+                BargainingRoundsSimultaneous = true,
+                PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false, true, false, true, false },
+                IncludeSignalsReport = false,
+            };
+            options.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.PInitialWealth };
+            options.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.DInitialWealth };
+            return options;
+        }
+
+        public static MyGameOptions BaseForMultipleOptionsSets()
         {
             var options = new MyGameOptions()
             {
