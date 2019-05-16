@@ -200,6 +200,8 @@ namespace ACESim
 
         public void DetermineBestResponseAction()
         {
+            LastBestResponseAction = 1; // DEBUG
+            return;
             if (InformationSetNumber == 4)
             {
                 var DEBUG = 0;
@@ -234,6 +236,7 @@ namespace ACESim
 
         public void IncrementBestResponse(int action, double piInverse, double expectedValue)
         {
+            return; // DEBUG
             NodeInformation[bestResponseNumeratorDimension, action - 1] += piInverse * expectedValue;
             NodeInformation[bestResponseDenominatorDimension, action - 1] += piInverse;
             BestResponseDeterminedFromIncrements = false;
@@ -241,6 +244,7 @@ namespace ACESim
 
         public void SetBestResponse_NumeratorAndDenominator(int action, double numerator, double denominator)
         {
+            return; // DEBUG
             NodeInformation[bestResponseNumeratorDimension, action - 1] = numerator;
             NodeInformation[bestResponseDenominatorDimension, action - 1] = denominator;
             BestResponseDeterminedFromIncrements = false;
