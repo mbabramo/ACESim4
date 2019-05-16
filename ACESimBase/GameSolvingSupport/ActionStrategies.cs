@@ -14,6 +14,8 @@ namespace ACESim
         RegretMatchingWithPruning,
         NormalizedHedge,
         Hedge,
-        CorrelatedEquilibrium
+        CorrelatedEquilibrium,
+        BestResponseVsCorrelatedEquilibrium,
+        CorrelatedEquilibriumVsBestResponse
     }
 }

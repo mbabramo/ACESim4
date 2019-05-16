@@ -100,7 +100,8 @@ namespace ACESim
                             nodeTally.GetAverageStrategies(probabilities);
                             break;
                         case ActionStrategies.BestResponse:
-                            throw new NotSupportedException();
+                            nodeTally.GetBestResponseProbabilities(probabilities);
+                            break;
                         case ActionStrategies.RegretMatchingWithPruning:
                             nodeTally.GetRegretMatchingProbabilities_WithPruning(probabilities);
                             break;
@@ -112,6 +113,18 @@ namespace ACESim
                             break;
                         case ActionStrategies.CorrelatedEquilibrium:
                             nodeTally.GetNormalizedHedgeCorrelatedEquilibriumStrategyProbabilities(randomNumberToChooseIteration, probabilities);
+                            break;
+                        case ActionStrategies.BestResponseVsCorrelatedEquilibrium:
+                            if (nodeTally.PlayerIndex == 0)
+                                nodeTally.GetBestResponseProbabilities(probabilities);
+                            else
+                                nodeTally.GetNormalizedHedgeCorrelatedEquilibriumStrategyProbabilities(randomNumberToChooseIteration, probabilities);
+                            break;
+                        case ActionStrategies.CorrelatedEquilibriumVsBestResponse:
+                            if (nodeTally.PlayerIndex == 0)
+                                nodeTally.GetNormalizedHedgeCorrelatedEquilibriumStrategyProbabilities(randomNumberToChooseIteration, probabilities);
+                            else
+                                nodeTally.GetBestResponseProbabilities(probabilities);
                             break;
                         default:
                             throw new NotImplementedException();

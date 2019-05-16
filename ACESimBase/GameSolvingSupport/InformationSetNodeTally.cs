@@ -223,7 +223,7 @@ namespace ACESim
             BestResponseDeterminedFromIncrements = true;
         }
 
-        public void GetBestResponseProbabilities(double[] probabilities)
+        public unsafe void GetBestResponseProbabilities(double* probabilities)
         {
             int bestResponse = LastBestResponseAction;
             for (int a = 1; a <= NumPossibleActions; a++)

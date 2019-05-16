@@ -544,40 +544,47 @@ namespace ACESim
 
         private unsafe string GenerateReports(int iteration, Func<string> prefaceFn)
         {
-            string reportString = null;
+            string reportString = "";
             if (EvolutionSettings.ReportEveryNIterations != null && iteration % EvolutionSettings.ReportEveryNIterations == 0)
             {
-                Br.eak.Add("Report");
-                ActionStrategies previous = ActionStrategy;
-                if (EvolutionSettings.ActionStrategyToUseInReporting is ActionStrategies actionStrategyToUse)
-                    ActionStrategy = actionStrategyToUse;
                 bool doBestResponse = (EvolutionSettings.BestResponseEveryMIterations != null && iteration % EvolutionSettings.BestResponseEveryMIterations == 0 && EvolutionSettings.BestResponseEveryMIterations != EvolutionSettings.EffectivelyNever && iteration != 0);
                 bool useRandomPaths =
-                    EvolutionSettings.UseRandomPathsForReporting
+                EvolutionSettings.UseRandomPathsForReporting
                     //&& (SkipEveryPermutationInitialization ||
                     //   NumInitializedGamePaths > EvolutionSettings.NumRandomIterationsForSummaryTable)
-                        ;
+                    ;
                 Console.WriteLine("");
                 Console.WriteLine(prefaceFn());
+                if (doBestResponse)
+                    CalculateBestResponse();
                 if (EvolutionSettings.Algorithm == GameApproximationAlgorithm.AverageStrategySampling)
                     Console.WriteLine($"{NumberAverageStrategySamplingExplorations / (double)EvolutionSettings.ReportEveryNIterations}");
                 NumberAverageStrategySamplingExplorations = 0;
-                if (EvolutionSettings.GenerateReportsByPlaying)
-                    reportString = GenerateReportsByPlaying(useRandomPaths);
+
+                Br.eak.Add("Report");
+                ActionStrategies previous = ActionStrategy;
+                var actionStrategiesToUse = EvolutionSettings.ActionStrategiesToUseInReporting;
+                if (actionStrategiesToUse == null || !actionStrategiesToUse.Any())
+                    actionStrategiesToUse = new List<ActionStrategies>() { previous };
+                foreach (var actionStrategy in actionStrategiesToUse)
+                {
+                    ActionStrategy = actionStrategy;
+                    if (EvolutionSettings.GenerateReportsByPlaying)
+                        reportString += GenerateReportsByPlaying(useRandomPaths);
+                }
+                ActionStrategy = previous;
+                Br.eak.Remove("Report");
                 MeasureRegretMatchingChanges();
                 if (ShouldEstimateImprovementOverTime)
                     ReportEstimatedImprovementsOverTime();
                 if (doBestResponse)
-                    CompareBestResponse(iteration, false);
-                if (EvolutionSettings.ActionStrategyToUseInReporting != null)
-                    ActionStrategy = previous;
+                    CompareBestResponse(false);
                 if (EvolutionSettings.PrintGameTree)
                     PrintGameTree();
                 if (EvolutionSettings.PrintInformationSets)
                     PrintInformationSets();
-                ActionStrategy = previous;
-                Br.eak.Remove("Report");
             }
+
             return reportString;
         }
 
@@ -604,17 +611,33 @@ namespace ACESim
             //Console.WriteLine($"Number initialized game paths: {NumInitializedGamePaths}");
         }
 
-        private unsafe void CompareBestResponse(int iteration, bool useRandomPaths)
+        double[] BestResponseUtilities;
+        long[] BestResponseCalculationTimes;
+
+        private unsafe void CalculateBestResponse()
         {
+            BestResponseUtilities = new double[NumNonChancePlayers];
+            BestResponseCalculationTimes = new long[NumNonChancePlayers];
+            ActionStrategies actionStrategy = ActionStrategy;
+            if (actionStrategy == ActionStrategies.CorrelatedEquilibrium)
+                actionStrategy = ActionStrategies.AverageStrategy; // best response against average strategy is same as against correlated equilibrium
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
                 Stopwatch s = new Stopwatch();
                 s.Start();
-                ActionStrategies actionStrategy = ActionStrategy;
-                if (actionStrategy == ActionStrategies.CorrelatedEquilibrium)
-                    actionStrategy = ActionStrategies.AverageStrategy; // best response against average strategy is same as against correlated equilibrium
-                double bestResponseUtility = CalculateBestResponse(playerBeingOptimized, actionStrategy);
+                BestResponseUtilities[playerBeingOptimized] = CalculateBestResponse(playerBeingOptimized, actionStrategy);
                 s.Stop();
+                BestResponseCalculationTimes[playerBeingOptimized] = s.ElapsedMilliseconds;
+            }
+        }
+        private unsafe void CompareBestResponse(bool useRandomPaths)
+        {
+            ActionStrategies actionStrategy = ActionStrategy;
+            if (actionStrategy == ActionStrategies.CorrelatedEquilibrium)
+                actionStrategy = ActionStrategies.AverageStrategy; // best response against average strategy is same as against correlated equilibrium
+            CalculateBestResponse();
+            for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
+            {
                 bool utilityCalculationsCollected = UtilityCalculationsArray.StatCollectors[playerBeingOptimized].Num() > 0;
                 string actionStrategyString;
                 if (actionStrategy == ActionStrategies.AverageStrategy)
@@ -628,16 +651,15 @@ namespace ACESim
                 {
                     string opponentStrategy = $"playing {actionStrategyString}";
                     utilityReport = $"{opponentStrategy} {UtilityCalculationsArray.StatCollectors[playerBeingOptimized].Average()} ";
-                    double bestResponseImprovement = bestResponseUtility - UtilityCalculationsArray.StatCollectors[playerBeingOptimized].Average();
-                    if (!useRandomPaths && bestResponseImprovement < 0 && Math.Abs(bestResponseImprovement) > Math.Abs(bestResponseUtility) / 1E-8)
+                    double bestResponseImprovement = BestResponseUtilities[playerBeingOptimized] - UtilityCalculationsArray.StatCollectors[playerBeingOptimized].Average();
+                    if (!useRandomPaths && bestResponseImprovement < 0 && Math.Abs(bestResponseImprovement) > Math.Abs(BestResponseUtilities[playerBeingOptimized]) / 1E-8)
                         throw new Exception("Best response function worse."); // it can be slightly negative as a result of rounding error or if we are using random paths as a result of sampling error
                     improvementReport = $" best response improvement {bestResponseImprovement}";
                 }
 
-                Console.WriteLine($"Player {playerBeingOptimized} utility (opponent using average strategy): {utilityReport}playing best response {bestResponseUtility} (in {s.ElapsedMilliseconds} milliseconds){improvementReport}");
+                Console.WriteLine($"Player {playerBeingOptimized} utility (opponent using average strategy): {utilityReport}playing best response {BestResponseUtilities[playerBeingOptimized]} (in {BestResponseCalculationTimes[playerBeingOptimized]} milliseconds){improvementReport}");
             }
         }
-
 
         public List<GameProgress> GetRandomCompleteGames(GamePlayer player, int numIterations, Func<Decision, GameProgress, byte> actionOverride)
         {
