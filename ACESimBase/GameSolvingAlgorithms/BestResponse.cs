@@ -119,7 +119,7 @@ namespace ACESim
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionIndex))
                     TabbedText.Tabs++;
                 byte action = GameDefinition.DecisionsExecutionOrder[decisionIndex].AlwaysDoAction ??
-                              informationSet.LastBestResponseAction;
+                              informationSet.LastBestResponseAction; debug;
                 if (action == 0)
                     return 0; // This may happen if using regret matching for opponent's strategy after evolving it with hedge. It would be a problem if using VanillaHedging.
 
