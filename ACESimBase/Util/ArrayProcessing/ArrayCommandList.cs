@@ -76,7 +76,7 @@ namespace ACESimBase.Util.ArrayProcessing
                 NextArrayIndex = 0;
             else
                 NextArrayIndex = FirstScratchIndex;
-            Debug.WriteLine($"DEBUG: {NextArrayIndex}");
+            //Debug.WriteLine($"DEBUG: {NextArrayIndex}");
             MaxArrayIndex = NextArrayIndex - 1;
             PerDepthStartArrayIndices = new Stack<int>();
             RepeatingExistingCommandRangeStack = new Stack<int?>();
@@ -96,7 +96,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public void IncrementDepth(bool separateCommandChunk)
         {
             PerDepthStartArrayIndices.Push(NextArrayIndex);
-            Debug.WriteLine($"DEBUG: {NextArrayIndex} (push)");
+            //Debug.WriteLine($"DEBUG: {NextArrayIndex} (push)");
             if (separateCommandChunk)
                 StartCommandChunk(false, null);
         }
@@ -104,7 +104,7 @@ namespace ACESimBase.Util.ArrayProcessing
         public void DecrementDepth(bool separateCommandChunk, bool completeCommandList = false)
         {
             NextArrayIndex = PerDepthStartArrayIndices.Pop();
-            Debug.WriteLine($"DEBUG: {NextArrayIndex} (pop)");
+            //Debug.WriteLine($"DEBUG: {NextArrayIndex} (pop)");
             if (separateCommandChunk)
                 EndCommandChunk();
             if (!PerDepthStartArrayIndices.Any() && completeCommandList)
@@ -423,7 +423,7 @@ namespace ACESimBase.Util.ArrayProcessing
             AddCommand(new ArrayCommand(ArrayCommandType.Zero, nextArrayIndex, -1));
             NextArrayIndex++;
 
-            Debug.WriteLine($"DEBUG: {NextArrayIndex} (NewZero)");
+            //Debug.WriteLine($"DEBUG: {NextArrayIndex} (NewZero)");
             return nextArrayIndex;
         }
 
@@ -441,7 +441,7 @@ namespace ACESimBase.Util.ArrayProcessing
             {
                 var DEBUG = 0;
             }
-            Debug.WriteLine($"DEBUG: {NextArrayIndex + 1} (uninitialized)");
+            //Debug.WriteLine($"DEBUG: {NextArrayIndex + 1} (uninitialized)");
             return NextArrayIndex++;
         }
 
@@ -459,7 +459,7 @@ namespace ACESimBase.Util.ArrayProcessing
             }
             else
                 AddCommand(new ArrayCommand(ArrayCommandType.CopyTo, NextArrayIndex, sourceIndex));
-            Debug.WriteLine($"DEBUG: {NextArrayIndex} (copytonew)"); 
+            //Debug.WriteLine($"DEBUG: {NextArrayIndex} (copytonew)"); 
             return NextArrayIndex++;
         }
 
@@ -570,7 +570,7 @@ namespace ACESimBase.Util.ArrayProcessing
             MultiplyBy(spaceForProduct, indexOfIncrementProduct2);
             Increment(index, targetOriginal, spaceForProduct);
             NextArrayIndex--; // we've set aside an array index to be used for this command. But we no longer need it, so we can now allocate it to some other purpose (e.g., incrementing by another product)
-            Debug.WriteLine($"DEBUG: {NextArrayIndex} (increment by product)");
+            //Debug.WriteLine($"DEBUG: {NextArrayIndex} (increment by product)");
         }
 
         public void DecrementArrayBy(int[] indices, int indexOfDecrement)
@@ -598,7 +598,7 @@ namespace ACESimBase.Util.ArrayProcessing
             MultiplyBy(spaceForProduct, indexOfDecrementProduct2);
             Decrement(index, spaceForProduct);
             NextArrayIndex--; // we've set aside an array index to be used for this command. But we no longer need it, so we can now allocate it to some other purpose (e.g., Decrementing by another product)
-            Debug.WriteLine($"DEBUG: {NextArrayIndex} (decrement by product)");
+            //Debug.WriteLine($"DEBUG: {NextArrayIndex} (decrement by product)");
         }
 
         // Flow control. We do flow control by a combination of comparison commands and go to commands. When a comparison is made, if the comparison fails, the next command is skipped. Thus, the combination of the comparison and the go to command ensures that the go to command will be obeyed only if the comparison succeeds.
