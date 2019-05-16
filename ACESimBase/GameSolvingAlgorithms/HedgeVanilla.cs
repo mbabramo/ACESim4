@@ -406,8 +406,9 @@ namespace ACESim
                     Unroll_Commands.InsertIfCommand();
                         Unroll_Commands.CopyToExisting(resultArray[Unroll_Result_BestResponseIndex], innerResult[Unroll_Result_BestResponseIndex]);
                     Unroll_Commands.InsertEndIfCommand();
-                    int bestResponseNumerator = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_BestResponseNumerator(informationSet.InformationSetNumber, action), true);
-                    int bestResponseDenominator = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_BestResponseDenominator(informationSet.InformationSetNumber, action), true);
+                    // Get the best response indices to write to -- note that we're not reading the value in
+                    int bestResponseNumerator = Unroll_GetInformationSetIndex_BestResponseNumerator(informationSet.InformationSetNumber, action);
+                    int bestResponseDenominator = Unroll_GetInformationSetIndex_BestResponseDenominator(informationSet.InformationSetNumber, action);
                     // DEBUG
                     Unroll_Commands.IncrementByProduct(bestResponseNumerator, true, inversePiAvgStrat, innerResult[Unroll_Result_BestResponseIndex]);
                     //Unroll_Commands.Increment(bestResponseDenominator, true, inversePiAvgStrat);

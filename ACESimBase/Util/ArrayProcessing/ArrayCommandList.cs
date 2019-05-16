@@ -459,7 +459,7 @@ namespace ACESimBase.Util.ArrayProcessing
             }
             else
                 AddCommand(new ArrayCommand(ArrayCommandType.CopyTo, NextArrayIndex, sourceIndex));
-            Debug.WriteLine($"DEBUG: {NextArrayIndex + 1} (copytonew)"); 
+            Debug.WriteLine($"DEBUG: {NextArrayIndex} (copytonew)"); 
             return NextArrayIndex++;
         }
 
