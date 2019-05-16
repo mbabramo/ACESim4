@@ -24,9 +24,9 @@ namespace ACESim
         public HistoryNavigationInfo Navigation;
         public ActionStrategies ActionStrategy;
 
-        public byte ChooseActionBasedOnRandomNumber(GameProgress gameProgress, double randomNumber, byte numPossibleActions)
+        public byte ChooseActionBasedOnRandomNumber(GameProgress gameProgress, double randomNumber, double secondRandomNumber, byte numPossibleActions)
         {
-            return ActionProbabilityUtilities.ChooseActionBasedOnRandomNumber(gameProgress, randomNumber, ActionStrategy, numPossibleActions, null, Navigation);
+            return ActionProbabilityUtilities.ChooseActionBasedOnRandomNumber(gameProgress, randomNumber, secondRandomNumber, ActionStrategy, numPossibleActions, null, Navigation);
         }
 
         public Strategy()

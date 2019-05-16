@@ -10,7 +10,7 @@ namespace ACESim
     [Serializable]
     public static class ActionProbabilityUtilities
     {
-        public static byte ChooseActionBasedOnRandomNumber(GameProgress gameProgress, double randomNumber, ActionStrategies actionStrategy, byte numPossibleActions, byte? alwaysDoAction, in HistoryNavigationInfo navigation)
+        public static byte ChooseActionBasedOnRandomNumber(GameProgress gameProgress, double randomNumberToChooseAction, double randomNumberToChooseIteration, ActionStrategies actionStrategy, byte numPossibleActions, byte? alwaysDoAction, in HistoryNavigationInfo navigation)
         {
             // We're not necessarily using the same navigation approach as is used during CFRDevelopment, because the game tree may not be set up at the time this is called.
             HistoryPoint historyPoint = new HistoryPoint(null, gameProgress.GameHistory, gameProgress);
@@ -18,7 +18,7 @@ namespace ACESim
             IGameState gameStateForCurrentPlayer = navigateDuringActualGamePlay.GetGameState(ref historyPoint);
             if (gameStateForCurrentPlayer == null)
                 throw new Exception("Internal error. This action has not been initialized.");
-            double[] probabilities = GetActionProbabilitiesAtHistoryPoint(gameStateForCurrentPlayer, actionStrategy, numPossibleActions, alwaysDoAction, navigateDuringActualGamePlay);
+            double[] probabilities = GetActionProbabilitiesAtHistoryPoint(gameStateForCurrentPlayer, actionStrategy, randomNumberToChooseIteration, numPossibleActions, alwaysDoAction, navigateDuringActualGamePlay);
 
             if (gameProgress.ReportingMode)
             {
@@ -51,7 +51,7 @@ namespace ACESim
             for (byte a = 0; a < numPossibleActions; a++)
             {
                 cumTotal += probabilities[a];
-                if (cumTotal >= randomNumber)
+                if (cumTotal >= randomNumberToChooseAction)
                 {
                     //Console.WriteLine($"DecisionCode {historyPoint.GetNextDecisionByteCode(navigation)}");
                     //Console.WriteLine($"Actions {historyPoint.GetActionsToHereString(navigation)}\n probabilities {String.Join(",", probabilities)} random number {randomNumber} result {(byte)(a + 1)}");
@@ -61,23 +61,23 @@ namespace ACESim
             return numPossibleActions; // indicates a rare rounding error
         }
 
-        private static double[] GetActionProbabilitiesAtHistoryPoint(IGameState gameStateForCurrentPlayer, ActionStrategies actionStrategy, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation)
+        private static double[] GetActionProbabilitiesAtHistoryPoint(IGameState gameStateForCurrentPlayer, ActionStrategies actionStrategy, double randomNumberToChooseIteration, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation)
         {
-            GetActionProbabilitiesAtHistoryPoint_Helper(gameStateForCurrentPlayer, actionStrategy, numPossibleActions, alwaysDoAction, navigation, out double[] probabilities);
+            GetActionProbabilitiesAtHistoryPoint_Helper(gameStateForCurrentPlayer, actionStrategy, randomNumberToChooseIteration, numPossibleActions, alwaysDoAction, navigation, out double[] probabilities);
             return probabilities.Take(numPossibleActions).ToArray();
 
         }
 
-        private static unsafe void GetActionProbabilitiesAtHistoryPoint_Helper(IGameState gameStateForCurrentPlayer, ActionStrategies actionStrategy, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation, out double[] probabilities)
+        private static unsafe void GetActionProbabilitiesAtHistoryPoint_Helper(IGameState gameStateForCurrentPlayer, ActionStrategies actionStrategy, double randomNumberToChooseIteration, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation, out double[] probabilities)
         {
             probabilities = new double[GameFullHistory.MaxNumActions];
             double* probabilitiesBuffer = stackalloc double[GameFullHistory.MaxNumActions];
-            GetActionProbabilitiesAtHistoryPoint(gameStateForCurrentPlayer, actionStrategy, probabilitiesBuffer, numPossibleActions, alwaysDoAction, navigation);
+            GetActionProbabilitiesAtHistoryPoint(gameStateForCurrentPlayer, actionStrategy, randomNumberToChooseIteration, probabilitiesBuffer, numPossibleActions, alwaysDoAction, navigation);
             for (byte a = 0; a < GameFullHistory.MaxNumActions; a++)
                 probabilities[a] = probabilitiesBuffer[a];
         }
 
-        public static unsafe void GetActionProbabilitiesAtHistoryPoint(IGameState gameStateForCurrentPlayer, ActionStrategies actionStrategy, double* probabilities, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation)
+        public static unsafe void GetActionProbabilitiesAtHistoryPoint(IGameState gameStateForCurrentPlayer, ActionStrategies actionStrategy, double randomNumberToChooseIteration, double* probabilities, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation)
         {
             if (gameStateForCurrentPlayer is ChanceNodeSettings chanceNodeSettings)
             {
@@ -109,6 +109,9 @@ namespace ACESim
                             break;
                         case ActionStrategies.Hedge:
                             nodeTally.GetHedgeProbabilities(probabilities);
+                            break;
+                        case ActionStrategies.CorrelatedEquilibrium:
+                            nodeTally.GetNormalizedHedgeCorrelatedEquilibriumStrategyProbabilities(randomNumberToChooseIteration, probabilities);
                             break;
                         default:
                             throw new NotImplementedException();

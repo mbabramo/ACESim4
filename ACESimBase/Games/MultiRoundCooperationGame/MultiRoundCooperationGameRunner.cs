@@ -34,7 +34,7 @@ namespace ACESim
                 PrintInformationSets = false,
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
                 PrintGameTree = false,
-                AlwaysUseAverageStrategyInReporting = true, // IMPORTANT NOTE: Using average strategy here
+                ActionStrategyToUseInReporting = ActionStrategies.AverageStrategy,
                 BestResponseEveryMIterations = 100, //EvolutionSettings.EffectivelyNever, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
 
                 EpsilonForMainPlayer = 0.5,

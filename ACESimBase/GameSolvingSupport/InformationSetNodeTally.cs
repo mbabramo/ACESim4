@@ -30,6 +30,9 @@ namespace ACESim
 
         double[,] NodeInformation;
 
+        const bool SavePastValues = true;
+        List<double[]> PastValues;
+
         public int NumPossibleActions => Decision.NumPossibleActions;
         const int totalDimensions = 8;
         const int cumulativeRegretDimension = 0;
@@ -77,6 +80,8 @@ namespace ACESim
             Initialize(totalDimensions, decision.NumPossibleActions);
             InformationSetNumber = InformationSetsSoFar;
             Interlocked.Increment(ref InformationSetsSoFar);
+            if (SavePastValues)
+                PastValues = new List<double[]>();
         }
 
         public void Reinitialize()
@@ -624,9 +629,12 @@ namespace ACESim
 
         public void UpdateNormalizedHedge(int iteration)
         {
-            if (InformationSetNumber == 4)
+            if (SavePastValues && iteration > 1)
             {
-                Debug.WriteLine($"{iteration}");
+                double[] lastIterationStrategy = new double[NumPossibleActions];
+                for (byte a = 1; a <= NumPossibleActions; a++)
+                    lastIterationStrategy[a - 1] = GetNormalizedHedgeProbability(a);
+                PastValues.Add(lastIterationStrategy);
             }
             double minLastRegret = 0, maxLastRegret = 0;
             for (byte a = 1; a <= NumPossibleActions; a++)
@@ -717,6 +725,22 @@ namespace ACESim
         public double GetNormalizedHedgeAverageStrategy(byte action)
         {
             return NodeInformation[averageStrategyProbabilityDimension, action - 1];
+        }
+
+        public unsafe void GetNormalizedHedgeCorrelatedEquilibriumStrategyProbabilities(double randomNumberToChooseIteration, double* probabilities)
+        {
+            int pastValuesCount = PastValues.Count;
+            int iterationToUse = (int)Math.Floor(pastValuesCount * randomNumberToChooseIteration);
+            if (iterationToUse == pastValuesCount) // if random number exactly 1
+                iterationToUse--;
+            var pastValues = PastValues[iterationToUse];
+            for (int a = 0; a < NumPossibleActions; a++)
+                probabilities[a] = pastValues[a];
+        }
+
+        public double GetNormalizedHedgeCorrelatedEquilibriumStrategy(byte action, int iteration)
+        {
+            return PastValues[iteration - 1][action];
         }
 
         //public unsafe void GetEpsilonAdjustedNormalizedHedgeProbabilities(double* probabilitiesToSet, double epsilon, int iteration)

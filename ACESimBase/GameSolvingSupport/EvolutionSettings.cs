@@ -40,7 +40,7 @@ namespace ACESim
         public bool PrintInformationSets = false;
         public List<int> RestrictToTheseInformationSets = null;
         public bool PrintNonChanceInformationSetsOnly = true;
-        public bool AlwaysUseAverageStrategyInReporting = true;
+        public ActionStrategies? ActionStrategyToUseInReporting = ActionStrategies.AverageStrategy;
         public int GameNumber = 0;
         internal int NumRandomIterationsForUtilityCalculation = 10000;
         internal bool SuppressReportPrinting;

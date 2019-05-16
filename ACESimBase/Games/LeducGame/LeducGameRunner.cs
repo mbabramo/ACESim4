@@ -49,7 +49,7 @@ namespace ACESim
                 PrintInformationSets = true,
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
                 PrintGameTree = false,
-                AlwaysUseAverageStrategyInReporting = true,
+                ActionStrategyToUseInReporting = ActionStrategies.AverageStrategy,
                 BestResponseEveryMIterations = ReportInterval,
 
                 // iterations

@@ -13,6 +13,7 @@ namespace ACESim
         BestResponse,
         RegretMatchingWithPruning,
         NormalizedHedge,
-        Hedge
+        Hedge,
+        CorrelatedEquilibrium
     }
 }

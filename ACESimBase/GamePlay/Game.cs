@@ -208,7 +208,8 @@ namespace ACESim
             }
             else
             {
-                actionToChoose = CurrentPlayerStrategy.ChooseActionBasedOnRandomNumber(Progress, Progress.IterationID.GetRandomNumberBasedOnIterationID((byte)CurrentDecisionIndex), CurrentDecision.NumPossibleActions);
+                actionToChoose = CurrentPlayerStrategy.ChooseActionBasedOnRandomNumber(Progress, Progress.IterationID.GetRandomNumberBasedOnIterationID((byte)CurrentDecisionIndex),
+                    Progress.IterationID.GetRandomNumberBasedOnIterationID((byte)(100+ CurrentDecisionIndex)),CurrentDecision.NumPossibleActions);
                 //Console.WriteLine($"Decision byte code {CurrentDecision.DecisionByteCode} (index {CurrentDecisionIndex}) ==> randomly chosen {actionToChoose}");
             }
 

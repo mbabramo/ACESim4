@@ -179,6 +179,9 @@ namespace ACESim
                         case ActionStrategies.Hedge:
                             informationSet.GetHedgeProbabilities(actionProbabilities);
                             break;
+                        case ActionStrategies.CorrelatedEquilibrium:
+                            informationSet.GetAverageStrategies(actionProbabilities); // playing best response against correlated equilibrium is same as playing against average strategies
+                            break;
                         default:
                             throw new NotImplementedException();
                     }

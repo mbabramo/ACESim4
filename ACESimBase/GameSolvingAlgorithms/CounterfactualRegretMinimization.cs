@@ -549,8 +549,8 @@ namespace ACESim
             {
                 Br.eak.Add("Report");
                 ActionStrategies previous = ActionStrategy;
-                if (EvolutionSettings.AlwaysUseAverageStrategyInReporting)
-                    ActionStrategy = ActionStrategies.AverageStrategy;
+                if (EvolutionSettings.ActionStrategyToUseInReporting is ActionStrategies actionStrategyToUse)
+                    ActionStrategy = actionStrategyToUse;
                 bool doBestResponse = (EvolutionSettings.BestResponseEveryMIterations != null && iteration % EvolutionSettings.BestResponseEveryMIterations == 0 && EvolutionSettings.BestResponseEveryMIterations != EvolutionSettings.EffectivelyNever && iteration != 0);
                 bool useRandomPaths =
                     EvolutionSettings.UseRandomPathsForReporting
@@ -569,7 +569,7 @@ namespace ACESim
                     ReportEstimatedImprovementsOverTime();
                 if (doBestResponse)
                     CompareBestResponse(iteration, false);
-                if (EvolutionSettings.AlwaysUseAverageStrategyInReporting)
+                if (EvolutionSettings.ActionStrategyToUseInReporting != null)
                     ActionStrategy = previous;
                 if (EvolutionSettings.PrintGameTree)
                     PrintGameTree();
@@ -610,13 +610,16 @@ namespace ACESim
             {
                 Stopwatch s = new Stopwatch();
                 s.Start();
-                double bestResponseUtility = CalculateBestResponse(playerBeingOptimized, ActionStrategy);
+                ActionStrategies actionStrategy = ActionStrategy;
+                if (actionStrategy == ActionStrategies.CorrelatedEquilibrium)
+                    actionStrategy = ActionStrategies.AverageStrategy; // best response against average strategy is same as against correlated equilibrium
+                double bestResponseUtility = CalculateBestResponse(playerBeingOptimized, actionStrategy);
                 s.Stop();
                 bool utilityCalculationsCollected = UtilityCalculationsArray.StatCollectors[playerBeingOptimized].Num() > 0;
                 string actionStrategyString;
-                if (EvolutionSettings.AlwaysUseAverageStrategyInReporting || ActionStrategy == ActionStrategies.AverageStrategy)
+                if (actionStrategy == ActionStrategies.AverageStrategy)
                     actionStrategyString = "average strategy";
-                else if (ActionStrategy == ActionStrategies.Hedge || ActionStrategy == ActionStrategies.NormalizedHedge)
+                else if (actionStrategy == ActionStrategies.Hedge || actionStrategy == ActionStrategies.NormalizedHedge)
                     actionStrategyString = "hedge";
                 else
                     actionStrategyString = "regret matching";
@@ -697,7 +700,9 @@ namespace ACESim
             byte nextDecisionIndex = historyPoint.GetNextDecisionIndex(Navigation);
             byte numPossibleActions = NumPossibleActionsAtDecision(nextDecisionIndex);
             IGameState gameState = GetGameState(ref historyPoint);
-            ActionProbabilityUtilities.GetActionProbabilitiesAtHistoryPoint(gameState, actionStrategy, probabilities, numPossibleActions, null, Navigation);
+            if (actionStrategy == ActionStrategies.CorrelatedEquilibrium)
+                throw new Exception("Correlated equilibrium not supported in process all paths, since some iteration must be chosen at random anyway.");
+            ActionProbabilityUtilities.GetActionProbabilitiesAtHistoryPoint(gameState, actionStrategy, 0 /* ignored */, probabilities, numPossibleActions, null, Navigation);
             var historyPointCopy = historyPoint;
 
             Parallelizer.GoByte(EvolutionSettings.ParallelOptimization, EvolutionSettings.MaxParallelDepth, 1, (byte)(numPossibleActions + 1), (action) =>
