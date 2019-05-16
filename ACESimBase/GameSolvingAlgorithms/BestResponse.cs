@@ -118,8 +118,16 @@ namespace ACESim
             {
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionIndex))
                     TabbedText.Tabs++;
-                byte action = GameDefinition.DecisionsExecutionOrder[decisionIndex].AlwaysDoAction ??
-                              informationSet.LastBestResponseAction; debug;
+                byte? alwaysAction = GameDefinition.DecisionsExecutionOrder[decisionIndex].AlwaysDoAction;
+                byte action;
+                if (alwaysAction != null)
+                    action = (byte)alwaysAction;
+                else
+                {
+                    if (!informationSet.BestResponseDeterminedFromIncrements)
+                        informationSet.DetermineBestResponseAction();
+                    action = informationSet.LastBestResponseAction;
+                }
                 if (action == 0)
                     return 0; // This may happen if using regret matching for opponent's strategy after evolving it with hedge. It would be a problem if using VanillaHedging.
 

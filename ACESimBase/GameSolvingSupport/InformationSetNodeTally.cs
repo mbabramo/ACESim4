@@ -52,6 +52,7 @@ namespace ACESim
         public SimpleExclusiveLock UpdatingHedge;
         const double NormalizedHedgeEpsilon = 0.5;
         public byte LastBestResponseAction = 0;
+        public bool BestResponseDeterminedFromIncrements = false; // this is used by the generalized best response algorithm to determine whether it needs to recalculate best response
 
         // hedge probing
         double V = 0; // V parameter in Cesa-Bianchi
@@ -132,6 +133,7 @@ namespace ACESim
             for (int i = bestResponseNumeratorDimension; i <= bestResponseDenominatorDimension; i++)
                 for (int j = 0; j < NumPossibleActions; j++)
                     NodeInformation[i, j] = 0;
+            BestResponseDeterminedFromIncrements = false;
         }
 
         public void ClearAverageStrategyTally()
@@ -196,6 +198,30 @@ namespace ACESim
 
         #region Best response
 
+        public void DetermineBestResponseAction()
+        {
+            if (InformationSetNumber == 4)
+            {
+                var DEBUG = 0;
+            }
+            double bestRatio = 0;
+            int best = 0;
+            for (int a = 1; a <= NumPossibleActions; a++)
+            {
+                double denominator = NodeInformation[bestResponseDenominatorDimension, a - 1];
+                if (denominator == 0)
+                    return; // no best response data available
+                double ratio = NodeInformation[bestResponseNumeratorDimension, a - 1] / denominator;
+                if (a == 1 || ratio > bestRatio)
+                {
+                    best = a;
+                    bestRatio = ratio;
+                }
+            }
+            LastBestResponseAction = (byte)best;
+            BestResponseDeterminedFromIncrements = true;
+        }
+
         public void GetBestResponseProbabilities(double[] probabilities)
         {
             int bestResponse = LastBestResponseAction;
@@ -210,12 +236,14 @@ namespace ACESim
         {
             NodeInformation[bestResponseNumeratorDimension, action - 1] += piInverse * expectedValue;
             NodeInformation[bestResponseDenominatorDimension, action - 1] += piInverse;
+            BestResponseDeterminedFromIncrements = false;
         }
 
         public void SetBestResponse_NumeratorAndDenominator(int action, double numerator, double denominator)
         {
             NodeInformation[bestResponseNumeratorDimension, action - 1] = numerator;
             NodeInformation[bestResponseDenominatorDimension, action - 1] = denominator;
+            BestResponseDeterminedFromIncrements = false;
         }
 
         #endregion
@@ -601,11 +629,6 @@ namespace ACESim
         public void UpdateNormalizedHedge(int iteration)
         {
             double minLastRegret = 0, maxLastRegret = 0;
-            if (InformationSetNumber == 4)
-            {
-                var DEBUG = 0;
-            }
-            LastBestResponseAction = 1;
             for (byte a = 1; a <= NumPossibleActions; a++)
             {
                 double lastRegret = NodeInformation[lastRegretDimension, a - 1];
@@ -614,12 +637,14 @@ namespace ACESim
                 else if (lastRegret > maxLastRegret)
                 {
                     maxLastRegret = lastRegret;
-                    LastBestResponseAction = a;
                 }
                 else if (lastRegret < minLastRegret)
                     minLastRegret = lastRegret;
             }
+
+            DetermineBestResponseAction();
             ResetBestResponseData();
+
             // normalize regrets to costs between 0 and 1. the key assumption is that each iteration takes into account ALL possible outcomes (as in a vanilla hedge CFR algorithm)
             double sumWeights = 0, sumCumulativeStrategies = 0;
             for (int a = 1; a <= NumPossibleActions; a++)
