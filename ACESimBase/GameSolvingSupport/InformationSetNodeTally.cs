@@ -231,10 +231,6 @@ namespace ACESim
                 }
             }
             LastBestResponseAction = (byte)best;
-            if (InformationSetNumber == 95 && LastBestResponseAction == 2)
-            {
-                var DEBUG = 0;
-            }
             BestResponseDeterminedFromIncrements = true;
         }
 

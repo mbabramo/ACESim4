@@ -39,7 +39,7 @@ namespace ACESim
         public int NumRandomIterationsForSummaryTable = 10000;
         public bool PrintGameTree = false;
         public bool PrintInformationSets = false;
-        public bool AnalyzeInformationSets = true; // DEBUG
+        public bool AnalyzeInformationSets = true; 
         public List<int> RestrictToTheseInformationSets = null;
         public bool PrintNonChanceInformationSetsOnly = true;
         public List<ActionStrategies> ActionStrategiesToUseInReporting = new List<ActionStrategies>() { ActionStrategies.AverageStrategy };
@@ -67,7 +67,7 @@ namespace ACESim
             Discounting_Gamma = Math.Log(DiscountingTarget_TargetDiscount) / (Math.Log(p * t / (p * t + 1)) - Math.Log(t / (t + 1)));
         }
 
-        public bool RecordPastValues = true; // DEBUG -- necessary for coarse correlated equilibrium
+        public bool RecordPastValues = true; 
         public int RecordPastValuesEveryN = 10;
 
 

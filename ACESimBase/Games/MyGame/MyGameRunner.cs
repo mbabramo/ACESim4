@@ -23,10 +23,10 @@ namespace ACESim
         private const GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.HedgeVanilla;
 
         private const int ProbingIterations = 20_000_000;
-        private const int VanillaIterations = 35_395;
-        private const int VanillaReportEveryNIterations = 35_395;
-        private const int VanillaBestResponseEveryMIterations = 35_395;
-        private const int MiniReportEveryPIterations = 3_000;
+        private const int VanillaIterations = 150_000;
+        private const int VanillaReportEveryNIterations = 150_000;
+        private const int VanillaBestResponseEveryMIterations = 150_000; 
+        private const int MiniReportEveryPIterations = 1_000;
         private const bool UseRandomPathsForReporting = false;
         private const int SummaryTableIterations = 100_000; // relevant only if UseRandomPaths
 
@@ -63,7 +63,7 @@ namespace ACESim
                 PrintInformationSets = false,
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
                 PrintGameTree = false,
-                ActionStrategiesToUseInReporting = new List<ActionStrategies>() { ActionStrategies.CorrelatedEquilibrium, ActionStrategies.BestResponseVsCorrelatedEquilibrium, ActionStrategies.CorrelatedEquilibriumVsBestResponse, ActionStrategies.AverageStrategy },
+                ActionStrategiesToUseInReporting = new List<ActionStrategies>() { ActionStrategies.AverageStrategy }, //new List<ActionStrategies>() { ActionStrategies.CorrelatedEquilibrium, ActionStrategies.BestResponseVsCorrelatedEquilibrium, ActionStrategies.CorrelatedEquilibriumVsBestResponse, ActionStrategies.AverageStrategy },
                 TotalProbingCFRIterations = ProbingIterations,
                 EpsilonForMainPlayer = 0.5,
                 EpsilonForOpponentWhenExploring = 0.05,
