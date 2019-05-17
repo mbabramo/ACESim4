@@ -22,7 +22,7 @@ namespace ACESim
         public void UpdateInformationSets(int iteration)
         {
             int numInformationSets = InformationSets.Count;
-            Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateNormalizedHedge(iteration));
+            Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateNormalizedHedge(iteration, AverageStrategyAdjustment));
         }
 
         #endregion
