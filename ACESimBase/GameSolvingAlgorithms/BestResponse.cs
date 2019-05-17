@@ -235,7 +235,13 @@ namespace ACESim
                         // This is the key part -- incrementing best responses. Note that the expected value is NOT here multiplied by this player's probability of playing to the next stage. The overall best response will depend on how often other players play to this point. We'll be calling this for EACH history that leads to this information set.
                         informationSet.IncrementBestResponse(action, inversePi, expectedValue);
                         if (informationSet.InformationSetNumber == 95 && depthToTarget == depthSoFar)
+                        {
                             Console.WriteLine($"DEBUG: action {action} expectedValue {expectedValue} inversePi {inversePi} => {informationSet.NodeInformation[2, 0]} {informationSet.NodeInformation[2, 1]} actionsToHere {historyPoint.GetActionsToHereString(Navigation)} ");
+                            if (historyPoint.GetActionsToHereString(Navigation) == "1,1,3,3,1,1,1,4,2,2,2,1,1,2")
+                            {
+                                var DEBUGQ = 0; // QUERY: How did we get here? If that 4 is this player's move
+                            }
+                        }
                         if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionIndex))
                         {
                             TabbedText.WriteLine(

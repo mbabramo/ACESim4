@@ -328,6 +328,7 @@ namespace ACESim
             else
             {
                 // offer-response bargaining. We add the offer and response to the opposing players' information sets. Note that the reason that we add the response is only so that if we decide to have some other decision in this bargaining round, we don't have the decisions confused. 
+                debug; // Plaintiff is not being informed of his own offer -- and defendant is not being informed of his own offer. This becomes a problem in developing the best response, because we end up having a single information set regardless of what the player previously decided. This messes up the best response calculation, which assumes perfect recall. If we have a single information set for two situations, we end up choosing one best response decision for both situations, when we want to have different best response decisions in the different situations, since the OTHER player will do different things in those situations. Add some testing to ensure perfect recall. We should eliminate all options that are inconsistent with perfect recall. 
                 if (Options.PGoesFirstIfNotSimultaneous[b])
                 {
                     var pOffer =
