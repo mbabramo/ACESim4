@@ -57,6 +57,11 @@ namespace ACESim
                     TraceCommandList(array);
                     return "";
                 }
+                if (iteration > 35370)
+                {
+                    var bestResponsesDEBUG = InformationSets.Where(x => x.PlayerIndex == 0).OrderBy(x => x.InformationSetNumber).Select(x => $"{x.InformationSetNumber}: {x.LastBestResponseAction}");
+                    Console.WriteLine($"{String.Join(",", bestResponsesDEBUG)}");
+                }
             }
             return reportString;
         }

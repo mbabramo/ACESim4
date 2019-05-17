@@ -781,7 +781,7 @@ namespace ACESim
             return NodeInformation[hedgeProbabilityDimension, a - 1];
         }
 
-        public unsafe double[] GetNormalizedHedgeProbabilitiesAsArray(int iteration)
+        public unsafe double[] GetNormalizedHedgeProbabilitiesAsArray()
         {
             double[] array = new double[NumPossibleActions];
 
@@ -790,6 +790,11 @@ namespace ACESim
             for (int a = 0; a < NumPossibleActions; a++)
                 array[a] = actionProbabilities[a];
             return array;
+        }
+
+        public unsafe string GetNormalizedHedgeProbabilitiesAsString()
+        {
+            return String.Join(",", GetNormalizedHedgeProbabilitiesAsArray());
         }
 
         public void AnalyzePastValues()
@@ -850,7 +855,7 @@ namespace ACESim
                 }
 
                 string rangesString = String.Join("; ", ranges.Select(x => $"({x.startIteration}-{x.endIteration}): {GetActionsAsString(x.significantActions)}"));
-                Console.WriteLine($"Information set {InformationSetNumber} decision {Decision.Name} avg distance {avgDistance} {rangesString}");
+                Console.WriteLine($"Information set {InformationSetNumber} bestrespon {LastBestResponseAction} lastvalues {GetNormalizedHedgeProbabilitiesAsString()} decision {Decision.Name} avg distance {avgDistance} {rangesString}");
             }
         }
 
