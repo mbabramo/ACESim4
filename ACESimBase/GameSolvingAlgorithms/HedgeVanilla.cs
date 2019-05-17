@@ -653,6 +653,7 @@ namespace ACESim
 
         private unsafe void CalculateDiscountingAdjustments()
         {
+            EvolutionSettings.CalculateGamma();
             double positivePower = Math.Pow(HedgeVanillaIteration, EvolutionSettings.Discounting_Alpha);
             double negativePower = Math.Pow(HedgeVanillaIteration, EvolutionSettings.Discounting_Beta);
             PositiveRegretsAdjustment = positivePower / (positivePower + 1.0);

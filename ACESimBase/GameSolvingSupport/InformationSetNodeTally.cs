@@ -30,8 +30,12 @@ namespace ACESim
 
         double[,] NodeInformation;
 
-        const bool SavePastValues = true;
-        List<double[]> PastValues;
+        bool RecordPastValues = false;
+        int RecordPastValuesEveryN;
+        private int LastPastValueIndexRecorded = -1;
+        double[,] PastValues;
+        double[] PastValuesCumulativeStrategyDiscounts;
+        double PastValuesLastCumulativeStrategyDiscount => PastValuesCumulativeStrategyDiscounts[LastPastValueIndexRecorded];
 
         public int NumPossibleActions => Decision.NumPossibleActions;
         const int totalDimensions = 8;
@@ -74,15 +78,21 @@ namespace ACESim
 
         }
 
-        public InformationSetNodeTally(Decision decision, byte decisionIndex)
+        public InformationSetNodeTally(Decision decision, byte decisionIndex, EvolutionSettings evolutionSettings)
         {
             Decision = decision;
             DecisionIndex = decisionIndex;
             Initialize(totalDimensions, decision.NumPossibleActions);
             InformationSetNumber = InformationSetsSoFar;
             Interlocked.Increment(ref InformationSetsSoFar);
-            if (SavePastValues)
-                PastValues = new List<double[]>();
+            RecordPastValues = evolutionSettings.RecordPastValues;
+            RecordPastValuesEveryN = evolutionSettings.RecordPastValuesEveryN;
+            if (RecordPastValues)
+            {
+                int numPastValuesToStore = evolutionSettings.TotalVanillaCFRIterations / RecordPastValuesEveryN;
+                PastValues = new double[numPastValuesToStore, NumPossibleActions];
+                PastValuesCumulativeStrategyDiscounts = new double[numPastValuesToStore];
+            }
         }
 
         public void Reinitialize()
@@ -628,15 +638,9 @@ namespace ACESim
 
         // Note: The first two methods must be used if we don't have a guarantee that updating will take place before each iteration.
 
-        public void UpdateNormalizedHedge(int iteration)
+        public void UpdateNormalizedHedge(int iteration, double averageStrategyAdjustment)
         {
-            if (SavePastValues && iteration > 1)
-            {
-                double[] lastIterationStrategy = new double[NumPossibleActions];
-                for (byte a = 1; a <= NumPossibleActions; a++)
-                    lastIterationStrategy[a - 1] = GetNormalizedHedgeProbability(a);
-                PastValues.Add(lastIterationStrategy);
-            }
+            RecordProbabilitiesAsPastValues(iteration, averageStrategyAdjustment);
             double minLastRegret = 0, maxLastRegret = 0;
             for (byte a = 1; a <= NumPossibleActions; a++)
             {
@@ -700,6 +704,20 @@ namespace ACESim
             }
         }
 
+        private void RecordProbabilitiesAsPastValues(int iteration, double averageStrategyAdjustment)
+        {
+            if (RecordPastValues && iteration % RecordPastValuesEveryN == 0)
+            {
+                LastPastValueIndexRecorded = iteration / RecordPastValuesEveryN - 1;
+                if (LastPastValueIndexRecorded == 0)
+                    PastValuesCumulativeStrategyDiscounts[0] = averageStrategyAdjustment;
+                else
+                    PastValuesCumulativeStrategyDiscounts[LastPastValueIndexRecorded] = PastValuesCumulativeStrategyDiscounts[LastPastValueIndexRecorded] + averageStrategyAdjustment;
+                for (byte a = 1; a <= NumPossibleActions; a++)
+                    PastValues[LastPastValueIndexRecorded, a - 1] = GetNormalizedHedgeProbability(a);
+            }
+        }
+
         public void InitializeNormalizedHedge()
         {
             if (NumPossibleActions == 0)
@@ -730,18 +748,16 @@ namespace ACESim
 
         public unsafe void GetNormalizedHedgeCorrelatedEquilibriumStrategyProbabilities(double randomNumberToChooseIteration, double* probabilities)
         {
-            int pastValuesCount = PastValues.Count;
-            int iterationToUse = (int)Math.Floor(pastValuesCount * randomNumberToChooseIteration);
-            if (iterationToUse == pastValuesCount) // if random number exactly 1
-                iterationToUse--;
-            var pastValues = PastValues[iterationToUse];
+            int pastValuesCount = LastPastValueIndexRecorded + 1;
+            double cumulativeDiscountLevelToSeek = pastValuesCount * randomNumberToChooseIteration;
+            Span<double> pastValueDiscounts = new Span<double>(PastValuesCumulativeStrategyDiscounts, 0, pastValuesCount);
+            int index = pastValueDiscounts.BinarySearch(cumulativeDiscountLevelToSeek, Comparer<double>.Default);
+            if (index < 0)
+                index = ~index; // when negative, index is the bitwise complement of the first index larger than the value sought
+            if (index == pastValuesCount)
+                index--; // should be very rare.
             for (int a = 0; a < NumPossibleActions; a++)
-                probabilities[a] = pastValues[a];
-        }
-
-        public double GetNormalizedHedgeCorrelatedEquilibriumStrategy(byte action, int iteration)
-        {
-            return PastValues[iteration - 1][action];
+                probabilities[a] = PastValues[index, a];
         }
 
         //public unsafe void GetEpsilonAdjustedNormalizedHedgeProbabilities(double* probabilitiesToSet, double epsilon, int iteration)
@@ -778,21 +794,20 @@ namespace ACESim
 
         public void AnalyzePastValues()
         {
-            if (PastValues != null && PastValues.Any())
+            if (PastValues != null && LastPastValueIndexRecorded > -1)
             {
-                int total = PastValues.Count();
+                int total = LastPastValueIndexRecorded;
                 int numToTest = 1000;
                 double sumDistances = 0;
                 for (int i = 0; i < numToTest; i++)
                 {
+                    // Note: we're not weighting these here
                     int j0 = RandomGenerator.Next(total);
                     int j1 = RandomGenerator.Next(total);
-                    double[] p0 = PastValues[j0];
-                    double[] p1 = PastValues[j1];
                     double sumSqDiffs = 0;
                     for (int k = 0; k < NumPossibleActions; k++)
                     {
-                        double diff = p0[k] - p1[k];
+                        double diff = PastValues[j0, k] - PastValues[j1, k];
                         sumSqDiffs += diff * diff;
                     }
                     double distance = Math.Sqrt(sumSqDiffs);
@@ -801,16 +816,15 @@ namespace ACESim
                 double avgDistance = sumDistances / (double) numToTest;
 
                 List<(int startIteration, int endIteration, int significantActions)> ranges = new List<(int startIteration, int endIteration, int significantActions)>();
-                int activeRangeStart = total / 5  /* ignore early iterations */;
+                int activeRangeStart = total / 2  /* focus on second half */;
                 int significantActionsInRange = 0;
 
                 for (int i = activeRangeStart; i < total; i++)
                 {
-                    var actions = PastValues[i];
                     int significantActions = 0;
                     for (int k = 0; k < NumPossibleActions; k++)
                     {
-                        if (actions[k] >= 0.01)
+                        if (PastValues[i, k] >= 0.01)
                         {
                             significantActions |= (1 << k);
                         }

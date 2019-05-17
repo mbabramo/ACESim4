@@ -52,7 +52,25 @@ namespace ACESim
         public bool UseRegretAndStrategyDiscounting = false;
         public const double Discounting_Alpha = 1.5; // multiply accumulated positive regrets by t^alpha / (t^alpha + 1)
         public const double Discounting_Beta = 0.5; // multiply accumulated negative regrets by t^alpha / (t^alpha + 1)
-        public const double Discounting_Gamma = 200;  // multiply contributions to average strategy by (t / t + 1)^gamma, which approaches 1 as t -> inf. Higher gamma means more discounting. If gamma equals 20, then we still get to 80% of the maximum in a mere 100 iterations. In other words, very early iterations are heavily discounted, but after a while, there is very little discounting.
+        public double Discounting_Gamma = 200;  // multiply contributions to average strategy by (t / t + 1)^gamma, which approaches 1 as t -> inf. Higher gamma means more discounting. If gamma equals 20, then we still get to 80% of the maximum in a mere 100 iterations. In other words, very early iterations are heavily discounted, but after a while, there is very little discounting.
+        public bool Discounting_DeriveGamma = true; // if true, gamma is derived so that at the specified proportion of iterations, the discount is the specified proportion of the discount that will exist at the maximum iteration
+        public double DiscountingTarget_ProportionOfIterations = 0.25;
+        public double DiscountingTarget_TargetDiscount = 0.1;
+        public void CalculateGamma()
+        {
+            if (!Discounting_DeriveGamma)
+                return;
+            // we want (pt/(pt+1))^gamma = d * (t/(t+1))^gamma. 
+            double p = DiscountingTarget_ProportionOfIterations;
+            double t = TotalVanillaCFRIterations;
+
+            Discounting_Gamma = Math.Log(DiscountingTarget_TargetDiscount) / (Math.Log(p * t / (p * t + 1)) - Math.Log(t / (t + 1)));
+        }
+
+        public bool RecordPastValues = true; // DEBUG -- necessary for coarse correlated equilibrium
+        public int RecordPastValuesEveryN = 10;
+
+
         public const bool PruneOnOpponentStrategy = false; // NOTE: Not currently supported in hedge vanilla when unrolling algorithm. Also, not using the methods that allow us to do this on own strategy.
         public const double PruneOnOpponentStrategyThreshold = 1E-8;
 

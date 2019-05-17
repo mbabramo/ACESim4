@@ -371,7 +371,7 @@ namespace ACESim
                                 if (creatingInformationSet)
                                     throw new Exception("Internal exception. Lock failing.");
                                 creatingInformationSet = true;
-                                InformationSetNodeTally nodeInfo = new InformationSetNodeTally(decision, informationSetHistory.DecisionIndex);
+                                InformationSetNodeTally nodeInfo = new InformationSetNodeTally(decision, informationSetHistory.DecisionIndex, navigation.EvolutionSettings);
                                 navigation.InformationSets.Add(nodeInfo);
                                 creatingInformationSet = false;
                                 return nodeInfo;

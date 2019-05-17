@@ -177,7 +177,7 @@ namespace ACESim
                 ChanceNodes = new List<ChanceNodeSettings>();
                 FinalUtilitiesNodes = new List<FinalUtilities>();
             }
-            Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, InformationSets, ChanceNodes, FinalUtilitiesNodes, GetGameState);
+            Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, InformationSets, ChanceNodes, FinalUtilitiesNodes, GetGameState, EvolutionSettings);
             foreach (Strategy strategy in Strategies)
                 strategy.Navigation = Navigation;
 
@@ -745,7 +745,7 @@ namespace ACESim
         public double[] GetAverageUtilities()
         {
             double[] cumulated = new double[NumNonChancePlayers];
-            Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, InformationSets, ChanceNodes, FinalUtilitiesNodes, GetGameState);
+            Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, InformationSets, ChanceNodes, FinalUtilitiesNodes, GetGameState, EvolutionSettings);
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
             GetAverageUtilities_Helper(ref historyPoint, cumulated, 1.0);
             return cumulated;
@@ -792,7 +792,7 @@ namespace ACESim
 
         public (string standardReport, string csvReport) GenerateReportsByPlaying(Action<GamePlayer, Func<Decision, GameProgress, byte>> generator)
         {
-            Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, InformationSets, ChanceNodes, FinalUtilitiesNodes, GetGameState);
+            Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, InformationSets, ChanceNodes, FinalUtilitiesNodes, GetGameState, EvolutionSettings);
             StringBuilder standardReport = new StringBuilder();
             StringBuilder csvReport = new StringBuilder();
             var simpleReportDefinitions = GameDefinition.GetSimpleReportDefinitions();
