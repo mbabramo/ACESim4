@@ -640,7 +640,6 @@ namespace ACESim
             ActionStrategies actionStrategy = ActionStrategy;
             if (actionStrategy == ActionStrategies.CorrelatedEquilibrium)
                 actionStrategy = ActionStrategies.AverageStrategy; // best response against average strategy is same as against correlated equilibrium
-            CalculateBestResponse();
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
                 bool utilityCalculationsCollected = UtilityCalculationsArray.StatCollectors[playerBeingOptimized].Num() > 0;

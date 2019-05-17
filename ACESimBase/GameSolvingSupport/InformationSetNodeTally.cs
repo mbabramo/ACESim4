@@ -28,7 +28,7 @@ namespace ACESim
         public int NumBackupRegretIncrements = 0;
         public int NumBackupRegretsSinceLastRegretIncrement = 0;
 
-        double[,] NodeInformation;
+        public double[,] NodeInformation;
 
         bool RecordPastValues = false;
         int RecordPastValuesEveryN;
@@ -231,6 +231,10 @@ namespace ACESim
                 }
             }
             LastBestResponseAction = (byte)best;
+            if (InformationSetNumber == 95 && LastBestResponseAction == 2)
+            {
+                var DEBUG = 0;
+            }
             BestResponseDeterminedFromIncrements = true;
         }
 

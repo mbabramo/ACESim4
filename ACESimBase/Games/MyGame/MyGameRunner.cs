@@ -26,7 +26,7 @@ namespace ACESim
         private const int VanillaIterations = 35_395;
         private const int VanillaReportEveryNIterations = 35_395;
         private const int VanillaBestResponseEveryMIterations = 35_395;
-        private const int MiniReportEveryPIterations = 35_395;
+        private const int MiniReportEveryPIterations = 3_000;
         private const bool UseRandomPathsForReporting = false;
         private const int SummaryTableIterations = 100_000; // relevant only if UseRandomPaths
 
