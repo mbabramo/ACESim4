@@ -164,6 +164,8 @@ namespace ACESim
                 default:
                     throw new NotImplementedException();
             }
+            if (EvolutionSettings.SerializeResults)
+                StrategySerialization.SerializeStrategies(Strategies.ToArray(), "serstat.sst");
             return report;
         }
 
@@ -313,9 +315,10 @@ namespace ACESim
             }
         }
 
-        private void PrintInformationSets(NWayTreeStorageInternal<IGameState> informationSetTree)
+        public void AnalyzeInformationSets()
         {
-            throw new NotImplementedException();
+            foreach (var infoSet in InformationSets)
+                infoSet.AnalyzePastValues();
         }
 
         public void PrintGameTree()
@@ -583,6 +586,8 @@ namespace ACESim
                     PrintGameTree();
                 if (EvolutionSettings.PrintInformationSets)
                     PrintInformationSets();
+                if (EvolutionSettings.AnalyzeInformationSets)
+                    AnalyzeInformationSets();
             }
 
             return reportString;

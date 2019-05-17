@@ -10,8 +10,8 @@ namespace ACESim
     public static class MyGameOptionsGenerator
     {
 
-        static bool ambitious = true;
-        static bool superSimple = false;
+        static bool ambitious = false;
+        static bool superSimple = true;
 
         public static MyGameOptions SingleRound() => ambitious ? SingleRound_Ambitious() : (superSimple ? SingleRound_SuperSimple() : SingleRound_Usual());
         public static MyGameOptions SingleRound_SuperSimple()
@@ -136,8 +136,8 @@ namespace ACESim
                 DInitialWealth = 1000000,
                 DamagesToAllege = 100000,
                 NumLitigationQualityPoints = 10,
-                NumSignals = 8,
-                NumOffers = 8,
+                NumSignals = 7,
+                NumOffers = 7,
                 MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
                 {
                     ProbabilityTrulyLiable_LitigationQuality75 = 0.75,

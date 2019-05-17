@@ -5,6 +5,7 @@ using System.Threading;
 
 namespace ACESimBase.Util
 {
+    [Serializable]
     public sealed class SimpleExclusiveLock : IDisposable
     {
         public void Dispose()

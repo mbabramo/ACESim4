@@ -52,6 +52,7 @@ namespace ACESim
         const int cumulativeRegretBackupDimension = 6;
 
         // Normalized hedge
+        [NonSerialized]
         public SimpleExclusiveLock UpdatingHedge;
         const double NormalizedHedgeEpsilon = 0.5;
         public byte LastBestResponseAction = 0;
@@ -773,6 +774,70 @@ namespace ACESim
             for (int a = 0; a < NumPossibleActions; a++)
                 array[a] = actionProbabilities[a];
             return array;
+        }
+
+        public void AnalyzePastValues()
+        {
+            if (PastValues != null && PastValues.Any())
+            {
+                int total = PastValues.Count();
+                int numToTest = 1000;
+                double sumDistances = 0;
+                for (int i = 0; i < numToTest; i++)
+                {
+                    int j0 = RandomGenerator.Next(total);
+                    int j1 = RandomGenerator.Next(total);
+                    double[] p0 = PastValues[j0];
+                    double[] p1 = PastValues[j1];
+                    double sumSqDiffs = 0;
+                    for (int k = 0; k < NumPossibleActions; k++)
+                    {
+                        double diff = p0[k] - p1[k];
+                        sumSqDiffs += diff * diff;
+                    }
+                    double distance = Math.Sqrt(sumSqDiffs);
+                    sumDistances += distance;
+                }
+                double avgDistance = sumDistances / (double) numToTest;
+
+                List<(int startIteration, int endIteration, int significantActions)> ranges = new List<(int startIteration, int endIteration, int significantActions)>();
+                int activeRangeStart = total / 5  /* ignore early iterations */;
+                int significantActionsInRange = 0;
+
+                for (int i = activeRangeStart; i < total; i++)
+                {
+                    var actions = PastValues[i];
+                    int significantActions = 0;
+                    for (int k = 0; k < NumPossibleActions; k++)
+                    {
+                        if (actions[k] >= 0.01)
+                        {
+                            significantActions |= (1 << k);
+                        }
+                    }
+                    if (significantActions != significantActionsInRange || i == total - 1)
+                    {
+                        if (i > 0)
+                            ranges.Add(((int)activeRangeStart, i - 1, significantActionsInRange));
+                        activeRangeStart = i;
+                        significantActionsInRange = significantActions;
+                    }
+                }
+                int minNumIterations = 1;
+                ranges = ranges.Where(x => x.endIteration - x.startIteration + 1 >= minNumIterations).ToList();
+
+                string GetActionsAsString(int sigActionsBits)
+                {
+                    List<int> sigActions = new List<int>();
+                    for (int i = 0; i < 32; i++)
+                        if ((sigActionsBits & (1 << i)) != 0)
+                            sigActions.Add(i);
+                    return String.Join(",", sigActions);
+                }
+
+                string rangesString = String.Join("; ", ranges.Select(x => $"({x.startIteration}-{x.endIteration}): {GetActionsAsString(x.significantActions)}"));
+                Console.WriteLine($"Information set {InformationSetNumber} decision {Decision.Name} avg distance {avgDistance} {rangesString}");
+            }
         }
 
         #endregion
