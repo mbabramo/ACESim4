@@ -52,6 +52,8 @@ namespace ACESim
         {
             var colItems = new List<SimpleReportColumnItem>()
             {
+                new SimpleReportColumnVariable("PWelfare", (GameProgress gp) => MyGP(gp).PWelfare),
+                new SimpleReportColumnVariable("DWelfare", (GameProgress gp) => MyGP(gp).DWelfare),
                 new SimpleReportColumnFilter("All", (GameProgress gp) => true, true),
                 new SimpleReportColumnFilter("NoDispute", (GameProgress gp) => !MyGP(gp).DisputeArises, true),
                 new SimpleReportColumnFilter("DisputeArises", (GameProgress gp) => MyGP(gp).DisputeArises, true),
