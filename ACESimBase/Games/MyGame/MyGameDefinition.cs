@@ -264,11 +264,11 @@ namespace ACESim
 
         private void AddDecisionsForBargainingRound(int b, List<Decision> decisions)
         {
-            // Agreement to bargain: We do want to add this to the information set of the opposing player, since that may be relevant in future rounds and also might affect decisions whether to abandon/default later in this round, but we want to defer addition of the plaintiff statement, so that it doesn't influence the defendant decision.
+            // Agreement to bargain: We do want to add this to the information set of the opposing player, since that may be relevant in future rounds and also might affect decisions whether to abandon/default later in this round, but we want to defer addition of the plaintiff statement, so that it doesn't influence the defendant decision, since the players are supposedly making the decisions at the same time.
 
             if (Options.IncludeAgreementToBargainDecisions)
             {
-                var pAgreeToBargain = new Decision("PAgreeToBargain" + (b + 1), "PB" + (b + 1), (byte) MyGamePlayers.Plaintiff, new byte[] { (byte) MyGamePlayers.Resolution, (byte) MyGamePlayers.Defendant},
+                var pAgreeToBargain = new Decision("PAgreeToBargain" + (b + 1), "PB" + (b + 1), (byte) MyGamePlayers.Plaintiff, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
                     2, (byte) MyGameDecisions.PAgreeToBargain)
                 {
                     CustomByte = (byte) (b + 1),
@@ -278,7 +278,7 @@ namespace ACESim
                 };
                 decisions.Add(pAgreeToBargain);
 
-                var dAgreeToBargain = new Decision("DAgreeToBargain" + (b + 1), "DB" + (b + 1), (byte) MyGamePlayers.Defendant, new byte[] { (byte) MyGamePlayers.Resolution, (byte) MyGamePlayers.Plaintiff},
+                var dAgreeToBargain = new Decision("DAgreeToBargain" + (b + 1), "DB" + (b + 1), (byte) MyGamePlayers.Defendant, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
                     2, (byte) MyGameDecisions.DAgreeToBargain)
                 {
                     CustomByte = (byte) (b + 1),
@@ -293,7 +293,7 @@ namespace ACESim
             {
                 // samuelson-chaterjee bargaining.
                 var pOffer =
-                    new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, new byte[] { (byte)MyGamePlayers.Resolution, (byte) MyGamePlayers.Defendant },
+                    new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
                         Options.NumOffers, (byte)MyGameDecisions.POffer)
                     {
                         CustomByte = (byte)(b + 1),
@@ -309,7 +309,7 @@ namespace ACESim
                 }
                 AddOfferDecisionOrSubdivisions(decisions, pOffer);
                 var dOffer =
-                    new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, new byte[] { (byte)MyGamePlayers.Resolution, (byte) MyGamePlayers.Plaintiff },
+                    new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
                         Options.NumOffers, (byte)MyGameDecisions.DOffer)
                     {
                         CanTerminateGame = true,
@@ -327,12 +327,11 @@ namespace ACESim
             }
             else
             {
-                // offer-response bargaining. We add the offer and response to the opposing players' information sets. Note that the reason that we add the response is only so that if we decide to have some other decision in this bargaining round, we don't have the decisions confused. 
-                debug; // Plaintiff is not being informed of his own offer -- and defendant is not being informed of his own offer. This becomes a problem in developing the best response, because we end up having a single information set regardless of what the player previously decided. This messes up the best response calculation, which assumes perfect recall. If we have a single information set for two situations, we end up choosing one best response decision for both situations, when we want to have different best response decisions in the different situations, since the OTHER player will do different things in those situations. Add some testing to ensure perfect recall. We should eliminate all options that are inconsistent with perfect recall. 
+                // offer-response bargaining. We add the offer and response to the players' information sets. 
                 if (Options.PGoesFirstIfNotSimultaneous[b])
                 {
                     var pOffer =
-                        new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, new byte[] { (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
+                        new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, new byte[] { (byte) MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
                             Options.NumOffers, (byte)MyGameDecisions.POffer)
                         {
                             CustomByte = (byte)(b + 1),
@@ -343,10 +342,9 @@ namespace ACESim
                         pOffer.IncrementGameCacheItem = pOffer.IncrementGameCacheItem.Concat(new byte[] {GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound}).ToArray(); // for detour marker
                     AddOfferDecisionOrSubdivisions(decisions, pOffer);
                     decisions.Add(
-                        new Decision("DefendantResponse" + (b + 1), "DR" + (b + 1), (byte)MyGamePlayers.Defendant, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Resolution }, 2,
+                        new Decision("DefendantResponse" + (b + 1), "DR" + (b + 1), (byte)MyGamePlayers.Defendant, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution }, 2,
                             (byte)MyGameDecisions.DResponse)
                         {
-                            PlayersToInformOfOccurrenceOnly = new byte[] { (byte)MyGamePlayers.Defendant },
                             CanTerminateGame = true,
                             CustomByte = (byte)(b + 1),
                             IncrementGameCacheItem = new byte[] { GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound },
@@ -356,7 +354,7 @@ namespace ACESim
                 else
                 {
                     var dOffer =
-                        new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Resolution },
+                        new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
                             Options.NumOffers, (byte)MyGameDecisions.DOffer)
                         {
                             CustomByte = (byte)(b + 1),
@@ -367,11 +365,9 @@ namespace ACESim
                         dOffer.IncrementGameCacheItem = dOffer.IncrementGameCacheItem.Concat(new byte[] {GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound}).ToArray(); // for detour marker
                     AddOfferDecisionOrSubdivisions(decisions, dOffer);
                     decisions.Add(
-                        new Decision("PlaintiffResponse" + (b + 1), "PR" + (b + 1), (byte)MyGamePlayers.Plaintiff, new byte[] { (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution }, 2,
+                        new Decision("PlaintiffResponse" + (b + 1), "PR" + (b + 1), (byte)MyGamePlayers.Plaintiff, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution }, 2,
                             (byte)MyGameDecisions.PResponse)
                         {
-                            PlayersToInformOfOccurrenceOnly = new byte[] { (byte) MyGamePlayers.Plaintiff },
-                            CanTerminateGame = true,
                             CustomByte = (byte)(b + 1),
                             IncrementGameCacheItem = new byte[] { GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound },
                             StoreActionInGameCacheItem = GameHistoryCacheIndex_PResponse,
@@ -414,14 +410,11 @@ namespace ACESim
 
         private void AddAbandonOrDefaultDecisions(int b, List<Decision> decisions)
         {
-            // no need to notify other player, as if abandon/default takes place, this will be the last decision. But we do need to make sure that player can distinguish between abandon/default decision and a later decision (such as a pretrial decision), so the player notifies itself that a decision has taken place.
-
             var pAbandon =
-                new Decision("PAbandon" + (b + 1), "PA" + (b + 1), (byte)MyGamePlayers.Plaintiff, new byte[] { (byte)MyGamePlayers.Resolution },
+                new Decision("PAbandon" + (b + 1), "PA" + (b + 1), (byte)MyGamePlayers.Plaintiff, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte) MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
                     2, (byte)MyGameDecisions.PAbandon)
                 {
                     CustomByte = (byte)(b + 1),
-                    PlayersToInformOfOccurrenceOnly = new byte[] { (byte)MyGamePlayers.Plaintiff },
                     CanTerminateGame = false, // we always must look at whether D is defaulting too. 
                     IncrementGameCacheItem = new byte[] { GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound },
                     StoreActionInGameCacheItem = GameHistoryCacheIndex_PReadyToAbandon,
@@ -430,11 +423,10 @@ namespace ACESim
             decisions.Add(pAbandon);
 
             var dDefault =
-                new Decision("DDefault" + (b + 1), "DD" + (b + 1), (byte)MyGamePlayers.Defendant, new byte[] { (byte)MyGamePlayers.Resolution },
+                new Decision("DDefault" + (b + 1), "DD" + (b + 1), (byte)MyGamePlayers.Defendant, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
                     2, (byte)MyGameDecisions.DDefault)
                 {
                     CustomByte = (byte)(b + 1),
-                    PlayersToInformOfOccurrenceOnly = new byte[] { (byte)MyGamePlayers.Defendant },
                     CanTerminateGame = true, // if either but not both has given up, game terminates
                     IncrementGameCacheItem = new byte[] { GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound },
                     StoreActionInGameCacheItem = GameHistoryCacheIndex_DReadyToAbandon,
@@ -443,7 +435,7 @@ namespace ACESim
             decisions.Add(dDefault);
 
             var bothGiveUp =
-                new Decision("MutualGiveUp" + (b + 1), "MGU" + (b + 1), (byte)MyGamePlayers.BothGiveUpChance, new byte[] { (byte)MyGamePlayers.Resolution },
+                new Decision("MutualGiveUp" + (b + 1), "MGU" + (b + 1), (byte)MyGamePlayers.BothGiveUpChance, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
                     2, (byte)MyGameDecisions.MutualGiveUp, unevenChanceActions: false)
                 {
                     CustomByte = (byte)(b + 1),
