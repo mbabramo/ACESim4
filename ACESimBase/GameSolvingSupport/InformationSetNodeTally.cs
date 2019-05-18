@@ -390,6 +390,7 @@ namespace ACESim
             NodeInformation[cumulativeStrategyDimension, action - 1] += amount;
         }
 
+        public static bool ZeroOutInCalculatingAverageStrategies = false;
         public static double ZeroOutBelow = 1E-50;
 
         public unsafe void GetAverageStrategies(double* probabilities)
@@ -402,7 +403,7 @@ namespace ACESim
             for (int a = 1; a <= NumPossibleActions; a++)
             {
                 double quotient = GetCumulativeStrategy(a) / sum;
-                if (quotient > 0 && quotient < ZeroOutBelow)
+                if (quotient > 0 && ZeroOutInCalculatingAverageStrategies && quotient < ZeroOutBelow)
                 {
                     zeroedOutSome = true;
                     probabilities[a - 1] = 0;

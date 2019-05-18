@@ -572,6 +572,7 @@ namespace ACESim
                 foreach (var actionStrategy in actionStrategiesToUse)
                 {
                     ActionStrategy = actionStrategy;
+                    ActionStrategyLastReport = ActionStrategy.ToString();
                     if (EvolutionSettings.GenerateReportsByPlaying)
                         reportString += GenerateReportsByPlaying(useRandomPaths);
                 }
@@ -593,6 +594,7 @@ namespace ACESim
             return reportString;
         }
 
+        string ActionStrategyLastReport;
         private unsafe string GenerateReportsByPlaying(bool useRandomPaths)
         {
             Action<GamePlayer, Func<Decision, GameProgress, byte>> reportGenerator;
@@ -619,6 +621,8 @@ namespace ACESim
         double[] BestResponseUtilities;
         long[] BestResponseCalculationTimes;
 
+        bool BestResponseIsToAverageStrategy = true; // usually, this should be true, since the average strategy is the least exploitable strategy
+        string BestResponseOpponentString => BestResponseIsToAverageStrategy ? "average strategy" : ActionStrategy.ToString();
         private unsafe void CalculateBestResponse()
         {
             BestResponseUtilities = new double[NumNonChancePlayers];
@@ -626,6 +630,8 @@ namespace ACESim
             ActionStrategies actionStrategy = ActionStrategy;
             if (actionStrategy == ActionStrategies.CorrelatedEquilibrium)
                 actionStrategy = ActionStrategies.AverageStrategy; // best response against average strategy is same as against correlated equilibrium
+            if (BestResponseIsToAverageStrategy)
+                actionStrategy = ActionStrategies.AverageStrategy;
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
                 Stopwatch s = new Stopwatch();
@@ -637,31 +643,24 @@ namespace ACESim
         }
         private unsafe void CompareBestResponse(bool useRandomPaths)
         {
+            // This is comparing (1) Best response vs. average strategy; to (2) most recently calculated average strategy
             ActionStrategies actionStrategy = ActionStrategy;
             if (actionStrategy == ActionStrategies.CorrelatedEquilibrium)
                 actionStrategy = ActionStrategies.AverageStrategy; // best response against average strategy is same as against correlated equilibrium
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
                 bool utilityCalculationsCollected = UtilityCalculationsArray.StatCollectors[playerBeingOptimized].Num() > 0;
-                string actionStrategyString;
-                if (actionStrategy == ActionStrategies.AverageStrategy)
-                    actionStrategyString = "average strategy";
-                else if (actionStrategy == ActionStrategies.Hedge || actionStrategy == ActionStrategies.NormalizedHedge)
-                    actionStrategyString = "hedge";
-                else
-                    actionStrategyString = "regret matching";
                 string utilityReport = "", improvementReport = "";
                 if (utilityCalculationsCollected)
                 {
-                    string opponentStrategy = $"playing {actionStrategyString}";
-                    utilityReport = $"{opponentStrategy} {UtilityCalculationsArray.StatCollectors[playerBeingOptimized].Average()} ";
+                    utilityReport = $"{UtilityCalculationsArray.StatCollectors[playerBeingOptimized].Average()} ";
                     double bestResponseImprovement = BestResponseUtilities[playerBeingOptimized] - UtilityCalculationsArray.StatCollectors[playerBeingOptimized].Average();
                     if (!useRandomPaths && bestResponseImprovement < 0 && Math.Abs(bestResponseImprovement) > Math.Abs(BestResponseUtilities[playerBeingOptimized]) / 1E-8)
                         throw new Exception("Best response function worse."); // it can be slightly negative as a result of rounding error or if we are using random paths as a result of sampling error
                     improvementReport = $" best response improvement {bestResponseImprovement}";
                 }
 
-                Console.WriteLine($"Player {playerBeingOptimized} utility (opponent using average strategy): {utilityReport}playing best response {BestResponseUtilities[playerBeingOptimized]} (in {BestResponseCalculationTimes[playerBeingOptimized]} milliseconds){improvementReport}");
+                Console.WriteLine($"U(P{playerBeingOptimized}) {ActionStrategyLastReport}: {utilityReport}Best response vs. {BestResponseOpponentString} {BestResponseUtilities[playerBeingOptimized]} (in {BestResponseCalculationTimes[playerBeingOptimized]} milliseconds){improvementReport}");
             }
         }
 

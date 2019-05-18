@@ -39,7 +39,7 @@ namespace ACESim
         public int NumRandomIterationsForSummaryTable = 10000;
         public bool PrintGameTree = false;
         public bool PrintInformationSets = false;
-        public bool AnalyzeInformationSets = true; 
+        public bool AnalyzeInformationSets = false; 
         public List<int> RestrictToTheseInformationSets = null;
         public bool PrintNonChanceInformationSetsOnly = true;
         public List<ActionStrategies> ActionStrategiesToUseInReporting = new List<ActionStrategies>() { ActionStrategies.AverageStrategy };

@@ -15,7 +15,7 @@ namespace ACESim
             /// </summary>
             public double AverageStrategyVsAverageStrategy;
             /// <summary>
-            /// The utility from the player being optimized playing an approximate best response to the other player's use of average strategies. This can be compared to average strategy performance against average strategies; this will be higher, but not much in Epsilon equilibrium.
+            /// The utility from the player being optimized playing an approximate best response to the other player's use of average strategies. This can be compared to average strategy performance against average strategies; this will be higher, but not much in Nash Epsilon equilibrium. Also, best response (to correlated equilibrium strategy over time) can be compared to correlated equilibrium strategy; it should be better too, but not by much
             /// </summary>
             public double BestResponseToAverageStrategy;
 
