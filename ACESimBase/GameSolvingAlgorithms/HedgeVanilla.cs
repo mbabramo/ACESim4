@@ -44,8 +44,8 @@ namespace ACESim
             {
                 HedgeVanillaIteration = iteration;
                 HedgeVanillaIterationInt = iteration;
-                if (iteration == 3000)
-                    Unroll_Commands.SetSkip("Optimizing player 0", false); // DEBUG
+                //if (iteration == 1001)
+                //    Unroll_Commands.SetSkip("Optimizing player 0", true); // DEBUG -- SUPERDEBUG
                 HedgeVanillaIterationStopwatch.Start();
                 Unroll_ExecuteUnrolledCommands(array, iteration == 1);
                 HedgeVanillaIterationStopwatch.Stop();
@@ -634,6 +634,8 @@ namespace ACESim
             MiniReport(iteration, results);
 
             UpdateInformationSets(iteration);
+            if (iteration == 3000)
+                Br.eak.Add("3000");
 
             reportString = GenerateReports(iteration,
                 () =>
@@ -645,10 +647,12 @@ namespace ACESim
         {
             if (iteration % EvolutionSettings.MiniReportEveryPIterations == 0)
             {
-                TabbedText.WriteLine($"Iteration {iteration}");
+                TabbedText.WriteLine($"Iteration {iteration} (AverageStrategyAdjustment {AverageStrategyAdjustment})");
                 TabbedText.Tabs++;
                 for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
                     TabbedText.WriteLine($"Player {playerBeingOptimized} {results[playerBeingOptimized]} Overall milliseconds per iteration {((HedgeVanillaIterationStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
+                var DEBUG1 = InformationSets.Single(x => x.InformationSetNumber == 273);
+                TabbedText.WriteLine($"SET 273: BEST: {DEBUG1.LastBestResponseAction}: Hedge: {DEBUG1.GetNormalizedHedgeProbabilitiesAsString()} Average: {DEBUG1.GetAverageStrategiesAsString()}");
                 TabbedText.Tabs--;
             }
         }
@@ -660,7 +664,7 @@ namespace ACESim
             double negativePower = Math.Pow(HedgeVanillaIteration, EvolutionSettings.Discounting_Beta);
             PositiveRegretsAdjustment = positivePower / (positivePower + 1.0);
             NegativeRegretsAdjustment = negativePower / (negativePower + 1.0);
-            AverageStrategyAdjustment = Math.Pow(HedgeVanillaIteration / (HedgeVanillaIteration), EvolutionSettings.Discounting_Gamma);
+            AverageStrategyAdjustment = Math.Pow((double) HedgeVanillaIteration / ((double)HedgeVanillaIteration + 1), EvolutionSettings.Discounting_Gamma);
         }
 
         /// <summary>
@@ -776,6 +780,7 @@ namespace ACESim
                     // NOTE: With normalized hedge, we do NOT discount regrets, because we're normalizing regrets at the end of each iteration.
                     informationSet.NormalizedHedgeIncrementLastRegret(action, inversePi * regret);
                     double contributionToAverageStrategy = pi * actionProbabilities[action - 1];
+                    Debug; 
                     if (EvolutionSettings.UseRegretAndStrategyDiscounting)
                         contributionToAverageStrategy *=  AverageStrategyAdjustment;
                     if (EvolutionSettings.ParallelOptimization)

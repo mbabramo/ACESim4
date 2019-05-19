@@ -164,6 +164,8 @@ namespace ACESimBase.Util.ArrayProcessing
             {
                 if (x.StoredValue.Name == chunkName)
                     x.StoredValue.Skip = skip;
+                else if (x.Parent != null)
+                    x.StoredValue.Skip = x.Parent.StoredValue.Skip;
             });
         }
 
@@ -949,7 +951,11 @@ else
                 {
                     var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
                     var commandChunk = node.StoredValue;
-                    if (!commandChunk.Skip)
+                    if (commandChunk.Skip)
+                    {
+                        var DEBUG = 0;
+                    }
+                    else
                     {
                         if (node.Branches == null || !node.Branches.Any())
                         {

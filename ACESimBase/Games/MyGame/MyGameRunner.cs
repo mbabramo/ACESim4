@@ -23,12 +23,12 @@ namespace ACESim
         private const GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.HedgeVanilla;
 
         private const int ProbingIterations = 20_000_000;
-        private const int VanillaIterations = 25_000;
-        private const int VanillaReportEveryNIterations = 25_000;
-        private const int VanillaBestResponseEveryMIterations = 25_000; 
+        private const int VanillaIterations = 10_000;
+        private const int VanillaReportEveryNIterations = 10_000;
+        private const int VanillaBestResponseEveryMIterations = 10_000; 
         private const int MiniReportEveryPIterations = 1000;
-        private const bool UseRandomPathsForReporting = true;
-        private const int SummaryTableIterations = 100_000; // relevant only if UseRandomPaths
+        private const bool UseRandomPathsForReporting = false; // DEBUG
+        private const int SummaryTableRandomPathsIterations = 10_000;
 
         private const bool UseRegretAndStrategyDiscounting = true;
 
@@ -58,16 +58,16 @@ namespace ACESim
                 ReportEveryNIterations = Algorithm == GameApproximationAlgorithm.ExploratoryProbing ? 500_000 : VanillaReportEveryNIterations,
                 BestResponseEveryMIterations = Algorithm == GameApproximationAlgorithm.ExploratoryProbing ? EvolutionSettings.EffectivelyNever : VanillaBestResponseEveryMIterations, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
                 MiniReportEveryPIterations = Algorithm == GameApproximationAlgorithm.ExploratoryProbing ? EvolutionSettings.EffectivelyNever : MiniReportEveryPIterations,
-                NumRandomIterationsForSummaryTable = SummaryTableIterations,
+                NumRandomIterationsForSummaryTable = SummaryTableRandomPathsIterations,
                 GenerateReportsByPlaying = true,
                 PrintInformationSets = false,
                 RestrictToTheseInformationSets = null, // new List<int>() {0, 34, 5, 12},
                 PrintGameTree = false,
                 ActionStrategiesToUseInReporting = 
                  new List<ActionStrategies>() {
-                     ActionStrategies.CorrelatedEquilibrium,
-                     ActionStrategies.BestResponseVsCorrelatedEquilibrium,
-                     ActionStrategies.CorrelatedEquilibriumVsBestResponse,
+                     //ActionStrategies.CorrelatedEquilibrium,
+                     //ActionStrategies.BestResponseVsCorrelatedEquilibrium,
+                     //ActionStrategies.CorrelatedEquilibriumVsBestResponse,
                      ActionStrategies.AverageStrategy },
                 TotalProbingCFRIterations = ProbingIterations,
                 EpsilonForMainPlayer = 0.5,

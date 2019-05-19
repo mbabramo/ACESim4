@@ -382,11 +382,19 @@ namespace ACESim
 
         public void IncrementCumulativeStrategy_Parallel(int action, double amount)
         {
+            if (Br.eak.Contains("3000") && InformationSetNumber == 273)
+            {
+                var DEBUG = 0;
+            }
             Interlocking.Add(ref NodeInformation[cumulativeStrategyDimension, action - 1], amount);
         }
 
         public void IncrementCumulativeStrategy(int action, double amount)
         {
+            if (Br.eak.Contains("3000") && InformationSetNumber == 273)
+            {
+                var DEBUG = 0;
+            }
             NodeInformation[cumulativeStrategyDimension, action - 1] += amount;
         }
 
@@ -422,6 +430,22 @@ namespace ACESim
             if (sum == 0)
                 GetEqualProbabilitiesRegretMatching(probabilities);
 
+        }
+
+        public unsafe double[] GetAverageStrategiesAsArray()
+        {
+            double[] array = new double[NumPossibleActions];
+
+            double* actionProbabilities = stackalloc double[NumPossibleActions];
+            GetAverageStrategies(actionProbabilities);
+            for (int a = 0; a < NumPossibleActions; a++)
+                array[a] = actionProbabilities[a];
+            return array;
+        }
+
+        public unsafe string GetAverageStrategiesAsString()
+        {
+            return String.Join(", ", GetAverageStrategiesAsArray().Select(x => x.ToSignificantFigures(3)));
         }
 
         public void SetActionToCertainty(byte action, byte numPossibleActions)
@@ -685,19 +709,24 @@ namespace ACESim
                 sumWeights *= 1E+15;
             }
             // Finally, calculate the hedge adjusted probabilities
+            if (InformationSetNumber == 273 && iteration > 3000)
+            {
+                var DEBUG = 0;
+            }
+            const double smallestProbability = 1E-300; // We make this considerably greater than Double.Epsilon (but still very small), because otherwise when we multiply the value by anything < 1, we get 0, and this makes it impossible to climb out of being a zero-probability action.
             for (int a = 1; a <= NumPossibleActions; a++)
             {
                 double probabilityHedge = NodeInformation[adjustedWeightsDimension, a - 1] / sumWeights;
-                if (probabilityHedge == 0)
-                    probabilityHedge = Double.Epsilon; // always maintain at least the smallest possible positive probability
+                if (probabilityHedge < smallestProbability)
+                    probabilityHedge = smallestProbability; 
                 if (double.IsNaN(probabilityHedge))
                     throw new Exception();
                 NodeInformation[hedgeProbabilityDimension, a - 1] = probabilityHedge;
                 if (sumCumulativeStrategies > 0)
                 {
                     double probabilityAverageStrategy = NodeInformation[cumulativeStrategyDimension, a - 1] / sumCumulativeStrategies;
-                    if (probabilityAverageStrategy == 0)
-                        probabilityAverageStrategy = Double.Epsilon; // always maintain at least the smallest possible positive probability
+                    if (probabilityAverageStrategy < smallestProbability)
+                        probabilityAverageStrategy = smallestProbability; 
                     if (double.IsNaN(probabilityAverageStrategy))
                         throw new Exception();
                     NodeInformation[averageStrategyProbabilityDimension, a - 1] = probabilityAverageStrategy;
@@ -795,11 +824,12 @@ namespace ACESim
 
         public unsafe string GetNormalizedHedgeProbabilitiesAsString()
         {
-            return String.Join(",", GetNormalizedHedgeProbabilitiesAsArray());
+            return String.Join(", ", GetNormalizedHedgeProbabilitiesAsArray().Select(x => x.ToSignificantFigures(3)));
         }
 
-        public void AnalyzePastValues()
+        public void Analyze()
         {
+            string avgDistanceString = null, rangesString = null;
             if (PastValues != null && LastPastValueIndexRecorded > -1)
             {
                 int total = LastPastValueIndexRecorded;
@@ -820,6 +850,7 @@ namespace ACESim
                     sumDistances += distance;
                 }
                 double avgDistance = sumDistances / (double) numToTest;
+                avgDistanceString = avgDistance.ToSignificantFigures(3);
 
                 List<(int startIteration, int endIteration, int significantActions)> ranges = new List<(int startIteration, int endIteration, int significantActions)>();
                 int activeRangeStart = total / 2  /* focus on second half */;
@@ -855,9 +886,14 @@ namespace ACESim
                     return String.Join(",", sigActions);
                 }
 
-                string rangesString = String.Join("; ", ranges.Select(x => $"({x.startIteration}-{x.endIteration}): {GetActionsAsString(x.significantActions)}"));
-                Console.WriteLine($"Information set {InformationSetNumber} bestrespon {LastBestResponseAction} lastvalues {GetNormalizedHedgeProbabilitiesAsString()} decision {Decision.Name} avg distance {avgDistance} {rangesString}");
+                rangesString = String.Join("; ", ranges.Select(x => $"({x.startIteration}-{x.endIteration}): {GetActionsAsString(x.significantActions)}"));
             }
+            string hedgeString = GetNormalizedHedgeProbabilitiesAsString();
+            double[] averageStrategies = GetAverageStrategiesAsArray();
+            string avgStratString = GetAverageStrategiesAsString();
+            bool avgStratSameAsBestResponse = averageStrategies[LastBestResponseAction - 1] > 0.9999999;
+            if (!avgStratSameAsBestResponse)
+                Console.WriteLine($"{(avgStratSameAsBestResponse ? "*" : "")} decision {Decision.Name} Information set {InformationSetNumber} bestrespon {LastBestResponseAction} hedge {hedgeString} avg {avgStratString} avg distance {avgDistanceString} ranges: {rangesString}");
         }
 
         #endregion
@@ -998,7 +1034,6 @@ namespace ACESim
                 array[a] = actionProbabilities[a];
             return array;
         }
-
 
         #endregion
 

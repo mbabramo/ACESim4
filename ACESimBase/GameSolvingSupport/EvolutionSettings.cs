@@ -39,7 +39,7 @@ namespace ACESim
         public int NumRandomIterationsForSummaryTable = 10000;
         public bool PrintGameTree = false;
         public bool PrintInformationSets = false;
-        public bool AnalyzeInformationSets = false; 
+        public bool AnalyzeInformationSets = true; 
         public List<int> RestrictToTheseInformationSets = null;
         public bool PrintNonChanceInformationSetsOnly = true;
         public List<ActionStrategies> ActionStrategiesToUseInReporting = new List<ActionStrategies>() { ActionStrategies.AverageStrategy };
@@ -75,6 +75,6 @@ namespace ACESim
         public const double PruneOnOpponentStrategyThreshold = 1E-8;
 
         public bool DistributeChanceDecisions = true;
-        public bool UnrollAlgorithm = true;
+        public bool UnrollAlgorithm = false; // DEBUG
     }
 }
