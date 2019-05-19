@@ -688,8 +688,8 @@ namespace ACESim
             for (int a = 1; a <= NumPossibleActions; a++)
             {
                 double regretIncrements = NodeInformation[lastRegretDimension, a - 1];
-                double normalizedCost = maxLastRegret == minLastRegret ? 0.5 : 1.0 - (regretIncrements - minLastRegret) / (maxLastRegret - minLastRegret);
-                double weightAdjustment = Math.Pow(1 - NormalizedHedgeEpsilon, normalizedCost);
+                double normalizedRegret = maxLastRegret == minLastRegret ? 0.5 : 1.0 - (regretIncrements - minLastRegret) / (maxLastRegret - minLastRegret);
+                double weightAdjustment = Math.Pow(1 - NormalizedHedgeEpsilon, normalizedRegret);
                 double weight = NodeInformation[adjustedWeightsDimension, a - 1];
                 weight *= weightAdjustment;
                 if (double.IsNaN(weight))
@@ -766,6 +766,11 @@ namespace ACESim
         }
 
         public void NormalizedHedgeIncrementLastRegret(byte action, double regretTimesInversePi)
+        {
+            NodeInformation[lastRegretDimension, action - 1] += regretTimesInversePi;
+        }
+
+        public void NormalizedHedgeIncrementLastRegret_Parallel(byte action, double regretTimesInversePi)
         {
             Interlocking.Add(ref NodeInformation[lastRegretDimension, action - 1], regretTimesInversePi);
             //Interlocked.Increment(ref NumRegretIncrements);

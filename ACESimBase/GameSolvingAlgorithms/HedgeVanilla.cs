@@ -778,15 +778,19 @@ namespace ACESim
                     double pi = piValues[playerBeingOptimized];
                     var regret = (expectedValueOfAction[action - 1] - expectedValue);
                     // NOTE: With normalized hedge, we do NOT discount regrets, because we're normalizing regrets at the end of each iteration.
-                    informationSet.NormalizedHedgeIncrementLastRegret(action, inversePi * regret);
                     double contributionToAverageStrategy = pi * actionProbabilities[action - 1];
-                    Debug; 
                     if (EvolutionSettings.UseRegretAndStrategyDiscounting)
                         contributionToAverageStrategy *=  AverageStrategyAdjustment;
                     if (EvolutionSettings.ParallelOptimization)
+                    {
+                        informationSet.NormalizedHedgeIncrementLastRegret_Parallel(action, inversePi * regret);
                         informationSet.IncrementCumulativeStrategy_Parallel(action, contributionToAverageStrategy);
+                    }
                     else
+                    {
+                        informationSet.NormalizedHedgeIncrementLastRegret(action, inversePi * regret);
                         informationSet.IncrementCumulativeStrategy(action, contributionToAverageStrategy);
+                    }
                     if (TraceCFR)
                     {
                         TabbedText.WriteLine($"PiValues {piValues[0]} {piValues[1]} pi for optimized {pi}");
