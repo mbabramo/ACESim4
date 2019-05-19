@@ -22,10 +22,23 @@ namespace ACESim
             return v;
         }
 
+        bool AlwaysUseNewRandomObject = true;
+
         public double GetDoubleAtIndex(int index)
         {
             // Combine multiple random numbers into 1. But averaging them won't work. Note that if one averaged a billion random numbers, we would converge to 0.5. This is a simple approach; we could probably do something more sophisticated (like bit interleaving).
+            if (AlwaysUseNewRandomObject)
+                return GetDoubleWithNewRandomObject(index);
             return GetDoubleAtIndex_Alt1(index) > 0.5 ? GetDoubleAtIndex_Alt2(index) : GetDoubleAtIndex_Alt3(index);
+        }
+
+        public double GetDoubleWithNewRandomObject(int index)
+        {
+            const long prime1 = 7594955549;
+            const long prime2 = 8965095091;
+            const long prime3 = 5336500537;
+            long intermediateResult = ((index + Seed) * (index + Seed) * prime1 + (index + Seed) * prime2) % prime3;
+            return new Random((int)intermediateResult).NextDouble();
         }
 
         public double GetDoubleAtIndex_Alt1(int index)
@@ -34,9 +47,12 @@ namespace ACESim
             const long prime2 = 8965095091;
             const long prime3 = 5336500537;
             long intermediateResult = ((index + Seed) * (index + Seed) * prime1 + (index + Seed) * prime2) % prime3;
+            if (AlwaysUseNewRandomObject)
+                return new Random((int)intermediateResult).NextDouble();
             double v = Math.Abs((double)intermediateResult / (double)prime3); // should scale it to 0 to 1
             return v;
         }
+
         public double GetDoubleAtIndex_Alt2(int index)
         {
             const long prime1 = 21798470266577;
