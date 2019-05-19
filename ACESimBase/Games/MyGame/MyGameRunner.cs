@@ -23,12 +23,12 @@ namespace ACESim
         private const GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.HedgeVanilla;
 
         private const int ProbingIterations = 20_000_000;
-        private const int VanillaIterations = 100_000;
-        private const int VanillaReportEveryNIterations = 100_000;
-        private const int VanillaBestResponseEveryMIterations = 100_000; 
+        private const int VanillaIterations = 25_000;
+        private const int VanillaReportEveryNIterations = 25_000;
+        private const int VanillaBestResponseEveryMIterations = 25_000; 
         private const int MiniReportEveryPIterations = 1000;
         private const bool UseRandomPathsForReporting = true;
-        private const int SummaryTableIterations = 2_000_000; // relevant only if UseRandomPaths
+        private const int SummaryTableIterations = 100_000; // relevant only if UseRandomPaths
 
         private const bool UseRegretAndStrategyDiscounting = true;
 

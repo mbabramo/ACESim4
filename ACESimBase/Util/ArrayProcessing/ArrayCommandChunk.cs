@@ -28,6 +28,7 @@ namespace ACESimBase.Util.ArrayProcessing
             public string CompiledCode;
             internal string Name;
             internal int[] CopyIncrementsToParent;
+            public bool Skip;
 
             public ArrayCommandChunk()
             {

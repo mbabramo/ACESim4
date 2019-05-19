@@ -158,6 +158,15 @@ namespace ACESimBase.Util.ArrayProcessing
             }
         }
 
+        public void SetSkip(string chunkName, bool skip)
+        {
+            CommandTree.WalkTree(x =>
+            {
+                if (x.StoredValue.Name == chunkName)
+                    x.StoredValue.Skip = skip;
+            });
+        }
+
         public void CompleteCommandList()
         {
             MaxCommandIndex = NextCommandIndex;
@@ -940,11 +949,14 @@ else
                 {
                     var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
                     var commandChunk = node.StoredValue;
-                    if (node.Branches == null || !node.Branches.Any())
+                    if (!commandChunk.Skip)
                     {
-                        ExecuteSectionOfCommands(commandChunk);
+                        if (node.Branches == null || !node.Branches.Any())
+                        {
+                            ExecuteSectionOfCommands(commandChunk);
+                        }
+                        commandChunk.CopyIncrementsToParentIfNecessary();
                     }
-                    commandChunk.CopyIncrementsToParentIfNecessary();
                 }, n =>
                 {
                     var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;

@@ -44,6 +44,8 @@ namespace ACESim
             {
                 HedgeVanillaIteration = iteration;
                 HedgeVanillaIterationInt = iteration;
+                if (iteration == 3000)
+                    Unroll_Commands.SetSkip("Optimizing player 0", false); // DEBUG
                 HedgeVanillaIterationStopwatch.Start();
                 Unroll_ExecuteUnrolledCommands(array, iteration == 1);
                 HedgeVanillaIterationStopwatch.Stop();

@@ -134,9 +134,9 @@ namespace ACESim
                 PInitialWealth = 1000000,
                 DInitialWealth = 1000000,
                 DamagesToAllege = 100000,
-                NumLitigationQualityPoints = 10,
-                NumSignals = 10,
-                NumOffers = 10,
+                NumLitigationQualityPoints = 7,
+                NumSignals = 7,
+                NumOffers = 7,
                 MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
                 {
                     ProbabilityTrulyLiable_LitigationQuality75 = 0.75,
@@ -221,7 +221,7 @@ namespace ACESim
                     MaxDelta = 0.25
                 },
                 NumPotentialBargainingRounds = 4,
-                BargainingRoundRecall = MyGameBargainingRoundRecall.ForgetEarlierBargainingRounds,
+                BargainingRoundRecall = MyGameBargainingRoundRecall.RememberAllBargainingRounds,
                 SubdivideOffers = false,
                 BargainingRoundsSimultaneous = true,
                 PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false, true, false, true, false },
@@ -270,7 +270,7 @@ namespace ACESim
                     MaxDelta = 0.25
                 },
                 NumPotentialBargainingRounds = 3,
-                BargainingRoundRecall = MyGameBargainingRoundRecall.RememberOnlyLastBargainingRound,
+                BargainingRoundRecall = MyGameBargainingRoundRecall.RememberAllBargainingRounds,
                 SubdivideOffers = false,
                 BargainingRoundsSimultaneous = true,
                 PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false, true, false, true, false },
