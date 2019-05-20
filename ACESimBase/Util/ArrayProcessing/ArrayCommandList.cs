@@ -952,11 +952,7 @@ else
                 {
                     var node = (NWayTreeStorageInternal<ArrayCommandChunk>)n;
                     var commandChunk = node.StoredValue;
-                    if (commandChunk.Skip)
-                    {
-                        var DEBUG = 0;
-                    }
-                    else
+                    if (!commandChunk.Skip)
                     {
                         if (node.Branches == null || !node.Branches.Any())
                         {

@@ -44,8 +44,6 @@ namespace ACESim
             {
                 HedgeVanillaIteration = iteration;
                 HedgeVanillaIterationInt = iteration;
-                //if (iteration == 1001)
-                //    Unroll_Commands.SetSkip("Optimizing player 0", true); // DEBUG -- SUPERDEBUG
                 HedgeVanillaIterationStopwatch.Start();
                 Unroll_ExecuteUnrolledCommands(array, iteration == 1);
                 HedgeVanillaIterationStopwatch.Stop();
@@ -674,9 +672,8 @@ namespace ACESim
                 TabbedText.WriteLine($"Iteration {iteration} (AverageStrategyAdjustment {AverageStrategyAdjustment})");
                 TabbedText.Tabs++;
                 for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
-                    TabbedText.WriteLine($"Player {playerBeingOptimized} {results[playerBeingOptimized]} Overall milliseconds per iteration {((HedgeVanillaIterationStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
-                var DEBUG1 = InformationSets.Single(x => x.InformationSetNumber == 273);
-                TabbedText.WriteLine($"SET 273: BEST: {DEBUG1.LastBestResponseAction}: Hedge: {DEBUG1.GetNormalizedHedgeProbabilitiesAsString()} Average: {DEBUG1.GetAverageStrategiesAsString()}");
+                    TabbedText.WriteLine($"Player {playerBeingOptimized} {results[playerBeingOptimized]}");
+                TabbedText.WriteLine($"Cumulative milliseconds per iteration {((HedgeVanillaIterationStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
                 TabbedText.Tabs--;
             }
         }
@@ -811,16 +808,8 @@ namespace ACESim
                     // NOTE: With normalized hedge, we do NOT discount regrets, because we're normalizing regrets at the end of each iteration.
                     double piAdj = pi;
                     if (pi < InformationSetNodeTally.SmallestProbabilityRepresented)
-                        piAdj = InformationSetNodeTally.SmallestProbabilityRepresented; // DEBUG -- must also unroll this
+                        piAdj = InformationSetNodeTally.SmallestProbabilityRepresented;
                     double contributionToAverageStrategy = piAdj * actionProbabilities[action - 1]; // will be multiplied by average strategy adjustment at the end of the entire iteration; this will also normalize the contributions so that (placing average strategy adjustment aside) total contribution is equal to 1. 
-                    if (HedgeVanillaIterationInt > 5000 && informationSet.InformationSetNumber == 273)
-                    {
-                        var DEBUG = 0;
-                    }
-                    if (informationSet.InformationSetNumber == 273)
-                    {
-                        var DEBUG = 0;
-                    }
                     if (EvolutionSettings.ParallelOptimization)
                     {
                         informationSet.NormalizedHedgeIncrementLastRegret_Parallel(action, inversePi * regret);

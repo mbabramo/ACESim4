@@ -677,10 +677,6 @@ namespace ACESim
                     minLastRegret = lastRegret;
                 lastCumulativeStrategySum += NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1];
             }
-            if (InformationSetNumber == 273)
-            {
-                var DEBUG = 0;
-            }
             if (lastCumulativeStrategySum > 0) // can be zero if pruning means that an information set is never reached
                 for (byte a = 1; a <= NumPossibleActions; a++)
                 {
@@ -719,10 +715,6 @@ namespace ACESim
                 sumWeights *= 1E+15;
             }
             // Finally, calculate the hedge adjusted probabilities
-            if (InformationSetNumber == 273 && iteration > 5000)
-            {
-                var DEBUG = 0;
-            }
             for (int a = 1; a <= NumPossibleActions; a++)
             {
                 double probabilityHedge = NodeInformation[adjustedWeightsDimension, a - 1] / sumWeights;
