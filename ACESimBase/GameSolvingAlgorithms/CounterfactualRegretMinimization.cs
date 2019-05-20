@@ -726,7 +726,10 @@ namespace ACESim
             byte numPossibleActions = NumPossibleActionsAtDecision(nextDecisionIndex);
             IGameState gameState = GetGameState(ref historyPoint);
             if (actionStrategy == ActionStrategies.CorrelatedEquilibrium)
-                actionStrategy = ActionStrategies.AverageStrategy; // DEBUG throw new Exception("Correlated equilibrium not supported in process all paths, since some iteration must be chosen at random anyway.");
+            {
+                actionStrategy = ActionStrategies.AverageStrategy;
+                Console.WriteLine("Correlated equilibrium not supported in process all paths, since some iteration must be chosen at random anyway, so using average strategy.");
+            }
             ActionProbabilityUtilities.GetActionProbabilitiesAtHistoryPoint(gameState, actionStrategy, 0 /* ignored */, probabilities, numPossibleActions, null, Navigation);
             var historyPointCopy = historyPoint;
 
