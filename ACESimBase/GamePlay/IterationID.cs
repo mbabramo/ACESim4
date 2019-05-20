@@ -36,7 +36,7 @@ namespace ACESim
             return rand;
         }
 
-        public virtual long GetIterationNumber(int seedIndex)
+        public virtual long GetIterationNumber()
         {
             return IterationNumber;
         }
@@ -87,14 +87,6 @@ namespace ACESim
         public override string ToString()
         {
             return Source.ToString() + " >>> " + IterationNumber.ToString();
-        }
-
-        public override long GetIterationNumber(int seedIndex)
-        {
-            if (seedIndex >= KeepSourceInputSeed.Length /* this is a special case where we are not looking for the input seed but for the oversampling coefficient */ || KeepSourceInputSeed[seedIndex])
-                return Source.GetIterationNumber(seedIndex);
-            else
-                return IterationNumber;
         }
 
 
