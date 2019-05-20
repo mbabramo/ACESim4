@@ -227,6 +227,8 @@ namespace ACESim
             PositiveRegretsAdjustment = positivePower / (positivePower + 1.0);
             NegativeRegretsAdjustment = negativePower / (negativePower + 1.0);
             AverageStrategyAdjustment = Math.Pow(VanillaIteration / (VanillaIteration + 1.0), EvolutionSettings.Discounting_Gamma);
+            if (AverageStrategyAdjustment < 1E-100)
+                AverageStrategyAdjustment = 1E-100;
 
             string reportString = null;
             double[] lastUtilities = new double[NumNonChancePlayers];

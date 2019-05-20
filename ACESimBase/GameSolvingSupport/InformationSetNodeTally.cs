@@ -677,6 +677,10 @@ namespace ACESim
                     minLastRegret = lastRegret;
                 lastCumulativeStrategySum += NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1];
             }
+            if (InformationSetNumber == 273)
+            {
+                var DEBUG = 0;
+            }
             if (lastCumulativeStrategySum > 0) // can be zero if pruning means that an information set is never reached
                 for (byte a = 1; a <= NumPossibleActions; a++)
                 {

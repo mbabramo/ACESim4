@@ -689,6 +689,8 @@ namespace ACESim
             PositiveRegretsAdjustment = positivePower / (positivePower + 1.0);
             NegativeRegretsAdjustment = negativePower / (negativePower + 1.0);
             AverageStrategyAdjustment = Math.Pow((double) HedgeVanillaIteration / ((double)HedgeVanillaIteration + 1), EvolutionSettings.Discounting_Gamma);
+            if (AverageStrategyAdjustment < 1E-100)
+                AverageStrategyAdjustment = 1E-100;
         }
 
         /// <summary>
@@ -812,6 +814,10 @@ namespace ACESim
                         piAdj = InformationSetNodeTally.SmallestProbabilityRepresented; // DEBUG -- must also unroll this
                     double contributionToAverageStrategy = piAdj * actionProbabilities[action - 1]; // will be multiplied by average strategy adjustment at the end of the entire iteration; this will also normalize the contributions so that (placing average strategy adjustment aside) total contribution is equal to 1. 
                     if (HedgeVanillaIterationInt > 5000 && informationSet.InformationSetNumber == 273)
+                    {
+                        var DEBUG = 0;
+                    }
+                    if (informationSet.InformationSetNumber == 273)
                     {
                         var DEBUG = 0;
                     }
