@@ -65,9 +65,9 @@ namespace ACESim
                 PrintGameTree = false,
                 ActionStrategiesToUseInReporting = 
                  new List<ActionStrategies>() {
-                     //ActionStrategies.CorrelatedEquilibrium,
-                     //ActionStrategies.BestResponseVsCorrelatedEquilibrium,
-                     //ActionStrategies.CorrelatedEquilibriumVsBestResponse,
+                     ActionStrategies.CorrelatedEquilibrium,
+                     ActionStrategies.BestResponseVsCorrelatedEquilibrium,
+                     ActionStrategies.CorrelatedEquilibriumVsBestResponse,
                      ActionStrategies.AverageStrategy },
                 TotalProbingCFRIterations = ProbingIterations,
                 EpsilonForMainPlayer = 0.5,

@@ -131,7 +131,8 @@ namespace ACESim
         private Dictionary<(int chanceNodeNumber, int nondistributedActions), int> Unroll_ChanceNodesIndices_NondistributedActions;
         private int[] Unroll_FinalUtilitiesNodesIndices;
         private int[] Unroll_InitialPiValuesIndices = null;
-        private int Unroll_One = -1;
+        private int Unroll_OneIndex = -1;
+        private int Unroll_SmallestProbabilityRepresentedIndex = -1;
         private int Unroll_AverageStrategyAdjustmentIndex = -1;
         private int Unroll_InitialArrayIndex = -1;
 
@@ -230,7 +231,8 @@ namespace ACESim
                 for (int i = 0; i < 3; i++)
                     Unroll_IterationResultForPlayersIndices[p][i] = index++;
             }
-            Unroll_One = index++;
+            Unroll_OneIndex = index++;
+            Unroll_SmallestProbabilityRepresentedIndex = index++;
             Unroll_AverageStrategyAdjustmentIndex = index++;
             Unroll_InitialArrayIndex = index;
         }
@@ -292,7 +294,8 @@ namespace ACESim
                     array[Unroll_IterationResultForPlayersIndices[p][i]] = 0;
             }
             CalculateDiscountingAdjustments();
-            array[Unroll_One] = 1.0;
+            array[Unroll_OneIndex] = 1.0;
+            array[Unroll_SmallestProbabilityRepresentedIndex] = InformationSetNodeTally.SmallestProbabilityRepresented;
             array[Unroll_AverageStrategyAdjustmentIndex] = AverageStrategyAdjustment;
         }
 
@@ -424,9 +427,14 @@ namespace ACESim
             }
             if (playerMakingDecision == playerBeingOptimized)
             {
+                int smallestPossible = Unroll_Commands.CopyToNew(Unroll_SmallestProbabilityRepresentedIndex, true);
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
                     int pi = Unroll_Commands.CopyToNew(piValues[playerBeingOptimized], false);
+                    Unroll_Commands.InsertLessThanOtherArrayIndexCommand(pi, smallestPossible);
+                    Unroll_Commands.InsertIfCommand();
+                        Unroll_Commands.CopyToExisting(pi, smallestPossible);
+                    Unroll_Commands.InsertEndIfCommand();
                     int regret = Unroll_Commands.CopyToNew(expectedValueOfAction[action - 1], false);
                     Unroll_Commands.Decrement(regret, expectedValue);
                     int lastRegret = Unroll_GetInformationSetIndex_LastRegret(informationSet.InformationSetNumber, action);
@@ -501,7 +509,7 @@ namespace ACESim
             if (chanceNodeSettings.Decision.NondistributedDecision)
                 nondistributedActionsNext += action * chanceNodeSettings.Decision.NondistributedDecisionMultiplier;
             if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedDecision)
-                actionProbability = Unroll_Commands.CopyToNew(Unroll_One, true);
+                actionProbability = Unroll_Commands.CopyToNew(Unroll_OneIndex, true);
             int[] nextPiValues = Unroll_Commands.NewUninitializedArray(NumNonChancePlayers);
             Unroll_GetNextPiValues(piValues, playerBeingOptimized, actionProbability, true, nextPiValues);
             int[] nextAvgStratPiValues = Unroll_Commands.NewUninitializedArray(NumNonChancePlayers);
@@ -777,7 +785,7 @@ namespace ACESim
                     // NOTE: With normalized hedge, we do NOT discount regrets, because we're normalizing regrets at the end of each iteration.
                     double piAdj = pi;
                     if (pi < InformationSetNodeTally.SmallestProbabilityRepresented)
-                        piAdj = InformationSetNodeTally.SmallestProbabilityRepresented;// DEBUG -- must also unroll this
+                        piAdj = InformationSetNodeTally.SmallestProbabilityRepresented; // DEBUG -- must also unroll this
                     double contributionToAverageStrategy = piAdj * actionProbabilities[action - 1]; // will be multiplied by average strategy adjustment at the end of the entire iteration; this will also normalize the contributions so that (placing average strategy adjustment aside) total contribution is equal to 1. 
                     if (HedgeVanillaIterationInt > 5000 && informationSet.InformationSetNumber == 273)
                     {

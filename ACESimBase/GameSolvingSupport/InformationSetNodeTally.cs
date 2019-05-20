@@ -855,6 +855,7 @@ namespace ACESim
         public void Analyze()
         {
             string avgDistanceString = null, rangesString = null;
+            List<(int startIteration, int endIteration, int significantActions)> ranges = null;
             if (PastValues != null && LastPastValueIndexRecorded > -1)
             {
                 int total = LastPastValueIndexRecorded;
@@ -877,7 +878,7 @@ namespace ACESim
                 double avgDistance = sumDistances / (double) numToTest;
                 avgDistanceString = avgDistance.ToSignificantFigures(3);
 
-                List<(int startIteration, int endIteration, int significantActions)> ranges = new List<(int startIteration, int endIteration, int significantActions)>();
+                ranges = new List<(int startIteration, int endIteration, int significantActions)>();
                 int activeRangeStart = total / 2  /* focus on second half */;
                 int significantActionsInRange = 0;
 
@@ -917,7 +918,7 @@ namespace ACESim
             double[] averageStrategies = GetAverageStrategiesAsArray();
             string avgStratString = GetAverageStrategiesAsString();
             bool avgStratSameAsBestResponse = averageStrategies[LastBestResponseAction - 1] > 0.9999999;
-            if (!avgStratSameAsBestResponse)
+            if (ranges.Count() > 1)
                 Console.WriteLine($"{(avgStratSameAsBestResponse ? "*" : "")} decision {Decision.Name} Information set {InformationSetNumber} bestrespon {LastBestResponseAction} hedge {hedgeString} avg {avgStratString} avg distance {avgDistanceString} ranges: {rangesString}");
         }
 
