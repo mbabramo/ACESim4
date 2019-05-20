@@ -72,10 +72,10 @@ namespace ACESim
         public int RecordPastValuesEveryN = 10;
 
 
-        public const bool PruneOnOpponentStrategy = true;
+        public const bool PruneOnOpponentStrategy = false;
         public const double PruneOnOpponentStrategyThreshold = 1E-8; // NOTE: This is the probability for this action, not the cumulative probability. 
 
         public bool DistributeChanceDecisions = true;
-        public bool UnrollAlgorithm = true;
+        public bool UnrollAlgorithm = true; 
     }
 }

@@ -707,6 +707,8 @@ namespace ACESim
             {
                 FinalUtilities finalUtilities = (FinalUtilities)gameStateForCurrentPlayer;
                 double util = finalUtilities.Utilities[playerBeingOptimized];
+                if (double.IsNaN(util))
+                    throw new Exception();
                 return new HedgeVanillaUtilities { AverageStrategyVsAverageStrategy = util, BestResponseToAverageStrategy = util, HedgeVsHedge = util };
             }
             else if (gameStateType == GameStateTypeEnum.Chance)

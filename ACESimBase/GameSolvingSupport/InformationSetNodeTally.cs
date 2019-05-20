@@ -677,18 +677,14 @@ namespace ACESim
                     minLastRegret = lastRegret;
                 lastCumulativeStrategySum += NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1];
             }
-            for (byte a = 1; a <= NumPossibleActions; a++)
-            {
-                    if (InformationSetNumber == 273)
-                    {
-                    
-                        var DEBUG = 0;
-                    }
-                double normalizedCumulativeStrategyIncrement = NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1] / lastCumulativeStrategySum; // this will make all probabilities add up to 1, so that even if this is an iteration where it is very unlikely that we reach the information set, this iteration will not be discounted relative to iterations where we do reach the information set ...
-                double adjustedIncrement = averageStrategyAdjustment * normalizedCumulativeStrategyIncrement; // ... but here we do our regular discounting so later iterations can count more than earlier ones
-                NodeInformation[cumulativeStrategyDimension, a - 1] += adjustedIncrement;
-                NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1] = 0;
-            }
+            if (lastCumulativeStrategySum > 0) // can be zero if pruning means that an information set is never reached
+                for (byte a = 1; a <= NumPossibleActions; a++)
+                {
+                    double normalizedCumulativeStrategyIncrement = NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1] / lastCumulativeStrategySum; // this will make all probabilities add up to 1, so that even if this is an iteration where it is very unlikely that we reach the information set, this iteration will not be discounted relative to iterations where we do reach the information set ...
+                    double adjustedIncrement = averageStrategyAdjustment * normalizedCumulativeStrategyIncrement; // ... but here we do our regular discounting so later iterations can count more than earlier ones
+                    NodeInformation[cumulativeStrategyDimension, a - 1] += adjustedIncrement;
+                    NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1] = 0;
+                }
 
             DetermineBestResponseAction();
             ResetBestResponseData();
