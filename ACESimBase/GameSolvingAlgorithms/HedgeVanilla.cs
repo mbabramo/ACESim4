@@ -133,6 +133,7 @@ namespace ACESim
         private int[] Unroll_InitialPiValuesIndices = null;
         private int Unroll_OneIndex = -1;
         private int Unroll_SmallestProbabilityRepresentedIndex = -1;
+        private int Unroll_OpponentPruningThresholdIndex = -1;
         private int Unroll_AverageStrategyAdjustmentIndex = -1;
         private int Unroll_InitialArrayIndex = -1;
 
@@ -233,6 +234,7 @@ namespace ACESim
             }
             Unroll_OneIndex = index++;
             Unroll_SmallestProbabilityRepresentedIndex = index++;
+            Unroll_OpponentPruningThresholdIndex = index++;
             Unroll_AverageStrategyAdjustmentIndex = index++;
             Unroll_InitialArrayIndex = index;
         }
@@ -296,6 +298,7 @@ namespace ACESim
             CalculateDiscountingAdjustments();
             array[Unroll_OneIndex] = 1.0;
             array[Unroll_SmallestProbabilityRepresentedIndex] = InformationSetNodeTally.SmallestProbabilityRepresented;
+            array[Unroll_OpponentPruningThresholdIndex] = EvolutionSettings.PruneOnOpponentStrategyThreshold;
             array[Unroll_AverageStrategyAdjustmentIndex] = AverageStrategyAdjustment;
         }
 
@@ -366,14 +369,26 @@ namespace ACESim
             int[] actionProbabilities = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_HedgeProbabilities_All(informationSet.InformationSetNumber, numPossibleActions), true);
             int[] expectedValueOfAction = Unroll_Commands.NewUninitializedArray(numPossibleActions);
             int expectedValue = Unroll_Commands.NewZero();
+            bool pruningPossible = EvolutionSettings.PruneOnOpponentStrategy && playerBeingOptimized != playerMakingDecision;
+            int opponentPruningThresholdIndex = -1;
+            if (pruningPossible)
+            {
+                opponentPruningThresholdIndex = Unroll_Commands.CopyToNew(Unroll_OpponentPruningThresholdIndex, true);
+            }
             for (byte action = 1; action <= numPossibleActions; action++)
             {
                 int nondistributedActionsNext = nondistributedActions;
                 if (informationSet.Decision.NondistributedDecision)
                     nondistributedActionsNext += action * informationSet.Decision.NondistributedDecisionMultiplier;
                 int probabilityOfAction = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_HedgeProbability(informationSet.InformationSetNumber, action), true);
-                if (EvolutionSettings.PruneOnOpponentStrategy)
-                    throw new NotImplementedException();
+                if (pruningPossible)
+                {
+                    Unroll_Commands.InsertGreaterThanOtherArrayIndexCommand(probabilityOfAction, opponentPruningThresholdIndex); // if less than prune, so if greater than, don't prune (very unlikely to be exactly equal)
+                    Unroll_Commands.InsertIfCommand();
+                }
+
+                bool prune = pruningPossible && probabilityOfAction < EvolutionSettings.PruneOnOpponentStrategyThreshold;
+
                 //if (EvolutionSettings.PruneOnOpponentStrategy && playerBeingOptimized != playerMakingDecision && probabilityOfAction < EvolutionSettings.PruneOnOpponentStrategyThreshold)
                 //    continue;
                 int probabilityOfActionAvgStrat = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_AverageStrategy(informationSet.InformationSetNumber, action), true);
@@ -423,6 +438,11 @@ namespace ACESim
                     TabbedText.Tabs--;
                     TabbedText.WriteLine(
                         $"... action {action} expected value ARRAY{expectedValueOfActionCopy} best response expected value ARRAY{bestResponseExpectedValueCopy} cum expected value ARRAY{cumExpectedValueCopy}{(action == numPossibleActions && IncludeAsteriskForBestResponseInTrace ? "*" : "")}");
+                }
+
+                if (pruningPossible)
+                {
+                    Unroll_Commands.InsertEndIfCommand();
                 }
             }
             if (playerMakingDecision == playerBeingOptimized)
@@ -734,46 +754,48 @@ namespace ACESim
                 if (informationSet.Decision.NondistributedDecision)
                     nondistributedActionsNext += action * informationSet.Decision.NondistributedDecisionMultiplier;
                 double probabilityOfAction = actionProbabilities[action - 1];
-                if (EvolutionSettings.PruneOnOpponentStrategy && playerBeingOptimized != playerMakingDecision && probabilityOfAction < EvolutionSettings.PruneOnOpponentStrategyThreshold)
-                    continue;
-                double probabilityOfActionAvgStrat = informationSet.GetNormalizedHedgeAverageStrategy(action);
-                GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false,
-                    nextPiValues); // reduce probability associated with player being optimized, without changing probabilities for other players
-                GetNextPiValues(avgStratPiValues, playerMakingDecision, probabilityOfActionAvgStrat, false, nextAvgStratPiValues);
-                if (TraceCFR)
+                bool prune = (EvolutionSettings.PruneOnOpponentStrategy && playerBeingOptimized != playerMakingDecision && probabilityOfAction < EvolutionSettings.PruneOnOpponentStrategyThreshold);
+                if (!prune)
                 {
-                    TabbedText.WriteLine(
-                        $"code {informationSet.DecisionByteCode} ({GameDefinition.DecisionsExecutionOrder.FirstOrDefault(x => x.DecisionByteCode == informationSet.DecisionByteCode)?.Name}) optimizing player {playerBeingOptimized}  {(playerMakingDecision == playerBeingOptimized ? "own decision" : "opp decision")} action {action} probability {probabilityOfAction} ...");
-                    TabbedText.Tabs++;
-                }
-                HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
-                HedgeVanillaUtilities innerResult = HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, nondistributedActionsNext);
-                expectedValueOfAction[action - 1] = innerResult.HedgeVsHedge;
-                if (playerMakingDecision == playerBeingOptimized)
-                {
-                    if (informationSet.LastBestResponseAction == action)
+                    double probabilityOfActionAvgStrat = informationSet.GetNormalizedHedgeAverageStrategy(action);
+                    GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false,
+                        nextPiValues); // reduce probability associated with player being optimized, without changing probabilities for other players
+                    GetNextPiValues(avgStratPiValues, playerMakingDecision, probabilityOfActionAvgStrat, false, nextAvgStratPiValues);
+                    if (TraceCFR)
                     {
-                        // Because this is the best response action, the best response utility that we get should be propagated back directly.
-                        result.BestResponseToAverageStrategy = innerResult.BestResponseToAverageStrategy;
+                        TabbedText.WriteLine(
+                            $"code {informationSet.DecisionByteCode} ({GameDefinition.DecisionsExecutionOrder.FirstOrDefault(x => x.DecisionByteCode == informationSet.DecisionByteCode)?.Name}) optimizing player {playerBeingOptimized}  {(playerMakingDecision == playerBeingOptimized ? "own decision" : "opp decision")} action {action} probability {probabilityOfAction} ...");
+                        TabbedText.Tabs++;
                     }
-                    // Meanwhile, we need to determine the best response action in the next iteration. To do this, we need to figure out which action, when weighted by the probability we play to this information set, produces the highest best response on average. Note that we may get different inner results for the same action, because the next information set will differ depending on the other player's information set.
-                    informationSet.IncrementBestResponse(action, inversePiAvgStrat, innerResult.BestResponseToAverageStrategy);
-                    // The other result utilities are just the probability adjusted utilities. 
-                    result.HedgeVsHedge += probabilityOfAction * innerResult.HedgeVsHedge;
-                    result.AverageStrategyVsAverageStrategy += probabilityOfActionAvgStrat * innerResult.AverageStrategyVsAverageStrategy;
-                }
-                else
-                {
-                    // This isn't the decision being optimized, so we essentially just need to pass through the player being optimized's utilities, weighting by the probability for each action (which will depend on whether we are using average strategy or hedge to calculate the utilities).
-                    result.IncrementBasedOnNotYetProbabilityAdjusted(ref innerResult, probabilityOfActionAvgStrat, probabilityOfAction);
-                }
-                expectedValue += probabilityOfAction * expectedValueOfAction[action - 1];
+                    HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
+                    HedgeVanillaUtilities innerResult = HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, nondistributedActionsNext);
+                    expectedValueOfAction[action - 1] = innerResult.HedgeVsHedge;
+                    if (playerMakingDecision == playerBeingOptimized)
+                    {
+                        if (informationSet.LastBestResponseAction == action)
+                        {
+                            // Because this is the best response action, the best response utility that we get should be propagated back directly.
+                            result.BestResponseToAverageStrategy = innerResult.BestResponseToAverageStrategy;
+                        }
+                        // Meanwhile, we need to determine the best response action in the next iteration. To do this, we need to figure out which action, when weighted by the probability we play to this information set, produces the highest best response on average. Note that we may get different inner results for the same action, because the next information set will differ depending on the other player's information set.
+                        informationSet.IncrementBestResponse(action, inversePiAvgStrat, innerResult.BestResponseToAverageStrategy);
+                        // The other result utilities are just the probability adjusted utilities. 
+                        result.HedgeVsHedge += probabilityOfAction * innerResult.HedgeVsHedge;
+                        result.AverageStrategyVsAverageStrategy += probabilityOfActionAvgStrat * innerResult.AverageStrategyVsAverageStrategy;
+                    }
+                    else
+                    {
+                        // This isn't the decision being optimized, so we essentially just need to pass through the player being optimized's utilities, weighting by the probability for each action (which will depend on whether we are using average strategy or hedge to calculate the utilities).
+                        result.IncrementBasedOnNotYetProbabilityAdjusted(ref innerResult, probabilityOfActionAvgStrat, probabilityOfAction);
+                    }
+                    expectedValue += probabilityOfAction * expectedValueOfAction[action - 1];
 
-                if (TraceCFR)
-                {
-                    TabbedText.Tabs--;
-                    TabbedText.WriteLine(
-                        $"... action {action}{(informationSet.LastBestResponseAction == action && IncludeAsteriskForBestResponseInTrace ? "*" : "")} expected value {expectedValueOfAction[action - 1]} best response expected value {result.BestResponseToAverageStrategy} cum expected value {expectedValue}{(action == numPossibleActions && IncludeAsteriskForBestResponseInTrace ? "*" : "")}");
+                    if (TraceCFR)
+                    {
+                        TabbedText.Tabs--;
+                        TabbedText.WriteLine(
+                            $"... action {action}{(informationSet.LastBestResponseAction == action && IncludeAsteriskForBestResponseInTrace ? "*" : "")} expected value {expectedValueOfAction[action - 1]} best response expected value {result.BestResponseToAverageStrategy} cum expected value {expectedValue}{(action == numPossibleActions && IncludeAsteriskForBestResponseInTrace ? "*" : "")}");
+                    }
                 }
             }
             if (playerMakingDecision == playerBeingOptimized)
