@@ -122,7 +122,7 @@ namespace ACESim
         private const int Unroll_InformationSetPerActionOrder_LastRegret = 2;
         private const int Unroll_InformationSetPerActionOrder_BestResponseNumerator = 3;
         private const int Unroll_InformationSetPerActionOrder_BestResponseDenominator = 4;
-        private const int Unroll_InformationSetPerActionOrder_CumulativeStrategy = 5;
+        private const int Unroll_InformationSetPerActionOrder_LastCumulativeStrategyIncrement = 5;
 
         private int[][] Unroll_IterationResultForPlayersIndices;
         private HedgeVanillaUtilities[] Unroll_IterationResultForPlayers;
@@ -162,7 +162,7 @@ namespace ACESim
         private int Unroll_GetInformationSetIndex_BestResponseNumerator(int informationSetNumber, byte action) => Unroll_InformationSetsIndices[informationSetNumber] + (Unroll_NumPiecesInfoPerInformationSetAction * (action - 1)) + Unroll_InformationSetPerActionOrder_BestResponseNumerator;
 
         private int Unroll_GetInformationSetIndex_BestResponseDenominator(int informationSetNumber, byte action) => Unroll_InformationSetsIndices[informationSetNumber] + (Unroll_NumPiecesInfoPerInformationSetAction * (action - 1)) + Unroll_InformationSetPerActionOrder_BestResponseDenominator;
-        private int Unroll_GetInformationSetIndex_CumulativeStrategy(int informationSetNumber, byte action) => Unroll_InformationSetsIndices[informationSetNumber] + (Unroll_NumPiecesInfoPerInformationSetAction * (action - 1)) + Unroll_InformationSetPerActionOrder_CumulativeStrategy;
+        private int Unroll_GetInformationSetIndex_LastCumulativeStrategyIncrement(int informationSetNumber, byte action) => Unroll_InformationSetsIndices[informationSetNumber] + (Unroll_NumPiecesInfoPerInformationSetAction * (action - 1)) + Unroll_InformationSetPerActionOrder_LastCumulativeStrategyIncrement;
 
         private int Unroll_GetChanceNodeIndex(int chanceNodeNumber) => Unroll_ChanceNodesIndices[chanceNodeNumber];
         private int Unroll_GetChanceNodeIndex_ProbabilityForAction(int chanceNodeNumber, byte action) => Unroll_ChanceNodesIndices[chanceNodeNumber] + (byte) (action - 1);
@@ -281,7 +281,7 @@ namespace ACESim
                     array[initialIndex++] = 0; // initialize last regret to zero
                     array[initialIndex++] = 0; // initialize best response numerator to zero
                     array[initialIndex++] = 0; // initialize best response denominator to zero
-                    array[initialIndex++] = 0; // initialize cumulative strategy increment to zero
+                    array[initialIndex++] = 0; // initialize last cumulative strategy increment to zero
                 }
                 array[initialIndex] = infoSet.LastBestResponseAction;
             });
@@ -307,8 +307,8 @@ namespace ACESim
                 {
                     int index = Unroll_GetInformationSetIndex_LastRegret(infoSet.InformationSetNumber, action);
                     infoSet.NormalizedHedgeIncrementLastRegret(action, array[index]);
-                    index = Unroll_GetInformationSetIndex_CumulativeStrategy(infoSet.InformationSetNumber, action);
-                    infoSet.IncrementCumulativeStrategy(action, array[index]);
+                    index = Unroll_GetInformationSetIndex_LastCumulativeStrategyIncrement(infoSet.InformationSetNumber, action);
+                    infoSet.NormalizedHedgeIncrementLastCumulativeStrategyIncrements(action, array[index]);
                     int indexNumerator = Unroll_GetInformationSetIndex_BestResponseNumerator(infoSet.InformationSetNumber, action);
                     int indexDenominator = Unroll_GetInformationSetIndex_BestResponseDenominator(infoSet.InformationSetNumber, action);
                     infoSet.SetBestResponse_NumeratorAndDenominator(action, array[indexNumerator], array[indexDenominator]); // this is the final value based on the probability-adjusted increments within the algorithm
@@ -433,11 +433,9 @@ namespace ACESim
                     Unroll_Commands.IncrementByProduct(lastRegret, true, inversePi, regret);
                     // now contribution to average strategy
                     int contributionToAverageStrategy = Unroll_Commands.CopyToNew(pi, false);
-                    Unroll_Commands.MultiplyBy(contributionToAverageStrategy, actionProbabilities[action - 1]);
-                    if (EvolutionSettings.UseRegretAndStrategyDiscounting)
-                        Unroll_Commands.MultiplyBy(contributionToAverageStrategy, Unroll_Commands.CopyToNew(Unroll_AverageStrategyAdjustmentIndex, true));
-                    int cumulativeStrategy = Unroll_GetInformationSetIndex_CumulativeStrategy(informationSet.InformationSetNumber, action);
-                    Unroll_Commands.Increment(cumulativeStrategy, true, contributionToAverageStrategy);
+                    Unroll_Commands.MultiplyBy(contributionToAverageStrategy, actionProbabilities[action - 1]); // note: we don't multiply by average strategy adjustment here -- we do so at end of iteration
+                    int lastCumulativeStrategyIncrement = Unroll_GetInformationSetIndex_LastCumulativeStrategyIncrement(informationSet.InformationSetNumber, action);
+                    Unroll_Commands.Increment(lastCumulativeStrategyIncrement, true, contributionToAverageStrategy);
                     if (TraceCFR)
                     {
                         int piCopy = Unroll_Commands.CopyToNew(pi, false);
@@ -446,7 +444,7 @@ namespace ACESim
                         int regretCopy = Unroll_Commands.CopyToNew(regret, false);
                         int inversePiCopy = Unroll_Commands.CopyToNew(inversePi, false);
                         int contributionToAverageStrategyCopy = Unroll_Commands.CopyToNew(contributionToAverageStrategy, false);
-                        int cumulativeStrategyCopy = Unroll_Commands.CopyToNew(cumulativeStrategy, false);
+                        int cumulativeStrategyCopy = Unroll_Commands.CopyToNew(lastCumulativeStrategyIncrement, false);
                         TabbedText.WriteLine($"PiValues ARRAY{piValuesZeroCopy} ARRAY{piValuesOneCopy} pi for optimized ARRAY{piCopy}");
                         TabbedText.WriteLine(
                             $"Regrets: Action {action} probability ARRAY{actionProbabilities[action - 1]} regret ARRAY{regretCopy} inversePi ARRAY{inversePiCopy} avg_strat_incrememnt ARRAY{contributionToAverageStrategyCopy} cum_strategy ARRAY{cumulativeStrategyCopy}");
@@ -634,8 +632,6 @@ namespace ACESim
             MiniReport(iteration, results);
 
             UpdateInformationSets(iteration);
-            if (iteration == 3000)
-                Br.eak.Add("3000");
 
             reportString = GenerateReports(iteration,
                 () =>
@@ -710,6 +706,7 @@ namespace ACESim
             byte decisionNum = informationSet.DecisionIndex;
             byte playerMakingDecision = informationSet.PlayerIndex;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
+
             double* actionProbabilities = stackalloc double[numPossibleActions];
             byte? alwaysDoAction = GameDefinition.DecisionsExecutionOrder[decisionNum].AlwaysDoAction;
             if (alwaysDoAction != null)
@@ -778,18 +775,23 @@ namespace ACESim
                     double pi = piValues[playerBeingOptimized];
                     var regret = (expectedValueOfAction[action - 1] - expectedValue);
                     // NOTE: With normalized hedge, we do NOT discount regrets, because we're normalizing regrets at the end of each iteration.
-                    double contributionToAverageStrategy = pi * actionProbabilities[action - 1];
-                    if (EvolutionSettings.UseRegretAndStrategyDiscounting)
-                        contributionToAverageStrategy *=  AverageStrategyAdjustment;
+                    double piAdj = pi;
+                    if (pi < InformationSetNodeTally.SmallestProbabilityRepresented)
+                        piAdj = InformationSetNodeTally.SmallestProbabilityRepresented;// DEBUG -- must also unroll this
+                    double contributionToAverageStrategy = piAdj * actionProbabilities[action - 1]; // will be multiplied by average strategy adjustment at the end of the entire iteration; this will also normalize the contributions so that (placing average strategy adjustment aside) total contribution is equal to 1. 
+                    if (HedgeVanillaIterationInt > 5000 && informationSet.InformationSetNumber == 273)
+                    {
+                        var DEBUG = 0;
+                    }
                     if (EvolutionSettings.ParallelOptimization)
                     {
                         informationSet.NormalizedHedgeIncrementLastRegret_Parallel(action, inversePi * regret);
-                        informationSet.IncrementCumulativeStrategy_Parallel(action, contributionToAverageStrategy);
+                        informationSet.NormalizedHedgeIncrementLastCumulativeStrategyIncrements_Parallel(action, contributionToAverageStrategy);
                     }
                     else
                     {
                         informationSet.NormalizedHedgeIncrementLastRegret(action, inversePi * regret);
-                        informationSet.IncrementCumulativeStrategy(action, contributionToAverageStrategy);
+                        informationSet.NormalizedHedgeIncrementLastCumulativeStrategyIncrements(action, contributionToAverageStrategy);
                     }
                     if (TraceCFR)
                     {

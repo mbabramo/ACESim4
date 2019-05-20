@@ -15,6 +15,8 @@ namespace ACESim
     {
         #region Properties, members, and constants
 
+        public const double SmallestProbabilityRepresented = 1E-300; // We make this considerably greater than Double.Epsilon (but still very small), because otherwise when we multiply the value by anything < 1, we get 0, and this makes it impossible to climb out of being a zero-probability action.
+
         public static int InformationSetsSoFar = 0;
         public int InformationSetNumber; // could delete this once things are working, but may be useful in testing scenarios
         public Decision Decision;
@@ -38,7 +40,7 @@ namespace ACESim
         double PastValuesLastCumulativeStrategyDiscount => PastValuesCumulativeStrategyDiscounts[LastPastValueIndexRecorded];
 
         public int NumPossibleActions => Decision.NumPossibleActions;
-        const int totalDimensions = 8;
+        const int totalDimensions = 9;
         const int cumulativeRegretDimension = 0;
         const int cumulativeStrategyDimension = 1;
         const int bestResponseNumeratorDimension = 2;
@@ -46,10 +48,11 @@ namespace ACESim
         // for hedge probing
         const int hedgeProbabilityDimension = 4;
         const int lastRegretDimension = 5;
-        const int temporaryDimension = 6;
+        const int lastCumulativeStrategyIncrementsDimension = 6;
+        const int temporaryDimension = 7;
         // for normalized hedge (including also hedge probability dimension and last regret dimension)
-        const int adjustedWeightsDimension = 6;
-        const int averageStrategyProbabilityDimension = 7;
+        const int adjustedWeightsDimension = 7;
+        const int averageStrategyProbabilityDimension = 8;
         // for exploratory probing
         const int storageDimension = 4;
         const int storageDimension2 = 5;
@@ -382,19 +385,11 @@ namespace ACESim
 
         public void IncrementCumulativeStrategy_Parallel(int action, double amount)
         {
-            if (Br.eak.Contains("3000") && InformationSetNumber == 273)
-            {
-                var DEBUG = 0;
-            }
             Interlocking.Add(ref NodeInformation[cumulativeStrategyDimension, action - 1], amount);
         }
 
         public void IncrementCumulativeStrategy(int action, double amount)
         {
-            if (Br.eak.Contains("3000") && InformationSetNumber == 273)
-            {
-                var DEBUG = 0;
-            }
             NodeInformation[cumulativeStrategyDimension, action - 1] += amount;
         }
 
@@ -665,7 +660,9 @@ namespace ACESim
 
         public void UpdateNormalizedHedge(int iteration, double averageStrategyAdjustment)
         {
-            RecordProbabilitiesAsPastValues(iteration, averageStrategyAdjustment);
+            RecordProbabilitiesAsPastValues(iteration, averageStrategyAdjustment); // these are the average strategies played, and thus shouldn't reflect the updates below
+
+            double lastCumulativeStrategySum = 0;
             double minLastRegret = 0, maxLastRegret = 0;
             for (byte a = 1; a <= NumPossibleActions; a++)
             {
@@ -678,6 +675,19 @@ namespace ACESim
                 }
                 else if (lastRegret < minLastRegret)
                     minLastRegret = lastRegret;
+                lastCumulativeStrategySum += NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1];
+            }
+            for (byte a = 1; a <= NumPossibleActions; a++)
+            {
+                    if (InformationSetNumber == 273)
+                    {
+                    
+                        var DEBUG = 0;
+                    }
+                double normalizedCumulativeStrategyIncrement = NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1] / lastCumulativeStrategySum; // this will make all probabilities add up to 1, so that even if this is an iteration where it is very unlikely that we reach the information set, this iteration will not be discounted relative to iterations where we do reach the information set ...
+                double adjustedIncrement = averageStrategyAdjustment * normalizedCumulativeStrategyIncrement; // ... but here we do our regular discounting so later iterations can count more than earlier ones
+                NodeInformation[cumulativeStrategyDimension, a - 1] += adjustedIncrement;
+                NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1] = 0;
             }
 
             DetermineBestResponseAction();
@@ -709,24 +719,23 @@ namespace ACESim
                 sumWeights *= 1E+15;
             }
             // Finally, calculate the hedge adjusted probabilities
-            if (InformationSetNumber == 273 && iteration > 3000)
+            if (InformationSetNumber == 273 && iteration > 5000)
             {
                 var DEBUG = 0;
             }
-            const double smallestProbability = 1E-300; // We make this considerably greater than Double.Epsilon (but still very small), because otherwise when we multiply the value by anything < 1, we get 0, and this makes it impossible to climb out of being a zero-probability action.
             for (int a = 1; a <= NumPossibleActions; a++)
             {
                 double probabilityHedge = NodeInformation[adjustedWeightsDimension, a - 1] / sumWeights;
-                if (probabilityHedge < smallestProbability)
-                    probabilityHedge = smallestProbability; 
+                if (probabilityHedge < SmallestProbabilityRepresented)
+                    probabilityHedge = SmallestProbabilityRepresented; 
                 if (double.IsNaN(probabilityHedge))
                     throw new Exception();
                 NodeInformation[hedgeProbabilityDimension, a - 1] = probabilityHedge;
                 if (sumCumulativeStrategies > 0)
                 {
                     double probabilityAverageStrategy = NodeInformation[cumulativeStrategyDimension, a - 1] / sumCumulativeStrategies;
-                    if (probabilityAverageStrategy < smallestProbability)
-                        probabilityAverageStrategy = smallestProbability; 
+                    if (probabilityAverageStrategy < SmallestProbabilityRepresented)
+                        probabilityAverageStrategy = SmallestProbabilityRepresented; 
                     if (double.IsNaN(probabilityAverageStrategy))
                         throw new Exception();
                     NodeInformation[averageStrategyProbabilityDimension, a - 1] = probabilityAverageStrategy;
@@ -773,6 +782,17 @@ namespace ACESim
         public void NormalizedHedgeIncrementLastRegret_Parallel(byte action, double regretTimesInversePi)
         {
             Interlocking.Add(ref NodeInformation[lastRegretDimension, action - 1], regretTimesInversePi);
+            //Interlocked.Increment(ref NumRegretIncrements);
+        }
+
+        public void NormalizedHedgeIncrementLastCumulativeStrategyIncrements(byte action, double strategyProbabilityTimesSelfReachProbability)
+        {
+            NodeInformation[lastCumulativeStrategyIncrementsDimension, action - 1] += strategyProbabilityTimesSelfReachProbability;
+        }
+
+        public void NormalizedHedgeIncrementLastCumulativeStrategyIncrements_Parallel(byte action, double strategyProbabilityTimesSelfReachProbability)
+        {
+            Interlocking.Add(ref NodeInformation[lastCumulativeStrategyIncrementsDimension, action - 1], strategyProbabilityTimesSelfReachProbability);
             //Interlocked.Increment(ref NumRegretIncrements);
         }
 
