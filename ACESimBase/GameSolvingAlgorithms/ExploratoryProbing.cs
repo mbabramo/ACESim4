@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace ACESim
 {
@@ -461,7 +462,7 @@ namespace ACESim
         private bool BackupDiscountingEnabled;
         private double CurrentDiscount;
 
-        public unsafe string SolveExploratoryProbingCFR(string reportName)
+        public async Task<string> SolveExploratoryProbingCFR(string reportName)
         {
             //TraceCFR = true;
             //GameProgressLogger.LoggingOn = true;
@@ -535,7 +536,7 @@ namespace ACESim
                     );
                     s.Stop();
                     ProbingCFRIterationNum = startingIteration = stopBefore; // this is the iteration to run next
-                    reportString = GenerateReports(ProbingCFRIterationNum,
+                    reportString = await GenerateReports(ProbingCFRIterationNum,
                         () =>
                             $"Iteration {ProbingCFRIterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)(ProbingCFRIterationNum + 1))))}");
                 }

@@ -34,7 +34,7 @@ namespace ACESim
         private ArrayCommandList Unroll_Commands;
         private int Unroll_SizeOfArray;
 
-        public unsafe string Unroll_SolveHedgeVanillaCFR()
+        public async Task<string> Unroll_SolveHedgeVanillaCFR()
         {
             string reportString = null;
             InitializeInformationSets();
@@ -49,7 +49,7 @@ namespace ACESim
                 HedgeVanillaIterationStopwatch.Stop();
                 MiniReport(iteration, Unroll_IterationResultForPlayers);
                 UpdateInformationSets(iteration);
-                reportString = GenerateReports(iteration,
+                reportString = await GenerateReports(iteration,
                     () =>
                         $"Iteration {iteration} Overall milliseconds per iteration {((HedgeVanillaIterationStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
                 if (TraceCFR)
@@ -614,15 +614,15 @@ namespace ACESim
 
         #region Core algorithm
 
-        public unsafe string SolveHedgeVanillaCFR()
+        public async Task<string> SolveHedgeVanillaCFR()
         {
             if (EvolutionSettings.UnrollAlgorithm)
-                return Unroll_SolveHedgeVanillaCFR();
+                return await Unroll_SolveHedgeVanillaCFR();
             string reportString = null;
             InitializeInformationSets();
             for (int iteration = 1; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
-                reportString = HedgeVanillaCFRIteration(iteration);
+                reportString = await HedgeVanillaCFRIteration(iteration);
             }
             return reportString;
         }
@@ -630,7 +630,7 @@ namespace ACESim
         double HedgeVanillaIteration;
         int HedgeVanillaIterationInt;
         Stopwatch HedgeVanillaIterationStopwatch = new Stopwatch();
-        private unsafe string HedgeVanillaCFRIteration(int iteration)
+        private async Task<string> HedgeVanillaCFRIteration(int iteration)
         {
             HedgeVanillaIteration = iteration;
             HedgeVanillaIterationInt = iteration;
@@ -644,25 +644,30 @@ namespace ACESim
             HedgeVanillaUtilities[] results = new HedgeVanillaUtilities[NumNonChancePlayers];
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
-                double* initialPiValues = stackalloc double[MaxNumMainPlayers];
-                double* initialAvgStratPiValues = stackalloc double[MaxNumMainPlayers];
-                GetInitialPiValues(initialPiValues);
-                GetInitialPiValues(initialAvgStratPiValues);
-                if (TraceCFR)
-                    TabbedText.WriteLine($"Iteration {iteration} Player {playerBeingOptimized}");
-                HedgeVanillaIterationStopwatch.Start();
-                HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
-                results[playerBeingOptimized] = HedgeVanillaCFR(ref historyPoint, playerBeingOptimized, initialPiValues, initialAvgStratPiValues, 0);
-                HedgeVanillaIterationStopwatch.Stop();
+                HedgeVanillaCFRIteration_OptimizePlayer(iteration, results, playerBeingOptimized);
             }
             MiniReport(iteration, results);
 
             UpdateInformationSets(iteration);
 
-            reportString = GenerateReports(iteration,
+            reportString = await GenerateReports(iteration,
                 () =>
                     $"Iteration {iteration} Overall milliseconds per iteration {((HedgeVanillaIterationStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
             return reportString;
+        }
+
+        private unsafe void HedgeVanillaCFRIteration_OptimizePlayer(int iteration, HedgeVanillaUtilities[] results, byte playerBeingOptimized)
+        {
+            double* initialPiValues = stackalloc double[MaxNumMainPlayers];
+            double* initialAvgStratPiValues = stackalloc double[MaxNumMainPlayers];
+            GetInitialPiValues(initialPiValues);
+            GetInitialPiValues(initialAvgStratPiValues);
+            if (TraceCFR)
+                TabbedText.WriteLine($"Iteration {iteration} Player {playerBeingOptimized}");
+            HedgeVanillaIterationStopwatch.Start();
+            HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
+            results[playerBeingOptimized] = HedgeVanillaCFR(ref historyPoint, playerBeingOptimized, initialPiValues, initialAvgStratPiValues, 0);
+            HedgeVanillaIterationStopwatch.Stop();
         }
 
         private unsafe void MiniReport(int iteration, HedgeVanillaUtilities[] results)

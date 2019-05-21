@@ -186,7 +186,52 @@ namespace ACESim
             }
         }
 
-        
+        public static async Task GoAsync(bool doParallel, long start, long stopBeforeThis, Func<long, Task> action)
+        {
+            if (ParallelDepth > 0 || DisableParallel)
+                doParallel = false;
+            if (doParallel)
+            {
+                IncrementParallelDepth();
+                await ForAsync(start, stopBeforeThis, action);
+                DecrementParallelDepth();
+            }
+            else
+            {
+                for (long i = start; i < stopBeforeThis; i++)
+                {
+                    await action(i);
+                }
+            }
+        }
+
+        public static Task ForAsync(long start, long stopBeforeThis, Func<long, Task> body)
+        {
+
+            return Task.WhenAll(
+                from partition in Partitioner.Create(start, stopBeforeThis).GetPartitions(MaxDegreeOfParallelism ?? Environment.ProcessorCount)
+                select Task.Run(async delegate {
+                    using (partition)
+                        while (partition.MoveNext())
+                        {
+                            for (long i = partition.Current.Item1; i < partition.Current.Item2; i++)
+                                await body(i);
+                        }
+                }));
+        }
+
+        public static Task ForEachAsync<T>(this IEnumerable<T> source, Func<T, Task> body)
+        {
+            return Task.WhenAll(
+                from partition in Partitioner.Create(source).GetPartitions(MaxDegreeOfParallelism ?? Environment.ProcessorCount)
+                select Task.Run(async delegate {
+                    using (partition)
+                        while (partition.MoveNext())
+                            await body(partition.Current);
+                }));
+        }
+
+
         public static void GoForSpecifiedNumberOfSuccessesButNoMore(bool doParallel, long numSuccessesRequired, Func<long, long, bool> actionReturningTrueUponSuccess, long firstIterationNumberToTry = 0, double? minSuccessRate = null)
         {
             long checkMinimumSuccessRateAfter = 10000;

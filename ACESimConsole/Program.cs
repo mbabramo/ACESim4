@@ -27,9 +27,10 @@ namespace ACESim
         public static AvailableGames GameToPlay = AvailableGames.MyGame;
 
         [STAThread]
-        static void Main(string[] args)
+        public static void Main(string[] args)
         {
-            Execute();
+            // DEBUG -- change to async once we upgrade the language
+            Execute().GetAwaiter().GetResult();
             // the following is supposed to create a large stack, but it either doesn't work (or isn't large enough for our purposes, which seems unlikely)
             //Thread t = new Thread(delegate ()
             //{
@@ -40,7 +41,7 @@ namespace ACESim
             //    Thread.Sleep(500);
         }
 
-        private static void Execute()
+        private static async Task Execute()
         {
             try
             {
@@ -54,17 +55,17 @@ namespace ACESim
                     case AvailableGames.Leduc:
                         baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\LeducGame";
                         strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
-                        gameResult = LeducGameRunner.EvolveLeducGame().GetAwaiter().GetResult();
+                        gameResult = await LeducGameRunner.EvolveLeducGame();
                         break;
                     case AvailableGames.MultiRoundCooperation:
                         baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\MultiRoundCooperationGame";
                         strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
-                        gameResult = MultiRoundCooperationGameRunner.EvolveGame();
+                        gameResult = await MultiRoundCooperationGameRunner.EvolveGame();
                         break;
                     case AvailableGames.MyGame:
                         baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\MyGame";
                         strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
-                        gameResult = MyGameRunner.EvolveMyGame().GetAwaiter().GetResult();
+                        gameResult = await MyGameRunner.EvolveMyGame();
                         break;
                 }
                 TextCopy.Clipboard.SetText(gameResult);

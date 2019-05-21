@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace ACESim
 {
@@ -183,7 +184,7 @@ namespace ACESim
 
         private int AvgStrategySamplingCFRIterationNum;
 
-        public unsafe void SolveAvgStrategySamplingCFR()
+        public async Task SolveAvgStrategySamplingCFR()
         {
             if (NumNonChancePlayers > 2)
                 throw new Exception(
@@ -200,7 +201,7 @@ namespace ACESim
                 iterationGrouper += reportingGroupSize)
             {
                 if (iterationGrouper == 0)
-                    GenerateReports(0, () => $"Iteration 0");
+                    await GenerateReports(0, () => $"Iteration 0");
                 s.Reset();
                 s.Start();
                 Parallelizer.Go(EvolutionSettings.ParallelOptimization, iterationGrouper,
@@ -210,7 +211,7 @@ namespace ACESim
                         AvgStrategySamplingCFRIteration(AvgStrategySamplingCFRIterationNum);
                     });
                 s.Stop();
-                GenerateReports(iterationGrouper + reportingGroupSize,
+                await GenerateReports(iterationGrouper + reportingGroupSize,
                     () =>
                         $"Iteration {iterationGrouper + reportingGroupSize} Milliseconds per iteration {((s.ElapsedMilliseconds / ((double) reportingGroupSize)))}");
             }

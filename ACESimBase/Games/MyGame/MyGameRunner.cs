@@ -20,8 +20,6 @@ namespace ACESim
         public static double[] CostsMultipliers = new double[] { 1.0 }; // 0.1, 0.25, 0.5, 1.0, 1.5, 2.0, 4.0 };
         public const double StdevPlayerNoise = 0.3; // baseline is 0.3
 
-        Debug; // must fix reporting -- it seems that our AllCount is limited to our buffer and a little bit more -- something is very wrong. maybe we should just make it async.
-
         private const GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.HedgeVanilla;
 
         private const int ProbingIterations = 20_000_000;
@@ -92,14 +90,14 @@ namespace ACESim
         {
             string result;
             if (SingleGameMode)
-                result = EvolveMyGame_Single();
+                result = await EvolveMyGame_Single();
             else
                 result = await EvolveMyGame_Multiple();
             Console.WriteLine(result);
             return result;
         }
 
-        public static string EvolveMyGame_Single()
+        public static async Task<string> EvolveMyGame_Single()
         {
             var options = MyGameOptionsGenerator.SingleRound();
             options.LoserPays = false;
@@ -125,14 +123,14 @@ namespace ACESim
             //options.IncludeSignalsReport = true;
             //options.IncludeCourtSuccessReport = true;
             string report = "";
-            ProcessSingleOptionSet(options, "Report", "Single", true);
+            await ProcessSingleOptionSet(options, "Report", "Single", true);
             return report;
         }
 
         public static async Task<string> EvolveMyGame_Multiple()
         {
             var optionSets = GetOptionsSets();
-            string combined = LocalDistributedProcessing ? await SimulateDistributedProcessingAlgorithm() : ProcessAllOptionSetsLocally();
+            string combined = LocalDistributedProcessing ? await SimulateDistributedProcessingAlgorithm() : await ProcessAllOptionSetsLocally();
             return combined;
         }
 
@@ -260,7 +258,7 @@ namespace ACESim
             return list;
         }
 
-        private static string ProcessAllOptionSetsLocally()
+        private static async Task<string> ProcessAllOptionSetsLocally()
         {
             string masterReportName = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
 
@@ -268,28 +266,28 @@ namespace ACESim
             int numRepetitionsPerOptionSet = NumRepetitions;
             string[] results = new string[optionSets.Count];
 
-            void SingleOptionSetAction(int index)
+            async Task SingleOptionSetAction(long index)
             {
-                var optionSet = optionSets[index];
-                string optionSetResults = ProcessSingleOptionSet(masterReportName, index);
+                var optionSet = optionSets[(int) index];
+                string optionSetResults = await ProcessSingleOptionSet(masterReportName, (int) index);
                 results[index] = optionSetResults;
             }
 
             Parallelizer.MaxDegreeOfParallelism = Environment.ProcessorCount;
-            Parallelizer.Go(ParallelizeOptionSets, 0, optionSets.Count, (Action<int>)SingleOptionSetAction);
+            await Parallelizer.GoAsync(ParallelizeOptionSets, 0, optionSets.Count, SingleOptionSetAction);
             string combinedResults = CombineResultsOfAllOptionSets(masterReportName, results.ToList());
             return combinedResults;
         }
 
-        private static string ProcessSingleOptionSet(string masterReportName, int optionSetIndex)
+        private static async Task<string> ProcessSingleOptionSet(string masterReportName, int optionSetIndex)
         {
             bool includeFirstLine = optionSetIndex == 0;
             var optionSet = GetOptionsSets()[optionSetIndex];
             var options = optionSet.options;
-            return ProcessSingleOptionSet(options, masterReportName, optionSet.reportName, includeFirstLine);
+            return await ProcessSingleOptionSet(options, masterReportName, optionSet.reportName, includeFirstLine);
         }
 
-        private static string ProcessSingleOptionSet(MyGameOptions options, string masterReportName, string optionSetName, bool includeFirstLine)
+        private static async Task<string> ProcessSingleOptionSet(MyGameOptions options, string masterReportName, string optionSetName, bool includeFirstLine)
         {
             string masterReportNamePlusOptionSet = $"{masterReportName} {optionSetName}";
             if (options.IncludeCourtSuccessReport || options.IncludeSignalsReport)
@@ -300,7 +298,7 @@ namespace ACESim
             List<string> combinedReports = new List<string>();
             for (int i = 0; i < NumRepetitions; i++)
             {
-                string singleRepetitionReport = GetSingleRepetitionReportAndSave(masterReportName, options, optionSetName, i, ref developer);
+                string singleRepetitionReport = await GetSingleRepetitionReportAndSave(masterReportName, options, optionSetName, i, developer);
                 combinedReports.Add(singleRepetitionReport);
                 // AzureBlob.SerializeObject("results", reportName + " CRM", true, developer);
             }
@@ -308,28 +306,28 @@ namespace ACESim
         }
 
 
-        public static string GetSingleRepetitionReportAndSave(string masterReportName, int optionSetIndex, int repetition, ref CounterfactualRegretMinimization developer)
+        public static async Task<string> GetSingleRepetitionReportAndSave(string masterReportName, int optionSetIndex, int repetition, CounterfactualRegretMinimization developer)
         {
             bool includeFirstLine = optionSetIndex == 0;
             List<(string reportName, MyGameOptions options)> optionSets = GetOptionsSets();
             var options = optionSets[optionSetIndex].options;
             int numRepetitionsPerOptionSet = NumRepetitions;
-            string result = GetSingleRepetitionReportAndSave(masterReportName, options, optionSets[optionSetIndex].reportName, repetition, ref developer);
+            string result = await GetSingleRepetitionReportAndSave(masterReportName, options, optionSets[optionSetIndex].reportName, repetition, developer);
             return result;
         }
 
-        public static string GetSingleRepetitionReportAndSave(string masterReportName, MyGameOptions options, string optionSetName, int repetition, ref CounterfactualRegretMinimization developer)
+        public static async Task<string> GetSingleRepetitionReportAndSave(string masterReportName, MyGameOptions options, string optionSetName, int repetition, CounterfactualRegretMinimization developer)
         {
             string masterReportNamePlusOptionSet = $"{masterReportName} {optionSetName}";
             if (developer == null)
-                developer = GetDeveloper(options);
-            var result = GetSingleRepetitionReport(optionSetName, repetition, developer);
+                throw new Exception("Developer must be set"); // should call GetDeveloper(options) before calling this (note: earlier version passed developer as ref so that it could be set here)
+            var result = await GetSingleRepetitionReport(optionSetName, repetition, developer);
             string azureBlobInterimReportName = masterReportNamePlusOptionSet + $" {repetition}";
             AzureBlob.WriteTextToBlob("results", azureBlobInterimReportName, true, result); // we write to a blob in case this times out and also to allow individual report to be taken out
             return result;
         }
 
-        private static string GetSingleRepetitionReport(string optionSetName, int i, CounterfactualRegretMinimization developer)
+        private static async Task<string> GetSingleRepetitionReport(string optionSetName, int i, CounterfactualRegretMinimization developer)
         {
             developer.EvolutionSettings.GameNumber = StartGameNumber + i;
             string reportIteration = i.ToString();
@@ -339,7 +337,7 @@ namespace ACESim
             retry:
             try
             {
-                report = developer.DevelopStrategies(optionSetName);
+                report = await developer.DevelopStrategies(optionSetName);
             }
             catch (Exception e)
             {
@@ -456,7 +454,7 @@ namespace ACESim
             return result;
         }
 
-        public static Task ParticipateInDistributedProcessing(string masterReportName, CancellationToken cancellationToken, Action actionEachTime = null)
+        public static async Task ParticipateInDistributedProcessing(string masterReportName, CancellationToken cancellationToken, Action actionEachTime = null)
         {
             InitiateNonLocalOptionSetsProcessing(masterReportName);
             IndividualTask taskToDo = null, taskCompleted = null;
@@ -482,20 +480,19 @@ namespace ACESim
                 complete = taskToDo == null;
                 if (!complete)
                 {
-                    CompleteIndividualTask(masterReportName, taskToDo);
+                    await CompleteIndividualTask(masterReportName, taskToDo);
                     Debug.WriteLine($"Completed task {taskToDo.Name} {taskToDo.ID}");
                     taskCompleted = taskToDo;
                 }
             }
-            return Task.CompletedTask;
         }
 
-        private static void CompleteIndividualTask(string masterReportName, IndividualTask taskToDo)
+        private static async Task CompleteIndividualTask(string masterReportName, IndividualTask taskToDo)
         {
             if (taskToDo.Name == "Optimize")
             {
                 CounterfactualRegretMinimization developer = GetDeveloper(taskToDo.ID);
-                GetSingleRepetitionReportAndSave(masterReportName, taskToDo.ID, taskToDo.Repetition, ref developer);
+                await GetSingleRepetitionReportAndSave(masterReportName, taskToDo.ID, taskToDo.Repetition, developer);
             }
             else if (taskToDo.Name == "CombineRepetitions")
             {

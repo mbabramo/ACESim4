@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace ACESim
 {
@@ -7,7 +8,7 @@ namespace ACESim
     {
         List<Strategy> Strategies { get; set; }
         IStrategiesDeveloper DeepCopy();
-        string DevelopStrategies(string reportName);
+        Task<string> DevelopStrategies(string reportName);
         EvolutionSettings EvolutionSettings { get; set; }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace ACESim
 {
@@ -243,7 +244,7 @@ namespace ACESim
         private int ProbingCFRIterationNum;
         private int ProbingCFREffectiveIteration; // iteration number valid only when not in parallel
 
-        public unsafe string SolveGibsonProbingCFR()
+        public async Task<string> SolveGibsonProbingCFR()
         {
             string reportString = null;
             Stopwatch s = new Stopwatch();
@@ -258,7 +259,7 @@ namespace ACESim
                 s.Start();
                 GibsonProbingCFRIteration(ProbingCFRIterationNum);
                 s.Stop();
-                reportString = GenerateReports(ProbingCFRIterationNum + 1,
+                reportString = await GenerateReports(ProbingCFRIterationNum + 1,
                     () =>
                         $"Iteration {ProbingCFRIterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)(ProbingCFRIterationNum + 1))))}");
             }

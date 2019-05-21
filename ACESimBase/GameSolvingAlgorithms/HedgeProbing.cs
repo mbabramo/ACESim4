@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace ACESim
 {
@@ -408,7 +409,7 @@ namespace ACESim
             } while (!success);
         }
 
-        public unsafe string SolveHedgeProbingCFR(string reportName)
+        public async Task<string> SolveHedgeProbingCFR(string reportName)
         {
             //TraceCFR = true;
             //GameProgressLogger.LoggingOn = true;
@@ -450,7 +451,7 @@ namespace ACESim
                 );
                 s.Stop();
                 ProbingCFRIterationNum = startingIteration = stopBefore; // this is the iteration to run next
-                reportString = GenerateReports(ProbingCFRIterationNum,
+                reportString = await GenerateReports(ProbingCFRIterationNum,
                     () =>
                         $"Iteration {ProbingCFRIterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)(ProbingCFRIterationNum + 1))))}");
             }

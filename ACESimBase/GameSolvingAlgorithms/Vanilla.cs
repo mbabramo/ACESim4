@@ -1,6 +1,7 @@
 ﻿using ACESim.Util;
 using System;
 using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace ACESim
 {
@@ -206,19 +207,19 @@ namespace ACESim
             return probabilityAdjustedExpectedValueParticularAction;
         }
 
-        public unsafe string SolveVanillaCFR()
+        public async Task<string> SolveVanillaCFR()
         {
             string reportString = null;
             for (int iteration = 0; iteration < EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
-                reportString = VanillaCFRIteration(iteration);
+                reportString = await VanillaCFRIteration(iteration);
             }
             return reportString;
         }
 
         double VanillaIteration, PositiveRegretsAdjustment, NegativeRegretsAdjustment, AverageStrategyAdjustment;
         Stopwatch VanillaIterationStopwatch = new Stopwatch();
-        private unsafe string VanillaCFRIteration(int iteration)
+        private async Task<string> VanillaCFRIteration(int iteration)
         {
             VanillaIteration = iteration;
 
@@ -235,6 +236,16 @@ namespace ACESim
 
             bool usePruning = false; // iteration >= 100;
             ActionStrategy = usePruning ? ActionStrategies.RegretMatchingWithPruning : ActionStrategies.RegretMatching;
+            VanillaCFR_OptimizeEachPlayer(iteration, lastUtilities, usePruning);
+
+            reportString = await GenerateReports(iteration,
+                () =>
+                    $"Iteration {iteration} Overall milliseconds per iteration {((VanillaIterationStopwatch.ElapsedMilliseconds / ((double)iteration + 1.0)))}");
+            return reportString;
+        }
+
+        private unsafe void VanillaCFR_OptimizeEachPlayer(int iteration, double[] lastUtilities, bool usePruning)
+        {
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
                 double* initialPiValues = stackalloc double[MaxNumMainPlayers];
@@ -247,11 +258,6 @@ namespace ACESim
                     VanillaCFR(ref historyPoint, playerBeingOptimized, initialPiValues, usePruning);
                 VanillaIterationStopwatch.Stop();
             }
-
-            reportString = GenerateReports(iteration,
-                () =>
-                    $"Iteration {iteration} Overall milliseconds per iteration {((VanillaIterationStopwatch.ElapsedMilliseconds / ((double) iteration + 1.0)))}");
-            return reportString;
         }
     }
 }

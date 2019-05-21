@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace ACESim
 {
@@ -13,7 +14,7 @@ namespace ACESim
         // 3. For each pair of information sets, set the pure strategy for each player, playing all chance strategies. Record the average resulting utilities.
         // 4. Using the matrix, eliminated dominated strategies. That is, for each column A, look to see if there is another column B that is always at least as good for column player. If so, eliminate A. Do same for rows (for row player). Repeat until a cycle produces no changes.
 
-        public void FindPureStrategies()
+        public async Task FindPureStrategies()
         {
             if (NumNonChancePlayers != 2)
                 throw new NotImplementedException();
@@ -31,7 +32,7 @@ namespace ACESim
             List<(int player0Strategy, int player1Strategy)> nashEquilibria =
                 NarrowToNashEquilibria(player0Permutations, player1Permutations, player0Utilities, player1Utilities,
                     player0StrategyEliminated, player1StrategyEliminated, true);
-            PrintAllEquilibriumStrategies(player0InformationSets, player1InformationSets, player0Permutations,
+            await PrintAllEquilibriumStrategies(player0InformationSets, player1InformationSets, player0Permutations,
                 player1Permutations, nashEquilibria);
         }
 
@@ -50,7 +51,7 @@ namespace ACESim
             }
         }
 
-        private void PrintAllEquilibriumStrategies(List<(InformationSetNodeTally, int)> player0InformationSets,
+        private async Task PrintAllEquilibriumStrategies(List<(InformationSetNodeTally, int)> player0InformationSets,
             List<(InformationSetNodeTally, int)> player1InformationSets, int player0Permutations,
             int player1Permutations, List<(int player0Strategy, int player1Strategy)> nashEquilibria)
         {
@@ -66,7 +67,7 @@ namespace ACESim
                         SetPureStrategyBasedOnIndex(player1InformationSets, player1StrategyIndex, player1Permutations);
                         Console.WriteLine(
                             $"Player0StrategyIndex {player0StrategyIndex} Player1StrategyIndex {player1StrategyIndex}");
-                        GenerateReports(0, () => "");
+                        await GenerateReports(0, () => "");
                         PrintGameTree();
                         Console.WriteLine("");
                         numPrinted++;

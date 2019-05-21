@@ -52,21 +52,21 @@ namespace ACESim
             return evolutionSettings;
         }
 
-        public static string EvolveGame()
+        public static async Task<string> EvolveGame()
         {
-             string result = ProcessSingleOptionSet_Serial("MultiRoundCooperation", true, StartGameNumber, NumRepetitions);
+             string result = await ProcessSingleOptionSet_Serial("MultiRoundCooperation", true, StartGameNumber, NumRepetitions);
             Console.WriteLine(result);
             return result;
         }
 
-        private static string ProcessSingleOptionSet_Serial(string reportName, bool includeFirstLine, int startGameNumber, int numRepetitions)
+        private static async Task<string> ProcessSingleOptionSet_Serial(string reportName, bool includeFirstLine, int startGameNumber, int numRepetitions)
         { 
             var developer = GetDeveloper();
             developer.EvolutionSettings.GameNumber = startGameNumber;
             List<string> combinedReports = new List<string>();
             for (int i = 0; i < numRepetitions; i++)
             {
-                string singleRepetitionReport = GetSingleRepetitionReport(reportName, i, developer);
+                string singleRepetitionReport = await GetSingleRepetitionReport(reportName, i, developer);
                 combinedReports.Add(singleRepetitionReport);
             }
             string combinedRepetitionsReport = String.Join("", combinedReports);
@@ -74,7 +74,7 @@ namespace ACESim
             return mergedReport;
         }
         
-        private static string GetSingleRepetitionReport(string reportName, int i, CounterfactualRegretMinimization developer)
+        private static async Task<string> GetSingleRepetitionReport(string reportName, int i, CounterfactualRegretMinimization developer)
         {
             developer.EvolutionSettings.GameNumber = StartGameNumber + i;
             string reportIteration = i.ToString();
@@ -84,7 +84,7 @@ namespace ACESim
             retry:
             try
             {
-                report = developer.DevelopStrategies(reportName);
+                report = await developer.DevelopStrategies(reportName);
             }
             catch (Exception e)
             {

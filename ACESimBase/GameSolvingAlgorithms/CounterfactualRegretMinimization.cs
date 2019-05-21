@@ -131,35 +131,35 @@ namespace ACESim
             PreviousRegretMatchingState = null;
         }
 
-        public string DevelopStrategies(string reportName)
+        public async Task<string> DevelopStrategies(string reportName)
         {
             string report = null;
             Initialize();
             switch (EvolutionSettings.Algorithm)
             {
                 case GameApproximationAlgorithm.AverageStrategySampling:
-                    SolveAvgStrategySamplingCFR();
+                    await SolveAvgStrategySamplingCFR();
                     break;
                 case GameApproximationAlgorithm.GibsonProbing:
-                    report = SolveGibsonProbingCFR();
+                    report = await SolveGibsonProbingCFR();
                     break;
                 case GameApproximationAlgorithm.ExploratoryProbing:
-                    report = SolveExploratoryProbingCFR(reportName);
+                    report = await SolveExploratoryProbingCFR(reportName);
                     break;
                 case GameApproximationAlgorithm.ModifiedGibsonProbing:
-                    report = SolveModifiedGibsonProbingCFR(reportName);
+                    report = await SolveModifiedGibsonProbingCFR(reportName);
                     break;
                 case GameApproximationAlgorithm.HedgeProbing:
-                    report = SolveHedgeProbingCFR(reportName);
+                    report = await SolveHedgeProbingCFR(reportName);
                     break;
                 case GameApproximationAlgorithm.HedgeVanilla:
-                    report = SolveHedgeVanillaCFR();
+                    report = await SolveHedgeVanillaCFR();
                     break;
                 case GameApproximationAlgorithm.Vanilla:
-                    report = SolveVanillaCFR();
+                    report = await SolveVanillaCFR();
                     break;
                 case GameApproximationAlgorithm.PureStrategyFinder:
-                    FindPureStrategies();
+                    await FindPureStrategies();
                     break;
                 default:
                     throw new NotImplementedException();
@@ -545,7 +545,7 @@ namespace ACESim
 
         #region Game play and reporting
 
-        private unsafe string GenerateReports(int iteration, Func<string> prefaceFn)
+        private async Task<string> GenerateReports(int iteration, Func<string> prefaceFn)
         {
             string reportString = "";
             if (EvolutionSettings.ReportEveryNIterations != null && iteration % EvolutionSettings.ReportEveryNIterations == 0)
@@ -574,7 +574,7 @@ namespace ACESim
                     ActionStrategy = actionStrategy;
                     ActionStrategyLastReport = ActionStrategy.ToString();
                     if (EvolutionSettings.GenerateReportsByPlaying)
-                        reportString += GenerateReportsByPlaying(useRandomPaths);
+                        reportString += await GenerateReportsByPlaying(useRandomPaths);
                 }
                 ActionStrategy = previous;
                 Br.eak.Remove("Report");
@@ -595,9 +595,9 @@ namespace ACESim
         }
 
         string ActionStrategyLastReport;
-        private unsafe string GenerateReportsByPlaying(bool useRandomPaths)
+        private async Task<string> GenerateReportsByPlaying(bool useRandomPaths)
         {
-            Action<GamePlayer, Func<Decision, GameProgress, byte>> reportGenerator;
+            Func<GamePlayer, Func<Decision, GameProgress, byte>, Task> reportGenerator;
             if (useRandomPaths)
             {
                 Console.WriteLine($"Result using {EvolutionSettings.NumRandomIterationsForSummaryTable} randomly chosen paths playing {ActionStrategy}");
@@ -608,7 +608,7 @@ namespace ACESim
                 Console.WriteLine($"Result using all paths playing {ActionStrategy}");
                 reportGenerator = GenerateReports_AllPaths;
             }
-            var reports = GenerateReportsByPlaying(reportGenerator);
+            var reports = await GenerateReportsByPlaying(reportGenerator);
             if (!EvolutionSettings.SuppressReportPrinting)
             {
                 Debug.WriteLine($"{reports.standardReport}");
@@ -669,7 +669,7 @@ namespace ACESim
             return player.PlayMultipleIterations(null, numIterations, null, actionOverride).ToList();
         }
 
-        private void GenerateReports_RandomPaths(GamePlayer player, Func<Decision, GameProgress, byte> actionOverride)
+        private async Task GenerateReports_RandomPaths(GamePlayer player, Func<Decision, GameProgress, byte> actionOverride)
         {
             var gameProgresses = GetRandomCompleteGames(player, EvolutionSettings.NumRandomIterationsForSummaryTable, actionOverride);
             UtilityCalculationsArray = new StatCollectorArray();
@@ -679,9 +679,11 @@ namespace ACESim
             var step2_buffer = new BufferBlock<Tuple<GameProgress, double>>(new DataflowBlockOptions { BoundedCapacity = 10000 });
             var step3_consumer = AddGameProgressToReport(step2_buffer);
             foreach (var gameProgress in gameProgresses)
-                step2_buffer.SendAsync(new Tuple<GameProgress, double>(gameProgress, 1.0));
+            {
+                bool result = await step2_buffer.SendAsync(new Tuple<GameProgress, double>(gameProgress, 1.0));
+            }
             step2_buffer.Complete(); // tell consumer nothing more to be produced
-            step3_consumer.Wait(); // wait until all have been processed
+            await step3_consumer; // wait until all have been processed
         }
 
         private void CountPaths(List<GameProgress> gameProgresses)
@@ -700,6 +702,13 @@ namespace ACESim
             }
             foreach (var item in CountPaths.AsEnumerable().OrderBy(x => x.Key))
                 Console.WriteLine($"{item.Key} => {((double)item.Value) / (double)EvolutionSettings.NumRandomIterationsForSummaryTable}");
+        }
+
+        public Task ProcessAllPathsAsync(HistoryPoint history, Func<HistoryPoint, double, Task> pathPlayer)
+        {
+            Action<HistoryPoint, double> action = async (h, d) => await pathPlayer(h, d);
+            ProcessAllPaths_Recursive(ref history, action, ActionStrategy, 1.0);
+            return Task.CompletedTask;
         }
 
         public void ProcessAllPaths(ref HistoryPoint history, Action<HistoryPoint, double> pathPlayer)
@@ -791,7 +800,7 @@ namespace ACESim
 
         SimpleReport[] ReportsBeingGenerated = null;
 
-        public (string standardReport, string csvReport) GenerateReportsByPlaying(Action<GamePlayer, Func<Decision, GameProgress, byte>> generator)
+        public async Task<(string standardReport, string csvReport)> GenerateReportsByPlaying(Func<GamePlayer, Func<Decision, GameProgress, byte>, Task> generator)
         {
             Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, InformationSets, ChanceNodes, FinalUtilitiesNodes, GetGameState, EvolutionSettings);
             StringBuilder standardReport = new StringBuilder();
@@ -803,7 +812,7 @@ namespace ACESim
             for (int i = 0; i < simpleReportDefinitionsCount; i++)
             {
                 ReportsBeingGenerated[i] = new SimpleReport(simpleReportDefinitions[i], simpleReportDefinitions[i].DivideColumnFiltersByImmediatelyEarlierReport ? ReportsBeingGenerated[i - 1] : null);
-                generator(GamePlayer, simpleReportDefinitions[i].ActionsOverride);
+                await generator(GamePlayer, simpleReportDefinitions[i].ActionsOverride);
                 ReportsBeingGenerated[i].GetReport(standardReport, csvReport);
                 ReportsBeingGenerated[i] = null; // so we don't keep adding GameProgress to this report
             }
@@ -814,7 +823,7 @@ namespace ACESim
 
         private StatCollectorArray UtilityCalculationsArray;
 
-        private void GenerateReports_AllPaths(GamePlayer player, Func<Decision, GameProgress, byte> actionOverride)
+        private async Task GenerateReports_AllPaths(GamePlayer player, Func<Decision, GameProgress, byte> actionOverride)
         {
             UtilityCalculationsArray = new StatCollectorArray();
             UtilityCalculationsArray.Initialize(NumNonChancePlayers);
@@ -822,7 +831,7 @@ namespace ACESim
             // we'll set up step1, step2, and step3 (but not in that order, since step 1 triggers step 2)
             var step2_buffer = new BufferBlock<Tuple<GameProgress, double>>(new DataflowBlockOptions { BoundedCapacity = 10_000 });
             var step3_consumer = AddGameProgressToReport(step2_buffer);
-            void step1_playPath(ref HistoryPoint completedGame, double probabilityOfPath)
+            async Task step1_playPath(HistoryPoint completedGame, double probabilityOfPath)
             {
                 // play each path and then asynchronously consume the result, including the probability of the game path
                 List<byte> actions = completedGame.GetActionsToHere(Navigation);
@@ -834,19 +843,18 @@ namespace ACESim
                 bool messageAccepted;
                 do
                 {
-                    // TODO: If we change this to async and use SendAsync instead of post, we may get better performance. We still need to check
                     // whether the message was accepted (though it will be rejected then only in unusual circumstances, not just because the buffer
                     // is full).
-                    messageAccepted = step2_buffer.Post(new Tuple<GameProgress, double>(progress, probabilityOfPath));
+                    messageAccepted = await step2_buffer.SendAsync(new Tuple<GameProgress, double>(progress, probabilityOfPath));
                     if (!messageAccepted)
                         Thread.Sleep(10);
                 } while (!messageAccepted);
             };
             // Now, we have to send the paths through all of these steps and make sure that step 3 is completely finished.
             var startHistoryPoint = GetStartOfGameHistoryPoint();
-            ProcessAllPaths(ref startHistoryPoint, (historyPoint, pathProbability) => step1_playPath(ref historyPoint, pathProbability));
+            await ProcessAllPathsAsync(startHistoryPoint, (historyPoint, pathProbability) => step1_playPath(historyPoint, pathProbability));
             step2_buffer.Complete(); // tell consumer nothing more to be produced
-            step3_consumer.Wait(); // wait until all have been processed
+            await step3_consumer; // wait until all have been processed
 
             for (int p = 0; p < NumNonChancePlayers; p++)
                 if (Math.Abs(UtilityCalculationsArray.StatCollectors[p].sumOfWeights - 1.0) > 0.001)
