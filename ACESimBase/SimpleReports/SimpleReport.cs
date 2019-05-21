@@ -25,14 +25,21 @@ namespace ACESim
         public void ProcessGameProgress(GameProgress completedGame, double weight)
         {
             int i = 0;
+            int rowFiltersCount = Definition.RowFilters.Count();
+            int columnItemsCount = Definition.ColumnItems.Count();
+            int numPerMetaFilter = rowFiltersCount * columnItemsCount;
+            int numProcessed = 0;
             foreach (SimpleReportFilter metaFilter in Definition.MetaFilters)
             {
                 bool metaFilterSatisfied = metaFilter.IsInFilter(completedGame);
                 if (metaFilterSatisfied)
                 {
-                    foreach (SimpleReportFilter rowFilter in Definition.RowFilters)
+                    double[,] results = new double[rowFiltersCount, columnItemsCount];
+                    Parallel.For(0, rowFiltersCount, rowFilterIndex =>
                     {
+                        SimpleReportFilter rowFilter = Definition.RowFilters[rowFilterIndex];
                         bool rowFilterSatisfied = rowFilter.IsInFilter(completedGame);
+                        int colItemIndex = 0;
                         foreach (SimpleReportColumnItem colItem in Definition.ColumnItems)
                         {
                             var v = colItem.GetValueToRecord(completedGame);
@@ -49,13 +56,15 @@ namespace ACESim
                             //if (recordThis && v == null)
                             //    StatCollectors[i] = null; // this collection is invalid -- we only report stats when every item is present.
                             if (recordThis && StatCollectors[i] != null && v != null)
-                                StatCollectors[i].Add((double) v, weight);
-                            i++;
+                            {
+                                int statCollectorIndex = numProcessed + rowFilterIndex * columnItemsCount + colItemIndex;
+                                StatCollectors[statCollectorIndex].Add((double)v, weight);
+                            }
+                            colItemIndex++;
                         }
-                    }
+                    });
                 }
-                else
-                    i += Definition.RowFilters.Count() * Definition.ColumnItems.Count();
+                numProcessed += numPerMetaFilter;
             }
         }
 

@@ -664,26 +664,20 @@ namespace ACESim
             }
         }
 
-        public List<GameProgress> GetRandomCompleteGames(GamePlayer player, int numIterations, Func<Decision, GameProgress, byte> actionOverride)
+        public IEnumerable<GameProgress> GetRandomCompleteGames(GamePlayer player, int numIterations, Func<Decision, GameProgress, byte> actionOverride)
         {
-            return player.PlayMultipleIterations(null, numIterations, null, actionOverride).ToList();
+            return player.PlayMultipleIterations(null, numIterations, null, actionOverride);
         }
 
         private async Task GenerateReports_RandomPaths(GamePlayer player, Func<Decision, GameProgress, byte> actionOverride)
         {
-            var gameProgresses = GetRandomCompleteGames(player, EvolutionSettings.NumRandomIterationsForSummaryTable, actionOverride);
             UtilityCalculationsArray = new StatCollectorArray();
             UtilityCalculationsArray.Initialize(NumNonChancePlayers);
             // start Task Parallel Library consumer/producer pattern
             // we'll set up step1, step2, and step3 (but not in that order, since step 1 triggers step 2)
             var step2_buffer = new BufferBlock<Tuple<GameProgress, double>>(new DataflowBlockOptions { BoundedCapacity = 10000 });
             var step3_consumer = AddGameProgressToReport(step2_buffer);
-            var tasks = gameProgresses.Select(async x => {
-                bool result = false;
-                while (!result)
-                    result = await step2_buffer.SendAsync(new Tuple<GameProgress, double>(x, 1.0));
-            }).ToArray();
-            await Task.WhenAll(tasks);
+            await player.PlayMultipleIterationsAndProcess(EvolutionSettings.NumRandomIterationsForSummaryTable, actionOverride, step2_buffer);
             step2_buffer.Complete(); // tell consumer nothing more to be produced
             await step3_consumer; // wait until all have been processed
         }
