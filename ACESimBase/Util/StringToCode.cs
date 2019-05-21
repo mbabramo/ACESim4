@@ -14,21 +14,34 @@ namespace ACESimBase.Util
     public static class StringToCode
     {
 
-
-        public static Type LoadCode(string codeString, string fullyQualifiedClassName)
+        public static Type LoadCode(string codeString, string fullyQualifiedClassName, List<Type> extraTypesToReference = null)
         {
             SyntaxTree tree = CSharpSyntaxTree.ParseText(codeString);
             string assemblyName = Path.GetRandomFileName();
-            MetadataReference[] references = new MetadataReference[]
+            var assemblyPath = Path.GetDirectoryName(typeof(object).Assembly.Location);
+            List<MetadataReference> references = new List<MetadataReference>
             {
                 MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
-                MetadataReference.CreateFromFile(typeof(Enumerable).Assembly.Location)
+                MetadataReference.CreateFromFile(typeof(Enumerable).Assembly.Location),
             };
+            var trustedAssembliesPaths = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")).Split(Path.PathSeparator);
+            var neededAssemblies = new[]
+            {
+                "System.Runtime",
+                "mscorlib",
+            };
+            references.AddRange(trustedAssembliesPaths
+                .Where(p => neededAssemblies.Contains(Path.GetFileNameWithoutExtension(p)))
+                .Select(p => MetadataReference.CreateFromFile(p))
+                .ToList());
+            if (extraTypesToReference != null)
+                foreach (Type t in extraTypesToReference)
+                    references.Add(MetadataReference.CreateFromFile(t.Assembly.Location));
 
             CSharpCompilation compilation = CSharpCompilation.Create(
                 assemblyName,
                 syntaxTrees: new[] { tree },
-                references: references,
+                references: references.ToArray(),
                 options: new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
             using (var ms = new MemoryStream())
             {

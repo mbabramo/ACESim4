@@ -35,8 +35,9 @@ namespace ACESim
         bool RecordPastValues = false;
         int RecordPastValuesEveryN;
         private int LastPastValueIndexRecorded = -1;
-        double[,] PastValues;
-        double[] PastValuesCumulativeStrategyDiscounts;
+        public double[,] PastValues;
+        public double? PV(int iteration, int action) => PastValues[iteration, action] switch { double d when d > 1E-8 => (double?) d, _ => null };
+        public double[] PastValuesCumulativeStrategyDiscounts;
         double PastValuesLastCumulativeStrategyDiscount => PastValuesCumulativeStrategyDiscounts[LastPastValueIndexRecorded];
 
         public int NumPossibleActions => Decision.NumPossibleActions;
