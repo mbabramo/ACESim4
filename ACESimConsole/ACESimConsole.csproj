@@ -6,7 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="TextCopy" Version="1.5.1" />
+    <PackageReference Include="TextCopy" Version="1.5.2" />
   </ItemGroup>
 
   <ItemGroup>

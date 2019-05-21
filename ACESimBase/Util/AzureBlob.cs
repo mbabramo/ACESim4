@@ -5,9 +5,8 @@ using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.WindowsAzure; // Namespace for CloudConfigurationManager
-using Microsoft.WindowsAzure.Storage; // Namespace for CloudStorageAccount
-using Microsoft.WindowsAzure.Storage.Blob; // Namespace for Blob storage types
+using Microsoft.Azure.Storage;
+using Microsoft.Azure.Storage.Blob;
 
 namespace ACESim.Util
 {
@@ -99,7 +98,7 @@ namespace ACESim.Util
                 string lease = blockBlob.AcquireLease(TimeSpan.FromSeconds(59), null);
                 return (lease, blockBlob);
             }
-            catch (Microsoft.WindowsAzure.Storage.StorageException)
+            catch (Microsoft.Azure.Storage.StorageException)
             { // failed to acquire lease
                 goto retry;
             }
