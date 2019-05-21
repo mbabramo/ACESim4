@@ -678,10 +678,12 @@ namespace ACESim
             // we'll set up step1, step2, and step3 (but not in that order, since step 1 triggers step 2)
             var step2_buffer = new BufferBlock<Tuple<GameProgress, double>>(new DataflowBlockOptions { BoundedCapacity = 10000 });
             var step3_consumer = AddGameProgressToReport(step2_buffer);
-            foreach (var gameProgress in gameProgresses)
-            {
-                bool result = await step2_buffer.SendAsync(new Tuple<GameProgress, double>(gameProgress, 1.0));
-            }
+            var tasks = gameProgresses.Select(async x => {
+                bool result = false;
+                while (!result)
+                    result = await step2_buffer.SendAsync(new Tuple<GameProgress, double>(x, 1.0));
+            }).ToArray();
+            await Task.WhenAll(tasks);
             step2_buffer.Complete(); // tell consumer nothing more to be produced
             await step3_consumer; // wait until all have been processed
         }
@@ -846,8 +848,6 @@ namespace ACESim
                     // whether the message was accepted (though it will be rejected then only in unusual circumstances, not just because the buffer
                     // is full).
                     messageAccepted = await step2_buffer.SendAsync(new Tuple<GameProgress, double>(progress, probabilityOfPath));
-                    if (!messageAccepted)
-                        Thread.Sleep(10);
                 } while (!messageAccepted);
             };
             // Now, we have to send the paths through all of these steps and make sure that step 3 is completely finished.
@@ -880,7 +880,7 @@ namespace ACESim
             // basic idea: for each player, WalkTree, try to override each action, play random paths, and see what score is. 
         }
 
-        private double[] CalculateUtility_RandomPaths(GamePlayer player, Func<Decision, GameProgress, byte> actionOverride)
+        private async Task<double[]> CalculateUtility_RandomPaths(GamePlayer player, Func<Decision, GameProgress, byte> actionOverride)
         {
             var gameProgresses = GetRandomCompleteGames(player, EvolutionSettings.NumRandomIterationsForUtilityCalculation, actionOverride);
             // start Task Parallel Library consumer/producer pattern
@@ -888,7 +888,11 @@ namespace ACESim
             var step2_buffer = new BufferBlock<Tuple<GameProgress, double>>(new DataflowBlockOptions { BoundedCapacity = 10000 });
             var step3_consumer = ProcessUtilities(step2_buffer);
             foreach (var gameProgress in gameProgresses)
-                step2_buffer.SendAsync(new Tuple<GameProgress, double>(gameProgress, 1.0));
+            {
+                bool result = false;
+                while (!result)
+                    result = await step2_buffer.SendAsync(new Tuple<GameProgress, double>(gameProgress, 1.0));
+            }
             step2_buffer.Complete(); // tell consumer nothing more to be produced
             step3_consumer.Wait(); // wait until all have been processed
             return UtilityCalculationsArray.Average().ToArray();

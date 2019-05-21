@@ -29,7 +29,7 @@ namespace ACESim
         private const int MiniReportEveryPIterations = 5_000;
         private const int RecordPastValuesEveryNIterations = 10;
         private const bool UseRandomPathsForReporting = true;
-        private const int SummaryTableRandomPathsIterations = 25_000;
+        private const int SummaryTableRandomPathsIterations = 500_000;
         
         private const bool UseRegretAndStrategyDiscounting = true;
 
