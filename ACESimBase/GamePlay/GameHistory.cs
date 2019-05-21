@@ -37,8 +37,8 @@ namespace ACESim
 
         // Must also change values in InformationSetLog.
         public fixed byte InformationSets[MaxInformationSetLength];
-        public const int MaxInformationSetLength = 105; // MUST equal MaxInformationSetLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLengthPerPartialPlayer * NumPartialPlayers. 
-        public const int MaxInformationSetLengthPerFullPlayer = 30;
+        public const int MaxInformationSetLength = 135; // MUST equal MaxInformationSetLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLengthPerPartialPlayer * NumPartialPlayers. 
+        public const int MaxInformationSetLengthPerFullPlayer = 40;
         public const int MaxInformationSetLengthPerPartialPlayer = 3;
         public const int NumFullPlayers = 3; // includes main players and resolution player and any chance players that need full size information set
         public const int MaxNumPlayers = 8; // includes chance players that need a very limited information set

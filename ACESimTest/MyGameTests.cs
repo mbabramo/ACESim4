@@ -339,6 +339,7 @@ namespace ACESimTest
                     var settled = false;
                     for (byte b = 1; b <= bargainingRoundCount; b++)
                     {
+                        Br.eak.IfAdded("Case");
                         if (b >= startingRound)
                         {
                             pInfo.Add(b);
@@ -363,11 +364,15 @@ namespace ACESimTest
                         if (simulatingBargainingFailure != HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain && b >= startingRound)
                         {
                             byte pBargains = pMove == null ? (byte)2 : (byte)1;
+                            pInfo.Add(pBargains);
+                            pInfoExplanations.Add($"pBargains {pBargains}");
                             dInfo.Add(pBargains);
                             dInfoExplanations.Add($"pBargains {pBargains}");
                             byte dBargains = dMove == null ? (byte)2 : (byte)1;
                             pInfo.Add(dBargains);
                             pInfoExplanations.Add($"dBargains {dBargains}");
+                            dInfo.Add(dBargains);
+                            dInfoExplanations.Add($"dBargains {dBargains}");
                         }
                         if (pMove != null && dMove != null)
                             if (simultaneousBargaining)
@@ -383,8 +388,12 @@ namespace ACESimTest
                                 if (b >= startingRound)
                                 {
                                     dInfo.Add((byte)pMove);
+                                    dInfo.Add((byte)dMove);
+                                    pInfo.Add((byte)pMove);
                                     pInfo.Add((byte)dMove);
                                     dInfoExplanations.Add($"pMove {pMove}");
+                                    dInfoExplanations.Add($"pMove {dMove}");
+                                    pInfoExplanations.Add($"dMove {pMove}");
                                     pInfoExplanations.Add($"dMove {dMove}");
                                 }
                                 pLastOffer = pMove;
@@ -394,7 +403,6 @@ namespace ACESimTest
                             }
                             else
                             {
-                                Br.eak.IfAdded("Case");
                                 if (b % 2 == 1)
                                 {
                                     // plaintiff offers
@@ -404,15 +412,17 @@ namespace ACESimTest
                                         dInfoExplanations.Add($"pMove {pMove}");
                                         if (subdivideOffers)
                                         {
-                                            pInfo.Add(GameHistory.EndDetourMarker); // the first end detour marker comes to P after P's move.
+                                            pInfo.Add(GameHistory.EndDetourMarker);
                                             pInfoExplanations.Add($"EndDetour");
                                         }
+                                        pInfo.Add((byte)pMove);
+                                        pInfoExplanations.Add($"pMove {pMove}");
                                         pInfo.Add((byte)dMove); // not a subdivision decision
                                         pInfoExplanations.Add($"dMove {dMove}");
+                                        dInfo.Add((byte)dMove); // not a subdivision decision
+                                        dInfoExplanations.Add($"dMove {dMove}");
                                         if (dMove == 1)
                                             settled = true;
-                                        dInfo.Add(GameHistory.DecisionHasOccurred);
-                                        dInfoExplanations.Add($"DecisionOccurred");
                                     }
                                     pLastOffer = pMove;
                                 }
@@ -428,12 +438,14 @@ namespace ACESimTest
                                             dInfo.Add(GameHistory.EndDetourMarker); // the first end detour marker comes to P after P's move.
                                             dInfoExplanations.Add("EndDetour");
                                         }
+                                        dInfo.Add((byte)dMove);
+                                        dInfoExplanations.Add($"dMove {dMove}");
+                                        pInfo.Add((byte)pMove); // not a subdivision decision
+                                        pInfoExplanations.Add($"pMove {pMove}");
                                         dInfo.Add((byte)pMove); // not a subdivision decision
                                         dInfoExplanations.Add($"pMove {pMove}");
                                         if (pMove == 1)
                                             settled = true;
-                                        pInfo.Add(GameHistory.DecisionHasOccurred);
-                                        pInfoExplanations.Add("DecisionOccurred");
                                     }
                                     dLastOffer = dMove;
                                 }
@@ -455,6 +467,7 @@ namespace ACESimTest
                         }
                         if (allowAbandonAndDefault && !settled && b >= startingRound) // if a settlement was reached last round, we don't get to this decision
                         {
+                            // Each player must have in its information set an indication that it has already made the abandon/default decision, so that when it doesn't abandon/default, it can distinguish this decision from later decisions
                             pInfo.Add(GameHistory.DecisionHasOccurred);
                             pInfoExplanations.Add("DecisionOccurred");
                             dInfo.Add(GameHistory.DecisionHasOccurred);
@@ -789,10 +802,11 @@ namespace ACESimTest
                 foreach (var runningSideBetChallenges in new[] {RunningSideBetChallenges.None, RunningSideBetChallenges.PChallenges2D1, RunningSideBetChallenges.DChallenges2P1})
                 {
                     var skipThis = false;
-                    if (CaseNumber == 999999)
+                    if (CaseNumber == 10780)
                     {
                         Br.eak.Add("Case");
                         GameProgressLogger.LoggingOn = true;
+                        GameProgressLogger.DetailedLogging = true;
                         GameProgressLogger.OutputLogMessages = true;
                     }
                     else
@@ -800,6 +814,7 @@ namespace ACESimTest
                         Br.eak.Remove("Case");
                         //skipThis = true; 
                         GameProgressLogger.LoggingOn = false;
+                        GameProgressLogger.DetailedLogging = false;
                         GameProgressLogger.OutputLogMessages = false;
                     }
                     bool incompatible = runningSideBetChallenges != RunningSideBetChallenges.None && (!allowAbandonAndDefault || simulatingBargainingFailure == HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain);

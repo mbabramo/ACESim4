@@ -272,7 +272,9 @@ namespace ACESim
                     2, (byte) MyGameDecisions.PAgreeToBargain)
                 {
                     CustomByte = (byte) (b + 1),
-                    IncrementGameCacheItem = new byte[] {GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound},
+                    IncrementGameCacheItem = new byte[] {
+                        GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound,
+                    },
                     StoreActionInGameCacheItem = GameHistoryCacheIndex_PAgreesToBargain,
                     DeferNotificationOfPlayers = true
                 };
@@ -282,7 +284,9 @@ namespace ACESim
                     2, (byte) MyGameDecisions.DAgreeToBargain)
                 {
                     CustomByte = (byte) (b + 1),
-                    IncrementGameCacheItem = new byte[] { GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound},
+                    IncrementGameCacheItem = new byte[] {
+                        GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound,
+                    },
                     StoreActionInGameCacheItem = GameHistoryCacheIndex_DAgreesToBargain
                 };
                 decisions.Add(dAgreeToBargain);
@@ -297,7 +301,9 @@ namespace ACESim
                         Options.NumOffers, (byte)MyGameDecisions.POffer)
                     {
                         CustomByte = (byte)(b + 1),
-                        IncrementGameCacheItem = new byte[] { GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound },
+                        IncrementGameCacheItem = new byte[] {
+                        GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound,
+                    },
                         DeferNotificationOfPlayers = true, // wait until after defendant has gone for defendant to find out -- of course, we don't do that with defendant decision
                         StoreActionInGameCacheItem = GameHistoryCacheIndex_POffer,
                     };
@@ -314,7 +320,9 @@ namespace ACESim
                     {
                         CanTerminateGame = true,
                         CustomByte = (byte)(b + 1),
-                        IncrementGameCacheItem = new byte[] { GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound },
+                        IncrementGameCacheItem = new byte[] {
+                        GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound,
+                    },
                         StoreActionInGameCacheItem = GameHistoryCacheIndex_DOffer,
                     };
                 if (Options.SubdivideOffers)
@@ -335,7 +343,9 @@ namespace ACESim
                             Options.NumOffers, (byte)MyGameDecisions.POffer)
                         {
                             CustomByte = (byte)(b + 1),
-                            IncrementGameCacheItem = new byte[] { GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound },
+                            IncrementGameCacheItem = new byte[] {
+                        GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound,
+                    },
                             StoreActionInGameCacheItem = GameHistoryCacheIndex_POffer,
                         }; // { AlwaysDoAction = 4});
                     if (Options.SubdivideOffers)
@@ -358,7 +368,9 @@ namespace ACESim
                             Options.NumOffers, (byte)MyGameDecisions.DOffer)
                         {
                             CustomByte = (byte)(b + 1),
-                            IncrementGameCacheItem = new byte[] { GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound },
+                            IncrementGameCacheItem = new byte[] {
+                                GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound,
+                            },
                             StoreActionInGameCacheItem = GameHistoryCacheIndex_DOffer,
                         };
                     if (Options.SubdivideOffers)
@@ -368,6 +380,7 @@ namespace ACESim
                         new Decision("PlaintiffResponse" + (b + 1), "PR" + (b + 1), (byte)MyGamePlayers.Plaintiff, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution }, 2,
                             (byte)MyGameDecisions.PResponse)
                         {
+                            CanTerminateGame = true,
                             CustomByte = (byte)(b + 1),
                             IncrementGameCacheItem = new byte[] { GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound },
                             StoreActionInGameCacheItem = GameHistoryCacheIndex_PResponse,
@@ -410,32 +423,36 @@ namespace ACESim
 
         private void AddAbandonOrDefaultDecisions(int b, List<Decision> decisions)
         {
+            // These decisions don't need to be added to P/D information sets, because if the game is abandoned or defaulted by at least one player, there are no more player decisions. If there are player decisions, this hasn't occurred. However, we still need a marker to indicate that the decision has occurred, so that the player can distinguish its own decision to abandon/default from any later pretrial decision.
+
             var pAbandon =
-                new Decision("PAbandon" + (b + 1), "PA" + (b + 1), (byte)MyGamePlayers.Plaintiff, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte) MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
+                new Decision("PAbandon" + (b + 1), "PA" + (b + 1), (byte)MyGamePlayers.Plaintiff, new byte[] { (byte)MyGamePlayers.Resolution },
                     2, (byte)MyGameDecisions.PAbandon)
                 {
                     CustomByte = (byte)(b + 1),
                     CanTerminateGame = false, // we always must look at whether D is defaulting too. 
                     IncrementGameCacheItem = new byte[] { GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound },
                     StoreActionInGameCacheItem = GameHistoryCacheIndex_PReadyToAbandon,
-                    IsReversible = true
+                    IsReversible = true,
+                    PlayersToInformOfOccurrenceOnly = new byte[] {(byte)MyGamePlayers.Plaintiff}
                 };
             decisions.Add(pAbandon);
 
             var dDefault =
-                new Decision("DDefault" + (b + 1), "DD" + (b + 1), (byte)MyGamePlayers.Defendant, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
+                new Decision("DDefault" + (b + 1), "DD" + (b + 1), (byte)MyGamePlayers.Defendant, new byte[] { (byte)MyGamePlayers.Resolution },
                     2, (byte)MyGameDecisions.DDefault)
                 {
                     CustomByte = (byte)(b + 1),
                     CanTerminateGame = true, // if either but not both has given up, game terminates
                     IncrementGameCacheItem = new byte[] { GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound },
                     StoreActionInGameCacheItem = GameHistoryCacheIndex_DReadyToAbandon,
-                    IsReversible = true
+                    IsReversible = true,
+                    PlayersToInformOfOccurrenceOnly = new byte[] { (byte)MyGamePlayers.Defendant }
                 };
             decisions.Add(dDefault);
 
             var bothGiveUp =
-                new Decision("MutualGiveUp" + (b + 1), "MGU" + (b + 1), (byte)MyGamePlayers.BothGiveUpChance, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
+                new Decision("MutualGiveUp" + (b + 1), "MGU" + (b + 1), (byte)MyGamePlayers.BothGiveUpChance, new byte[] { (byte)MyGamePlayers.Resolution },
                     2, (byte)MyGameDecisions.MutualGiveUp, unevenChanceActions: false)
                 {
                     CustomByte = (byte)(b + 1),
@@ -648,6 +665,7 @@ namespace ACESim
             }
             else if (decisionByteCode == (byte)MyGameDecisions.PreBargainingRound)
             {
+                Br.eak.IfAdded("Case");
                 // Clean up previous round after the bargaining round:
                 // We don't want to do it immediately after the bargaining round. If the game has ended as a result of a settlement, a post-bargaining round decision won't
                 // execute. That's OK. But if the game ends because this is the last bargaining round and bargaining fails, then we have a trial, and the outcomes may depend on the offers in the last bargaining round. That is why we want to do this cleanup at the beginning of the next bargaining round.
