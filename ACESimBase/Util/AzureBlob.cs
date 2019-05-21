@@ -151,7 +151,7 @@ namespace ACESim.Util
         private static CloudBlobContainer GetContainer(string containerName, bool publicAccess)
         {
             // Retrieve storage account from connection string.
-            string storageConnectionString = "DefaultEndpointsProtocol=https;AccountName=acesim;AccountKey=hUGjg6lQjXYORQxzyUbDl9joTgJ4xlXQ6kb2d3Lm2DSx8YsgWm29UDoezSOj6IIAG6oZL7oJvenO80KD2GLl+g=="; // TODO: Use a technology like key vault to hide this and ideally put it in config file in the class library
+            string storageConnectionString = "DefaultEndpointsProtocol=https;AccountName=acesim;AccountKey=OLD+g=="; // TODO: Use a technology like key vault to hide this and ideally put it in config file in the class library
             CloudStorageAccount storageAccount = CloudStorageAccount.Parse(storageConnectionString
                 );
 

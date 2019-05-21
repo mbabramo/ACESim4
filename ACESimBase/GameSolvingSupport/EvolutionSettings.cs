@@ -15,6 +15,7 @@ namespace ACESim
         public int TotalProbingCFRIterations = 100000;
         public int TotalVanillaCFRIterations = 100000;
         public int? ReportEveryNIterations = 100;
+        public int CorrelatedEquilibriumCalculationsEveryNIterations = 100000;
         public const int EffectivelyNever = 999999999;
         public int? BestResponseEveryMIterations = 100; // For partial recall games, this is very costly, so consider using EffectivelyNever.
         public int? MiniReportEveryPIterations = 1000;

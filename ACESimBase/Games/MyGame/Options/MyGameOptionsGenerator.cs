@@ -9,7 +9,7 @@ namespace ACESim
 {
     public static class MyGameOptionsGenerator
     {
-        static bool ambitious = false;
+        static bool ambitious = true;
         static bool superSimple = false;
 
         public static MyGameOptions SingleRound() => ambitious ? SingleRound_Ambitious() : (superSimple ? SingleRound_SuperSimple() : SingleRound_Usual());
