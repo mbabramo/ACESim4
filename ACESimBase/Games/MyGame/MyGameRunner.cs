@@ -20,16 +20,18 @@ namespace ACESim
         public static double[] CostsMultipliers = new double[] { 1.0 }; // 0.1, 0.25, 0.5, 1.0, 1.5, 2.0, 4.0 };
         public const double StdevPlayerNoise = 0.3; // baseline is 0.3
 
+        Debug; // must fix reporting -- it seems that our AllCount is limited to our buffer and a little bit more -- something is very wrong. maybe we should just make it async.
+
         private const GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.HedgeVanilla;
 
         private const int ProbingIterations = 20_000_000;
-        private const int VanillaIterations = 1_000_000;
-        private const int VanillaReportEveryNIterations = 1_000_000;
-        private const int VanillaBestResponseEveryMIterations = 1_000_000; 
+        private const int VanillaIterations = 5_000;
+        private const int VanillaReportEveryNIterations = 5_000;
+        private const int VanillaBestResponseEveryMIterations = 5_000; 
         private const int MiniReportEveryPIterations = 5_000;
-        private const int RecordPastValuesEveryNIterations = 25;
+        private const int RecordPastValuesEveryNIterations = 10;
         private const bool UseRandomPathsForReporting = true;
-        private const int SummaryTableRandomPathsIterations = 2_500_000;
+        private const int SummaryTableRandomPathsIterations = 25_000;
         
         private const bool UseRegretAndStrategyDiscounting = true;
 
@@ -70,7 +72,8 @@ namespace ACESim
                      ActionStrategies.CorrelatedEquilibrium,
                      ActionStrategies.BestResponseVsCorrelatedEquilibrium,
                      ActionStrategies.CorrelatedEquilibriumVsBestResponse,
-                     ActionStrategies.AverageStrategy },
+                     ActionStrategies.AverageStrategy
+                 },
                 TotalProbingCFRIterations = ProbingIterations,
                 EpsilonForMainPlayer = 0.5,
                 EpsilonForOpponentWhenExploring = 0.05,
