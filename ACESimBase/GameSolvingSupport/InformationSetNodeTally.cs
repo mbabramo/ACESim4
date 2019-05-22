@@ -668,11 +668,11 @@ namespace ACESim
 
         public void UpdateNormalizedHedge(int iteration, double averageStrategyAdjustment)
         {
-            if (iteration % 1000 == 0 && InformationSetNumber == 25)
-            {
-                var DEBUG = 0;
-                Console.WriteLine($"LastCumulativeStrategyIncrement {NodeInformation[lastCumulativeStrategyIncrementsDimension, 0]} {NodeInformation[lastCumulativeStrategyIncrementsDimension, 1].ToSignificantFigures(12)} Regrets {NodeInformation[lastRegretDimension, 0]} {NodeInformation[lastRegretDimension, 1]} Hedge {NodeInformation[hedgeProbabilityDimension, 0]} {NodeInformation[hedgeProbabilityDimension, 1]} Average {NodeInformation[averageStrategyProbabilityDimension, 0]} {NodeInformation[averageStrategyProbabilityDimension, 1]} LastBestResponseAction {LastBestResponseAction}");
-            }
+            //if (iteration % 1000 == 0 && InformationSetNumber == 25)
+            //{
+            //    var DEBUG = 0;
+            //    Console.WriteLine($"LastCumulativeStrategyIncrement {NodeInformation[lastCumulativeStrategyIncrementsDimension, 0]} {NodeInformation[lastCumulativeStrategyIncrementsDimension, 1].ToSignificantFigures(12)} Regrets {NodeInformation[lastRegretDimension, 0]} {NodeInformation[lastRegretDimension, 1]} Hedge {NodeInformation[hedgeProbabilityDimension, 0]} {NodeInformation[hedgeProbabilityDimension, 1]} Average {NodeInformation[averageStrategyProbabilityDimension, 0]} {NodeInformation[averageStrategyProbabilityDimension, 1]} LastBestResponseAction {LastBestResponseAction}");
+            //}
             RecordProbabilitiesAsPastValues(iteration, averageStrategyAdjustment); // these are the average strategies played, and thus shouldn't reflect the updates below
 
             double lastCumulativeStrategySum = 0;

@@ -1262,7 +1262,7 @@ namespace ACESim
                 correlatedEquilibriumResults[correlatedEquilibriumIterationIndex, p1CvC_Index] = (double)parameters[5];
                 correlatedEquilibriumResults[correlatedEquilibriumIterationIndex, p0BRvC_Index] = (double)parameters[6];
                 correlatedEquilibriumResults[correlatedEquilibriumIterationIndex, p1CvBR_Index] = (double) parameters[7];
-                int correspondingIteration = (int) ((correlatedEquilibriumIterationIndex / (double) numPastValues) * (double) EvolutionSettings.TotalVanillaCFRIterations) + 1;
+                int correspondingIteration = (int) (((double) (correlatedEquilibriumIterationIndex + 1)/ (double) numPastValues) * (double) (EvolutionSettings.TotalVanillaCFRIterations));
                 double averageStrategyAdjustment = EvolutionSettings.Discounting_Gamma_ForIteration(correspondingIteration);
                 double averageStrategyAdjustmentAsPct = EvolutionSettings.Discounting_Gamma_AsPctOfMax(correspondingIteration);
                 correlatedEquilibriumResults[correlatedEquilibriumIterationIndex, avgStratContribution_Index] = averageStrategyAdjustment;
@@ -1316,7 +1316,7 @@ namespace ACESim
 
             for (int correlatedEquilibriumIterationIndex = 0; correlatedEquilibriumIterationIndex < numPastValues; correlatedEquilibriumIterationIndex++)
             {
-                int correspondingIteration = (int)((correlatedEquilibriumIterationIndex / (double)numPastValues) * (double)EvolutionSettings.TotalVanillaCFRIterations) + 1;
+                int correspondingIteration = (int)(((double)(correlatedEquilibriumIterationIndex + 1) / (double)numPastValues) * (double)(EvolutionSettings.TotalVanillaCFRIterations));
                 string result = resultString(correlatedEquilibriumIterationIndex, correspondingIteration.ToString());
                 Console.WriteLine(result);
             }

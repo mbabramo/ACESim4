@@ -28,7 +28,7 @@ namespace ACESim
         private const int VanillaBestResponseEveryMIterations = 10_000; 
         private const int MiniReportEveryPIterations = 1_000;
         private const int CorrelatedEquilibriumCalculationsEveryNIterations = 10_000;
-        private const int RecordPastValuesEveryNIterations = 100; // used for correlated equilibrium calculations
+        private const int RecordPastValuesEveryNIterations = 10; // used for correlated equilibrium calculations
         private const bool UseRandomPathsForReporting = true;
         private const int SummaryTableRandomPathsIterations = 2_000;
         
