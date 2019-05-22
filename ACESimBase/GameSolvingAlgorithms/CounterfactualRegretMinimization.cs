@@ -1200,6 +1200,8 @@ namespace ACESim
 
         public void DoCorrelatedEquilibriumCalculations()
         {
+            return; // DEBUG
+
             // TODO: If game structure hasn't changed (just parameters), we should not recalculate how to do this.
             StringBuilder codeGenerationBuilder = new StringBuilder();
             CorrelatedEquilibriumCalculations_GenerateString(codeGenerationBuilder);
