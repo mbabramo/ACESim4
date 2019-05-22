@@ -668,6 +668,11 @@ namespace ACESim
 
         public void UpdateNormalizedHedge(int iteration, double averageStrategyAdjustment)
         {
+            //if (iteration > 10000 && iteration % 1000 == 0 && InformationSetNumber == 238)
+            //{
+            //    var DEBUG = 0;
+            //    Console.WriteLine($"Regrets {NodeInformation[lastRegretDimension, 0]} {NodeInformation[lastRegretDimension, 1]} Hedge {NodeInformation[hedgeProbabilityDimension, 0]} {NodeInformation[hedgeProbabilityDimension, 1]} Average {NodeInformation[averageStrategyProbabilityDimension, 0]} {NodeInformation[averageStrategyProbabilityDimension, 1]}");
+            //}
             RecordProbabilitiesAsPastValues(iteration, averageStrategyAdjustment); // these are the average strategies played, and thus shouldn't reflect the updates below
 
             double lastCumulativeStrategySum = 0;
@@ -685,11 +690,14 @@ namespace ACESim
                     minLastRegret = lastRegret;
                 lastCumulativeStrategySum += NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1];
             }
-            if (lastCumulativeStrategySum > 0) // can be zero if pruning means that an information set is never reached
                 for (byte a = 1; a <= NumPossibleActions; a++)
                 {
-                    double normalizedCumulativeStrategyIncrement = NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1] / lastCumulativeStrategySum; // this will make all probabilities add up to 1, so that even if this is an iteration where it is very unlikely that we reach the information set, this iteration will not be discounted relative to iterations where we do reach the information set ...
-                    double adjustedIncrement = averageStrategyAdjustment * normalizedCumulativeStrategyIncrement; // ... but here we do our regular discounting so later iterations can count more than earlier ones
+                double normalizedCumulativeStrategyIncrement;
+                    if (lastCumulativeStrategySum == 0) // can be zero if pruning means that an information set is never reached -- in this case we still need to update the average strategy.
+                        normalizedCumulativeStrategyIncrement = NodeInformation[hedgeProbabilityDimension, a - 1];
+                    else
+                        normalizedCumulativeStrategyIncrement = NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1] / lastCumulativeStrategySum; // this will make all probabilities add up to 1, so that even if this is an iteration where it is very unlikely that we reach the information set, this iteration will not be discounted relative to iterations where we do reach the information set ...
+                double adjustedIncrement = averageStrategyAdjustment * normalizedCumulativeStrategyIncrement; // ... but here we do our regular discounting so later iterations can count more than earlier ones
                     NodeInformation[cumulativeStrategyDimension, a - 1] += adjustedIncrement;
                     NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1] = 0;
                 }
@@ -918,7 +926,7 @@ namespace ACESim
             double[] averageStrategies = GetAverageStrategiesAsArray();
             string avgStratString = GetAverageStrategiesAsString();
             bool avgStratSameAsBestResponse = averageStrategies[LastBestResponseAction - 1] > 0.9999999;
-            if (ranges.Count() > 1)
+            //if (ranges.Count() > 1)
                 Console.WriteLine($"{(avgStratSameAsBestResponse ? "*" : "")} decision {Decision.Name} Information set {InformationSetNumber} bestrespon {LastBestResponseAction} hedge {hedgeString} avg {avgStratString} avg distance {avgDistanceString} ranges: {rangesString}");
         }
 

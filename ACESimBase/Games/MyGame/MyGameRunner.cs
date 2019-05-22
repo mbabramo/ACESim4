@@ -26,9 +26,9 @@ namespace ACESim
         private const int VanillaIterations = 50_000;
         private const int VanillaReportEveryNIterations = 50_000;
         private const int VanillaBestResponseEveryMIterations = 50_000; 
-        private const int MiniReportEveryPIterations = 5_000;
+        private const int MiniReportEveryPIterations = 1_000;
         private const int CorrelatedEquilibriumCalculationsEveryNIterations = 50_000;
-        private const int RecordPastValuesEveryNIterations = 10; // used for correlated equilibrium calculations
+        private const int RecordPastValuesEveryNIterations = 100; // used for correlated equilibrium calculations
         private const bool UseRandomPathsForReporting = true;
         private const int SummaryTableRandomPathsIterations = 2_000;
         
@@ -71,7 +71,7 @@ namespace ACESim
                  new List<ActionStrategies>() {
                      //ActionStrategies.CorrelatedEquilibrium,
                      //ActionStrategies.BestResponseVsCorrelatedEquilibrium,
-                     ActionStrategies.CorrelatedEquilibriumVsBestResponse,
+                     //ActionStrategies.CorrelatedEquilibriumVsBestResponse,
                      //ActionStrategies.AverageStrategy
                  },
                 TotalProbingCFRIterations = ProbingIterations,

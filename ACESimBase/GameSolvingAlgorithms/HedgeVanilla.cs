@@ -42,6 +42,8 @@ namespace ACESim
             double[] array = new double[Unroll_SizeOfArray];
             for (int iteration = 1; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
+                //if (iteration == 5001)
+                //    Unroll_Commands.SetSkip("Optimizing player 0", true); // DEBUG SUPERDEBUG
                 HedgeVanillaIteration = iteration;
                 HedgeVanillaIterationInt = iteration;
                 HedgeVanillaIterationStopwatch.Start();
