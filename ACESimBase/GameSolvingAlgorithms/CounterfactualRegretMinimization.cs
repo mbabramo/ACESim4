@@ -569,7 +569,7 @@ namespace ACESim
                 ActionStrategies previous = ActionStrategy;
                 var actionStrategiesToUse = EvolutionSettings.ActionStrategiesToUseInReporting;
                 if (actionStrategiesToUse == null || !actionStrategiesToUse.Any())
-                    actionStrategiesToUse = new List<ActionStrategies>() { previous };
+                    return ""; // actionStrategiesToUse = new List<ActionStrategies>() { previous };
                 foreach (var actionStrategy in actionStrategiesToUse)
                 {
                     ActionStrategy = actionStrategy;
