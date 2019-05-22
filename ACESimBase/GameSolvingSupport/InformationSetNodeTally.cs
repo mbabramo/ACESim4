@@ -69,7 +69,7 @@ namespace ACESim
         // Normalized hedge
         [NonSerialized]
         public SimpleExclusiveLock UpdatingHedge;
-        const double NormalizedHedgeEpsilon = 0.5;
+        const double NormalizedHedgeEpsilon = 0.05; // DEBUG -- previously 0.5
         public byte LastBestResponseAction = 0;
         public bool BestResponseDeterminedFromIncrements = false; // this is used by the generalized best response algorithm to determine whether it needs to recalculate best response
 
