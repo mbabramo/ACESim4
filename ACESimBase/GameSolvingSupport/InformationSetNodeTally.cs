@@ -668,11 +668,11 @@ namespace ACESim
 
         public void UpdateNormalizedHedge(int iteration, double averageStrategyAdjustment)
         {
-            //if (iteration > 10000 && iteration % 1000 == 0 && InformationSetNumber == 238)
-            //{
-            //    var DEBUG = 0;
-            //    Console.WriteLine($"Regrets {NodeInformation[lastRegretDimension, 0]} {NodeInformation[lastRegretDimension, 1]} Hedge {NodeInformation[hedgeProbabilityDimension, 0]} {NodeInformation[hedgeProbabilityDimension, 1]} Average {NodeInformation[averageStrategyProbabilityDimension, 0]} {NodeInformation[averageStrategyProbabilityDimension, 1]}");
-            //}
+            if (iteration % 1000 == 0 && InformationSetNumber == 25)
+            {
+                var DEBUG = 0;
+                Console.WriteLine($"LastCumulativeStrategyIncrement {NodeInformation[lastCumulativeStrategyIncrementsDimension, 0]} {NodeInformation[lastCumulativeStrategyIncrementsDimension, 1].ToSignificantFigures(12)} Regrets {NodeInformation[lastRegretDimension, 0]} {NodeInformation[lastRegretDimension, 1]} Hedge {NodeInformation[hedgeProbabilityDimension, 0]} {NodeInformation[hedgeProbabilityDimension, 1]} Average {NodeInformation[averageStrategyProbabilityDimension, 0]} {NodeInformation[averageStrategyProbabilityDimension, 1]} LastBestResponseAction {LastBestResponseAction}");
+            }
             RecordProbabilitiesAsPastValues(iteration, averageStrategyAdjustment); // these are the average strategies played, and thus shouldn't reflect the updates below
 
             double lastCumulativeStrategySum = 0;
@@ -714,6 +714,8 @@ namespace ACESim
                 double weightAdjustment = Math.Pow(1 - NormalizedHedgeEpsilon, normalizedRegret);
                 double weight = NodeInformation[adjustedWeightsDimension, a - 1];
                 weight *= weightAdjustment;
+                if (weight < SmallestProbabilityRepresented)
+                    weight = SmallestProbabilityRepresented; // can't let weights go to zero or they never recover
                 if (double.IsNaN(weight))
                     throw new Exception();
                 NodeInformation[adjustedWeightsDimension, a - 1] = weight;
@@ -796,12 +798,20 @@ namespace ACESim
         public void NormalizedHedgeIncrementLastCumulativeStrategyIncrements(byte action, double strategyProbabilityTimesSelfReachProbability)
         {
             NodeInformation[lastCumulativeStrategyIncrementsDimension, action - 1] += strategyProbabilityTimesSelfReachProbability;
+            if (InformationSetNumber == 25 && NodeInformation[lastCumulativeStrategyIncrementsDimension, action - 1] > 5.1)
+            {
+                var DEBUG = 0;
+            }
         }
 
         public void NormalizedHedgeIncrementLastCumulativeStrategyIncrements_Parallel(byte action, double strategyProbabilityTimesSelfReachProbability)
         {
             Interlocking.Add(ref NodeInformation[lastCumulativeStrategyIncrementsDimension, action - 1], strategyProbabilityTimesSelfReachProbability);
             //Interlocked.Increment(ref NumRegretIncrements);
+            if (InformationSetNumber == 25 && NodeInformation[lastCumulativeStrategyIncrementsDimension, action - 1] > 5.1)
+            {
+                var DEBUG = 0;
+            }
         }
 
         public double GetNormalizedHedgeAverageStrategy(byte action)
