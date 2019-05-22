@@ -798,20 +798,12 @@ namespace ACESim
         public void NormalizedHedgeIncrementLastCumulativeStrategyIncrements(byte action, double strategyProbabilityTimesSelfReachProbability)
         {
             NodeInformation[lastCumulativeStrategyIncrementsDimension, action - 1] += strategyProbabilityTimesSelfReachProbability;
-            if (InformationSetNumber == 25 && NodeInformation[lastCumulativeStrategyIncrementsDimension, action - 1] > 5.1)
-            {
-                var DEBUG = 0;
-            }
         }
 
         public void NormalizedHedgeIncrementLastCumulativeStrategyIncrements_Parallel(byte action, double strategyProbabilityTimesSelfReachProbability)
         {
             Interlocking.Add(ref NodeInformation[lastCumulativeStrategyIncrementsDimension, action - 1], strategyProbabilityTimesSelfReachProbability);
             //Interlocked.Increment(ref NumRegretIncrements);
-            if (InformationSetNumber == 25 && NodeInformation[lastCumulativeStrategyIncrementsDimension, action - 1] > 5.1)
-            {
-                var DEBUG = 0;
-            }
         }
 
         public double GetNormalizedHedgeAverageStrategy(byte action)

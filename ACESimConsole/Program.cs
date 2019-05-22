@@ -27,10 +27,9 @@ namespace ACESim
         public static AvailableGames GameToPlay = AvailableGames.MyGame;
 
         [STAThread]
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
-            // DEBUG -- change to async once we upgrade the language
-            Execute().GetAwaiter().GetResult();
+            await Execute();
             // the following is supposed to create a large stack, but it either doesn't work (or isn't large enough for our purposes, which seems unlikely)
             //Thread t = new Thread(delegate ()
             //{

@@ -42,8 +42,9 @@ namespace ACESim
             double[] array = new double[Unroll_SizeOfArray];
             for (int iteration = 1; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
+                // uncomment to skip a player
                 //if (iteration == 5001)
-                //    Unroll_Commands.SetSkip("Optimizing player 0", true); // DEBUG SUPERDEBUG
+                //    Unroll_Commands.SetSkip("Optimizing player 0", true); 
                 HedgeVanillaIteration = iteration;
                 HedgeVanillaIterationInt = iteration;
                 HedgeVanillaIterationStopwatch.Start();
