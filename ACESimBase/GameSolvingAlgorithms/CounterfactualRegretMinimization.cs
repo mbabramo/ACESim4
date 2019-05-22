@@ -1200,8 +1200,6 @@ namespace ACESim
 
         public void DoCorrelatedEquilibriumCalculations()
         {
-            return; // DEBUG
-
             // TODO: If game structure hasn't changed (just parameters), we should not recalculate how to do this.
             StringBuilder codeGenerationBuilder = new StringBuilder();
             CorrelatedEquilibriumCalculations_GenerateString(codeGenerationBuilder);
@@ -1288,23 +1286,25 @@ namespace ACESim
             ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings)gameStateForCurrentPlayer;
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
             byte numPossibleActionsToExplore = numPossibleActions;
-            for (byte a = 1; a <= numPossibleActionsToExplore; a++)
+            if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedDecision)
+                numPossibleActionsToExplore = 1;
+            for (byte action = 1; action <= numPossibleActionsToExplore; action++)
             {
-
                 int nondistributedActionsNext = nondistributedActions;
                 if (chanceNodeSettings.Decision.NondistributedDecision)
-                    nondistributedActionsNext += a * chanceNodeSettings.Decision.NondistributedDecisionMultiplier;
+                    nondistributedActionsNext += action * chanceNodeSettings.Decision.NondistributedDecisionMultiplier;
                 bool isDistributed = (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedDecision);
+                // if it is distributed, action probability is 1
                 if (!isDistributed)
                 {
-                    string nondistributedActionsString = EvolutionSettings.DistributeChanceDecisions ? $", {nondistributedActionsNext}" : "";
-                    codeGenerationBuilder.Append($"c[{chanceNodeSettings.ChanceNodeNumber}].GetActionProbability({a}{nondistributedActionsString}) * ");
+                    string nondistributedActionsString = EvolutionSettings.DistributeChanceDecisions ? $", {nondistributedActions}" : "";
+                    codeGenerationBuilder.Append($"c[{chanceNodeSettings.ChanceNodeNumber}].GetActionProbability({action}{nondistributedActionsString}) * ");
                 }
                 codeGenerationBuilder.Append(" ( ");
-                HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, a, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
-                CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, ref nextHistoryPoint, player, actionStrategy, nondistributedActions, ref helperVariableNumber);
+                HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
+                CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, ref nextHistoryPoint, player, actionStrategy, nondistributedActionsNext, ref helperVariableNumber);
                 codeGenerationBuilder.Append(" ) ");
-                if (a < numPossibleActionsToExplore)
+                if (action < numPossibleActionsToExplore)
                     codeGenerationBuilder.Append(" + ");
             }
         }
@@ -1342,21 +1342,21 @@ namespace ACESim
 
                 codeGenerationBuilder.Append($"(({nodeString}.LastBestResponseAction is byte v{vNum}) ? ");
                 //codeGenerationBuilder.Append($"{nodeString}.LastBestResponseAction switch {{ ");
-                for (byte a = 1; a <= numPossibleActionsToExplore; a++)
+                for (byte action = 1; action <= numPossibleActionsToExplore; action++)
                 {
                     int nondistributedActionsNext = nondistributedActions;
                     if (nodeTally.Decision.NondistributedDecision)
-                        nondistributedActionsNext += a * nodeTally.Decision.NondistributedDecisionMultiplier;
-                    if (a < numPossibleActionsToExplore)
-                        codeGenerationBuilder.Append($"(v{vNum} == {a} ? ( ");
+                        nondistributedActionsNext += action * nodeTally.Decision.NondistributedDecisionMultiplier;
+                    if (action < numPossibleActionsToExplore)
+                        codeGenerationBuilder.Append($"(v{vNum} == {action} ? ( ");
                     //if (a == numPossibleActionsToExplore)
                     //    codeGenerationBuilder.Append(" _ => ( ");
                     //else
                     //    codeGenerationBuilder.Append($" {a} => ( ");
                     
-                    HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, a, nodeTally.Decision, nodeTally.DecisionIndex);
+                    HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, nodeTally.Decision, nodeTally.DecisionIndex);
                     CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, ref nextHistoryPoint, player, actionStrategy, nondistributedActionsNext, ref helperVariableNumber);
-                    if (a < numPossibleActionsToExplore)
+                    if (action < numPossibleActionsToExplore)
                         codeGenerationBuilder.Append(" ) : ");
                     else
                     {
@@ -1369,17 +1369,17 @@ namespace ACESim
             }
             else
             {
-                for (byte a = 1; a <= numPossibleActionsToExplore; a++)
+                for (byte action = 1; action <= numPossibleActionsToExplore; action++)
                 {
                     int vNum = helperVariableNumber++;
                     int nondistributedActionsNext = nondistributedActions;
                     if (nodeTally.Decision.NondistributedDecision)
-                        nondistributedActionsNext += a * nodeTally.Decision.NondistributedDecisionMultiplier;
-                    codeGenerationBuilder.Append($"({nodeString}.PV(cei, {a}) is double v{vNum} ? v{vNum} * (");
-                    HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, a, nodeTally.Decision, nodeTally.DecisionIndex);
+                        nondistributedActionsNext += action * nodeTally.Decision.NondistributedDecisionMultiplier;
+                    codeGenerationBuilder.Append($"({nodeString}.PV(cei, {action}) is double v{vNum} ? v{vNum} * (");
+                    HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, nodeTally.Decision, nodeTally.DecisionIndex);
                     CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, ref nextHistoryPoint, player, actionStrategy, nondistributedActionsNext, ref helperVariableNumber);
                     codeGenerationBuilder.Append(") : 0) ");
-                    if (a < numPossibleActionsToExplore)
+                    if (action < numPossibleActionsToExplore)
                         codeGenerationBuilder.Append(" + ");
                 }
             }
