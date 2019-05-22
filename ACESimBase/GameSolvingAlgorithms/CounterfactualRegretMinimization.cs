@@ -1266,19 +1266,32 @@ namespace ACESim
                 double averageStrategyAdjustment = EvolutionSettings.Discounting_Gamma_ForIteration(correspondingIteration);
                 double averageStrategyAdjustmentAsPct = EvolutionSettings.Discounting_Gamma_AsPctOfMax(correspondingIteration);
                 correlatedEquilibriumResults[correlatedEquilibriumIterationIndex, avgStratContribution_Index] = averageStrategyAdjustment;
-                averageStrategyAdjustment_Cumulative += averageStrategyAdjustment;
-                correlatedEquilibriumResults_Cumulative[correlatedEquilibriumIterationIndex, avgStratContribution_Index] = averageStrategyAdjustment_Cumulative;
-                for (int j = 0; j < 4; j++)
-                    correlatedEquilibriumResults_Cumulative[correlatedEquilibriumIterationIndex, j] = ((correlatedEquilibriumIterationIndex == 0) ? 0 :correlatedEquilibriumResults_Cumulative[correlatedEquilibriumIterationIndex - 1, j]) + correlatedEquilibriumResults[correlatedEquilibriumIterationIndex, j] * averageStrategyAdjustment;
-                //string result = resultString(correlatedEquilibriumIterationIndex, correspondingIteration.ToString());
-                //Console.WriteLine(result);
             }
             // calculate reverse cumulative -- this shows aggregates from here on. The point of this is to compare the correlated equilibrium strategy from some point forward to the best response. If the correlated equilibrium strategy performs well at this point but not later, this may indicate that there is a cycle and that as the number of iterations -> infinity, the correlated equilibrium strategy performs well.
-            for (int correlatedEquilibriumIterationIndex = 0; correlatedEquilibriumIterationIndex < numPastValues; correlatedEquilibriumIterationIndex++)
+            for (int j = 0; j < 4; j++)
             {
-                for (int j = 0; j < 4; j++)
-                    correlatedEquilibriumResults_ReverseCumulative[correlatedEquilibriumIterationIndex, j] = correlatedEquilibriumResults_Cumulative[numPastValues - 1, j] - correlatedEquilibriumResults_Cumulative[correlatedEquilibriumIterationIndex, j] + correlatedEquilibriumResults[correlatedEquilibriumIterationIndex, j];
-                correlatedEquilibriumResults_ReverseCumulative[correlatedEquilibriumIterationIndex, avgStratContribution_Index] = correlatedEquilibriumResults_Cumulative[numPastValues - 1, avgStratContribution_Index] - correlatedEquilibriumResults_Cumulative[correlatedEquilibriumIterationIndex, avgStratContribution_Index] + correlatedEquilibriumResults[correlatedEquilibriumIterationIndex, avgStratContribution_Index];
+                double cumWeight = 0;
+                double cumValueTimesWeight = 0;
+                for (int correlatedEquilibriumIterationIndex = numPastValues - 1; correlatedEquilibriumIterationIndex >= 0; correlatedEquilibriumIterationIndex--)
+                {
+                    double weightThisItem = correlatedEquilibriumResults[correlatedEquilibriumIterationIndex, avgStratContribution_Index];
+                    double valueThisItem = correlatedEquilibriumResults[correlatedEquilibriumIterationIndex, j];
+                    cumWeight += weightThisItem;
+                    cumValueTimesWeight += valueThisItem * weightThisItem;
+                    correlatedEquilibriumResults_ReverseCumulative[correlatedEquilibriumIterationIndex, avgStratContribution_Index] = weightThisItem;
+                    correlatedEquilibriumResults_ReverseCumulative[correlatedEquilibriumIterationIndex, j] = cumValueTimesWeight / cumWeight;
+                }
+                cumWeight = 0;
+                cumValueTimesWeight = 0;
+                for (int correlatedEquilibriumIterationIndex = 0; correlatedEquilibriumIterationIndex < numPastValues; correlatedEquilibriumIterationIndex++)
+                {
+                    double weightThisItem = correlatedEquilibriumResults[correlatedEquilibriumIterationIndex, avgStratContribution_Index];
+                    double valueThisItem = correlatedEquilibriumResults[correlatedEquilibriumIterationIndex, j];
+                    cumWeight += weightThisItem;
+                    cumValueTimesWeight += valueThisItem * weightThisItem;
+                    correlatedEquilibriumResults_Cumulative[correlatedEquilibriumIterationIndex, avgStratContribution_Index] = weightThisItem;
+                    correlatedEquilibriumResults_Cumulative[correlatedEquilibriumIterationIndex, j] = cumValueTimesWeight / cumWeight;
+                }
             }
 
             string resultString(int correlatedEquilibriumIterationIndex, string iterString)
@@ -1287,12 +1300,18 @@ namespace ACESim
                 double p1CvC = correlatedEquilibriumResults[correlatedEquilibriumIterationIndex, p1CvC_Index];
                 double p0BRvC = correlatedEquilibriumResults[correlatedEquilibriumIterationIndex, p0BRvC_Index];
                 double p1CvBR = correlatedEquilibriumResults[correlatedEquilibriumIterationIndex, p1CvBR_Index];
-                double p0CvC_FromHere = correlatedEquilibriumResults_ReverseCumulative[correlatedEquilibriumIterationIndex, p0CvC_Index] / correlatedEquilibriumResults_ReverseCumulative[correlatedEquilibriumIterationIndex, avgStratContribution_Index];
-                double p1CvC_FromHere = correlatedEquilibriumResults_ReverseCumulative[correlatedEquilibriumIterationIndex, p1CvC_Index] / correlatedEquilibriumResults_ReverseCumulative[correlatedEquilibriumIterationIndex, avgStratContribution_Index];
-                double p0BRvC_FromHere = correlatedEquilibriumResults_ReverseCumulative[correlatedEquilibriumIterationIndex, p0BRvC_Index] / correlatedEquilibriumResults_ReverseCumulative[correlatedEquilibriumIterationIndex, avgStratContribution_Index];
-                double p1CvBR_FromHere = correlatedEquilibriumResults_ReverseCumulative[correlatedEquilibriumIterationIndex, p1CvBR_Index] / correlatedEquilibriumResults_ReverseCumulative[correlatedEquilibriumIterationIndex, avgStratContribution_Index];
 
-                return $"Correlated eq. utilities ({iterString}): {p0CvC.ToSignificantFigures(6)} vs. {p1CvC.ToSignificantFigures(6)} p0BR: {p0BRvC.ToSignificantFigures(6)} p1BR: {p1CvBR.ToSignificantFigures(6)} p0BR improvement: {(p0BRvC - p0CvC).ToSignificantFigures(6)} p1BR improvement {(p1CvBR - p1CvC).ToSignificantFigures(6)} FROM HERE: {p0CvC_FromHere.ToSignificantFigures(6)} vs. {p1CvC_FromHere.ToSignificantFigures(6)} p0BR: {p0BRvC_FromHere.ToSignificantFigures(6)} p1BR: {p1CvBR_FromHere.ToSignificantFigures(6)} p0BR improvement: {(p0BRvC_FromHere - p0CvC_FromHere).ToSignificantFigures(6)} p1BR improvement {(p1CvBR_FromHere - p1CvC_FromHere).ToSignificantFigures(6)} ";
+                double p0CvC_ToHere = correlatedEquilibriumResults_Cumulative[correlatedEquilibriumIterationIndex, p0CvC_Index];
+                double p1CvC_ToHere = correlatedEquilibriumResults_Cumulative[correlatedEquilibriumIterationIndex, p1CvC_Index];
+                double p0BRvC_ToHere = correlatedEquilibriumResults_Cumulative[correlatedEquilibriumIterationIndex, p0BRvC_Index];
+                double p1CvBR_ToHere = correlatedEquilibriumResults_Cumulative[correlatedEquilibriumIterationIndex, p1CvBR_Index];
+
+                double p0CvC_FromHere = correlatedEquilibriumResults_ReverseCumulative[correlatedEquilibriumIterationIndex, p0CvC_Index];
+                double p1CvC_FromHere = correlatedEquilibriumResults_ReverseCumulative[correlatedEquilibriumIterationIndex, p1CvC_Index];
+                double p0BRvC_FromHere = correlatedEquilibriumResults_ReverseCumulative[correlatedEquilibriumIterationIndex, p0BRvC_Index];
+                double p1CvBR_FromHere = correlatedEquilibriumResults_ReverseCumulative[correlatedEquilibriumIterationIndex, p1CvBR_Index];
+
+                return $"Correlated eq. utilities ({iterString}): {p0CvC.ToSignificantFigures(6)} vs. {p1CvC.ToSignificantFigures(6)} p0BR: {p0BRvC.ToSignificantFigures(6)} p1BR: {p1CvBR.ToSignificantFigures(6)} p0BR improvement: {(p0BRvC - p0CvC).ToSignificantFigures(6)} p1BR improvement {(p1CvBR - p1CvC).ToSignificantFigures(6)} TO HERE: {p0CvC_ToHere.ToSignificantFigures(6)} vs. {p1CvC_ToHere.ToSignificantFigures(6)} p0BR: {p0BRvC_ToHere.ToSignificantFigures(6)} p1BR: {p1CvBR_ToHere.ToSignificantFigures(6)} p0BR improvement: {(p0BRvC_ToHere - p0CvC_ToHere).ToSignificantFigures(6)} p1BR improvement {(p1CvBR_ToHere - p1CvC_ToHere).ToSignificantFigures(6)} FROM HERE: {p0CvC_FromHere.ToSignificantFigures(6)} vs. {p1CvC_FromHere.ToSignificantFigures(6)} p0BR: {p0BRvC_FromHere.ToSignificantFigures(6)} p1BR: {p1CvBR_FromHere.ToSignificantFigures(6)} p0BR improvement: {(p0BRvC_FromHere - p0CvC_FromHere).ToSignificantFigures(6)} p1BR improvement {(p1CvBR_FromHere - p1CvC_FromHere).ToSignificantFigures(6)} ";
             }
 
             for (int correlatedEquilibriumIterationIndex = 0; correlatedEquilibriumIterationIndex < numPastValues; correlatedEquilibriumIterationIndex++)
@@ -1301,9 +1320,6 @@ namespace ACESim
                 string result = resultString(correlatedEquilibriumIterationIndex, correspondingIteration.ToString());
                 Console.WriteLine(result);
             }
-
-            string overallResult = resultString(numPastValues, "OVERALL");
-            Console.WriteLine(overallResult);
         }
 
 
