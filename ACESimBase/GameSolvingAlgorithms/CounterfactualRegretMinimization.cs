@@ -1353,9 +1353,10 @@ namespace ACESim
             InformationSetNodeTally nodeTally = (InformationSetNodeTally)gameStateForCurrentPlayer;
             byte numPossibleActions = NumPossibleActionsAtDecision(nodeTally.DecisionIndex);
             byte numPossibleActionsToExplore = numPossibleActions;
+            byte playerAtNode = nodeTally.PlayerIndex; // note that player is the player whose utility we are seeking
 
-            bool isBestResponse = actionStrategy == ActionStrategies.BestResponse || (actionStrategy == ActionStrategies.BestResponseVsCorrelatedEquilibrium && player == 0) || (actionStrategy == ActionStrategies.CorrelatedEquilibriumVsBestResponse && player == 1);
-            bool isCorrelatedEquilibrium = actionStrategy == ActionStrategies.CorrelatedEquilibrium || (actionStrategy == ActionStrategies.BestResponseVsCorrelatedEquilibrium && player == 1) || (actionStrategy == ActionStrategies.CorrelatedEquilibriumVsBestResponse && player == 0);
+            bool isBestResponse = actionStrategy == ActionStrategies.BestResponse || (actionStrategy == ActionStrategies.BestResponseVsCorrelatedEquilibrium && playerAtNode == 0) || (actionStrategy == ActionStrategies.CorrelatedEquilibriumVsBestResponse && playerAtNode == 1);
+            bool isCorrelatedEquilibrium = actionStrategy == ActionStrategies.CorrelatedEquilibrium || (actionStrategy == ActionStrategies.BestResponseVsCorrelatedEquilibrium && playerAtNode == 1) || (actionStrategy == ActionStrategies.CorrelatedEquilibriumVsBestResponse && playerAtNode == 0);
             if (NumNonChancePlayers > 2 || (!isBestResponse && !isCorrelatedEquilibrium))
                 throw new NotSupportedException(); // right now, using this just for correlated equilibrium & best response calculations after the game tree has already been defined
 
