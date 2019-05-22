@@ -1207,8 +1207,6 @@ namespace ACESim
 
         public void CorrelatedEquilibriumCalculations_GenerateString(StringBuilder codeGenerationBuilder)
         {
-            int helperVariableNumber = 0;
-
             codeGenerationBuilder.AppendLine($@"using System;
     using System.Collections.Generic;
     using ACESim;
@@ -1226,16 +1224,16 @@ namespace ACESim
             codeGenerationBuilder.AppendLine("public static void DoCalc(int cei, List<FinalUtilities> f, List<ChanceNodeSettings> c, List<InformationSetNodeTally> n, out double p0CvC, out double p1CvC, out double p0BRvC, out double p1CvBR)");
             codeGenerationBuilder.AppendLine($"{{");
             codeGenerationBuilder.Append("p0CvC = ");
-            CorrelatedEquilibriumCalculationString_Tree(codeGenerationBuilder, 0, ActionStrategies.CorrelatedEquilibrium, ref helperVariableNumber);
+            CorrelatedEquilibriumCalculationString_Tree(codeGenerationBuilder, 0, ActionStrategies.CorrelatedEquilibrium);
             codeGenerationBuilder.AppendLine(";");
             codeGenerationBuilder.Append("p1CvC = ");
-            CorrelatedEquilibriumCalculationString_Tree(codeGenerationBuilder, 1, ActionStrategies.CorrelatedEquilibrium, ref helperVariableNumber);
+            CorrelatedEquilibriumCalculationString_Tree(codeGenerationBuilder, 1, ActionStrategies.CorrelatedEquilibrium);
             codeGenerationBuilder.AppendLine(";");
             codeGenerationBuilder.Append("p0BRvC = ");
-            CorrelatedEquilibriumCalculationString_Tree(codeGenerationBuilder, 0, ActionStrategies.BestResponseVsCorrelatedEquilibrium, ref helperVariableNumber);
+            CorrelatedEquilibriumCalculationString_Tree(codeGenerationBuilder, 0, ActionStrategies.BestResponseVsCorrelatedEquilibrium);
             codeGenerationBuilder.AppendLine(";");
             codeGenerationBuilder.Append("p1CvBR = ");
-            CorrelatedEquilibriumCalculationString_Tree(codeGenerationBuilder, 1, ActionStrategies.CorrelatedEquilibriumVsBestResponse, ref helperVariableNumber);
+            CorrelatedEquilibriumCalculationString_Tree(codeGenerationBuilder, 1, ActionStrategies.CorrelatedEquilibriumVsBestResponse);
             codeGenerationBuilder.AppendLine(";");
             codeGenerationBuilder.AppendLine($"}}");
 
@@ -1297,13 +1295,13 @@ namespace ACESim
             codeGenerationBuilder.AppendLine("}");
         }
 
-        public void CorrelatedEquilibriumCalculationString_Tree(StringBuilder codeGenerationBuilder, byte player, ActionStrategies actionStrategy, ref int helperVariableNumber )
+        public void CorrelatedEquilibriumCalculationString_Tree(StringBuilder codeGenerationBuilder, byte player, ActionStrategies actionStrategy )
         {
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
-            CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, ref historyPoint, player, actionStrategy, 0, ref helperVariableNumber);
+            CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, ref historyPoint, player, actionStrategy, 0);
         }
 
-        public void CorrelatedEquilibriumCalculation_Node(StringBuilder codeGenerationBuilder, ref HistoryPoint historyPoint, byte player, ActionStrategies actionStrategy, int nondistributedActions, ref int helperVariableNumber)
+        public void CorrelatedEquilibriumCalculation_Node(StringBuilder codeGenerationBuilder, ref HistoryPoint historyPoint, byte player, ActionStrategies actionStrategy, int nondistributedActions)
         {
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
@@ -1314,13 +1312,13 @@ namespace ACESim
             }
             else if (gameStateType == GameStateTypeEnum.Chance)
             {
-                CorrelatedEquilibriumCalculation_ChanceNode(codeGenerationBuilder, ref historyPoint, player, actionStrategy, nondistributedActions, ref helperVariableNumber);
+                CorrelatedEquilibriumCalculation_ChanceNode(codeGenerationBuilder, ref historyPoint, player, actionStrategy, nondistributedActions);
             }
             else
-                CorrelatedEquilibriumCalculation_DecisionNode(codeGenerationBuilder, ref historyPoint, player, actionStrategy, nondistributedActions, ref helperVariableNumber);
+                CorrelatedEquilibriumCalculation_DecisionNode(codeGenerationBuilder, ref historyPoint, player, actionStrategy, nondistributedActions);
         }
 
-        public void CorrelatedEquilibriumCalculation_ChanceNode(StringBuilder codeGenerationBuilder, ref HistoryPoint historyPoint, byte player, ActionStrategies actionStrategy, int nondistributedActions, ref int helperVariableNumber)
+        public void CorrelatedEquilibriumCalculation_ChanceNode(StringBuilder codeGenerationBuilder, ref HistoryPoint historyPoint, byte player, ActionStrategies actionStrategy, int nondistributedActions)
         {
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings)gameStateForCurrentPlayer;
@@ -1342,14 +1340,14 @@ namespace ACESim
                 }
                 codeGenerationBuilder.Append(" ( ");
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
-                CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, ref nextHistoryPoint, player, actionStrategy, nondistributedActionsNext, ref helperVariableNumber);
+                CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, ref nextHistoryPoint, player, actionStrategy, nondistributedActionsNext);
                 codeGenerationBuilder.Append(" ) ");
                 if (action < numPossibleActionsToExplore)
                     codeGenerationBuilder.Append(" + ");
             }
         }
 
-        public void CorrelatedEquilibriumCalculation_DecisionNode(StringBuilder codeGenerationBuilder, ref HistoryPoint historyPoint, byte player, ActionStrategies actionStrategy, int nondistributedActions, ref int helperVariableNumber)
+        public void CorrelatedEquilibriumCalculation_DecisionNode(StringBuilder codeGenerationBuilder, ref HistoryPoint historyPoint, byte player, ActionStrategies actionStrategy, int nondistributedActions)
         {
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             InformationSetNodeTally nodeTally = (InformationSetNodeTally)gameStateForCurrentPlayer;
@@ -1370,16 +1368,13 @@ namespace ACESim
                     nondistributedActionsNext += 1 * nodeTally.Decision.NondistributedDecisionMultiplier;
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, 1, nodeTally.Decision, nodeTally.DecisionIndex);
                 codeGenerationBuilder.Append(" ( ");
-                CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, ref nextHistoryPoint, player, actionStrategy, nondistributedActionsNext, ref helperVariableNumber);
+                CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, ref nextHistoryPoint, player, actionStrategy, nondistributedActionsNext);
                 codeGenerationBuilder.Append(" ) ");
                 return;
             }
 
             if (isBestResponse)
             {
-                int vNum = helperVariableNumber++;
-
-
                 codeGenerationBuilder.Append($"SwitchOnByte{numPossibleActionsToExplore}({nodeString}.LastBestResponseAction");
                 //codeGenerationBuilder.Append($"{nodeString}.LastBestResponseAction switch {{ ");
                 for (byte action = 1; action <= numPossibleActionsToExplore; action++)
@@ -1389,7 +1384,7 @@ namespace ACESim
                         nondistributedActionsNext += action * nodeTally.Decision.NondistributedDecisionMultiplier;
                     codeGenerationBuilder.Append($", ( ");
                     HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, nodeTally.Decision, nodeTally.DecisionIndex);
-                    CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, ref nextHistoryPoint, player, actionStrategy, nondistributedActionsNext, ref helperVariableNumber);
+                    CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, ref nextHistoryPoint, player, actionStrategy, nondistributedActionsNext);
                     codeGenerationBuilder.Append(" ) ");
                 }
 
@@ -1399,14 +1394,13 @@ namespace ACESim
             {
                 for (byte action = 1; action <= numPossibleActionsToExplore; action++)
                 {
-                    int vNum = helperVariableNumber++;
                     int nondistributedActionsNext = nondistributedActions;
                     if (nodeTally.Decision.NondistributedDecision)
                         nondistributedActionsNext += action * nodeTally.Decision.NondistributedDecisionMultiplier;
-                    codeGenerationBuilder.Append($"({nodeString}.PV(cei, {action}) is double v{vNum} ? v{vNum} * (");
+                    codeGenerationBuilder.Append($"({nodeString}.PVP(cei, {action}, () => (");
                     HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, nodeTally.Decision, nodeTally.DecisionIndex);
-                    CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, ref nextHistoryPoint, player, actionStrategy, nondistributedActionsNext, ref helperVariableNumber);
-                    codeGenerationBuilder.Append(") : 0) ");
+                    CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, ref nextHistoryPoint, player, actionStrategy, nondistributedActionsNext);
+                    codeGenerationBuilder.Append(")))"); // end function within PVP and PVP itself, plus surrounding parens
                     if (action < numPossibleActionsToExplore)
                         codeGenerationBuilder.Append(" + ");
                 }
