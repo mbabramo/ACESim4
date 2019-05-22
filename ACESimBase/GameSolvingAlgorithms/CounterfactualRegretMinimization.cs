@@ -1321,32 +1321,44 @@ namespace ACESim
 
             if (isBestResponse)
             {
-                codeGenerationBuilder.Append($"{nodeString}.LastBestResponseAction switch {{ ");
+                int vNum = helperVariableNumber++;
+                // since recursive patterns are not yet final in c# 8.0 beta, we'll use ternary expressions with an is statement -- e.g., ((aa is byte b) ? (b == 1 ? (1.0) : (b == 2 ? (2.0) : (b == 3 ? (3.0) : (4.0) ))) : 0)
+
+                codeGenerationBuilder.Append($"(({nodeString}.LastBestResponseAction is byte v{vNum}) ? ");
+                //codeGenerationBuilder.Append($"{nodeString}.LastBestResponseAction switch {{ ");
                 for (byte a = 1; a <= numPossibleActionsToExplore; a++)
                 {
                     int nondistributedActionsNext = nondistributedActions;
                     if (nodeTally.Decision.NondistributedDecision)
                         nondistributedActionsNext += a * nodeTally.Decision.NondistributedDecisionMultiplier;
-                    if (a == numPossibleActionsToExplore)
-                        codeGenerationBuilder.Append(" _ => ( ");
-                    else
-                        codeGenerationBuilder.Append($" {a} => ( ");
-
+                    if (a < numPossibleActionsToExplore)
+                        codeGenerationBuilder.Append($"(v{vNum} == {a} ? ( ");
+                    //if (a == numPossibleActionsToExplore)
+                    //    codeGenerationBuilder.Append(" _ => ( ");
+                    //else
+                    //    codeGenerationBuilder.Append($" {a} => ( ");
+                    
                     HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, a, nodeTally.Decision, nodeTally.DecisionIndex);
                     CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, ref nextHistoryPoint, player, actionStrategy, nondistributedActionsNext, ref helperVariableNumber);
-                    codeGenerationBuilder.Append(" ), ");
+                    if (a < numPossibleActionsToExplore)
+                        codeGenerationBuilder.Append(" ) : ");
+                    else
+                    {
+                        for (int j = 0; j < numPossibleActionsToExplore - 1; j++)
+                            codeGenerationBuilder.Append(")");
+                    }
                 }
 
-                codeGenerationBuilder.Append($" }} ");
+                codeGenerationBuilder.Append($" : 0) ");
             }
             else
             {
                 for (byte a = 1; a <= numPossibleActionsToExplore; a++)
                 {
+                    int vNum = helperVariableNumber++;
                     int nondistributedActionsNext = nondistributedActions;
                     if (nodeTally.Decision.NondistributedDecision)
                         nondistributedActionsNext += a * nodeTally.Decision.NondistributedDecisionMultiplier;
-                    int vNum = helperVariableNumber++;
                     codeGenerationBuilder.Append($"({nodeString}.PV(cIndex, {a}) is double v{vNum} ? v{vNum} * (");
                     HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, a, nodeTally.Decision, nodeTally.DecisionIndex);
                     CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, ref nextHistoryPoint, player, actionStrategy, nondistributedActionsNext, ref helperVariableNumber);

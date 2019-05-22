@@ -304,7 +304,10 @@ namespace ACESim
                 combinedReports.Add(singleRepetitionReport);
                 // AzureBlob.SerializeObject("results", reportName + " CRM", true, developer);
             }
-            return CombineResultsOfRepetitionsOfOptionSets(masterReportName, optionSetName, includeFirstLine, combinedReports);
+            if (azureEnabled)
+                return CombineResultsOfRepetitionsOfOptionSets(masterReportName, optionSetName, includeFirstLine, combinedReports);
+            else
+                return "";
         }
 
 
@@ -318,6 +321,7 @@ namespace ACESim
             return result;
         }
 
+        static bool azureEnabled = false; // DEBUG
         public static async Task<string> GetSingleRepetitionReportAndSave(string masterReportName, MyGameOptions options, string optionSetName, int repetition, CounterfactualRegretMinimization developer)
         {
             string masterReportNamePlusOptionSet = $"{masterReportName} {optionSetName}";
@@ -325,7 +329,8 @@ namespace ACESim
                 throw new Exception("Developer must be set"); // should call GetDeveloper(options) before calling this (note: earlier version passed developer as ref so that it could be set here)
             var result = await GetSingleRepetitionReport(optionSetName, repetition, developer);
             string azureBlobInterimReportName = masterReportNamePlusOptionSet + $" {repetition}";
-            AzureBlob.WriteTextToBlob("results", azureBlobInterimReportName, true, result); // we write to a blob in case this times out and also to allow individual report to be taken out
+            if (azureEnabled)
+                AzureBlob.WriteTextToBlob("results", azureBlobInterimReportName, true, result); // we write to a blob in case this times out and also to allow individual report to be taken out
             return result;
         }
 
