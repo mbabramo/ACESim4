@@ -674,7 +674,7 @@ namespace ACESim
         {
             if (iteration % EvolutionSettings.MiniReportEveryPIterations == 0)
             {
-                TabbedText.WriteLine($"Iteration {iteration} (AverageStrategyAdjustment {AverageStrategyAdjustment})");
+                TabbedText.WriteLine($"Iteration {iteration} (relative contribution {AverageStrategyAdjustmentAsPctOfMax})");
                 TabbedText.Tabs++;
                 for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
                     TabbedText.WriteLine($"Player {playerBeingOptimized} {results[playerBeingOptimized]}");
@@ -690,7 +690,8 @@ namespace ACESim
             double negativePower = Math.Pow(HedgeVanillaIteration, EvolutionSettings.Discounting_Beta);
             PositiveRegretsAdjustment = positivePower / (positivePower + 1.0);
             NegativeRegretsAdjustment = negativePower / (negativePower + 1.0);
-            AverageStrategyAdjustment = Math.Pow((double) HedgeVanillaIteration / ((double)HedgeVanillaIteration + 1), EvolutionSettings.Discounting_Gamma);
+            AverageStrategyAdjustment = EvolutionSettings.Discounting_Gamma_ForIteration(HedgeVanillaIterationInt);
+            AverageStrategyAdjustmentAsPctOfMax = EvolutionSettings.Discounting_Gamma_AsPctOfMax(HedgeVanillaIterationInt);
             if (AverageStrategyAdjustment < 1E-100)
                 AverageStrategyAdjustment = 1E-100;
         }

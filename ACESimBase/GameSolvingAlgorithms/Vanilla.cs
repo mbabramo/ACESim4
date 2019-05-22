@@ -217,7 +217,7 @@ namespace ACESim
             return reportString;
         }
 
-        double VanillaIteration, PositiveRegretsAdjustment, NegativeRegretsAdjustment, AverageStrategyAdjustment;
+        double VanillaIteration, PositiveRegretsAdjustment, NegativeRegretsAdjustment, AverageStrategyAdjustment, AverageStrategyAdjustmentAsPctOfMax;
         Stopwatch VanillaIterationStopwatch = new Stopwatch();
         private async Task<string> VanillaCFRIteration(int iteration)
         {
@@ -227,7 +227,8 @@ namespace ACESim
             double negativePower = Math.Pow(VanillaIteration, EvolutionSettings.Discounting_Beta);
             PositiveRegretsAdjustment = positivePower / (positivePower + 1.0);
             NegativeRegretsAdjustment = negativePower / (negativePower + 1.0);
-            AverageStrategyAdjustment = Math.Pow(VanillaIteration / (VanillaIteration + 1.0), EvolutionSettings.Discounting_Gamma);
+            AverageStrategyAdjustment = EvolutionSettings.Discounting_Gamma_ForIteration((int) VanillaIteration);
+            AverageStrategyAdjustmentAsPctOfMax = EvolutionSettings.Discounting_Gamma_AsPctOfMax((int)VanillaIteration);
             if (AverageStrategyAdjustment < 1E-100)
                 AverageStrategyAdjustment = 1E-100;
 
