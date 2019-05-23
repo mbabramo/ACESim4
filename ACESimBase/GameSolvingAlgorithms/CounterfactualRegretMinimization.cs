@@ -1470,7 +1470,79 @@ namespace ACESim
                 }
             }
     }
-            
+
+    #endregion
+
+    #region General tree walk
+
+        public void TreeWalk_Tree<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor)
+        {
+            HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
+            TreeWalk_Node(processor, default(Forward), 0, ref historyPoint);
         }
+
+        public Back TreeWalk_Node<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, Forward forward, int nondistributedActions, ref HistoryPoint historyPoint)
+        {
+            IGameState gameState = GetGameState(ref historyPoint);
+            switch (gameState)
+            {
+                case ChanceNodeSettings c:
+                    return TreeWalk_ChanceNode(processor, c, forward, nondistributedActions, ref historyPoint);
+                case InformationSetNodeTally n:
+                    return TreeWalk_DecisionNode(processor, n, forward, nondistributedActions, ref historyPoint);
+                case FinalUtilities f:
+                    processor.FinalUtilities_ReceiveFromPredecessor(f, forward);
+                    return processor.FinalUtilities_SendToPredecessor(f);
+                default:
+                    throw new NotSupportedException();
+            }
+        }
+
+        public Back TreeWalk_ChanceNode<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, ChanceNodeSettings chanceNodeSettings, Forward forward, int nondistributedActions, ref HistoryPoint historyPoint)
+        {
+            processor.ChanceNode_ReceiveFromPredecessor(chanceNodeSettings, forward);
+            Forward nextForward = processor.ChanceNode_SendToSuccessors(chanceNodeSettings);
+            byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
+            byte numPossibleActionsToExplore = numPossibleActions;
+            if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedDecision) numPossibleActionsToExplore = 1;
+            List<Back> fromSuccessors = new List<Back>();
+            for (byte action = 1; action <= numPossibleActionsToExplore; action++)
+            {
+                int nondistributedActionsNext = nondistributedActions;
+                if (chanceNodeSettings.Decision.NondistributedDecision)
+                    nondistributedActionsNext += action * chanceNodeSettings.Decision.NondistributedDecisionMultiplier;
+                bool isDistributed = (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedDecision);
+            
+                HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
+                var fromSuccessor = TreeWalk_Node(processor, nextForward, nondistributedActionsNext, ref nextHistoryPoint);
+                fromSuccessors.Add(fromSuccessor);
+            }
+            processor.ChanceNode_ReceiveFromSuccessors(chanceNodeSettings, fromSuccessors);
+            return processor.ChanceNode_SendToPredecessor(chanceNodeSettings);
+        }
+
+        public Back TreeWalk_DecisionNode<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, InformationSetNodeTally nodeTally, Forward forward, int nondistributedActions, ref HistoryPoint historyPoint)
+        {
+            processor.InformationSet_ReceiveFromPredecessor(nodeTally, forward);
+            Forward nextForward = processor.InformationSet_SendToSuccessors(nodeTally);
+            byte numPossibleActions = NumPossibleActionsAtDecision(nodeTally.DecisionIndex);
+            byte numPossibleActionsToExplore = numPossibleActions;
+
+
+            List<Back> fromSuccessors = new List<Back>();
+            for (byte action = 1; action <= numPossibleActionsToExplore; action++)
+            {
+                int nondistributedActionsNext = nondistributedActions;
+                if (nodeTally.Decision.NondistributedDecision)
+                    nondistributedActionsNext += action * nodeTally.Decision.NondistributedDecisionMultiplier;
+                HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, nodeTally.Decision, nodeTally.DecisionIndex);
+                var fromSuccessor = TreeWalk_Node(processor, nextForward, nondistributedActionsNext, ref nextHistoryPoint);
+                fromSuccessors.Add(fromSuccessor);
+            }
+            processor.InformationSet_ReceiveFromSuccessors(nodeTally, fromSuccessors);
+            return processor.InformationSet_SendToPredecessor(nodeTally);
+        }
+
         #endregion
     }
+}

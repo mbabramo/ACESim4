@@ -32,6 +32,8 @@ namespace ACESim
 
         public double[,] NodeInformation;
 
+        public double[] MaxPossible, MinPossible;
+
         bool RecordPastValues = false;
         int RecordPastValuesEveryN;
         public int LastPastValueIndexRecorded = -1;
