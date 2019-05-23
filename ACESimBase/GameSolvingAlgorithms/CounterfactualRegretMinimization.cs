@@ -190,11 +190,16 @@ namespace ACESim
                     s.CreateInformationSetTree(GameDefinition.DecisionsExecutionOrder.FirstOrDefault(x => x.PlayerNumber == s.PlayerInfo.PlayerIndex)?.NumPossibleActions ?? (byte)1, s.PlayerInfo.PlayerIndex <= NumNonChancePlayers || s.PlayerInfo.PlayerIndex == GameDefinition.PlayerIndex_ResolutionPlayer);
             }
 
-            if (SkipEveryPermutationInitialization)
-                return; // no initialization needed (that's a benefit of using GameHistory -- we can initialize information sets on the fly, which may be much faster than playing every game permutation)
-
             // Create game trees
             GameHistoryTree = new NWayTreeStorageInternal<IGameState>(null, GameDefinition.DecisionsExecutionOrder.First().NumPossibleActions);
+
+            CalculateMinMax c = new CalculateMinMax(true, NumNonChancePlayers);
+            TreeWalk_Tree(c);
+            c = new CalculateMinMax(false, NumNonChancePlayers);
+            TreeWalk_Tree(c);
+
+            if (SkipEveryPermutationInitialization)
+                return; // no initialization needed (that's a benefit of using GameHistory -- we can initialize information sets on the fly, which may be much faster than playing every game permutation)
 
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();

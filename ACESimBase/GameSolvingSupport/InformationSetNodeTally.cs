@@ -33,6 +33,7 @@ namespace ACESim
         public double[,] NodeInformation;
 
         public double[] MaxPossible, MinPossible;
+        public double MaxPossibleThisPlayer, MinPossibleThisPlayer;
 
         bool RecordPastValues = false;
         int RecordPastValuesEveryN;
