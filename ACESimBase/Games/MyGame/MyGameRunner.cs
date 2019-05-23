@@ -23,7 +23,7 @@ namespace ACESim
         private const GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.HedgeVanilla;
 
         private const int ProbingIterations = 20_000_000;
-        private const int VanillaIterations = 2_500_000;
+        private const int VanillaIterations = 250_000;
         private const int VanillaReportEveryNIterations = 25_000;
         private const int VanillaBestResponseEveryMIterations = EvolutionSettings.EffectivelyNever; 
         private const int MiniReportEveryPIterations = 5000;
