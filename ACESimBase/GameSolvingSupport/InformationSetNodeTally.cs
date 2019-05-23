@@ -72,7 +72,7 @@ namespace ACESim
         // Normalized hedge
         [NonSerialized]
         public SimpleExclusiveLock UpdatingHedge;
-        const double NormalizedHedgeEpsilon = 0.95; // DEBUG 0.5 // Higher epsilon means less discounting; lower epsilons are more aggressive
+        const double NormalizedHedgeEpsilon = 0.5; // Higher epsilon means less discounting; lower epsilons are more aggressive
         public byte LastBestResponseAction = 0;
         public bool BestResponseDeterminedFromIncrements = false; // this is used by the generalized best response algorithm to determine whether it needs to recalculate best response
 
@@ -679,18 +679,9 @@ namespace ACESim
             RecordProbabilitiesAsPastValues(iteration, averageStrategyAdjustment); // these are the average strategies played, and thus shouldn't reflect the updates below
 
             double lastCumulativeStrategySum = 0;
-            double minLastRegret = 0, maxLastRegret = 0;
             for (byte a = 1; a <= NumPossibleActions; a++)
             {
                 double lastRegret = NodeInformation[lastRegretDimension, a - 1];
-                if (a == 1)
-                    minLastRegret = maxLastRegret = lastRegret;
-                else if (lastRegret > maxLastRegret)
-                {
-                    maxLastRegret = lastRegret;
-                }
-                else if (lastRegret < minLastRegret)
-                    minLastRegret = lastRegret;
                 lastCumulativeStrategySum += NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1];
             }
                 for (byte a = 1; a <= NumPossibleActions; a++)
@@ -713,8 +704,9 @@ namespace ACESim
             for (int a = 1; a <= NumPossibleActions; a++)
             {
                 double regretIncrements = NodeInformation[lastRegretDimension, a - 1];
-                double normalizedRegret = maxLastRegret == minLastRegret ? 0.5 : 1.0 - (regretIncrements - minLastRegret) / (maxLastRegret - minLastRegret);
-                double weightAdjustment = Math.Pow(1 - NormalizedHedgeEpsilon, normalizedRegret);
+                double normalizedRegret = (regretIncrements - MinPossibleThisPlayer) / (MaxPossibleThisPlayer - MinPossibleThisPlayer);
+                double adjustedNormalizedRegret = 1.0 - normalizedRegret;
+                double weightAdjustment = Math.Pow(1 - NormalizedHedgeEpsilon, adjustedNormalizedRegret);
                 double weight = NodeInformation[adjustedWeightsDimension, a - 1];
                 weight *= weightAdjustment;
                 if (weight < SmallestProbabilityRepresented)

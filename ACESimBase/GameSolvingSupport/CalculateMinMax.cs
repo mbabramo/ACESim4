@@ -82,10 +82,16 @@ namespace ACESim
 
         public void InformationSet_ReceiveFromSuccessors(InformationSetNodeTally informationSet, IEnumerable<double[]> fromSuccessors)
         {
-            var d = Min ? informationSet.MinPossible : informationSet.MaxPossible;
-            ProcessSuccessors(d, fromSuccessors);
-            informationSet.MinPossibleThisPlayer = informationSet.MinPossible[informationSet.PlayerIndex];
-            informationSet.MaxPossibleThisPlayer = informationSet.MaxPossible[informationSet.PlayerIndex];
+            if (Min)
+            {
+                ProcessSuccessors(informationSet.MinPossible, fromSuccessors);
+                informationSet.MinPossibleThisPlayer = informationSet.MinPossible[informationSet.PlayerIndex];
+            }
+            else
+            {
+                ProcessSuccessors(informationSet.MaxPossible, fromSuccessors);
+                informationSet.MaxPossibleThisPlayer = informationSet.MaxPossible[informationSet.PlayerIndex];
+            }
         }
 
         public double[] InformationSet_SendToPredecessor(InformationSetNodeTally informationSet)
