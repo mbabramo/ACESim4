@@ -58,7 +58,7 @@ namespace ACESim
                 TotalVanillaCFRIterations = VanillaIterations,
 
                 // algorithm settings
-                UseRegretAndStrategyDiscounting = UseRegretAndStrategyDiscounting,
+                UseDiscounting = UseRegretAndStrategyDiscounting,
 
                 // probing settings
                 EpsilonForMainPlayer = 0.5,

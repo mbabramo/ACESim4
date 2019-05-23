@@ -671,11 +671,6 @@ namespace ACESim
 
         public void UpdateNormalizedHedge(int iteration, double averageStrategyAdjustment)
         {
-            //if (iteration % 1000 == 0 && InformationSetNumber == 25)
-            //{
-            //    var DEBUG = 0;
-            //    Console.WriteLine($"LastCumulativeStrategyIncrement {NodeInformation[lastCumulativeStrategyIncrementsDimension, 0]} {NodeInformation[lastCumulativeStrategyIncrementsDimension, 1].ToSignificantFigures(12)} Regrets {NodeInformation[lastRegretDimension, 0]} {NodeInformation[lastRegretDimension, 1]} Hedge {NodeInformation[hedgeProbabilityDimension, 0]} {NodeInformation[hedgeProbabilityDimension, 1]} Average {NodeInformation[averageStrategyProbabilityDimension, 0]} {NodeInformation[averageStrategyProbabilityDimension, 1]} LastBestResponseAction {LastBestResponseAction}");
-            //}
             RecordProbabilitiesAsPastValues(iteration, averageStrategyAdjustment); // these are the average strategies played, and thus shouldn't reflect the updates below
 
             double lastCumulativeStrategySum = 0;
@@ -684,8 +679,8 @@ namespace ACESim
                 double lastRegret = NodeInformation[lastRegretDimension, a - 1];
                 lastCumulativeStrategySum += NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1];
             }
-                for (byte a = 1; a <= NumPossibleActions; a++)
-                {
+            for (byte a = 1; a <= NumPossibleActions; a++)
+            {
                 double normalizedCumulativeStrategyIncrement;
                     if (lastCumulativeStrategySum == 0) // can be zero if pruning means that an information set is never reached -- in this case we still need to update the average strategy.
                         normalizedCumulativeStrategyIncrement = NodeInformation[hedgeProbabilityDimension, a - 1];
@@ -694,7 +689,7 @@ namespace ACESim
                 double adjustedIncrement = averageStrategyAdjustment * normalizedCumulativeStrategyIncrement; // ... but here we do our regular discounting so later iterations can count more than earlier ones
                     NodeInformation[cumulativeStrategyDimension, a - 1] += adjustedIncrement;
                     NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1] = 0;
-                }
+            }
 
             DetermineBestResponseAction();
             ResetBestResponseData();

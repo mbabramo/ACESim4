@@ -589,7 +589,7 @@ namespace ACESim
                 if (doBestResponse)
                     CompareBestResponse(false);
                 if (iteration % EvolutionSettings.CorrelatedEquilibriumCalculationsEveryNIterations == 0)
-                    DoCorrelatedEquilibriumCalculations();
+                    DoCorrelatedEquilibriumCalculations(iteration);
                 if (EvolutionSettings.PrintGameTree)
                     PrintGameTree();
                 if (EvolutionSettings.PrintInformationSets)
@@ -1206,7 +1206,7 @@ namespace ACESim
         Type CorrelatedEquilibriumCalculatorType = null;
         bool CorrelatedEquilibriumCodeIsPrecompiled = false;
 
-        public void DoCorrelatedEquilibriumCalculations()
+        public void DoCorrelatedEquilibriumCalculations(int currentIterationNumber)
         {
             if (CorrelatedEquilibriumCalculatorType == null)
             {
@@ -1218,7 +1218,7 @@ namespace ACESim
                 else
                     CorrelatedEquilibriumCalculations_GenerateCode();
             }
-            CorrelatedEquilibriumCalculations_RunGeneratedCode();
+            CorrelatedEquilibriumCalculations_RunGeneratedCode(currentIterationNumber);
         }
 
         public void CorrelatedEquilibriumCalculations_GenerateCode()
@@ -1262,7 +1262,7 @@ namespace ACESim
 
         }
 
-        public void CorrelatedEquilibriumCalculations_RunGeneratedCode()
+        public void CorrelatedEquilibriumCalculations_RunGeneratedCode(int currentIterationNumber)
         {
             int numPastValues = InformationSets.First().LastPastValueIndexRecorded + 1;
             const int p0CvC_Index = 0;
@@ -1337,7 +1337,7 @@ namespace ACESim
 
             for (int correlatedEquilibriumIterationIndex = 0; correlatedEquilibriumIterationIndex < numPastValues; correlatedEquilibriumIterationIndex++)
             {
-                int correspondingIteration = (int)(((double)(correlatedEquilibriumIterationIndex + 1) / (double)numPastValues) * (double)(EvolutionSettings.TotalVanillaCFRIterations));
+                int correspondingIteration = (int)(((double)(correlatedEquilibriumIterationIndex + 1) / (double)numPastValues) * (double)(currentIterationNumber));
                 string result = resultString(correlatedEquilibriumIterationIndex, correspondingIteration.ToString());
                 Console.WriteLine(result);
             }

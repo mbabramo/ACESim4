@@ -47,7 +47,7 @@ namespace ACESim
                 TotalVanillaCFRIterations = 100_000,
 
                 // algorithm settings
-                UseRegretAndStrategyDiscounting = UseRegretAndStrategyDiscounting,
+                UseDiscounting = UseRegretAndStrategyDiscounting,
             };
             return evolutionSettings;
         }
