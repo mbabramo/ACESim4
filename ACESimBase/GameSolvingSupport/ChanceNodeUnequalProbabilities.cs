@@ -31,7 +31,7 @@ namespace ACESim
                 currentValues[i] += probabilityIncrements[i] * piChance;
         }
 
-        public void NormalizedistributorChanceInputProbabilities()
+        public void NormalizeDistributorChanceInputProbabilities()
         {
             if (ProbabilitiesForDistributorChanceInputs != null)
             {
@@ -62,6 +62,23 @@ namespace ACESim
         {
             if (distributorChanceInputs != -1 && DistributionComplete && ProbabilitiesForDistributorChanceInputs != null)
                 return ProbabilitiesForDistributorChanceInputs[distributorChanceInputs][action - 1];
+            return Probabilities[action - 1];
+        }
+
+
+        public override double GetActionProbability(int action, List<(int value, double probability)> distributorChanceInputs)
+        {
+            if (DistributionComplete && ProbabilitiesForDistributorChanceInputs != null)
+            {
+                double sumProbabilityProducts = 0;
+                foreach (var input in distributorChanceInputs)
+                { 
+                    // We have probabilities for specific distributor chance input values. But now we have multiple values, each with another probability. So, we need to calculate a weighted average.
+                    double probabilityForDistributorChanceInputValue = ProbabilitiesForDistributorChanceInputs[input.value][action - 1];
+                    sumProbabilityProducts += probabilityForDistributorChanceInputValue * input.probability;
+                }
+                return sumProbabilityProducts;
+            }
             return Probabilities[action - 1];
         }
 

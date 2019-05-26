@@ -1105,7 +1105,7 @@ namespace ACESim
             DistributeChanceDecisions_WalkNode(ref historyPoint, 1.0 /* 100% probability of playing to beginning */, 0 /* no nondistributed actions yet */, "", chanceNodeAggregatingSkipped);
             foreach (var chanceNode in Navigation.ChanceNodes)
                 if (chanceNode is ChanceNodeUnequalProbabilities unequal)
-                    unequal.NormalizedistributorChanceInputProbabilities();
+                    unequal.NormalizeDistributorChanceInputProbabilities();
         }
 
         private unsafe bool DistributeChanceDecisions_WalkNode(ref HistoryPoint historyPoint, double piChance, int distributorChanceInputs, string distributedActionsString, Dictionary<string, ChanceNodeUnequalProbabilities> chanceNodeAggregatingSkipped)
