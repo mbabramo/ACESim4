@@ -20,7 +20,7 @@ namespace ACESim
             GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
             if (gameStateType == GameStateTypeEnum.FinalUtilities)
             {
-                FinalUtilities finalUtilities = (FinalUtilities)gameStateForCurrentPlayer;
+                FinalUtilitiesNode finalUtilities = (FinalUtilitiesNode)gameStateForCurrentPlayer;
                 var utility = finalUtilities.Utilities;
                 if (TraceCFR)
                     TabbedText.WriteLine($"Utility returned {utility}");
@@ -45,7 +45,7 @@ namespace ACESim
                 }
                 else if (gameStateType == GameStateTypeEnum.InformationSet)
                 {
-                    InformationSetNodeTally informationSet = (InformationSetNodeTally)gameStateForCurrentPlayer;
+                    InformationSetNode informationSet = (InformationSetNode)gameStateForCurrentPlayer;
                     byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
                     double* actionProbabilities = stackalloc double[numPossibleActions];
                     // No epsilon exploration during the probe.
@@ -78,7 +78,7 @@ namespace ACESim
                 TabbedText.WriteLine($"WalkTree sampling probability {samplingProbabilityQ}");
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             byte sampledAction = 0;
-            if (gameStateForCurrentPlayer is FinalUtilities finalUtilities)
+            if (gameStateForCurrentPlayer is FinalUtilitiesNode finalUtilities)
             {
                 var utility = finalUtilities.Utilities[playerBeingOptimized];
                 if (TraceCFR)
@@ -105,7 +105,7 @@ namespace ACESim
                 }
                 return walkTreeValue;
             }
-            else if (gameStateForCurrentPlayer is InformationSetNodeTally informationSet)
+            else if (gameStateForCurrentPlayer is InformationSetNode informationSet)
             {
                 byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
                 double* sigmaRegretMatchedActionProbabilities = stackalloc double[numPossibleActions];

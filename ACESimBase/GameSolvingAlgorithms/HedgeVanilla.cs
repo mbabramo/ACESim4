@@ -298,7 +298,7 @@ namespace ACESim
             }
             CalculateDiscountingAdjustments();
             array[Unroll_OneIndex] = 1.0;
-            array[Unroll_SmallestProbabilityRepresentedIndex] = InformationSetNodeTally.SmallestProbabilityRepresented;
+            array[Unroll_SmallestProbabilityRepresentedIndex] = InformationSetNode.SmallestProbabilityRepresented;
             array[Unroll_OpponentPruningThresholdIndex] = EvolutionSettings.PruneOnOpponentStrategyThreshold;
             array[Unroll_AverageStrategyAdjustmentIndex] = AverageStrategyAdjustment;
         }
@@ -334,7 +334,7 @@ namespace ACESim
             GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
             if (gameStateType == GameStateTypeEnum.FinalUtilities)
             {
-                FinalUtilities finalUtilities = (FinalUtilities)gameStateForCurrentPlayer;
+                FinalUtilitiesNode finalUtilities = (FinalUtilitiesNode)gameStateForCurrentPlayer;
                 // Note: An alternative approach would be to add the utility value found here to the unrolled commands, instead of looking it up in the array. But this approach makes it possible to change some game parameters and thus the final utilities without regenerating commands.
                 int finalUtilIndex = Unroll_Commands.CopyToNew(Unroll_GetFinalUtilitiesNodesIndex(finalUtilities.FinalUtilitiesNodeNumber, playerBeingOptimized), true);
                 // Note: We must copy this so that we don't change the final utilities themselves.
@@ -363,7 +363,7 @@ namespace ACESim
             //var historyPointString = historyPoint.ToString();
 
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
-            var informationSet = (InformationSetNodeTally)gameStateForCurrentPlayer;
+            var informationSet = (InformationSetNode)gameStateForCurrentPlayer;
             byte decisionNum = informationSet.DecisionIndex;
             byte playerMakingDecision = informationSet.PlayerIndex;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
@@ -713,7 +713,7 @@ namespace ACESim
             GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
             if (gameStateType == GameStateTypeEnum.FinalUtilities)
             {
-                FinalUtilities finalUtilities = (FinalUtilities)gameStateForCurrentPlayer;
+                FinalUtilitiesNode finalUtilities = (FinalUtilitiesNode)gameStateForCurrentPlayer;
                 double util = finalUtilities.Utilities[playerBeingOptimized];
                 if (double.IsNaN(util))
                     throw new Exception();
@@ -740,7 +740,7 @@ namespace ACESim
             //var historyPointString = historyPoint.ToString();
 
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
-            var informationSet = (InformationSetNodeTally)gameStateForCurrentPlayer;
+            var informationSet = (InformationSetNode)gameStateForCurrentPlayer;
             byte decisionNum = informationSet.DecisionIndex;
             byte playerMakingDecision = informationSet.PlayerIndex;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
@@ -816,8 +816,8 @@ namespace ACESim
                     var regret = (expectedValueOfAction[action - 1] - expectedValue);
                     // NOTE: With normalized hedge, we do NOT discount regrets, because we're normalizing regrets at the end of each iteration.
                     double piAdj = pi;
-                    if (pi < InformationSetNodeTally.SmallestProbabilityRepresented)
-                        piAdj = InformationSetNodeTally.SmallestProbabilityRepresented;
+                    if (pi < InformationSetNode.SmallestProbabilityRepresented)
+                        piAdj = InformationSetNode.SmallestProbabilityRepresented;
                     double contributionToAverageStrategy = piAdj * actionProbabilities[action - 1]; // will be multiplied by average strategy adjustment at the end of the entire iteration; this will also normalize the contributions so that (placing average strategy adjustment aside) total contribution is equal to 1. 
                     if (EvolutionSettings.ParallelOptimization)
                     {

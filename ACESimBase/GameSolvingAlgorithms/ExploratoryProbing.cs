@@ -63,7 +63,7 @@ namespace ACESim
             {
                 if (TraceCFR && Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)
                     TabbedText.WriteLine($"{historyPoint.GameProgress}");
-                FinalUtilities finalUtilities = (FinalUtilities)gameStateForCurrentPlayer;
+                FinalUtilitiesNode finalUtilities = (FinalUtilitiesNode)gameStateForCurrentPlayer;
                 var utility = finalUtilities.Utilities;
                 if (TraceCFR)
                     TabbedText.WriteLine($"Utility returned {String.Join("," ,utility)}"); 
@@ -81,7 +81,7 @@ namespace ACESim
 
         private unsafe double[] ExploratoryProbe_DecisionNode(ref HistoryPoint historyPoint, IRandomProducer randomProducer, IGameState gameStateForCurrentPlayer)
         {
-            InformationSetNodeTally informationSet = (InformationSetNodeTally) gameStateForCurrentPlayer;
+            InformationSetNode informationSet = (InformationSetNode) gameStateForCurrentPlayer;
             byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
             double* actionProbabilities = stackalloc double[numPossibleActions];
             informationSet.GetRegretMatchingProbabilities(actionProbabilities);
@@ -174,7 +174,7 @@ namespace ACESim
             if (TraceCFR)
                 TabbedText.WriteLine($"WalkTree sampling probability {samplingProbabilityQ}");
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
-            if (gameStateForCurrentPlayer is FinalUtilities finalUtilities)
+            if (gameStateForCurrentPlayer is FinalUtilitiesNode finalUtilities)
             {
                 var utility = finalUtilities.Utilities[playerBeingOptimized];
                 if (TraceCFR)
@@ -183,7 +183,7 @@ namespace ACESim
             }
             else if (gameStateForCurrentPlayer is ChanceNode chanceNode)
                 return ExploratoryProbe_WalkTree_ChanceNode(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, isExploratoryIteration, chanceNode);
-            else if (gameStateForCurrentPlayer is InformationSetNodeTally informationSet)
+            else if (gameStateForCurrentPlayer is InformationSetNode informationSet)
             {
                 return ExploratoryProbe_WalkTree_DecisionNode(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, isExploratoryIteration, informationSet);
             }
@@ -191,7 +191,7 @@ namespace ACESim
                 throw new NotImplementedException();
         }
 
-        private unsafe double ExploratoryProbe_WalkTree_DecisionNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, bool isExploratoryIteration, InformationSetNodeTally informationSet)
+        private unsafe double ExploratoryProbe_WalkTree_DecisionNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, bool isExploratoryIteration, InformationSetNode informationSet)
         {
             byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
             double* sigmaRegretMatchedActionProbabilities = stackalloc double[numPossibleActions];
@@ -203,7 +203,7 @@ namespace ACESim
             return ExploratoryProbe_WalkTree_DecisionNode_PlayerBeingOptimized(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, isExploratoryIteration, informationSet, numPossibleActions, randomDouble, playerAtPoint, sigmaRegretMatchedActionProbabilities);
         }
 
-        private unsafe double ExploratoryProbe_WalkTree_DecisionNode_PlayerBeingOptimized(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, bool isExploratoryIteration, InformationSetNodeTally informationSet, byte numPossibleActions, double randomDouble, byte playerAtPoint, double* sigmaRegretMatchedActionProbabilities)
+        private unsafe double ExploratoryProbe_WalkTree_DecisionNode_PlayerBeingOptimized(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, bool isExploratoryIteration, InformationSetNode informationSet, byte numPossibleActions, double randomDouble, byte playerAtPoint, double* sigmaRegretMatchedActionProbabilities)
         {
             double* samplingProbabilities = stackalloc double[numPossibleActions];
             if (isExploratoryIteration || EvolutionSettings.PlayerBeingOptimizedExploresOnOwnIterations)
@@ -260,14 +260,14 @@ namespace ACESim
             return summation;
         }
 
-        private unsafe double CalculateCounterfactualValues_NewHistoryPoint(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, bool isExploratoryIteration, InformationSetNodeTally informationSet, double* sigmaRegretMatchedActionProbabilities, byte action, double summation, byte sampledAction, double* samplingProbabilities, double* counterfactualValues)
+        private unsafe double CalculateCounterfactualValues_NewHistoryPoint(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, bool isExploratoryIteration, InformationSetNode informationSet, double* sigmaRegretMatchedActionProbabilities, byte action, double summation, byte sampledAction, double* samplingProbabilities, double* counterfactualValues)
         {
             HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
             summation = CalculateCounterfactualValues(ref nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, isExploratoryIteration, informationSet, sigmaRegretMatchedActionProbabilities, action, sampledAction, samplingProbabilities, counterfactualValues, summation);
             return summation;
         }
 
-        private unsafe double CalculateCounterfactualValues(ref HistoryPoint nextHistoryPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, bool isExploratoryIteration, InformationSetNodeTally informationSet, double* sigmaRegretMatchedActionProbabilities, byte action, byte sampledAction, double* samplingProbabilities, double* counterfactualValues, double summation)
+        private unsafe double CalculateCounterfactualValues(ref HistoryPoint nextHistoryPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, bool isExploratoryIteration, InformationSetNode informationSet, double* sigmaRegretMatchedActionProbabilities, byte action, byte sampledAction, double* samplingProbabilities, double* counterfactualValues, double summation)
         {
             if (action == sampledAction)
             {
@@ -303,7 +303,7 @@ namespace ACESim
             return summation;
         }
 
-        private unsafe double ExploratoryProbe_WalkTree_DecisionNode_OtherPlayer(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, bool isExploratoryIteration, InformationSetNodeTally informationSet, double* sigmaRegretMatchedActionProbabilities, byte numPossibleActions, double randomDouble, byte playerAtPoint)
+        private unsafe double ExploratoryProbe_WalkTree_DecisionNode_OtherPlayer(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, bool isExploratoryIteration, InformationSetNode informationSet, double* sigmaRegretMatchedActionProbabilities, byte numPossibleActions, double randomDouble, byte playerAtPoint)
         {
             if (!isExploratoryIteration)
                 informationSet.GetRegretMatchingProbabilities(sigmaRegretMatchedActionProbabilities);
@@ -332,7 +332,7 @@ namespace ACESim
             return ExploratoryProbe_WalkTree_DecisionNode_OtherPlayer_NotReversible(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, isExploratoryIteration, informationSet, sampledAction);
         }
 
-        private double ExploratoryProbe_WalkTree_DecisionNode_OtherPlayer_NotReversible(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, bool isExploratoryIteration, InformationSetNodeTally informationSet, byte sampledAction)
+        private double ExploratoryProbe_WalkTree_DecisionNode_OtherPlayer_NotReversible(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, bool isExploratoryIteration, InformationSetNode informationSet, byte sampledAction)
         {
             HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction, informationSet.Decision, informationSet.DecisionIndex);
             if (TraceCFR)
@@ -347,7 +347,7 @@ namespace ACESim
             return walkTreeValue2;
         }
 
-        private double ExploratoryProbe_WalkTree_DecisionNode_OtherPlayer_Reversible(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, bool isExploratoryIteration, InformationSetNodeTally informationSet, byte sampledAction)
+        private double ExploratoryProbe_WalkTree_DecisionNode_OtherPlayer_Reversible(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, bool isExploratoryIteration, InformationSetNode informationSet, byte sampledAction)
         {
             IGameState gameStateOriginal = historyPoint.GameState;
             historyPoint.SwitchToBranch(Navigation, sampledAction, informationSet.Decision, informationSet.DecisionIndex);

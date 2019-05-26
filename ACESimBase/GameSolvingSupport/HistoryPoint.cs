@@ -74,7 +74,7 @@ namespace ACESim
             {
                 if (GameProgress.GameComplete)
                 {
-                    GameState = new FinalUtilities(GameProgress.GetNonChancePlayerUtilities());
+                    GameState = new FinalUtilitiesNode(GameProgress.GetNonChancePlayerUtilities());
                     return GameState;
                 }
                 // Otherwise, when playing the actual game, we use the GameHistory object, so we'll set this object as the "cached" object even though it's cached.
@@ -205,11 +205,11 @@ namespace ACESim
             {
                 switch (TreePoint.StoredValue)
                 {
-                    case InformationSetNodeTally nt:
+                    case InformationSetNode nt:
                         return nt.PlayerIndex;
                     case ChanceNode cn:
                         return cn.PlayerNum;
-                    case FinalUtilities utils:
+                    case FinalUtilitiesNode utils:
                         return navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
                     default:
                         throw new NotImplementedException();
@@ -228,11 +228,11 @@ namespace ACESim
             {
                 switch (TreePoint.StoredValue)
                 {
-                    case InformationSetNodeTally nt:
+                    case InformationSetNode nt:
                         return nt.DecisionByteCode;
                     case ChanceNode cn:
                         return cn.DecisionByteCode;
-                    case FinalUtilities utils:
+                    case FinalUtilitiesNode utils:
                         throw new NotImplementedException();
                     default:
                         throw new NotImplementedException();
@@ -251,11 +251,11 @@ namespace ACESim
             {
                 switch (TreePoint.StoredValue)
                 {
-                    case InformationSetNodeTally nt:
+                    case InformationSetNode nt:
                         return nt.DecisionIndex;
                     case ChanceNode cn:
                         return cn.DecisionIndex;
-                    case FinalUtilities utils:
+                    case FinalUtilitiesNode utils:
                         throw new NotImplementedException();
                     default:
                         throw new NotImplementedException();
@@ -282,7 +282,7 @@ namespace ACESim
                         true,
                         () =>
                         {
-                            var finalUtilitiesResult = new FinalUtilities(gameProgress.GetNonChancePlayerUtilities());
+                            var finalUtilitiesResult = new FinalUtilitiesNode(gameProgress.GetNonChancePlayerUtilities());
                             navigation.FinalUtilitiesNodes.Add(finalUtilitiesResult);
                             return finalUtilitiesResult;
                         }
@@ -300,18 +300,18 @@ namespace ACESim
             double[] utilitiesFromGameTree = null;
             double[] utilitiesFromCachedGameHistory = null;
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
-                utilitiesFromGameTree = ((FinalUtilities)TreePoint.StoredValue).Utilities;
+                utilitiesFromGameTree = ((FinalUtilitiesNode)TreePoint.StoredValue).Utilities;
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
                 byte resolutionPlayer = navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
                 var strategy = navigation.Strategies[resolutionPlayer];
                 byte* resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
                 HistoryToPoint.GetPlayerInformationCurrent(resolutionPlayer, resolutionInformationSet);
-                FinalUtilities finalUtilities = (FinalUtilities) strategy.GetInformationSetTreeValue(resolutionInformationSet);
+                FinalUtilitiesNode finalUtilities = (FinalUtilitiesNode) strategy.GetInformationSetTreeValue(resolutionInformationSet);
                 if (finalUtilities == null)
                 {
                     navigation.GetGameState(ref this); // make sure that point is initialized up to here
-                    finalUtilities = (FinalUtilities)strategy.GetInformationSetTreeValue(resolutionInformationSet);
+                    finalUtilities = (FinalUtilitiesNode)strategy.GetInformationSetTreeValue(resolutionInformationSet);
                 }
                 utilitiesFromCachedGameHistory = finalUtilities.Utilities;
             }
@@ -371,7 +371,7 @@ namespace ACESim
                                 if (creatingInformationSet)
                                     throw new Exception("Internal exception. Lock failing.");
                                 creatingInformationSet = true;
-                                InformationSetNodeTally nodeInfo = new InformationSetNodeTally(decision, informationSetHistory.DecisionIndex, navigation.EvolutionSettings);
+                                InformationSetNode nodeInfo = new InformationSetNode(decision, informationSetHistory.DecisionIndex, navigation.EvolutionSettings);
                                 navigation.InformationSets.Add(nodeInfo);
                                 creatingInformationSet = false;
                                 return nodeInfo;

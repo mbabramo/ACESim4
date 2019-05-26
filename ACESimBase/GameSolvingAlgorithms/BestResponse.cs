@@ -62,7 +62,7 @@ namespace ACESim
                     decision = chanceNode.Decision;
                     decisionIndex = chanceNode.DecisionIndex;
                 }
-                else if (gameStateForCurrentPlayer is InformationSetNodeTally informationSet)
+                else if (gameStateForCurrentPlayer is InformationSetNode informationSet)
                 {
                     byte decisionNum = informationSet.DecisionIndex;
                     numPossibleActionsToExplore = NumPossibleActionsAtDecision(decisionNum);
@@ -105,7 +105,7 @@ namespace ACESim
             byte depthSoFar, double inversePi, ActionStrategies opponentsActionStrategy, int distributorChanceInputs)
         {
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
-            var informationSet = (InformationSetNodeTally) gameStateForCurrentPlayer;
+            var informationSet = (InformationSetNode) gameStateForCurrentPlayer;
             byte decisionIndex = informationSet.DecisionIndex;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionIndex);
             byte playerMakingDecision = informationSet.PlayerIndex;

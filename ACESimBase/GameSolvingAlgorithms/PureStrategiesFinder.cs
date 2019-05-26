@@ -18,9 +18,9 @@ namespace ACESim
         {
             if (NumNonChancePlayers != 2)
                 throw new NotImplementedException();
-            List<(InformationSetNodeTally, int)> player0InformationSets =
+            List<(InformationSetNode, int)> player0InformationSets =
                 Strategies[0].GetTallyNodes(GameDefinition);
-            List<(InformationSetNodeTally, int)> player1InformationSets =
+            List<(InformationSetNode, int)> player1InformationSets =
                 Strategies[1].GetTallyNodes(GameDefinition);
             GetUtilitiesForStrategyCombinations(player0InformationSets, player1InformationSets,
                 out int player0Permutations, out int player1Permutations, out double[,] player0Utilities,
@@ -51,8 +51,8 @@ namespace ACESim
             }
         }
 
-        private async Task PrintAllEquilibriumStrategies(List<(InformationSetNodeTally, int)> player0InformationSets,
-            List<(InformationSetNodeTally, int)> player1InformationSets, int player0Permutations,
+        private async Task PrintAllEquilibriumStrategies(List<(InformationSetNode, int)> player0InformationSets,
+            List<(InformationSetNode, int)> player1InformationSets, int player0Permutations,
             int player1Permutations, List<(int player0Strategy, int player1Strategy)> nashEquilibria)
         {
             int numPrinted = 0;
@@ -77,8 +77,8 @@ namespace ACESim
             Console.WriteLine($"Total equilibria: {numPrinted}");
         }
 
-        private void GetUtilitiesForStrategyCombinations(List<(InformationSetNodeTally, int)> player0InformationSets,
-            List<(InformationSetNodeTally, int)> player1InformationSets, out int player0Permutations,
+        private void GetUtilitiesForStrategyCombinations(List<(InformationSetNode, int)> player0InformationSets,
+            List<(InformationSetNode, int)> player1InformationSets, out int player0Permutations,
             out int player1Permutations, out double[,] player0Utilities, out double[,] player1Utilities)
         {
             long p0P = player0InformationSets.Aggregate(1L, (acc, val) => acc * (long) val.Item2);
@@ -235,7 +235,7 @@ namespace ACESim
             return nashEquilibria;
         }
 
-        private void SetPureStrategyBasedOnIndex(List<(InformationSetNodeTally tally, int numPossible)> tallies,
+        private void SetPureStrategyBasedOnIndex(List<(InformationSetNode tally, int numPossible)> tallies,
             int strategyIndex, int totalStrategyPermutations)
         {
             int cumulative = 1;

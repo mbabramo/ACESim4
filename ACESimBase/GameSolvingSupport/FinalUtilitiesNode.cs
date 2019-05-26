@@ -8,13 +8,13 @@ using System.Threading.Tasks;
 namespace ACESim
 {
     [Serializable]
-    public class FinalUtilities : IGameState
+    public class FinalUtilitiesNode : IGameState
     {
         public double[] Utilities;
         public static int FinalUtilitiesNodesSoFar = 0;
         public int FinalUtilitiesNodeNumber;
 
-        public FinalUtilities(double[] utilities)
+        public FinalUtilitiesNode(double[] utilities)
         {
             Utilities = utilities;
             FinalUtilitiesNodeNumber = FinalUtilitiesNodesSoFar;

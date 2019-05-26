@@ -87,7 +87,7 @@ namespace ACESim
             }
             else
             { // not a chance node or a leaf node
-                InformationSetNodeTally nodeTally = (InformationSetNodeTally)gameStateForCurrentPlayer;
+                InformationSetNode nodeTally = (InformationSetNode)gameStateForCurrentPlayer;
                 if (alwaysDoAction != null)
                     SetProbabilitiesToAlwaysDoParticularAction(numPossibleActions, probabilities, (byte)alwaysDoAction);
                 else

@@ -25,7 +25,7 @@ namespace ACESim
             switch (gameStateType)
             {
                 case GameStateTypeEnum.FinalUtilities:
-                    FinalUtilities finalUtilities = (FinalUtilities) gameStateForCurrentPlayer;
+                    FinalUtilitiesNode finalUtilities = (FinalUtilitiesNode) gameStateForCurrentPlayer;
                     var utility = finalUtilities.Utilities[playerBeingOptimized];
                     if (TraceCFR)
                         TabbedText.WriteLine($"Utility returned {utility}");
@@ -49,7 +49,7 @@ namespace ACESim
                     }
                     return walkTreeValue;
                 case GameStateTypeEnum.InformationSet:
-                    InformationSetNodeTally informationSet = (InformationSetNodeTally) gameStateForCurrentPlayer;
+                    InformationSetNode informationSet = (InformationSetNode) gameStateForCurrentPlayer;
                     numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
                     double* sigma_regretMatchedActionProbabilities = stackalloc double[numPossibleActions];
                     // the following use of epsilon-on-policy for early iterations of opponent's strategy is a deviation from Gibson.

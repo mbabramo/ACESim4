@@ -22,7 +22,7 @@ namespace ACESim
             GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
             if (gameStateType == GameStateTypeEnum.FinalUtilities)
             {
-                FinalUtilities finalUtilities = (FinalUtilities) gameStateForCurrentPlayer;
+                FinalUtilitiesNode finalUtilities = (FinalUtilitiesNode) gameStateForCurrentPlayer;
                 return finalUtilities.Utilities[playerBeingOptimized];
             }
             else if (gameStateType == GameStateTypeEnum.Chance)
@@ -59,7 +59,7 @@ namespace ACESim
             //var historyPointString = historyPoint.ToString();
 
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
-            var informationSet = (InformationSetNodeTally) gameStateForCurrentPlayer;
+            var informationSet = (InformationSetNode) gameStateForCurrentPlayer;
             byte decisionNum = informationSet.DecisionIndex;
             byte playerMakingDecision = informationSet.PlayerIndex;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);

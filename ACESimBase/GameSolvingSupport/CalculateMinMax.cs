@@ -17,12 +17,12 @@ namespace ACESim
             NumNonChancePlayers = numNonChancePlayers;
         }
 
-        public void FinalUtilities_ReceiveFromPredecessor(FinalUtilities finalUtilities, bool fromPredecessor)
+        public void FinalUtilities_ReceiveFromPredecessor(FinalUtilitiesNode finalUtilities, bool fromPredecessor)
         {
             // ignore
         }
 
-        public double[] FinalUtilities_SendToPredecessor(FinalUtilities finalUtilities)
+        public double[] FinalUtilities_SendToPredecessor(FinalUtilitiesNode finalUtilities)
         {
             return finalUtilities.Utilities;
         }
@@ -59,7 +59,7 @@ namespace ACESim
             return ChanceNodePassback[chanceNode.ChanceNodeNumber];
         }
 
-        public void InformationSet_ReceiveFromPredecessor(InformationSetNodeTally informationSet, bool fromPredecessor)
+        public void InformationSet_ReceiveFromPredecessor(InformationSetNode informationSet, bool fromPredecessor)
         {
             if (Min)
             {
@@ -75,12 +75,12 @@ namespace ACESim
             }
         }
 
-        public bool InformationSet_SendToSuccessors(InformationSetNodeTally informationSet)
+        public bool InformationSet_SendToSuccessors(InformationSetNode informationSet)
         {
             return true; // ignored
         }
 
-        public void InformationSet_ReceiveFromSuccessors(InformationSetNodeTally informationSet, IEnumerable<double[]> fromSuccessors)
+        public void InformationSet_ReceiveFromSuccessors(InformationSetNode informationSet, IEnumerable<double[]> fromSuccessors)
         {
             if (Min)
             {
@@ -94,7 +94,7 @@ namespace ACESim
             }
         }
 
-        public double[] InformationSet_SendToPredecessor(InformationSetNodeTally informationSet)
+        public double[] InformationSet_SendToPredecessor(InformationSetNode informationSet)
         {
             return Max ? informationSet.MaxPossible : informationSet.MinPossible;
         }

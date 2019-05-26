@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 namespace ACESim
 {
     [Serializable]
-    public class InformationSetNodeTally : IGameState
+    public class InformationSetNode : IGameState
     {
         #region Properties, members, and constants
 
@@ -87,12 +87,12 @@ namespace ACESim
 
         #region Construction and initialization
 
-        public InformationSetNodeTally()
+        public InformationSetNode()
         {
 
         }
 
-        public InformationSetNodeTally(Decision decision, byte decisionIndex, EvolutionSettings evolutionSettings)
+        public InformationSetNode(Decision decision, byte decisionIndex, EvolutionSettings evolutionSettings)
         {
             Decision = decision;
             DecisionIndex = decisionIndex;

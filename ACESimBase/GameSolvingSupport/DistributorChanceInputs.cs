@@ -13,7 +13,5 @@ namespace ACESimBase.GameSolvingSupport
         {
 
         }
-
-        public void 
     }
 }

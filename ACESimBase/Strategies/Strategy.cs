@@ -181,13 +181,13 @@ namespace ACESim
 
         #region Strategy info
 
-        public List<(InformationSetNodeTally, int)> GetTallyNodes(GameDefinition gameDefinition)
+        public List<(InformationSetNode, int)> GetTallyNodes(GameDefinition gameDefinition)
         {
-            List<(InformationSetNodeTally, int)> informationSets = new List<(InformationSetNodeTally, int)>();
+            List<(InformationSetNode, int)> informationSets = new List<(InformationSetNode, int)>();
             InformationSetTree.WalkTree((NWayTreeStorage<IGameState> tree) =>
              {
                  IGameState gameState = tree.StoredValue;
-                 if (gameState != null && gameState is InformationSetNodeTally tally)
+                 if (gameState != null && gameState is InformationSetNode tally)
                      informationSets.Add((tally, gameDefinition.DecisionsExecutionOrder[tally.DecisionIndex].NumPossibleActions));
              });
              return informationSets;
@@ -218,7 +218,7 @@ namespace ACESim
             List<(IGameState storedValue, List<byte> sequenceToHere)> nodes = InformationSetTree.GetAllTreeNodes();
             foreach (var node in nodes)
             {
-                if (node.storedValue is InformationSetNodeTally tallyNode)
+                if (node.storedValue is InformationSetNode tallyNode)
                 {
                     byte* sequencePointer = stackalloc byte[node.sequenceToHere.Count() + 1];
                     for (int i = 0; i < node.sequenceToHere.Count(); i++)

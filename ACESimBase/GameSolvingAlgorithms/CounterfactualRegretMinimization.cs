@@ -40,11 +40,11 @@ namespace ACESim
 
         public EvolutionSettings EvolutionSettings { get; set; }
 
-        public List<InformationSetNodeTally> InformationSets { get; set; }
+        public List<InformationSetNode> InformationSets { get; set; }
 
         public List<ChanceNode> ChanceNodes { get; set; }
 
-        public List<FinalUtilities> FinalUtilitiesNodes { get; set; }
+        public List<FinalUtilitiesNode> FinalUtilitiesNodes { get; set; }
 
         public GameDefinition GameDefinition { get; set; }
 
@@ -124,7 +124,7 @@ namespace ACESim
                 {
                     s.InformationSetTree?.WalkTree(node =>
                     {
-                        InformationSetNodeTally t = (InformationSetNodeTally)node.StoredValue;
+                        InformationSetNode t = (InformationSetNode)node.StoredValue;
                         t?.Reinitialize();
                     });
                 }
@@ -174,9 +174,9 @@ namespace ACESim
         {
             if (StoreGameStateNodesInLists)
             {
-                InformationSets = new List<InformationSetNodeTally>();
+                InformationSets = new List<InformationSetNode>();
                 ChanceNodes = new List<ChanceNode>();
-                FinalUtilitiesNodes = new List<FinalUtilities>();
+                FinalUtilitiesNodes = new List<FinalUtilitiesNode>();
             }
             Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, InformationSets, ChanceNodes, FinalUtilitiesNodes, GetGameState, EvolutionSettings);
             foreach (Strategy strategy in Strategies)
@@ -303,7 +303,7 @@ namespace ACESim
                     {
                         s.InformationSetTree.WalkTree(node =>
                         {
-                            InformationSetNodeTally t = (InformationSetNodeTally)node.StoredValue;
+                            InformationSetNode t = (InformationSetNode)node.StoredValue;
                             if (t != null &&
                                 EvolutionSettings.RestrictToTheseInformationSets.Contains(t.InformationSetNumber))
                             {
@@ -340,7 +340,7 @@ namespace ACESim
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             //if (TraceCFR)
             //    TabbedText.WriteLine($"Probe optimizing player {playerBeingOptimized}");
-            if (gameStateForCurrentPlayer is FinalUtilities finalUtilities)
+            if (gameStateForCurrentPlayer is FinalUtilitiesNode finalUtilities)
             {
                 TabbedText.WriteLine($"--> {String.Join(",", finalUtilities.Utilities.Select(x => $"{x:N2}"))}");
                 return finalUtilities.Utilities;
@@ -367,7 +367,7 @@ namespace ACESim
                     TabbedText.WriteLine($"--> {String.Join(",", cumUtilities.Select(x => $"{x:N2}"))}");
                     return cumUtilities;
                 }
-                else if (gameStateForCurrentPlayer is InformationSetNodeTally informationSet)
+                else if (gameStateForCurrentPlayer is InformationSetNode informationSet)
                 {
                     byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
                     double[] cumUtilities = null;
@@ -533,14 +533,14 @@ namespace ACESim
         }
 
 
-        public void WalkAllInformationSetTrees(Action<InformationSetNodeTally> action)
+        public void WalkAllInformationSetTrees(Action<InformationSetNode> action)
         {
             for (int p = 0; p < NumNonChancePlayers; p++)
             {
                 var playerRegrets = Strategies[p].InformationSetTree;
                 playerRegrets.WalkTree(node =>
                 {
-                    InformationSetNodeTally tally = (InformationSetNodeTally)node.StoredValue;
+                    InformationSetNode tally = (InformationSetNode)node.StoredValue;
                     if (tally != null)
                         action(tally);
                 });
@@ -770,7 +770,7 @@ namespace ACESim
         public unsafe void GetAverageUtilities_Helper(ref HistoryPoint historyPoint, double[] cumulated, double prob)
         {
             IGameState gameState = historyPoint.GetGameStateForCurrentPlayer(Navigation);
-            if (gameState is FinalUtilities finalUtilities)
+            if (gameState is FinalUtilitiesNode finalUtilities)
             {
                 for (byte p = 0; p < NumNonChancePlayers; p++)
                     cumulated[p] += finalUtilities.Utilities[p] * prob;
@@ -788,7 +788,7 @@ namespace ACESim
                     }
                 }
             }
-            else if (gameState is InformationSetNodeTally informationSet)
+            else if (gameState is InformationSetNode informationSet)
             {
                 byte numPossibilities = GameDefinition.DecisionsExecutionOrder[informationSet.DecisionIndex].NumPossibleActions;
                 double* actionProbabilities = stackalloc double[numPossibilities];
@@ -1123,7 +1123,7 @@ namespace ACESim
         private unsafe bool DistributeChanceDecisions_DecisionNode(ref HistoryPoint historyPoint, double piChance, int distributorChanceInputs, string distributedActionsString, Dictionary<string, ChanceNodeUnequalProbabilities> chanceNodeAggregatingSkipped)
         {
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
-            var informationSet = (InformationSetNodeTally)gameStateForCurrentPlayer;
+            var informationSet = (InformationSetNode)gameStateForCurrentPlayer;
             byte decisionNum = informationSet.DecisionIndex;
             byte numPossibleActions = (byte)informationSet.NumPossibleActions;
             for (byte action = 1; action <= numPossibleActions; action++)
@@ -1375,7 +1375,7 @@ namespace ACESim
             GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
             if (gameStateType == GameStateTypeEnum.FinalUtilities)
             {
-                FinalUtilities finalUtilities = (FinalUtilities)gameStateForCurrentPlayer;
+                FinalUtilitiesNode finalUtilities = (FinalUtilitiesNode)gameStateForCurrentPlayer;
                 codeGenerationBuilder.Append($"f[{finalUtilities.FinalUtilitiesNodeNumber}].Utilities[{player}]");
             }
             else if (gameStateType == GameStateTypeEnum.Chance)
@@ -1418,7 +1418,7 @@ namespace ACESim
         public void CorrelatedEquilibriumCalculation_DecisionNode(StringBuilder codeGenerationBuilder, ref HistoryPoint historyPoint, byte player, ActionStrategies actionStrategy, int distributorChanceInputs)
         {
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
-            InformationSetNodeTally nodeTally = (InformationSetNodeTally)gameStateForCurrentPlayer;
+            InformationSetNode nodeTally = (InformationSetNode)gameStateForCurrentPlayer;
             byte numPossibleActions = NumPossibleActionsAtDecision(nodeTally.DecisionIndex);
             byte numPossibleActionsToExplore = numPossibleActions;
             byte playerAtNode = nodeTally.PlayerIndex; // note that player is the player whose utility we are seeking
@@ -1493,9 +1493,9 @@ namespace ACESim
             {
                 case ChanceNode c:
                     return TreeWalk_ChanceNode(processor, c, forward, distributorChanceInputs, ref historyPoint);
-                case InformationSetNodeTally n:
+                case InformationSetNode n:
                     return TreeWalk_DecisionNode(processor, n, forward, distributorChanceInputs, ref historyPoint);
-                case FinalUtilities f:
+                case FinalUtilitiesNode f:
                     processor.FinalUtilities_ReceiveFromPredecessor(f, forward);
                     return processor.FinalUtilities_SendToPredecessor(f);
                 default:
@@ -1525,7 +1525,7 @@ namespace ACESim
             return processor.ChanceNode_SendToPredecessor(chanceNode);
         }
 
-        public Back TreeWalk_DecisionNode<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, InformationSetNodeTally nodeTally, Forward forward, int distributorChanceInputs, ref HistoryPoint historyPoint)
+        public Back TreeWalk_DecisionNode<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, InformationSetNode nodeTally, Forward forward, int distributorChanceInputs, ref HistoryPoint historyPoint)
         {
             processor.InformationSet_ReceiveFromPredecessor(nodeTally, forward);
             Forward nextForward = processor.InformationSet_SendToSuccessors(nodeTally);
