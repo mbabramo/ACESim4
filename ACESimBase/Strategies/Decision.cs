@@ -72,19 +72,19 @@ namespace ACESim
         public bool UnevenChanceActions;
 
         /// <summary>
-        /// If this is a chance decision and this is true, then in optimization and best response calculation, we do not need to sample every value of this decision in walking through the tree. This is because the values are relevant only insofar as they affect the values of later chance decisions. Instead we just use a dummy value for this decision, and then we arrive at a distributor chance decisions, the unequal chance probabilities will be based on a distribution of what these decisions are, given the nondistributed decisions.
+        /// If this is a chance decision and this is true, then in optimization and best response calculation, we do not need to sample every value of this decision in walking through the tree. This is because the values are relevant only insofar as they affect the values of later chance decisions. Instead we just use a dummy value for this decision, and then we arrive at a distributor chance decisions, the unequal chance probabilities will be based on a distribution of what these decisions are, given the nondistributed decisions that affect the chance decision. A decision can be a distributed decision only if it is hidden to all non-chance players and its effects on the distributor chance decisions can be captured by the distribution of the nondistributed decisions.
         /// </summary>
-        public bool DistributedDecision;
-
-        /// <summary>
-        /// True if this is a decision whose values must be sampled individually; that is, the value of these variables is relevant to later player decisions.
-        /// </summary>
-        public bool NondistributedDecision; 
+        public bool DistributedChanceDecision;
 
         /// <summary>
         /// True if this is a chance decision with uneven chance probabilities where those probabilities can be based on the distribution of earlier DistributedDecision for each permutation of the NondistributedDecisions.
         /// </summary>
         public bool DistributorChanceDecision;
+
+        /// <summary>
+        /// True if this is a decision that is not a distributed chance decision but that is relevant to the correct calculation of chance probabilities in a later DistributorChanceDecision. That is, the DistributedChanceDecision would ordinarily be part of the information set for the DistributorChanceDecision, but because the distributed decision is distributed, we combine all the permutations of the NondistributedDecision into a single information set. This can be a chance decision that provides information to one of the parties, or it could be a player decision that affects later chance probabilities. 
+        /// </summary>
+        public bool NondistributedDecision; 
 
         /// <summary>
         /// When passing forward nondistributed decision values, we combine them into a single value. The game definition sets a multiplier for each nondistributed decision to enable calculate of the nondistributed decision value. 

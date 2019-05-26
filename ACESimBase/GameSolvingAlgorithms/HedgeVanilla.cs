@@ -490,7 +490,7 @@ namespace ACESim
             ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings)gameStateForCurrentPlayer;
             byte numPossibleActions = chanceNodeSettings.Decision.NumPossibleActions;
             byte numPossibleActionsToExplore = numPossibleActions;
-            if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedDecision)
+            if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedChanceDecision)
                 numPossibleActionsToExplore = 1;
             var historyPointCopy = historyPoint; // can't use historyPoint in anonymous method below. This is costly, so it might be worth optimizing if we use HedgeVanillaCFR much.
             int[] probabilityAdjustedInnerResult = Unroll_Commands.NewUninitializedArray(3); // must allocate this outside the parallel loop, because if we have commands writing to an array created in the parallel loop, the array indices will change
@@ -529,7 +529,7 @@ namespace ACESim
             int nondistributedActionsNext = nondistributedActions;
             if (chanceNodeSettings.Decision.NondistributedDecision)
                 nondistributedActionsNext += action * chanceNodeSettings.Decision.NondistributedDecisionMultiplier;
-            if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedDecision)
+            if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedChanceDecision)
                 actionProbability = Unroll_Commands.CopyToNew(Unroll_OneIndex, true);
             int[] nextPiValues = Unroll_Commands.NewUninitializedArray(NumNonChancePlayers);
             Unroll_GetNextPiValues(piValues, playerBeingOptimized, actionProbability, true, nextPiValues);
@@ -850,7 +850,7 @@ namespace ACESim
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
             var historyPointCopy = historyPoint; // can't use historyPoint in anonymous method below. This is costly, so it might be worth optimizing if we use HedgeVanillaCFR much.
             byte numPossibleActionsToExplore = numPossibleActions;
-            if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedDecision)
+            if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedChanceDecision)
                 numPossibleActionsToExplore = 1;
             Parallelizer.GoByte(EvolutionSettings.ParallelOptimization, EvolutionSettings.MaxParallelDepth, 1,
                 (byte)(numPossibleActionsToExplore + 1),
@@ -872,7 +872,7 @@ namespace ACESim
             int nondistributedActionsNext = nondistributedActions;
             if (chanceNodeSettings.Decision.NondistributedDecision)
                 nondistributedActionsNext += action * chanceNodeSettings.Decision.NondistributedDecisionMultiplier;
-            if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedDecision)
+            if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedChanceDecision)
                 actionProbability = 1.0;
             GetNextPiValues(piValues, playerBeingOptimized, actionProbability, true,
                 nextPiValues);

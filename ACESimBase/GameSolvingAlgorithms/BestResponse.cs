@@ -57,7 +57,7 @@ namespace ACESim
                 if (gameStateForCurrentPlayer is ChanceNodeSettings chanceNodeSettings)
                 {
                     numPossibleActionsToExplore = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
-                    if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedDecision)
+                    if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedChanceDecision)
                         numPossibleActionsToExplore = 1;
                     decision = chanceNodeSettings.Decision;
                     decisionIndex = chanceNodeSettings.DecisionIndex;
@@ -248,7 +248,7 @@ namespace ACESim
             ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings) gameStateForCurrentPlayer;
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
             byte numPossibleActionsToExplore = numPossibleActions;
-            if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedDecision)
+            if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedChanceDecision)
                 numPossibleActionsToExplore = 1;
             if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNodeSettings.DecisionIndex))
             {
@@ -267,7 +267,7 @@ namespace ACESim
                 int nondistributedActionsNext = nondistributedActions;
                 if (chanceNodeSettings.Decision.NondistributedDecision)
                     nondistributedActionsNext += action * chanceNodeSettings.Decision.NondistributedDecisionMultiplier;
-                if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedDecision)
+                if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedChanceDecision)
                     probability = 1.0;
                 double valueBelow;
                 if (historyPoint.BranchingIsReversible(Navigation, chanceNodeSettings.Decision))

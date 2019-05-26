@@ -1189,7 +1189,7 @@ namespace ACESim
                 if (chanceNodeSettings.Decision.Name.Contains("Signal") || chanceNodeSettings.Decision.Name.Contains("LitigationQuality") || chanceNodeSettings.Decision.Name.Contains("PrePrimary"))
                     Debug.WriteLine($"{chanceNodeSettings.Decision.Name}: action: {action} probability: {actionProbability} cumulative probability {piChanceNext}");
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
-                bool stopNonChanceDecisions = DistributeChanceDecisions_WalkNode(ref nextHistoryPoint, piChanceNext, nondistributedActionsNext, chanceNodeSettings.Decision.DistributedDecision ? distributedActionsString + chanceNodeSettings.DecisionByteCode + ":1;" : distributedActionsString, chanceNodeAggregatingSkipped);
+                bool stopNonChanceDecisions = DistributeChanceDecisions_WalkNode(ref nextHistoryPoint, piChanceNext, nondistributedActionsNext, chanceNodeSettings.Decision.DistributedChanceDecision ? distributedActionsString + chanceNodeSettings.DecisionByteCode + ":1;" : distributedActionsString, chanceNodeAggregatingSkipped);
                 if (stopNonChanceDecisions && chanceNodeSettings.Decision.NumPossibleActions == 1)
                     return true; // this is just a dummy chance decision, so we need to backtrack to a real chance decision
             };
@@ -1392,14 +1392,14 @@ namespace ACESim
             ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings)gameStateForCurrentPlayer;
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
             byte numPossibleActionsToExplore = numPossibleActions;
-            if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedDecision)
+            if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedChanceDecision)
                 numPossibleActionsToExplore = 1;
             for (byte action = 1; action <= numPossibleActionsToExplore; action++)
             {
                 int nondistributedActionsNext = nondistributedActions;
                 if (chanceNodeSettings.Decision.NondistributedDecision)
                     nondistributedActionsNext += action * chanceNodeSettings.Decision.NondistributedDecisionMultiplier;
-                bool isDistributed = (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedDecision);
+                bool isDistributed = (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedChanceDecision);
                 // if it is distributed, action probability is 1
                 if (!isDistributed)
                 {
@@ -1509,14 +1509,14 @@ namespace ACESim
             Forward nextForward = processor.ChanceNode_SendToSuccessors(chanceNodeSettings);
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
             byte numPossibleActionsToExplore = numPossibleActions;
-            if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedDecision) numPossibleActionsToExplore = 1;
+            if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedChanceDecision) numPossibleActionsToExplore = 1;
             List<Back> fromSuccessors = new List<Back>();
             for (byte action = 1; action <= numPossibleActionsToExplore; action++)
             {
                 int nondistributedActionsNext = nondistributedActions;
                 if (chanceNodeSettings.Decision.NondistributedDecision)
                     nondistributedActionsNext += action * chanceNodeSettings.Decision.NondistributedDecisionMultiplier;
-                bool isDistributed = (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedDecision);
+                bool isDistributed = (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedChanceDecision);
 
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
                 var fromSuccessor = TreeWalk_Node(processor, nextForward, nondistributedActionsNext, ref nextHistoryPoint);
