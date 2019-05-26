@@ -86,7 +86,7 @@ namespace ACESim
         }
 
         public double GEBRPass2(ref HistoryPoint historyPoint, byte playerIndex, byte depthToTarget, byte depthSoFar,
-            double inversePi, ActionStrategies opponentsActionStrategy, int nondistributedActions)
+            double inversePi, ActionStrategies opponentsActionStrategy, int distributorChanceInputs)
         {
             if (historyPoint.IsComplete(Navigation))
                 return GetUtilityFromTerminalHistory(ref historyPoint, playerIndex);
@@ -95,14 +95,14 @@ namespace ACESim
                 IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
                 if (gameStateForCurrentPlayer is ChanceNodeSettings)
                     return GEBRPass2_ChanceNode(ref historyPoint, playerIndex, depthToTarget, depthSoFar, inversePi,
-                        opponentsActionStrategy, nondistributedActions);
+                        opponentsActionStrategy, distributorChanceInputs);
             }
             return GEBRPass2_DecisionNode(ref historyPoint, playerIndex, depthToTarget, depthSoFar, inversePi,
-                opponentsActionStrategy, nondistributedActions);
+                opponentsActionStrategy, distributorChanceInputs);
         }
 
         private unsafe double GEBRPass2_DecisionNode(ref HistoryPoint historyPoint, byte playerIndex, byte depthToTarget,
-            byte depthSoFar, double inversePi, ActionStrategies opponentsActionStrategy, int nondistributedActions)
+            byte depthSoFar, double inversePi, ActionStrategies opponentsActionStrategy, int distributorChanceInputs)
         {
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             var informationSet = (InformationSetNodeTally) gameStateForCurrentPlayer;
@@ -131,20 +131,20 @@ namespace ACESim
                 if (action == 0)
                     return 0; // This may happen if using regret matching for opponent's strategy after evolving it with hedge. It would be a problem if using VanillaHedging.
 
-                int nondistributedActionsNext = nondistributedActions;
-                if (informationSet.Decision.NondistributedDecision)
-                    nondistributedActionsNext += action * informationSet.Decision.NondistributedDecisionMultiplier;
+                int distributorChanceInputsNext = distributorChanceInputs;
+                if (informationSet.Decision.DistributorChanceInputDecision)
+                    distributorChanceInputsNext += action * informationSet.Decision.DistributorChanceInputDecisionMultiplier;
                 double expectedValue;
                 if (historyPoint.BranchingIsReversible(Navigation, informationSet.Decision))
                 {
                     historyPoint.SwitchToBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                     expectedValue = GEBRPass2(ref historyPoint, playerIndex, depthToTarget,
-                        (byte)(depthSoFar + 1), inversePi, opponentsActionStrategy, nondistributedActionsNext);
+                        (byte)(depthSoFar + 1), inversePi, opponentsActionStrategy, distributorChanceInputsNext);
                     GameDefinition.ReverseDecision(informationSet.Decision, ref historyPoint, gameStateForCurrentPlayer);
                 }
                 else
                 {
-                    expectedValue = GEBRPass2_RecurseNotReversible(ref historyPoint, playerIndex, depthToTarget, depthSoFar, opponentsActionStrategy, informationSet.Decision, informationSet.DecisionIndex, action, inversePi, nondistributedActionsNext);
+                    expectedValue = GEBRPass2_RecurseNotReversible(ref historyPoint, playerIndex, depthToTarget, depthSoFar, opponentsActionStrategy, informationSet.Decision, informationSet.DecisionIndex, action, inversePi, distributorChanceInputsNext);
                 }
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionIndex))
                 {
@@ -188,9 +188,9 @@ namespace ACESim
                 double expectedValueSum = 0;
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
-                    int nondistributedActionsNext = nondistributedActions;
-                    if (informationSet.Decision.NondistributedDecision)
-                        nondistributedActionsNext += action * informationSet.Decision.NondistributedDecisionMultiplier;
+                    int distributorChanceInputsNext = distributorChanceInputs;
+                    if (informationSet.Decision.DistributorChanceInputDecision)
+                        distributorChanceInputsNext += action * informationSet.Decision.DistributorChanceInputDecisionMultiplier;
                     double nextInversePi = inversePi;
                     if (playerMakingDecision != playerIndex)
                         nextInversePi *= actionProbabilities[action - 1];
@@ -204,11 +204,11 @@ namespace ACESim
                     {
                         historyPoint.SwitchToBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                         expectedValue = GEBRPass2(ref historyPoint, playerIndex,
-                            depthToTarget, (byte)(depthSoFar + 1), nextInversePi, opponentsActionStrategy, nondistributedActionsNext);
+                            depthToTarget, (byte)(depthSoFar + 1), nextInversePi, opponentsActionStrategy, distributorChanceInputsNext);
                         GameDefinition.ReverseDecision(informationSet.Decision, ref historyPoint, gameStateForCurrentPlayer);
                     }
                     else
-                        expectedValue = GEBRPass2_RecurseNotReversible(ref historyPoint, playerIndex, depthToTarget, depthSoFar, opponentsActionStrategy, informationSet.Decision, informationSet.DecisionIndex, action, nextInversePi, nondistributedActionsNext);
+                        expectedValue = GEBRPass2_RecurseNotReversible(ref historyPoint, playerIndex, depthToTarget, depthSoFar, opponentsActionStrategy, informationSet.Decision, informationSet.DecisionIndex, action, nextInversePi, distributorChanceInputsNext);
                     double product = actionProbabilities[action - 1] * expectedValue;
                     if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionIndex))
                     {
@@ -242,7 +242,7 @@ namespace ACESim
 
 
         private double GEBRPass2_ChanceNode(ref HistoryPoint historyPoint, byte playerIndex, byte depthToTarget,
-            byte depthSoFar, double inversePi, ActionStrategies opponentsActionStrategy, int nondistributedActions)
+            byte depthSoFar, double inversePi, ActionStrategies opponentsActionStrategy, int distributorChanceInputs)
         {
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings) gameStateForCurrentPlayer;
@@ -261,12 +261,12 @@ namespace ACESim
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNodeSettings.DecisionIndex))
                     TabbedText.WriteLine(
                         $"chance action {action} for decision {chanceNodeSettings.DecisionByteCode} {GameDefinition.DecisionsExecutionOrder[chanceNodeSettings.DecisionIndex].Name} ... ");
-                double probability = chanceNodeSettings.GetActionProbability(action, nondistributedActions);
+                double probability = chanceNodeSettings.GetActionProbability(action, distributorChanceInputs);
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNodeSettings.DecisionIndex))
                     TabbedText.Tabs++;
-                int nondistributedActionsNext = nondistributedActions;
-                if (chanceNodeSettings.Decision.NondistributedDecision)
-                    nondistributedActionsNext += action * chanceNodeSettings.Decision.NondistributedDecisionMultiplier;
+                int distributorChanceInputsNext = distributorChanceInputs;
+                if (chanceNodeSettings.Decision.DistributorChanceInputDecision)
+                    distributorChanceInputsNext += action * chanceNodeSettings.Decision.DistributorChanceInputDecisionMultiplier;
                 if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedChanceDecision)
                     probability = 1.0;
                 double valueBelow;
@@ -274,11 +274,11 @@ namespace ACESim
                 {
                     historyPoint.SwitchToBranch(Navigation, action, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
                     valueBelow = GEBRPass2(ref historyPoint, playerIndex, depthToTarget,
-                        (byte)(depthSoFar + 1), inversePi * probability, opponentsActionStrategy, nondistributedActionsNext);
+                        (byte)(depthSoFar + 1), inversePi * probability, opponentsActionStrategy, distributorChanceInputsNext);
                     GameDefinition.ReverseDecision(chanceNodeSettings.Decision, ref historyPoint, gameStateForCurrentPlayer);
                 }
                 else
-                    valueBelow = GEBRPass2_RecurseNotReversible(ref historyPoint, playerIndex, depthToTarget, depthSoFar, opponentsActionStrategy, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex, action, inversePi * probability, nondistributedActionsNext);
+                    valueBelow = GEBRPass2_RecurseNotReversible(ref historyPoint, playerIndex, depthToTarget, depthSoFar, opponentsActionStrategy, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex, action, inversePi * probability, distributorChanceInputsNext);
                 double expectedValue = probability * valueBelow;
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNodeSettings.DecisionIndex))
                 {
@@ -296,13 +296,13 @@ namespace ACESim
         }
 
 
-        private unsafe double GEBRPass2_RecurseNotReversible(ref HistoryPoint historyPoint, byte playerIndex, byte depthToTarget, byte depthSoFar, ActionStrategies opponentsActionStrategy, Decision decision, byte decisionIndex, byte action, double nextInversePi, int nondistributedActions)
+        private unsafe double GEBRPass2_RecurseNotReversible(ref HistoryPoint historyPoint, byte playerIndex, byte depthToTarget, byte depthSoFar, ActionStrategies opponentsActionStrategy, Decision decision, byte decisionIndex, byte action, double nextInversePi, int distributorChanceInputs)
         {
             double expectedValue;
             {
                 var nextHistoryPoint = historyPoint.GetBranch(Navigation, action, decision, decisionIndex);
                 expectedValue = GEBRPass2(ref nextHistoryPoint, playerIndex,
-                    depthToTarget, (byte)(depthSoFar + 1), nextInversePi, opponentsActionStrategy, nondistributedActions);
+                    depthToTarget, (byte)(depthSoFar + 1), nextInversePi, opponentsActionStrategy, distributorChanceInputs);
             }
 
             return expectedValue;

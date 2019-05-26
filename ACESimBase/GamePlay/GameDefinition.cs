@@ -356,12 +356,12 @@ namespace ACESim
             TabbedText.Tabs--;
         }
 
-        public virtual void CalculateNondistributedDecisionMultipliers()
+        public virtual void CalculateDistributorChanceInputDecisionMultipliers()
         {
             int multiplier = 1;
-            foreach (var decision in DecisionsExecutionOrder.Where(x => x.NondistributedDecision))
+            foreach (var decision in DecisionsExecutionOrder.Where(x => x.DistributorChanceInputDecision))
             {
-                decision.NondistributedDecisionMultiplier = multiplier;
+                decision.DistributorChanceInputDecisionMultiplier = multiplier;
                 multiplier *= (decision.NumPossibleActions + 1); // plus one since the actions are one-based (a zero would indicate a skipped decision).
             }
         }

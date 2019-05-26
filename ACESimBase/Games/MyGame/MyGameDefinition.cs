@@ -27,7 +27,7 @@ namespace ACESim
             PlayerNames = Players.Select(x => x.PlayerName).ToArray();
             NumPlayers = (byte) Players.Count();
             DecisionsExecutionOrder = GetDecisionsList();
-            CalculateNondistributedDecisionMultipliers();
+            CalculateDistributorChanceInputDecisionMultipliers();
 
             IGameFactory gameFactory = new MyGameFactory();
             Initialize(gameFactory);
@@ -190,7 +190,7 @@ namespace ACESim
                     IsReversible = true,
                     Unroll_Parallelize = true,
                     Unroll_Parallelize_Identical = true,
-                    NondistributedDecision = true,
+                    DistributorChanceInputDecision = true,
                 });
             if (Options.DNoiseStdev != 0)
                 decisions.Add(new Decision("DefendantSignal", "DS", (byte)MyGamePlayers.DSignalChance,
@@ -200,7 +200,7 @@ namespace ACESim
                     IsReversible = true,
                     Unroll_Parallelize = true,
                     Unroll_Parallelize_Identical = true,
-                    NondistributedDecision = true,
+                    DistributorChanceInputDecision = true,
                 });
             CreateSignalsTables();
         }

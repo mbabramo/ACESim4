@@ -77,19 +77,19 @@ namespace ACESim
         public bool DistributedChanceDecision;
 
         /// <summary>
-        /// True if this is a chance decision with uneven chance probabilities where those probabilities can be based on the distribution of earlier DistributedDecision for each permutation of the NondistributedDecisions.
+        /// True if this is a chance decision with uneven chance probabilities where those probabilities can be based on the distribution of earlier DistributedDecision for each permutation of the DistributorChanceInputDecisions.
         /// </summary>
         public bool DistributorChanceDecision;
 
         /// <summary>
-        /// True if this is a decision that is not a distributed chance decision but that is relevant to the correct calculation of chance probabilities in a later DistributorChanceDecision. That is, the DistributedChanceDecision would ordinarily be part of the information set for the DistributorChanceDecision, but because the distributed decision is distributed, we combine all the permutations of the NondistributedDecision into a single information set. This can be a chance decision that provides information to one of the parties, or it could be a player decision that affects later chance probabilities. 
+        /// True if this is a decision that is not a distributed chance decision but that is relevant to the correct calculation of chance probabilities in a later DistributorChanceDecision. That is, the DistributedChanceDecision would ordinarily be part of the information set for the DistributorChanceDecision, but because the distributed decision is distributed, we combine all the permutations of the DistributorChanceInputDecision into a single information set. This can be a chance decision that provides information to one of the parties, or it could be a player decision that affects later chance probabilities. 
         /// </summary>
-        public bool NondistributedDecision; 
+        public bool DistributorChanceInputDecision; 
 
         /// <summary>
         /// When passing forward nondistributed decision values, we combine them into a single value. The game definition sets a multiplier for each nondistributed decision to enable calculate of the nondistributed decision value. 
         /// </summary>
-        public int NondistributedDecisionMultiplier;
+        public int DistributorChanceInputDecisionMultiplier;
 
         /// <summary>
         /// Whether the decision is bipolar (i.e., there are only two possible actions).
