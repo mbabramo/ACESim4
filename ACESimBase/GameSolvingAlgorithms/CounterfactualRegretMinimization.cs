@@ -1163,7 +1163,7 @@ namespace ACESim
                     chanceNodeAggregatingSkipped[key] = unequal;
                 }
                 Debug.WriteLine($"Registering decision {decision.Name} with probability {piChance}: nondistributed actions {distributorChanceInputs} key {key} probabilities to distribute: {String.Join(",", probabilities)}");
-                correspondingNode.RegisterProbabilityFordistributorChanceInput(piChance, distributorChanceInputs, probabilities);
+                correspondingNode.RegisterProbabilityForDistributorChanceInput(piChance, distributorChanceInputs, probabilities);
                 if (decision.DistributorChanceDecision)
                 {
                     for (byte action = 1; action <= numPossibleActions; action++)

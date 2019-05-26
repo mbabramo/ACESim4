@@ -12,7 +12,7 @@ namespace ACESim
     {
         public double[] Probabilities;
         // The remaining settings are for distributed chance actions.
-        public Dictionary<int, double[]> ProbabilitiesFordistributorChanceInputs;
+        public Dictionary<int, double[]> ProbabilitiesForDistributorChanceInputs;
         bool DistributionComplete;
 
         /// <summary>
@@ -20,30 +20,30 @@ namespace ACESim
         /// </summary>
         /// <param name="piChance"></param>
         /// <param name="probabilityIncrements"></param>
-        public void RegisterProbabilityFordistributorChanceInput(double piChance, int distributorChanceInputs, double[] probabilityIncrements)
+        public void RegisterProbabilityForDistributorChanceInput(double piChance, int distributorChanceInputs, double[] probabilityIncrements)
         {
-            if (ProbabilitiesFordistributorChanceInputs == null)
-                ProbabilitiesFordistributorChanceInputs = new Dictionary<int, double[]>();
-            if (!ProbabilitiesFordistributorChanceInputs.ContainsKey(distributorChanceInputs))
-                ProbabilitiesFordistributorChanceInputs[distributorChanceInputs] = new double[Decision.NumPossibleActions];
-            double[] currentValues = ProbabilitiesFordistributorChanceInputs[distributorChanceInputs];
+            if (ProbabilitiesForDistributorChanceInputs == null)
+                ProbabilitiesForDistributorChanceInputs = new Dictionary<int, double[]>();
+            if (!ProbabilitiesForDistributorChanceInputs.ContainsKey(distributorChanceInputs))
+                ProbabilitiesForDistributorChanceInputs[distributorChanceInputs] = new double[Decision.NumPossibleActions];
+            double[] currentValues = ProbabilitiesForDistributorChanceInputs[distributorChanceInputs];
             for (int i = 0; i < currentValues.Length; i++)
                 currentValues[i] += probabilityIncrements[i] * piChance;
         }
 
         public void NormalizedistributorChanceInputProbabilities()
         {
-            if (ProbabilitiesFordistributorChanceInputs != null)
+            if (ProbabilitiesForDistributorChanceInputs != null)
             {
-                var keys = ProbabilitiesFordistributorChanceInputs.Keys.ToList();
+                var keys = ProbabilitiesForDistributorChanceInputs.Keys.ToList();
                 foreach (int distributorChanceInputs in keys)
                 {
-                    double[] unnormalized = ProbabilitiesFordistributorChanceInputs[distributorChanceInputs];
+                    double[] unnormalized = ProbabilitiesForDistributorChanceInputs[distributorChanceInputs];
                     double sum = unnormalized.Sum();
                     if (sum > 0)
                     {
                         double[] normalized = unnormalized.Select(x => x / sum).ToArray();
-                        ProbabilitiesFordistributorChanceInputs[distributorChanceInputs] = normalized;
+                        ProbabilitiesForDistributorChanceInputs[distributorChanceInputs] = normalized;
                     }
                 }
             }
@@ -60,8 +60,8 @@ namespace ACESim
 
         public override double GetActionProbability(int action, int distributorChanceInputs = -1)
         {
-            if (distributorChanceInputs != -1 && DistributionComplete && ProbabilitiesFordistributorChanceInputs != null)
-                return ProbabilitiesFordistributorChanceInputs[distributorChanceInputs][action - 1];
+            if (distributorChanceInputs != -1 && DistributionComplete && ProbabilitiesForDistributorChanceInputs != null)
+                return ProbabilitiesForDistributorChanceInputs[distributorChanceInputs][action - 1];
             return Probabilities[action - 1];
         }
 

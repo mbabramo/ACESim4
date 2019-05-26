@@ -199,10 +199,10 @@ namespace ACESim
                 int numItems = ChanceNodes[i].Decision.NumPossibleActions;
                 Unroll_ChanceNodesIndices[i] = index;
                 index += numItems;
-                if (ChanceNodes[i] is ChanceNodeUnequalProbabilities unequal && unequal.ProbabilitiesFordistributorChanceInputs != null)
+                if (ChanceNodes[i] is ChanceNodeUnequalProbabilities unequal && unequal.ProbabilitiesForDistributorChanceInputs != null)
                 {
                     // This node has information relevant to distributed chance actions. We thus need to remember where the indices are for the chance node 
-                    var keys = unequal.ProbabilitiesFordistributorChanceInputs.Keys.OrderBy(x => x).ToList();
+                    var keys = unequal.ProbabilitiesForDistributorChanceInputs.Keys.OrderBy(x => x).ToList();
                     foreach (int distributorChanceInputs in keys)
                     {
                         Unroll_ChanceNodesIndices_distributorChanceInputs[(i /* == ChanceNodes[i].ChanceNodeNumber */, distributorChanceInputs)] = index;
@@ -252,10 +252,10 @@ namespace ACESim
                     {
                         array[initialIndex++] = chanceNode.GetActionProbability(a);
                     }
-                    if (ChanceNodes[i] is ChanceNodeUnequalProbabilities unequal && unequal.ProbabilitiesFordistributorChanceInputs != null)
+                    if (ChanceNodes[i] is ChanceNodeUnequalProbabilities unequal && unequal.ProbabilitiesForDistributorChanceInputs != null)
                     {
                         // This node has information relevant to distributed chance actions. We thus need to remember where the indices are for the chance node 
-                        var keys = unequal.ProbabilitiesFordistributorChanceInputs.Keys.OrderBy(x => x).ToList();
+                        var keys = unequal.ProbabilitiesForDistributorChanceInputs.Keys.OrderBy(x => x).ToList();
                         foreach (int distributorChanceInputs in keys)
                         {
                             for (byte a = 1; a <= chanceNode.Decision.NumPossibleActions; a++)
