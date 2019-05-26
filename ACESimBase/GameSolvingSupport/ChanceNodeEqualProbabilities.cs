@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace ACESim
 {
     [Serializable]
-    public class ChanceNodeSettingsEqualProbabilities : ChanceNodeSettings
+    public class ChanceNodeEqualProbabilities : ChanceNode
     {
         public double EachProbability;
 

@@ -95,19 +95,19 @@ namespace ACESim
 
         private double[] ExploratoryProbe_ChanceNode(ref HistoryPoint historyPoint, IRandomProducer randomProducer, IGameState gameStateForCurrentPlayer)
         {
-            ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings) gameStateForCurrentPlayer;
-            byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
-            if (chanceNodeSettings.CriticalNode)
+            ChanceNode chanceNode = (ChanceNode) gameStateForCurrentPlayer;
+            byte numPossibleActions = NumPossibleActionsAtDecision(chanceNode.DecisionIndex);
+            if (chanceNode.CriticalNode)
             { // Must sample every action at this node.
-                if (historyPoint.BranchingIsReversible(Navigation, chanceNodeSettings.Decision))
+                if (historyPoint.BranchingIsReversible(Navigation, chanceNode.Decision))
                 {
                     double[] combined = new double[NumNonChancePlayers]; // TODO -- can we use an array pool? Or use a pointer?
                     for (byte a = 1; a <= numPossibleActions; a++)
                     {
-                        double probability = chanceNodeSettings.GetActionProbability(a);
+                        double probability = chanceNode.GetActionProbability(a);
                         IGameState gameStateOriginal = historyPoint.GameState; // TODO -- can we move this out of the for loop?
-                        double[] result = CompleteExploratoryProbe_InPlace(ref historyPoint, randomProducer, a, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
-                        GameDefinition.ReverseDecision(chanceNodeSettings.Decision, ref historyPoint, gameStateOriginal);
+                        double[] result = CompleteExploratoryProbe_InPlace(ref historyPoint, randomProducer, a, chanceNode.Decision, chanceNode.DecisionIndex);
+                        GameDefinition.ReverseDecision(chanceNode.Decision, ref historyPoint, gameStateOriginal);
                         for (byte p = 0; p < NumNonChancePlayers; p++)
                             combined[p] += probability * result[p];
                     }
@@ -118,8 +118,8 @@ namespace ACESim
                     double[] combined = new double[NumNonChancePlayers];  // TODO -- can we use an array pool?
                     for (byte a = 1; a <= numPossibleActions; a++)
                     {
-                        double probability = chanceNodeSettings.GetActionProbability(a);
-                        double[] result = CompleteExploratoryProbe(ref historyPoint, randomProducer, a, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
+                        double probability = chanceNode.GetActionProbability(a);
+                        double[] result = CompleteExploratoryProbe(ref historyPoint, randomProducer, a, chanceNode.Decision, chanceNode.DecisionIndex);
                         for (byte p = 0; p < NumNonChancePlayers; p++)
                             combined[p] += probability * result[p];
                     }
@@ -128,12 +128,12 @@ namespace ACESim
             }
             else
             { // Can sample just one path at this node.
-                byte sampledAction = chanceNodeSettings.SampleAction(numPossibleActions,
-                    randomProducer.GetDoubleAtIndex(chanceNodeSettings.DecisionIndex));
+                byte sampledAction = chanceNode.SampleAction(numPossibleActions,
+                    randomProducer.GetDoubleAtIndex(chanceNode.DecisionIndex));
                 if (TraceCFR)
                     TabbedText.WriteLine(
-                        $"{sampledAction}: Sampled chance action {sampledAction} of {numPossibleActions} with probability {chanceNodeSettings.GetActionProbability(sampledAction)}");
-                return CompleteExploratoryProbe_InPlace(ref historyPoint, randomProducer, sampledAction, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
+                        $"{sampledAction}: Sampled chance action {sampledAction} of {numPossibleActions} with probability {chanceNode.GetActionProbability(sampledAction)}");
+                return CompleteExploratoryProbe_InPlace(ref historyPoint, randomProducer, sampledAction, chanceNode.Decision, chanceNode.DecisionIndex);
             }
         }
 
@@ -181,8 +181,8 @@ namespace ACESim
                     TabbedText.WriteLine($"Utility returned {utility}");
                 return utility;
             }
-            else if (gameStateForCurrentPlayer is ChanceNodeSettings chanceNodeSettings)
-                return ExploratoryProbe_WalkTree_ChanceNode(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, isExploratoryIteration, chanceNodeSettings);
+            else if (gameStateForCurrentPlayer is ChanceNode chanceNode)
+                return ExploratoryProbe_WalkTree_ChanceNode(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, isExploratoryIteration, chanceNode);
             else if (gameStateForCurrentPlayer is InformationSetNodeTally informationSet)
             {
                 return ExploratoryProbe_WalkTree_DecisionNode(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, isExploratoryIteration, informationSet);
@@ -364,36 +364,36 @@ namespace ACESim
             return walkTreeValue;
         }
 
-        private double ExploratoryProbe_WalkTree_ChanceNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, bool isExploratoryIteration, ChanceNodeSettings chanceNodeSettings)
+        private double ExploratoryProbe_WalkTree_ChanceNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, bool isExploratoryIteration, ChanceNode chanceNode)
         {
             byte sampledAction;
-            byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
+            byte numPossibleActions = NumPossibleActionsAtDecision(chanceNode.DecisionIndex);
             if (numPossibleActions == 1)
                 sampledAction = 1;
             else
-                sampledAction = chanceNodeSettings.SampleAction(numPossibleActions, randomProducer.GetDoubleAtIndex(chanceNodeSettings.DecisionIndex));
+                sampledAction = chanceNode.SampleAction(numPossibleActions, randomProducer.GetDoubleAtIndex(chanceNode.DecisionIndex));
             // TODO: Take into account critical node status. Right now, our critical node matters only for our probes, i.e. for later decisions. But we might have an early chance node that should be critical.
-            if (historyPoint.BranchingIsReversible(Navigation, chanceNodeSettings.Decision))
+            if (historyPoint.BranchingIsReversible(Navigation, chanceNode.Decision))
             {
-                return ExploratoryProbe_WalkTree_ChanceNode_Reversible(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, isExploratoryIteration, chanceNodeSettings, sampledAction, numPossibleActions);
+                return ExploratoryProbe_WalkTree_ChanceNode_Reversible(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, isExploratoryIteration, chanceNode, sampledAction, numPossibleActions);
             }
             else
             {
-                return ExploratoryProbe_WalkTree_ChanceNode_NotReversible(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, isExploratoryIteration, chanceNodeSettings, sampledAction, numPossibleActions);
+                return ExploratoryProbe_WalkTree_ChanceNode_NotReversible(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, isExploratoryIteration, chanceNode, sampledAction, numPossibleActions);
             }
         }
 
-        private double ExploratoryProbe_WalkTree_ChanceNode_NotReversible(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, bool isExploratoryIteration, ChanceNodeSettings chanceNodeSettings, byte sampledAction, byte numPossibleActions)
+        private double ExploratoryProbe_WalkTree_ChanceNode_NotReversible(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, bool isExploratoryIteration, ChanceNode chanceNode, byte sampledAction, byte numPossibleActions)
         {
             if (TraceCFR)
                 TabbedText.WriteLine(
-                    $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} for chance decision {chanceNodeSettings.DecisionIndex}");
-            HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
+                    $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} for chance decision {chanceNode.DecisionIndex}");
+            HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction, chanceNode.Decision, chanceNode.DecisionIndex);
             if (TraceCFR)
                 TabbedText.Tabs++;
             // var actionsToHere = nextHistoryPoint.GetActionsToHereString(Navigation);
             double walkTreeValue = ExploratoryProbe_WalkTree(ref nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ,
-                randomProducer, isExploratoryIteration, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
+                randomProducer, isExploratoryIteration, chanceNode.Decision, chanceNode.DecisionIndex);
             if (TraceCFR)
             {
                 TabbedText.Tabs--;
@@ -402,19 +402,19 @@ namespace ACESim
             return walkTreeValue;
         }
 
-        private double ExploratoryProbe_WalkTree_ChanceNode_Reversible(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, bool isExploratoryIteration, ChanceNodeSettings chanceNodeSettings, byte sampledAction, byte numPossibleActions)
+        private double ExploratoryProbe_WalkTree_ChanceNode_Reversible(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, bool isExploratoryIteration, ChanceNode chanceNode, byte sampledAction, byte numPossibleActions)
         {
             if (TraceCFR)
                 TabbedText.WriteLine(
-                    $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} for chance decision {chanceNodeSettings.DecisionIndex}");
+                    $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} for chance decision {chanceNode.DecisionIndex}");
             IGameState gameStateOriginal = historyPoint.GameState;
-            historyPoint.SwitchToBranch(Navigation, sampledAction, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
+            historyPoint.SwitchToBranch(Navigation, sampledAction, chanceNode.Decision, chanceNode.DecisionIndex);
             if (TraceCFR)
                 TabbedText.Tabs++;
             // var actionsToHere = nextHistoryPoint.GetActionsToHereString(Navigation);
             double walkTreeValue = ExploratoryProbe_WalkTree(ref historyPoint, playerBeingOptimized, samplingProbabilityQ,
-                randomProducer, isExploratoryIteration, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
-            GameDefinition.ReverseDecision(chanceNodeSettings.Decision, ref historyPoint, gameStateOriginal);
+                randomProducer, isExploratoryIteration, chanceNode.Decision, chanceNode.DecisionIndex);
+            GameDefinition.ReverseDecision(chanceNode.Decision, ref historyPoint, gameStateOriginal);
             if (TraceCFR)
             {
                 TabbedText.Tabs--;

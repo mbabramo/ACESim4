@@ -199,7 +199,7 @@ namespace ACESim
                 int numItems = ChanceNodes[i].Decision.NumPossibleActions;
                 Unroll_ChanceNodesIndices[i] = index;
                 index += numItems;
-                if (ChanceNodes[i] is ChanceNodeSettingsUnequalProbabilities unequal && unequal.ProbabilitiesFordistributorChanceInputs != null)
+                if (ChanceNodes[i] is ChanceNodeUnequalProbabilities unequal && unequal.ProbabilitiesFordistributorChanceInputs != null)
                 {
                     // This node has information relevant to distributed chance actions. We thus need to remember where the indices are for the chance node 
                     var keys = unequal.ProbabilitiesFordistributorChanceInputs.Keys.OrderBy(x => x).ToList();
@@ -252,7 +252,7 @@ namespace ACESim
                     {
                         array[initialIndex++] = chanceNode.GetActionProbability(a);
                     }
-                    if (ChanceNodes[i] is ChanceNodeSettingsUnequalProbabilities unequal && unequal.ProbabilitiesFordistributorChanceInputs != null)
+                    if (ChanceNodes[i] is ChanceNodeUnequalProbabilities unequal && unequal.ProbabilitiesFordistributorChanceInputs != null)
                     {
                         // This node has information relevant to distributed chance actions. We thus need to remember where the indices are for the chance node 
                         var keys = unequal.ProbabilitiesFordistributorChanceInputs.Keys.OrderBy(x => x).ToList();
@@ -487,61 +487,61 @@ namespace ACESim
         {
             Unroll_Commands.IncrementDepth(false);
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
-            ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings)gameStateForCurrentPlayer;
-            byte numPossibleActions = chanceNodeSettings.Decision.NumPossibleActions;
+            ChanceNode chanceNode = (ChanceNode)gameStateForCurrentPlayer;
+            byte numPossibleActions = chanceNode.Decision.NumPossibleActions;
             byte numPossibleActionsToExplore = numPossibleActions;
-            if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedChanceDecision)
+            if (EvolutionSettings.DistributeChanceDecisions && chanceNode.Decision.DistributedChanceDecision)
                 numPossibleActionsToExplore = 1;
             var historyPointCopy = historyPoint; // can't use historyPoint in anonymous method below. This is costly, so it might be worth optimizing if we use HedgeVanillaCFR much.
             int[] probabilityAdjustedInnerResult = Unroll_Commands.NewUninitializedArray(3); // must allocate this outside the parallel loop, because if we have commands writing to an array created in the parallel loop, the array indices will change
-            if (chanceNodeSettings.Decision.Unroll_Parallelize)
-                Unroll_Commands.StartCommandChunk(true, null, chanceNodeSettings.Decision.Name);
+            if (chanceNode.Decision.Unroll_Parallelize)
+                Unroll_Commands.StartCommandChunk(true, null, chanceNode.Decision.Name);
             int? firstCommandToRepeat = null;
             for (byte action = 1; action <= numPossibleActionsToExplore; action++)
             {
-                if (chanceNodeSettings.Decision.Unroll_Parallelize)
+                if (chanceNode.Decision.Unroll_Parallelize)
                 {
-                    Unroll_Commands.StartCommandChunk(false /* inner commands are run sequentially */, firstCommandToRepeat, chanceNodeSettings.Decision.Name + "=" + action.ToString());
-                    if (action == 1 && chanceNodeSettings.Decision.Unroll_Parallelize_Identical)
+                    Unroll_Commands.StartCommandChunk(false /* inner commands are run sequentially */, firstCommandToRepeat, chanceNode.Decision.Name + "=" + action.ToString());
+                    if (action == 1 && chanceNode.Decision.Unroll_Parallelize_Identical)
                         firstCommandToRepeat = Unroll_Commands.NextCommandIndex;
                 }
                 var historyPointCopy2 = historyPointCopy; // Need to do this because we need a separate copy for each thread
                 Unroll_Commands.ZeroExisting(probabilityAdjustedInnerResult);
                 Unroll_HedgeVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, 
                     playerBeingOptimized, piValues, avgStratPiValues,
-                        chanceNodeSettings, action, probabilityAdjustedInnerResult, false, distributorChanceInputs);
+                        chanceNode, action, probabilityAdjustedInnerResult, false, distributorChanceInputs);
                 Unroll_Commands.IncrementArrayBy(resultArray, isUltimateResult, probabilityAdjustedInnerResult);
                 
-                if (chanceNodeSettings.Decision.Unroll_Parallelize)
+                if (chanceNode.Decision.Unroll_Parallelize)
                     Unroll_Commands.EndCommandChunk(isUltimateResult ? null : resultArray, action != 1);
             }
-            if (chanceNodeSettings.Decision.Unroll_Parallelize)
+            if (chanceNode.Decision.Unroll_Parallelize)
                 Unroll_Commands.EndCommandChunk();
 
             Unroll_Commands.DecrementDepth(false);
         }
 
-        private unsafe void Unroll_HedgeVanillaCFR_ChanceNode_NextAction(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, ChanceNodeSettings chanceNodeSettings, byte action, int[] resultArray, bool isUltimateResult, int distributorChanceInputs)
+        private unsafe void Unroll_HedgeVanillaCFR_ChanceNode_NextAction(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, ChanceNode chanceNode, byte action, int[] resultArray, bool isUltimateResult, int distributorChanceInputs)
         {
             Unroll_Commands.IncrementDepth(false);
-            int actionProbabilityIndex = Unroll_GetChanceNodeIndex_ProbabilityForAction(chanceNodeSettings.ChanceNodeNumber, distributorChanceInputs, action);
+            int actionProbabilityIndex = Unroll_GetChanceNodeIndex_ProbabilityForAction(chanceNode.ChanceNodeNumber, distributorChanceInputs, action);
             int actionProbability = Unroll_Commands.CopyToNew(actionProbabilityIndex, true);
             int distributorChanceInputsNext = distributorChanceInputs;
-            if (chanceNodeSettings.Decision.DistributorChanceInputDecision)
-                distributorChanceInputsNext += action * chanceNodeSettings.Decision.DistributorChanceInputDecisionMultiplier;
-            if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedChanceDecision)
+            if (chanceNode.Decision.DistributorChanceInputDecision)
+                distributorChanceInputsNext += action * chanceNode.Decision.DistributorChanceInputDecisionMultiplier;
+            if (EvolutionSettings.DistributeChanceDecisions && chanceNode.Decision.DistributedChanceDecision)
                 actionProbability = Unroll_Commands.CopyToNew(Unroll_OneIndex, true);
             int[] nextPiValues = Unroll_Commands.NewUninitializedArray(NumNonChancePlayers);
             Unroll_GetNextPiValues(piValues, playerBeingOptimized, actionProbability, true, nextPiValues);
             int[] nextAvgStratPiValues = Unroll_Commands.NewUninitializedArray(NumNonChancePlayers);
             Unroll_GetNextPiValues(avgStratPiValues, playerBeingOptimized, actionProbability, true, nextAvgStratPiValues);
-            HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
+            HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
 
             if (TraceCFR)
             {
                 int actionProbabilityCopy = Unroll_Commands.CopyToNew(actionProbability, false);
                 TabbedText.WriteLine(
-                    $"Chance code {chanceNodeSettings.DecisionByteCode} ({GameDefinition.DecisionsExecutionOrder.FirstOrDefault(x => x.DecisionByteCode == chanceNodeSettings.DecisionByteCode).Name}) action {action} probability ARRAY{actionProbabilityCopy} ...");
+                    $"Chance code {chanceNode.DecisionByteCode} ({GameDefinition.DecisionsExecutionOrder.FirstOrDefault(x => x.DecisionByteCode == chanceNode.DecisionByteCode).Name}) action {action} probability ARRAY{actionProbabilityCopy} ...");
                 TabbedText.Tabs++;
             }
             int[] innerResult = Unroll_Commands.NewZeroArray(3);
@@ -846,43 +846,43 @@ namespace ACESim
         {
             HedgeVanillaUtilities result = default;
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
-            ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings)gameStateForCurrentPlayer;
-            byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
+            ChanceNode chanceNode = (ChanceNode)gameStateForCurrentPlayer;
+            byte numPossibleActions = NumPossibleActionsAtDecision(chanceNode.DecisionIndex);
             var historyPointCopy = historyPoint; // can't use historyPoint in anonymous method below. This is costly, so it might be worth optimizing if we use HedgeVanillaCFR much.
             byte numPossibleActionsToExplore = numPossibleActions;
-            if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedChanceDecision)
+            if (EvolutionSettings.DistributeChanceDecisions && chanceNode.Decision.DistributedChanceDecision)
                 numPossibleActionsToExplore = 1;
             Parallelizer.GoByte(EvolutionSettings.ParallelOptimization, EvolutionSettings.MaxParallelDepth, 1,
                 (byte)(numPossibleActionsToExplore + 1),
                 action =>
                 {
                     var historyPointCopy2 = historyPointCopy; // Need to do this because we need a separate copy for each thread
-                    HedgeVanillaUtilities probabilityAdjustedInnerResult =  HedgeVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues, avgStratPiValues, chanceNodeSettings, action, distributorChanceInputs);
+                    HedgeVanillaUtilities probabilityAdjustedInnerResult =  HedgeVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues, avgStratPiValues, chanceNode, action, distributorChanceInputs);
                     result.IncrementBasedOnProbabilityAdjusted(ref probabilityAdjustedInnerResult);
                 });
 
             return result;
         }
 
-        private unsafe HedgeVanillaUtilities HedgeVanillaCFR_ChanceNode_NextAction(ref HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues, double* avgStratPiValues, ChanceNodeSettings chanceNodeSettings, byte action, int distributorChanceInputs)
+        private unsafe HedgeVanillaUtilities HedgeVanillaCFR_ChanceNode_NextAction(ref HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues, double* avgStratPiValues, ChanceNode chanceNode, byte action, int distributorChanceInputs)
         {
             double* nextPiValues = stackalloc double[MaxNumMainPlayers];
             double* nextAvgStratPiValues = stackalloc double[MaxNumMainPlayers];
-            double actionProbability = chanceNodeSettings.GetActionProbability(action, distributorChanceInputs);
+            double actionProbability = chanceNode.GetActionProbability(action, distributorChanceInputs);
             int distributorChanceInputsNext = distributorChanceInputs;
-            if (chanceNodeSettings.Decision.DistributorChanceInputDecision)
-                distributorChanceInputsNext += action * chanceNodeSettings.Decision.DistributorChanceInputDecisionMultiplier;
-            if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedChanceDecision)
+            if (chanceNode.Decision.DistributorChanceInputDecision)
+                distributorChanceInputsNext += action * chanceNode.Decision.DistributorChanceInputDecisionMultiplier;
+            if (EvolutionSettings.DistributeChanceDecisions && chanceNode.Decision.DistributedChanceDecision)
                 actionProbability = 1.0;
             GetNextPiValues(piValues, playerBeingOptimized, actionProbability, true,
                 nextPiValues);
             GetNextPiValues(avgStratPiValues, playerBeingOptimized, actionProbability, true,
                 nextAvgStratPiValues);
-            HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
+            HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
             if (TraceCFR)
             {
                 TabbedText.WriteLine(
-                    $"Chance code {chanceNodeSettings.DecisionByteCode} ({GameDefinition.DecisionsExecutionOrder.FirstOrDefault(x => x.DecisionByteCode == chanceNodeSettings.DecisionByteCode).Name}) action {action} probability {actionProbability} ...");
+                    $"Chance code {chanceNode.DecisionByteCode} ({GameDefinition.DecisionsExecutionOrder.FirstOrDefault(x => x.DecisionByteCode == chanceNode.DecisionByteCode).Name}) action {action} probability {actionProbability} ...");
                 TabbedText.Tabs++;
             }
             HedgeVanillaUtilities result =

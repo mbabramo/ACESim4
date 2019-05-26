@@ -207,7 +207,7 @@ namespace ACESim
                 {
                     case InformationSetNodeTally nt:
                         return nt.PlayerIndex;
-                    case ChanceNodeSettings cn:
+                    case ChanceNode cn:
                         return cn.PlayerNum;
                     case FinalUtilities utils:
                         return navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
@@ -230,7 +230,7 @@ namespace ACESim
                 {
                     case InformationSetNodeTally nt:
                         return nt.DecisionByteCode;
-                    case ChanceNodeSettings cn:
+                    case ChanceNode cn:
                         return cn.DecisionByteCode;
                     case FinalUtilities utils:
                         throw new NotImplementedException();
@@ -253,7 +253,7 @@ namespace ACESim
                 {
                     case InformationSetNodeTally nt:
                         return nt.DecisionIndex;
-                    case ChanceNodeSettings cn:
+                    case ChanceNode cn:
                         return cn.DecisionIndex;
                     case FinalUtilities utils:
                         throw new NotImplementedException();
@@ -348,23 +348,23 @@ namespace ACESim
                         {
                             if (playerInfo.PlayerIsChance)
                             {
-                                ChanceNodeSettings chanceNodeSettings;
+                                ChanceNode chanceNode;
                                 if (decision.UnevenChanceActions)
-                                    chanceNodeSettings = new ChanceNodeSettingsUnequalProbabilities()
+                                    chanceNode = new ChanceNodeUnequalProbabilities()
                                     {
                                         Decision = decision,
                                         DecisionIndex = informationSetHistory.DecisionIndex,
                                         Probabilities = navigation.GameDefinition.GetUnevenChanceActionProbabilities(decision.DecisionByteCode, gameProgress), // the probabilities depend on the current state of the game
                                     };
                                 else
-                                    chanceNodeSettings = new ChanceNodeSettingsEqualProbabilities()
+                                    chanceNode = new ChanceNodeEqualProbabilities()
                                     {
                                         Decision = decision,
                                         DecisionIndex = informationSetHistory.DecisionIndex,
                                         EachProbability = 1.0 / (double)decision.NumPossibleActions,
                                     };
-                                navigation.ChanceNodes.Add(chanceNodeSettings);
-                                return chanceNodeSettings;
+                                navigation.ChanceNodes.Add(chanceNode);
+                                return chanceNode;
                             }
                             else
                             {

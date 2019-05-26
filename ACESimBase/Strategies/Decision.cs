@@ -84,10 +84,15 @@ namespace ACESim
         /// <summary>
         /// True if this is a decision that is not a distributed chance decision but that is relevant to the correct calculation of chance probabilities in a later DistributorChanceDecision. That is, the DistributedChanceDecision would ordinarily be part of the information set for the DistributorChanceDecision, but because the distributed decision is distributed, we combine all the permutations of the DistributorChanceInputDecision into a single information set. This can be a chance decision that provides information to one of the parties, or it could be a player decision that affects later chance probabilities. 
         /// </summary>
-        public bool DistributorChanceInputDecision; 
+        public bool DistributorChanceInputDecision;
 
         /// <summary>
-        /// When passing forward nondistributed decision values, we combine them into a single value. The game definition sets a multiplier for each nondistributed decision to enable calculate of the nondistributed decision value. 
+        /// True if this is a decision that should be distributed (passed forward as an array of probabilities) when using the accelerated best response algorithm. This is applicable only for a decision for which DistributorChanceInputDecision is true. The decisions will be passed over only for the players whose play is not being optimized.
+        /// </summary>
+        public bool DistributableDistributorChanceInput;
+
+        /// <summary>
+        /// When passing forward nondistributed decision values, we combine them into a single value. The game definition sets a multiplier for each nondistributed decision to enable calculate of the nondistributed decision value. For example, if each decision had 10 actions, we might use a value of 11 for one, 121 for another, etc. (thus leaving open the possibility that no action has been taken).
         /// </summary>
         public int DistributorChanceInputDecisionMultiplier;
 

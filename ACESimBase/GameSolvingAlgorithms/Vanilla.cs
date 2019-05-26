@@ -27,7 +27,7 @@ namespace ACESim
             }
             else if (gameStateType == GameStateTypeEnum.Chance)
             {
-                ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings) gameStateForCurrentPlayer;
+                ChanceNode chanceNode = (ChanceNode) gameStateForCurrentPlayer;
                 return VanillaCFR_ChanceNode(ref historyPoint, playerBeingOptimized, piValues, usePruning);
             }
             else
@@ -133,11 +133,11 @@ namespace ACESim
         {
             double* equalProbabilityNextPiValues = stackalloc double[MaxNumMainPlayers];
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
-            ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings) gameStateForCurrentPlayer;
-            byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
-            bool equalProbabilities = chanceNodeSettings.AllProbabilitiesEqual();
+            ChanceNode chanceNode = (ChanceNode) gameStateForCurrentPlayer;
+            byte numPossibleActions = NumPossibleActionsAtDecision(chanceNode.DecisionIndex);
+            bool equalProbabilities = chanceNode.AllProbabilitiesEqual();
             if (equalProbabilities) // can set next probabilities once for all actions
-                GetNextPiValues(piValues, playerBeingOptimized, chanceNodeSettings.GetActionProbability(1), true,
+                GetNextPiValues(piValues, playerBeingOptimized, chanceNode.GetActionProbability(1), true,
                     equalProbabilityNextPiValues);
             else
                 equalProbabilityNextPiValues = null;
@@ -160,7 +160,7 @@ namespace ACESim
                     var historyPointCopy2 = historyPointCopy; // Need to do this because we need a separate copy for each thread
                     double probabilityAdjustedExpectedValueParticularAction =
                         VanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues,
-                            chanceNodeSettings, equalProbabilityNextPiValues, expectedValue, action, usePruning);
+                            chanceNode, equalProbabilityNextPiValues, expectedValue, action, usePruning);
                     Interlocking.Add(ref expectedValue, probabilityAdjustedExpectedValueParticularAction);
                 });
 
@@ -168,7 +168,7 @@ namespace ACESim
         }
 
         private unsafe double VanillaCFR_ChanceNode_NextAction(ref HistoryPoint historyPoint, byte playerBeingOptimized,
-            double* piValues, ChanceNodeSettings chanceNodeSettings, double* equalProbabilityNextPiValues,
+            double* piValues, ChanceNode chanceNode, double* equalProbabilityNextPiValues,
             double expectedValue, byte action, bool usePruning)
         {
             double* nextPiValues = stackalloc double[MaxNumMainPlayers];
@@ -184,14 +184,14 @@ namespace ACESim
                 }
             }
             else // must set probability separately for each action we take
-                GetNextPiValues(piValues, playerBeingOptimized, chanceNodeSettings.GetActionProbability(action), true,
+                GetNextPiValues(piValues, playerBeingOptimized, chanceNode.GetActionProbability(action), true,
                     nextPiValues);
-            double actionProbability = chanceNodeSettings.GetActionProbability(action);
-            HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
+            double actionProbability = chanceNode.GetActionProbability(action);
+            HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
             if (TraceCFR)
             {
                 TabbedText.WriteLine(
-                    $"Chance decisionNum {chanceNodeSettings.DecisionByteCode} action {action} probability {actionProbability} ...");
+                    $"Chance decisionNum {chanceNode.DecisionByteCode} action {action} probability {actionProbability} ...");
                 TabbedText.Tabs++;
             }
             double expectedValueParticularAction =

@@ -79,11 +79,11 @@ namespace ACESim
 
         public static unsafe void GetActionProbabilitiesAtHistoryPoint(IGameState gameStateForCurrentPlayer, ActionStrategies actionStrategy, double randomNumberToChooseIteration, double* probabilities, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation)
         {
-            if (gameStateForCurrentPlayer is ChanceNodeSettings chanceNodeSettings)
+            if (gameStateForCurrentPlayer is ChanceNode chanceNode)
             {
-                byte decisionIndex = chanceNodeSettings.DecisionIndex;
+                byte decisionIndex = chanceNode.DecisionIndex;
                 for (byte action = 1; action <= numPossibleActions; action++)
-                    probabilities[action - 1] = chanceNodeSettings.GetActionProbability(action);
+                    probabilities[action - 1] = chanceNode.GetActionProbability(action);
             }
             else
             { // not a chance node or a leaf node

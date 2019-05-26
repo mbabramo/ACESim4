@@ -13,7 +13,7 @@ namespace ACESim
         public readonly List<Strategy> Strategies;
         public readonly GameDefinition GameDefinition;
         public readonly List<InformationSetNodeTally> InformationSets;
-        public readonly List<ChanceNodeSettings> ChanceNodes;
+        public readonly List<ChanceNode> ChanceNodes;
         public readonly List<FinalUtilities> FinalUtilitiesNodes;
         public readonly EvolutionSettings EvolutionSettings;
 
@@ -22,7 +22,7 @@ namespace ACESim
         [NonSerialized]
         public readonly GameStateFunction StoredGameStateFunction;
 
-        public HistoryNavigationInfo(InformationSetLookupApproach lookupApproach, List<Strategy> strategies, GameDefinition gameDefinition, List<InformationSetNodeTally> informationSets, List<ChanceNodeSettings> chanceNodes, List<FinalUtilities> finalUtilitiesNodes, GameStateFunction gameStateFunction, EvolutionSettings evolutionSettings)
+        public HistoryNavigationInfo(InformationSetLookupApproach lookupApproach, List<Strategy> strategies, GameDefinition gameDefinition, List<InformationSetNodeTally> informationSets, List<ChanceNode> chanceNodes, List<FinalUtilities> finalUtilitiesNodes, GameStateFunction gameStateFunction, EvolutionSettings evolutionSettings)
         {
             LookupApproach = lookupApproach;
             Strategies = strategies;

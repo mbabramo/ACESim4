@@ -33,15 +33,15 @@ namespace ACESim
                 byte decisionIndex = 0;
                 if (gameStateType == GameStateTypeEnum.Chance)
                 {
-                    ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings)gameStateForCurrentPlayer;
-                    byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
-                    sampledAction = chanceNodeSettings.SampleAction(numPossibleActions,
-                        randomProducer.GetDoubleAtIndex(chanceNodeSettings.DecisionIndex));
-                    decisionIndex = chanceNodeSettings.DecisionIndex;
-                    decision = chanceNodeSettings.Decision;
+                    ChanceNode chanceNode = (ChanceNode)gameStateForCurrentPlayer;
+                    byte numPossibleActions = NumPossibleActionsAtDecision(chanceNode.DecisionIndex);
+                    sampledAction = chanceNode.SampleAction(numPossibleActions,
+                        randomProducer.GetDoubleAtIndex(chanceNode.DecisionIndex));
+                    decisionIndex = chanceNode.DecisionIndex;
+                    decision = chanceNode.Decision;
                     if (TraceCFR)
                         TabbedText.WriteLine(
-                            $"{sampledAction}: Sampled chance action {sampledAction} of {numPossibleActions} with probability {chanceNodeSettings.GetActionProbability(sampledAction)}");
+                            $"{sampledAction}: Sampled chance action {sampledAction} of {numPossibleActions} with probability {chanceNode.GetActionProbability(sampledAction)}");
                 }
                 else if (gameStateType == GameStateTypeEnum.InformationSet)
                 {
@@ -85,19 +85,19 @@ namespace ACESim
                     TabbedText.WriteLine($"Utility returned {utility}");
                 return utility;
             }
-            else if (gameStateForCurrentPlayer is ChanceNodeSettings chanceNodeSettings)
+            else if (gameStateForCurrentPlayer is ChanceNode chanceNode)
             {
-                byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
-                sampledAction = chanceNodeSettings.SampleAction(numPossibleActions,
-                    randomProducer.GetDoubleAtIndex(chanceNodeSettings.DecisionIndex));
+                byte numPossibleActions = NumPossibleActionsAtDecision(chanceNode.DecisionIndex);
+                sampledAction = chanceNode.SampleAction(numPossibleActions,
+                    randomProducer.GetDoubleAtIndex(chanceNode.DecisionIndex));
                 if (TraceCFR)
                     TabbedText.WriteLine(
-                        $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} for chance decision {chanceNodeSettings.DecisionIndex}");
-                HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
+                        $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} for chance decision {chanceNode.DecisionIndex}");
+                HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction, chanceNode.Decision, chanceNode.DecisionIndex);
                 if (TraceCFR)
                     TabbedText.Tabs++;
                 double walkTreeValue = GibsonProbe_WalkTree(ref nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ,
-                    randomProducer, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
+                    randomProducer, chanceNode.Decision, chanceNode.DecisionIndex);
                 if (TraceCFR)
                 {
                     TabbedText.Tabs--;

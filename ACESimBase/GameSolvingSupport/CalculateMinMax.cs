@@ -35,28 +35,28 @@ namespace ACESim
                         valuesToUpdate[i] = fromSuccessor[i];
         }
 
-        public void ChanceNode_ReceiveFromPredecessor(ChanceNodeSettings chanceNodeSettings, bool fromPredecessor)
+        public void ChanceNode_ReceiveFromPredecessor(ChanceNode chanceNode, bool fromPredecessor)
         {
             double[] d = new double[NumNonChancePlayers];
             for (int i = 0; i < NumNonChancePlayers; i++)
                 d[i] = Max ? int.MinValue : int.MaxValue; // initialize to value that will be replaced
-            ChanceNodePassback[chanceNodeSettings.ChanceNodeNumber] = d;
+            ChanceNodePassback[chanceNode.ChanceNodeNumber] = d;
         }
 
-        public bool ChanceNode_SendToSuccessors(ChanceNodeSettings chanceNodeSettings)
+        public bool ChanceNode_SendToSuccessors(ChanceNode chanceNode)
         {
             return true; // ignored
         }
 
-        public void ChanceNode_ReceiveFromSuccessors(ChanceNodeSettings chanceNodeSettings, IEnumerable<double[]> fromSuccessors)
+        public void ChanceNode_ReceiveFromSuccessors(ChanceNode chanceNode, IEnumerable<double[]> fromSuccessors)
         {
-            var d = ChanceNodePassback[chanceNodeSettings.ChanceNodeNumber];
+            var d = ChanceNodePassback[chanceNode.ChanceNodeNumber];
             ProcessSuccessors(d, fromSuccessors);
         }
 
-        public double[] ChanceNode_SendToPredecessor(ChanceNodeSettings chanceNodeSettings)
+        public double[] ChanceNode_SendToPredecessor(ChanceNode chanceNode)
         {
-            return ChanceNodePassback[chanceNodeSettings.ChanceNodeNumber];
+            return ChanceNodePassback[chanceNode.ChanceNodeNumber];
         }
 
         public void InformationSet_ReceiveFromPredecessor(InformationSetNodeTally informationSet, bool fromPredecessor)

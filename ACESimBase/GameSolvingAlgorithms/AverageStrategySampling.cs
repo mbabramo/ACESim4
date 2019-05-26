@@ -31,17 +31,17 @@ namespace ACESim
                         TabbedText.WriteLine($"Utility returned {utility}");
                     return utility / samplingProbabilityQ;
                 case GameStateTypeEnum.Chance:
-                    ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings) gameStateForCurrentPlayer;
-                    numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
-                    sampledAction = chanceNodeSettings.SampleAction(numPossibleActions, RandomGenerator.NextDouble());
+                    ChanceNode chanceNode = (ChanceNode) gameStateForCurrentPlayer;
+                    numPossibleActions = NumPossibleActionsAtDecision(chanceNode.DecisionIndex);
+                    sampledAction = chanceNode.SampleAction(numPossibleActions, RandomGenerator.NextDouble());
                     if (TraceCFR)
                         TabbedText.WriteLine(
-                            $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} for chance decision {chanceNodeSettings.DecisionIndex}");
-                    nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
+                            $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} for chance decision {chanceNode.DecisionIndex}");
+                    nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction, chanceNode.Decision, chanceNode.DecisionIndex);
                     if (TraceCFR)
                         TabbedText.Tabs++;
                     double walkTreeValue =
-                        AverageStrategySampling_WalkTree(ref nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
+                        AverageStrategySampling_WalkTree(ref nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ, chanceNode.Decision, chanceNode.DecisionIndex);
                     if (TraceCFR)
                     {
                         TabbedText.Tabs--;

@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace ACESim
 {
     [Serializable]
-    public abstract class ChanceNodeSettings : IGameState
+    public abstract class ChanceNode : IGameState
     {
         public static int ChanceNodesSoFar = 0;
         public int ChanceNodeNumber;
@@ -20,7 +20,7 @@ namespace ACESim
 
         public abstract double GetActionProbability(int action, int distributorChanceInputs = -1);
 
-        public ChanceNodeSettings()
+        public ChanceNode()
         {
             ChanceNodeNumber = ChanceNodesSoFar;
             Interlocked.Increment(ref ChanceNodesSoFar);

@@ -54,13 +54,13 @@ namespace ACESim
                 IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
                 Decision decision;
                 byte decisionIndex;
-                if (gameStateForCurrentPlayer is ChanceNodeSettings chanceNodeSettings)
+                if (gameStateForCurrentPlayer is ChanceNode chanceNode)
                 {
-                    numPossibleActionsToExplore = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
-                    if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedChanceDecision)
+                    numPossibleActionsToExplore = NumPossibleActionsAtDecision(chanceNode.DecisionIndex);
+                    if (EvolutionSettings.DistributeChanceDecisions && chanceNode.Decision.DistributedChanceDecision)
                         numPossibleActionsToExplore = 1;
-                    decision = chanceNodeSettings.Decision;
-                    decisionIndex = chanceNodeSettings.DecisionIndex;
+                    decision = chanceNode.Decision;
+                    decisionIndex = chanceNode.DecisionIndex;
                 }
                 else if (gameStateForCurrentPlayer is InformationSetNodeTally informationSet)
                 {
@@ -93,7 +93,7 @@ namespace ACESim
             else
             {
                 IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
-                if (gameStateForCurrentPlayer is ChanceNodeSettings)
+                if (gameStateForCurrentPlayer is ChanceNode)
                     return GEBRPass2_ChanceNode(ref historyPoint, playerIndex, depthToTarget, depthSoFar, inversePi,
                         opponentsActionStrategy, distributorChanceInputs);
             }
@@ -245,42 +245,42 @@ namespace ACESim
             byte depthSoFar, double inversePi, ActionStrategies opponentsActionStrategy, int distributorChanceInputs)
         {
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
-            ChanceNodeSettings chanceNodeSettings = (ChanceNodeSettings) gameStateForCurrentPlayer;
-            byte numPossibleActions = NumPossibleActionsAtDecision(chanceNodeSettings.DecisionIndex);
+            ChanceNode chanceNode = (ChanceNode) gameStateForCurrentPlayer;
+            byte numPossibleActions = NumPossibleActionsAtDecision(chanceNode.DecisionIndex);
             byte numPossibleActionsToExplore = numPossibleActions;
-            if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedChanceDecision)
+            if (EvolutionSettings.DistributeChanceDecisions && chanceNode.Decision.DistributedChanceDecision)
                 numPossibleActionsToExplore = 1;
-            if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNodeSettings.DecisionIndex))
+            if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNode.DecisionIndex))
             {
                 TabbedText.WriteLine(
-                    $"Num chance actions {numPossibleActionsToExplore} for decision {chanceNodeSettings.DecisionByteCode} {GameDefinition.DecisionsExecutionOrder[chanceNodeSettings.DecisionIndex].Name}");
+                    $"Num chance actions {numPossibleActionsToExplore} for decision {chanceNode.DecisionByteCode} {GameDefinition.DecisionsExecutionOrder[chanceNode.DecisionIndex].Name}");
             }
             double expectedValueSum = 0;
             for (byte action = 1; action <= numPossibleActionsToExplore; action++)
             {
-                if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNodeSettings.DecisionIndex))
+                if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNode.DecisionIndex))
                     TabbedText.WriteLine(
-                        $"chance action {action} for decision {chanceNodeSettings.DecisionByteCode} {GameDefinition.DecisionsExecutionOrder[chanceNodeSettings.DecisionIndex].Name} ... ");
-                double probability = chanceNodeSettings.GetActionProbability(action, distributorChanceInputs);
-                if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNodeSettings.DecisionIndex))
+                        $"chance action {action} for decision {chanceNode.DecisionByteCode} {GameDefinition.DecisionsExecutionOrder[chanceNode.DecisionIndex].Name} ... ");
+                double probability = chanceNode.GetActionProbability(action, distributorChanceInputs);
+                if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNode.DecisionIndex))
                     TabbedText.Tabs++;
                 int distributorChanceInputsNext = distributorChanceInputs;
-                if (chanceNodeSettings.Decision.DistributorChanceInputDecision)
-                    distributorChanceInputsNext += action * chanceNodeSettings.Decision.DistributorChanceInputDecisionMultiplier;
-                if (EvolutionSettings.DistributeChanceDecisions && chanceNodeSettings.Decision.DistributedChanceDecision)
+                if (chanceNode.Decision.DistributorChanceInputDecision)
+                    distributorChanceInputsNext += action * chanceNode.Decision.DistributorChanceInputDecisionMultiplier;
+                if (EvolutionSettings.DistributeChanceDecisions && chanceNode.Decision.DistributedChanceDecision)
                     probability = 1.0;
                 double valueBelow;
-                if (historyPoint.BranchingIsReversible(Navigation, chanceNodeSettings.Decision))
+                if (historyPoint.BranchingIsReversible(Navigation, chanceNode.Decision))
                 {
-                    historyPoint.SwitchToBranch(Navigation, action, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex);
+                    historyPoint.SwitchToBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
                     valueBelow = GEBRPass2(ref historyPoint, playerIndex, depthToTarget,
                         (byte)(depthSoFar + 1), inversePi * probability, opponentsActionStrategy, distributorChanceInputsNext);
-                    GameDefinition.ReverseDecision(chanceNodeSettings.Decision, ref historyPoint, gameStateForCurrentPlayer);
+                    GameDefinition.ReverseDecision(chanceNode.Decision, ref historyPoint, gameStateForCurrentPlayer);
                 }
                 else
-                    valueBelow = GEBRPass2_RecurseNotReversible(ref historyPoint, playerIndex, depthToTarget, depthSoFar, opponentsActionStrategy, chanceNodeSettings.Decision, chanceNodeSettings.DecisionIndex, action, inversePi * probability, distributorChanceInputsNext);
+                    valueBelow = GEBRPass2_RecurseNotReversible(ref historyPoint, playerIndex, depthToTarget, depthSoFar, opponentsActionStrategy, chanceNode.Decision, chanceNode.DecisionIndex, action, inversePi * probability, distributorChanceInputsNext);
                 double expectedValue = probability * valueBelow;
-                if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNodeSettings.DecisionIndex))
+                if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNode.DecisionIndex))
                 {
                     TabbedText.Tabs--;
                     TabbedText.WriteLine(
@@ -288,7 +288,7 @@ namespace ACESim
                 }
                 expectedValueSum += expectedValue;
             }
-            if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNodeSettings.DecisionIndex))
+            if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNode.DecisionIndex))
             {
                 TabbedText.WriteLine($"Chance expected value sum {expectedValueSum}");
             }

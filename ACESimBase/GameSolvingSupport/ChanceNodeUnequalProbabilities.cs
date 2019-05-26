@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace ACESim
 {
     [Serializable]
-    public class ChanceNodeSettingsUnequalProbabilities : ChanceNodeSettings
+    public class ChanceNodeUnequalProbabilities : ChanceNode
     {
         public double[] Probabilities;
         // The remaining settings are for distributed chance actions.
