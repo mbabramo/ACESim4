@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace ACESim
 {
@@ -17,6 +18,8 @@ namespace ACESim
         /// </summary>
         byte? CalculatingForPlayer;
 
+        IEnumerable<byte> CalculatingForPlayers => CalculatingForPlayer == null ? Enumerable.Range(0, NumNonChancePlayers).Select(x => (byte)x) : new byte[] { (byte)CalculatingForPlayer };
+
         public CalculateMinMax(bool max, int numNonChancePlayers, byte? calculatingForPlayer)
         {
             Max = max;
@@ -32,7 +35,7 @@ namespace ACESim
         void ProcessSuccessors(double[] valuesToUpdate, IEnumerable<double[]> fromSuccessors)
         {
             foreach (var fromSuccessor in fromSuccessors)
-                for (int i = 0; i < NumNonChancePlayers; i++)
+                foreach (int i in CalculatingForPlayers)
                     if ((Max && fromSuccessor[i] > valuesToUpdate[i]) || (Min && fromSuccessor[i] < valuesToUpdate[i]))
                         valuesToUpdate[i] = fromSuccessor[i];
         }
@@ -40,7 +43,7 @@ namespace ACESim
         public bool ChanceNode_Forward(ChanceNode chanceNode, bool fromPredecessor)
         {
             double[] d = new double[NumNonChancePlayers];
-            for (int i = 0; i < NumNonChancePlayers; i++)
+            foreach (int i in CalculatingForPlayers)
                 d[i] = Max ? int.MinValue : int.MaxValue; // initialize to value that will be replaced
             ChanceNodePassback[chanceNode.ChanceNodeNumber] = d;
             return true; // ignored
@@ -60,13 +63,13 @@ namespace ACESim
             if (Min)
             {
                 informationSet.MinPossible = new double[NumNonChancePlayers];
-                for (int i = 0; i < NumNonChancePlayers; i++)
+                foreach (int i in CalculatingForPlayers)
                     informationSet.MinPossible[i] = int.MaxValue; // initialize to value that will be replaced
             }
             else
             {
                 informationSet.MaxPossible = new double[NumNonChancePlayers];
-                for (int i = 0; i < NumNonChancePlayers; i++)
+                foreach (int i in CalculatingForPlayers)
                     informationSet.MaxPossible[i] = int.MinValue; // initialize to value that will be replaced
             }
             return true; // ignored
