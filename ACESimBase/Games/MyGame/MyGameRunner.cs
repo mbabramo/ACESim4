@@ -23,14 +23,14 @@ namespace ACESim
         private const GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.HedgeVanilla;
 
         private const int ProbingIterations = 20_000_000;
-        private const int VanillaIterations = 1_000_000;
-        private const int VanillaReportEveryNIterations = 1_000_000;
-        private const int VanillaBestResponseEveryMIterations = EvolutionSettings.EffectivelyNever; 
+        private const int VanillaIterations = 5_000;
+        private const int VanillaReportEveryNIterations = 5_000;
+        private const int VanillaBestResponseEveryMIterations = 5_000; 
         private const int MiniReportEveryPIterations = 5_000;
-        private const int CorrelatedEquilibriumCalculationsEveryNIterations = 1_000_000;
-        private const int RecordPastValuesEveryNIterations = 10_000; // used for correlated equilibrium calculations
-        private const bool UseRandomPathsForReporting = true;
-        private const int SummaryTableRandomPathsIterations = 100_000;
+        private const int CorrelatedEquilibriumCalculationsEveryNIterations = EvolutionSettings.EffectivelyNever;
+        private const int RecordPastValuesEveryNIterations = EvolutionSettings.EffectivelyNever; // used for correlated equilibrium calculations
+        private const bool UseRandomPathsForReporting = false;
+        private const int SummaryTableRandomPathsIterations = 1_000;
         
         private const bool UseRegretAndStrategyDiscounting = true;
 
@@ -69,9 +69,9 @@ namespace ACESim
                 PrintGameTree = false,
                 ActionStrategiesToUseInReporting = 
                  new List<ActionStrategies>() {
-                     ActionStrategies.CorrelatedEquilibrium,
-                     ActionStrategies.BestResponseVsCorrelatedEquilibrium,
-                     ActionStrategies.CorrelatedEquilibriumVsBestResponse,
+                     //ActionStrategies.CorrelatedEquilibrium,
+                     //ActionStrategies.BestResponseVsCorrelatedEquilibrium,
+                     //ActionStrategies.CorrelatedEquilibriumVsBestResponse,
                      ActionStrategies.AverageStrategy
                  },
                 TotalProbingCFRIterations = ProbingIterations,

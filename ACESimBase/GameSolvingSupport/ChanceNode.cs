@@ -20,6 +20,8 @@ namespace ACESim
 
         public abstract double GetActionProbability(int action, int distributorChanceInputs = -1);
 
+        public abstract double GetActionProbability(int action, DistributorChanceInputs distributorChanceInputs);
+
         public ChanceNode()
         {
             ChanceNodeNumber = ChanceNodesSoFar;

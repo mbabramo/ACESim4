@@ -66,18 +66,23 @@ namespace ACESim
         }
 
 
-        public override double GetActionProbability(int action, List<(int value, double probability)> distributorChanceInputs)
+        public override double GetActionProbability(int action, DistributorChanceInputs distributorChanceInputs)
         {
-            if (DistributionComplete && ProbabilitiesForDistributorChanceInputs != null)
+            if (DistributionComplete && ProbabilitiesForDistributorChanceInputs != null && distributorChanceInputs.ContainsAccumulatedValue)
             {
                 double sumProbabilityProducts = 0;
-                foreach (var input in distributorChanceInputs)
-                { 
-                    // We have probabilities for specific distributor chance input values. But now we have multiple values, each with another probability. So, we need to calculate a weighted average.
-                    double probabilityForDistributorChanceInputValue = ProbabilitiesForDistributorChanceInputs[input.value][action - 1];
-                    sumProbabilityProducts += probabilityForDistributorChanceInputValue * input.probability;
+                if (distributorChanceInputs.Distributed != null)
+                {
+                    foreach (var input in distributorChanceInputs.Distributed)
+                    {
+                        // We have probabilities for specific distributor chance input values. But now we have multiple values, each with another probability. So, we need to calculate a weighted average.
+                        double probabilityForDistributorChanceInputValue = ProbabilitiesForDistributorChanceInputs[input.value][action - 1];
+                        sumProbabilityProducts += probabilityForDistributorChanceInputValue * input.probability;
+                    }
+                    return sumProbabilityProducts;
                 }
-                return sumProbabilityProducts;
+                else
+                    return ProbabilitiesForDistributorChanceInputs[distributorChanceInputs.SingleScalarValue][action - 1];
             }
             return Probabilities[action - 1];
         }

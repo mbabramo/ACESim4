@@ -4,10 +4,15 @@ using System.Text;
 
 namespace ACESim
 {
+    /// <summary>
+    /// Maintains either a single value representing an accumulation of actions from one or more decisions or an array of action-probability tuples, resulting from at least one decision that is a DistributorChanceInputDecision decision and moreover a DistributableDistributorChanceInput for purposes of accelerated best-response calculation, for which an array of possible values is passed forward in the algorithm instead of a single value.
+    /// </summary>
     public readonly struct DistributorChanceInputs
     {
         public readonly int SingleScalarValue;
         public readonly List<(int value, double probability)> Distributed;
+
+        public bool ContainsAccumulatedValue => SingleScalarValue != 0 || Distributed != null;
 
         public DistributorChanceInputs(int singleScalarValue)
         {
@@ -28,6 +33,7 @@ namespace ACESim
                 actionWasDistributed = false;
                 return this;
             }
+            int increment = action * decision.DistributorChanceInputDecisionMultiplier;
             if (distributeDistributableDistributorChanceInputs && decision.DistributableDistributorChanceInput && decision.PlayerNumber != playerBeingOptimized)
             {
                 // distribute all possible actions so that we are passing forward an array
@@ -37,7 +43,7 @@ namespace ACESim
                 {
                     double probability = chanceNode.GetActionProbability(action);
                     foreach (var old in oldAccumulated)
-                        Distributed.Add((old.value + action * decision.DistributorChanceInputDecisionMultiplier, old.probability * probability));
+                        Distributed.Add((old.value + increment, old.probability * probability));
                 }
                 actionWasDistributed = true;
                 return new DistributorChanceInputs(distributed);
@@ -47,7 +53,7 @@ namespace ACESim
                 actionWasDistributed = false;
                 if (Distributed == null)
                 {
-                    int singleScalarValue = SingleScalarValue + action * decision.DistributorChanceInputDecisionMultiplier;
+                    int singleScalarValue = SingleScalarValue + increment;
                     return new DistributorChanceInputs(singleScalarValue);
                 }
                 else
@@ -56,7 +62,7 @@ namespace ACESim
                     for (int i = 0; i < count; i++)
                     {
                         var d = Distributed[i];
-                        Distributed[i] = (d.value + action * decision.DistributorChanceInputDecisionMultiplier, d.probability);
+                        Distributed[i] = (d.value + increment, d.probability);
                     }
                     return new DistributorChanceInputs(Distributed);
                 }
