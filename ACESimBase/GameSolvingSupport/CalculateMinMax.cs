@@ -46,6 +46,8 @@ namespace ACESim
             return d;
         }
 
+        public bool DistributeDistributableDistributorChanceInputs(ChanceNode chanceNode) => false;
+
         public bool InformationSet_Forward(InformationSetNode informationSet, bool fromPredecessor)
         {
             if (Min)

@@ -25,7 +25,7 @@ namespace ACESim
             Distributed = distributed;
         }
 
-        public DistributorChanceInputs AddScalarDistributorChanceInput(ChanceNode chanceNode, byte playerBeingOptimized, byte action, bool distributeDistributableDistributorChanceInputs, out bool actionWasDistributed)
+        public DistributorChanceInputs AddDistributorChanceInput(ChanceNode chanceNode, byte action, bool distributeDistributableDistributorChanceInputs, out bool actionWasDistributed)
         {
             Decision decision = chanceNode.Decision;
             if (!decision.DistributorChanceInputDecision)
@@ -34,7 +34,7 @@ namespace ACESim
                 return this;
             }
             int increment = action * decision.DistributorChanceInputDecisionMultiplier;
-            if (distributeDistributableDistributorChanceInputs && decision.DistributableDistributorChanceInput && decision.PlayerNumber != playerBeingOptimized)
+            if (decision.DistributableDistributorChanceInput && distributeDistributableDistributorChanceInputs)
             {
                 // distribute all possible actions so that we are passing forward an array
                 var oldAccumulated = Distributed ?? new List<(int value, double probability)>() { (SingleScalarValue, 1.0) };

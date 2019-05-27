@@ -193,16 +193,21 @@ namespace ACESim
             // Create game trees
             GameHistoryTree = new NWayTreeStorageInternal<IGameState>(null, GameDefinition.DecisionsExecutionOrder.First().NumPossibleActions);
 
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+            Console.WriteLine("Calculating min-max...");
             CalculateMinMax c = new CalculateMinMax(true, NumNonChancePlayers);
             TreeWalk_Tree(c);
             c = new CalculateMinMax(false, NumNonChancePlayers);
             TreeWalk_Tree(c);
+            Console.WriteLine($"... complete {stopwatch.ElapsedMilliseconds} milliseconds");
 
             if (SkipEveryPermutationInitialization)
                 return; // no initialization needed (that's a benefit of using GameHistory -- we can initialize information sets on the fly, which may be much faster than playing every game permutation)
 
-            Stopwatch stopwatch = new Stopwatch();
+            stopwatch = new Stopwatch();
             stopwatch.Start();
+            Console.WriteLine("Initializing all game paths...");
             if (StoreGameStateNodesInLists && GamePlayer.PlayAllPathsIsParallel)
                 throw new NotImplementedException();
             NumInitializedGamePaths = GamePlayer.PlayAllPaths(ProcessInitializedGameProgress);
@@ -210,7 +215,7 @@ namespace ACESim
             string parallelString = GamePlayer.PlayAllPathsIsParallel ? " (higher number in parallel)" : "";
             string informationSetsString = StoreGameStateNodesInLists ? $" Total information sets: {InformationSets.Count()} chance nodes: {ChanceNodes.Count()} final nodes: {FinalUtilitiesNodes.Count()}" : "";
             DistributeChanceDecisions();
-            Console.WriteLine($"Initialized. Total paths{parallelString}: {NumInitializedGamePaths}{informationSetsString} Total initialization milliseconds {stopwatch.ElapsedMilliseconds}");
+            Console.WriteLine($"... Initialized. Total paths{parallelString}: {NumInitializedGamePaths}{informationSetsString} Initialization milliseconds {stopwatch.ElapsedMilliseconds}");
             PrintSameGameResults();
         }
         unsafe void ProcessInitializedGameProgress(GameProgress gameProgress)
@@ -1483,10 +1488,10 @@ namespace ACESim
         public void TreeWalk_Tree<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor)
         {
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
-            TreeWalk_Node(processor, default(Forward), 0, ref historyPoint);
+            TreeWalk_Node(processor, default(Forward), new DistributorChanceInputs(), ref historyPoint);
         }
 
-        public Back TreeWalk_Node<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, Forward forward, int distributorChanceInputs, ref HistoryPoint historyPoint)
+        public Back TreeWalk_Node<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, Forward forward, DistributorChanceInputs distributorChanceInputs, ref HistoryPoint historyPoint)
         {
             IGameState gameState = GetGameState(ref historyPoint);
             switch (gameState)
@@ -1502,7 +1507,7 @@ namespace ACESim
             }
         }
 
-        public Back TreeWalk_ChanceNode<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, ChanceNode chanceNode, Forward forward, int distributorChanceInputs, ref HistoryPoint historyPoint)
+        public Back TreeWalk_ChanceNode<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, ChanceNode chanceNode, Forward forward, DistributorChanceInputs distributorChanceInputs, ref HistoryPoint historyPoint)
         {
             Forward nextForward = processor.ChanceNode_Forward(chanceNode, forward);
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNode.DecisionIndex);
@@ -1511,18 +1516,19 @@ namespace ACESim
             List<Back> fromSuccessors = new List<Back>();
             for (byte action = 1; action <= numPossibleActionsToExplore; action++)
             {
-                int distributorChanceInputsNext = distributorChanceInputs;
-                if (chanceNode.Decision.DistributorChanceInputDecision)
-                    distributorChanceInputsNext += action * chanceNode.Decision.DistributorChanceInputDecisionMultiplier;
+                DistributorChanceInputs distributorChanceInputsNext = distributorChanceInputs.AddDistributorChanceInput(chanceNode, action, processor.DistributeDistributableDistributorChanceInputs(chanceNode), out bool actionWasDistributed);
 
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
                 var fromSuccessor = TreeWalk_Node(processor, nextForward, distributorChanceInputsNext, ref nextHistoryPoint);
                 fromSuccessors.Add(fromSuccessor);
+
+                if (actionWasDistributed)
+                    break;
             }
             return processor.ChanceNode_Backward(chanceNode, fromSuccessors);
         }
 
-        public Back TreeWalk_DecisionNode<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, InformationSetNode nodeTally, Forward forward, int distributorChanceInputs, ref HistoryPoint historyPoint)
+        public Back TreeWalk_DecisionNode<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, InformationSetNode nodeTally, Forward forward, DistributorChanceInputs distributorChanceInputs, ref HistoryPoint historyPoint)
         {
             Forward nextForward = processor.InformationSet_Forward(nodeTally, forward);
             byte numPossibleActions = NumPossibleActionsAtDecision(nodeTally.DecisionIndex);
@@ -1532,11 +1538,10 @@ namespace ACESim
             List<Back> fromSuccessors = new List<Back>();
             for (byte action = 1; action <= numPossibleActionsToExplore; action++)
             {
-                int distributorChanceInputsNext = distributorChanceInputs;
                 if (nodeTally.Decision.DistributorChanceInputDecision)
-                    distributorChanceInputsNext += action * nodeTally.Decision.DistributorChanceInputDecisionMultiplier;
+                    throw new NotSupportedException(); // currently, we are only passing forward an array of distributor chance inputs from chance decisions, but we could adapt this to player decisions.
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, nodeTally.Decision, nodeTally.DecisionIndex);
-                var fromSuccessor = TreeWalk_Node(processor, nextForward, distributorChanceInputsNext, ref nextHistoryPoint);
+                var fromSuccessor = TreeWalk_Node(processor, nextForward, distributorChanceInputs, ref nextHistoryPoint);
                 fromSuccessors.Add(fromSuccessor);
             }
             return processor.InformationSet_Backward(nodeTally, fromSuccessors);
