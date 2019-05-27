@@ -43,7 +43,7 @@ namespace ACESim
                 {
                     double probability = chanceNode.GetActionProbability(action);
                     foreach (var old in oldAccumulated)
-                        Distributed.Add((old.value + increment, old.probability * probability));
+                        distributed.Add((old.value + increment, old.probability * probability));
                 }
                 actionWasDistributed = true;
                 return new DistributorChanceInputs(distributed);

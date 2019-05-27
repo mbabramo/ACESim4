@@ -191,6 +191,8 @@ namespace ACESim
                     Unroll_Parallelize = true,
                     Unroll_Parallelize_Identical = true,
                     DistributorChanceInputDecision = true,
+                    DistributableDistributorChanceInput = true,
+                    ProvidesPrivateInformationFor = (byte)MyGamePlayers.Plaintiff
                 });
             if (Options.DNoiseStdev != 0)
                 decisions.Add(new Decision("DefendantSignal", "DS", (byte)MyGamePlayers.DSignalChance,
@@ -201,6 +203,8 @@ namespace ACESim
                     Unroll_Parallelize = true,
                     Unroll_Parallelize_Identical = true,
                     DistributorChanceInputDecision = true,
+                    DistributableDistributorChanceInput = true,
+                    ProvidesPrivateInformationFor = (byte) MyGamePlayers.Defendant
                 });
             CreateSignalsTables();
         }

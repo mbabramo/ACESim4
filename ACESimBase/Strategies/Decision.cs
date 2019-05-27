@@ -87,7 +87,7 @@ namespace ACESim
         public bool DistributorChanceInputDecision;
 
         /// <summary>
-        /// True if this is a decision that should be distributed (passed forward as an array of probabilities) when using the accelerated best response algorithm. This is applicable only for a decision for which DistributorChanceInputDecision is true. The decisions will be passed over only for the players whose play is not being optimized.
+        /// True if this is a decision that should be distributed (passed forward as an array of probabilities), for example as in accelerated best resposne. This is applicable only for a decision for which DistributorChanceInputDecision is true. The decisions will generally be passed as an array only for the players for whom this does not provide private information, so ProvidesPrivateInformationFor should be set below.
         /// </summary>
         public bool DistributableDistributorChanceInput;
 
@@ -95,6 +95,11 @@ namespace ACESim
         /// When passing forward nondistributed decision values, we combine them into a single value. The game definition sets a multiplier for each nondistributed decision to enable calculate of the nondistributed decision value. For example, if each decision had 10 actions, we might use a value of 11 for one, 121 for another, etc. (thus leaving open the possibility that no action has been taken).
         /// </summary>
         public int DistributorChanceInputDecisionMultiplier;
+
+        /// <summary>
+        /// Indicates whom this chance decision provides private information for. This is used with DistributableDistributorChanceInputs.
+        /// </summary>
+        public byte? ProvidesPrivateInformationFor;
 
         /// <summary>
         /// Whether the decision is bipolar (i.e., there are only two possible actions).

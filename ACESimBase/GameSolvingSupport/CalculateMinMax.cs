@@ -9,12 +9,19 @@ namespace ACESim
         public bool Min => !Max;
 
         Dictionary<int, double[]> ChanceNodePassback = new Dictionary<int, double[]>();
+
         int NumNonChancePlayers;
 
-        public CalculateMinMax(bool max, int numNonChancePlayers)
+        /// <summary>
+        /// If null, the min-max is calculated for all players at once. Otherwise, the min-max is calculated only for the specified player (and the other player's hidden information is distributed, thus saving time).
+        /// </summary>
+        byte? CalculatingForPlayer;
+
+        public CalculateMinMax(bool max, int numNonChancePlayers, byte? calculatingForPlayer)
         {
             Max = max;
             NumNonChancePlayers = numNonChancePlayers;
+            CalculatingForPlayer = calculatingForPlayer;
         }
 
         public double[] FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, bool fromPredecessor)
@@ -46,7 +53,7 @@ namespace ACESim
             return d;
         }
 
-        public bool DistributeDistributableDistributorChanceInputs(ChanceNode chanceNode) => false;
+        public bool DistributeDistributableDistributorChanceInputs(ChanceNode chanceNode) => CalculatingForPlayer != null && chanceNode.Decision.ProvidesPrivateInformationFor != CalculatingForPlayer;
 
         public bool InformationSet_Forward(InformationSetNode informationSet, bool fromPredecessor)
         {
@@ -70,13 +77,19 @@ namespace ACESim
             if (Min)
             {
                 ProcessSuccessors(informationSet.MinPossible, fromSuccessors);
-                informationSet.MinPossibleThisPlayer = informationSet.MinPossible[informationSet.PlayerIndex];
+                if (CalculatingForPlayer == null || CalculatingForPlayer == informationSet.PlayerIndex)
+                {
+                    informationSet.MinPossibleThisPlayer = informationSet.MinPossible[informationSet.PlayerIndex];
+                }
                 return informationSet.MinPossible;
             }
             else
             {
                 ProcessSuccessors(informationSet.MaxPossible, fromSuccessors);
-                informationSet.MaxPossibleThisPlayer = informationSet.MaxPossible[informationSet.PlayerIndex];
+                if (CalculatingForPlayer == null || CalculatingForPlayer == informationSet.PlayerIndex)
+                {
+                    informationSet.MaxPossibleThisPlayer = informationSet.MaxPossible[informationSet.PlayerIndex];
+                }
                 return informationSet.MaxPossible;
             }
         }
