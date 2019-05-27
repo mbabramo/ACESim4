@@ -1496,8 +1496,7 @@ namespace ACESim
                 case InformationSetNode n:
                     return TreeWalk_DecisionNode(processor, n, forward, distributorChanceInputs, ref historyPoint);
                 case FinalUtilitiesNode f:
-                    processor.FinalUtilities_ReceiveFromPredecessor(f, forward);
-                    return processor.FinalUtilities_SendToPredecessor(f);
+                    return processor.FinalUtilities_TurnAround(f, forward);
                 default:
                     throw new NotSupportedException();
             }
@@ -1505,8 +1504,7 @@ namespace ACESim
 
         public Back TreeWalk_ChanceNode<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, ChanceNode chanceNode, Forward forward, int distributorChanceInputs, ref HistoryPoint historyPoint)
         {
-            processor.ChanceNode_ReceiveFromPredecessor(chanceNode, forward);
-            Forward nextForward = processor.ChanceNode_SendToSuccessors(chanceNode);
+            Forward nextForward = processor.ChanceNode_Forward(chanceNode, forward);
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNode.DecisionIndex);
             byte numPossibleActionsToExplore = numPossibleActions;
             if (EvolutionSettings.DistributeChanceDecisions && chanceNode.Decision.DistributedChanceDecision) numPossibleActionsToExplore = 1;
@@ -1521,14 +1519,12 @@ namespace ACESim
                 var fromSuccessor = TreeWalk_Node(processor, nextForward, distributorChanceInputsNext, ref nextHistoryPoint);
                 fromSuccessors.Add(fromSuccessor);
             }
-            processor.ChanceNode_ReceiveFromSuccessors(chanceNode, fromSuccessors);
-            return processor.ChanceNode_SendToPredecessor(chanceNode);
+            return processor.ChanceNode_Backward(chanceNode, fromSuccessors);
         }
 
         public Back TreeWalk_DecisionNode<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, InformationSetNode nodeTally, Forward forward, int distributorChanceInputs, ref HistoryPoint historyPoint)
         {
-            processor.InformationSet_ReceiveFromPredecessor(nodeTally, forward);
-            Forward nextForward = processor.InformationSet_SendToSuccessors(nodeTally);
+            Forward nextForward = processor.InformationSet_Forward(nodeTally, forward);
             byte numPossibleActions = NumPossibleActionsAtDecision(nodeTally.DecisionIndex);
             byte numPossibleActionsToExplore = numPossibleActions;
 
@@ -1543,8 +1539,7 @@ namespace ACESim
                 var fromSuccessor = TreeWalk_Node(processor, nextForward, distributorChanceInputsNext, ref nextHistoryPoint);
                 fromSuccessors.Add(fromSuccessor);
             }
-            processor.InformationSet_ReceiveFromSuccessors(nodeTally, fromSuccessors);
-            return processor.InformationSet_SendToPredecessor(nodeTally);
+            return processor.InformationSet_Backward(nodeTally, fromSuccessors);
         }
 
         #endregion

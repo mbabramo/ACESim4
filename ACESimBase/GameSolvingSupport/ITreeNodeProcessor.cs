@@ -4,19 +4,14 @@ namespace ACESim
 {
     public interface ITreeNodeProcessor<Forward,Back>
     {
-        void FinalUtilities_ReceiveFromPredecessor(FinalUtilitiesNode finalUtilities, Forward fromPredecessor);
-        Back FinalUtilities_SendToPredecessor(FinalUtilitiesNode finalUtilities);
+        Back FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, Forward fromPredecessor);
 
-        void ChanceNode_ReceiveFromPredecessor(ChanceNode chanceNode, Forward fromPredecessor);
-        Forward ChanceNode_SendToSuccessors(ChanceNode chanceNode);
-        void ChanceNode_ReceiveFromSuccessors(ChanceNode chanceNode, IEnumerable<Back> fromSuccessors);
-        Back ChanceNode_SendToPredecessor(ChanceNode chanceNode);
+        Forward ChanceNode_Forward(ChanceNode chanceNode, Forward fromPredecessor);
+        Back ChanceNode_Backward(ChanceNode chanceNode, IEnumerable<Back> fromSuccessors);
 
 
-        void InformationSet_ReceiveFromPredecessor(InformationSetNode informationSet, Forward fromPredecessor);
-        Forward InformationSet_SendToSuccessors(InformationSetNode informationSet);
-        void InformationSet_ReceiveFromSuccessors(InformationSetNode informationSet, IEnumerable<Back> fromSuccessors);
-        Back InformationSet_SendToPredecessor(InformationSetNode informationSet);
+        Forward InformationSet_Forward(InformationSetNode informationSet, Forward fromPredecessor);
+        Back InformationSet_Backward(InformationSetNode informationSet, IEnumerable<Back> fromSuccessors);
     }
 
 }

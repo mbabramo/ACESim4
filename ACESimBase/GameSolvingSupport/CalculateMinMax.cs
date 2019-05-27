@@ -17,12 +17,7 @@ namespace ACESim
             NumNonChancePlayers = numNonChancePlayers;
         }
 
-        public void FinalUtilities_ReceiveFromPredecessor(FinalUtilitiesNode finalUtilities, bool fromPredecessor)
-        {
-            // ignore
-        }
-
-        public double[] FinalUtilities_SendToPredecessor(FinalUtilitiesNode finalUtilities)
+        public double[] FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, bool fromPredecessor)
         {
             return finalUtilities.Utilities;
         }
@@ -35,31 +30,23 @@ namespace ACESim
                         valuesToUpdate[i] = fromSuccessor[i];
         }
 
-        public void ChanceNode_ReceiveFromPredecessor(ChanceNode chanceNode, bool fromPredecessor)
+        public bool ChanceNode_Forward(ChanceNode chanceNode, bool fromPredecessor)
         {
             double[] d = new double[NumNonChancePlayers];
             for (int i = 0; i < NumNonChancePlayers; i++)
                 d[i] = Max ? int.MinValue : int.MaxValue; // initialize to value that will be replaced
             ChanceNodePassback[chanceNode.ChanceNodeNumber] = d;
-        }
-
-        public bool ChanceNode_SendToSuccessors(ChanceNode chanceNode)
-        {
             return true; // ignored
         }
 
-        public void ChanceNode_ReceiveFromSuccessors(ChanceNode chanceNode, IEnumerable<double[]> fromSuccessors)
+        public double[] ChanceNode_Backward(ChanceNode chanceNode, IEnumerable<double[]> fromSuccessors)
         {
             var d = ChanceNodePassback[chanceNode.ChanceNodeNumber];
             ProcessSuccessors(d, fromSuccessors);
+            return d;
         }
 
-        public double[] ChanceNode_SendToPredecessor(ChanceNode chanceNode)
-        {
-            return ChanceNodePassback[chanceNode.ChanceNodeNumber];
-        }
-
-        public void InformationSet_ReceiveFromPredecessor(InformationSetNode informationSet, bool fromPredecessor)
+        public bool InformationSet_Forward(InformationSetNode informationSet, bool fromPredecessor)
         {
             if (Min)
             {
@@ -73,30 +60,23 @@ namespace ACESim
                 for (int i = 0; i < NumNonChancePlayers; i++)
                     informationSet.MaxPossible[i] = int.MinValue; // initialize to value that will be replaced
             }
-        }
-
-        public bool InformationSet_SendToSuccessors(InformationSetNode informationSet)
-        {
             return true; // ignored
         }
 
-        public void InformationSet_ReceiveFromSuccessors(InformationSetNode informationSet, IEnumerable<double[]> fromSuccessors)
+        public double[] InformationSet_Backward(InformationSetNode informationSet, IEnumerable<double[]> fromSuccessors)
         {
             if (Min)
             {
                 ProcessSuccessors(informationSet.MinPossible, fromSuccessors);
                 informationSet.MinPossibleThisPlayer = informationSet.MinPossible[informationSet.PlayerIndex];
+                return informationSet.MinPossible;
             }
             else
             {
                 ProcessSuccessors(informationSet.MaxPossible, fromSuccessors);
                 informationSet.MaxPossibleThisPlayer = informationSet.MaxPossible[informationSet.PlayerIndex];
+                return informationSet.MaxPossible;
             }
-        }
-
-        public double[] InformationSet_SendToPredecessor(InformationSetNode informationSet)
-        {
-            return Max ? informationSet.MaxPossible : informationSet.MinPossible;
         }
     }
 
