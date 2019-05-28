@@ -218,7 +218,7 @@ namespace ACESim
             stopwatch.Start();
             Console.WriteLine("Calculating min-max...");
             foreach (bool isMin in new bool[] { true, false })
-                // DEBUG foreach (byte? playerIndex in Enumerable.Range(0, NumNonChancePlayers).Select(x => (byte?) x))
+                // foreach (byte? playerIndex in Enumerable.Range(0, NumNonChancePlayers).Select(x => (byte?) x))
                 foreach (byte? playerIndex in new byte?[] { null }) // uncomment to avoid distributing distributable distributor inputs
                 {
                     CalculateMinMax c = new CalculateMinMax(isMin, NumNonChancePlayers, playerIndex);
@@ -665,8 +665,6 @@ namespace ACESim
                 }
                 else
                     bestResponse = CalculateBestResponse(playerBeingOptimized, actionStrategy);
-                foreach (var DEBUG in InformationSets.OrderBy(x => x.InformationSetNumber))
-                    Console.WriteLine($"BR {DEBUG.InformationSetNumber}: {DEBUG.LastBestResponseAction}");
                 BestResponseUtilities[playerBeingOptimized] = bestResponse;
                 s.Stop();
                 BestResponseCalculationTimes[playerBeingOptimized] = s.ElapsedMilliseconds;
@@ -1152,7 +1150,7 @@ namespace ACESim
         {
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             var informationSet = (InformationSetNode)gameStateForCurrentPlayer;
-            TabbedText.WriteLine($"Information set {informationSet.Decision.Name} ({informationSet.InformationSetNumber})"); // DEBUG
+            //TabbedText.WriteLine($"Information set {informationSet.Decision.Name} ({informationSet.InformationSetNumber})");
             byte decisionNum = informationSet.DecisionIndex;
             byte numPossibleActions = (byte)informationSet.NumPossibleActions;
             for (byte action = 1; action <= numPossibleActions; action++)
@@ -1172,7 +1170,7 @@ namespace ACESim
         {
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             ChanceNode chanceNode = (ChanceNode)gameStateForCurrentPlayer;
-            TabbedText.WriteLine($"Chance node {chanceNode.Decision.Name}"); // DEBUG
+            //TabbedText.WriteLine($"Chance node {chanceNode.Decision.Name}"); 
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNode.DecisionIndex);
             var historyPointCopy = historyPoint; // can't use historyPoint in anonymous method below. This is costly, so it might be worth optimizing if we use HedgeVanillaCFR much.
 
@@ -1192,7 +1190,7 @@ namespace ACESim
                     correspondingNode = unequal; // this must be the flattened one
                     chanceNodeAggregatingSkipped[key] = unequal;
                 }
-                TabbedText.WriteLine($"Registering decision {decision.Name} with probability {piChance}: distributor chance inputs {distributorChanceInputs} key {key} probabilities to distribute: {String.Join(",", probabilities)}"); // DEBUG
+                //TabbedText.WriteLine($"Registering decision {decision.Name} with probability {piChance}: distributor chance inputs {distributorChanceInputs} key {key} probabilities to distribute: {String.Join(",", probabilities)}");
                 correspondingNode.RegisterProbabilityForDistributorChanceInput(piChance, distributorChanceInputs, probabilities);
                 if (decision.DistributorChanceDecision)
                 {
@@ -1216,8 +1214,8 @@ namespace ACESim
                 piChanceNext *= actionProbability;
                 if (!chanceNode.Decision.DistributorChanceInputDecision)
                     piChanceNextExcludingNondistributed *= actionProbability;
-                if (chanceNode.Decision.Name.Contains("PostPrimary") || chanceNode.Decision.Name.Contains("Signal") || chanceNode.Decision.Name.Contains("LitigationQuality") || chanceNode.Decision.Name.Contains("PrePrimary"))
-                    TabbedText.WriteLine($"{chanceNode.Decision.Name}: action: {action} probability: {actionProbability} cumulative probability {piChanceNext}"); // DEBUG
+                //if (chanceNode.Decision.Name.Contains("PostPrimary") || chanceNode.Decision.Name.Contains("Signal") || chanceNode.Decision.Name.Contains("LitigationQuality") || chanceNode.Decision.Name.Contains("PrePrimary"))
+                //    TabbedText.WriteLine($"{chanceNode.Decision.Name}: action: {action} probability: {actionProbability} cumulative probability {piChanceNext}");
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
                 bool stopNonChanceDecisions = DistributeChanceDecisions_WalkNode(ref nextHistoryPoint, piChanceNext, distributorChanceInputsNext, chanceNode.Decision.DistributedChanceDecision ? distributedActionsString + chanceNode.DecisionByteCode + ":1;" : distributedActionsString, chanceNodeAggregatingSkipped);
                 if (stopNonChanceDecisions && chanceNode.Decision.NumPossibleActions == 1)

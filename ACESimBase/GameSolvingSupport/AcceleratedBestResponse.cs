@@ -31,10 +31,6 @@ namespace ACESim
 
         public double ChanceNode_Backward(ChanceNode chanceNode, IEnumerable<double> fromSuccessors, DistributorChanceInputs distributorChanceInputs)
         {
-            if (chanceNode.Decision.Name == "LitigationQuality")
-            {
-                var DEBUG = 0;
-            }
             double value = 0;
             byte a = 1;
             double probabilitiesTotal = 0;
