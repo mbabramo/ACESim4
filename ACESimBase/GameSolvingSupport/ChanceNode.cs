@@ -22,6 +22,8 @@ namespace ACESim
 
         public abstract double GetActionProbability(int action, DistributorChanceInputs distributorChanceInputs);
 
+        public string GetActionProbabilityString(DistributorChanceInputs distributorChanceInputs) => String.Join(",", Enumerable.Range(1, Decision.NumPossibleActions).Select(action => GetActionProbability(action, distributorChanceInputs)));
+
         public ChanceNode()
         {
             ChanceNodeNumber = ChanceNodesSoFar;

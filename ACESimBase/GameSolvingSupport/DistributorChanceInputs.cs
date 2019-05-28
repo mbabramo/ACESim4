@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace ACESim
@@ -33,7 +34,6 @@ namespace ACESim
                 actionWasDistributed = false;
                 return this;
             }
-            int increment = action * decision.DistributorChanceInputDecisionMultiplier;
             if (decision.DistributableDistributorChanceInput && distributeDistributableDistributorChanceInputs)
             {
                 // distribute all possible actions so that we are passing forward an array
@@ -41,7 +41,8 @@ namespace ACESim
                 var distributed = new List<(int value, double probability)>();
                 for (action = 1; action <= decision.NumPossibleActions; action++)
                 {
-                    double probability = chanceNode.GetActionProbability(action);
+                    int increment = action * decision.DistributorChanceInputDecisionMultiplier;
+                    double probability = chanceNode.GetActionProbability(action, this);
                     foreach (var old in oldAccumulated)
                         distributed.Add((old.value + increment, old.probability * probability));
                 }
@@ -50,6 +51,7 @@ namespace ACESim
             }
             else
             {
+                int increment = action * decision.DistributorChanceInputDecisionMultiplier;
                 actionWasDistributed = false;
                 if (Distributed == null)
                 {
@@ -59,12 +61,13 @@ namespace ACESim
                 else
                 {
                     int count = Distributed.Count;
+                    var dnext = Distributed.ToList();
                     for (int i = 0; i < count; i++)
                     {
-                        var d = Distributed[i];
-                        Distributed[i] = (d.value + increment, d.probability);
+                        var d = dnext[i];
+                        dnext[i] = (d.value + increment, d.probability);
                     }
-                    return new DistributorChanceInputs(Distributed);
+                    return new DistributorChanceInputs(dnext);
                 }
             }
         }
