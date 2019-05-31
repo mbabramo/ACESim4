@@ -221,7 +221,7 @@ namespace ACESim
         }
 
 
-        public void AddToSimpleActionsList(byte action)
+        private void AddToSimpleActionsList(byte action)
         {
             if (action == 0)
                 throw new Exception("Invalid action.");
@@ -267,7 +267,7 @@ namespace ACESim
         #region Player information sets
 
 
-        public void AddToInformationSetAndLog(byte information, byte followingDecisionIndex, byte playerIndex, byte[] playersToInform, GameProgress gameProgress)
+        private void AddToInformationSetAndLog(byte information, byte followingDecisionIndex, byte playerIndex, byte[] playersToInform, GameProgress gameProgress)
         {
             if (playersToInform == null)
                 return;

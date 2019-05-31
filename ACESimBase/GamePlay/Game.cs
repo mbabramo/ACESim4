@@ -117,21 +117,26 @@ namespace ACESim
             }
             else if (DecisionNeeded)
             {
-                byte action = ChooseAction();
-                byte numPossibleActions = CurrentDecision.NumPossibleActions;
-                if (Progress.IsFinalGamePath && action < numPossibleActions)
-                    Progress.IsFinalGamePath = false;
-                byte decisionIndex = (byte)CurrentDecisionIndex;
-                byte playerNumber = CurrentPlayerNumber;
-                UpdateGameHistory(ref Progress.GameHistory, GameDefinition, currentDecision, decisionIndex, action, Progress);
-                // We update game progress now (note that this will not be called when traversing the tree -- that's why we don't do this within UpdateGameHistory)
-                if (!currentDecision.Subdividable_IsSubdivision) // If it is a subdivision, we'll call this in Update
-                    UpdateGameProgressFollowingAction(currentDecision.DecisionByteCode, action); 
-                else if (currentDecision.Subdividable_IsSubdivision_Last)
-                {
-                    byte aggregatedAction = Progress.GameHistory.GetCacheItemAtIndex(GameHistory.Cache_SubdivisionAggregationIndex);
-                    UpdateGameProgressFollowingAction(currentDecision.Subdividable_CorrespondingDecisionByteCode, aggregatedAction);
-                }
+                MakeDecision(currentDecision);
+            }
+        }
+
+        private void MakeDecision(Decision currentDecision)
+        {
+            byte action = ChooseAction();
+            byte numPossibleActions = CurrentDecision.NumPossibleActions;
+            if (Progress.IsFinalGamePath && action < numPossibleActions)
+                Progress.IsFinalGamePath = false;
+            byte decisionIndex = (byte)CurrentDecisionIndex;
+            byte playerNumber = CurrentPlayerNumber;
+            UpdateGameHistory(ref Progress.GameHistory, GameDefinition, currentDecision, decisionIndex, action, Progress);
+            // We update game progress now (note that this will not be called when traversing the tree -- that's why we don't do this within UpdateGameHistory)
+            if (!currentDecision.Subdividable_IsSubdivision) // If it is a subdivision, we'll call this in Update
+                UpdateGameProgressFollowingAction(currentDecision.DecisionByteCode, action);
+            else if (currentDecision.Subdividable_IsSubdivision_Last)
+            {
+                byte aggregatedAction = Progress.GameHistory.GetCacheItemAtIndex(GameHistory.Cache_SubdivisionAggregationIndex);
+                UpdateGameProgressFollowingAction(currentDecision.Subdividable_CorrespondingDecisionByteCode, aggregatedAction);
             }
         }
 

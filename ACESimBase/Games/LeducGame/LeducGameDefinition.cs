@@ -57,12 +57,12 @@ namespace ACESim
         {
             var decisions = new List<Decision>
             {
-                new Decision("P1C", "P1C", (byte) LeducGamePlayers.Player1Chance, new byte[] { (byte) LeducGamePlayers.Player1, (byte) LeducGamePlayers.Resolution, (byte) LeducGamePlayers.Player2Chance, (byte) LeducGamePlayers.FlopChance }, 3, (byte) LeducGameDecisions.P1Chance) { StoreActionInGameCacheItem = GameHistoryCacheIndex_P1Card },
-                new Decision("P2C", "P2C", (byte) LeducGamePlayers.Player2Chance, new byte[] { (byte) LeducGamePlayers.Player2, (byte) LeducGamePlayers.Resolution, (byte) LeducGamePlayers.FlopChance }, 3, (byte) LeducGameDecisions.P2Chance, unevenChanceActions: true)  { StoreActionInGameCacheItem = GameHistoryCacheIndex_P2Card }
+                new Decision("P1C", "P1C", true, (byte) LeducGamePlayers.Player1Chance, new byte[] { (byte) LeducGamePlayers.Player1, (byte) LeducGamePlayers.Resolution, (byte) LeducGamePlayers.Player2Chance, (byte) LeducGamePlayers.FlopChance }, 3, (byte) LeducGameDecisions.P1Chance) { StoreActionInGameCacheItem = GameHistoryCacheIndex_P1Card },
+                new Decision("P2C", "P2C", true, (byte) LeducGamePlayers.Player2Chance, new byte[] { (byte) LeducGamePlayers.Player2, (byte) LeducGamePlayers.Resolution, (byte) LeducGamePlayers.FlopChance }, 3, (byte) LeducGameDecisions.P2Chance, unevenChanceActions: true)  { StoreActionInGameCacheItem = GameHistoryCacheIndex_P2Card }
             };
             AddRoundDecisions(true, decisions);
             decisions.Add(
-                new Decision("FC", "FC", (byte)LeducGamePlayers.FlopChance, new byte[] { (byte)LeducGamePlayers.Player1, (byte)LeducGamePlayers.Player2, (byte)LeducGamePlayers.Resolution }, 3, (byte)LeducGameDecisions.FlopChance, unevenChanceActions: true) { StoreActionInGameCacheItem = GameHistoryCacheIndex_FlopCard });
+                new Decision("FC", "FC", true,  (byte)LeducGamePlayers.FlopChance, new byte[] { (byte)LeducGamePlayers.Player1, (byte)LeducGamePlayers.Player2, (byte)LeducGamePlayers.Resolution }, 3, (byte)LeducGameDecisions.FlopChance, unevenChanceActions: true) { StoreActionInGameCacheItem = GameHistoryCacheIndex_FlopCard });
             AddRoundDecisions(false, decisions);
             foreach (Decision d in decisions)
                 d.IsReversible = true;
@@ -135,7 +135,7 @@ namespace ACESim
                     break;
             }
 
-            decisions.Add(new Decision($"{playerAbbreviation}{initialOrFollowup}{roundDesignation}{choiceDesignation}", $"{playerAbbreviation}{initialOrFollowup}{roundDesignationAbbreviation}{choiceDesignation}", (byte)player, playersToNotify, numActions, (byte) gameDecision) { CanTerminateGame = canTerminateGame, CustomByte = customByte, StoreActionInGameCacheItem = cacheIndex });
+            decisions.Add(new Decision($"{playerAbbreviation}{initialOrFollowup}{roundDesignation}{choiceDesignation}", $"{playerAbbreviation}{initialOrFollowup}{roundDesignationAbbreviation}{choiceDesignation}", false, (byte)player, playersToNotify, numActions, (byte) gameDecision) { CanTerminateGame = canTerminateGame, CustomByte = customByte, StoreActionInGameCacheItem = cacheIndex });
         }
 
         #endregion

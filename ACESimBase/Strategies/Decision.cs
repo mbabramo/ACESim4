@@ -22,6 +22,11 @@ namespace ACESim
         public String Abbreviation;
 
         /// <summary>
+        /// True if this is a decision of a chance player
+        /// </summary>
+        public bool IsChance;
+
+        /// <summary>
         /// The player responsible for this decision.
         /// </summary>
         public byte PlayerNumber;
@@ -226,7 +231,7 @@ namespace ACESim
 
         }
 
-        public Decision(string name, string abbreviation, byte playerNumber, byte[] playersToInform, byte numActions, byte decisionByteCode = 0, string decisionTypeCode = null, int repetitionsAfterFirst = 0, string preevolvedStrategyFilename = null, List<string> informationSetAbbreviations = null, byte? alwaysDoAction = null, bool unevenChanceActions = false, bool criticalNode = false)
+        public Decision(string name, string abbreviation, bool isChance, byte playerNumber, byte[] playersToInform, byte numActions, byte decisionByteCode = 0, string decisionTypeCode = null, int repetitionsAfterFirst = 0, string preevolvedStrategyFilename = null, List<string> informationSetAbbreviations = null, byte? alwaysDoAction = null, bool unevenChanceActions = false, bool criticalNode = false)
         {
             Name = name;
             Abbreviation = abbreviation;
@@ -245,7 +250,7 @@ namespace ACESim
 
         public Decision Clone()
         {
-            Decision d = new Decision(Name, Abbreviation, PlayerNumber, PlayersToInform?.ToArray() ?? new byte[] {}, NumPossibleActions, DecisionByteCode, DecisionTypeCode, RepetitionsAfterFirst, PreevolvedStrategyFilename, InformationSetAbbreviations, AlwaysDoAction, UnevenChanceActions, CriticalNode) { IsAlwaysPlayersLastDecision = IsAlwaysPlayersLastDecision, CanTerminateGame = CanTerminateGame, IncrementGameCacheItem = IncrementGameCacheItem, CustomByte = CustomByte, Subdividable = Subdividable, Subdividable_NumLevels = Subdividable_NumLevels, Subdividable_NumOptionsPerBranch = Subdividable_NumOptionsPerBranch, Subdividable_CorrespondingDecisionByteCode = Subdividable_CorrespondingDecisionByteCode, Subdividable_IsSubdivision = Subdividable_IsSubdivision, Subdividable_IsSubdivision_Last = Subdividable_IsSubdivision_Last, Subdividable_IsSubdivision_First = Subdividable_IsSubdivision_First, Subdividable_AggregateNumPossibleActions = Subdividable_AggregateNumPossibleActions, DeferNotificationOfPlayers = DeferNotificationOfPlayers, StoreActionInGameCacheItem = StoreActionInGameCacheItem, Subdividable_IsSubdivision_Level = Subdividable_IsSubdivision_Level, };
+            Decision d = new Decision(Name, Abbreviation, IsChance, PlayerNumber, PlayersToInform?.ToArray() ?? new byte[] {}, NumPossibleActions, DecisionByteCode, DecisionTypeCode, RepetitionsAfterFirst, PreevolvedStrategyFilename, InformationSetAbbreviations, AlwaysDoAction, UnevenChanceActions, CriticalNode) { IsAlwaysPlayersLastDecision = IsAlwaysPlayersLastDecision, CanTerminateGame = CanTerminateGame, IncrementGameCacheItem = IncrementGameCacheItem, CustomByte = CustomByte, Subdividable = Subdividable, Subdividable_NumLevels = Subdividable_NumLevels, Subdividable_NumOptionsPerBranch = Subdividable_NumOptionsPerBranch, Subdividable_CorrespondingDecisionByteCode = Subdividable_CorrespondingDecisionByteCode, Subdividable_IsSubdivision = Subdividable_IsSubdivision, Subdividable_IsSubdivision_Last = Subdividable_IsSubdivision_Last, Subdividable_IsSubdivision_First = Subdividable_IsSubdivision_First, Subdividable_AggregateNumPossibleActions = Subdividable_AggregateNumPossibleActions, DeferNotificationOfPlayers = DeferNotificationOfPlayers, StoreActionInGameCacheItem = StoreActionInGameCacheItem, Subdividable_IsSubdivision_Level = Subdividable_IsSubdivision_Level, };
             return d;
         }
 

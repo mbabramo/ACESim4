@@ -17,6 +17,7 @@ namespace ACESim
         public GameHistory GameHistory;
         public GameFullHistory GameFullHistory;
         public InformationSetLog InformationSetLog;
+        public double PiChance; // probability chance would play to here
         public List<byte> ActionsToPlay = new List<byte>();
         /// <summary>
         /// A function that will choose an action to take for a particular decision, overriding other mechanisms. If it returns 0, the standard mechanisms will be used.

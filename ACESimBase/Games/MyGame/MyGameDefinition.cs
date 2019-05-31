@@ -164,17 +164,17 @@ namespace ACESim
             CheckCompleteAfterPostPrimaryAction = postPrimaryChanceCanTerminate;
             if (prePrimaryChanceActions > 0)
             {
-                decisions.Add(new Decision("PrePrimaryChanceActions", "PrePrimary", (byte) MyGamePlayers.PrePrimaryChance, prePrimaryPlayersToInform, prePrimaryChanceActions, (byte) MyGameDecisions.PrePrimaryActionChance) {StoreActionInGameCacheItem = GameHistoryCacheIndex_PrePrimaryChance, IsReversible = true, UnevenChanceActions = prePrimaryUnevenChance, Unroll_Parallelize = disputeGenerator.GetPrePrimaryUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetPrePrimaryUnrollSettings().unrollIdentical, DistributedChanceDecision = true });
+                decisions.Add(new Decision("PrePrimaryChanceActions", "PrePrimary", true, (byte) MyGamePlayers.PrePrimaryChance, prePrimaryPlayersToInform, prePrimaryChanceActions, (byte) MyGameDecisions.PrePrimaryActionChance) {StoreActionInGameCacheItem = GameHistoryCacheIndex_PrePrimaryChance, IsReversible = true, UnevenChanceActions = prePrimaryUnevenChance, Unroll_Parallelize = disputeGenerator.GetPrePrimaryUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetPrePrimaryUnrollSettings().unrollIdentical, DistributedChanceDecision = true });
             }
             if (primaryActions > 0)
             {
-                decisions.Add(new Decision("PrimaryActions", "Primary", (byte) MyGamePlayers.PrePrimaryChance /* there is no primary chance player */, primaryPlayersToInform, primaryActions, (byte) MyGameDecisions.PrimaryAction) {StoreActionInGameCacheItem = GameHistoryCacheIndex_PrimaryAction, IsReversible = true, CanTerminateGame = primaryActionCanTerminate, Unroll_Parallelize = disputeGenerator.GetPrimaryUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetPrimaryUnrollSettings().unrollIdentical, DistributedChanceDecision = true });
+                decisions.Add(new Decision("PrimaryActions", "Primary", true, (byte) MyGamePlayers.PrePrimaryChance /* there is no primary chance player */, primaryPlayersToInform, primaryActions, (byte) MyGameDecisions.PrimaryAction) {StoreActionInGameCacheItem = GameHistoryCacheIndex_PrimaryAction, IsReversible = true, CanTerminateGame = primaryActionCanTerminate, Unroll_Parallelize = disputeGenerator.GetPrimaryUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetPrimaryUnrollSettings().unrollIdentical, DistributedChanceDecision = true });
             }
             if (postPrimaryChanceActions > 0)
             {
-                decisions.Add(new Decision("PostPrimaryChanceActions", "PostPrimary", (byte) MyGamePlayers.PostPrimaryChance, postPrimaryPlayersToInform, postPrimaryChanceActions, (byte) MyGameDecisions.PostPrimaryActionChance) {StoreActionInGameCacheItem = GameHistoryCacheIndex_PostPrimaryChance, IsReversible = true, UnevenChanceActions = postPrimaryUnevenChance, CanTerminateGame = postPrimaryChanceCanTerminate, Unroll_Parallelize = disputeGenerator.GetPostPrimaryUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetPostPrimaryUnrollSettings().unrollIdentical, DistributedChanceDecision = true });
+                decisions.Add(new Decision("PostPrimaryChanceActions", "PostPrimary", true, (byte) MyGamePlayers.PostPrimaryChance, postPrimaryPlayersToInform, postPrimaryChanceActions, (byte) MyGameDecisions.PostPrimaryActionChance) {StoreActionInGameCacheItem = GameHistoryCacheIndex_PostPrimaryChance, IsReversible = true, UnevenChanceActions = postPrimaryUnevenChance, CanTerminateGame = postPrimaryChanceCanTerminate, Unroll_Parallelize = disputeGenerator.GetPostPrimaryUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetPostPrimaryUnrollSettings().unrollIdentical, DistributedChanceDecision = true });
             }
-            decisions.Add(new Decision("LitigationQuality", "Qual", (byte)MyGamePlayers.QualityChance,
+            decisions.Add(new Decision("LitigationQuality", "Qual", true, (byte)MyGamePlayers.QualityChance,
                     playersKnowingLitigationQuality.ToArray(), Options.NumLitigationQualityPoints, (byte)MyGameDecisions.LitigationQuality)
                 { StoreActionInGameCacheItem = GameHistoryCacheIndex_LitigationQuality, IsReversible = true, UnevenChanceActions = litigationQualityUnevenChance, Unroll_Parallelize = disputeGenerator.GetLitigationQualityUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetLitigationQualityUnrollSettings().unrollIdentical, DistributedChanceDecision = true });
         }
@@ -183,7 +183,7 @@ namespace ACESim
         {
             // Plaintiff and defendant signals. If a player has perfect information, then no signal is needed.
             if (Options.PNoiseStdev != 0)
-                decisions.Add(new Decision("PlaintiffSignal", "PS", (byte)MyGamePlayers.PSignalChance,
+                decisions.Add(new Decision("PlaintiffSignal", "PS", true, (byte)MyGamePlayers.PSignalChance,
                     new byte[] {(byte) MyGamePlayers.Plaintiff},
                     Options.NumSignals, (byte)MyGameDecisions.PSignal, unevenChanceActions: true)
                 {
@@ -195,7 +195,7 @@ namespace ACESim
                     ProvidesPrivateInformationFor = (byte)MyGamePlayers.Plaintiff
                 });
             if (Options.DNoiseStdev != 0)
-                decisions.Add(new Decision("DefendantSignal", "DS", (byte)MyGamePlayers.DSignalChance,
+                decisions.Add(new Decision("DefendantSignal", "DS", true, (byte)MyGamePlayers.DSignalChance,
                     new byte[] { (byte)MyGamePlayers.Defendant },
                     Options.NumSignals, (byte)MyGameDecisions.DSignal, unevenChanceActions: true)
                 {
@@ -248,7 +248,7 @@ namespace ACESim
         private void AddFileAndAnswerDecisions(List<Decision> decisions)
         {
             var pFile =
-                new Decision("PFile", "PF", (byte)MyGamePlayers.Plaintiff, new byte[]  { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
+                new Decision("PFile", "PF", false, (byte)MyGamePlayers.Plaintiff, new byte[]  { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
                     2, (byte)MyGameDecisions.PFile)
                 { // TODO: Maybe can eliminate notice to plaintiff and defendant here and below
                     CanTerminateGame = true, // not filing always terminates
@@ -257,7 +257,7 @@ namespace ACESim
             decisions.Add(pFile);
 
             var dAnswer =
-                new Decision("DAnswer", "DA", (byte)MyGamePlayers.Defendant, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
+                new Decision("DAnswer", "DA", false, (byte)MyGamePlayers.Defendant, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
                     2, (byte)MyGameDecisions.DAnswer)
                 {
                     CanTerminateGame = true, // not answering terminates, with defendant paying full damages
@@ -272,7 +272,7 @@ namespace ACESim
 
             if (Options.IncludeAgreementToBargainDecisions)
             {
-                var pAgreeToBargain = new Decision("PAgreeToBargain" + (b + 1), "PB" + (b + 1), (byte) MyGamePlayers.Plaintiff, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
+                var pAgreeToBargain = new Decision("PAgreeToBargain" + (b + 1), "PB" + (b + 1), false, (byte) MyGamePlayers.Plaintiff, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
                     2, (byte) MyGameDecisions.PAgreeToBargain)
                 {
                     CustomByte = (byte) (b + 1),
@@ -284,7 +284,7 @@ namespace ACESim
                 };
                 decisions.Add(pAgreeToBargain);
 
-                var dAgreeToBargain = new Decision("DAgreeToBargain" + (b + 1), "DB" + (b + 1), (byte) MyGamePlayers.Defendant, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
+                var dAgreeToBargain = new Decision("DAgreeToBargain" + (b + 1), "DB" + (b + 1), false, (byte) MyGamePlayers.Defendant, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
                     2, (byte) MyGameDecisions.DAgreeToBargain)
                 {
                     CustomByte = (byte) (b + 1),
@@ -301,7 +301,7 @@ namespace ACESim
             {
                 // samuelson-chaterjee bargaining.
                 var pOffer =
-                    new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
+                    new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), false, (byte)MyGamePlayers.Plaintiff, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
                         Options.NumOffers, (byte)MyGameDecisions.POffer)
                     {
                         CustomByte = (byte)(b + 1),
@@ -319,7 +319,7 @@ namespace ACESim
                 }
                 AddOfferDecisionOrSubdivisions(decisions, pOffer);
                 var dOffer =
-                    new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
+                    new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), false, (byte)MyGamePlayers.Defendant, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
                         Options.NumOffers, (byte)MyGameDecisions.DOffer)
                     {
                         CanTerminateGame = true,
@@ -343,7 +343,7 @@ namespace ACESim
                 if (Options.PGoesFirstIfNotSimultaneous[b])
                 {
                     var pOffer =
-                        new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), (byte)MyGamePlayers.Plaintiff, new byte[] { (byte) MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
+                        new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), false, (byte)MyGamePlayers.Plaintiff, new byte[] { (byte) MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
                             Options.NumOffers, (byte)MyGameDecisions.POffer)
                         {
                             CustomByte = (byte)(b + 1),
@@ -356,7 +356,7 @@ namespace ACESim
                         pOffer.IncrementGameCacheItem = pOffer.IncrementGameCacheItem.Concat(new byte[] {GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound}).ToArray(); // for detour marker
                     AddOfferDecisionOrSubdivisions(decisions, pOffer);
                     decisions.Add(
-                        new Decision("DefendantResponse" + (b + 1), "DR" + (b + 1), (byte)MyGamePlayers.Defendant, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution }, 2,
+                        new Decision("DefendantResponse" + (b + 1), "DR" + (b + 1), false, (byte)MyGamePlayers.Defendant, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution }, 2,
                             (byte)MyGameDecisions.DResponse)
                         {
                             CanTerminateGame = true,
@@ -368,7 +368,7 @@ namespace ACESim
                 else
                 {
                     var dOffer =
-                        new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), (byte)MyGamePlayers.Defendant, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
+                        new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), false, (byte)MyGamePlayers.Defendant, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
                             Options.NumOffers, (byte)MyGameDecisions.DOffer)
                         {
                             CustomByte = (byte)(b + 1),
@@ -381,7 +381,7 @@ namespace ACESim
                         dOffer.IncrementGameCacheItem = dOffer.IncrementGameCacheItem.Concat(new byte[] {GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound}).ToArray(); // for detour marker
                     AddOfferDecisionOrSubdivisions(decisions, dOffer);
                     decisions.Add(
-                        new Decision("PlaintiffResponse" + (b + 1), "PR" + (b + 1), (byte)MyGamePlayers.Plaintiff, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution }, 2,
+                        new Decision("PlaintiffResponse" + (b + 1), "PR" + (b + 1), false, (byte)MyGamePlayers.Plaintiff, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution }, 2,
                             (byte)MyGameDecisions.PResponse)
                         {
                             CanTerminateGame = true,
@@ -401,7 +401,7 @@ namespace ACESim
         private void AddRunningSideBetDecisions(int b, List<Decision> decisions)
         {
             var pRSideBet =
-                new Decision("pRSideBet" + (b + 1), "PRSB" + (b + 1), (byte)MyGamePlayers.Plaintiff, new byte[] { },
+                new Decision("pRSideBet" + (b + 1), "PRSB" + (b + 1), false, (byte)MyGamePlayers.Plaintiff, new byte[] { },
                     (byte) (Options.MyGameRunningSideBets.MaxChipsPerRound + 1), (byte)MyGameDecisions.PChips)
                 {
                     CustomByte = (byte)(b + 1),
@@ -412,7 +412,7 @@ namespace ACESim
                 };
             decisions.Add(pRSideBet);
             var dRSideBet =
-                new Decision("dRSideBet" + (b + 1), "DRSB" + (b + 1), (byte)MyGamePlayers.Defendant, new byte[] { },
+                new Decision("dRSideBet" + (b + 1), "DRSB" + (b + 1), false, (byte)MyGamePlayers.Defendant, new byte[] { },
                     (byte)(Options.MyGameRunningSideBets.MaxChipsPerRound + 1), (byte)MyGameDecisions.DChips)
                 {
                     CustomByte = (byte)(b + 1),
@@ -430,7 +430,7 @@ namespace ACESim
             // These decisions don't need to be added to P/D information sets, because if the game is abandoned or defaulted by at least one player, there are no more player decisions. If there are player decisions, this hasn't occurred. However, we still need a marker to indicate that the decision has occurred, so that the player can distinguish its own decision to abandon/default from any later pretrial decision.
 
             var pAbandon =
-                new Decision("PAbandon" + (b + 1), "PA" + (b + 1), (byte)MyGamePlayers.Plaintiff, new byte[] { (byte)MyGamePlayers.Resolution },
+                new Decision("PAbandon" + (b + 1), "PA" + (b + 1), false, (byte)MyGamePlayers.Plaintiff, new byte[] { (byte)MyGamePlayers.Resolution },
                     2, (byte)MyGameDecisions.PAbandon)
                 {
                     CustomByte = (byte)(b + 1),
@@ -443,7 +443,7 @@ namespace ACESim
             decisions.Add(pAbandon);
 
             var dDefault =
-                new Decision("DDefault" + (b + 1), "DD" + (b + 1), (byte)MyGamePlayers.Defendant, new byte[] { (byte)MyGamePlayers.Resolution },
+                new Decision("DDefault" + (b + 1), "DD" + (b + 1), false, (byte)MyGamePlayers.Defendant, new byte[] { (byte)MyGamePlayers.Resolution },
                     2, (byte)MyGameDecisions.DDefault)
                 {
                     CustomByte = (byte)(b + 1),
@@ -456,7 +456,7 @@ namespace ACESim
             decisions.Add(dDefault);
 
             var bothGiveUp =
-                new Decision("MutualGiveUp" + (b + 1), "MGU" + (b + 1), (byte)MyGamePlayers.BothGiveUpChance, new byte[] { (byte)MyGamePlayers.Resolution },
+                new Decision("MutualGiveUp" + (b + 1), "MGU" + (b + 1), true, (byte)MyGamePlayers.BothGiveUpChance, new byte[] { (byte)MyGamePlayers.Resolution },
                     2, (byte)MyGameDecisions.MutualGiveUp, unevenChanceActions: false)
                 {
                     CustomByte = (byte)(b + 1),
@@ -471,7 +471,7 @@ namespace ACESim
         private void AddPreBargainingRoundDummyDecision(int b, List<Decision> decisions)
         {
             var dummyDecision =
-                new Decision("PreBargainingRound" + (b + 1), "PRBR" + (b + 1), (byte)MyGamePlayers.PreBargainingRoundChance, null,
+                new Decision("PreBargainingRound" + (b + 1), "PRBR" + (b + 1), true, (byte)MyGamePlayers.PreBargainingRoundChance, null,
                     1 /* i.e., just an opportunity to do some calculation and cleanup */, (byte)MyGameDecisions.PreBargainingRound, unevenChanceActions: false)
                 {
                     CustomByte = (byte)(b + 1),
@@ -485,7 +485,7 @@ namespace ACESim
         private void AddPostBargainingRoundDummyDecision(int b, List<Decision> decisions)
         {
             var dummyDecision =
-                new Decision("PostBargainingRound" + (b + 1), "POBR" + (b + 1), (byte)MyGamePlayers.PostBargainingRoundChance, null,
+                new Decision("PostBargainingRound" + (b + 1), "POBR" + (b + 1), true, (byte)MyGamePlayers.PostBargainingRoundChance, null,
                     1 /* i.e., just an opportunity to do some calculation and cleanup */, (byte)MyGameDecisions.PostBargainingRound, unevenChanceActions: false)
                 {
                     CustomByte = (byte)(b + 1),
@@ -503,18 +503,18 @@ namespace ACESim
                 Options.MyGamePretrialDecisionGeneratorGenerator.GetActionsSetup(this, out byte pActions, out byte dActions, out byte[] playersToInformOfPAction, out byte[] playersToInformOfDAction);
                 if (pActions > 0)
                 {
-                    decisions.Add(new Decision("PPreTrial", "PPT", (byte) MyGamePlayers.Plaintiff, playersToInformOfPAction, pActions, (byte) MyGameDecisions.PPretrialAction) { IsReversible = true});
+                    decisions.Add(new Decision("PPreTrial", "PPT", false, (byte) MyGamePlayers.Plaintiff, playersToInformOfPAction, pActions, (byte) MyGameDecisions.PPretrialAction) { IsReversible = true});
                 }
                 if (dActions > 0)
                 {
-                    decisions.Add(new Decision("DPreTrial", "DPT", (byte)MyGamePlayers.Defendant, playersToInformOfDAction, dActions, (byte)MyGameDecisions.DPretrialAction) { IsReversible = true });
+                    decisions.Add(new Decision("DPreTrial", "DPT", false, (byte)MyGamePlayers.Defendant, playersToInformOfDAction, dActions, (byte)MyGameDecisions.DPretrialAction) { IsReversible = true });
                 }
             }
         }
 
         private void AddCourtDecision(List<Decision> decisions)
         {
-            decisions.Add(new Decision("CourtDecision", "CD", (byte)MyGamePlayers.CourtChance,
+            decisions.Add(new Decision("CourtDecision", "CD", true, (byte)MyGamePlayers.CourtChance,
                     new byte[] { (byte)MyGamePlayers.Resolution }, 2, (byte)MyGameDecisions.CourtDecision,
                     unevenChanceActions: true, criticalNode: true)
                 { CanTerminateGame = true, AlwaysTerminatesGame = true, IsReversible = true, DistributorChanceDecision = true }); // even chance options

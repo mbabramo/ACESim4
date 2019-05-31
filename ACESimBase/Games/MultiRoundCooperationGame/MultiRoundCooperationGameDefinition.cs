@@ -53,8 +53,8 @@ namespace ACESim
             for (byte i = 1; i <= TotalRounds; i++)
             {
                 decisions.Add(
-                    new Decision("P1-" + i, "P1-" + i, (byte) MultiRoundCooperationGamePlayers.Player1, new byte[] { (byte) MultiRoundCooperationGamePlayers.Player1, (byte) MultiRoundCooperationGamePlayers.Player2, (byte) MultiRoundCooperationGamePlayers.Resolution}, 2, (byte) MultiRoundCooperationGameDecisions.P1Decision));
-                var p2Decision = new Decision("P2-" + i, "P2-" + i, (byte)MultiRoundCooperationGamePlayers.Player2, new byte[] { (byte)MultiRoundCooperationGamePlayers.Player1, (byte)MultiRoundCooperationGamePlayers.Player2, (byte)MultiRoundCooperationGamePlayers.Resolution }, 2, (byte)MultiRoundCooperationGameDecisions.P2Decision);
+                    new Decision("P1-" + i, "P1-" + i, false, (byte) MultiRoundCooperationGamePlayers.Player1, new byte[] { (byte) MultiRoundCooperationGamePlayers.Player1, (byte) MultiRoundCooperationGamePlayers.Player2, (byte) MultiRoundCooperationGamePlayers.Resolution}, 2, (byte) MultiRoundCooperationGameDecisions.P1Decision));
+                var p2Decision = new Decision("P2-" + i, "P2-" + i, false, (byte)MultiRoundCooperationGamePlayers.Player2, new byte[] { (byte)MultiRoundCooperationGamePlayers.Player1, (byte)MultiRoundCooperationGamePlayers.Player2, (byte)MultiRoundCooperationGamePlayers.Resolution }, 2, (byte)MultiRoundCooperationGameDecisions.P2Decision);
                 if (i == TotalRounds)
                     p2Decision.AlwaysTerminatesGame = p2Decision.CanTerminateGame = true;
                 decisions.Add(
