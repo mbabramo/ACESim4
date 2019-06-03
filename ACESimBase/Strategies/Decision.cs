@@ -82,9 +82,14 @@ namespace ACESim
         public bool DistributedChanceDecision;
 
         /// <summary>
-        /// True if this is a chance decision with uneven chance probabilities where those probabilities can be based on the distribution of earlier DistributedDecision for each permutation of the DistributorChanceInputDecisions.
+        /// True if this is a chance decision with uneven chance probabilities where those probabilities can be based on the distribution of earlier DistributedChanceDecisions for each permutation of the DistributorChanceInputDecisions.
         /// </summary>
         public bool DistributorChanceDecision;
+
+        /// <summary>
+        /// True if each chance node for the decision can calculate the probabilities directly based on the distributed chance decisions, i.e. GetUnevenChanceActionProbabilitiesFromChanceInformationSet is defined for this decision. This is used by the accelerated best response algorithm as an alternative approach to calculating chance probabilities based on the DistributorChanceInputDecisions.
+        /// </summary>
+        public bool CanCalculateDistributorChanceDecisionProbabilitiesFromInformationSet;
 
         /// <summary>
         /// True if this is a decision that is not a distributed chance decision but that is relevant to the correct calculation of chance probabilities in a later DistributorChanceDecision. That is, the DistributedChanceDecision would ordinarily be part of the information set for the DistributorChanceDecision, but because the distributed decision is distributed, we combine all the permutations of the DistributorChanceInputDecision into a single information set. This can be a chance decision that provides information to one of the parties, or it could be a player decision that affects later chance probabilities. 

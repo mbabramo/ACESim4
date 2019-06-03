@@ -16,7 +16,7 @@ namespace ACESim
         bool DistributionComplete;
 
         /// <summary>
-        /// This is used to calculate the uneven chance probabilities for a nondistributed action.
+        /// This is used to calculate the uneven chance probabilities given distributor chance inputs. This is called for a distributor chance input decision (e.g., a player's hidden signal) or a distributor chance decision (i.e., a chance decision whose values will differ depending on the value of that hidden signal). It will be called multiple times for the various distributor chance input values, so that the probability increments (for example, from different values of a card hidden to all players) can be added.
         /// </summary>
         /// <param name="piChance"></param>
         /// <param name="probabilityIncrements"></param>

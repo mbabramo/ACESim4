@@ -517,13 +517,13 @@ namespace ACESim
             decisions.Add(new Decision("CourtDecision", "CD", true, (byte)MyGamePlayers.CourtChance,
                     new byte[] { (byte)MyGamePlayers.Resolution }, 2, (byte)MyGameDecisions.CourtDecision,
                     unevenChanceActions: true, criticalNode: true)
-                { CanTerminateGame = true, AlwaysTerminatesGame = true, IsReversible = true, DistributorChanceDecision = true }); // even chance options
+                { CanTerminateGame = true, AlwaysTerminatesGame = true, IsReversible = true, DistributorChanceDecision = true, CanCalculateDistributorChanceDecisionProbabilitiesFromInformationSet = true }); // even chance options
         }
 
         #endregion
 
         #region Game play support 
-        
+
         public override double[] GetUnevenChanceActionProbabilities(byte decisionByteCode, GameProgress gameProgress)
         {
             if (decisionByteCode == (byte)MyGameDecisions.PrePrimaryActionChance)
@@ -564,6 +564,39 @@ namespace ACESim
             }
             else
                 throw new NotImplementedException(); // subclass should define if needed
+        }
+
+        public override unsafe double[] GetUnevenChanceActionProbabilitiesFromChanceInformationSet(byte decisionByteCode, byte* informationSet)
+        {
+            if (decisionByteCode == (byte)MyGameDecisions.CourtDecision)
+            {
+                byte litigationQuality = *informationSet;
+                var probabilities = GetCSignalProbabilities(litigationQuality);
+                return probabilities;
+            }
+            return null;
+        }
+
+        public override unsafe double[] GetUnevenChanceActionProbabilitiesFromChanceInformationSet(byte decisionByteCode, List<(List<byte>, double)> distributionOfChanceValues)
+        {
+            // The distribution of chance values will include combinations of all distributor chance decisions. For now, we only care about the litigation quality decision. Each litigation quality itself produces a distribution of court signal probabilities. We average these distributions based on the probability of various litigation qualities.  
+            if (decisionByteCode == (byte)MyGameDecisions.CourtDecision)
+            {
+                double[] results = new double[distributionOfChanceValues.Count]; 
+                for (int j = 0; j < distributionOfChanceValues.Count; j++)
+                {
+                    var item = distributionOfChanceValues[j];
+                    byte litigationQuality = item.Item1.Last(); // assume that litigation quality is last item
+                    double probabilityThisItem = item.Item2;
+                    var probabilitiesForLitigationQuality = GetCSignalProbabilities(litigationQuality);
+                    if (results == null)
+                        results = new double[probabilitiesForLitigationQuality.Length];
+                    for (int i = 0; i < probabilitiesForLitigationQuality.Length; i++)
+                        results[i] += probabilitiesForLitigationQuality[i] * probabilityThisItem;
+                }
+                return results;
+            }
+            return null;
         }
 
         public override bool SkipDecision(Decision decision, ref GameHistory gameHistory)

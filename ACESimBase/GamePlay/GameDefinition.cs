@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Diagnostics;
+using ACESimBase.Util;
 
 namespace ACESim
 {
@@ -368,7 +369,23 @@ namespace ACESim
 
         public virtual double[] GetUnevenChanceActionProbabilities(byte decisionByteCode, GameProgress gameProgress)
         {
-            throw new NotImplementedException(); // subclass should define if needed
+            return null; // subclass should define if needed
+        }
+
+        public virtual unsafe double[] GetUnevenChanceActionProbabilitiesFromChanceInformationSet(byte decisionByteCode, List<(List<byte>, double)> distributionOfChanceValues)
+        {
+            return null;
+        }
+
+        /// <summary>
+        /// This method 
+        /// </summary>
+        /// <param name="decisionByteCode"></param>
+        /// <param name="informationSet"></param>
+        /// <returns></returns>
+        public virtual unsafe double[] GetUnevenChanceActionProbabilitiesFromChanceInformationSet(byte decisionByteCode, byte* informationSet)
+        {
+            return null; // subclass should define if needed
         }
 
         public virtual bool ShouldMarkGameHistoryComplete(Decision currentDecision, ref GameHistory gameHistory, byte actionChosen)
