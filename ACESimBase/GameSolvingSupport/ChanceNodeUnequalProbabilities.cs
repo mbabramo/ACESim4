@@ -65,16 +65,6 @@ namespace ACESim
             return Probabilities[action - 1];
         }
 
-
-        public override double GetActionProbability(int action, DistributorChanceInputs distributorChanceInputs)
-        {
-            if (DistributionComplete && ProbabilitiesForDistributorChanceInputs != null && distributorChanceInputs.ContainsAccumulatedValue)
-            {
-                return ProbabilitiesForDistributorChanceInputs[distributorChanceInputs.SingleScalarValue][action - 1];
-            }
-            return Probabilities[action - 1];
-        }
-
         public override bool AllProbabilitiesEqual()
         {
             return false;

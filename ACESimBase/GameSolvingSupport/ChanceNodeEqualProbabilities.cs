@@ -13,8 +13,6 @@ namespace ACESim
 
         public override double GetActionProbability(int action, int distributorChanceInputs = -1) => EachProbability;
 
-        public override double GetActionProbability(int action, DistributorChanceInputs distributorChanceInputs) => EachProbability; // ignore the inptus
-
         public override bool AllProbabilitiesEqual()
         {
             return true;

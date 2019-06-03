@@ -24,12 +24,12 @@ namespace ACESim
             return result;
         }
 
-        public bool ChanceNode_Forward(ChanceNode chanceNode, bool fromPredecessor, DistributorChanceInputs distributorChanceInputs)
+        public bool ChanceNode_Forward(ChanceNode chanceNode, bool fromPredecessor, int distributorChanceInputs)
         {
             return true; // ignored
         }
 
-        public double ChanceNode_Backward(ChanceNode chanceNode, IEnumerable<double> fromSuccessors, DistributorChanceInputs distributorChanceInputs)
+        public double ChanceNode_Backward(ChanceNode chanceNode, IEnumerable<double> fromSuccessors, int distributorChanceInputs)
         {
             double value = 0;
             byte a = 1;

@@ -1512,10 +1512,10 @@ namespace ACESim
         public Back TreeWalk_Tree<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor)
         {
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
-            return TreeWalk_Node(processor, default(Forward), new DistributorChanceInputs(), ref historyPoint);
+            return TreeWalk_Node(processor, default(Forward), 0, ref historyPoint);
         }
 
-        public Back TreeWalk_Node<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, Forward forward, DistributorChanceInputs distributorChanceInputs, ref HistoryPoint historyPoint)
+        public Back TreeWalk_Node<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, Forward forward, int distributorChanceInputs, ref HistoryPoint historyPoint)
         {
             TabbedText.Tabs++;
             IGameState gameState = GetGameState(ref historyPoint);
@@ -1538,7 +1538,7 @@ namespace ACESim
             return b;
         }
 
-        public Back TreeWalk_ChanceNode<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, ChanceNode chanceNode, Forward forward, DistributorChanceInputs distributorChanceInputs, ref HistoryPoint historyPoint)
+        public Back TreeWalk_ChanceNode<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, ChanceNode chanceNode, Forward forward, int distributorChanceInputs, ref HistoryPoint historyPoint)
         {
             Forward nextForward = processor.ChanceNode_Forward(chanceNode, forward, distributorChanceInputs);
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNode.DecisionIndex);
@@ -1549,19 +1549,20 @@ namespace ACESim
             for (byte action = 1; action <= numPossibleActionsToExplore; action++)
             {
                 TabbedText.WriteLine($"{chanceNode.Decision.Name} (C{chanceNode.ChanceNodeNumber}): {action} ({chanceNode.GetActionProbabilityString(distributorChanceInputs)})");
-                DistributorChanceInputs distributorChanceInputsNext = distributorChanceInputs.AddDistributorChanceInput(chanceNode, action);
+                bool isDistributorChanceInputDecision = chanceNode.Decision.DistributorChanceInputDecision;
+                int distributorChanceInputsNext = isDistributorChanceInputDecision ? distributorChanceInputs + action * chanceNode.Decision.DistributorChanceInputDecisionMultiplier : distributorChanceInputs;
 
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
                 var fromSuccessor = TreeWalk_Node(processor, nextForward, distributorChanceInputsNext, ref nextHistoryPoint);
                 fromSuccessors.Add(fromSuccessor);
 
-                if (chanceNode.Decision.DistributorChanceInputDecision)
+                if (isDistributorChanceInputDecision)
                     break;
             }
             return processor.ChanceNode_Backward(chanceNode, fromSuccessors, distributorChanceInputs);
         }
 
-        public Back TreeWalk_DecisionNode<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, InformationSetNode nodeTally, Forward forward, DistributorChanceInputs distributorChanceInputs, ref HistoryPoint historyPoint)
+        public Back TreeWalk_DecisionNode<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, InformationSetNode nodeTally, Forward forward, int distributorChanceInputs, ref HistoryPoint historyPoint)
         {
             Forward nextForward = processor.InformationSet_Forward(nodeTally, forward);
             byte numPossibleActions = NumPossibleActionsAtDecision(nodeTally.DecisionIndex);

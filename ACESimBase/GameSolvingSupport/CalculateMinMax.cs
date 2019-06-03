@@ -40,7 +40,7 @@ namespace ACESim
                         valuesToUpdate[i] = fromSuccessor[i];
         }
 
-        public bool ChanceNode_Forward(ChanceNode chanceNode, bool fromPredecessor, DistributorChanceInputs distributorChanceInputs)
+        public bool ChanceNode_Forward(ChanceNode chanceNode, bool fromPredecessor, int distributorChanceInputs)
         {
             double[] d = new double[NumNonChancePlayers];
             foreach (int i in CalculatingForPlayers)
@@ -49,7 +49,7 @@ namespace ACESim
             return true; // ignored
         }
 
-        public double[] ChanceNode_Backward(ChanceNode chanceNode, IEnumerable<double[]> fromSuccessors, DistributorChanceInputs distributorChanceInputs)
+        public double[] ChanceNode_Backward(ChanceNode chanceNode, IEnumerable<double[]> fromSuccessors, int distributorChanceInputs)
         {
             var d = ChanceNodePassback[chanceNode.ChanceNodeNumber];
             ProcessSuccessors(d, fromSuccessors);
