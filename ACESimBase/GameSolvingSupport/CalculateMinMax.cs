@@ -56,8 +56,6 @@ namespace ACESim
             return d;
         }
 
-        public bool DistributeDistributableDistributorChanceInputs(ChanceNode chanceNode) => CalculatingForPlayer != null && chanceNode.Decision.ProvidesPrivateInformationFor != CalculatingForPlayer;
-
         public bool InformationSet_Forward(InformationSetNode informationSet, bool fromPredecessor)
         {
             if (Min)

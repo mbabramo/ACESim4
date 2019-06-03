@@ -47,8 +47,6 @@ namespace ACESim
             return value;
         }
 
-        public bool DistributeDistributableDistributorChanceInputs(ChanceNode chanceNode) => chanceNode.Decision.ProvidesPrivateInformationFor != CalculatingForPlayer;
-
         public bool InformationSet_Forward(InformationSetNode informationSet, bool fromPredecessor)
         {
             TabbedText.WriteLine($"{informationSet.Decision.Name}...");

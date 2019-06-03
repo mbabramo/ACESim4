@@ -1549,14 +1549,13 @@ namespace ACESim
             for (byte action = 1; action <= numPossibleActionsToExplore; action++)
             {
                 TabbedText.WriteLine($"{chanceNode.Decision.Name} (C{chanceNode.ChanceNodeNumber}): {action} ({chanceNode.GetActionProbabilityString(distributorChanceInputs)})");
-                bool distributeDistributableDistributorChanceInputs = processor.DistributeDistributableDistributorChanceInputs(chanceNode);
-                DistributorChanceInputs distributorChanceInputsNext = distributorChanceInputs.AddDistributorChanceInput(chanceNode, action, distributeDistributableDistributorChanceInputs, out bool actionWasDistributed);
+                DistributorChanceInputs distributorChanceInputsNext = distributorChanceInputs.AddDistributorChanceInput(chanceNode, action);
 
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
                 var fromSuccessor = TreeWalk_Node(processor, nextForward, distributorChanceInputsNext, ref nextHistoryPoint);
                 fromSuccessors.Add(fromSuccessor);
 
-                if (actionWasDistributed)
+                if (chanceNode.Decision.DistributorChanceInputDecision)
                     break;
             }
             return processor.ChanceNode_Backward(chanceNode, fromSuccessors, distributorChanceInputs);

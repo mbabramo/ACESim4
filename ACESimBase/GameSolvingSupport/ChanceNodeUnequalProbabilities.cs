@@ -70,19 +70,7 @@ namespace ACESim
         {
             if (DistributionComplete && ProbabilitiesForDistributorChanceInputs != null && distributorChanceInputs.ContainsAccumulatedValue)
             {
-                double sumProbabilityProducts = 0;
-                if (distributorChanceInputs.Distributed != null)
-                {
-                    foreach (var input in distributorChanceInputs.Distributed)
-                    {
-                        // We have probabilities for specific distributor chance input values. But now we have multiple values, each with another probability. So, we need to calculate a weighted average.
-                        double probabilityForDistributorChanceInputValue = ProbabilitiesForDistributorChanceInputs[input.value][action - 1];
-                        sumProbabilityProducts += probabilityForDistributorChanceInputValue * input.probability;
-                    }
-                    return sumProbabilityProducts;
-                }
-                else
-                    return ProbabilitiesForDistributorChanceInputs[distributorChanceInputs.SingleScalarValue][action - 1];
+                return ProbabilitiesForDistributorChanceInputs[distributorChanceInputs.SingleScalarValue][action - 1];
             }
             return Probabilities[action - 1];
         }
