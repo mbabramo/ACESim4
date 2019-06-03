@@ -346,8 +346,6 @@ namespace ACESim
                         isNecessarilyLast,
                         () =>
                         {
-                            if (gameProgress == null)
-                                throw new Exception(); // DEBUG
                             if (playerInfo.PlayerIsChance)
                             {
                                 ChanceNode chanceNode;
