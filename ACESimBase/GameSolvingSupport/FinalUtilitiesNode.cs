@@ -13,6 +13,7 @@ namespace ACESim
         public double[] Utilities;
         public static int FinalUtilitiesNodesSoFar = 0;
         public int FinalUtilitiesNodeNumber;
+        public int GetNodeNumber() => FinalUtilitiesNodeNumber;
 
         public FinalUtilitiesNode(double[] utilities)
         {

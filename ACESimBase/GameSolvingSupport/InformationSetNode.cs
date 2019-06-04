@@ -1,4 +1,5 @@
 ﻿using ACESim.Util;
+using ACESimBase.GameSolvingSupport;
 using ACESimBase.Util;
 using System;
 using System.Collections.Generic;
@@ -18,11 +19,21 @@ namespace ACESim
         public const double SmallestProbabilityRepresented = 1E-300; // We make this considerably greater than Double.Epsilon (but still very small), because otherwise when we multiply the value by anything < 1, we get 0, and this makes it impossible to climb out of being a zero-probability action.
 
         public static int InformationSetsSoFar = 0;
-        public int InformationSetNumber; // could delete this once things are working, but may be useful in testing scenarios
+        public int InformationSetNodeNumber; // could delete this once things are working, but may be useful in testing scenarios
+        public int GetNodeNumber() => InformationSetNodeNumber;
         public Decision Decision;
         public byte DecisionByteCode => Decision.DecisionByteCode;
         public byte DecisionIndex;
         public byte PlayerIndex => Decision.PlayerNumber;
+
+        // information for accelerated best response
+        public double SelfReachProbability, OpponentsReachProbability;
+        public InformationSetNode PredecessorInformationSetForPlayer;
+        public byte ActionTakenAtPredecessorSet;
+        public Dictionary<ByteList, NodeActionsMultipleHistories> PathsFromPredecessor;
+        public Dictionary<byte, NodeActionsMultipleHistories> PathsToSuccessor;
+
+
         public bool MustUseBackup;
         public int NumTotalIncrements = 0;
         public int NumRegretIncrements = 0;
@@ -74,6 +85,7 @@ namespace ACESim
         public SimpleExclusiveLock UpdatingHedge;
         const double NormalizedHedgeEpsilon = 0.5; // Higher epsilon means less discounting; lower epsilons are more aggressive
         public byte LastBestResponseAction = 0;
+        public double LastBestResponseValue;
         public bool BestResponseDeterminedFromIncrements = false; // this is used by the generalized best response algorithm to determine whether it needs to recalculate best response
 
         // hedge probing
@@ -97,7 +109,7 @@ namespace ACESim
             Decision = decision;
             DecisionIndex = decisionIndex;
             Initialize(totalDimensions, decision.NumPossibleActions);
-            InformationSetNumber = InformationSetsSoFar;
+            InformationSetNodeNumber = InformationSetsSoFar;
             Interlocked.Increment(ref InformationSetsSoFar);
             RecordPastValues = evolutionSettings.RecordPastValues;
             RecordPastValuesEveryN = evolutionSettings.RecordPastValuesEveryN;
@@ -124,12 +136,12 @@ namespace ACESim
 
         public string ToStringAbbreviated()
         {
-            return $"Information set {InformationSetNumber}: Probabilities {GetProbabilitiesString()} {GetBestResponseStringIfAvailable()}RegretIncrements {NumRegretIncrements}";
+            return $"Information set {InformationSetNodeNumber}: Probabilities {GetProbabilitiesString()} {GetBestResponseStringIfAvailable()}RegretIncrements {NumRegretIncrements}";
         }
 
         public override string ToString()
         {
-            return $"Information set {InformationSetNumber}: DecisionByteCode {DecisionByteCode} (index {DecisionIndex}) PlayerIndex {PlayerIndex} Probabilities {GetProbabilitiesString()} {GetBestResponseStringIfAvailable()}Regrets{(MustUseBackup ? "*" : "")} {GetCumulativeRegretsString()} Strategies {GetCumulativeStrategiesString()} RegretIncrements {NumRegretIncrements} NumBackupRegretsSinceLastRegretIncrement {NumBackupRegretsSinceLastRegretIncrement} NumBackupRegretIncrements {NumBackupRegretIncrements} TotalIncrements {NumTotalIncrements}";
+            return $"Information set {InformationSetNodeNumber}: DecisionByteCode {DecisionByteCode} (index {DecisionIndex}) PlayerIndex {PlayerIndex} Probabilities {GetProbabilitiesString()} {GetBestResponseStringIfAvailable()}Regrets{(MustUseBackup ? "*" : "")} {GetCumulativeRegretsString()} Strategies {GetCumulativeStrategiesString()} RegretIncrements {NumRegretIncrements} NumBackupRegretsSinceLastRegretIncrement {NumBackupRegretsSinceLastRegretIncrement} NumBackupRegretIncrements {NumBackupRegretIncrements} TotalIncrements {NumTotalIncrements}";
         }
 
         public string GetBestResponseStringIfAvailable()
@@ -245,6 +257,7 @@ namespace ACESim
                 }
             }
             LastBestResponseAction = (byte)best;
+            LastBestResponseValue = bestRatio;
             BestResponseDeterminedFromIncrements = true;
         }
 
@@ -919,7 +932,7 @@ namespace ACESim
             string avgStratString = GetAverageStrategiesAsString();
             bool avgStratSameAsBestResponse = averageStrategies[LastBestResponseAction - 1] > 0.9999999;
             //if (ranges.Count() > 1)
-                Console.WriteLine($"{(avgStratSameAsBestResponse ? "*" : "")} decision {Decision.Name} Information set {InformationSetNumber} bestrespon {LastBestResponseAction} hedge {hedgeString} avg {avgStratString} avg distance {avgDistanceString} ranges: {rangesString}");
+                Console.WriteLine($"{(avgStratSameAsBestResponse ? "*" : "")} decision {Decision.Name} Information set {InformationSetNodeNumber} bestrespon {LastBestResponseAction} hedge {hedgeString} avg {avgStratString} avg distance {avgDistanceString} ranges: {rangesString}");
         }
 
         #endregion

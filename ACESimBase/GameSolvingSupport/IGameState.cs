@@ -9,5 +9,6 @@ namespace ACESim
     public interface IGameState
     {
         GameStateTypeEnum GetGameStateType();
+        int GetNodeNumber();
     }
 }

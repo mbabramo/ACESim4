@@ -10,6 +10,21 @@ namespace ACESimBase.Util
     {
         public List<byte> TheList;
 
+        public ByteList(IEnumerable<byte> listItems)
+        {
+            TheList = TheList.ToList();
+        }
+
+        public ByteList(List<byte> theList)
+        {
+            TheList = theList;
+        }
+
+        public ByteList DeepCopy()
+        {
+            return new ByteList(TheList?.ToList());
+        }
+
         public override bool Equals(object obj)
         {
             ByteList other = obj as ByteList;

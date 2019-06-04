@@ -112,7 +112,7 @@ namespace ACESim
             if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionIndex))
             {
                 TabbedText.WriteLine(
-                    $"Decision {decisionIndex} {GameDefinition.DecisionsExecutionOrder[decisionIndex].Name} playerMakingDecision {playerMakingDecision} information set {informationSet.InformationSetNumber} inversePi {inversePi} depthSoFar {depthSoFar} ");
+                    $"Decision {decisionIndex} {GameDefinition.DecisionsExecutionOrder[decisionIndex].Name} playerMakingDecision {playerMakingDecision} information set {informationSet.InformationSetNodeNumber} inversePi {inversePi} depthSoFar {depthSoFar} ");
             }
             if (playerMakingDecision == playerIndex && depthSoFar > depthToTarget)
             {
@@ -225,7 +225,7 @@ namespace ACESim
                         if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionIndex))
                         {
                             TabbedText.WriteLine(
-                                $"Incrementing best response for information set {informationSet.InformationSetNumber} for action {action} inversePi {inversePi} expectedValue {expectedValue}");
+                                $"Incrementing best response for information set {informationSet.InformationSetNodeNumber} for action {action} inversePi {inversePi} expectedValue {expectedValue}");
                         }
                     }
                 }

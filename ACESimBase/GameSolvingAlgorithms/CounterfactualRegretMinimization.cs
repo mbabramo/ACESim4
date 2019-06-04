@@ -319,7 +319,7 @@ namespace ACESim
                         {
                             InformationSetNode t = (InformationSetNode)node.StoredValue;
                             if (t != null &&
-                                EvolutionSettings.RestrictToTheseInformationSets.Contains(t.InformationSetNumber))
+                                EvolutionSettings.RestrictToTheseInformationSets.Contains(t.InformationSetNodeNumber))
                             {
                                 Console.WriteLine($"{t}");
                             }
@@ -1458,7 +1458,7 @@ namespace ACESim
             if (NumNonChancePlayers > 2 || (!isBestResponse && !isCorrelatedEquilibrium))
                 throw new NotSupportedException(); // right now, using this just for correlated equilibrium & best response calculations after the game tree has already been defined
 
-            string nodeString = $"n[{informationSetNode.InformationSetNumber}]";
+            string nodeString = $"n[{informationSetNode.InformationSetNodeNumber}]";
 
             if (numPossibleActionsToExplore == 1)
             {
@@ -1573,7 +1573,7 @@ namespace ACESim
             List<Back> fromSuccessors = new List<Back>();
             for (byte action = 1; action <= numPossibleActionsToExplore; action++)
             {
-                TabbedText.WriteLine($"{informationSetNode.Decision.Name} ({informationSetNode.InformationSetNumber}): {action}");
+                TabbedText.WriteLine($"{informationSetNode.Decision.Name} ({informationSetNode.InformationSetNodeNumber}): {action}");
                 if (informationSetNode.Decision.DistributorChanceInputDecision)
                     throw new NotSupportedException(); // currently, we are only passing forward an array of distributor chance inputs from chance decisions, but we could adapt this to player decisions.
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSetNode.Decision, informationSetNode.DecisionIndex);

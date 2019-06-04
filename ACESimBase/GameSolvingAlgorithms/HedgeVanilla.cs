@@ -278,7 +278,7 @@ namespace ACESim
             Parallel.For(0, InformationSets.Count, x =>
             {
                 var infoSet = InformationSets[x];
-                int initialIndex = Unroll_InformationSetsIndices[infoSet.InformationSetNumber];
+                int initialIndex = Unroll_InformationSetsIndices[infoSet.InformationSetNodeNumber];
                 for (byte action = 1; action <= infoSet.NumPossibleActions; action++)
                 {
                     array[initialIndex++] = infoSet.GetNormalizedHedgeAverageStrategy(action);
@@ -312,12 +312,12 @@ namespace ACESim
                 var infoSet = InformationSets[x];
                 for (byte action = 1; action <= infoSet.NumPossibleActions; action++)
                 {
-                    int index = Unroll_GetInformationSetIndex_LastRegret(infoSet.InformationSetNumber, action);
+                    int index = Unroll_GetInformationSetIndex_LastRegret(infoSet.InformationSetNodeNumber, action);
                     infoSet.NormalizedHedgeIncrementLastRegret(action, array[index]);
-                    index = Unroll_GetInformationSetIndex_LastCumulativeStrategyIncrement(infoSet.InformationSetNumber, action);
+                    index = Unroll_GetInformationSetIndex_LastCumulativeStrategyIncrement(infoSet.InformationSetNodeNumber, action);
                     infoSet.NormalizedHedgeIncrementLastCumulativeStrategyIncrements(action, array[index]);
-                    int indexNumerator = Unroll_GetInformationSetIndex_BestResponseNumerator(infoSet.InformationSetNumber, action);
-                    int indexDenominator = Unroll_GetInformationSetIndex_BestResponseDenominator(infoSet.InformationSetNumber, action);
+                    int indexNumerator = Unroll_GetInformationSetIndex_BestResponseNumerator(infoSet.InformationSetNodeNumber, action);
+                    int indexDenominator = Unroll_GetInformationSetIndex_BestResponseDenominator(infoSet.InformationSetNodeNumber, action);
                     infoSet.SetBestResponse_NumeratorAndDenominator(action, array[indexNumerator], array[indexDenominator]); // this is the final value based on the probability-adjusted increments within the algorithm
                 }
             });
@@ -367,7 +367,7 @@ namespace ACESim
             byte decisionNum = informationSet.DecisionIndex;
             byte playerMakingDecision = informationSet.PlayerIndex;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
-            int[] actionProbabilities = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_HedgeProbabilities_All(informationSet.InformationSetNumber, numPossibleActions), true);
+            int[] actionProbabilities = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_HedgeProbabilities_All(informationSet.InformationSetNodeNumber, numPossibleActions), true);
             int[] expectedValueOfAction = Unroll_Commands.NewUninitializedArray(numPossibleActions);
             int expectedValue = Unroll_Commands.NewZero();
             bool pruningPossible = EvolutionSettings.PruneOnOpponentStrategy && playerBeingOptimized != playerMakingDecision;
@@ -381,7 +381,7 @@ namespace ACESim
                 int distributorChanceInputsNext = distributorChanceInputs;
                 if (informationSet.Decision.DistributorChanceInputDecision)
                     distributorChanceInputsNext += action * informationSet.Decision.DistributorChanceInputDecisionMultiplier;
-                int probabilityOfAction = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_HedgeProbability(informationSet.InformationSetNumber, action), true);
+                int probabilityOfAction = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_HedgeProbability(informationSet.InformationSetNodeNumber, action), true);
                 if (pruningPossible)
                 {
                     Unroll_Commands.InsertGreaterThanOtherArrayIndexCommand(probabilityOfAction, opponentPruningThresholdIndex); // if less than prune, so if greater than, don't prune (very unlikely to be exactly equal)
@@ -392,7 +392,7 @@ namespace ACESim
 
                 //if (EvolutionSettings.PruneOnOpponentStrategy && playerBeingOptimized != playerMakingDecision && probabilityOfAction < EvolutionSettings.PruneOnOpponentStrategyThreshold)
                 //    continue;
-                int probabilityOfActionAvgStrat = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_AverageStrategy(informationSet.InformationSetNumber, action), true);
+                int probabilityOfActionAvgStrat = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_AverageStrategy(informationSet.InformationSetNodeNumber, action), true);
                 int[] nextPiValues = Unroll_Commands.NewUninitializedArray(NumNonChancePlayers);
                 Unroll_GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false, nextPiValues); // reduce probability associated with player being optimized, without changing probabilities for other players
                 int[] nextAvgStratPiValues = Unroll_Commands.NewUninitializedArray(NumNonChancePlayers);
@@ -410,14 +410,14 @@ namespace ACESim
                 Unroll_Commands.CopyToExisting(expectedValueOfAction[action - 1], innerResult[Unroll_Result_HedgeVsHedgeIndex]);
                 if (playerMakingDecision == playerBeingOptimized)
                 {
-                    int lastBestResponseActionIndex = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_LastBestResponse(informationSet.InformationSetNumber, (byte) informationSet.NumPossibleActions), true);
+                    int lastBestResponseActionIndex = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_LastBestResponse(informationSet.InformationSetNodeNumber, (byte) informationSet.NumPossibleActions), true);
                     Unroll_Commands.InsertEqualsValueCommand(lastBestResponseActionIndex, (int)action);
                     Unroll_Commands.InsertIfCommand();
                         Unroll_Commands.CopyToExisting(resultArray[Unroll_Result_BestResponseIndex], innerResult[Unroll_Result_BestResponseIndex]);
                     Unroll_Commands.InsertEndIfCommand();
                     // Get the best response indices to write to -- note that we're not reading the value in
-                    int bestResponseNumerator = Unroll_GetInformationSetIndex_BestResponseNumerator(informationSet.InformationSetNumber, action);
-                    int bestResponseDenominator = Unroll_GetInformationSetIndex_BestResponseDenominator(informationSet.InformationSetNumber, action);
+                    int bestResponseNumerator = Unroll_GetInformationSetIndex_BestResponseNumerator(informationSet.InformationSetNodeNumber, action);
+                    int bestResponseDenominator = Unroll_GetInformationSetIndex_BestResponseDenominator(informationSet.InformationSetNodeNumber, action);
                     Unroll_Commands.IncrementByProduct(bestResponseNumerator, true, inversePiAvgStrat, innerResult[Unroll_Result_BestResponseIndex]);
                     Unroll_Commands.Increment(bestResponseDenominator, true, inversePiAvgStrat);
                     Unroll_Commands.IncrementByProduct(resultArray[Unroll_Result_HedgeVsHedgeIndex], false, probabilityOfAction, innerResult[Unroll_Result_HedgeVsHedgeIndex]);
@@ -458,12 +458,12 @@ namespace ACESim
                     Unroll_Commands.InsertEndIfCommand();
                     int regret = Unroll_Commands.CopyToNew(expectedValueOfAction[action - 1], false);
                     Unroll_Commands.Decrement(regret, expectedValue);
-                    int lastRegret = Unroll_GetInformationSetIndex_LastRegret(informationSet.InformationSetNumber, action);
+                    int lastRegret = Unroll_GetInformationSetIndex_LastRegret(informationSet.InformationSetNodeNumber, action);
                     Unroll_Commands.IncrementByProduct(lastRegret, true, inversePi, regret);
                     // now contribution to average strategy
                     int contributionToAverageStrategy = Unroll_Commands.CopyToNew(pi, false);
                     Unroll_Commands.MultiplyBy(contributionToAverageStrategy, actionProbabilities[action - 1]); // note: we don't multiply by average strategy adjustment here -- we do so at end of iteration
-                    int lastCumulativeStrategyIncrement = Unroll_GetInformationSetIndex_LastCumulativeStrategyIncrement(informationSet.InformationSetNumber, action);
+                    int lastCumulativeStrategyIncrement = Unroll_GetInformationSetIndex_LastCumulativeStrategyIncrement(informationSet.InformationSetNodeNumber, action);
                     Unroll_Commands.Increment(lastCumulativeStrategyIncrement, true, contributionToAverageStrategy);
                     if (TraceCFR)
                     {
