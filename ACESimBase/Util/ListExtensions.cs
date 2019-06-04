@@ -20,6 +20,14 @@ namespace ACESim.Util
 
     public static class ListExtensions
     {
+        public static int GetSequenceHashCode<TItem>(this IEnumerable<TItem> list)
+        {
+            if (list == null) return 0;
+            const int seedValue = 0x2D2816FE;
+            const int primeNumber = 397;
+            return list.Aggregate(seedValue, (current, item) => (current * primeNumber) + (Equals(item, default(TItem)) ? 0 : item.GetHashCode()));
+        }
+
         public static int GetIndexOfDifference<T>(this List<T> x, List<T> y)
         {
             int xCount = x.Count(), yCount = y.Count();
