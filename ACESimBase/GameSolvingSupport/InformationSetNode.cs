@@ -30,9 +30,9 @@ namespace ACESim
         public double SelfReachProbability, OpponentsReachProbability;
         public InformationSetNode PredecessorInformationSetForPlayer;
         public byte ActionTakenAtPredecessorSet;
-        public Dictionary<ByteList, NodeActionsMultipleHistories> PathsFromPredecessor;
-        public Dictionary<byte, NodeActionsMultipleHistories> PathsToSuccessor;
-
+        public Dictionary<ByteList, NodeActionsHistory> PathsFromPredecessor;
+        public List<NodeActionsMultipleHistories> PathsToSuccessor;
+        public double[] LastBestResponseValues; // one per nonchance player
 
         public bool MustUseBackup;
         public int NumTotalIncrements = 0;
@@ -85,7 +85,6 @@ namespace ACESim
         public SimpleExclusiveLock UpdatingHedge;
         const double NormalizedHedgeEpsilon = 0.5; // Higher epsilon means less discounting; lower epsilons are more aggressive
         public byte LastBestResponseAction = 0;
-        public double LastBestResponseValue;
         public bool BestResponseDeterminedFromIncrements = false; // this is used by the generalized best response algorithm to determine whether it needs to recalculate best response
 
         // hedge probing
@@ -257,7 +256,6 @@ namespace ACESim
                 }
             }
             LastBestResponseAction = (byte)best;
-            LastBestResponseValue = bestRatio;
             BestResponseDeterminedFromIncrements = true;
         }
 

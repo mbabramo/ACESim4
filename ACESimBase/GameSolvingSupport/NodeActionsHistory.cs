@@ -37,6 +37,17 @@ namespace ACESimBase.GameSolvingSupport
             return HashCode.Combine(NodeActions, SuccessorInformationSet);
         }
 
+        public NodeActionsHistory WithPrepended(IGameState node, byte actionAtNode, int distributorChanceInputs = -1)
+        {
+            var copied = NodeActions.ToList();
+            copied.Insert(0, new NodeAction(node, actionAtNode, distributorChanceInputs));
+            return new NodeActionsHistory()
+            {
+                NodeActions = copied,
+                SuccessorInformationSet = SuccessorInformationSet
+            };
+        }
+
         public NodeActionsHistory WithAppended(IGameState node, byte actionAtNode, int distributorChanceInputs = -1)
         {
             var copied = NodeActions.ToList();
