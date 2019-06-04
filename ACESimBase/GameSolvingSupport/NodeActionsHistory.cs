@@ -142,20 +142,20 @@ namespace ACESimBase.GameSolvingSupport
         }
 
         /// <summary>
-        /// Returns a list of actions, excluding a specified player as well as distributed chance decisions and distributor chance input decisions, if chance decisions are being distributed. The decisions included are thus all those that may differentiate the action taken at the current information set.
+        /// Returns a list of actions, excluding a specified player as well as distributed chance decisions, if chance decisions are being distributed. The decisions included are thus all those that may differentiate the action taken at the current information set.
         /// </summary>
         /// <param name="excludePlayerIndex"></param>
         /// <param name="distributingChanceDecisions"></param>
         /// <returns></returns>
         public ByteList GetActionsList(byte? excludePlayerIndex, bool distributingChanceDecisions)
         {
-            return new ByteList(NodeActions
+            IEnumerable<byte> nodesToInclude = NodeActions
                 .Where(x => excludePlayerIndex == null || !(x.Node is InformationSetNode informationSet) || informationSet.PlayerIndex != excludePlayerIndex)
-                .Where(x => !(x.Node is ChanceNode chanceNode) || 
-                        (!(chanceNode.Decision.DistributedChanceDecision) && !(chanceNode.Decision.DistributorChanceInputDecision))
+                .Where(x => !(x.Node is ChanceNode chanceNode) ||
+                        (!(chanceNode.Decision.DistributedChanceDecision))
                         || !distributingChanceDecisions)
-                .Select(x => x.ActionAtNode)
-                );
+                .Select(x => x.ActionAtNode);
+            return new ByteList(nodesToInclude);
         }
     }
 }

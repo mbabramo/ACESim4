@@ -12,12 +12,12 @@ namespace ACESimBase.Util
 
         public ByteList(IEnumerable<byte> listItems)
         {
-            TheList = TheList.ToList();
+            TheList = listItems?.ToList() ?? new List<byte>();
         }
 
         public ByteList(List<byte> theList)
         {
-            TheList = theList;
+            TheList = theList ?? new List<byte>();
         }
 
         public ByteList DeepCopy()

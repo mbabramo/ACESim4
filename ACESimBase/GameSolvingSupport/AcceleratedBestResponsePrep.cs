@@ -58,7 +58,7 @@ namespace ACESimBase.GameSolvingSupport
         {
             List<NodeActionsMultipleHistories> returnList = new List<NodeActionsMultipleHistories>();
             var invertMultipleHistories = GetMultipleHistoriesByPlayer(fromSuccessors);
-            for (byte playerIndex = 0; playerIndex <= NumNonChancePlayers; playerIndex++)
+            for (byte playerIndex = 0; playerIndex < NumNonChancePlayers; playerIndex++)
             {
                 List<NodeActionsMultipleHistories> successorsForPlayer = invertMultipleHistories[playerIndex];
                 bool isOwnInformationSet = informationSet.PlayerIndex == playerIndex;
@@ -80,7 +80,7 @@ namespace ACESimBase.GameSolvingSupport
         {
             List<NodeActionsMultipleHistories> returnList = new List<NodeActionsMultipleHistories>();
             var invertMultipleHistories = GetMultipleHistoriesByPlayer(fromSuccessors);
-            for (byte playerIndex = 0; playerIndex <= NumNonChancePlayers; playerIndex++)
+            for (byte playerIndex = 0; playerIndex < NumNonChancePlayers; playerIndex++)
             {
                 List<NodeActionsMultipleHistories> successorsForPlayer = invertMultipleHistories[playerIndex];
                 NodeActionsMultipleHistories result = NodeActionsMultipleHistories.FlattenedWithPrepend(successorsForPlayer, chanceNode, distributorChanceInputs);

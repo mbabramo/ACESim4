@@ -710,6 +710,8 @@ namespace ACESim
             for (int a = 1; a <= NumPossibleActions; a++)
             {
                 double regretIncrements = NodeInformation[lastRegretDimension, a - 1];
+                if (MaxPossibleThisPlayer == MinPossibleThisPlayer)
+                    throw new Exception();
                 double normalizedRegret = (regretIncrements - MinPossibleThisPlayer) / (MaxPossibleThisPlayer - MinPossibleThisPlayer);
                 double adjustedNormalizedRegret = 1.0 - normalizedRegret;
                 double weightAdjustment = Math.Pow(1 - NormalizedHedgeEpsilon, adjustedNormalizedRegret);
@@ -717,7 +719,7 @@ namespace ACESim
                 weight *= weightAdjustment;
                 if (weight < SmallestProbabilityRepresented)
                     weight = SmallestProbabilityRepresented; // can't let weights go to zero or they never recover
-                if (double.IsNaN(weight))
+                if (double.IsNaN(weight) || double.IsInfinity(weight))
                     throw new Exception();
                 NodeInformation[adjustedWeightsDimension, a - 1] = weight;
                 sumWeights += weight;
