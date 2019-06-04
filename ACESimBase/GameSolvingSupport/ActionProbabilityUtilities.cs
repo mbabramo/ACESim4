@@ -87,44 +87,44 @@ namespace ACESim
             }
             else
             { // not a chance node or a leaf node
-                InformationSetNode nodeTally = (InformationSetNode)gameStateForCurrentPlayer;
+                InformationSetNode informationSetNode = (InformationSetNode)gameStateForCurrentPlayer;
                 if (alwaysDoAction != null)
                     SetProbabilitiesToAlwaysDoParticularAction(numPossibleActions, probabilities, (byte)alwaysDoAction);
                 else
                     switch (actionStrategy)
                     {
                         case ActionStrategies.RegretMatching:
-                            nodeTally.GetRegretMatchingProbabilities(probabilities);
+                            informationSetNode.GetRegretMatchingProbabilities(probabilities);
                             break;
                         case ActionStrategies.AverageStrategy:
-                            nodeTally.GetAverageStrategies(probabilities);
+                            informationSetNode.GetAverageStrategies(probabilities);
                             break;
                         case ActionStrategies.BestResponse:
-                            nodeTally.GetBestResponseProbabilities(probabilities);
+                            informationSetNode.GetBestResponseProbabilities(probabilities);
                             break;
                         case ActionStrategies.RegretMatchingWithPruning:
-                            nodeTally.GetRegretMatchingProbabilities_WithPruning(probabilities);
+                            informationSetNode.GetRegretMatchingProbabilities_WithPruning(probabilities);
                             break;
                         case ActionStrategies.NormalizedHedge:
-                            nodeTally.GetNormalizedHedgeProbabilities(probabilities);
+                            informationSetNode.GetNormalizedHedgeProbabilities(probabilities);
                             break;
                         case ActionStrategies.Hedge:
-                            nodeTally.GetHedgeProbabilities(probabilities);
+                            informationSetNode.GetHedgeProbabilities(probabilities);
                             break;
                         case ActionStrategies.CorrelatedEquilibrium:
-                            nodeTally.GetNormalizedHedgeCorrelatedEquilibriumStrategyProbabilities(randomNumberToChooseIteration, probabilities);
+                            informationSetNode.GetNormalizedHedgeCorrelatedEquilibriumStrategyProbabilities(randomNumberToChooseIteration, probabilities);
                             break;
                         case ActionStrategies.BestResponseVsCorrelatedEquilibrium:
-                            if (nodeTally.PlayerIndex == 0)
-                                nodeTally.GetBestResponseProbabilities(probabilities);
+                            if (informationSetNode.PlayerIndex == 0)
+                                informationSetNode.GetBestResponseProbabilities(probabilities);
                             else
-                                nodeTally.GetNormalizedHedgeCorrelatedEquilibriumStrategyProbabilities(randomNumberToChooseIteration, probabilities);
+                                informationSetNode.GetNormalizedHedgeCorrelatedEquilibriumStrategyProbabilities(randomNumberToChooseIteration, probabilities);
                             break;
                         case ActionStrategies.CorrelatedEquilibriumVsBestResponse:
-                            if (nodeTally.PlayerIndex == 0)
-                                nodeTally.GetNormalizedHedgeCorrelatedEquilibriumStrategyProbabilities(randomNumberToChooseIteration, probabilities);
+                            if (informationSetNode.PlayerIndex == 0)
+                                informationSetNode.GetNormalizedHedgeCorrelatedEquilibriumStrategyProbabilities(randomNumberToChooseIteration, probabilities);
                             else
-                                nodeTally.GetBestResponseProbabilities(probabilities);
+                                informationSetNode.GetBestResponseProbabilities(probabilities);
                             break;
                         default:
                             throw new NotImplementedException();

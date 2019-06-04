@@ -1448,24 +1448,24 @@ namespace ACESim
         public void CorrelatedEquilibriumCalculation_DecisionNode(StringBuilder codeGenerationBuilder, ref HistoryPoint historyPoint, byte player, ActionStrategies actionStrategy, int distributorChanceInputs)
         {
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
-            InformationSetNode nodeTally = (InformationSetNode)gameStateForCurrentPlayer;
-            byte numPossibleActions = NumPossibleActionsAtDecision(nodeTally.DecisionIndex);
+            InformationSetNode informationSetNode = (InformationSetNode)gameStateForCurrentPlayer;
+            byte numPossibleActions = NumPossibleActionsAtDecision(informationSetNode.DecisionIndex);
             byte numPossibleActionsToExplore = numPossibleActions;
-            byte playerAtNode = nodeTally.PlayerIndex; // note that player is the player whose utility we are seeking
+            byte playerAtNode = informationSetNode.PlayerIndex; // note that player is the player whose utility we are seeking
 
             bool isBestResponse = actionStrategy == ActionStrategies.BestResponse || (actionStrategy == ActionStrategies.BestResponseVsCorrelatedEquilibrium && playerAtNode == 0) || (actionStrategy == ActionStrategies.CorrelatedEquilibriumVsBestResponse && playerAtNode == 1);
             bool isCorrelatedEquilibrium = actionStrategy == ActionStrategies.CorrelatedEquilibrium || (actionStrategy == ActionStrategies.BestResponseVsCorrelatedEquilibrium && playerAtNode == 1) || (actionStrategy == ActionStrategies.CorrelatedEquilibriumVsBestResponse && playerAtNode == 0);
             if (NumNonChancePlayers > 2 || (!isBestResponse && !isCorrelatedEquilibrium))
                 throw new NotSupportedException(); // right now, using this just for correlated equilibrium & best response calculations after the game tree has already been defined
 
-            string nodeString = $"n[{nodeTally.InformationSetNumber}]";
+            string nodeString = $"n[{informationSetNode.InformationSetNumber}]";
 
             if (numPossibleActionsToExplore == 1)
             {
                 int distributorChanceInputsNext = distributorChanceInputs;
-                if (nodeTally.Decision.DistributorChanceInputDecision)
-                    distributorChanceInputsNext += 1 * nodeTally.Decision.DistributorChanceInputDecisionMultiplier;
-                HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, 1, nodeTally.Decision, nodeTally.DecisionIndex);
+                if (informationSetNode.Decision.DistributorChanceInputDecision)
+                    distributorChanceInputsNext += 1 * informationSetNode.Decision.DistributorChanceInputDecisionMultiplier;
+                HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, 1, informationSetNode.Decision, informationSetNode.DecisionIndex);
                 codeGenerationBuilder.Append(" ( ");
                 CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, ref nextHistoryPoint, player, actionStrategy, distributorChanceInputsNext);
                 codeGenerationBuilder.Append(" ) ");
@@ -1479,10 +1479,10 @@ namespace ACESim
                 for (byte action = 1; action <= numPossibleActionsToExplore; action++)
                 {
                     int distributorChanceInputsNext = distributorChanceInputs;
-                    if (nodeTally.Decision.DistributorChanceInputDecision)
-                        distributorChanceInputsNext += action * nodeTally.Decision.DistributorChanceInputDecisionMultiplier;
+                    if (informationSetNode.Decision.DistributorChanceInputDecision)
+                        distributorChanceInputsNext += action * informationSetNode.Decision.DistributorChanceInputDecisionMultiplier;
                     codeGenerationBuilder.Append($", ( ");
-                    HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, nodeTally.Decision, nodeTally.DecisionIndex);
+                    HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSetNode.Decision, informationSetNode.DecisionIndex);
                     CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, ref nextHistoryPoint, player, actionStrategy, distributorChanceInputsNext);
                     codeGenerationBuilder.Append(" ) ");
                 }
@@ -1494,10 +1494,10 @@ namespace ACESim
                 for (byte action = 1; action <= numPossibleActionsToExplore; action++)
                 {
                     int distributorChanceInputsNext = distributorChanceInputs;
-                    if (nodeTally.Decision.DistributorChanceInputDecision)
-                        distributorChanceInputsNext += action * nodeTally.Decision.DistributorChanceInputDecisionMultiplier;
+                    if (informationSetNode.Decision.DistributorChanceInputDecision)
+                        distributorChanceInputsNext += action * informationSetNode.Decision.DistributorChanceInputDecisionMultiplier;
                     codeGenerationBuilder.Append($"({nodeString}.PVP(cei, {action}, () => (");
-                    HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, nodeTally.Decision, nodeTally.DecisionIndex);
+                    HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSetNode.Decision, informationSetNode.DecisionIndex);
                     CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, ref nextHistoryPoint, player, actionStrategy, distributorChanceInputsNext);
                     codeGenerationBuilder.Append(")))"); // end function within PVP and PVP itself, plus surrounding parens
                     if (action < numPossibleActionsToExplore)
@@ -1563,24 +1563,24 @@ namespace ACESim
             return processor.ChanceNode_Backward(chanceNode, fromSuccessors, distributorChanceInputs);
         }
 
-        public Back TreeWalk_DecisionNode<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, InformationSetNode nodeTally, IGameState predecessor, byte predecessorAction, Forward forward, int distributorChanceInputs, ref HistoryPoint historyPoint)
+        public Back TreeWalk_DecisionNode<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, InformationSetNode informationSetNode, IGameState predecessor, byte predecessorAction, Forward forward, int distributorChanceInputs, ref HistoryPoint historyPoint)
         {
-            Forward nextForward = processor.InformationSet_Forward(nodeTally, predecessor, predecessorAction, forward);
-            byte numPossibleActions = NumPossibleActionsAtDecision(nodeTally.DecisionIndex);
+            Forward nextForward = processor.InformationSet_Forward(informationSetNode, predecessor, predecessorAction, forward);
+            byte numPossibleActions = NumPossibleActionsAtDecision(informationSetNode.DecisionIndex);
             byte numPossibleActionsToExplore = numPossibleActions;
 
 
             List<Back> fromSuccessors = new List<Back>();
             for (byte action = 1; action <= numPossibleActionsToExplore; action++)
             {
-                TabbedText.WriteLine($"{nodeTally.Decision.Name} ({nodeTally.InformationSetNumber}): {action}");
-                if (nodeTally.Decision.DistributorChanceInputDecision)
+                TabbedText.WriteLine($"{informationSetNode.Decision.Name} ({informationSetNode.InformationSetNumber}): {action}");
+                if (informationSetNode.Decision.DistributorChanceInputDecision)
                     throw new NotSupportedException(); // currently, we are only passing forward an array of distributor chance inputs from chance decisions, but we could adapt this to player decisions.
-                HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, nodeTally.Decision, nodeTally.DecisionIndex);
-                var fromSuccessor = TreeWalk_Node(processor, nodeTally, action, nextForward, distributorChanceInputs, ref nextHistoryPoint);
+                HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSetNode.Decision, informationSetNode.DecisionIndex);
+                var fromSuccessor = TreeWalk_Node(processor, informationSetNode, action, nextForward, distributorChanceInputs, ref nextHistoryPoint);
                 fromSuccessors.Add(fromSuccessor);
             }
-            return processor.InformationSet_Backward(nodeTally, fromSuccessors);
+            return processor.InformationSet_Backward(informationSetNode, fromSuccessors);
         }
 
         #endregion
