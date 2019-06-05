@@ -108,12 +108,16 @@ namespace ACESimBase.GameSolvingSupport
             return DeepClone(indexOfLastInformationSetByPlayer == null ? 0 : (int)indexOfLastInformationSetByPlayer + 1);
         }
 
-        public InformationSetNode GetLastInformationSetByPlayer(byte nonChancePlayerIndex)
+        public (InformationSetNode lastInformationSet, byte actionTakenAtLastInformationSet) GetLastInformationSetByPlayer(byte nonChancePlayerIndex)
         {
             int? index = GetIndexOfLastInformationSetByPlayer(nonChancePlayerIndex);
             if (index == null)
-                return null;
-            return NodeActions[(int) index].Node as InformationSetNode;
+                return (null, 0);
+            NodeAction nodeAction = NodeActions[(int)index];
+            var informationSet = nodeAction.Node as InformationSetNode;
+            if (informationSet == null)
+                throw new Exception();
+            return (informationSet, nodeAction.ActionAtNode);
         }
 
         private int? GetIndexOfLastInformationSetByPlayer(byte nonChancePlayerIndex)

@@ -24,9 +24,12 @@ namespace ACESimBase.GameSolvingSupport
         public NodeActionsHistory InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, NodeActionsHistory fromPredecessor)
         {
             NodeActionsHistory historyToHere = predecessor == null ? fromPredecessor : fromPredecessor.WithAppended(predecessor, predecessorAction);
+            (InformationSetNode lastInformationSetForPlayer, byte actionTakenThere) = historyToHere.GetLastInformationSetByPlayer(informationSet.PlayerIndex);
+            informationSet.PredecessorInformationSetForPlayer = lastInformationSetForPlayer;
+            informationSet.ActionTakenAtPredecessorSet = actionTakenThere;
             NodeActionsHistory fromLastInformationSet = historyToHere.GetIncrementalHistory(informationSet.PlayerIndex);
             if (Trace)
-                TabbedText.WriteLine($"From predecessor information set {historyToHere.GetLastInformationSetByPlayer(informationSet.PlayerIndex)?.InformationSetNodeNumber}: {fromLastInformationSet}");
+                TabbedText.WriteLine($"From predecessor information set {lastInformationSetForPlayer?.InformationSetNodeNumber}: {fromLastInformationSet}");
             ByteList actionsList = historyToHere.GetActionsList(informationSet.PlayerIndex, DistributingChanceActions);
             if (informationSet.PathsFromPredecessor == null)
                 informationSet.PathsFromPredecessor = new Dictionary<ByteList, NodeActionsHistory>();
@@ -68,6 +71,10 @@ namespace ACESimBase.GameSolvingSupport
                 bool isOwnInformationSet = informationSet.PlayerIndex == playerIndex;
                 if (isOwnInformationSet)
                 {
+                    if (Trace)
+                    {
+                        TabbedText.WriteLine($"Paths to successor: {String.Join(" | ", Enumerable.Range(1, successorsForPlayer.Count).Select(x => $"{x}: {successorsForPlayer[x - 1]}"))}");
+                    }
                     informationSet.PathsToSuccessor = successorsForPlayer;
                     returnList.Add(new NodeActionsMultipleHistories(informationSet));
                 }

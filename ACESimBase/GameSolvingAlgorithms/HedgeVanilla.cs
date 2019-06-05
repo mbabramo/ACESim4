@@ -281,7 +281,7 @@ namespace ACESim
                 int initialIndex = Unroll_InformationSetsIndices[infoSet.InformationSetNodeNumber];
                 for (byte action = 1; action <= infoSet.NumPossibleActions; action++)
                 {
-                    array[initialIndex++] = infoSet.GetNormalizedHedgeAverageStrategy(action);
+                    array[initialIndex++] = infoSet.GetAverageStrategy(action);
                     array[initialIndex++] = infoSet.GetNormalizedHedgeProbability(action);
                     array[initialIndex++] = 0; // initialize last regret to zero
                     array[initialIndex++] = 0; // initialize best response numerator to zero
@@ -767,7 +767,7 @@ namespace ACESim
                 bool prune = (EvolutionSettings.PruneOnOpponentStrategy && playerBeingOptimized != playerMakingDecision && probabilityOfAction < EvolutionSettings.PruneOnOpponentStrategyThreshold);
                 if (!prune)
                 {
-                    double probabilityOfActionAvgStrat = informationSet.GetNormalizedHedgeAverageStrategy(action);
+                    double probabilityOfActionAvgStrat = informationSet.GetAverageStrategy(action);
                     GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false,
                         nextPiValues); // reduce probability associated with player being optimized, without changing probabilities for other players
                     GetNextPiValues(avgStratPiValues, playerMakingDecision, probabilityOfActionAvgStrat, false, nextAvgStratPiValues);

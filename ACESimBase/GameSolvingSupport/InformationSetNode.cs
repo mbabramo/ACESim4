@@ -26,14 +26,6 @@ namespace ACESim
         public byte DecisionIndex;
         public byte PlayerIndex => Decision.PlayerNumber;
 
-        // information for accelerated best response
-        public double SelfReachProbability, OpponentsReachProbability;
-        public InformationSetNode PredecessorInformationSetForPlayer;
-        public byte ActionTakenAtPredecessorSet;
-        public Dictionary<ByteList, NodeActionsHistory> PathsFromPredecessor;
-        public List<NodeActionsMultipleHistories> PathsToSuccessor;
-        public double[] LastBestResponseValues; // one per nonchance player
-
         public bool MustUseBackup;
         public int NumTotalIncrements = 0;
         public int NumRegretIncrements = 0;
@@ -287,14 +279,53 @@ namespace ACESim
 
         #region AcceleratedBestResponse
 
+        // information for accelerated best response
+        public double SelfReachProbability, OpponentsReachProbability;
+        public InformationSetNode PredecessorInformationSetForPlayer;
+        public byte ActionTakenAtPredecessorSet;
+        public Dictionary<ByteList, NodeActionsHistory> PathsFromPredecessor;
+        public List<NodeActionsMultipleHistories> PathsToSuccessor;
+        public double[] LastBestResponseValues; // one per nonchance player
+
         public void AcceleratedBestResponse_CalculateReachProbabilities()
         {
+            SelfReachProbability = PredecessorInformationSetForPlayer?.SelfReachProbability ?? 1.0;
+            SelfReachProbability *= PredecessorInformationSetForPlayer.GetAverageStrategy(ActionTakenAtPredecessorSet);
 
+            OpponentsReachProbability = PredecessorInformationSetForPlayer?.OpponentsReachProbability ?? 1.0;
+            foreach (var pathFromPredecessor in PathsFromPredecessor)
+                foreach (var nodeAction in pathFromPredecessor.Value.NodeActions)
+                {
+                    switch (nodeAction.Node)
+                    {
+                        case ChanceNode c:
+                            OpponentsReachProbability *= c.GetActionProbability(nodeAction.ActionAtNode, nodeAction.DistributorChanceInputs);
+                            break;
+                        case InformationSetNode i:
+                            if (i.PlayerIndex == PlayerIndex)
+                                throw new Exception();
+                            OpponentsReachProbability *= i.GetAverageStrategy(nodeAction.ActionAtNode);
+                            break;
+                        default: throw new NotSupportedException();
+                    }
+                }
         }
 
         public void AcceleratedBestResponse_CalculateBestResponseValues(byte numNonChancePlayers)
         {
+            if (LastBestResponseValues == null)
+                LastBestResponseValues = new double[numNonChancePlayers];
+            for (byte playerIndex = 0; playerIndex < numNonChancePlayers; playerIndex++)
+            {
+                if (playerIndex == PlayerIndex)
+                {
 
+                }
+                else
+                {
+
+                }
+            }
         }
 
         #endregion
@@ -823,7 +854,7 @@ namespace ACESim
             //Interlocked.Increment(ref NumRegretIncrements);
         }
 
-        public double GetNormalizedHedgeAverageStrategy(byte action)
+        public double GetAverageStrategy(byte action)
         {
             return NodeInformation[averageStrategyProbabilityDimension, action - 1];
         }
