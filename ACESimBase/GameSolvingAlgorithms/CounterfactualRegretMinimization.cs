@@ -638,7 +638,6 @@ namespace ACESim
                 Console.WriteLine($"{reports.standardReport}");
             }
             return reports.csvReport;
-            //Console.WriteLine($"Number initialized game paths: {NumInitializedGamePaths}");
         }
 
         double[] BestResponseUtilities;
@@ -681,9 +680,6 @@ namespace ACESim
                     BestResponseUtilities = new double[NumNonChancePlayers];
                 BestResponseUtilities[playerIndex] = result;
             }
-
-            // DEBUG
-            TreeWalk_Tree(new WalkOnly());
         }
 
         private unsafe void CalculateBestResponse()
@@ -712,6 +708,10 @@ namespace ACESim
             }
             s.Stop();
             BestResponseCalculationTime = s.ElapsedMilliseconds;
+
+
+            // DEBUG
+            TreeWalk_Tree(new WalkOnly());
         }
 
         private unsafe void CompareBestResponse(bool useRandomPaths)
