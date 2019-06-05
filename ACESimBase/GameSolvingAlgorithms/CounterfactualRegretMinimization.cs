@@ -75,8 +75,8 @@ namespace ACESim
         /// </summary>
         public NWayTreeStorageInternal<IGameState> GameHistoryTree;
 
-        public int NumNonChancePlayers;
-        public int NumChancePlayers; // note that chance players MUST be indexed after nonchance players in the player list
+        public byte NumNonChancePlayers;
+        public byte NumChancePlayers; // note that chance players MUST be indexed after nonchance players in the player list
 
         public int NumInitializedGamePaths = 0; // Because of how PlayAllPaths works, this will be much higher for parallel implementations
 
@@ -95,8 +95,8 @@ namespace ACESim
             EvolutionSettings = evolutionSettings;
             GameDefinition = gameDefinition;
             GameFactory = GameDefinition.GameFactory;
-            NumNonChancePlayers = GameDefinition.Players.Count(x => !x.PlayerIsChance);
-            NumChancePlayers = GameDefinition.Players.Count(x => x.PlayerIsChance);
+            NumNonChancePlayers = (byte) GameDefinition.Players.Count(x => !x.PlayerIsChance);
+            NumChancePlayers = (byte) GameDefinition.Players.Count(x => x.PlayerIsChance);
         }
 
         public IStrategiesDeveloper DeepCopy()
@@ -668,7 +668,7 @@ namespace ACESim
             for (int i = InformationSetsByDecisionIndex.Count - 1; i >= 0; i--)
             {
                 List<InformationSetNode> informationSetsForDecision = InformationSetsByDecisionIndex[i];
-                Parallel.ForEach(informationSetsForDecision, informationSet => informationSet.AcceleratedBestResponse_CalculateBestResponseValues(NumNonChancePlayers);
+                Parallel.ForEach(informationSetsForDecision, informationSet => informationSet.AcceleratedBestResponse_CalculateBestResponseValues(NumNonChancePlayers));
             }
         }
 
