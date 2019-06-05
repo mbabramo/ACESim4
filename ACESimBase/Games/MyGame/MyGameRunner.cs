@@ -29,8 +29,8 @@ namespace ACESim
         private const int MiniReportEveryPIterations = 5_000;
         private const int CorrelatedEquilibriumCalculationsEveryNIterations = EvolutionSettings.EffectivelyNever;
         private const int RecordPastValuesEveryNIterations = EvolutionSettings.EffectivelyNever; // used for correlated equilibrium calculations
-        private const bool UseRandomPathsForReporting = false;
-        private const int SummaryTableRandomPathsIterations = 1_000;
+        private const bool UseRandomPathsForReporting = false; // DEBUG
+        private const int SummaryTableRandomPathsIterations = 10_000;
         
         private const bool UseRegretAndStrategyDiscounting = true;
 
