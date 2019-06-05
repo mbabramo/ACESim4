@@ -24,18 +24,16 @@ namespace ACESimBase.GameSolvingSupport
         public NodeActionsHistory InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, NodeActionsHistory fromPredecessor)
         {
             NodeActionsHistory historyToHere = predecessor == null ? fromPredecessor : fromPredecessor.WithAppended(predecessor, predecessorAction);
-            (InformationSetNode lastInformationSetForPlayer, byte actionTakenThere) = historyToHere.GetLastInformationSetByPlayer(informationSet.PlayerIndex);
-            informationSet.PredecessorInformationSetForPlayer = lastInformationSetForPlayer;
+            (InformationSetNode predecessorInformationSetForPlayer, byte actionTakenThere) = historyToHere.GetLastInformationSetByPlayer(informationSet.PlayerIndex);
+            informationSet.PredecessorInformationSetForPlayer = predecessorInformationSetForPlayer;
             informationSet.ActionTakenAtPredecessorSet = actionTakenThere;
             NodeActionsHistory fromLastInformationSet = historyToHere.GetIncrementalHistory(informationSet.PlayerIndex);
             if (Trace)
-                TabbedText.WriteLine($"From predecessor information set {lastInformationSetForPlayer?.InformationSetNodeNumber}: {fromLastInformationSet}");
+                TabbedText.WriteLine($"From predecessor information set {predecessorInformationSetForPlayer?.InformationSetNodeNumber}: {fromLastInformationSet}");
             ByteList actionsList = historyToHere.GetActionsList(informationSet.PlayerIndex, DistributingChanceActions);
             if (informationSet.PathsFromPredecessor == null)
-                informationSet.PathsFromPredecessor = new Dictionary<ByteList, NodeActionsHistory>();
-            if (informationSet.PathsFromPredecessor.ContainsKey(actionsList))
-                throw new Exception("There should be a unique path from the last information set.");
-            informationSet.PathsFromPredecessor[actionsList] = fromLastInformationSet;
+                informationSet.PathsFromPredecessor = new List<InformationSetNode.PathFromPredecessorInfo>();
+            informationSet.PathsFromPredecessor.Add(new InformationSetNode.PathFromPredecessorInfo() { ActionsList = actionsList, IndexInPredecessorsPathsFromPredecessor = (predecessorInformationSetForPlayer?.PathsFromPredecessor.Count() ?? 0) - 1, Path = fromLastInformationSet });
             return historyToHere;
         }
 

@@ -286,8 +286,15 @@ namespace ACESim
         public double SelfReachProbability, OpponentsReachProbability;
         public InformationSetNode PredecessorInformationSetForPlayer;
         public byte ActionTakenAtPredecessorSet;
-        public Dictionary<ByteList, NodeActionsHistory> PathsFromPredecessor;
-        public Dictionary<ByteList, double> PathsFromPredecessorProbabilities;
+        public ByteList LastActionsList => PathsFromPredecessor.Last().ActionsList; // so that we can find corresponding path in predecessor
+        public class PathFromPredecessorInfo
+        {
+            public ByteList ActionsList;
+            public int IndexInPredecessorsPathsFromPredecessor;
+            public NodeActionsHistory Path;
+            public double Probability;
+        }
+        public List<PathFromPredecessorInfo> PathsFromPredecessor;
         public List<List<NodeActionsMultipleHistories>> PathsToSuccessors;
         public double LastBestResponseValue => BestResponseOptions?[LastBestResponseAction - 1] ?? 0; 
         public double[] BestResponseOptions; // one per action for this player
@@ -299,20 +306,13 @@ namespace ACESim
             else
                 SelfReachProbability = PredecessorInformationSetForPlayer.SelfReachProbability * PredecessorInformationSetForPlayer.GetAverageStrategy(ActionTakenAtPredecessorSet);
 
-            if (InformationSetNodeNumber == 4)
-            {
-                var DEBUG = 0;
-            }
-            Debug; 
-            double predecessorOpponentsReachProbability = PredecessorInformationSetForPlayer?.OpponentsReachProbability ?? 1.0;
-            OpponentsReachProbability = predecessorOpponentsReachProbability;
-            if (PathsFromPredecessorProbabilities == null)
-                PathsFromPredecessorProbabilities = new Dictionary<ByteList, double>();
+            OpponentsReachProbability = 0;
             foreach (var pathFromPredecessor in PathsFromPredecessor)
             {
-                double pathProbabilityFromPredecessor = pathFromPredecessor.Value.GetProbabilityOfPath();
+                double predecessorOpponentsReachProbability = PredecessorInformationSetForPlayer?.PathsFromPredecessor[pathFromPredecessor.IndexInPredecessorsPathsFromPredecessor].Probability ?? 1.0;
+                double pathProbabilityFromPredecessor = pathFromPredecessor.Path.GetProbabilityOfPath();
                 double cumulativePathProbability = predecessorOpponentsReachProbability * pathProbabilityFromPredecessor;
-                PathsFromPredecessorProbabilities[pathFromPredecessor.Key] = cumulativePathProbability;
+                pathFromPredecessor.Probability = cumulativePathProbability;
                 OpponentsReachProbability += cumulativePathProbability;
             }
         }
@@ -329,14 +329,14 @@ namespace ACESim
                     var DEBUG = 0;
                 }
                 var pathsToSuccessorsForAction = PathsToSuccessors[action - 1];
-                int numPathsToInformationSet = PathsFromPredecessorProbabilities.Count();
+                int numPathsToInformationSet = PathsFromPredecessor.Count();
                 if (pathsToSuccessorsForAction.Count() != numPathsToInformationSet)
                     throw new Exception();
                 double accumulatedNumerator = 0, accumulatedDenominator = 0;
                 for (int pathToHere = 0; pathToHere < numPathsToInformationSet; pathToHere++)
                 {
                     double unweightedSuccessorValue = pathsToSuccessorsForAction[pathToHere].GetProbabilityAdjustedValueOfPaths(PlayerIndex);
-                    double opponentsReachProbabilityForPath = PathsFromPredecessorProbabilities[pathToHere];
+                    double opponentsReachProbabilityForPath = PathsFromPredecessor[pathToHere].Probability;
                     double weighted = unweightedSuccessorValue * opponentsReachProbabilityForPath;
                     accumulatedNumerator += weighted;
                     accumulatedDenominator += opponentsReachProbabilityForPath;
