@@ -235,15 +235,18 @@ namespace ACESim
         {
             double bestRatio = 0;
             int best = 0;
-            for (int a = 1; a <= NumPossibleActions; a++)
+            if (BestResponseOptions == null)
+                BestResponseOptions = new double[NumPossibleActions];
+            for (int action = 1; action <= NumPossibleActions; action++)
             {
-                double denominator = NodeInformation[bestResponseDenominatorDimension, a - 1];
+                double denominator = NodeInformation[bestResponseDenominatorDimension, action - 1];
                 if (denominator == 0)
                     return; // no best response data available
-                double ratio = NodeInformation[bestResponseNumeratorDimension, a - 1] / denominator;
-                if (a == 1 || ratio > bestRatio)
+                double ratio = NodeInformation[bestResponseNumeratorDimension, action - 1] / denominator;
+                BestResponseOptions[action - 1] = ratio;
+                if (action == 1 || ratio > bestRatio)
                 {
-                    best = a;
+                    best = action;
                     bestRatio = ratio;
                 }
             }

@@ -63,6 +63,10 @@ namespace ACESimBase.GameSolvingSupport
 
         public List<NodeActionsMultipleHistories> InformationSet_Backward(InformationSetNode informationSet, IEnumerable<List<NodeActionsMultipleHistories>> fromSuccessors)
         {
+            if (informationSet.InformationSetNodeNumber == 4)
+            {
+                var DEBUG = 0;
+            }
             List<NodeActionsMultipleHistories> returnList = new List<NodeActionsMultipleHistories>();
             var invertMultipleHistories = GetMultipleHistoriesByPlayer(fromSuccessors);
             for (byte playerIndex = 0; playerIndex < NumNonChancePlayers; playerIndex++)
@@ -76,6 +80,7 @@ namespace ACESimBase.GameSolvingSupport
                         TabbedText.WriteLine($"Paths to successor: {String.Join(" | ", Enumerable.Range(1, successorsForPlayer.Count).Select(x => $"{x}: {successorsForPlayer[x - 1]}"))}");
                     }
                     informationSet.PathsToSuccessors = successorsForPlayer;
+                    debug; // we need to add the successorsForPlayer as new histories to the existing ones, and we need to add as a multiplier the opponent reach probabilities at the information set.
                     returnList.Add(new NodeActionsMultipleHistories(informationSet));
                 }
                 else
