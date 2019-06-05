@@ -287,7 +287,8 @@ namespace ACESim
         public InformationSetNode PredecessorInformationSetForPlayer;
         public byte ActionTakenAtPredecessorSet;
         public Dictionary<ByteList, NodeActionsHistory> PathsFromPredecessor;
-        public List<NodeActionsMultipleHistories> PathsToSuccessors;
+        public Dictionary<ByteList, double> PathsFromPredecessorProbabilities;
+        public List<List<NodeActionsMultipleHistories>> PathsToSuccessors;
         public double LastBestResponseValue => BestResponseOptions?[LastBestResponseAction - 1] ?? 0; 
         public double[] BestResponseOptions; // one per action for this player
 
@@ -298,20 +299,49 @@ namespace ACESim
             else
                 SelfReachProbability = PredecessorInformationSetForPlayer.SelfReachProbability * PredecessorInformationSetForPlayer.GetAverageStrategy(ActionTakenAtPredecessorSet);
 
-            OpponentsReachProbability = PredecessorInformationSetForPlayer?.OpponentsReachProbability ?? 1.0;
+            if (InformationSetNodeNumber == 4)
+            {
+                var DEBUG = 0;
+            }
+            Debug; 
+            double predecessorOpponentsReachProbability = PredecessorInformationSetForPlayer?.OpponentsReachProbability ?? 1.0;
+            OpponentsReachProbability = predecessorOpponentsReachProbability;
+            if (PathsFromPredecessorProbabilities == null)
+                PathsFromPredecessorProbabilities = new Dictionary<ByteList, double>();
             foreach (var pathFromPredecessor in PathsFromPredecessor)
-                OpponentsReachProbability *= pathFromPredecessor.Value.GetProbabilityOfPath();
+            {
+                double pathProbabilityFromPredecessor = pathFromPredecessor.Value.GetProbabilityOfPath();
+                double cumulativePathProbability = predecessorOpponentsReachProbability * pathProbabilityFromPredecessor;
+                PathsFromPredecessorProbabilities[pathFromPredecessor.Key] = cumulativePathProbability;
+                OpponentsReachProbability += cumulativePathProbability;
+            }
         }
 
         public void AcceleratedBestResponse_CalculateBestResponseValues(byte numNonChancePlayers)
         {
             if (BestResponseOptions == null)
                 BestResponseOptions = new double[Decision.NumPossibleActions];
-            // Note: Each player calculates best responses by looking at the 1+ paths to 1+ successors for each action that the player can take. These paths include opponent and chance actions, and each culminates in a successor -- either a final utilities for the player or a later information set for the player that has already been calculated. We need calculate only this player's best response value, as the best response values for other players will be calculated on their own information sets.
+            // Note: Each time the information set was visited in the initial tree walk set up, there may be one or more paths to one or more successors, combined into a single NodeActionsMultipleHistories that reflects their relative probability weight. Thus, we have one NodeActionsMultipleHistories for each possible prior history. Each path includes opponent and chance actions, and each culminates in a successor -- either a final utilities for the player or a later information set for the player that has already been calculated. To calculate the value of an action, we need to calculate the weighted averages of the NodeActionsMultipleHistories by the probability that opponents play to here. We need calculate only this player's best response value, as the best response values for other players will be calculated on their own information sets.
             for (byte action = 1; action <= Decision.NumPossibleActions; action++)
             {
+                if (action == 2 && InformationSetNodeNumber == 4)
+                {
+                    var DEBUG = 0;
+                }
                 var pathsToSuccessorsForAction = PathsToSuccessors[action - 1];
-                BestResponseOptions[action - 1] = pathsToSuccessorsForAction.GetProbabilityAdjustedValueOfPaths(PlayerIndex);
+                int numPathsToInformationSet = PathsFromPredecessorProbabilities.Count();
+                if (pathsToSuccessorsForAction.Count() != numPathsToInformationSet)
+                    throw new Exception();
+                double accumulatedNumerator = 0, accumulatedDenominator = 0;
+                for (int pathToHere = 0; pathToHere < numPathsToInformationSet; pathToHere++)
+                {
+                    double unweightedSuccessorValue = pathsToSuccessorsForAction[pathToHere].GetProbabilityAdjustedValueOfPaths(PlayerIndex);
+                    double opponentsReachProbabilityForPath = PathsFromPredecessorProbabilities[pathToHere];
+                    double weighted = unweightedSuccessorValue * opponentsReachProbabilityForPath;
+                    accumulatedNumerator += weighted;
+                    accumulatedDenominator += opponentsReachProbabilityForPath;
+                }
+                BestResponseOptions[action - 1] = accumulatedDenominator == 0 ? 0 : accumulatedNumerator / accumulatedDenominator;
                 if (action == 1 || BestResponseOptions[action - 1] > LastBestResponseValue)
                 {
                     LastBestResponseAction = action;

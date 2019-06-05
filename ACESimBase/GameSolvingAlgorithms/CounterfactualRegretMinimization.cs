@@ -648,7 +648,6 @@ namespace ACESim
 
         List<List<InformationSetNode>> InformationSetsByDecisionIndex;
         List<NodeActionsMultipleHistories> AcceleratedBestResponsePrepResult;
-        double[] AcceleratedBestResponseResult;
 
         private void PrepareAcceleratedBestResponse()
         {

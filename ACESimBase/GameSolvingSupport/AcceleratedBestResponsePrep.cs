@@ -77,11 +77,22 @@ namespace ACESimBase.GameSolvingSupport
                 {
                     if (Trace)
                     {
-                        TabbedText.WriteLine($"Paths to successor: {String.Join(" | ", Enumerable.Range(1, successorsForPlayer.Count).Select(x => $"{x}: {successorsForPlayer[x - 1]}"))}");
+                        TabbedText.WriteLine($"Paths to successor(s): {String.Join(" | ", Enumerable.Range(1, successorsForPlayer.Count).Select(x => $"{x}: {successorsForPlayer[x - 1]}"))}");
                     }
-                    informationSet.PathsToSuccessors = successorsForPlayer;
-                    debug; // we need to add the successorsForPlayer as new histories to the existing ones, and we need to add as a multiplier the opponent reach probabilities at the information set.
-                    returnList.Add(new NodeActionsMultipleHistories(informationSet));
+                    // The PathsToSuccessors is a list of lists -- the outer list contains the relevant action, and the inner list contains the successors we may reach from this action, ordered in the order that this information set was visited in the tree walk. The successors must be weighed by the probability that opponents will play to the information set for each of these visits. 
+                    if (informationSet.PathsToSuccessors == null)
+                    { // initialize to list of empty lists, one for each action
+                        informationSet.PathsToSuccessors = new List<List<NodeActionsMultipleHistories>>();
+                        for (byte action = 1; action <= informationSet.NumPossibleActions; action++)
+                            informationSet.PathsToSuccessors.Add(new List<NodeActionsMultipleHistories>());
+                    }
+                    for (byte action = 1; action <= informationSet.NumPossibleActions; action++)
+                    {
+                        var successorThisAction = successorsForPlayer[action - 1];
+                        var pathsForAction = informationSet.PathsToSuccessors[action - 1];
+                        pathsForAction.Add(successorThisAction);
+                    }
+                    returnList.Add(new NodeActionsMultipleHistories(informationSet)); // prior information sets of this player will play with this node as a successor, so they don't need to calculate into the entire tree
                 }
                 else
                 {
