@@ -9,12 +9,22 @@ namespace ACESimBase.GameSolvingSupport
 {
     public class NodeActionsHistory
     {
+        public double Coefficient = 1.0;
         public List<NodeAction> NodeActions = new List<NodeAction>();
         public IGameState SuccessorInformationSet;
 
         public NodeActionsHistory()
         {
 
+        }
+
+        public override string ToString()
+        {
+            string coefString = Coefficient == 1.0 ? "" : $"{Coefficient.ToSignificantFigures(3)} * ";
+            var s = coefString + String.Join(", ", NodeActions);
+            if (SuccessorInformationSet != null)
+                s += $"{(s.Length > 0 ? " " : "")}Successor: {SuccessorInformationSet.GetGameStateType()} {SuccessorInformationSet.GetNodeNumber()}";
+            return s;
         }
 
         public NodeActionsHistory DeepClone(int skip = 0, int take = int.MaxValue)
@@ -37,31 +47,48 @@ namespace ACESimBase.GameSolvingSupport
             return HashCode.Combine(NodeActions, SuccessorInformationSet);
         }
 
+        private bool ModifyCoefficient(IGameState node)
+        {
+            if (node is ChanceNodeEqualProbabilities c)
+            {
+                Coefficient *= 1.0 / (double)c.Decision.NumPossibleActions;
+                return true;
+            }
+            return false;
+        }
+
         public NodeActionsHistory WithPrepended(IGameState node, byte actionAtNode, int distributorChanceInputs = -1)
         {
+            if (node == null)
+                throw new Exception();
             var copied = NodeActions.ToList();
-            copied.Insert(0, new NodeAction(node, actionAtNode, distributorChanceInputs));
-            return new NodeActionsHistory()
+            var prepended = new NodeActionsHistory()
             {
                 NodeActions = copied,
                 SuccessorInformationSet = SuccessorInformationSet
             };
+            if (!prepended.ModifyCoefficient(node))
+                copied.Insert(0, new NodeAction(node, actionAtNode, distributorChanceInputs));
+            return prepended;
         }
 
         public NodeActionsHistory WithAppended(IGameState node, byte actionAtNode, int distributorChanceInputs = -1)
         {
+            if (node == null)
+                throw new Exception();
             var copied = NodeActions.ToList();
-            copied.Add(new NodeAction(node, actionAtNode, distributorChanceInputs));
-            return new NodeActionsHistory()
+            var appended = new NodeActionsHistory()
             {
                 NodeActions = copied,
                 SuccessorInformationSet = null
             };
+            if (!appended.ModifyCoefficient(node))
+                copied.Add(new NodeAction(node, actionAtNode, distributorChanceInputs));
+            return appended;
         }
 
         public NodeActionsHistory WithFinalUtilitiesAppended(FinalUtilitiesNode node)
         {
-
             var copied = NodeActions.ToList();
             return new NodeActionsHistory()
             {
@@ -79,6 +106,14 @@ namespace ACESimBase.GameSolvingSupport
         {
             int? indexOfLastInformationSetByPlayer = GetIndexOfLastInformationSetByPlayer(nonChancePlayerIndex);
             return DeepClone(indexOfLastInformationSetByPlayer == null ? 0 : (int)indexOfLastInformationSetByPlayer + 1);
+        }
+
+        public InformationSetNode GetLastInformationSetByPlayer(byte nonChancePlayerIndex)
+        {
+            int? index = GetIndexOfLastInformationSetByPlayer(nonChancePlayerIndex);
+            if (index == null)
+                return null;
+            return NodeActions[(int) index].Node as InformationSetNode;
         }
 
         private int? GetIndexOfLastInformationSetByPlayer(byte nonChancePlayerIndex)
@@ -99,12 +134,14 @@ namespace ACESimBase.GameSolvingSupport
         /// </summary>
         /// <param name="decisionIndex"></param>
         /// <returns></returns>
+        // DEBUG -- remove
         public NodeActionsHistory GetSubsequentHistory(int decisionIndex)
         {
             int? indexOfInformationSetForDecision = GetIndexOfInformationSetForDecision(decisionIndex);
             return DeepClone((int)indexOfInformationSetForDecision + 1);
         }
 
+        // DEBUG -- remove
         /// <summary>
         /// Returns another NodeActionsHistory object with all actions after the specified decision but only to a successor information set (i.e., final utilities or another information set node for the same non-chance player), which will then be included as the successor information set.
         /// </summary>
@@ -127,6 +164,7 @@ namespace ACESimBase.GameSolvingSupport
             return result;
         }
 
+        // DEBUG -- remove
         private int? GetIndexOfInformationSetForDecision(int decisionIndex)
         {
             int? indexOfInformationSetForDecision = null;

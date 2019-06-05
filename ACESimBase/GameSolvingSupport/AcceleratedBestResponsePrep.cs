@@ -12,17 +12,21 @@ namespace ACESimBase.GameSolvingSupport
     {
         bool DistributingChanceActions;
         byte NumNonChancePlayers;
+        public bool Trace;
 
-        public AcceleratedBestResponsePrep(bool distributingChanceActions, byte numNonChancePlayers)
+        public AcceleratedBestResponsePrep(bool distributingChanceActions, byte numNonChancePlayers, bool trace)
         {
             DistributingChanceActions = distributingChanceActions;
             NumNonChancePlayers = numNonChancePlayers;
+            Trace = trace;
         }
 
         public NodeActionsHistory InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, NodeActionsHistory fromPredecessor)
         {
-            NodeActionsHistory historyToHere = fromPredecessor.WithAppended(predecessor, predecessorAction);
+            NodeActionsHistory historyToHere = predecessor == null ? fromPredecessor : fromPredecessor.WithAppended(predecessor, predecessorAction);
             NodeActionsHistory fromLastInformationSet = historyToHere.GetIncrementalHistory(informationSet.PlayerIndex);
+            if (Trace)
+                TabbedText.WriteLine($"From predecessor information set {historyToHere.GetLastInformationSetByPlayer(informationSet.PlayerIndex)?.InformationSetNodeNumber}: {fromLastInformationSet}");
             ByteList actionsList = historyToHere.GetActionsList(informationSet.PlayerIndex, DistributingChanceActions);
             if (informationSet.PathsFromPredecessor == null)
                 informationSet.PathsFromPredecessor = new Dictionary<ByteList, NodeActionsHistory>();
@@ -34,13 +38,13 @@ namespace ACESimBase.GameSolvingSupport
 
         public NodeActionsHistory ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, NodeActionsHistory fromPredecessor, int distributorChanceInputs)
         {
-            NodeActionsHistory historyToHere = fromPredecessor.WithAppended(predecessor, predecessorAction, distributorChanceInputs);
+            NodeActionsHistory historyToHere = predecessor == null ? fromPredecessor : fromPredecessor.WithAppended(predecessor, predecessorAction, distributorChanceInputs);
             return historyToHere;
         }
 
         public List<NodeActionsMultipleHistories> FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, NodeActionsHistory fromPredecessor)
         {
-            NodeActionsHistory historyToHere = fromPredecessor.WithAppended(predecessor, predecessorAction);
+            NodeActionsHistory historyToHere = predecessor == null ? fromPredecessor : fromPredecessor.WithAppended(predecessor, predecessorAction);
             return Enumerable.Range(0, NumNonChancePlayers).Select(x => new NodeActionsMultipleHistories(finalUtilities)).ToList();
         }
 
@@ -72,6 +76,8 @@ namespace ACESimBase.GameSolvingSupport
                     NodeActionsMultipleHistories result = NodeActionsMultipleHistories.FlattenedWithPrepend(successorsForPlayer, informationSet);
                     returnList.Add(result);
                 }
+                if (Trace)
+                    TabbedText.WriteLine($"To successor (player {playerIndex}): {returnList.Last()}");
             }
             return returnList;
         }
@@ -85,6 +91,8 @@ namespace ACESimBase.GameSolvingSupport
                 List<NodeActionsMultipleHistories> successorsForPlayer = invertMultipleHistories[playerIndex];
                 NodeActionsMultipleHistories result = NodeActionsMultipleHistories.FlattenedWithPrepend(successorsForPlayer, chanceNode, distributorChanceInputs);
                 returnList.Add(result);
+                if (Trace)
+                    TabbedText.WriteLine($"From successor (player {playerIndex}): {returnList.Last()}");
             }
             return returnList;
         }

@@ -24,7 +24,7 @@ namespace ACESim
 
         public override string ToString()
         {
-            return $"Utilities: {String.Join(",", Utilities.Select(x => $"{x:N2}"))}";
+            return $"Utilities {FinalUtilitiesNodeNumber}: {String.Join(",", Utilities.Select(x => $"{x:N2}"))}";
         }
 
         public GameStateTypeEnum GetGameStateType()

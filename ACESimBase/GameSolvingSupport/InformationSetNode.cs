@@ -140,7 +140,7 @@ namespace ACESim
 
         public override string ToString()
         {
-            return $"Information set {InformationSetNodeNumber}: DecisionByteCode {DecisionByteCode} (index {DecisionIndex}) PlayerIndex {PlayerIndex} Probabilities {GetProbabilitiesString()} {GetBestResponseStringIfAvailable()}Regrets{(MustUseBackup ? "*" : "")} {GetCumulativeRegretsString()} Strategies {GetCumulativeStrategiesString()} RegretIncrements {NumRegretIncrements} NumBackupRegretsSinceLastRegretIncrement {NumBackupRegretsSinceLastRegretIncrement} NumBackupRegretIncrements {NumBackupRegretIncrements} TotalIncrements {NumTotalIncrements}";
+            return $"Information set {InformationSetNodeNumber} ({Decision.Name}): DecisionByteCode {DecisionByteCode} (index {DecisionIndex}) PlayerIndex {PlayerIndex} Probabilities {GetProbabilitiesString()} {GetBestResponseStringIfAvailable()}Regrets{(MustUseBackup ? "*" : "")} {GetCumulativeRegretsString()} Strategies {GetCumulativeStrategiesString()} RegretIncrements {NumRegretIncrements} NumBackupRegretsSinceLastRegretIncrement {NumBackupRegretsSinceLastRegretIncrement} NumBackupRegretIncrements {NumBackupRegretIncrements} TotalIncrements {NumTotalIncrements}";
         }
 
         public string GetBestResponseStringIfAvailable()
@@ -281,6 +281,20 @@ namespace ACESim
             NodeInformation[bestResponseNumeratorDimension, action - 1] = numerator;
             NodeInformation[bestResponseDenominatorDimension, action - 1] = denominator;
             BestResponseDeterminedFromIncrements = false;
+        }
+
+        #endregion
+
+        #region AcceleratedBestResponse
+
+        public void AcceleratedBestResponse_CalculateReachProbabilities()
+        {
+
+        }
+
+        public void AcceleratedBestResponse_CalculateBestResponseValues(byte numNonChancePlayers)
+        {
+
         }
 
         #endregion

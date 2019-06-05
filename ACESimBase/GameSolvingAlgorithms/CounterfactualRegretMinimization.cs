@@ -647,11 +647,31 @@ namespace ACESim
         bool BestResponseIsToAverageStrategy = true; // usually, this should be true, since the average strategy is the least exploitable strategy
         string BestResponseOpponentString => BestResponseIsToAverageStrategy ? "average strategy" : ActionStrategy.ToString();
 
+        List<List<InformationSetNode>> InformationSetsByDecisionIndex;
+        List<NodeActionsMultipleHistories> AcceleratedBestResponsePrepResult;
+
         private void PrepareAcceleratedBestResponse()
         {
-            AcceleratedBestResponsePrep prepWalk = new AcceleratedBestResponsePrep(EvolutionSettings.DistributeChanceDecisions, (byte) NumNonChancePlayers);
-            TreeWalk_Tree(prepWalk, new NodeActionsHistory());
+            AcceleratedBestResponsePrep prepWalk = new AcceleratedBestResponsePrep(EvolutionSettings.DistributeChanceDecisions, (byte) NumNonChancePlayers, TraceTreeWalk);
+            InformationSetsByDecisionIndex = InformationSets.GroupBy(x => x.DecisionIndex).Select(x => x.ToList()).ToList();
+            AcceleratedBestResponsePrepResult = TreeWalk_Tree(prepWalk, new NodeActionsHistory());
         }
+
+        private void ExecuteAcceleratedBestResponse()
+        {
+            // index through information sets by decision (note that i is not the same as the actual decision index. First, calculate reach probabilities going forward. Second, calculate best response values going backward.
+            for (int i = 0; i < InformationSetsByDecisionIndex.Count; i++)
+            {
+                List<InformationSetNode> informationSetsForDecision = InformationSetsByDecisionIndex[i];
+                Parallel.ForEach(informationSetsForDecision, informationSet => informationSet.AcceleratedBestResponse_CalculateReachProbabilities());
+            }
+            for (int i = InformationSetsByDecisionIndex.Count - 1; i >= 0; i--)
+            {
+                List<InformationSetNode> informationSetsForDecision = InformationSetsByDecisionIndex[i];
+                Parallel.ForEach(informationSetsForDecision, informationSet => informationSet.AcceleratedBestResponse_CalculateBestResponseValues(NumNonChancePlayers);
+            }
+        }
+
         private unsafe void CalculateBestResponse()
         {
             BestResponseUtilities = new double[NumNonChancePlayers];
@@ -1518,6 +1538,8 @@ namespace ACESim
 
         #region General tree walk
 
+        bool TraceTreeWalk = true;
+
         public Back TreeWalk_Tree<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, Forward forward = default)
         {
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
@@ -1538,6 +1560,8 @@ namespace ACESim
                     b = TreeWalk_DecisionNode(processor, n, predecessor, predecessorAction, forward, distributorChanceInputs, ref historyPoint);
                     break;
                 case FinalUtilitiesNode f:
+                    if (TraceTreeWalk)
+                        TabbedText.WriteLine($"{f}");
                     b = processor.FinalUtilities_TurnAround(f, predecessor, predecessorAction, forward);
                     break;
                 default:
@@ -1552,17 +1576,14 @@ namespace ACESim
             Forward nextForward = processor.ChanceNode_Forward(chanceNode, predecessor, predecessorAction, forward, distributorChanceInputs);
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNode.DecisionIndex);
             byte numPossibleActionsToExplore = numPossibleActions;
-            if (chanceNode.Decision.Name == "PlaintiffSignal")
-            {
-                var DEBUG = 0;
-            }
             bool isDistributedChanceDecision = EvolutionSettings.DistributeChanceDecisions && chanceNode.Decision.DistributedChanceDecision;
             if (isDistributedChanceDecision)
                 numPossibleActionsToExplore = 1;
             List<Back> fromSuccessors = new List<Back>();
             for (byte action = 1; action <= numPossibleActionsToExplore; action++)
             {
-                TabbedText.WriteLine($"{chanceNode.Decision.Name} (C{chanceNode.ChanceNodeNumber}): {action} ({chanceNode.GetActionProbabilityString(distributorChanceInputs)})");
+                if (TraceTreeWalk)
+                    TabbedText.WriteLine($"{chanceNode.Decision.Name} (C{chanceNode.ChanceNodeNumber}): {action} ({chanceNode.GetActionProbabilityString(distributorChanceInputs)})");
                 bool isDistributorChanceInputDecision = EvolutionSettings.DistributeChanceDecisions && chanceNode.Decision.DistributorChanceInputDecision;
                 int distributorChanceInputsNext = isDistributorChanceInputDecision ? distributorChanceInputs + action * chanceNode.Decision.DistributorChanceInputDecisionMultiplier : distributorChanceInputs;
 
@@ -1586,7 +1607,8 @@ namespace ACESim
             List<Back> fromSuccessors = new List<Back>();
             for (byte action = 1; action <= numPossibleActionsToExplore; action++)
             {
-                TabbedText.WriteLine($"{informationSetNode.Decision.Name} ({informationSetNode.InformationSetNodeNumber}): {action}");
+                if (TraceTreeWalk)
+                    TabbedText.WriteLine($"{informationSetNode.Decision.Name} ({informationSetNode.InformationSetNodeNumber}): {action}");
                 if (informationSetNode.Decision.DistributorChanceInputDecision)
                     throw new NotSupportedException(); // currently, we are only passing forward an array of distributor chance inputs from chance decisions, but we could adapt this to player decisions.
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSetNode.Decision, informationSetNode.DecisionIndex);

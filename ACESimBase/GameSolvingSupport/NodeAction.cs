@@ -18,6 +18,15 @@ namespace ACESimBase.GameSolvingSupport
             DistributorChanceInputs = distributorChanceInputs;
         }
 
+        public override string ToString()
+        {
+            return Node switch
+            {
+                null => "null",
+                _ => $"{Node.GetGameStateType()} {Node.GetNodeNumber()}: {ActionAtNode}{(DistributorChanceInputs != -1 && DistributorChanceInputs != 0 && Node is ChanceNodeUnequalProbabilities u && u.Decision.DistributorChanceDecision ? $"({DistributorChanceInputs})" : "")}"
+            };
+        }
+
         public NodeAction Clone()
         {
             return new NodeAction(Node, ActionAtNode, DistributorChanceInputs);

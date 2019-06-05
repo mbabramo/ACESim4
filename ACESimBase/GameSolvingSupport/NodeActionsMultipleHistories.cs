@@ -19,6 +19,11 @@ namespace ACESimBase.GameSolvingSupport
             };
         }
 
+        public override string ToString()
+        {
+            return String.Join("; ", Histories);
+        }
+
         public NodeActionsMultipleHistories(List<NodeActionsHistory> histories)
         {
             Histories = histories;
