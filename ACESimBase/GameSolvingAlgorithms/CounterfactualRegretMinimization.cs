@@ -642,19 +642,22 @@ namespace ACESim
         }
 
         double[] BestResponseUtilities;
-        long[] BestResponseCalculationTimes;
+        long BestResponseCalculationTime;
 
         bool BestResponseIsToAverageStrategy = true; // usually, this should be true, since the average strategy is the least exploitable strategy
         string BestResponseOpponentString => BestResponseIsToAverageStrategy ? "average strategy" : ActionStrategy.ToString();
 
         List<List<InformationSetNode>> InformationSetsByDecisionIndex;
         List<NodeActionsMultipleHistories> AcceleratedBestResponsePrepResult;
+        double[] AcceleratedBestResponseResult;
 
         private void PrepareAcceleratedBestResponse()
         {
+            if (!EvolutionSettings.UseAcceleratedBestResponse)
+                return;
             AcceleratedBestResponsePrep prepWalk = new AcceleratedBestResponsePrep(EvolutionSettings.DistributeChanceDecisions, (byte) NumNonChancePlayers, TraceTreeWalk);
-            InformationSetsByDecisionIndex = InformationSets.GroupBy(x => x.DecisionIndex).Select(x => x.ToList()).ToList();
             AcceleratedBestResponsePrepResult = TreeWalk_Tree(prepWalk, new NodeActionsHistory());
+            InformationSetsByDecisionIndex = InformationSets.GroupBy(x => x.DecisionIndex).Select(x => x.ToList()).ToList();
         }
 
         private void ExecuteAcceleratedBestResponse()
@@ -670,35 +673,45 @@ namespace ACESim
                 List<InformationSetNode> informationSetsForDecision = InformationSetsByDecisionIndex[i];
                 Parallel.ForEach(informationSetsForDecision, informationSet => informationSet.AcceleratedBestResponse_CalculateBestResponseValues(NumNonChancePlayers));
             }
-            for (byte playerIndex = 0; playerIndex )
+            for (byte playerIndex = 0; playerIndex < NumNonChancePlayers; playerIndex++)
+            {
+                var resultForPlayer = AcceleratedBestResponsePrepResult[playerIndex];
+                double result = resultForPlayer.GetProbabilityAdjustedValueOfPaths(playerIndex);
+                if (BestResponseUtilities == null)
+                    BestResponseUtilities = new double[NumNonChancePlayers];
+                BestResponseUtilities[playerIndex] = result;
+            }
+
+            // DEBUG
+            TreeWalk_Tree(new WalkOnly());
         }
 
         private unsafe void CalculateBestResponse()
         {
             BestResponseUtilities = new double[NumNonChancePlayers];
-            BestResponseCalculationTimes = new long[NumNonChancePlayers];
             ActionStrategies actionStrategy = ActionStrategy;
             if (actionStrategy == ActionStrategies.CorrelatedEquilibrium)
                 actionStrategy = ActionStrategies.AverageStrategy; // best response against average strategy is same as against correlated equilibrium
             if (BestResponseIsToAverageStrategy)
                 actionStrategy = ActionStrategies.AverageStrategy;
-            for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
+
+            Stopwatch s = new Stopwatch();
+            s.Start();
+            if (EvolutionSettings.UseAcceleratedBestResponse)
             {
-                Stopwatch s = new Stopwatch();
-                s.Start();
-                double bestResponse;
-                if (EvolutionSettings.UseAcceleratedBestResponse)
-                {
-                    throw new NotImplementedException(); // NOTE: Must prepare AcceleratedBestResponse if not created. Then, must run it. DEBUG
-                    //AcceleratedBestResponse abr = new AcceleratedBestResponse(playerBeingOptimized);
-                    //bestResponse = TreeWalk_Tree(abr);
-                }
-                else
-                    bestResponse = CalculateBestResponse(playerBeingOptimized, actionStrategy);
-                BestResponseUtilities[playerBeingOptimized] = bestResponse;
-                s.Stop();
-                BestResponseCalculationTimes[playerBeingOptimized] = s.ElapsedMilliseconds;
+                if (actionStrategy != ActionStrategies.AverageStrategy)
+                    throw new NotSupportedException();
+                if (AcceleratedBestResponsePrepResult == null)
+                    PrepareAcceleratedBestResponse();
+                ExecuteAcceleratedBestResponse();
             }
+            else for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
+            {
+                double bestResponse = CalculateBestResponse(playerBeingOptimized, actionStrategy);
+                BestResponseUtilities[playerBeingOptimized] = bestResponse;
+            }
+            s.Stop();
+            BestResponseCalculationTime = s.ElapsedMilliseconds;
         }
 
         private unsafe void CompareBestResponse(bool useRandomPaths)
@@ -722,8 +735,9 @@ namespace ACESim
                     improvementReport = $" best response improvement {bestResponseImprovement}";
                 }
 
-                Console.WriteLine($"U(P{playerBeingOptimized}) {ActionStrategyLastReport}: {utilityReport}Best response vs. {BestResponseOpponentString} {BestResponseUtilities[playerBeingOptimized]} (in {BestResponseCalculationTimes[playerBeingOptimized]} milliseconds){improvementReport}");
+                Console.WriteLine($"U(P{playerBeingOptimized}) {ActionStrategyLastReport}: {utilityReport}Best response vs. {BestResponseOpponentString} {BestResponseUtilities[playerBeingOptimized]}{improvementReport}");
             }
+            Console.WriteLine($"Total best response calculation time: {BestResponseCalculationTime} milliseconds");
         }
 
         public IEnumerable<GameProgress> GetRandomCompleteGames(GamePlayer player, int numIterations, Func<Decision, GameProgress, byte> actionOverride)
@@ -1609,7 +1623,7 @@ namespace ACESim
             for (byte action = 1; action <= numPossibleActionsToExplore; action++)
             {
                 if (TraceTreeWalk)
-                    TabbedText.WriteLine($"{informationSetNode.Decision.Name} ({informationSetNode.InformationSetNodeNumber}): {action}");
+                    TabbedText.WriteLine($"{informationSetNode.Decision.Name} ({informationSetNode.InformationSetNodeNumber}): {action} (value = {informationSetNode.BestResponseOptions?[action - 1]}{(informationSetNode.LastBestResponseValue == action ? "*" : "")})");
                 if (informationSetNode.Decision.DistributorChanceInputDecision)
                     throw new NotSupportedException(); // currently, we are only passing forward an array of distributor chance inputs from chance decisions, but we could adapt this to player decisions.
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSetNode.Decision, informationSetNode.DecisionIndex);

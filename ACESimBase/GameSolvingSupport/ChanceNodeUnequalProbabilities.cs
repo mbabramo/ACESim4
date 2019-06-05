@@ -60,7 +60,7 @@ namespace ACESim
 
         public override double GetActionProbability(int action, int distributorChanceInputs = -1)
         {
-            if (distributorChanceInputs != -1 && DistributionComplete && ProbabilitiesForDistributorChanceInputs != null)
+            if (distributorChanceInputs != -1 && DistributionComplete && ProbabilitiesForDistributorChanceInputs != null && Decision.DistributorChanceDecision)
                 return ProbabilitiesForDistributorChanceInputs[distributorChanceInputs][action - 1];
             return Probabilities[action - 1];
         }

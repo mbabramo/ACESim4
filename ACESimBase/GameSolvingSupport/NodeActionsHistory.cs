@@ -36,6 +36,18 @@ namespace ACESimBase.GameSolvingSupport
             };
         }
 
+        public NodeActionsHistory WithoutDistributedChanceActions()
+        {
+            return new NodeActionsHistory()
+            {
+                NodeActions = NodeActions
+                                .Where(x => !(x.Node is ChanceNode c) || !c.Decision.DistributedChanceDecision)
+                                .Select(x => x.Clone())
+                                .ToList(),
+                SuccessorInformationSet = SuccessorInformationSet
+            };
+        }
+
         public override bool Equals(object obj)
         {
             NodeActionsHistory other = (NodeActionsHistory)obj;
@@ -57,7 +69,7 @@ namespace ACESimBase.GameSolvingSupport
             return false;
         }
 
-        public NodeActionsHistory WithPrepended(IGameState node, byte actionAtNode, int distributorChanceInputs = -1)
+        public NodeActionsHistory WithPrepended(IGameState node, byte actionAtNode, int distributorChanceInputs = -1, bool omitDistributedChanceDecisions = false)
         {
             if (node == null)
                 throw new Exception();
@@ -67,7 +79,7 @@ namespace ACESimBase.GameSolvingSupport
                 NodeActions = copied,
                 SuccessorInformationSet = SuccessorInformationSet
             };
-            if (!prepended.ModifyCoefficient(node))
+            if (!prepended.ModifyCoefficient(node) && !(omitDistributedChanceDecisions && node is ChanceNode c && c.Decision.DistributedChanceDecision))
                 copied.Insert(0, new NodeAction(node, actionAtNode, distributorChanceInputs));
             return prepended;
         }
@@ -105,7 +117,7 @@ namespace ACESimBase.GameSolvingSupport
         public NodeActionsHistory GetIncrementalHistory(byte nonChancePlayerIndex)
         {
             int? indexOfLastInformationSetByPlayer = GetIndexOfLastInformationSetByPlayer(nonChancePlayerIndex);
-            return DeepClone(indexOfLastInformationSetByPlayer == null ? 0 : (int)indexOfLastInformationSetByPlayer + 1);
+            return DeepClone(indexOfLastInformationSetByPlayer == null ? 0 : (int)indexOfLastInformationSetByPlayer + 1).WithoutDistributedChanceActions();
         }
 
         public (InformationSetNode lastInformationSet, byte actionTakenAtLastInformationSet) GetLastInformationSetByPlayer(byte nonChancePlayerIndex)
@@ -203,7 +215,7 @@ namespace ACESimBase.GameSolvingSupport
         public double GetProbabilityAdjustedUtilityOfPath(byte playerIndex)
         {
             double utility = GetUtilityOfPathToSuccessor(playerIndex);
-            double pathProbability = GetProbabilityOfPath(playerIndex);
+            double pathProbability = GetProbabilityOfPath();
             double value = pathProbability * utility;
             return value;
         }

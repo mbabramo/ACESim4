@@ -96,7 +96,7 @@ namespace ACESimBase.GameSolvingSupport
             for (byte playerIndex = 0; playerIndex < NumNonChancePlayers; playerIndex++)
             {
                 List<NodeActionsMultipleHistories> successorsForPlayer = invertMultipleHistories[playerIndex];
-                NodeActionsMultipleHistories result = NodeActionsMultipleHistories.FlattenedWithPrepend(successorsForPlayer, chanceNode, distributorChanceInputs);
+                NodeActionsMultipleHistories result = NodeActionsMultipleHistories.FlattenedWithPrepend(successorsForPlayer, chanceNode, distributorChanceInputs, DistributingChanceActions);
                 returnList.Add(result);
                 if (Trace)
                     TabbedText.WriteLine($"From successor (player {playerIndex}): {returnList.Last()}");

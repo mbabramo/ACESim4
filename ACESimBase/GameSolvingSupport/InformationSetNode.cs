@@ -285,13 +285,15 @@ namespace ACESim
         public byte ActionTakenAtPredecessorSet;
         public Dictionary<ByteList, NodeActionsHistory> PathsFromPredecessor;
         public List<NodeActionsMultipleHistories> PathsToSuccessors;
-        public double LastBestResponseValue => BestResponseOptions[LastBestResponseAction - 1]; 
+        public double LastBestResponseValue => BestResponseOptions?[LastBestResponseAction - 1] ?? 0; 
         public double[] BestResponseOptions; // one per action for this player
 
         public void AcceleratedBestResponse_CalculateReachProbabilities()
         {
-            SelfReachProbability = PredecessorInformationSetForPlayer?.SelfReachProbability ?? 1.0;
-            SelfReachProbability *= PredecessorInformationSetForPlayer.GetAverageStrategy(ActionTakenAtPredecessorSet);
+            if (PredecessorInformationSetForPlayer == null)
+                SelfReachProbability = 1.0;
+            else
+                SelfReachProbability = PredecessorInformationSetForPlayer.SelfReachProbability * PredecessorInformationSetForPlayer.GetAverageStrategy(ActionTakenAtPredecessorSet);
 
             OpponentsReachProbability = PredecessorInformationSetForPlayer?.OpponentsReachProbability ?? 1.0;
             foreach (var pathFromPredecessor in PathsFromPredecessor)

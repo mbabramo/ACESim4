@@ -38,7 +38,7 @@ namespace ACESimBase.GameSolvingSupport
         /// Flattens sets of histories to combine into a single NodeActionsMultipleHistories, consisting of each of the histories contained within prepended by a specified node and a corresponding action value. 
         /// </summary>
         /// <returns></returns>
-        public static NodeActionsMultipleHistories FlattenedWithPrepend(List<NodeActionsMultipleHistories> historiesToCombine, IGameState node, int distributorChanceInputs = -1)
+        public static NodeActionsMultipleHistories FlattenedWithPrepend(List<NodeActionsMultipleHistories> historiesToCombine, IGameState node, int distributorChanceInputs = -1, bool omitDistributedChanceDecisions = false)
         {
             List<NodeActionsHistory> histories = new List<NodeActionsHistory>();
             for (byte action = 1; action <= historiesToCombine.Count(); action++)
@@ -46,7 +46,7 @@ namespace ACESimBase.GameSolvingSupport
                 var historyToCombine = historiesToCombine[action - 1];
                 foreach (var history in historyToCombine.Histories)
                 {
-                    var withPrepend = history.WithPrepended(node, action, distributorChanceInputs);
+                    var withPrepend = history.WithPrepended(node, action, distributorChanceInputs, omitDistributedChanceDecisions);
                     histories.Add(withPrepend);
                 }
             }
