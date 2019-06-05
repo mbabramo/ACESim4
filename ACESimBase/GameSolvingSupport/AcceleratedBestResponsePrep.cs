@@ -75,7 +75,7 @@ namespace ACESimBase.GameSolvingSupport
                     {
                         TabbedText.WriteLine($"Paths to successor: {String.Join(" | ", Enumerable.Range(1, successorsForPlayer.Count).Select(x => $"{x}: {successorsForPlayer[x - 1]}"))}");
                     }
-                    informationSet.PathsToSuccessor = successorsForPlayer;
+                    informationSet.PathsToSuccessors = successorsForPlayer;
                     returnList.Add(new NodeActionsMultipleHistories(informationSet));
                 }
                 else
@@ -84,7 +84,7 @@ namespace ACESimBase.GameSolvingSupport
                     returnList.Add(result);
                 }
                 if (Trace)
-                    TabbedText.WriteLine($"To successor (player {playerIndex}): {returnList.Last()}");
+                    TabbedText.WriteLine($"From successor (player {playerIndex}): {returnList.Last()}");
             }
             return returnList;
         }
