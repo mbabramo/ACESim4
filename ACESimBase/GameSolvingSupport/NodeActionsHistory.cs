@@ -199,5 +199,53 @@ namespace ACESimBase.GameSolvingSupport
                 .Select(x => x.ActionAtNode);
             return new ByteList(nodesToInclude);
         }
+
+        public double GetProbabilityAdjustedUtilityOfPath(byte playerIndex)
+        {
+            double utility = GetUtilityOfPathToSuccessor(playerIndex);
+            double pathProbability = GetProbabilityOfPath(playerIndex);
+            double value = pathProbability * utility;
+            return value;
+        }
+
+        public double GetProbabilityOfPath()
+        {
+            double pathProbability = Coefficient;
+            foreach (var nodeAction in NodeActions)
+            {
+                switch (nodeAction.Node)
+                {
+                    case ChanceNode c:
+                        pathProbability *= c.GetActionProbability(nodeAction.ActionAtNode, nodeAction.DistributorChanceInputs);
+                        break;
+                    case InformationSetNode i:
+                        pathProbability *= i.GetAverageStrategy(nodeAction.ActionAtNode);
+                        break;
+                    default: throw new NotSupportedException();
+                }
+            }
+
+            return pathProbability;
+        }
+
+        public double GetUtilityOfPathToSuccessor(byte playerIndex)
+        {
+            double utility;
+            var successor = SuccessorInformationSet;
+            switch (successor)
+            {
+                case FinalUtilitiesNode f:
+                    utility = f.Utilities[playerIndex];
+                    break;
+                case InformationSetNode i:
+                    if (playerIndex != i.PlayerIndex)
+                        throw new Exception();
+                    utility = i.LastBestResponseValue;
+                    break;
+                default: throw new NotSupportedException();
+            }
+
+            return utility;
+        }
     }
 }

@@ -670,6 +670,7 @@ namespace ACESim
                 List<InformationSetNode> informationSetsForDecision = InformationSetsByDecisionIndex[i];
                 Parallel.ForEach(informationSetsForDecision, informationSet => informationSet.AcceleratedBestResponse_CalculateBestResponseValues(NumNonChancePlayers));
             }
+            for (byte playerIndex = 0; playerIndex )
         }
 
         private unsafe void CalculateBestResponse()

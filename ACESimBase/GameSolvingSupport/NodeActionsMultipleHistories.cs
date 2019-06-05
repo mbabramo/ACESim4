@@ -63,5 +63,15 @@ namespace ACESimBase.GameSolvingSupport
         {
             return Histories.GetSequenceHashCode();
         }
+
+        public double GetProbabilityAdjustedValueOfPaths(byte playerIndex)
+        {
+            double cumulativeValue = 0;
+            foreach (var pathToSuccessorForAction in Histories)
+            {
+                cumulativeValue += pathToSuccessorForAction.GetProbabilityAdjustedUtilityOfPath(playerIndex);
+            }
+            return cumulativeValue;
+        }
     }
 }

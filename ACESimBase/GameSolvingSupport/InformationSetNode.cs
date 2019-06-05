@@ -285,7 +285,7 @@ namespace ACESim
         public byte ActionTakenAtPredecessorSet;
         public Dictionary<ByteList, NodeActionsHistory> PathsFromPredecessor;
         public List<NodeActionsMultipleHistories> PathsToSuccessors;
-        public double[] LastBestResponseValues; // one per nonchance player
+        public double LastBestResponseValue => BestResponseOptions[LastBestResponseAction - 1]; 
         public double[] BestResponseOptions; // one per action for this player
 
         public void AcceleratedBestResponse_CalculateReachProbabilities()
@@ -295,121 +295,23 @@ namespace ACESim
 
             OpponentsReachProbability = PredecessorInformationSetForPlayer?.OpponentsReachProbability ?? 1.0;
             foreach (var pathFromPredecessor in PathsFromPredecessor)
-                foreach (var nodeAction in pathFromPredecessor.Value.NodeActions)
-                {
-                    switch (nodeAction.Node)
-                    {
-                        case ChanceNode c:
-                            OpponentsReachProbability *= c.GetActionProbability(nodeAction.ActionAtNode, nodeAction.DistributorChanceInputs);
-                            break;
-                        case InformationSetNode i:
-                            if (i.PlayerIndex == PlayerIndex)
-                                throw new Exception();
-                            OpponentsReachProbability *= i.GetAverageStrategy(nodeAction.ActionAtNode);
-                            break;
-                        default: throw new NotSupportedException();
-                    }
-                }
+                OpponentsReachProbability *= pathFromPredecessor.Value.GetProbabilityOfPath();
         }
 
         public void AcceleratedBestResponse_CalculateBestResponseValues(byte numNonChancePlayers)
         {
-            if (LastBestResponseValues == null)
-                LastBestResponseValues = new double[numNonChancePlayers];
             if (BestResponseOptions == null)
                 BestResponseOptions = new double[Decision.NumPossibleActions];
-            for (byte playerIndex = 0; playerIndex < numNonChancePlayers; playerIndex++)
-            {
-                if (playerIndex == PlayerIndex)
-                {
-                    AcceleratedBestResponse_CalculateBestResponseValuesThisPlayer();
-                }
-                else
-                {
-
-                }
-            }
-        }
-
-        private void AcceleratedBestResponse_CalculateBestResponseValuesThisPlayer()
-        {
+            // Note: Each player calculates best responses by looking at the 1+ paths to 1+ successors for each action that the player can take. These paths include opponent and chance actions, and each culminates in a successor -- either a final utilities for the player or a later information set for the player that has already been calculated. We need calculate only this player's best response value, as the best response values for other players will be calculated on their own information sets.
             for (byte action = 1; action <= Decision.NumPossibleActions; action++)
             {
-                double cumulativeValueForAction = 0.0;
                 var pathsToSuccessorsForAction = PathsToSuccessors[action - 1];
-                foreach (var pathToSuccessorForAction in pathsToSuccessorsForAction.Histories)
-                {
-                    double utility = GetUtilityOfPathToSuccessor(pathToSuccessorForAction);
-                    double pathProbability = GetProbabilityOfPath(pathToSuccessorForAction);
-                    cumulativeValueForAction += pathProbability * utility;
-                }
-                if (action == 1 || cumulativeValueForAction > LastBestResponseValues[PlayerIndex])
+                BestResponseOptions[action - 1] = pathsToSuccessorsForAction.GetProbabilityAdjustedValueOfPaths(PlayerIndex);
+                if (action == 1 || BestResponseOptions[action - 1] > LastBestResponseValue)
                 {
                     LastBestResponseAction = action;
-                    LastBestResponseValues[PlayerIndex] = cumulativeValueForAction;
                 }
             }
-        }
-
-        private void AcceleratedBestResponse_CalculateBestResponseValuesOtherPlayer(byte playerIndex)
-        {
-            double cumulativeValue = 0;
-            for (byte action = 1; action <= Decision.NumPossibleActions; action++)
-            {
-                double valueForAction = 0.0;
-                var pathsToSuccessorsForAction = PathsToSuccessors[action - 1];
-                foreach (var pathToSuccessorForAction in pathsToSuccessorsForAction.Histories)
-                {
-                    double utility = GetUtilityOfPathToSuccessor(pathToSuccessorForAction);
-                    double pathProbability = GetProbabilityOfPath(pathToSuccessorForAction);
-                    valueForAction += pathProbability * utility;
-                }
-                if (action == 1 || valueForAction > LastBestResponseValues[PlayerIndex])
-                {
-                    LastBestResponseAction = action;
-                    LastBestResponseValues[PlayerIndex] = valueForAction;
-                }
-            }
-        }
-
-        private double GetProbabilityOfPath(NodeActionsHistory pathToSuccessorForAction)
-        {
-            double pathProbability = pathToSuccessorForAction.Coefficient;
-            foreach (var nodeAction in pathToSuccessorForAction.NodeActions)
-            {
-                switch (nodeAction.Node)
-                {
-                    case ChanceNode c:
-                        pathProbability *= c.GetActionProbability(nodeAction.ActionAtNode, nodeAction.DistributorChanceInputs);
-                        break;
-                    case InformationSetNode i:
-                        pathProbability *= i.GetAverageStrategy(nodeAction.ActionAtNode);
-                        break;
-                    default: throw new NotSupportedException();
-                }
-            }
-
-            return pathProbability;
-        }
-
-        private double GetUtilityOfPathToSuccessor(NodeActionsHistory pathToSuccessorForAction)
-        {
-            double utility;
-            var successor = pathToSuccessorForAction.SuccessorInformationSet;
-            switch (successor)
-            {
-                case FinalUtilitiesNode f:
-                    utility = f.Utilities[PlayerIndex];
-                    break;
-                case InformationSetNode i:
-                    if (PlayerIndex != i.PlayerIndex)
-                        throw new Exception();
-                    utility = i.LastBestResponseValues[PlayerIndex]; // best response values already calculated for later decision index
-                    break;
-                default: throw new NotSupportedException();
-            }
-
-            return utility;
         }
 
         #endregion
