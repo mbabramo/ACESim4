@@ -23,7 +23,7 @@ namespace ACESim
         public const int MaxNumMainPlayers = 4; // this affects fixed-size stack-allocated buffers // TODO: Set to 2
         public const int MaxPossibleActions = 100; // same
 
-        bool TraceCFR = false;
+        bool TraceCFR = true;
 
         bool ShouldEstimateImprovementOverTime = false;
         const int NumRandomGamePlaysForEstimatingImprovement = 1000;
@@ -596,6 +596,7 @@ namespace ACESim
                         if (EvolutionSettings.GenerateReportsByPlaying)
                             reportString += await GenerateReportsByPlaying(useRandomPaths);
                     }
+                TreeWalk_Tree(new WalkOnly()); // DEBUG
                 ActionStrategy = previous;
                 Br.eak.Remove("Report");
                 MeasureRegretMatchingChanges();

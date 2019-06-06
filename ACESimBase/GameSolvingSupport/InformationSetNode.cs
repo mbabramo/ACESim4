@@ -851,6 +851,10 @@ namespace ACESim
 
         public void NormalizedHedgeIncrementLastRegret(byte action, double regretTimesInversePi)
         {
+            if (InformationSetNodeNumber == 4)
+            {
+                var DEBUG = 0;
+            }
             NodeInformation[lastRegretDimension, action - 1] += regretTimesInversePi;
         }
 
