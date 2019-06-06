@@ -145,55 +145,6 @@ namespace ACESimBase.GameSolvingSupport
             return indexOfLastInformationSetByPlayer;
         }
 
-        /// <summary>
-        /// Returns another NodeActionsHistory object with all actions after the specified decision.
-        /// </summary>
-        /// <param name="decisionIndex"></param>
-        /// <returns></returns>
-        // DEBUG -- remove
-        public NodeActionsHistory GetSubsequentHistory(int decisionIndex)
-        {
-            int? indexOfInformationSetForDecision = GetIndexOfInformationSetForDecision(decisionIndex);
-            return DeepClone((int)indexOfInformationSetForDecision + 1);
-        }
-
-        // DEBUG -- remove
-        /// <summary>
-        /// Returns another NodeActionsHistory object with all actions after the specified decision but only to a successor information set (i.e., final utilities or another information set node for the same non-chance player), which will then be included as the successor information set.
-        /// </summary>
-        /// <param name="decisionIndex"></param>
-        /// <param name="nonChancePlayerIndex"></param>
-        /// <returns></returns>
-        public NodeActionsHistory GetSubsequentHistoryToSuccessor(int decisionIndex, byte nonChancePlayerIndex)
-        {
-            int? indexOfInformationSetForDecision = GetIndexOfInformationSetForDecision(decisionIndex);
-            int? indexOfSuccessor = GetIndexOfLastInformationSetByPlayer(nonChancePlayerIndex);
-            if (indexOfSuccessor == null || indexOfSuccessor <= indexOfInformationSetForDecision)
-            {
-                if (SuccessorInformationSet == null)
-                    throw new Exception("No successor found.");
-                return DeepClone((int)indexOfInformationSetForDecision + 1); // including successor information set
-            }
-            // we want to skip the information set at indexOfInformationSetForDecision as well as the information set at indexOfSuccessor.
-            var result = DeepClone((int)indexOfInformationSetForDecision + 1, (int) indexOfSuccessor - (int) indexOfInformationSetForDecision - 1);
-            result.SuccessorInformationSet = NodeActions[(int)indexOfSuccessor].Node;
-            return result;
-        }
-
-        // DEBUG -- remove
-        private int? GetIndexOfInformationSetForDecision(int decisionIndex)
-        {
-            int? indexOfInformationSetForDecision = null;
-            for (int i = NodeActions.Count - 1; i >= 0; i--)
-                if (NodeActions[i].Node is InformationSetNode informationSet && informationSet.DecisionIndex == decisionIndex)
-                {
-                    indexOfInformationSetForDecision = i;
-                    break;
-                }
-            if (indexOfInformationSetForDecision == null)
-                throw new ArgumentException("Expected decision not found; can't get subsequent history.");
-            return indexOfInformationSetForDecision;
-        }
 
         /// <summary>
         /// Returns a list of actions, excluding a specified player as well as distributed chance decisions, if chance decisions are being distributed. The decisions included are thus all those that may differentiate the action taken at the current information set.

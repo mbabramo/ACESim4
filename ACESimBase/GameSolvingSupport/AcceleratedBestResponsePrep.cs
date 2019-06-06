@@ -61,10 +61,6 @@ namespace ACESimBase.GameSolvingSupport
 
         public List<NodeActionsMultipleHistories> InformationSet_Backward(InformationSetNode informationSet, IEnumerable<List<NodeActionsMultipleHistories>> fromSuccessors)
         {
-            if (informationSet.InformationSetNodeNumber == 4)
-            {
-                var DEBUG = 0;
-            }
             List<NodeActionsMultipleHistories> returnList = new List<NodeActionsMultipleHistories>();
             var invertMultipleHistories = GetMultipleHistoriesByPlayer(fromSuccessors);
             for (byte playerIndex = 0; playerIndex < NumNonChancePlayers; playerIndex++)

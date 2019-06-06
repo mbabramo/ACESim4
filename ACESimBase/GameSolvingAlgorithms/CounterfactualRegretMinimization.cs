@@ -706,10 +706,6 @@ namespace ACESim
             }
             s.Stop();
             BestResponseCalculationTime = s.ElapsedMilliseconds;
-
-
-            // DEBUG
-            TreeWalk_Tree(new WalkOnly());
         }
 
         private unsafe void CompareBestResponse(bool useRandomPaths)
