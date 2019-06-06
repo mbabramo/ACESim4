@@ -12,12 +12,12 @@ namespace ACESimBase.GameSolvingSupport
             return true;
         }
 
-        public bool ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, bool fromPredecessor, int distributorChanceInputs)
+        public bool ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, bool fromPredecessor, int distributorChanceInputs)
         {
             return true;
         }
 
-        public bool FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, bool fromPredecessor)
+        public bool FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, bool fromPredecessor)
         {
             return true;
         }
@@ -27,7 +27,7 @@ namespace ACESimBase.GameSolvingSupport
             return true;
         }
 
-        public bool InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, bool fromPredecessor)
+        public bool InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, bool fromPredecessor)
         {
             return true;
         }

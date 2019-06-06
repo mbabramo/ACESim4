@@ -27,7 +27,7 @@ namespace ACESim
             CalculatingForPlayer = calculatingForPlayer;
         }
 
-        public double[] FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, bool fromPredecessor)
+        public double[] FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, bool fromPredecessor)
         {
             return finalUtilities.Utilities;
         }
@@ -40,7 +40,7 @@ namespace ACESim
                         valuesToUpdate[i] = fromSuccessor[i];
         }
 
-        public bool ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, bool fromPredecessor, int distributorChanceInputs)
+        public bool ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, bool fromPredecessor, int distributorChanceInputs)
         {
             double[] d = new double[NumNonChancePlayers];
             foreach (int i in CalculatingForPlayers)
@@ -56,7 +56,7 @@ namespace ACESim
             return d;
         }
 
-        public bool InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, bool fromPredecessor)
+        public bool InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, bool fromPredecessor)
         {
             if (Min)
             {

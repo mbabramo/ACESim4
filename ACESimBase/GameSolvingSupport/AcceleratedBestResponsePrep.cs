@@ -21,9 +21,9 @@ namespace ACESimBase.GameSolvingSupport
             Trace = trace;
         }
 
-        public NodeActionsHistory InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, NodeActionsHistory fromPredecessor)
+        public NodeActionsHistory InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, NodeActionsHistory fromPredecessor)
         {
-            NodeActionsHistory historyToHere = predecessor == null ? fromPredecessor : fromPredecessor.WithAppended(predecessor, predecessorAction);
+            NodeActionsHistory historyToHere = predecessor == null ? fromPredecessor : fromPredecessor.WithAppended(predecessor, predecessorAction, predecessorDistributorChanceInputs);
             (InformationSetNode predecessorInformationSetForPlayer, byte actionTakenThere) = historyToHere.GetLastInformationSetByPlayer(informationSet.PlayerIndex);
             informationSet.PredecessorInformationSetForPlayer = predecessorInformationSetForPlayer;
             informationSet.ActionTakenAtPredecessorSet = actionTakenThere;
@@ -37,22 +37,17 @@ namespace ACESimBase.GameSolvingSupport
             return historyToHere;
         }
 
-        public NodeActionsHistory ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, NodeActionsHistory fromPredecessor, int distributorChanceInputs)
+        public NodeActionsHistory ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, NodeActionsHistory fromPredecessor, int distributorChanceInputs)
         {
             if (predecessor == null)
                 return fromPredecessor;
-            int predecessorDistributorChanceInputs = distributorChanceInputs;
-            ChanceNode predecessorChance = predecessor as ChanceNode;
-            bool wasDistributorChanceInputDecision = DistributingChanceActions && predecessorChance != null && predecessorChance.Decision.DistributorChanceInputDecision;
-            if (wasDistributorChanceInputDecision)
-                predecessorDistributorChanceInputs -= predecessorAction * predecessorChance.Decision.DistributorChanceInputDecisionMultiplier;
             NodeActionsHistory historyToHere = fromPredecessor.WithAppended(predecessor, predecessorAction, predecessorDistributorChanceInputs);
             return historyToHere;
         }
 
-        public List<NodeActionsMultipleHistories> FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, NodeActionsHistory fromPredecessor)
+        public List<NodeActionsMultipleHistories> FinalUtilities_TurnAround(FinalUtilitiesNode finalUtilities, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, NodeActionsHistory fromPredecessor)
         {
-            NodeActionsHistory historyToHere = predecessor == null ? fromPredecessor : fromPredecessor.WithAppended(predecessor, predecessorAction);
+            NodeActionsHistory historyToHere = predecessor == null ? fromPredecessor : fromPredecessor.WithAppended(predecessor, predecessorAction, predecessorDistributorChanceInputs);
             return Enumerable.Range(0, NumNonChancePlayers).Select(x => new NodeActionsMultipleHistories(finalUtilities)).ToList();
         }
 
