@@ -573,8 +573,7 @@ namespace ACESim
             if (EvolutionSettings.ReportEveryNIterations != null && iteration % EvolutionSettings.ReportEveryNIterations == 0)
             {
                 bool doBestResponse = (EvolutionSettings.BestResponseEveryMIterations != null && iteration % EvolutionSettings.BestResponseEveryMIterations == 0 && EvolutionSettings.BestResponseEveryMIterations != EvolutionSettings.EffectivelyNever && iteration != 0);
-                bool useRandomPaths =
-                EvolutionSettings.UseRandomPathsForReporting
+                bool useRandomPaths = EvolutionSettings.UseRandomPathsForReporting
                     //&& (SkipEveryPermutationInitialization ||
                     //   NumInitializedGamePaths > EvolutionSettings.NumRandomIterationsForSummaryTable)
                     ;
@@ -1619,10 +1618,12 @@ namespace ACESim
 
 
             List<Back> fromSuccessors = new List<Back>();
+            if (TraceTreeWalk)
+                TabbedText.WriteLine($"{informationSetNode}");
             for (byte action = 1; action <= numPossibleActionsToExplore; action++)
             {
                 if (TraceTreeWalk)
-                    TabbedText.WriteLine($"{informationSetNode.Decision.Name} ({informationSetNode.InformationSetNodeNumber}): {action} (value = {informationSetNode.BestResponseOptions?[action - 1]}{(informationSetNode.LastBestResponseValue == action ? "*" : "")})");
+                    TabbedText.WriteLine($"{informationSetNode.Decision.Name} ({informationSetNode.InformationSetNodeNumber}): {action} (best response value = {informationSetNode.BestResponseOptions?[action - 1]}{(informationSetNode.LastBestResponseValue == action ? "*" : "")})");
                 if (informationSetNode.Decision.DistributorChanceInputDecision)
                     throw new NotSupportedException(); // currently, we are only passing forward an array of distributor chance inputs from chance decisions, but we could adapt this to player decisions.
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSetNode.Decision, informationSetNode.DecisionIndex);
