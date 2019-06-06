@@ -18,7 +18,7 @@ namespace ACESim
         public int CorrelatedEquilibriumCalculationsEveryNIterations = 100000;
         public const int EffectivelyNever = 999999999;
         public int? BestResponseEveryMIterations = 100; // For partial recall games, this is very costly, so consider using EffectivelyNever.
-        public bool UseAcceleratedBestResponse = true; 
+        public bool UseAcceleratedBestResponse = true;  // DEBUG
         public int? MiniReportEveryPIterations = 1000;
         public bool MeasureRegretMatchingChanges = false;
         public bool UseRandomPathsForReporting = true;
@@ -39,7 +39,7 @@ namespace ACESim
 
         public bool GenerateReportsByPlaying;
         public int NumRandomIterationsForSummaryTable = 10000;
-        public bool PrintGameTree = false;
+        public bool PrintGameTree = false; 
         public bool PrintInformationSets = false;
         public bool AnalyzeInformationSets = false; 
         public List<int> RestrictToTheseInformationSets = null;

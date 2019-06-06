@@ -348,7 +348,10 @@ namespace ACESim
 
         public void PrintGameTree()
         {
+            bool original = TraceTreeWalk;
+            TraceTreeWalk = true;
             TreeWalk_Tree(new WalkOnly());
+            TraceTreeWalk = original;
             //var startHistoryPoint = GetStartOfGameHistoryPoint();
             //PrintGameTree_Helper_Manual(ref startHistoryPoint);
             // uncomment to print from particular poitn
@@ -716,10 +719,17 @@ namespace ACESim
                     PrepareAcceleratedBestResponse();
                 ExecuteAcceleratedBestResponse();
             }
-            else for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
+            else
             {
-                double bestResponse = CalculateBestResponse(playerBeingOptimized, actionStrategy);
-                BestResponseUtilities[playerBeingOptimized] = bestResponse;
+                for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
+                {
+                    double bestResponse = CalculateBestResponse(playerBeingOptimized, actionStrategy);
+                    BestResponseUtilities[playerBeingOptimized] = bestResponse;
+                }
+                //TraceTreeWalk = true; // DEBUG
+                //PrintGameTree(); // DEBUG
+                //ExecuteAcceleratedBestResponse(); // DEBUG
+                //PrintGameTree(); // DEBUG
             }
             s.Stop();
             BestResponseCalculationTime = s.ElapsedMilliseconds;

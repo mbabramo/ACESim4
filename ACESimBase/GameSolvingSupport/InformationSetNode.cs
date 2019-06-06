@@ -132,7 +132,7 @@ namespace ACESim
 
         public override string ToString()
         {
-            return $"Information set {InformationSetNodeNumber} ({Decision.Name}): DecisionByteCode {DecisionByteCode} (index {DecisionIndex}) PlayerIndex {PlayerIndex} Probabilities {GetProbabilitiesString()} {GetBestResponseStringIfAvailable()}Regrets{(MustUseBackup ? "*" : "")} {GetCumulativeRegretsString()} Strategies {GetCumulativeStrategiesString()} RegretIncrements {NumRegretIncrements} NumBackupRegretsSinceLastRegretIncrement {NumBackupRegretsSinceLastRegretIncrement} NumBackupRegretIncrements {NumBackupRegretIncrements} TotalIncrements {NumTotalIncrements}";
+            return $"Information set {InformationSetNodeNumber} ({Decision.Name}): DecisionByteCode {DecisionByteCode} (index {DecisionIndex}) PlayerIndex {PlayerIndex} Probabilities {GetProbabilitiesString()} {GetBestResponseStringIfAvailable()}Average {GetAverageStrategiesAsString()} Regrets{(MustUseBackup ? "*" : "")} {GetCumulativeRegretsString()} Strategies {GetCumulativeStrategiesString()} RegretIncrements {NumRegretIncrements} NumBackupRegretsSinceLastRegretIncrement {NumBackupRegretsSinceLastRegretIncrement} NumBackupRegretIncrements {NumBackupRegretIncrements} TotalIncrements {NumTotalIncrements}";
         }
 
         public string GetBestResponseStringIfAvailable()
@@ -355,9 +355,11 @@ namespace ACESim
                 BestResponseMayReachHere = PredecessorInformationSetForPlayer.LastBestResponseAction == ActionTakenAtPredecessorSet;
         }
 
+        bool OnlyUpdateIfBestResponseMayReachHere = false; // DEBUG
+
         public void UpdateAverageStrategyForFictitiousPlay(double lambda2)
         {
-            if (!BestResponseMayReachHere)
+            if (!BestResponseMayReachHere && OnlyUpdateIfBestResponseMayReachHere)
                 return;
             double lambda1 = 1.0 - lambda2;
             double weightOnDifference = lambda2 / (lambda1 * SelfReachProbability + lambda2);
@@ -367,7 +369,11 @@ namespace ACESim
                 double bestResponseProbability = (LastBestResponseAction == action) ? 1.0 : 0.0;
                 double difference = bestResponseProbability - currentAverageStrategyProbability;
                 double successorValue = currentAverageStrategyProbability + weightOnDifference * difference;
-                NodeInformation[averageStrategyProbabilityDimension, action] = successorValue;
+                //if (lambda2 < .001 && difference > 0.01 && BestResponseMayReachHere)
+                //{
+                //    var DEBUG = 0;
+                //}
+                NodeInformation[cumulativeStrategyDimension, action - 1] = NodeInformation[averageStrategyProbabilityDimension, action - 1] = successorValue;
             }
         }
 

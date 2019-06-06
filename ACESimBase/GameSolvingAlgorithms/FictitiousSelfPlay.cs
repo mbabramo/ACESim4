@@ -16,8 +16,11 @@ namespace ACESim
         {
             string reportString = null;
             InitializeInformationSets();
-            for (int iteration = 1; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
+            HedgeVanillaIterationStopwatch.Reset();
+            for (int iteration = 2; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
+                if (iteration == EvolutionSettings.TotalVanillaCFRIterations)
+                    EvolutionSettings.UseAcceleratedBestResponse = false; // DEBUG -- remove
                 reportString = await FictitiousSelfPlayIteration(iteration);
             }
             return reportString;
@@ -25,6 +28,8 @@ namespace ACESim
 
         private async Task<string> FictitiousSelfPlayIteration(int iteration)
         {
+            HedgeVanillaIterationStopwatch.Start();
+
             HedgeVanillaIteration = iteration;
             HedgeVanillaIterationInt = iteration;
 
@@ -33,10 +38,11 @@ namespace ACESim
             string reportString = null;
             double[] lastUtilities = new double[NumNonChancePlayers];
 
-            ExecuteAcceleratedBestResponse(true);
+            CalculateBestResponse();
+
             Parallel.ForEach(InformationSets, informationSet => informationSet.UpdateAverageStrategyForFictitiousPlay(lambda2));
 
-            MiniReport(iteration, null);
+            HedgeVanillaIterationStopwatch.Stop();
 
             reportString = await GenerateReports(iteration,
                 () =>
