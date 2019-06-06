@@ -572,9 +572,10 @@ namespace ACESim
         private async Task<string> GenerateReports(int iteration, Func<string> prefaceFn)
         {
             string reportString = "";
-            if (EvolutionSettings.ReportEveryNIterations != null && iteration % EvolutionSettings.ReportEveryNIterations == 0)
+            bool doBestResponse = (EvolutionSettings.BestResponseEveryMIterations != null && iteration % EvolutionSettings.BestResponseEveryMIterations == 0 && EvolutionSettings.BestResponseEveryMIterations != EvolutionSettings.EffectivelyNever && iteration != 0);
+            bool doReports = EvolutionSettings.ReportEveryNIterations != null && iteration % EvolutionSettings.ReportEveryNIterations == 0;
+            if (doReports || doBestResponse)
             {
-                bool doBestResponse = (EvolutionSettings.BestResponseEveryMIterations != null && iteration % EvolutionSettings.BestResponseEveryMIterations == 0 && EvolutionSettings.BestResponseEveryMIterations != EvolutionSettings.EffectivelyNever && iteration != 0);
                 bool useRandomPaths = EvolutionSettings.UseRandomPathsForReporting
                     //&& (SkipEveryPermutationInitialization ||
                     //   NumInitializedGamePaths > EvolutionSettings.NumRandomIterationsForSummaryTable)
@@ -587,24 +588,29 @@ namespace ACESim
                     Console.WriteLine($"{NumberAverageStrategySamplingExplorations / (double)EvolutionSettings.ReportEveryNIterations}");
                 NumberAverageStrategySamplingExplorations = 0;
 
-                Br.eak.Add("Report");
-                ActionStrategies previous = ActionStrategy;
-                var actionStrategiesToUse = EvolutionSettings.ActionStrategiesToUseInReporting;
-                if (actionStrategiesToUse != null)
-                    foreach (var actionStrategy in actionStrategiesToUse)
-                    {
-                        ActionStrategy = actionStrategy;
-                        ActionStrategyLastReport = ActionStrategy.ToString();
-                        if (EvolutionSettings.GenerateReportsByPlaying)
-                            reportString += await GenerateReportsByPlaying(useRandomPaths);
-                    }
-                ActionStrategy = previous;
-                Br.eak.Remove("Report");
-                MeasureRegretMatchingChanges();
-                if (ShouldEstimateImprovementOverTime)
-                    ReportEstimatedImprovementsOverTime();
-                if (doBestResponse)
-                    CompareBestResponse(false);
+                if (doReports)
+                {
+                    Br.eak.Add("Report");
+                    ActionStrategies previous = ActionStrategy;
+                    var actionStrategiesToUse = EvolutionSettings.ActionStrategiesToUseInReporting;
+                    if (actionStrategiesToUse != null)
+                        foreach (var actionStrategy in actionStrategiesToUse)
+                        {
+                            ActionStrategy = actionStrategy;
+                            ActionStrategyLastReport = ActionStrategy.ToString();
+                            if (EvolutionSettings.GenerateReportsByPlaying)
+                                reportString += await GenerateReportsByPlaying(useRandomPaths);
+                        }
+                    ActionStrategy = previous;
+                    Br.eak.Remove("Report");
+                    MeasureRegretMatchingChanges();
+                    if (ShouldEstimateImprovementOverTime)
+                        ReportEstimatedImprovementsOverTime();
+                    if (doBestResponse)
+                        CompareBestResponse(false);
+                }
+                else if (doBestResponse)
+                    SummarizeBestResponse();
                 if (iteration % EvolutionSettings.CorrelatedEquilibriumCalculationsEveryNIterations == 0)
                     DoCorrelatedEquilibriumCalculations(iteration);
                 if (EvolutionSettings.PrintGameTree)
@@ -732,6 +738,17 @@ namespace ACESim
                 }
 
                 Console.WriteLine($"U(P{playerBeingOptimized}) {ActionStrategyLastReport}: {utilityReport}Best response vs. {BestResponseOpponentString} {BestResponseUtilities[playerBeingOptimized]}{improvementReport}");
+            }
+            Console.WriteLine($"Total best response calculation time: {BestResponseCalculationTime} milliseconds");
+        }
+
+        private unsafe void SummarizeBestResponse()
+        {
+            // This is reporting Best response vs. average strategy
+            for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
+            {
+
+                Console.WriteLine($"U(P{playerBeingOptimized}) {ActionStrategyLastReport}: Best response vs. {BestResponseOpponentString} {BestResponseUtilities[playerBeingOptimized]}");
             }
             Console.WriteLine($"Total best response calculation time: {BestResponseCalculationTime} milliseconds");
         }
