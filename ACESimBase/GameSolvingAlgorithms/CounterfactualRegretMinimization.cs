@@ -163,6 +163,9 @@ namespace ACESim
                 case GameApproximationAlgorithm.PureStrategyFinder:
                     await FindPureStrategies();
                     break;
+                case GameApproximationAlgorithm.FictitiousSelfPlay:
+                    report = await SolveFictitiousSelfPlay();
+                    break;
                 default:
                     throw new NotImplementedException();
             }
@@ -665,7 +668,7 @@ namespace ACESim
             InformationSetsByDecisionIndex = InformationSets.GroupBy(x => x.DecisionIndex).Select(x => x.ToList()).ToList();
         }
 
-        private void ExecuteAcceleratedBestResponse()
+        private void ExecuteAcceleratedBestResponse(bool determineWhetherReachable = false)
         {
             // index through information sets by decision (note that i is not the same as the actual decision index. First, calculate reach probabilities going forward. Second, calculate best response values going backward.
             for (int i = 0; i < InformationSetsByDecisionIndex.Count; i++)
@@ -678,6 +681,12 @@ namespace ACESim
                 List<InformationSetNode> informationSetsForDecision = InformationSetsByDecisionIndex[i];
                 Parallel.ForEach(informationSetsForDecision, informationSet => informationSet.AcceleratedBestResponse_CalculateBestResponseValues(NumNonChancePlayers));
             }
+            if (determineWhetherReachable)
+                for (int i = 0; i < InformationSetsByDecisionIndex.Count; i++)
+                {
+                    List<InformationSetNode> informationSetsForDecision = InformationSetsByDecisionIndex[i];
+                    Parallel.ForEach(informationSetsForDecision, informationSet => informationSet.AcceleratedBestResponse_DetermineWhetherReachable());
+                }
             for (byte playerIndex = 0; playerIndex < NumNonChancePlayers; playerIndex++)
             {
                 var resultForPlayer = AcceleratedBestResponsePrepResult[playerIndex];

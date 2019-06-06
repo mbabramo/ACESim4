@@ -286,6 +286,7 @@ namespace ACESim
         public double SelfReachProbability, OpponentsReachProbability;
         public InformationSetNode PredecessorInformationSetForPlayer;
         public byte ActionTakenAtPredecessorSet;
+        public bool BestResponseMayReachHere;
         public ByteList LastActionsList => PathsFromPredecessor.Last().ActionsList; // so that we can find corresponding path in predecessor
         public class PathFromPredecessorInfo
         {
@@ -342,6 +343,31 @@ namespace ACESim
                 {
                     LastBestResponseAction = action;
                 }
+            }
+        }
+
+        public void AcceleratedBestResponse_DetermineWhetherReachable()
+        {
+            // This assumes that we have calculated best responses and already run this on prior nodes.
+            if (PredecessorInformationSetForPlayer == null)
+                BestResponseMayReachHere = true;
+            else
+                BestResponseMayReachHere = PredecessorInformationSetForPlayer.LastBestResponseAction == ActionTakenAtPredecessorSet;
+        }
+
+        public void UpdateAverageStrategyForFictitiousPlay(double lambda2)
+        {
+            if (!BestResponseMayReachHere)
+                return;
+            double lambda1 = 1.0 - lambda2;
+            double weightOnDifference = lambda2 / (lambda1 * SelfReachProbability + lambda2);
+            for (byte action = 1; action <= NumPossibleActions; action++)
+            {
+                double currentAverageStrategyProbability = GetAverageStrategy(action);
+                double bestResponseProbability = (LastBestResponseAction == action) ? 1.0 : 0.0;
+                double difference = bestResponseProbability - currentAverageStrategyProbability;
+                double successorValue = currentAverageStrategyProbability + weightOnDifference * difference;
+                NodeInformation[averageStrategyProbabilityDimension, action] = successorValue;
             }
         }
 

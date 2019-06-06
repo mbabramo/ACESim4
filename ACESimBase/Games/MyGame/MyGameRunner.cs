@@ -20,7 +20,7 @@ namespace ACESim
         public static double[] CostsMultipliers = new double[] { 1.0 }; // 0.1, 0.25, 0.5, 1.0, 1.5, 2.0, 4.0 };
         public const double StdevPlayerNoise = 0.3; // baseline is 0.3
 
-        private const GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.HedgeVanilla;
+        private const GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.FictitiousSelfPlay; // DEBUG
 
         private const int ProbingIterations = 20_000_000;
         private const int VanillaIterations = 100_000; 
