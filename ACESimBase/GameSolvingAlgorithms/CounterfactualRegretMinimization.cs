@@ -345,13 +345,15 @@ namespace ACESim
 
         public void PrintGameTree()
         {
+            TreeWalk_Tree(new WalkOnly());
+            //var startHistoryPoint = GetStartOfGameHistoryPoint();
+            //PrintGameTree_Helper_Manual(ref startHistoryPoint);
+            // uncomment to print from particular poitn
             //HistoryPoint historyPoint = GetHistoryPointFromActions(new List<byte>() {3, 10, 5, 9, 4, 8});
-            //PrintGameTree_Helper(historyPoint);
-            var startHistoryPoint = GetStartOfGameHistoryPoint();
-            PrintGameTree_Helper(ref startHistoryPoint);
+            //PrintGameTree_Helper_Manual(historyPoint);
         }
 
-        public unsafe double[] PrintGameTree_Helper(ref HistoryPoint historyPoint)
+        public unsafe double[] PrintGameTree_Helper_Manual(ref HistoryPoint historyPoint)
         {
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             //if (TraceCFR)
@@ -373,7 +375,7 @@ namespace ACESim
                         TabbedText.WriteLine($"{action} (C): p={chanceProbability:N2}");
                         HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
                         TabbedText.Tabs++;
-                        double[] utilitiesAtNextHistoryPoint = PrintGameTree_Helper(ref nextHistoryPoint);
+                        double[] utilitiesAtNextHistoryPoint = PrintGameTree_Helper_Manual(ref nextHistoryPoint);
                         TabbedText.Tabs--;
                         if (cumUtilities == null)
                             cumUtilities = new double[utilitiesAtNextHistoryPoint.Length];
@@ -397,7 +399,7 @@ namespace ACESim
                         TabbedText.WriteLine($"{action} (P{informationSet.PlayerIndex}): p={actionProbabilities[action - 1]:N2} ({informationSet.ToStringAbbreviated()})");
                         HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                         TabbedText.Tabs++;
-                        double[] utilitiesAtNextHistoryPoint = PrintGameTree_Helper(ref nextHistoryPoint);
+                        double[] utilitiesAtNextHistoryPoint = PrintGameTree_Helper_Manual(ref nextHistoryPoint);
                         TabbedText.Tabs--;
                         if (cumUtilities == null)
                             cumUtilities = new double[utilitiesAtNextHistoryPoint.Length];
@@ -596,7 +598,6 @@ namespace ACESim
                         if (EvolutionSettings.GenerateReportsByPlaying)
                             reportString += await GenerateReportsByPlaying(useRandomPaths);
                     }
-                TreeWalk_Tree(new WalkOnly()); // DEBUG
                 ActionStrategy = previous;
                 Br.eak.Remove("Report");
                 MeasureRegretMatchingChanges();
@@ -707,7 +708,6 @@ namespace ACESim
             }
             s.Stop();
             BestResponseCalculationTime = s.ElapsedMilliseconds;
-            TreeWalk_Tree(new WalkOnly()); // DEBUG
         }
 
         private unsafe void CompareBestResponse(bool useRandomPaths)
@@ -1549,7 +1549,7 @@ namespace ACESim
 
         #region General tree walk
 
-        bool TraceTreeWalk = true;
+        bool TraceTreeWalk = false;
 
         public Back TreeWalk_Tree<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, Forward forward = default)
         {

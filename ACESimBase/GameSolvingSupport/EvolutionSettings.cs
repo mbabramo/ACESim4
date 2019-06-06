@@ -18,7 +18,7 @@ namespace ACESim
         public int CorrelatedEquilibriumCalculationsEveryNIterations = 100000;
         public const int EffectivelyNever = 999999999;
         public int? BestResponseEveryMIterations = 100; // For partial recall games, this is very costly, so consider using EffectivelyNever.
-        public bool UseAcceleratedBestResponse = true; // DEBUG
+        public bool UseAcceleratedBestResponse = true;
         public int? MiniReportEveryPIterations = 1000;
         public bool MeasureRegretMatchingChanges = false;
         public bool UseRandomPathsForReporting = true;
@@ -89,7 +89,7 @@ namespace ACESim
         public const bool PruneOnOpponentStrategy = false; // NOTE: In general sum games, this seems to cause difficulties, because some of the player's own information sets may not be visited, as a result of pruning on opponents' sets. 
         public const double PruneOnOpponentStrategyThreshold = 1E-8; // NOTE: This is the probability for this action, not the cumulative probability. 
 
-        public bool DistributeChanceDecisions = true; // DEBUG
-        public bool UnrollAlgorithm = true; // DEBUG
+        public bool DistributeChanceDecisions = true; 
+        public bool UnrollAlgorithm = true; 
     }
 }
