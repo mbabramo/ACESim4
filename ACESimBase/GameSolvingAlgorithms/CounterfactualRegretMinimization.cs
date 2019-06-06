@@ -741,8 +741,8 @@ namespace ACESim
             }
             Console.WriteLine($"Total best response calculation time: {BestResponseCalculationTime} milliseconds");
 
-            TraceTreeWalk = true; // DEBUG
-            PrintGameTree(); // DEBUG
+            //TraceTreeWalk = true; // DEBUG
+            //PrintGameTree(); // DEBUG
         }
 
         private unsafe void SummarizeBestResponse()
@@ -1570,7 +1570,7 @@ namespace ACESim
 
         #region General tree walk
 
-        bool TraceTreeWalk = true; // DEBUG
+        bool TraceTreeWalk = false; 
 
         public Back TreeWalk_Tree<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, Forward forward = default)
         {
