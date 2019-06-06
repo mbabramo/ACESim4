@@ -319,10 +319,6 @@ namespace ACESim
 
         public void AcceleratedBestResponse_CalculateBestResponseValues(byte numNonChancePlayers)
         {
-            if (InformationSetNodeNumber == 4)
-            {
-                var DEBUG = 0;
-            }
             if (BestResponseOptions == null)
                 BestResponseOptions = new double[Decision.NumPossibleActions];
             // Note: Each time the information set was visited in the initial tree walk set up, there may be one or more paths to one or more successors, combined into a single NodeActionsMultipleHistories that reflects their relative probability weight. Thus, we have one NodeActionsMultipleHistories for each possible prior history. Each path includes opponent and chance actions, and each culminates in a successor -- either a final utilities for the player or a later information set for the player that has already been calculated. To calculate the value of an action, we need to calculate the weighted averages of the NodeActionsMultipleHistories by the probability that opponents play to here. We need calculate only this player's best response value, as the best response values for other players will be calculated on their own information sets.

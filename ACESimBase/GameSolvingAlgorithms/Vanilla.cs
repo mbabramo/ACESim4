@@ -106,7 +106,7 @@ namespace ACESim
                     double inversePi = GetInversePiValue(piValues, playerBeingOptimized);
                     double pi = piValues[playerBeingOptimized];
                     var regret = (expectedValueOfAction[action - 1] - expectedValue);
-                    if (EvolutionSettings.UseDiscounting)
+                    if (EvolutionSettings.UseDiscounting && EvolutionSettings.DiscountRegrets)
                     {
                         informationSet.IncrementCumulativeRegret(action, inversePi * regret * (regret > 0 ? PositiveRegretsAdjustment : NegativeRegretsAdjustment), false);
                     }

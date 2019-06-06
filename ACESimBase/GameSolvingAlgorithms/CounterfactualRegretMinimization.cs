@@ -740,9 +740,6 @@ namespace ACESim
                 Console.WriteLine($"U(P{playerBeingOptimized}) {ActionStrategyLastReport}: {utilityReport}Best response vs. {BestResponseOpponentString} {BestResponseUtilities[playerBeingOptimized]}{improvementReport}");
             }
             Console.WriteLine($"Total best response calculation time: {BestResponseCalculationTime} milliseconds");
-
-            //TraceTreeWalk = true; // DEBUG
-            //PrintGameTree(); // DEBUG
         }
 
         private unsafe void SummarizeBestResponse()
