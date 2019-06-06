@@ -751,6 +751,7 @@ namespace ACESim
                 Console.WriteLine($"U(P{playerBeingOptimized}) {ActionStrategyLastReport}: Best response vs. {BestResponseOpponentString} {BestResponseUtilities[playerBeingOptimized]}");
             }
             Console.WriteLine($"Total best response calculation time: {BestResponseCalculationTime} milliseconds");
+            Console.WriteLine("");
         }
 
         public IEnumerable<GameProgress> GetRandomCompleteGames(GamePlayer player, int numIterations, Func<Decision, GameProgress, byte> actionOverride)

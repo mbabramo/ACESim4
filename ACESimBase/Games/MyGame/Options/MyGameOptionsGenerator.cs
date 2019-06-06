@@ -17,7 +17,7 @@ namespace ACESim
             Ambitious,
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.SuperSimple;
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Fast;
 
         public static MyGameOptions SingleRound() => MyGameChoice switch
         {
@@ -93,9 +93,13 @@ namespace ACESim
                 PInitialWealth = 1000000,
                 DInitialWealth = 1000000,
                 DamagesToAllege = 100000,
-                NumLitigationQualityPoints = 4,
-                NumSignals = 4,
-                NumOffers = 4,
+                //DEBUG
+                //NumLitigationQualityPoints = 4,
+                //NumSignals = 4,
+                //NumOffers = 4,
+                NumLitigationQualityPoints = 2,
+                NumSignals = 2,
+                NumOffers = 2,
                 MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
                 {
                     ProbabilityTrulyLiable_LitigationQuality75 = 0.75,
@@ -123,7 +127,7 @@ namespace ACESim
                     DeltaStartingValue = 0.01,
                     MaxDelta = 0.25
                 },
-                NumPotentialBargainingRounds = 2,
+                NumPotentialBargainingRounds = 1, // DEBUG
                 BargainingRoundRecall = MyGameBargainingRoundRecall.RememberAllBargainingRounds,
                 SubdivideOffers = false,
                 BargainingRoundsSimultaneous = false,
