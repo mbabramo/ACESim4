@@ -76,6 +76,7 @@ namespace ACESimBase.GameSolvingSupport
             var copied = NodeActions.ToList();
             var prepended = new NodeActionsHistory()
             {
+                Coefficient = Coefficient,
                 NodeActions = copied,
                 SuccessorInformationSet = SuccessorInformationSet
             };
@@ -91,6 +92,7 @@ namespace ACESimBase.GameSolvingSupport
             var copied = NodeActions.ToList();
             var appended = new NodeActionsHistory()
             {
+                Coefficient = Coefficient,
                 NodeActions = copied,
                 SuccessorInformationSet = null
             };
