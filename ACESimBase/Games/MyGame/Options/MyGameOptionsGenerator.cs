@@ -17,7 +17,7 @@ namespace ACESim
             Ambitious,
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Usual;
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Fast;
 
         public static MyGameOptions SingleRound() => MyGameChoice switch
         {
@@ -38,11 +38,10 @@ namespace ACESim
                 NumLitigationQualityPoints = 2,
                 NumSignals = 2,
                 NumOffers = 2,
-                MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
+                MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
                 {
-                    ProbabilityTrulyLiable_LitigationQuality75 = 0.75,
-                    ProbabilityTrulyLiable_LitigationQuality90 = 0.90,
-                    NumPointsToDetermineTrulyLiable = 100,
+                    ExogenousProbabilityTrulyLiable = 0.5,
+                    StdevNoiseToProduceLitigationQuality = 0.5
                 },
                 PFilingCost = 5000,
                 DAnswerCost = 5000,
@@ -96,11 +95,10 @@ namespace ACESim
                 NumLitigationQualityPoints = 4,
                 NumSignals = 4,
                 NumOffers = 4,
-                MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
+                MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
                 {
-                    ProbabilityTrulyLiable_LitigationQuality75 = 0.75,
-                    ProbabilityTrulyLiable_LitigationQuality90 = 0.90,
-                    NumPointsToDetermineTrulyLiable = 100,
+                    ExogenousProbabilityTrulyLiable = 0.5,
+                    StdevNoiseToProduceLitigationQuality = 0.5
                 },
                 PFilingCost = 5000,
                 DAnswerCost = 5000,
@@ -153,11 +151,10 @@ namespace ACESim
                 NumLitigationQualityPoints = 6,
                 NumSignals = 6,
                 NumOffers = 6,
-                MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
+                MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
                 {
-                    ProbabilityTrulyLiable_LitigationQuality75 = 0.75,
-                    ProbabilityTrulyLiable_LitigationQuality90 = 0.90,
-                    NumPointsToDetermineTrulyLiable = 100,
+                    ExogenousProbabilityTrulyLiable = 0.5,
+                    StdevNoiseToProduceLitigationQuality = 0.5
                 },
                 PFilingCost = 5000,
                 DAnswerCost = 5000,
@@ -212,11 +209,10 @@ namespace ACESim
                 NumLitigationQualityPoints = 10,
                 NumSignals = 10,
                 NumOffers = 10,
-                MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
+                MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
                 {
-                    ProbabilityTrulyLiable_LitigationQuality75 = 0.75,
-                    ProbabilityTrulyLiable_LitigationQuality90 = 0.90,
-                    NumPointsToDetermineTrulyLiable = 100,
+                    ExogenousProbabilityTrulyLiable = 0.5,
+                    StdevNoiseToProduceLitigationQuality = 0.5
                 },
                 PFilingCost = 5000,
                 DAnswerCost = 5000,

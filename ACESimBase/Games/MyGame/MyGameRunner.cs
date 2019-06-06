@@ -20,16 +20,16 @@ namespace ACESim
         public static double[] CostsMultipliers = new double[] { 1.0 }; // 0.1, 0.25, 0.5, 1.0, 1.5, 2.0, 4.0 };
         public const double StdevPlayerNoise = 0.3; // baseline is 0.3
 
-        private const GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.FictitiousSelfPlay; // DEBUG
+        private const GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.HedgeVanilla; // DEBUG
 
         private const int ProbingIterations = 20_000_000;
-        private const int VanillaIterations = 25_000; 
-        private const int VanillaReportEveryNIterations = 25_000;
+        private const int VanillaIterations = 5_000; 
+        private const int VanillaReportEveryNIterations = 5_000;
         private const int VanillaBestResponseEveryMIterations = 1000; 
         private const int MiniReportEveryPIterations = 5000;
         private const int CorrelatedEquilibriumCalculationsEveryNIterations = EvolutionSettings.EffectivelyNever;
         private const int RecordPastValuesEveryNIterations = EvolutionSettings.EffectivelyNever; // used for correlated equilibrium calculations
-        private const bool UseRandomPathsForReporting = false; // DEBUG
+        private const bool UseRandomPathsForReporting = true; // DEBUG
         private const int SummaryTableRandomPathsIterations = 10_000;
         
         private const bool UseRegretAndStrategyDiscounting = true;
@@ -102,28 +102,6 @@ namespace ACESim
         public static async Task<string> EvolveMyGame_Single()
         {
             var options = MyGameOptionsGenerator.SingleRound();
-            options.LoserPays = false;
-            options.CostsMultiplier = 1.0;
-            options.IncludeSignalsReport = false;
-            options.MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
-            {
-                ExogenousProbabilityTrulyLiable = 0.5,
-                StdevNoiseToProduceLitigationQuality = 0.3
-            };
-            options.PNoiseStdev = options.DNoiseStdev = StdevPlayerNoise;
-            //options.NumSignals = options.NumLitigationQualityPoints = options.NumOffers = 3; 
-            //options.NumPotentialBargainingRounds = 1;
-            //options.MyGameRunningSideBets = new MyGameRunningSideBets()
-            //{
-            //    MaxChipsPerRound = 2,
-            //    ValueOfChip = 50000,
-            //    CountAllChipsInAbandoningRound = true,
-            //    TrialCostsMultiplierAsymptote = 3.0,
-            //    TrialCostsMultiplierWithDoubleStakes = 1.3,
-            //};
-            // options.AdditionalTableOverrides = new List<(Func<Decision, GameProgress, byte>, string)>() { (MyGameActionsGenerator.PBetsHeavilyWithGoodSignal, "PBetsHeavilyWithGoodSignal") };
-            //options.IncludeSignalsReport = true;
-            //options.IncludeCourtSuccessReport = true;
             string report = "";
             await ProcessSingleOptionSet(options, "Report", "Single", true);
             return report;
@@ -156,7 +134,7 @@ namespace ACESim
                     new MyGameExogenousDisputeGenerator()
                     {
                         ExogenousProbabilityTrulyLiable = 0.5,
-                        StdevNoiseToProduceLitigationQuality = 0.3
+                        StdevNoiseToProduceLitigationQuality = 0.5
                     }
                 };
 

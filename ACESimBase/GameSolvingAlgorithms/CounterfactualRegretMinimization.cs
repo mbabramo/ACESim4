@@ -582,10 +582,6 @@ namespace ACESim
             bool doReports = EvolutionSettings.ReportEveryNIterations != null && iteration % EvolutionSettings.ReportEveryNIterations == 0;
             if (doReports || doBestResponse)
             {
-                bool useRandomPaths = EvolutionSettings.UseRandomPathsForReporting
-                    //&& (SkipEveryPermutationInitialization ||
-                    //   NumInitializedGamePaths > EvolutionSettings.NumRandomIterationsForSummaryTable)
-                    ;
                 Console.WriteLine("");
                 Console.WriteLine(prefaceFn());
                 if (doBestResponse)
@@ -597,6 +593,10 @@ namespace ACESim
                 if (doReports)
                 {
                     Br.eak.Add("Report");
+                    bool useRandomPaths = EvolutionSettings.UseRandomPathsForReporting
+                        //&& (SkipEveryPermutationInitialization ||
+                        //   NumInitializedGamePaths > EvolutionSettings.NumRandomIterationsForSummaryTable)
+                        ;
                     ActionStrategies previous = ActionStrategy;
                     var actionStrategiesToUse = EvolutionSettings.ActionStrategiesToUseInReporting;
                     if (actionStrategiesToUse != null)
