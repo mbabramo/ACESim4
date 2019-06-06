@@ -306,6 +306,11 @@ namespace ACESim
             else
                 SelfReachProbability = PredecessorInformationSetForPlayer.SelfReachProbability * PredecessorInformationSetForPlayer.GetAverageStrategy(ActionTakenAtPredecessorSet);
 
+            if (InformationSetNodeNumber == 1)
+            {
+                var DEBUG = 0;
+            }
+
             OpponentsReachProbability = 0;
             foreach (var pathFromPredecessor in PathsFromPredecessor)
             {

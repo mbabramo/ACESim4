@@ -16,6 +16,10 @@ namespace ACESimBase.GameSolvingSupport
             Node = node;
             ActionAtNode = actionAtNode;
             DistributorChanceInputs = distributorChanceInputs;
+            if (node is ChanceNodeUnequalProbabilities u && u.Decision.Name == "DefendantSignal")
+            {
+                var DEBUG = 0;
+            }
         }
 
         public override string ToString()

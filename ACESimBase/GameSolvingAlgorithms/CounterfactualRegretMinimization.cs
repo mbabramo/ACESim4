@@ -23,7 +23,7 @@ namespace ACESim
         public const int MaxNumMainPlayers = 4; // this affects fixed-size stack-allocated buffers // TODO: Set to 2
         public const int MaxPossibleActions = 100; // same
 
-        bool TraceCFR = true;
+        bool TraceCFR = false;
 
         bool ShouldEstimateImprovementOverTime = false;
         const int NumRandomGamePlaysForEstimatingImprovement = 1000;
@@ -707,6 +707,7 @@ namespace ACESim
             }
             s.Stop();
             BestResponseCalculationTime = s.ElapsedMilliseconds;
+            TreeWalk_Tree(new WalkOnly()); // DEBUG
         }
 
         private unsafe void CompareBestResponse(bool useRandomPaths)
