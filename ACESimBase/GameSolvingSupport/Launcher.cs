@@ -22,8 +22,8 @@ namespace ACESim
         public const int VanillaReportEveryNIterations = 25_000;
         public const int VanillaBestResponseEveryMIterations = 1_000;
         public const int MiniReportEveryPIterations = 1_000;
-        public const int CorrelatedEquilibriumCalculationsEveryNIterations = EvolutionSettings.EffectivelyNever;
-        public const int RecordPastValuesEveryNIterations = EvolutionSettings.EffectivelyNever; // used for correlated equilibrium calculations
+        public const int CorrelatedEquilibriumCalculationsEveryNIterations = 25_000; // DEBUG
+        public const int RecordPastValuesEveryNIterations = 100; // DEBUG // used for correlated equilibrium calculations
         public const bool UseRandomPathsForReporting = true; 
         public const int SummaryTableRandomPathsIterations = 10_000;
 
@@ -32,6 +32,8 @@ namespace ACESim
         public const int StartGameNumber = 1;
         public bool SingleGameMode = true;
         public int NumRepetitions = 1;
+
+        public bool AzureEnabled = false;
 
         public bool LocalDistributedProcessing = true; // this should be false if actually running on service fabric
         public bool ParallelizeOptionSets = false;
@@ -300,7 +302,7 @@ namespace ACESim
                 combinedReports.Add(singleRepetitionReport);
                 // AzureBlob.SerializeObject("results", reportName + " CRM", true, developer);
             }
-            if (azureEnabled)
+            if (AzureEnabled)
                 return CombineResultsOfRepetitionsOfOptionSets(masterReportName, optionSetName, includeFirstLine, combinedReports);
             else
                 return "";
@@ -316,8 +318,6 @@ namespace ACESim
             string result = await GetSingleRepetitionReportAndSave(masterReportName, options, optionSets[optionSetIndex].reportName, repetition, developer);
             return result;
         }
-
-        bool azureEnabled = false; // DEBUG
         public async Task<string> GetSingleRepetitionReportAndSave(string masterReportName, GameOptions options, string optionSetName, int repetition, IStrategiesDeveloper developer)
         {
             string masterReportNamePlusOptionSet = $"{masterReportName} {optionSetName}";
@@ -325,7 +325,7 @@ namespace ACESim
                 throw new Exception("Developer must be set"); // should call GetDeveloper(options) before calling this (note: earlier version passed developer as ref so that it could be set here)
             var result = await GetSingleRepetitionReport(optionSetName, repetition, developer);
             string azureBlobInterimReportName = masterReportNamePlusOptionSet + $" {repetition}";
-            if (azureEnabled)
+            if (AzureEnabled)
                 AzureBlob.WriteTextToBlob("results", azureBlobInterimReportName, true, result); // we write to a blob in case this times out and also to allow individual report to be taken out
             return result;
         }

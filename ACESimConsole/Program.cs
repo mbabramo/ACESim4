@@ -44,6 +44,8 @@ namespace ACESim
         {
             try
             {
+                Stopwatch s = new Stopwatch();
+                s.Start();
                 Console.SetBufferSize(1000, 32766);
 
                 string baseOutputDirectory;
@@ -69,6 +71,8 @@ namespace ACESim
                 }
                 string launchResult = await launcher.Launch();
                 TextCopy.Clipboard.SetText(launchResult);
+                s.Stop();
+                Console.WriteLine($"Total runtime {s.Elapsed} ");
                 Console.WriteLine();
                 Console.WriteLine("Press Enter to end.");
                 do

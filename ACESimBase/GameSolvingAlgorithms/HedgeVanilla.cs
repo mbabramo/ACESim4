@@ -328,7 +328,7 @@ namespace ACESim
                 for (byte action = 1; action <= infoSet.NumPossibleActions; action++)
                 {
                     int index = Unroll_GetInformationSetIndex_LastRegret(infoSet.InformationSetNodeNumber, action);
-                    infoSet.NormalizedHedgeIncrementLastRegret(action, array[index]);
+                    infoSet.NormalizedHedgeIncrementLastRegret(action, array[index], 0 /* DEBUG */);
                     index = Unroll_GetInformationSetIndex_LastCumulativeStrategyIncrement(infoSet.InformationSetNodeNumber, action);
                     infoSet.NormalizedHedgeIncrementLastCumulativeStrategyIncrements(action, array[index]);
                     int indexNumerator = Unroll_GetInformationSetIndex_BestResponseNumerator(infoSet.InformationSetNodeNumber, action);
@@ -772,10 +772,6 @@ namespace ACESim
                     distributorChanceInputsNext += action * informationSet.Decision.DistributorChanceInputDecisionMultiplier;
                 double probabilityOfAction = actionProbabilities[action - 1];
                 bool prune = (EvolutionSettings.PruneOnOpponentStrategy && playerBeingOptimized != playerMakingDecision && probabilityOfAction < EvolutionSettings.PruneOnOpponentStrategyThreshold);
-                if (prune)
-                {
-                    var DEBUG = 0;
-                }
                 if (!prune)
                 {
                     double probabilityOfActionAvgStrat = informationSet.GetAverageStrategy(action);
@@ -832,12 +828,12 @@ namespace ACESim
                     double contributionToAverageStrategy = piAdj * actionProbabilities[action - 1]; // will be multiplied by average strategy adjustment at the end of the entire iteration; this will also normalize the contributions so that (placing average strategy adjustment aside) total contribution is equal to 1. 
                     if (EvolutionSettings.ParallelOptimization)
                     {
-                        informationSet.NormalizedHedgeIncrementLastRegret_Parallel(action, inversePi * regret);
+                        informationSet.NormalizedHedgeIncrementLastRegret_Parallel(action, inversePi * regret, inversePi);
                         informationSet.NormalizedHedgeIncrementLastCumulativeStrategyIncrements_Parallel(action, contributionToAverageStrategy);
                     }
                     else
                     {
-                        informationSet.NormalizedHedgeIncrementLastRegret(action, inversePi * regret);
+                        informationSet.NormalizedHedgeIncrementLastRegret(action, inversePi * regret, inversePi);
                         informationSet.NormalizedHedgeIncrementLastCumulativeStrategyIncrements(action, contributionToAverageStrategy);
                     }
                     if (TraceCFR)

@@ -65,6 +65,7 @@ namespace ACESim
         const int lastCumulativeStrategyIncrementsDimension = 6;
         const int temporaryDimension = 7;
         // for normalized hedge (including also hedge probability dimension and last regret dimension)
+        const int lastRegretDenominatorDimension = 0; // we don't use cumulativeRegret for normalized hedge
         const int adjustedWeightsDimension = 7;
         const int averageStrategyProbabilityDimension = 8;
         // for exploratory probing
@@ -803,22 +804,25 @@ namespace ACESim
             double sumWeights = 0, sumCumulativeStrategies = 0;
             for (int a = 1; a <= NumPossibleActions; a++)
             {
-                double regretIncrements = NodeInformation[lastRegretDimension, a - 1];
+                double denominator = NodeInformation[lastRegretDenominatorDimension, a - 1];
+                double regretIncrements = (denominator == 0) ? 0 : NodeInformation[lastRegretDimension, a - 1] / denominator;
                 if (MaxPossibleThisPlayer == MinPossibleThisPlayer)
                     throw new Exception();
-                double normalizedRegret = (regretIncrements - MinPossibleThisPlayer) / (MaxPossibleThisPlayer - MinPossibleThisPlayer);
-                double adjustedNormalizedRegret = 1.0 - normalizedRegret;
-                double weightAdjustment = Math.Pow(1 - NormalizedHedgeEpsilon, adjustedNormalizedRegret);
+                // best performance possible occurs if expected value is MaxPossibleThisPlayer when overall expected value is MinPossibleThisPlayer. worst performance possible occurs if regret is MinPossibleThisPlayer when overall expected value is MaxPossibleThisPlayer. Regret can range from -(MaxPossible - MinPossible) to +(MaxPossible - MinPossible). Thus, Regret + (MaxPossible - MinPossible) can range from 0 to 2*(MaxPossible - MinPossible). So, we can normalize regret to be from 0 to 1 by calculating (regret + range) / (2 * range).
+                double range = MaxPossibleThisPlayer - MinPossibleThisPlayer;
+                double normalizedRegret = (regretIncrements + range) / (2 * range); 
+                double adjustedNormalizedRegret = 1.0 - normalizedRegret; // if regret is high, this is low
+                double weightAdjustment = Math.Pow(1 - NormalizedHedgeEpsilon, adjustedNormalizedRegret); // if adjustedNormalizedRegret is low, then this is high (relatively close to 1)
                 double weight = NodeInformation[adjustedWeightsDimension, a - 1];
-                weight *= weightAdjustment;
+                weight *= weightAdjustment; // So, this weight reduces only slightly when regret is high
                 if (weight < SmallestProbabilityRepresented)
                     weight = SmallestProbabilityRepresented; // can't let weights go to zero or they never recover
                 if (double.IsNaN(weight) || double.IsInfinity(weight))
                     throw new Exception();
                 NodeInformation[adjustedWeightsDimension, a - 1] = weight;
                 sumWeights += weight;
-                NodeInformation[cumulativeRegretDimension, a - 1] += NodeInformation[lastRegretDimension, a - 1];
                 NodeInformation[lastRegretDimension, a - 1] = 0; // reset for next iteration
+                NodeInformation[lastRegretDenominatorDimension, a - 1] = 0;
                 sumCumulativeStrategies += NodeInformation[cumulativeStrategyDimension, a - 1];
             }
             if (sumWeights < 1E-20)
@@ -881,14 +885,16 @@ namespace ACESim
             UpdatingHedge = new SimpleExclusiveLock();
         }
 
-        public void NormalizedHedgeIncrementLastRegret(byte action, double regretTimesInversePi)
+        public void NormalizedHedgeIncrementLastRegret(byte action, double regretTimesInversePi, double inversePi)
         {
             NodeInformation[lastRegretDimension, action - 1] += regretTimesInversePi;
+            NodeInformation[lastRegretDenominatorDimension, action - 1] += inversePi;
         }
 
-        public void NormalizedHedgeIncrementLastRegret_Parallel(byte action, double regretTimesInversePi)
+        public void NormalizedHedgeIncrementLastRegret_Parallel(byte action, double regretTimesInversePi, double inversePi)
         {
             Interlocking.Add(ref NodeInformation[lastRegretDimension, action - 1], regretTimesInversePi);
+            Interlocking.Add(ref NodeInformation[lastRegretDenominatorDimension, action - 1], inversePi);
             //Interlocked.Increment(ref NumRegretIncrements);
         }
 

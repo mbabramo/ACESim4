@@ -1179,7 +1179,7 @@ namespace ACESim
             // plaintiff's utility for best response vs. correlated equilibrium
             // defendant's utility for correlated equilibrium vs. best response
             // We will prepare to do this by preparing a single very long expression for each of the four numbers that we want, and then we'll have a function that will return each of them.
-            codeGenerationBuilder.AppendLine("public static void DoCalc(int cei, List<FinalUtilities> f, List<chanceNode> c, List<InformationSetNodeTally> n, out double p0CvC, out double p1CvC, out double p0BRvC, out double p1CvBR)");
+            codeGenerationBuilder.AppendLine("public static void DoCalc(int cei, List<FinalUtilitiesNode> f, List<ChanceNode> c, List<InformationSetNode> n, out double p0CvC, out double p1CvC, out double p0BRvC, out double p1CvBR)");
             codeGenerationBuilder.AppendLine($"{{");
             codeGenerationBuilder.Append("p0CvC = ");
             CorrelatedEquilibriumCalculationString_Tree(codeGenerationBuilder, 0, ActionStrategies.CorrelatedEquilibrium);
