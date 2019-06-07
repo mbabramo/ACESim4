@@ -23,13 +23,13 @@ namespace ACESim
         private const GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.HedgeVanilla; // DEBUG
 
         private const int ProbingIterations = 20_000_000;
-        private const int VanillaIterations = 5_000; 
-        private const int VanillaReportEveryNIterations = 5_000;
+        private const int VanillaIterations = 1000; 
+        private const int VanillaReportEveryNIterations = 1000;
         private const int VanillaBestResponseEveryMIterations = 1000; 
-        private const int MiniReportEveryPIterations = 5000;
+        private const int MiniReportEveryPIterations = 1000;
         private const int CorrelatedEquilibriumCalculationsEveryNIterations = EvolutionSettings.EffectivelyNever;
         private const int RecordPastValuesEveryNIterations = EvolutionSettings.EffectivelyNever; // used for correlated equilibrium calculations
-        private const bool UseRandomPathsForReporting = true; // DEBUG
+        private const bool UseRandomPathsForReporting = false; // DEBUG
         private const int SummaryTableRandomPathsIterations = 10_000;
         
         private const bool UseRegretAndStrategyDiscounting = true;
@@ -42,7 +42,7 @@ namespace ACESim
         public static string OverrideDateTimeString = null; // "2017-10-11 10:18"; // use this if termination finished unexpectedly
         public static string MasterReportNameForDistributedProcessing = "AMONLY";
         private static bool ParallelizeOptionSets = false;
-        private static bool ParallelizeIndividualExecutions = true; // only affects SingleGameMode or if no local distributed processing
+        private static bool ParallelizeIndividualExecutions = false; // DEBUG // only affects SingleGameMode or if no local distributed processing
 
         private static EvolutionSettings GetEvolutionSettings()
         {

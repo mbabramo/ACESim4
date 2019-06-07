@@ -290,7 +290,7 @@ namespace ACESim
             IGameState gameState;
             List<byte> actionsSoFar = historyPoint.GetActionsToHere(navigationSettings);
             (GameProgress progress, _) = GamePlayer.PlayPath(actionsSoFar, false);
-            for (int i = 0; i < 20; i++) // shouldn't be necessary to do more than once, but maybe some parallelism issue
+            for (int i = 0; i < 20; i++) // shouldn't be necessary to do more than once, but maybe some parallelism issue is causing the need for that
             {
                 gameState = ProcessProgress(ref historyPoint, navigationSettings, progress);
                 if (gameState != null)
@@ -833,6 +833,11 @@ namespace ACESim
             ProcessAllPaths_Helper(ref history, probability, pathPlayer, actionStrategy);
         }
 
+        int DEBUG1 = 0;
+        int[] DEBUG2 = new int[5];
+        int[] DEBUG2b = new int[5];
+        double[] DEBUG3 = new double[5];
+
         private unsafe void ProcessAllPaths_Helper(ref HistoryPoint historyPoint, double probability, Action<HistoryPoint, double> completedGameProcessor, ActionStrategies actionStrategy)
         {
             double* probabilities = stackalloc double[GameFullHistory.MaxNumActions];
@@ -847,15 +852,25 @@ namespace ACESim
             ActionProbabilityUtilities.GetActionProbabilitiesAtHistoryPoint(gameState, actionStrategy, 0 /* ignored */, probabilities, numPossibleActions, null, Navigation);
             var historyPointCopy = historyPoint;
 
+            bool includeZeroProbabilityActions = true; // DEBUG
+
             Parallelizer.GoByte(EvolutionSettings.ParallelOptimization, EvolutionSettings.MaxParallelDepth, 1, (byte)(numPossibleActions + 1), (action) =>
             {
-                if (probabilities[action - 1] > 0)
+                if (nextDecisionIndex == 1)
+                    DEBUG1 = action;
+                if (nextDecisionIndex == 0)
+                {
+                    DEBUG5++;
+                }
+                if (includeZeroProbabilityActions || probabilities[action - 1] > 0)
                 {
                     var nextHistoryPoint = historyPointCopy.GetBranch(Navigation, action, GameDefinition.DecisionsExecutionOrder[nextDecisionIndex], nextDecisionIndex); // must use a copy because it's an anonymous method (but this won't be executed much so it isn't so costly). Note that we couldn't use switch-to-branch approach here because all threads are sharing historyPointCopy variable.
                     ProcessAllPaths_Recursive(ref nextHistoryPoint, completedGameProcessor, actionStrategy, probability * probabilities[action - 1], action, nextDecisionIndex);
                 }
             });
         }
+
+        int DEBUG5 = 0;
 
         public double[] GetAverageUtilities()
         {
@@ -952,6 +967,8 @@ namespace ACESim
                     // is full).
                     messageAccepted = await step2_buffer.SendAsync(new Tuple<GameProgress, double>(progress, probabilityOfPath));
                 } while (!messageAccepted);
+                var DEBUGx = ((MyGameProgress)progress).LitigationQualityDiscrete;
+                Interlocked.Increment(ref DEBUG2b[DEBUGx]);
             };
             // Now, we have to send the paths through all of these steps and make sure that step 3 is completely finished.
             var startHistoryPoint = GetStartOfGameHistoryPoint();
@@ -973,7 +990,12 @@ namespace ACESim
                 Tuple<GameProgress, double> toProcess = source.Receive();
                 if (toProcess.Item2 > 0) // probability
                     for (int i = 0; i < simpleReportDefinitionsCount; i++)
+                    {
+                        var DEBUGx = ((MyGameProgress)toProcess.Item1).LitigationQualityDiscrete;
+                        DEBUG2[DEBUGx]++;
+                        DEBUG3[DEBUGx] += toProcess.Item2;
                         ReportsBeingGenerated[i]?.ProcessGameProgress(toProcess.Item1, toProcess.Item2);
+                    }
             }
         }
 
