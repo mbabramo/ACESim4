@@ -77,6 +77,15 @@ namespace ACESim
                 probabilities[a] = probabilitiesBuffer[a];
         }
 
+        public static unsafe void GetActionProbabilitiesAtHistoryPoint(IGameState gameStateForCurrentPlayer, ActionStrategies actionStrategy, double randomNumberToChooseIteration, double[] probabilities, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation)
+        {
+
+            double* probabilities2 = stackalloc double[GameFullHistory.MaxNumActions];
+            GetActionProbabilitiesAtHistoryPoint(gameStateForCurrentPlayer, actionStrategy, randomNumberToChooseIteration, probabilities2, numPossibleActions, alwaysDoAction, navigation);
+            for (int i = 0; i < probabilities.Length; i++)
+                probabilities[i] = probabilities2[i];
+        }
+
         public static unsafe void GetActionProbabilitiesAtHistoryPoint(IGameState gameStateForCurrentPlayer, ActionStrategies actionStrategy, double randomNumberToChooseIteration, double* probabilities, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation)
         {
             if (gameStateForCurrentPlayer is ChanceNode chanceNode)

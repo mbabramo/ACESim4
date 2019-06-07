@@ -631,9 +631,14 @@ namespace ACESim
         {
             if (!EvolutionSettings.UseAcceleratedBestResponse)
                 return;
+            Console.WriteLine($"Prepping accelerated best response...");
+            Stopwatch s = new Stopwatch();
+            s.Start();
             AcceleratedBestResponsePrep prepWalk = new AcceleratedBestResponsePrep(EvolutionSettings.DistributeChanceDecisions, (byte)NumNonChancePlayers, TraceTreeWalk);
             AcceleratedBestResponsePrepResult = TreeWalk_Tree(prepWalk, new NodeActionsHistory());
             InformationSetsByDecisionIndex = InformationSets.GroupBy(x => x.DecisionIndex).Select(x => x.ToList()).ToList();
+            s.Stop();
+            Console.WriteLine($"... {s.ElapsedMilliseconds} milliseconds");
         }
 
         private void ExecuteAcceleratedBestResponse(bool determineWhetherReachable = false)
@@ -773,38 +778,31 @@ namespace ACESim
                 Console.WriteLine($"{item.Key} => {((double)item.Value) / (double)EvolutionSettings.NumRandomIterationsForSummaryTable}");
         }
 
-        public Task ProcessAllPathsAsync(HistoryPoint history, Func<HistoryPoint, double, Task> pathPlayer)
+        public async Task ProcessAllPathsAsync(HistoryPoint history, Func<HistoryPoint, double, Task> pathPlayer)
         {
-            Action<HistoryPoint, double> action = async (h, d) => await pathPlayer(h, d);
-            ProcessAllPaths_Recursive(ref history, action, ActionStrategy, 1.0);
-            return Task.CompletedTask;
+            await ProcessAllPaths_Recursive(history, pathPlayer, ActionStrategy, 1.0);
         }
 
-        public void ProcessAllPaths(ref HistoryPoint history, Action<HistoryPoint, double> pathPlayer)
+        public async Task ProcessAllPaths(HistoryPoint history, Func<HistoryPoint, double, Task> pathPlayer)
         {
-            ProcessAllPaths_Recursive(ref history, pathPlayer, ActionStrategy, 1.0);
+            await ProcessAllPaths_Recursive(history, pathPlayer, ActionStrategy, 1.0);
         }
 
-        private void ProcessAllPaths_Recursive(ref HistoryPoint history, Action<HistoryPoint, double> pathPlayer, ActionStrategies actionStrategy, double probability, byte action = 0, byte nextDecisionIndex = 0)
+        private async Task ProcessAllPaths_Recursive(HistoryPoint history, Func<HistoryPoint, double, Task> pathPlayer, ActionStrategies actionStrategy, double probability, byte action = 0, byte nextDecisionIndex = 0)
         {
             // The last two parameters are included to facilitate debugging.
             // Note that this method is different from GamePlayer.PlayAllPaths, because it relies on the cached history, rather than needing to play the game to discover what the next paths are.
             if (history.IsComplete(Navigation))
             {
-                pathPlayer(history, probability);
+                await pathPlayer(history, probability);
                 return;
             }
-            ProcessAllPaths_Helper(ref history, probability, pathPlayer, actionStrategy);
+            await ProcessAllPaths_Helper(history, probability, pathPlayer, actionStrategy);
         }
 
-        int DEBUG1 = 0;
-        int[] DEBUG2 = new int[5];
-        int[] DEBUG2b = new int[5];
-        double[] DEBUG3 = new double[5];
-
-        private unsafe void ProcessAllPaths_Helper(ref HistoryPoint historyPoint, double probability, Action<HistoryPoint, double> completedGameProcessor, ActionStrategies actionStrategy)
+        private async Task ProcessAllPaths_Helper(HistoryPoint historyPoint, double probability, Func<HistoryPoint, double, Task> completedGameProcessor, ActionStrategies actionStrategy)
         {
-            double* probabilities = stackalloc double[GameFullHistory.MaxNumActions];
+            double[] probabilities = new double[GameFullHistory.MaxNumActions];
             byte nextDecisionIndex = historyPoint.GetNextDecisionIndex(Navigation);
             byte numPossibleActions = NumPossibleActionsAtDecision(nextDecisionIndex);
             IGameState gameState = GetGameState(ref historyPoint);
@@ -816,20 +814,15 @@ namespace ACESim
             ActionProbabilityUtilities.GetActionProbabilitiesAtHistoryPoint(gameState, actionStrategy, 0 /* ignored */, probabilities, numPossibleActions, null, Navigation);
             var historyPointCopy = historyPoint;
 
-            bool includeZeroProbabilityActions = true; // DEBUG
+            bool includeZeroProbabilityActions = true; // may be relevant for counts
 
-            Parallelizer.GoByte(EvolutionSettings.ParallelOptimization, EvolutionSettings.MaxParallelDepth, 1, (byte)(numPossibleActions + 1), (action) =>
+            await Parallelizer.GoAsync(EvolutionSettings.ParallelOptimization, 1, (byte)(numPossibleActions + 1), async (action) =>
             {
-                if (nextDecisionIndex == 1)
-                    DEBUG1 = action;
-                if (nextDecisionIndex == 0)
-                {
-                    DEBUG5++;
-                }
+                byte actionByte = (byte)action;
                 if (includeZeroProbabilityActions || probabilities[action - 1] > 0)
                 {
-                    var nextHistoryPoint = historyPointCopy.GetBranch(Navigation, action, GameDefinition.DecisionsExecutionOrder[nextDecisionIndex], nextDecisionIndex); // must use a copy because it's an anonymous method (but this won't be executed much so it isn't so costly). Note that we couldn't use switch-to-branch approach here because all threads are sharing historyPointCopy variable.
-                    ProcessAllPaths_Recursive(ref nextHistoryPoint, completedGameProcessor, actionStrategy, probability * probabilities[action - 1], action, nextDecisionIndex);
+                    var nextHistoryPoint = historyPointCopy.GetBranch(Navigation, actionByte, GameDefinition.DecisionsExecutionOrder[nextDecisionIndex], nextDecisionIndex); // must use a copy because it's an anonymous method (but this won't be executed much so it isn't so costly). Note that we couldn't use switch-to-branch approach here because all threads are sharing historyPointCopy variable.
+                    await ProcessAllPaths_Recursive(nextHistoryPoint, completedGameProcessor, actionStrategy, probability * probabilities[action - 1], actionByte, nextDecisionIndex);
                 }
             });
         }
@@ -932,7 +925,6 @@ namespace ACESim
                     messageAccepted = await step2_buffer.SendAsync(new Tuple<GameProgress, double>(progress, probabilityOfPath));
                 } while (!messageAccepted);
                 var DEBUGx = ((MyGameProgress)progress).LitigationQualityDiscrete;
-                Interlocked.Increment(ref DEBUG2b[DEBUGx]);
             };
             // Now, we have to send the paths through all of these steps and make sure that step 3 is completely finished.
             var startHistoryPoint = GetStartOfGameHistoryPoint();
@@ -955,9 +947,6 @@ namespace ACESim
                 if (toProcess.Item2 > 0) // probability
                     for (int i = 0; i < simpleReportDefinitionsCount; i++)
                     {
-                        var DEBUGx = ((MyGameProgress)toProcess.Item1).LitigationQualityDiscrete;
-                        DEBUG2[DEBUGx]++;
-                        DEBUG3[DEBUGx] += toProcess.Item2;
                         ReportsBeingGenerated[i]?.ProcessGameProgress(toProcess.Item1, toProcess.Item2);
                     }
             }

@@ -16,13 +16,13 @@ namespace ACESim
         #region Settings
 
         public const int ProbingIterations = 20_000_000;
-        public const int VanillaIterations = 1000;
-        public const int VanillaReportEveryNIterations = 1000;
-        public const int VanillaBestResponseEveryMIterations = 1000;
-        public const int MiniReportEveryPIterations = 1000;
+        public const int VanillaIterations = 25_000;
+        public const int VanillaReportEveryNIterations = 25_000;
+        public const int VanillaBestResponseEveryMIterations = 1_000;
+        public const int MiniReportEveryPIterations = 1_000;
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EvolutionSettings.EffectivelyNever;
         public const int RecordPastValuesEveryNIterations = EvolutionSettings.EffectivelyNever; // used for correlated equilibrium calculations
-        public const bool UseRandomPathsForReporting = false; // DEBUG
+        public const bool UseRandomPathsForReporting = true; 
         public const int SummaryTableRandomPathsIterations = 10_000;
 
         public const bool UseRegretAndStrategyDiscounting = true;
@@ -33,7 +33,7 @@ namespace ACESim
 
         public bool LocalDistributedProcessing = true; // this should be false if actually running on service fabric
         public bool ParallelizeOptionSets = false;
-        public bool ParallelizeIndividualExecutions = false; // DEBUG // only affects SingleGameMode or if no local distributed processing
+        public bool ParallelizeIndividualExecutions = true; // only affects SingleGameMode or if no local distributed processing
 
         public string OverrideDateTimeString = null; // "2017-10-11 10:18"; // use this if termination finished unexpectedly
         public string MasterReportNameForDistributedProcessing = "AMONLY";
@@ -51,7 +51,7 @@ namespace ACESim
 
         #region Launching
 
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.HedgeVanilla;
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.FictitiousSelfPlay;
 
         public async Task<string> Launch()
         {
@@ -95,6 +95,7 @@ namespace ACESim
 
         public IStrategiesDeveloper GetStrategiesDeveloper(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition)
         {
+            Console.WriteLine($"Using {Algorithm}");
             switch (Algorithm)
             {
                 case GameApproximationAlgorithm.Vanilla:
