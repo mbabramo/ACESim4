@@ -9,14 +9,25 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
-    public partial class CounterfactualRegretMinimization
+    public partial class FictitiousSelfPlay : StrategiesDeveloperBase
     {
 
-        public async Task<string> SolveFictitiousSelfPlay()
+        public FictitiousSelfPlay(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
+        {
+
+        }
+
+        public override IStrategiesDeveloper DeepCopy()
+        {
+            var created = new FictitiousSelfPlay(Strategies, EvolutionSettings, GameDefinition);
+            DeepCopyHelper(created);
+            return created;
+        }
+
+        public override async Task<string> RunAlgorithm(string reportName)
         {
             string reportString = null;
-            InitializeInformationSets();
-            HedgeVanillaIterationStopwatch.Reset();
+            StrategiesDeveloperStopwatch.Reset();
             for (int iteration = 2; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
                 if (iteration == EvolutionSettings.TotalVanillaCFRIterations)
@@ -28,12 +39,12 @@ namespace ACESim
 
         private async Task<string> FictitiousSelfPlayIteration(int iteration)
         {
-            HedgeVanillaIterationStopwatch.Start();
+            StrategiesDeveloperStopwatch.Start();
 
-            HedgeVanillaIteration = iteration;
-            HedgeVanillaIterationInt = iteration;
+            IterationNumDouble = iteration;
+            IterationNum = iteration;
 
-            double lambda2 = 1.0 / HedgeVanillaIteration;
+            double lambda2 = 1.0 / IterationNumDouble;
 
             string reportString = null;
             double[] lastUtilities = new double[NumNonChancePlayers];
@@ -42,11 +53,11 @@ namespace ACESim
 
             Parallel.ForEach(InformationSets, informationSet => informationSet.UpdateAverageStrategyForFictitiousPlay(lambda2));
 
-            HedgeVanillaIterationStopwatch.Stop();
+            StrategiesDeveloperStopwatch.Stop();
 
             reportString = await GenerateReports(iteration,
                 () =>
-                    $"Iteration {iteration} Overall milliseconds per iteration {((HedgeVanillaIterationStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
+                    $"Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
             return reportString;
         }
     }

@@ -14,10 +14,10 @@ namespace ACESim
 
         public MultiRoundCooperationGameDefinition() : base()
         {
-            Setup();
+            Setup(null);
         }
 
-        public void Setup()
+        public override void Setup(GameOptions options)
         {
             Players = GetPlayersList();
             NumPlayers = (byte)Players.Count();

@@ -48,26 +48,27 @@ namespace ACESim
 
                 string baseOutputDirectory;
                 string strategiesPath;
-                string gameResult = null;
+                Launcher launcher = null;
                 switch (GameToPlay)
                 {
                     case AvailableGames.Leduc:
                         baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\LeducGame";
                         strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
-                        gameResult = await LeducGameRunner.EvolveLeducGame();
+                        launcher = new LeducGameLauncher();
                         break;
                     case AvailableGames.MultiRoundCooperation:
                         baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\MultiRoundCooperationGame";
                         strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
-                        gameResult = await MultiRoundCooperationGameRunner.EvolveGame();
+                        launcher = new MultiRoundCooperationGameLauncher();
                         break;
                     case AvailableGames.MyGame:
                         baseOutputDirectory = "C:\\GitHub\\ACESim\\ACESim\\Games\\MyGame";
                         strategiesPath = Path.Combine(baseOutputDirectory, "Strategies");
-                        gameResult = await MyGameRunner.EvolveMyGame();
+                        launcher = new MyGameLauncher();
                         break;
                 }
-                TextCopy.Clipboard.SetText(gameResult);
+                string launchResult = await launcher.Launch();
+                TextCopy.Clipboard.SetText(launchResult);
                 Console.WriteLine();
                 Console.WriteLine("Press Enter to end.");
                 do
@@ -77,7 +78,7 @@ namespace ACESim
                         // Do something
                     }
                 } while (Console.ReadKey(true).Key != ConsoleKey.Enter);
-                TextCopy.Clipboard.SetText(gameResult);
+                TextCopy.Clipboard.SetText(launchResult);
             }
             catch (Exception e)
             {

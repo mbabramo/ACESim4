@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
-    public partial class CounterfactualRegretMinimization
+    public class ExploratoryProbing : CounterfactualRegretMinimization
     {
         // Differences from Gibson:
         // 1. During the Probe, we visit all branches on a critical node.
@@ -19,6 +19,12 @@ namespace ACESim
         // TODO: possible speedup: Skip probes on many zero-probability moves. So, if we're exploring, and a move is zero probability based on regret matching, then it won't affect any other node's measurement of counterfactual regret. However, we still periodically want to measure this node's counterfactual regret. So, we might still explore this node as our main path, but skip using it as a probe.
 
         // TODO: Can we store utilities for the resolution set in the penultimate node? That is, if we see that the next nodes all contain a final utilities, then maybe we can record what those final utilities are, and thus save the need to traverse each of those possibilities.
+
+
+        public ExploratoryProbing(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
+        {
+
+        }
 
 
         /// <summary>
@@ -47,6 +53,13 @@ namespace ACESim
         private List<int> PhasePointsToSubtractEarlierValues = new List<int>() {1, 2, 4, 8, 12, 16, 24, 32};
 
 
+
+        public override IStrategiesDeveloper DeepCopy()
+        {
+            var created = new ExploratoryProbing(Strategies, EvolutionSettings, GameDefinition);
+            DeepCopyHelper(created);
+            return created;
+        }
         public unsafe double ExploratoryProbe_SinglePlayer(HistoryPoint historyPoint, byte playerBeingOptimized,
             IRandomProducer randomProducer)
         {
@@ -456,13 +469,11 @@ namespace ACESim
             } while (!success);
         }
 
-        private static int GameNumber = 0;
-
         private int BackupRegretsTrigger;
         private bool BackupDiscountingEnabled;
         private double CurrentDiscount;
 
-        public async Task<string> SolveExploratoryProbingCFR(string reportName)
+        public async override Task<string> RunAlgorithm(string reportName)
         {
             //TraceCFR = true;
             //GameProgressLogger.LoggingOn = true;
@@ -480,15 +491,15 @@ namespace ACESim
             int numPhases = 100; // should have at least 100 if we have a discount for first 1% of iterations
             int iterationsPerPhase = (EvolutionSettings.TotalProbingCFRIterations) / (numPhases);
             int iterationsFinalPhase = EvolutionSettings.TotalProbingCFRIterations - (numPhases - 1) * iterationsPerPhase; // may be greater if there is a remainder from above
-            ProbingCFRIterationNum = 0;
-            ProbingCFREffectiveIteration = 0;
+            IterationNum = 0;
+            string report = "";
             for (int phase = 0; phase < numPhases; phase++)
             {
                 BackupRegretsTrigger = EvolutionSettings.MinBackupRegretsTrigger + (int) (EvolutionSettings.TriggerIncreaseOverTime * ((double) phase / (double) (numPhases - 1)));
                 int iterationsThisPhase = phase == numPhases - 1
                     ? iterationsFinalPhase
                     : iterationsPerPhase;
-                int startingIteration = ProbingCFRIterationNum;
+                int startingIteration = IterationNum;
                 int stopPhaseBefore = startingIteration + iterationsThisPhase;
                 BackupDiscountingEnabled = false;
                 foreach (var discount in Discounts)
@@ -520,7 +531,7 @@ namespace ACESim
                         stopBefore = stopPhaseBefore;
                     else
                     {
-                        int stopToReportBefore = GetNextMultipleOf(ProbingCFRIterationNum, (int)EvolutionSettings.ReportEveryNIterations);
+                        int stopToReportBefore = GetNextMultipleOf(IterationNum, (int)EvolutionSettings.ReportEveryNIterations);
                         stopBefore = Math.Min(stopPhaseBefore, stopToReportBefore);
                     }
                     s.Start();
@@ -530,15 +541,14 @@ namespace ACESim
                             //    TraceCFR = true;
                             //else
                             //    TraceCFR = false;
-                            ProbingCFREffectiveIteration = iteration;
                             ExploratoryProbingCFRIteration(iteration);
                         }
                     );
                     s.Stop();
-                    ProbingCFRIterationNum = startingIteration = stopBefore; // this is the iteration to run next
-                    reportString = await GenerateReports(ProbingCFRIterationNum,
+                    IterationNum = startingIteration = stopBefore; // this is the iteration to run next
+                    report += await GenerateReports(IterationNum,
                         () =>
-                            $"Iteration {ProbingCFRIterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)(ProbingCFRIterationNum + 1))))}");
+                            $"Iteration {IterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)(IterationNum + 1))))}");
                 }
             }
             return reportString; // final report

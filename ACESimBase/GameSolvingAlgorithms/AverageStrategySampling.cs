@@ -1,16 +1,30 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace ACESim
 {
-    public partial class CounterfactualRegretMinimization
+    public class AverageStrategiesSampling : CounterfactualRegretMinimization
     {
 
         double CurrentEpsilonValue; // set in algorithm.
         //double epsilon = 0.05, beta = 1000000, tau = 1000; // note that beta will keep sampling even at first, but becomes less important later on. Epsilon ensures some exploration, and larger tau weights things later toward low-probability strategies
         double avgss_epsilon = 0.05, avgss_beta = 100, avgss_tau = 1; // note that beta will keep sampling even at first, but becomes less important later on. Epsilon ensures some exploration, and larger tau weights things later toward low-probability strategies
+
+
+        public AverageStrategiesSampling(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
+        {
+
+        }
+
+        public override IStrategiesDeveloper DeepCopy()
+        {
+            var created = new AverageStrategiesSampling(Strategies, EvolutionSettings, GameDefinition);
+            DeepCopyHelper(created);
+            return created;
+        }
 
         public unsafe double AverageStrategySampling_WalkTree(ref HistoryPoint historyPoint, byte playerBeingOptimized,
             double samplingProbabilityQ, Decision nextDecision, byte nextDecisionIndex)
@@ -55,7 +69,7 @@ namespace ACESim
                     // the following use of epsilon-on-policy for early iterations of opponent's strategy is a deviation from Gibson.
                     byte playerAtPoint = informationSet.PlayerIndex;
                     if (playerAtPoint != playerBeingOptimized && EvolutionSettings.UseEpsilonOnPolicyForOpponent &&
-                        AvgStrategySamplingCFRIterationNum <= EvolutionSettings.LastOpponentEpsilonIteration)
+                        IterationNum <= EvolutionSettings.LastOpponentEpsilonIteration)
                         informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(
                             sigma_regretMatchedActionProbabilities, CurrentEpsilonValue);
                     else
@@ -157,8 +171,6 @@ namespace ACESim
             }
         }
 
-        private long NumberAverageStrategySamplingExplorations = 0;
-
         public void AvgStrategySamplingCFRIteration(int iteration)
         {
             CurrentEpsilonValue = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(
@@ -166,8 +178,6 @@ namespace ACESim
                 (double) iteration / (double) EvolutionSettings.TotalAvgStrategySamplingCFRIterations);
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
-                if (ShouldEstimateImprovementOverTime)
-                    PrepareForImprovementOverTimeEstimation(playerBeingOptimized);
                 HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
                 if (TraceCFR)
                 {
@@ -177,25 +187,20 @@ namespace ACESim
                 AverageStrategySampling_WalkTree(ref historyPoint, playerBeingOptimized, 1.0, GameDefinition.DecisionsExecutionOrder[0], 0);
                 if (TraceCFR)
                     TabbedText.Tabs--;
-                if (ShouldEstimateImprovementOverTime)
-                    UpdateImprovementOverTimeEstimation(playerBeingOptimized, iteration);
             }
         }
 
-        private int AvgStrategySamplingCFRIterationNum;
-
-        public async Task SolveAvgStrategySamplingCFR()
+        public override async Task<string> RunAlgorithm(string reportName)
         {
             if (NumNonChancePlayers > 2)
                 throw new Exception(
                     "Internal error. Must implement extra code from Gibson algorithm 2 for more than 2 players.");
             ActionStrategy = ActionStrategies.RegretMatching;
-            AvgStrategySamplingCFRIterationNum = -1;
+            IterationNum = -1;
             int reportingGroupSize = EvolutionSettings.ReportEveryNIterations ??
                                      EvolutionSettings.TotalAvgStrategySamplingCFRIterations;
-            if (ShouldEstimateImprovementOverTime)
-                InitializeImprovementOverTimeEstimation();
             Stopwatch s = new Stopwatch();
+            string result = "";
             for (int iterationGrouper = 0;
                 iterationGrouper < EvolutionSettings.TotalAvgStrategySamplingCFRIterations;
                 iterationGrouper += reportingGroupSize)
@@ -207,18 +212,15 @@ namespace ACESim
                 Parallelizer.Go(EvolutionSettings.ParallelOptimization, iterationGrouper,
                     iterationGrouper + reportingGroupSize, i =>
                     {
-                        Interlocked.Increment(ref AvgStrategySamplingCFRIterationNum);
-                        AvgStrategySamplingCFRIteration(AvgStrategySamplingCFRIterationNum);
+                        Interlocked.Increment(ref IterationNum);
+                        AvgStrategySamplingCFRIteration(IterationNum);
                     });
                 s.Stop();
-                await GenerateReports(iterationGrouper + reportingGroupSize,
+                result += await GenerateReports(iterationGrouper + reportingGroupSize,
                     () =>
                         $"Iteration {iterationGrouper + reportingGroupSize} Milliseconds per iteration {((s.ElapsedMilliseconds / ((double) reportingGroupSize)))}");
             }
-            //for (AvgStrategySamplingCFRIterationNum = 0; AvgStrategySamplingCFRIterationNum < TotalAvgStrategySamplingCFRIterations; AvgStrategySamplingCFRIterationNum++)
-            //{
-            //    AvgStrategySamplingCFRIteration(AvgStrategySamplingCFRIterationNum);
-            //}
+            return result;
         }
     }
 }

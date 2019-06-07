@@ -90,6 +90,11 @@ namespace ACESim
             GameFactory = gameFactory;
         }
 
+        public virtual void Setup(GameOptions gameOptions)
+        {
+
+        }
+
         private void InitializeModularGame()
         {
             // Modules need to be able to find one another, regardless of their order. We thus set module numbers, and then have a list of 

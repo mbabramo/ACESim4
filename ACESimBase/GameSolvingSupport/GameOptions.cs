@@ -4,8 +4,7 @@ using System.Text;
 
 namespace ACESim
 {
-    public class LeducGameOptions : GameOptions
+    public class GameOptions
     {
-        public bool OneBetSizeOnly;
     }
 }

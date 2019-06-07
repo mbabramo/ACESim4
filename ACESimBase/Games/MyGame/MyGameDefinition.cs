@@ -17,10 +17,9 @@ namespace ACESim
         {
 
         }
-
-        public void Setup(MyGameOptions options)
+        public override void Setup(GameOptions options)
         {
-            Options = options;
+            Options = (MyGameOptions) options;
             FurtherOptionsSetup();
 
             Players = GetPlayersList();

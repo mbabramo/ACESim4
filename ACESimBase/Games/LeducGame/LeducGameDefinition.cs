@@ -21,9 +21,9 @@ namespace ACESim
         {
 
         }
-        public void Setup(LeducGameOptions options)
+        public override void Setup(GameOptions options)
         {
-            Options = options;
+            Options = (LeducGameOptions) options;
             Players = GetPlayersList();
             PlayerNames = Players.Select(x => x.PlayerName).ToArray();
             NumPlayers = (byte)Players.Count();
