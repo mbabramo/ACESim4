@@ -229,7 +229,7 @@ namespace ACESimTest
                 permutation++;
                 HashSet<byte> decisionsAlreadyPlayed = new HashSet<byte>();
                 int countDecisions = 0;
-                var myGameProgress = LeducGameRunner.PlayLeducGameOnce(options, (decision, gameProgress) =>
+                var myGameProgress = (new LeducGameLauncher()).PlayLeducGameOnce(options, (decision, gameProgress) =>
                 {
                     countDecisions++;
                     DecisionRecord item;

@@ -4,8 +4,17 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
-    public partial class CounterfactualRegretMinimization
+    public class GibsonProbing : CounterfactualRegretMinimization
     {
+
+
+        public override IStrategiesDeveloper DeepCopy()
+        {
+            var created = new GibsonProbing();
+            DeepCopyHelper(created);
+            return created;
+        }
+
         public unsafe double GibsonProbe_SinglePlayer(ref HistoryPoint historyPoint, byte playerBeingOptimized,
             IRandomProducer randomProducer, Decision nextDecision, byte nextDecisionIndex)
         {
@@ -206,23 +215,6 @@ namespace ACESim
                 throw new NotImplementedException();
         }
 
-        private unsafe byte SampleAction(double* actionProbabilities, byte numPossibleActions, double randomNumber)
-        {
-
-            double cumulative = 0;
-            byte action = 1;
-            do
-            {
-                if (action == numPossibleActions)
-                    return action;
-                cumulative += actionProbabilities[action - 1];
-                if (cumulative >= randomNumber)
-                    return action;
-                else
-                    action++;
-            } while (true);
-        }
-
         public void GibsonProbingCFRIteration(int iteration)
         {
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
@@ -242,9 +234,8 @@ namespace ACESim
         }
 
         private int ProbingCFRIterationNum;
-        private int ProbingCFREffectiveIteration; // iteration number valid only when not in parallel
 
-        public async Task<string> SolveGibsonProbingCFR()
+        public async override Task<string> RunAlgorithm(string reportName)
         {
             string reportString = null;
             Stopwatch s = new Stopwatch();

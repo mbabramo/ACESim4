@@ -613,7 +613,7 @@ namespace ACESimTest
             bool dAnswers = pFiles && dReadyToDefaultRound != 0;
             var actionsToPlay = GetPlayerActions(pFiles, dAnswers, litigationQuality, PSignal,
                 DSignal, bargainingRoundMoves: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds, pReadyToAbandonRound: pReadyToAbandonRound, dReadyToDefaultRound: dReadyToDefaultRound, mutualGiveUpResult: mutualGiveUpResult, simulatingBargainingFailure: simulatingBargainingFailure, sideBetChallenges: SideBetChallenges.NoChallengesAllowed, runningSideBetChallenges: runningSideBetChallenges);
-            var myGameProgress = MyGameRunner.PlayMyGameOnce(options, actionsToPlay);
+            var myGameProgress = MyGameLauncher.PlayMyGameOnce(options, actionsToPlay);
             VerifyInformationSetUniqueness(myGameProgress, options);
 
             bool pWins = pReadyToAbandonRound == null && dReadyToDefaultRound != null ||
@@ -763,7 +763,7 @@ namespace ACESimTest
             var options = GetGameOptions(allowAbandonAndDefault, numPotentialBargainingRounds, subdivideOffers, bargainingRoundRecall, simultaneousBargainingRounds, loserPaysPolicy, simulatingBargainingFailure, SideBetChallenges.NoChallengesAllowed, runningSideBetChallenges);
             var actionsToPlay = GetPlayerActions(true, true, LitigationQuality, PSignal,
                 DSignal, simulatingBargainingFailure, bargainingRoundMoves: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds, sideBetChallenges: SideBetChallenges.NoChallengesAllowed, runningSideBetChallenges: runningSideBetChallenges);
-            var myGameProgress = MyGameRunner.PlayMyGameOnce(options, actionsToPlay);
+            var myGameProgress = MyGameLauncher.PlayMyGameOnce(options, actionsToPlay);
             VerifyInformationSetUniqueness(myGameProgress, options);
 
             double settlementProportion = EquallySpaced.GetLocationOfEquallySpacedPoint(ValueWhenCaseSettles - 1, NumOffers, true);
@@ -838,7 +838,7 @@ namespace ACESimTest
             var bestOffers = GetBestOffers(offers);
             byte courtResult = plaintiffWins ? (byte) 2 : (byte) 1; 
             var actions = GetPlayerActions(true, true, LitigationQuality, PSignal, DSignal, simulatingBargainingFailure, sideBetChallenges, runningSideBetChallenges, bargainingMoves, simultaneousBargainingRounds, null, null, 0, courtResult);
-            var myGameProgress = MyGameRunner.PlayMyGameOnce(options, actions);
+            var myGameProgress = MyGameLauncher.PlayMyGameOnce(options, actions);
             myGameProgress.GameComplete.Should().BeTrue();
             VerifyInformationSetUniqueness(myGameProgress, options);
 

@@ -13,16 +13,12 @@ using ACESimBase.GameSolvingSupport;
 namespace ACESim
 {
     [Serializable]
-    public partial class CounterfactualRegretMinimization : StrategiesDeveloperBase
+    public abstract partial class CounterfactualRegretMinimization : StrategiesDeveloperBase
     {
 
-        #region Options
+        #region Options and variables
 
-        bool TraceCFR = false;
-
-        bool ShouldEstimateImprovementOverTime = false;
-        const int NumRandomGamePlaysForEstimatingImprovement = 1000;
-
+        public bool TraceCFR = false;
 
         #endregion
 
@@ -43,58 +39,21 @@ namespace ACESim
             NumChancePlayers = (byte) GameDefinition.Players.Count(x => x.PlayerIsChance);
         }
 
-        public IStrategiesDeveloper DeepCopy()
+        public unsafe byte SampleAction(double* actionProbabilities, byte numPossibleActions, double randomNumber)
         {
-            return new CounterfactualRegretMinimization()
-            {
-                Strategies = Strategies.Select(x => x.DeepCopy()).ToList(),
-                EvolutionSettings = EvolutionSettings,
-                GameDefinition = GameDefinition,
-                GameFactory = GameFactory,
-                Navigation = Navigation,
-                LookupApproach = LookupApproach
-            };
-        }
 
-        public async Task<string> DevelopStrategies(string reportName)
-        {
-            string report = null;
-            Initialize();
-            switch (EvolutionSettings.Algorithm)
+            double cumulative = 0;
+            byte action = 1;
+            do
             {
-                case GameApproximationAlgorithm.AverageStrategySampling:
-                    await SolveAvgStrategySamplingCFR();
-                    break;
-                case GameApproximationAlgorithm.GibsonProbing:
-                    report = await SolveGibsonProbingCFR();
-                    break;
-                case GameApproximationAlgorithm.ExploratoryProbing:
-                    report = await SolveExploratoryProbingCFR(reportName);
-                    break;
-                case GameApproximationAlgorithm.ModifiedGibsonProbing:
-                    report = await SolveModifiedGibsonProbingCFR(reportName);
-                    break;
-                case GameApproximationAlgorithm.HedgeProbing:
-                    report = await SolveHedgeProbingCFR(reportName);
-                    break;
-                case GameApproximationAlgorithm.HedgeVanilla:
-                    report = await SolveHedgeVanillaCFR();
-                    break;
-                case GameApproximationAlgorithm.Vanilla:
-                    report = await SolveVanillaCFR();
-                    break;
-                case GameApproximationAlgorithm.PureStrategyFinder:
-                    await FindPureStrategies();
-                    break;
-                case GameApproximationAlgorithm.FictitiousSelfPlay:
-                    report = await SolveFictitiousSelfPlay();
-                    break;
-                default:
-                    throw new NotImplementedException();
-            }
-            if (EvolutionSettings.SerializeResults)
-                StrategySerialization.SerializeStrategies(Strategies.ToArray(), "serstat.sst");
-            return report;
+                if (action == numPossibleActions)
+                    return action;
+                cumulative += actionProbabilities[action - 1];
+                if (cumulative >= randomNumber)
+                    return action;
+                else
+                    action++;
+            } while (true);
         }
 
         #endregion

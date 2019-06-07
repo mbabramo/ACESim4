@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
-    public partial class CounterfactualRegretMinimization
+    public partial class ModifiedGibsonProbing : CounterfactualRegretMinimization
     {
         // Differences from Gibson:
         // 1. During the Probe, we visit all branches on a critical node.
@@ -16,6 +16,12 @@ namespace ACESim
 
         // TODO: Can we store utilities for the resolution set in the penultimate node? That is, if we see that the next nodes all contain a final utilities, then maybe we can record what those final utilities are, and thus save the need to traverse each of those possibilities.
 
+        public override IStrategiesDeveloper DeepCopy()
+        {
+            var created = new ModifiedGibsonProbing();
+            DeepCopyHelper(created);
+            return created;
+        }
         public unsafe double ModifiedGibsonProbe_SinglePlayer(HistoryPoint historyPoint, byte playerBeingOptimized,
             IRandomProducer randomProducer)
         {
@@ -415,7 +421,7 @@ namespace ACESim
             } while (!success);
         }
 
-        public async Task<string> SolveModifiedGibsonProbingCFR(string reportName)
+        public override async Task<string> RunAlgorithm(string reportName)
         {
             //TraceCFR = true;
             //GameProgressLogger.LoggingOn = true;
@@ -430,9 +436,9 @@ namespace ACESim
             ActionStrategy = ActionStrategies.RegretMatching;
             //GameDefinition.PrintOutOrderingInformation();
             // The code can run in parallel, but we break up our parallel calls for two reasons: (1) We would like to produce reports and need to do this while pausing the main algorithm; and (2) we would like to be able differentiate early from late iterations, in case we want to change epsilon over time for example. 
-            ProbingCFRIterationNum = 0;
+            IterationNum = 0;
             int iterationsThisPhase = EvolutionSettings.TotalProbingCFRIterations;
-            int startingIteration = ProbingCFRIterationNum;
+            int startingIteration = IterationNum;
             int stopPhaseBefore = startingIteration + iterationsThisPhase;
             while (startingIteration < stopPhaseBefore)
             {
@@ -441,7 +447,7 @@ namespace ACESim
                     stopBefore = stopPhaseBefore;
                 else
                 {
-                    int stopToReportBefore = ModifiedGibsonProbing_GetNextMultipleOf(ProbingCFRIterationNum, (int)EvolutionSettings.ReportEveryNIterations);
+                    int stopToReportBefore = ModifiedGibsonProbing_GetNextMultipleOf(IterationNum, (int)EvolutionSettings.ReportEveryNIterations);
                     stopBefore = Math.Min(stopPhaseBefore, stopToReportBefore);
                 }
                 s.Start();
@@ -451,15 +457,14 @@ namespace ACESim
                     //    TraceCFR = true;
                     //else
                     //    TraceCFR = false;
-                    ProbingCFREffectiveIteration = iteration;
                     ModifiedGibsonProbingCFRIteration(iteration);
                 }
                 );
                 s.Stop();
-                ProbingCFRIterationNum = startingIteration = stopBefore; // this is the iteration to run next
-                reportString = await GenerateReports(ProbingCFRIterationNum,
+                IterationNum = startingIteration = stopBefore; // this is the iteration to run next
+                reportString = await GenerateReports(IterationNum,
                     () =>
-                        $"Iteration {ProbingCFRIterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)(ProbingCFRIterationNum + 1))))}");
+                        $"Iteration {IterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)(IterationNum + 1))))}");
             }
             return reportString; // final report
         }

@@ -9,14 +9,25 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
-    public partial class CounterfactualRegretMinimization
+    public partial class HedgeVanilla : CounterfactualRegretMinimization
     {
+        double AverageStrategyAdjustment, AverageStrategyAdjustmentAsPctOfMax;
+
+
+
         #region Game state management
 
         public void InitializeInformationSets()
         {
             int numInformationSets = InformationSets.Count;
             Parallel.For(0, numInformationSets, n => InformationSets[n].InitializeNormalizedHedge());
+        }
+
+        public override IStrategiesDeveloper DeepCopy()
+        {
+            var created = new HedgeVanilla();
+            DeepCopyHelper(created);
+            return created;
         }
 
         public void UpdateInformationSets(int iteration)
@@ -45,16 +56,16 @@ namespace ACESim
                 // uncomment to skip a player
                 //if (iteration == 5001)
                 //    Unroll_Commands.SetSkip("Optimizing player 0", true); 
-                HedgeVanillaIteration = iteration;
-                HedgeVanillaIterationInt = iteration;
-                HedgeVanillaIterationStopwatch.Start();
+                IterationNumDouble = iteration;
+                IterationNum = iteration;
+                StrategiesDeveloperStopwatch.Start();
                 Unroll_ExecuteUnrolledCommands(array, iteration == 1);
-                HedgeVanillaIterationStopwatch.Stop();
+                StrategiesDeveloperStopwatch.Stop();
                 MiniReport(iteration, Unroll_IterationResultForPlayers);
                 UpdateInformationSets(iteration);
                 reportString = await GenerateReports(iteration,
                     () =>
-                        $"Iteration {iteration} Overall milliseconds per iteration {((HedgeVanillaIterationStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
+                        $"Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
                 if (TraceCFR)
                 { // only trace through iteration
                     TraceCommandList(array);
@@ -617,7 +628,7 @@ namespace ACESim
 
         #region Core algorithm
 
-        public async Task<string> SolveHedgeVanillaCFR()
+        public override async Task<string> RunAlgorithm(string reportName)
         {
             if (EvolutionSettings.UnrollAlgorithm)
                 return await Unroll_SolveHedgeVanillaCFR();
@@ -629,14 +640,10 @@ namespace ACESim
             }
             return reportString;
         }
-
-        double HedgeVanillaIteration;
-        int HedgeVanillaIterationInt;
-        Stopwatch HedgeVanillaIterationStopwatch = new Stopwatch();
         private async Task<string> HedgeVanillaCFRIteration(int iteration)
         {
-            HedgeVanillaIteration = iteration;
-            HedgeVanillaIterationInt = iteration;
+            IterationNumDouble = iteration;
+            IterationNum = iteration;
             CalculateDiscountingAdjustments();
 
             string reportString = null;
@@ -655,7 +662,7 @@ namespace ACESim
 
             reportString = await GenerateReports(iteration,
                 () =>
-                    $"Iteration {iteration} Overall milliseconds per iteration {((HedgeVanillaIterationStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
+                    $"Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
             return reportString;
         }
 
@@ -667,10 +674,10 @@ namespace ACESim
             GetInitialPiValues(initialAvgStratPiValues);
             if (TraceCFR)
                 TabbedText.WriteLine($"Iteration {iteration} Player {playerBeingOptimized}");
-            HedgeVanillaIterationStopwatch.Start();
+            StrategiesDeveloperStopwatch.Start();
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
             results[playerBeingOptimized] = HedgeVanillaCFR(ref historyPoint, playerBeingOptimized, initialPiValues, initialAvgStratPiValues, 0);
-            HedgeVanillaIterationStopwatch.Stop();
+            StrategiesDeveloperStopwatch.Stop();
         }
 
         private unsafe void MiniReport(int iteration, HedgeVanillaUtilities[] results)
@@ -681,7 +688,7 @@ namespace ACESim
                 TabbedText.Tabs++;
                 for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
                     TabbedText.WriteLine($"Player {playerBeingOptimized} {results[playerBeingOptimized]}");
-                TabbedText.WriteLine($"Cumulative milliseconds per iteration {((HedgeVanillaIterationStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
+                TabbedText.WriteLine($"Cumulative milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
                 TabbedText.Tabs--;
             }
         }
@@ -689,12 +696,10 @@ namespace ACESim
         private unsafe void CalculateDiscountingAdjustments()
         {
             EvolutionSettings.CalculateGamma();
-            double positivePower = Math.Pow(HedgeVanillaIteration, EvolutionSettings.Discounting_Alpha);
-            double negativePower = Math.Pow(HedgeVanillaIteration, EvolutionSettings.Discounting_Beta);
-            PositiveRegretsAdjustment = positivePower / (positivePower + 1.0);
-            NegativeRegretsAdjustment = negativePower / (negativePower + 1.0);
-            AverageStrategyAdjustment = EvolutionSettings.Discounting_Gamma_ForIteration(HedgeVanillaIterationInt);
-            AverageStrategyAdjustmentAsPctOfMax = EvolutionSettings.Discounting_Gamma_AsPctOfMax(HedgeVanillaIterationInt);
+            double positivePower = Math.Pow(IterationNumDouble, EvolutionSettings.Discounting_Alpha);
+            double negativePower = Math.Pow(IterationNumDouble, EvolutionSettings.Discounting_Beta);
+            AverageStrategyAdjustment = EvolutionSettings.Discounting_Gamma_ForIteration(IterationNum);
+            AverageStrategyAdjustmentAsPctOfMax = EvolutionSettings.Discounting_Gamma_AsPctOfMax(IterationNum);
             if (AverageStrategyAdjustment < 1E-100)
                 AverageStrategyAdjustment = 1E-100;
         }

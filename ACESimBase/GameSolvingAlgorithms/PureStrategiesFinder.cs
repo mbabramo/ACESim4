@@ -6,13 +6,25 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
-    public partial class CounterfactualRegretMinimization
+    public class PureStrategiesFinder : StrategiesDeveloperBase
     {
         // Find pure equilibria:
         // 1. Fully initialize game tree
         // 2. For (P, D), enumerate information sets. Define a global strategy index that specifies a pure strategy in each information set for each player. 
         // 3. For each pair of information sets, set the pure strategy for each player, playing all chance strategies. Record the average resulting utilities.
         // 4. Using the matrix, eliminated dominated strategies. That is, for each column A, look to see if there is another column B that is always at least as good for column player. If so, eliminate A. Do same for rows (for row player). Repeat until a cycle produces no changes.
+        public override IStrategiesDeveloper DeepCopy()
+        {
+            var created = new PureStrategiesFinder();
+            DeepCopyHelper(created);
+            return created;
+        }
+
+        public override async Task<string> RunAlgorithm(string reportName)
+        {
+            await FindPureStrategies();
+            return ""; // currently results are just written to console. 
+        }
 
         public async Task FindPureStrategies()
         {

@@ -6,12 +6,19 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
-    public partial class CounterfactualRegretMinimization
+    public partial class HedgeProbing : CounterfactualRegretMinimization
     {
         // TODO The fundamental problem here is that relatively early iterations swamp the later iterations (even with discounting). The problem affects information sets that require extensive cooperation to get to (but do not reflect the final reward for cooperation); it's important to get the strategy correct in these information sets to allow proper backward deduction. In a very early iteration, regrets may accumulate on such an information set in conjunction with relatively high inverse pi values, because the path to this information set is no less likely than any other path. These initial regrets will support non cooperation, because the players haven't yet figured out how to cooperate in later iterations. This feeds back to earlier information sets, where players also won't cooperate. Thus, in subsequent information sets, the probability of the other player getting to such an information set is tiny. Thus, even if regrets for a cooperative move become positive, this will have only a small effect, as the earlier large negative regret was multiplied by a much higher inverse pi value. It doesn't matter if we divide all regrets by the sum of the inverse pi values; that won't affect probabilities with hedge or regret matching.
         // Discounting is only a partial solution, because the Brown-Sandholm approach does not discount in a continuous way; that is, it does not allow for the first hundred iterations to be much less important than the second hundred, and the second hundred to be much less important than the third hundred, etc. Perhaps this form of discounting would be an alternative, but it might not provide attractive bounds.
         // An alternative possibility is to make an iteration a batch of many rollouts, enough so that each information set is likely visited many times. Thus, within an iteration, we will weight the regrets by the inverse pis. As a result, in each iteration, regrets will be the same order of magnitude. In other words, because we are doing a weighted average (based on inverse pi values) within each iterations (among all the items in a batch), we can do a straight non-weighted average across iterations. 
 
+
+        public override IStrategiesDeveloper DeepCopy()
+        {
+            var created = new HedgeProbing();
+            DeepCopyHelper(created);
+            return created;
+        }
         public unsafe double HedgeProbe_SinglePlayer(HistoryPoint historyPoint, byte playerBeingOptimized,
             IRandomProducer randomProducer)
         {
@@ -409,7 +416,7 @@ namespace ACESim
             } while (!success);
         }
 
-        public async Task<string> SolveHedgeProbingCFR(string reportName)
+        public override async Task<string> RunAlgorithm(string reportName)
         {
             //TraceCFR = true;
             //GameProgressLogger.LoggingOn = true;
@@ -424,9 +431,9 @@ namespace ACESim
             ActionStrategy = ActionStrategies.RegretMatching;
             //GameDefinition.PrintOutOrderingInformation();
             // The code can run in parallel, but we break up our parallel calls for two reasons: (1) We would like to produce reports and need to do this while pausing the main algorithm; and (2) we would like to be able differentiate early from late iterations, in case we want to change epsilon over time for example. 
-            ProbingCFRIterationNum = 0;
+            IterationNum = 0;
             int iterationsThisPhase = EvolutionSettings.TotalProbingCFRIterations;
-            int startingIteration = ProbingCFRIterationNum;
+            int startingIteration = IterationNum;
             int stopPhaseBefore = startingIteration + iterationsThisPhase;
             while (startingIteration < stopPhaseBefore)
             {
@@ -435,7 +442,7 @@ namespace ACESim
                     stopBefore = stopPhaseBefore;
                 else
                 {
-                    int stopToReportBefore = HedgeProbing_GetNextMultipleOf(ProbingCFRIterationNum, (int)EvolutionSettings.ReportEveryNIterations);
+                    int stopToReportBefore = HedgeProbing_GetNextMultipleOf(IterationNum, (int)EvolutionSettings.ReportEveryNIterations);
                     stopBefore = Math.Min(stopPhaseBefore, stopToReportBefore);
                 }
                 s.Start();
@@ -445,15 +452,14 @@ namespace ACESim
                     //    TraceCFR = true;
                     //else
                     //    TraceCFR = false;
-                    ProbingCFREffectiveIteration = iteration;
                     HedgeProbingCFRIteration(iteration);
                 }
                 );
                 s.Stop();
-                ProbingCFRIterationNum = startingIteration = stopBefore; // this is the iteration to run next
-                reportString = await GenerateReports(ProbingCFRIterationNum,
+                IterationNum = startingIteration = stopBefore; // this is the iteration to run next
+                reportString = await GenerateReports(IterationNum,
                     () =>
-                        $"Iteration {ProbingCFRIterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)(ProbingCFRIterationNum + 1))))}");
+                        $"Iteration {IterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)(IterationNum + 1))))}");
             }
             return reportString; // final report
         }

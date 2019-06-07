@@ -5,9 +5,8 @@ using System.Collections.Generic;
 namespace ACESim
 {
     [Serializable]
-    public struct MyGameOptions
+    public class MyGameOptions : GameOptions
     {
-
         /// <summary>
         /// The generator of disputes (e.g., contract, tort, etc.), determining the litigation quality. If null, then there is an equal probability of each litigation quality outcome.
         /// </summary>

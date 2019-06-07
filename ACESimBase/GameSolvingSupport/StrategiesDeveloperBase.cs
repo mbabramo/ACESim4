@@ -1,4 +1,6 @@
 ﻿using ACESim;
+using ACESimBase.GameSolvingSupport;
+using ACESimBase.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -8,9 +10,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Threading.Tasks.Dataflow;
 
-namespace ACESimBase.GameSolvingSupport
+namespace ACESim
 {
-    public abstract class StrategiesDeveloperBase : IStrategiesDeveloper
+    public abstract partial class StrategiesDeveloperBase : IStrategiesDeveloper
     {
 
         #region Options
@@ -20,17 +22,46 @@ namespace ACESimBase.GameSolvingSupport
         public const int MaxNumMainPlayers = 4; // this affects fixed-size stack-allocated buffers // TODO: Set to 2
         public const int MaxPossibleActions = 100; // same
 
-        public InformationSetLookupApproach LookupApproach = InformationSetLookupApproach.CachedGameTreeOnly;
+        public InformationSetLookupApproach LookupApproach { get; set; } = InformationSetLookupApproach.CachedGameTreeOnly;
+
         bool AllowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => (AllowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)) && EvolutionSettings.Algorithm != GameApproximationAlgorithm.PureStrategyFinder;
+
+        public Stopwatch StrategiesDeveloperStopwatch = new Stopwatch();
+
+        public int IterationNum;
+        public double IterationNumDouble;
+
+        public int GameNumber;
 
         #endregion
 
         #region Interface implementation
 
-        public abstract Task<string> DevelopStrategies(string reportName);
+
+        public abstract Task<string> RunAlgorithm(string reportName);
+
+        public async Task<string> DevelopStrategies(string reportName)
+        {
+            Initialize();
+            string report = await RunAlgorithm(reportName);
+            if (EvolutionSettings.SerializeResults)
+                StrategySerialization.SerializeStrategies(Strategies.ToArray(), "serstat.sst");
+            return report;
+        }
 
         public abstract IStrategiesDeveloper DeepCopy();
+
+        public void DeepCopyHelper(IStrategiesDeveloper target)
+        {
+
+            target.Strategies = Strategies.Select(x => x.DeepCopy()).ToList();
+            target.EvolutionSettings = EvolutionSettings;
+            target.GameDefinition = GameDefinition;
+            target.GameFactory = GameFactory;
+            target.Navigation = Navigation;
+            target.LookupApproach = LookupApproach;
+        }
 
         #endregion
 
@@ -52,7 +83,7 @@ namespace ACESimBase.GameSolvingSupport
 
         public GamePlayer GamePlayer { get; set; }
 
-        public HistoryNavigationInfo Navigation;
+        public HistoryNavigationInfo Navigation { get; set; }
 
         // Note: The ActionStrategy selected does not affect the learning process. It affects reporting after learning, including the calculation of best response scores. Convergence bounds guarantees depend on all players' using the AverageStrategies ActionStrategy. It may seem surprising that we can have convergence guarantees when a player is using the average strategy, thus continuing to make what appears to be some mistakes from the past. But the key is that the other players are also using their average strategies. Thus, even if new information has changed the best move for a player under current circumstances, the player will be competing against a player that continues to employ some of the old strategies. In other words, the opponents' average strategy changes extremely slowly, and the no-regret learning convergence guarantees at a single information set are based on this concept of the player and the opponent playing their average strategies. But the average strategy is not the strategy that the player has "learned." 
 
@@ -97,7 +128,6 @@ namespace ACESimBase.GameSolvingSupport
                     });
                 }
             }
-            PreviousRegretMatchingState = null;
         }
 
         public unsafe void Initialize()
@@ -418,7 +448,7 @@ namespace ACESimBase.GameSolvingSupport
 
         #region Utility methods
 
-        private unsafe HistoryPoint GetStartOfGameHistoryPoint()
+        public unsafe HistoryPoint GetStartOfGameHistoryPoint()
         {
             GameHistory gameHistory = new GameHistory();
             gameHistory.Initialize();
@@ -503,7 +533,7 @@ namespace ACESimBase.GameSolvingSupport
 
         #region Game play and reporting
 
-        private async Task<string> GenerateReports(int iteration, Func<string> prefaceFn)
+        public async Task<string> GenerateReports(int iteration, Func<string> prefaceFn)
         {
             string reportString = "";
             bool doBestResponse = (EvolutionSettings.BestResponseEveryMIterations != null && iteration % EvolutionSettings.BestResponseEveryMIterations == 0 && EvolutionSettings.BestResponseEveryMIterations != EvolutionSettings.EffectivelyNever && iteration != 0);
@@ -534,9 +564,6 @@ namespace ACESimBase.GameSolvingSupport
                         }
                     ActionStrategy = previous;
                     Br.eak.Remove("Report");
-                    MeasureRegretMatchingChanges();
-                    if (ShouldEstimateImprovementOverTime)
-                        ReportEstimatedImprovementsOverTime();
                     if (doBestResponse)
                         CompareBestResponse(false);
                 }
@@ -624,8 +651,7 @@ namespace ACESimBase.GameSolvingSupport
                 BestResponseUtilities[playerIndex] = result;
             }
         }
-
-        private unsafe void CalculateBestResponse()
+        public unsafe void CalculateBestResponse()
         {
             BestResponseUtilities = new double[NumNonChancePlayers];
             ActionStrategies actionStrategy = ActionStrategy;
@@ -981,7 +1007,7 @@ namespace ACESimBase.GameSolvingSupport
             return product;
         }
 
-        private unsafe void GetNextPiValues(double* currentPiValues, byte playerIndex, double probabilityToMultiplyBy, bool changeOtherPlayers, double* nextPiValues)
+        public unsafe void GetNextPiValues(double* currentPiValues, byte playerIndex, double probabilityToMultiplyBy, bool changeOtherPlayers, double* nextPiValues)
         {
             for (byte p = 0; p < NumNonChancePlayers; p++)
             {
@@ -995,7 +1021,7 @@ namespace ACESimBase.GameSolvingSupport
             }
         }
 
-        private unsafe void GetInitialPiValues(double* initialPiValues)
+        public unsafe void GetInitialPiValues(double* initialPiValues)
         {
             for (byte p = 0; p < NumNonChancePlayers; p++)
                 initialPiValues[p] = 1.0;

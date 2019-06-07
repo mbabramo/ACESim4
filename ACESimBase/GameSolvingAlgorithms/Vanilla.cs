@@ -5,15 +5,23 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
-    public partial class CounterfactualRegretMinimization
+    public partial class VanillaCFR : CounterfactualRegretMinimization
     {
+
+        public override IStrategiesDeveloper DeepCopy()
+        {
+            var created = new VanillaCFR();
+            DeepCopyHelper(created);
+            return created;
+        }
+
         /// <summary>
         /// Performs an iteration of vanilla counterfactual regret minimization.
         /// </summary>
         /// <param name="historyPoint">The game tree, pointing to the particular point in the game where we are located</param>
         /// <param name="playerBeingOptimized">0 for first player, etc. Note that this corresponds in Lanctot to 1, 2, etc. We are using zero-basing for player index (even though we are 1-basing actions).</param>
         /// <returns></returns>
-        public unsafe double VanillaCFR(ref HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues,
+        public unsafe double VanillaCFRIterationForPlayer(ref HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues,
             bool usePruning)
         {
             if (usePruning && ShouldPruneIfPruning(piValues))
@@ -89,7 +97,7 @@ namespace ACESim
                     TabbedText.Tabs++;
                 }
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
-                expectedValueOfAction[action - 1] = VanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, usePruning);
+                expectedValueOfAction[action - 1] = VanillaCFRIterationForPlayer(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, usePruning);
                 expectedValue += probabilityOfAction * expectedValueOfAction[action - 1];
 
                 if (TraceCFR)
@@ -195,7 +203,7 @@ namespace ACESim
                 TabbedText.Tabs++;
             }
             double expectedValueParticularAction =
-                VanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, usePruning);
+                VanillaCFRIterationForPlayer(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, usePruning);
             var probabilityAdjustedExpectedValueParticularAction = actionProbability * expectedValueParticularAction;
             if (TraceCFR)
             {
@@ -207,7 +215,7 @@ namespace ACESim
             return probabilityAdjustedExpectedValueParticularAction;
         }
 
-        public async Task<string> SolveVanillaCFR()
+        public override async Task<string> RunAlgorithm(string reportName)
         {
             string reportString = null;
             for (int iteration = 0; iteration < EvolutionSettings.TotalVanillaCFRIterations; iteration++)
@@ -217,20 +225,11 @@ namespace ACESim
             return reportString;
         }
 
-        double VanillaIteration, PositiveRegretsAdjustment, NegativeRegretsAdjustment, AverageStrategyAdjustment, AverageStrategyAdjustmentAsPctOfMax;
-        Stopwatch VanillaIterationStopwatch = new Stopwatch();
+        double PositiveRegretsAdjustment, NegativeRegretsAdjustment, AverageStrategyAdjustment, AverageStrategyAdjustmentAsPctOfMax;
         private async Task<string> VanillaCFRIteration(int iteration)
         {
-            VanillaIteration = iteration;
-
-            double positivePower = Math.Pow(VanillaIteration, EvolutionSettings.Discounting_Alpha);
-            double negativePower = Math.Pow(VanillaIteration, EvolutionSettings.Discounting_Beta);
-            PositiveRegretsAdjustment = positivePower / (positivePower + 1.0);
-            NegativeRegretsAdjustment = negativePower / (negativePower + 1.0);
-            AverageStrategyAdjustment = EvolutionSettings.Discounting_Gamma_ForIteration((int) VanillaIteration);
-            AverageStrategyAdjustmentAsPctOfMax = EvolutionSettings.Discounting_Gamma_AsPctOfMax((int)VanillaIteration);
-            if (AverageStrategyAdjustment < 1E-100)
-                AverageStrategyAdjustment = 1E-100;
+            IterationNumDouble = iteration;
+            SetDiscountingAdjustments();
 
             string reportString = null;
             double[] lastUtilities = new double[NumNonChancePlayers];
@@ -241,8 +240,20 @@ namespace ACESim
 
             reportString = await GenerateReports(iteration,
                 () =>
-                    $"Iteration {iteration} Overall milliseconds per iteration {((VanillaIterationStopwatch.ElapsedMilliseconds / ((double)iteration + 1.0)))}");
+                    $"Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration + 1.0)))}");
             return reportString;
+        }
+
+        private void SetDiscountingAdjustments()
+        {
+            double positivePower = Math.Pow(IterationNumDouble, EvolutionSettings.Discounting_Alpha);
+            double negativePower = Math.Pow(IterationNumDouble, EvolutionSettings.Discounting_Beta);
+            PositiveRegretsAdjustment = positivePower / (positivePower + 1.0);
+            NegativeRegretsAdjustment = negativePower / (negativePower + 1.0);
+            AverageStrategyAdjustment = EvolutionSettings.Discounting_Gamma_ForIteration((int)IterationNumDouble);
+            AverageStrategyAdjustmentAsPctOfMax = EvolutionSettings.Discounting_Gamma_AsPctOfMax((int)IterationNumDouble);
+            if (AverageStrategyAdjustment < 1E-100)
+                AverageStrategyAdjustment = 1E-100;
         }
 
         private unsafe void VanillaCFR_OptimizeEachPlayer(int iteration, double[] lastUtilities, bool usePruning)
@@ -253,11 +264,11 @@ namespace ACESim
                 GetInitialPiValues(initialPiValues);
                 if (TraceCFR)
                     TabbedText.WriteLine($"Iteration {iteration} Player {playerBeingOptimized}");
-                VanillaIterationStopwatch.Start();
+                StrategiesDeveloperStopwatch.Start();
                 HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
                 lastUtilities[playerBeingOptimized] =
-                    VanillaCFR(ref historyPoint, playerBeingOptimized, initialPiValues, usePruning);
-                VanillaIterationStopwatch.Stop();
+                    VanillaCFRIterationForPlayer(ref historyPoint, playerBeingOptimized, initialPiValues, usePruning);
+                StrategiesDeveloperStopwatch.Stop();
             }
         }
     }
