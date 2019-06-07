@@ -15,6 +15,8 @@ namespace ACESim
 
         #region Settings
 
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.HedgeVanilla;
+
         public const int ProbingIterations = 20_000_000;
         public const int VanillaIterations = 25_000;
         public const int VanillaReportEveryNIterations = 25_000;
@@ -50,8 +52,6 @@ namespace ACESim
         #endregion
 
         #region Launching
-
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.FictitiousSelfPlay;
 
         public async Task<string> Launch()
         {

@@ -30,8 +30,6 @@ namespace ACESim
             StrategiesDeveloperStopwatch.Reset();
             for (int iteration = 2; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
-                if (iteration == EvolutionSettings.TotalVanillaCFRIterations)
-                    EvolutionSettings.UseAcceleratedBestResponse = false; // DEBUG -- remove
                 reportString = await FictitiousSelfPlayIteration(iteration);
             }
             return reportString;

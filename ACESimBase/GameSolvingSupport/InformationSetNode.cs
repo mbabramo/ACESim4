@@ -355,7 +355,7 @@ namespace ACESim
                 BestResponseMayReachHere = PredecessorInformationSetForPlayer.LastBestResponseAction == ActionTakenAtPredecessorSet;
         }
 
-        bool OnlyUpdateIfBestResponseMayReachHere = false; // DEBUG
+        bool OnlyUpdateIfBestResponseMayReachHere = false;
 
         public void UpdateAverageStrategyForFictitiousPlay(double lambda2)
         {

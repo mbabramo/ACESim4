@@ -695,10 +695,6 @@ namespace ACESim
                     double bestResponse = CalculateBestResponse(playerBeingOptimized, actionStrategy);
                     BestResponseUtilities[playerBeingOptimized] = bestResponse;
                 }
-                //TraceTreeWalk = true; // DEBUG
-                //PrintGameTree(); // DEBUG
-                //ExecuteAcceleratedBestResponse(); // DEBUG
-                //PrintGameTree(); // DEBUG
             }
             s.Stop();
             BestResponseCalculationTime = s.ElapsedMilliseconds;
@@ -827,8 +823,6 @@ namespace ACESim
             });
         }
 
-        int DEBUG5 = 0;
-
         public double[] GetAverageUtilities()
         {
             double[] cumulated = new double[NumNonChancePlayers];
@@ -924,7 +918,6 @@ namespace ACESim
                     // is full).
                     messageAccepted = await step2_buffer.SendAsync(new Tuple<GameProgress, double>(progress, probabilityOfPath));
                 } while (!messageAccepted);
-                var DEBUGx = ((MyGameProgress)progress).LitigationQualityDiscrete;
             };
             // Now, we have to send the paths through all of these steps and make sure that step 3 is completely finished.
             var startHistoryPoint = GetStartOfGameHistoryPoint();
