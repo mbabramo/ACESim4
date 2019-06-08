@@ -132,13 +132,14 @@ namespace ACESim
 
         // Let's store the index in the array at which we will place the various types of information set information.
 
-        private const int Unroll_NumPiecesInfoPerInformationSetAction = 6;
+        private const int Unroll_NumPiecesInfoPerInformationSetAction = 7;
         private const int Unroll_InformationSetPerActionOrder_AverageStrategy = 0;
         private const int Unroll_InformationSetPerActionOrder_HedgeProbability = 1;
         private const int Unroll_InformationSetPerActionOrder_LastRegret = 2;
-        private const int Unroll_InformationSetPerActionOrder_BestResponseNumerator = 3;
-        private const int Unroll_InformationSetPerActionOrder_BestResponseDenominator = 4;
-        private const int Unroll_InformationSetPerActionOrder_LastCumulativeStrategyIncrement = 5;
+        private const int Unroll_InformationSetPerActionOrder_LastRegretDenominator = 3;
+        private const int Unroll_InformationSetPerActionOrder_BestResponseNumerator = 4;
+        private const int Unroll_InformationSetPerActionOrder_BestResponseDenominator = 5;
+        private const int Unroll_InformationSetPerActionOrder_LastCumulativeStrategyIncrement = 6;
 
         private int[][] Unroll_IterationResultForPlayersIndices;
         private HedgeVanillaUtilities[] Unroll_IterationResultForPlayers;
@@ -176,6 +177,8 @@ namespace ACESim
         }
 
         private int Unroll_GetInformationSetIndex_LastRegret(int informationSetNumber, byte action) => Unroll_InformationSetsIndices[informationSetNumber] + (Unroll_NumPiecesInfoPerInformationSetAction * (action - 1)) + Unroll_InformationSetPerActionOrder_LastRegret;
+
+        private int Unroll_GetInformationSetIndex_LastRegretDenominator(int informationSetNumber, byte action) => Unroll_InformationSetsIndices[informationSetNumber] + (Unroll_NumPiecesInfoPerInformationSetAction * (action - 1)) + Unroll_InformationSetPerActionOrder_LastRegretDenominator;
 
         private int Unroll_GetInformationSetIndex_BestResponseNumerator(int informationSetNumber, byte action) => Unroll_InformationSetsIndices[informationSetNumber] + (Unroll_NumPiecesInfoPerInformationSetAction * (action - 1)) + Unroll_InformationSetPerActionOrder_BestResponseNumerator;
 
@@ -328,7 +331,8 @@ namespace ACESim
                 for (byte action = 1; action <= infoSet.NumPossibleActions; action++)
                 {
                     int index = Unroll_GetInformationSetIndex_LastRegret(infoSet.InformationSetNodeNumber, action);
-                    infoSet.NormalizedHedgeIncrementLastRegret(action, array[index], 0 /* DEBUG */);
+                    int index2 = Unroll_GetInformationSetIndex_LastRegretDenominator(infoSet.InformationSetNodeNumber, action);
+                    infoSet.NormalizedHedgeIncrementLastRegret(action, array[index], array[index2]);
                     index = Unroll_GetInformationSetIndex_LastCumulativeStrategyIncrement(infoSet.InformationSetNodeNumber, action);
                     infoSet.NormalizedHedgeIncrementLastCumulativeStrategyIncrements(action, array[index]);
                     int indexNumerator = Unroll_GetInformationSetIndex_BestResponseNumerator(infoSet.InformationSetNodeNumber, action);
@@ -472,7 +476,9 @@ namespace ACESim
                     int regret = Unroll_Commands.CopyToNew(expectedValueOfAction[action - 1], false);
                     Unroll_Commands.Decrement(regret, expectedValue);
                     int lastRegret = Unroll_GetInformationSetIndex_LastRegret(informationSet.InformationSetNodeNumber, action);
-                    Unroll_Commands.IncrementByProduct(lastRegret, true, inversePi, regret);
+                    int lastRegretDenominator = Unroll_GetInformationSetIndex_LastRegretDenominator(informationSet.InformationSetNodeNumber, action);
+                    Unroll_Commands.Increment(lastRegret, true, regret);
+                    Unroll_Commands.Increment(lastRegretDenominator, true, inversePi);
                     // now contribution to average strategy
                     int contributionToAverageStrategy = Unroll_Commands.CopyToNew(pi, false);
                     Unroll_Commands.MultiplyBy(contributionToAverageStrategy, actionProbabilities[action - 1]); // note: we don't multiply by average strategy adjustment here -- we do so at end of iteration
@@ -828,12 +834,12 @@ namespace ACESim
                     double contributionToAverageStrategy = piAdj * actionProbabilities[action - 1]; // will be multiplied by average strategy adjustment at the end of the entire iteration; this will also normalize the contributions so that (placing average strategy adjustment aside) total contribution is equal to 1. 
                     if (EvolutionSettings.ParallelOptimization)
                     {
-                        informationSet.NormalizedHedgeIncrementLastRegret_Parallel(action, inversePi * regret, inversePi);
+                        informationSet.NormalizedHedgeIncrementLastRegret_Parallel(action, regret, inversePi);
                         informationSet.NormalizedHedgeIncrementLastCumulativeStrategyIncrements_Parallel(action, contributionToAverageStrategy);
                     }
                     else
                     {
-                        informationSet.NormalizedHedgeIncrementLastRegret(action, inversePi * regret, inversePi);
+                        informationSet.NormalizedHedgeIncrementLastRegret(action, regret, inversePi);
                         informationSet.NormalizedHedgeIncrementLastCumulativeStrategyIncrements(action, contributionToAverageStrategy);
                     }
                     if (TraceCFR)

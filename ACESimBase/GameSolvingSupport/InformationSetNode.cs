@@ -805,13 +805,8 @@ namespace ACESim
             for (int a = 1; a <= NumPossibleActions; a++)
             {
                 double denominator = NodeInformation[lastRegretDenominatorDimension, a - 1];
-                double regretIncrements = (denominator == 0) ? 0 : NodeInformation[lastRegretDimension, a - 1] / denominator;
-                if (MaxPossibleThisPlayer == MinPossibleThisPlayer)
-                    throw new Exception();
-                // best performance possible occurs if expected value is MaxPossibleThisPlayer when overall expected value is MinPossibleThisPlayer. worst performance possible occurs if regret is MinPossibleThisPlayer when overall expected value is MaxPossibleThisPlayer. Regret can range from -(MaxPossible - MinPossible) to +(MaxPossible - MinPossible). Thus, Regret + (MaxPossible - MinPossible) can range from 0 to 2*(MaxPossible - MinPossible). So, we can normalize regret to be from 0 to 1 by calculating (regret + range) / (2 * range).
-                double range = MaxPossibleThisPlayer - MinPossibleThisPlayer;
-                double normalizedRegret = (regretIncrements + range) / (2 * range); 
-                double adjustedNormalizedRegret = 1.0 - normalizedRegret; // if regret is high, this is low
+                double regret = (denominator == 0) ? 0 : NodeInformation[lastRegretDimension, a - 1] / denominator;
+                double adjustedNormalizedRegret = 1.0 - regret; // if regret is high, this is low
                 double weightAdjustment = Math.Pow(1 - NormalizedHedgeEpsilon, adjustedNormalizedRegret); // if adjustedNormalizedRegret is low, then this is high (relatively close to 1)
                 double weight = NodeInformation[adjustedWeightsDimension, a - 1];
                 weight *= weightAdjustment; // So, this weight reduces only slightly when regret is high
@@ -885,17 +880,29 @@ namespace ACESim
             UpdatingHedge = new SimpleExclusiveLock();
         }
 
-        public void NormalizedHedgeIncrementLastRegret(byte action, double regretTimesInversePi, double inversePi)
+        public void NormalizedHedgeIncrementLastRegret(byte action, double regret, double inversePi)
         {
-            NodeInformation[lastRegretDimension, action - 1] += regretTimesInversePi;
+            double normalizedRegret = NormalizeRegret(regret);
+            NodeInformation[lastRegretDimension, action - 1] += inversePi * normalizedRegret;
             NodeInformation[lastRegretDenominatorDimension, action - 1] += inversePi;
         }
 
-        public void NormalizedHedgeIncrementLastRegret_Parallel(byte action, double regretTimesInversePi, double inversePi)
+        public void NormalizedHedgeIncrementLastRegret_Parallel(byte action, double regret, double inversePi)
         {
-            Interlocking.Add(ref NodeInformation[lastRegretDimension, action - 1], regretTimesInversePi);
+            double normalizedRegret = NormalizeRegret(regret);
+            Interlocking.Add(ref NodeInformation[lastRegretDimension, action - 1], inversePi * normalizedRegret);
             Interlocking.Add(ref NodeInformation[lastRegretDenominatorDimension, action - 1], inversePi);
             //Interlocked.Increment(ref NumRegretIncrements);
+        }
+
+        public double NormalizeRegret(double regret)
+        {
+            // best performance possible occurs if expected value is MaxPossibleThisPlayer when overall expected value is MinPossibleThisPlayer. worst performance possible occurs if regret is MinPossibleThisPlayer when overall expected value is MaxPossibleThisPlayer. Regret can range from -(MaxPossible - MinPossible) to +(MaxPossible - MinPossible). Thus, Regret + (MaxPossible - MinPossible) can range from 0 to 2*(MaxPossible - MinPossible). So, we can normalize regret to be from 0 to 1 by calculating (regret + range) / (2 * range).
+            double range = MaxPossibleThisPlayer - MinPossibleThisPlayer;
+            double normalizedRegret = (regret + range) / (2 * range);
+            if (normalizedRegret < 0 || normalizedRegret > 1)
+                throw new Exception();
+            return normalizedRegret;
         }
 
         public void NormalizedHedgeIncrementLastCumulativeStrategyIncrements(byte action, double strategyProbabilityTimesSelfReachProbability)

@@ -87,7 +87,7 @@ namespace ACESim
         public int RecordPastValuesEveryN = 10;
 
 
-        public const bool PruneOnOpponentStrategy = false; // NOTE: In general sum games, this seems to cause difficulties, because some of the player's own information sets may not be visited, as a result of pruning on opponents' sets. 
+        public const bool PruneOnOpponentStrategy = true; // DEBUG // NOTE: In general sum games, this seems to cause difficulties, because some of the player's own information sets may not be visited, as a result of pruning on opponents' sets. 
         public const double PruneOnOpponentStrategyThreshold = 1E-8; // NOTE: This is the probability for this action, not the cumulative probability. 
 
         public bool DistributeChanceDecisions = true;
