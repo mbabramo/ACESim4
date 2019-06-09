@@ -400,6 +400,10 @@ namespace ACESimBase.Util.ArrayProcessing
             }
             if (NextCommandIndex >= UnderlyingCommands.Length)
                 throw new Exception("Commands array size must be increased.");
+            if (NextCommandIndex == 522)
+            {
+                var DEBUG = 0;
+            }
             UnderlyingCommands[NextCommandIndex] = command;
             NextCommandIndex++;
             if (NextArrayIndex > MaxArrayIndex)

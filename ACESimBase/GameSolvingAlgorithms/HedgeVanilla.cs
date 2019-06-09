@@ -494,7 +494,7 @@ namespace ACESim
                         int regretCopy = Unroll_Commands.CopyToNew(regret, false);
                         int inversePiCopy = Unroll_Commands.CopyToNew(inversePi, false);
                         int contributionToAverageStrategyCopy = Unroll_Commands.CopyToNew(contributionToAverageStrategy, false);
-                        int cumulativeStrategyCopy = Unroll_Commands.CopyToNew(lastCumulativeStrategyIncrement, false);
+                        int cumulativeStrategyCopy = Unroll_Commands.CopyToNew(lastCumulativeStrategyIncrement, true);
                         TabbedText.WriteLine($"PiValues ARRAY{piValuesZeroCopy} ARRAY{piValuesOneCopy} pi for optimized ARRAY{piCopy}");
                         TabbedText.WriteLine(
                             $"Regrets: Action {action} probability ARRAY{actionProbabilities[action - 1]} regret ARRAY{regretCopy} inversePi ARRAY{inversePiCopy} avg_strat_incrememnt ARRAY{contributionToAverageStrategyCopy} cum_strategy ARRAY{cumulativeStrategyCopy}");
