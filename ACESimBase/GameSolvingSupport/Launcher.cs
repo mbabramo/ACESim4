@@ -15,14 +15,14 @@ namespace ACESim
 
         #region Settings
 
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.FictitiousSelfPlay;
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.HedgeVanilla;
 
         public const int ProbingIterations = 20_000_000;
-        public const int VanillaIterations = 500_000;
-        public const int VanillaReportEveryNIterations = 500_000;
+        public const int VanillaIterations = 1_000;
+        public const int VanillaReportEveryNIterations = 1_000;
         public const int VanillaBestResponseEveryMIterations = 1_000;
         public const int MiniReportEveryPIterations = 1_000;
-        public const int CorrelatedEquilibriumCalculationsEveryNIterations = 500_000; // DEBUG
+        public const int CorrelatedEquilibriumCalculationsEveryNIterations = 1_000; // DEBUG
         public const int RecordPastValuesEveryNIterations = EvolutionSettings.EffectivelyNever; // DEBUG // used for correlated equilibrium calculations
         public const bool UseRandomPathsForReporting = true; 
         public const int SummaryTableRandomPathsIterations = 10_000;

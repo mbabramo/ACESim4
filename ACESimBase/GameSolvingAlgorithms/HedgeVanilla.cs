@@ -72,17 +72,18 @@ namespace ACESim
                         $"Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
                 if (TraceCFR)
                 { // only trace through iteration
-                    TraceCommandList(array);
-                    return "";
+                    string resultWithReplacementOfARRAY = TraceCommandList(array);
+                    return resultWithReplacementOfARRAY;
                 }
             }
             return reportString;
         }
 
-        public void TraceCommandList(double[] array)
+        public string TraceCommandList(double[] array)
         {
             string traceStringWithArrayStubs = TabbedText.AccumulatedText.ToString();
             string replaced = StringUtil.ReplaceArrayDesignationWithArrayItem(traceStringWithArrayStubs, array);
+            return replaced;
         }
 
         private void Unroll_CreateUnrolledCommandList()
@@ -302,6 +303,7 @@ namespace ACESim
                     array[initialIndex++] = infoSet.GetAverageStrategy(action);
                     array[initialIndex++] = infoSet.GetNormalizedHedgeProbability(action);
                     array[initialIndex++] = 0; // initialize last regret to zero
+                    array[initialIndex++] = 0; // initialize last regret denominator to zero
                     array[initialIndex++] = 0; // initialize best response numerator to zero
                     array[initialIndex++] = 0; // initialize best response denominator to zero
                     array[initialIndex++] = 0; // initialize last cumulative strategy increment to zero
