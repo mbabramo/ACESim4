@@ -236,15 +236,15 @@ namespace ACESimBase.Util.ArrayProcessing
         private void SetupVirtualStack(NWayTreeStorageInternal<ArrayCommandChunk> node)
         {
             ArrayCommandChunk c = node.StoredValue;
-            c.VirtualStack = new double[MaxArrayIndex];
+            c.VirtualStack = new double[MaxArrayIndex + 1];
             c.VirtualStackID = NextVirtualStackID++;
             if (node.Branches == null || node.Branches.Length == 0)
             {
-                c.FirstReadFromStack = new int?[MaxArrayIndex];
-                c.FirstSetInStack = new int?[MaxArrayIndex];
-                c.LastSetInStack = new int?[MaxArrayIndex];
-                c.LastUsed = new int?[MaxArrayIndex];
-                c.TranslationToLocalIndex = new int?[MaxArrayIndex];
+                c.FirstReadFromStack = new int?[MaxArrayIndex + 1];
+                c.FirstSetInStack = new int?[MaxArrayIndex + 1];
+                c.LastSetInStack = new int?[MaxArrayIndex + 1];
+                c.LastUsed = new int?[MaxArrayIndex + 1];
+                c.TranslationToLocalIndex = new int?[MaxArrayIndex + 1];
                 (c.IndicesReadFromStack, c.IndicesInitiallySetInStack) = DetermineWhenIndicesFirstLastUsed(c.StartCommandRange, c.EndCommandRangeExclusive, c.FirstReadFromStack, c.FirstSetInStack, c.LastSetInStack, c.LastUsed, c.TranslationToLocalIndex);
             }
             else
