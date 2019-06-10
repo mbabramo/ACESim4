@@ -148,7 +148,7 @@ namespace ACESim
                 PInitialWealth = 1000000,
                 DInitialWealth = 1000000,
                 DamagesToAllege = 100000,
-                NumLitigationQualityPoints = 5, // DEBUG
+                NumLitigationQualityPoints = 6, // DEBUG
                 NumSignals = 5, // DEBUG
                 NumOffers = 5, // DEBUG
                 MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
