@@ -61,7 +61,7 @@ namespace ACESim
         const int bestResponseDenominatorDimension = 3;
         // for hedge probing
         const int hedgeProbabilityDimension = 4;
-        const int lastRegretDimension = 5;
+        const int lastRegretNumeratorDimension = 5;
         const int lastCumulativeStrategyIncrementsDimension = 6;
         const int temporaryDimension = 7;
         // for normalized hedge (including also hedge probability dimension and last regret dimension)
@@ -805,7 +805,8 @@ namespace ACESim
             for (int a = 1; a <= NumPossibleActions; a++)
             {
                 double denominator = NodeInformation[lastRegretDenominatorDimension, a - 1];
-                double regret = (denominator == 0) ? 0 : NodeInformation[lastRegretDimension, a - 1] / denominator;
+                double regretUnnormalized = (denominator == 0) ? 0.5*(MaxPossibleThisPlayer - MinPossibleThisPlayer) : NodeInformation[lastRegretNumeratorDimension, a - 1] / denominator;
+                double regret = NormalizeRegret(regretUnnormalized);
                 double adjustedNormalizedRegret = 1.0 - regret; // if regret is high, this is low
                 double weightAdjustment = Math.Pow(1 - NormalizedHedgeEpsilon, adjustedNormalizedRegret); // if adjustedNormalizedRegret is low, then this is high (relatively close to 1)
                 double weight = NodeInformation[adjustedWeightsDimension, a - 1];
@@ -816,7 +817,7 @@ namespace ACESim
                     throw new Exception();
                 NodeInformation[adjustedWeightsDimension, a - 1] = weight;
                 sumWeights += weight;
-                NodeInformation[lastRegretDimension, a - 1] = 0; // reset for next iteration
+                NodeInformation[lastRegretNumeratorDimension, a - 1] = 0; // reset for next iteration
                 NodeInformation[lastRegretDenominatorDimension, a - 1] = 0;
                 sumCumulativeStrategies += NodeInformation[cumulativeStrategyDimension, a - 1];
             }
@@ -880,21 +881,19 @@ namespace ACESim
             UpdatingHedge = new SimpleExclusiveLock();
         }
 
-        public void NormalizedHedgeIncrementLastRegret(byte action, double regret, double inversePi)
+        public void NormalizedHedgeIncrementLastRegret(byte action, double regretTimesInversePi, double inversePi)
         {
             if (InformationSetNodeNumber == 6)
             {
                 var DEBUG = 0;
             }
-            double normalizedRegret = NormalizeRegret(regret);
-            NodeInformation[lastRegretDimension, action - 1] += inversePi * normalizedRegret;
+            NodeInformation[lastRegretNumeratorDimension, action - 1] += regretTimesInversePi;
             NodeInformation[lastRegretDenominatorDimension, action - 1] += inversePi;
         }
 
-        public void NormalizedHedgeIncrementLastRegret_Parallel(byte action, double regret, double inversePi)
+        public void NormalizedHedgeIncrementLastRegret_Parallel(byte action, double regretTimesInversePi, double inversePi)
         {
-            double normalizedRegret = NormalizeRegret(regret);
-            Interlocking.Add(ref NodeInformation[lastRegretDimension, action - 1], inversePi * normalizedRegret);
+            Interlocking.Add(ref NodeInformation[lastRegretNumeratorDimension, action - 1], regretTimesInversePi);
             Interlocking.Add(ref NodeInformation[lastRegretDenominatorDimension, action - 1], inversePi);
             //Interlocked.Increment(ref NumRegretIncrements);
         }
@@ -1088,7 +1087,7 @@ namespace ACESim
 
         public void HedgeSetLastRegret(byte action, double regret)
         {
-            NodeInformation[lastRegretDimension, action - 1] = regret;
+            NodeInformation[lastRegretNumeratorDimension, action - 1] = regret;
             NumRegretIncrements++;
         }
 
@@ -1099,7 +1098,7 @@ namespace ACESim
             for (int a = 1; a <= NumPossibleActions; a++)
             {
                 double lastPi = NodeInformation[hedgeProbabilityDimension, a - 1];
-                double lastRegret = NodeInformation[lastRegretDimension, a - 1];
+                double lastRegret = NodeInformation[lastRegretNumeratorDimension, a - 1];
                 if (a == 1)
                     minLastRegret = maxLastRegret = lastRegret;
                 else if (lastRegret > maxLastRegret)
@@ -1133,7 +1132,7 @@ namespace ACESim
             double denominatorForAllActions = 0;
             for (int a = 1; a <= NumPossibleActions; a++)
             {
-                NodeInformation[cumulativeRegretDimension, a - 1] += NodeInformation[lastRegretDimension, a - 1];
+                NodeInformation[cumulativeRegretDimension, a - 1] += NodeInformation[lastRegretNumeratorDimension, a - 1];
                 double numeratorForThisAction = Math.Exp(Nu * NodeInformation[cumulativeRegretDimension, a - 1]);
                 NodeInformation[temporaryDimension, a - 1] = numeratorForThisAction; // alternative implementation would reuse lastRegretDimension
                 if (double.IsNaN(numeratorForThisAction))
