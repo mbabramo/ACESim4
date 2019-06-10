@@ -72,9 +72,8 @@ namespace ACESim
                         $"Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
                 if (TraceCFR)
                 { // only trace through iteration
-                    // IMPORTANT: This will not work when we are using the VirtualStack approach, because this converts ARRAY references, but these no longer correspond properly.
+                    // There are a number of advanced settings in ArrayCommandList that must be disabled for this feature to work properly. 
                     string resultWithReplacementOfARRAY = TraceCommandList(array);
-                    return resultWithReplacementOfARRAY;
                 }
             }
             return reportString;
@@ -801,7 +800,7 @@ namespace ACESim
                     if (TraceCFR)
                     {
                         TabbedText.WriteLine(
-                            $"({GameDefinition.DecisionsExecutionOrder.FirstOrDefault(x => x.DecisionByteCode == informationSet.DecisionByteCode)?.Name}) code {informationSet.DecisionByteCode} optimizing player {playerBeingOptimized}  {(playerMakingDecision == playerBeingOptimized ? "own decision" : "opp decision")} action {action} probability {probabilityOfAction} ...");
+                            $"({informationSet.Decision.Name}) code {informationSet.DecisionByteCode} optimizing player {playerBeingOptimized}  {(playerMakingDecision == playerBeingOptimized ? "own decision" : "opp decision")} action {action} probability {probabilityOfAction} ...");
                         TabbedText.Tabs++;
                     }
                     HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
