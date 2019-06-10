@@ -17,7 +17,7 @@ namespace ACESim
             Ambitious,
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.SuperSimple;
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Usual;
 
         public static MyGameOptions SingleRound() => MyGameChoice switch
         {
@@ -148,9 +148,9 @@ namespace ACESim
                 PInitialWealth = 1000000,
                 DInitialWealth = 1000000,
                 DamagesToAllege = 100000,
-                NumLitigationQualityPoints = 6,
-                NumSignals = 6,
-                NumOffers = 6,
+                NumLitigationQualityPoints = 5, // DEBUG
+                NumSignals = 5, // DEBUG
+                NumOffers = 5, // DEBUG
                 MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
                 {
                     ExogenousProbabilityTrulyLiable = 0.5,
