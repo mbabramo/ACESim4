@@ -782,19 +782,19 @@ namespace ACESim
             double lastCumulativeStrategySum = 0;
             for (byte a = 1; a <= NumPossibleActions; a++)
             {
-                double lastRegret = NodeInformation[lastRegretDimension, a - 1];
+                // double lastRegret = NodeInformation[lastRegretDimension, a - 1];
                 lastCumulativeStrategySum += NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1];
             }
             for (byte a = 1; a <= NumPossibleActions; a++)
             {
                 double normalizedCumulativeStrategyIncrement;
-                    if (lastCumulativeStrategySum == 0) // can be zero if pruning means that an information set is never reached -- in this case we still need to update the average strategy.
-                        normalizedCumulativeStrategyIncrement = NodeInformation[hedgeProbabilityDimension, a - 1];
-                    else
-                        normalizedCumulativeStrategyIncrement = NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1] / lastCumulativeStrategySum; // this will make all probabilities add up to 1, so that even if this is an iteration where it is very unlikely that we reach the information set, this iteration will not be discounted relative to iterations where we do reach the information set ...
+                if (lastCumulativeStrategySum == 0) // can be zero if pruning means that an information set is never reached -- in this case we still need to update the average strategy.
+                    normalizedCumulativeStrategyIncrement = NodeInformation[hedgeProbabilityDimension, a - 1];
+                else
+                    normalizedCumulativeStrategyIncrement = NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1] / lastCumulativeStrategySum; // this will make all probabilities add up to 1, so that even if this is an iteration where it is very unlikely that we reach the information set, this iteration will not be discounted relative to iterations where we do reach the information set ... // TODO: Create a feature disabling this, so that we can have individual iterations vary in their effect. Possibly, we can have an epochs feature, where in each epoch, different iterations can have different effects (so we don't divide by lastCumulativeStrategySum).
                 double adjustedIncrement = averageStrategyAdjustment * normalizedCumulativeStrategyIncrement; // ... but here we do our regular discounting so later iterations can count more than earlier ones
-                    NodeInformation[cumulativeStrategyDimension, a - 1] += adjustedIncrement;
-                    NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1] = 0;
+                NodeInformation[cumulativeStrategyDimension, a - 1] += adjustedIncrement;
+                NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1] = 0;
             }
 
             DetermineBestResponseAction();
@@ -882,6 +882,10 @@ namespace ACESim
 
         public void NormalizedHedgeIncrementLastRegret(byte action, double regret, double inversePi)
         {
+            if (InformationSetNodeNumber == 6)
+            {
+                var DEBUG = 0;
+            }
             double normalizedRegret = NormalizeRegret(regret);
             NodeInformation[lastRegretDimension, action - 1] += inversePi * normalizedRegret;
             NodeInformation[lastRegretDenominatorDimension, action - 1] += inversePi;
@@ -900,8 +904,9 @@ namespace ACESim
             // best performance possible occurs if expected value is MaxPossibleThisPlayer when overall expected value is MinPossibleThisPlayer. worst performance possible occurs if regret is MinPossibleThisPlayer when overall expected value is MaxPossibleThisPlayer. Regret can range from -(MaxPossible - MinPossible) to +(MaxPossible - MinPossible). Thus, Regret + (MaxPossible - MinPossible) can range from 0 to 2*(MaxPossible - MinPossible). So, we can normalize regret to be from 0 to 1 by calculating (regret + range) / (2 * range).
             double range = MaxPossibleThisPlayer - MinPossibleThisPlayer;
             double normalizedRegret = (regret + range) / (2 * range);
+            // DEBUG -- why triggering?
             if (normalizedRegret < 0 || normalizedRegret > 1)
-                throw new Exception();
+                throw new Exception("Invalid normalized regret");
             return normalizedRegret;
         }
 
@@ -915,6 +920,8 @@ namespace ACESim
             Interlocking.Add(ref NodeInformation[lastCumulativeStrategyIncrementsDimension, action - 1], strategyProbabilityTimesSelfReachProbability);
             //Interlocked.Increment(ref NumRegretIncrements);
         }
+
+        public double GetLastCumulativeStrategyIncrement(byte action) => NodeInformation[lastCumulativeStrategyIncrementsDimension, action - 1];
 
         public double GetAverageStrategy(byte action)
         {

@@ -17,20 +17,10 @@ namespace ACESim
 
         public static bool WriteToConsole = true;
 
-        public static void WriteLine(object value)
-        {
-            StringBuilder local = new StringBuilder();
-            for (int i = 0; i < Tabs * 5; i++)
-                local.Append(" ");
-            local.Append(value);
-            local.Append(Environment.NewLine);
-            OutputAndAccumulate(local);
-        }
-
         public static void WriteLine(string format, params object[] args)
         {
             Write(format, args);
-            Write(Environment.NewLine);
+            WriteWithoutTabs(Environment.NewLine, args);
             //StringBuilder local = new StringBuilder();
             //local.Append(Environment.NewLine);
             //OutputAndAccumulate(local);

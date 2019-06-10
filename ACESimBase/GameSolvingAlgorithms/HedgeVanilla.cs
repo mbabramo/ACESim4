@@ -96,7 +96,7 @@ namespace ACESim
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
             List<int> resultIndices = new List<int>();
             var initialPiValuesCopied = Unroll_Commands.CopyToNew(Unroll_InitialPiValuesIndices, true);
-            var initialPiValues2Copied = Unroll_Commands.CopyToNew(Unroll_InitialPiValuesIndices, true);
+            var initialAvgStratPiValuesCopied = Unroll_Commands.CopyToNew(Unroll_InitialPiValuesIndices, true);
 
             Unroll_Commands.StartCommandChunk(false, null, "Iteration");
             for (byte p = 0; p < NumNonChancePlayers; p++)
@@ -104,7 +104,7 @@ namespace ACESim
                 Unroll_Commands.StartCommandChunk(false, null, "Optimizing player " + p.ToString());
                 if (TraceCFR)
                     TabbedText.WriteLine($"Unrolling for Player {p}");
-                Unroll_HedgeVanillaCFR(ref historyPoint, p, initialPiValuesCopied, initialPiValues2Copied, Unroll_IterationResultForPlayersIndices[p], true, 0);
+                Unroll_HedgeVanillaCFR(ref historyPoint, p, initialPiValuesCopied, initialAvgStratPiValuesCopied, Unroll_IterationResultForPlayersIndices[p], true, 0);
                 Unroll_Commands.EndCommandChunk();
             }
             Unroll_Commands.EndCommandChunk();
@@ -115,7 +115,7 @@ namespace ACESim
         private void Unroll_ExecuteUnrolledCommands(double[] array, bool firstExecution)
         {
             Unroll_CopyInformationSetsToArray(array, firstExecution);
-            Unroll_Commands.ExecuteAll(array);
+            Unroll_Commands.ExecuteAll(array, TraceCFR);
             Unroll_CopyArrayToInformationSets(array);
             Unroll_DetermineIterationResultForEachPlayer(array);
         }
@@ -373,6 +373,8 @@ namespace ACESim
             Unroll_Commands.DecrementDepth(false, playerBeingOptimized == NumNonChancePlayers - 1);
         }
 
+        int DEBUGL = 0;
+
         private unsafe void Unroll_HedgeVanillaCFR_DecisionNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool isUltimateResult, int distributorChanceInputs)
         {
             Unroll_Commands.IncrementDepth(false);
@@ -415,6 +417,11 @@ namespace ACESim
                 int probabilityOfActionAvgStrat = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_AverageStrategy(informationSet.InformationSetNodeNumber, action), true);
                 int[] nextPiValues = Unroll_Commands.NewUninitializedArray(NumNonChancePlayers);
                 Unroll_GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false, nextPiValues); // reduce probability associated with player being optimized, without changing probabilities for other players
+                DEBUGL++;
+                if (DEBUGL == 9)
+                {
+                    var DEBUG = 0;
+                }
                 int[] nextAvgStratPiValues = Unroll_Commands.NewUninitializedArray(NumNonChancePlayers);
                 Unroll_GetNextPiValues(avgStratPiValues, playerMakingDecision, probabilityOfActionAvgStrat, false, nextAvgStratPiValues);
                 if (TraceCFR)
@@ -498,7 +505,7 @@ namespace ACESim
                         int cumulativeStrategyCopy = Unroll_Commands.CopyToNew(lastCumulativeStrategyIncrement, true);
                         TabbedText.WriteLine($"PiValues ARRAY{piValuesZeroCopy} ARRAY{piValuesOneCopy} pi for optimized ARRAY{piCopy}");
                         TabbedText.WriteLine(
-                            $"Regrets: Action {action} probability ARRAY{actionProbabilities[action - 1]} regret ARRAY{regretCopy} inversePi ARRAY{inversePiCopy} avg_strat_incrememnt ARRAY{contributionToAverageStrategyCopy} cum_strategy ARRAY{cumulativeStrategyCopy}");
+                            $"Regrets ({informationSet.Decision.Name} {informationSet.InformationSetNodeNumber}): Action {action} probability ARRAY{actionProbabilities[action - 1]} regret ARRAY{regretCopy} inversePi ARRAY{inversePiCopy} avg_strat_incrememnt ARRAY{contributionToAverageStrategyCopy} cum_strategy ARRAY{cumulativeStrategyCopy}");
                     }
                 }
             }
@@ -561,9 +568,13 @@ namespace ACESim
 
             if (TraceCFR)
             {
+                if (chanceNode.Decision.Name.Contains("PreBargain"))
+                {
+                    var DEBUGX = 0;
+                }
                 int actionProbabilityCopy = Unroll_Commands.CopyToNew(actionProbability, false);
                 TabbedText.WriteLine(
-                    $"Chance code {chanceNode.DecisionByteCode} ({GameDefinition.DecisionsExecutionOrder.FirstOrDefault(x => x.DecisionByteCode == chanceNode.DecisionByteCode).Name}) action {action} probability ARRAY{actionProbabilityCopy} ...");
+                    $"Chance code {chanceNode.DecisionByteCode} ({chanceNode.Decision.Name}) action {action} probability ARRAY{actionProbabilityCopy} ...");
                 TabbedText.Tabs++;
             }
             int[] innerResult = Unroll_Commands.NewZeroArray(3);
@@ -834,7 +845,7 @@ namespace ACESim
                     double piAdj = pi;
                     if (pi < InformationSetNode.SmallestProbabilityRepresented)
                         piAdj = InformationSetNode.SmallestProbabilityRepresented;
-                    double contributionToAverageStrategy = piAdj * actionProbabilities[action - 1]; // will be multiplied by average strategy adjustment at the end of the entire iteration; this will also normalize the contributions so that (placing average strategy adjustment aside) total contribution is equal to 1. 
+                    double contributionToAverageStrategy = piAdj * actionProbabilities[action - 1];
                     if (EvolutionSettings.ParallelOptimization)
                     {
                         informationSet.NormalizedHedgeIncrementLastRegret_Parallel(action, regret, inversePi);
@@ -850,7 +861,7 @@ namespace ACESim
                         TabbedText.WriteLine($"PiValues {piValues[0]} {piValues[1]} pi for optimized {pi}");
                         //TabbedText.WriteLine($"Regrets: Action {action} regret {regret} prob-adjust {inversePi * regret} new regret {informationSet.GetCumulativeRegret(action)} strategy inc {pi * actionProbabilities[action - 1]} new cum strategy {informationSet.GetCumulativeStrategy(action)}");
                         TabbedText.WriteLine(
-                            $"Regrets ({informationSet.Decision.Name} {informationSet.InformationSetNodeNumber}): Action {action} probability {actionProbabilities[action - 1]} regret {regret} inversePi {inversePi} avg_strat_incrememnt {contributionToAverageStrategy} cum_strategy {informationSet.GetCumulativeStrategy(action)}");
+                            $"Regrets ({informationSet.Decision.Name} {informationSet.InformationSetNodeNumber}): Action {action} probability {actionProbabilities[action - 1]} regret {regret} inversePi {inversePi} avg_strat_incrememnt {contributionToAverageStrategy} cum_strategy {informationSet.GetLastCumulativeStrategyIncrement(action)}");
                     }
                 }
             }
