@@ -37,7 +37,7 @@ namespace ACESim
         public void UpdateInformationSets(int iteration)
         {
             int numInformationSets = InformationSets.Count;
-            if (EvolutionSettings.DiscountingTarget_ConstantAfterProportionOfIterations != 1.0)
+            if (EvolutionSettings.DiscountingTarget_ConstantAfterProportionOfIterations == 1.0)
                 Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateNormalizedHedge(iteration, AverageStrategyAdjustment, true, false));
             else
             {

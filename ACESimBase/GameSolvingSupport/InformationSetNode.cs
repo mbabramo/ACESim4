@@ -112,6 +112,7 @@ namespace ACESim
                 int numPastValuesToStore = (evolutionSettings.TotalVanillaCFRIterations - (evolutionSettings.SuppressRecordingWhileDiscounting ? evolutionSettings.StopDiscountingAtIteration : 0)) / RecordPastValuesEveryN;
                 PastValues = new double[numPastValuesToStore, NumPossibleActions];
                 PastValuesCumulativeStrategyDiscounts = new double[numPastValuesToStore];
+                LastPastValueIndexRecorded = -1;
             }
         }
 
@@ -868,13 +869,16 @@ namespace ACESim
         {
             if (RecordPastValues && iteration % RecordPastValuesEveryN == 0 && (!SuppressRecordWhileDiscounting || averageStrategyAdjustment == 1.0))
             {
-                LastPastValueIndexRecorded = iteration / RecordPastValuesEveryN - 1;
-                if (LastPastValueIndexRecorded == 0)
-                    PastValuesCumulativeStrategyDiscounts[0] = averageStrategyAdjustment;
-                else
-                    PastValuesCumulativeStrategyDiscounts[LastPastValueIndexRecorded] = PastValuesCumulativeStrategyDiscounts[LastPastValueIndexRecorded] + averageStrategyAdjustment;
-                for (byte a = 1; a <= NumPossibleActions; a++)
-                    PastValues[LastPastValueIndexRecorded, a - 1] = GetNormalizedHedgeProbability(a);
+                if (LastPastValueIndexRecorded + 1 < PastValuesCumulativeStrategyDiscounts.Length)
+                {
+                    LastPastValueIndexRecorded++;
+                    if (LastPastValueIndexRecorded == 0)
+                        PastValuesCumulativeStrategyDiscounts[0] = averageStrategyAdjustment;
+                    else
+                        PastValuesCumulativeStrategyDiscounts[LastPastValueIndexRecorded] = PastValuesCumulativeStrategyDiscounts[LastPastValueIndexRecorded] + averageStrategyAdjustment;
+                    for (byte a = 1; a <= NumPossibleActions; a++)
+                        PastValues[LastPastValueIndexRecorded, a - 1] = GetNormalizedHedgeProbability(a);
+                }
             }
         }
 
@@ -938,7 +942,7 @@ namespace ACESim
 
         public unsafe void GetNormalizedHedgeCorrelatedEquilibriumStrategyProbabilities(double randomNumberToChooseIteration, double* probabilities)
         {
-            int pastValuesCount = LastPastValueIndexRecorded + 1;
+            int pastValuesCount = LastPastValueIndexRecorded;
             double cumulativeDiscountLevelToSeek = pastValuesCount * randomNumberToChooseIteration;
             Span<double> pastValueDiscounts = new Span<double>(PastValuesCumulativeStrategyDiscounts, 0, pastValuesCount);
             int index = pastValueDiscounts.BinarySearch(cumulativeDiscountLevelToSeek, Comparer<double>.Default);
