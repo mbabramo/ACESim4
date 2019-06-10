@@ -22,7 +22,7 @@ namespace ACESim
         public const int VanillaReportEveryNIterations = 1_000;
         public const int VanillaBestResponseEveryMIterations = 1_000;
         public const int MiniReportEveryPIterations = 1000; 
-        public const int CorrelatedEquilibriumCalculationsEveryNIterations = 1_000; // DEBUG
+        public const int CorrelatedEquilibriumCalculationsEveryNIterations = EvolutionSettings.EffectivelyNever; // DEBUG
         public const int RecordPastValuesEveryNIterations = EvolutionSettings.EffectivelyNever; // DEBUG // used for correlated equilibrium calculations
         public const bool UseRandomPathsForReporting = true; 
         public const int SummaryTableRandomPathsIterations = 10_000;
@@ -37,7 +37,7 @@ namespace ACESim
 
         public bool LocalDistributedProcessing = true; // this should be false if actually running on service fabric
         public bool ParallelizeOptionSets = false;
-        public bool ParallelizeIndividualExecutions = false; // DEBUG // only affects SingleGameMode or if no local distributed processing
+        public bool ParallelizeIndividualExecutions = true; // only affects SingleGameMode or if no local distributed processing
 
         public string OverrideDateTimeString = null; // "2017-10-11 10:18"; // use this if termination finished unexpectedly
         public string MasterReportNameForDistributedProcessing = "AMONLY";

@@ -372,8 +372,6 @@ namespace ACESim
             Unroll_Commands.DecrementDepth(false, playerBeingOptimized == NumNonChancePlayers - 1);
         }
 
-        int DEBUGL = 0;
-
         private unsafe void Unroll_HedgeVanillaCFR_DecisionNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool isUltimateResult, int distributorChanceInputs)
         {
             Unroll_Commands.IncrementDepth(false);
@@ -416,11 +414,6 @@ namespace ACESim
                 int probabilityOfActionAvgStrat = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_AverageStrategy(informationSet.InformationSetNodeNumber, action), true);
                 int[] nextPiValues = Unroll_Commands.NewUninitializedArray(NumNonChancePlayers);
                 Unroll_GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false, nextPiValues); // reduce probability associated with player being optimized, without changing probabilities for other players
-                DEBUGL++;
-                if (DEBUGL == 9)
-                {
-                    var DEBUG = 0;
-                }
                 int[] nextAvgStratPiValues = Unroll_Commands.NewUninitializedArray(NumNonChancePlayers);
                 Unroll_GetNextPiValues(avgStratPiValues, playerMakingDecision, probabilityOfActionAvgStrat, false, nextAvgStratPiValues);
                 if (TraceCFR)
@@ -567,10 +560,6 @@ namespace ACESim
 
             if (TraceCFR)
             {
-                if (chanceNode.Decision.Name.Contains("PreBargain"))
-                {
-                    var DEBUGX = 0;
-                }
                 int actionProbabilityCopy = Unroll_Commands.CopyToNew(actionProbability, false);
                 TabbedText.WriteLine(
                     $"Chance code {chanceNode.DecisionByteCode} ({chanceNode.Decision.Name}) action {action} probability ARRAY{actionProbabilityCopy} ...");

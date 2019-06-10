@@ -25,11 +25,11 @@ namespace ACESimBase.Util.ArrayProcessing
         public int MaxArrayIndex;
 
         // Ordered sources: We initially develop a list of indices of the data passed to the algorithm each iteration. Before each iteration, we copy the data corresponding to these indices into the OrderedSources array in the order in which it will be needed. A command that otherwise would copy from the original data instead loads the next item in ordered sources. This may slightly improve performance because a sequence of original data will be cached. More importantly, it can improve parallelism: When a player chooses among many actions that are structurally equivalent (that is, they do not change how the game is played from that point on), we can run the same code with different slices of the OrderedSources array.
-        public bool UseOrderedSources = false; // DEBUG
+        public bool UseOrderedSources = true; 
         public List<int> OrderedSourceIndices;
         public double[] OrderedSources;
         // Ordered destinations: Similarly, when the unrolled algorithm changes the data passed to it (for example, incrementing regrets in CFR), instead of directly incrementing the data, we develop in advance a list of the indices that will be changed. Then, when running the algorithm, we store the actual data that needs to be changed in an array, and on completion of the algorithm, we run through that array and change the data at the specified index for each item. This enhances parallelism because we don't have to lock around each data change, instead locking only around the final set of changes. This also may facilitate spreading the algorithm across machines, since each CPU can simply report the set of changes to make.
-        public bool UseOrderedDestinations = false; // DEBUG
+        public bool UseOrderedDestinations = true; 
         public bool ReuseDestinations = false; // NOTE: Not currently working (must adapt to source code generation). If true, then we will not add a new ordered destination index for a destination location already used within code executed not in parallel. Instead, we will just increment the previous destination.
         public List<int> OrderedDestinationIndices;
         public double[] OrderedDestinations;
@@ -40,11 +40,10 @@ namespace ACESimBase.Util.ArrayProcessing
         public bool ScratchIndicesStartAt0 => UseOrderedSources && UseOrderedDestinations;
         public int FullArraySize => FirstScratchIndex + (Parallelize ? 0 : MaxArrayIndex);
 
-        public bool ReuseArrayIndices = false; // DEBUG
         public Stack<int> PerDepthStartArrayIndices;
         int NextVirtualStackID = 0;
 
-        bool RepeatIdenticalRanges = false; // DEBUG // instead of repeating identical sequences of commands, we run the same sequence twice
+        bool RepeatIdenticalRanges = true; // instead of repeating identical sequences of commands, we run the same sequence twice
         public Stack<int?> RepeatingExistingCommandRangeStack;
         public bool RepeatingExistingCommandRange = false; // when this is true, we don't need to add new commands
 
@@ -91,14 +90,14 @@ namespace ACESimBase.Util.ArrayProcessing
         public void IncrementDepth(bool separateCommandChunk)
         {
             PerDepthStartArrayIndices.Push(NextArrayIndex);
-            if (separateCommandChunk && ReuseArrayIndices)
+            if (separateCommandChunk && RepeatIdenticalRanges)
                 StartCommandChunk(false, null);
         }
 
         public void DecrementDepth(bool separateCommandChunk, bool completeCommandList = false)
         {
             var popResult = PerDepthStartArrayIndices.Pop();
-            if (ReuseArrayIndices)
+            if (RepeatIdenticalRanges)
             {
                 NextArrayIndex = popResult;
                 if (separateCommandChunk)
@@ -405,10 +404,6 @@ namespace ACESimBase.Util.ArrayProcessing
             }
             if (NextCommandIndex >= UnderlyingCommands.Length)
                 throw new Exception("Commands array size must be increased.");
-            if (NextCommandIndex == 577)
-            {
-                var DEBUG = 0;
-            }
             UnderlyingCommands[NextCommandIndex] = command;
             NextCommandIndex++;
             if (NextArrayIndex > MaxArrayIndex)
@@ -898,12 +893,12 @@ else
 
         #region Command execution
 
-        bool UseSafeCode = true; // DEBUG
+        bool UseSafeCode = false;
 
         public unsafe void ExecuteAll(double[] array, bool tracing)
         {
             PrepareOrderedSourcesAndDestinations(array);
-            if (tracing && (Parallelize || RepeatIdenticalRanges || UseOrderedDestinations || UseOrderedSources || ReuseArrayIndices)) 
+            if (tracing && (Parallelize || RepeatIdenticalRanges || UseOrderedDestinations || UseOrderedSources)) 
                 throw new Exception("Cannot trace unrolling with any of these options.");
             if (Parallelize || RepeatIdenticalRanges)
             {
@@ -988,14 +983,6 @@ else
             while (commandIndex <= endCommandIndexInclusive)
             {
                 ArrayCommand command = UnderlyingCommands[commandIndex];
-                if (commandIndex == 15)
-                {
-                    var DEBUG = 0;
-                }
-                if (command.Index == 342)
-                {
-                    var DEBUG2 = 0;
-                }
                 //System.Diagnostics.Debug.WriteLine(*command);
                 switch (command.CommandType)
                 {

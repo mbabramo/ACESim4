@@ -370,10 +370,6 @@ namespace ACESim
                 double bestResponseProbability = (LastBestResponseAction == action) ? 1.0 : 0.0;
                 double difference = bestResponseProbability - currentAverageStrategyProbability;
                 double successorValue = currentAverageStrategyProbability + weightOnDifference * difference;
-                //if (lambda2 < .001 && difference > 0.01 && BestResponseMayReachHere)
-                //{
-                //    var DEBUG = 0;
-                //}
                 NodeInformation[cumulativeStrategyDimension, action - 1] = NodeInformation[averageStrategyProbabilityDimension, action - 1] = successorValue;
             }
         }
@@ -883,10 +879,6 @@ namespace ACESim
 
         public void NormalizedHedgeIncrementLastRegret(byte action, double regretTimesInversePi, double inversePi)
         {
-            if (InformationSetNodeNumber == 6)
-            {
-                var DEBUG = 0;
-            }
             NodeInformation[lastRegretNumeratorDimension, action - 1] += regretTimesInversePi;
             NodeInformation[lastRegretDenominatorDimension, action - 1] += inversePi;
         }
@@ -903,7 +895,6 @@ namespace ACESim
             // best performance possible occurs if expected value is MaxPossibleThisPlayer when overall expected value is MinPossibleThisPlayer. worst performance possible occurs if regret is MinPossibleThisPlayer when overall expected value is MaxPossibleThisPlayer. Regret can range from -(MaxPossible - MinPossible) to +(MaxPossible - MinPossible). Thus, Regret + (MaxPossible - MinPossible) can range from 0 to 2*(MaxPossible - MinPossible). So, we can normalize regret to be from 0 to 1 by calculating (regret + range) / (2 * range).
             double range = MaxPossibleThisPlayer - MinPossibleThisPlayer;
             double normalizedRegret = (regret + range) / (2 * range);
-            // DEBUG -- why triggering?
             if (normalizedRegret < 0 || normalizedRegret > 1)
                 throw new Exception("Invalid normalized regret");
             return normalizedRegret;
