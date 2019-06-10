@@ -61,17 +61,17 @@ namespace ACESim
         {
             if (!UseDiscounting)
                 return 1.0;
-            if (iteration > MaxIterationToDiscount)
-                iteration = MaxIterationToDiscount;
+            if (iteration > StopDiscountingAtIteration)
+                iteration = StopDiscountingAtIteration;
             return Math.Pow((double)iteration / (double)(iteration + 1), Discounting_Gamma);
         }
 
-        public double Discounting_Gamma_AsPctOfMax(int iteration) => Discounting_Gamma_ForIteration(iteration) / Discounting_Gamma_ForIteration(MaxIterationToDiscount);
+        public double Discounting_Gamma_AsPctOfMax(int iteration) => Discounting_Gamma_ForIteration(iteration) / Discounting_Gamma_ForIteration(StopDiscountingAtIteration);
         public bool Discounting_DeriveGamma = true; // if true, gamma is derived so that at the specified proportion of iterations, the discount is the specified proportion of the discount that will exist at the maximum iteration
         public double DiscountingTarget_ProportionOfIterations = 0.25;
         public double DiscountingTarget_TargetDiscount = 0.001;
         public double DiscountingTarget_ConstantAfterProportionOfIterations = 0.333333; // DEBUG // set to 1.0 to turn off feature
-        private int MaxIterationToDiscount => (int)(TotalVanillaCFRIterations * DiscountingTarget_ConstantAfterProportionOfIterations);
+        public int StopDiscountingAtIteration => (int)(TotalVanillaCFRIterations * DiscountingTarget_ConstantAfterProportionOfIterations);
         public void CalculateGamma()
         {
             if (!Discounting_DeriveGamma)
@@ -85,9 +85,10 @@ namespace ACESim
 
         public bool RecordPastValues = true; 
         public int RecordPastValuesEveryN = 10;
+        public bool SuppressRecordingWhileDiscounting = true;
 
 
-        public const bool PruneOnOpponentStrategy = true; // DEBUG // NOTE: In general sum games, this seems to cause difficulties, because some of the player's own information sets may not be visited, as a result of pruning on opponents' sets. 
+        public const bool PruneOnOpponentStrategy = false; // DEBUG // NOTE: In general sum games, this seems to cause difficulties, because some of the player's own information sets may not be visited, as a result of pruning on opponents' sets. 
         public const double PruneOnOpponentStrategyThreshold = 1E-8; // NOTE: This is the probability for this action, not the cumulative probability. 
 
         public bool DistributeChanceDecisions = true;

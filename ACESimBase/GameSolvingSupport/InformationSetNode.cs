@@ -39,6 +39,7 @@ namespace ACESim
         public double MaxPossibleThisPlayer, MinPossibleThisPlayer;
 
         bool RecordPastValues = false;
+        bool SuppressRecordWhileDiscounting;
         int RecordPastValuesEveryN;
         public int LastPastValueIndexRecorded = -1;
         public double[,] PastValues;
@@ -107,7 +108,8 @@ namespace ACESim
             RecordPastValuesEveryN = evolutionSettings.RecordPastValuesEveryN;
             if (RecordPastValues)
             {
-                int numPastValuesToStore = evolutionSettings.TotalVanillaCFRIterations / RecordPastValuesEveryN;
+                SuppressRecordWhileDiscounting = evolutionSettings.SuppressRecordingWhileDiscounting;
+                int numPastValuesToStore = (evolutionSettings.TotalVanillaCFRIterations - (evolutionSettings.SuppressRecordingWhileDiscounting ? evolutionSettings.StopDiscountingAtIteration : 0)) / RecordPastValuesEveryN;
                 PastValues = new double[numPastValuesToStore, NumPossibleActions];
                 PastValuesCumulativeStrategyDiscounts = new double[numPastValuesToStore];
             }
@@ -160,6 +162,12 @@ namespace ACESim
             for (int i = 0; i < numDimensions; i++)
                 for (int j = 0; j < numPossibleActions; j++)
                     NodeInformation[i, j] = 0;
+        }
+
+        public void ResetCumulativeStrategyDimension()
+        {
+            for (int j = 0; j < NumPossibleActions; j++)
+                NodeInformation[cumulativeStrategyDimension, j] = 0;
         }
 
         public void ResetBestResponseData()
@@ -771,23 +779,33 @@ namespace ACESim
 
         // Note: The first two methods must be used if we don't have a guarantee that updating will take place before each iteration.
 
-        public void UpdateNormalizedHedge(int iteration, double averageStrategyAdjustment)
+        public void UpdateNormalizedHedge(int iteration, double averageStrategyAdjustment, bool normalizeCumulativeStrategyIncrements, bool resetPreviousCumulativeStrategyIncrements)
         {
             RecordProbabilitiesAsPastValues(iteration, averageStrategyAdjustment); // these are the average strategies played, and thus shouldn't reflect the updates below
 
-            double lastCumulativeStrategySum = 0;
+            if (resetPreviousCumulativeStrategyIncrements)
+                ResetCumulativeStrategyDimension();
+
+            double lastCumulativeStrategyIncrementSum = 0;
             for (byte a = 1; a <= NumPossibleActions; a++)
             {
                 // double lastRegret = NodeInformation[lastRegretDimension, a - 1];
-                lastCumulativeStrategySum += NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1];
+                lastCumulativeStrategyIncrementSum += NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1];
             }
             for (byte a = 1; a <= NumPossibleActions; a++)
             {
-                double normalizedCumulativeStrategyIncrement;
-                if (lastCumulativeStrategySum == 0) // can be zero if pruning means that an information set is never reached -- in this case we still need to update the average strategy.
-                    normalizedCumulativeStrategyIncrement = NodeInformation[hedgeProbabilityDimension, a - 1];
+                double normalizedCumulativeStrategyIncrement = 0;
+                if (lastCumulativeStrategyIncrementSum == 0) // can be zero if pruning means that an information set is never reached -- in this case we still need to update the average strategy if normalizing.
+                {
+                    if (normalizeCumulativeStrategyIncrements)
+                        normalizedCumulativeStrategyIncrement = NodeInformation[hedgeProbabilityDimension, a - 1];
+                }
                 else
-                    normalizedCumulativeStrategyIncrement = NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1] / lastCumulativeStrategySum; // this will make all probabilities add up to 1, so that even if this is an iteration where it is very unlikely that we reach the information set, this iteration will not be discounted relative to iterations where we do reach the information set ... // TODO: Create a feature disabling this, so that we can have individual iterations vary in their effect. Possibly, we can have an epochs feature, where in each epoch, different iterations can have different effects (so we don't divide by lastCumulativeStrategySum).
+                {
+                    normalizedCumulativeStrategyIncrement = NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1];
+                    if (normalizeCumulativeStrategyIncrements)
+                        normalizedCumulativeStrategyIncrement /= lastCumulativeStrategyIncrementSum; // This is the key effect of normalizing. This will make all probabilities add up to 1, so that even if this is an iteration where it is very unlikely that we reach the information set, this iteration will not be discounted relative to iterations where we do reach the information set. It is useful to do this when discounting, since otherwise it may take trillions of iterations to make up for a few early iterations. But later on, we want to be giving greater weight to iterations in which the self-play probability is higher.
+                }
                 double adjustedIncrement = averageStrategyAdjustment * normalizedCumulativeStrategyIncrement; // ... but here we do our regular discounting so later iterations can count more than earlier ones
                 NodeInformation[cumulativeStrategyDimension, a - 1] += adjustedIncrement;
                 NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1] = 0;
@@ -848,7 +866,7 @@ namespace ACESim
 
         private void RecordProbabilitiesAsPastValues(int iteration, double averageStrategyAdjustment)
         {
-            if (RecordPastValues && iteration % RecordPastValuesEveryN == 0)
+            if (RecordPastValues && iteration % RecordPastValuesEveryN == 0 && (!SuppressRecordWhileDiscounting || averageStrategyAdjustment == 1.0))
             {
                 LastPastValueIndexRecorded = iteration / RecordPastValuesEveryN - 1;
                 if (LastPastValueIndexRecorded == 0)

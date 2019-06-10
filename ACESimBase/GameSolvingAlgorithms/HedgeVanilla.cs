@@ -37,7 +37,19 @@ namespace ACESim
         public void UpdateInformationSets(int iteration)
         {
             int numInformationSets = InformationSets.Count;
-            Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateNormalizedHedge(iteration, AverageStrategyAdjustment));
+            if (EvolutionSettings.DiscountingTarget_ConstantAfterProportionOfIterations != 1.0)
+                Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateNormalizedHedge(iteration, AverageStrategyAdjustment, true, false));
+            else
+            {
+                int maxIterationToDiscount = EvolutionSettings.StopDiscountingAtIteration;
+
+                if (iteration < maxIterationToDiscount)
+                    Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateNormalizedHedge(iteration, AverageStrategyAdjustment, true, false));
+                else if (iteration == maxIterationToDiscount)
+                    Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateNormalizedHedge(iteration, 1.0, false, true));
+                else
+                    Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateNormalizedHedge(iteration, 1.0, false, false));
+            }
         }
 
         #endregion
