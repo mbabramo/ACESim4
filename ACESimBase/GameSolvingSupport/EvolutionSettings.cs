@@ -83,11 +83,11 @@ namespace ACESim
             Discounting_Gamma = Math.Log(DiscountingTarget_TargetDiscount) / (Math.Log(p * t / (p * t + 1)) - Math.Log(t / (t + 1)));
         }
 
-        public double MultiplicativeWeightsInitial = 0.999; // Higher epsilon means slower changes in weights; lower epsilons are more aggressive. 
+        public double MultiplicativeWeightsInitial = 0.999;
         public double MultiplicativeWeightsEpsilonFactor = 0.8;
         public int MultiplicativeWeightsLevelChanges = 0;
         public double MultiplicativeWeightsEpsilon => MultiplicativeWeightsInitial * Math.Pow(MultiplicativeWeightsEpsilonFactor, MultiplicativeWeightsLevelChanges);
-        public int MultiplicativeWeightsEpsilon_ConsiderEveryNIterations = 100;
+        public int MultiplicativeWeightsEpsilon_ConsiderEveryNIterations = EffectivelyNever;
 
         public void ChangeMultiplicativeWeightsEpsilon(bool moreAggressive)
         {

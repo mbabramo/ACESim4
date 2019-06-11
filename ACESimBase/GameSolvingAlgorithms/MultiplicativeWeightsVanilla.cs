@@ -717,28 +717,19 @@ namespace ACESim
                 if (LastBestResponseImprovement != null)
                 {
                     double lastSumBestResponseImprovements = LastBestResponseImprovement.Sum();
-                    Console.WriteLine($"DEBUG iteration {iteration} lastsum {lastSumBestResponseImprovements} newsum {sumBestResponseImprovements} {(sumBestResponseImprovements > lastSumBestResponseImprovements ? " (Reverting)" : "")}");
+                    Console.WriteLine($"DEBUG iteration {iteration} epsilon {EvolutionSettings.MultiplicativeWeightsEpsilon} lastsum {lastSumBestResponseImprovements} newsum {sumBestResponseImprovements} {(sumBestResponseImprovements > lastSumBestResponseImprovements ? " (Worse)" : "")}");
                     if (sumBestResponseImprovements > lastSumBestResponseImprovements)
                     {
-                        // Things are getting worse! We will reject all of the changes since the last time we ran the best response improvements (equivalent to playing with a MultiplicativeWeightsEpsilon of 1). Then, we will try again, getting less aggressive.
+                        // Things are getting worse! 
                         EvolutionSettings.MultiplicativeWeightsLevelChanges++;
-                        Parallel.ForEach(InformationSets, informationSet => informationSet.MultiplicativeWeightsRestoreBackup());
-
-                        // DEBUG
-                        CalculateBestResponse();
-                        if (BestResponseImprovement.Sum() != LastBestResponseImprovement.Sum())
-                            throw new Exception();
-
-                        BestResponseImprovement = LastBestResponseImprovement.ToArray();
                     }
                     else
                     {
-                        LastBestResponseImprovement = BestResponseImprovement.ToArray();
-                        Parallel.ForEach(InformationSets, informationSet => informationSet.MultiplicativeWeightsCreateBackup());
+                        if (EvolutionSettings.MultiplicativeWeightsLevelChanges > 0)
+                            EvolutionSettings.MultiplicativeWeightsLevelChanges--;
                     }
                 }
-                else
-                    LastBestResponseImprovement = BestResponseImprovement.ToArray();
+                LastBestResponseImprovement = BestResponseImprovement.ToArray();
             }
         }
 
