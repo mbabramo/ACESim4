@@ -43,5 +43,12 @@ namespace ACESim
             // solve for c in y2 = y1 + (y3 - y1) * p^(1/c)
             return Math.Log(proportion) / (Math.Log(y2 - y1) - Math.Log(y3 - y1));
         }
+
+        public static double CalculateYGivenExtremesMiddle(double minX, double maxX, double yForMinX, double yForMaxX, double yForHalfway, double x)
+        {
+            double curvature = CalculateCurvatureForThreePoints(minX, yForMinX, 0.5 * (minX + maxX), yForHalfway, maxX, yForMaxX);
+            double y = CalculateYValueForX(minX, maxX, curvature, x);
+            return y;
+        }
     }
 }

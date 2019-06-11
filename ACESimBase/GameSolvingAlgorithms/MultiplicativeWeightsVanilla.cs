@@ -38,7 +38,7 @@ namespace ACESim
         public void UpdateInformationSets(int iteration)
         {
             int numInformationSets = InformationSets.Count;
-            double multiplicativeWeightsEpsilon = EvolutionSettings.MultiplicativeWeightsEpsilon;
+            double multiplicativeWeightsEpsilon = EvolutionSettings.MultiplicativeWeightsEpsilon(iteration, EvolutionSettings.TotalVanillaCFRIterations);
 
             if (alwaysNormalizeCumulativeStrategyIncrements || EvolutionSettings.DiscountingTarget_ConstantAfterProportionOfIterations == 1.0)
                 Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, multiplicativeWeightsEpsilon, AverageStrategyAdjustment, true, false));
@@ -708,29 +708,30 @@ namespace ACESim
 
         private void ConsiderMultiplicativeWeightsEpsilon(int iteration)
         {
-            if (iteration % EvolutionSettings.MultiplicativeWeightsEpsilon_ConsiderEveryNIterations == 0)
-            {
-                if (!EvolutionSettings.UseAcceleratedBestResponse)
-                    throw new NotSupportedException(); // we need the average strategy result, which for now we only have with accelerated best response
-                CalculateBestResponse();
-                double sumBestResponseImprovements = BestResponseImprovement.Sum();
-                if (LastBestResponseImprovement != null)
-                {
-                    double lastSumBestResponseImprovements = LastBestResponseImprovement.Sum();
-                    Console.WriteLine($"DEBUG iteration {iteration} epsilon {EvolutionSettings.MultiplicativeWeightsEpsilon} lastsum {lastSumBestResponseImprovements} newsum {sumBestResponseImprovements} {(sumBestResponseImprovements > lastSumBestResponseImprovements ? " (Worse)" : "")}");
-                    if (sumBestResponseImprovements > lastSumBestResponseImprovements)
-                    {
-                        // Things are getting worse! 
-                        EvolutionSettings.MultiplicativeWeightsLevelChanges++;
-                    }
-                    else
-                    {
-                        if (EvolutionSettings.MultiplicativeWeightsLevelChanges > 0)
-                            EvolutionSettings.MultiplicativeWeightsLevelChanges--;
-                    }
-                }
-                LastBestResponseImprovement = BestResponseImprovement.ToArray();
-            }
+            // DEBUG
+            //if (iteration % EvolutionSettings.MultiplicativeWeightsEpsilon_ConsiderEveryNIterations == 0)
+            //{
+            //    if (!EvolutionSettings.UseAcceleratedBestResponse)
+            //        throw new NotSupportedException(); // we need the average strategy result, which for now we only have with accelerated best response
+            //    CalculateBestResponse();
+            //    double sumBestResponseImprovements = BestResponseImprovement.Sum();
+            //    if (LastBestResponseImprovement != null)
+            //    {
+            //        double lastSumBestResponseImprovements = LastBestResponseImprovement.Sum();
+            //        Console.WriteLine($"DEBUG iteration {iteration} epsilon {EvolutionSettings.MultiplicativeWeightsEpsilon} lastsum {lastSumBestResponseImprovements} newsum {sumBestResponseImprovements} {(sumBestResponseImprovements > lastSumBestResponseImprovements ? " (Worse)" : "")}");
+            //        if (sumBestResponseImprovements > lastSumBestResponseImprovements)
+            //        {
+            //            // Things are getting worse! 
+            //            EvolutionSettings.MultiplicativeWeightsLevelChanges++;
+            //        }
+            //        else
+            //        {
+            //            if (EvolutionSettings.MultiplicativeWeightsLevelChanges > 0)
+            //                EvolutionSettings.MultiplicativeWeightsLevelChanges--;
+            //        }
+            //    }
+            //    LastBestResponseImprovement = BestResponseImprovement.ToArray();
+            //}
         }
 
         private unsafe void MiniReport(int iteration, MultiplicativeWeightsVanillaUtilities[] results)
