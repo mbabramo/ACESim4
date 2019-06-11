@@ -9,12 +9,12 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
-    public partial class HedgeVanilla : CounterfactualRegretMinimization
+    public partial class MultiplicativeWeightsVanilla : CounterfactualRegretMinimization
     {
         double AverageStrategyAdjustment, AverageStrategyAdjustmentAsPctOfMax;
 
 
-        public HedgeVanilla(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
+        public MultiplicativeWeightsVanilla(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
         {
 
         }
@@ -24,12 +24,12 @@ namespace ACESim
         public void InitializeInformationSets()
         {
             int numInformationSets = InformationSets.Count;
-            Parallel.For(0, numInformationSets, n => InformationSets[n].InitializeNormalizedHedge());
+            Parallel.For(0, numInformationSets, n => InformationSets[n].InitializeMultiplicativeWeights());
         }
 
         public override IStrategiesDeveloper DeepCopy()
         {
-            var created = new HedgeVanilla(Strategies, EvolutionSettings, GameDefinition);
+            var created = new MultiplicativeWeightsVanilla(Strategies, EvolutionSettings, GameDefinition);
             DeepCopyHelper(created);
             return created;
         }
@@ -39,17 +39,17 @@ namespace ACESim
         {
             int numInformationSets = InformationSets.Count;
             if (alwaysNormalizeCumulativeStrategyIncrements || EvolutionSettings.DiscountingTarget_ConstantAfterProportionOfIterations == 1.0)
-                Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateNormalizedHedge(iteration, AverageStrategyAdjustment, true, false));
+                Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, AverageStrategyAdjustment, true, false));
             else
             {
                 int maxIterationToDiscount = EvolutionSettings.StopDiscountingAtIteration;
 
                 if (iteration < maxIterationToDiscount)
-                    Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateNormalizedHedge(iteration, AverageStrategyAdjustment, true, false));
+                    Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, AverageStrategyAdjustment, true, false));
                 else if (iteration == maxIterationToDiscount)
-                    Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateNormalizedHedge(iteration, 1.0, false, true));
+                    Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, 1.0, false, true));
                 else
-                    Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateNormalizedHedge(iteration, 1.0, false, false));
+                    Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, 1.0, false, false));
             }
         }
 
@@ -62,7 +62,7 @@ namespace ACESim
         private ArrayCommandList Unroll_Commands;
         private int Unroll_SizeOfArray;
 
-        public async Task<string> Unroll_SolveHedgeVanillaCFR()
+        public async Task<string> Unroll_SolveMultiplicativeWeightsVanillaCFR()
         {
             string reportString = null;
             InitializeInformationSets();
@@ -104,7 +104,7 @@ namespace ACESim
             const int max_num_commands = 150_000_000;
             Unroll_InitializeInitialArrayIndices();
             Unroll_Commands = new ArrayCommandList(max_num_commands, Unroll_InitialArrayIndex, EvolutionSettings.ParallelOptimization);
-            ActionStrategy = ActionStrategies.NormalizedHedge;
+            ActionStrategy = ActionStrategies.MultiplicativeWeights;
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
             List<int> resultIndices = new List<int>();
             var initialPiValuesCopied = Unroll_Commands.CopyToNew(Unroll_InitialPiValuesIndices, true);
@@ -116,7 +116,7 @@ namespace ACESim
                 Unroll_Commands.StartCommandChunk(false, null, "Optimizing player " + p.ToString());
                 if (TraceCFR)
                     TabbedText.WriteLine($"Unrolling for Player {p}");
-                Unroll_HedgeVanillaCFR(ref historyPoint, p, initialPiValuesCopied, initialAvgStratPiValuesCopied, Unroll_IterationResultForPlayersIndices[p], true, 0);
+                Unroll_MultiplicativeWeightsVanillaCFR(ref historyPoint, p, initialPiValuesCopied, initialAvgStratPiValuesCopied, Unroll_IterationResultForPlayersIndices[p], true, 0);
                 Unroll_Commands.EndCommandChunk();
             }
             Unroll_Commands.EndCommandChunk();
@@ -134,9 +134,9 @@ namespace ACESim
 
         private void Unroll_DetermineIterationResultForEachPlayer(double[] array)
         {
-            Unroll_IterationResultForPlayers = new HedgeVanillaUtilities[NumNonChancePlayers]; // array items from indices above will be copied here
+            Unroll_IterationResultForPlayers = new MultiplicativeWeightsVanillaUtilities[NumNonChancePlayers]; // array items from indices above will be copied here
             for (byte p = 0; p < NumNonChancePlayers; p++)
-                Unroll_IterationResultForPlayers[p] = new HedgeVanillaUtilities()
+                Unroll_IterationResultForPlayers[p] = new MultiplicativeWeightsVanillaUtilities()
                 {
                     HedgeVsHedge = array[Unroll_IterationResultForPlayersIndices[p][Unroll_Result_HedgeVsHedgeIndex]],
                     AverageStrategyVsAverageStrategy = array[Unroll_IterationResultForPlayersIndices[p][Unroll_Result_AverageStrategyIndex]],
@@ -156,7 +156,7 @@ namespace ACESim
         private const int Unroll_InformationSetPerActionOrder_LastCumulativeStrategyIncrement = 6;
 
         private int[][] Unroll_IterationResultForPlayersIndices;
-        private HedgeVanillaUtilities[] Unroll_IterationResultForPlayers;
+        private MultiplicativeWeightsVanillaUtilities[] Unroll_IterationResultForPlayers;
         private int[] Unroll_InformationSetsIndices;
         private int[] Unroll_ChanceNodesIndices;
         private Dictionary<(int chanceNodeNumber, int distributorChanceInputs), int> Unroll_ChanceNodesIndices_distributorChanceInputs;
@@ -168,7 +168,7 @@ namespace ACESim
         private int Unroll_AverageStrategyAdjustmentIndex = -1;
         private int Unroll_InitialArrayIndex = -1;
 
-        // The following indices correspond to the order in HedgeVanillaUtilities
+        // The following indices correspond to the order in MultiplicativeWeightsVanillaUtilities
         private const int Unroll_Result_HedgeVsHedgeIndex = 0;
         private const int Unroll_Result_AverageStrategyIndex = 1;
         private const int Unroll_Result_BestResponseIndex = 2;
@@ -314,7 +314,7 @@ namespace ACESim
                 for (byte action = 1; action <= infoSet.NumPossibleActions; action++)
                 {
                     array[initialIndex++] = infoSet.GetAverageStrategy(action);
-                    array[initialIndex++] = infoSet.GetNormalizedHedgeProbability(action);
+                    array[initialIndex++] = infoSet.GetMultiplicativeWeightsProbability(action);
                     array[initialIndex++] = 0; // initialize last regret to zero
                     array[initialIndex++] = 0; // initialize last regret denominator to zero
                     array[initialIndex++] = 0; // initialize best response numerator to zero
@@ -347,9 +347,9 @@ namespace ACESim
                 {
                     int index = Unroll_GetInformationSetIndex_LastRegretNumerator(infoSet.InformationSetNodeNumber, action);
                     int index2 = Unroll_GetInformationSetIndex_LastRegretDenominator(infoSet.InformationSetNodeNumber, action);
-                    infoSet.NormalizedHedgeIncrementLastRegret(action, array[index], array[index2]);
+                    infoSet.MultiplicativeWeightsIncrementLastRegret(action, array[index], array[index2]);
                     index = Unroll_GetInformationSetIndex_LastCumulativeStrategyIncrement(infoSet.InformationSetNodeNumber, action);
-                    infoSet.NormalizedHedgeIncrementLastCumulativeStrategyIncrements(action, array[index]);
+                    infoSet.MultiplicativeWeightsIncrementLastCumulativeStrategyIncrements(action, array[index]);
                     int indexNumerator = Unroll_GetInformationSetIndex_BestResponseNumerator(infoSet.InformationSetNodeNumber, action);
                     int indexDenominator = Unroll_GetInformationSetIndex_BestResponseDenominator(infoSet.InformationSetNodeNumber, action);
                     infoSet.SetBestResponse_NumeratorAndDenominator(action, array[indexNumerator], array[indexDenominator]); // this is the final value based on the probability-adjusted increments within the algorithm
@@ -361,7 +361,7 @@ namespace ACESim
 
         #region Unrolled algorithm
 
-        public unsafe void Unroll_HedgeVanillaCFR(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool isUltimateResult, int distributorChanceInputs)
+        public unsafe void Unroll_MultiplicativeWeightsVanillaCFR(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool isUltimateResult, int distributorChanceInputs)
         {
             Unroll_Commands.IncrementDepth(false);
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
@@ -378,14 +378,14 @@ namespace ACESim
             }
             else if (gameStateType == GameStateTypeEnum.Chance)
             {
-                Unroll_HedgeVanillaCFR_ChanceNode(ref historyPoint, playerBeingOptimized, piValues, avgStratPiValues, resultArray, isUltimateResult, distributorChanceInputs);
+                Unroll_MultiplicativeWeightsVanillaCFR_ChanceNode(ref historyPoint, playerBeingOptimized, piValues, avgStratPiValues, resultArray, isUltimateResult, distributorChanceInputs);
             }
             else
-                Unroll_HedgeVanillaCFR_DecisionNode(ref historyPoint, playerBeingOptimized, piValues, avgStratPiValues, resultArray, isUltimateResult, distributorChanceInputs);
+                Unroll_MultiplicativeWeightsVanillaCFR_DecisionNode(ref historyPoint, playerBeingOptimized, piValues, avgStratPiValues, resultArray, isUltimateResult, distributorChanceInputs);
             Unroll_Commands.DecrementDepth(false, playerBeingOptimized == NumNonChancePlayers - 1);
         }
 
-        private unsafe void Unroll_HedgeVanillaCFR_DecisionNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool isUltimateResult, int distributorChanceInputs)
+        private unsafe void Unroll_MultiplicativeWeightsVanillaCFR_DecisionNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool isUltimateResult, int distributorChanceInputs)
         {
             Unroll_Commands.IncrementDepth(false);
 
@@ -438,7 +438,7 @@ namespace ACESim
                 }
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                 int[] innerResult = Unroll_Commands.NewZeroArray(3);
-                Unroll_HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, innerResult, false, distributorChanceInputsNext);
+                Unroll_MultiplicativeWeightsVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, innerResult, false, distributorChanceInputsNext);
                 Unroll_Commands.CopyToExisting(expectedValueOfAction[action - 1], innerResult[Unroll_Result_HedgeVsHedgeIndex]);
                 if (playerMakingDecision == playerBeingOptimized)
                 {
@@ -517,7 +517,7 @@ namespace ACESim
             Unroll_Commands.DecrementDepth(false);
         }
 
-        private unsafe void Unroll_HedgeVanillaCFR_ChanceNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool isUltimateResult, int distributorChanceInputs)
+        private unsafe void Unroll_MultiplicativeWeightsVanillaCFR_ChanceNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool isUltimateResult, int distributorChanceInputs)
         {
             Unroll_Commands.IncrementDepth(false);
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
@@ -526,7 +526,7 @@ namespace ACESim
             byte numPossibleActionsToExplore = numPossibleActions;
             if (EvolutionSettings.DistributeChanceDecisions && chanceNode.Decision.DistributedChanceDecision)
                 numPossibleActionsToExplore = 1;
-            var historyPointCopy = historyPoint; // can't use historyPoint in anonymous method below. This is costly, so it might be worth optimizing if we use HedgeVanillaCFR much.
+            var historyPointCopy = historyPoint; // can't use historyPoint in anonymous method below. This is costly, so it might be worth optimizing if we use MultiplicativeWeightsVanillaCFR much.
             int[] probabilityAdjustedInnerResult = Unroll_Commands.NewUninitializedArray(3); // must allocate this outside the parallel loop, because if we have commands writing to an array created in the parallel loop, the array indices will change
             if (chanceNode.Decision.Unroll_Parallelize)
                 Unroll_Commands.StartCommandChunk(true, null, chanceNode.Decision.Name);
@@ -541,7 +541,7 @@ namespace ACESim
                 }
                 var historyPointCopy2 = historyPointCopy; // Need to do this because we need a separate copy for each thread
                 Unroll_Commands.ZeroExisting(probabilityAdjustedInnerResult);
-                Unroll_HedgeVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, 
+                Unroll_MultiplicativeWeightsVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, 
                     playerBeingOptimized, piValues, avgStratPiValues,
                         chanceNode, action, probabilityAdjustedInnerResult, false, distributorChanceInputs);
                 Unroll_Commands.IncrementArrayBy(resultArray, isUltimateResult, probabilityAdjustedInnerResult);
@@ -555,7 +555,7 @@ namespace ACESim
             Unroll_Commands.DecrementDepth(false);
         }
 
-        private unsafe void Unroll_HedgeVanillaCFR_ChanceNode_NextAction(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, ChanceNode chanceNode, byte action, int[] resultArray, bool isUltimateResult, int distributorChanceInputs)
+        private unsafe void Unroll_MultiplicativeWeightsVanillaCFR_ChanceNode_NextAction(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, ChanceNode chanceNode, byte action, int[] resultArray, bool isUltimateResult, int distributorChanceInputs)
         {
             Unroll_Commands.IncrementDepth(false);
             int actionProbabilityIndex = Unroll_GetChanceNodeIndex_ProbabilityForAction(chanceNode.ChanceNodeNumber, distributorChanceInputs, action);
@@ -579,7 +579,7 @@ namespace ACESim
                 TabbedText.Tabs++;
             }
             int[] innerResult = Unroll_Commands.NewZeroArray(3);
-            Unroll_HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, innerResult, false, distributorChanceInputsNext);
+            Unroll_MultiplicativeWeightsVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, innerResult, false, distributorChanceInputsNext);
             Unroll_Commands.CopyToExisting(resultArray, innerResult);
             if (TraceCFR)
             {
@@ -654,16 +654,16 @@ namespace ACESim
         public override async Task<string> RunAlgorithm(string reportName)
         {
             if (EvolutionSettings.UnrollAlgorithm)
-                return await Unroll_SolveHedgeVanillaCFR();
+                return await Unroll_SolveMultiplicativeWeightsVanillaCFR();
             string reportString = null;
             InitializeInformationSets();
             for (int iteration = 1; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
-                reportString = await HedgeVanillaCFRIteration(iteration);
+                reportString = await MultiplicativeWeightsVanillaCFRIteration(iteration);
             }
             return reportString;
         }
-        private async Task<string> HedgeVanillaCFRIteration(int iteration)
+        private async Task<string> MultiplicativeWeightsVanillaCFRIteration(int iteration)
         {
             IterationNumDouble = iteration;
             IterationNum = iteration;
@@ -672,12 +672,12 @@ namespace ACESim
             string reportString = null;
             double[] lastUtilities = new double[NumNonChancePlayers];
 
-            ActionStrategy = ActionStrategies.NormalizedHedge;
+            ActionStrategy = ActionStrategies.MultiplicativeWeights;
 
-            HedgeVanillaUtilities[] results = new HedgeVanillaUtilities[NumNonChancePlayers];
+            MultiplicativeWeightsVanillaUtilities[] results = new MultiplicativeWeightsVanillaUtilities[NumNonChancePlayers];
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
-                HedgeVanillaCFRIteration_OptimizePlayer(iteration, results, playerBeingOptimized);
+                MultiplicativeWeightsVanillaCFRIteration_OptimizePlayer(iteration, results, playerBeingOptimized);
             }
             MiniReport(iteration, results);
 
@@ -689,7 +689,7 @@ namespace ACESim
             return reportString;
         }
 
-        private unsafe void HedgeVanillaCFRIteration_OptimizePlayer(int iteration, HedgeVanillaUtilities[] results, byte playerBeingOptimized)
+        private unsafe void MultiplicativeWeightsVanillaCFRIteration_OptimizePlayer(int iteration, MultiplicativeWeightsVanillaUtilities[] results, byte playerBeingOptimized)
         {
             double* initialPiValues = stackalloc double[MaxNumMainPlayers];
             double* initialAvgStratPiValues = stackalloc double[MaxNumMainPlayers];
@@ -699,11 +699,11 @@ namespace ACESim
                 TabbedText.WriteLine($"Iteration {iteration} Player {playerBeingOptimized}");
             StrategiesDeveloperStopwatch.Start();
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
-            results[playerBeingOptimized] = HedgeVanillaCFR(ref historyPoint, playerBeingOptimized, initialPiValues, initialAvgStratPiValues, 0);
+            results[playerBeingOptimized] = MultiplicativeWeightsVanillaCFR(ref historyPoint, playerBeingOptimized, initialPiValues, initialAvgStratPiValues, 0);
             StrategiesDeveloperStopwatch.Stop();
         }
 
-        private unsafe void MiniReport(int iteration, HedgeVanillaUtilities[] results)
+        private unsafe void MiniReport(int iteration, MultiplicativeWeightsVanillaUtilities[] results)
         {
             if (iteration % EvolutionSettings.MiniReportEveryPIterations == 0)
             {
@@ -733,10 +733,10 @@ namespace ACESim
         /// <param name="historyPoint">The game tree, pointing to the particular point in the game where we are located</param>
         /// <param name="playerBeingOptimized">0 for first player, etc. Note that this corresponds in Lanctot to 1, 2, etc. We are using zero-basing for player index (even though we are 1-basing actions).</param>
         /// <returns></returns>
-        public unsafe HedgeVanillaUtilities HedgeVanillaCFR(ref HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues, double* avgStratPiValues, int distributorChanceInputs)
+        public unsafe MultiplicativeWeightsVanillaUtilities MultiplicativeWeightsVanillaCFR(ref HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues, double* avgStratPiValues, int distributorChanceInputs)
         {
             //if (usePruning && ShouldPruneIfPruning(piValues))
-            //    return new HedgeVanillaUtilities { AverageStrategyVsAverageStrategy = 0, BestResponseToAverageStrategy = 0, HedgeVsHedge = 0 };
+            //    return new MultiplicativeWeightsVanillaUtilities { AverageStrategyVsAverageStrategy = 0, BestResponseToAverageStrategy = 0, HedgeVsHedge = 0 };
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
             if (gameStateType == GameStateTypeEnum.FinalUtilities)
@@ -745,19 +745,19 @@ namespace ACESim
                 double util = finalUtilities.Utilities[playerBeingOptimized];
                 if (double.IsNaN(util))
                     throw new Exception();
-                return new HedgeVanillaUtilities { AverageStrategyVsAverageStrategy = util, BestResponseToAverageStrategy = util, HedgeVsHedge = util };
+                return new MultiplicativeWeightsVanillaUtilities { AverageStrategyVsAverageStrategy = util, BestResponseToAverageStrategy = util, HedgeVsHedge = util };
             }
             else if (gameStateType == GameStateTypeEnum.Chance)
             {
-                return HedgeVanillaCFR_ChanceNode(ref historyPoint, playerBeingOptimized, piValues, avgStratPiValues, distributorChanceInputs);
+                return MultiplicativeWeightsVanillaCFR_ChanceNode(ref historyPoint, playerBeingOptimized, piValues, avgStratPiValues, distributorChanceInputs);
             }
             else
-                return HedgeVanillaCFR_DecisionNode(ref historyPoint, playerBeingOptimized, piValues, avgStratPiValues, distributorChanceInputs);
+                return MultiplicativeWeightsVanillaCFR_DecisionNode(ref historyPoint, playerBeingOptimized, piValues, avgStratPiValues, distributorChanceInputs);
         }
 
         bool IncludeAsteriskForBestResponseInTrace = false;
 
-        private unsafe HedgeVanillaUtilities HedgeVanillaCFR_DecisionNode(ref HistoryPoint historyPoint, byte playerBeingOptimized,
+        private unsafe MultiplicativeWeightsVanillaUtilities MultiplicativeWeightsVanillaCFR_DecisionNode(ref HistoryPoint historyPoint, byte playerBeingOptimized,
             double* piValues, double* avgStratPiValues, int distributorChanceInputs)
         {
             double inversePi = GetInversePiValue(piValues, playerBeingOptimized);
@@ -781,11 +781,11 @@ namespace ACESim
             else
             {
                 // TODO: Consider pruning here
-                informationSet.GetNormalizedHedgeProbabilities(actionProbabilities);
+                informationSet.GetMultiplicativeWeightsProbabilities(actionProbabilities);
             }
             double* expectedValueOfAction = stackalloc double[numPossibleActions];
             double expectedValue = 0;
-            HedgeVanillaUtilities result = default;
+            MultiplicativeWeightsVanillaUtilities result = default;
             for (byte action = 1; action <= numPossibleActions; action++)
             {
                 int distributorChanceInputsNext = distributorChanceInputs;
@@ -806,7 +806,7 @@ namespace ACESim
                         TabbedText.Tabs++;
                     }
                     HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
-                    HedgeVanillaUtilities innerResult = HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, distributorChanceInputsNext);
+                    MultiplicativeWeightsVanillaUtilities innerResult = MultiplicativeWeightsVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, distributorChanceInputsNext);
                     expectedValueOfAction[action - 1] = innerResult.HedgeVsHedge;
                     if (playerMakingDecision == playerBeingOptimized)
                     {
@@ -849,13 +849,13 @@ namespace ACESim
                     double contributionToAverageStrategy = piAdj * actionProbabilities[action - 1];
                     if (EvolutionSettings.ParallelOptimization)
                     {
-                        informationSet.NormalizedHedgeIncrementLastRegret_Parallel(action, regret * inversePi, inversePi);
-                        informationSet.NormalizedHedgeIncrementLastCumulativeStrategyIncrements_Parallel(action, contributionToAverageStrategy);
+                        informationSet.MultiplicativeWeightsIncrementLastRegret_Parallel(action, regret * inversePi, inversePi);
+                        informationSet.MultiplicativeWeightsIncrementLastCumulativeStrategyIncrements_Parallel(action, contributionToAverageStrategy);
                     }
                     else
                     {
-                        informationSet.NormalizedHedgeIncrementLastRegret(action, regret * inversePi, inversePi);
-                        informationSet.NormalizedHedgeIncrementLastCumulativeStrategyIncrements(action, contributionToAverageStrategy);
+                        informationSet.MultiplicativeWeightsIncrementLastRegret(action, regret * inversePi, inversePi);
+                        informationSet.MultiplicativeWeightsIncrementLastCumulativeStrategyIncrements(action, contributionToAverageStrategy);
                     }
                     if (TraceCFR)
                     {
@@ -869,14 +869,14 @@ namespace ACESim
             return result;
         }
 
-        private unsafe HedgeVanillaUtilities HedgeVanillaCFR_ChanceNode(ref HistoryPoint historyPoint, byte playerBeingOptimized,
+        private unsafe MultiplicativeWeightsVanillaUtilities MultiplicativeWeightsVanillaCFR_ChanceNode(ref HistoryPoint historyPoint, byte playerBeingOptimized,
             double* piValues, double* avgStratPiValues, int distributorChanceInputs)
         {
-            HedgeVanillaUtilities result = default;
+            MultiplicativeWeightsVanillaUtilities result = default;
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             ChanceNode chanceNode = (ChanceNode)gameStateForCurrentPlayer;
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNode.DecisionIndex);
-            var historyPointCopy = historyPoint; // can't use historyPoint in anonymous method below. This is costly, so it might be worth optimizing if we use HedgeVanillaCFR much.
+            var historyPointCopy = historyPoint; // can't use historyPoint in anonymous method below. This is costly, so it might be worth optimizing if we use MultiplicativeWeightsVanillaCFR much.
             byte numPossibleActionsToExplore = numPossibleActions;
             if (EvolutionSettings.DistributeChanceDecisions && chanceNode.Decision.DistributedChanceDecision)
                 numPossibleActionsToExplore = 1;
@@ -885,14 +885,14 @@ namespace ACESim
                 action =>
                 {
                     var historyPointCopy2 = historyPointCopy; // Need to do this because we need a separate copy for each thread
-                    HedgeVanillaUtilities probabilityAdjustedInnerResult =  HedgeVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues, avgStratPiValues, chanceNode, action, distributorChanceInputs);
+                    MultiplicativeWeightsVanillaUtilities probabilityAdjustedInnerResult =  MultiplicativeWeightsVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues, avgStratPiValues, chanceNode, action, distributorChanceInputs);
                     result.IncrementBasedOnProbabilityAdjusted(ref probabilityAdjustedInnerResult);
                 });
 
             return result;
         }
 
-        private unsafe HedgeVanillaUtilities HedgeVanillaCFR_ChanceNode_NextAction(ref HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues, double* avgStratPiValues, ChanceNode chanceNode, byte action, int distributorChanceInputs)
+        private unsafe MultiplicativeWeightsVanillaUtilities MultiplicativeWeightsVanillaCFR_ChanceNode_NextAction(ref HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues, double* avgStratPiValues, ChanceNode chanceNode, byte action, int distributorChanceInputs)
         {
             double* nextPiValues = stackalloc double[MaxNumMainPlayers];
             double* nextAvgStratPiValues = stackalloc double[MaxNumMainPlayers];
@@ -913,8 +913,8 @@ namespace ACESim
                     $"Chance code {chanceNode.DecisionByteCode} ({GameDefinition.DecisionsExecutionOrder.FirstOrDefault(x => x.DecisionByteCode == chanceNode.DecisionByteCode).Name}) action {action} probability {actionProbability} ...");
                 TabbedText.Tabs++;
             }
-            HedgeVanillaUtilities result =
-                HedgeVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, distributorChanceInputsNext);
+            MultiplicativeWeightsVanillaUtilities result =
+                MultiplicativeWeightsVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, distributorChanceInputsNext);
             if (TraceCFR)
             {
                 TabbedText.Tabs--;

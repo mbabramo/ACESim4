@@ -15,14 +15,14 @@ namespace ACESim
 
         #region Settings
 
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.HedgeVanilla;
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.MultiplicativeWeightsVanilla;
 
         public const int ProbingIterations = 20_000_000;
         public const int VanillaIterations = 50_000;
         public const int VanillaReportEveryNIterations = VanillaIterations;
         public const int VanillaBestResponseEveryMIterations = 1000;
-        public const int MiniReportEveryPIterations = 1000; 
-        public const int CorrelatedEquilibriumCalculationsEveryNIterations = EvolutionSettings.EffectivelyNever; // DEBUG
+        public const int MiniReportEveryPIterations = EffectivelyNever; 
+        public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever; // DEBUG
         public const int RecordPastValuesEveryNIterations = 100; // DEBUG // used for correlated equilibrium calculations
         public const bool UseRandomPathsForReporting = true; 
         public const int SummaryTableRandomPathsIterations = 10_000;
@@ -41,6 +41,8 @@ namespace ACESim
 
         public string OverrideDateTimeString = null; // "2017-10-11 10:18"; // use this if termination finished unexpectedly
         public string MasterReportNameForDistributedProcessing = "AMONLY";
+
+        const int EffectivelyNever = EvolutionSettings.EffectivelyNever;
 
         #endregion
 
@@ -110,8 +112,8 @@ namespace ACESim
                     return new ExploratoryProbing(existingStrategyState, evolutionSettings, gameDefinition);
                 case GameApproximationAlgorithm.HedgeProbing:
                     return new HedgeProbing(existingStrategyState, evolutionSettings, gameDefinition);
-                case GameApproximationAlgorithm.HedgeVanilla:
-                    return new HedgeVanilla(existingStrategyState, evolutionSettings, gameDefinition);
+                case GameApproximationAlgorithm.MultiplicativeWeightsVanilla:
+                    return new MultiplicativeWeightsVanilla(existingStrategyState, evolutionSettings, gameDefinition);
                 case GameApproximationAlgorithm.AverageStrategySampling:
                     return new AverageStrategiesSampling(existingStrategyState, evolutionSettings, gameDefinition);
                 case GameApproximationAlgorithm.PureStrategyFinder:

@@ -173,8 +173,8 @@ namespace ACESim
                         case ActionStrategies.RegretMatchingWithPruning:
                             informationSet.GetRegretMatchingProbabilities_WithPruning(actionProbabilities);
                             break;
-                        case ActionStrategies.NormalizedHedge:
-                            informationSet.GetNormalizedHedgeProbabilities(actionProbabilities);
+                        case ActionStrategies.MultiplicativeWeights:
+                            informationSet.GetMultiplicativeWeightsProbabilities(actionProbabilities);
                             break;
                         case ActionStrategies.Hedge:
                             informationSet.GetHedgeProbabilities(actionProbabilities);

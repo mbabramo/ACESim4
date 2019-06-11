@@ -114,24 +114,24 @@ namespace ACESim
                         case ActionStrategies.RegretMatchingWithPruning:
                             informationSetNode.GetRegretMatchingProbabilities_WithPruning(probabilities);
                             break;
-                        case ActionStrategies.NormalizedHedge:
-                            informationSetNode.GetNormalizedHedgeProbabilities(probabilities);
+                        case ActionStrategies.MultiplicativeWeights:
+                            informationSetNode.GetMultiplicativeWeightsProbabilities(probabilities);
                             break;
                         case ActionStrategies.Hedge:
                             informationSetNode.GetHedgeProbabilities(probabilities);
                             break;
                         case ActionStrategies.CorrelatedEquilibrium:
-                            informationSetNode.GetNormalizedHedgeCorrelatedEquilibriumStrategyProbabilities(randomNumberToChooseIteration, probabilities);
+                            informationSetNode.GetMultiplicativeWeightsCorrelatedEquilibriumStrategyProbabilities(randomNumberToChooseIteration, probabilities);
                             break;
                         case ActionStrategies.BestResponseVsCorrelatedEquilibrium:
                             if (informationSetNode.PlayerIndex == 0)
                                 informationSetNode.GetBestResponseProbabilities(probabilities);
                             else
-                                informationSetNode.GetNormalizedHedgeCorrelatedEquilibriumStrategyProbabilities(randomNumberToChooseIteration, probabilities);
+                                informationSetNode.GetMultiplicativeWeightsCorrelatedEquilibriumStrategyProbabilities(randomNumberToChooseIteration, probabilities);
                             break;
                         case ActionStrategies.CorrelatedEquilibriumVsBestResponse:
                             if (informationSetNode.PlayerIndex == 0)
-                                informationSetNode.GetNormalizedHedgeCorrelatedEquilibriumStrategyProbabilities(randomNumberToChooseIteration, probabilities);
+                                informationSetNode.GetMultiplicativeWeightsCorrelatedEquilibriumStrategyProbabilities(randomNumberToChooseIteration, probabilities);
                             else
                                 informationSetNode.GetBestResponseProbabilities(probabilities);
                             break;

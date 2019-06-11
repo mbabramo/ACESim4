@@ -77,7 +77,7 @@ namespace ACESim
         // Normalized hedge
         [NonSerialized]
         public SimpleExclusiveLock UpdatingHedge;
-        const double NormalizedHedgeEpsilon = 0.50; // Higher epsilon means slower changes in weights; lower epsilons are more aggressive
+        const double MultiplicativeWeightsEpsilon = 0.50; // Higher epsilon means slower changes in weights; lower epsilons are more aggressive
         public byte LastBestResponseAction = 0;
         public bool BestResponseDeterminedFromIncrements = false; // this is used by the generalized best response algorithm to determine whether it needs to recalculate best response
 
@@ -787,11 +787,11 @@ namespace ACESim
 
         #endregion
 
-        #region Normalized Hedge
+        #region Multiplicative Weights
 
         // Note: The first two methods must be used if we don't have a guarantee that updating will take place before each iteration.
 
-        public void UpdateNormalizedHedge(int iteration, double averageStrategyAdjustment, bool normalizeCumulativeStrategyIncrements, bool resetPreviousCumulativeStrategyIncrements)
+        public void UpdateMultiplicativeWeights(int iteration, double averageStrategyAdjustment, bool normalizeCumulativeStrategyIncrements, bool resetPreviousCumulativeStrategyIncrements)
         {
 
             RecordProbabilitiesAsPastValues(iteration, averageStrategyAdjustment); // these are the average strategies played, and thus shouldn't reflect the updates below
@@ -835,7 +835,7 @@ namespace ACESim
                 double regretUnnormalized = (denominator == 0) ? 0.5*(MaxPossibleThisPlayer - MinPossibleThisPlayer) : NodeInformation[lastRegretNumeratorDimension, a - 1] / denominator;
                 double regret = NormalizeRegret(regretUnnormalized); // bad moves are now close to 0 and good moves are close to 1
                 double adjustedNormalizedRegret = 1.0 - regret; // if regret is high (good move), this is low; bad moves are now close to 1 and good moves are close to 0
-                double weightAdjustment = Math.Pow(1 - NormalizedHedgeEpsilon, adjustedNormalizedRegret); // if there is a good move, then this is high (relatively close to 1). For example, suppose NormalizedHedgeEpsilon is 0.5. Then, if adjustedNormalizedRegret is 0.9 (bad move), the weight adjustment is 0.536, but if adjustedNormalizedRegret is 0.1 (good move), the weight adjustment is only 0.933, so the bad move is discounted relative to the good move by 0.536/0.933. if NormalizedHedgeEpsilon is 0.1, then the weight adjustments are 0.98 and 0.90; i.e., the algorithm is much less greedy (because 1 - NormalizedHedgeEpsilon is relatively lose to 1). if NormalizedHedgeEpsilon is 0.9, the algorithm is much more greedy.
+                double weightAdjustment = Math.Pow(1 - MultiplicativeWeightsEpsilon, adjustedNormalizedRegret); // if there is a good move, then this is high (relatively close to 1). For example, suppose MultiplicativeWeightsEpsilon is 0.5. Then, if adjustedNormalizedRegret is 0.9 (bad move), the weight adjustment is 0.536, but if adjustedNormalizedRegret is 0.1 (good move), the weight adjustment is only 0.933, so the bad move is discounted relative to the good move by 0.536/0.933. if MultiplicativeWeightsEpsilon is 0.1, then the weight adjustments are 0.98 and 0.90; i.e., the algorithm is much less greedy (because 1 - MultiplicativeWeightsEpsilon is relatively lose to 1). if MultiplicativeWeightsEpsilon is 0.9, the algorithm is much more greedy.
                 double weight = NodeInformation[adjustedWeightsDimension, a - 1];
                 weight *= weightAdjustment; // So, this weight reduces only slightly when regret is high
                 if (weight < SmallestProbabilityRepresented)
@@ -889,12 +889,12 @@ namespace ACESim
                     else
                         PastValuesCumulativeStrategyDiscounts[LastPastValueIndexRecorded] = PastValuesCumulativeStrategyDiscounts[LastPastValueIndexRecorded] + averageStrategyAdjustment;
                     for (byte a = 1; a <= NumPossibleActions; a++)
-                        PastValues[LastPastValueIndexRecorded, a - 1] = GetNormalizedHedgeProbability(a);
+                        PastValues[LastPastValueIndexRecorded, a - 1] = GetMultiplicativeWeightsProbability(a);
                 }
             }
         }
 
-        public void InitializeNormalizedHedge()
+        public void InitializeMultiplicativeWeights()
         {
             if (NumPossibleActions == 0)
                 throw new Exception("NumPossibleActions not initialized");
@@ -911,13 +911,13 @@ namespace ACESim
             UpdatingHedge = new SimpleExclusiveLock();
         }
 
-        public void NormalizedHedgeIncrementLastRegret(byte action, double regretTimesInversePi, double inversePi)
+        public void MultiplicativeWeightsIncrementLastRegret(byte action, double regretTimesInversePi, double inversePi)
         {
             NodeInformation[lastRegretNumeratorDimension, action - 1] += regretTimesInversePi;
             NodeInformation[lastRegretDenominatorDimension, action - 1] += inversePi;
         }
 
-        public void NormalizedHedgeIncrementLastRegret_Parallel(byte action, double regretTimesInversePi, double inversePi)
+        public void MultiplicativeWeightsIncrementLastRegret_Parallel(byte action, double regretTimesInversePi, double inversePi)
         {
             Interlocking.Add(ref NodeInformation[lastRegretNumeratorDimension, action - 1], regretTimesInversePi);
             Interlocking.Add(ref NodeInformation[lastRegretDenominatorDimension, action - 1], inversePi);
@@ -934,12 +934,12 @@ namespace ACESim
             return normalizedRegret;
         }
 
-        public void NormalizedHedgeIncrementLastCumulativeStrategyIncrements(byte action, double strategyProbabilityTimesSelfReachProbability)
+        public void MultiplicativeWeightsIncrementLastCumulativeStrategyIncrements(byte action, double strategyProbabilityTimesSelfReachProbability)
         {
             NodeInformation[lastCumulativeStrategyIncrementsDimension, action - 1] += strategyProbabilityTimesSelfReachProbability;
         }
 
-        public void NormalizedHedgeIncrementLastCumulativeStrategyIncrements_Parallel(byte action, double strategyProbabilityTimesSelfReachProbability)
+        public void MultiplicativeWeightsIncrementLastCumulativeStrategyIncrements_Parallel(byte action, double strategyProbabilityTimesSelfReachProbability)
         {
             Interlocking.Add(ref NodeInformation[lastCumulativeStrategyIncrementsDimension, action - 1], strategyProbabilityTimesSelfReachProbability);
             //Interlocked.Increment(ref NumRegretIncrements);
@@ -952,7 +952,7 @@ namespace ACESim
             return NodeInformation[averageStrategyProbabilityDimension, action - 1];
         }
 
-        public unsafe void GetNormalizedHedgeCorrelatedEquilibriumStrategyProbabilities(double randomNumberToChooseIteration, double* probabilities)
+        public unsafe void GetMultiplicativeWeightsCorrelatedEquilibriumStrategyProbabilities(double randomNumberToChooseIteration, double* probabilities)
         {
             int pastValuesCount = LastPastValueIndexRecorded;
             double cumulativeDiscountLevelToSeek = pastValuesCount * randomNumberToChooseIteration;
@@ -966,41 +966,41 @@ namespace ACESim
                 probabilities[a] = PastValues[index, a];
         }
 
-        //public unsafe void GetEpsilonAdjustedNormalizedHedgeProbabilities(double* probabilitiesToSet, double epsilon, int iteration)
+        //public unsafe void GetEpsilonAdjustedMultiplicativeWeightsProbabilities(double* probabilitiesToSet, double epsilon, int iteration)
         //{
-        //    GetNormalizedHedgeProbabilities(probabilitiesToSet, iteration);
+        //    GetMultiplicativeWeightsProbabilities(probabilitiesToSet, iteration);
         //    double equalProbabilities = 1.0 / NumPossibleActions;
         //    for (byte a = 1; a <= NumPossibleActions; a++)
         //        probabilitiesToSet[a - 1] = epsilon * equalProbabilities + (1.0 - epsilon) * probabilitiesToSet[a - 1];
         //}
 
-        public unsafe void GetNormalizedHedgeProbabilities(double* probabilitiesToSet)
+        public unsafe void GetMultiplicativeWeightsProbabilities(double* probabilitiesToSet)
         {
             for (byte a = 1; a <= NumPossibleActions; a++)
             {
-                probabilitiesToSet[a - 1] = GetNormalizedHedgeProbability(a);
+                probabilitiesToSet[a - 1] = GetMultiplicativeWeightsProbability(a);
             }
         }
 
-        public unsafe double GetNormalizedHedgeProbability(byte a)
+        public unsafe double GetMultiplicativeWeightsProbability(byte a)
         {
             return NodeInformation[hedgeProbabilityDimension, a - 1];
         }
 
-        public unsafe double[] GetNormalizedHedgeProbabilitiesAsArray()
+        public unsafe double[] GetMultiplicativeWeightsProbabilitiesAsArray()
         {
             double[] array = new double[NumPossibleActions];
 
             double* actionProbabilities = stackalloc double[NumPossibleActions];
-            GetNormalizedHedgeProbabilities(actionProbabilities);
+            GetMultiplicativeWeightsProbabilities(actionProbabilities);
             for (int a = 0; a < NumPossibleActions; a++)
                 array[a] = actionProbabilities[a];
             return array;
         }
 
-        public unsafe string GetNormalizedHedgeProbabilitiesAsString()
+        public unsafe string GetMultiplicativeWeightsProbabilitiesAsString()
         {
-            return String.Join(", ", GetNormalizedHedgeProbabilitiesAsArray().Select(x => x.ToSignificantFigures(3)));
+            return String.Join(", ", GetMultiplicativeWeightsProbabilitiesAsArray().Select(x => x.ToSignificantFigures(3)));
         }
 
         public void Analyze()
@@ -1065,7 +1065,7 @@ namespace ACESim
 
                 rangesString = String.Join("; ", ranges.Select(x => $"({x.startIteration}-{x.endIteration}): {GetActionsAsString(x.significantActions)}"));
             }
-            string hedgeString = GetNormalizedHedgeProbabilitiesAsString();
+            string hedgeString = GetMultiplicativeWeightsProbabilitiesAsString();
             double[] averageStrategies = GetAverageStrategiesAsArray();
             string avgStratString = GetAverageStrategiesAsString();
             bool avgStratSameAsBestResponse = averageStrategies[LastBestResponseAction - 1] > 0.9999999;

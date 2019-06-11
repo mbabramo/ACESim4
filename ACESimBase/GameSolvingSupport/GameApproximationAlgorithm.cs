@@ -7,7 +7,7 @@ namespace ACESim
         ModifiedGibsonProbing,
         ExploratoryProbing,
         HedgeProbing,
-        HedgeVanilla,
+        MultiplicativeWeightsVanilla,
         AverageStrategySampling,
         PureStrategyFinder,
         FictitiousSelfPlay,

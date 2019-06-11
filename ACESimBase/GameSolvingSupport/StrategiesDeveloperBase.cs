@@ -1073,7 +1073,7 @@ namespace ACESim
             ChanceNode chanceNode = (ChanceNode)gameStateForCurrentPlayer;
             //TabbedText.WriteLine($"Chance node {chanceNode.Decision.Name}"); 
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNode.DecisionIndex);
-            var historyPointCopy = historyPoint; // can't use historyPoint in anonymous method below. This is costly, so it might be worth optimizing if we use HedgeVanillaCFR much.
+            var historyPointCopy = historyPoint; // can't use historyPoint in anonymous method below. This is costly, so it might be worth optimizing if we use MultiplicativeWeightsVanillaCFR much.
 
             Decision decision = chanceNode.Decision;
             if (decision.DistributorChanceDecision || decision.DistributorChanceInputDecision)

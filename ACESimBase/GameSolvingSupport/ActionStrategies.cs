@@ -12,7 +12,7 @@ namespace ACESim
         AverageStrategy,
         BestResponse,
         RegretMatchingWithPruning,
-        NormalizedHedge,
+        MultiplicativeWeights,
         Hedge,
         CorrelatedEquilibrium,
         BestResponseVsCorrelatedEquilibrium,
