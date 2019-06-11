@@ -18,9 +18,9 @@ namespace ACESim
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.MultiplicativeWeightsVanilla;
 
         public const int ProbingIterations = 20_000_000;
-        public const int VanillaIterations = 15_000;
+        public const int VanillaIterations = 30_000;
         public const int VanillaReportEveryNIterations = VanillaIterations;
-        public const int VanillaBestResponseEveryMIterations = 1000;
+        public const int VanillaBestResponseEveryMIterations = 100;
         public const int MiniReportEveryPIterations = EffectivelyNever; 
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever; // DEBUG
         public const int RecordPastValuesEveryNIterations = 100; // DEBUG // used for correlated equilibrium calculations

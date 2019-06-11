@@ -1034,6 +1034,7 @@ namespace ACESim
                 NodeInformation[backupCumulativeStrategyDimension, action - 1] = NodeInformation[cumulativeStrategyDimension, action - 1];
                 NodeInformation[backupAverageStrategyProbabilityDimension, action - 1] = NodeInformation[averageStrategyProbabilityDimension, action - 1];
             }
+            LastAverageStrategyAdjustmentsSum = AverageStrategyAdjustmentsSum;
         }
 
         public void MultiplicativeWeightsRestoreBackup()
@@ -1044,6 +1045,7 @@ namespace ACESim
                 NodeInformation[cumulativeStrategyDimension, action - 1] = NodeInformation[backupCumulativeStrategyDimension, action - 1];
                 NodeInformation[averageStrategyProbabilityDimension, action - 1] = NodeInformation[backupAverageStrategyProbabilityDimension, action - 1];
             }
+            AverageStrategyAdjustmentsSum = LastAverageStrategyAdjustmentsSum;
         }
 
         public void MultiplicativeWeightsAnalyze()

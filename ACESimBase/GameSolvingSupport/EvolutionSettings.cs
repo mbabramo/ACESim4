@@ -83,15 +83,19 @@ namespace ACESim
             Discounting_Gamma = Math.Log(DiscountingTarget_TargetDiscount) / (Math.Log(p * t / (p * t + 1)) - Math.Log(t / (t + 1)));
         }
 
-        public double MultiplicativeWeightsInitial = 0.95;
-        public double MultiplicativeWeightsFinal = 0.95;
-        public double MultiplicativeWeightsCurvature = 1.0;
+        public double MultiplicativeWeightsInitial = 0.5;
+        public double MultiplicativeWeightsFinal = 0.5;
+        public double MultiplicativeWeightsCurvature = 0.5;
         public double MultiplicativeWeightsEpsilon_BasedOnCurve(int iteration, int maxIteration) => MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(MultiplicativeWeightsInitial, MultiplicativeWeightsFinal, MultiplicativeWeightsCurvature, ((double)(iteration - 1)) / (double)maxIteration);
 
-        public int MultiplicativeWeightsEpsilon_SimulatedAnnealingEveryNIterations = 100;
+        public int MultiplicativeWeightsEpsilon_SimulatedAnnealingEveryNIterations = EffectivelyNever;
         public double SimulatedAnnealingInitialAcceptance = 0.5;
         public double SimulatedAnnealingEventualAcceptance = 0.001;
         public double SimulatedAnnealingCurvature = 10.0;
+
+        public bool SimulatedAnnealing_UseRandomWeights = false;
+        public bool SimulatedAnnealing_UseRandomAverageStrategyAdjustment = false;
+
         public int SimulatedAnnealingSet(int iteration) => (iteration - 1) / MultiplicativeWeightsEpsilon_SimulatedAnnealingEveryNIterations;
         public bool AcceptSimulatedAnnealingIfWorse(int iteration, int maxIteration)
         {
@@ -102,13 +106,17 @@ namespace ACESim
 
         public double SimulatedAnnealing_RandomAverageStrategyAdjustment(int iteration, InformationSetNode informationSet)
         {
-            double currentTotal = informationSet.AverageStrategyAdjustmentsSum;
+            double currentTotal = informationSet.LastAverageStrategyAdjustmentsSum;
+            if (currentTotal == 0)
+                return 1.0;
             double r = new ConsistentRandomSequenceProducer(19).GetDoubleAtIndex(SimulatedAnnealingSet(iteration));
+            double targetTotal = r * currentTotal;
+            double targetPerIteration = targetTotal / (double) MultiplicativeWeightsEpsilon_SimulatedAnnealingEveryNIterations;
+            return targetPerIteration;
         }
-
         public double MultiplicativeWeightsEpsilon_SimulatedAnnealing(int iteration, int maxIteration) => new ConsistentRandomSequenceProducer(0).GetDoubleAtIndex(SimulatedAnnealingSet(iteration)); // a random number based on the simulated annealing group
 
-        public double MultiplicativeWeightsEpsilon(int iteration, int maxIteration) => MultiplicativeWeightsEpsilon_SimulatedAnnealingEveryNIterations == EffectivelyNever ? MultiplicativeWeightsEpsilon_BasedOnCurve(iteration, maxIteration) : MultiplicativeWeightsEpsilon_SimulatedAnnealing(iteration, maxIteration);
+        public double MultiplicativeWeightsEpsilon(int iteration, int maxIteration) => MultiplicativeWeightsEpsilon_SimulatedAnnealingEveryNIterations == EffectivelyNever || !SimulatedAnnealing_UseRandomWeights ? MultiplicativeWeightsEpsilon_BasedOnCurve(iteration, maxIteration) : MultiplicativeWeightsEpsilon_SimulatedAnnealing(iteration, maxIteration);
 
         public void ChangeMultiplicativeWeightsEpsilon(bool moreAggressive)
         {
