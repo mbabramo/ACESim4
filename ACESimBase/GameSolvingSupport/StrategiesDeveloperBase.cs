@@ -643,7 +643,7 @@ namespace ACESim
 
         private void ExecuteAcceleratedBestResponse(bool determineWhetherReachable = false)
         {
-            // index through information sets by decision (note that i is not the same as the actual decision index. First, calculate reach probabilities going forward. Second, calculate best response values going backward.
+            // index through information sets by decision (note that i is not the same as the actual decision index). First, calculate reach probabilities going forward. Second, calculate best response values going backward.
             for (int i = 0; i < InformationSetsByDecisionIndex.Count; i++)
             {
                 List<InformationSetNode> informationSetsForDecision = InformationSetsByDecisionIndex[i];

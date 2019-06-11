@@ -23,13 +23,15 @@ namespace ACESimBase.GameSolvingSupport
 
         public NodeActionsHistory InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, NodeActionsHistory fromPredecessor)
         {
-            NodeActionsHistory historyToHere = predecessor == null ? fromPredecessor : fromPredecessor.WithAppended(predecessor, predecessorAction, predecessorDistributorChanceInputs);
-            (InformationSetNode predecessorInformationSetForPlayer, byte actionTakenThere) = historyToHere.GetLastInformationSetByPlayer(informationSet.PlayerIndex);
+            // Get a history from the same information set by the same player to here.
+            NodeActionsHistory historyToHere = predecessor == null ? fromPredecessor : fromPredecessor.WithAppended(predecessor, predecessorAction, predecessorDistributorChanceInputs); // The information from the predecessor does not include the predecessor itself and the action taken there, so we add it. 
+            (InformationSetNode predecessorInformationSetForPlayer, byte actionTakenThere) = historyToHere.GetLastInformationSetByPlayer(informationSet.PlayerIndex); // The predecessor may not be an information set from the same player, so we need to identify the predecessor for the same player as well as the action taken there. 
             informationSet.PredecessorInformationSetForPlayer = predecessorInformationSetForPlayer;
             informationSet.ActionTakenAtPredecessorSet = actionTakenThere;
             NodeActionsHistory fromLastInformationSet = historyToHere.GetIncrementalHistory(informationSet.PlayerIndex);
             if (Trace)
                 TabbedText.WriteLine($"From predecessor information set {predecessorInformationSetForPlayer?.InformationSetNodeNumber}: {fromLastInformationSet}");
+            // Now, add this history to a list of paths from the predecessor information set.
             ByteList actionsList = historyToHere.GetActionsList(informationSet.PlayerIndex, DistributingChanceActions);
             if (informationSet.PathsFromPredecessor == null)
                 informationSet.PathsFromPredecessor = new List<InformationSetNode.PathFromPredecessorInfo>();
@@ -64,10 +66,10 @@ namespace ACESimBase.GameSolvingSupport
         public List<NodeActionsMultipleHistories> InformationSet_Backward(InformationSetNode informationSet, IEnumerable<List<NodeActionsMultipleHistories>> fromSuccessors)
         {
             List<NodeActionsMultipleHistories> returnList = new List<NodeActionsMultipleHistories>();
-            var invertMultipleHistories = GetMultipleHistoriesByPlayer(fromSuccessors);
+            var multipleSuccessorsForPlayers = GetMultipleHistoriesByPlayer(fromSuccessors);
             for (byte playerIndex = 0; playerIndex < NumNonChancePlayers; playerIndex++)
             {
-                List<NodeActionsMultipleHistories> successorsForPlayer = invertMultipleHistories[playerIndex];
+                List<NodeActionsMultipleHistories> successorsForPlayer = multipleSuccessorsForPlayers[playerIndex];
                 bool isOwnInformationSet = informationSet.PlayerIndex == playerIndex;
                 if (isOwnInformationSet)
                 {
@@ -84,9 +86,9 @@ namespace ACESimBase.GameSolvingSupport
                     }
                     for (byte action = 1; action <= informationSet.NumPossibleActions; action++)
                     {
-                        var successorThisAction = successorsForPlayer[action - 1];
+                        var successorsForThisActionForPlayer = successorsForPlayer[action - 1];
                         var pathsForAction = informationSet.PathsToSuccessors[action - 1];
-                        pathsForAction.Add(successorThisAction);
+                        pathsForAction.Add(successorsForThisActionForPlayer);
                     }
                     returnList.Add(new NodeActionsMultipleHistories(informationSet)); // prior information sets of this player will play with this node as a successor, so they don't need to calculate into the entire tree
                 }
@@ -104,10 +106,10 @@ namespace ACESimBase.GameSolvingSupport
         public List<NodeActionsMultipleHistories> ChanceNode_Backward(ChanceNode chanceNode, IEnumerable<List<NodeActionsMultipleHistories>> fromSuccessors, int distributorChanceInputs)
         {
             List<NodeActionsMultipleHistories> returnList = new List<NodeActionsMultipleHistories>();
-            var invertMultipleHistories = GetMultipleHistoriesByPlayer(fromSuccessors);
+            var multipleHistoriesByPlayer = GetMultipleHistoriesByPlayer(fromSuccessors);
             for (byte playerIndex = 0; playerIndex < NumNonChancePlayers; playerIndex++)
             {
-                List<NodeActionsMultipleHistories> successorsForPlayer = invertMultipleHistories[playerIndex];
+                List<NodeActionsMultipleHistories> successorsForPlayer = multipleHistoriesByPlayer[playerIndex];
                 NodeActionsMultipleHistories result = NodeActionsMultipleHistories.FlattenedWithPrepend(successorsForPlayer, chanceNode, distributorChanceInputs, DistributingChanceActions);
                 returnList.Add(result);
                 if (Trace)
