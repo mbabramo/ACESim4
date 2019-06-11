@@ -77,7 +77,7 @@ namespace ACESim
         // Normalized hedge
         [NonSerialized]
         public SimpleExclusiveLock UpdatingHedge;
-        const double NormalizedHedgeEpsilon = 0.5; // Higher epsilon means less discounting; lower epsilons are more aggressive
+        const double NormalizedHedgeEpsilon = 0.999; // Higher epsilon means slower changes in weights; lower epsilons are more aggressive
         public byte LastBestResponseAction = 0;
         public bool BestResponseDeterminedFromIncrements = false; // this is used by the generalized best response algorithm to determine whether it needs to recalculate best response
 
@@ -782,6 +782,7 @@ namespace ACESim
 
         public void UpdateNormalizedHedge(int iteration, double averageStrategyAdjustment, bool normalizeCumulativeStrategyIncrements, bool resetPreviousCumulativeStrategyIncrements)
         {
+
             RecordProbabilitiesAsPastValues(iteration, averageStrategyAdjustment); // these are the average strategies played, and thus shouldn't reflect the updates below
 
             if (resetPreviousCumulativeStrategyIncrements)
@@ -821,9 +822,9 @@ namespace ACESim
             {
                 double denominator = NodeInformation[lastRegretDenominatorDimension, a - 1];
                 double regretUnnormalized = (denominator == 0) ? 0.5*(MaxPossibleThisPlayer - MinPossibleThisPlayer) : NodeInformation[lastRegretNumeratorDimension, a - 1] / denominator;
-                double regret = NormalizeRegret(regretUnnormalized);
-                double adjustedNormalizedRegret = 1.0 - regret; // if regret is high, this is low
-                double weightAdjustment = Math.Pow(1 - NormalizedHedgeEpsilon, adjustedNormalizedRegret); // if adjustedNormalizedRegret is low, then this is high (relatively close to 1)
+                double regret = NormalizeRegret(regretUnnormalized); // bad moves are now close to 0 and good moves are close to 1
+                double adjustedNormalizedRegret = 1.0 - regret; // if regret is high (good move), this is low; bad moves are now close to 1 and good moves are close to 0
+                double weightAdjustment = Math.Pow(1 - NormalizedHedgeEpsilon, adjustedNormalizedRegret); // if there is a good move, then this is high (relatively close to 1). For example, suppose NormalizedHedgeEpsilon is 0.5. Then, if adjustedNormalizedRegret is 0.9 (bad move), the weight adjustment is 0.536, but if adjustedNormalizedRegret is 0.1 (good move), the weight adjustment is only 0.933, so the bad move is discounted relative to the good move by 0.536/0.933. if NormalizedHedgeEpsilon is 0.1, then the weight adjustments are 0.98 and 0.90; i.e., the algorithm is much less greedy (because 1 - NormalizedHedgeEpsilon is relatively lose to 1). if NormalizedHedgeEpsilon is 0.9, the algorithm is much more greedy.
                 double weight = NodeInformation[adjustedWeightsDimension, a - 1];
                 weight *= weightAdjustment; // So, this weight reduces only slightly when regret is high
                 if (weight < SmallestProbabilityRepresented)
