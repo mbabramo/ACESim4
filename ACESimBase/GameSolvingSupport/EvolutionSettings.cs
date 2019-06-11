@@ -88,6 +88,7 @@ namespace ACESim
         public double MultiplicativeWeightsCurvature = 1.0;
         public double MultiplicativeWeightsEpsilon_BasedOnCurve(int iteration, int maxIteration) => MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(MultiplicativeWeightsInitial, MultiplicativeWeightsFinal, MultiplicativeWeightsCurvature, ((double)(iteration - 1)) / (double)maxIteration);
 
+        public int MultiplicativeWeightsEpsilon_SimulatedAnnealingEveryNIterations = 100;
         public double SimulatedAnnealingInitialAcceptance = 0.5;
         public double SimulatedAnnealingEventualAcceptance = 0.001;
         public double SimulatedAnnealingCurvature = 10.0;
@@ -98,7 +99,12 @@ namespace ACESim
             double r = new ConsistentRandomSequenceProducer(97).GetDoubleAtIndex(SimulatedAnnealingSet(iteration));
             return r < currentProbabilityOfAcceptance;
         }
-        public int MultiplicativeWeightsEpsilon_SimulatedAnnealingEveryNIterations = EffectivelyNever;
+
+        public double SimulatedAnnealing_RandomAverageStrategyAdjustment(int iteration, InformationSetNode informationSet)
+        {
+            double currentTotal = informationSet.AverageStrategyAdjustmentsSum;
+            double r = new ConsistentRandomSequenceProducer(19).GetDoubleAtIndex(SimulatedAnnealingSet(iteration));
+        }
 
         public double MultiplicativeWeightsEpsilon_SimulatedAnnealing(int iteration, int maxIteration) => new ConsistentRandomSequenceProducer(0).GetDoubleAtIndex(SimulatedAnnealingSet(iteration)); // a random number based on the simulated annealing group
 

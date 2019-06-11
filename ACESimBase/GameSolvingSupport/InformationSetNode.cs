@@ -83,6 +83,8 @@ namespace ACESim
         public SimpleExclusiveLock UpdatingHedge;
         public byte LastBestResponseAction = 0;
         public bool BestResponseDeterminedFromIncrements = false; // this is used by the generalized best response algorithm to determine whether it needs to recalculate best response
+        public double AverageStrategyAdjustmentsSum = 0;
+        public double LastAverageStrategyAdjustmentsSum = 0;
 
         // hedge probing
         double V = 0; // V parameter in Cesa-Bianchi
@@ -840,6 +842,7 @@ namespace ACESim
                         normalizedCumulativeStrategyIncrement /= lastCumulativeStrategyIncrementSum; // This is the key effect of normalizing. This will make all probabilities add up to 1, so that even if this is an iteration where it is very unlikely that we reach the information set, this iteration will not be discounted relative to iterations where we do reach the information set. It is useful to do this when discounting, since otherwise it may take trillions of iterations to make up for a few early iterations. But later on, we want to be giving greater weight to iterations in which the self-play probability is higher.
                 }
                 double adjustedIncrement = averageStrategyAdjustment * normalizedCumulativeStrategyIncrement; // ... but here we do our regular discounting so later iterations can count more than earlier ones
+                AverageStrategyAdjustmentsSum += averageStrategyAdjustment;
                 NodeInformation[cumulativeStrategyDimension, a - 1] += adjustedIncrement;
                 NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1] = 0;
             }
