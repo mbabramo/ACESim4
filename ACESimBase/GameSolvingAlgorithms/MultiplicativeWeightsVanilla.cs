@@ -81,7 +81,7 @@ namespace ACESim
                 Unroll_ExecuteUnrolledCommands(array, iteration == 1);
                 StrategiesDeveloperStopwatch.Stop();
                 UpdateInformationSets(iteration);
-                ConsiderMultiplicativeWeightsEpsilon(iteration);
+                SimulatedAnnealing(iteration);
                 MiniReport(iteration, Unroll_IterationResultForPlayers);
                 reportString = await GenerateReports(iteration,
                     () =>
@@ -683,7 +683,7 @@ namespace ACESim
                 MultiplicativeWeightsVanillaCFRIteration_OptimizePlayer(iteration, results, playerBeingOptimized);
             }
             UpdateInformationSets(iteration);
-            ConsiderMultiplicativeWeightsEpsilon(iteration);
+            SimulatedAnnealing(iteration);
             MiniReport(iteration, results);
 
             reportString = await GenerateReports(iteration,
@@ -706,32 +706,32 @@ namespace ACESim
             StrategiesDeveloperStopwatch.Stop();
         }
 
-        private void ConsiderMultiplicativeWeightsEpsilon(int iteration)
+        private void SimulatedAnnealing(int iteration)
         {
-            // DEBUG
-            //if (iteration % EvolutionSettings.MultiplicativeWeightsEpsilon_ConsiderEveryNIterations == 0)
-            //{
-            //    if (!EvolutionSettings.UseAcceleratedBestResponse)
-            //        throw new NotSupportedException(); // we need the average strategy result, which for now we only have with accelerated best response
-            //    CalculateBestResponse();
-            //    double sumBestResponseImprovements = BestResponseImprovement.Sum();
-            //    if (LastBestResponseImprovement != null)
-            //    {
-            //        double lastSumBestResponseImprovements = LastBestResponseImprovement.Sum();
-            //        Console.WriteLine($"DEBUG iteration {iteration} epsilon {EvolutionSettings.MultiplicativeWeightsEpsilon} lastsum {lastSumBestResponseImprovements} newsum {sumBestResponseImprovements} {(sumBestResponseImprovements > lastSumBestResponseImprovements ? " (Worse)" : "")}");
-            //        if (sumBestResponseImprovements > lastSumBestResponseImprovements)
-            //        {
-            //            // Things are getting worse! 
-            //            EvolutionSettings.MultiplicativeWeightsLevelChanges++;
-            //        }
-            //        else
-            //        {
-            //            if (EvolutionSettings.MultiplicativeWeightsLevelChanges > 0)
-            //                EvolutionSettings.MultiplicativeWeightsLevelChanges--;
-            //        }
-            //    }
-            //    LastBestResponseImprovement = BestResponseImprovement.ToArray();
-            //}
+            if (iteration % EvolutionSettings.MultiplicativeWeightsEpsilon_SimulatedAnnealingEveryNIterations == 0)
+            {
+                if (!EvolutionSettings.UseAcceleratedBestResponse)
+                    throw new NotSupportedException(); // we need the average strategy result, which for now we only have with accelerated best response
+                CalculateBestResponse();
+                double sumBestResponseImprovements = BestResponseImprovement.Sum();
+                if (LastBestResponseImprovement != null)
+                {
+                    double lastSumBestResponseImprovements = LastBestResponseImprovement.Sum();
+                    if (sumBestResponseImprovements > lastSumBestResponseImprovements)
+                    {
+                        // Things got worse! Consider rejecting.
+                        if (!EvolutionSettings.AcceptSimulatedAnnealingIfWorse(iteration, EvolutionSettings.TotalVanillaCFRIterations))
+                        {
+                            // Reject -- that is, revert to previous backup. We will then have a different epsilon value in the next set (since iterations keep marching forward), so we may have a different outcome, and even if we don't, we may accept.
+                            Parallel.ForEach(InformationSets, informationSet => informationSet.MultiplicativeWeightsRestoreBackup());
+                            BestResponseImprovement = LastBestResponseImprovement.ToArray();
+                            return;
+                        }
+                    }
+                }
+                Parallel.ForEach(InformationSets, informationSet => informationSet.MultiplicativeWeightsCreateBackup());
+                LastBestResponseImprovement = BestResponseImprovement.ToArray();
+            }
         }
 
         private unsafe void MiniReport(int iteration, MultiplicativeWeightsVanillaUtilities[] results)

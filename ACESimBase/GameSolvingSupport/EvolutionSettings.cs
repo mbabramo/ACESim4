@@ -86,7 +86,23 @@ namespace ACESim
         public double MultiplicativeWeightsInitial = 0.95;
         public double MultiplicativeWeightsFinal = 0.95;
         public double MultiplicativeWeightsCurvature = 1.0;
-        public double MultiplicativeWeightsEpsilon(int iteration, int maxIteration) => MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(MultiplicativeWeightsInitial, MultiplicativeWeightsFinal, MultiplicativeWeightsCurvature, ((double) (iteration - 1)) / (double) maxIteration);
+        public double MultiplicativeWeightsEpsilon_BasedOnCurve(int iteration, int maxIteration) => MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(MultiplicativeWeightsInitial, MultiplicativeWeightsFinal, MultiplicativeWeightsCurvature, ((double)(iteration - 1)) / (double)maxIteration);
+
+        public double SimulatedAnnealingInitialAcceptance = 0.5;
+        public double SimulatedAnnealingEventualAcceptance = 0.001;
+        public double SimulatedAnnealingCurvature = 10.0;
+        public int SimulatedAnnealingSet(int iteration) => (iteration - 1) / MultiplicativeWeightsEpsilon_SimulatedAnnealingEveryNIterations;
+        public bool AcceptSimulatedAnnealingIfWorse(int iteration, int maxIteration)
+        {
+            double currentProbabilityOfAcceptance = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(SimulatedAnnealingInitialAcceptance, SimulatedAnnealingEventualAcceptance, SimulatedAnnealingCurvature, (double)iteration / (double)maxIteration);
+            double r = new ConsistentRandomSequenceProducer(97).GetDoubleAtIndex(SimulatedAnnealingSet(iteration));
+            return r < currentProbabilityOfAcceptance;
+        }
+        public int MultiplicativeWeightsEpsilon_SimulatedAnnealingEveryNIterations = EffectivelyNever;
+
+        public double MultiplicativeWeightsEpsilon_SimulatedAnnealing(int iteration, int maxIteration) => new ConsistentRandomSequenceProducer(0).GetDoubleAtIndex(SimulatedAnnealingSet(iteration)); // a random number based on the simulated annealing group
+
+        public double MultiplicativeWeightsEpsilon(int iteration, int maxIteration) => MultiplicativeWeightsEpsilon_SimulatedAnnealingEveryNIterations == EffectivelyNever ? MultiplicativeWeightsEpsilon_BasedOnCurve(iteration, maxIteration) : MultiplicativeWeightsEpsilon_SimulatedAnnealing(iteration, maxIteration);
 
         public void ChangeMultiplicativeWeightsEpsilon(bool moreAggressive)
         {
