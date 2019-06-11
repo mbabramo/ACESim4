@@ -314,7 +314,7 @@ namespace ACESim
         public void AnalyzeInformationSets()
         {
             foreach (var infoSet in InformationSets)
-                infoSet.Analyze();
+                infoSet.MultiplicativeWeightsAnalyze();
         }
 
         public void PrintGameTree()
@@ -618,6 +618,7 @@ namespace ACESim
 
         double[] BestResponseUtilities;
         double[] AverageStrategyUtilities;
+        double[] BestResponseImprovement;
         long BestResponseCalculationTime;
 
         bool BestResponseIsToAverageStrategy = true; // usually, this should be true, since the average strategy is the least exploitable strategy
@@ -660,14 +661,18 @@ namespace ACESim
                     Parallel.ForEach(informationSetsForDecision, informationSet => informationSet.AcceleratedBestResponse_DetermineWhetherReachable());
                 }
             // Finally, we need to calculate the final values by looking at the first information sets for each player.
+            if (BestResponseUtilities == null)
+            {
+                BestResponseUtilities = new double[NumNonChancePlayers];
+                BestResponseImprovement = new double[NumNonChancePlayers];
+            }
             for (byte playerIndex = 0; playerIndex < NumNonChancePlayers; playerIndex++)
             {
                 var resultForPlayer = AcceleratedBestResponsePrepResult[playerIndex];
                 (double bestResponseResult, double averageStrategyResult) = resultForPlayer.GetProbabilityAdjustedValueOfPaths(playerIndex);
-                if (BestResponseUtilities == null)
-                    BestResponseUtilities = new double[NumNonChancePlayers];
                 BestResponseUtilities[playerIndex] = bestResponseResult;
                 AverageStrategyUtilities[playerIndex] = averageStrategyResult;
+                BestResponseImprovement[playerIndex] = bestResponseResult - averageStrategyResult;
             }
         }
         public unsafe void CalculateBestResponse()
@@ -718,10 +723,10 @@ namespace ACESim
                 actionStrategy = ActionStrategies.AverageStrategy; // best response against average strategy is same as against correlated equilibrium
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
-                string utilityReport = $"{AverageStrategyUtilities[playerBeingOptimized]} ", improvementReport = $" best response improvement {BestResponseUtilities[playerBeingOptimized] - AverageStrategyUtilities[playerBeingOptimized]}";
-
-                Console.WriteLine($"U(P{playerBeingOptimized}) {ActionStrategyLastReport}: {utilityReport}Best response vs. {BestResponseOpponentString} {BestResponseUtilities[playerBeingOptimized]}{improvementReport}");
+                Console.WriteLine($"U(P{playerBeingOptimized}) {ActionStrategyLastReport}: {AverageStrategyUtilities[playerBeingOptimized]} Best response vs. {BestResponseOpponentString} {BestResponseUtilities[playerBeingOptimized]} Best response improvement: {BestResponseImprovement?[playerBeingOptimized]}");
             }
+            if (!averageStrategyUtilitiesRecorded)
+                AverageStrategyUtilities = null; // we may be using approximations, so set to null to avoid confusion
             Console.WriteLine($"Total best response calculation time: {BestResponseCalculationTime} milliseconds");
             Console.WriteLine("");
         }

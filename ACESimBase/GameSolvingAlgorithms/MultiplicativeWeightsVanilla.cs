@@ -842,7 +842,7 @@ namespace ACESim
                 {
                     double pi = piValues[playerBeingOptimized];
                     var regret = (expectedValueOfAction[action - 1] - expectedValue);
-                    // NOTE: With normalized hedge, we do NOT discount regrets, because we're normalizing regrets at the end of each iteration.
+                    // NOTE: With multiplicative weights, we do NOT discount regrets, because we're normalizing regrets at the end of each iteration.
                     double piAdj = pi;
                     if (pi < InformationSetNode.SmallestProbabilityRepresented)
                         piAdj = InformationSetNode.SmallestProbabilityRepresented;

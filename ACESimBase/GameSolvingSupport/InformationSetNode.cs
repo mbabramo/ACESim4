@@ -30,6 +30,7 @@ namespace ACESim
         public int NumTotalIncrements = 0;
         public int NumRegretIncrements = 0;
 
+        // for exploratory probing
         public int NumBackupRegretIncrements = 0;
         public int NumBackupRegretsSinceLastRegretIncrement = 0;
 
@@ -60,15 +61,17 @@ namespace ACESim
         const int cumulativeStrategyDimension = 1;
         const int bestResponseNumeratorDimension = 2;
         const int bestResponseDenominatorDimension = 3;
+        // for multiplicative weights
+        const int lastRegretDenominatorDimension = 0; // we don't use cumulativeRegret for multiplicative weights
+        const int lastRegretNumeratorDimension = 4;
+        const int adjustedWeightsDimension = 5;
+        const int averageStrategyProbabilityDimension = 6;
+        const int backupCumulativeStrategyDimension = 7;
+        const int backupAdjustedWeightsDimension = 8;
         // for hedge probing
-        const int hedgeProbabilityDimension = 4;
-        const int lastRegretNumeratorDimension = 5;
+        const int hedgeProbabilityDimension = 5;
         const int lastCumulativeStrategyIncrementsDimension = 6;
         const int temporaryDimension = 7;
-        // for normalized hedge (including also hedge probability dimension and last regret dimension)
-        const int lastRegretDenominatorDimension = 0; // we don't use cumulativeRegret for normalized hedge
-        const int adjustedWeightsDimension = 7;
-        const int averageStrategyProbabilityDimension = 8;
         // for exploratory probing
         const int storageDimension = 4;
         const int storageDimension2 = 5;
@@ -833,7 +836,7 @@ namespace ACESim
             {
                 double denominator = NodeInformation[lastRegretDenominatorDimension, a - 1];
                 double regretUnnormalized = (denominator == 0) ? 0.5*(MaxPossibleThisPlayer - MinPossibleThisPlayer) : NodeInformation[lastRegretNumeratorDimension, a - 1] / denominator;
-                double regret = NormalizeRegret(regretUnnormalized); // bad moves are now close to 0 and good moves are close to 1
+                double regret = MultiplicativeWeightsNormalizeRegret(regretUnnormalized); // bad moves are now close to 0 and good moves are close to 1
                 double adjustedNormalizedRegret = 1.0 - regret; // if regret is high (good move), this is low; bad moves are now close to 1 and good moves are close to 0
                 double weightAdjustment = Math.Pow(1 - MultiplicativeWeightsEpsilon, adjustedNormalizedRegret); // if there is a good move, then this is high (relatively close to 1). For example, suppose MultiplicativeWeightsEpsilon is 0.5. Then, if adjustedNormalizedRegret is 0.9 (bad move), the weight adjustment is 0.536, but if adjustedNormalizedRegret is 0.1 (good move), the weight adjustment is only 0.933, so the bad move is discounted relative to the good move by 0.536/0.933. if MultiplicativeWeightsEpsilon is 0.1, then the weight adjustments are 0.98 and 0.90; i.e., the algorithm is much less greedy (because 1 - MultiplicativeWeightsEpsilon is relatively lose to 1). if MultiplicativeWeightsEpsilon is 0.9, the algorithm is much more greedy.
                 double weight = NodeInformation[adjustedWeightsDimension, a - 1];
@@ -924,7 +927,7 @@ namespace ACESim
             //Interlocked.Increment(ref NumRegretIncrements);
         }
 
-        public double NormalizeRegret(double regret)
+        public double MultiplicativeWeightsNormalizeRegret(double regret)
         {
             // best performance possible occurs if expected value is MaxPossibleThisPlayer when overall expected value is MinPossibleThisPlayer. worst performance possible occurs if regret is MinPossibleThisPlayer when overall expected value is MaxPossibleThisPlayer. Regret can range from -(MaxPossible - MinPossible) to +(MaxPossible - MinPossible). Thus, Regret + (MaxPossible - MinPossible) can range from 0 to 2*(MaxPossible - MinPossible). So, we can normalize regret to be from 0 to 1 by calculating (regret + range) / (2 * range).
             double range = MaxPossibleThisPlayer - MinPossibleThisPlayer;
@@ -1003,7 +1006,25 @@ namespace ACESim
             return String.Join(", ", GetMultiplicativeWeightsProbabilitiesAsArray().Select(x => x.ToSignificantFigures(3)));
         }
 
-        public void Analyze()
+        public void MultiplicativeWeightsCreateBackup()
+        {
+            for (byte action = 1; action <= NumPossibleActions; action++)
+            {
+                NodeInformation[backupAdjustedWeightsDimension, action - 1] = NodeInformation[adjustedWeightsDimension, action - 1];
+                NodeInformation[backupCumulativeStrategyDimension, action - 1] = NodeInformation[cumulativeStrategyDimension, action - 1];
+            }
+        }
+
+        public void MultiplicativeWeightsRestoreBackup()
+        {
+            for (byte action = 1; action <= NumPossibleActions; action++)
+            {
+                NodeInformation[adjustedWeightsDimension, action - 1] = NodeInformation[backupAdjustedWeightsDimension, action - 1];
+                NodeInformation[cumulativeStrategyDimension, action - 1] = NodeInformation[backupCumulativeStrategyDimension, action - 1];
+            }
+        }
+
+        public void MultiplicativeWeightsAnalyze()
         {
             string avgDistanceString = null, rangesString = null;
             List<(int startIteration, int endIteration, int significantActions)> ranges = null;
