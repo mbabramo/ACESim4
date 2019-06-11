@@ -9,7 +9,7 @@ namespace ACESim
         /// </summary>
         public double HedgeVsHedge;
         /// <summary>
-        /// The utility from the player being optimized playing an average strategy against the other player playing an average strategy. This can be used to compare with best response to average strategies; in an epsilon-equilibrium, they should be very close.
+        /// The utility from the player being optimized playing an average strategy against the other player playing an average strategy. This can be used to compare with best response to average strategies; in an epsilon-equilibrium, they should be very close. Note that this is an exact result based on the average strategies of the prior player at the time of the most recent player's update, but it will not be up to date after the most recent player updates. 
         /// </summary>
         public double AverageStrategyVsAverageStrategy;
         /// <summary>
@@ -19,7 +19,7 @@ namespace ACESim
 
         public override string ToString()
         {
-            return $"Playing hedge: {HedgeVsHedge} avgstrat {AverageStrategyVsAverageStrategy} approx bestres {BestResponseToAverageStrategy} diff {BestResponseToAverageStrategy - AverageStrategyVsAverageStrategy}";
+            return $"Playing hedge: {HedgeVsHedge} approx avgstrat {AverageStrategyVsAverageStrategy} approx bestres {BestResponseToAverageStrategy} diff {BestResponseToAverageStrategy - AverageStrategyVsAverageStrategy}";
         }
 
         public void IncrementBasedOnNotYetProbabilityAdjusted(ref HedgeVanillaUtilities other, double averageStrategyProbability, double hedgeProbability)
