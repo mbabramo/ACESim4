@@ -56,7 +56,7 @@ namespace ACESim
         double PastValuesLastCumulativeStrategyDiscount => PastValuesCumulativeStrategyDiscounts[LastPastValueIndexRecorded];
 
         public int NumPossibleActions => Decision.NumPossibleActions;
-        const int totalDimensions = 9;
+        const int totalDimensions = 10;
         const int cumulativeRegretDimension = 0;
         const int cumulativeStrategyDimension = 1;
         const int bestResponseNumeratorDimension = 2;
@@ -68,6 +68,7 @@ namespace ACESim
         const int averageStrategyProbabilityDimension = 6;
         const int backupCumulativeStrategyDimension = 7;
         const int backupAdjustedWeightsDimension = 8;
+        const int backupAverageStrategyProbabilityDimension = 8;
         // for hedge probing
         const int hedgeProbabilityDimension = 5;
         const int lastCumulativeStrategyIncrementsDimension = 6;
@@ -80,7 +81,6 @@ namespace ACESim
         // Normalized hedge
         [NonSerialized]
         public SimpleExclusiveLock UpdatingHedge;
-        const double MultiplicativeWeightsEpsilon = 0.50; // Higher epsilon means slower changes in weights; lower epsilons are more aggressive
         public byte LastBestResponseAction = 0;
         public bool BestResponseDeterminedFromIncrements = false; // this is used by the generalized best response algorithm to determine whether it needs to recalculate best response
 
@@ -794,7 +794,7 @@ namespace ACESim
 
         // Note: The first two methods must be used if we don't have a guarantee that updating will take place before each iteration.
 
-        public void UpdateMultiplicativeWeights(int iteration, double averageStrategyAdjustment, bool normalizeCumulativeStrategyIncrements, bool resetPreviousCumulativeStrategyIncrements)
+        public void UpdateMultiplicativeWeights(int iteration, double multiplicativeWeightsEpsilon, double averageStrategyAdjustment, bool normalizeCumulativeStrategyIncrements, bool resetPreviousCumulativeStrategyIncrements)
         {
 
             RecordProbabilitiesAsPastValues(iteration, averageStrategyAdjustment); // these are the average strategies played, and thus shouldn't reflect the updates below
@@ -838,7 +838,7 @@ namespace ACESim
                 double regretUnnormalized = (denominator == 0) ? 0.5*(MaxPossibleThisPlayer - MinPossibleThisPlayer) : NodeInformation[lastRegretNumeratorDimension, a - 1] / denominator;
                 double regret = MultiplicativeWeightsNormalizeRegret(regretUnnormalized); // bad moves are now close to 0 and good moves are close to 1
                 double adjustedNormalizedRegret = 1.0 - regret; // if regret is high (good move), this is low; bad moves are now close to 1 and good moves are close to 0
-                double weightAdjustment = Math.Pow(1 - MultiplicativeWeightsEpsilon, adjustedNormalizedRegret); // if there is a good move, then this is high (relatively close to 1). For example, suppose MultiplicativeWeightsEpsilon is 0.5. Then, if adjustedNormalizedRegret is 0.9 (bad move), the weight adjustment is 0.536, but if adjustedNormalizedRegret is 0.1 (good move), the weight adjustment is only 0.933, so the bad move is discounted relative to the good move by 0.536/0.933. if MultiplicativeWeightsEpsilon is 0.1, then the weight adjustments are 0.98 and 0.90; i.e., the algorithm is much less greedy (because 1 - MultiplicativeWeightsEpsilon is relatively lose to 1). if MultiplicativeWeightsEpsilon is 0.9, the algorithm is much more greedy.
+                double weightAdjustment = Math.Pow(1 - multiplicativeWeightsEpsilon, adjustedNormalizedRegret); // if there is a good move, then this is high (relatively close to 1). For example, suppose MultiplicativeWeightsEpsilon is 0.5. Then, if adjustedNormalizedRegret is 0.9 (bad move), the weight adjustment is 0.536, but if adjustedNormalizedRegret is 0.1 (good move), the weight adjustment is only 0.933, so the bad move is discounted relative to the good move by 0.536/0.933. if MultiplicativeWeightsEpsilon is 0.1, then the weight adjustments are 0.98 and 0.90; i.e., the algorithm is much less greedy (because 1 - MultiplicativeWeightsEpsilon is relatively lose to 1). if MultiplicativeWeightsEpsilon is 0.9, the algorithm is much more greedy.
                 double weight = NodeInformation[adjustedWeightsDimension, a - 1];
                 weight *= weightAdjustment; // So, this weight reduces only slightly when regret is high
                 if (weight < SmallestProbabilityRepresented)
@@ -1012,6 +1012,7 @@ namespace ACESim
             {
                 NodeInformation[backupAdjustedWeightsDimension, action - 1] = NodeInformation[adjustedWeightsDimension, action - 1];
                 NodeInformation[backupCumulativeStrategyDimension, action - 1] = NodeInformation[cumulativeStrategyDimension, action - 1];
+                NodeInformation[backupAverageStrategyProbabilityDimension, action - 1] = NodeInformation[averageStrategyProbabilityDimension, action - 1];
             }
         }
 
@@ -1021,6 +1022,7 @@ namespace ACESim
             {
                 NodeInformation[adjustedWeightsDimension, action - 1] = NodeInformation[backupAdjustedWeightsDimension, action - 1];
                 NodeInformation[cumulativeStrategyDimension, action - 1] = NodeInformation[backupCumulativeStrategyDimension, action - 1];
+                NodeInformation[averageStrategyProbabilityDimension, action - 1] = NodeInformation[backupAverageStrategyProbabilityDimension, action - 1];
             }
         }
 

@@ -38,18 +38,20 @@ namespace ACESim
         public void UpdateInformationSets(int iteration)
         {
             int numInformationSets = InformationSets.Count;
+            double multiplicativeWeightsEpsilon = EvolutionSettings.MultiplicativeWeightsEpsilon;
+
             if (alwaysNormalizeCumulativeStrategyIncrements || EvolutionSettings.DiscountingTarget_ConstantAfterProportionOfIterations == 1.0)
-                Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, AverageStrategyAdjustment, true, false));
+                Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, multiplicativeWeightsEpsilon, AverageStrategyAdjustment, true, false));
             else
             {
                 int maxIterationToDiscount = EvolutionSettings.StopDiscountingAtIteration;
 
                 if (iteration < maxIterationToDiscount)
-                    Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, AverageStrategyAdjustment, true, false));
+                    Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, multiplicativeWeightsEpsilon, AverageStrategyAdjustment, true, false));
                 else if (iteration == maxIterationToDiscount)
-                    Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, 1.0, false, true));
+                    Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, multiplicativeWeightsEpsilon, 1.0, false, true));
                 else
-                    Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, 1.0, false, false));
+                    Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, multiplicativeWeightsEpsilon, 1.0, false, false));
             }
         }
 
@@ -78,8 +80,9 @@ namespace ACESim
                 StrategiesDeveloperStopwatch.Start();
                 Unroll_ExecuteUnrolledCommands(array, iteration == 1);
                 StrategiesDeveloperStopwatch.Stop();
-                MiniReport(iteration, Unroll_IterationResultForPlayers);
                 UpdateInformationSets(iteration);
+                ConsiderMultiplicativeWeightsEpsilon(iteration);
+                MiniReport(iteration, Unroll_IterationResultForPlayers);
                 reportString = await GenerateReports(iteration,
                     () =>
                         $"Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
@@ -679,9 +682,9 @@ namespace ACESim
             {
                 MultiplicativeWeightsVanillaCFRIteration_OptimizePlayer(iteration, results, playerBeingOptimized);
             }
-            MiniReport(iteration, results);
-
             UpdateInformationSets(iteration);
+            ConsiderMultiplicativeWeightsEpsilon(iteration);
+            MiniReport(iteration, results);
 
             reportString = await GenerateReports(iteration,
                 () =>
@@ -701,6 +704,42 @@ namespace ACESim
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
             results[playerBeingOptimized] = MultiplicativeWeightsVanillaCFR(ref historyPoint, playerBeingOptimized, initialPiValues, initialAvgStratPiValues, 0);
             StrategiesDeveloperStopwatch.Stop();
+        }
+
+        private void ConsiderMultiplicativeWeightsEpsilon(int iteration)
+        {
+            if (iteration % EvolutionSettings.MultiplicativeWeightsEpsilon_ConsiderEveryNIterations == 0)
+            {
+                if (!EvolutionSettings.UseAcceleratedBestResponse)
+                    throw new NotSupportedException(); // we need the average strategy result, which for now we only have with accelerated best response
+                CalculateBestResponse();
+                double sumBestResponseImprovements = BestResponseImprovement.Sum();
+                if (LastBestResponseImprovement != null)
+                {
+                    double lastSumBestResponseImprovements = LastBestResponseImprovement.Sum();
+                    Console.WriteLine($"DEBUG iteration {iteration} lastsum {lastSumBestResponseImprovements} newsum {sumBestResponseImprovements} {(sumBestResponseImprovements > lastSumBestResponseImprovements ? " (Reverting)" : "")}");
+                    if (sumBestResponseImprovements > lastSumBestResponseImprovements)
+                    {
+                        // Things are getting worse! We will reject all of the changes since the last time we ran the best response improvements (equivalent to playing with a MultiplicativeWeightsEpsilon of 1). Then, we will try again, getting less aggressive.
+                        EvolutionSettings.MultiplicativeWeightsLevelChanges++;
+                        Parallel.ForEach(InformationSets, informationSet => informationSet.MultiplicativeWeightsRestoreBackup());
+
+                        // DEBUG
+                        CalculateBestResponse();
+                        if (BestResponseImprovement.Sum() != LastBestResponseImprovement.Sum())
+                            throw new Exception();
+
+                        BestResponseImprovement = LastBestResponseImprovement.ToArray();
+                    }
+                    else
+                    {
+                        LastBestResponseImprovement = BestResponseImprovement.ToArray();
+                        Parallel.ForEach(InformationSets, informationSet => informationSet.MultiplicativeWeightsCreateBackup());
+                    }
+                }
+                else
+                    LastBestResponseImprovement = BestResponseImprovement.ToArray();
+            }
         }
 
         private unsafe void MiniReport(int iteration, MultiplicativeWeightsVanillaUtilities[] results)

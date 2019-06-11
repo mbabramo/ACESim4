@@ -616,9 +616,11 @@ namespace ACESim
             return reports.csvReport;
         }
 
-        double[] BestResponseUtilities;
-        double[] AverageStrategyUtilities;
-        double[] BestResponseImprovement;
+        public double[] BestResponseUtilities;
+        public double[] AverageStrategyUtilities;
+        public double[] BestResponseImprovement;
+        public double[] LastBestResponseImprovement;
+
         long BestResponseCalculationTime;
 
         bool BestResponseIsToAverageStrategy = true; // usually, this should be true, since the average strategy is the least exploitable strategy
@@ -661,7 +663,7 @@ namespace ACESim
                     Parallel.ForEach(informationSetsForDecision, informationSet => informationSet.AcceleratedBestResponse_DetermineWhetherReachable());
                 }
             // Finally, we need to calculate the final values by looking at the first information sets for each player.
-            if (BestResponseUtilities == null)
+            if (BestResponseUtilities == null || BestResponseImprovement == null)
             {
                 BestResponseUtilities = new double[NumNonChancePlayers];
                 BestResponseImprovement = new double[NumNonChancePlayers];
