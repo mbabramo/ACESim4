@@ -83,8 +83,8 @@ namespace ACESim
             Discounting_Gamma = Math.Log(DiscountingTarget_TargetDiscount) / (Math.Log(p * t / (p * t + 1)) - Math.Log(t / (t + 1)));
         }
 
-        public double MultiplicativeWeightsInitial = 0.5;
-        public double MultiplicativeWeightsFinal = 0.5;
+        public double MultiplicativeWeightsInitial = 0.95;
+        public double MultiplicativeWeightsFinal = 0.95;
         public double MultiplicativeWeightsCurvature = 1.0;
         public double MultiplicativeWeightsEpsilon(int iteration, int maxIteration) => MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(MultiplicativeWeightsInitial, MultiplicativeWeightsFinal, MultiplicativeWeightsCurvature, ((double) (iteration - 1)) / (double) maxIteration);
 
