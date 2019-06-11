@@ -77,7 +77,7 @@ namespace ACESim
         // Normalized hedge
         [NonSerialized]
         public SimpleExclusiveLock UpdatingHedge;
-        const double NormalizedHedgeEpsilon = 0.999; // Higher epsilon means slower changes in weights; lower epsilons are more aggressive
+        const double NormalizedHedgeEpsilon = 0.50; // Higher epsilon means slower changes in weights; lower epsilons are more aggressive
         public byte LastBestResponseAction = 0;
         public bool BestResponseDeterminedFromIncrements = false; // this is used by the generalized best response algorithm to determine whether it needs to recalculate best response
 
@@ -309,6 +309,8 @@ namespace ACESim
         public List<List<NodeActionsMultipleHistories>> PathsToSuccessors;
         public double LastBestResponseValue => BestResponseOptions?[LastBestResponseAction - 1] ?? 0; 
         public double[] BestResponseOptions; // one per action for this player
+        public double[] AverageStrategyResultsForPathFromPredecessor;
+        public int NumVisitsFromPredecessorToGetAverageStrategy;
 
         public void AcceleratedBestResponse_CalculateReachProbabilities()
         {
@@ -333,27 +335,36 @@ namespace ACESim
             if (BestResponseOptions == null)
                 BestResponseOptions = new double[Decision.NumPossibleActions];
             // Note: Each time the information set was visited in the initial tree walk set up, the algorithm will have recorded one or more paths to one or more successors, combined into a single NodeActionsMultipleHistories that reflects their relative probability weight. Thus, we have one NodeActionsMultipleHistories for each possible prior history. Each path includes opponent and chance actions, and each culminates in a successor -- either a final utilities for the player or a later information set for the player that has already been calculated. To calculate the value of an action, we need to calculate the averages of the NodeActionsMultipleHistories weighted by the probability that opponents play to here. We need calculate only this player's best response value, as the best response values for other players will be calculated on their own information sets.
+
+            int numPathsFromPredecessor = PathsFromPredecessor.Count();
+            if (AverageStrategyResultsForPathFromPredecessor == null)
+                AverageStrategyResultsForPathFromPredecessor = new double[numPathsFromPredecessor];
+            else for (int pathToHere = 0; pathToHere < numPathsFromPredecessor; pathToHere++)
+                AverageStrategyResultsForPathFromPredecessor[pathToHere] = 0;
             for (byte action = 1; action <= Decision.NumPossibleActions; action++)
             {
                 var pathsToSuccessorsForAction = PathsToSuccessors[action - 1];
-                int numPathsToInformationSet = PathsFromPredecessor.Count();
+                int numPathsToInformationSet = numPathsFromPredecessor;
                 if (pathsToSuccessorsForAction.Count() != numPathsToInformationSet)
                     throw new Exception();
-                double accumulatedNumerator = 0, accumulatedDenominator = 0;
+                double averageStrategyProbability = GetAverageStrategy(action);
+                double accumulatedBestResponseNumerator = 0, accumulatedBestResponseDenominatorDenominator = 0;
                 for (int pathToHere = 0; pathToHere < numPathsToInformationSet; pathToHere++)
                 {
-                    double unweightedSuccessorValue = pathsToSuccessorsForAction[pathToHere].GetProbabilityAdjustedValueOfPaths(PlayerIndex);
+                    (double unweightedSuccessorBestResponseValue, double averageStrategyValue) = pathsToSuccessorsForAction[pathToHere].GetProbabilityAdjustedValueOfPaths(PlayerIndex);
+                    AverageStrategyResultsForPathFromPredecessor[pathToHere] += averageStrategyValue * averageStrategyProbability; // for average strategy, we are weighting the path to successors for each path from predecessors by the average strategy probability. 
                     double opponentsReachProbabilityForPath = PathsFromPredecessor[pathToHere].Probability;
-                    double weighted = unweightedSuccessorValue * opponentsReachProbabilityForPath;
-                    accumulatedNumerator += weighted;
-                    accumulatedDenominator += opponentsReachProbabilityForPath;
+                    double weighted = unweightedSuccessorBestResponseValue * opponentsReachProbabilityForPath;
+                    accumulatedBestResponseNumerator += weighted;
+                    accumulatedBestResponseDenominatorDenominator += opponentsReachProbabilityForPath;
                 }
-                BestResponseOptions[action - 1] = accumulatedDenominator == 0 ? 0 : accumulatedNumerator / accumulatedDenominator;
+                BestResponseOptions[action - 1] = accumulatedBestResponseDenominatorDenominator == 0 ? 0 : accumulatedBestResponseNumerator / accumulatedBestResponseDenominatorDenominator;
                 if (action == 1 || BestResponseOptions[action - 1] > LastBestResponseValue)
                 {
                     LastBestResponseAction = action;
                 }
             }
+            NumVisitsFromPredecessorToGetAverageStrategy = 0; // reset this so that we know which average strategy value to return
         }
 
         public void AcceleratedBestResponse_DetermineWhetherReachable()

@@ -20,7 +20,7 @@ namespace ACESim
         public const int ProbingIterations = 20_000_000;
         public const int VanillaIterations = 50_000;
         public const int VanillaReportEveryNIterations = VanillaIterations;
-        public const int VanillaBestResponseEveryMIterations = VanillaIterations;
+        public const int VanillaBestResponseEveryMIterations = 1000;
         public const int MiniReportEveryPIterations = 1000; 
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EvolutionSettings.EffectivelyNever; // DEBUG
         public const int RecordPastValuesEveryNIterations = 100; // DEBUG // used for correlated equilibrium calculations

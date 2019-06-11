@@ -577,11 +577,9 @@ namespace ACESim
                         }
                     ActionStrategy = previous;
                     Br.eak.Remove("Report");
-                    if (doBestResponse)
-                        CompareBestResponse(false);
                 }
-                else if (doBestResponse)
-                    SummarizeBestResponse();
+                if (doBestResponse)
+                    CompareBestResponse();
                 if (iteration % EvolutionSettings.CorrelatedEquilibriumCalculationsEveryNIterations == 0)
                     DoCorrelatedEquilibriumCalculations(iteration);
                 if (EvolutionSettings.PrintGameTree)
@@ -619,6 +617,7 @@ namespace ACESim
         }
 
         double[] BestResponseUtilities;
+        double[] AverageStrategyUtilities;
         long BestResponseCalculationTime;
 
         bool BestResponseIsToAverageStrategy = true; // usually, this should be true, since the average strategy is the least exploitable strategy
@@ -660,13 +659,15 @@ namespace ACESim
                     List<InformationSetNode> informationSetsForDecision = InformationSetsByDecisionIndex[i];
                     Parallel.ForEach(informationSetsForDecision, informationSet => informationSet.AcceleratedBestResponse_DetermineWhetherReachable());
                 }
+            // Finally, we need to calculate the final values by looking at the first information sets for each player.
             for (byte playerIndex = 0; playerIndex < NumNonChancePlayers; playerIndex++)
             {
                 var resultForPlayer = AcceleratedBestResponsePrepResult[playerIndex];
-                double result = resultForPlayer.GetProbabilityAdjustedValueOfPaths(playerIndex);
+                (double bestResponseResult, double averageStrategyResult) = resultForPlayer.GetProbabilityAdjustedValueOfPaths(playerIndex);
                 if (BestResponseUtilities == null)
                     BestResponseUtilities = new double[NumNonChancePlayers];
-                BestResponseUtilities[playerIndex] = result;
+                BestResponseUtilities[playerIndex] = bestResponseResult;
+                AverageStrategyUtilities[playerIndex] = averageStrategyResult;
             }
         }
         public unsafe void CalculateBestResponse()
@@ -682,6 +683,7 @@ namespace ACESim
             s.Start();
             if (EvolutionSettings.UseAcceleratedBestResponse)
             {
+                AverageStrategyUtilities = new double[NumNonChancePlayers];
                 if (actionStrategy != ActionStrategies.AverageStrategy)
                     throw new NotSupportedException();
                 if (AcceleratedBestResponsePrepResult == null)
@@ -700,39 +702,25 @@ namespace ACESim
             BestResponseCalculationTime = s.ElapsedMilliseconds;
         }
 
-        private unsafe void CompareBestResponse(bool useRandomPaths)
+        private unsafe void CompareBestResponse()
         {
             // This is comparing (1) Best response vs. average strategy; to (2) most recently calculated average strategy
-            if (UtilityCalculationsArray == null)
-                return; // nothing to compare BR to
+            bool averageStrategyUtilitiesRecorded = AverageStrategyUtilities != null;
+            if (!averageStrategyUtilitiesRecorded)
+            {
+                if (UtilityCalculationsArray == null)
+                    return; // nothing to compare BR to
+                else
+                    AverageStrategyUtilities = UtilityCalculationsArray.StatCollectors.Select(x => x.Average()).ToArray();
+            }
             ActionStrategies actionStrategy = ActionStrategy;
             if (actionStrategy == ActionStrategies.CorrelatedEquilibrium)
                 actionStrategy = ActionStrategies.AverageStrategy; // best response against average strategy is same as against correlated equilibrium
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
-                bool utilityCalculationsCollected = UtilityCalculationsArray.StatCollectors[playerBeingOptimized].Num() > 0;
-                string utilityReport = "", improvementReport = "";
-                if (utilityCalculationsCollected)
-                {
-                    utilityReport = $"{UtilityCalculationsArray.StatCollectors[playerBeingOptimized].Average()} ";
-                    double bestResponseImprovement = BestResponseUtilities[playerBeingOptimized] - UtilityCalculationsArray.StatCollectors[playerBeingOptimized].Average();
-                    if (!useRandomPaths && bestResponseImprovement < 0 && Math.Abs(bestResponseImprovement) > Math.Abs(BestResponseUtilities[playerBeingOptimized]) / 1E-8)
-                        throw new Exception("Best response function worse."); // it can be slightly negative as a result of rounding error or if we are using random paths as a result of sampling error
-                    improvementReport = $" best response improvement {bestResponseImprovement}";
-                }
+                string utilityReport = $"{AverageStrategyUtilities[playerBeingOptimized]} ", improvementReport = $" best response improvement {BestResponseUtilities[playerBeingOptimized] - AverageStrategyUtilities[playerBeingOptimized]}";
 
                 Console.WriteLine($"U(P{playerBeingOptimized}) {ActionStrategyLastReport}: {utilityReport}Best response vs. {BestResponseOpponentString} {BestResponseUtilities[playerBeingOptimized]}{improvementReport}");
-            }
-            Console.WriteLine($"Total best response calculation time: {BestResponseCalculationTime} milliseconds");
-        }
-
-        private unsafe void SummarizeBestResponse()
-        {
-            // This is reporting Best response vs. average strategy
-            for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
-            {
-
-                Console.WriteLine($"U(P{playerBeingOptimized}) {ActionStrategyLastReport}: Best response vs. {BestResponseOpponentString} {BestResponseUtilities[playerBeingOptimized]}");
             }
             Console.WriteLine($"Total best response calculation time: {BestResponseCalculationTime} milliseconds");
             Console.WriteLine("");

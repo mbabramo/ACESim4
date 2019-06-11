@@ -165,12 +165,14 @@ namespace ACESimBase.GameSolvingSupport
             return new ByteList(nodesToInclude);
         }
 
-        public double GetProbabilityAdjustedUtilityOfPath(byte playerIndex)
+        public (double bestResponseValue, double averageStrategyValue) GetProbabilityAdjustedUtilityOfPath(byte playerIndex)
         {
-            double utility = GetUtilityOfPathToSuccessor(playerIndex);
+            double bestResponseUtility = GetBestResponseUtilityAfterPathToSuccessor(playerIndex);
+            double averageStrategyUtility = GetAverageStrategyUtilityAfterPathToSuccessor(playerIndex);
             double pathProbability = GetProbabilityOfPath();
-            double value = pathProbability * utility;
-            return value;
+            double bestResponseValue = pathProbability * bestResponseUtility;
+            double averageStrategyValue = pathProbability * averageStrategyUtility;
+            return (bestResponseValue, averageStrategyValue);
         }
 
         public double GetProbabilityOfPath()
@@ -193,7 +195,7 @@ namespace ACESimBase.GameSolvingSupport
             return pathProbability;
         }
 
-        public double GetUtilityOfPathToSuccessor(byte playerIndex)
+        public double GetBestResponseUtilityAfterPathToSuccessor(byte playerIndex)
         {
             double utility;
             var successor = SuccessorInformationSet;
@@ -206,6 +208,26 @@ namespace ACESimBase.GameSolvingSupport
                     if (playerIndex != i.PlayerIndex)
                         throw new Exception();
                     utility = i.LastBestResponseValue;
+                    break;
+                default: throw new NotSupportedException();
+            }
+
+            return utility;
+        }
+
+        public double GetAverageStrategyUtilityAfterPathToSuccessor(byte playerIndex)
+        {
+            double utility;
+            var successor = SuccessorInformationSet;
+            switch (successor)
+            {
+                case FinalUtilitiesNode f:
+                    utility = f.Utilities[playerIndex];
+                    break;
+                case InformationSetNode i:
+                    if (playerIndex != i.PlayerIndex)
+                        throw new Exception();
+                    utility = i.AverageStrategyResultsForPathFromPredecessor[i.NumVisitsFromPredecessorToGetAverageStrategy++]; // that is, return the average strategy result for the predecessor, on the assumption that the paths from the predecessor are being visited in order to make this request.
                     break;
                 default: throw new NotSupportedException();
             }
