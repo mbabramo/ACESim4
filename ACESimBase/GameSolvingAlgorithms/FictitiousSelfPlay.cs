@@ -49,7 +49,7 @@ namespace ACESim
 
             CalculateBestResponse();
 
-            Parallel.ForEach(InformationSets, informationSet => informationSet.UpdateAverageStrategyForFictitiousPlay(lambda2));
+            Parallel.ForEach(InformationSets, informationSet => informationSet.UpdateAverageStrategyForFictitiousPlay(iteration, EvolutionSettings.TotalVanillaCFRIterations));
 
             StrategiesDeveloperStopwatch.Stop();
 

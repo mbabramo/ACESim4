@@ -381,7 +381,7 @@ namespace ACESim
 
         bool OnlyUpdateIfBestResponseMayReachHere = false;
 
-        public void UpdateAverageStrategyForFictitiousPlay(double lambda2)
+        public void UpdateAverageStrategyForFictitiousPlay_Original(double lambda2)
         {
             if (!BestResponseMayReachHere && OnlyUpdateIfBestResponseMayReachHere)
                 return;
@@ -393,6 +393,23 @@ namespace ACESim
                 double bestResponseProbability = (LastBestResponseAction == action) ? 1.0 : 0.0;
                 double difference = bestResponseProbability - currentAverageStrategyProbability;
                 double successorValue = currentAverageStrategyProbability + weightOnDifference * difference;
+                NodeInformation[cumulativeStrategyDimension, action - 1] = NodeInformation[averageStrategyProbabilityDimension, action - 1] = successorValue;
+            }
+        }
+
+        public void UpdateAverageStrategyForFictitiousPlay(int iteration, int maxIterations)
+        {
+            const double InitialWeightMultiplier = 10.0;
+            const double Curvature = 10.0;
+            double weightMultiplier = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(InitialWeightMultiplier, 1.0, Curvature, (double)iteration / (double)maxIterations);
+            double weightOnNew = weightMultiplier / (double)iteration;
+
+            for (byte action = 1; action <= NumPossibleActions; action++)
+            {
+                double currentAverageStrategyProbability = GetAverageStrategy(action);
+                double bestResponseProbability = (LastBestResponseAction == action) ? 1.0 : 0.0;
+                // double difference = bestResponseProbability - currentAverageStrategyProbability;
+                double successorValue = (1.0 - weightOnNew) * currentAverageStrategyProbability + weightOnNew * bestResponseProbability;
                 NodeInformation[cumulativeStrategyDimension, action - 1] = NodeInformation[averageStrategyProbabilityDimension, action - 1] = successorValue;
             }
         }

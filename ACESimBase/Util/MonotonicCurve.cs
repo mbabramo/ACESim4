@@ -10,8 +10,6 @@ namespace ACESim
         // curvature of 1.0 is linear; 10.0 means that at a proportion of 0.5, we'll be 93.3% of the way there; 0.1 means, 0.09% of the way there.
         public static double CalculateValueBasedOnProportionOfWayBetweenValues(double fromVal, double toVal, double curvature, double proportion)
         {
-            if (toVal < fromVal)
-                return CalculateValueBasedOnProportionOfWayBetweenValues(toVal, fromVal, curvature, 1.0 - proportion);
             double adjustedProportion = Math.Pow(proportion, 1.0 / curvature);
             double returnVal = fromVal + (toVal - fromVal) * adjustedProportion;
             return returnVal;
