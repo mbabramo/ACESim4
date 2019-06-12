@@ -15,12 +15,12 @@ namespace ACESim
 
         #region Settings
 
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.GeneticAlgorithm;
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.GreedyFictitiousSelfPlay;
 
         public const int ProbingIterations = 20_000_000;
         public const int VanillaIterations = 250_000;
         public const int VanillaReportEveryNIterations = VanillaIterations;
-        public const int VanillaBestResponseEveryMIterations = 100;
+        public const int VanillaBestResponseEveryMIterations = 1000;
         public const int MiniReportEveryPIterations = EffectivelyNever; 
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever; // DEBUG
         public const int RecordPastValuesEveryNIterations = 100; // DEBUG // used for correlated equilibrium calculations
@@ -120,8 +120,8 @@ namespace ACESim
                     return new PureStrategiesFinder(existingStrategyState, evolutionSettings, gameDefinition);
                 case GameApproximationAlgorithm.FictitiousSelfPlay:
                     return new FictitiousSelfPlay(existingStrategyState, evolutionSettings, gameDefinition);
-                case GameApproximationAlgorithm.GeneticAlgorithm:
-                    return new GeneticAlgorithm(existingStrategyState, evolutionSettings, gameDefinition);
+                case GameApproximationAlgorithm.GreedyFictitiousSelfPlay:
+                    return new GreedyFictitiousSelfPlay(existingStrategyState, evolutionSettings, gameDefinition);
                 default:
                     throw new NotImplementedException();
             }

@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
-    public partial class GeneticAlgorithm : StrategiesDeveloperBase
+    public partial class GreedyFictitiousSelfPlay : StrategiesDeveloperBase
     {
 
         public class PopulationMember
@@ -155,7 +155,7 @@ namespace ACESim
             }
         }
 
-        public GeneticAlgorithm(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
+        public GreedyFictitiousSelfPlay(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
         {
 
         }
@@ -166,7 +166,7 @@ namespace ACESim
 
         public override IStrategiesDeveloper DeepCopy()
         {
-            var created = new GeneticAlgorithm(Strategies, EvolutionSettings, GameDefinition);
+            var created = new GreedyFictitiousSelfPlay(Strategies, EvolutionSettings, GameDefinition);
             DeepCopyHelper(created);
             return created;
         }
@@ -210,20 +210,35 @@ namespace ACESim
 
             double baselineWeight = PopulationMembers[0].MutationWeightOnBestResponse;
 
-            int middleIndex = PopulationMembers.Length / 2;
-            double middleItemTargetWeightOnBestResponse = PopulationMembers[0].MutationWeightOnBestResponse;
-            double factorBetweenItems = 2.0;
-            double firstItemWeightOnBestResponse = Math.Pow(factorBetweenItems, middleIndex) * middleItemTargetWeightOnBestResponse;
-            if (iteration == 1 || firstItemWeightOnBestResponse > 1.0)
-                firstItemWeightOnBestResponse = 1.0;
-            double weightOnBestResponseCurrent = firstItemWeightOnBestResponse;
-            for (int i = 0; i < PopulationMembers.Length; i++)
+            double weightOnBestResponseCurrent = 0;
+            if (LastWasImprovement)
             {
-                PopulationMember populationMember = PopulationMembers[i];
-                if (iteration == 1 || i > 0)
+                int middleIndex = PopulationMembers.Length / 2;
+                double firstItemWeight = 1.0;
+                double middleItemTargetWeightOnBestResponse = PopulationMembers[0].MutationWeightOnBestResponse;
+                if (iteration == 1 || middleItemTargetWeightOnBestResponse == 1)
+                    middleItemTargetWeightOnBestResponse = 1.0 / Math.Pow(2.0, middleIndex);
+                // firstItemWeight * factor^middleIndex = middleItemTargetWeightOnBestResponse, so middleIndex*log(factor) = log(middleItemTargetWeightOnBestResponse / firstItemWeight).
+                double factorBetweenItems = Math.Exp(Math.Log(middleItemTargetWeightOnBestResponse / firstItemWeight) / middleIndex);
+                weightOnBestResponseCurrent = firstItemWeight;
+                for (int i = 0; i < PopulationMembers.Length; i++)
                 {
-                    populationMember.MutateAndMeasureFitness(weightOnBestResponseCurrent, 1); // try mutating at various sizes
-                    weightOnBestResponseCurrent /= factorBetweenItems;
+                    PopulationMember populationMember = PopulationMembers[i];
+                    if (iteration == 1 || i > 0)
+                    {
+                        populationMember.MutateAndMeasureFitness(weightOnBestResponseCurrent, 1); // try mutating at various sizes
+                        weightOnBestResponseCurrent *= factorBetweenItems;
+                    }
+                }
+            }
+            else
+            {
+                for (int i = 1; i < PopulationMembers.Length; i++)
+                {
+                    PopulationMember populationMember = PopulationMembers[i];
+                    double previousWeight = populationMember.MutationWeightOnBestResponse;
+                    double revisedWeight = 1.0 / (1.0 + (1.0 / previousWeight));
+                    populationMember.MutateAndMeasureFitness(revisedWeight, 1); // keep same size
                 }
             }
 
@@ -232,6 +247,7 @@ namespace ACESim
                 .ToArray();
 
             double revisedOriginalBest = after[0].Fitness;
+            double secondBest = after[1].Fitness;
             LastWasImprovement = revisedOriginalBest < originalBest;
             if (LastWasImprovement)
             {
@@ -240,27 +256,10 @@ namespace ACESim
                     PopulationMembers[i].ReplicateOther(PopulationMembers[0]);
             }
 
-            //int numTries = 0;
-            //while (revisedOriginalBest >= originalBest && originalBest != 0 && numTries++ < int.MaxValue)
-            //{
-            //    // continue to do small mutations until we have an improvement.
-            //    PopulationMembers[0].Mutate(baselineWeight);
-            //    PopulationMembers[0].MeasureFitness();
-            //    revisedOriginalBest = PopulationMembers[0].Fitness; // may not be bessed
-            //}
-
-            //for (int i = 1; i < NumPopulationMembers; i++)
-            //{
-            //    PopulationMembers[i].ReplicateOther(PopulationMembers[0]);
-            //    //double deathProbability = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(0, 0.05, 2.0, i / (double)NumPopulationMembers - 1);
-            //    //if (RandomGenerator.NextDouble() < deathProbability)
-            //    //    PopulationMembers[i].ReplicateOther(PopulationMembers[0]); // DEBUG RandomGenerator.Next(NumProtectedMembers - 1)]);
-            //}
-
 
             StrategiesDeveloperStopwatch.Stop();
 
-            string reportString = $"{iteration}: {PopulationMembers[0].Fitness} mutation weight: {PopulationMembers[0].MutationWeightOnBestResponse}";
+            string reportString = $"{iteration}: {revisedOriginalBest} mutation weight: {PopulationMembers[0].MutationWeightOnBestResponse} (second best: {secondBest})";
             Console.WriteLine(reportString);
 
             //reportString = await GenerateReports(iteration,
