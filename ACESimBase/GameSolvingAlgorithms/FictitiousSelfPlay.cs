@@ -58,5 +58,13 @@ namespace ACESim
                     $"Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
             return reportString;
         }
+
+        private void ZeroLowPorbabilities()
+        {
+            Parallel.ForEach(InformationSets, informationSet =>
+            {
+                informationSet.ZeroLowProbabilities(0.01);
+            });
+        }
     }
 }

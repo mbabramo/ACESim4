@@ -15,10 +15,10 @@ namespace ACESim
 
         #region Settings
 
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.MultiplicativeWeightsVanilla;
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.FictitiousSelfPlay;
 
         public const int ProbingIterations = 20_000_000;
-        public const int VanillaIterations = 30_000;
+        public const int VanillaIterations = 250_000;
         public const int VanillaReportEveryNIterations = VanillaIterations;
         public const int VanillaBestResponseEveryMIterations = 100;
         public const int MiniReportEveryPIterations = EffectivelyNever; 

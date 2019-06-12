@@ -1118,6 +1118,18 @@ namespace ACESim
                 Console.WriteLine($"{(avgStratSameAsBestResponse ? "*" : "")} decision {Decision.Name} Information set {InformationSetNodeNumber} bestrespon {LastBestResponseAction} hedge {hedgeString} avg {avgStratString} avg distance {avgDistanceString} ranges: {rangesString}");
         }
 
+        public void ZeroLowProbabilities(double threshold)
+        {
+            for (byte action = 1; action < NumPossibleActions; action++)
+            {
+                if (GetAverageStrategy(action) < threshold)
+                {
+                    NodeInformation[averageStrategyProbabilityDimension, action - 1] = 0;
+                    NodeInformation[cumulativeStrategyDimension, action - 1] = 0;
+                }
+            }
+        }
+
         #endregion
 
         #region Hedge
