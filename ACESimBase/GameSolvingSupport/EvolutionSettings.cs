@@ -83,6 +83,8 @@ namespace ACESim
             Discounting_Gamma = Math.Log(DiscountingTarget_TargetDiscount) / (Math.Log(p * t / (p * t + 1)) - Math.Log(t / (t + 1)));
         }
 
+        public bool MultiplicativeWeights_CFRBR = true; // DEBUG
+
         public double MultiplicativeWeightsInitial = 0.5;
         public double MultiplicativeWeightsFinal = 0.5;
         public double MultiplicativeWeightsCurvature = 0.5;
@@ -132,6 +134,6 @@ namespace ACESim
         public const double PruneOnOpponentStrategyThreshold = 1E-8; // NOTE: This is the probability for this action, not the cumulative probability. 
 
         public bool DistributeChanceDecisions = true;
-        public bool UnrollAlgorithm = true; 
+        public bool UnrollAlgorithm = false; // DEBUG -- using CFRBR
     }
 }

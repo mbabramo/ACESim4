@@ -72,6 +72,8 @@ namespace ACESim
 
         public async Task<string> Unroll_SolveMultiplicativeWeightsVanillaCFR()
         {
+            if (EvolutionSettings.MultiplicativeWeights_CFRBR)
+                throw new NotSupportedException();
             string reportString = null;
             InitializeInformationSets();
             Unroll_CreateUnrolledCommandList();
@@ -668,6 +670,8 @@ namespace ACESim
             InitializeInformationSets();
             for (int iteration = 1; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
+                if (EvolutionSettings.MultiplicativeWeights_CFRBR)
+                    CalculateBestResponse();
                 reportString = await MultiplicativeWeightsVanillaCFRIteration(iteration);
             }
             return reportString;
@@ -818,8 +822,10 @@ namespace ACESim
                     actionProbabilities, (byte)alwaysDoAction);
             else
             {
-                // TODO: Consider pruning here
-                informationSet.GetMultiplicativeWeightsProbabilities(actionProbabilities);
+                if (EvolutionSettings.MultiplicativeWeights_CFRBR && playerMakingDecision != playerBeingOptimized)
+                    informationSet.GetBestResponseProbabilities(actionProbabilities);
+                else
+                    informationSet.GetMultiplicativeWeightsProbabilities(actionProbabilities);
             }
             double* expectedValueOfAction = stackalloc double[numPossibleActions];
             double expectedValue = 0;
@@ -830,7 +836,7 @@ namespace ACESim
                 if (informationSet.Decision.DistributorChanceInputDecision)
                     distributorChanceInputsNext += action * informationSet.Decision.DistributorChanceInputDecisionMultiplier;
                 double probabilityOfAction = actionProbabilities[action - 1];
-                bool prune = (EvolutionSettings.PruneOnOpponentStrategy && playerBeingOptimized != playerMakingDecision && probabilityOfAction < EvolutionSettings.PruneOnOpponentStrategyThreshold);
+                bool prune = (EvolutionSettings.PruneOnOpponentStrategy && playerBeingOptimized != playerMakingDecision && probabilityOfAction < EvolutionSettings.PruneOnOpponentStrategyThreshold) || (EvolutionSettings.MultiplicativeWeights_CFRBR && probabilityOfAction == 0);
                 if (!prune)
                 {
                     double probabilityOfActionAvgStrat = informationSet.GetAverageStrategy(action);
