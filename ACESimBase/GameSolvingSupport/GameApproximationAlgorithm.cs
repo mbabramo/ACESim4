@@ -11,5 +11,6 @@ namespace ACESim
         AverageStrategySampling,
         PureStrategyFinder,
         FictitiousSelfPlay,
+        GeneticAlgorithm,
     }
 }

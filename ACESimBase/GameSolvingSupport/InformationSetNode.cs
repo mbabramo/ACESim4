@@ -65,7 +65,7 @@ namespace ACESim
         const int lastRegretDenominatorDimension = 0; // we don't use cumulativeRegret for multiplicative weights
         const int lastRegretNumeratorDimension = 4;
         const int adjustedWeightsDimension = 5;
-        const int averageStrategyProbabilityDimension = 6;
+        public const int averageStrategyProbabilityDimension = 6;
         const int backupCumulativeStrategyDimension = 7;
         const int backupAdjustedWeightsDimension = 8;
         const int backupAverageStrategyProbabilityDimension = 8;
@@ -1130,14 +1130,24 @@ namespace ACESim
 
         public void ZeroLowProbabilities(double threshold)
         {
+            double reallocated = 0;
             for (byte action = 1; action < NumPossibleActions; action++)
             {
-                if (GetAverageStrategy(action) < threshold)
+                double p = GetAverageStrategy(action);
+                if (p < threshold)
                 {
+                    reallocated += p;
                     NodeInformation[averageStrategyProbabilityDimension, action - 1] = 0;
                     NodeInformation[cumulativeStrategyDimension, action - 1] = 0;
                 }
             }
+            if (reallocated > 0)
+            {
+                double multiplyBy = 1.0 / (1.0 - reallocated);
+                for (byte action = 1; action < NumPossibleActions; action++)
+                    NodeInformation[averageStrategyProbabilityDimension, action - 1] *= multiplyBy;
+            }
+
         }
 
         #endregion

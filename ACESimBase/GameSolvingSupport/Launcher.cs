@@ -15,7 +15,7 @@ namespace ACESim
 
         #region Settings
 
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.FictitiousSelfPlay;
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.GeneticAlgorithm;
 
         public const int ProbingIterations = 20_000_000;
         public const int VanillaIterations = 250_000;
@@ -120,6 +120,8 @@ namespace ACESim
                     return new PureStrategiesFinder(existingStrategyState, evolutionSettings, gameDefinition);
                 case GameApproximationAlgorithm.FictitiousSelfPlay:
                     return new FictitiousSelfPlay(existingStrategyState, evolutionSettings, gameDefinition);
+                case GameApproximationAlgorithm.GeneticAlgorithm:
+                    return new GeneticAlgorithm(existingStrategyState, evolutionSettings, gameDefinition);
                 default:
                     throw new NotImplementedException();
             }
