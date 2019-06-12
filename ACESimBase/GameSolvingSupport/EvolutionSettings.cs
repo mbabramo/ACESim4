@@ -57,6 +57,8 @@ namespace ACESim
         public const double Discounting_Beta = 0.5; // multiply accumulated negative regrets by t^alpha / (t^alpha + 1)
         public double Discounting_Gamma = 200;  // multiply contributions to average strategy by (t / t + 1)^gamma, which approaches 1 as t -> inf. Higher gamma means more discounting. If gamma equals 20, then we still get to 80% of the maximum in a mere 100 iterations. In other words, very early iterations are heavily discounted, but after a while, there is very little discounting.
 
+        public double DiscountingTarget_ConstantAfterProportionOfIterations = 0.1; // DEBUG // set to 1.0 to turn off feature
+
         public double Discounting_Gamma_ForIteration(int iteration)
         {
             if (!UseDiscounting)
@@ -70,7 +72,6 @@ namespace ACESim
         public bool Discounting_DeriveGamma = true; // if true, gamma is derived so that at the specified proportion of iterations, the discount is the specified proportion of the discount that will exist at the maximum iteration
         public double DiscountingTarget_ProportionOfIterations = 0.25;
         public double DiscountingTarget_TargetDiscount = 0.001;
-        public double DiscountingTarget_ConstantAfterProportionOfIterations = 0.333333; // DEBUG // set to 1.0 to turn off feature
         public int StopDiscountingAtIteration => (int)(TotalVanillaCFRIterations * DiscountingTarget_ConstantAfterProportionOfIterations);
         public void CalculateGamma()
         {
@@ -134,6 +135,6 @@ namespace ACESim
         public bool MultiplicativeWeights_CFRBR = true; // DEBUG
 
         public bool DistributeChanceDecisions = true;
-        public bool UnrollAlgorithm = true; // DEBUG -- using CFRBR
+        public bool UnrollAlgorithm = true;
     }
 }
