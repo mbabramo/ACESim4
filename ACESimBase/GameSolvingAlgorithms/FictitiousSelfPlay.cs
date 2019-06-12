@@ -42,14 +42,14 @@ namespace ACESim
             IterationNumDouble = iteration;
             IterationNum = iteration;
 
-            double lambda2 = 1.0 / IterationNumDouble;
+            //double lambda2 = 1.0 / IterationNumDouble;
 
             string reportString = null;
             double[] lastUtilities = new double[NumNonChancePlayers];
 
             CalculateBestResponse();
 
-            Parallel.ForEach(InformationSets, informationSet => informationSet.UpdateAverageStrategyForFictitiousPlay(iteration, EvolutionSettings.TotalVanillaCFRIterations));
+            Parallel.ForEach(InformationSets, informationSet => informationSet.MoveAverageStrategyTowardBestResponse(iteration, EvolutionSettings.TotalVanillaCFRIterations));
 
             StrategiesDeveloperStopwatch.Stop();
 
