@@ -72,8 +72,6 @@ namespace ACESim
 
         public async Task<string> Unroll_SolveMultiplicativeWeightsVanillaCFR()
         {
-            if (EvolutionSettings.MultiplicativeWeights_CFRBR)
-                throw new NotSupportedException();
             string reportString = null;
             InitializeInformationSets();
             Unroll_CreateUnrolledCommandList();
@@ -86,6 +84,8 @@ namespace ACESim
                 IterationNumDouble = iteration;
                 IterationNum = iteration;
                 StrategiesDeveloperStopwatch.Start();
+                if (EvolutionSettings.MultiplicativeWeights_CFRBR)
+                    CalculateBestResponse();
                 Unroll_ExecuteUnrolledCommands(array, iteration == 1);
                 StrategiesDeveloperStopwatch.Stop();
                 UpdateInformationSets(iteration);
@@ -174,6 +174,7 @@ namespace ACESim
         private int[] Unroll_FinalUtilitiesNodesIndices;
         private int[] Unroll_InitialPiValuesIndices = null;
         private int Unroll_OneIndex = -1;
+        private int Unroll_SmallestValuePossibleIndex = -1;
         private int Unroll_SmallestProbabilityRepresentedIndex = -1;
         private int Unroll_OpponentPruningThresholdIndex = -1;
         private int Unroll_AverageStrategyAdjustmentIndex = -1;
@@ -277,6 +278,7 @@ namespace ACESim
                     Unroll_IterationResultForPlayersIndices[p][i] = index++;
             }
             Unroll_OneIndex = index++;
+            Unroll_SmallestValuePossibleIndex = index++;
             Unroll_SmallestProbabilityRepresentedIndex = index++;
             Unroll_OpponentPruningThresholdIndex = index++;
             Unroll_AverageStrategyAdjustmentIndex = index++;
@@ -342,6 +344,7 @@ namespace ACESim
             }
             CalculateDiscountingAdjustments();
             array[Unroll_OneIndex] = 1.0;
+            array[Unroll_SmallestValuePossibleIndex] = double.Epsilon;
             array[Unroll_SmallestProbabilityRepresentedIndex] = InformationSetNode.SmallestProbabilityRepresented;
             array[Unroll_OpponentPruningThresholdIndex] = EvolutionSettings.PruneOnOpponentStrategyThreshold;
             array[Unroll_AverageStrategyAdjustmentIndex] = AverageStrategyAdjustment;
@@ -412,22 +415,44 @@ namespace ACESim
             byte decisionNum = informationSet.DecisionIndex;
             byte playerMakingDecision = informationSet.PlayerIndex;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
-            int[] actionProbabilities = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_HedgeProbabilities_All(informationSet.InformationSetNodeNumber, numPossibleActions), true);
+            int[] actionProbabilities;
+            if (EvolutionSettings.MultiplicativeWeights_CFRBR && playerMakingDecision != playerBeingOptimized)
+            {
+                actionProbabilities = Unroll_Commands.NewZeroArray(informationSet.NumPossibleActions);
+                for (byte action = 1; action <= informationSet.NumPossibleActions; action++)
+                {
+                    int lastBestResponseActionIndex = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_LastBestResponse(informationSet.InformationSetNodeNumber, (byte)informationSet.NumPossibleActions), true);
+                    Unroll_Commands.InsertEqualsValueCommand(lastBestResponseActionIndex, (int)action);
+                    Unroll_Commands.InsertIfCommand();
+                    int one = Unroll_Commands.CopyToNew(Unroll_OneIndex, true);
+                    Unroll_Commands.CopyToExisting(actionProbabilities[action - 1], one);
+                    Unroll_Commands.InsertEndIfCommand();
+                }
+            }
+            else
+            {
+                actionProbabilities = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_HedgeProbabilities_All(informationSet.InformationSetNodeNumber, numPossibleActions), true);
+            }
             int[] expectedValueOfAction = Unroll_Commands.NewUninitializedArray(numPossibleActions);
             int expectedValue = Unroll_Commands.NewZero();
-            bool pruningPossible = EvolutionSettings.PruneOnOpponentStrategy && playerBeingOptimized != playerMakingDecision;
+            bool pruningPossibleForNonZero = EvolutionSettings.PruneOnOpponentStrategy && playerBeingOptimized != playerMakingDecision;
             int opponentPruningThresholdIndex = -1;
-            if (pruningPossible)
+            if (pruningPossibleForNonZero)
             {
                 opponentPruningThresholdIndex = Unroll_Commands.CopyToNew(Unroll_OpponentPruningThresholdIndex, true);
+            }
+            else if (EvolutionSettings.MultiplicativeWeights_CFRBR && playerMakingDecision != playerBeingOptimized)
+            {
+                opponentPruningThresholdIndex = Unroll_Commands.CopyToNew(Unroll_SmallestValuePossibleIndex, true); // i.e., only zero will be less than this
+                pruningPossibleForNonZero = true;
             }
             for (byte action = 1; action <= numPossibleActions; action++)
             {
                 int distributorChanceInputsNext = distributorChanceInputs;
                 if (informationSet.Decision.DistributorChanceInputDecision)
                     distributorChanceInputsNext += action * informationSet.Decision.DistributorChanceInputDecisionMultiplier;
-                int probabilityOfAction = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_HedgeProbability(informationSet.InformationSetNodeNumber, action), true);
-                if (pruningPossible)
+                int probabilityOfAction = actionProbabilities[action - 1];
+                if (pruningPossibleForNonZero)
                 {
                     Unroll_Commands.InsertGreaterThanOtherArrayIndexCommand(probabilityOfAction, opponentPruningThresholdIndex); // if less than prune, so if greater than, don't prune (very unlikely to be exactly equal)
                     Unroll_Commands.InsertIfCommand();
@@ -484,7 +509,7 @@ namespace ACESim
                         $"... action {action} expected value ARRAY{expectedValueOfActionCopy} best response expected value ARRAY{bestResponseExpectedValueCopy} cum expected value ARRAY{cumExpectedValueCopy}{(action == numPossibleActions && IncludeAsteriskForBestResponseInTrace ? "*" : "")}");
                 }
 
-                if (pruningPossible)
+                if (pruningPossibleForNonZero)
                 {
                     Unroll_Commands.InsertEndIfCommand();
                 }
