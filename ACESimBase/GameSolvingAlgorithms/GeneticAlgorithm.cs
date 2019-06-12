@@ -210,14 +210,20 @@ namespace ACESim
 
             double baselineWeight = PopulationMembers[0].MutationWeightOnBestResponse;
 
-            double mutationSizeDenominator = 2.0;
+            int middleIndex = PopulationMembers.Length / 2;
+            double middleItemTargetWeightOnBestResponse = PopulationMembers[0].MutationWeightOnBestResponse;
+            double factorBetweenItems = 2.0;
+            double firstItemWeightOnBestResponse = Math.Pow(factorBetweenItems, middleIndex) * middleItemTargetWeightOnBestResponse;
+            if (iteration == 1 || firstItemWeightOnBestResponse > 1.0)
+                firstItemWeightOnBestResponse = 1.0;
+            double weightOnBestResponseCurrent = firstItemWeightOnBestResponse;
             for (int i = 0; i < PopulationMembers.Length; i++)
             {
                 PopulationMember populationMember = PopulationMembers[i];
                 if (iteration == 1 || i > 0)
                 {
-                    populationMember.MutateAndMeasureFitness(1.0 / mutationSizeDenominator, 1); // try mutating at various sizes
-                    mutationSizeDenominator *= 2.0;
+                    populationMember.MutateAndMeasureFitness(weightOnBestResponseCurrent, 1); // try mutating at various sizes
+                    weightOnBestResponseCurrent /= factorBetweenItems;
                 }
             }
 
