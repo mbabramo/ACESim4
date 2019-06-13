@@ -310,15 +310,18 @@ namespace ACESim
             public int IndexInPredecessorsPathsFromPredecessor;
             public NodeActionsHistory Path;
             public double Probability;
+            public InformationSetNode MostRecentOpponentInformationSet;
+            public double ProbabilityFromMostRecentOpponent;
         }
         public List<PathFromPredecessorInfo> PathsFromPredecessor;
         public List<List<NodeActionsMultipleHistories>> PathsToSuccessors;
+        public (bool consideredForPruning, bool prunable)[] PrunableActions;
         public double LastBestResponseValue => BestResponseOptions?[BestResponseAction - 1] ?? 0; 
         public double[] BestResponseOptions; // one per action for this player
         public double[] AverageStrategyResultsForPathFromPredecessor;
         public int NumVisitsFromPredecessorToGetAverageStrategy;
 
-        public void AcceleratedBestResponse_CalculateReachProbabilities()
+        public void AcceleratedBestResponse_CalculateReachProbabilities(bool determinePrunability)
         {
             if (PredecessorInformationSetForPlayer == null)
                 SelfReachProbability = 1.0;
@@ -326,13 +329,39 @@ namespace ACESim
                 SelfReachProbability = PredecessorInformationSetForPlayer.SelfReachProbability * PredecessorInformationSetForPlayer.GetAverageStrategy(ActionTakenAtPredecessorSet);
 
             OpponentsReachProbability = 0;
+
+            if (PrunableActions == null)
+                PrunableActions = new (bool consideredForPruning, bool prunable)[NumPossibleActions];
+            for (int i = 0; i < NumPossibleActions; i++)
+                PrunableActions[i] = (false, true); // not considered, but assume prunable if considered until shown otherwise. This may then be changed in a later information set.
+
+            double sumProbabilitiesSinceOpponentInformationSets = 0;
             foreach (var pathFromPredecessor in PathsFromPredecessor)
             {
                 double predecessorOpponentsReachProbability = PredecessorInformationSetForPlayer?.PathsFromPredecessor[pathFromPredecessor.IndexInPredecessorsPathsFromPredecessor].Probability ?? 1.0;
-                double pathProbabilityFromPredecessor = pathFromPredecessor.Path.GetProbabilityOfPath();
+                double pathProbabilityFromPredecessor;
+                if (determinePrunability)
+                {
+                    (double pathProbabilityFromPredecessor2, double probabilitySinceOpponentInformationSet, InformationSetNode mostRecentOpponentInformationSet) = pathFromPredecessor.Path.GetProbabilityOfPathPlus();
+                    pathProbabilityFromPredecessor = pathProbabilityFromPredecessor2;
+                    pathFromPredecessor.MostRecentOpponentInformationSet = mostRecentOpponentInformationSet;
+                    pathFromPredecessor.ProbabilityFromMostRecentOpponent = probabilitySinceOpponentInformationSet;
+                    sumProbabilitiesSinceOpponentInformationSets += probabilitySinceOpponentInformationSet;
+                }
+                else
+                    pathProbabilityFromPredecessor = pathFromPredecessor.Path.GetProbabilityOfPath();
                 double cumulativePathProbability = predecessorOpponentsReachProbability * pathProbabilityFromPredecessor;
                 pathFromPredecessor.Probability = cumulativePathProbability;
                 OpponentsReachProbability += cumulativePathProbability;
+            }
+            if (determinePrunability)
+            {
+                const double prunabilityThreshold = 1E-8;
+                foreach (var pathFromPredecessor in PathsFromPredecessor)
+                    if (pathFromPredecessor.MostRecentOpponentInformationSet != null && pathFromPredecessor.ProbabilityFromMostRecentOpponent / sumProbabilitiesSinceOpponentInformationSets > prunabilityThreshold)
+                    {
+                        pathFromPredecessor.MostRecentOpponentInformationSet.PrunableActions[opponentAction].prunable = false;
+                    }
             }
         }
 

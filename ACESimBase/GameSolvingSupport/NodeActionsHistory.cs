@@ -195,6 +195,41 @@ namespace ACESimBase.GameSolvingSupport
             return pathProbability;
         }
 
+        public (double probabilityOfPath, double probabilitySinceOpponentInformationSet, InformationSetNode mostRecentOpponentInformationSet) GetProbabilityOfPathPlus()
+        {
+            bool opponentInformationSetFound = false;
+            double probabilitySinceMostRecentOpponentInformationSet = 1.0;
+            InformationSetNode mostRecentOpponentInformationSet = null;
+            double pathProbability = Coefficient;
+            foreach (var nodeAction in NodeActions)
+            {
+                switch (nodeAction.Node)
+                {
+                    case ChanceNode c:
+                        double chanceProbability = c.GetActionProbability(nodeAction.ActionAtNode, nodeAction.DistributorChanceInputs);
+                        if (!opponentInformationSetFound)
+                        {
+                            probabilitySinceMostRecentOpponentInformationSet *= chanceProbability;
+                        }
+                        pathProbability *= chanceProbability;
+                        break;
+                    case InformationSetNode i:
+                        double averageStrategy = i.GetAverageStrategy(nodeAction.ActionAtNode);
+                        if (!opponentInformationSetFound)
+                        {
+                            opponentInformationSetFound = true;
+                            mostRecentOpponentInformationSet = i;
+                            probabilitySinceMostRecentOpponentInformationSet *= averageStrategy;
+                        }
+                        pathProbability *= averageStrategy;
+                        break;
+                    default: throw new NotSupportedException();
+                }
+            }
+
+            return (pathProbability, probabilitySinceMostRecentOpponentInformationSet, mostRecentOpponentInformationSet);
+        }
+
         public double GetBestResponseUtilityAfterPathToSuccessor(byte playerIndex)
         {
             double utility;

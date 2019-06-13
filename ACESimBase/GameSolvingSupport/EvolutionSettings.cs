@@ -86,7 +86,7 @@ namespace ACESim
 
         public double MultiplicativeWeightsInitial = 0.5;
         public double MultiplicativeWeightsFinal = 0.5;
-        public double MultiplicativeWeightsCurvature = 0.5;
+        public double MultiplicativeWeightsCurvature = 1.0;
         public double MultiplicativeWeightsEpsilon_BasedOnCurve(int iteration, int maxIteration) => MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(MultiplicativeWeightsInitial, MultiplicativeWeightsFinal, MultiplicativeWeightsCurvature, ((double)(iteration - 1)) / (double)maxIteration);
 
         public int MultiplicativeWeightsEpsilon_SimulatedAnnealingEveryNIterations = EffectivelyNever;
@@ -132,7 +132,7 @@ namespace ACESim
         public const bool PruneOnOpponentStrategy = false; // NOTE: In general sum games, this seems to cause difficulties, because some of the player's own information sets may not be visited, as a result of pruning on opponents' sets. 
         public const double PruneOnOpponentStrategyThreshold = 1E-8; // NOTE: This is the probability for this action, not the cumulative probability. 
 
-        public bool MultiplicativeWeights_CFRBR = true; // DEBUG
+        public bool MultiplicativeWeights_CFRBR = false; // DEBUG
 
         public bool DistributeChanceDecisions = true;
         public bool UnrollAlgorithm = true;
