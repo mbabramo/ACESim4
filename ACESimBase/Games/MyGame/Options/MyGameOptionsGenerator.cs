@@ -148,9 +148,9 @@ namespace ACESim
                 PInitialWealth = 1000000,
                 DInitialWealth = 1000000,
                 DamagesToAllege = 100000,
-                NumLitigationQualityPoints = 6,
+                NumLitigationQualityPoints = 10,
                 NumSignals = 6, 
-                NumOffers = 6, 
+                NumOffers = 5, 
                 MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
                 {
                     ExogenousProbabilityTrulyLiable = 0.5,
@@ -158,9 +158,9 @@ namespace ACESim
                 },
                 PFilingCost = 5000,
                 DAnswerCost = 5000,
-                PNoiseStdev = 0.25, // DEBUG
-                DNoiseStdev = 0.25,
-                CourtNoiseStdev = 0.25,
+                PNoiseStdev = 0.2, // DEBUG
+                DNoiseStdev = 0.2,
+                CourtNoiseStdev = 0.2,
                 CostsMultiplier = 1.0,
                 PTrialCosts = 15_000,
                 DTrialCosts = 15_000,

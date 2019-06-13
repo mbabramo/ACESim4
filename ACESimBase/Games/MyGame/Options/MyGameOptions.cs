@@ -64,7 +64,7 @@ namespace ACESim
         /// <summary>
         /// True if simultaneous offers are eventually revealed to the opposing party.
         /// </summary>
-        public bool SimultaneousOffersUltimatelyRevealed = false; 
+        public bool SimultaneousOffersUltimatelyRevealed = true; // DEBUG
         /// <summary>
         /// Indicates whether p goes first in each bargaining round for non-simultaneous bargaining (later bools are ignored).
         /// </summary>

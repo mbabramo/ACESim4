@@ -18,14 +18,14 @@ namespace ACESim
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.FictitiousSelfPlay;
 
         public const int ProbingIterations = 20_000_000;
-        public const int VanillaIterations = 5_000;
-        public const int VanillaReportEveryNIterations = VanillaIterations;
+        public const int VanillaIterations = 20_000;
+        public const int VanillaReportEveryNIterations = 1000;
         public const int VanillaBestResponseEveryMIterations = 1000;
         public const int MiniReportEveryPIterations = EffectivelyNever; 
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever; // DEBUG
         public const int RecordPastValuesEveryNIterations = 100; // DEBUG // used for correlated equilibrium calculations
         public const bool UseRandomPathsForReporting = true; 
-        public const int SummaryTableRandomPathsIterations = 10_000;
+        public const int SummaryTableRandomPathsIterations = 2_000;
 
         public const bool UseRegretAndStrategyDiscounting = true;
 

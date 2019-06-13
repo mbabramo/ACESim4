@@ -12,7 +12,8 @@ namespace ACESim
     public partial class FictitiousSelfPlay : StrategiesDeveloperBase
     {
         public bool AddNoiseToBestResponses = false;
-        public bool BestBecomesResult = true; 
+        public bool ReportOnBestResponse = true; // DEBUG
+        public bool BestBecomesResult = true;  
         public double BestExploitability = int.MaxValue; // initialize to worst possible score (i.e., highest possible exploitability)
 
         public FictitiousSelfPlay(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)

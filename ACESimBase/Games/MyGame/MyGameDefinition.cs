@@ -298,9 +298,19 @@ namespace ACESim
             // note that we will do all information set manipulation in CustomInformationSetManipulation below.
             if (Options.BargainingRoundsSimultaneous)
             {
+                byte[] informedOfPOffer, informedOfDOffer;
+                if (Options.SimultaneousOffersUltimatelyRevealed)
+                {
+                    informedOfPOffer = informedOfDOffer = new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution };
+                }
+                else
+                {
+                    informedOfPOffer = new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Resolution };
+                    informedOfDOffer = new byte[] { (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution };
+                }
                 // samuelson-chaterjee bargaining.
                 var pOffer =
-                    new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), false, (byte)MyGamePlayers.Plaintiff, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
+                    new Decision("PlaintiffOffer" + (b + 1), "PO" + (b + 1), false, (byte)MyGamePlayers.Plaintiff, informedOfPOffer,
                         Options.NumOffers, (byte)MyGameDecisions.POffer)
                     {
                         CustomByte = (byte)(b + 1),
@@ -319,7 +329,7 @@ namespace ACESim
                 }
                 AddOfferDecisionOrSubdivisions(decisions, pOffer);
                 var dOffer =
-                    new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), false, (byte)MyGamePlayers.Defendant, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
+                    new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), false, (byte)MyGamePlayers.Defendant, informedOfDOffer,
                         Options.NumOffers, (byte)MyGameDecisions.DOffer)
                     {
                         CanTerminateGame = true,

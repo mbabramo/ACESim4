@@ -445,18 +445,28 @@ namespace ACESim
             {
                 new SimpleReportFilter("All", (GameProgress gp) => true)
             };
+            AddRowFilterSignalRegions(true, rowFilters);
+            AddRowFilterSignalRegions(false, rowFilters);
             List<SimpleReportColumnItem> columnItems = new List<SimpleReportColumnItem>()
             {
                 new SimpleReportColumnFilter("All", (GameProgress gp) => true, true)
             };
             AddColumnFiltersLitigationQuality(columnItems);
+            double[] offerPoints = EquallySpaced.GetEquallySpacedPoints(Options.NumOffers, true);
             Tuple<double, double>[] offerRegions = EquallySpaced.GetRegions(Options.NumOffers);
             for (int i = 0; i < Options.NumOffers; i++)
             {
-                double regionStart = offerRegions[i].Item1;
-                double regionEnd = offerRegions[i].Item2;
+                //double regionStart = offerRegions[i].Item1;
+                //double regionEnd = offerRegions[i].Item2;
+                //columnItems.Add(new SimpleReportColumnFilter(
+                //        $"{(reportResponseToOffer ? "To" : "")}{(plaintiffMakesOffer ? "P" : "D")}{offerNumber} {regionStart.ToSignificantFigures(2)}-{regionEnd.ToSignificantFigures(2)}{(reportResponseToOffer ? "" : "  ")}",
+                //        GetOfferOrResponseFilter(plaintiffMakesOffer, offerNumber, reportResponseToOffer,
+                //            offerRegions[i]),
+                //        false
+                //    )
+                //);
                 columnItems.Add(new SimpleReportColumnFilter(
-                        $"{(reportResponseToOffer ? "To" : "")}{(plaintiffMakesOffer ? "P" : "D")}{offerNumber} {regionStart.ToSignificantFigures(2)}-{regionEnd.ToSignificantFigures(2)}{(reportResponseToOffer ? "" : "  ")}",
+                        $"{(reportResponseToOffer ? "To" : "")}{(plaintiffMakesOffer ? "P" : "D")}{offerNumber} {offerPoints[i].ToSignificantFigures(2)}{(reportResponseToOffer ? "" : "  ")}",
                         GetOfferOrResponseFilter(plaintiffMakesOffer, offerNumber, reportResponseToOffer,
                             offerRegions[i]),
                         false
