@@ -1286,20 +1286,25 @@ namespace ACESim
             BestResponseAction = BackupBestResponseAction;
         }
 
-        public void AddMixedness(double minProbabilitySecondBest)
+        public void AddMixedness(double minProbabilitySecondBest, bool continuousDecisionsOnly)
         {
+            if (continuousDecisionsOnly && !Decision.IsContinuousAction)
+                return;
             double[] averageStrategyProbabilities = GetAverageStrategiesAsArray();
             var indexed = averageStrategyProbabilities.Select((value, index) => (value, index)).ToList();
-            var highest = indexed.First();
+            var highest = indexed.OrderByDescending(x => x.value).First();
             var secondHighest = indexed.OrderByDescending(x => x.value).Skip(1).First();
             if (highest.value < minProbabilitySecondBest * 2)
                 minProbabilitySecondBest = highest.value / 2.0;
             if (secondHighest.value < minProbabilitySecondBest)
             {
-                double reallocation = secondHighest.value - minProbabilitySecondBest;
+                double reallocation = minProbabilitySecondBest - secondHighest.value;
                 NodeInformation[averageStrategyProbabilityDimension, highest.index] -= reallocation;
                 NodeInformation[averageStrategyProbabilityDimension, secondHighest.index] += reallocation;
             }
+            var revisedAverageStrategyProbabilities = GetAverageStrategiesAsArray();
+            if (Math.Abs(revisedAverageStrategyProbabilities.Sum() - 1) > 1E-8)
+                throw new Exception();
         }
 
         #endregion

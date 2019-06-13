@@ -158,9 +158,9 @@ namespace ACESim
                 },
                 PFilingCost = 5000,
                 DAnswerCost = 5000,
-                PNoiseStdev = 0.1, 
-                DNoiseStdev = 0.1,
-                CourtNoiseStdev = 0.1,
+                PNoiseStdev = 0.25, // DEBUG
+                DNoiseStdev = 0.25,
+                CourtNoiseStdev = 0.25,
                 CostsMultiplier = 1.0,
                 PTrialCosts = 15_000,
                 DTrialCosts = 15_000,

@@ -61,7 +61,12 @@ namespace ACESim
                     BestExploitability = exploitability;
                 }
                 if (iteration == EvolutionSettings.TotalVanillaCFRIterations)
+                {
                     Parallel.ForEach(InformationSets, informationSet => informationSet.RestoreBackup());
+                    // DEBUG -- adding mixedness
+                        Parallel.ForEach(InformationSets, informationSet => informationSet.AddMixedness(0.05, true));
+                    CalculateBestResponse();
+                }
             }
 
             Parallel.ForEach(InformationSets, informationSet => informationSet.MoveAverageStrategyTowardBestResponse(iteration, EvolutionSettings.TotalVanillaCFRIterations));
@@ -71,6 +76,7 @@ namespace ACESim
             reportString = await GenerateReports(iteration,
                 () =>
                     $"Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
+
             return reportString;
         }
 
