@@ -180,9 +180,9 @@ namespace ACESim
                 NumPotentialBargainingRounds = 2, 
                 BargainingRoundRecall = MyGameBargainingRoundRecall.RememberAllBargainingRounds,
                 SubdivideOffers = false,
-                BargainingRoundsSimultaneous = false,
+                BargainingRoundsSimultaneous = true, // DEBUG
                 PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false, true, false, true, false },
-                IncludeSignalsReport = false,
+                IncludeSignalsReport = true, // DEBUG
                 IncludeCourtSuccessReport = false,
             };
             // options.AdditionalTableOverrides = new List<(Func<Decision, GameProgress, byte>, string)>() { (MyGameActionsGenerator.GamePlaysOutToTrial, "GamePlaysOutToTrial") };

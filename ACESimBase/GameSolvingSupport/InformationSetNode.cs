@@ -1307,6 +1307,28 @@ namespace ACESim
                 throw new Exception();
         }
 
+        public void AddNoiseToBestResponse(double probabilityChange, int iteration)
+        {
+
+            if (!Decision.IsContinuousAction)
+                return;
+            double r = new ConsistentRandomSequenceProducer(InformationSetNodeNumber).GetDoubleAtIndex(iteration);
+            if (r < probabilityChange)
+            {
+                bool up;
+                if (BestResponseAction == 1)
+                    up = true;
+                else if (BestResponseAction == NumPossibleActions)
+                    up = false;
+                else
+                    up = r < probabilityChange / 2.0;
+                if (up)
+                    BestResponseAction++;
+                else
+                    BestResponseAction--;
+            }
+        }
+
         #endregion
 
     }

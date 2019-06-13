@@ -11,7 +11,7 @@ namespace ACESim
 {
     public partial class FictitiousSelfPlay : StrategiesDeveloperBase
     {
-
+        public bool AddNoiseToBestResponses = false;
         public bool BestBecomesResult = true; 
         public double BestExploitability = int.MaxValue; // initialize to worst possible score (i.e., highest possible exploitability)
 
@@ -63,11 +63,11 @@ namespace ACESim
                 if (iteration == EvolutionSettings.TotalVanillaCFRIterations)
                 {
                     Parallel.ForEach(InformationSets, informationSet => informationSet.RestoreBackup());
-                    // DEBUG -- adding mixedness
-                        Parallel.ForEach(InformationSets, informationSet => informationSet.AddMixedness(0.05, true));
-                    CalculateBestResponse();
                 }
             }
+
+            if (AddNoiseToBestResponses)
+                Parallel.ForEach(InformationSets, informationSet => informationSet.AddNoiseToBestResponse(0.10, iteration));
 
             Parallel.ForEach(InformationSets, informationSet => informationSet.MoveAverageStrategyTowardBestResponse(iteration, EvolutionSettings.TotalVanillaCFRIterations));
 
