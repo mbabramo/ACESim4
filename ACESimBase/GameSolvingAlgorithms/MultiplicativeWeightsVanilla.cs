@@ -34,7 +34,6 @@ namespace ACESim
             return created;
         }
 
-        bool alwaysNormalizeCumulativeStrategyIncrements = false; // DEBUG
         public void UpdateInformationSets(int iteration)
         {
             int numInformationSets = InformationSets.Count;
@@ -46,6 +45,7 @@ namespace ACESim
                 return;
             }
 
+            bool alwaysNormalizeCumulativeStrategyIncrements = false;
             if (alwaysNormalizeCumulativeStrategyIncrements || EvolutionSettings.DiscountingTarget_ConstantAfterProportionOfIterations == 1.0)
                 Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, multiplicativeWeightsEpsilon, AverageStrategyAdjustment, true, false));
             else

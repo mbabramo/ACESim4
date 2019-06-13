@@ -22,8 +22,8 @@ namespace ACESim
         public const int VanillaReportEveryNIterations = 1000;
         public const int VanillaBestResponseEveryMIterations = 1000;
         public const int MiniReportEveryPIterations = EffectivelyNever; 
-        public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever; // DEBUG
-        public const int RecordPastValuesEveryNIterations = 100; // DEBUG // used for correlated equilibrium calculations
+        public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever; 
+        public const int RecordPastValuesEveryNIterations = EffectivelyNever; // used for correlated equilibrium calculations
         public const bool UseRandomPathsForReporting = true; 
         public const int SummaryTableRandomPathsIterations = 2_000;
 
