@@ -173,6 +173,11 @@ namespace ACESim
         public bool CriticalNode;
 
         /// <summary>
+        /// Indicates whether a decision represents a continuous action, e.g. how much to bet in a round of poker. 
+        /// </summary>
+        public bool IsContinuousAction;
+
+        /// <summary>
         /// This may be set for continuous actions, where a single decision should be broken up into multiple nodes. For example, if the choices are numbers 1-128, the first decision might be to choose between 1 and 64, the second between 65 and 128, etc. Note that the automatically generated subdivisions will have Subdividable == false.
         /// </summary>
         public bool Subdividable;

@@ -65,10 +65,10 @@ namespace ACESim
         const int lastRegretDenominatorDimension = 0; // we don't use cumulativeRegret for multiplicative weights
         const int lastRegretNumeratorDimension = 4;
         const int adjustedWeightsDimension = 5;
-        public const int averageStrategyProbabilityDimension = 6;
+        const int averageStrategyProbabilityDimension = 6;
         const int backupCumulativeStrategyDimension = 7;
         const int backupAdjustedWeightsDimension = 8;
-        const int backupAverageStrategyProbabilityDimension = 8;
+        const int backupAverageStrategyProbabilityDimension = 9;
         // for hedge probing
         const int hedgeProbabilityDimension = 5;
         const int lastCumulativeStrategyIncrementsDimension = 6;

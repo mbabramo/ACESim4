@@ -25,7 +25,9 @@ namespace ACESim
         public InformationSetLookupApproach LookupApproach { get; set; } = InformationSetLookupApproach.CachedGameTreeOnly;
 
         bool AllowSkipEveryPermutationInitialization = true;
-        public bool SkipEveryPermutationInitialization => (AllowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)) && EvolutionSettings.Algorithm != GameApproximationAlgorithm.PureStrategyFinder;
+        public bool SkipEveryPermutationInitialization => 
+            ((AllowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)) 
+            && EvolutionSettings.Algorithm != GameApproximationAlgorithm.PureStrategyFinder);
 
         public Stopwatch StrategiesDeveloperStopwatch = new Stopwatch();
 
@@ -278,8 +280,6 @@ namespace ACESim
         }
 
         #endregion
-
-
 
         #region Printing
 

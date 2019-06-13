@@ -306,9 +306,10 @@ namespace ACESim
                         CustomByte = (byte)(b + 1),
                         IncrementGameCacheItem = new byte[] {
                         GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound,
-                    },
+                        },
                         DeferNotificationOfPlayers = true, // wait until after defendant has gone for defendant to find out -- of course, we don't do that with defendant decision
                         StoreActionInGameCacheItem = GameHistoryCacheIndex_POffer,
+                        IsContinuousAction = true,
                     };
                 if (Options.SubdivideOffers)
                 {
@@ -325,8 +326,9 @@ namespace ACESim
                         CustomByte = (byte)(b + 1),
                         IncrementGameCacheItem = new byte[] {
                         GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound,
-                    },
+                        },
                         StoreActionInGameCacheItem = GameHistoryCacheIndex_DOffer,
+                        IsContinuousAction = true,
                     };
                 if (Options.SubdivideOffers)
                 {
@@ -348,8 +350,9 @@ namespace ACESim
                             CustomByte = (byte)(b + 1),
                             IncrementGameCacheItem = new byte[] {
                         GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound,
-                    },
+                        },
                             StoreActionInGameCacheItem = GameHistoryCacheIndex_POffer,
+                            IsContinuousAction = true,
                         }; // { AlwaysDoAction = 4});
                     if (Options.SubdivideOffers)
                         pOffer.IncrementGameCacheItem = pOffer.IncrementGameCacheItem.Concat(new byte[] {GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound}).ToArray(); // for detour marker
@@ -372,9 +375,12 @@ namespace ACESim
                         {
                             CustomByte = (byte)(b + 1),
                             IncrementGameCacheItem = new byte[] {
-                                GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound,
+                                GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound,
+                                GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound,
+                                GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound,
                             },
                             StoreActionInGameCacheItem = GameHistoryCacheIndex_DOffer,
+                            IsContinuousAction = true,
                         };
                     if (Options.SubdivideOffers)
                         dOffer.IncrementGameCacheItem = dOffer.IncrementGameCacheItem.Concat(new byte[] {GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound}).ToArray(); // for detour marker
