@@ -65,7 +65,7 @@ namespace ACESim
                 foreach (InformationSetNode informationSet in InformationSets)
                 {
                     int node = informationSet.InformationSetNodeNumber;
-                    BestResponseActions[node] = informationSet.LastBestResponseAction;
+                    BestResponseActions[node] = informationSet.BestResponseAction;
                     if (copyAverageStrategies)
                         for (byte action = 1; action <= informationSet.NumPossibleActions; action++)
                         {
@@ -79,7 +79,7 @@ namespace ACESim
                 foreach (InformationSetNode informationSet in InformationSets)
                 {
                     int node = informationSet.InformationSetNodeNumber;
-                    informationSet.LastBestResponseAction = BestResponseActions[node];
+                    informationSet.BestResponseAction = BestResponseActions[node];
                     var averageStrategies = AverageStrategyValues[node];
                     for (byte action = 1; action <= informationSet.NumPossibleActions; action++)
                     {

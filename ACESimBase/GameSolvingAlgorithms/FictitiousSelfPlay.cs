@@ -12,6 +12,9 @@ namespace ACESim
     public partial class FictitiousSelfPlay : StrategiesDeveloperBase
     {
 
+        public bool BestBecomesResult = true; 
+        public double BestExploitability = int.MaxValue; // initialize to worst possible score (i.e., highest possible exploitability)
+
         public FictitiousSelfPlay(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
         {
 
@@ -48,6 +51,18 @@ namespace ACESim
             double[] lastUtilities = new double[NumNonChancePlayers];
 
             CalculateBestResponse();
+
+            if (BestBecomesResult)
+            {
+                double exploitability = BestResponseImprovement.Sum();
+                if (exploitability < BestExploitability)
+                {
+                    Parallel.ForEach(InformationSets, informationSet => informationSet.CreateBackup());
+                    BestExploitability = exploitability;
+                }
+                if (iteration == EvolutionSettings.TotalVanillaCFRIterations)
+                    Parallel.ForEach(InformationSets, informationSet => informationSet.RestoreBackup());
+            }
 
             Parallel.ForEach(InformationSets, informationSet => informationSet.MoveAverageStrategyTowardBestResponse(iteration, EvolutionSettings.TotalVanillaCFRIterations));
 

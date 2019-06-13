@@ -35,6 +35,7 @@ namespace ACESim
         public int NumBackupRegretsSinceLastRegretIncrement = 0;
 
         public double[,] NodeInformation;
+        public double[,] BackupNodeInformation;
 
         public double[] MaxPossible, MinPossible;
         public double MaxPossibleThisPlayer, MinPossibleThisPlayer;
@@ -56,35 +57,35 @@ namespace ACESim
         double PastValuesLastCumulativeStrategyDiscount => PastValuesCumulativeStrategyDiscounts[LastPastValueIndexRecorded];
 
         public int NumPossibleActions => Decision.NumPossibleActions;
-        const int totalDimensions = 10;
-        const int cumulativeRegretDimension = 0;
-        const int cumulativeStrategyDimension = 1;
-        const int bestResponseNumeratorDimension = 2;
-        const int bestResponseDenominatorDimension = 3;
+        public const int totalDimensions = 10;
+        public const int cumulativeRegretDimension = 0;
+        public const int cumulativeStrategyDimension = 1;
+        public const int bestResponseNumeratorDimension = 2;
+        public const int bestResponseDenominatorDimension = 3;
         // for multiplicative weights
-        const int lastRegretDenominatorDimension = 0; // we don't use cumulativeRegret for multiplicative weights
-        const int lastRegretNumeratorDimension = 4;
-        const int adjustedWeightsDimension = 5;
-        const int averageStrategyProbabilityDimension = 6;
-        const int backupCumulativeStrategyDimension = 7;
-        const int backupAdjustedWeightsDimension = 8;
-        const int backupAverageStrategyProbabilityDimension = 9;
+        public const int lastRegretDenominatorDimension = 0; // we don't use cumulativeRegret for multiplicative weights
+        public const int lastRegretNumeratorDimension = 4;
+        public const int adjustedWeightsDimension = 5;
+        public const int averageStrategyProbabilityDimension = 6;
         // for hedge probing
-        const int hedgeProbabilityDimension = 5;
-        const int lastCumulativeStrategyIncrementsDimension = 6;
-        const int temporaryDimension = 7;
+        public const int hedgeProbabilityDimension = 5;
+        public const int lastCumulativeStrategyIncrementsDimension = 6;
+        public const int temporaryDimension = 7;
         // for exploratory probing
-        const int storageDimension = 4;
-        const int storageDimension2 = 5;
-        const int cumulativeRegretBackupDimension = 6;
+        public const int storageDimension = 4;
+        public const int storageDimension2 = 5;
+        public const int cumulativeRegretBackupDimension = 6;
+
+        // Best response
+        public byte BestResponseAction = 0;
+        public byte BackupBestResponseAction = 0;
+        public bool BestResponseDeterminedFromIncrements = false; // this is used by the generalized best response algorithm to determine whether it needs to recalculate best response
 
         // Normalized hedge
         [NonSerialized]
         public SimpleExclusiveLock UpdatingHedge;
-        public byte LastBestResponseAction = 0;
-        public bool BestResponseDeterminedFromIncrements = false; // this is used by the generalized best response algorithm to determine whether it needs to recalculate best response
         public double AverageStrategyAdjustmentsSum = 0;
-        public double LastAverageStrategyAdjustmentsSum = 0;
+        public double BackupAverageStrategyAdjustmentsSum = 0;
 
         // hedge probing
         double V = 0; // V parameter in Cesa-Bianchi
@@ -146,9 +147,9 @@ namespace ACESim
 
         public string GetBestResponseStringIfAvailable()
         {
-            if (LastBestResponseAction == 0)
+            if (BestResponseAction == 0)
                 return "";
-            return $"BestResponse {LastBestResponseAction} ";
+            return $"BestResponse {BestResponseAction} ";
             //return $"BestResponse {LastBestResponseAction} {NodeInformation[bestResponseNumeratorDimension, PlayerIndex]}/{NodeInformation[bestResponseDenominatorDimension, PlayerIndex]}";
         }
 
@@ -265,13 +266,13 @@ namespace ACESim
                     bestRatio = ratio;
                 }
             }
-            LastBestResponseAction = (byte)best;
+            BestResponseAction = (byte)best;
             BestResponseDeterminedFromIncrements = true;
         }
 
         public unsafe void GetBestResponseProbabilities(double* probabilities)
         {
-            int bestResponse = LastBestResponseAction;
+            int bestResponse = BestResponseAction;
             for (int a = 1; a <= NumPossibleActions; a++)
                 if (a == bestResponse)
                     probabilities[a - 1] = 1.0;
@@ -312,7 +313,7 @@ namespace ACESim
         }
         public List<PathFromPredecessorInfo> PathsFromPredecessor;
         public List<List<NodeActionsMultipleHistories>> PathsToSuccessors;
-        public double LastBestResponseValue => BestResponseOptions?[LastBestResponseAction - 1] ?? 0; 
+        public double LastBestResponseValue => BestResponseOptions?[BestResponseAction - 1] ?? 0; 
         public double[] BestResponseOptions; // one per action for this player
         public double[] AverageStrategyResultsForPathFromPredecessor;
         public int NumVisitsFromPredecessorToGetAverageStrategy;
@@ -366,7 +367,7 @@ namespace ACESim
                 BestResponseOptions[action - 1] = accumulatedBestResponseDenominatorDenominator == 0 ? 0 : accumulatedBestResponseNumerator / accumulatedBestResponseDenominatorDenominator;
                 if (action == 1 || BestResponseOptions[action - 1] > LastBestResponseValue)
                 {
-                    LastBestResponseAction = action;
+                    BestResponseAction = action;
                 }
             }
             NumVisitsFromPredecessorToGetAverageStrategy = 0; // reset this so that we know which average strategy value to return
@@ -378,7 +379,7 @@ namespace ACESim
             if (PredecessorInformationSetForPlayer == null)
                 BestResponseMayReachHere = true;
             else
-                BestResponseMayReachHere = PredecessorInformationSetForPlayer.LastBestResponseAction == ActionTakenAtPredecessorSet;
+                BestResponseMayReachHere = PredecessorInformationSetForPlayer.BestResponseAction == ActionTakenAtPredecessorSet;
         }
 
         bool OnlyUpdateIfBestResponseMayReachHere = false;
@@ -392,7 +393,7 @@ namespace ACESim
             for (byte action = 1; action <= NumPossibleActions; action++)
             {
                 double currentAverageStrategyProbability = GetAverageStrategy(action);
-                double bestResponseProbability = (LastBestResponseAction == action) ? 1.0 : 0.0;
+                double bestResponseProbability = (BestResponseAction == action) ? 1.0 : 0.0;
                 double difference = bestResponseProbability - currentAverageStrategyProbability;
                 double successorValue = currentAverageStrategyProbability + weightOnDifference * difference;
                 NodeInformation[cumulativeStrategyDimension, action - 1] = NodeInformation[averageStrategyProbabilityDimension, action - 1] = successorValue;
@@ -416,7 +417,7 @@ namespace ACESim
             for (byte action = 1; action <= NumPossibleActions; action++)
             {
                 double currentAverageStrategyProbability = GetAverageStrategy(action);
-                double bestResponseProbability = (LastBestResponseAction == action) ? 1.0 : 0.0;
+                double bestResponseProbability = (BestResponseAction == action) ? 1.0 : 0.0;
                 // double difference = bestResponseProbability - currentAverageStrategyProbability;
                 double successorValue = (1.0 - weightOnBestResponse) * currentAverageStrategyProbability + weightOnBestResponse * bestResponseProbability;
                 NodeInformation[cumulativeStrategyDimension, action - 1] = NodeInformation[averageStrategyProbabilityDimension, action - 1] = successorValue;
@@ -934,7 +935,7 @@ namespace ACESim
             double probability = 1.0 / (double)NumPossibleActions;
             if (double.IsNaN(probability))
                 throw new Exception();
-            LastBestResponseAction = 1;
+            BestResponseAction = 1;
             for (int a = 1; a <= NumPossibleActions; a++)
             {
                 NodeInformation[adjustedWeightsDimension, a - 1] = 1.0;
@@ -1036,28 +1037,6 @@ namespace ACESim
             return String.Join(", ", GetMultiplicativeWeightsProbabilitiesAsArray().Select(x => x.ToSignificantFigures(3)));
         }
 
-        public void MultiplicativeWeightsCreateBackup()
-        {
-            for (byte action = 1; action <= NumPossibleActions; action++)
-            {
-                NodeInformation[backupAdjustedWeightsDimension, action - 1] = NodeInformation[adjustedWeightsDimension, action - 1];
-                NodeInformation[backupCumulativeStrategyDimension, action - 1] = NodeInformation[cumulativeStrategyDimension, action - 1];
-                NodeInformation[backupAverageStrategyProbabilityDimension, action - 1] = NodeInformation[averageStrategyProbabilityDimension, action - 1];
-            }
-            LastAverageStrategyAdjustmentsSum = AverageStrategyAdjustmentsSum;
-        }
-
-        public void MultiplicativeWeightsRestoreBackup()
-        {
-            for (byte action = 1; action <= NumPossibleActions; action++)
-            {
-                NodeInformation[adjustedWeightsDimension, action - 1] = NodeInformation[backupAdjustedWeightsDimension, action - 1];
-                NodeInformation[cumulativeStrategyDimension, action - 1] = NodeInformation[backupCumulativeStrategyDimension, action - 1];
-                NodeInformation[averageStrategyProbabilityDimension, action - 1] = NodeInformation[backupAverageStrategyProbabilityDimension, action - 1];
-            }
-            AverageStrategyAdjustmentsSum = LastAverageStrategyAdjustmentsSum;
-        }
-
         public void MultiplicativeWeightsAnalyze()
         {
             string avgDistanceString = null, rangesString = null;
@@ -1123,9 +1102,9 @@ namespace ACESim
             string hedgeString = GetMultiplicativeWeightsProbabilitiesAsString();
             double[] averageStrategies = GetAverageStrategiesAsArray();
             string avgStratString = GetAverageStrategiesAsString();
-            bool avgStratSameAsBestResponse = averageStrategies[LastBestResponseAction - 1] > 0.9999999;
+            bool avgStratSameAsBestResponse = averageStrategies[BestResponseAction - 1] > 0.9999999;
             //if (ranges.Count() > 1)
-                Console.WriteLine($"{(avgStratSameAsBestResponse ? "*" : "")} decision {Decision.Name} Information set {InformationSetNodeNumber} bestrespon {LastBestResponseAction} hedge {hedgeString} avg {avgStratString} avg distance {avgDistanceString} ranges: {rangesString}");
+                Console.WriteLine($"{(avgStratSameAsBestResponse ? "*" : "")} decision {Decision.Name} Information set {InformationSetNodeNumber} bestrespon {BestResponseAction} hedge {hedgeString} avg {avgStratString} avg distance {avgDistanceString} ranges: {rangesString}");
         }
 
         public void ZeroLowProbabilities(double threshold)
@@ -1287,6 +1266,40 @@ namespace ACESim
             for (int a = 0; a < NumPossibleActions; a++)
                 array[a] = actionProbabilities[a];
             return array;
+        }
+
+        #endregion
+
+        #region General manipulation
+
+        public void CreateBackup()
+        {
+            BackupNodeInformation = (double[,])NodeInformation.Clone();
+            BackupAverageStrategyAdjustmentsSum = AverageStrategyAdjustmentsSum;
+            BackupBestResponseAction = BestResponseAction;
+        }
+
+        public void RestoreBackup()
+        {
+            NodeInformation = (double[,])BackupNodeInformation.Clone();
+            AverageStrategyAdjustmentsSum = BackupAverageStrategyAdjustmentsSum;
+            BestResponseAction = BackupBestResponseAction;
+        }
+
+        public void AddMixedness(double minProbabilitySecondBest)
+        {
+            double[] averageStrategyProbabilities = GetAverageStrategiesAsArray();
+            var indexed = averageStrategyProbabilities.Select((value, index) => (value, index)).ToList();
+            var highest = indexed.First();
+            var secondHighest = indexed.OrderByDescending(x => x.value).Skip(1).First();
+            if (highest.value < minProbabilitySecondBest * 2)
+                minProbabilitySecondBest = highest.value / 2.0;
+            if (secondHighest.value < minProbabilitySecondBest)
+            {
+                double reallocation = secondHighest.value - minProbabilitySecondBest;
+                NodeInformation[averageStrategyProbabilityDimension, highest.index] -= reallocation;
+                NodeInformation[averageStrategyProbabilityDimension, secondHighest.index] += reallocation;
+            }
         }
 
         #endregion

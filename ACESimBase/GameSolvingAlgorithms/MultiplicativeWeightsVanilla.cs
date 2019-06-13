@@ -334,7 +334,7 @@ namespace ACESim
                     array[initialIndex++] = 0; // initialize best response denominator to zero
                     array[initialIndex++] = 0; // initialize last cumulative strategy increment to zero
                 }
-                array[initialIndex] = infoSet.LastBestResponseAction;
+                array[initialIndex] = infoSet.BestResponseAction;
             });
             for (byte p = 0; p < NumNonChancePlayers; p++)
             {
@@ -758,13 +758,13 @@ namespace ACESim
                         if (!EvolutionSettings.AcceptSimulatedAnnealingIfWorse(iteration, EvolutionSettings.TotalVanillaCFRIterations))
                         {
                             // Reject -- that is, revert to previous backup. We will then have a different epsilon value in the next set (since iterations keep marching forward), so we may have a different outcome, and even if we don't, we may accept.
-                            Parallel.ForEach(InformationSets, informationSet => informationSet.MultiplicativeWeightsRestoreBackup());
+                            Parallel.ForEach(InformationSets, informationSet => informationSet.RestoreBackup());
                             BestResponseImprovement = LastBestResponseImprovement.ToArray();
                             return;
                         }
                     }
                 }
-                Parallel.ForEach(InformationSets, informationSet => informationSet.MultiplicativeWeightsCreateBackup());
+                Parallel.ForEach(InformationSets, informationSet => informationSet.CreateBackup());
                 LastBestResponseImprovement = BestResponseImprovement.ToArray();
 
             }
@@ -879,7 +879,7 @@ namespace ACESim
                     expectedValueOfAction[action - 1] = innerResult.HedgeVsHedge;
                     if (playerMakingDecision == playerBeingOptimized)
                     {
-                        if (informationSet.LastBestResponseAction == action)
+                        if (informationSet.BestResponseAction == action)
                         {
                             // Because this is the best response action, the best response utility that we get should be propagated back directly.
                             result.BestResponseToAverageStrategy = innerResult.BestResponseToAverageStrategy;
@@ -901,7 +901,7 @@ namespace ACESim
                     {
                         TabbedText.Tabs--;
                         TabbedText.WriteLine(
-                            $"... action {action}{(informationSet.LastBestResponseAction == action && IncludeAsteriskForBestResponseInTrace ? "*" : "")} expected value {expectedValueOfAction[action - 1]} best response expected value {result.BestResponseToAverageStrategy} cum expected value {expectedValue}{(action == numPossibleActions && IncludeAsteriskForBestResponseInTrace ? "*" : "")}");
+                            $"... action {action}{(informationSet.BestResponseAction == action && IncludeAsteriskForBestResponseInTrace ? "*" : "")} expected value {expectedValueOfAction[action - 1]} best response expected value {result.BestResponseToAverageStrategy} cum expected value {expectedValue}{(action == numPossibleActions && IncludeAsteriskForBestResponseInTrace ? "*" : "")}");
                     }
                 }
             }

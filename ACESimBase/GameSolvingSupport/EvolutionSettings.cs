@@ -107,7 +107,7 @@ namespace ACESim
 
         public double SimulatedAnnealing_RandomAverageStrategyAdjustment(int iteration, InformationSetNode informationSet)
         {
-            double currentTotal = informationSet.LastAverageStrategyAdjustmentsSum;
+            double currentTotal = informationSet.BackupAverageStrategyAdjustmentsSum;
             if (currentTotal == 0)
                 return 1.0;
             double r = new ConsistentRandomSequenceProducer(19).GetDoubleAtIndex(SimulatedAnnealingSet(iteration));
