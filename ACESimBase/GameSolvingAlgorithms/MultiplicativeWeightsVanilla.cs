@@ -99,6 +99,8 @@ namespace ACESim
                     // There are a number of advanced settings in ArrayCommandList that must be disabled for this feature to work properly. 
                     string resultWithReplacementOfARRAY = TraceCommandList(array);
                 }
+                if (EvolutionSettings.PruneOnOpponentStrategy && EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions)
+                    CalculateReachProbabilitiesAndPrunability();
             }
             return reportString;
         }
@@ -708,6 +710,8 @@ namespace ACESim
                 if (EvolutionSettings.MultiplicativeWeights_CFRBR)
                     CalculateBestResponse();
                 reportString = await MultiplicativeWeightsVanillaCFRIteration(iteration);
+                if (EvolutionSettings.PruneOnOpponentStrategy && EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions)
+                    CalculateReachProbabilitiesAndPrunability();
             }
             return reportString;
         }
@@ -873,7 +877,7 @@ namespace ACESim
                 double probabilityOfAction = actionProbabilities[action - 1];
                 bool usePredeterminedPrunability = EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions;
                 bool prune = EvolutionSettings.PruneOnOpponentStrategy && playerBeingOptimized != playerMakingDecision && 
-                    ((usePredeterminedPrunability && informationSet.PrunableActions[action - 1].consideredForPruning && informationSet.PrunableActions[action - 1].prunable) 
+                    ((usePredeterminedPrunability && informationSet.PrunableActions != null && informationSet.PrunableActions[action - 1].consideredForPruning && informationSet.PrunableActions[action - 1].prunable) 
                     || (!usePredeterminedPrunability && probabilityOfAction < EvolutionSettings.PruneOnOpponentStrategyThreshold)) 
                     || (EvolutionSettings.MultiplicativeWeights_CFRBR && probabilityOfAction == 0);
                 if (!prune)

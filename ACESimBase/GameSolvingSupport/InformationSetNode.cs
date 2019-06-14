@@ -360,10 +360,21 @@ namespace ACESim
             {
                 double prunabilityThreshold = EvolutionSettings.PruneOnOpponentStrategyThreshold;
                 foreach (var pathFromPredecessor in PathsFromPredecessor)
-                    if (pathFromPredecessor.MostRecentOpponentInformationSet != null && pathFromPredecessor.ProbabilityFromMostRecentOpponent / sumProbabilitiesSinceOpponentInformationSets > prunabilityThreshold)
+                {
+                    if (pathFromPredecessor.MostRecentOpponentInformationSet != null)
                     {
-                        pathFromPredecessor.MostRecentOpponentInformationSet.PrunableActions[pathFromPredecessor.ActionAtOpponentInformationSet - 1].prunable = false;
+                        pathFromPredecessor.MostRecentOpponentInformationSet.PrunableActions[pathFromPredecessor.ActionAtOpponentInformationSet - 1].consideredForPruning = true;
+                        if (pathFromPredecessor.ProbabilityFromMostRecentOpponent / sumProbabilitiesSinceOpponentInformationSets > prunabilityThreshold)
+                        {
+                            pathFromPredecessor.MostRecentOpponentInformationSet.PrunableActions[pathFromPredecessor.ActionAtOpponentInformationSet - 1].prunable = false;
+
+                        }
+                        else
+                        {
+                            var DEBUG = 0;
+                        }
                     }
+                }
             }
         }
 
