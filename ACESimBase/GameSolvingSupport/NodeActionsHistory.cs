@@ -229,7 +229,7 @@ namespace ACESimBase.GameSolvingSupport
                 }
             }
 
-            return (pathProbability, probabilitySinceMostRecentOpponentInformationSet, mostRecentOpponentInformationSet);
+            return (pathProbability, probabilitySinceMostRecentOpponentInformationSet, mostRecentOpponentInformationSet, actionAtOpponentInformationSet);
         }
 
         public double GetBestResponseUtilityAfterPathToSuccessor(byte playerIndex)

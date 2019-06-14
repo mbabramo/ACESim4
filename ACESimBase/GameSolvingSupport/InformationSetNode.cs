@@ -358,7 +358,7 @@ namespace ACESim
             }
             if (determinePrunability)
             {
-                const double prunabilityThreshold = 1E-8;
+                double prunabilityThreshold = EvolutionSettings.PruneOnOpponentStrategyThreshold;
                 foreach (var pathFromPredecessor in PathsFromPredecessor)
                     if (pathFromPredecessor.MostRecentOpponentInformationSet != null && pathFromPredecessor.ProbabilityFromMostRecentOpponent / sumProbabilitiesSinceOpponentInformationSets > prunabilityThreshold)
                     {

@@ -649,7 +649,7 @@ namespace ACESim
             for (int i = 0; i < InformationSetsByDecisionIndex.Count; i++)
             {
                 List<InformationSetNode> informationSetsForDecision = InformationSetsByDecisionIndex[i];
-                Parallel.ForEach(informationSetsForDecision, informationSet => informationSet.AcceleratedBestResponse_CalculateReachProbabilities());
+                Parallel.ForEach(informationSetsForDecision, informationSet => informationSet.AcceleratedBestResponse_CalculateReachProbabilities(EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions));
             }
             for (int i = InformationSetsByDecisionIndex.Count - 1; i >= 0; i--)
             {
