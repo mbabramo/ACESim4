@@ -312,6 +312,7 @@ namespace ACESim
             public double Probability;
             public InformationSetNode MostRecentOpponentInformationSet;
             public double ProbabilityFromMostRecentOpponent;
+            public byte ActionAtOpponentInformationSet;
         }
         public List<PathFromPredecessorInfo> PathsFromPredecessor;
         public List<List<NodeActionsMultipleHistories>> PathsToSuccessors;
@@ -333,7 +334,7 @@ namespace ACESim
             if (PrunableActions == null)
                 PrunableActions = new (bool consideredForPruning, bool prunable)[NumPossibleActions];
             for (int i = 0; i < NumPossibleActions; i++)
-                PrunableActions[i] = (false, true); // not considered, but assume prunable if considered until shown otherwise. This may then be changed in a later information set.
+                PrunableActions[i] = (false, true); // not considered, but assume prunable if considered until shown otherwise. This may then be changed in a later information set by the code immediately below.
 
             double sumProbabilitiesSinceOpponentInformationSets = 0;
             foreach (var pathFromPredecessor in PathsFromPredecessor)
@@ -342,9 +343,10 @@ namespace ACESim
                 double pathProbabilityFromPredecessor;
                 if (determinePrunability)
                 {
-                    (double pathProbabilityFromPredecessor2, double probabilitySinceOpponentInformationSet, InformationSetNode mostRecentOpponentInformationSet) = pathFromPredecessor.Path.GetProbabilityOfPathPlus();
+                    (double pathProbabilityFromPredecessor2, double probabilitySinceOpponentInformationSet, InformationSetNode mostRecentOpponentInformationSet, byte actionAtOpponentInformationSet) = pathFromPredecessor.Path.GetProbabilityOfPathPlus();
                     pathProbabilityFromPredecessor = pathProbabilityFromPredecessor2;
                     pathFromPredecessor.MostRecentOpponentInformationSet = mostRecentOpponentInformationSet;
+                    pathFromPredecessor.ActionAtOpponentInformationSet = actionAtOpponentInformationSet;
                     pathFromPredecessor.ProbabilityFromMostRecentOpponent = probabilitySinceOpponentInformationSet;
                     sumProbabilitiesSinceOpponentInformationSets += probabilitySinceOpponentInformationSet;
                 }
@@ -360,7 +362,7 @@ namespace ACESim
                 foreach (var pathFromPredecessor in PathsFromPredecessor)
                     if (pathFromPredecessor.MostRecentOpponentInformationSet != null && pathFromPredecessor.ProbabilityFromMostRecentOpponent / sumProbabilitiesSinceOpponentInformationSets > prunabilityThreshold)
                     {
-                        pathFromPredecessor.MostRecentOpponentInformationSet.PrunableActions[opponentAction].prunable = false;
+                        pathFromPredecessor.MostRecentOpponentInformationSet.PrunableActions[pathFromPredecessor.ActionAtOpponentInformationSet - 1].prunable = false;
                     }
             }
         }

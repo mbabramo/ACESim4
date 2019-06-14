@@ -195,11 +195,12 @@ namespace ACESimBase.GameSolvingSupport
             return pathProbability;
         }
 
-        public (double probabilityOfPath, double probabilitySinceOpponentInformationSet, InformationSetNode mostRecentOpponentInformationSet) GetProbabilityOfPathPlus()
+        public (double probabilityOfPath, double probabilitySinceOpponentInformationSet, InformationSetNode mostRecentOpponentInformationSet, byte actionAtOpponentInformationSet) GetProbabilityOfPathPlus()
         {
             bool opponentInformationSetFound = false;
             double probabilitySinceMostRecentOpponentInformationSet = 1.0;
             InformationSetNode mostRecentOpponentInformationSet = null;
+            byte actionAtOpponentInformationSet = 0;
             double pathProbability = Coefficient;
             foreach (var nodeAction in NodeActions)
             {
@@ -220,6 +221,7 @@ namespace ACESimBase.GameSolvingSupport
                             opponentInformationSetFound = true;
                             mostRecentOpponentInformationSet = i;
                             probabilitySinceMostRecentOpponentInformationSet *= averageStrategy;
+                            actionAtOpponentInformationSet = nodeAction.ActionAtNode;
                         }
                         pathProbability *= averageStrategy;
                         break;
