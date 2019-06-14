@@ -338,7 +338,7 @@ namespace ACESim
                     array[initialIndex++] = 0; // initialize best response numerator to zero
                     array[initialIndex++] = 0; // initialize best response denominator to zero
                     array[initialIndex++] = 0; // initialize last cumulative strategy increment to zero
-                    var pruningInfo = infoSet.PrunableActions[action - 1];
+                    var pruningInfo = infoSet.PrunableActions?[action - 1] ?? (false, false);
                     array[initialIndex++] = (pruningInfo.consideredForPruning && pruningInfo.prunable) ? 1.0 : 0.0;
                 }
                 array[initialIndex] = infoSet.BestResponseAction;

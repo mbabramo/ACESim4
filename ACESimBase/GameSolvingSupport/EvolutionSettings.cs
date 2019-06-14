@@ -136,6 +136,6 @@ namespace ACESim
         public bool MultiplicativeWeights_CFRBR = false;
 
         public bool DistributeChanceDecisions = true;
-        public bool UnrollAlgorithm = false;
+        public bool UnrollAlgorithm = true;
     }
 }
