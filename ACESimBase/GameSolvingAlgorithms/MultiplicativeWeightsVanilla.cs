@@ -865,7 +865,7 @@ namespace ACESim
                 if (EvolutionSettings.MultiplicativeWeights_CFRBR && playerMakingDecision != playerBeingOptimized)
                     informationSet.GetBestResponseProbabilities(actionProbabilities);
                 else
-                    informationSet.GetMultiplicativeWeightsProbabilities(actionProbabilities, false); // DEBUG playerMakingDecision != playerBeingOptimized);
+                    informationSet.GetMultiplicativeWeightsProbabilities(actionProbabilities, playerMakingDecision != playerBeingOptimized);
             }
             double* expectedValueOfAction = stackalloc double[numPossibleActions];
             double expectedValue = 0;

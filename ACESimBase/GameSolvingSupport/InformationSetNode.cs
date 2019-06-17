@@ -936,78 +936,50 @@ namespace ACESim
                 }
                 sumWeights *= 1E+15;
             }
-            if (iteration == 183 && InformationSetNodeNumber == 6)
+            if (iteration == 389 && InformationSetNodeNumber == 4)
             {
                 var DEBUG = 0;
             }
+            DEBUGX = iteration * 1000 + InformationSetNodeNumber;
 
             // Finally, calculate the hedge adjusted probabilities, plus the average strategies
             // We set each item to its proportion of the weights, but no less than SmallestProbabilityRepresented. 
             Func<byte, double> unadjustedProbabilityFunc = a => NodeInformation[adjustedWeightsDimension, a - 1] / sumWeights;
-            SetMultiplicativeWeightsProbabilities(hedgeProbabilityDimension, SmallestProbabilityRepresented, false, unadjustedProbabilityFunc);
+            SetMultiplicativeWeightsProbabilities(iteration, hedgeProbabilityDimension, SmallestProbabilityRepresented, false, unadjustedProbabilityFunc);
             // The opponent's hedge probability is the probability to use when traversing an opponent information set during optimization. 
             bool pruning = pruneOpponentStrategyBelow != null && pruneOpponentStrategyBelow != 0;
             double probabilityThreshold = pruning ? (double)pruneOpponentStrategyBelow : SmallestProbabilityRepresented;
-            SetMultiplicativeWeightsProbabilities(hedgeProbabilityDimension, probabilityThreshold, pruning, unadjustedProbabilityFunc);
+            SetMultiplicativeWeightsProbabilities(iteration, hedgeProbabilityOpponentDimension, probabilityThreshold, pruning, unadjustedProbabilityFunc);
             // Also, calculate average strategies
             unadjustedProbabilityFunc = a => NodeInformation[cumulativeStrategyDimension, a - 1] / sumCumulativeStrategies;
-            SetMultiplicativeWeightsProbabilities(averageStrategyProbabilityDimension, SmallestProbabilityInAverageStrategy, true, unadjustedProbabilityFunc);
-            if (NodeInformation[5, 0] == 0 || NodeInformation[5, 1] == 0)
-                throw new Exception("DEBUG");
+            SetMultiplicativeWeightsProbabilities(iteration, averageStrategyProbabilityDimension, SmallestProbabilityInAverageStrategy, true, unadjustedProbabilityFunc);
         }
 
-        private void SetMultiplicativeWeightsProbabilities(int probabilityDimension, double probabilityThreshold, bool setBelowThresholdToZero, Func<byte, double> initialProbabilityFunc)
+        static int DEBUGX = 0;
+
+        private void SetMultiplicativeWeightsProbabilities(int iteration, int probabilityDimension, double probabilityThreshold, bool setBelowThresholdToZero, Func<byte, double> initialProbabilityFunc)
         {
-            int countLargeEnough = 0;
-            double sumLargeEnough = 0;
             double setBelowThresholdTo = setBelowThresholdToZero ? 0 : probabilityThreshold;
+            byte largestAction = 0;
+            double largestValue = 0;
+            double sumExcludingLargest = 0;
             for (byte a = 1; a <= NumPossibleActions; a++)
             {
                 double p = initialProbabilityFunc(a);
-                if (p > probabilityThreshold)
-                {
-                    countLargeEnough++;
-                    if (a == NumPossibleActions && countLargeEnough == NumPossibleActions)
-                        p = 1.0 - sumLargeEnough;
-                    sumLargeEnough += p;
-                }
-                else
+                if (p <= probabilityThreshold)
                     p = setBelowThresholdTo;
                 NodeInformation[probabilityDimension, a - 1] = p;
-            }
-            if (countLargeEnough < NumPossibleActions)
-            {
-                double overallSum = 0;
-                int countTooSmall = NumPossibleActions - countLargeEnough;
-                double desiredSumLargeEnough = 1.0 - countTooSmall * setBelowThresholdTo;
-                double multiplierForLargeEnough = desiredSumLargeEnough / sumLargeEnough;
-                for (int a = 1; a <= NumPossibleActions; a++)
+                if (a == 1 || p > largestValue)
                 {
-                    if (a < NumPossibleActions)
-                    {
-                        double p = NodeInformation[probabilityDimension, a - 1];
-                        if (p > setBelowThresholdTo)
-                            NodeInformation[probabilityDimension, a - 1] = p * multiplierForLargeEnough;
-                        overallSum += NodeInformation[probabilityDimension, a - 1];
-                        if (overallSum == 1 && setBelowThresholdTo > 0)
-                        {
-                            overallSum -= setBelowThresholdTo;
-                            NodeInformation[probabilityDimension, a - 1] -= setBelowThresholdTo;
-                        }
-                    }
-                    else
-                        NodeInformation[probabilityDimension, a - 1] = 1.0 - overallSum;
-                    if (NodeInformation[probabilityDimension, a - 1] == 0 && setBelowThresholdTo > 0)
-                        throw new Exception("DEBUG");
+                    if (a != 1)
+                        sumExcludingLargest += largestValue;
+                    largestAction = a;
+                    largestValue = p;
                 }
+                else
+                    sumExcludingLargest += p;
             }
-            double DEBUGCheck = 0;
-            for (int a = 1; a <= NumPossibleActions; a++)
-            {
-                DEBUGCheck += NodeInformation[probabilityDimension, a - 1];
-            }
-            if (DEBUGCheck != 1.0)
-                throw new Exception();
+            NodeInformation[probabilityDimension, largestAction - 1] = 1.0 - sumExcludingLargest;
         }
 
         private void RecordProbabilitiesAsPastValues(int iteration, double averageStrategyAdjustment)
