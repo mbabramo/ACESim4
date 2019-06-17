@@ -870,10 +870,6 @@ namespace ACESim
             double* expectedValueOfAction = stackalloc double[numPossibleActions];
             double expectedValue = 0;
             MultiplicativeWeightsVanillaUtilities result = default;
-            if (IterationNum >= 7536 && informationSet.Decision.Name == "PlaintiffOffer2")
-            {
-                var DEBUG = 0;
-            }
             double sumProbabilities = 0;
             for (byte action = 1; action <= numPossibleActions; action++)
             {
@@ -888,10 +884,6 @@ namespace ACESim
                     //((usePredeterminedPrunability && informationSet.PrunableActions != null && informationSet.PrunableActions[action - 1].consideredForPruning && informationSet.PrunableActions[action - 1].prunable) 
                     //|| (!usePredeterminedPrunability && probabilityOfAction < EvolutionSettings.PruneOnOpponentStrategyThreshold)) 
                     //|| (EvolutionSettings.MultiplicativeWeights_CFRBR && probabilityOfAction == 0);
-                if (IterationNum == 66 && informationSet.InformationSetNodeNumber == 9 && playerMakingDecision == playerBeingOptimized && action == 1)
-                {
-                    var DEBUG = 0;
-                }
                 if (prune)
                 {
                     var DEBUG = 0;
@@ -921,11 +913,6 @@ namespace ACESim
                     MultiplicativeWeightsVanillaUtilities innerResult = MultiplicativeWeightsVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, distributorChanceInputsNext);
                     expectedValueOfAction[action - 1] = innerResult.HedgeVsHedge;
 
-                    //if (IterationNum == 66 && informationSet.InformationSetNodeNumber == 9 && playerMakingDecision == playerBeingOptimized && action == 1)
-                    //{
-                    //    TraceCFR = false;
-                    //    var DEBUG = 0;
-                    //}
                     if (playerMakingDecision == playerBeingOptimized)
                     {
                         if (informationSet.BestResponseAction == action)
@@ -965,12 +952,6 @@ namespace ACESim
                     if (pi < InformationSetNode.SmallestProbabilityRepresented)
                         piAdj = InformationSetNode.SmallestProbabilityRepresented;
                     double contributionToAverageStrategy = piAdj * actionProbabilities[action - 1];
-                    if (IterationNum >= 7536 && informationSet.InformationSetNodeNumber == 85)
-                    {
-                        Debug.WriteLine($"DEBUG iteration {IterationNum}: action {action}: {expectedValueOfAction[action - 1]} - {expectedValue} = {regret} (inversepi {inversePi})");
-                        informationSet.DEBUG2 = true;
-                        var DEBUG = 0;
-                    }
                     if (EvolutionSettings.ParallelOptimization)
                     {
                         informationSet.MultiplicativeWeightsIncrementLastRegret_Parallel(action, regret * inversePi, inversePi);
@@ -978,11 +959,6 @@ namespace ACESim
                     }
                     else
                     {
-                        if (IterationNum == 66 && informationSet.InformationSetNodeNumber == 9)
-                        {
-                            informationSet.DEBUG2 = true;
-                            Debug.WriteLine($"Iteration {IterationNum}");
-                        }
                         informationSet.MultiplicativeWeightsIncrementLastRegret(action, regret * inversePi, inversePi);
                         informationSet.MultiplicativeWeightsIncrementLastCumulativeStrategyIncrements(action, contributionToAverageStrategy);
                     }

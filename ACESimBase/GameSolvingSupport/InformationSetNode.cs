@@ -372,10 +372,6 @@ namespace ACESim
                             pathFromPredecessor.MostRecentOpponentInformationSet.PrunableActions[pathFromPredecessor.ActionAtOpponentInformationSet - 1].prunable = false;
 
                         }
-                        else
-                        {
-                            var DEBUG = 0;
-                        }
                     }
                 }
             }
@@ -871,10 +867,6 @@ namespace ACESim
 
         public void UpdateMultiplicativeWeights(int iteration, double multiplicativeWeightsEpsilon, double averageStrategyAdjustment, bool normalizeCumulativeStrategyIncrements, bool resetPreviousCumulativeStrategyIncrements, double? pruneOpponentStrategyBelow)
         {
-            if (iteration >= 7535 && InformationSetNodeNumber == 85)
-            {
-                var DEBUG = 0;
-            }
             RecordProbabilitiesAsPastValues(iteration, averageStrategyAdjustment); // these are the average strategies played, and thus shouldn't reflect the updates below
 
             if (resetPreviousCumulativeStrategyIncrements)
@@ -936,11 +928,6 @@ namespace ACESim
                 }
                 sumWeights *= 1E+15;
             }
-            if (iteration == 389 && InformationSetNodeNumber == 4)
-            {
-                var DEBUG = 0;
-            }
-            DEBUGX = iteration * 1000 + InformationSetNodeNumber;
 
             // Finally, calculate the hedge adjusted probabilities, plus the average strategies
             // We set each item to its proportion of the weights, but no less than SmallestProbabilityRepresented. 
@@ -954,8 +941,6 @@ namespace ACESim
             unadjustedProbabilityFunc = a => NodeInformation[cumulativeStrategyDimension, a - 1] / sumCumulativeStrategies;
             SetMultiplicativeWeightsProbabilities(iteration, averageStrategyProbabilityDimension, SmallestProbabilityInAverageStrategy, true, unadjustedProbabilityFunc);
         }
-
-        static int DEBUGX = 0;
 
         private void SetMultiplicativeWeightsProbabilities(int iteration, int probabilityDimension, double probabilityThreshold, bool setBelowThresholdToZero, Func<byte, double> initialProbabilityFunc)
         {
@@ -1019,34 +1004,17 @@ namespace ACESim
 
         public void MultiplicativeWeightsIncrementLastRegret(byte action, double regretTimesInversePi, double inversePi)
         {
-            //if (InformationSetNodeNumber == 9 && DEBUG2) // DEBUG
-            //{
-            //    Debug.WriteLine($"start increment: action {action} of {NumPossibleActions} regret {regretTimesInversePi / inversePi} regret*invpi {regretTimesInversePi} inversePi {inversePi} numerator {NodeInformation[lastRegretNumeratorDimension, action - 1]} denominator {NodeInformation[lastRegretDenominatorDimension, action - 1]} fraction {NodeInformation[lastRegretNumeratorDimension, action - 1] / NodeInformation[lastRegretDenominatorDimension, action - 1]}");
-            //}
             NodeInformation[lastRegretNumeratorDimension, action - 1] += regretTimesInversePi;
             NodeInformation[lastRegretDenominatorDimension, action - 1] += inversePi;
-            //if (InformationSetNodeNumber == 9 && DEBUG2) // DEBUG
-            //{
-            //    Debug.WriteLine($"end increment: action {action} of {NumPossibleActions} regret {regretTimesInversePi / inversePi} regret*invpi {regretTimesInversePi} inversePi {inversePi} numerator {NodeInformation[lastRegretNumeratorDimension, action - 1]} denominator {NodeInformation[lastRegretDenominatorDimension, action - 1]} fraction {NodeInformation[lastRegretNumeratorDimension, action - 1] / NodeInformation[lastRegretDenominatorDimension, action - 1]}");
-            //}
-            //var DEBUG = MultiplicativeWeightsNormalizeRegret(NodeInformation[lastRegretNumeratorDimension, action - 1] / NodeInformation[lastRegretDenominatorDimension, action - 1]);
         }
 
 
         public bool DEBUG2 = false;
         public void MultiplicativeWeightsIncrementLastRegret_Parallel(byte action, double regretTimesInversePi, double inversePi)
         {
-            //if (DEBUG2 && action == 1)
-            //{
-            //    Debug.WriteLine($"start increment: regret*invpi {regretTimesInversePi} inversePi {inversePi} numerator {NodeInformation[lastRegretNumeratorDimension, action - 1]} denominator {NodeInformation[lastRegretDenominatorDimension, action - 1]} fraction {NodeInformation[lastRegretNumeratorDimension, action - 1] / NodeInformation[lastRegretDenominatorDimension, action - 1]}");
-            //}
             Interlocking.Add(ref NodeInformation[lastRegretNumeratorDimension, action - 1], regretTimesInversePi);
             Interlocking.Add(ref NodeInformation[lastRegretDenominatorDimension, action - 1], inversePi);
-            //if (DEBUG2 && action == 1)
-            //{
             //    Debug.WriteLine($"after increment: regret*invpi {regretTimesInversePi} inversePi {inversePi} numerator {NodeInformation[lastRegretNumeratorDimension, action - 1]} denominator {NodeInformation[lastRegretDenominatorDimension, action - 1]} fraction {NodeInformation[lastRegretNumeratorDimension, action - 1] / NodeInformation[lastRegretDenominatorDimension, action - 1]}");
-            //}
-            //Interlocked.Increment(ref NumRegretIncrements);
         }
 
         public double MultiplicativeWeightsNormalizeRegret(double regret)

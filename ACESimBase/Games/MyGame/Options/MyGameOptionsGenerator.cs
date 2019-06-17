@@ -182,7 +182,7 @@ namespace ACESim
                 SubdivideOffers = false,
                 BargainingRoundsSimultaneous = true,
                 PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false, true, false, true, false },
-                IncludeSignalsReport = true, // DEBUG
+                IncludeSignalsReport = false,
                 IncludeCourtSuccessReport = false,
             };
             // options.AdditionalTableOverrides = new List<(Func<Decision, GameProgress, byte>, string)>() { (MyGameActionsGenerator.GamePlaysOutToTrial, "GamePlaysOutToTrial") };
