@@ -869,6 +869,11 @@ namespace ACESim
             double* expectedValueOfAction = stackalloc double[numPossibleActions];
             double expectedValue = 0;
             MultiplicativeWeightsVanillaUtilities result = default;
+            if (IterationNum >= 7536 && informationSet.Decision.Name == "PlaintiffOffer2")
+            {
+                var DEBUG = 0;
+            }
+            double sumProbabilities = 0;
             for (byte action = 1; action <= numPossibleActions; action++)
             {
                 int distributorChanceInputsNext = distributorChanceInputs;
@@ -880,8 +885,13 @@ namespace ACESim
                     ((usePredeterminedPrunability && informationSet.PrunableActions != null && informationSet.PrunableActions[action - 1].consideredForPruning && informationSet.PrunableActions[action - 1].prunable) 
                     || (!usePredeterminedPrunability && probabilityOfAction < EvolutionSettings.PruneOnOpponentStrategyThreshold)) 
                     || (EvolutionSettings.MultiplicativeWeights_CFRBR && probabilityOfAction == 0);
+                if (prune)
+                {
+                    var DEBUG = 0;
+                }
                 if (!prune)
                 {
+                    sumProbabilities += probabilityOfAction;
                     double probabilityOfActionAvgStrat = informationSet.GetAverageStrategy(action);
                     GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false,
                         nextPiValues); // reduce probability associated with player being optimized, without changing probabilities for other players
@@ -893,8 +903,22 @@ namespace ACESim
                         TabbedText.Tabs++;
                     }
                     HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
+                    if (IterationNum >= 7536 && informationSet.InformationSetNodeNumber == 85 && action == 2)
+                    {
+                        //EvolutionSettings.ParallelOptimization = false;
+                        //for (int i = 0; i < 20; i++)
+                        //    TabbedText.Tabs++;
+                        //TraceCFR = true;
+                        var DEBUG = 0;
+                    }
                     MultiplicativeWeightsVanillaUtilities innerResult = MultiplicativeWeightsVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, distributorChanceInputsNext);
                     expectedValueOfAction[action - 1] = innerResult.HedgeVsHedge;
+
+                    if (IterationNum >= 7536 && informationSet.InformationSetNodeNumber == 85 && action == 2)
+                    {
+                        //TraceCFR = false;
+                        var DEBUG = 0;
+                    }
                     if (playerMakingDecision == playerBeingOptimized)
                     {
                         if (informationSet.BestResponseAction == action)
@@ -921,8 +945,9 @@ namespace ACESim
                         TabbedText.WriteLine(
                             $"... action {action}{(informationSet.BestResponseAction == action && IncludeAsteriskForBestResponseInTrace ? "*" : "")} expected value {expectedValueOfAction[action - 1]} best response expected value {result.BestResponseToAverageStrategy} cum expected value {expectedValue}{(action == numPossibleActions && IncludeAsteriskForBestResponseInTrace ? "*" : "")}");
                     }
-                }
-            }
+                } // not pruning
+            } // for each action
+            expectedValue /= sumProbabilities; // if actions were pruned, this will rescale probabilities
             if (playerMakingDecision == playerBeingOptimized)
             {
                 for (byte action = 1; action <= numPossibleActions; action++)
@@ -934,6 +959,12 @@ namespace ACESim
                     if (pi < InformationSetNode.SmallestProbabilityRepresented)
                         piAdj = InformationSetNode.SmallestProbabilityRepresented;
                     double contributionToAverageStrategy = piAdj * actionProbabilities[action - 1];
+                    if (IterationNum >= 7536 && informationSet.InformationSetNodeNumber == 85)
+                    {
+                        Debug.WriteLine($"DEBUG iteration {IterationNum}: action {action}: {expectedValueOfAction[action - 1]} - {expectedValue} = {regret} (inversepi {inversePi})");
+                        informationSet.DEBUG2 = true;
+                        var DEBUG = 0;
+                    }
                     if (EvolutionSettings.ParallelOptimization)
                     {
                         informationSet.MultiplicativeWeightsIncrementLastRegret_Parallel(action, regret * inversePi, inversePi);

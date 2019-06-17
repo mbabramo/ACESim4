@@ -16,7 +16,7 @@ namespace ACESim
     {
         #region Properties, members, and constants
 
-        public const double SmallestProbabilityRepresented = 1E-300; // We make this considerably greater than Double.Epsilon (but still very small), because otherwise when we multiply the value by anything < 1, we get 0, and this makes it impossible to climb out of being a zero-probability action.
+        public const double SmallestProbabilityRepresented = 1E-16; // We make this considerably greater than Double.Epsilon (but still very small), because (1) otherwise when we multiply the value by anything < 1, we get 0, and this makes it impossible to climb out of being a zero-probability action, (2) we want to be able to represent 1 - probability.
 
         public static int InformationSetsSoFar = 0;
         public int InformationSetNodeNumber; // could delete this once things are working, but may be useful in testing scenarios
@@ -868,7 +868,10 @@ namespace ACESim
 
         public void UpdateMultiplicativeWeights(int iteration, double multiplicativeWeightsEpsilon, double averageStrategyAdjustment, bool normalizeCumulativeStrategyIncrements, bool resetPreviousCumulativeStrategyIncrements)
         {
-
+            if (iteration >= 7535 && InformationSetNodeNumber == 85)
+            {
+                var DEBUG = 0;
+            }
             RecordProbabilitiesAsPastValues(iteration, averageStrategyAdjustment); // these are the average strategies played, and thus shouldn't reflect the updates below
 
             if (resetPreviousCumulativeStrategyIncrements)
@@ -933,23 +936,36 @@ namespace ACESim
                 sumWeights *= 1E+15;
             }
             // Finally, calculate the hedge adjusted probabilities
+            double probabilityHedgeSum = 0, probabilityAverageStrategySum = 0; // we track so that probabilities add up to exactly 1 (not 1 and a tiny bit)
             for (int a = 1; a <= NumPossibleActions; a++)
             {
                 double probabilityHedge = NodeInformation[adjustedWeightsDimension, a - 1] / sumWeights;
                 if (probabilityHedge < SmallestProbabilityRepresented)
-                    probabilityHedge = SmallestProbabilityRepresented; 
+                    probabilityHedge = SmallestProbabilityRepresented;
+                if (a < NumPossibleActions)
+                    probabilityHedgeSum += probabilityHedge;
+                else
+                    probabilityHedge = 1.0 - probabilityHedgeSum;
                 if (double.IsNaN(probabilityHedge))
                     throw new Exception();
                 NodeInformation[hedgeProbabilityDimension, a - 1] = probabilityHedge;
                 if (sumCumulativeStrategies > 0)
                 {
                     double probabilityAverageStrategy = NodeInformation[cumulativeStrategyDimension, a - 1] / sumCumulativeStrategies;
+                    if (a < NumPossibleActions)
+                        probabilityAverageStrategySum += probabilityAverageStrategy;
+                    else
+                        probabilityAverageStrategy = 1.0 - probabilityAverageStrategySum;
                     if (probabilityAverageStrategy < SmallestProbabilityRepresented)
                         probabilityAverageStrategy = SmallestProbabilityRepresented; 
                     if (double.IsNaN(probabilityAverageStrategy))
                         throw new Exception();
                     NodeInformation[averageStrategyProbabilityDimension, a - 1] = probabilityAverageStrategy;
                 }
+            }
+            if (iteration == 7535 && InformationSetNodeNumber == 85)
+            {
+                var DEBUG = 0;
             }
         }
 
@@ -993,10 +1009,20 @@ namespace ACESim
             NodeInformation[lastRegretDenominatorDimension, action - 1] += inversePi;
         }
 
+
+        public bool DEBUG2 = false;
         public void MultiplicativeWeightsIncrementLastRegret_Parallel(byte action, double regretTimesInversePi, double inversePi)
         {
+            if (DEBUG2 && action == 1)
+            {
+                Debug.WriteLine($"start increment: regret*invpi {regretTimesInversePi} inversePi {inversePi} numerator {NodeInformation[lastRegretNumeratorDimension, action - 1]} denominator {NodeInformation[lastRegretDenominatorDimension, action - 1]} fraction {NodeInformation[lastRegretNumeratorDimension, action - 1] / NodeInformation[lastRegretDenominatorDimension, action - 1]}");
+            }
             Interlocking.Add(ref NodeInformation[lastRegretNumeratorDimension, action - 1], regretTimesInversePi);
             Interlocking.Add(ref NodeInformation[lastRegretDenominatorDimension, action - 1], inversePi);
+            if (DEBUG2 && action == 1)
+            {
+                Debug.WriteLine($"after increment: regret*invpi {regretTimesInversePi} inversePi {inversePi} numerator {NodeInformation[lastRegretNumeratorDimension, action - 1]} denominator {NodeInformation[lastRegretDenominatorDimension, action - 1]} fraction {NodeInformation[lastRegretNumeratorDimension, action - 1] / NodeInformation[lastRegretDenominatorDimension, action - 1]}");
+            }
             //Interlocked.Increment(ref NumRegretIncrements);
         }
 
@@ -1005,7 +1031,7 @@ namespace ACESim
             // best performance possible occurs if expected value is MaxPossibleThisPlayer when overall expected value is MinPossibleThisPlayer. worst performance possible occurs if regret is MinPossibleThisPlayer when overall expected value is MaxPossibleThisPlayer. Regret can range from -(MaxPossible - MinPossible) to +(MaxPossible - MinPossible). Thus, Regret + (MaxPossible - MinPossible) can range from 0 to 2*(MaxPossible - MinPossible). So, we can normalize regret to be from 0 to 1 by calculating (regret + range) / (2 * range).
             double range = MaxPossibleThisPlayer - MinPossibleThisPlayer;
             double normalizedRegret = (regret + range) / (2 * range);
-            if (normalizedRegret < 0 || normalizedRegret > 1)
+            if (normalizedRegret < 0 || normalizedRegret > 1.0)
                 throw new Exception("Invalid normalized regret");
             return normalizedRegret;
         }
