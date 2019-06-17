@@ -865,7 +865,7 @@ namespace ACESim
 
         // Note: The first two methods must be used if we don't have a guarantee that updating will take place before each iteration.
 
-        public void UpdateMultiplicativeWeights(int iteration, double multiplicativeWeightsEpsilon, double averageStrategyAdjustment, bool normalizeCumulativeStrategyIncrements, bool resetPreviousCumulativeStrategyIncrements, double? pruneOpponentStrategyBelow)
+        public void UpdateMultiplicativeWeights(int iteration, double multiplicativeWeightsEpsilon, double averageStrategyAdjustment, bool normalizeCumulativeStrategyIncrements, bool resetPreviousCumulativeStrategyIncrements, double? pruneOpponentStrategyBelow, bool pruneOpponentStrategyIfDesignatedPrunable)
         {
             RecordProbabilitiesAsPastValues(iteration, averageStrategyAdjustment); // these are the average strategies played, and thus shouldn't reflect the updates below
 
@@ -932,20 +932,20 @@ namespace ACESim
             // Finally, calculate the hedge adjusted probabilities, plus the average strategies
             // We set each item to its proportion of the weights, but no less than SmallestProbabilityRepresented. 
             Func<byte, double> unadjustedProbabilityFunc = a => NodeInformation[adjustedWeightsDimension, a - 1] / sumWeights;
-            SetMultiplicativeWeightsProbabilities(iteration, hedgeProbabilityDimension, SmallestProbabilityRepresented, false, unadjustedProbabilityFunc);
+            SetMultiplicativeWeightsProbabilities(iteration, hedgeProbabilityDimension, SmallestProbabilityRepresented, false, false, unadjustedProbabilityFunc);
             // The opponent's hedge probability is the probability to use when traversing an opponent information set during optimization. 
-            bool pruning = pruneOpponentStrategyBelow != null && pruneOpponentStrategyBelow != 0;
-            double probabilityThreshold = pruning ? (double)pruneOpponentStrategyBelow : SmallestProbabilityRepresented;
-            SetMultiplicativeWeightsProbabilities(iteration, hedgeProbabilityOpponentDimension, probabilityThreshold, pruning, unadjustedProbabilityFunc);
+            bool pruning = pruneOpponentStrategyIfDesignatedPrunable || (pruneOpponentStrategyBelow != null && pruneOpponentStrategyBelow != 0);
+            double probabilityThreshold = pruning && !pruneOpponentStrategyIfDesignatedPrunable ? (double)pruneOpponentStrategyBelow : SmallestProbabilityRepresented;
+            SetMultiplicativeWeightsProbabilities(iteration, hedgeProbabilityOpponentDimension, probabilityThreshold,  pruning, pruneOpponentStrategyIfDesignatedPrunable, unadjustedProbabilityFunc);
             // Also, calculate average strategies
             if (sumCumulativeStrategies > 0)
             {
                 unadjustedProbabilityFunc = a => NodeInformation[cumulativeStrategyDimension, a - 1] / sumCumulativeStrategies;
-                SetMultiplicativeWeightsProbabilities(iteration, averageStrategyProbabilityDimension, SmallestProbabilityInAverageStrategy, true, unadjustedProbabilityFunc);
+                SetMultiplicativeWeightsProbabilities(iteration, averageStrategyProbabilityDimension, SmallestProbabilityInAverageStrategy, true, false, unadjustedProbabilityFunc);
             }
         }
 
-        private void SetMultiplicativeWeightsProbabilities(int iteration, int probabilityDimension, double probabilityThreshold, bool setBelowThresholdToZero, Func<byte, double> initialProbabilityFunc)
+        private void SetMultiplicativeWeightsProbabilities(int iteration, int probabilityDimension, double probabilityThreshold, bool setBelowThresholdToZero, bool usePrunabilityInsteadOfThreshold, Func<byte, double> initialProbabilityFunc)
         {
             double setBelowThresholdTo = setBelowThresholdToZero ? 0 : probabilityThreshold;
             byte largestAction = 0;
@@ -956,7 +956,7 @@ namespace ACESim
                 double p = initialProbabilityFunc(a);
                 if (double.IsNaN(p))
                     throw new Exception();
-                if (p <= probabilityThreshold)
+                if ((!usePrunabilityInsteadOfThreshold && p <= probabilityThreshold) || (usePrunabilityInsteadOfThreshold && PrunableActions != null && PrunableActions[a - 1].consideredForPruning && PrunableActions[a - 1].prunable))
                     p = setBelowThresholdTo;
                 NodeInformation[probabilityDimension, a - 1] = p;
                 if (a == 1 || p > largestValue)

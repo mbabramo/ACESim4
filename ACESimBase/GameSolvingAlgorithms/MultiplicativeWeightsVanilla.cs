@@ -39,26 +39,27 @@ namespace ACESim
             int numInformationSets = InformationSets.Count;
             double multiplicativeWeightsEpsilon = EvolutionSettings.MultiplicativeWeightsEpsilon(iteration, EvolutionSettings.TotalVanillaCFRIterations);
             double? pruneOpponentStrategyBelow = EvolutionSettings.PruneOnOpponentStrategy && !EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions ? EvolutionSettings.PruneOnOpponentStrategyThreshold : (double?) null;
+            bool predeterminePrunability = EvolutionSettings.PruneOnOpponentStrategy && EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions;
 
             if (EvolutionSettings.SimulatedAnnealing_UseRandomAverageStrategyAdjustment)
             {
-                Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, multiplicativeWeightsEpsilon, EvolutionSettings.SimulatedAnnealing_RandomAverageStrategyAdjustment(iteration, InformationSets[n]), false, false, pruneOpponentStrategyBelow));
+                Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, multiplicativeWeightsEpsilon, EvolutionSettings.SimulatedAnnealing_RandomAverageStrategyAdjustment(iteration, InformationSets[n]), false, false, pruneOpponentStrategyBelow, predeterminePrunability));
                 return;
             }
 
             bool alwaysNormalizeCumulativeStrategyIncrements = false;
             if (alwaysNormalizeCumulativeStrategyIncrements || EvolutionSettings.DiscountingTarget_ConstantAfterProportionOfIterations == 1.0)
-                Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, multiplicativeWeightsEpsilon, AverageStrategyAdjustment, true, false, pruneOpponentStrategyBelow));
+                Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, multiplicativeWeightsEpsilon, AverageStrategyAdjustment, true, false, pruneOpponentStrategyBelow, predeterminePrunability));
             else
             {
                 int maxIterationToDiscount = EvolutionSettings.StopDiscountingAtIteration;
 
                 if (iteration < maxIterationToDiscount)
-                    Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, multiplicativeWeightsEpsilon, AverageStrategyAdjustment, true, false, pruneOpponentStrategyBelow));
+                    Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, multiplicativeWeightsEpsilon, AverageStrategyAdjustment, true, false, pruneOpponentStrategyBelow, predeterminePrunability));
                 else if (iteration == maxIterationToDiscount)
-                    Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, multiplicativeWeightsEpsilon, 1.0, false, true, pruneOpponentStrategyBelow));
+                    Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, multiplicativeWeightsEpsilon, 1.0, false, true, pruneOpponentStrategyBelow, predeterminePrunability));
                 else
-                    Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, multiplicativeWeightsEpsilon, 1.0, false, false, pruneOpponentStrategyBelow));
+                    Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, multiplicativeWeightsEpsilon, 1.0, false, false, pruneOpponentStrategyBelow, predeterminePrunability));
             }
         }
 
