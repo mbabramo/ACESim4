@@ -17,7 +17,7 @@ namespace ACESim
             Ambitious,
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Fast;
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.SuperSimple;
 
         public static MyGameOptions SingleRound() => MyGameChoice switch
         {

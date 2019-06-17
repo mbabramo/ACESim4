@@ -129,9 +129,9 @@ namespace ACESim
         public bool SuppressRecordingWhileDiscounting = true;
 
 
-        public const bool PruneOnOpponentStrategy = true; // NOTE: In general sum games, this seems to cause difficulties, because some of the player's own information sets may not be visited, as a result of pruning on opponents' sets. 
-        public const double PruneOnOpponentStrategyThreshold = 1E-4; // DEBUG // NOTE: This is the probability for this action, not the cumulative probability. 
-        public const bool PredeterminePrunabilityBasedOnRelativeContributions = true; // if True, then we prune if and only if the action contributes negligibly at any later information set
+        public const bool PruneOnOpponentStrategy = false; // DEBUG // NOTE: In general sum games, this seems to cause difficulties, because some of the player's own information sets may not be visited, as a result of pruning on opponents' sets. 
+        public const double PruneOnOpponentStrategyThreshold = 1E-6; // DEBUG // NOTE: This is the probability for this action, not the cumulative probability. 
+        public const bool PredeterminePrunabilityBasedOnRelativeContributions = false; // DEBUG // if True, then we prune if and only if the action contributes negligibly at any later information set
 
         public bool MultiplicativeWeights_CFRBR = false;
 

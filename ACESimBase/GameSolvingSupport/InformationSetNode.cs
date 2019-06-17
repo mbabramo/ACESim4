@@ -17,6 +17,7 @@ namespace ACESim
         #region Properties, members, and constants
 
         public const double SmallestProbabilityRepresented = 1E-16; // We make this considerably greater than Double.Epsilon (but still very small), because (1) otherwise when we multiply the value by anything < 1, we get 0, and this makes it impossible to climb out of being a zero-probability action, (2) we want to be able to represent 1 - probability.
+        public const double SmallestProbabilityInAverageStrategy = 1E-5; // This is greater still -- when calculating average strategies, we disregard very small probabilities (which presumably are on their way to zero)
 
         public static int InformationSetsSoFar = 0;
         public int InformationSetNodeNumber; // could delete this once things are working, but may be useful in testing scenarios
@@ -57,7 +58,8 @@ namespace ACESim
         double PastValuesLastCumulativeStrategyDiscount => PastValuesCumulativeStrategyDiscounts[LastPastValueIndexRecorded];
 
         public int NumPossibleActions => Decision.NumPossibleActions;
-        public const int totalDimensions = 10;
+        public const int totalDimensions = 10; // one more than highest dimension below
+
         public const int cumulativeRegretDimension = 0;
         public const int cumulativeStrategyDimension = 1;
         public const int bestResponseNumeratorDimension = 2;
@@ -65,11 +67,12 @@ namespace ACESim
         // for multiplicative weights
         public const int lastRegretDenominatorDimension = 0; // we don't use cumulativeRegret for multiplicative weights
         public const int lastRegretNumeratorDimension = 4;
-        public const int adjustedWeightsDimension = 5;
-        public const int averageStrategyProbabilityDimension = 6;
-        // for hedge probing
         public const int hedgeProbabilityDimension = 5;
-        public const int lastCumulativeStrategyIncrementsDimension = 6;
+        public const int hedgeProbabilityOpponentDimension = 6;
+        public const int adjustedWeightsDimension = 7;
+        public const int averageStrategyProbabilityDimension = 8;
+        public const int lastCumulativeStrategyIncrementsDimension = 9;
+        // for hedge probing
         public const int temporaryDimension = 7;
         // for exploratory probing
         public const int storageDimension = 4;
@@ -866,7 +869,7 @@ namespace ACESim
 
         // Note: The first two methods must be used if we don't have a guarantee that updating will take place before each iteration.
 
-        public void UpdateMultiplicativeWeights(int iteration, double multiplicativeWeightsEpsilon, double averageStrategyAdjustment, bool normalizeCumulativeStrategyIncrements, bool resetPreviousCumulativeStrategyIncrements)
+        public void UpdateMultiplicativeWeights(int iteration, double multiplicativeWeightsEpsilon, double averageStrategyAdjustment, bool normalizeCumulativeStrategyIncrements, bool resetPreviousCumulativeStrategyIncrements, double? pruneOpponentStrategyBelow)
         {
             if (iteration >= 7535 && InformationSetNodeNumber == 85)
             {
@@ -911,14 +914,12 @@ namespace ACESim
             for (int a = 1; a <= NumPossibleActions; a++)
             {
                 double denominator = NodeInformation[lastRegretDenominatorDimension, a - 1];
-                double regretUnnormalized = (denominator == 0) ? 0.5*(MaxPossibleThisPlayer - MinPossibleThisPlayer) : NodeInformation[lastRegretNumeratorDimension, a - 1] / denominator;
+                double regretUnnormalized = (denominator == 0) ? 0.5 * (MaxPossibleThisPlayer - MinPossibleThisPlayer) : NodeInformation[lastRegretNumeratorDimension, a - 1] / denominator;
                 double regret = MultiplicativeWeightsNormalizeRegret(regretUnnormalized); // bad moves are now close to 0 and good moves are close to 1
                 double adjustedNormalizedRegret = 1.0 - regret; // if regret is high (good move), this is low; bad moves are now close to 1 and good moves are close to 0
                 double weightAdjustment = Math.Pow(1 - multiplicativeWeightsEpsilon, adjustedNormalizedRegret); // if there is a good move, then this is high (relatively close to 1). For example, suppose MultiplicativeWeightsEpsilon is 0.5. Then, if adjustedNormalizedRegret is 0.9 (bad move), the weight adjustment is 0.536, but if adjustedNormalizedRegret is 0.1 (good move), the weight adjustment is only 0.933, so the bad move is discounted relative to the good move by 0.536/0.933. if MultiplicativeWeightsEpsilon is 0.1, then the weight adjustments are 0.98 and 0.90; i.e., the algorithm is much less greedy (because 1 - MultiplicativeWeightsEpsilon is relatively lose to 1). if MultiplicativeWeightsEpsilon is 0.9, the algorithm is much more greedy.
                 double weight = NodeInformation[adjustedWeightsDimension, a - 1];
                 weight *= weightAdjustment; // So, this weight reduces only slightly when regret is high
-                if (weight < SmallestProbabilityRepresented)
-                    weight = SmallestProbabilityRepresented; // can't let weights go to zero or they never recover
                 if (double.IsNaN(weight) || double.IsInfinity(weight))
                     throw new Exception();
                 NodeInformation[adjustedWeightsDimension, a - 1] = weight;
@@ -935,38 +936,78 @@ namespace ACESim
                 }
                 sumWeights *= 1E+15;
             }
-            // Finally, calculate the hedge adjusted probabilities
-            double probabilityHedgeSum = 0, probabilityAverageStrategySum = 0; // we track so that probabilities add up to exactly 1 (not 1 and a tiny bit)
-            for (int a = 1; a <= NumPossibleActions; a++)
-            {
-                double probabilityHedge = NodeInformation[adjustedWeightsDimension, a - 1] / sumWeights;
-                if (probabilityHedge < SmallestProbabilityRepresented)
-                    probabilityHedge = SmallestProbabilityRepresented;
-                if (a < NumPossibleActions)
-                    probabilityHedgeSum += probabilityHedge;
-                else
-                    probabilityHedge = 1.0 - probabilityHedgeSum;
-                if (double.IsNaN(probabilityHedge))
-                    throw new Exception();
-                NodeInformation[hedgeProbabilityDimension, a - 1] = probabilityHedge;
-                if (sumCumulativeStrategies > 0)
-                {
-                    double probabilityAverageStrategy = NodeInformation[cumulativeStrategyDimension, a - 1] / sumCumulativeStrategies;
-                    if (a < NumPossibleActions)
-                        probabilityAverageStrategySum += probabilityAverageStrategy;
-                    else
-                        probabilityAverageStrategy = 1.0 - probabilityAverageStrategySum;
-                    if (probabilityAverageStrategy < SmallestProbabilityRepresented)
-                        probabilityAverageStrategy = SmallestProbabilityRepresented; 
-                    if (double.IsNaN(probabilityAverageStrategy))
-                        throw new Exception();
-                    NodeInformation[averageStrategyProbabilityDimension, a - 1] = probabilityAverageStrategy;
-                }
-            }
-            if (iteration == 7535 && InformationSetNodeNumber == 85)
+            if (iteration == 183 && InformationSetNodeNumber == 6)
             {
                 var DEBUG = 0;
             }
+
+            // Finally, calculate the hedge adjusted probabilities, plus the average strategies
+            // We set each item to its proportion of the weights, but no less than SmallestProbabilityRepresented. 
+            Func<byte, double> unadjustedProbabilityFunc = a => NodeInformation[adjustedWeightsDimension, a - 1] / sumWeights;
+            SetMultiplicativeWeightsProbabilities(hedgeProbabilityDimension, SmallestProbabilityRepresented, false, unadjustedProbabilityFunc);
+            // The opponent's hedge probability is the probability to use when traversing an opponent information set during optimization. 
+            bool pruning = pruneOpponentStrategyBelow != null && pruneOpponentStrategyBelow != 0;
+            double probabilityThreshold = pruning ? (double)pruneOpponentStrategyBelow : SmallestProbabilityRepresented;
+            SetMultiplicativeWeightsProbabilities(hedgeProbabilityDimension, probabilityThreshold, pruning, unadjustedProbabilityFunc);
+            // Also, calculate average strategies
+            unadjustedProbabilityFunc = a => NodeInformation[cumulativeStrategyDimension, a - 1] / sumCumulativeStrategies;
+            SetMultiplicativeWeightsProbabilities(averageStrategyProbabilityDimension, SmallestProbabilityInAverageStrategy, true, unadjustedProbabilityFunc);
+            if (NodeInformation[5, 0] == 0 || NodeInformation[5, 1] == 0)
+                throw new Exception("DEBUG");
+        }
+
+        private void SetMultiplicativeWeightsProbabilities(int probabilityDimension, double probabilityThreshold, bool setBelowThresholdToZero, Func<byte, double> initialProbabilityFunc)
+        {
+            int countLargeEnough = 0;
+            double sumLargeEnough = 0;
+            double setBelowThresholdTo = setBelowThresholdToZero ? 0 : probabilityThreshold;
+            for (byte a = 1; a <= NumPossibleActions; a++)
+            {
+                double p = initialProbabilityFunc(a);
+                if (p > probabilityThreshold)
+                {
+                    countLargeEnough++;
+                    if (a == NumPossibleActions && countLargeEnough == NumPossibleActions)
+                        p = 1.0 - sumLargeEnough;
+                    sumLargeEnough += p;
+                }
+                else
+                    p = setBelowThresholdTo;
+                NodeInformation[probabilityDimension, a - 1] = p;
+            }
+            if (countLargeEnough < NumPossibleActions)
+            {
+                double overallSum = 0;
+                int countTooSmall = NumPossibleActions - countLargeEnough;
+                double desiredSumLargeEnough = 1.0 - countTooSmall * setBelowThresholdTo;
+                double multiplierForLargeEnough = desiredSumLargeEnough / sumLargeEnough;
+                for (int a = 1; a <= NumPossibleActions; a++)
+                {
+                    if (a < NumPossibleActions)
+                    {
+                        double p = NodeInformation[probabilityDimension, a - 1];
+                        if (p > setBelowThresholdTo)
+                            NodeInformation[probabilityDimension, a - 1] = p * multiplierForLargeEnough;
+                        overallSum += NodeInformation[probabilityDimension, a - 1];
+                        if (overallSum == 1 && setBelowThresholdTo > 0)
+                        {
+                            overallSum -= setBelowThresholdTo;
+                            NodeInformation[probabilityDimension, a - 1] -= setBelowThresholdTo;
+                        }
+                    }
+                    else
+                        NodeInformation[probabilityDimension, a - 1] = 1.0 - overallSum;
+                    if (NodeInformation[probabilityDimension, a - 1] == 0 && setBelowThresholdTo > 0)
+                        throw new Exception("DEBUG");
+                }
+            }
+            double DEBUGCheck = 0;
+            for (int a = 1; a <= NumPossibleActions; a++)
+            {
+                DEBUGCheck += NodeInformation[probabilityDimension, a - 1];
+            }
+            if (DEBUGCheck != 1.0)
+                throw new Exception();
         }
 
         private void RecordProbabilitiesAsPastValues(int iteration, double averageStrategyAdjustment)
@@ -998,6 +1039,7 @@ namespace ACESim
             {
                 NodeInformation[adjustedWeightsDimension, a - 1] = 1.0;
                 NodeInformation[hedgeProbabilityDimension, a - 1] = probability;
+                NodeInformation[hedgeProbabilityOpponentDimension, a - 1] = probability;
                 NodeInformation[averageStrategyProbabilityDimension, a - 1] = probability;
             }
             UpdatingHedge = new SimpleExclusiveLock();
@@ -1005,24 +1047,33 @@ namespace ACESim
 
         public void MultiplicativeWeightsIncrementLastRegret(byte action, double regretTimesInversePi, double inversePi)
         {
+            //if (InformationSetNodeNumber == 9 && DEBUG2) // DEBUG
+            //{
+            //    Debug.WriteLine($"start increment: action {action} of {NumPossibleActions} regret {regretTimesInversePi / inversePi} regret*invpi {regretTimesInversePi} inversePi {inversePi} numerator {NodeInformation[lastRegretNumeratorDimension, action - 1]} denominator {NodeInformation[lastRegretDenominatorDimension, action - 1]} fraction {NodeInformation[lastRegretNumeratorDimension, action - 1] / NodeInformation[lastRegretDenominatorDimension, action - 1]}");
+            //}
             NodeInformation[lastRegretNumeratorDimension, action - 1] += regretTimesInversePi;
             NodeInformation[lastRegretDenominatorDimension, action - 1] += inversePi;
+            //if (InformationSetNodeNumber == 9 && DEBUG2) // DEBUG
+            //{
+            //    Debug.WriteLine($"end increment: action {action} of {NumPossibleActions} regret {regretTimesInversePi / inversePi} regret*invpi {regretTimesInversePi} inversePi {inversePi} numerator {NodeInformation[lastRegretNumeratorDimension, action - 1]} denominator {NodeInformation[lastRegretDenominatorDimension, action - 1]} fraction {NodeInformation[lastRegretNumeratorDimension, action - 1] / NodeInformation[lastRegretDenominatorDimension, action - 1]}");
+            //}
+            //var DEBUG = MultiplicativeWeightsNormalizeRegret(NodeInformation[lastRegretNumeratorDimension, action - 1] / NodeInformation[lastRegretDenominatorDimension, action - 1]);
         }
 
 
         public bool DEBUG2 = false;
         public void MultiplicativeWeightsIncrementLastRegret_Parallel(byte action, double regretTimesInversePi, double inversePi)
         {
-            if (DEBUG2 && action == 1)
-            {
-                Debug.WriteLine($"start increment: regret*invpi {regretTimesInversePi} inversePi {inversePi} numerator {NodeInformation[lastRegretNumeratorDimension, action - 1]} denominator {NodeInformation[lastRegretDenominatorDimension, action - 1]} fraction {NodeInformation[lastRegretNumeratorDimension, action - 1] / NodeInformation[lastRegretDenominatorDimension, action - 1]}");
-            }
+            //if (DEBUG2 && action == 1)
+            //{
+            //    Debug.WriteLine($"start increment: regret*invpi {regretTimesInversePi} inversePi {inversePi} numerator {NodeInformation[lastRegretNumeratorDimension, action - 1]} denominator {NodeInformation[lastRegretDenominatorDimension, action - 1]} fraction {NodeInformation[lastRegretNumeratorDimension, action - 1] / NodeInformation[lastRegretDenominatorDimension, action - 1]}");
+            //}
             Interlocking.Add(ref NodeInformation[lastRegretNumeratorDimension, action - 1], regretTimesInversePi);
             Interlocking.Add(ref NodeInformation[lastRegretDenominatorDimension, action - 1], inversePi);
-            if (DEBUG2 && action == 1)
-            {
-                Debug.WriteLine($"after increment: regret*invpi {regretTimesInversePi} inversePi {inversePi} numerator {NodeInformation[lastRegretNumeratorDimension, action - 1]} denominator {NodeInformation[lastRegretDenominatorDimension, action - 1]} fraction {NodeInformation[lastRegretNumeratorDimension, action - 1] / NodeInformation[lastRegretDenominatorDimension, action - 1]}");
-            }
+            //if (DEBUG2 && action == 1)
+            //{
+            //    Debug.WriteLine($"after increment: regret*invpi {regretTimesInversePi} inversePi {inversePi} numerator {NodeInformation[lastRegretNumeratorDimension, action - 1]} denominator {NodeInformation[lastRegretDenominatorDimension, action - 1]} fraction {NodeInformation[lastRegretNumeratorDimension, action - 1] / NodeInformation[lastRegretDenominatorDimension, action - 1]}");
+            //}
             //Interlocked.Increment(ref NumRegretIncrements);
         }
 
@@ -1076,11 +1127,12 @@ namespace ACESim
         //        probabilitiesToSet[a - 1] = epsilon * equalProbabilities + (1.0 - epsilon) * probabilitiesToSet[a - 1];
         //}
 
-        public unsafe void GetMultiplicativeWeightsProbabilities(double* probabilitiesToSet)
+        public unsafe void GetMultiplicativeWeightsProbabilities(double* probabilitiesToSet, bool opponentProbabilities)
         {
+            int probabilityDimension = opponentProbabilities ? hedgeProbabilityOpponentDimension : hedgeProbabilityDimension;
             for (byte a = 1; a <= NumPossibleActions; a++)
             {
-                probabilitiesToSet[a - 1] = GetMultiplicativeWeightsProbability(a);
+                probabilitiesToSet[a - 1] = NodeInformation[probabilityDimension, a - 1];
             }
         }
 
@@ -1094,7 +1146,7 @@ namespace ACESim
             double[] array = new double[NumPossibleActions];
 
             double* actionProbabilities = stackalloc double[NumPossibleActions];
-            GetMultiplicativeWeightsProbabilities(actionProbabilities);
+            GetMultiplicativeWeightsProbabilities(actionProbabilities, false);
             for (int a = 0; a < NumPossibleActions; a++)
                 array[a] = actionProbabilities[a];
             return array;

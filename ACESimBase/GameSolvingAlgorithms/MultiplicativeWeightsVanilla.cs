@@ -38,26 +38,27 @@ namespace ACESim
         {
             int numInformationSets = InformationSets.Count;
             double multiplicativeWeightsEpsilon = EvolutionSettings.MultiplicativeWeightsEpsilon(iteration, EvolutionSettings.TotalVanillaCFRIterations);
+            double? pruneOpponentStrategyBelow = EvolutionSettings.PruneOnOpponentStrategy && !EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions ? EvolutionSettings.PruneOnOpponentStrategyThreshold : (double?) null;
 
             if (EvolutionSettings.SimulatedAnnealing_UseRandomAverageStrategyAdjustment)
             {
-                Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, multiplicativeWeightsEpsilon, EvolutionSettings.SimulatedAnnealing_RandomAverageStrategyAdjustment(iteration, InformationSets[n]), false, false));
+                Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, multiplicativeWeightsEpsilon, EvolutionSettings.SimulatedAnnealing_RandomAverageStrategyAdjustment(iteration, InformationSets[n]), false, false, pruneOpponentStrategyBelow));
                 return;
             }
 
             bool alwaysNormalizeCumulativeStrategyIncrements = false;
             if (alwaysNormalizeCumulativeStrategyIncrements || EvolutionSettings.DiscountingTarget_ConstantAfterProportionOfIterations == 1.0)
-                Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, multiplicativeWeightsEpsilon, AverageStrategyAdjustment, true, false));
+                Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, multiplicativeWeightsEpsilon, AverageStrategyAdjustment, true, false, pruneOpponentStrategyBelow));
             else
             {
                 int maxIterationToDiscount = EvolutionSettings.StopDiscountingAtIteration;
 
                 if (iteration < maxIterationToDiscount)
-                    Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, multiplicativeWeightsEpsilon, AverageStrategyAdjustment, true, false));
+                    Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, multiplicativeWeightsEpsilon, AverageStrategyAdjustment, true, false, pruneOpponentStrategyBelow));
                 else if (iteration == maxIterationToDiscount)
-                    Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, multiplicativeWeightsEpsilon, 1.0, false, true));
+                    Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, multiplicativeWeightsEpsilon, 1.0, false, true, pruneOpponentStrategyBelow));
                 else
-                    Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, multiplicativeWeightsEpsilon, 1.0, false, false));
+                    Parallel.For(0, numInformationSets, n => InformationSets[n].UpdateMultiplicativeWeights(iteration, multiplicativeWeightsEpsilon, 1.0, false, false, pruneOpponentStrategyBelow));
             }
         }
 
@@ -864,7 +865,7 @@ namespace ACESim
                 if (EvolutionSettings.MultiplicativeWeights_CFRBR && playerMakingDecision != playerBeingOptimized)
                     informationSet.GetBestResponseProbabilities(actionProbabilities);
                 else
-                    informationSet.GetMultiplicativeWeightsProbabilities(actionProbabilities);
+                    informationSet.GetMultiplicativeWeightsProbabilities(actionProbabilities, false); // DEBUG playerMakingDecision != playerBeingOptimized);
             }
             double* expectedValueOfAction = stackalloc double[numPossibleActions];
             double expectedValue = 0;
@@ -881,17 +882,22 @@ namespace ACESim
                     distributorChanceInputsNext += action * informationSet.Decision.DistributorChanceInputDecisionMultiplier;
                 double probabilityOfAction = actionProbabilities[action - 1];
                 bool usePredeterminedPrunability = EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions;
-                bool prune = EvolutionSettings.PruneOnOpponentStrategy && playerBeingOptimized != playerMakingDecision && 
-                    ((usePredeterminedPrunability && informationSet.PrunableActions != null && informationSet.PrunableActions[action - 1].consideredForPruning && informationSet.PrunableActions[action - 1].prunable) 
-                    || (!usePredeterminedPrunability && probabilityOfAction < EvolutionSettings.PruneOnOpponentStrategyThreshold)) 
-                    || (EvolutionSettings.MultiplicativeWeights_CFRBR && probabilityOfAction == 0);
+                bool prune = playerBeingOptimized != playerMakingDecision && probabilityOfAction == 0;
+                // DEBUG
+                    //EvolutionSettings.PruneOnOpponentStrategy && playerBeingOptimized != playerMakingDecision && 
+                    //((usePredeterminedPrunability && informationSet.PrunableActions != null && informationSet.PrunableActions[action - 1].consideredForPruning && informationSet.PrunableActions[action - 1].prunable) 
+                    //|| (!usePredeterminedPrunability && probabilityOfAction < EvolutionSettings.PruneOnOpponentStrategyThreshold)) 
+                    //|| (EvolutionSettings.MultiplicativeWeights_CFRBR && probabilityOfAction == 0);
+                if (IterationNum == 66 && informationSet.InformationSetNodeNumber == 9 && playerMakingDecision == playerBeingOptimized && action == 1)
+                {
+                    var DEBUG = 0;
+                }
                 if (prune)
                 {
                     var DEBUG = 0;
                 }
                 if (!prune)
                 {
-                    sumProbabilities += probabilityOfAction;
                     double probabilityOfActionAvgStrat = informationSet.GetAverageStrategy(action);
                     GetNextPiValues(piValues, playerMakingDecision, probabilityOfAction, false,
                         nextPiValues); // reduce probability associated with player being optimized, without changing probabilities for other players
@@ -903,22 +909,23 @@ namespace ACESim
                         TabbedText.Tabs++;
                     }
                     HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
-                    if (IterationNum >= 7536 && informationSet.InformationSetNodeNumber == 85 && action == 2)
-                    {
-                        //EvolutionSettings.ParallelOptimization = false;
-                        //for (int i = 0; i < 20; i++)
-                        //    TabbedText.Tabs++;
-                        //TraceCFR = true;
-                        var DEBUG = 0;
-                    }
+                    // DEBUG
+                    //if (IterationNum == 66 && informationSet.InformationSetNodeNumber == 9 && playerMakingDecision == playerBeingOptimized && action == 1)
+                    //{
+                    //    EvolutionSettings.ParallelOptimization = false;
+                    //    for (int i = 0; i < 10; i++)
+                    //        TabbedText.Tabs++;
+                    //    TraceCFR = true;
+                    //    var DEBUG = 0;
+                    //}
                     MultiplicativeWeightsVanillaUtilities innerResult = MultiplicativeWeightsVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, distributorChanceInputsNext);
                     expectedValueOfAction[action - 1] = innerResult.HedgeVsHedge;
 
-                    if (IterationNum >= 7536 && informationSet.InformationSetNodeNumber == 85 && action == 2)
-                    {
-                        //TraceCFR = false;
-                        var DEBUG = 0;
-                    }
+                    //if (IterationNum == 66 && informationSet.InformationSetNodeNumber == 9 && playerMakingDecision == playerBeingOptimized && action == 1)
+                    //{
+                    //    TraceCFR = false;
+                    //    var DEBUG = 0;
+                    //}
                     if (playerMakingDecision == playerBeingOptimized)
                     {
                         if (informationSet.BestResponseAction == action)
@@ -947,7 +954,6 @@ namespace ACESim
                     }
                 } // not pruning
             } // for each action
-            expectedValue /= sumProbabilities; // if actions were pruned, this will rescale probabilities
             if (playerMakingDecision == playerBeingOptimized)
             {
                 for (byte action = 1; action <= numPossibleActions; action++)
@@ -972,6 +978,11 @@ namespace ACESim
                     }
                     else
                     {
+                        if (IterationNum == 66 && informationSet.InformationSetNodeNumber == 9)
+                        {
+                            informationSet.DEBUG2 = true;
+                            Debug.WriteLine($"Iteration {IterationNum}");
+                        }
                         informationSet.MultiplicativeWeightsIncrementLastRegret(action, regret * inversePi, inversePi);
                         informationSet.MultiplicativeWeightsIncrementLastCumulativeStrategyIncrements(action, contributionToAverageStrategy);
                     }
