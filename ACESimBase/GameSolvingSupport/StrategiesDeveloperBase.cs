@@ -58,7 +58,7 @@ namespace ACESim
 
         public async Task<string> DevelopStrategies(string reportName)
         {
-            Initialize();
+            await Initialize();
             string report = await RunAlgorithm(reportName);
             if (EvolutionSettings.SerializeResults)
                 StrategySerialization.SerializeStrategies(Strategies.ToArray(), "serstat.sst");
@@ -145,7 +145,7 @@ namespace ACESim
             }
         }
 
-        public unsafe void Initialize()
+        public async Task Initialize()
         {
             if (StoreGameStateNodesInLists)
             {
@@ -175,12 +175,19 @@ namespace ACESim
                 Console.WriteLine("Initializing all game paths...");
                 if (StoreGameStateNodesInLists && GamePlayer.PlayAllPathsIsParallel)
                     throw new NotImplementedException();
+                // slower approach commented out
+                //NumInitializedGamePaths = 0;
+                //var originalLookup = Navigation.LookupApproach;
+                //Navigation = Navigation.WithLookupApproach(InformationSetLookupApproach.PlayUnderlyingGame);
+                //await ProcessAllPathsAsync(GetStartOfGameHistoryPoint(), (historyPoint, probability) => ProcessInitializedGameProgressAsync(historyPoint, probability));
+                //Navigation = Navigation.WithLookupApproach(originalLookup);
                 NumInitializedGamePaths = GamePlayer.PlayAllPaths(ProcessInitializedGameProgress);
                 stopwatch.Stop();
                 string parallelString = GamePlayer.PlayAllPathsIsParallel ? " (higher number in parallel)" : "";
-                string informationSetsString = StoreGameStateNodesInLists ? $" Total information sets: {InformationSets.Count()} chance nodes: {ChanceNodes.Count()} final nodes: {FinalUtilitiesNodes.Count()}" : "";
                 DistributeChanceDecisions();
+                string informationSetsString = StoreGameStateNodesInLists ? $" Total information sets: {InformationSets.Count()} chance nodes: {ChanceNodes.Count()} final nodes: {FinalUtilitiesNodes.Count()}" : "";
                 PrepareAcceleratedBestResponse();
+                //var DEBUG = InformationSets.Select(x => x.Decision.Name + " " + String.Join(",", x.LastActionsList.TheList.ToArray())).ToList();
                 Console.WriteLine($"... Initialized. Total paths{parallelString}: {NumInitializedGamePaths}{informationSetsString} Initialization milliseconds {stopwatch.ElapsedMilliseconds}");
                 PrintSameGameResults();
             }
@@ -201,6 +208,20 @@ namespace ACESim
                     TreeWalk_Tree(c);
                 }
             Console.WriteLine($"... complete {stopwatch.ElapsedMilliseconds} milliseconds");
+        }
+
+        Task ProcessInitializedGameProgressAsync(HistoryPoint completedGame, double probability)
+        {
+            List<byte> actions = completedGame.GetActionsToHere(Navigation);
+            (GameProgress progress, _) = GamePlayer.PlayPath(actions, false);
+            //string DEBUG = progress.GameFullHistory.GetActionsAsListString();
+            //Debug.WriteLine(DEBUG);
+            lock (this)
+            {
+                ProcessInitializedGameProgress(progress);
+                NumInitializedGamePaths++;
+            }
+            return Task.CompletedTask;
         }
 
         unsafe void ProcessInitializedGameProgress(GameProgress gameProgress)
