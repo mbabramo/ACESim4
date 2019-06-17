@@ -1,4 +1,5 @@
 ﻿using ACESim.Util;
+using System;
 
 namespace ACESim
 {
@@ -26,6 +27,8 @@ namespace ACESim
         {
             HedgeVsHedge += other.HedgeVsHedge * hedgeProbability;
             AverageStrategyVsAverageStrategy += other.AverageStrategyVsAverageStrategy * averageStrategyProbability;
+            if (double.IsNaN(AverageStrategyVsAverageStrategy))
+                throw new Exception("DEBUG");
             BestResponseToAverageStrategy += other.BestResponseToAverageStrategy * averageStrategyProbability;
         }
 
@@ -34,6 +37,8 @@ namespace ACESim
             // supports parallelism, since we may increment by multiple probability adjusted items at once
             Interlocking.Add(ref HedgeVsHedge, other.HedgeVsHedge);
             Interlocking.Add(ref AverageStrategyVsAverageStrategy, other.AverageStrategyVsAverageStrategy);
+            if (double.IsNaN(AverageStrategyVsAverageStrategy))
+                throw new Exception("DEBUG");
             Interlocking.Add(ref BestResponseToAverageStrategy, other.BestResponseToAverageStrategy);
         }
 

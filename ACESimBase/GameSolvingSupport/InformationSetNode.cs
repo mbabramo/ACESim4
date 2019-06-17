@@ -938,8 +938,11 @@ namespace ACESim
             double probabilityThreshold = pruning ? (double)pruneOpponentStrategyBelow : SmallestProbabilityRepresented;
             SetMultiplicativeWeightsProbabilities(iteration, hedgeProbabilityOpponentDimension, probabilityThreshold, pruning, unadjustedProbabilityFunc);
             // Also, calculate average strategies
-            unadjustedProbabilityFunc = a => NodeInformation[cumulativeStrategyDimension, a - 1] / sumCumulativeStrategies;
-            SetMultiplicativeWeightsProbabilities(iteration, averageStrategyProbabilityDimension, SmallestProbabilityInAverageStrategy, true, unadjustedProbabilityFunc);
+            if (sumCumulativeStrategies > 0)
+            {
+                unadjustedProbabilityFunc = a => NodeInformation[cumulativeStrategyDimension, a - 1] / sumCumulativeStrategies;
+                SetMultiplicativeWeightsProbabilities(iteration, averageStrategyProbabilityDimension, SmallestProbabilityInAverageStrategy, true, unadjustedProbabilityFunc);
+            }
         }
 
         private void SetMultiplicativeWeightsProbabilities(int iteration, int probabilityDimension, double probabilityThreshold, bool setBelowThresholdToZero, Func<byte, double> initialProbabilityFunc)
@@ -951,6 +954,8 @@ namespace ACESim
             for (byte a = 1; a <= NumPossibleActions; a++)
             {
                 double p = initialProbabilityFunc(a);
+                if (double.IsNaN(p))
+                    throw new Exception();
                 if (p <= probabilityThreshold)
                     p = setBelowThresholdTo;
                 NodeInformation[probabilityDimension, a - 1] = p;
@@ -964,7 +969,10 @@ namespace ACESim
                 else
                     sumExcludingLargest += p;
             }
-            NodeInformation[probabilityDimension, largestAction - 1] = 1.0 - sumExcludingLargest;
+            double remainingProbability = 1.0 - sumExcludingLargest; // note: still not guaranteed to create sum of exactly 1
+            if (double.IsNaN(remainingProbability))
+                throw new Exception();
+            NodeInformation[probabilityDimension, largestAction - 1] = remainingProbability;
         }
 
         private void RecordProbabilitiesAsPastValues(int iteration, double averageStrategyAdjustment)
