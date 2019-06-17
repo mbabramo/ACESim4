@@ -979,7 +979,7 @@ namespace ACESim
                     else
                         PastValuesCumulativeStrategyDiscounts[LastPastValueIndexRecorded] = PastValuesCumulativeStrategyDiscounts[LastPastValueIndexRecorded] + averageStrategyAdjustment;
                     for (byte a = 1; a <= NumPossibleActions; a++)
-                        PastValues[LastPastValueIndexRecorded, a - 1] = GetMultiplicativeWeightsProbability(a);
+                        PastValues[LastPastValueIndexRecorded, a - 1] = GetMultiplicativeWeightsProbability(a, false);
                 }
             }
         }
@@ -1076,9 +1076,10 @@ namespace ACESim
             }
         }
 
-        public unsafe double GetMultiplicativeWeightsProbability(byte a)
+        public unsafe double GetMultiplicativeWeightsProbability(byte a, bool opponentProbabilities)
         {
-            return NodeInformation[hedgeProbabilityDimension, a - 1];
+            int probabilityDimension = opponentProbabilities ? hedgeProbabilityOpponentDimension : hedgeProbabilityDimension;
+            return NodeInformation[probabilityDimension, a - 1];
         }
 
         public unsafe double[] GetMultiplicativeWeightsProbabilitiesAsArray()

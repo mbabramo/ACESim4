@@ -163,12 +163,12 @@ namespace ACESim
         private const int Unroll_NumPiecesInfoPerInformationSetAction = 8;
         private const int Unroll_InformationSetPerActionOrder_AverageStrategy = 0;
         private const int Unroll_InformationSetPerActionOrder_HedgeProbability = 1;
-        private const int Unroll_InformationSetPerActionOrder_LastRegretNumerator = 2;
-        private const int Unroll_InformationSetPerActionOrder_LastRegretDenominator = 3;
-        private const int Unroll_InformationSetPerActionOrder_BestResponseNumerator = 4;
-        private const int Unroll_InformationSetPerActionOrder_BestResponseDenominator = 5;
-        private const int Unroll_InformationSetPerActionOrder_LastCumulativeStrategyIncrement = 6;
-        private const int Unroll_InformationSetPerActionOrder_Prunable = 7;
+        private const int Unroll_InformationSetPerActionOrder_HedgeProbability_Opponent = 2;
+        private const int Unroll_InformationSetPerActionOrder_LastRegretNumerator = 3;
+        private const int Unroll_InformationSetPerActionOrder_LastRegretDenominator = 4;
+        private const int Unroll_InformationSetPerActionOrder_BestResponseNumerator = 5;
+        private const int Unroll_InformationSetPerActionOrder_BestResponseDenominator = 6;
+        private const int Unroll_InformationSetPerActionOrder_LastCumulativeStrategyIncrement = 7;
 
         private int[][] Unroll_IterationResultForPlayersIndices;
         private MultiplicativeWeightsVanillaUtilities[] Unroll_IterationResultForPlayers;
@@ -178,9 +178,9 @@ namespace ACESim
         private int[] Unroll_FinalUtilitiesNodesIndices;
         private int[] Unroll_InitialPiValuesIndices = null;
         private int Unroll_OneIndex = -1;
+        private int Unroll_ZeroIndex = -1;
         private int Unroll_SmallestValuePossibleIndex = -1;
         private int Unroll_SmallestProbabilityRepresentedIndex = -1;
-        private int Unroll_OpponentPruningThresholdIndex = -1;
         private int Unroll_AverageStrategyAdjustmentIndex = -1;
         private int Unroll_InitialArrayIndex = -1;
 
@@ -206,6 +206,19 @@ namespace ACESim
             return probabilities;
         }
 
+        private int Unroll_GetInformationSetIndex_HedgeProbabilityOpponent(int informationSetNumber, byte action) => Unroll_InformationSetsIndices[informationSetNumber] + (Unroll_NumPiecesInfoPerInformationSetAction * (action - 1)) + Unroll_InformationSetPerActionOrder_HedgeProbability_Opponent;
+
+        private int[] Unroll_GetInformationSetIndex_HedgeProbabilitiesOpponent_All(int informationSetNumber, byte numPossibleActions)
+        {
+            int[] probabilities = new int[numPossibleActions];
+            int initialIndex = Unroll_InformationSetsIndices[informationSetNumber];
+            for (int action = 1; action <= numPossibleActions; action++)
+            {
+                probabilities[action - 1] = initialIndex + (Unroll_NumPiecesInfoPerInformationSetAction * (action - 1)) + Unroll_InformationSetPerActionOrder_HedgeProbability_Opponent;
+            }
+            return probabilities;
+        }
+
         private int Unroll_GetInformationSetIndex_LastRegretNumerator(int informationSetNumber, byte action) => Unroll_InformationSetsIndices[informationSetNumber] + (Unroll_NumPiecesInfoPerInformationSetAction * (action - 1)) + Unroll_InformationSetPerActionOrder_LastRegretNumerator;
 
         private int Unroll_GetInformationSetIndex_LastRegretDenominator(int informationSetNumber, byte action) => Unroll_InformationSetsIndices[informationSetNumber] + (Unroll_NumPiecesInfoPerInformationSetAction * (action - 1)) + Unroll_InformationSetPerActionOrder_LastRegretDenominator;
@@ -214,8 +227,6 @@ namespace ACESim
 
         private int Unroll_GetInformationSetIndex_BestResponseDenominator(int informationSetNumber, byte action) => Unroll_InformationSetsIndices[informationSetNumber] + (Unroll_NumPiecesInfoPerInformationSetAction * (action - 1)) + Unroll_InformationSetPerActionOrder_BestResponseDenominator;
         private int Unroll_GetInformationSetIndex_LastCumulativeStrategyIncrement(int informationSetNumber, byte action) => Unroll_InformationSetsIndices[informationSetNumber] + (Unroll_NumPiecesInfoPerInformationSetAction * (action - 1)) + Unroll_InformationSetPerActionOrder_LastCumulativeStrategyIncrement;
-
-        private int Unroll_GetInformationSetIndex_Prunable(int informationSetNumber, byte action) => Unroll_InformationSetsIndices[informationSetNumber] + (Unroll_NumPiecesInfoPerInformationSetAction * (action - 1)) + Unroll_InformationSetPerActionOrder_Prunable;
 
         private int Unroll_GetChanceNodeIndex(int chanceNodeNumber) => Unroll_ChanceNodesIndices[chanceNodeNumber];
         private int Unroll_GetChanceNodeIndex_ProbabilityForAction(int chanceNodeNumber, byte action) => Unroll_ChanceNodesIndices[chanceNodeNumber] + (byte) (action - 1);
@@ -284,9 +295,9 @@ namespace ACESim
                     Unroll_IterationResultForPlayersIndices[p][i] = index++;
             }
             Unroll_OneIndex = index++;
+            Unroll_ZeroIndex = index++;
             Unroll_SmallestValuePossibleIndex = index++;
             Unroll_SmallestProbabilityRepresentedIndex = index++;
-            Unroll_OpponentPruningThresholdIndex = index++;
             Unroll_AverageStrategyAdjustmentIndex = index++;
             Unroll_InitialArrayIndex = index;
         }
@@ -333,14 +344,13 @@ namespace ACESim
                 for (byte action = 1; action <= infoSet.NumPossibleActions; action++)
                 {
                     array[initialIndex++] = infoSet.GetAverageStrategy(action);
-                    array[initialIndex++] = infoSet.GetMultiplicativeWeightsProbability(action);
+                    array[initialIndex++] = infoSet.GetMultiplicativeWeightsProbability(action, false);
+                    array[initialIndex++] = infoSet.GetMultiplicativeWeightsProbability(action, true);
                     array[initialIndex++] = 0; // initialize last regret to zero
                     array[initialIndex++] = 0; // initialize last regret denominator to zero
                     array[initialIndex++] = 0; // initialize best response numerator to zero
                     array[initialIndex++] = 0; // initialize best response denominator to zero
                     array[initialIndex++] = 0; // initialize last cumulative strategy increment to zero
-                    var pruningInfo = infoSet.PrunableActions?[action - 1] ?? (false, false);
-                    array[initialIndex++] = (pruningInfo.consideredForPruning && pruningInfo.prunable) ? 1.0 : 0.0;
                 }
                 array[initialIndex] = infoSet.BestResponseAction;
             });
@@ -352,9 +362,9 @@ namespace ACESim
             }
             CalculateDiscountingAdjustments();
             array[Unroll_OneIndex] = 1.0;
+            array[Unroll_ZeroIndex] = 0.0;
             array[Unroll_SmallestValuePossibleIndex] = double.Epsilon;
             array[Unroll_SmallestProbabilityRepresentedIndex] = InformationSetNode.SmallestProbabilityRepresented;
-            array[Unroll_OpponentPruningThresholdIndex] = EvolutionSettings.PruneOnOpponentStrategyThreshold;
             array[Unroll_AverageStrategyAdjustmentIndex] = AverageStrategyAdjustment;
         }
 
@@ -439,20 +449,15 @@ namespace ACESim
             }
             else
             {
-                actionProbabilities = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_HedgeProbabilities_All(informationSet.InformationSetNodeNumber, numPossibleActions), true);
+                actionProbabilities = Unroll_Commands.CopyToNew(playerMakingDecision == playerBeingOptimized ? Unroll_GetInformationSetIndex_HedgeProbabilities_All(informationSet.InformationSetNodeNumber, numPossibleActions) : Unroll_GetInformationSetIndex_HedgeProbabilitiesOpponent_All(informationSet.InformationSetNodeNumber, numPossibleActions), true);
             }
             int[] expectedValueOfAction = Unroll_Commands.NewUninitializedArray(numPossibleActions);
             int expectedValue = Unroll_Commands.NewZero();
-            bool pruningPossibleForNonZero = EvolutionSettings.PruneOnOpponentStrategy && playerBeingOptimized != playerMakingDecision;
+            bool pruningPossible = (EvolutionSettings.PruneOnOpponentStrategy || EvolutionSettings.MultiplicativeWeights_CFRBR) && playerBeingOptimized != playerMakingDecision;
             int opponentPruningThresholdIndex = -1;
-            if (pruningPossibleForNonZero)
+            if (pruningPossible)
             {
-                opponentPruningThresholdIndex = Unroll_Commands.CopyToNew(Unroll_OpponentPruningThresholdIndex, true);
-            }
-            else if (EvolutionSettings.MultiplicativeWeights_CFRBR && playerMakingDecision != playerBeingOptimized)
-            {
-                opponentPruningThresholdIndex = Unroll_Commands.CopyToNew(Unroll_SmallestValuePossibleIndex, true); // i.e., only zero will be less than this
-                pruningPossibleForNonZero = true;
+                opponentPruningThresholdIndex = Unroll_Commands.CopyToNew(Unroll_SmallestValuePossibleIndex, true);
             }
             for (byte action = 1; action <= numPossibleActions; action++)
             {
@@ -460,14 +465,9 @@ namespace ACESim
                 if (informationSet.Decision.DistributorChanceInputDecision)
                     distributorChanceInputsNext += action * informationSet.Decision.DistributorChanceInputDecisionMultiplier;
                 int probabilityOfAction = actionProbabilities[action - 1];
-                if (pruningPossibleForNonZero)
+                if (pruningPossible)
                 {
-                    int prunable = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_Prunable(informationSet.InformationSetNodeNumber, action), true);
-                    bool usePredeterminedPrunability = EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions && !EvolutionSettings.MultiplicativeWeights_CFRBR;
-                    if (usePredeterminedPrunability)
-                        Unroll_Commands.InsertEqualsValueCommand(prunable, 0); // if this is not prunable, then continue down the tree
-                    else
-                        Unroll_Commands.InsertGreaterThanOtherArrayIndexCommand(probabilityOfAction, opponentPruningThresholdIndex); // if less than then prune, so if greater than, don't prune (very unlikely to be exactly equal)
+                    Unroll_Commands.InsertGreaterThanOtherArrayIndexCommand(probabilityOfAction, opponentPruningThresholdIndex); // if less than then prune, so if greater than, don't prune
                     Unroll_Commands.InsertIfCommand();
                 }
 
@@ -522,7 +522,7 @@ namespace ACESim
                         $"... action {action} expected value ARRAY{expectedValueOfActionCopy} best response expected value ARRAY{bestResponseExpectedValueCopy} cum expected value ARRAY{cumExpectedValueCopy}{(action == numPossibleActions && IncludeAsteriskForBestResponseInTrace ? "*" : "")}");
                 }
 
-                if (pruningPossibleForNonZero)
+                if (pruningPossible)
                 {
                     Unroll_Commands.InsertEndIfCommand();
                 }
@@ -870,7 +870,6 @@ namespace ACESim
             double* expectedValueOfAction = stackalloc double[numPossibleActions];
             double expectedValue = 0;
             MultiplicativeWeightsVanillaUtilities result = default;
-            double sumProbabilities = 0;
             for (byte action = 1; action <= numPossibleActions; action++)
             {
                 int distributorChanceInputsNext = distributorChanceInputs;
