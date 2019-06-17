@@ -876,17 +876,7 @@ namespace ACESim
                 if (informationSet.Decision.DistributorChanceInputDecision)
                     distributorChanceInputsNext += action * informationSet.Decision.DistributorChanceInputDecisionMultiplier;
                 double probabilityOfAction = actionProbabilities[action - 1];
-                bool usePredeterminedPrunability = EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions;
                 bool prune = playerBeingOptimized != playerMakingDecision && probabilityOfAction == 0;
-                // DEBUG
-                    //EvolutionSettings.PruneOnOpponentStrategy && playerBeingOptimized != playerMakingDecision && 
-                    //((usePredeterminedPrunability && informationSet.PrunableActions != null && informationSet.PrunableActions[action - 1].consideredForPruning && informationSet.PrunableActions[action - 1].prunable) 
-                    //|| (!usePredeterminedPrunability && probabilityOfAction < EvolutionSettings.PruneOnOpponentStrategyThreshold)) 
-                    //|| (EvolutionSettings.MultiplicativeWeights_CFRBR && probabilityOfAction == 0);
-                if (prune)
-                {
-                    var DEBUG = 0;
-                }
                 if (!prune)
                 {
                     double probabilityOfActionAvgStrat = informationSet.GetAverageStrategy(action);
@@ -900,15 +890,6 @@ namespace ACESim
                         TabbedText.Tabs++;
                     }
                     HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
-                    // DEBUG
-                    //if (IterationNum == 66 && informationSet.InformationSetNodeNumber == 9 && playerMakingDecision == playerBeingOptimized && action == 1)
-                    //{
-                    //    EvolutionSettings.ParallelOptimization = false;
-                    //    for (int i = 0; i < 10; i++)
-                    //        TabbedText.Tabs++;
-                    //    TraceCFR = true;
-                    //    var DEBUG = 0;
-                    //}
                     MultiplicativeWeightsVanillaUtilities innerResult = MultiplicativeWeightsVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, distributorChanceInputsNext);
                     expectedValueOfAction[action - 1] = innerResult.HedgeVsHedge;
 
