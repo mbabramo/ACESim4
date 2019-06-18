@@ -145,7 +145,7 @@ namespace ACESim
             }
         }
 
-        public async Task Initialize()
+        public Task Initialize()
         {
             if (StoreGameStateNodesInLists)
             {
@@ -191,8 +191,9 @@ namespace ACESim
             DistributeChanceDecisions();
             PrepareAcceleratedBestResponse();
             PrintSameGameResults();
-
             CalculateMinMax();
+
+            return Task.CompletedTask;
         }
 
         void CalculateMinMax()
