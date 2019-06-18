@@ -22,7 +22,7 @@ namespace ACESim
 
         public override GameDefinition GetGameDefinition() => new MyGameDefinition();
 
-        public override GameOptions GetSingleGameOptions() => MyGameOptionsGenerator.SingleRound();
+        public override GameOptions GetSingleGameOptions() => MyGameOptionsGenerator.GetMyGameOptions();
 
         public override List<(string reportName, GameOptions options)> GetOptionsSets()
         {
