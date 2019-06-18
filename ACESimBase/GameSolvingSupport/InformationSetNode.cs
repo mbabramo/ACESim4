@@ -939,7 +939,7 @@ namespace ACESim
             double probabilityThreshold = pruning && !pruneOpponentStrategyIfDesignatedPrunable ? (double)pruneOpponentStrategyBelow : SmallestProbabilityRepresented;
             SetMultiplicativeWeightsProbabilities(iteration, hedgeProbabilityOpponentDimension, probabilityThreshold,  pruning, pruneOpponentStrategyIfDesignatedPrunable, unadjustedProbabilityFunc);
             if (addOpponentTremble)
-                AddTrembleToOpponentContinuousProbabilities(0.1); // DEBUG
+                AddTrembleToOpponentContinuousProbabilities(0.1); // note: doesn't seem to make much difference
             // Also, calculate average strategies
             if (sumCumulativeStrategies > 0)
             {

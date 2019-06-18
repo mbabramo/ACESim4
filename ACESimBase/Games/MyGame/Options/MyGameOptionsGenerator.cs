@@ -26,7 +26,7 @@ namespace ACESim
             MyGameOptionSetChoices.Fast => Fast(),
             MyGameOptionSetChoices.Usual => Usual(),
             MyGameOptionSetChoices.Ambitious => Ambitious(),
-            MyGameOptionSetChoices.PerfectInfo => PerfectInformation(),
+            MyGameOptionSetChoices.PerfectInfo => PerfectInformation(courtIsPerfectToo: false),
             _ => throw new Exception()
         };
 
@@ -126,12 +126,13 @@ namespace ACESim
             return options;
         }
 
-        public static MyGameOptions PerfectInformation()
+        public static MyGameOptions PerfectInformation(bool courtIsPerfectToo)
         {
             var options = BaseForSingleOptionsSet();
             options.PNoiseStdev = 0.001;
             options.DNoiseStdev = 0.001;
-            options.CourtNoiseStdev = 0.001;
+            if (courtIsPerfectToo)
+                options.CourtNoiseStdev = 0.001;
             return options;
         }
 
