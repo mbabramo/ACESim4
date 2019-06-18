@@ -298,15 +298,23 @@ namespace ACESim
             // note that we will do all information set manipulation in CustomInformationSetManipulation below.
             if (Options.BargainingRoundsSimultaneous)
             {
-                byte[] informedOfPOffer, informedOfDOffer;
-                if (Options.SimultaneousOffersUltimatelyRevealed)
+                byte[] informedOfPOffer, informedOfDOffer, pIncrementGameCacheItem, dIncrementGameCacheItem;
+                if (Options.SimultaneousOffersUltimatelyRevealed && Options.BargainingRoundRecall != MyGameBargainingRoundRecall.ForgetEarlierBargainingRounds)
                 {
                     informedOfPOffer = informedOfDOffer = new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution };
+                    pIncrementGameCacheItem = dIncrementGameCacheItem = new byte[] {
+                        GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound,
+                        };
                 }
                 else
                 {
                     informedOfPOffer = new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Resolution };
+                    pIncrementGameCacheItem = new byte[] {
+                        GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound,  GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound,
+                        };
                     informedOfDOffer = new byte[] { (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution };
+                    dIncrementGameCacheItem = new byte[] {GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound,
+                        };
                 }
                 // samuelson-chaterjee bargaining.
                 var pOffer =
@@ -314,9 +322,7 @@ namespace ACESim
                         Options.NumOffers, (byte)MyGameDecisions.POffer)
                     {
                         CustomByte = (byte)(b + 1),
-                        IncrementGameCacheItem = new byte[] {
-                        GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound,
-                        },
+                        IncrementGameCacheItem = pIncrementGameCacheItem,
                         DeferNotificationOfPlayers = true, // wait until after defendant has gone for defendant to find out -- of course, we don't do that with defendant decision
                         StoreActionInGameCacheItem = GameHistoryCacheIndex_POffer,
                         IsContinuousAction = true,
@@ -334,9 +340,7 @@ namespace ACESim
                     {
                         CanTerminateGame = true,
                         CustomByte = (byte)(b + 1),
-                        IncrementGameCacheItem = new byte[] {
-                        GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound,
-                        },
+                        IncrementGameCacheItem = dIncrementGameCacheItem,
                         StoreActionInGameCacheItem = GameHistoryCacheIndex_DOffer,
                         IsContinuousAction = true,
                     };
