@@ -53,7 +53,7 @@ namespace ACESim
 
             CalculateBestResponse();
 
-            if (BestBecomesResult)
+            if (BestBecomesResult && iteration >= 3)
             {
                 double exploitability = BestResponseImprovement.Sum();
                 if (exploitability < BestExploitability)
@@ -70,7 +70,11 @@ namespace ACESim
             if (AddNoiseToBestResponses)
                 Parallel.ForEach(InformationSets, informationSet => informationSet.AddNoiseToBestResponse(0.10, iteration));
 
-            Parallel.ForEach(InformationSets, informationSet => informationSet.MoveAverageStrategyTowardBestResponse(iteration, EvolutionSettings.TotalVanillaCFRIterations));
+            if (!EvolutionSettings.ParallelOptimization)
+            foreach (var informationSet in InformationSets)
+                informationSet.MoveAverageStrategyTowardBestResponse(iteration, EvolutionSettings.TotalVanillaCFRIterations);
+            else
+                Parallel.ForEach(InformationSets, informationSet => informationSet.MoveAverageStrategyTowardBestResponse(iteration, EvolutionSettings.TotalVanillaCFRIterations));
 
             StrategiesDeveloperStopwatch.Stop();
 

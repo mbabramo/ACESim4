@@ -214,8 +214,6 @@ namespace ACESim
         {
             List<byte> actions = completedGame.GetActionsToHere(Navigation);
             (GameProgress progress, _) = GamePlayer.PlayPath(actions, false);
-            //string DEBUG = progress.GameFullHistory.GetActionsAsListString();
-            //Debug.WriteLine(DEBUG);
             lock (this)
             {
                 ProcessInitializedGameProgress(progress);

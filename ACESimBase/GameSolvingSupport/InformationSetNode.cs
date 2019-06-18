@@ -1015,9 +1015,6 @@ namespace ACESim
             NodeInformation[lastRegretNumeratorDimension, action - 1] += regretTimesInversePi;
             NodeInformation[lastRegretDenominatorDimension, action - 1] += inversePi;
         }
-
-
-        public bool DEBUG2 = false;
         public void MultiplicativeWeightsIncrementLastRegret_Parallel(byte action, double regretTimesInversePi, double inversePi)
         {
             Interlocking.Add(ref NodeInformation[lastRegretNumeratorDimension, action - 1], regretTimesInversePi);
