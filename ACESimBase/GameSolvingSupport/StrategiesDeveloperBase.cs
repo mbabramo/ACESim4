@@ -26,8 +26,8 @@ namespace ACESim
 
         bool AllowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => 
-            ((AllowSkipEveryPermutationInitialization && (Navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)) 
-            && EvolutionSettings.Algorithm != GameApproximationAlgorithm.PureStrategyFinder);
+            AllowSkipEveryPermutationInitialization  
+            && EvolutionSettings.Algorithm != GameApproximationAlgorithm.PureStrategyFinder;
 
         public Stopwatch StrategiesDeveloperStopwatch = new Stopwatch();
 
@@ -170,9 +170,9 @@ namespace ACESim
 
             if (!SkipEveryPermutationInitialization)
             {
+                Console.WriteLine("Initializing all game paths...");
                 Stopwatch stopwatch = new Stopwatch();
                 stopwatch.Start();
-                Console.WriteLine("Initializing all game paths...");
                 if (StoreGameStateNodesInLists && GamePlayer.PlayAllPathsIsParallel)
                     throw new NotImplementedException();
                 // slower approach commented out
@@ -184,13 +184,13 @@ namespace ACESim
                 NumInitializedGamePaths = GamePlayer.PlayAllPaths(ProcessInitializedGameProgress);
                 stopwatch.Stop();
                 string parallelString = GamePlayer.PlayAllPathsIsParallel ? " (higher number in parallel)" : "";
-                DistributeChanceDecisions();
                 string informationSetsString = StoreGameStateNodesInLists ? $" Total information sets: {InformationSets.Count()} chance nodes: {ChanceNodes.Count()} final nodes: {FinalUtilitiesNodes.Count()}" : "";
-                PrepareAcceleratedBestResponse();
-                //var DEBUG = InformationSets.Select(x => x.Decision.Name + " " + String.Join(",", x.LastActionsList.TheList.ToArray())).ToList();
                 Console.WriteLine($"... Initialized. Total paths{parallelString}: {NumInitializedGamePaths}{informationSetsString} Initialization milliseconds {stopwatch.ElapsedMilliseconds}");
-                PrintSameGameResults();
             }
+
+            DistributeChanceDecisions();
+            PrepareAcceleratedBestResponse();
+            PrintSameGameResults();
 
             CalculateMinMax();
         }
