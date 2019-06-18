@@ -134,53 +134,14 @@ namespace ACESim
             byte playerNumber = CurrentPlayerNumber;
             UpdateGameHistory(ref Progress.GameHistory, GameDefinition, currentDecision, decisionIndex, action, Progress);
             // We update game progress now (note that this will not be called when traversing the tree -- that's why we don't do this within UpdateGameHistory)
-            if (!currentDecision.Subdividable_IsSubdivision) // If it is a subdivision, we'll call this in Update
-                UpdateGameProgressFollowingAction(currentDecision.DecisionByteCode, action);
-            else if (currentDecision.Subdividable_IsSubdivision_Last)
-            {
-                byte aggregatedAction = Progress.GameHistory.GetCacheItemAtIndex(GameHistory.Cache_SubdivisionAggregationIndex);
-                UpdateGameProgressFollowingAction(currentDecision.Subdividable_CorrespondingDecisionByteCode, aggregatedAction);
-            }
+            UpdateGameProgressFollowingAction(currentDecision.DecisionByteCode, action);
         }
 
         public static void UpdateGameHistory(ref GameHistory gameHistory, GameDefinition gameDefinition, Decision decision, byte decisionIndex, byte action, GameProgress gameProgress)
         {
-            if (decision.Subdividable_IsSubdivision)
-            {
-                // For subdivision decisions, we use the game history cache to aggregate the decision result.
-                byte aggregatedSoFar = decision.Subdividable_IsSubdivision_First ? (byte) 0 : gameHistory.GetCacheItemAtIndex(GameHistory.Cache_SubdivisionAggregationIndex);
-                byte replacementAggregateValue = SubdivisionCalculations.GetAggregatedDecision(aggregatedSoFar, action, decision.Subdividable_NumOptionsPerBranch, decision.Subdividable_IsSubdivision_Last);
-                gameHistory.SetCacheItemAtIndex(GameHistory.Cache_SubdivisionAggregationIndex, replacementAggregateValue);
-                // Now, the player's information set. In HistoryPoint.GetGameStateForCurrentPlayer, we preface the information set tree for a decision (other than by the resolution player) by the decision index.
-                // That's good, because it means that we won't confuse the information set for the subdivision decisions with the information sets for the aggregated decision, since each decision will have its own
-                // decision index. But we still need to make sure that each subdivision decision gets the appropriate information set. Thus, after each subdivision decision, we need to add some information.
-                // Because our information set traversal algorithms expect the action, that's what we'll add. For the last decision, we'll remove the subdivision decisions
-                // from the information set. That way, the main decision will have a clear slate, and the subdivision decisions will not further clutter the information set tree.
-                // For the last subdivision, we'll also need to do the same things that we would do for an ordinary nonsubdivision decision. This is because the original decision is NOT in
-                // the decision list.
-                // We can add a start detour marker to the information set of the moving player. The start detour marker doesn't get added to the information set until after the first subdivision, so it won't be part of the information set until the second subdivision. At the end of all subdivisions, the start detour marker and the individual decisions will be eliminated from the information set. Thus, we need an end detour marker to distinguish the next decision by this party from the original subdivision.  So, suppose that X represents the state before the first subdivision. Then before the second subdivision, we might have X,Start_Detour,1 or X,Start_Detour,2. Before the first decision after the subdivision, we would have X,End_Detour. If the player informs itself of the decision, then we would have X,End_Detour,Decision. 
-                GameProgressLogger.Log(() => $"Adding subdivision action {action} to information set of {decision.PlayerNumber}");
-                if (decision.Subdividable_IsSubdivision_First)
-                    gameHistory.AddToInformationSetAndLog(GameHistory.StartDetourMarker, decisionIndex, decision.PlayerNumber, gameProgress); // delineate this portion of the information set (which will be removed later) as belonging to the subdivision decisions
-                gameHistory.AddToInformationSetAndLog(action, decisionIndex, decision.PlayerNumber, gameProgress);
-                gameHistory.AddToHistory(decision.DecisionByteCode, decisionIndex, decision.PlayerNumber, action, decision.NumPossibleActions, null /* we did the informing above */ , null, null, null /* defer previous notifications some more until we get to the last decision */, gameProgress, skipAddToHistory: false, deferNotification: false, delayPreviousDeferredNotification: true);
-                if (decision.Subdividable_IsSubdivision_Last)
-                {
-                    gameHistory.RemoveItemsInInformationSetAndLog(decision.PlayerNumber, decisionIndex, (byte) (decision.Subdividable_NumLevels + 1), gameProgress);
-                    gameHistory.AddToInformationSetAndLog(GameHistory.EndDetourMarker, decisionIndex, decision.PlayerNumber, gameProgress); // this marks that we're done with the subdivision detour
-                    GameProgressLogger.Log(() => $"Adding overall decision action {replacementAggregateValue} from {decision.PlayerNumber} to {string.Join(",", decision.PlayersToInform)} {(decision.DeferNotificationOfPlayers ? "with deferred notification" : "")}");
-                    // Add information to player's information sets (including deferred information, if applicable), but don't actually add to history itself, because this isn't a decision that corresponds to a decision in the decisions list.
-                    gameHistory.AddToHistory(decision.Subdividable_CorrespondingDecisionByteCode, decisionIndex, decision.PlayerNumber, replacementAggregateValue, decision.AggregateNumPossibleActions, decision.PlayersToInform, decision.PlayersToInformOfOccurrenceOnly, decision.IncrementGameCacheItem, decision.StoreActionInGameCacheItem, gameProgress, skipAddToHistory: true, deferNotification: decision.DeferNotificationOfPlayers, delayPreviousDeferredNotification: false);
-                    if (decision.RequiresCustomInformationSetManipulation)
-                        gameDefinition.CustomInformationSetManipulation(decision, decisionIndex, action, ref gameHistory, gameProgress);
-                }
-            }
-            else
-            {
-                gameHistory.AddToHistory(decision.DecisionByteCode, decisionIndex, decision.PlayerNumber, action, decision.NumPossibleActions, decision.PlayersToInform, decision.PlayersToInformOfOccurrenceOnly, decision.IncrementGameCacheItem, decision.StoreActionInGameCacheItem, gameProgress, false, decision.DeferNotificationOfPlayers, false);
-                if (decision.RequiresCustomInformationSetManipulation)
-                    gameDefinition.CustomInformationSetManipulation(decision, decisionIndex, action, ref gameHistory, gameProgress);
-            }
+            gameHistory.AddToHistory(decision.DecisionByteCode, decisionIndex, decision.PlayerNumber, action, decision.NumPossibleActions, decision.PlayersToInform, decision.PlayersToInformOfOccurrenceOnly, decision.IncrementGameCacheItem, decision.StoreActionInGameCacheItem, gameProgress, false, decision.DeferNotificationOfPlayers, false);
+            if (decision.RequiresCustomInformationSetManipulation)
+                gameDefinition.CustomInformationSetManipulation(decision, decisionIndex, action, ref gameHistory, gameProgress);
         }
 
         public virtual bool DecisionIsNeeded(Decision currentDecision, GameProgress gameProgress)
@@ -247,7 +208,7 @@ namespace ACESim
         public virtual double ConvertActionToUniformDistributionDraw(int action, bool includeEndpoints)
         {
             // Not including endpoints: If we have 2 actions and we draw action #1, then this is equivalent to 0.25 (= 0.5/2); if we draw action #2, then we have 0.75 (= 1.5/2). If we have 3 actions, then the three actions are 1/6, 3/6, and 5/6.
-            return EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, CurrentDecision.AggregateNumPossibleActions, includeEndpoints);
+            return EquallySpaced.GetLocationOfEquallySpacedPoint(action - 1 /* make it zero-based */, CurrentDecision.NumPossibleActions, includeEndpoints);
         }
 
         public virtual double ConvertActionToNormalDistributionDraw(int action, double stdev)

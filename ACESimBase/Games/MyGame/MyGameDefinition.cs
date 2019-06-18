@@ -327,13 +327,7 @@ namespace ACESim
                         StoreActionInGameCacheItem = GameHistoryCacheIndex_POffer,
                         IsContinuousAction = true,
                     };
-                if (Options.SubdivideOffers)
-                {
-                    var list = pOffer.IncrementGameCacheItem.ToList();
-                    list.Add(GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound);
-                    pOffer.IncrementGameCacheItem = list.ToArray(); // for detour marker
-                }
-                AddOfferDecisionOrSubdivisions(decisions, pOffer);
+                AddOfferDecision(decisions, pOffer);
                 var dOffer =
                     new Decision("DefendantOffer" + (b + 1), "DO" + (b + 1), false, (byte)MyGamePlayers.Defendant, informedOfDOffer,
                         Options.NumOffers, (byte)MyGameDecisions.DOffer)
@@ -344,13 +338,7 @@ namespace ACESim
                         StoreActionInGameCacheItem = GameHistoryCacheIndex_DOffer,
                         IsContinuousAction = true,
                     };
-                if (Options.SubdivideOffers)
-                {
-                    var list = dOffer.IncrementGameCacheItem.ToList();
-                    list.Add(GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound);
-                    dOffer.IncrementGameCacheItem = list.ToArray(); // for detour marker
-                }
-                AddOfferDecisionOrSubdivisions(decisions, dOffer);
+                AddOfferDecision(decisions, dOffer);
             }
             else
             {
@@ -368,9 +356,7 @@ namespace ACESim
                             StoreActionInGameCacheItem = GameHistoryCacheIndex_POffer,
                             IsContinuousAction = true,
                         }; // { AlwaysDoAction = 4});
-                    if (Options.SubdivideOffers)
-                        pOffer.IncrementGameCacheItem = pOffer.IncrementGameCacheItem.Concat(new byte[] {GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound}).ToArray(); // for detour marker
-                    AddOfferDecisionOrSubdivisions(decisions, pOffer);
+                    AddOfferDecision(decisions, pOffer);
                     decisions.Add(
                         new Decision("DefendantResponse" + (b + 1), "DR" + (b + 1), false, (byte)MyGamePlayers.Defendant, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution }, 2,
                             (byte)MyGameDecisions.DResponse)
@@ -396,9 +382,7 @@ namespace ACESim
                             StoreActionInGameCacheItem = GameHistoryCacheIndex_DOffer,
                             IsContinuousAction = true,
                         };
-                    if (Options.SubdivideOffers)
-                        dOffer.IncrementGameCacheItem = dOffer.IncrementGameCacheItem.Concat(new byte[] {GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound}).ToArray(); // for detour marker
-                    AddOfferDecisionOrSubdivisions(decisions, dOffer);
+                    AddOfferDecision(decisions, dOffer);
                     decisions.Add(
                         new Decision("PlaintiffResponse" + (b + 1), "PR" + (b + 1), false, (byte)MyGamePlayers.Plaintiff, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution }, 2,
                             (byte)MyGameDecisions.PResponse)
@@ -412,9 +396,9 @@ namespace ACESim
             }
         }
 
-        private void AddOfferDecisionOrSubdivisions(List<Decision> decisions, Decision offerDecision)
+        private void AddOfferDecision(List<Decision> decisions, Decision offerDecision)
         {
-            AddPotentiallySubdividableDecision(decisions, offerDecision, Options.SubdivideOffers, (byte)MyGameDecisions.SubdividableOffer, 2, Options.NumOffers);
+            decisions.Add(offerDecision);
         }
 
         private void AddRunningSideBetDecisions(int b, List<Decision> decisions)
@@ -620,7 +604,7 @@ namespace ACESim
 
         public override bool SkipDecision(Decision decision, ref GameHistory gameHistory)
         {
-            byte decisionByteCode = decision.Subdividable_IsSubdivision ? decision.Subdividable_CorrespondingDecisionByteCode : decision.DecisionByteCode;
+            byte decisionByteCode = decision.DecisionByteCode;
             if (decisionByteCode == (byte) MyGameDecisions.MutualGiveUp)
             {
                 bool pTryingToGiveUp = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PReadyToAbandon) == 1;
@@ -648,7 +632,7 @@ namespace ACESim
             if (!currentDecision.CanTerminateGame)
                 return false;
 
-            byte decisionByteCode = currentDecision.Subdividable_IsSubdivision ? currentDecision.Subdividable_CorrespondingDecisionByteCode : currentDecision.DecisionByteCode;
+            byte decisionByteCode = currentDecision.DecisionByteCode;
 
             switch (decisionByteCode)
             {
@@ -699,7 +683,7 @@ namespace ACESim
 
         public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, ref GameHistory gameHistory, GameProgress gameProgress)
         {
-            byte decisionByteCode = currentDecision.Subdividable_IsSubdivision ? currentDecision.Subdividable_CorrespondingDecisionByteCode : currentDecision.DecisionByteCode; // get the original decision byte code
+            byte decisionByteCode = currentDecision.DecisionByteCode; // get the original decision byte code
             if (decisionByteCode == (byte) MyGameDecisions.DChips)
             {
                 // Inform the players of the total number of chips bet in this round. This will allow the players to make a decision about whether to abandon/default this round. We separately add information on P/D chips to the players' information sets, because we want the players to have a sense of who is bidding more aggressively (thus allowing them to track their own bluffing). 

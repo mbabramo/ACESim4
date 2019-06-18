@@ -178,55 +178,6 @@ namespace ACESim
         public bool IsContinuousAction;
 
         /// <summary>
-        /// This may be set for continuous actions, where a single decision should be broken up into multiple nodes. For example, if the choices are numbers 1-128, the first decision might be to choose between 1 and 64, the second between 65 and 128, etc. Note that the automatically generated subdivisions will have Subdividable == false.
-        /// </summary>
-        public bool Subdividable;
-
-        /// <summary>
-        /// The number of options per branch. For example, this would be set to 2 for a binary division. Currently, only 2 is supported.
-        /// </summary>
-        public byte Subdividable_NumOptionsPerBranch;
-
-        /// <summary>
-        /// The number of levels to be used for subdividing. For example, if the actions are 1-128 and there are two options per branch, this should be set to 7.
-        /// </summary>
-        public byte Subdividable_NumLevels;
-
-        /// <summary>
-        /// The number of options per branch raised to the number of levels. If Subdividable_NumOptionsPerBranch is 2 and Subdividable_NumLevels is 7, then this should be 128.
-        /// </summary>
-        public byte Subdividable_AggregateNumPossibleActions;
-
-
-        public byte AggregateNumPossibleActions => Subdividable_IsSubdivision ? Subdividable_AggregateNumPossibleActions : NumPossibleActions;
-
-        /// <summary>
-        /// When a decision is subdividable, it is duplicated into multiple subdivision decisions. The subdivision decision components will have this set to true.
-        /// </summary>
-        public bool Subdividable_IsSubdivision;
-
-        /// <summary>
-        /// For a subdividable decision, this represents the decision byte code to be used for each level of the substitutable decision. For the subdivision itself, this represents the decision byte code of the subdivided decision.
-        /// </summary>
-        public byte Subdividable_CorrespondingDecisionByteCode;
-
-
-        /// <summary>
-        /// Indicates for a subdivision the subdivision level. Level 1 is the first and most important level (e.g., if we're choosing among 128 levels, the action will be a 1 for values 1-64 and a 2 for values 65-128).
-        /// </summary>
-        public byte Subdividable_IsSubdivision_Level;
-
-        /// <summary>
-        /// Indicates for a subdivision whether this is the first subdivision. If so, a stub will be inserted in the party's own information set.
-        /// </summary>
-        public bool Subdividable_IsSubdivision_First;
-
-        /// <summary>
-        /// Indicates for a subdivision whether this is the last subdivision. If this is true, then after the player makes its move, all of the items accumulating for each subdivision level in the information set will be removed and replaced by the aggregated decision.
-        /// </summary>
-        public bool Subdividable_IsSubdivision_Last;
-
-        /// <summary>
         /// Indicates that when using an unrolling algorithm, different versions of the decision should be run in parallel.
         /// </summary>
         public bool Unroll_Parallelize;
@@ -260,55 +211,14 @@ namespace ACESim
 
         public Decision Clone()
         {
-            Decision d = new Decision(Name, Abbreviation, IsChance, PlayerNumber, PlayersToInform?.ToArray() ?? new byte[] {}, NumPossibleActions, DecisionByteCode, DecisionTypeCode, RepetitionsAfterFirst, PreevolvedStrategyFilename, InformationSetAbbreviations, AlwaysDoAction, UnevenChanceActions, CriticalNode) { IsAlwaysPlayersLastDecision = IsAlwaysPlayersLastDecision, CanTerminateGame = CanTerminateGame, IncrementGameCacheItem = IncrementGameCacheItem, CustomByte = CustomByte, Subdividable = Subdividable, Subdividable_NumLevels = Subdividable_NumLevels, Subdividable_NumOptionsPerBranch = Subdividable_NumOptionsPerBranch, Subdividable_CorrespondingDecisionByteCode = Subdividable_CorrespondingDecisionByteCode, Subdividable_IsSubdivision = Subdividable_IsSubdivision, Subdividable_IsSubdivision_Last = Subdividable_IsSubdivision_Last, Subdividable_IsSubdivision_First = Subdividable_IsSubdivision_First, Subdividable_AggregateNumPossibleActions = Subdividable_AggregateNumPossibleActions, DeferNotificationOfPlayers = DeferNotificationOfPlayers, StoreActionInGameCacheItem = StoreActionInGameCacheItem, Subdividable_IsSubdivision_Level = Subdividable_IsSubdivision_Level, };
+            Decision d = new Decision(Name, Abbreviation, IsChance, PlayerNumber, PlayersToInform?.ToArray() ?? new byte[] {}, NumPossibleActions, DecisionByteCode, DecisionTypeCode, RepetitionsAfterFirst, PreevolvedStrategyFilename, InformationSetAbbreviations, AlwaysDoAction, UnevenChanceActions, CriticalNode) { IsAlwaysPlayersLastDecision = IsAlwaysPlayersLastDecision, CanTerminateGame = CanTerminateGame, IncrementGameCacheItem = IncrementGameCacheItem, CustomByte = CustomByte, DeferNotificationOfPlayers = DeferNotificationOfPlayers, StoreActionInGameCacheItem = StoreActionInGameCacheItem, };
             return d;
         }
 
         public override string ToString()
         {
             return
-                $"{Name} ({Abbreviation}) Player {PlayerNumber} ByteCode {DecisionByteCode} CustomByte {CustomByte} Subdivision? {Subdividable_IsSubdivision} UnevenChanceActions {UnevenChanceActions} AlwaysDoAction {AlwaysDoAction}";
-        }
-
-        public void AddDecisionOrSubdivisions(List<Decision> currentDecisionList)
-        {
-            if (!Subdividable)
-                currentDecisionList.Add(this);
-            else
-                currentDecisionList.AddRange(ConvertToSubdivisionDecisions());
-            // NOTE: We do not add the original decision after the subdivisions are added. Instead, the Game will arrange for progress to be added based on the original decision after the last subdivision executes, even though it hasn't been added.
-        }
-
-        public List<Decision> ConvertToSubdivisionDecisions()
-        {
-            if (!Subdividable)
-                throw new Exception("Only subdividable decisions can be converted");
-            int totalActions = (int)Math.Pow(Subdividable_NumOptionsPerBranch, Subdividable_NumLevels);
-            if (totalActions != NumPossibleActions || totalActions > 254)
-                throw new Exception("Subdivision not set up correctly.");
-            List<Decision> decisions = new List<Decision>();
-            for (int i = 0; i < Subdividable_NumLevels; i++)
-            {
-                Decision subdivisionDecision = Clone();
-                subdivisionDecision.Name += $" (Subdivision Level {i + 1})";
-                subdivisionDecision.Abbreviation += $"SL{i + 1}";
-                subdivisionDecision.DecisionByteCode = Subdividable_CorrespondingDecisionByteCode;
-                subdivisionDecision.Subdividable_CorrespondingDecisionByteCode = DecisionByteCode;
-                subdivisionDecision.Subdividable = false;
-                subdivisionDecision.Subdividable_AggregateNumPossibleActions = NumPossibleActions;
-                subdivisionDecision.NumPossibleActions = Subdividable_NumOptionsPerBranch;
-                subdivisionDecision.Subdividable_IsSubdivision = true;
-                subdivisionDecision.PlayersToInform = PlayersToInform?.ToArray(); // this will be applied only when simulating the last decision
-                subdivisionDecision.PlayersToInformOfOccurrenceOnly = PlayersToInformOfOccurrenceOnly?.ToArray();
-                if (i == 0)
-                    subdivisionDecision.Subdividable_IsSubdivision_First = true;
-                else if (i == Subdividable_NumLevels - 1)
-                    subdivisionDecision.Subdividable_IsSubdivision_Last = true;
-                subdivisionDecision.Subdividable_IsSubdivision_Level = (byte) (i + 1);
-                subdivisionDecision.CanTerminateGame = subdivisionDecision.Subdividable_IsSubdivision_Last;
-                decisions.Add(subdivisionDecision);
-            }
-            return decisions;
+                $"{Name} ({Abbreviation}) Player {PlayerNumber} ByteCode {DecisionByteCode} CustomByte {CustomByte} UnevenChanceActions {UnevenChanceActions} AlwaysDoAction {AlwaysDoAction}";
         }
     }
 

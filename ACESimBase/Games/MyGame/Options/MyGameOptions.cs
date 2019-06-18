@@ -54,10 +54,6 @@ namespace ACESim
         /// </summary>
         public byte NumOffers;
         /// <summary>
-        /// Subdivide a single offer decision into a series of binary decisions.
-        /// </summary>
-        public bool SubdivideOffers;
-        /// <summary>
         /// True if each barganiing round consists of simultaneous offers.
         /// </summary>
         public bool BargainingRoundsSimultaneous;

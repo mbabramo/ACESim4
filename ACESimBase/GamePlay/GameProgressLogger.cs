@@ -35,7 +35,7 @@ namespace ACESim
         public static int MaxIncomplete = 1000;
         public static int Tabs = 0;
         public static StringBuilder MessagesLog = new StringBuilder();
-        public static string ToString() => MessagesLog.ToString();
+        public static new string ToString() => MessagesLog.ToString();
 
         private static object lockObj = new object();
 

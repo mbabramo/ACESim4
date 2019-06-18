@@ -26,17 +26,13 @@ namespace ACESim
             {
                 foreach (var decisionAndAction in decisionsAndActions)
                 {
-                    if (decision.Subdividable_IsSubdivision && decisionAndAction.decision == decision.Subdividable_CorrespondingDecisionByteCode)
-                        return SubdivisionCalculations.GetOneBasedDisaggregatedAction(decisionAndAction.action, decision.Subdividable_IsSubdivision_Level, decision.Subdividable_NumLevels, decision.Subdividable_NumOptionsPerBranch);
-                    else if (decisionAndAction.decision == decision.DecisionByteCode)
+                    if (decisionAndAction.decision == decision.DecisionByteCode)
                         return decisionAndAction.action;
                 }
                 if (actionsDifferentiatedForSameDecision != null)
                     foreach (var decisionCustomByteAndAction in actionsDifferentiatedForSameDecision)
                     {
-                        if (decision.Subdividable_IsSubdivision && decisionCustomByteAndAction.decision == decision.Subdividable_CorrespondingDecisionByteCode && decisionCustomByteAndAction.customInfo == decision.CustomByte)
-                            return SubdivisionCalculations.GetOneBasedDisaggregatedAction(decisionCustomByteAndAction.action, decision.Subdividable_IsSubdivision_Level, decision.Subdividable_NumLevels, decision.Subdividable_NumOptionsPerBranch);
-                        else if (decisionCustomByteAndAction.decision == decision.DecisionByteCode && decisionCustomByteAndAction.customInfo == decision.CustomByte)
+                        if (decisionCustomByteAndAction.decision == decision.DecisionByteCode && decisionCustomByteAndAction.customInfo == decision.CustomByte)
                             return decisionCustomByteAndAction.action;
                     }
                 if (useDefaultIfNotListed)
