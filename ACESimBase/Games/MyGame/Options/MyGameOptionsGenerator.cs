@@ -122,7 +122,7 @@ namespace ACESim
             options.NumSignals = 10;
             options.NumOffers = 10;
             options.NumPotentialBargainingRounds = 2;
-            options.AllowAbandonAndDefaults = true;
+            options.AllowAbandonAndDefaults = false;
             return options;
         }
 

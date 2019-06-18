@@ -39,8 +39,6 @@ namespace ACESim
         /// The standard deviation of the noise used to obfuscate the court's estimate of the case strength. This applies only when the action is the noise, rather than the signal itself.
         /// </summary>
         public double CourtNoiseStdev;
-
-
         /// <summary>
         /// If true, then the bargaining round starts with P and D deciding whether to bargain at all this round. The per bargaining round costs will be borne either way.
         /// </summary>
