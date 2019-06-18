@@ -84,6 +84,8 @@ namespace ACESim
             Discounting_Gamma = Math.Log(DiscountingTarget_TargetDiscount) / (Math.Log(p * t / (p * t + 1)) - Math.Log(t / (t + 1)));
         }
 
+        public bool MultiplicativeWeightsAddTremble = false;
+
         public double MultiplicativeWeightsInitial = 0.5;
         public double MultiplicativeWeightsFinal = 0.5;
         public double MultiplicativeWeightsCurvature = 1.0;

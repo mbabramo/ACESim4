@@ -58,7 +58,7 @@ namespace ACESim
         double PastValuesLastCumulativeStrategyDiscount => PastValuesCumulativeStrategyDiscounts[LastPastValueIndexRecorded];
 
         public int NumPossibleActions => Decision.NumPossibleActions;
-        public const int totalDimensions = 10; // one more than highest dimension below
+        public const int totalDimensions = 11; // one more than highest dimension below
 
         public const int cumulativeRegretDimension = 0;
         public const int cumulativeStrategyDimension = 1;
@@ -72,6 +72,7 @@ namespace ACESim
         public const int adjustedWeightsDimension = 7;
         public const int averageStrategyProbabilityDimension = 8;
         public const int lastCumulativeStrategyIncrementsDimension = 9;
+        public const int scratchDimension = 10;
         // for hedge probing
         public const int temporaryDimension = 7;
         // for exploratory probing
@@ -865,7 +866,7 @@ namespace ACESim
 
         // Note: The first two methods must be used if we don't have a guarantee that updating will take place before each iteration.
 
-        public void UpdateMultiplicativeWeights(int iteration, double multiplicativeWeightsEpsilon, double averageStrategyAdjustment, bool normalizeCumulativeStrategyIncrements, bool resetPreviousCumulativeStrategyIncrements, double? pruneOpponentStrategyBelow, bool pruneOpponentStrategyIfDesignatedPrunable)
+        public void UpdateMultiplicativeWeights(int iteration, double multiplicativeWeightsEpsilon, double averageStrategyAdjustment, bool normalizeCumulativeStrategyIncrements, bool resetPreviousCumulativeStrategyIncrements, double? pruneOpponentStrategyBelow, bool pruneOpponentStrategyIfDesignatedPrunable, bool addOpponentTremble)
         {
             RecordProbabilitiesAsPastValues(iteration, averageStrategyAdjustment); // these are the average strategies played, and thus shouldn't reflect the updates below
 
@@ -937,6 +938,8 @@ namespace ACESim
             bool pruning = pruneOpponentStrategyIfDesignatedPrunable || (pruneOpponentStrategyBelow != null && pruneOpponentStrategyBelow != 0);
             double probabilityThreshold = pruning && !pruneOpponentStrategyIfDesignatedPrunable ? (double)pruneOpponentStrategyBelow : SmallestProbabilityRepresented;
             SetMultiplicativeWeightsProbabilities(iteration, hedgeProbabilityOpponentDimension, probabilityThreshold,  pruning, pruneOpponentStrategyIfDesignatedPrunable, unadjustedProbabilityFunc);
+            if (addOpponentTremble)
+                AddTrembleToOpponentContinuousProbabilities(0.1); // DEBUG
             // Also, calculate average strategies
             if (sumCumulativeStrategies > 0)
             {
@@ -973,6 +976,42 @@ namespace ACESim
             if (double.IsNaN(remainingProbability))
                 throw new Exception();
             NodeInformation[probabilityDimension, largestAction - 1] = remainingProbability;
+        }
+
+        private void AddTrembleToOpponentContinuousProbabilities(double trembleProportion)
+        {
+            if (!Decision.IsContinuousAction)
+                return;
+            for (byte a = 1; a <= NumPossibleActions; a++)
+            {
+                NodeInformation[scratchDimension, a - 1] = NodeInformation[hedgeProbabilityOpponentDimension, a - 1];
+            }
+            for (byte a = 1; a <= NumPossibleActions; a++)
+            {
+                double original = NodeInformation[scratchDimension, a - 1];
+                double trembleSizeEachDirection = original * trembleProportion * 0.5;
+                if (original > SmallestProbabilityRepresented)
+                {
+                    if (a > 1)
+                    {
+                        NodeInformation[hedgeProbabilityOpponentDimension, a - 2] += trembleSizeEachDirection;
+                        NodeInformation[hedgeProbabilityOpponentDimension, a - 1] -= trembleSizeEachDirection;
+                    }
+                    if (a < NumPossibleActions)
+                    {
+                        NodeInformation[hedgeProbabilityOpponentDimension, a] += trembleSizeEachDirection;
+                        NodeInformation[hedgeProbabilityOpponentDimension, a - 1] -= trembleSizeEachDirection;
+                    }
+                }
+            }
+        }
+
+        private void RemoveTremble()
+        {
+            for (byte a = 1; a <= NumPossibleActions; a++)
+            {
+                NodeInformation[hedgeProbabilityOpponentDimension, a - 1] = NodeInformation[scratchDimension, a - 1];
+            }
         }
 
         private void RecordProbabilitiesAsPastValues(int iteration, double averageStrategyAdjustment)

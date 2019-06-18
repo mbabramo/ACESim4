@@ -340,7 +340,6 @@ namespace ACESimTest
                     var settled = false;
                     for (byte b = 1; b <= bargainingRoundCount; b++)
                     {
-                        Br.eak.IfAdded("DEBUG");
                         if (b >= startingRound)
                         {
                             pInfo.Add(b);
@@ -378,7 +377,6 @@ namespace ACESimTest
                         if (pMove != null && dMove != null)
                             if (simultaneousBargaining)
                             {
-                                Br.eak.IfAdded("DEBUG");
                                 if (subdivideOffers && b >= startingRound)
                                 {
                                     // Note: The reason these are both at the beginning of the decision is that the decision is deferred
@@ -691,10 +689,6 @@ namespace ACESimTest
 
             //var informationSetHistories = myGameProgress.GameHistory.GetInformationSetHistoryItems().ToList();
             GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet, out string resolutionSet);
-            if (CaseNumber == 7604)
-            {
-                var DEBUG = 0;
-            }
             var expectedPartyInformationSets = ConstructExpectedPartyInformationSets(LitigationQuality, PSignal, DSignal, pFiles, dAnswers, simulatingBargainingFailure, runningSideBetChallenges, bargainingRoundMoves, bargainingRoundRecall, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, subdivideOffers, true);
             string expectedResolutionSet = ConstructExpectedResolutionSet(litigationQuality, pFiles, dAnswers, simulatingBargainingFailure, bargainingRoundMoves, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, false, true, pReadyToAbandonRound != null, dReadyToDefaultRound != null, mutualGiveUpResult == 1, false, 0, SideBetChallenges.Irrelevant, runningSideBetChallenges);
             pInformationSet.Should().Be(expectedPartyInformationSets.pInformationSet);

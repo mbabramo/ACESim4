@@ -241,7 +241,7 @@ namespace ACESim
                 NumPotentialBargainingRounds = 2,
                 BargainingRoundRecall = MyGameBargainingRoundRecall.RememberAllBargainingRounds,
                 SubdivideOffers = false,
-                BargainingRoundsSimultaneous = false, // DEBUG
+                BargainingRoundsSimultaneous = true, 
                 SimultaneousOffersUltimatelyRevealed = true,
                 PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false, true, false, true, false },
                 IncludeSignalsReport = true,
