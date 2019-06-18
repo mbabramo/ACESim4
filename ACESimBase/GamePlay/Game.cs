@@ -19,16 +19,19 @@ namespace ACESim
         internal List<GameModule> GameModules;
         internal ActionPoint CurrentActionPoint;
         internal int? MostRecentDecisionIndex;
-
-        public ActionPoint CurrentDecisionPoint => CurrentActionPoint as ActionPoint;
         public ActionGroup CurrentActionGroup => CurrentActionPoint.ActionGroup;
 
-        public byte? CurrentDecisionIndex { get { if (CurrentDecisionPoint == null) return null; return CurrentDecisionPoint.DecisionNumber; } }
-        public byte? CurrentDecisionIndexWithinActionGroup { get { if (CurrentDecisionPoint == null) return null; return CurrentDecisionPoint.DecisionNumberWithinActionGroup; } }
-        public byte? CurrentDecisionIndexWithinModule { get { if (CurrentDecisionPoint == null) return null; return CurrentDecisionPoint.DecisionNumberWithinModule; } }
-        public byte? CurrentActionGroupExecutionIndex { get { if (CurrentActionPoint == null) return null; return CurrentActionPoint.ActionGroup.ActionGroupExecutionIndex; } }
-        public byte? CurrentModuleIndex { get { if (CurrentActionPoint == null) return null; return CurrentActionPoint.ActionGroup.ModuleNumber; } }
-        public Decision CurrentDecision { get { int? currentDecisionNumber = CurrentDecisionIndex; if (currentDecisionNumber == null) return null; return GameDefinition.DecisionsExecutionOrder[(int)currentDecisionNumber]; } }
+        public byte? CurrentDecisionIndex;
+        public Decision CurrentDecision
+        {
+            get
+            {
+                if (CurrentDecisionIndex == null)
+                    return null;
+                return GameDefinition.DecisionsExecutionOrder[(int)CurrentDecisionIndex];
+            }
+        }
+
         public byte CurrentPlayerNumber => CurrentDecision.PlayerNumber;
         public Strategy CurrentPlayerStrategy => Strategies[CurrentPlayerNumber];
         public GameModule CurrentModule => GameModules[(int) CurrentActionGroup.ModuleNumber];
@@ -418,6 +421,7 @@ namespace ACESim
         {
             PreparationPhase = !Progress.PreparationForCurrentStepComplete;
             this.CurrentActionPoint = Progress.CurrentActionGroupNumber == null ? null : GameDefinition.ExecutionOrder[(int)Progress.CurrentActionGroupNumber].ActionPoints[(int)Progress.CurrentActionPointNumberWithinActionGroup];
+            this.CurrentDecisionIndex =  CurrentActionPoint?.DecisionNumber;
             if (this.CurrentDecisionIndex != null)
                 this.MostRecentDecisionIndex = this.CurrentDecisionIndex;
         }

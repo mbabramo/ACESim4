@@ -17,7 +17,7 @@ namespace ACESim
             Ambitious,
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Usual;
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Ambitious;
 
         public static MyGameOptions SingleRound() => MyGameChoice switch
         {
@@ -235,7 +235,7 @@ namespace ACESim
                     DeltaStartingValue = 0.01,
                     MaxDelta = 0.25
                 },
-                NumPotentialBargainingRounds = 3,
+                NumPotentialBargainingRounds = 2,
                 BargainingRoundRecall = MyGameBargainingRoundRecall.RememberAllBargainingRounds,
                 SubdivideOffers = false,
                 BargainingRoundsSimultaneous = true,
