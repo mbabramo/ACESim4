@@ -41,7 +41,7 @@ namespace ACESim
         {
             // We need to determine the probability of different litigation qualities 
             ProbabilityLiabilityLevel = new double[NumBenefitLevels][];
-            DiscreteValueLiabilitySignalParameters dsParams = new DiscreteValueLiabilitySignalParameters() { NumPointsInSourceUniformDistribution = NumBenefitLevels, NumLiabilitySignals = myGameDefinition.Options.NumLiabilityStrengthPoints, StdevOfNormalDistribution = StdevNoiseToProduceLiabilityLevel, UseEndpoints = true };
+            DiscreteValueSignalParameters dsParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = NumBenefitLevels, NumSignals = myGameDefinition.Options.NumLiabilityStrengthPoints, StdevOfNormalDistribution = StdevNoiseToProduceLiabilityLevel, UseEndpoints = true };
             for (byte a = 1; a <= NumBenefitLevels; a++)
             {
                 // When the benefit to the defendant is low, then the plaintiff has a good claim -- defendant is only allowed to take the benefit when it is high.

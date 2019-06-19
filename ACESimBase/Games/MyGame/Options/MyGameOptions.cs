@@ -39,6 +39,27 @@ namespace ACESim
         /// The standard deviation of the noise used to obfuscate the court's estimate of the case strength. This applies only when the action is the noise, rather than the signal itself.
         /// </summary>
         public double CourtLiabilityNoiseStdev;
+
+        /// <summary>
+        /// The number of different damages quality levels that a case can have, with the lowest levels reflecting the lowest expected level of damages. Parties obtain estimates of the damages strength.
+        /// </summary>
+        public byte NumDamagesStrengthPoints;
+        /// <summary>
+        /// The number of discrete signals about damages that a party can receive. For example, 10 signals would allow each party to differentiate 10 different levels of damages strength.
+        /// </summary>
+        public byte NumDamagesSignals;
+        /// <summary>
+        /// The standard deviation of the noise used to obfuscate the plaintiff's estimate of the case strength. When the action is the signal, this determines the probabilities of each signal; when the action is the noise, this affects the conversion of the noise to a signal, considering the underlying true value.
+        /// </summary>
+        public double PDamagesNoiseStdev;
+        /// <summary>
+        /// The standard deviation of the noise used to obfuscate the defendant's estimate of the case strength. When the action is the signal, this determines the probabilities of each signal; when the action is the noise, this affects the conversion of the noise to a signal, considering the underlying true value.
+        /// </summary>
+        public double DDamagesNoiseStdev;
+        /// <summary>
+        /// The standard deviation of the noise used to obfuscate the court's estimate of the case strength. This applies only when the action is the noise, rather than the signal itself.
+        /// </summary>
+        public double CourtDamagesNoiseStdev;
         /// <summary>
         /// If true, then the bargaining round starts with P and D deciding whether to bargain at all this round. The per bargaining round costs will be borne either way.
         /// </summary>
@@ -121,10 +142,16 @@ namespace ACESim
         /// Defendant's initial wealth.
         /// </summary>
         public double DInitialWealth;
+
         /// <summary>
-        /// Damages alleged
+        /// The minimum amount of damages that a plaintiff might be awarded
         /// </summary>
-        public double DamagesToAllege;
+        public double DamagesMin;
+        /// <summary>
+        /// The maximum amount of damages that a plaintiff might be awarded
+        /// </summary>
+        public double DamagesMax;
+
         /// <summary>
         /// The degree of regret aversion. If a party finishes with wealth w0 but could have finished with wealth w1, where w1 > w0, then the party experiences effective wealth of w0 - RegretAversion*(w1 - w0)
         /// </summary>
@@ -146,6 +173,6 @@ namespace ACESim
         // the following are derived and should not be set directly
 
         public DeltaOffersCalculation DeltaOffersCalculation;
-        public DiscreteValueLiabilitySignalParameters PLiabilitySignalParameters, DLiabilitySignalParameters;
+        public DiscreteValueSignalParameters PLiabilitySignalParameters, DLiabilitySignalParameters;
     }
 }

@@ -37,7 +37,8 @@ namespace ACESim
             {
                 PInitialWealth = 1000000,
                 DInitialWealth = 1000000,
-                DamagesToAllege = 100000,
+                DamagesMin = 100000,
+                DamagesMax = 100000,
                 NumLiabilityStrengthPoints = 6,
                 NumLiabilitySignals = 6,
                 NumOffers = 6,
@@ -142,7 +143,8 @@ namespace ACESim
             {
                 PInitialWealth = 1000000,
                 DInitialWealth = 1000000,
-                DamagesToAllege = 100000,
+                DamagesMin = 100000,
+                DamagesMax = 100000,
                 NumLiabilityStrengthPoints = 10,
                 MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
                 {

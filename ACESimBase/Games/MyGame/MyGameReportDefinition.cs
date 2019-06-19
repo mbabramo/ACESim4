@@ -57,7 +57,7 @@ namespace ACESim
                 new SimpleReportColumnFilter("All", (GameProgress gp) => true, true),
                 new SimpleReportColumnFilter("NoDispute", (GameProgress gp) => !MyGP(gp).DisputeArises, true),
                 new SimpleReportColumnFilter("DisputeArises", (GameProgress gp) => MyGP(gp).DisputeArises, true),
-                new SimpleReportColumnVariable("LitigQuality", (GameProgress gp) => MyGP(gp).LiabilityLevelUniform),
+                new SimpleReportColumnVariable("LitigQuality", (GameProgress gp) => MyGP(gp).LiabilityStrengthUniform),
                 new SimpleReportColumnFilter("PFiles", (GameProgress gp) => MyGP(gp).PFiles, false),
                 new SimpleReportColumnFilter("DAnswers", (GameProgress gp) => MyGP(gp).DAnswers, false),
             };
@@ -249,8 +249,8 @@ namespace ACESim
             AddRowsForQualityAndLiabilitySignalDistributions("Truly Liable ", false, rows, gp => MyGP(gp).IsTrulyLiable);
             rows.Add(new SimpleReportFilter("Truly Not Liable Count", (GameProgress gp) => !MyGP(gp).IsTrulyLiable) { UseSum = true });
             AddRowsForQualityAndLiabilitySignalDistributions("Truly Not Liable ", false, rows, gp => !MyGP(gp).IsTrulyLiable);
-            rows.Add(new SimpleReportFilter("High Quality Count", (GameProgress gp) => MyGP(gp).LiabilityLevelDiscrete >= 8) { UseSum = true });
-            AddRowsForQualityAndLiabilitySignalDistributions("High Quality Liable ", false, rows, gp => MyGP(gp).LiabilityLevelDiscrete >= 8);
+            rows.Add(new SimpleReportFilter("High Quality Count", (GameProgress gp) => MyGP(gp).LiabilityStrengthDiscrete >= 8) { UseSum = true });
+            AddRowsForQualityAndLiabilitySignalDistributions("High Quality Liable ", false, rows, gp => MyGP(gp).LiabilityStrengthDiscrete >= 8);
             // Now include the litigation flow diagram in rows too, so we get get things like average total expenses for cases settling in particular round
             rows.Add(
                 new SimpleReportFilter($"PDoesntFile",
@@ -332,13 +332,13 @@ namespace ACESim
                 {
                     byte q = litigationQuality; // avoid closure
                     rows.Add(
-                        new SimpleReportFilter(prefix + "Quality" + q, (GameProgress gp) => MyGP(gp).LiabilityLevelDiscrete == q && extraRequirement(gp)));
+                        new SimpleReportFilter(prefix + "Quality" + q, (GameProgress gp) => MyGP(gp).LiabilityStrengthDiscrete == q && extraRequirement(gp)));
                 }
             for (byte litigationQuality = 1; litigationQuality <= Options.NumLiabilityStrengthPoints; litigationQuality++)
             {
                 byte q = litigationQuality; // avoid closure
                 rows.Add(
-                    new SimpleReportFilter(prefix + "Quality" + q + " Count", (GameProgress gp) => MyGP(gp).LiabilityLevelDiscrete == q && extraRequirement(gp)) {UseSum = true});
+                    new SimpleReportFilter(prefix + "Quality" + q + " Count", (GameProgress gp) => MyGP(gp).LiabilityStrengthDiscrete == q && extraRequirement(gp)) {UseSum = true});
             }
             if (includeAverages)
                 for (byte signal = 1; signal <= Options.NumLiabilitySignals; signal++)
@@ -490,7 +490,7 @@ namespace ACESim
                 byte j = (byte)(i); // necessary to prevent access to modified closure
                 rowFilters.Add(new SimpleReportFilter(
                     $"LitQual {j}",
-                    (GameProgress gp) => MyGP(gp).LiabilityLevelDiscrete == j));
+                    (GameProgress gp) => MyGP(gp).LiabilityStrengthDiscrete == j));
             }
             //for (int i = 1; i <= Options.NumNoiseValues; i++)
             //{
@@ -507,7 +507,7 @@ namespace ACESim
                 byte j = (byte)(i); // necessary to prevent access to modified closure
                 columnFilters.Add(new SimpleReportColumnFilter(
                     $"LitQual {j}",
-                    (GameProgress gp) => MyGP(gp).LiabilityLevelDiscrete == j,
+                    (GameProgress gp) => MyGP(gp).LiabilityStrengthDiscrete == j,
                     false));
             }
         }

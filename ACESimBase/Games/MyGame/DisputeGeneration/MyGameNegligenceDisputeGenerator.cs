@@ -31,7 +31,7 @@ namespace ACESim
 
         public void Setup(MyGameDefinition myGameDefinition)
         {
-            myGameDefinition.Options.DamagesToAllege = CostOfInjury;
+            myGameDefinition.Options.DamagesMax = myGameDefinition.Options.DamagesMin = CostOfInjury;
             ShouldBeLiable = ArrayFormConversionExtension.CreateJaggedArray<bool[][]>(new int[] { NumMarginalBenefitSchedules, NumPrecautionLevels });
             CumulativeRiskReduction = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { NumMarginalBenefitSchedules, NumPrecautionLevels });
             LiabilityLevel = ArrayFormConversionExtension.CreateJaggedArray<double[][][]>(new int[] {NumMarginalBenefitSchedules, NumPrecautionLevels, myGameDefinition.Options.NumLiabilityStrengthPoints});

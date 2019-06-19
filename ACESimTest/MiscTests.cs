@@ -25,7 +25,8 @@ namespace ACESimTest
             {
                 Options = new MyGameOptions()
                 {
-                    DamagesToAllege = 100_000,
+                    DamagesMin = 100_000,
+                    DamagesMax = 100_000,
                     MyGameRunningSideBets = sideBets
                 }
             };
@@ -46,7 +47,8 @@ namespace ACESimTest
             {
                 Options = new MyGameOptions()
                 {
-                    DamagesToAllege = 100_000,
+                    DamagesMin = 100_000,
+                    DamagesMax = 100_000,
                     MyGameRunningSideBets = sideBets
                 }
             };

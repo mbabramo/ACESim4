@@ -79,7 +79,8 @@ namespace ACESimTest
             {
                 PInitialWealth = InitialWealth,
                 DInitialWealth = InitialWealth,
-                DamagesToAllege = DamagesAlleged,
+                DamagesMin = DamagesAlleged, // DEBUG
+                DamagesMax = DamagesAlleged,
                 NumLiabilityStrengthPoints = NumLiabilityLevelPoints,
                 NumLiabilitySignals = NumLiabilitySignals,
                 NumOffers = NumOffers,
@@ -604,7 +605,7 @@ namespace ACESimTest
             bool pWins = pReadyToAbandonRound == null && dReadyToDefaultRound != null ||
                          pReadyToAbandonRound != null && dReadyToDefaultRound != null && pFiles && mutualGiveUpResult == 2;
 
-            double damages = pWins ? options.DamagesToAllege : 0;
+            double damages = pWins ? options.DamagesMax : 0; // DEBUG
 
             myGameProgress.GameComplete.Should().BeTrue();
             myGameProgress.CaseSettles.Should().BeFalse();
@@ -755,8 +756,8 @@ namespace ACESimTest
 
             myGameProgress.GameComplete.Should().BeTrue();
             myGameProgress.CaseSettles.Should().BeTrue();
-            double pFinalWealthExpected = options.PInitialWealth - options.PFilingCost * options.CostsMultiplier + settlementProportion * options.DamagesToAllege - numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound * options.CostsMultiplier;
-            double dFinalWealthExpected = options.DInitialWealth - options.DAnswerCost * options.CostsMultiplier - settlementProportion * options.DamagesToAllege -
+            double pFinalWealthExpected = options.PInitialWealth - options.PFilingCost * options.CostsMultiplier + settlementProportion * options.DamagesMax - numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound * options.CostsMultiplier;
+            double dFinalWealthExpected = options.DInitialWealth - options.DAnswerCost * options.CostsMultiplier - settlementProportion * options.DamagesMax -
                                           numActualRounds * options.PerPartyCostsLeadingUpToBargainingRound * options.CostsMultiplier;
             CheckFinalWelfare(myGameProgress, pFinalWealthExpected, dFinalWealthExpected, bestOffers);
 
@@ -858,8 +859,8 @@ namespace ACESimTest
             double dFinalWealthExpected = options.DInitialWealth - dExpenses + sideBetTransferFromP + runningSideBetTransferFromP;
             if (plaintiffWins)
             {
-                pFinalWealthExpected += options.DamagesToAllege;
-                dFinalWealthExpected -= options.DamagesToAllege;
+                pFinalWealthExpected += options.DamagesMax;
+                dFinalWealthExpected -= options.DamagesMax;
             }
             CheckFinalWelfare(myGameProgress, pFinalWealthExpected, dFinalWealthExpected, bestOffers);
             GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet,

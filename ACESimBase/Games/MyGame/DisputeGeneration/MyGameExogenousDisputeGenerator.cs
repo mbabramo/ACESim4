@@ -29,7 +29,7 @@ namespace ACESim
             // Based on the litigation quality noise parameter, we then collect a distribution of possible realized values, on the assumption
             // that the true values are equally likely. We then break this distribution into evenly sized buckets to get cutoff points.
             // Given this approach, the exogenous probability has no effect on ProbabilitiesLiabilityLevel_TrulyNotLiable and ProbabilitiesLiabilityLevel_TrulyLiable; both of these are conditional on whether a case is liable or not.
-            DiscreteValueLiabilitySignalParameters dsParams = new DiscreteValueLiabilitySignalParameters() { NumPointsInSourceUniformDistribution = 2, NumLiabilitySignals = myGameDefinition.Options.NumLiabilityStrengthPoints, StdevOfNormalDistribution = StdevNoiseToProduceLiabilityLevel, UseEndpoints = true };
+            DiscreteValueSignalParameters dsParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = 2, NumSignals = myGameDefinition.Options.NumLiabilityStrengthPoints, StdevOfNormalDistribution = StdevNoiseToProduceLiabilityLevel, UseEndpoints = true };
             ProbabilitiesLiabilityLevel_TrulyNotLiable = DiscreteValueLiabilitySignal.GetProbabilitiesOfDiscreteLiabilitySignals(1, dsParams);
             ProbabilitiesLiabilityLevel_TrulyLiable = DiscreteValueLiabilitySignal.GetProbabilitiesOfDiscreteLiabilitySignals(2, dsParams);
         }

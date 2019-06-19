@@ -38,17 +38,17 @@ namespace ACESim
         {
             if (Options.DeltaOffersOptions.SubsequentOffersAreDeltas)
                 Options.DeltaOffersCalculation = new DeltaOffersCalculation(this);
-            Options.PLiabilitySignalParameters = new DiscreteValueLiabilitySignalParameters()
+            Options.PLiabilitySignalParameters = new DiscreteValueSignalParameters()
             {
                 NumPointsInSourceUniformDistribution = Options.NumLiabilityStrengthPoints,
                 StdevOfNormalDistribution = Options.PLiabilityNoiseStdev,
-                NumLiabilitySignals = Options.NumLiabilitySignals
+                NumSignals = Options.NumLiabilitySignals
             };
-            Options.DLiabilitySignalParameters = new DiscreteValueLiabilitySignalParameters()
+            Options.DLiabilitySignalParameters = new DiscreteValueSignalParameters()
             {
                 NumPointsInSourceUniformDistribution = Options.NumLiabilityStrengthPoints,
                 StdevOfNormalDistribution = Options.DLiabilityNoiseStdev,
-                NumLiabilitySignals = Options.NumLiabilitySignals
+                NumSignals = Options.NumLiabilitySignals
             };
             Options.MyGameDisputeGenerator.Setup(this);
             Options.MyGamePretrialDecisionGeneratorGenerator?.Setup(this);
@@ -222,11 +222,11 @@ namespace ACESim
                     EquallySpaced.GetLocationOfEquallySpacedPoint(litigationQuality - 1,
                         Options.NumLiabilityStrengthPoints, false);
 
-                DiscreteValueLiabilitySignalParameters pParams = new DiscreteValueLiabilitySignalParameters() { NumPointsInSourceUniformDistribution = Options.NumLiabilityStrengthPoints, NumLiabilitySignals = Options.NumLiabilitySignals, StdevOfNormalDistribution = Options.PLiabilityNoiseStdev, UseEndpoints = false };
+                DiscreteValueSignalParameters pParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = Options.NumLiabilityStrengthPoints, NumSignals = Options.NumLiabilitySignals, StdevOfNormalDistribution = Options.PLiabilityNoiseStdev, UseEndpoints = false };
                 PLiabilitySignalsTable[litigationQuality - 1] = DiscreteValueLiabilitySignal.GetProbabilitiesOfDiscreteLiabilitySignals(litigationQuality, pParams);
-                DiscreteValueLiabilitySignalParameters dParams = new DiscreteValueLiabilitySignalParameters() { NumPointsInSourceUniformDistribution = Options.NumLiabilityStrengthPoints, NumLiabilitySignals = Options.NumLiabilitySignals, StdevOfNormalDistribution = Options.DLiabilityNoiseStdev, UseEndpoints = false };
+                DiscreteValueSignalParameters dParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = Options.NumLiabilityStrengthPoints, NumSignals = Options.NumLiabilitySignals, StdevOfNormalDistribution = Options.DLiabilityNoiseStdev, UseEndpoints = false };
                 DLiabilitySignalsTable[litigationQuality - 1] = DiscreteValueLiabilitySignal.GetProbabilitiesOfDiscreteLiabilitySignals(litigationQuality, dParams);
-                DiscreteValueLiabilitySignalParameters cParams = new DiscreteValueLiabilitySignalParameters() { NumPointsInSourceUniformDistribution = Options.NumLiabilityStrengthPoints, NumLiabilitySignals = 2, StdevOfNormalDistribution = Options.CourtLiabilityNoiseStdev, UseEndpoints = false };
+                DiscreteValueSignalParameters cParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = Options.NumLiabilityStrengthPoints, NumSignals = 2, StdevOfNormalDistribution = Options.CourtLiabilityNoiseStdev, UseEndpoints = false };
                 CLiabilitySignalsTable[litigationQuality - 1] = DiscreteValueLiabilitySignal.GetProbabilitiesOfDiscreteLiabilitySignals(litigationQuality, cParams);
             }
         }
@@ -550,19 +550,19 @@ namespace ACESim
             else if (decisionByteCode == (byte)MyGameDecisions.PLiabilitySignal)
             {
                 var myGameProgress = ((MyGameProgress)gameProgress);
-                var probabilities = GetPLiabilitySignalProbabilities(myGameProgress.LiabilityLevelDiscrete);
+                var probabilities = GetPLiabilitySignalProbabilities(myGameProgress.LiabilityStrengthDiscrete);
                 return probabilities;
             }
             else if (decisionByteCode == (byte)MyGameDecisions.DLiabilitySignal)
             {
                 var myGameProgress = ((MyGameProgress)gameProgress);
-                var probabilities = GetDLiabilitySignalProbabilities(myGameProgress.LiabilityLevelDiscrete);
+                var probabilities = GetDLiabilitySignalProbabilities(myGameProgress.LiabilityStrengthDiscrete);
                 return probabilities;
             }
             else if (decisionByteCode == (byte)MyGameDecisions.CourtDecision)
             {
                 var myGameProgress = ((MyGameProgress)gameProgress);
-                var probabilities = GetCLiabilitySignalProbabilities(myGameProgress.LiabilityLevelDiscrete);
+                var probabilities = GetCLiabilitySignalProbabilities(myGameProgress.LiabilityStrengthDiscrete);
                 return probabilities;
             }
             else

@@ -67,7 +67,7 @@ namespace ACESim
         public bool IsTrulyLiable(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress)
         {
             MyGameProgress myGameProgress = (MyGameProgress) gameProgress;
-            double probabilityTrulyLiable = MonotonicCurve.CalculateYValueForX(0, 1.0, Curvature, (double) myGameProgress.LiabilityLevelUniform);
+            double probabilityTrulyLiable = MonotonicCurve.CalculateYValueForX(0, 1.0, Curvature, (double) myGameProgress.LiabilityStrengthUniform);
             double randomValue = EquallySpaced.GetLocationOfEquallySpacedPoint(disputeGeneratorActions.PostPrimaryChanceAction - 1, NumPointsToDetermineTrulyLiable, false);
             return probabilityTrulyLiable >= randomValue;
         }

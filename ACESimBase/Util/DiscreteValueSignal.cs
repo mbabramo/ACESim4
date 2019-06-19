@@ -38,7 +38,7 @@ namespace ACESim.Util
         /// <param name="signal"></param>
         /// <param name="dsParams"></param>
         /// <returns></returns>
-        public static int GetDiscreteLiabilitySignal(double signal, DiscreteValueLiabilitySignalParameters dsParams)
+        public static int GetDiscreteLiabilitySignal(double signal, DiscreteValueSignalParameters dsParams)
         {
             double[] cutoffs = GetLiabilitySignalCutoffs(dsParams);
             int i = 0;
@@ -54,20 +54,20 @@ namespace ACESim.Util
         /// <param name="discreteLiabilitySignal">The discrete band of the signal (numbered 1 .. number of signals)</param>
         /// <param name="dsParams">The parameters specifying the noise and the number of signals and uniform distribution points</param>
         /// <returns></returns>
-        public static double GetProbabilityOfDiscreteLiabilitySignal(int actualUniformDistributionValue, int discreteLiabilitySignal, DiscreteValueLiabilitySignalParameters dsParams)
+        public static double GetProbabilityOfDiscreteLiabilitySignal(int actualUniformDistributionValue, int discreteLiabilitySignal, DiscreteValueSignalParameters dsParams)
         {
             return GetProbabilitiesOfDiscreteLiabilitySignals(actualUniformDistributionValue, dsParams)[discreteLiabilitySignal - 1];
         }
 
 
-        public static double[] GetProbabilitiesOfDiscreteLiabilitySignals(int actualUniformDistributionValue, DiscreteValueLiabilitySignalParameters dsParams)
+        public static double[] GetProbabilitiesOfDiscreteLiabilitySignals(int actualUniformDistributionValue, DiscreteValueSignalParameters dsParams)
         {
             double[][] probabilities = GetProbabilitiesOfLiabilitySignalGivenSourceLiabilityLevel(dsParams);
             return probabilities[actualUniformDistributionValue - 1];
         }
 
-        private static Dictionary<DiscreteValueLiabilitySignalParameters, double[]> CutoffsForStandardDeviation = new Dictionary<DiscreteValueLiabilitySignalParameters, double[]>();
-        private static Dictionary<DiscreteValueLiabilitySignalParameters, double[][]> ProbabilitiesOfLiabilitySignalGivenSourceLiabilityLevelForStandardDeviation = new Dictionary<DiscreteValueLiabilitySignalParameters, double[][]>();
+        private static Dictionary<DiscreteValueSignalParameters, double[]> CutoffsForStandardDeviation = new Dictionary<DiscreteValueSignalParameters, double[]>();
+        private static Dictionary<DiscreteValueSignalParameters, double[][]> ProbabilitiesOfLiabilitySignalGivenSourceLiabilityLevelForStandardDeviation = new Dictionary<DiscreteValueSignalParameters, double[][]>();
         private static object CalcLock = new object();
 
         // We will calculate a number of discrete points in the inverse normal distribution
@@ -97,9 +97,9 @@ namespace ACESim.Util
         // We are going to store last values returned for a particular parameters to avoid having to go to the dictionary unnecessarily.
         private static double[] CachedCutoffsValue;
         private static double[][] CachedProbabilitiesValue;
-        private static DiscreteValueLiabilitySignalParameters CachedParamsValue;
+        private static DiscreteValueSignalParameters CachedParamsValue;
 
-        private static double[] GetLiabilitySignalCutoffs(DiscreteValueLiabilitySignalParameters nsParams)
+        private static double[] GetLiabilitySignalCutoffs(DiscreteValueSignalParameters nsParams)
         {
             double[] returnVal;
             if (CachedParamsValue.Equals(nsParams))
@@ -117,7 +117,7 @@ namespace ACESim.Util
             return returnVal;
         }
 
-        private static void CalculateCutoffsIfNecessary(DiscreteValueLiabilitySignalParameters nsParams)
+        private static void CalculateCutoffsIfNecessary(DiscreteValueSignalParameters nsParams)
         {
             if (!CutoffsForStandardDeviation.ContainsKey(nsParams))
             {
@@ -129,7 +129,7 @@ namespace ACESim.Util
             }
         }
 
-        private static double[][] GetProbabilitiesOfLiabilitySignalGivenSourceLiabilityLevel(DiscreteValueLiabilitySignalParameters nsParams)
+        private static double[][] GetProbabilitiesOfLiabilitySignalGivenSourceLiabilityLevel(DiscreteValueSignalParameters nsParams)
         {
             double[][] returnVal;
             if (CachedParamsValue.Equals(nsParams))
@@ -147,7 +147,7 @@ namespace ACESim.Util
             return returnVal;
         }
 
-        private static void CalculateCutoffs(DiscreteValueLiabilitySignalParameters nsParams)
+        private static void CalculateCutoffs(DiscreteValueSignalParameters nsParams)
         {
             // Midpoints from uniform distribution: 
             double[] sourcePoints = 
@@ -163,14 +163,14 @@ namespace ACESim.Util
             // Now we want the cutoffs for the signals, making each signal equally likely. Note that if we want 2 signals, then we want 1 cutoff at 0.5 (i.e., 50th percentiles); if there are 10 signals, we want cutoffs at percentiles corresponding to .1, .2, ..., .9. 
             // (More generally, n signals -> n - 1 percentile cutoffs). After we have the percentile cutoffs, we can divide the signals into 
             // corresponding, equally sized groups.
-            double[] percentileCutoffs = EquallySpaced.GetCutoffsBetweenRegions(nsParams.NumLiabilitySignals);
+            double[] percentileCutoffs = EquallySpaced.GetCutoffsBetweenRegions(nsParams.NumSignals);
             double[] signalValueCutoffs = percentileCutoffs.Select(ple => ValueAtPercentile(distinctPointsOrdered, ple)).ToArray();
             // Now, for each of the signal ranges, we must determine the probability that we would end up in this signal range given
             // any actual litigation quality value. 
-            double[][] probabilitiesOfLiabilitySignalGivenSourceLiabilityLevel = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(nsParams.NumPointsInSourceUniformDistribution,nsParams.NumLiabilitySignals);
+            double[][] probabilitiesOfLiabilitySignalGivenSourceLiabilityLevel = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(nsParams.NumPointsInSourceUniformDistribution,nsParams.NumSignals);
             for (int u = 0; u < nsParams.NumPointsInSourceUniformDistribution; u++)
             {
-                int[] numValuesAtEachLiabilitySignal = new int[nsParams.NumLiabilitySignals];
+                int[] numValuesAtEachLiabilitySignal = new int[nsParams.NumSignals];
                 double uniformDistributionPoint = sourcePoints[u];
                 var crossProductFromThisUniformDistributionPoint = crossProduct.Where(x => x.uniformDistPoint == uniformDistributionPoint).ToArray();
                 int totalNumberForUniformDistributionPoint = 0;
@@ -180,7 +180,7 @@ namespace ACESim.Util
                     numValuesAtEachLiabilitySignal[band]++;
                     totalNumberForUniformDistributionPoint++;
                 }
-                for (int s = 0; s < nsParams.NumLiabilitySignals; s++)
+                for (int s = 0; s < nsParams.NumSignals; s++)
                     probabilitiesOfLiabilitySignalGivenSourceLiabilityLevel[u][s] = ((double)numValuesAtEachLiabilitySignal[s]) / ((double)totalNumberForUniformDistributionPoint);
             }
             // Assign to dictionary.
