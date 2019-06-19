@@ -65,7 +65,7 @@ namespace ACESim
                 case (byte)MyGameDecisions.DamagesStrength:
                     MyProgress.DamagesMax = MyDefinition.Options.DamagesMax;
                     MyProgress.DamagesStrengthDiscrete = action;
-                    MyProgress.DamagesStrengthUniform = ConvertActionToUniformDistributionDraw(action, false);
+                    MyProgress.DamagesStrengthUniform = ConvertActionToUniformDistributionDraw(action, true /* include endpoints so that we can have possibility of max or min damages */);
                     // If one or both parties have perfect information, then they can get their information about litigation quality now, since they don't need a signal. Note that we also specify in the game definition that the litigation quality should become part of their information set.
                     if (MyDefinition.Options.PDamagesNoiseStdev == 0)
                         MyProgress.PDamagesSignalUniform = (double)MyProgress.DamagesStrengthUniform;
@@ -165,27 +165,17 @@ namespace ACESim
                     MyProgress.TrialOccurs = true;
                     MyProgress.PWinsAtTrial =
                         action == 2;
+                    if (MyProgress.PWinsAtTrial == false || MyDefinition.Options.NumDamagesStrengthPoints <= 1)
+                        MyProgress.GameComplete = true;
                     //System.Diagnostics.Console.WriteLine($"Quality {MyProgress.LiabilityStrengthUniform} Court noise action {action} => {courtNoiseNormalDraw} => signal {courtLiabilitySignal} PWins {MyProgress.PWinsAtTrial}");
+                    break;
+                case (byte)MyGameDecisions.CourtDecisionDamages:
+                    MyProgress.DamagesAwarded = (double) (MyProgress.DamagesMin + (MyProgress.DamagesMax - MyProgress.DamagesMin) * ConvertActionToUniformDistributionDraw(action, true));
+                    MyProgress.GameComplete = true;
                     break;
                 default:
                     throw new NotImplementedException();
             }
-        }
-
-        public static void ConvertNoiseActionToDiscreteAndUniformLiabilitySignal(byte action, double trueValue, byte numNoiseValues, double noiseStdev, byte numLiabilitySignals, out byte discreteLiabilitySignal, out double uniformLiabilitySignal)
-        {
-            // This is an equal probabilities decision. 
-            discreteLiabilitySignal = DiscreteValueSignal.ConvertNoiseToLiabilitySignal(trueValue, action, numNoiseValues, noiseStdev, numLiabilitySignals);
-            if (discreteLiabilitySignal == 1)
-                uniformLiabilitySignal = -1.0; // just a sign indicating that the signal is negative
-            else if (discreteLiabilitySignal == numLiabilitySignals)
-                uniformLiabilitySignal = 2.0; // again, just a sign that it's out of range
-            else
-                uniformLiabilitySignal = EquallySpaced.GetLocationOfEquallySpacedPoint(
-                    discreteLiabilitySignal -
-                    2 /* make it zero-based, but also account for the fact that we have a signal for values less than 0 */,
-                    numLiabilitySignals - 2,
-                    false /* signals, unlike offers, do not use endpoints */);
         }
 
         /// <summary>
@@ -210,14 +200,6 @@ namespace ACESim
             return offer;
         }
 
-        private byte GetDiscreteLiabilitySignal(int action, double noiseStdev, DiscreteValueSignalParameters dvsp)
-        {
-            var noise = ConvertActionToNormalDistributionDraw(action, noiseStdev);
-            var valuePlusNoise = MyProgress.LiabilityStrengthUniform + noise;
-            byte discreteLiabilitySignal = (byte)DiscreteValueSignal.GetDiscreteLiabilitySignal((double) valuePlusNoise, dvsp); // note that this is a 1-based signal
-            return discreteLiabilitySignal;
-        }
-
         public class MyGameOutcome
         {
             public double PChangeWealth;
@@ -227,10 +209,12 @@ namespace ACESim
             public double PWelfare;
             public double DWelfare;
             public bool TrialOccurs;
+            public bool PWinsAtTrial;
+            public double DamagesAwarded;
             public byte NumChips;
         }
 
-        public static MyGameOutcome CalculateGameOutcome(MyGameDefinition gameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions, MyGamePretrialActions pretrialActions, MyGameRunningSideBetsActions runningSideBetActions, double pInitialWealth, double dInitialWealth, double damagesAlleged, bool pFiles, bool pAbandons, bool dAnswers, bool dDefaults, double? settlementValue, bool pWinsAtTrial, byte bargainingRoundsComplete, double? pFinalWealthWithBestOffer, double? dFinalWealthWithBestOffer)
+        public static MyGameOutcome CalculateGameOutcome(MyGameDefinition gameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions, MyGamePretrialActions pretrialActions, MyGameRunningSideBetsActions runningSideBetActions, double pInitialWealth, double dInitialWealth, bool pFiles, bool pAbandons, bool dAnswers, bool dDefaults, double? settlementValue, bool pWinsAtTrial, double? damagesAwarded, byte bargainingRoundsComplete, double? pFinalWealthWithBestOffer, double? dFinalWealthWithBestOffer)
         {
             MyGameOutcome outcome = new MyGameOutcome();
 
@@ -258,13 +242,15 @@ namespace ACESim
             else
             {
                 outcome.TrialOccurs = true;
-                outcome.PChangeWealth = (pWinsAtTrial ? damagesAlleged : 0);
-                outcome.DChangeWealth = (pWinsAtTrial ? -damagesAlleged : 0);
+                outcome.DamagesAwarded = pWinsAtTrial ? (double) damagesAwarded : 0;
+                outcome.PChangeWealth = (pWinsAtTrial ? outcome.DamagesAwarded : 0);
+                outcome.DChangeWealth = (pWinsAtTrial ? -outcome.DamagesAwarded : 0);
+                outcome.PWinsAtTrial = pWinsAtTrial;
             }
 
             if (gameDefinition.Options.MyGamePretrialDecisionGeneratorGenerator != null)
             {
-                gameDefinition.Options.MyGamePretrialDecisionGeneratorGenerator.GetEffectOnPlayerWelfare(gameDefinition, outcome.TrialOccurs, pWinsAtTrial, damagesAlleged, pretrialActions, out double effectOnP, out double effectOnD);
+                gameDefinition.Options.MyGamePretrialDecisionGeneratorGenerator.GetEffectOnPlayerWelfare(gameDefinition, outcome.TrialOccurs, pWinsAtTrial, damagesAwarded ?? 0, pretrialActions, out double effectOnP, out double effectOnD);
                 outcome.PChangeWealth += effectOnP;
                 outcome.DChangeWealth += effectOnD;
             }
@@ -334,7 +320,7 @@ namespace ACESim
 
         public override void FinalProcessing()
         {
-            var outcome = CalculateGameOutcome(MyDefinition, MyProgress.DisputeGeneratorActions, MyProgress.PretrialActions, MyProgress.RunningSideBetsActions, MyProgress.PInitialWealth, MyProgress.DInitialWealth, MyProgress.DamagesMax ?? 0, MyProgress.PFiles, MyProgress.PAbandons, MyProgress.DAnswers, MyProgress.DDefaults, MyProgress.SettlementValue, MyProgress.PWinsAtTrial, MyProgress.BargainingRoundsComplete, MyProgress.PFinalWealthWithBestOffer, MyProgress.DFinalWealthWithBestOffer);
+            var outcome = CalculateGameOutcome(MyDefinition, MyProgress.DisputeGeneratorActions, MyProgress.PretrialActions, MyProgress.RunningSideBetsActions, MyProgress.PInitialWealth, MyProgress.DInitialWealth, MyProgress.PFiles, MyProgress.PAbandons, MyProgress.DAnswers, MyProgress.DDefaults, MyProgress.SettlementValue, MyProgress.PWinsAtTrial, MyProgress.DamagesAwarded, MyProgress.BargainingRoundsComplete, MyProgress.PFinalWealthWithBestOffer, MyProgress.DFinalWealthWithBestOffer);
             MyProgress.DisputeArises = MyDefinition.Options.MyGameDisputeGenerator.PotentialDisputeArises(MyDefinition, MyProgress.DisputeGeneratorActions);
             MyProgress.PChangeWealth = outcome.PChangeWealth;
             MyProgress.DChangeWealth = outcome.DChangeWealth;
@@ -360,7 +346,7 @@ namespace ACESim
                 MyProgress.FalsePositiveExpenditures = 0;
                 return;
             }
-            double falseNegativeShortfallIfTrulyLiable = Math.Max(0, (double)MyProgress.DamagesMax - MyProgress.PChangeWealth); // how much plaintiff's payment fell short (if at all)
+            double falseNegativeShortfallIfTrulyLiable = Math.Max(0, MyProgress.DamagesAwarded - MyProgress.PChangeWealth); // how much plaintiff's payment fell short (if at all)
             double falsePositiveExpendituresIfNotTrulyLiable = Math.Max(0, 0 - MyProgress.DChangeWealth); // how much defendant's payment was excessive (if at all)
             if (!MyDefinition.Options.MyGameDisputeGenerator.PotentialDisputeArises(MyDefinition, MyProgress.DisputeGeneratorActions))
                 MyProgress.IsTrulyLiable = false;

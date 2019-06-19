@@ -251,6 +251,7 @@ namespace ACESim
             AddRowsForLiabilityStrengthAndSignalDistributions("Truly Not Liable ", false, rows, gp => !MyGP(gp).IsTrulyLiable);
             rows.Add(new SimpleReportFilter("High Quality Count", (GameProgress gp) => MyGP(gp).LiabilityStrengthDiscrete >= 8) { UseSum = true });
             AddRowsForLiabilityStrengthAndSignalDistributions("High Quality Liable ", false, rows, gp => MyGP(gp).LiabilityStrengthDiscrete >= 8);
+            AddRowsForDamagesStrengthAndSignalDistributions("", true, rows, gp => true);
             // Now include the litigation flow diagram in rows too, so we get get things like average total expenses for cases settling in particular round
             rows.Add(
                 new SimpleReportFilter($"PDoesntFile",
@@ -393,6 +394,8 @@ namespace ACESim
 
         private void AddRowsForDamagesStrengthAndSignalDistributions(string prefix, bool includeAverages, List<SimpleReportFilter> rows, Func<GameProgress, bool> extraRequirement)
         {
+            if (Options.NumDamagesStrengthPoints <= 1)
+                return;
             // Note that averages will not be weighted by the number of observations in the column. That's why counts may be more useful.
             if (includeAverages)
                 for (byte litigationQuality = 1; litigationQuality <= Options.NumDamagesStrengthPoints; litigationQuality++)
