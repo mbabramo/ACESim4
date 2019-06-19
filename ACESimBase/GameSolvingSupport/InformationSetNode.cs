@@ -425,8 +425,6 @@ namespace ACESim
                 BestResponseMayReachHere = PredecessorInformationSetForPlayer.BestResponseAction == ActionTakenAtPredecessorSet;
         }
 
-        bool OnlyUpdateIfBestResponseMayReachHere = false; // DEBUG
-
         public void MoveAverageStrategyTowardBestResponse(int iteration, int maxIterations)
         {
             if (!BestResponseMayReachHere && iteration > 2)
