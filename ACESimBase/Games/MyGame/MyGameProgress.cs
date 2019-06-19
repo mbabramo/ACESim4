@@ -10,14 +10,14 @@ namespace ACESim
     {
         public bool DisputeArises;
         public bool IsTrulyLiable;
-        public byte LitigationQualityDiscrete;
-        public double? LitigationQualityUniform;
+        public byte LiabilityLevelDiscrete;
+        public double? LiabilityLevelUniform;
         public byte PNoiseDiscrete;
         public byte DNoiseDiscrete;
-        public byte PSignalDiscrete;
-        public byte DSignalDiscrete;
-        public double PSignalUniform;
-        public double DSignalUniform;
+        public byte PLiabilitySignalDiscrete;
+        public byte DLiabilitySignalDiscrete;
+        public double PLiabilitySignalUniform;
+        public double DLiabilitySignalUniform;
         public bool PFiles, DAnswers, PReadyToAbandon, DReadyToAbandon, BothReadyToGiveUp, PAbandons, DDefaults;
         public byte BargainingRoundsComplete;
         public List<bool> PAgreesToBargain;
@@ -55,7 +55,7 @@ namespace ACESim
         public override string ToString()
         {
             return
-                $"DisputeArises {DisputeArises} IsTrulyLiable {IsTrulyLiable} LitigationQualityDiscrete {LitigationQualityDiscrete} LitigationQualityUniform {LitigationQualityUniform} PSignalDiscrete {PSignalDiscrete} DSignalDiscrete {DSignalDiscrete} PSignalUniform {PSignalUniform} DSignalUniform {DSignalUniform} PFiles {PFiles} DAnswers {DAnswers} BargainingRoundsComplete {BargainingRoundsComplete} PLastAgreesToBargain {PLastAgreesToBargain} DLastAgreesToBargain {DLastAgreesToBargain} PLastOffer {PLastOffer} DLastOffer {DLastOffer} CaseSettles {CaseSettles} SettlementValue {SettlementValue} PAbandons {PAbandons} DDefaults {DDefaults} TrialOccurs {TrialOccurs} PWinsAtTrial {PWinsAtTrial} PFinalWealthWithBestOffer {PFinalWealthWithBestOffer} DFinalWealthWithBestOffer {DFinalWealthWithBestOffer} PFinalWealth {PFinalWealth} DFinalWealth {DFinalWealth} PWelfare {PWelfare} DWelfare {DWelfare} FalsePositiveExpenditures {FalsePositiveExpenditures} FalseNegativeShortfall {FalseNegativeShortfall} TotalExpensesIncurred {TotalExpensesIncurred} NumChips {NumChips}";
+                $"DisputeArises {DisputeArises} IsTrulyLiable {IsTrulyLiable} LiabilityLevelDiscrete {LiabilityLevelDiscrete} LiabilityLevelUniform {LiabilityLevelUniform} PLiabilitySignalDiscrete {PLiabilitySignalDiscrete} DLiabilitySignalDiscrete {DLiabilitySignalDiscrete} PLiabilitySignalUniform {PLiabilitySignalUniform} DLiabilitySignalUniform {DLiabilitySignalUniform} PFiles {PFiles} DAnswers {DAnswers} BargainingRoundsComplete {BargainingRoundsComplete} PLastAgreesToBargain {PLastAgreesToBargain} DLastAgreesToBargain {DLastAgreesToBargain} PLastOffer {PLastOffer} DLastOffer {DLastOffer} CaseSettles {CaseSettles} SettlementValue {SettlementValue} PAbandons {PAbandons} DDefaults {DDefaults} TrialOccurs {TrialOccurs} PWinsAtTrial {PWinsAtTrial} PFinalWealthWithBestOffer {PFinalWealthWithBestOffer} DFinalWealthWithBestOffer {DFinalWealthWithBestOffer} PFinalWealth {PFinalWealth} DFinalWealth {DFinalWealth} PWelfare {PWelfare} DWelfare {DWelfare} FalsePositiveExpenditures {FalsePositiveExpenditures} FalseNegativeShortfall {FalseNegativeShortfall} TotalExpensesIncurred {TotalExpensesIncurred} NumChips {NumChips}";
         }
 
         public bool? PFirstAgreesToBargain => (bool?)PAgreesToBargain?.FirstOrDefault() ?? null;
@@ -215,16 +215,16 @@ namespace ACESim
             base.CopyFieldInfo(copy);
             copy.DisputeArises = DisputeArises;
             copy.IsTrulyLiable = IsTrulyLiable;
-            copy.LitigationQualityDiscrete = LitigationQualityDiscrete;
+            copy.LiabilityLevelDiscrete = LiabilityLevelDiscrete;
             copy.PNoiseDiscrete = PNoiseDiscrete;
             copy.DNoiseDiscrete = DNoiseDiscrete;
-            copy.PSignalDiscrete = PSignalDiscrete;
-            copy.DSignalDiscrete = DSignalDiscrete;
-            copy.LitigationQualityUniform = LitigationQualityUniform;
-            copy.PSignalDiscrete = PSignalDiscrete;
-            copy.DSignalDiscrete = DSignalDiscrete;
-            copy.PSignalUniform = PSignalUniform;
-            copy.DSignalUniform = DSignalUniform;
+            copy.PLiabilitySignalDiscrete = PLiabilitySignalDiscrete;
+            copy.DLiabilitySignalDiscrete = DLiabilitySignalDiscrete;
+            copy.LiabilityLevelUniform = LiabilityLevelUniform;
+            copy.PLiabilitySignalDiscrete = PLiabilitySignalDiscrete;
+            copy.DLiabilitySignalDiscrete = DLiabilitySignalDiscrete;
+            copy.PLiabilitySignalUniform = PLiabilitySignalUniform;
+            copy.DLiabilitySignalUniform = DLiabilitySignalUniform;
             copy.PFiles = PFiles;
             copy.DAnswers = DAnswers;
             copy.PReadyToAbandon = PReadyToAbandon;

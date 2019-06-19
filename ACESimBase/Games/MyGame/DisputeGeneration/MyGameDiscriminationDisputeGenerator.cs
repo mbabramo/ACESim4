@@ -30,14 +30,14 @@ namespace ACESim
         public double PrivateBenefitToBadEmployerFromFiring_MediumTaste = 87500;
         public double PrivateBenefitToBadEmployerFromFiring_HighTaste = 100000;
 
-        private double[] ProbabilityLitigationQuality_StrongPlaintiffCase, ProbabilityLitigationQuality_MediumPlaintiffCase, ProbabilityLitigationQuality_PoorPlaintiffCase;
+        private double[] ProbabilityLiabilityLevel_StrongPlaintiffCase, ProbabilityLiabilityLevel_MediumPlaintiffCase, ProbabilityLiabilityLevel_PoorPlaintiffCase;
 
         public void Setup(MyGameDefinition myGameDefinition)
         {
-            myGameDefinition.Options.NumLitigationQualityPoints = 9; // always
-            ProbabilityLitigationQuality_StrongPlaintiffCase = new double[] {0.0, 0.0, 0.0, 0.0, 0.2, 0.2, 0.2, 0.2, 0.2,};
-            ProbabilityLitigationQuality_MediumPlaintiffCase = new double[] { 0.0, 0.0, 0.2, 0.2, 0.2, 0.2, 0.2, 0.0, 0.0 };
-            ProbabilityLitigationQuality_PoorPlaintiffCase = new double[] { 0.2, 0.2, 0.2, 0.2, 0.2, 0.0, 0.0, 0.0, 0.0 };
+            myGameDefinition.Options.NumLiabilityStrengthPoints = 9; // always
+            ProbabilityLiabilityLevel_StrongPlaintiffCase = new double[] {0.0, 0.0, 0.0, 0.0, 0.2, 0.2, 0.2, 0.2, 0.2,};
+            ProbabilityLiabilityLevel_MediumPlaintiffCase = new double[] { 0.0, 0.0, 0.2, 0.2, 0.2, 0.2, 0.2, 0.0, 0.0 };
+            ProbabilityLiabilityLevel_PoorPlaintiffCase = new double[] { 0.2, 0.2, 0.2, 0.2, 0.2, 0.0, 0.0, 0.0, 0.0 };
         }
 
         public (bool badEmployee, double employerTasteForDiscrimination) ConvertPrePrimaryChance(byte prePrimaryChance)
@@ -124,15 +124,15 @@ namespace ACESim
             return disputeGeneratorActions.PrimaryAction == 1; // only a dispute if employee is fired
         }
 
-        public double[] GetLitigationQualityProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
+        public double[] GetLiabilityLevelProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
         {
             var peopleStatus = ConvertPrePrimaryChance(disputeGeneratorActions.PrePrimaryChanceAction);
             if (peopleStatus.badEmployee == false && peopleStatus.employerTasteForDiscrimination > 0)
-                return ProbabilityLitigationQuality_StrongPlaintiffCase;
+                return ProbabilityLiabilityLevel_StrongPlaintiffCase;
             else if (peopleStatus.badEmployee == true && peopleStatus.employerTasteForDiscrimination == 0)
-                return ProbabilityLitigationQuality_PoorPlaintiffCase; // no reason that this should arise -- since employer gets nothing out of firing, it can avoid this scenario altogether
+                return ProbabilityLiabilityLevel_PoorPlaintiffCase; // no reason that this should arise -- since employer gets nothing out of firing, it can avoid this scenario altogether
             else 
-                return ProbabilityLitigationQuality_MediumPlaintiffCase;
+                return ProbabilityLiabilityLevel_MediumPlaintiffCase;
         }
 
         public bool IsTrulyLiable(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress)
@@ -175,7 +175,7 @@ namespace ACESim
             return (false, false);
         }
 
-        public (bool unrollParallelize, bool unrollIdentical) GetLitigationQualityUnrollSettings()
+        public (bool unrollParallelize, bool unrollIdentical) GetLiabilityLevelUnrollSettings()
         {
             return (false, false);
         }

@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 namespace ACESim.Util
 {
     [Serializable]
-    public struct DiscreteValueSignalParameters
+    public struct DiscreteValueLiabilitySignalParameters
     {
         public int NumPointsInSourceUniformDistribution;
         public double StdevOfNormalDistribution;
-        public int NumSignals;
+        public int NumLiabilitySignals;
         public bool UseEndpoints;
 
         public override int GetHashCode()
@@ -21,7 +21,7 @@ namespace ACESim.Util
                 int hash = 13;
                 hash = (hash * 7) + NumPointsInSourceUniformDistribution.GetHashCode();
                 hash = (hash * 7) + StdevOfNormalDistribution.GetHashCode();
-                hash = (hash * 7) + NumSignals.GetHashCode();
+                hash = (hash * 7) + NumLiabilitySignals.GetHashCode();
                 hash = (hash * 7) + UseEndpoints.GetHashCode();
                 return hash;
             }
@@ -29,8 +29,8 @@ namespace ACESim.Util
 
         public override bool Equals(object obj)
         {
-            DiscreteValueSignalParameters other = (DiscreteValueSignalParameters)obj;
-            return NumPointsInSourceUniformDistribution == other.NumPointsInSourceUniformDistribution && StdevOfNormalDistribution == other.StdevOfNormalDistribution && NumSignals == other.NumSignals && UseEndpoints == other.UseEndpoints;
+            DiscreteValueLiabilitySignalParameters other = (DiscreteValueLiabilitySignalParameters)obj;
+            return NumPointsInSourceUniformDistribution == other.NumPointsInSourceUniformDistribution && StdevOfNormalDistribution == other.StdevOfNormalDistribution && NumLiabilitySignals == other.NumLiabilitySignals && UseEndpoints == other.UseEndpoints;
         }
     }
 }

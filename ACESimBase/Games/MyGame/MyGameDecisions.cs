@@ -11,9 +11,9 @@ namespace ACESim
         PrePrimaryActionChance,
         PrimaryAction,
         PostPrimaryActionChance,
-        LitigationQuality,
-        PSignal,
-        DSignal,
+        LiabilityLevel,
+        PLiabilitySignal,
+        DLiabilitySignal,
         PFile, // 1 = yes, 2 = no
         DAnswer, // 1 = yes, 2 = no
         PreBargainingRound, // dummy chance decision -- gives us chance to perform some processing 

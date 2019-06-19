@@ -27,14 +27,14 @@ namespace ACESim
         private bool[][] ShouldBeLiable;
         private double[][] CumulativeRiskReduction;
         public double GetRiskOfInjury(byte marginalBenefitSchedule, byte precautionLevelChosen) => ProbabilityOfInjuryNoPrecaution - CumulativeRiskReduction[marginalBenefitSchedule - 1][precautionLevelChosen - 1];
-        private double[][][] LitigationQuality;
+        private double[][][] LiabilityLevel;
 
         public void Setup(MyGameDefinition myGameDefinition)
         {
             myGameDefinition.Options.DamagesToAllege = CostOfInjury;
             ShouldBeLiable = ArrayFormConversionExtension.CreateJaggedArray<bool[][]>(new int[] { NumMarginalBenefitSchedules, NumPrecautionLevels });
             CumulativeRiskReduction = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { NumMarginalBenefitSchedules, NumPrecautionLevels });
-            LitigationQuality = ArrayFormConversionExtension.CreateJaggedArray<double[][][]>(new int[] {NumMarginalBenefitSchedules, NumPrecautionLevels, myGameDefinition.Options.NumLitigationQualityPoints});
+            LiabilityLevel = ArrayFormConversionExtension.CreateJaggedArray<double[][][]>(new int[] {NumMarginalBenefitSchedules, NumPrecautionLevels, myGameDefinition.Options.NumLiabilityStrengthPoints});
             for (int marginalBenefitSchedule = 1; marginalBenefitSchedule <= NumMarginalBenefitSchedules; marginalBenefitSchedule++)
             {
                 for (int precautionLevelChosen = 1; precautionLevelChosen <= NumPrecautionLevels; precautionLevelChosen++)
@@ -60,17 +60,17 @@ namespace ACESim
                     else if (benefitCostRatio > 4.0)
                         benefitCostRatio = 4.0;
                     ShouldBeLiable[marginalBenefitSchedule - 1][precautionLevelChosen - 1] = benefitCostRatio > 1.0;
-                    // (LitigationQuality - 1) / (NumLitigationQualityLevels - 1) = (benefitCostRatio - 0.25) / (4 - 0.25)
-                    double litigationQuality = (benefitCostRatio - 0.25) * (myGameDefinition.Options.NumLitigationQualityPoints - 1.0) / (4 - 0.25) + 1.0;
+                    // (LiabilityLevel - 1) / (NumLiabilityLevelLevels - 1) = (benefitCostRatio - 0.25) / (4 - 0.25)
+                    double litigationQuality = (benefitCostRatio - 0.25) * (myGameDefinition.Options.NumLiabilityStrengthPoints - 1.0) / (4 - 0.25) + 1.0;
                     byte litigationQualityDiscrete = (byte) Math.Round(litigationQuality);
-                    for (int litigationQualityLevel = 1; litigationQualityLevel <= myGameDefinition.Options.NumLitigationQualityPoints; litigationQualityLevel++)
+                    for (int litigationQualityLevel = 1; litigationQualityLevel <= myGameDefinition.Options.NumLiabilityStrengthPoints; litigationQualityLevel++)
                     {
-                        double probabilityOfLitigationQuality;
+                        double probabilityOfLiabilityLevel;
                         if (litigationQualityDiscrete == litigationQualityLevel)
-                            probabilityOfLitigationQuality = 1.0;
+                            probabilityOfLiabilityLevel = 1.0;
                         else
-                            probabilityOfLitigationQuality = 0.0;
-                        LitigationQuality[marginalBenefitSchedule - 1][precautionLevelChosen - 1][litigationQualityLevel - 1] = probabilityOfLitigationQuality;
+                            probabilityOfLiabilityLevel = 0.0;
+                        LiabilityLevel[marginalBenefitSchedule - 1][precautionLevelChosen - 1][litigationQualityLevel - 1] = probabilityOfLiabilityLevel;
                     }
                 }
             }
@@ -118,11 +118,11 @@ namespace ACESim
             return disputeGeneratorActions.PostPrimaryChanceAction == 1; // only a dispute if an injury occurs
         }
 
-        public double[] GetLitigationQualityProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
+        public double[] GetLiabilityLevelProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
         {
             byte marginalBenefitSchedule = disputeGeneratorActions.PrePrimaryChanceAction;
             byte precautionLevelChosen = disputeGeneratorActions.PrimaryAction;
-            return LitigationQuality[marginalBenefitSchedule - 1][precautionLevelChosen - 1];
+            return LiabilityLevel[marginalBenefitSchedule - 1][precautionLevelChosen - 1];
         }
 
         public bool IsTrulyLiable(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress)
@@ -176,7 +176,7 @@ namespace ACESim
             return (false, false);
         }
 
-        public (bool unrollParallelize, bool unrollIdentical) GetLitigationQualityUnrollSettings()
+        public (bool unrollParallelize, bool unrollIdentical) GetLiabilityLevelUnrollSettings()
         {
             return (false, false);
         }

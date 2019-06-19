@@ -44,7 +44,7 @@ namespace ACESim
                     new MyGameExogenousDisputeGenerator()
                     {
                         ExogenousProbabilityTrulyLiable = 0.5,
-                        StdevNoiseToProduceLitigationQuality = 0.5
+                        StdevNoiseToProduceLiabilityLevel = 0.5
                     }
                 };
 
@@ -52,7 +52,7 @@ namespace ACESim
                 foreach (IMyGameDisputeGenerator d in disputeGenerators)
                 {
                     var options = MyGameOptionsGenerator.BaseForMultipleOptionsSets();
-                    options.PNoiseStdev = options.DNoiseStdev = StdevPlayerNoise;
+                    options.PLiabilityNoiseStdev = options.DLiabilityNoiseStdev = StdevPlayerNoise;
                     options.CostsMultiplier = costMultiplier;
                     if (HigherRiskAversion)
                     {

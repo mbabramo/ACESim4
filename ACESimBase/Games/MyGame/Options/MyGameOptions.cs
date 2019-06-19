@@ -20,25 +20,25 @@ namespace ACESim
         /// </summary>
         public MyGameRunningSideBets MyGameRunningSideBets;
         /// <summary>
-        /// The number of different quality points that a litigation can have. 
+        /// The number of different liability quality levels that a case can have, with the lowest levels reflecting the lowest probability of liability. Parties obtain estimates of the liability level.
         /// </summary>
-        public byte NumLitigationQualityPoints;
+        public byte NumLiabilityStrengthPoints;
         /// <summary>
         /// The number of discrete signals that a party can receive. For example, 10 signals would allow each party to differentiate 10 different levels of case strength.
         /// </summary>
-        public byte NumSignals;
+        public byte NumLiabilitySignals;
         /// <summary>
         /// The standard deviation of the noise used to obfuscate the plaintiff's estimate of the case strength. When the action is the signal, this determines the probabilities of each signal; when the action is the noise, this affects the conversion of the noise to a signal, considering the underlying true value.
         /// </summary>
-        public double PNoiseStdev;
+        public double PLiabilityNoiseStdev;
         /// <summary>
         /// The standard deviation of the noise used to obfuscate the defendant's estimate of the case strength. When the action is the signal, this determines the probabilities of each signal; when the action is the noise, this affects the conversion of the noise to a signal, considering the underlying true value.
         /// </summary>
-        public double DNoiseStdev;
+        public double DLiabilityNoiseStdev;
         /// <summary>
         /// The standard deviation of the noise used to obfuscate the court's estimate of the case strength. This applies only when the action is the noise, rather than the signal itself.
         /// </summary>
-        public double CourtNoiseStdev;
+        public double CourtLiabilityNoiseStdev;
         /// <summary>
         /// If true, then the bargaining round starts with P and D deciding whether to bargain at all this round. The per bargaining round costs will be borne either way.
         /// </summary>
@@ -139,13 +139,13 @@ namespace ACESim
         public UtilityCalculator DUtilityCalculator;
 
 
-        public bool IncludeSignalsReport;
+        public bool IncludeLiabilitySignalsReport;
         internal bool IncludeCourtSuccessReport;
         public List<(Func<Decision, GameProgress, byte>, string)> AdditionalTableOverrides;
 
         // the following are derived and should not be set directly
 
         public DeltaOffersCalculation DeltaOffersCalculation;
-        public DiscreteValueSignalParameters PSignalParameters, DSignalParameters;
+        public DiscreteValueLiabilitySignalParameters PLiabilitySignalParameters, DLiabilitySignalParameters;
     }
 }

@@ -414,12 +414,12 @@ namespace ControlExcel
             bool omitNoDispute = true;
 #pragma warning disable CS0219
             bool omitErrorBars = true;
-            List<string> crossStats = new List<string>() { "PSignal1 Count", "PSignal2 Count", "PSignal3 Count", "PSignal4 Count", "PSignal5 Count", "PSignal6 Count", "PSignal7 Count", "PSignal8 Count", "PSignal9 Count", "PSignal10 Count" };
-            List<string> rowHeads = new List<string>() { "P Signal 1", "P Signal 2", "P Signal 3", "P Signal 4", "P Signal 5", "P Signal 6", "P Signal 7", "P Signal 8", "P Signal 9", "P Signal 10", "D Signal 1", "D Signal 2", "D Signal 3", "D Signal 4", "D Signal 5", "D Signal 6", "D Signal 7", "D Signal 8", "D Signal 9", "D Signal 10" };
+            List<string> crossStats = new List<string>() { "PLiabilitySignal1 Count", "PLiabilitySignal2 Count", "PLiabilitySignal3 Count", "PLiabilitySignal4 Count", "PLiabilitySignal5 Count", "PLiabilitySignal6 Count", "PLiabilitySignal7 Count", "PLiabilitySignal8 Count", "PLiabilitySignal9 Count", "PLiabilitySignal10 Count" };
+            List<string> rowHeads = new List<string>() { "P LiabilitySignal 1", "P LiabilitySignal 2", "P LiabilitySignal 3", "P LiabilitySignal 4", "P LiabilitySignal 5", "P LiabilitySignal 6", "P LiabilitySignal 7", "P LiabilitySignal 8", "P LiabilitySignal 9", "P LiabilitySignal 10", "D LiabilitySignal 1", "D LiabilitySignal 2", "D LiabilitySignal 3", "D LiabilitySignal 4", "D LiabilitySignal 5", "D LiabilitySignal 6", "D LiabilitySignal 7", "D LiabilitySignal 8", "D LiabilitySignal 9", "D LiabilitySignal 10" };
             crossStats.Reverse();
             rowHeads.Reverse();
             //List<string> crossStats = new List<string>() { "MutOpt5 Count", "MutOpt4 Count", "MutOpt3 Count", "MutOpt2 Count", "MutOpt1 Count", "MutOpt0 Count", "MutOpt-1 Count", "MutOpt-2 Count", "MutOpt-3 Count", "MutOpt-4 Count", "MutOpt-5 Count" };
-            //List<string> rowHeads = new List<string>() { "Mutually Optimistic 5+", "Mutually Optimistic 4", "Mutually Optimistic 3", "Mutually Optimistic 2", "Mutually Optimistic 1", "Same Signal", "Mutually Pessimistic 1", "Mutually Pessimistic 2", "Mutually Pessimistic 3", "Mutually Pessimistic 4", "Mutually Pessimistic 5+" };
+            //List<string> rowHeads = new List<string>() { "Mutually Optimistic 5+", "Mutually Optimistic 4", "Mutually Optimistic 3", "Mutually Optimistic 2", "Mutually Optimistic 1", "Same LiabilitySignal", "Mutually Pessimistic 1", "Mutually Pessimistic 2", "Mutually Pessimistic 3", "Mutually Pessimistic 4", "Mutually Pessimistic 5+" };
             bool divideByAllCount = true;
             bool crossStatIsPercent = false;
             bool crossStatIsRow = true;
@@ -437,12 +437,12 @@ namespace ControlExcel
             string sourceReport = "Exog American";
             bool omitNoDispute = true;
             bool omitErrorBars = true;
-            List<string> crossStats = new List<string>() { "PSignal1 Count", "PSignal2 Count", "PSignal3 Count", "PSignal4 Count", "PSignal5 Count", "PSignal6 Count", "PSignal7 Count", "PSignal8 Count", "PSignal9 Count", "PSignal10 Count" };
-            List<string> rowHeads = new List<string>() { "PSignal1", "PSignal2", "PSignal3", "PSignal4", "PSignal5", "PSignal6", "PSignal7", "PSignal8", "PSignal9", "PSignal10" };
+            List<string> crossStats = new List<string>() { "PLiabilitySignal1 Count", "PLiabilitySignal2 Count", "PLiabilitySignal3 Count", "PLiabilitySignal4 Count", "PLiabilitySignal5 Count", "PLiabilitySignal6 Count", "PLiabilitySignal7 Count", "PLiabilitySignal8 Count", "PLiabilitySignal9 Count", "PLiabilitySignal10 Count" };
+            List<string> rowHeads = new List<string>() { "PLiabilitySignal1", "PLiabilitySignal2", "PLiabilitySignal3", "PLiabilitySignal4", "PLiabilitySignal5", "PLiabilitySignal6", "PLiabilitySignal7", "PLiabilitySignal8", "PLiabilitySignal9", "PLiabilitySignal10" };
             crossStats.Reverse();
             rowHeads.Reverse();
             //List<string> crossStats = new List<string>() { "MutOpt5 Count", "MutOpt4 Count", "MutOpt3 Count", "MutOpt2 Count", "MutOpt1 Count", "MutOpt0 Count", "MutOpt-1 Count", "MutOpt-2 Count", "MutOpt-3 Count", "MutOpt-4 Count", "MutOpt-5 Count" };
-            //List<string> rowHeads = new List<string>() { "Mutually Optimistic 5+", "Mutually Optimistic 4", "Mutually Optimistic 3", "Mutually Optimistic 2", "Mutually Optimistic 1", "Same Signal", "Mutually Pessimistic 1", "Mutually Pessimistic 2", "Mutually Pessimistic 3", "Mutually Pessimistic 4", "Mutually Pessimistic 5+" };
+            //List<string> rowHeads = new List<string>() { "Mutually Optimistic 5+", "Mutually Optimistic 4", "Mutually Optimistic 3", "Mutually Optimistic 2", "Mutually Optimistic 1", "Same LiabilitySignal", "Mutually Pessimistic 1", "Mutually Pessimistic 2", "Mutually Pessimistic 3", "Mutually Pessimistic 4", "Mutually Pessimistic 5+" };
             bool divideByAllCount = true;
             bool crossStatIsPercent = false;
             bool crossStatIsRow = true;

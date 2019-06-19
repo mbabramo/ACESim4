@@ -20,8 +20,8 @@ namespace ACESim
 
         // chance players (small information sets)
         PostPrimaryChance,
-        PSignalChance,
-        DSignalChance,
+        PLiabilitySignalChance,
+        DLiabilitySignalChance,
         QualityChance,
         CourtChance,
 

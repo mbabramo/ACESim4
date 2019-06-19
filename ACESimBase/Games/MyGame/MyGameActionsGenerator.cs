@@ -8,10 +8,10 @@ namespace ACESim
 {
     public static class MyGameActionsGenerator
     {
-        public static byte PBetsHeavilyWithGoodSignal(Decision decision, GameProgress progress)
+        public static byte PBetsHeavilyWithGoodLiabilitySignal(Decision decision, GameProgress progress)
         {
             MyGameProgress p = (MyGameProgress)progress;
-            if (p.PSignalDiscrete >= 9)
+            if (p.PLiabilitySignalDiscrete >= 9)
             {
                 if (decision.DecisionByteCode == (byte)MyGameDecisions.PChips)
                     return 3; // 2 chips
@@ -19,10 +19,10 @@ namespace ACESim
             return 0;
         }
 
-        public static byte PGivesNoGroundWithMaxSignal(Decision decision, GameProgress progress)
+        public static byte PGivesNoGroundWithMaxLiabilitySignal(Decision decision, GameProgress progress)
         {
             MyGameProgress p = (MyGameProgress)progress;
-            if (p.PSignalDiscrete == 10)
+            if (p.PLiabilitySignalDiscrete == 10)
             {
                 if (decision.DecisionByteCode == (byte) MyGameDecisions.PFile)
                     return 1;
@@ -96,18 +96,18 @@ namespace ACESim
             return 0;
         }
 
-        public static byte PlaintiffShouldOffer10IfReceivingAtLeastSignal9(Decision decision, GameProgress progress)
+        public static byte PlaintiffShouldOffer10IfReceivingAtLeastLiabilitySignal9(Decision decision, GameProgress progress)
         {
             MyGameProgress p = (MyGameProgress) progress;
-            if (decision.DecisionByteCode == (byte)MyGameDecisions.POffer && p.PSignalDiscrete >= 9)
+            if (decision.DecisionByteCode == (byte)MyGameDecisions.POffer && p.PLiabilitySignalDiscrete >= 9)
                 return 10;
             return 0;
         }
 
-        public static byte DShouldOffer7IfReceivingAtLeastSignal9(Decision decision, GameProgress progress)
+        public static byte DShouldOffer7IfReceivingAtLeastLiabilitySignal9(Decision decision, GameProgress progress)
         {
             MyGameProgress p = (MyGameProgress)progress;
-            if (decision.DecisionByteCode == (byte)MyGameDecisions.DOffer && p.DSignalDiscrete >= 9)
+            if (decision.DecisionByteCode == (byte)MyGameDecisions.DOffer && p.DLiabilitySignalDiscrete >= 9)
                 return 7;
             return 0;
         }
@@ -143,9 +143,9 @@ namespace ACESim
         {
             switch (decision.DecisionByteCode)
             {
-                case (byte)MyGameDecisions.LitigationQuality:
-                case (byte)MyGameDecisions.PSignal:
-                case (byte)MyGameDecisions.DSignal:
+                case (byte)MyGameDecisions.LiabilityLevel:
+                case (byte)MyGameDecisions.PLiabilitySignal:
+                case (byte)MyGameDecisions.DLiabilitySignal:
                     return 1; // all irrelevant
 
                 case (byte)MyGameDecisions.POffer:
@@ -161,9 +161,9 @@ namespace ACESim
         {
             switch (decision.DecisionByteCode)
             {
-                case (byte)MyGameDecisions.LitigationQuality:
-                case (byte)MyGameDecisions.PSignal:
-                case (byte)MyGameDecisions.DSignal:
+                case (byte)MyGameDecisions.LiabilityLevel:
+                case (byte)MyGameDecisions.PLiabilitySignal:
+                case (byte)MyGameDecisions.DLiabilitySignal:
                     return 1; // all irrelevant
 
                 case (byte)MyGameDecisions.POffer:
@@ -183,9 +183,9 @@ namespace ACESim
         {
             switch (decision.DecisionByteCode)
             {
-                case (byte)MyGameDecisions.LitigationQuality:
-                case (byte)MyGameDecisions.PSignal:
-                case (byte)MyGameDecisions.DSignal:
+                case (byte)MyGameDecisions.LiabilityLevel:
+                case (byte)MyGameDecisions.PLiabilitySignal:
+                case (byte)MyGameDecisions.DLiabilitySignal:
                     return 1; // all irrelevant
 
                 case (byte)MyGameDecisions.POffer:
@@ -206,11 +206,11 @@ namespace ACESim
             switch (decision.DecisionByteCode)
             {
 
-                case (byte)MyGameDecisions.LitigationQuality:
+                case (byte)MyGameDecisions.LiabilityLevel:
                     return 3;
-                case (byte)MyGameDecisions.PSignal:
+                case (byte)MyGameDecisions.PLiabilitySignal:
                     return 4;
-                case (byte)MyGameDecisions.DSignal:
+                case (byte)MyGameDecisions.DLiabilitySignal:
                     return 2;
                 case (byte)MyGameDecisions.POffer:
                     return 5;
@@ -230,11 +230,11 @@ namespace ACESim
             switch (decision.DecisionByteCode)
             {
 
-                case (byte)MyGameDecisions.LitigationQuality:
+                case (byte)MyGameDecisions.LiabilityLevel:
                     return 3;
-                case (byte)MyGameDecisions.PSignal:
+                case (byte)MyGameDecisions.PLiabilitySignal:
                     return 4;
-                case (byte)MyGameDecisions.DSignal:
+                case (byte)MyGameDecisions.DLiabilitySignal:
                     return 2;
                 case (byte)MyGameDecisions.POffer:
                     return 5;
@@ -248,15 +248,15 @@ namespace ACESim
             }
         }
 
-        public static byte UsingRawSignals_SettlementFails(Decision decision, GameProgress progress)
+        public static byte UsingRawLiabilitySignals_SettlementFails(Decision decision, GameProgress progress)
         {
             switch (decision.DecisionByteCode)
             {
-                case (byte)MyGameDecisions.LitigationQuality:
+                case (byte)MyGameDecisions.LiabilityLevel:
                     return 5;
-                case (byte)MyGameDecisions.PSignal:
+                case (byte)MyGameDecisions.PLiabilitySignal:
                     return 9;
-                case (byte)MyGameDecisions.DSignal:
+                case (byte)MyGameDecisions.DLiabilitySignal:
                     return 1; 
 
                 case (byte)MyGameDecisions.POffer:

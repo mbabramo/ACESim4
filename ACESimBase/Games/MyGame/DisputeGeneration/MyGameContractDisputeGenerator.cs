@@ -23,9 +23,9 @@ namespace ACESim
         public double MinBenefitOfActionToDefendant = 0;
         public double MaxBenefitOfActionToDefendant = 200000;
         public double CostOfActionOnPlaintiff = 100_000;
-        public double StdevNoiseToProduceLitigationQuality = 0.2; 
+        public double StdevNoiseToProduceLiabilityLevel = 0.2; 
 
-        private double[][] ProbabilityLitigationQuality;
+        private double[][] ProbabilityLiabilityLevel;
 
         private double BenefitOfActionToDefendant_Proportion(byte benefitLevel)
         {
@@ -40,14 +40,14 @@ namespace ACESim
         public void Setup(MyGameDefinition myGameDefinition)
         {
             // We need to determine the probability of different litigation qualities 
-            ProbabilityLitigationQuality = new double[NumBenefitLevels][];
-            DiscreteValueSignalParameters dsParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = NumBenefitLevels, NumSignals = myGameDefinition.Options.NumLitigationQualityPoints, StdevOfNormalDistribution = StdevNoiseToProduceLitigationQuality, UseEndpoints = true };
+            ProbabilityLiabilityLevel = new double[NumBenefitLevels][];
+            DiscreteValueLiabilitySignalParameters dsParams = new DiscreteValueLiabilitySignalParameters() { NumPointsInSourceUniformDistribution = NumBenefitLevels, NumLiabilitySignals = myGameDefinition.Options.NumLiabilityStrengthPoints, StdevOfNormalDistribution = StdevNoiseToProduceLiabilityLevel, UseEndpoints = true };
             for (byte a = 1; a <= NumBenefitLevels; a++)
             {
                 // When the benefit to the defendant is low, then the plaintiff has a good claim -- defendant is only allowed to take the benefit when it is high.
                 // When the benefit to the defendant is high, then the plaintiff has a bad claim.
                 byte strengthOfClaimIfNoRandomness = (byte) (NumBenefitLevels - a + 1);
-                ProbabilityLitigationQuality[a - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(strengthOfClaimIfNoRandomness, dsParams);
+                ProbabilityLiabilityLevel[a - 1] = DiscreteValueLiabilitySignal.GetProbabilitiesOfDiscreteLiabilitySignals(strengthOfClaimIfNoRandomness, dsParams);
             }
         }
 
@@ -87,9 +87,9 @@ namespace ACESim
             return BenefitOfActionToDefendant_Level(disputeGeneratorActions.PrePrimaryChanceAction) - CostOfActionOnPlaintiff;
         }
 
-        public double[] GetLitigationQualityProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
+        public double[] GetLiabilityLevelProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
         {
-            return ProbabilityLitigationQuality[disputeGeneratorActions.PrePrimaryChanceAction - 1];
+            return ProbabilityLiabilityLevel[disputeGeneratorActions.PrePrimaryChanceAction - 1];
         }
 
         public bool IsTrulyLiable(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress)
@@ -136,7 +136,7 @@ namespace ACESim
             return (false, false);
         }
 
-        public (bool unrollParallelize, bool unrollIdentical) GetLitigationQualityUnrollSettings()
+        public (bool unrollParallelize, bool unrollIdentical) GetLiabilityLevelUnrollSettings()
         {
             return (false, false);
         }

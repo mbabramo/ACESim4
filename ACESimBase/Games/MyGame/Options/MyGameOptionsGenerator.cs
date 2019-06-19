@@ -38,19 +38,19 @@ namespace ACESim
                 PInitialWealth = 1000000,
                 DInitialWealth = 1000000,
                 DamagesToAllege = 100000,
-                NumLitigationQualityPoints = 6,
-                NumSignals = 6,
+                NumLiabilityStrengthPoints = 6,
+                NumLiabilitySignals = 6,
                 NumOffers = 6,
                 MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
                 {
                     ExogenousProbabilityTrulyLiable = 0.5,
-                    StdevNoiseToProduceLitigationQuality = 0.5
+                    StdevNoiseToProduceLiabilityLevel = 0.5
                 },
                 PFilingCost = 5000,
                 DAnswerCost = 5000,
-                PNoiseStdev = 0.15,
-                DNoiseStdev = 0.15,
-                CourtNoiseStdev = 0.15,
+                PLiabilityNoiseStdev = 0.15,
+                DLiabilityNoiseStdev = 0.15,
+                CourtLiabilityNoiseStdev = 0.15,
                 CostsMultiplier = 1.0,
                 PTrialCosts = 15_000,
                 DTrialCosts = 15_000,
@@ -72,7 +72,7 @@ namespace ACESim
                 BargainingRoundsSimultaneous = true,
                 SimultaneousOffersUltimatelyRevealed = true,
                 PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false, true, false, true, false },
-                IncludeSignalsReport = true,
+                IncludeLiabilitySignalsReport = true,
                 IncludeCourtSuccessReport = false,
             };
             // options.AdditionalTableOverrides = new List<(Func<Decision, GameProgress, byte>, string)>() { (MyGameActionsGenerator.GamePlaysOutToTrial, "GamePlaysOutToTrial") };
@@ -90,8 +90,8 @@ namespace ACESim
         public static MyGameOptions SuperSimple()
         {
             var options = BaseForSingleOptionsSet();
-            options.NumLitigationQualityPoints = 2;
-            options.NumSignals = 2;
+            options.NumLiabilityStrengthPoints = 2;
+            options.NumLiabilitySignals = 2;
             options.NumOffers = 2;
             options.NumPotentialBargainingRounds = 1;
             options.AllowAbandonAndDefaults = false;
@@ -101,8 +101,8 @@ namespace ACESim
         public static MyGameOptions Fast()
         {
             var options = BaseForSingleOptionsSet();
-            options.NumLitigationQualityPoints = 4;
-            options.NumSignals = 4;
+            options.NumLiabilityStrengthPoints = 4;
+            options.NumLiabilitySignals = 4;
             options.NumOffers = 4;
             options.NumPotentialBargainingRounds = 2;
             options.AllowAbandonAndDefaults = true;
@@ -118,8 +118,8 @@ namespace ACESim
         public static MyGameOptions Ambitious()
         {
             var options = BaseForSingleOptionsSet();
-            options.NumLitigationQualityPoints = 10;
-            options.NumSignals = 10;
+            options.NumLiabilityStrengthPoints = 10;
+            options.NumLiabilitySignals = 10;
             options.NumOffers = 10;
             options.NumPotentialBargainingRounds = 2;
             options.AllowAbandonAndDefaults = true;
@@ -129,10 +129,10 @@ namespace ACESim
         public static MyGameOptions PerfectInformation(bool courtIsPerfectToo)
         {
             var options = BaseForSingleOptionsSet();
-            options.PNoiseStdev = 0.001;
-            options.DNoiseStdev = 0.001;
+            options.PLiabilityNoiseStdev = 0.001;
+            options.DLiabilityNoiseStdev = 0.001;
             if (courtIsPerfectToo)
-                options.CourtNoiseStdev = 0.001;
+                options.CourtLiabilityNoiseStdev = 0.001;
             return options;
         }
 
@@ -143,20 +143,20 @@ namespace ACESim
                 PInitialWealth = 1000000,
                 DInitialWealth = 1000000,
                 DamagesToAllege = 100000,
-                NumLitigationQualityPoints = 10,
+                NumLiabilityStrengthPoints = 10,
                 MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
                 {
-                    ProbabilityTrulyLiable_LitigationQuality75 = 0.75,
-                    ProbabilityTrulyLiable_LitigationQuality90 = 0.90,
+                    ProbabilityTrulyLiable_LiabilityLevel75 = 0.75,
+                    ProbabilityTrulyLiable_LiabilityLevel90 = 0.90,
                     NumPointsToDetermineTrulyLiable = 100,
                 },
-                NumSignals = 10,
+                NumLiabilitySignals = 10,
                 NumOffers = 11,
                 PFilingCost = 5000,
                 DAnswerCost = 5000,
-                PNoiseStdev = 0.2,
-                DNoiseStdev = 0.2,
-                CourtNoiseStdev = 0.2,
+                PLiabilityNoiseStdev = 0.2,
+                DLiabilityNoiseStdev = 0.2,
+                CourtLiabilityNoiseStdev = 0.2,
                 CostsMultiplier = 1.0,
                 PTrialCosts = 15000,
                 DTrialCosts = 15000,
@@ -178,7 +178,7 @@ namespace ACESim
                 BargainingRoundsSimultaneous = true,
                 SimultaneousOffersUltimatelyRevealed = true,
                 PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false, true, false, true, false },
-                IncludeSignalsReport = false,     
+                IncludeLiabilitySignalsReport = false,     
                 IncludeCourtSuccessReport = false,
             };
             // options.AdditionalTableOverrides = new List<(Func<Decision, GameProgress, byte>, string)>() { (MyGameActionsGenerator.GamePlaysOutToTrial, "GamePlaysOutToTrial") };

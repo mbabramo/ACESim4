@@ -42,26 +42,26 @@ namespace ACESim
                     if (MyDefinition.CheckCompleteAfterPostPrimaryAction && MyDefinition.Options.MyGameDisputeGenerator.MarkComplete(MyDefinition, MyProgress.DisputeGeneratorActions.PrePrimaryChanceAction, MyProgress.DisputeGeneratorActions.PrimaryAction, MyProgress.DisputeGeneratorActions.PostPrimaryChanceAction))
                         MyProgress.GameComplete = true;
                     break;
-                case (byte)MyGameDecisions.LitigationQuality:
+                case (byte)MyGameDecisions.LiabilityLevel:
                     MyProgress.DamagesAlleged = MyDefinition.Options.DamagesToAllege;
-                    MyProgress.LitigationQualityDiscrete = action;
-                    MyProgress.LitigationQualityUniform = ConvertActionToUniformDistributionDraw(action, false);
+                    MyProgress.LiabilityLevelDiscrete = action;
+                    MyProgress.LiabilityLevelUniform = ConvertActionToUniformDistributionDraw(action, false);
                     // If one or both parties have perfect information, then they can get their information about litigation quality now, since they don't need a signal. Note that we also specify in the game definition that the litigation quality should become part of their information set.
-                    if (MyDefinition.Options.PNoiseStdev == 0)
-                        MyProgress.PSignalUniform = (double) MyProgress.LitigationQualityUniform;
-                    if (MyDefinition.Options.DNoiseStdev == 0)
-                        MyProgress.DSignalUniform = (double) MyProgress.LitigationQualityUniform;
+                    if (MyDefinition.Options.PLiabilityNoiseStdev == 0)
+                        MyProgress.PLiabilitySignalUniform = (double) MyProgress.LiabilityLevelUniform;
+                    if (MyDefinition.Options.DLiabilityNoiseStdev == 0)
+                        MyProgress.DLiabilitySignalUniform = (double) MyProgress.LiabilityLevelUniform;
 
                 break;
-                case (byte)MyGameDecisions.PSignal:
-                    MyProgress.PSignalDiscrete = action;
-                    MyProgress.PSignalUniform = action * (1.0 / MyDefinition.Options.NumSignals);
-                    GameProgressLogger.Log(() => $"P: Quality {MyProgress.LitigationQualityUniform} => signal {MyProgress.PSignalDiscrete} ({MyProgress.PSignalUniform})");
+                case (byte)MyGameDecisions.PLiabilitySignal:
+                    MyProgress.PLiabilitySignalDiscrete = action;
+                    MyProgress.PLiabilitySignalUniform = action * (1.0 / MyDefinition.Options.NumLiabilitySignals);
+                    GameProgressLogger.Log(() => $"P: Quality {MyProgress.LiabilityLevelUniform} => signal {MyProgress.PLiabilitySignalDiscrete} ({MyProgress.PLiabilitySignalUniform})");
                 break;
-                case (byte)MyGameDecisions.DSignal:
-                    MyProgress.DSignalDiscrete = action;
-                    MyProgress.DSignalUniform = action * (1.0 / MyDefinition.Options.NumSignals);
-                    GameProgressLogger.Log(() => $"D: Quality {MyProgress.LitigationQualityUniform} => signal {MyProgress.DSignalDiscrete} ({MyProgress.DSignalUniform})");
+                case (byte)MyGameDecisions.DLiabilitySignal:
+                    MyProgress.DLiabilitySignalDiscrete = action;
+                    MyProgress.DLiabilitySignalUniform = action * (1.0 / MyDefinition.Options.NumLiabilitySignals);
+                    GameProgressLogger.Log(() => $"D: Quality {MyProgress.LiabilityLevelUniform} => signal {MyProgress.DLiabilitySignalDiscrete} ({MyProgress.DLiabilitySignalUniform})");
                     break;
                 case (byte)MyGameDecisions.PFile:
                     MyProgress.PFiles = action == 1;
@@ -146,26 +146,26 @@ namespace ACESim
                     MyProgress.TrialOccurs = true;
                     MyProgress.PWinsAtTrial =
                         action == 2;
-                    //System.Diagnostics.Console.WriteLine($"Quality {MyProgress.LitigationQualityUniform} Court noise action {action} => {courtNoiseNormalDraw} => signal {courtSignal} PWins {MyProgress.PWinsAtTrial}");
+                    //System.Diagnostics.Console.WriteLine($"Quality {MyProgress.LiabilityLevelUniform} Court noise action {action} => {courtNoiseNormalDraw} => signal {courtLiabilitySignal} PWins {MyProgress.PWinsAtTrial}");
                     break;
                 default:
                     throw new NotImplementedException();
             }
         }
 
-        public static void ConvertNoiseActionToDiscreteAndUniformSignal(byte action, double trueValue, byte numNoiseValues, double noiseStdev, byte numSignals, out byte discreteSignal, out double uniformSignal)
+        public static void ConvertNoiseActionToDiscreteAndUniformLiabilitySignal(byte action, double trueValue, byte numNoiseValues, double noiseStdev, byte numLiabilitySignals, out byte discreteLiabilitySignal, out double uniformLiabilitySignal)
         {
             // This is an equal probabilities decision. 
-            discreteSignal = DiscreteValueSignal.ConvertNoiseToSignal(trueValue, action, numNoiseValues, noiseStdev, numSignals);
-            if (discreteSignal == 1)
-                uniformSignal = -1.0; // just a sign indicating that the signal is negative
-            else if (discreteSignal == numSignals)
-                uniformSignal = 2.0; // again, just a sign that it's out of range
+            discreteLiabilitySignal = DiscreteValueLiabilitySignal.ConvertNoiseToLiabilitySignal(trueValue, action, numNoiseValues, noiseStdev, numLiabilitySignals);
+            if (discreteLiabilitySignal == 1)
+                uniformLiabilitySignal = -1.0; // just a sign indicating that the signal is negative
+            else if (discreteLiabilitySignal == numLiabilitySignals)
+                uniformLiabilitySignal = 2.0; // again, just a sign that it's out of range
             else
-                uniformSignal = EquallySpaced.GetLocationOfEquallySpacedPoint(
-                    discreteSignal -
+                uniformLiabilitySignal = EquallySpaced.GetLocationOfEquallySpacedPoint(
+                    discreteLiabilitySignal -
                     2 /* make it zero-based, but also account for the fact that we have a signal for values less than 0 */,
-                    numSignals - 2,
+                    numLiabilitySignals - 2,
                     false /* signals, unlike offers, do not use endpoints */);
         }
 
@@ -191,12 +191,12 @@ namespace ACESim
             return offer;
         }
 
-        private byte GetDiscreteSignal(int action, double noiseStdev, DiscreteValueSignalParameters dvsp)
+        private byte GetDiscreteLiabilitySignal(int action, double noiseStdev, DiscreteValueLiabilitySignalParameters dvsp)
         {
             var noise = ConvertActionToNormalDistributionDraw(action, noiseStdev);
-            var valuePlusNoise = MyProgress.LitigationQualityUniform + noise;
-            byte discreteSignal = (byte)DiscreteValueSignal.GetDiscreteSignal((double) valuePlusNoise, dvsp); // note that this is a 1-based signal
-            return discreteSignal;
+            var valuePlusNoise = MyProgress.LiabilityLevelUniform + noise;
+            byte discreteLiabilitySignal = (byte)DiscreteValueLiabilitySignal.GetDiscreteLiabilitySignal((double) valuePlusNoise, dvsp); // note that this is a 1-based signal
+            return discreteLiabilitySignal;
         }
 
         public class MyGameOutcome

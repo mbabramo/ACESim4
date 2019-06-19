@@ -16,11 +16,11 @@ namespace ACESim
         /// </summary>
         public double ExogenousProbabilityTrulyLiable;
         /// <summary>
-        /// If generating LitigationQuality based on true case value, this is the standard deviation of the noise used to obscure the true litigation quality value (0 or 1). Each litigation quality level will be equally likely if there is an equal chance of either true litigation quality value.
+        /// If generating LiabilityLevel based on true case value, this is the standard deviation of the noise used to obscure the true litigation quality value (0 or 1). Each litigation quality level will be equally likely if there is an equal chance of either true litigation quality value.
         /// </summary>
-        public double StdevNoiseToProduceLitigationQuality;
+        public double StdevNoiseToProduceLiabilityLevel;
 
-        private double[] ProbabilityOfTrulyLiabilityValues, ProbabilitiesLitigationQuality_TrulyNotLiable, ProbabilitiesLitigationQuality_TrulyLiable;
+        private double[] ProbabilityOfTrulyLiabilityValues, ProbabilitiesLiabilityLevel_TrulyNotLiable, ProbabilitiesLiabilityLevel_TrulyLiable;
 
         public void Setup(MyGameDefinition myGameDefinition)
         {
@@ -28,10 +28,10 @@ namespace ACESim
             // A case is assigned a "true" value of 1 (should not be liable) or 2 (should be liable).
             // Based on the litigation quality noise parameter, we then collect a distribution of possible realized values, on the assumption
             // that the true values are equally likely. We then break this distribution into evenly sized buckets to get cutoff points.
-            // Given this approach, the exogenous probability has no effect on ProbabilitiesLitigationQuality_TrulyNotLiable and ProbabilitiesLitigationQuality_TrulyLiable; both of these are conditional on whether a case is liable or not.
-            DiscreteValueSignalParameters dsParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = 2, NumSignals = myGameDefinition.Options.NumLitigationQualityPoints, StdevOfNormalDistribution = StdevNoiseToProduceLitigationQuality, UseEndpoints = true };
-            ProbabilitiesLitigationQuality_TrulyNotLiable = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(1, dsParams);
-            ProbabilitiesLitigationQuality_TrulyLiable = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(2, dsParams);
+            // Given this approach, the exogenous probability has no effect on ProbabilitiesLiabilityLevel_TrulyNotLiable and ProbabilitiesLiabilityLevel_TrulyLiable; both of these are conditional on whether a case is liable or not.
+            DiscreteValueLiabilitySignalParameters dsParams = new DiscreteValueLiabilitySignalParameters() { NumPointsInSourceUniformDistribution = 2, NumLiabilitySignals = myGameDefinition.Options.NumLiabilityStrengthPoints, StdevOfNormalDistribution = StdevNoiseToProduceLiabilityLevel, UseEndpoints = true };
+            ProbabilitiesLiabilityLevel_TrulyNotLiable = DiscreteValueLiabilitySignal.GetProbabilitiesOfDiscreteLiabilitySignals(1, dsParams);
+            ProbabilitiesLiabilityLevel_TrulyLiable = DiscreteValueLiabilitySignal.GetProbabilitiesOfDiscreteLiabilitySignals(2, dsParams);
         }
 
         public void GetActionsSetup(MyGameDefinition myGameDefinition, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance, out bool primaryActionCanTerminate, out bool postPrimaryChanceCanTerminate)
@@ -60,13 +60,13 @@ namespace ACESim
             return NoWealthEffects; 
         }
 
-        public double[] GetLitigationQualityProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
+        public double[] GetLiabilityLevelProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
         {
             bool isTrulyLiable = IsTrulyLiable(myGameDefinition, disputeGeneratorActions, null);
             if (isTrulyLiable)
-                return ProbabilitiesLitigationQuality_TrulyLiable;
+                return ProbabilitiesLiabilityLevel_TrulyLiable;
             else
-                return ProbabilitiesLitigationQuality_TrulyNotLiable;
+                return ProbabilitiesLiabilityLevel_TrulyNotLiable;
         }
 
         public bool IsTrulyLiable(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress)
@@ -119,7 +119,7 @@ namespace ACESim
             return (true, true);
         }
 
-        public (bool unrollParallelize, bool unrollIdentical) GetLitigationQualityUnrollSettings()
+        public (bool unrollParallelize, bool unrollIdentical) GetLiabilityLevelUnrollSettings()
         {
             return (true, true);
         }

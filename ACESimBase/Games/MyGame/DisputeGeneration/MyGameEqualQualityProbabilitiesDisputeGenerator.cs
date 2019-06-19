@@ -15,9 +15,9 @@ namespace ACESim
         /// <summary>
         /// If each litigation quality value is equally likely, then the probability that the defendant is truly liable when the uniform litigation quality is 0.75. A value higehr than 0.75 reflects the proposition that majorities are likely generally to be correct.
         /// </summary>
-        public double ProbabilityTrulyLiable_LitigationQuality75;
+        public double ProbabilityTrulyLiable_LiabilityLevel75;
         /// If each litigation quality value is equally likely, then the probability that the defendant is truly liable when the uniform litigation quality is 0.90. A value higehr than 0.90 reflects the proposition that majorities are likely generally to be correct.
-        public double ProbabilityTrulyLiable_LitigationQuality90;
+        public double ProbabilityTrulyLiable_LiabilityLevel90;
         /// <summary>
         /// The number of points to determine whether the defendant is truly liable in a particular case. 
         /// </summary>
@@ -30,7 +30,7 @@ namespace ACESim
 
         public void Setup(MyGameDefinition myGameDefinition)
         {
-            Curvature = MonotonicCurve.CalculateCurvatureForThreePoints(0.5, 0.5, 0.75, ProbabilityTrulyLiable_LitigationQuality75, 0.9, ProbabilityTrulyLiable_LitigationQuality90);
+            Curvature = MonotonicCurve.CalculateCurvatureForThreePoints(0.5, 0.5, 0.75, ProbabilityTrulyLiable_LiabilityLevel75, 0.9, ProbabilityTrulyLiable_LiabilityLevel90);
         }
 
         public void GetActionsSetup(MyGameDefinition myGameDefinition, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance, out bool primaryActionCanTerminate, out bool postPrimaryChanceCanTerminate)
@@ -59,7 +59,7 @@ namespace ACESim
             return NoWealthEffects;
         }
 
-        public double[] GetLitigationQualityProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
+        public double[] GetLiabilityLevelProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
         {
             throw new NotImplementedException(); // we use even chance probabilities
         }
@@ -67,7 +67,7 @@ namespace ACESim
         public bool IsTrulyLiable(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress)
         {
             MyGameProgress myGameProgress = (MyGameProgress) gameProgress;
-            double probabilityTrulyLiable = MonotonicCurve.CalculateYValueForX(0, 1.0, Curvature, (double) myGameProgress.LitigationQualityUniform);
+            double probabilityTrulyLiable = MonotonicCurve.CalculateYValueForX(0, 1.0, Curvature, (double) myGameProgress.LiabilityLevelUniform);
             double randomValue = EquallySpaced.GetLocationOfEquallySpacedPoint(disputeGeneratorActions.PostPrimaryChanceAction - 1, NumPointsToDetermineTrulyLiable, false);
             return probabilityTrulyLiable >= randomValue;
         }
@@ -117,7 +117,7 @@ namespace ACESim
             return (false, false);
         }
 
-        public (bool unrollParallelize, bool unrollIdentical) GetLitigationQualityUnrollSettings()
+        public (bool unrollParallelize, bool unrollIdentical) GetLiabilityLevelUnrollSettings()
         {
             return (false, false);
         }

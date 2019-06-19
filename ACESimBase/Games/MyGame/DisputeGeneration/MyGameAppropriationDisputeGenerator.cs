@@ -23,13 +23,13 @@ namespace ACESim
         public double CostToPlaintiffOfAppropriation = 50000;
         public double SocialWelfareMultiplier = 1.0;
 
-        private double[][] ProbabilityLitigationQualityForNoiseLevel_TrulyLiable, ProbabilityLitigationQualityForNoiseLevel_TrulyNotLiable;
+        private double[][] ProbabilityLiabilityLevelForNoiseLevel_TrulyLiable, ProbabilityLiabilityLevelForNoiseLevel_TrulyNotLiable;
 
         public void Setup(MyGameDefinition myGameDefinition)
         {
             // We need to determine the probability of different litigation qualities 
-            ProbabilityLitigationQualityForNoiseLevel_TrulyLiable = new double[NumSystemicRandomnessLevels][];
-            ProbabilityLitigationQualityForNoiseLevel_TrulyNotLiable = new double[NumSystemicRandomnessLevels][];
+            ProbabilityLiabilityLevelForNoiseLevel_TrulyLiable = new double[NumSystemicRandomnessLevels][];
+            ProbabilityLiabilityLevelForNoiseLevel_TrulyNotLiable = new double[NumSystemicRandomnessLevels][];
             for (byte n = 1; n <= NumSystemicRandomnessLevels; n++)
             {
                 double multiplier = (double) n / (double) NumSystemicRandomnessLevels;
@@ -38,8 +38,8 @@ namespace ACESim
                     sequenceSum += Math.Pow(multiplier, (n2 - 1));
                 double startingValue = 1.0/sequenceSum;
 
-                ProbabilityLitigationQualityForNoiseLevel_TrulyNotLiable[n - 1] = Enumerable.Range(0, NumSystemicRandomnessLevels).Select(y => startingValue * Math.Pow(multiplier, y)).ToArray();
-                ProbabilityLitigationQualityForNoiseLevel_TrulyLiable[n - 1] = ProbabilityLitigationQualityForNoiseLevel_TrulyNotLiable[n - 1].Reverse().ToArray();
+                ProbabilityLiabilityLevelForNoiseLevel_TrulyNotLiable[n - 1] = Enumerable.Range(0, NumSystemicRandomnessLevels).Select(y => startingValue * Math.Pow(multiplier, y)).ToArray();
+                ProbabilityLiabilityLevelForNoiseLevel_TrulyLiable[n - 1] = ProbabilityLiabilityLevelForNoiseLevel_TrulyNotLiable[n - 1].Reverse().ToArray();
             }
         }
 
@@ -79,12 +79,12 @@ namespace ACESim
             return -CostToPlaintiffOfAppropriation * SocialWelfareMultiplier;
         }
 
-        public double[] GetLitigationQualityProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
+        public double[] GetLiabilityLevelProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
         {
             if (disputeGeneratorActions.PrimaryAction == 2)
-                return ProbabilityLitigationQualityForNoiseLevel_TrulyNotLiable[disputeGeneratorActions.PrePrimaryChanceAction - 1];
+                return ProbabilityLiabilityLevelForNoiseLevel_TrulyNotLiable[disputeGeneratorActions.PrePrimaryChanceAction - 1];
             else
-                return ProbabilityLitigationQualityForNoiseLevel_TrulyLiable[disputeGeneratorActions.PrePrimaryChanceAction - 1];
+                return ProbabilityLiabilityLevelForNoiseLevel_TrulyLiable[disputeGeneratorActions.PrePrimaryChanceAction - 1];
         }
 
         public bool IsTrulyLiable(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress)
@@ -132,7 +132,7 @@ namespace ACESim
             return (false, false);
         }
 
-        public (bool unrollParallelize, bool unrollIdentical) GetLitigationQualityUnrollSettings()
+        public (bool unrollParallelize, bool unrollIdentical) GetLiabilityLevelUnrollSettings()
         {
             return (false, false);
         }
