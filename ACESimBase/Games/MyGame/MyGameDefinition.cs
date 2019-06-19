@@ -38,6 +38,31 @@ namespace ACESim
         {
             if (Options.DeltaOffersOptions.SubsequentOffersAreDeltas)
                 Options.DeltaOffersCalculation = new DeltaOffersCalculation(this);
+            SetupLiabilitySignals();
+            SetupDamagesSignals();
+            Options.MyGameDisputeGenerator.Setup(this);
+            Options.MyGamePretrialDecisionGeneratorGenerator?.Setup(this);
+            Options.MyGameRunningSideBets?.Setup(this);
+        }
+
+        private void SetupDamagesSignals()
+        {
+            Options.PDamagesSignalParameters = new DiscreteValueSignalParameters()
+            {
+                NumPointsInSourceUniformDistribution = Options.NumDamagesStrengthPoints,
+                StdevOfNormalDistribution = Options.PDamagesNoiseStdev,
+                NumSignals = Options.NumDamagesSignals
+            };
+            Options.DDamagesSignalParameters = new DiscreteValueSignalParameters()
+            {
+                NumPointsInSourceUniformDistribution = Options.NumDamagesStrengthPoints,
+                StdevOfNormalDistribution = Options.DDamagesNoiseStdev,
+                NumSignals = Options.NumDamagesSignals
+            };
+        }
+
+        private void SetupLiabilitySignals()
+        {
             Options.PLiabilitySignalParameters = new DiscreteValueSignalParameters()
             {
                 NumPointsInSourceUniformDistribution = Options.NumLiabilityStrengthPoints,
@@ -50,9 +75,6 @@ namespace ACESim
                 StdevOfNormalDistribution = Options.DLiabilityNoiseStdev,
                 NumSignals = Options.NumLiabilitySignals
             };
-            Options.MyGameDisputeGenerator.Setup(this);
-            Options.MyGamePretrialDecisionGeneratorGenerator?.Setup(this);
-            Options.MyGameRunningSideBets?.Setup(this);
         }
 
         private MyGameProgress MyGP(GameProgress gp) => gp as MyGameProgress;
@@ -61,13 +83,17 @@ namespace ACESim
         private static string DefendantName = "D";
         private static string PrePrimaryChanceName = "PPC";
         private static string PostPrimaryChanceName = "POPC";
-        private static string LiabilityLevelChanceName = "QC";
-        private static string PlaintiffNoiseChanceName = "PNC";
-        private static string DefendantNoiseChanceName = "DNC";
+        private static string LiabilityStrengthChanceName = "LC";
+        private static string PLiabilityNoiseChanceName = "PLC";
+        private static string DLiabilityNoiseChanceName = "DLC";
+        private static string DamagesStrengthChanceName = "DC";
+        private static string PDamagesNoiseChanceName = "PDC";
+        private static string DDamagesNoiseChanceName = "DDC";
         private static string BothGiveUpChanceName = "GUC";
         private static string PreBargainingRoundChanceName = "PRE";
         private static string PostBargainingRoundChanceName = "POST";
-        private static string CourtChanceName = "CC";
+        private static string CourtLiabilityChanceName = "CL";
+        private static string CourtDamagesChanceName = "CL";
         private static string ResolutionPlayerName = "R";
 
         private static List<PlayerInfo> GetPlayersList()
@@ -80,13 +106,17 @@ namespace ACESim
                     new PlayerInfo(ResolutionPlayerName, (int) MyGamePlayers.Resolution, true, false),
                     new PlayerInfo(PrePrimaryChanceName, (int) MyGamePlayers.PrePrimaryChance, true, false),
                     new PlayerInfo(PostPrimaryChanceName, (int) MyGamePlayers.PrePrimaryChance, true, false),
-                    new PlayerInfo(LiabilityLevelChanceName, (int) MyGamePlayers.QualityChance, true, false),
-                    new PlayerInfo(PlaintiffNoiseChanceName, (int) MyGamePlayers.PLiabilitySignalChance, true, false),
-                    new PlayerInfo(DefendantNoiseChanceName, (int) MyGamePlayers.DLiabilitySignalChance, true, false),
+                    new PlayerInfo(LiabilityStrengthChanceName, (int) MyGamePlayers.LiabilityStrengthChance, true, false),
+                    new PlayerInfo(PLiabilityNoiseChanceName, (int) MyGamePlayers.PLiabilitySignalChance, true, false),
+                    new PlayerInfo(DLiabilityNoiseChanceName, (int) MyGamePlayers.DLiabilitySignalChance, true, false),
+                    new PlayerInfo(DamagesStrengthChanceName, (int) MyGamePlayers.DamagesStrengthChance, true, false),
+                    new PlayerInfo(PDamagesNoiseChanceName, (int) MyGamePlayers.PDamagesSignalChance, true, false),
+                    new PlayerInfo(DDamagesNoiseChanceName, (int) MyGamePlayers.DDamagesSignalChance, true, false),
                     new PlayerInfo(BothGiveUpChanceName, (int) MyGamePlayers.BothGiveUpChance, true, false),
                     new PlayerInfo(PreBargainingRoundChanceName, (int) MyGamePlayers.PreBargainingRoundChance, true, false),
                     new PlayerInfo(PostBargainingRoundChanceName, (int) MyGamePlayers.PostBargainingRoundChance, true, false),
-                    new PlayerInfo(CourtChanceName, (int) MyGamePlayers.CourtChance, true, false),
+                    new PlayerInfo(CourtLiabilityChanceName, (int) MyGamePlayers.CourtLiabilityChance, true, false),
+                    new PlayerInfo(CourtDamagesChanceName, (int) MyGamePlayers.CourtDamagesChance, true, false),
                 };
         }
 
@@ -96,21 +126,23 @@ namespace ACESim
         public byte GameHistoryCacheIndex_PrePrimaryChance = 1; // defined, for example, in discrimination game to determine whether employee is good or bad and whether employer has taste for discrimination
         public byte GameHistoryCacheIndex_PrimaryAction = 2;
         public byte GameHistoryCacheIndex_PostPrimaryChance = 3; // e.g., exogenous dispute generator sometimes chooses between is truly liable and is not truly liable
-        public byte GameHistoryCacheIndex_LiabilityLevel = 4;
-        public byte GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound = 5;
-        public byte GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound = 6;
-        public byte GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound = 7;
-        public byte GameHistoryCacheIndex_PAgreesToBargain = 8;
-        public byte GameHistoryCacheIndex_DAgreesToBargain = 9;
-        public byte GameHistoryCacheIndex_POffer = 10;
-        public byte GameHistoryCacheIndex_DOffer = 11;
-        public byte GameHistoryCacheIndex_PResponse = 12;
-        public byte GameHistoryCacheIndex_DResponse = 13;
-        public byte GameHistoryCacheIndex_PReadyToAbandon = 14;
-        public byte GameHistoryCacheIndex_DReadyToAbandon = 15;
-        public byte GameHistoryCacheIndex_PChipsAction = 16;
-        public byte GameHistoryCacheIndex_DChipsAction = 17;
-        public byte GameHistoryCacheIndex_TotalChipsSoFar = 18;
+        public byte GameHistoryCacheIndex_LiabilityStrength = 4;
+        public byte GameHistoryCacheIndex_DamagesStrength = 5;
+        public byte GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound = 6;
+        public byte GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound = 7;
+        public byte GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound = 8;
+        public byte GameHistoryCacheIndex_PAgreesToBargain = 9;
+        public byte GameHistoryCacheIndex_DAgreesToBargain = 10;
+        public byte GameHistoryCacheIndex_POffer = 11;
+        public byte GameHistoryCacheIndex_DOffer = 12;
+        public byte GameHistoryCacheIndex_PResponse = 13;
+        public byte GameHistoryCacheIndex_DResponse = 14;
+        public byte GameHistoryCacheIndex_PReadyToAbandon = 15;
+        public byte GameHistoryCacheIndex_DReadyToAbandon = 16;
+        public byte GameHistoryCacheIndex_PChipsAction = 17;
+        public byte GameHistoryCacheIndex_DChipsAction = 18;
+        public byte GameHistoryCacheIndex_TotalChipsSoFar = 19;
+        public byte GameHistoryCacheIndex_PWins = 20;
 
         public bool CheckCompleteAfterPrimaryAction;
         public bool CheckCompleteAfterPostPrimaryAction;
@@ -124,6 +156,7 @@ namespace ACESim
             var decisions = new List<Decision>();
             AddDisputeGeneratorDecisions(decisions);
             AddLiabilitySignalsDecisions(decisions);
+            AddDamagesSignalsDecisions(decisions);
             AddFileAndAnswerDecisions(decisions);
             for (int b = 0; b < Options.NumPotentialBargainingRounds; b++)
             {
@@ -138,7 +171,7 @@ namespace ACESim
                 AddPostBargainingRoundDummyDecision(b, decisions);
             }
             AddPreTrialDecisions(decisions);
-            AddCourtDecision(decisions);
+            AddCourtDecisions(decisions);
             return decisions;
         }
 
@@ -146,17 +179,28 @@ namespace ACESim
         {
             // Litigation Quality. This is not known by a player unless the player has perfect information. 
             // The LiabilitySignalChance player relies on this information in calculating the probabilities of different signals
-            List<byte> playersKnowingLiabilityLevel = new List<byte>()
+            List<byte> playersKnowingLiabilityStrength = new List<byte>()
             {
                 (byte) MyGamePlayers.PLiabilitySignalChance,
                 (byte) MyGamePlayers.DLiabilitySignalChance,
-                (byte) MyGamePlayers.CourtChance,
+                (byte) MyGamePlayers.CourtLiabilityChance,
                 (byte) MyGamePlayers.Resolution
             };
             if (Options.PLiabilityNoiseStdev == 0)
-                playersKnowingLiabilityLevel.Add((byte)MyGamePlayers.Plaintiff);
+                playersKnowingLiabilityStrength.Add((byte)MyGamePlayers.Plaintiff);
             if (Options.DLiabilityNoiseStdev == 0)
-                playersKnowingLiabilityLevel.Add((byte)MyGamePlayers.Defendant);
+                playersKnowingLiabilityStrength.Add((byte)MyGamePlayers.Defendant);
+            List<byte> playersKnowingDamagesStrength = new List<byte>()
+            {
+                (byte) MyGamePlayers.PDamagesSignalChance,
+                (byte) MyGamePlayers.DDamagesSignalChance,
+                (byte) MyGamePlayers.CourtDamagesChance,
+                (byte) MyGamePlayers.Resolution
+            };
+            if (Options.PDamagesNoiseStdev == 0)
+                playersKnowingDamagesStrength.Add((byte)MyGamePlayers.Plaintiff);
+            if (Options.DDamagesNoiseStdev == 0)
+                playersKnowingDamagesStrength.Add((byte)MyGamePlayers.Defendant);
             IMyGameDisputeGenerator disputeGenerator = Options.MyGameDisputeGenerator;
             disputeGenerator.GetActionsSetup(this, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance, out bool primaryActionCanTerminate, out bool postPrimaryChanceCanTerminate);
             CheckCompleteAfterPrimaryAction = primaryActionCanTerminate;
@@ -173,16 +217,20 @@ namespace ACESim
             {
                 decisions.Add(new Decision("PostPrimaryChanceActions", "PostPrimary", true, (byte) MyGamePlayers.PostPrimaryChance, postPrimaryPlayersToInform, postPrimaryChanceActions, (byte) MyGameDecisions.PostPrimaryActionChance) {StoreActionInGameCacheItem = GameHistoryCacheIndex_PostPrimaryChance, IsReversible = true, UnevenChanceActions = postPrimaryUnevenChance, CanTerminateGame = postPrimaryChanceCanTerminate, Unroll_Parallelize = disputeGenerator.GetPostPrimaryUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetPostPrimaryUnrollSettings().unrollIdentical, DistributedChanceDecision = true });
             }
-            decisions.Add(new Decision("LiabilityLevel", "Qual", true, (byte)MyGamePlayers.QualityChance,
-                    playersKnowingLiabilityLevel.ToArray(), Options.NumLiabilityStrengthPoints, (byte)MyGameDecisions.LiabilityLevel)
-                { StoreActionInGameCacheItem = GameHistoryCacheIndex_LiabilityLevel, IsReversible = true, UnevenChanceActions = litigationQualityUnevenChance, Unroll_Parallelize = disputeGenerator.GetLiabilityLevelUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetLiabilityLevelUnrollSettings().unrollIdentical, DistributedChanceDecision = true });
+            decisions.Add(new Decision("LiabilityStrength", "LiabStr", true, (byte)MyGamePlayers.LiabilityStrengthChance,
+                    playersKnowingLiabilityStrength.ToArray(), Options.NumLiabilityStrengthPoints, (byte)MyGameDecisions.LiabilityStrength)
+                { StoreActionInGameCacheItem = GameHistoryCacheIndex_LiabilityStrength, IsReversible = true, UnevenChanceActions = litigationQualityUnevenChance, Unroll_Parallelize = disputeGenerator.GetLiabilityStrengthUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetLiabilityStrengthUnrollSettings().unrollIdentical, DistributedChanceDecision = true });
+            if (Options.NumDamagesStrengthPoints > 1)
+                decisions.Add(new Decision("DamagesStrength", "DamStr", true, (byte)MyGamePlayers.DamagesStrengthChance,
+                    playersKnowingDamagesStrength.ToArray(), Options.NumDamagesStrengthPoints, (byte)MyGameDecisions.DamagesStrength)
+                { StoreActionInGameCacheItem = GameHistoryCacheIndex_DamagesStrength, IsReversible = true, UnevenChanceActions = litigationQualityUnevenChance, Unroll_Parallelize = disputeGenerator.GetDamagesStrengthUnrollSettings().unrollParallelize, Unroll_Parallelize_Identical = disputeGenerator.GetDamagesStrengthUnrollSettings().unrollIdentical, DistributedChanceDecision = true });
         }
         
         private void AddLiabilitySignalsDecisions(List<Decision> decisions)
         {
             // Plaintiff and defendant signals. If a player has perfect information, then no signal is needed.
             if (Options.PLiabilityNoiseStdev != 0)
-                decisions.Add(new Decision("PlaintiffLiabilitySignal", "PS", true, (byte)MyGamePlayers.PLiabilitySignalChance,
+                decisions.Add(new Decision("PlaintiffLiabilitySignal", "PLS", true, (byte)MyGamePlayers.PLiabilitySignalChance,
                     new byte[] {(byte) MyGamePlayers.Plaintiff},
                     Options.NumLiabilitySignals, (byte)MyGameDecisions.PLiabilitySignal, unevenChanceActions: true)
                 {
@@ -194,7 +242,7 @@ namespace ACESim
                     ProvidesPrivateInformationFor = (byte)MyGamePlayers.Plaintiff
                 });
             if (Options.DLiabilityNoiseStdev != 0)
-                decisions.Add(new Decision("DefendantLiabilitySignal", "DS", true, (byte)MyGamePlayers.DLiabilitySignalChance,
+                decisions.Add(new Decision("DefendantLiabilitySignal", "DLS", true, (byte)MyGamePlayers.DLiabilitySignalChance,
                     new byte[] { (byte)MyGamePlayers.Defendant },
                     Options.NumLiabilitySignals, (byte)MyGameDecisions.DLiabilitySignal, unevenChanceActions: true)
                 {
@@ -208,7 +256,7 @@ namespace ACESim
             CreateLiabilitySignalsTables();
         }
         
-        private double[][] PLiabilitySignalsTable, DLiabilitySignalsTable, CLiabilitySignalsTable;
+        private double[][] PLiabilitySignalsTable, DLiabilitySignalsTable, CLiabilitySignalsTable, PDamagesSignalsTable, DDamagesSignalsTable, CDamagesSignalsTable;
         public void CreateLiabilitySignalsTables()
         {
             PLiabilitySignalsTable = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { Options.NumLiabilityStrengthPoints, Options.NumLiabilitySignals });
@@ -223,11 +271,66 @@ namespace ACESim
                         Options.NumLiabilityStrengthPoints, false);
 
                 DiscreteValueSignalParameters pParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = Options.NumLiabilityStrengthPoints, NumSignals = Options.NumLiabilitySignals, StdevOfNormalDistribution = Options.PLiabilityNoiseStdev, UseEndpoints = false };
-                PLiabilitySignalsTable[litigationQuality - 1] = DiscreteValueLiabilitySignal.GetProbabilitiesOfDiscreteLiabilitySignals(litigationQuality, pParams);
+                PLiabilitySignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, pParams);
                 DiscreteValueSignalParameters dParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = Options.NumLiabilityStrengthPoints, NumSignals = Options.NumLiabilitySignals, StdevOfNormalDistribution = Options.DLiabilityNoiseStdev, UseEndpoints = false };
-                DLiabilitySignalsTable[litigationQuality - 1] = DiscreteValueLiabilitySignal.GetProbabilitiesOfDiscreteLiabilitySignals(litigationQuality, dParams);
+                DLiabilitySignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, dParams);
                 DiscreteValueSignalParameters cParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = Options.NumLiabilityStrengthPoints, NumSignals = 2, StdevOfNormalDistribution = Options.CourtLiabilityNoiseStdev, UseEndpoints = false };
-                CLiabilitySignalsTable[litigationQuality - 1] = DiscreteValueLiabilitySignal.GetProbabilitiesOfDiscreteLiabilitySignals(litigationQuality, cParams);
+                CLiabilitySignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, cParams);
+            }
+        }
+
+        private void AddDamagesSignalsDecisions(List<Decision> decisions)
+        {
+            if (Options.NumDamagesStrengthPoints <= 1)
+                return;
+
+            // Plaintiff and defendant signals. If a player has perfect information, then no signal is needed.
+            if (Options.PDamagesNoiseStdev != 0)
+                decisions.Add(new Decision("PlaintiffDamagesSignal", "PDS", true, (byte)MyGamePlayers.PDamagesSignalChance,
+                    new byte[] { (byte)MyGamePlayers.Plaintiff },
+                    Options.NumDamagesSignals, (byte)MyGameDecisions.PDamagesSignal, unevenChanceActions: true)
+                {
+                    IsReversible = true,
+                    Unroll_Parallelize = true,
+                    Unroll_Parallelize_Identical = true,
+                    DistributorChanceInputDecision = true,
+                    DistributableDistributorChanceInput = true,
+                    ProvidesPrivateInformationFor = (byte)MyGamePlayers.Plaintiff
+                });
+            if (Options.DDamagesNoiseStdev != 0)
+                decisions.Add(new Decision("DefendantDamagesSignal", "DDS", true, (byte)MyGamePlayers.DDamagesSignalChance,
+                    new byte[] { (byte)MyGamePlayers.Defendant },
+                    Options.NumDamagesSignals, (byte)MyGameDecisions.DDamagesSignal, unevenChanceActions: true)
+                {
+                    IsReversible = true,
+                    Unroll_Parallelize = true,
+                    Unroll_Parallelize_Identical = true,
+                    DistributorChanceInputDecision = true,
+                    DistributableDistributorChanceInput = true,
+                    ProvidesPrivateInformationFor = (byte)MyGamePlayers.Defendant
+                });
+            CreateDamagesSignalsTables();
+        }
+
+        public void CreateDamagesSignalsTables()
+        {
+            PDamagesSignalsTable = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { Options.NumDamagesStrengthPoints, Options.NumDamagesSignals });
+            DDamagesSignalsTable = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { Options.NumDamagesStrengthPoints, Options.NumDamagesSignals });
+            CDamagesSignalsTable = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { Options.NumDamagesStrengthPoints, 2 });
+            for (byte litigationQuality = 1;
+                litigationQuality <= Options.NumDamagesStrengthPoints;
+                litigationQuality++)
+            {
+                double litigationQualityUniform =
+                    EquallySpaced.GetLocationOfEquallySpacedPoint(litigationQuality - 1,
+                        Options.NumDamagesStrengthPoints, false);
+
+                DiscreteValueSignalParameters pParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = Options.NumDamagesStrengthPoints, NumSignals = Options.NumDamagesSignals, StdevOfNormalDistribution = Options.PDamagesNoiseStdev, UseEndpoints = false };
+                PDamagesSignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, pParams);
+                DiscreteValueSignalParameters dParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = Options.NumDamagesStrengthPoints, NumSignals = Options.NumDamagesSignals, StdevOfNormalDistribution = Options.DDamagesNoiseStdev, UseEndpoints = false };
+                DDamagesSignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, dParams);
+                DiscreteValueSignalParameters cParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = Options.NumDamagesStrengthPoints, NumSignals = 2, StdevOfNormalDistribution = Options.CourtDamagesNoiseStdev, UseEndpoints = false };
+                CDamagesSignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, cParams);
             }
         }
 
@@ -242,6 +345,18 @@ namespace ACESim
         public double[] GetCLiabilitySignalProbabilities(byte litigationQuality)
         {
             return CLiabilitySignalsTable[litigationQuality - 1];
+        }
+        public double[] GetPDamagesSignalProbabilities(byte litigationQuality)
+        {
+            return PDamagesSignalsTable[litigationQuality - 1];
+        }
+        public double[] GetDDamagesSignalProbabilities(byte litigationQuality)
+        {
+            return DDamagesSignalsTable[litigationQuality - 1];
+        }
+        public double[] GetCDamagesSignalProbabilities(byte litigationQuality)
+        {
+            return CDamagesSignalsTable[litigationQuality - 1];
         }
 
         private void AddFileAndAnswerDecisions(List<Decision> decisions)
@@ -515,10 +630,16 @@ namespace ACESim
             }
         }
 
-        private void AddCourtDecision(List<Decision> decisions)
+        private void AddCourtDecisions(List<Decision> decisions)
         {
-            decisions.Add(new Decision("CourtDecision", "CD", true, (byte)MyGamePlayers.CourtChance,
-                    new byte[] { (byte)MyGamePlayers.Resolution }, 2, (byte)MyGameDecisions.CourtDecision,
+            bool courtDecidesDamages = Options.NumDamagesStrengthPoints > 1;
+            decisions.Add(new Decision("CourtLiabilityDecision", "CL", true, (byte)MyGamePlayers.CourtLiabilityChance,
+                    new byte[] { (byte)MyGamePlayers.Resolution }, 2, (byte)MyGameDecisions.CourtDecisionLiability,
+                    unevenChanceActions: true, criticalNode: true)
+                { CanTerminateGame = true, AlwaysTerminatesGame = !courtDecidesDamages, IsReversible = true, DistributorChanceDecision = true, CanCalculateDistributorChanceDecisionProbabilitiesFromInformationSet = true, StoreActionInGameCacheItem = GameHistoryCacheIndex_PWins }); // even chance options
+            if (courtDecidesDamages)
+                decisions.Add(new Decision("CourtDamagesDecision", "CD", true, (byte)MyGamePlayers.CourtDamagesChance,
+                    new byte[] { (byte)MyGamePlayers.Resolution }, 2, (byte)MyGameDecisions.CourtDecisionDamages,
                     unevenChanceActions: true, criticalNode: true)
                 { CanTerminateGame = true, AlwaysTerminatesGame = true, IsReversible = true, DistributorChanceDecision = true, CanCalculateDistributorChanceDecisionProbabilitiesFromInformationSet = true }); // even chance options
         }
@@ -541,10 +662,10 @@ namespace ACESim
                 var probabilities = Options.MyGameDisputeGenerator.GetPostPrimaryChanceProbabilities(this, myGameProgress.DisputeGeneratorActions);
                 return probabilities;
             }
-            else if (decisionByteCode == (byte) MyGameDecisions.LiabilityLevel)
+            else if (decisionByteCode == (byte) MyGameDecisions.LiabilityStrength)
             {
                 var myGameProgress = ((MyGameProgress) gameProgress);
-                var probabilities = Options.MyGameDisputeGenerator.GetLiabilityLevelProbabilities(this, myGameProgress.DisputeGeneratorActions);
+                var probabilities = Options.MyGameDisputeGenerator.GetLiabilityStrengthProbabilities(this, myGameProgress.DisputeGeneratorActions);
                 return probabilities;
             }
             else if (decisionByteCode == (byte)MyGameDecisions.PLiabilitySignal)
@@ -559,10 +680,34 @@ namespace ACESim
                 var probabilities = GetDLiabilitySignalProbabilities(myGameProgress.LiabilityStrengthDiscrete);
                 return probabilities;
             }
-            else if (decisionByteCode == (byte)MyGameDecisions.CourtDecision)
+            else if (decisionByteCode == (byte)MyGameDecisions.CourtDecisionLiability)
             {
                 var myGameProgress = ((MyGameProgress)gameProgress);
                 var probabilities = GetCLiabilitySignalProbabilities(myGameProgress.LiabilityStrengthDiscrete);
+                return probabilities;
+            }
+            else if (decisionByteCode == (byte)MyGameDecisions.DamagesStrength)
+            {
+                var myGameProgress = ((MyGameProgress)gameProgress);
+                var probabilities = Options.MyGameDisputeGenerator.GetDamagesStrengthProbabilities(this, myGameProgress.DisputeGeneratorActions);
+                return probabilities;
+            }
+            else if (decisionByteCode == (byte)MyGameDecisions.PDamagesSignal)
+            {
+                var myGameProgress = ((MyGameProgress)gameProgress);
+                var probabilities = GetPDamagesSignalProbabilities(myGameProgress.DamagesStrengthDiscrete);
+                return probabilities;
+            }
+            else if (decisionByteCode == (byte)MyGameDecisions.DDamagesSignal)
+            {
+                var myGameProgress = ((MyGameProgress)gameProgress);
+                var probabilities = GetDDamagesSignalProbabilities(myGameProgress.DamagesStrengthDiscrete);
+                return probabilities;
+            }
+            else if (decisionByteCode == (byte)MyGameDecisions.CourtDecisionDamages)
+            {
+                var myGameProgress = ((MyGameProgress)gameProgress);
+                var probabilities = GetCDamagesSignalProbabilities(myGameProgress.DamagesStrengthDiscrete);
                 return probabilities;
             }
             else
@@ -571,7 +716,7 @@ namespace ACESim
 
         public override unsafe double[] GetUnevenChanceActionProbabilitiesFromChanceInformationSet(byte decisionByteCode, byte* informationSet)
         {
-            if (decisionByteCode == (byte)MyGameDecisions.CourtDecision)
+            if (decisionByteCode == (byte)MyGameDecisions.CourtDecisionLiability)
             {
                 byte litigationQuality = *informationSet;
                 var probabilities = GetCLiabilitySignalProbabilities(litigationQuality);
@@ -591,11 +736,11 @@ namespace ACESim
         //            var item = distributionOfChanceValues[j];
         //            byte litigationQuality = item.Item1.Last(); // assume that litigation quality is last item
         //            double probabilityThisItem = item.Item2;
-        //            var probabilitiesForLiabilityLevel = GetCLiabilitySignalProbabilities(litigationQuality);
+        //            var probabilitiesForLiabilityStrength = GetCLiabilitySignalProbabilities(litigationQuality);
         //            if (results == null)
-        //                results = new double[probabilitiesForLiabilityLevel.Length];
-        //            for (int i = 0; i < probabilitiesForLiabilityLevel.Length; i++)
-        //                results[i] += probabilitiesForLiabilityLevel[i] * probabilityThisItem;
+        //                results = new double[probabilitiesForLiabilityStrength.Length];
+        //            for (int i = 0; i < probabilitiesForLiabilityStrength.Length; i++)
+        //                results[i] += probabilitiesForLiabilityStrength[i] * probabilityThisItem;
         //        }
         //        return results;
         //    }
@@ -636,7 +781,10 @@ namespace ACESim
 
             switch (decisionByteCode)
             {
-                case (byte)MyGameDecisions.CourtDecision:
+                case (byte)MyGameDecisions.CourtDecisionLiability:
+                    bool pWins = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PWins) == 1;
+                    return pWins;
+                case (byte)MyGameDecisions.CourtDecisionDamages:
                     return true;
                 case (byte)MyGameDecisions.DResponse:
                     bool dAccepts = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_DResponse) == 1;
@@ -705,7 +853,6 @@ namespace ACESim
             }
             else if (decisionByteCode == (byte)MyGameDecisions.PreBargainingRound)
             {
-                Br.eak.IfAdded("Case");
                 // Clean up previous round after the bargaining round:
                 // We don't want to do it immediately after the bargaining round. If the game has ended as a result of a settlement, a post-bargaining round decision won't
                 // execute. That's OK. But if the game ends because this is the last bargaining round and bargaining fails, then we have a trial, and the outcomes may depend on the offers in the last bargaining round. That is why we want to do this cleanup at the beginning of the next bargaining round.

@@ -45,7 +45,7 @@ namespace ACESim
                 MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
                 {
                     ExogenousProbabilityTrulyLiable = 0.5,
-                    StdevNoiseToProduceLiabilityLevel = 0.5
+                    StdevNoiseToProduceLiabilityStrength = 0.5
                 },
                 PFilingCost = 5000,
                 DAnswerCost = 5000,
@@ -148,8 +148,8 @@ namespace ACESim
                 NumLiabilityStrengthPoints = 10,
                 MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
                 {
-                    ProbabilityTrulyLiable_LiabilityLevel75 = 0.75,
-                    ProbabilityTrulyLiable_LiabilityLevel90 = 0.90,
+                    ProbabilityTrulyLiable_LiabilityStrength75 = 0.75,
+                    ProbabilityTrulyLiable_LiabilityStrength90 = 0.90,
                     NumPointsToDetermineTrulyLiable = 100,
                 },
                 NumLiabilitySignals = 10,

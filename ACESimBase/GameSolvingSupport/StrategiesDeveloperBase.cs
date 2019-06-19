@@ -1148,7 +1148,7 @@ namespace ACESim
                 piChanceNext *= actionProbability;
                 if (!chanceNode.Decision.DistributorChanceInputDecision)
                     piChanceNextExcludingNondistributed *= actionProbability;
-                //if (chanceNode.Decision.Name.Contains("PostPrimary") || chanceNode.Decision.Name.Contains("LiabilitySignal") || chanceNode.Decision.Name.Contains("LiabilityLevel") || chanceNode.Decision.Name.Contains("PrePrimary"))
+                //if (chanceNode.Decision.Name.Contains("PostPrimary") || chanceNode.Decision.Name.Contains("LiabilitySignal") || chanceNode.Decision.Name.Contains("LiabilityStrength") || chanceNode.Decision.Name.Contains("PrePrimary"))
                 //    TabbedText.WriteLine($"{chanceNode.Decision.Name}: action: {action} probability: {actionProbability} cumulative probability {piChanceNext}");
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
                 bool stopNonChanceDecisions = DistributeChanceDecisions_WalkNode(ref nextHistoryPoint, piChanceNext, distributorChanceInputsNext, chanceNode.Decision.DistributedChanceDecision ? distributedActionsString + chanceNode.DecisionByteCode + ":1;" : distributedActionsString, chanceNodeAggregationDictionary, informationSetAggregationDictionary);

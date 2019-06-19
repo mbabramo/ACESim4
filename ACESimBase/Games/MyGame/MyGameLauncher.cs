@@ -44,7 +44,7 @@ namespace ACESim
                     new MyGameExogenousDisputeGenerator()
                     {
                         ExogenousProbabilityTrulyLiable = 0.5,
-                        StdevNoiseToProduceLiabilityLevel = 0.5
+                        StdevNoiseToProduceLiabilityStrength = 0.5
                     }
                 };
 

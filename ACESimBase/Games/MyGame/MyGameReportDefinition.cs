@@ -219,12 +219,12 @@ namespace ACESim
                 new SimpleReportFilter("TwoRounds", (GameProgress gp) => MyGP(gp).BargainingRoundsComplete == 2),
                 new SimpleReportFilter("ThreeRounds", (GameProgress gp) => MyGP(gp).BargainingRoundsComplete == 3),
                 //new SimpleReportFilter("LowQuality",
-                //    (GameProgress gp) => MyGP(gp).LiabilityLevelUniform <= 0.25),
+                //    (GameProgress gp) => MyGP(gp).LiabilityStrengthUniform <= 0.25),
                 //new SimpleReportFilter("MediumQuality",
-                //    (GameProgress gp) => MyGP(gp).LiabilityLevelUniform > 0.25 &&
-                //                         MyGP(gp).LiabilityLevelUniform < 0.75),
+                //    (GameProgress gp) => MyGP(gp).LiabilityStrengthUniform > 0.25 &&
+                //                         MyGP(gp).LiabilityStrengthUniform < 0.75),
                 //new SimpleReportFilter("HighQuality",
-                //    (GameProgress gp) => MyGP(gp).LiabilityLevelUniform >= 0.75),
+                //    (GameProgress gp) => MyGP(gp).LiabilityStrengthUniform >= 0.75),
                 //new SimpleReportFilter("LowPLiabilitySignal", (GameProgress gp) => MyGP(gp).PLiabilitySignalUniform <= 0.25),
                 //new SimpleReportFilter("LowDLiabilitySignal", (GameProgress gp) => MyGP(gp).DLiabilitySignalUniform <= 0.25),
                 //new SimpleReportFilter("MedPLiabilitySignal",
@@ -244,13 +244,13 @@ namespace ACESim
             rows.Add(new SimpleReportFilter("Truly Liable", (GameProgress gp) => MyGP(gp).IsTrulyLiable));
             rows.Add(new SimpleReportFilter("Truly Not Liable", (GameProgress gp) => !MyGP(gp).IsTrulyLiable));
             rows.Add(new SimpleReportFilter("AllCount", (GameProgress gp) => true) {UseSum = true});
-            AddRowsForQualityAndLiabilitySignalDistributions("", true, rows, gp => true);
+            AddRowsForLiabilityStrengthAndSignalDistributions("", true, rows, gp => true);
             rows.Add(new SimpleReportFilter("Truly Liable Count", (GameProgress gp) => MyGP(gp).IsTrulyLiable) { UseSum = true });
-            AddRowsForQualityAndLiabilitySignalDistributions("Truly Liable ", false, rows, gp => MyGP(gp).IsTrulyLiable);
+            AddRowsForLiabilityStrengthAndSignalDistributions("Truly Liable ", false, rows, gp => MyGP(gp).IsTrulyLiable);
             rows.Add(new SimpleReportFilter("Truly Not Liable Count", (GameProgress gp) => !MyGP(gp).IsTrulyLiable) { UseSum = true });
-            AddRowsForQualityAndLiabilitySignalDistributions("Truly Not Liable ", false, rows, gp => !MyGP(gp).IsTrulyLiable);
+            AddRowsForLiabilityStrengthAndSignalDistributions("Truly Not Liable ", false, rows, gp => !MyGP(gp).IsTrulyLiable);
             rows.Add(new SimpleReportFilter("High Quality Count", (GameProgress gp) => MyGP(gp).LiabilityStrengthDiscrete >= 8) { UseSum = true });
-            AddRowsForQualityAndLiabilitySignalDistributions("High Quality Liable ", false, rows, gp => MyGP(gp).LiabilityStrengthDiscrete >= 8);
+            AddRowsForLiabilityStrengthAndSignalDistributions("High Quality Liable ", false, rows, gp => MyGP(gp).LiabilityStrengthDiscrete >= 8);
             // Now include the litigation flow diagram in rows too, so we get get things like average total expenses for cases settling in particular round
             rows.Add(
                 new SimpleReportFilter($"PDoesntFile",
@@ -324,7 +324,7 @@ namespace ACESim
             );
         }
 
-        private void AddRowsForQualityAndLiabilitySignalDistributions(string prefix, bool includeAverages, List<SimpleReportFilter> rows, Func<GameProgress, bool> extraRequirement)
+        private void AddRowsForLiabilityStrengthAndSignalDistributions(string prefix, bool includeAverages, List<SimpleReportFilter> rows, Func<GameProgress, bool> extraRequirement)
         {
             // Note that averages will not be weighted by the number of observations in the column. That's why counts may be more useful.
             if (includeAverages)
@@ -332,13 +332,13 @@ namespace ACESim
                 {
                     byte q = litigationQuality; // avoid closure
                     rows.Add(
-                        new SimpleReportFilter(prefix + "Quality" + q, (GameProgress gp) => MyGP(gp).LiabilityStrengthDiscrete == q && extraRequirement(gp)));
+                        new SimpleReportFilter(prefix + "Liability Strength" + q, (GameProgress gp) => MyGP(gp).LiabilityStrengthDiscrete == q && extraRequirement(gp)));
                 }
             for (byte litigationQuality = 1; litigationQuality <= Options.NumLiabilityStrengthPoints; litigationQuality++)
             {
                 byte q = litigationQuality; // avoid closure
                 rows.Add(
-                    new SimpleReportFilter(prefix + "Quality" + q + " Count", (GameProgress gp) => MyGP(gp).LiabilityStrengthDiscrete == q && extraRequirement(gp)) {UseSum = true});
+                    new SimpleReportFilter(prefix + "Liability Strength" + q + " Count", (GameProgress gp) => MyGP(gp).LiabilityStrengthDiscrete == q && extraRequirement(gp)) {UseSum = true});
             }
             if (includeAverages)
                 for (byte signal = 1; signal <= Options.NumLiabilitySignals; signal++)
@@ -368,27 +368,94 @@ namespace ACESim
             }
             // Add mutual optimism report
             rows.Add(
-            new SimpleReportFilter(prefix + "MutOpt5 Count", (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete - MyGP(gp).DLiabilitySignalDiscrete >= 5 && extraRequirement(gp)) { UseSum = true });
+            new SimpleReportFilter(prefix + "MutOptLiability5 Count", (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete - MyGP(gp).DLiabilitySignalDiscrete >= 5 && extraRequirement(gp)) { UseSum = true });
             rows.Add(
-                new SimpleReportFilter(prefix + "MutOpt4 Count", (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete - MyGP(gp).DLiabilitySignalDiscrete == 4 && extraRequirement(gp)) { UseSum = true });
+                new SimpleReportFilter(prefix + "MutOptLiability4 Count", (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete - MyGP(gp).DLiabilitySignalDiscrete == 4 && extraRequirement(gp)) { UseSum = true });
             rows.Add(
-                new SimpleReportFilter(prefix + "MutOpt3 Count", (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete - MyGP(gp).DLiabilitySignalDiscrete == 3 && extraRequirement(gp)) { UseSum = true });
+                new SimpleReportFilter(prefix + "MutOptLiability3 Count", (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete - MyGP(gp).DLiabilitySignalDiscrete == 3 && extraRequirement(gp)) { UseSum = true });
             rows.Add(
-                new SimpleReportFilter(prefix + "MutOpt2 Count", (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete - MyGP(gp).DLiabilitySignalDiscrete == 2 && extraRequirement(gp)) { UseSum = true });
+                new SimpleReportFilter(prefix + "MutOptLiability2 Count", (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete - MyGP(gp).DLiabilitySignalDiscrete == 2 && extraRequirement(gp)) { UseSum = true });
             rows.Add(
-                new SimpleReportFilter(prefix + "MutOpt1 Count", (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete - MyGP(gp).DLiabilitySignalDiscrete == 1 && extraRequirement(gp)) { UseSum = true });
+                new SimpleReportFilter(prefix + "MutOptLiability1 Count", (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete - MyGP(gp).DLiabilitySignalDiscrete == 1 && extraRequirement(gp)) { UseSum = true });
             rows.Add(
-                new SimpleReportFilter(prefix + "MutOpt0 Count", (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete - MyGP(gp).DLiabilitySignalDiscrete == 0 && extraRequirement(gp)) { UseSum = true });
+                new SimpleReportFilter(prefix + "MutOptLiability0 Count", (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete - MyGP(gp).DLiabilitySignalDiscrete == 0 && extraRequirement(gp)) { UseSum = true });
             rows.Add(
-                new SimpleReportFilter(prefix + "MutOpt-1 Count", (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete - MyGP(gp).DLiabilitySignalDiscrete == -1 && extraRequirement(gp)) { UseSum = true });
+                new SimpleReportFilter(prefix + "MutOptLiability-1 Count", (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete - MyGP(gp).DLiabilitySignalDiscrete == -1 && extraRequirement(gp)) { UseSum = true });
             rows.Add(
-                new SimpleReportFilter(prefix + "MutOpt-2 Count", (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete - MyGP(gp).DLiabilitySignalDiscrete == -2 && extraRequirement(gp)) { UseSum = true });
+                new SimpleReportFilter(prefix + "MutOptLiability-2 Count", (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete - MyGP(gp).DLiabilitySignalDiscrete == -2 && extraRequirement(gp)) { UseSum = true });
             rows.Add(
-                new SimpleReportFilter(prefix + "MutOpt-3 Count", (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete - MyGP(gp).DLiabilitySignalDiscrete == -3 && extraRequirement(gp)) { UseSum = true });
+                new SimpleReportFilter(prefix + "MutOptLiability-3 Count", (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete - MyGP(gp).DLiabilitySignalDiscrete == -3 && extraRequirement(gp)) { UseSum = true });
             rows.Add(
-                new SimpleReportFilter(prefix + "MutOpt-4 Count", (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete - MyGP(gp).DLiabilitySignalDiscrete == -4 && extraRequirement(gp)) { UseSum = true });
+                new SimpleReportFilter(prefix + "MutOptLiability-4 Count", (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete - MyGP(gp).DLiabilitySignalDiscrete == -4 && extraRequirement(gp)) { UseSum = true });
             rows.Add(
-                new SimpleReportFilter(prefix + "MutOpt-5 Count", (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete - MyGP(gp).DLiabilitySignalDiscrete <= -5 && extraRequirement(gp)) { UseSum = true });
+                new SimpleReportFilter(prefix + "MutOptLiability-5 Count", (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete - MyGP(gp).DLiabilitySignalDiscrete <= -5 && extraRequirement(gp)) { UseSum = true });
+        }
+
+        private void AddRowsForDamagesStrengthAndSignalDistributions(string prefix, bool includeAverages, List<SimpleReportFilter> rows, Func<GameProgress, bool> extraRequirement)
+        {
+            // Note that averages will not be weighted by the number of observations in the column. That's why counts may be more useful.
+            if (includeAverages)
+                for (byte litigationQuality = 1; litigationQuality <= Options.NumDamagesStrengthPoints; litigationQuality++)
+                {
+                    byte q = litigationQuality; // avoid closure
+                    rows.Add(
+                        new SimpleReportFilter(prefix + "Damages Strength" + q, (GameProgress gp) => MyGP(gp).DamagesStrengthDiscrete == q && extraRequirement(gp)));
+                }
+            for (byte litigationQuality = 1; litigationQuality <= Options.NumDamagesStrengthPoints; litigationQuality++)
+            {
+                byte q = litigationQuality; // avoid closure
+                rows.Add(
+                    new SimpleReportFilter(prefix + "Damages Strength" + q + " Count", (GameProgress gp) => MyGP(gp).DamagesStrengthDiscrete == q && extraRequirement(gp)) { UseSum = true });
+            }
+            if (includeAverages)
+                for (byte signal = 1; signal <= Options.NumDamagesSignals; signal++)
+                {
+                    byte s = signal; // avoid closure
+                    rows.Add(
+                        new SimpleReportFilter(prefix + "PDamagesSignal" + s, (GameProgress gp) => MyGP(gp).PDamagesSignalDiscrete == s && extraRequirement(gp)));
+                }
+            for (byte signal = 1; signal <= Options.NumDamagesSignals; signal++)
+            {
+                byte s = signal; // avoid closure
+                rows.Add(
+                    new SimpleReportFilter(prefix + "PDamagesSignal" + s + " Count", (GameProgress gp) => MyGP(gp).PDamagesSignalDiscrete == s && extraRequirement(gp)) { UseSum = true });
+            }
+            if (includeAverages)
+                for (byte signal = 1; signal <= Options.NumDamagesSignals; signal++)
+                {
+                    byte s = signal; // avoid closure
+                    rows.Add(
+                        new SimpleReportFilter(prefix + "DDamagesSignal" + s, (GameProgress gp) => MyGP(gp).DDamagesSignalDiscrete == s && extraRequirement(gp)));
+                }
+            for (byte signal = 1; signal <= Options.NumDamagesSignals; signal++)
+            {
+                byte s = signal; // avoid closure
+                rows.Add(
+                    new SimpleReportFilter(prefix + "DDamagesSignal" + s + " Count", (GameProgress gp) => MyGP(gp).DDamagesSignalDiscrete == s && extraRequirement(gp)) { UseSum = true });
+            }
+            // Add mutual optimism report
+            rows.Add(
+            new SimpleReportFilter(prefix + "MutOptDamages5 Count", (GameProgress gp) => MyGP(gp).PDamagesSignalDiscrete - MyGP(gp).DDamagesSignalDiscrete >= 5 && extraRequirement(gp)) { UseSum = true });
+            rows.Add(
+                new SimpleReportFilter(prefix + "MutOptDamages4 Count", (GameProgress gp) => MyGP(gp).PDamagesSignalDiscrete - MyGP(gp).DDamagesSignalDiscrete == 4 && extraRequirement(gp)) { UseSum = true });
+            rows.Add(
+                new SimpleReportFilter(prefix + "MutOptDamages3 Count", (GameProgress gp) => MyGP(gp).PDamagesSignalDiscrete - MyGP(gp).DDamagesSignalDiscrete == 3 && extraRequirement(gp)) { UseSum = true });
+            rows.Add(
+                new SimpleReportFilter(prefix + "MutOptDamages2 Count", (GameProgress gp) => MyGP(gp).PDamagesSignalDiscrete - MyGP(gp).DDamagesSignalDiscrete == 2 && extraRequirement(gp)) { UseSum = true });
+            rows.Add(
+                new SimpleReportFilter(prefix + "MutOptDamages1 Count", (GameProgress gp) => MyGP(gp).PDamagesSignalDiscrete - MyGP(gp).DDamagesSignalDiscrete == 1 && extraRequirement(gp)) { UseSum = true });
+            rows.Add(
+                new SimpleReportFilter(prefix + "MutOptDamages0 Count", (GameProgress gp) => MyGP(gp).PDamagesSignalDiscrete - MyGP(gp).DDamagesSignalDiscrete == 0 && extraRequirement(gp)) { UseSum = true });
+            rows.Add(
+                new SimpleReportFilter(prefix + "MutOptDamages-1 Count", (GameProgress gp) => MyGP(gp).PDamagesSignalDiscrete - MyGP(gp).DDamagesSignalDiscrete == -1 && extraRequirement(gp)) { UseSum = true });
+            rows.Add(
+                new SimpleReportFilter(prefix + "MutOptDamages-2 Count", (GameProgress gp) => MyGP(gp).PDamagesSignalDiscrete - MyGP(gp).DDamagesSignalDiscrete == -2 && extraRequirement(gp)) { UseSum = true });
+            rows.Add(
+                new SimpleReportFilter(prefix + "MutOptDamages-3 Count", (GameProgress gp) => MyGP(gp).PDamagesSignalDiscrete - MyGP(gp).DDamagesSignalDiscrete == -3 && extraRequirement(gp)) { UseSum = true });
+            rows.Add(
+                new SimpleReportFilter(prefix + "MutOptDamages-4 Count", (GameProgress gp) => MyGP(gp).PDamagesSignalDiscrete - MyGP(gp).DDamagesSignalDiscrete == -4 && extraRequirement(gp)) { UseSum = true });
+            rows.Add(
+                new SimpleReportFilter(prefix + "MutOptDamages-5 Count", (GameProgress gp) => MyGP(gp).PDamagesSignalDiscrete - MyGP(gp).DDamagesSignalDiscrete <= -5 && extraRequirement(gp)) { UseSum = true });
         }
 
         private SimpleReportDefinition GetCourtSuccessReport()
@@ -408,7 +475,7 @@ namespace ACESim
                 new SimpleReportFilter("All", (GameProgress gp) => true)
             };
             AddRowFilterLiabilitySignalRegions(plaintiffMakesOffer, rowFilters);
-            AddRowFiltersLiabilityLevel(rowFilters);
+            AddRowFiltersLiabilityStrength(rowFilters);
             List<SimpleReportColumnItem> columnItems = new List<SimpleReportColumnItem>()
             {
                 new SimpleReportColumnFilter("All", (GameProgress gp) => true, true),
@@ -418,7 +485,7 @@ namespace ACESim
                 new SimpleReportColumnVariable("PWelfare", (GameProgress gp) => MyGP(gp).PWelfare),
                 new SimpleReportColumnVariable("DWelfare", (GameProgress gp) => MyGP(gp).DWelfare),
             };
-            AddColumnFiltersLiabilityLevel(columnItems);
+            AddColumnFiltersLiabilityStrength(columnItems);
             AddColumnFiltersPLiabilitySignal(columnItems);
             return new SimpleReportDefinition(
                     reportName,
@@ -451,7 +518,7 @@ namespace ACESim
             {
                 new SimpleReportColumnFilter("All", (GameProgress gp) => true, true)
             };
-            AddColumnFiltersLiabilityLevel(columnItems);
+            AddColumnFiltersLiabilityStrength(columnItems);
             double[] offerPoints = EquallySpaced.GetEquallySpacedPoints(Options.NumOffers, true);
             Tuple<double, double>[] offerRegions = EquallySpaced.GetRegions(Options.NumOffers);
             for (int i = 0; i < Options.NumOffers; i++)
@@ -483,7 +550,7 @@ namespace ACESim
         }
 
 
-        private void AddRowFiltersLiabilityLevel(List<SimpleReportFilter> rowFilters)
+        private void AddRowFiltersLiabilityStrength(List<SimpleReportFilter> rowFilters)
         {
             for (int i = 1; i <= Options.NumLiabilityStrengthPoints; i++)
             {
@@ -497,10 +564,10 @@ namespace ACESim
             //    byte j = (byte)(i); // necessary to prevent access to modified closure
             //    rowFilters.Add(new SimpleReportFilter(
             //        $"LitQual 1 Noise {j}",
-            //        (GameProgress gp) => MyGP(gp).LiabilityLevelDiscrete == 1 && MyGP(gp).PNoiseDiscrete == j));
+            //        (GameProgress gp) => MyGP(gp).LiabilityStrengthDiscrete == 1 && MyGP(gp).PNoiseDiscrete == j));
             //}
         }
-        private void AddColumnFiltersLiabilityLevel(List<SimpleReportColumnItem> columnFilters)
+        private void AddColumnFiltersLiabilityStrength(List<SimpleReportColumnItem> columnFilters)
         {
             for (int i = 1; i <= Options.NumLiabilityStrengthPoints; i++)
             {

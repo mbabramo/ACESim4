@@ -15,9 +15,9 @@ namespace ACESim
         /// <summary>
         /// If each litigation quality value is equally likely, then the probability that the defendant is truly liable when the uniform litigation quality is 0.75. A value higehr than 0.75 reflects the proposition that majorities are likely generally to be correct.
         /// </summary>
-        public double ProbabilityTrulyLiable_LiabilityLevel75;
+        public double ProbabilityTrulyLiable_LiabilityStrength75;
         /// If each litigation quality value is equally likely, then the probability that the defendant is truly liable when the uniform litigation quality is 0.90. A value higehr than 0.90 reflects the proposition that majorities are likely generally to be correct.
-        public double ProbabilityTrulyLiable_LiabilityLevel90;
+        public double ProbabilityTrulyLiable_LiabilityStrength90;
         /// <summary>
         /// The number of points to determine whether the defendant is truly liable in a particular case. 
         /// </summary>
@@ -30,7 +30,7 @@ namespace ACESim
 
         public void Setup(MyGameDefinition myGameDefinition)
         {
-            Curvature = MonotonicCurve.CalculateCurvatureForThreePoints(0.5, 0.5, 0.75, ProbabilityTrulyLiable_LiabilityLevel75, 0.9, ProbabilityTrulyLiable_LiabilityLevel90);
+            Curvature = MonotonicCurve.CalculateCurvatureForThreePoints(0.5, 0.5, 0.75, ProbabilityTrulyLiable_LiabilityStrength75, 0.9, ProbabilityTrulyLiable_LiabilityStrength90);
         }
 
         public void GetActionsSetup(MyGameDefinition myGameDefinition, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance, out bool primaryActionCanTerminate, out bool postPrimaryChanceCanTerminate)
@@ -40,7 +40,7 @@ namespace ACESim
             postPrimaryChanceActions = NumPointsToDetermineTrulyLiable; 
             prePrimaryPlayersToInform = null; // new byte[] {(byte) MyGamePlayers.Defendant }; // if we did have a pre-primary chance, we must notify defendant
             primaryPlayersToInform = null; // new byte[] {(byte) MyGamePlayers.Resolution}; // not relevant for this dispute generator
-            postPrimaryPlayersToInform = new byte[] { (byte)MyGamePlayers.QualityChance }; // NOTE: The post-primary chance decision affects only our measurement of "is truly liable"; thus, it doesn't affect resolution probabilities and doesn't need to be included here.
+            postPrimaryPlayersToInform = new byte[] { (byte)MyGamePlayers.LiabilityStrengthChance }; // NOTE: The post-primary chance decision affects only our measurement of "is truly liable"; thus, it doesn't affect resolution probabilities and doesn't need to be included here.
             prePrimaryUnevenChance = true; // though not used
             postPrimaryUnevenChance = false; // we use even chance probabilities on number of poitns to determine truly liable
             litigationQualityUnevenChance = false; // we use even chance probabilities on litigation quality
@@ -59,7 +59,7 @@ namespace ACESim
             return NoWealthEffects;
         }
 
-        public double[] GetLiabilityLevelProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
+        public double[] GetLiabilityStrengthProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
         {
             throw new NotImplementedException(); // we use even chance probabilities
         }
@@ -117,7 +117,7 @@ namespace ACESim
             return (false, false);
         }
 
-        public (bool unrollParallelize, bool unrollIdentical) GetLiabilityLevelUnrollSettings()
+        public (bool unrollParallelize, bool unrollIdentical) GetLiabilityStrengthUnrollSettings()
         {
             return (false, false);
         }

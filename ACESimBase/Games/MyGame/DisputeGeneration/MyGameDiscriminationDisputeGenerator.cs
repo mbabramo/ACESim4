@@ -30,14 +30,15 @@ namespace ACESim
         public double PrivateBenefitToBadEmployerFromFiring_MediumTaste = 87500;
         public double PrivateBenefitToBadEmployerFromFiring_HighTaste = 100000;
 
-        private double[] ProbabilityLiabilityLevel_StrongPlaintiffCase, ProbabilityLiabilityLevel_MediumPlaintiffCase, ProbabilityLiabilityLevel_PoorPlaintiffCase;
+        private double[] ProbabilityLiabilityStrength_StrongPlaintiffCase, ProbabilityLiabilityStrength_MediumPlaintiffCase, ProbabilityLiabilityStrength_PoorPlaintiffCase;
 
         public void Setup(MyGameDefinition myGameDefinition)
         {
             myGameDefinition.Options.NumLiabilityStrengthPoints = 9; // always
-            ProbabilityLiabilityLevel_StrongPlaintiffCase = new double[] {0.0, 0.0, 0.0, 0.0, 0.2, 0.2, 0.2, 0.2, 0.2,};
-            ProbabilityLiabilityLevel_MediumPlaintiffCase = new double[] { 0.0, 0.0, 0.2, 0.2, 0.2, 0.2, 0.2, 0.0, 0.0 };
-            ProbabilityLiabilityLevel_PoorPlaintiffCase = new double[] { 0.2, 0.2, 0.2, 0.2, 0.2, 0.0, 0.0, 0.0, 0.0 };
+            myGameDefinition.Options.NumDamagesStrengthPoints = 1;
+            ProbabilityLiabilityStrength_StrongPlaintiffCase = new double[] {0.0, 0.0, 0.0, 0.0, 0.2, 0.2, 0.2, 0.2, 0.2,};
+            ProbabilityLiabilityStrength_MediumPlaintiffCase = new double[] { 0.0, 0.0, 0.2, 0.2, 0.2, 0.2, 0.2, 0.0, 0.0 };
+            ProbabilityLiabilityStrength_PoorPlaintiffCase = new double[] { 0.2, 0.2, 0.2, 0.2, 0.2, 0.0, 0.0, 0.0, 0.0 };
         }
 
         public (bool badEmployee, double employerTasteForDiscrimination) ConvertPrePrimaryChance(byte prePrimaryChance)
@@ -70,8 +71,8 @@ namespace ACESim
             prePrimaryChanceActions = 8;
             primaryActions = 2;
             postPrimaryChanceActions = 0;
-            prePrimaryPlayersToInform = new byte[] { (byte)MyGamePlayers.Resolution, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.QualityChance };
-            primaryPlayersToInform = new byte[] { (byte)MyGamePlayers.Resolution, (byte)MyGamePlayers.QualityChance };
+            prePrimaryPlayersToInform = new byte[] { (byte)MyGamePlayers.Resolution, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.LiabilityStrengthChance };
+            primaryPlayersToInform = new byte[] { (byte)MyGamePlayers.Resolution, (byte)MyGamePlayers.LiabilityStrengthChance };
             postPrimaryPlayersToInform = null;
             prePrimaryUnevenChance = true;
             postPrimaryUnevenChance = true; // irrelevant
@@ -124,15 +125,15 @@ namespace ACESim
             return disputeGeneratorActions.PrimaryAction == 1; // only a dispute if employee is fired
         }
 
-        public double[] GetLiabilityLevelProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
+        public double[] GetLiabilityStrengthProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
         {
             var peopleStatus = ConvertPrePrimaryChance(disputeGeneratorActions.PrePrimaryChanceAction);
             if (peopleStatus.badEmployee == false && peopleStatus.employerTasteForDiscrimination > 0)
-                return ProbabilityLiabilityLevel_StrongPlaintiffCase;
+                return ProbabilityLiabilityStrength_StrongPlaintiffCase;
             else if (peopleStatus.badEmployee == true && peopleStatus.employerTasteForDiscrimination == 0)
-                return ProbabilityLiabilityLevel_PoorPlaintiffCase; // no reason that this should arise -- since employer gets nothing out of firing, it can avoid this scenario altogether
+                return ProbabilityLiabilityStrength_PoorPlaintiffCase; // no reason that this should arise -- since employer gets nothing out of firing, it can avoid this scenario altogether
             else 
-                return ProbabilityLiabilityLevel_MediumPlaintiffCase;
+                return ProbabilityLiabilityStrength_MediumPlaintiffCase;
         }
 
         public bool IsTrulyLiable(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress)
@@ -175,7 +176,7 @@ namespace ACESim
             return (false, false);
         }
 
-        public (bool unrollParallelize, bool unrollIdentical) GetLiabilityLevelUnrollSettings()
+        public (bool unrollParallelize, bool unrollIdentical) GetLiabilityStrengthUnrollSettings()
         {
             return (false, false);
         }

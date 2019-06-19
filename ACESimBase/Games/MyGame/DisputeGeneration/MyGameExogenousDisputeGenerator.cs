@@ -16,11 +16,12 @@ namespace ACESim
         /// </summary>
         public double ExogenousProbabilityTrulyLiable;
         /// <summary>
-        /// If generating LiabilityLevel based on true case value, this is the standard deviation of the noise used to obscure the true litigation quality value (0 or 1). Each litigation quality level will be equally likely if there is an equal chance of either true litigation quality value.
+        /// If generating LiabilityStrength based on true case value, this is the standard deviation of the noise used to obscure the true litigation quality value (0 or 1). Each litigation quality level will be equally likely if there is an equal chance of either true litigation quality value.
         /// </summary>
-        public double StdevNoiseToProduceLiabilityLevel;
+        public double StdevNoiseToProduceLiabilityStrength;
 
-        private double[] ProbabilityOfTrulyLiabilityValues, ProbabilitiesLiabilityLevel_TrulyNotLiable, ProbabilitiesLiabilityLevel_TrulyLiable;
+        private double[] ProbabilityOfTrulyLiabilityValues, ProbabilitiesLiabilityStrength_TrulyNotLiable, ProbabilitiesLiabilityStrength_TrulyLiable;
+        private double[] ProbabilityOfDamagesStrengthValues;
 
         public void Setup(MyGameDefinition myGameDefinition)
         {
@@ -28,10 +29,15 @@ namespace ACESim
             // A case is assigned a "true" value of 1 (should not be liable) or 2 (should be liable).
             // Based on the litigation quality noise parameter, we then collect a distribution of possible realized values, on the assumption
             // that the true values are equally likely. We then break this distribution into evenly sized buckets to get cutoff points.
-            // Given this approach, the exogenous probability has no effect on ProbabilitiesLiabilityLevel_TrulyNotLiable and ProbabilitiesLiabilityLevel_TrulyLiable; both of these are conditional on whether a case is liable or not.
-            DiscreteValueSignalParameters dsParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = 2, NumSignals = myGameDefinition.Options.NumLiabilityStrengthPoints, StdevOfNormalDistribution = StdevNoiseToProduceLiabilityLevel, UseEndpoints = true };
-            ProbabilitiesLiabilityLevel_TrulyNotLiable = DiscreteValueLiabilitySignal.GetProbabilitiesOfDiscreteLiabilitySignals(1, dsParams);
-            ProbabilitiesLiabilityLevel_TrulyLiable = DiscreteValueLiabilitySignal.GetProbabilitiesOfDiscreteLiabilitySignals(2, dsParams);
+            // Given this approach, the exogenous probability has no effect on ProbabilitiesLiabilityStrength_TrulyNotLiable and ProbabilitiesLiabilityStrength_TrulyLiable; both of these are conditional on whether a case is liable or not.
+            DiscreteValueSignalParameters liabilityParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = 2, NumSignals = myGameDefinition.Options.NumLiabilityStrengthPoints, StdevOfNormalDistribution = StdevNoiseToProduceLiabilityStrength, UseEndpoints = true };
+            ProbabilitiesLiabilityStrength_TrulyNotLiable = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(1, liabilityParams);
+            ProbabilitiesLiabilityStrength_TrulyLiable = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(2, liabilityParams);
+
+            // damages is simpler -- each damages level is equally likely
+            ProbabilityOfDamagesStrengthValues = new double[myGameDefinition.Options.NumDamagesStrengthPoints];
+            for (int i = 0; i < myGameDefinition.Options.NumDamagesStrengthPoints; i++)
+                ProbabilityOfDamagesStrengthValues[i] = 1.0 / (double)myGameDefinition.Options.NumDamagesStrengthPoints;
         }
 
         public void GetActionsSetup(MyGameDefinition myGameDefinition, out byte prePrimaryChanceActions, out byte primaryActions, out byte postPrimaryChanceActions, out byte[] prePrimaryPlayersToInform, out byte[] primaryPlayersToInform, out byte[] postPrimaryPlayersToInform, out bool prePrimaryUnevenChance, out bool postPrimaryUnevenChance, out bool litigationQualityUnevenChance, out bool primaryActionCanTerminate, out bool postPrimaryChanceCanTerminate)
@@ -41,7 +47,7 @@ namespace ACESim
             postPrimaryChanceActions = 2; // not truly liable or truly liable
             prePrimaryPlayersToInform = null; // new byte[] {(byte) MyGamePlayers.Defendant }; // if we did have a pre-primary chance, we must notify defendant
             primaryPlayersToInform = null; // new byte[] {(byte) MyGamePlayers.Resolution}; // not relevant for this dispute generator
-            postPrimaryPlayersToInform = new byte[] {(byte) MyGamePlayers.QualityChance, (byte) MyGamePlayers.Resolution};
+            postPrimaryPlayersToInform = new byte[] {(byte) MyGamePlayers.LiabilityStrengthChance, (byte) MyGamePlayers.Resolution};
             prePrimaryUnevenChance = true; // though not used
             postPrimaryUnevenChance = true;
             litigationQualityUnevenChance = true;
@@ -60,13 +66,13 @@ namespace ACESim
             return NoWealthEffects; 
         }
 
-        public double[] GetLiabilityLevelProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
+        public double[] GetLiabilityStrengthProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
         {
             bool isTrulyLiable = IsTrulyLiable(myGameDefinition, disputeGeneratorActions, null);
             if (isTrulyLiable)
-                return ProbabilitiesLiabilityLevel_TrulyLiable;
+                return ProbabilitiesLiabilityStrength_TrulyLiable;
             else
-                return ProbabilitiesLiabilityLevel_TrulyNotLiable;
+                return ProbabilitiesLiabilityStrength_TrulyNotLiable;
         }
 
         public bool IsTrulyLiable(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress)
@@ -119,7 +125,7 @@ namespace ACESim
             return (true, true);
         }
 
-        public (bool unrollParallelize, bool unrollIdentical) GetLiabilityLevelUnrollSettings()
+        public (bool unrollParallelize, bool unrollIdentical) GetLiabilityStrengthUnrollSettings()
         {
             return (true, true);
         }

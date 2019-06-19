@@ -143,7 +143,7 @@ namespace ACESim
         {
             switch (decision.DecisionByteCode)
             {
-                case (byte)MyGameDecisions.LiabilityLevel:
+                case (byte)MyGameDecisions.LiabilityStrength:
                 case (byte)MyGameDecisions.PLiabilitySignal:
                 case (byte)MyGameDecisions.DLiabilitySignal:
                     return 1; // all irrelevant
@@ -161,7 +161,7 @@ namespace ACESim
         {
             switch (decision.DecisionByteCode)
             {
-                case (byte)MyGameDecisions.LiabilityLevel:
+                case (byte)MyGameDecisions.LiabilityStrength:
                 case (byte)MyGameDecisions.PLiabilitySignal:
                 case (byte)MyGameDecisions.DLiabilitySignal:
                     return 1; // all irrelevant
@@ -183,7 +183,7 @@ namespace ACESim
         {
             switch (decision.DecisionByteCode)
             {
-                case (byte)MyGameDecisions.LiabilityLevel:
+                case (byte)MyGameDecisions.LiabilityStrength:
                 case (byte)MyGameDecisions.PLiabilitySignal:
                 case (byte)MyGameDecisions.DLiabilitySignal:
                     return 1; // all irrelevant
@@ -206,7 +206,7 @@ namespace ACESim
             switch (decision.DecisionByteCode)
             {
 
-                case (byte)MyGameDecisions.LiabilityLevel:
+                case (byte)MyGameDecisions.LiabilityStrength:
                     return 3;
                 case (byte)MyGameDecisions.PLiabilitySignal:
                     return 4;
@@ -216,7 +216,7 @@ namespace ACESim
                     return 5;
                 case (byte)MyGameDecisions.DOffer:
                     return 1;
-                case (byte)MyGameDecisions.CourtDecision:
+                case (byte)MyGameDecisions.CourtDecisionLiability:
                     return 2;
 
                 default:
@@ -230,7 +230,7 @@ namespace ACESim
             switch (decision.DecisionByteCode)
             {
 
-                case (byte)MyGameDecisions.LiabilityLevel:
+                case (byte)MyGameDecisions.LiabilityStrength:
                     return 3;
                 case (byte)MyGameDecisions.PLiabilitySignal:
                     return 4;
@@ -240,7 +240,7 @@ namespace ACESim
                     return 5;
                 case (byte)MyGameDecisions.DOffer:
                     return 1;
-                case (byte)MyGameDecisions.CourtDecision:
+                case (byte)MyGameDecisions.CourtDecisionLiability:
                     return 1;
 
                 default:
@@ -252,7 +252,7 @@ namespace ACESim
         {
             switch (decision.DecisionByteCode)
             {
-                case (byte)MyGameDecisions.LiabilityLevel:
+                case (byte)MyGameDecisions.LiabilityStrength:
                     return 5;
                 case (byte)MyGameDecisions.PLiabilitySignal:
                     return 9;
@@ -263,7 +263,7 @@ namespace ACESim
                     return 9;
                 case (byte)MyGameDecisions.DOffer:
                     return 4;
-                case (byte)MyGameDecisions.CourtDecision:
+                case (byte)MyGameDecisions.CourtDecisionLiability:
                     return 2;
 
                 default:

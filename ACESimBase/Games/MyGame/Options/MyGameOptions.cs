@@ -19,6 +19,7 @@ namespace ACESim
         /// This allows for making side bets in each bargaining round, if not null.
         /// </summary>
         public MyGameRunningSideBets MyGameRunningSideBets;
+
         /// <summary>
         /// The number of different liability quality levels that a case can have, with the lowest levels reflecting the lowest probability of liability. Parties obtain estimates of the liability level.
         /// </summary>
@@ -174,5 +175,6 @@ namespace ACESim
 
         public DeltaOffersCalculation DeltaOffersCalculation;
         public DiscreteValueSignalParameters PLiabilitySignalParameters, DLiabilitySignalParameters;
+        public DiscreteValueSignalParameters PDamagesSignalParameters, DDamagesSignalParameters;
     }
 }

@@ -22,8 +22,12 @@ namespace ACESim
         PostPrimaryChance,
         PLiabilitySignalChance,
         DLiabilitySignalChance,
-        QualityChance,
-        CourtChance,
+        LiabilityStrengthChance,
+        PDamagesSignalChance,
+        DDamagesSignalChance,
+        DamagesStrengthChance,
+        CourtLiabilityChance,
+        CourtDamagesChance,
 
         // chance players (no information sets)
         PrePrimaryChance,

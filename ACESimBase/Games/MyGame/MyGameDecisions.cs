@@ -11,9 +11,12 @@ namespace ACESim
         PrePrimaryActionChance,
         PrimaryAction,
         PostPrimaryActionChance,
-        LiabilityLevel,
+        LiabilityStrength,
+        DamagesStrength,
         PLiabilitySignal,
         DLiabilitySignal,
+        PDamagesSignal,
+        DDamagesSignal,
         PFile, // 1 = yes, 2 = no
         DAnswer, // 1 = yes, 2 = no
         PreBargainingRound, // dummy chance decision -- gives us chance to perform some processing 
@@ -31,7 +34,8 @@ namespace ACESim
         PostBargainingRound, // dummy chance decision -- gives us chance to perform some processing
         PPretrialAction,
         DPretrialAction,
-        CourtDecision, // with processed signals: 1 = defendant wins, 2 = plaintiff wins
+        CourtDecisionLiability, // with processed signals: 1 = defendant wins, 2 = plaintiff wins
+        CourtDecisionDamages,
         SubdividableOffer,
     }
 }

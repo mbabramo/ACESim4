@@ -42,7 +42,7 @@ namespace ACESim
                     if (MyDefinition.CheckCompleteAfterPostPrimaryAction && MyDefinition.Options.MyGameDisputeGenerator.MarkComplete(MyDefinition, MyProgress.DisputeGeneratorActions.PrePrimaryChanceAction, MyProgress.DisputeGeneratorActions.PrimaryAction, MyProgress.DisputeGeneratorActions.PostPrimaryChanceAction))
                         MyProgress.GameComplete = true;
                     break;
-                case (byte)MyGameDecisions.LiabilityLevel:
+                case (byte)MyGameDecisions.LiabilityStrength:
                     MyProgress.DamagesMax = MyDefinition.Options.DamagesMax;
                     MyProgress.LiabilityStrengthDiscrete = action;
                     MyProgress.LiabilityStrengthUniform = ConvertActionToUniformDistributionDraw(action, false);
@@ -51,17 +51,36 @@ namespace ACESim
                         MyProgress.PLiabilitySignalUniform = (double) MyProgress.LiabilityStrengthUniform;
                     if (MyDefinition.Options.DLiabilityNoiseStdev == 0)
                         MyProgress.DLiabilitySignalUniform = (double) MyProgress.LiabilityStrengthUniform;
-
                 break;
                 case (byte)MyGameDecisions.PLiabilitySignal:
                     MyProgress.PLiabilitySignalDiscrete = action;
                     MyProgress.PLiabilitySignalUniform = action * (1.0 / MyDefinition.Options.NumLiabilitySignals);
-                    GameProgressLogger.Log(() => $"P: Quality {MyProgress.LiabilityStrengthUniform} => signal {MyProgress.PLiabilitySignalDiscrete} ({MyProgress.PLiabilitySignalUniform})");
+                    GameProgressLogger.Log(() => $"P: Liability Strength {MyProgress.LiabilityStrengthUniform} => signal {MyProgress.PLiabilitySignalDiscrete} ({MyProgress.PLiabilitySignalUniform})");
                 break;
                 case (byte)MyGameDecisions.DLiabilitySignal:
                     MyProgress.DLiabilitySignalDiscrete = action;
                     MyProgress.DLiabilitySignalUniform = action * (1.0 / MyDefinition.Options.NumLiabilitySignals);
-                    GameProgressLogger.Log(() => $"D: Quality {MyProgress.LiabilityStrengthUniform} => signal {MyProgress.DLiabilitySignalDiscrete} ({MyProgress.DLiabilitySignalUniform})");
+                    GameProgressLogger.Log(() => $"D: Liability Strength {MyProgress.LiabilityStrengthUniform} => signal {MyProgress.DLiabilitySignalDiscrete} ({MyProgress.DLiabilitySignalUniform})");
+                    break;
+                case (byte)MyGameDecisions.DamagesStrength:
+                    MyProgress.DamagesMax = MyDefinition.Options.DamagesMax;
+                    MyProgress.DamagesStrengthDiscrete = action;
+                    MyProgress.DamagesStrengthUniform = ConvertActionToUniformDistributionDraw(action, false);
+                    // If one or both parties have perfect information, then they can get their information about litigation quality now, since they don't need a signal. Note that we also specify in the game definition that the litigation quality should become part of their information set.
+                    if (MyDefinition.Options.PDamagesNoiseStdev == 0)
+                        MyProgress.PDamagesSignalUniform = (double)MyProgress.DamagesStrengthUniform;
+                    if (MyDefinition.Options.DDamagesNoiseStdev == 0)
+                        MyProgress.DDamagesSignalUniform = (double)MyProgress.DamagesStrengthUniform;
+                    break;
+                case (byte)MyGameDecisions.PDamagesSignal:
+                    MyProgress.PDamagesSignalDiscrete = action;
+                    MyProgress.PDamagesSignalUniform = action * (1.0 / MyDefinition.Options.NumDamagesSignals);
+                    GameProgressLogger.Log(() => $"P: Damages Strength {MyProgress.DamagesStrengthUniform} => signal {MyProgress.PDamagesSignalDiscrete} ({MyProgress.PDamagesSignalUniform})");
+                    break;
+                case (byte)MyGameDecisions.DDamagesSignal:
+                    MyProgress.DDamagesSignalDiscrete = action;
+                    MyProgress.DDamagesSignalUniform = action * (1.0 / MyDefinition.Options.NumDamagesSignals);
+                    GameProgressLogger.Log(() => $"D: Damages Strength {MyProgress.DamagesStrengthUniform} => signal {MyProgress.DDamagesSignalDiscrete} ({MyProgress.DDamagesSignalUniform})");
                     break;
                 case (byte)MyGameDecisions.PFile:
                     MyProgress.PFiles = action == 1;
@@ -142,11 +161,11 @@ namespace ACESim
                 case (byte)MyGameDecisions.DPretrialAction:
                     MyDefinition.Options.MyGamePretrialDecisionGeneratorGenerator.ProcessAction(MyDefinition, MyProgress, false, action);
                     break;
-                case (byte)MyGameDecisions.CourtDecision:
+                case (byte)MyGameDecisions.CourtDecisionLiability:
                     MyProgress.TrialOccurs = true;
                     MyProgress.PWinsAtTrial =
                         action == 2;
-                    //System.Diagnostics.Console.WriteLine($"Quality {MyProgress.LiabilityLevelUniform} Court noise action {action} => {courtNoiseNormalDraw} => signal {courtLiabilitySignal} PWins {MyProgress.PWinsAtTrial}");
+                    //System.Diagnostics.Console.WriteLine($"Quality {MyProgress.LiabilityStrengthUniform} Court noise action {action} => {courtNoiseNormalDraw} => signal {courtLiabilitySignal} PWins {MyProgress.PWinsAtTrial}");
                     break;
                 default:
                     throw new NotImplementedException();
@@ -156,7 +175,7 @@ namespace ACESim
         public static void ConvertNoiseActionToDiscreteAndUniformLiabilitySignal(byte action, double trueValue, byte numNoiseValues, double noiseStdev, byte numLiabilitySignals, out byte discreteLiabilitySignal, out double uniformLiabilitySignal)
         {
             // This is an equal probabilities decision. 
-            discreteLiabilitySignal = DiscreteValueLiabilitySignal.ConvertNoiseToLiabilitySignal(trueValue, action, numNoiseValues, noiseStdev, numLiabilitySignals);
+            discreteLiabilitySignal = DiscreteValueSignal.ConvertNoiseToLiabilitySignal(trueValue, action, numNoiseValues, noiseStdev, numLiabilitySignals);
             if (discreteLiabilitySignal == 1)
                 uniformLiabilitySignal = -1.0; // just a sign indicating that the signal is negative
             else if (discreteLiabilitySignal == numLiabilitySignals)
@@ -195,7 +214,7 @@ namespace ACESim
         {
             var noise = ConvertActionToNormalDistributionDraw(action, noiseStdev);
             var valuePlusNoise = MyProgress.LiabilityStrengthUniform + noise;
-            byte discreteLiabilitySignal = (byte)DiscreteValueLiabilitySignal.GetDiscreteLiabilitySignal((double) valuePlusNoise, dvsp); // note that this is a 1-based signal
+            byte discreteLiabilitySignal = (byte)DiscreteValueSignal.GetDiscreteLiabilitySignal((double) valuePlusNoise, dvsp); // note that this is a 1-based signal
             return discreteLiabilitySignal;
         }
 

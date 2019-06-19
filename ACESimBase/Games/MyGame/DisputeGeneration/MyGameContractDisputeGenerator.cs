@@ -23,9 +23,9 @@ namespace ACESim
         public double MinBenefitOfActionToDefendant = 0;
         public double MaxBenefitOfActionToDefendant = 200000;
         public double CostOfActionOnPlaintiff = 100_000;
-        public double StdevNoiseToProduceLiabilityLevel = 0.2; 
+        public double StdevNoiseToProduceLiabilityStrength = 0.2; 
 
-        private double[][] ProbabilityLiabilityLevel;
+        private double[][] ProbabilityLiabilityStrength;
 
         private double BenefitOfActionToDefendant_Proportion(byte benefitLevel)
         {
@@ -39,15 +39,15 @@ namespace ACESim
 
         public void Setup(MyGameDefinition myGameDefinition)
         {
-            // We need to determine the probability of different litigation qualities 
-            ProbabilityLiabilityLevel = new double[NumBenefitLevels][];
-            DiscreteValueSignalParameters dsParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = NumBenefitLevels, NumSignals = myGameDefinition.Options.NumLiabilityStrengthPoints, StdevOfNormalDistribution = StdevNoiseToProduceLiabilityLevel, UseEndpoints = true };
+            // We need to determine the probability of different liability strengths 
+            ProbabilityLiabilityStrength = new double[NumBenefitLevels][];
+            DiscreteValueSignalParameters dsParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = NumBenefitLevels, NumSignals = myGameDefinition.Options.NumLiabilityStrengthPoints, StdevOfNormalDistribution = StdevNoiseToProduceLiabilityStrength, UseEndpoints = true };
             for (byte a = 1; a <= NumBenefitLevels; a++)
             {
                 // When the benefit to the defendant is low, then the plaintiff has a good claim -- defendant is only allowed to take the benefit when it is high.
                 // When the benefit to the defendant is high, then the plaintiff has a bad claim.
                 byte strengthOfClaimIfNoRandomness = (byte) (NumBenefitLevels - a + 1);
-                ProbabilityLiabilityLevel[a - 1] = DiscreteValueLiabilitySignal.GetProbabilitiesOfDiscreteLiabilitySignals(strengthOfClaimIfNoRandomness, dsParams);
+                ProbabilityLiabilityStrength[a - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(strengthOfClaimIfNoRandomness, dsParams);
             }
         }
 
@@ -56,8 +56,8 @@ namespace ACESim
             prePrimaryChanceActions = NumBenefitLevels;
             primaryActions = 2;
             postPrimaryChanceActions = 0; 
-            prePrimaryPlayersToInform = new byte[] {(byte) MyGamePlayers.Defendant, (byte)MyGamePlayers.QualityChance }; 
-            primaryPlayersToInform = new byte[] {(byte) MyGamePlayers.Resolution, (byte)MyGamePlayers.QualityChance }; 
+            prePrimaryPlayersToInform = new byte[] {(byte) MyGamePlayers.Defendant, (byte)MyGamePlayers.LiabilityStrengthChance }; 
+            primaryPlayersToInform = new byte[] {(byte) MyGamePlayers.Resolution, (byte)MyGamePlayers.LiabilityStrengthChance }; 
             postPrimaryPlayersToInform = null;
             prePrimaryUnevenChance = false; 
             postPrimaryUnevenChance = true; // irrelevant
@@ -87,9 +87,9 @@ namespace ACESim
             return BenefitOfActionToDefendant_Level(disputeGeneratorActions.PrePrimaryChanceAction) - CostOfActionOnPlaintiff;
         }
 
-        public double[] GetLiabilityLevelProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
+        public double[] GetLiabilityStrengthProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions)
         {
-            return ProbabilityLiabilityLevel[disputeGeneratorActions.PrePrimaryChanceAction - 1];
+            return ProbabilityLiabilityStrength[disputeGeneratorActions.PrePrimaryChanceAction - 1];
         }
 
         public bool IsTrulyLiable(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress)
@@ -136,7 +136,7 @@ namespace ACESim
             return (false, false);
         }
 
-        public (bool unrollParallelize, bool unrollIdentical) GetLiabilityLevelUnrollSettings()
+        public (bool unrollParallelize, bool unrollIdentical) GetLiabilityStrengthUnrollSettings()
         {
             return (false, false);
         }

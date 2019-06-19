@@ -16,14 +16,16 @@ namespace ACESim
         bool IsTrulyLiable(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress);
         double[] GetPrePrimaryChanceProbabilities(MyGameDefinition myGameDefinition);
         double[] GetPostPrimaryChanceProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions);
-        double[] GetLiabilityLevelProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions);
+        double[] GetDamagesStrengthProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions);
+        double[] GetLiabilityStrengthProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions);
         double GetLitigationIndependentSocialWelfare(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions);
         double[] GetLitigationIndependentWealthEffects(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions);
 
         (bool unrollParallelize, bool unrollIdentical) GetPrePrimaryUnrollSettings();
         (bool unrollParallelize, bool unrollIdentical) GetPrimaryUnrollSettings();
         (bool unrollParallelize, bool unrollIdentical) GetPostPrimaryUnrollSettings();
-        (bool unrollParallelize, bool unrollIdentical) GetLiabilityLevelUnrollSettings();
+        (bool unrollParallelize, bool unrollIdentical) GetLiabilityStrengthUnrollSettings();
+        (bool unrollParallelize, bool unrollIdentical) GetDamagesStrengthUnrollSettings();
 
         bool PostPrimaryDoesNotAffectStrategy();
 
