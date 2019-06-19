@@ -18,7 +18,7 @@ namespace ACESim
             PerfectInfo
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Fast;
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Ambitious;
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
@@ -48,9 +48,9 @@ namespace ACESim
                 },
                 PFilingCost = 5000,
                 DAnswerCost = 5000,
-                PNoiseStdev = 0.2,
-                DNoiseStdev = 0.2,
-                CourtNoiseStdev = 0.2,
+                PNoiseStdev = 0.15,
+                DNoiseStdev = 0.15,
+                CourtNoiseStdev = 0.15,
                 CostsMultiplier = 1.0,
                 PTrialCosts = 15_000,
                 DTrialCosts = 15_000,
