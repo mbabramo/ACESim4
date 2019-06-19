@@ -425,23 +425,15 @@ namespace ACESim
                 BestResponseMayReachHere = PredecessorInformationSetForPlayer.BestResponseAction == ActionTakenAtPredecessorSet;
         }
 
-        bool OnlyUpdateIfBestResponseMayReachHere = false; // DEBUG
-
         public void MoveAverageStrategyTowardBestResponse(int iteration, int maxIterations)
         {
-            if (!BestResponseMayReachHere && iteration > 2)
-            {
-                LastBestResponseMayReachHere = BestResponseMayReachHere;
-                return;
-            }
             const double InitialWeightMultiplier = 10.0;
             const double Curvature = 10.0;
             double weightMultiplier = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(InitialWeightMultiplier, 1.0, Curvature, (double)iteration / (double)maxIterations);
             double weightOnBestResponse = weightMultiplier / (double)iteration;
-            if (weightOnBestResponse > 1 || !LastBestResponseMayReachHere)
+            if (weightOnBestResponse > 1)
                 weightOnBestResponse = 1.0;
             MoveAverageStrategyTowardBestResponse(weightOnBestResponse);
-            LastBestResponseMayReachHere = BestResponseMayReachHere;
         }
 
         private void MoveAverageStrategyTowardBestResponse(double weightOnBestResponse)
