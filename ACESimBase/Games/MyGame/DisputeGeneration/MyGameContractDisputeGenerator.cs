@@ -92,6 +92,8 @@ namespace ACESim
             return ProbabilityLiabilityStrength[disputeGeneratorActions.PrePrimaryChanceAction - 1];
         }
 
+        public double[] GetDamagesStrengthProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions) => new double[] { 1.0 };
+
         public bool IsTrulyLiable(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress)
         {
             return GetLitigationIndependentSocialWelfare(myGameDefinition, disputeGeneratorActions) < 0;
@@ -137,6 +139,11 @@ namespace ACESim
         }
 
         public (bool unrollParallelize, bool unrollIdentical) GetLiabilityStrengthUnrollSettings()
+        {
+            return (false, false);
+        }
+
+        public (bool unrollParallelize, bool unrollIdentical) GetDamagesStrengthUnrollSettings()
         {
             return (false, false);
         }

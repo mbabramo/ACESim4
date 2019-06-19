@@ -107,13 +107,13 @@ namespace ACESim
             {
                 if (playersMovingSimultaneously || !pGoesFirstIfNotSimultaneous)
                 { // defendant has made an offer this round
-                    var pMissedOpportunity = MyGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, PInitialWealth, DInitialWealth, (double) DamagesMax, PFiles, PAbandons, DAnswers, DDefaults, (double) DLastOffer * (double)DamagesMax, true /* ignored */, (byte) (BargainingRoundsComplete + 1), null, null);
+                    var pMissedOpportunity = MyGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, PInitialWealth, DInitialWealth, PFiles, PAbandons, DAnswers, DDefaults, (double) DLastOffer * (double)DamagesMax, true /* ignored */, 0, (byte) (BargainingRoundsComplete + 1), null, null);
                     if (pMissedOpportunity.PFinalWealth > PFinalWealthWithBestOffer || PFinalWealthWithBestOffer == null)
                         PFinalWealthWithBestOffer = pMissedOpportunity.PFinalWealth;
                 }
                 if (playersMovingSimultaneously || pGoesFirstIfNotSimultaneous)
                 { // plaintiff has made an offer this round
-                    var dMissedOpportunity = MyGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, PInitialWealth, DInitialWealth, (double)DamagesMax, PFiles, PAbandons, DAnswers, DDefaults, (double)PLastOffer * (double)DamagesMax, true /* ignored */, (byte)(BargainingRoundsComplete + 1), null, null);
+                    var dMissedOpportunity = MyGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, PInitialWealth, DInitialWealth, PFiles, PAbandons, DAnswers, DDefaults, (double)PLastOffer * (double)DamagesMax, true /* ignored */, 0, (byte)(BargainingRoundsComplete + 1), null, null);
                     if (dMissedOpportunity.DFinalWealth > DFinalWealthWithBestOffer || DFinalWealthWithBestOffer == null)
                         DFinalWealthWithBestOffer = dMissedOpportunity.DFinalWealth;
                 }

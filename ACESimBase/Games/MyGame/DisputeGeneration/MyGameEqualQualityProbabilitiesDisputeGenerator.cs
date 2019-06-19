@@ -64,6 +64,8 @@ namespace ACESim
             throw new NotImplementedException(); // we use even chance probabilities
         }
 
+        public double[] GetDamagesStrengthProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions) => new double[] { 1.0 };
+
         public bool IsTrulyLiable(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress)
         {
             MyGameProgress myGameProgress = (MyGameProgress) gameProgress;
@@ -118,6 +120,11 @@ namespace ACESim
         }
 
         public (bool unrollParallelize, bool unrollIdentical) GetLiabilityStrengthUnrollSettings()
+        {
+            return (false, false);
+        }
+
+        public (bool unrollParallelize, bool unrollIdentical) GetDamagesStrengthUnrollSettings()
         {
             return (false, false);
         }

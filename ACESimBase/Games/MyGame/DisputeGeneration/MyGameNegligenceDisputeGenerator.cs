@@ -126,6 +126,8 @@ namespace ACESim
             return LiabilityStrength[marginalBenefitSchedule - 1][precautionLevelChosen - 1];
         }
 
+        public double[] GetDamagesStrengthProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions) => new double[] { 1.0 };
+
         public bool IsTrulyLiable(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress)
         {
             byte marginalBenefitSchedule = disputeGeneratorActions.PrePrimaryChanceAction;
@@ -181,6 +183,12 @@ namespace ACESim
         {
             return (false, false);
         }
+
+        public (bool unrollParallelize, bool unrollIdentical) GetDamagesStrengthUnrollSettings()
+        {
+            return (false, false);
+        }
+
         public bool PostPrimaryDoesNotAffectStrategy() => false;
     }
 }

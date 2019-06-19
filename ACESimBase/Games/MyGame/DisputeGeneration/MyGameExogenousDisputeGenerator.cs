@@ -75,6 +75,8 @@ namespace ACESim
                 return ProbabilitiesLiabilityStrength_TrulyNotLiable;
         }
 
+        public double[] GetDamagesStrengthProbabilities(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions) => ProbabilityOfDamagesStrengthValues;
+
         public bool IsTrulyLiable(MyGameDefinition myGameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions, GameProgress gameProgress)
         {
             return disputeGeneratorActions.PostPrimaryChanceAction == 2;
@@ -126,6 +128,11 @@ namespace ACESim
         }
 
         public (bool unrollParallelize, bool unrollIdentical) GetLiabilityStrengthUnrollSettings()
+        {
+            return (true, true);
+        }
+
+        public (bool unrollParallelize, bool unrollIdentical) GetDamagesStrengthUnrollSettings()
         {
             return (true, true);
         }
