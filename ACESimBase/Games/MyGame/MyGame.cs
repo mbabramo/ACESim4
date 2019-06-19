@@ -165,8 +165,20 @@ namespace ACESim
                     MyProgress.TrialOccurs = true;
                     MyProgress.PWinsAtTrial =
                         action == 2;
-                    if (MyProgress.PWinsAtTrial == false || MyDefinition.Options.NumDamagesStrengthPoints <= 1)
+                    if (MyProgress.PWinsAtTrial == false)
+                    {
+                        MyProgress.DamagesAwarded = 0;
                         MyProgress.GameComplete = true;
+                    }
+                    else
+                    {
+                        bool courtWouldDecideDamages = MyDefinition.Options.NumDamagesStrengthPoints > 1;
+                        if (!courtWouldDecideDamages)
+                        {
+                            MyProgress.DamagesAwarded = (double) MyProgress.DamagesMax;
+                            MyProgress.GameComplete = true;
+                        }
+                    }
                     //System.Diagnostics.Console.WriteLine($"Quality {MyProgress.LiabilityStrengthUniform} Court noise action {action} => {courtNoiseNormalDraw} => signal {courtLiabilitySignal} PWins {MyProgress.PWinsAtTrial}");
                     break;
                 case (byte)MyGameDecisions.CourtDecisionDamages:
@@ -250,7 +262,7 @@ namespace ACESim
 
             if (gameDefinition.Options.MyGamePretrialDecisionGeneratorGenerator != null)
             {
-                gameDefinition.Options.MyGamePretrialDecisionGeneratorGenerator.GetEffectOnPlayerWelfare(gameDefinition, outcome.TrialOccurs, pWinsAtTrial, damagesAwarded ?? 0, pretrialActions, out double effectOnP, out double effectOnD);
+                gameDefinition.Options.MyGamePretrialDecisionGeneratorGenerator.GetEffectOnPlayerWelfare(gameDefinition, outcome.TrialOccurs, pWinsAtTrial, gameDefinition.Options.DamagesMax, pretrialActions, out double effectOnP, out double effectOnD);
                 outcome.PChangeWealth += effectOnP;
                 outcome.DChangeWealth += effectOnD;
             }

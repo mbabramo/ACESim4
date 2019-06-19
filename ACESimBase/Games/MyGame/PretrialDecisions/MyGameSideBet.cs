@@ -38,7 +38,7 @@ namespace ACESim
                 myGameProgress.PretrialActions.DAction = action;
         }
 
-        public void GetEffectOnPlayerWelfare(MyGameDefinition myGameDefinition, bool trialOccurs, bool pWinsAtTrial, double damagesAwarded, MyGamePretrialActions pretrialActions, out double effectOnP, out double effectOnD)
+        public void GetEffectOnPlayerWelfare(MyGameDefinition myGameDefinition, bool trialOccurs, bool pWinsAtTrial, double damagesAlleged, MyGamePretrialActions pretrialActions, out double effectOnP, out double effectOnD)
         {
             if (trialOccurs && (pretrialActions.PAction == 1 || pretrialActions.DAction == 1))
             { // we have a side-bet challenge to process
@@ -46,7 +46,7 @@ namespace ACESim
                 {
                     bool loserIsChallenger = pretrialActions.DAction == 1; // regardless of whether other party challenged
                     double damagesMultiplier = loserIsChallenger ? DamagesMultipleForChallengerToPay : DamagesMultipleForChallengedToPay;
-                    double amountToWinner = (double) damagesAwarded * damagesMultiplier;
+                    double amountToWinner = (double) damagesAlleged * damagesMultiplier;
                     effectOnP = amountToWinner;
                     effectOnD = 0 - amountToWinner;
                 }
@@ -54,7 +54,7 @@ namespace ACESim
                 { // defendant wins
                     bool loserIsChallenger = pretrialActions.PAction == 1; // regardless of whether other party challenged
                     double damagesMultiplier = loserIsChallenger ? DamagesMultipleForChallengerToPay : DamagesMultipleForChallengedToPay;
-                    double amountToWinner = (double)damagesAwarded * damagesMultiplier;
+                    double amountToWinner = (double)damagesAlleged * damagesMultiplier;
                     effectOnP = 0 - amountToWinner;
                     effectOnD = amountToWinner;
                 }

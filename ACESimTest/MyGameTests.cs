@@ -788,7 +788,7 @@ namespace ACESimTest
                 foreach (var runningSideBetChallenges in new[] {RunningSideBetChallenges.None, RunningSideBetChallenges.PChallenges2D1, RunningSideBetChallenges.DChallenges2P1})
                 {
                     var skipThis = false;
-                    if (CaseNumber == 10780)
+                    if (CaseNumber == 903)
                     {
                         Br.eak.Add("Case");
                         GameProgressLogger.LoggingOn = true;
@@ -858,7 +858,7 @@ namespace ACESimTest
             double pFinalWealthExpected = options.PInitialWealth - pExpenses - sideBetTransferFromP - runningSideBetTransferFromP;
             double dFinalWealthExpected = options.DInitialWealth - dExpenses + sideBetTransferFromP + runningSideBetTransferFromP;
             if (plaintiffWins)
-            {
+            { // DEBUG
                 pFinalWealthExpected += options.DamagesMax;
                 dFinalWealthExpected -= options.DamagesMax;
             }

@@ -11,7 +11,7 @@ namespace ACESim
     public class MyGameRunningSideBets
     {
         /// <summary>
-        /// The value of a single chip, as a percentage of damages.
+        /// The value of a single chip.
         /// </summary>
         public double ValueOfChip;
         /// <summary>

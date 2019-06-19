@@ -13,13 +13,13 @@ namespace ACESim
     public unsafe struct InformationSetLog
     {
         // must also set similar values in GameHistory.
-        public const int MaxInformationSetLoggingLength = 1050; // MUST equal MaxInformationSetLoggingLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLoggingLengthPerPartialPlayer * NumPartialPlayers. 
+        public const int MaxInformationSetLoggingLength = 1200; // MUST equal MaxInformationSetLoggingLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLoggingLengthPerPartialPlayer * NumPartialPlayers. 
         public const int MaxInformationSetLoggingLengthPerFullPlayer = 300;
         public const int MaxInformationSetLoggingLengthPerPartialPlayer = 30;
 
 
         public const int NumFullPlayers = 3; // includes main players and resolution player and any chance players that need full size information set
-        public const int MaxNumPlayers = 8; // includes chance players that need a very limited information set
+        public const int MaxNumPlayers = 13; // includes chance players that need a very limited information set
         public int NumPartialPlayers => MaxNumPlayers - NumFullPlayers;
 
 
