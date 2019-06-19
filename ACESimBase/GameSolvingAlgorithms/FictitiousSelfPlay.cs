@@ -51,7 +51,7 @@ namespace ACESim
             string reportString = null;
             double[] lastUtilities = new double[NumNonChancePlayers];
 
-            CalculateBestResponse();
+            CalculateBestResponse(true); // DEBUG
 
             if (BestBecomesResult && iteration >= 3)
             {

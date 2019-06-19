@@ -173,7 +173,7 @@ namespace ACESim
 
         public double CalculateBestResponseAndGetFitness()
         {
-            CalculateBestResponse();
+            CalculateBestResponse(false);
             return BestResponseImprovement.Sum();
         }
 

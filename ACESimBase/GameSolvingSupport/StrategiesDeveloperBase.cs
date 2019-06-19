@@ -576,7 +576,7 @@ namespace ACESim
                 Console.WriteLine("");
                 Console.WriteLine(prefaceFn());
                 if (doBestResponse)
-                    CalculateBestResponse();
+                    CalculateBestResponse(false);
 
                 if (doReports)
                 {
@@ -663,7 +663,7 @@ namespace ACESim
             Console.WriteLine($"... {s.ElapsedMilliseconds} milliseconds");
         }
 
-        private void ExecuteAcceleratedBestResponse(bool determineWhetherReachable = false)
+        private void ExecuteAcceleratedBestResponse(bool determineWhetherReachable)
         {
             // index through information sets by decision (note that i is not the same as the actual decision index). First, calculate reach probabilities going forward. Second, calculate best response values going backward.
             CalculateReachProbabilitiesAndPrunability();
@@ -703,7 +703,7 @@ namespace ACESim
             }
         }
 
-        public unsafe void CalculateBestResponse()
+        public unsafe void CalculateBestResponse(bool determineWhetherReachable)
         {
             BestResponseUtilities = new double[NumNonChancePlayers];
             ActionStrategies actionStrategy = ActionStrategy;
@@ -721,7 +721,7 @@ namespace ACESim
                     throw new NotSupportedException();
                 if (AcceleratedBestResponsePrepResult == null)
                     PrepareAcceleratedBestResponse();
-                ExecuteAcceleratedBestResponse();
+                ExecuteAcceleratedBestResponse(determineWhetherReachable);
             }
             else
             {

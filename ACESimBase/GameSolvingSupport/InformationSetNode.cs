@@ -307,6 +307,7 @@ namespace ACESim
         public InformationSetNode PredecessorInformationSetForPlayer;
         public byte ActionTakenAtPredecessorSet;
         public bool BestResponseMayReachHere;
+        public bool LastBestResponseMayReachHere;
         public ByteList LastActionsList => PathsFromPredecessor.Last().ActionsList; // so that we can find corresponding path in predecessor
         public class PathFromPredecessorInfo
         {
@@ -424,33 +425,23 @@ namespace ACESim
                 BestResponseMayReachHere = PredecessorInformationSetForPlayer.BestResponseAction == ActionTakenAtPredecessorSet;
         }
 
-        bool OnlyUpdateIfBestResponseMayReachHere = false;
-
-        public void UpdateAverageStrategyForFictitiousPlay_Original(double lambda2)
-        {
-            if (!BestResponseMayReachHere && OnlyUpdateIfBestResponseMayReachHere)
-                return;
-            double lambda1 = 1.0 - lambda2;
-            double weightOnDifference = lambda2 / (lambda1 * SelfReachProbability + lambda2);
-            for (byte action = 1; action <= NumPossibleActions; action++)
-            {
-                double currentAverageStrategyProbability = GetAverageStrategy(action);
-                double bestResponseProbability = (BestResponseAction == action) ? 1.0 : 0.0;
-                double difference = bestResponseProbability - currentAverageStrategyProbability;
-                double successorValue = currentAverageStrategyProbability + weightOnDifference * difference;
-                NodeInformation[cumulativeStrategyDimension, action - 1] = NodeInformation[averageStrategyProbabilityDimension, action - 1] = successorValue;
-            }
-        }
+        bool OnlyUpdateIfBestResponseMayReachHere = false; // DEBUG
 
         public void MoveAverageStrategyTowardBestResponse(int iteration, int maxIterations)
         {
+            if (!BestResponseMayReachHere && iteration > 2)
+            {
+                LastBestResponseMayReachHere = BestResponseMayReachHere;
+                return;
+            }
             const double InitialWeightMultiplier = 10.0;
             const double Curvature = 10.0;
             double weightMultiplier = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(InitialWeightMultiplier, 1.0, Curvature, (double)iteration / (double)maxIterations);
             double weightOnBestResponse = weightMultiplier / (double)iteration;
-            if (weightOnBestResponse > 1)
+            if (weightOnBestResponse > 1 || !LastBestResponseMayReachHere)
                 weightOnBestResponse = 1.0;
             MoveAverageStrategyTowardBestResponse(weightOnBestResponse);
+            LastBestResponseMayReachHere = BestResponseMayReachHere;
         }
 
         private void MoveAverageStrategyTowardBestResponse(double weightOnBestResponse)

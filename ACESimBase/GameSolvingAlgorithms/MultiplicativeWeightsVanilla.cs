@@ -87,7 +87,7 @@ namespace ACESim
                 IterationNum = iteration;
                 StrategiesDeveloperStopwatch.Start();
                 if (EvolutionSettings.MultiplicativeWeights_CFRBR)
-                    CalculateBestResponse();
+                    CalculateBestResponse(false);
                 Unroll_ExecuteUnrolledCommands(array, iteration == 1);
                 StrategiesDeveloperStopwatch.Stop();
                 UpdateInformationSets(iteration);
@@ -710,7 +710,7 @@ namespace ACESim
             for (int iteration = 1; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
                 if (EvolutionSettings.MultiplicativeWeights_CFRBR)
-                    CalculateBestResponse();
+                    CalculateBestResponse(false);
                 reportString = await MultiplicativeWeightsVanillaCFRIteration(iteration);
                 if (EvolutionSettings.PruneOnOpponentStrategy && EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions)
                     CalculateReachProbabilitiesAndPrunability();
@@ -763,7 +763,7 @@ namespace ACESim
             {
                 if (!EvolutionSettings.UseAcceleratedBestResponse)
                     throw new NotSupportedException(); // we need the average strategy result, which for now we only have with accelerated best response
-                CalculateBestResponse();
+                CalculateBestResponse(false);
                 double sumBestResponseImprovements = BestResponseImprovement.Sum();
                 if (LastBestResponseImprovement != null)
                 {
