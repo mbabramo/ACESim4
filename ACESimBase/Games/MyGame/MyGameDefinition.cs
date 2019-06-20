@@ -316,7 +316,7 @@ namespace ACESim
         {
             PDamagesSignalsTable = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { Options.NumDamagesStrengthPoints, Options.NumDamagesSignals });
             DDamagesSignalsTable = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { Options.NumDamagesStrengthPoints, Options.NumDamagesSignals });
-            CDamagesSignalsTable = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { Options.NumDamagesStrengthPoints, 2 });
+            CDamagesSignalsTable = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { Options.NumDamagesStrengthPoints, Options.NumDamagesSignals });
             for (byte litigationQuality = 1;
                 litigationQuality <= Options.NumDamagesStrengthPoints;
                 litigationQuality++)
@@ -329,7 +329,7 @@ namespace ACESim
                 PDamagesSignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, pParams);
                 DiscreteValueSignalParameters dParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = Options.NumDamagesStrengthPoints, NumSignals = Options.NumDamagesSignals, StdevOfNormalDistribution = Options.DDamagesNoiseStdev, UseEndpoints = false };
                 DDamagesSignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, dParams);
-                DiscreteValueSignalParameters cParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = Options.NumDamagesStrengthPoints, NumSignals = 2, StdevOfNormalDistribution = Options.CourtDamagesNoiseStdev, UseEndpoints = false };
+                DiscreteValueSignalParameters cParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = Options.NumDamagesStrengthPoints, NumSignals = Options.NumDamagesSignals, StdevOfNormalDistribution = Options.CourtDamagesNoiseStdev, UseEndpoints = false }; // DEBUG TODO: Differentiate number of court damages signals, since we might want that to be a higher number.
                 CDamagesSignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, cParams);
             }
         }

@@ -11,6 +11,7 @@ namespace ACESim
     {
         public enum MyGameOptionSetChoices
         {
+            Custom,
             SuperSimple,
             Fast,
             Usual,
@@ -18,10 +19,11 @@ namespace ACESim
             PerfectInfo
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Usual;
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Custom;
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
+            MyGameOptionSetChoices.Custom => Custom(),
             MyGameOptionSetChoices.SuperSimple => SuperSimple(),
             MyGameOptionSetChoices.Fast => Fast(),
             MyGameOptionSetChoices.Usual => Usual(),
@@ -31,7 +33,7 @@ namespace ACESim
         };
 
 
-        public static MyGameOptions BaseForSingleOptionsSet()
+        public static MyGameOptions BaseOptions()
         {
             var options = new MyGameOptions()
             {
@@ -52,6 +54,10 @@ namespace ACESim
                 PLiabilityNoiseStdev = 0.15,
                 DLiabilityNoiseStdev = 0.15,
                 CourtLiabilityNoiseStdev = 0.15,
+                NumDamagesStrengthPoints = 1,
+                NumDamagesSignals = 1,
+                PDamagesNoiseStdev = 0.25,
+                DDamagesNoiseStdev = 0.25,
                 CostsMultiplier = 1.0,
                 PTrialCosts = 15_000,
                 DTrialCosts = 15_000,
@@ -88,9 +94,22 @@ namespace ACESim
             return options;
         }
 
+        public static MyGameOptions Custom()
+        {
+            var options = BaseOptions();
+            options.NumDamagesStrengthPoints = 4;
+            options.NumDamagesSignals = 4;
+            options.NumLiabilityStrengthPoints = 4;
+            options.NumLiabilitySignals = 4;
+            options.NumOffers = 6;
+            options.NumPotentialBargainingRounds = 2;
+            options.AllowAbandonAndDefaults = true;
+            return options;
+        }
+
         public static MyGameOptions SuperSimple()
         {
-            var options = BaseForSingleOptionsSet();
+            var options = BaseOptions();
             options.NumLiabilityStrengthPoints = 2;
             options.NumLiabilitySignals = 2;
             options.NumOffers = 2;
@@ -101,7 +120,7 @@ namespace ACESim
 
         public static MyGameOptions Fast()
         {
-            var options = BaseForSingleOptionsSet();
+            var options = BaseOptions();
             options.NumLiabilityStrengthPoints = 4;
             options.NumLiabilitySignals = 4;
             options.NumOffers = 4;
@@ -112,13 +131,13 @@ namespace ACESim
 
         public static MyGameOptions Usual()
         {
-            var options = BaseForSingleOptionsSet();
+            var options = BaseOptions();
             return options;
         }
 
         public static MyGameOptions Ambitious()
         {
-            var options = BaseForSingleOptionsSet();
+            var options = BaseOptions();
             options.NumLiabilityStrengthPoints = 10;
             options.NumLiabilitySignals = 10;
             options.NumOffers = 10;
@@ -129,69 +148,11 @@ namespace ACESim
 
         public static MyGameOptions PerfectInformation(bool courtIsPerfectToo)
         {
-            var options = BaseForSingleOptionsSet();
+            var options = BaseOptions();
             options.PLiabilityNoiseStdev = 0.001;
             options.DLiabilityNoiseStdev = 0.001;
             if (courtIsPerfectToo)
                 options.CourtLiabilityNoiseStdev = 0.001;
-            return options;
-        }
-
-        public static MyGameOptions BaseForMultipleOptionsSets()
-        {
-            var options = new MyGameOptions()
-            {
-                PInitialWealth = 1000000,
-                DInitialWealth = 1000000,
-                DamagesMin = 100000,
-                DamagesMax = 100000,
-                NumLiabilityStrengthPoints = 10,
-                MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
-                {
-                    ProbabilityTrulyLiable_LiabilityStrength75 = 0.75,
-                    ProbabilityTrulyLiable_LiabilityStrength90 = 0.90,
-                    NumPointsToDetermineTrulyLiable = 100,
-                },
-                NumLiabilitySignals = 10,
-                NumOffers = 11,
-                PFilingCost = 5000,
-                DAnswerCost = 5000,
-                PLiabilityNoiseStdev = 0.2,
-                DLiabilityNoiseStdev = 0.2,
-                CourtLiabilityNoiseStdev = 0.2,
-                CostsMultiplier = 1.0,
-                PTrialCosts = 15000,
-                DTrialCosts = 15000,
-                RegretAversion = 0.0,
-                IncludeAgreementToBargainDecisions = false,
-                PerPartyCostsLeadingUpToBargainingRound = 10000,
-                AllowAbandonAndDefaults = true,
-                LoserPays = false,
-                LoserPaysMultiple = 1.0,
-                LoserPaysAfterAbandonment = false, 
-                DeltaOffersOptions = new DeltaOffersOptions()
-                {
-                    SubsequentOffersAreDeltas = false,
-                    DeltaStartingValue = 0.01,
-                    MaxDelta = 0.25
-                },
-                NumPotentialBargainingRounds = 3,
-                BargainingRoundRecall = MyGameBargainingRoundRecall.RememberAllBargainingRounds,
-                BargainingRoundsSimultaneous = true,
-                SimultaneousOffersUltimatelyRevealed = true,
-                PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false, true, false, true, false },
-                IncludeLiabilitySignalsReport = false,     
-                IncludeCourtSuccessReport = false,
-            };
-            // options.AdditionalTableOverrides = new List<(Func<Decision, GameProgress, byte>, string)>() { (MyGameActionsGenerator.GamePlaysOutToTrial, "GamePlaysOutToTrial") };
-            options.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.PInitialWealth };
-            options.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.DInitialWealth };
-            //options.PUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth };
-            //options.DUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth };
-            //options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth, Alpha = 10 * 0.000001 };
-            //options.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth, Alpha = 10 * 0.000001 };
-            //options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth, Alpha = 10 * 0.000001 };
-            //options.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.DInitialWealth };
             return options;
         }
     }
