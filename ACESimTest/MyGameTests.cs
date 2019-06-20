@@ -46,7 +46,7 @@ namespace ACESimTest
             Irrelevant // i.e., we're not getting to trial, so doesn't matter now
         }
 
-        private const double PartyLiabilityNoise = 0.2, PartyDamagesNoise = 0.25, InitialWealth = 1_000_000, DamagesAlleged = 100_000, CostsMultiplier = 1.1, PFileCost = 3000, DAnswerCost = 2000, PTrialCosts = 4000, DTrialCosts = 6000, PerRoundBargainingCost = 1000, RegretAversion = 0.25, LoserPaysMultiple = 1.5, ValueOfChip = 8000;
+        private const double PartyLiabilityNoise = 0.2, PartyDamagesNoise = 0.25, InitialWealth = 1_000_000, DamagesAlleged = 100_000, DamagesMinMaxRatio = 0.5, CostsMultiplier = 1.1, PFileCost = 3000, DAnswerCost = 2000, PTrialCosts = 4000, DTrialCosts = 6000, PerRoundBargainingCost = 1000, RegretAversion = 0.25, LoserPaysMultiple = 1.5, ValueOfChip = 8000;
         private const byte MaxChipsPerRound = 3;
         private const byte NumLiabilityStrengthPoints = 8;
         private const byte NumLiabilitySignals = 10;
@@ -57,7 +57,8 @@ namespace ACESimTest
         public const byte ValueWhenCaseSettles = 4;
         private const byte LiabilityStrength = 3;
         private const byte PLiabilitySignal = 4, DLiabilitySignal = 2;
-        private const byte PDamagesSignal = 2, DDamagesSignal = 3;
+        private const byte DamagesStrength = 4;
+        private const byte PDamagesSignal = 2, DDamagesSignal = 3, CDamagesSignal = 3;
         private int CaseNumber;
         public double DamagesMultipleForChallengedToPay = 0.75;
         public double DamagesMultipleForChallengerToPay = 1.25;
@@ -82,10 +83,12 @@ namespace ACESimTest
             {
                 PInitialWealth = InitialWealth,
                 DInitialWealth = InitialWealth,
-                DamagesMin = allowDamagesVariation ? DamagesAlleged / 2.0 : DamagesAlleged,
+                DamagesMin = allowDamagesVariation ? DamagesAlleged * DamagesMinMaxRatio : DamagesAlleged,
                 DamagesMax = DamagesAlleged,
                 NumLiabilityStrengthPoints = NumLiabilityStrengthPoints,
                 NumLiabilitySignals = NumLiabilitySignals,
+                NumDamagesStrengthPoints = allowDamagesVariation ? NumDamagesStrengthPoints : (byte) 0,
+                NumDamagesSignals = allowDamagesVariation ? NumDamagesSignals : (byte) 0,
                 NumOffers = NumOffers,
                 MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator
                 {
@@ -470,7 +473,7 @@ namespace ACESimTest
             return (string.Join(",", pInfo), string.Join(",", dInfo), string.Join(",", pInfoExplanations), string.Join(",", dInfoExplanations));
         }
 
-        private Func<Decision, GameProgress, byte> GetPlayerActions(bool pFiles, bool dAnswers, byte litigationQuality, byte pLiabilitySignal, byte dLiabilitySignal, byte pDamagesSignal, byte dDamagesSignal, HowToSimulateBargainingFailure simulatingBargainingFailure, SideBetChallenges sideBetChallenges, RunningSideBetChallenges runningSideBetChallenges, List<(byte? pMove, byte? dMove)> bargainingRoundMoves, bool simultaneousBargainingRounds, bool simultaneousOffersUltimatelyRevealed, byte? pReadyToAbandonRound = null, byte? dReadyToDefaultRound = null, byte mutualGiveUpResult = 0, byte courtLiabilityResult = 0, byte courtDamagesResult = 0)
+        private Func<Decision, GameProgress, byte> GetPlayerActions(bool pFiles, bool dAnswers, byte liabilityStrength, byte pLiabilitySignal, byte dLiabilitySignal, byte damagesStrength, byte pDamagesSignal, byte dDamagesSignal, HowToSimulateBargainingFailure simulatingBargainingFailure, SideBetChallenges sideBetChallenges, RunningSideBetChallenges runningSideBetChallenges, List<(byte? pMove, byte? dMove)> bargainingRoundMoves, bool simultaneousBargainingRounds, bool simultaneousOffersUltimatelyRevealed, byte? pReadyToAbandonRound = null, byte? dReadyToDefaultRound = null, byte mutualGiveUpResult = 0, byte courtLiabilityResult = 0, byte courtDamagesResult = 0)
         {
             var bargaining = new List<(byte decision, byte customInfo, byte action)>();
             for (byte b = 1; b <= bargainingRoundMoves.Count(); b++)
@@ -511,9 +514,10 @@ namespace ACESimTest
                     ((byte) MyGameDecisions.PostPrimaryActionChance, 17), // irrelevant -- just determines probability truly liable
                     ((byte) MyGameDecisions.PFile, pFiles ? (byte) 1 : (byte) 2),
                     ((byte) MyGameDecisions.DAnswer, dAnswers ? (byte) 1 : (byte) 2),
-                    ((byte) MyGameDecisions.LiabilityStrength, litigationQuality),
+                    ((byte) MyGameDecisions.LiabilityStrength, liabilityStrength),
                     ((byte) MyGameDecisions.PLiabilitySignal, pLiabilitySignal),
                     ((byte) MyGameDecisions.DLiabilitySignal, dLiabilitySignal),
+                    ((byte) MyGameDecisions.DamagesStrength, damagesStrength),
                     ((byte) MyGameDecisions.PDamagesSignal, pDamagesSignal),
                     ((byte) MyGameDecisions.DDamagesSignal, dDamagesSignal),
                     ((byte) MyGameDecisions.PreBargainingRound, (byte) 1 /* only action -- dummy decision */),
@@ -583,7 +587,7 @@ namespace ACESimTest
                         }
                         CaseGivenUp_SpecificSettingsAndActions(numPotentialBargainingRounds, abandonmentInRound, bargainingRoundRecall,
                             simultaneousBargainingRounds,
-                            simultaneousOffersUltimatelyRevealed, LiabilityStrength, plaintiffGivesUp ? abandonmentInRound : (byte?)null,
+                            simultaneousOffersUltimatelyRevealed, LiabilityStrength, DamagesStrength, plaintiffGivesUp ? abandonmentInRound : (byte?)null,
                             defendantGivesUp ? abandonmentInRound : (byte?)null,
                             plaintiffWinsIfBothGiveUp ? (byte)2 : (byte)1,
                             loserPaysPolicy, 
@@ -599,7 +603,7 @@ namespace ACESimTest
             }
         }
 
-        public void CaseGivenUp_SpecificSettingsAndActions(byte numPotentialBargainingRounds, byte? abandonmentInRound, MyGameBargainingRoundRecall bargainingRoundRecall, bool simultaneousBargainingRounds, bool simultaneousOffersUltimatelyRevealed, byte litigationQuality, byte? pReadyToAbandonRound, byte? dReadyToDefaultRound, byte mutualGiveUpResult, LoserPaysPolicy loserPaysPolicy, bool allowDamagesVariation, HowToSimulateBargainingFailure simulatingBargainingFailure, RunningSideBetChallenges runningSideBetChallenges)
+        public void CaseGivenUp_SpecificSettingsAndActions(byte numPotentialBargainingRounds, byte? abandonmentInRound, MyGameBargainingRoundRecall bargainingRoundRecall, bool simultaneousBargainingRounds, bool simultaneousOffersUltimatelyRevealed, byte liabilityStrength, byte damagesStrength, byte? pReadyToAbandonRound, byte? dReadyToDefaultRound, byte mutualGiveUpResult, LoserPaysPolicy loserPaysPolicy, bool allowDamagesVariation, HowToSimulateBargainingFailure simulatingBargainingFailure, RunningSideBetChallenges runningSideBetChallenges)
         {
             var bargainingRoundMoves = GetBargainingRoundMoves(simultaneousBargainingRounds,
                 abandonmentInRound ?? numPotentialBargainingRounds, false, simulatingBargainingFailure, out var offers);
@@ -608,8 +612,8 @@ namespace ACESimTest
             var options = GetGameOptions(allowDamagesVariation, true, numPotentialBargainingRounds, bargainingRoundRecall, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, loserPaysPolicy, simulatingBargainingFailure, SideBetChallenges.NoChallengesAllowed, runningSideBetChallenges);
             bool pFiles = pReadyToAbandonRound != 0;
             bool dAnswers = pFiles && dReadyToDefaultRound != 0;
-            var actionsToPlay = GetPlayerActions(pFiles, dAnswers, litigationQuality, PLiabilitySignal,
-                DLiabilitySignal, PDamagesSignal, DDamagesSignal, bargainingRoundMoves: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed: simultaneousOffersUltimatelyRevealed, pReadyToAbandonRound: pReadyToAbandonRound, dReadyToDefaultRound: dReadyToDefaultRound, mutualGiveUpResult: mutualGiveUpResult, simulatingBargainingFailure: simulatingBargainingFailure, sideBetChallenges: SideBetChallenges.NoChallengesAllowed, runningSideBetChallenges: runningSideBetChallenges);
+            var actionsToPlay = GetPlayerActions(pFiles, dAnswers, liabilityStrength, PLiabilitySignal,
+                DLiabilitySignal, damagesStrength, PDamagesSignal,  DDamagesSignal, bargainingRoundMoves: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed: simultaneousOffersUltimatelyRevealed, pReadyToAbandonRound: pReadyToAbandonRound, dReadyToDefaultRound: dReadyToDefaultRound, mutualGiveUpResult: mutualGiveUpResult, simulatingBargainingFailure: simulatingBargainingFailure, sideBetChallenges: SideBetChallenges.NoChallengesAllowed, runningSideBetChallenges: runningSideBetChallenges);
             var myGameProgress = MyGameLauncher.PlayMyGameOnce(options, actionsToPlay);
             VerifyInformationSetUniqueness(myGameProgress, options);
 
@@ -682,7 +686,7 @@ namespace ACESimTest
             //var informationSetHistories = myGameProgress.GameHistory.GetInformationSetHistoryItems().ToList();
             GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet, out string resolutionSet);
             var expectedPartyInformationSets = ConstructExpectedPartyInformationSets(LiabilityStrength, PLiabilitySignal, DLiabilitySignal, allowDamagesVariation, PDamagesSignal, DDamagesSignal, pFiles, dAnswers, simulatingBargainingFailure, runningSideBetChallenges, bargainingRoundMoves, bargainingRoundRecall, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, true);
-            string expectedResolutionSet = ConstructExpectedResolutionSet(litigationQuality, pFiles, dAnswers, simulatingBargainingFailure, bargainingRoundMoves, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, false, true, pReadyToAbandonRound != null, dReadyToDefaultRound != null, mutualGiveUpResult == 1, false, 0, SideBetChallenges.Irrelevant, runningSideBetChallenges);
+            string expectedResolutionSet = ConstructExpectedResolutionSet(liabilityStrength, pFiles, dAnswers, simulatingBargainingFailure, bargainingRoundMoves, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, false, true, pReadyToAbandonRound != null, dReadyToDefaultRound != null, mutualGiveUpResult == 1, false, 0, SideBetChallenges.Irrelevant, runningSideBetChallenges);
             pInformationSet.Should().Be(expectedPartyInformationSets.pInformationSet);
             dInformationSet.Should().Be(expectedPartyInformationSets.dInformationSet);
             resolutionSet.Should().Be(expectedResolutionSet);
@@ -760,7 +764,7 @@ namespace ACESimTest
             var numActualRounds = (byte) bargainingRoundMoves.Count();
             var options = GetGameOptions(allowDamagesVariation, allowAbandonAndDefault, numPotentialBargainingRounds, bargainingRoundRecall, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, loserPaysPolicy, simulatingBargainingFailure, SideBetChallenges.NoChallengesAllowed, runningSideBetChallenges);
             var actionsToPlay = GetPlayerActions(true, true, LiabilityStrength, PLiabilitySignal,
-                DLiabilitySignal, PDamagesSignal, DDamagesSignal, simulatingBargainingFailure, bargainingRoundMoves: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed: simultaneousOffersUltimatelyRevealed, sideBetChallenges: SideBetChallenges.NoChallengesAllowed, runningSideBetChallenges: runningSideBetChallenges);
+                DLiabilitySignal, DamagesStrength, PDamagesSignal, DDamagesSignal, simulatingBargainingFailure, bargainingRoundMoves: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed: simultaneousOffersUltimatelyRevealed, sideBetChallenges: SideBetChallenges.NoChallengesAllowed, runningSideBetChallenges: runningSideBetChallenges);
             var myGameProgress = MyGameLauncher.PlayMyGameOnce(options, actionsToPlay);
             VerifyInformationSetUniqueness(myGameProgress, options);
 
@@ -836,8 +840,15 @@ namespace ACESimTest
             var bargainingMoves = GetBargainingRoundMoves(simultaneousBargainingRounds, numBargainingRounds, false, simulatingBargainingFailure, out var offers);
             var bestOffers = GetBestOffers(offers);
             byte courtLiabilityResult = plaintiffWins ? (byte) 2 : (byte) 1;
-            byte courtDamagesResult = 3;
-            var actions = GetPlayerActions(true, true, LiabilityStrength, PLiabilitySignal, DLiabilitySignal, PDamagesSignal, DDamagesSignal, simulatingBargainingFailure, sideBetChallenges, runningSideBetChallenges, bargainingMoves, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, null, null, 0, courtLiabilityResult, courtDamagesResult);
+            byte courtDamagesResultIfAllowVariation = CDamagesSignal;
+            double damagesIfAwarded = DamagesAlleged;
+            if (allowDamagesVariation)
+            {
+                double damagesProportionWithVariation = EquallySpaced.GetLocationOfEquallySpacedPoint(courtDamagesResultIfAllowVariation - 1 /* make it zero-based */, NumDamagesSignals, true);
+                double minDamages = DamagesAlleged * DamagesMinMaxRatio;
+                damagesIfAwarded = minDamages + damagesProportionWithVariation * (DamagesAlleged - minDamages);
+            }
+            var actions = GetPlayerActions(true, true, LiabilityStrength, PLiabilitySignal, DLiabilitySignal, DamagesStrength, PDamagesSignal, DDamagesSignal, simulatingBargainingFailure, sideBetChallenges, runningSideBetChallenges, bargainingMoves, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, null, null, 0, courtLiabilityResult, courtDamagesResultIfAllowVariation);
             var myGameProgress = MyGameLauncher.PlayMyGameOnce(options, actions);
             myGameProgress.GameComplete.Should().BeTrue();
             VerifyInformationSetUniqueness(myGameProgress, options);
@@ -872,9 +883,9 @@ namespace ACESimTest
             double pFinalWealthExpected = options.PInitialWealth - pExpenses - sideBetTransferFromP - runningSideBetTransferFromP;
             double dFinalWealthExpected = options.DInitialWealth - dExpenses + sideBetTransferFromP + runningSideBetTransferFromP;
             if (plaintiffWins)
-            { // DEBUG
-                pFinalWealthExpected += options.DamagesMax;
-                dFinalWealthExpected -= options.DamagesMax;
+            {
+                pFinalWealthExpected += damagesIfAwarded;
+                dFinalWealthExpected -= damagesIfAwarded;
             }
             CheckFinalWelfare(myGameProgress, pFinalWealthExpected, dFinalWealthExpected, bestOffers);
             GetInformationSetStrings(myGameProgress, out string pInformationSet, out string dInformationSet,

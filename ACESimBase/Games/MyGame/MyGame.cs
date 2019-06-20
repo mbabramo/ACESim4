@@ -43,6 +43,7 @@ namespace ACESim
                         MyProgress.GameComplete = true;
                     break;
                 case (byte)MyGameDecisions.LiabilityStrength:
+                    MyProgress.DamagesMin = MyDefinition.Options.DamagesMin;
                     MyProgress.DamagesMax = MyDefinition.Options.DamagesMax;
                     MyProgress.LiabilityStrengthDiscrete = action;
                     MyProgress.LiabilityStrengthUniform = ConvertActionToUniformDistributionDraw(action, false);
