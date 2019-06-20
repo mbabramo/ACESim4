@@ -639,7 +639,7 @@ namespace ACESim
                 { CanTerminateGame = true, AlwaysTerminatesGame = !courtDecidesDamages, IsReversible = true, DistributorChanceDecision = true, CanCalculateDistributorChanceDecisionProbabilitiesFromInformationSet = true, StoreActionInGameCacheItem = GameHistoryCacheIndex_PWins }); // even chance options
             if (courtDecidesDamages)
                 decisions.Add(new Decision("CourtDamagesDecision", "CD", true, (byte)MyGamePlayers.CourtDamagesChance,
-                    new byte[] { (byte)MyGamePlayers.Resolution }, 2, (byte)MyGameDecisions.CourtDecisionDamages,
+                    new byte[] { (byte)MyGamePlayers.Resolution }, Options.NumDamagesSignals, (byte)MyGameDecisions.CourtDecisionDamages,
                     unevenChanceActions: true, criticalNode: true)
                 { CanTerminateGame = true, AlwaysTerminatesGame = true, IsReversible = true, DistributorChanceDecision = true, CanCalculateDistributorChanceDecisionProbabilitiesFromInformationSet = true }); // even chance options
         }
