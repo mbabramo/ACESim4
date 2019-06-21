@@ -97,6 +97,12 @@ namespace ACESim
         public static MyGameOptions Custom()
         {
             var options = BaseOptions();
+            options.DamagesMax = 150_000;
+            options.DamagesMin = 50_000;
+            //options.PUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth };
+            //options.DUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth };
+            options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth, Alpha = 20 * 0.000001 };
+            options.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth, Alpha = 20 * 0.000001 };
             options.NumDamagesStrengthPoints = 4;
             options.NumDamagesSignals = 4;
             options.NumLiabilityStrengthPoints = 4;

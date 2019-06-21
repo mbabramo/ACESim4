@@ -10,7 +10,7 @@ namespace ACESim
     public abstract class SimpleReportColumnItem
     {
         public string Name;
-        public int Width = 10;
+        public int Width = 12;
         public abstract double? GetValueToRecord(GameProgress completedGame);
 
         public SimpleReportColumnItem(string name, int? width = null)

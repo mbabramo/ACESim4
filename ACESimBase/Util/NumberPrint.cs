@@ -46,5 +46,44 @@ namespace ACESim
                 return "--";
             return RoundToSignificantFigures((double)num, numSignificantFigures).ToString();
         }
+
+        public static string ToSignificantFigures_WithSciNotationForVerySmall(this double? num, int numSignificantFigures = 4)
+        {
+            if (-1 < num && num < 1)
+            {
+                if (num < 0)
+                    return "-" + ToSignificantFigures_WithSciNotationForVerySmall((double)(0 - num), numSignificantFigures);
+                double rounded = RoundToSignificantFigures((double)num, numSignificantFigures);
+                if (rounded == 0)
+                    return "0";
+                if (num < 0.0001)
+                {
+                    string exponentString;
+                    if (num <= 1E-100)
+                        exponentString = "E000";
+                    else if (num <= 1E-10)
+                        exponentString = "E00";
+                    else
+                        exponentString = "E0";
+                    string sigFiguresAfterDecimal = new string('0', numSignificantFigures - 1);
+                    return rounded.ToString("0." + sigFiguresAfterDecimal + exponentString);
+                }
+            }
+            return ToSignificantFigures(num, numSignificantFigures);
+        }
+
+        public static string ToSignificantFigures_MaxLength(this double? num, int numSignificantFigures, int maxLength)
+        {
+            string result = ToSignificantFigures(num, numSignificantFigures);
+            if (result.Length <= maxLength)
+                return result;
+            result = ToSignificantFigures_WithSciNotationForVerySmall(num, numSignificantFigures);
+            if (result.Length <= maxLength)
+                return result;
+            if (numSignificantFigures == 1)
+                return result;
+            result = ToSignificantFigures_MaxLength(num, Math.Max(numSignificantFigures - 1, 1), maxLength);
+            return result; // not guaranteed to fit, but we did our best
+        }
     }
 }
