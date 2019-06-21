@@ -1,4 +1,5 @@
-﻿using ACESimBase.Util;
+﻿using ACESimBase.GameSolvingSupport;
+using ACESimBase.Util;
 using ACESimBase.Util.ArrayProcessing;
 using System;
 using System.Collections.Generic;
@@ -12,11 +13,11 @@ namespace ACESim
     public partial class GeneralizedVanilla : CounterfactualRegretMinimization
     {
         double AverageStrategyAdjustment, AverageStrategyAdjustmentAsPctOfMax;
+        PostIterationUpdaterBase PostIterationUpdater;
 
-
-        public GeneralizedVanilla(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
+        public GeneralizedVanilla(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition, PostIterationUpdaterBase postIterationUpdater) : base(existingStrategyState, evolutionSettings, gameDefinition)
         {
-
+            PostIterationUpdater = postIterationUpdater;
         }
 
         #region Game state management
@@ -29,7 +30,7 @@ namespace ACESim
 
         public override IStrategiesDeveloper DeepCopy()
         {
-            var created = new GeneralizedVanilla(Strategies, EvolutionSettings, GameDefinition);
+            var created = new GeneralizedVanilla(Strategies, EvolutionSettings, GameDefinition, PostIterationUpdater);
             DeepCopyHelper(created);
             return created;
         }
@@ -37,29 +38,29 @@ namespace ACESim
         public void UpdateInformationSets(int iteration)
         {
             int numInformationSets = InformationSets.Count;
-            double MultiplicativeWeightsEpsilon = EvolutionSettings.MultiplicativeWeightsEpsilon(iteration, EvolutionSettings.TotalVanillaCFRIterations);
+            PostIterationUpdater.PrepareForUpdating(iteration, EvolutionSettings);
             double? pruneOpponentStrategyBelow = EvolutionSettings.PruneOnOpponentStrategy && !EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions ? EvolutionSettings.PruneOnOpponentStrategyThreshold : (double?) null;
             bool predeterminePrunability = EvolutionSettings.PruneOnOpponentStrategy && EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions;
 
             if (EvolutionSettings.SimulatedAnnealing_UseRandomAverageStrategyAdjustment)
             {
-                Parallel.For(0, numInformationSets, n => InformationSets[n].PostIterationUpdates(iteration, MultiplicativeWeightsEpsilon, EvolutionSettings.SimulatedAnnealing_RandomAverageStrategyAdjustment(iteration, InformationSets[n]), false, false, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble));
+                Parallel.For(0, numInformationSets, n => InformationSets[n].PostIterationUpdates(iteration, PostIterationUpdater, EvolutionSettings.SimulatedAnnealing_RandomAverageStrategyAdjustment(iteration, InformationSets[n]), false, false, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble));
                 return;
             }
 
             bool alwaysNormalizeCumulativeStrategyIncrements = false;
             if (alwaysNormalizeCumulativeStrategyIncrements || EvolutionSettings.DiscountingTarget_ConstantAfterProportionOfIterations == 1.0)
-                Parallel.For(0, numInformationSets, n => InformationSets[n].PostIterationUpdates(iteration, MultiplicativeWeightsEpsilon, AverageStrategyAdjustment, true, false, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble));
+                Parallel.For(0, numInformationSets, n => InformationSets[n].PostIterationUpdates(iteration, PostIterationUpdater, AverageStrategyAdjustment, true, false, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble));
             else
             {
                 int maxIterationToDiscount = EvolutionSettings.StopDiscountingAtIteration;
 
                 if (iteration < maxIterationToDiscount)
-                    Parallel.For(0, numInformationSets, n => InformationSets[n].PostIterationUpdates(iteration, MultiplicativeWeightsEpsilon, AverageStrategyAdjustment, true, false, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble));
+                    Parallel.For(0, numInformationSets, n => InformationSets[n].PostIterationUpdates(iteration, PostIterationUpdater, AverageStrategyAdjustment, true, false, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble));
                 else if (iteration == maxIterationToDiscount)
-                    Parallel.For(0, numInformationSets, n => InformationSets[n].PostIterationUpdates(iteration, MultiplicativeWeightsEpsilon, 1.0, false, true, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble));
+                    Parallel.For(0, numInformationSets, n => InformationSets[n].PostIterationUpdates(iteration, PostIterationUpdater, 1.0, false, true, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble));
                 else
-                    Parallel.For(0, numInformationSets, n => InformationSets[n].PostIterationUpdates(iteration, MultiplicativeWeightsEpsilon, 1.0, false, false, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble));
+                    Parallel.For(0, numInformationSets, n => InformationSets[n].PostIterationUpdates(iteration, PostIterationUpdater, 1.0, false, false, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble));
             }
         }
 

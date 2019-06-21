@@ -764,12 +764,12 @@ namespace ACESim
 
         // Note: The first two methods must be used if we don't have a guarantee that updating will take place before each iteration.
 
-        public void PostIterationUpdates(int iteration, double multiplicativeWeightsEpsilon, double averageStrategyAdjustment, bool normalizeCumulativeStrategyIncrements, bool resetPreviousCumulativeStrategyIncrements, double? pruneOpponentStrategyBelow, bool pruneOpponentStrategyIfDesignatedPrunable, bool addOpponentTremble)
+        public void PostIterationUpdates(int iteration, PostIterationUpdaterBase updater, double averageStrategyAdjustment, bool normalizeCumulativeStrategyIncrements, bool resetPreviousCumulativeStrategyIncrements, double? pruneOpponentStrategyBelow, bool pruneOpponentStrategyIfDesignatedPrunable, bool addOpponentTremble)
         {
             UpdateCumulativeAndAverageStrategies(iteration, averageStrategyAdjustment, normalizeCumulativeStrategyIncrements, resetPreviousCumulativeStrategyIncrements);
             DetermineBestResponseAction();
             ClearBestResponse();
-            PostIterationUpdates_MultiplicativeWeights(multiplicativeWeightsEpsilon);
+            updater.UpdateInformationSet(this);
             UpdateOpponentProbabilities(pruneOpponentStrategyBelow, pruneOpponentStrategyIfDesignatedPrunable, addOpponentTremble);
         }
 
@@ -785,7 +785,7 @@ namespace ACESim
                 AddTrembleToOpponentProbabilities(0.1); // note: doesn't seem to make much difference
         }
 
-        private void SetProbabilitiesFromFunc(int probabilityDimension, double probabilityThreshold, bool setBelowThresholdToZero, bool usePrunabilityInsteadOfThreshold, Func<byte, double> initialProbabilityFunc)
+        public void SetProbabilitiesFromFunc(int probabilityDimension, double probabilityThreshold, bool setBelowThresholdToZero, bool usePrunabilityInsteadOfThreshold, Func<byte, double> initialProbabilityFunc)
         {
             double setBelowThresholdTo = setBelowThresholdToZero ? 0 : probabilityThreshold;
             byte largestAction = 0;
@@ -867,46 +867,6 @@ namespace ACESim
                 }
             }
         }
-
-        #endregion
-
-        #region Multiplicative weights
-
-        private void PostIterationUpdates_MultiplicativeWeights(double multiplicativeWeightsEpsilon)
-        {
-            // normalize regrets to costs between 0 and 1. the key assumption is that each iteration takes into account ALL possible outcomes (as in a vanilla hedge CFR algorithm)
-            double sumWeights = 0;
-            for (int a = 1; a <= NumPossibleActions; a++)
-            {
-                double denominator = NodeInformation[lastRegretDenominatorDimension, a - 1];
-                double regretUnnormalized = (denominator == 0) ? 0.5 * (MaxPossibleThisPlayer - MinPossibleThisPlayer) : NodeInformation[lastRegretNumeratorDimension, a - 1] / denominator;
-                double regret = NormalizeRegret(regretUnnormalized); // bad moves are now close to 0 and good moves are close to 1
-                double adjustedNormalizedRegret = 1.0 - regret; // if regret is high (good move), this is low; bad moves are now close to 1 and good moves are close to 0
-                double weightAdjustment = Math.Pow(1 - multiplicativeWeightsEpsilon, adjustedNormalizedRegret); // if there is a good move, then this is high (relatively close to 1). For example, suppose MultiplicativeWeightsEpsilon is 0.5. Then, if adjustedNormalizedRegret is 0.9 (bad move), the weight adjustment is 0.536, but if adjustedNormalizedRegret is 0.1 (good move), the weight adjustment is only 0.933, so the bad move is discounted relative to the good move by 0.536/0.933. if MultiplicativeWeightsEpsilon is 0.1, then the weight adjustments are 0.98 and 0.90; i.e., the algorithm is much less greedy (because 1 - MultiplicativeWeightsEpsilon is relatively lose to 1). if MultiplicativeWeightsEpsilon is 0.9, the algorithm is much more greedy.
-                double weight = NodeInformation[adjustedWeightsDimension, a - 1];
-                weight *= weightAdjustment; // So, this weight reduces only slightly when regret is high
-                if (double.IsNaN(weight) || double.IsInfinity(weight))
-                    throw new Exception();
-                NodeInformation[adjustedWeightsDimension, a - 1] = weight;
-                sumWeights += weight;
-                NodeInformation[lastRegretNumeratorDimension, a - 1] = 0; // reset for next iteration
-                NodeInformation[lastRegretDenominatorDimension, a - 1] = 0;
-            }
-            if (sumWeights < 1E-20)
-            { // increase all weights to avoid all weights being round off to zero -- since this affects only relative probabilities at the information set, this won't matter
-                for (int a = 1; a <= NumPossibleActions; a++)
-                {
-                    NodeInformation[adjustedWeightsDimension, a - 1] *= 1E+15;
-                }
-                sumWeights *= 1E+15;
-            }
-
-            // Finally, calculate the updated probabilities, plus the average strategies
-            // We set each item to its proportion of the weights, but no less than SmallestProbabilityRepresented. 
-            Func<byte, double> unadjustedProbabilityFunc = a => NodeInformation[adjustedWeightsDimension, a - 1] / sumWeights;
-            SetProbabilitiesFromFunc(currentProbabilityDimension, SmallestProbabilityRepresented, false, false, unadjustedProbabilityFunc);
-        }
-
 
         #endregion
 

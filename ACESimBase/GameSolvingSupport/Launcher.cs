@@ -1,5 +1,6 @@
 ﻿using ACESim;
 using ACESim.Util;
+using ACESimBase.GameSolvingSupport;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -109,7 +110,7 @@ namespace ACESim
                 case GameApproximationAlgorithm.ModifiedGibsonProbing:
                     return new ModifiedGibsonProbing(existingStrategyState, evolutionSettings, gameDefinition);
                 case GameApproximationAlgorithm.MultiplicativeWeightsVanilla:
-                    return new GeneralizedVanilla(existingStrategyState, evolutionSettings, gameDefinition);
+                    return new GeneralizedVanilla(existingStrategyState, evolutionSettings, gameDefinition, new PostIterationUpdater_MultiplicativeWeights());
                 case GameApproximationAlgorithm.AverageStrategySampling:
                     return new AverageStrategiesSampling(existingStrategyState, evolutionSettings, gameDefinition);
                 case GameApproximationAlgorithm.PureStrategyFinder:
