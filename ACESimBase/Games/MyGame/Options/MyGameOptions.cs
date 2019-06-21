@@ -167,7 +167,7 @@ namespace ACESim
         public UtilityCalculator DUtilityCalculator;
 
 
-        public bool IncludeLiabilitySignalsReport;
+        public bool IncludeSignalsReport;
         internal bool IncludeCourtSuccessReport;
         public List<(Func<Decision, GameProgress, byte>, string)> AdditionalTableOverrides;
 

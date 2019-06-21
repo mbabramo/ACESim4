@@ -127,7 +127,7 @@ namespace ACESimTest
                 BargainingRoundsSimultaneous = simultaneousBargainingRounds,
                 SimultaneousOffersUltimatelyRevealed = simultaneousOffersUltimatelyRevealed,
                 PGoesFirstIfNotSimultaneous = new List<bool> {true, false, true, false, true, false, true, false},
-                IncludeLiabilitySignalsReport = true
+                IncludeSignalsReport = true
             };
             options.PUtilityCalculator = new RiskNeutralUtilityCalculator {InitialWealth = options.PInitialWealth};
             options.DUtilityCalculator = new RiskNeutralUtilityCalculator {InitialWealth = options.DInitialWealth};

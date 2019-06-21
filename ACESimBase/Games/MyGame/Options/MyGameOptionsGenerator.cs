@@ -79,7 +79,7 @@ namespace ACESim
                 BargainingRoundsSimultaneous = true,
                 SimultaneousOffersUltimatelyRevealed = true,
                 PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false, true, false, true, false },
-                IncludeLiabilitySignalsReport = true,
+                IncludeSignalsReport = true,
                 IncludeCourtSuccessReport = false,
             };
             // options.AdditionalTableOverrides = new List<(Func<Decision, GameProgress, byte>, string)>() { (MyGameActionsGenerator.GamePlaysOutToTrial, "GamePlaysOutToTrial") };
@@ -104,6 +104,7 @@ namespace ACESim
             options.NumOffers = 6;
             options.NumPotentialBargainingRounds = 2;
             options.AllowAbandonAndDefaults = true;
+            options.BargainingRoundsSimultaneous = false;
             return options;
         }
 
