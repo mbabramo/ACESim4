@@ -760,7 +760,7 @@ namespace ACESim
 
         private void SimulatedAnnealing(int iteration)
         {
-            if (iteration % EvolutionSettings.MultiplicativeWeightsEpsilon_SimulatedAnnealingEveryNIterations == 0)
+            if (iteration % EvolutionSettings.SimulatedAnnealingEveryNIterations == 0)
             {
                 if (!EvolutionSettings.UseAcceleratedBestResponse)
                     throw new NotSupportedException(); // we need the average strategy result, which for now we only have with accelerated best response
@@ -783,7 +783,6 @@ namespace ACESim
                 }
                 Parallel.ForEach(InformationSets, informationSet => informationSet.CreateBackup());
                 LastBestResponseImprovement = BestResponseImprovement.ToArray();
-
             }
         }
 
