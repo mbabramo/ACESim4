@@ -491,8 +491,8 @@ namespace ACESim
                 new SimpleReportFilter("All", (GameProgress gp) => true)
             };
             bool reportPlaintiff = (plaintiffMakesOffer && !reportResponseToOffer) || (!plaintiffMakesOffer && reportResponseToOffer);
-            AddRowFilterLiabilitySignalRegions(reportPlaintiff, rowFilters);
-            AddRowFiltersLiabilityStrength(rowFilters);
+            AddRowFilterSignalRegions(reportPlaintiff, rowFilters);
+            AddRowFiltersLitigationStrength(rowFilters);
             List<SimpleReportColumnItem> columnItems = new List<SimpleReportColumnItem>()
             {
                 new SimpleReportColumnFilter("All", (GameProgress gp) => true, true),
@@ -530,7 +530,7 @@ namespace ACESim
                 new SimpleReportFilter("All", (GameProgress gp) => true)
             };
             bool reportPlaintiff = (plaintiffMakesOffer && !reportResponseToOffer) || (!plaintiffMakesOffer && reportResponseToOffer);
-            AddRowFilterLiabilitySignalRegions(reportPlaintiff, rowFilters);
+            AddRowFilterSignalRegions(reportPlaintiff, rowFilters);
             //AddRowFilterLiabilitySignalRegions(false, rowFilters);
             List<SimpleReportColumnItem> columnItems = new List<SimpleReportColumnItem>()
             {
@@ -568,14 +568,25 @@ namespace ACESim
         }
 
 
-        private void AddRowFiltersLiabilityStrength(List<SimpleReportFilter> rowFilters)
+        private void AddRowFiltersLitigationStrength(List<SimpleReportFilter> rowFilters)
         {
             for (int i = 1; i <= Options.NumLiabilityStrengthPoints; i++)
             {
-                byte j = (byte)(i); // necessary to prevent access to modified closure
-                rowFilters.Add(new SimpleReportFilter(
-                    $"LitQual {j}",
-                    (GameProgress gp) => MyGP(gp).LiabilityStrengthDiscrete == j));
+                byte i2 = (byte)(i); // necessary to prevent access to modified closure
+                if (Options.NumDamagesStrengthPoints <= 1)
+                    rowFilters.Add(new SimpleReportFilter(
+                        $"LitQual {i2}",
+                        (GameProgress gp) => MyGP(gp).LiabilityStrengthDiscrete == i2));
+                else
+                {
+                    for (int j = 1; j <= Options.NumDamagesStrengthPoints; j++)
+                    {
+                        byte j2 = (byte)j;
+                        rowFilters.Add(new SimpleReportFilter(
+                            $"LiabStr {i2} DamStr {j2}",
+                            (GameProgress gp) => MyGP(gp).LiabilityStrengthDiscrete == i2 && MyGP(gp).DamagesStrengthDiscrete == j2));
+                    }
+                }
             }
             //for (int i = 1; i <= Options.NumNoiseValues; i++)
             //{
@@ -608,27 +619,47 @@ namespace ACESim
             }
         }
 
-        private void AddRowFilterLiabilitySignalRegions(bool plaintiffMakesOffer, List<SimpleReportFilter> rowFilters)
+        private void AddRowFilterSignalRegions(bool plaintiffMakesOffer, List<SimpleReportFilter> rowFilters)
         {
             Tuple<double, double>[] signalRegions = EquallySpaced.GetRegions(Options.NumLiabilitySignals);
-            for (int i = 0; i < Options.NumLiabilitySignals; i++)
+            for (int i = 1; i <= Options.NumLiabilitySignals; i++)
             {
-                double regionStart = signalRegions[i].Item1;
-                double regionEnd = signalRegions[i].Item2;
-                if (plaintiffMakesOffer)
+                double regionStart = signalRegions[i - 1].Item1;
+                double regionEnd = signalRegions[i - 1].Item2;
+                if (Options.NumDamagesSignals <= 1)
                 {
-                    byte j = (byte) (i + 1);
-                    rowFilters.Add(new SimpleReportFilter(
-                        $"PLiabilitySignal {j}",
-                        (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete == j));
+                    byte i2 = (byte)(i);
+                    if (plaintiffMakesOffer)
+                    {
+                        rowFilters.Add(new SimpleReportFilter(
+                            $"PLiabilitySignal {i2}",
+                            (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete == i2));
+                    }
+                    else
+                    {
+                        rowFilters.Add(new SimpleReportFilter(
+                            $"DLiabilitySignal {i2}",
+                            (GameProgress gp) => MyGP(gp).DLiabilitySignalDiscrete == i2));
+                    }
                 }
                 else
-                {
-                    byte j = (byte) (i + 1);
-                    rowFilters.Add(new SimpleReportFilter(
-                        $"DLiabilitySignal {j}",
-                        (GameProgress gp) => MyGP(gp).DLiabilitySignalDiscrete == j));
-                }
+                    for (int j = 1; j <= Options.NumDamagesSignals; j++)
+                    {
+                        byte i2 = (byte)(i);
+                        byte j2 = (byte)(j);
+                        if (plaintiffMakesOffer)
+                        {
+                            rowFilters.Add(new SimpleReportFilter(
+                                $"PSignal Liab {i2} Dam {j2}",
+                                (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete == i2 && MyGP(gp).PDamagesSignalDiscrete == j2));
+                        }
+                        else
+                        {
+                            rowFilters.Add(new SimpleReportFilter(
+                                $"DSignal Liab {i2} Dam {j2}",
+                                (GameProgress gp) => MyGP(gp).DLiabilitySignalDiscrete == i2 && MyGP(gp).DDamagesSignalDiscrete == j2));
+                        }
+                    }
             }
         }
 

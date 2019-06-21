@@ -104,7 +104,7 @@ namespace ACESim
             options.NumOffers = 6;
             options.NumPotentialBargainingRounds = 2;
             options.AllowAbandonAndDefaults = true;
-            options.BargainingRoundsSimultaneous = false;
+            options.BargainingRoundsSimultaneous = true;
             return options;
         }
 

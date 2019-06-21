@@ -632,7 +632,7 @@ namespace ACESimTest
             bool pWins = pReadyToAbandonRound == null && dReadyToDefaultRound != null ||
                          pReadyToAbandonRound != null && dReadyToDefaultRound != null && pFiles && mutualGiveUpResult == 2;
 
-            double damages = pWins ? options.DamagesMax : 0; // DEBUG
+            double damagesAlleged = pWins ? options.DamagesMax : 0; // actually awarded irrelevant since we are testing settlement
 
             myGameProgress.GameComplete.Should().BeTrue();
             myGameProgress.CaseSettles.Should().BeFalse();
@@ -670,8 +670,8 @@ namespace ACESimTest
             }
 
 
-            double pFinalWealthExpected = options.PInitialWealth + damages - pExpenses;
-            double dFinalWealthExpected = options.DInitialWealth - damages - dExpenses;
+            double pFinalWealthExpected = options.PInitialWealth + damagesAlleged - pExpenses;
+            double dFinalWealthExpected = options.DInitialWealth - damagesAlleged - dExpenses;
 
             if (pFiles && dAnswers && runningSideBetChallenges != RunningSideBetChallenges.None)
             {

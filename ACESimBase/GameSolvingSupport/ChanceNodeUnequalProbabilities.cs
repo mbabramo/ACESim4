@@ -22,10 +22,6 @@ namespace ACESim
         /// <param name="probabilityIncrements"></param>
         public void RegisterProbabilityForDistributorChanceInput(double piChance, int distributorChanceInputs, double[] probabilityIncrements)
         {
-            if (ChanceNodeNumber == 14)
-            {
-                var DEBUG = 0;
-            }
             if (ProbabilitiesForDistributorChanceInputs == null)
                 ProbabilitiesForDistributorChanceInputs = new Dictionary<int, double[]>();
             if (!ProbabilitiesForDistributorChanceInputs.ContainsKey(distributorChanceInputs))

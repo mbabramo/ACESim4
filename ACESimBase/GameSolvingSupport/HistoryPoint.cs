@@ -349,10 +349,6 @@ namespace ACESim
                             if (playerInfo.PlayerIsChance)
                             {
                                 ChanceNode chanceNode;
-                                if (decision.Name.Contains("Court") && decision.Name.Contains("Damages"))
-                                {
-                                    var DEBUG = 0;
-                                }
                                 if (decision.UnevenChanceActions)
                                     chanceNode = new ChanceNodeUnequalProbabilities()
                                     {
