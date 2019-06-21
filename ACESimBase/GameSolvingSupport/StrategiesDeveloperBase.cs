@@ -387,10 +387,7 @@ namespace ACESim
                     byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
                     double[] cumUtilities = null;
                     double* actionProbabilities = stackalloc double[numPossibleActions];
-                    if (informationSet.UpdatingHedge != null)
-                        informationSet.GetHedgeProbabilities(actionProbabilities);
-                    else
-                        informationSet.GetRegretMatchingProbabilities(actionProbabilities);
+                    informationSet.GetCurrentProbabilities(actionProbabilities);
                     for (byte action = 1; action <= numPossibleActions; action++)
                     {
                         TabbedText.WriteLine($"{action} (P{informationSet.PlayerIndex}): p={actionProbabilities[action - 1]:N2} ({informationSet.ToStringAbbreviated()})");

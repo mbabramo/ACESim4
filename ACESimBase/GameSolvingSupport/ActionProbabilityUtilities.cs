@@ -118,7 +118,7 @@ namespace ACESim
                             informationSetNode.GetMultiplicativeWeightsProbabilities(probabilities, false);
                             break;
                         case ActionStrategies.Hedge:
-                            informationSetNode.GetHedgeProbabilities(probabilities);
+                            informationSetNode.GetCurrentProbabilities(probabilities);
                             break;
                         case ActionStrategies.CorrelatedEquilibrium:
                             informationSetNode.GetMultiplicativeWeightsCorrelatedEquilibriumStrategyProbabilities(randomNumberToChooseIteration, probabilities);

@@ -122,10 +122,10 @@ namespace ACESim
                     var regret = (expectedValueOfAction[action - 1] - expectedValue);
                     if (EvolutionSettings.UseDiscounting && EvolutionSettings.DiscountRegrets)
                     {
-                        informationSet.IncrementCumulativeRegret(action, inversePi * regret * (regret > 0 ? PositiveRegretsAdjustment : NegativeRegretsAdjustment), false);
+                        informationSet.IncrementCumulativeRegret(action, inversePi * regret * (regret > 0 ? PositiveRegretsAdjustment : NegativeRegretsAdjustment));
                     }
                     else
-                        informationSet.IncrementCumulativeRegret(action, inversePi * regret, false);
+                        informationSet.IncrementCumulativeRegret(action, inversePi * regret);
                     double contributionToAverageStrategy = EvolutionSettings.UseDiscounting ? pi * actionProbabilities[action - 1] * AverageStrategyAdjustment : pi * actionProbabilities[action - 1];
                     if (EvolutionSettings.ParallelOptimization)
                         informationSet.IncrementCumulativeStrategy_Parallel(action, contributionToAverageStrategy);

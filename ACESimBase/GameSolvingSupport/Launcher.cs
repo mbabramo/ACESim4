@@ -108,10 +108,6 @@ namespace ACESim
                     return new GibsonProbing(existingStrategyState, evolutionSettings, gameDefinition);
                 case GameApproximationAlgorithm.ModifiedGibsonProbing:
                     return new ModifiedGibsonProbing(existingStrategyState, evolutionSettings, gameDefinition);
-                case GameApproximationAlgorithm.ExploratoryProbing:
-                    return new ExploratoryProbing(existingStrategyState, evolutionSettings, gameDefinition);
-                case GameApproximationAlgorithm.HedgeProbing:
-                    return new HedgeProbing(existingStrategyState, evolutionSettings, gameDefinition);
                 case GameApproximationAlgorithm.MultiplicativeWeightsVanilla:
                     return new MultiplicativeWeightsVanilla(existingStrategyState, evolutionSettings, gameDefinition);
                 case GameApproximationAlgorithm.AverageStrategySampling:
@@ -140,10 +136,10 @@ namespace ACESim
                 Algorithm = Algorithm,
 
                 UseRandomPathsForReporting = UseRandomPathsForReporting,
-                ReportEveryNIterations = Algorithm == GameApproximationAlgorithm.ExploratoryProbing ? 500_000 : VanillaReportEveryNIterations,
+                ReportEveryNIterations = VanillaReportEveryNIterations,
                 CorrelatedEquilibriumCalculationsEveryNIterations = CorrelatedEquilibriumCalculationsEveryNIterations,
-                BestResponseEveryMIterations = Algorithm == GameApproximationAlgorithm.ExploratoryProbing ? EvolutionSettings.EffectivelyNever : VanillaBestResponseEveryMIterations, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
-                MiniReportEveryPIterations = Algorithm == GameApproximationAlgorithm.ExploratoryProbing ? EvolutionSettings.EffectivelyNever : MiniReportEveryPIterations,
+                BestResponseEveryMIterations = VanillaBestResponseEveryMIterations, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
+                MiniReportEveryPIterations = MiniReportEveryPIterations,
                 RecordPastValuesEveryN = RecordPastValuesEveryNIterations,
                 NumRandomIterationsForSummaryTable = SummaryTableRandomPathsIterations,
                 GenerateReportsByPlaying = true,

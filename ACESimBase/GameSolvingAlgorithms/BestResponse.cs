@@ -70,7 +70,7 @@ namespace ACESim
                     if (playerMakingDecision == playerIndex)
                     {
                         depthOfPlayerDecisions.Add(depth);
-                        informationSet.ResetBestResponseData();
+                        informationSet.ClearBestResponse();
                     }
                     decision = informationSet.Decision;
                     decisionIndex = informationSet.DecisionIndex;
@@ -177,7 +177,7 @@ namespace ACESim
                             informationSet.GetMultiplicativeWeightsProbabilities(actionProbabilities, true);
                             break;
                         case ActionStrategies.Hedge:
-                            informationSet.GetHedgeProbabilities(actionProbabilities);
+                            informationSet.GetCurrentProbabilities(actionProbabilities);
                             break;
                         case ActionStrategies.CorrelatedEquilibrium:
                             informationSet.GetAverageStrategies(actionProbabilities); // playing best response against correlated equilibrium is same as playing against average strategies

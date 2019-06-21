@@ -153,7 +153,7 @@ namespace ACESim
                         if (EvolutionSettings.ParallelOptimization)
                             informationSet.IncrementCumulativeRegret_Parallel(action, cumulativeRegretIncrement, false);
                         else
-                            informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement, false);
+                            informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement);
                         if (TraceCFR)
                         {
                             // v(a) is set to 0 for many of the a E A(I).The key to understanding this is that we're multiplying the utilities we get back by 1/q. So if there is a 1/3 probability of sampling, then we multiply the utility by 3. So, when we don't sample, we're adding 0 to the regrets; and when we sample, we're adding 3 * counterfactual value.Thus, v(a) is an unbiased predictor of value.Meanwhile, we're always subtracting the regret-matched probability-adjusted counterfactual values. 

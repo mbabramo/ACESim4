@@ -224,7 +224,7 @@ namespace ACESim
                     for (int i = 0; i < node.sequenceToHere.Count(); i++)
                         sequencePointer[i] = node.sequenceToHere[i];
                     sequencePointer[node.sequenceToHere.Count()] = 255;
-                    regretMatchingTree.SetValueIfNotSet(new NWayTreeStorageKeyUnsafeStackOnly(DecisionIndexSubstitute, sequencePointer), false, () => tallyNode.GetRegretMatchingProbabilities_WithEvenProbabilitiesIfUsingBackup());
+                    regretMatchingTree.SetValueIfNotSet(new NWayTreeStorageKeyUnsafeStackOnly(DecisionIndexSubstitute, sequencePointer), false, () => tallyNode.GetEqualProbabilitiesList());
                 }
             }
             return regretMatchingTree;

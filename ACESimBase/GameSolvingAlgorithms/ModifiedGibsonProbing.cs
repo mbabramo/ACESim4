@@ -219,7 +219,7 @@ namespace ACESim
                 if (EvolutionSettings.ParallelOptimization)
                     informationSet.IncrementCumulativeRegret_Parallel(action, cumulativeRegretIncrement, false);
                 else
-                    informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement, false);
+                    informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement);
                 if (bestAction == 0 || cumulativeRegretIncrement > bestCumulativeRegretIncrement)
                 {
                     bestAction = action;

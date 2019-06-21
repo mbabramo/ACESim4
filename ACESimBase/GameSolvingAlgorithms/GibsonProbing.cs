@@ -206,7 +206,7 @@ namespace ACESim
                 {
                     double cumulativeRegretIncrement = inverseSamplingProbabilityQ *
                                                        (counterfactualValues[action - 1] - summation);
-                    informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement, false);
+                    informationSet.IncrementCumulativeRegret(action, cumulativeRegretIncrement);
                     if (TraceCFR)
                     {
                         //TabbedText.WriteLine($"Optimizing {playerBeingOptimized} Iteration {ProbingCFRIterationNum} Actions to here {historyPoint.GetActionsToHereString(Navigation)}");
