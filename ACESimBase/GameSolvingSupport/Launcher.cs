@@ -16,12 +16,12 @@ namespace ACESim
 
         #region Settings
 
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.MultiplicativeWeightsVanilla;
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.FictitiousSelfPlay;
 
         public const int ProbingIterations = 20_000_000;
-        public const int VanillaIterations = 2000; 
+        public const int VanillaIterations = 100_000; 
         public const int VanillaReportEveryNIterations = VanillaIterations;
-        public const int VanillaBestResponseEveryMIterations = 100; 
+        public const int VanillaBestResponseEveryMIterations = 1000; 
         public const int MiniReportEveryPIterations = EffectivelyNever; 
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever; 
         public const int RecordPastValuesEveryNIterations = EffectivelyNever; // used for correlated equilibrium calculations
@@ -109,8 +109,10 @@ namespace ACESim
                     return new GibsonProbing(existingStrategyState, evolutionSettings, gameDefinition);
                 case GameApproximationAlgorithm.ModifiedGibsonProbing:
                     return new ModifiedGibsonProbing(existingStrategyState, evolutionSettings, gameDefinition);
-                case GameApproximationAlgorithm.MultiplicativeWeightsVanilla:
+                case GameApproximationAlgorithm.MultiplicativeWeights:
                     return new GeneralizedVanilla(existingStrategyState, evolutionSettings, gameDefinition, new PostIterationUpdater_MultiplicativeWeights());
+                case GameApproximationAlgorithm.RegretMatching:
+                    return new GeneralizedVanilla(existingStrategyState, evolutionSettings, gameDefinition, new PostIterationUpdater_RegretMatching());
                 case GameApproximationAlgorithm.AverageStrategySampling:
                     return new AverageStrategiesSampling(existingStrategyState, evolutionSettings, gameDefinition);
                 case GameApproximationAlgorithm.PureStrategyFinder:

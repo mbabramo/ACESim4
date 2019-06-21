@@ -19,7 +19,7 @@ namespace ACESim
             PerfectInfo
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Custom;
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Fast;
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
@@ -122,6 +122,10 @@ namespace ACESim
             options.NumOffers = 2;
             options.NumPotentialBargainingRounds = 1;
             options.AllowAbandonAndDefaults = false;
+
+            options.PLiabilityNoiseStdev = 0.30;
+            options.DLiabilityNoiseStdev = 0.30;
+            options.CourtLiabilityNoiseStdev = 0.30;
             return options;
         }
 
@@ -132,7 +136,11 @@ namespace ACESim
             options.NumLiabilitySignals = 4;
             options.NumOffers = 4;
             options.NumPotentialBargainingRounds = 2;
-            options.AllowAbandonAndDefaults = true;
+            options.AllowAbandonAndDefaults = false;
+
+            options.PLiabilityNoiseStdev = 0.30;
+            options.DLiabilityNoiseStdev = 0.30;
+            options.CourtLiabilityNoiseStdev = 0.30;
             return options;
         }
 

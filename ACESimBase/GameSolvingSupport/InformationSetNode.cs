@@ -55,8 +55,8 @@ namespace ACESim
         public const int cumulativeStrategyDimension = 6;
         public const int adjustedWeightsDimension = 7;
         // Most recent information -- to be accumulated after iteration
-        public const int lastRegretNumeratorDimension = 8;
-        public const int lastRegretDenominatorDimension = 9;
+        public const int sumRegretTimesInversePiDimension = 8;
+        public const int sumInversePiDimension = 9;
         public const int lastCumulativeStrategyIncrementsDimension = 10;
         // Scratch space (i.e., for algorithm to write some information for each action)
         public const int scratchDimension = 11;
@@ -408,24 +408,29 @@ namespace ACESim
 
         public void IncrementLastRegret(byte action, double regretTimesInversePi, double inversePi)
         {
-            NodeInformation[lastRegretNumeratorDimension, action - 1] += regretTimesInversePi;
-            NodeInformation[lastRegretDenominatorDimension, action - 1] += inversePi;
+            NodeInformation[sumRegretTimesInversePiDimension, action - 1] += regretTimesInversePi;
+            NodeInformation[sumInversePiDimension, action - 1] += inversePi;
         }
         public void IncrementLastRegret_Parallel(byte action, double regretTimesInversePi, double inversePi)
         {
-            Interlocking.Add(ref NodeInformation[lastRegretNumeratorDimension, action - 1], regretTimesInversePi);
-            Interlocking.Add(ref NodeInformation[lastRegretDenominatorDimension, action - 1], inversePi);
+            Interlocking.Add(ref NodeInformation[sumRegretTimesInversePiDimension, action - 1], regretTimesInversePi);
+            Interlocking.Add(ref NodeInformation[sumInversePiDimension, action - 1], inversePi);
             //    Debug.WriteLine($"after increment: regret*invpi {regretTimesInversePi} inversePi {inversePi} numerator {NodeInformation[lastRegretNumeratorDimension, action - 1]} denominator {NodeInformation[lastRegretDenominatorDimension, action - 1]} fraction {NodeInformation[lastRegretNumeratorDimension, action - 1] / NodeInformation[lastRegretDenominatorDimension, action - 1]}");
         }
 
-        public double NormalizeRegret(double regret)
+        public double NormalizeRegret(double regret, bool makeStrictlyPositive)
         {
             // best performance possible occurs if expected value is MaxPossibleThisPlayer when overall expected value is MinPossibleThisPlayer. worst performance possible occurs if regret is MinPossibleThisPlayer when overall expected value is MaxPossibleThisPlayer. Regret can range from -(MaxPossible - MinPossible) to +(MaxPossible - MinPossible). Thus, Regret + (MaxPossible - MinPossible) can range from 0 to 2*(MaxPossible - MinPossible). So, we can normalize regret to be from 0 to 1 by calculating (regret + range) / (2 * range).
             double range = MaxPossibleThisPlayer - MinPossibleThisPlayer;
-            double normalizedRegret = (regret + range) / (2 * range);
-            if (normalizedRegret < 0 || normalizedRegret > 1.0)
-                throw new Exception("Invalid normalized regret");
-            return normalizedRegret;
+            if (makeStrictlyPositive)
+            {
+                double normalizedRegret = (regret + range) / (2 * range);
+                if (normalizedRegret < 0 || normalizedRegret > 1.0)
+                    throw new Exception("Invalid normalized regret");
+                return normalizedRegret;
+            }
+            else
+                return regret / range;
         }
 
         public string GetCumulativeRegretsString()
@@ -888,7 +893,7 @@ namespace ACESim
             for (int a = 1; a <= NumPossibleActions; a++)
             {
                 double lastPi = NodeInformation[currentProbabilityDimension, a - 1];
-                double lastRegret = NodeInformation[lastRegretNumeratorDimension, a - 1];
+                double lastRegret = NodeInformation[sumRegretTimesInversePiDimension, a - 1];
                 if (a == 1)
                     minLastRegret = maxLastRegret = lastRegret;
                 else if (lastRegret > maxLastRegret)
@@ -922,7 +927,7 @@ namespace ACESim
             double denominatorForAllActions = 0;
             for (int a = 1; a <= NumPossibleActions; a++)
             {
-                NodeInformation[cumulativeRegretDimension, a - 1] += NodeInformation[lastRegretNumeratorDimension, a - 1];
+                NodeInformation[cumulativeRegretDimension, a - 1] += NodeInformation[sumRegretTimesInversePiDimension, a - 1];
                 double numeratorForThisAction = Math.Exp(Nu * NodeInformation[cumulativeRegretDimension, a - 1]);
                 NodeInformation[scratchDimension, a - 1] = numeratorForThisAction; // alternative implementation would reuse lastRegretDimension
                 if (double.IsNaN(numeratorForThisAction))

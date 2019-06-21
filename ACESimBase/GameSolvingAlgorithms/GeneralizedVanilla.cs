@@ -56,7 +56,11 @@ namespace ACESim
                 int maxIterationToDiscount = EvolutionSettings.StopDiscountingAtIteration;
 
                 if (iteration < maxIterationToDiscount)
-                    Parallel.For(0, numInformationSets, n => InformationSets[n].PostIterationUpdates(iteration, PostIterationUpdater, AverageStrategyAdjustment, true, false, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble));
+                {
+                    foreach (var infoSet in InformationSets)
+                        infoSet.PostIterationUpdates(iteration, PostIterationUpdater, AverageStrategyAdjustment, true, false, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble);
+                    // DEBUG Parallel.For(0, numInformationSets, n => InformationSets[n].PostIterationUpdates(iteration, PostIterationUpdater, AverageStrategyAdjustment, true, false, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble));
+                }
                 else if (iteration == maxIterationToDiscount)
                     Parallel.For(0, numInformationSets, n => InformationSets[n].PostIterationUpdates(iteration, PostIterationUpdater, 1.0, false, true, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble));
                 else
