@@ -8,12 +8,11 @@ namespace ACESim
 {
     public enum ActionStrategies
     {
-        RegretMatching,
         AverageStrategy,
+        CurrentProbability, // whatever we calculated post-iteration; could be something like regret matching, but it doesn't have to be
         BestResponse,
+        RegretMatching,
         RegretMatchingWithPruning,
-        MultiplicativeWeights,
-        Hedge,
         CorrelatedEquilibrium,
         BestResponseVsCorrelatedEquilibrium,
         CorrelatedEquilibriumVsBestResponse

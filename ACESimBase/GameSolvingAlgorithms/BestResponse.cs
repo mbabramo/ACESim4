@@ -166,21 +166,18 @@ namespace ACESim
                             informationSet.GetRegretMatchingProbabilities(actionProbabilities);
                             break;
                         case ActionStrategies.AverageStrategy:
-                            informationSet.GetAverageStrategies(actionProbabilities);
+                            informationSet.GetAverageStrategyProbabilities(actionProbabilities);
                             break;
                         case ActionStrategies.BestResponse:
                             throw new NotSupportedException();
                         case ActionStrategies.RegretMatchingWithPruning:
                             informationSet.GetRegretMatchingProbabilities_WithPruning(actionProbabilities);
                             break;
-                        case ActionStrategies.MultiplicativeWeights:
-                            informationSet.GetMultiplicativeWeightsProbabilities(actionProbabilities, true);
-                            break;
-                        case ActionStrategies.Hedge:
-                            informationSet.GetCurrentProbabilities(actionProbabilities);
+                        case ActionStrategies.CurrentProbability:
+                            informationSet.GetCurrentProbabilities(actionProbabilities, true);
                             break;
                         case ActionStrategies.CorrelatedEquilibrium:
-                            informationSet.GetAverageStrategies(actionProbabilities); // playing best response against correlated equilibrium is same as playing against average strategies
+                            informationSet.CalculateAverageStrategyFromCumulative(actionProbabilities); // playing best response against correlated equilibrium is same as playing against average strategies
                             break;
                         default:
                             throw new NotImplementedException();

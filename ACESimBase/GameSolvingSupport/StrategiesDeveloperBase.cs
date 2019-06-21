@@ -334,7 +334,7 @@ namespace ACESim
         public void AnalyzeInformationSets()
         {
             foreach (var infoSet in InformationSets)
-                infoSet.MultiplicativeWeightsAnalyze();
+                infoSet.PastValuesAnalyze();
         }
 
         public void PrintGameTree()

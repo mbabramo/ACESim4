@@ -84,7 +84,7 @@ namespace ACESim
             Discounting_Gamma = Math.Log(DiscountingTarget_TargetDiscount) / (Math.Log(p * t / (p * t + 1)) - Math.Log(t / (t + 1)));
         }
 
-        public bool MultiplicativeWeightsAddTremble = false;
+        public bool GeneralizedVanillaAddTremble = false;
 
         public double MultiplicativeWeightsInitial = 0.5;
         public double MultiplicativeWeightsFinal = 0.5;
@@ -135,7 +135,7 @@ namespace ACESim
         public static double PruneOnOpponentStrategyThreshold = 1E-4; // NOTE: This is the probability for this action, not the cumulative probability. 
         public static bool PredeterminePrunabilityBasedOnRelativeContributions = false; // if True, then we prune if and only if the action contributes negligibly at any later information set
 
-        public bool MultiplicativeWeights_CFRBR = false;
+        public bool CFRBR = false; // if true, opponent plays best response
 
         public bool DistributeChanceDecisions = true;
         public bool UnrollAlgorithm = true;

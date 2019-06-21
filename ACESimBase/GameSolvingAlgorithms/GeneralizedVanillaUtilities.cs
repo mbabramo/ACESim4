@@ -3,7 +3,7 @@ using System;
 
 namespace ACESim
 {
-    public struct MultiplicativeWeightsVanillaUtilities
+    public struct GeneralizedVanillaUtilities
     {
         /// <summary>
         /// The utility from the player being optimized playing Hedge against Hedge. This is used to set counterfactual values and regret.
@@ -23,14 +23,14 @@ namespace ACESim
             return $"Playing hedge: {HedgeVsHedge} approx avgstrat {AverageStrategyVsAverageStrategy} approx bestres {BestResponseToAverageStrategy} diff {BestResponseToAverageStrategy - AverageStrategyVsAverageStrategy}";
         }
 
-        public void IncrementBasedOnNotYetProbabilityAdjusted(ref MultiplicativeWeightsVanillaUtilities other, double averageStrategyProbability, double hedgeProbability)
+        public void IncrementBasedOnNotYetProbabilityAdjusted(ref GeneralizedVanillaUtilities other, double averageStrategyProbability, double hedgeProbability)
         {
             HedgeVsHedge += other.HedgeVsHedge * hedgeProbability;
             AverageStrategyVsAverageStrategy += other.AverageStrategyVsAverageStrategy * averageStrategyProbability;
             BestResponseToAverageStrategy += other.BestResponseToAverageStrategy * averageStrategyProbability;
         }
 
-        public void IncrementBasedOnProbabilityAdjusted(ref MultiplicativeWeightsVanillaUtilities other)
+        public void IncrementBasedOnProbabilityAdjusted(ref GeneralizedVanillaUtilities other)
         {
             // supports parallelism, since we may increment by multiple probability adjusted items at once
             Interlocking.Add(ref HedgeVsHedge, other.HedgeVsHedge);

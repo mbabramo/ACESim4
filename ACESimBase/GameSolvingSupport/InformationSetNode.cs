@@ -83,7 +83,7 @@ namespace ACESim
         {
             Decision = decision;
             DecisionIndex = decisionIndex;
-            Initialize(totalDimensions, decision.NumPossibleActions);
+            Initialize();
             InformationSetNodeNumber = InformationSetsSoFar;
             Interlocked.Increment(ref InformationSetsSoFar);
             RecordPastValues = evolutionSettings.RecordPastValues;
@@ -100,7 +100,7 @@ namespace ACESim
 
         public void Reinitialize()
         {
-            Initialize(totalDimensions, Decision.NumPossibleActions);
+            Initialize();
             V = 0;
             MaxAbsRegretDiff = 0;
             E = 1;
@@ -108,12 +108,12 @@ namespace ACESim
 
         public string ToStringAbbreviated()
         {
-            return $"Information set {InformationSetNodeNumber}: Probabilities {GetCurrentProbabilitiesString()} {GetBestResponseStringIfAvailable()}";
+            return $"Information set {InformationSetNodeNumber}: Probabilities {GetCurrentProbabilitiesAsString()} {GetBestResponseStringIfAvailable()}";
         }
 
         public override string ToString()
         {
-            return $"Information set {InformationSetNodeNumber} ({Decision.Name}): DecisionByteCode {DecisionByteCode} (index {DecisionIndex}) PlayerIndex {PlayerIndex} Probabilities {GetCurrentProbabilitiesString()} {GetBestResponseStringIfAvailable()}Average {GetAverageStrategiesAsString()} Regrets {GetCumulativeRegretsString()} Strategies {GetCumulativeStrategiesString()}";
+            return $"Information set {InformationSetNodeNumber} ({Decision.Name}): DecisionByteCode {DecisionByteCode} (index {DecisionIndex}) PlayerIndex {PlayerIndex} Probabilities {GetCurrentProbabilitiesAsString()} {GetBestResponseStringIfAvailable()}Average {GetAverageStrategiesAsString()} Regrets {GetCumulativeRegretsString()} Strategies {GetCumulativeStrategiesString()}";
         }
 
         public string GetBestResponseStringIfAvailable()
@@ -124,13 +124,23 @@ namespace ACESim
             //return $"BestResponse {LastBestResponseAction} {NodeInformation[bestResponseNumeratorDimension, PlayerIndex]}/{NodeInformation[bestResponseDenominatorDimension, PlayerIndex]}";
         }
 
-        public string GetCurrentProbabilitiesString()
+        public void Initialize()
         {
-                var probs = GetCurrentProbabilitiesAsArray();
-                return String.Join(",", probs.Select(x => $"{x:N6}"));
+            ResetNodeInformation(totalDimensions, NumPossibleActions);
+            double probability = 1.0 / (double)NumPossibleActions;
+            if (double.IsNaN(probability))
+                throw new Exception();
+            BestResponseAction = 1;
+            for (int a = 1; a <= NumPossibleActions; a++)
+            {
+                NodeInformation[adjustedWeightsDimension, a - 1] = 1.0;
+                NodeInformation[currentProbabilityDimension, a - 1] = probability;
+                NodeInformation[currentProbabilityForOpponentDimension, a - 1] = probability;
+                NodeInformation[averageStrategyProbabilityDimension, a - 1] = probability;
+            }
         }
 
-        private void Initialize(int numDimensions, int numPossibleActions)
+        private void ResetNodeInformation(int numDimensions, int numPossibleActions)
         {
             NodeInformation = new double[numDimensions, numPossibleActions];
             for (int i = 0; i < numDimensions; i++)
@@ -394,7 +404,29 @@ namespace ACESim
 
         #endregion
 
-        #region Cumulative regrets and backup regrets
+        #region Regrets
+
+        public void IncrementLastRegret(byte action, double regretTimesInversePi, double inversePi)
+        {
+            NodeInformation[lastRegretNumeratorDimension, action - 1] += regretTimesInversePi;
+            NodeInformation[lastRegretDenominatorDimension, action - 1] += inversePi;
+        }
+        public void IncrementLastRegret_Parallel(byte action, double regretTimesInversePi, double inversePi)
+        {
+            Interlocking.Add(ref NodeInformation[lastRegretNumeratorDimension, action - 1], regretTimesInversePi);
+            Interlocking.Add(ref NodeInformation[lastRegretDenominatorDimension, action - 1], inversePi);
+            //    Debug.WriteLine($"after increment: regret*invpi {regretTimesInversePi} inversePi {inversePi} numerator {NodeInformation[lastRegretNumeratorDimension, action - 1]} denominator {NodeInformation[lastRegretDenominatorDimension, action - 1]} fraction {NodeInformation[lastRegretNumeratorDimension, action - 1] / NodeInformation[lastRegretDenominatorDimension, action - 1]}");
+        }
+
+        public double NormalizeRegret(double regret)
+        {
+            // best performance possible occurs if expected value is MaxPossibleThisPlayer when overall expected value is MinPossibleThisPlayer. worst performance possible occurs if regret is MinPossibleThisPlayer when overall expected value is MaxPossibleThisPlayer. Regret can range from -(MaxPossible - MinPossible) to +(MaxPossible - MinPossible). Thus, Regret + (MaxPossible - MinPossible) can range from 0 to 2*(MaxPossible - MinPossible). So, we can normalize regret to be from 0 to 1 by calculating (regret + range) / (2 * range).
+            double range = MaxPossibleThisPlayer - MinPossibleThisPlayer;
+            double normalizedRegret = (regret + range) / (2 * range);
+            if (normalizedRegret < 0 || normalizedRegret > 1.0)
+                throw new Exception("Invalid normalized regret");
+            return normalizedRegret;
+        }
 
         public string GetCumulativeRegretsString()
         {
@@ -458,6 +490,19 @@ namespace ACESim
         #endregion
 
         #region Cumulative strategies
+
+        public void IncrementLastCumulativeStrategyIncrements(byte action, double strategyProbabilityTimesSelfReachProbability)
+        {
+            NodeInformation[lastCumulativeStrategyIncrementsDimension, action - 1] += strategyProbabilityTimesSelfReachProbability;
+        }
+
+        public void IncrementLastCumulativeStrategyIncrements_Parallel(byte action, double strategyProbabilityTimesSelfReachProbability)
+        {
+            Interlocking.Add(ref NodeInformation[lastCumulativeStrategyIncrementsDimension, action - 1], strategyProbabilityTimesSelfReachProbability);
+            //Interlocked.Increment(ref NumRegretIncrements);
+        }
+
+        public double GetLastCumulativeStrategyIncrement(byte action) => NodeInformation[lastCumulativeStrategyIncrementsDimension, action - 1];
 
         private void UpdateCumulativeAndAverageStrategies(int iteration, double averageStrategyAdjustment, bool normalizeCumulativeStrategyIncrements, bool resetPreviousCumulativeStrategyIncrements)
         {
@@ -543,7 +588,7 @@ namespace ACESim
         public static bool ZeroOutInCalculatingAverageStrategies = false;
         public static double ZeroOutBelow = 1E-50;
 
-        public unsafe void GetAverageStrategies(double* probabilities)
+        public unsafe void CalculateAverageStrategyFromCumulative(double* probabilities)
         {
             double sum = 0;
             for (int a = 1; a <= NumPossibleActions; a++)
@@ -579,7 +624,7 @@ namespace ACESim
             double[] array = new double[NumPossibleActions];
 
             double* actionProbabilities = stackalloc double[NumPossibleActions];
-            GetAverageStrategies(actionProbabilities);
+            CalculateAverageStrategyFromCumulative(actionProbabilities);
             for (int a = 0; a < NumPossibleActions; a++)
                 array[a] = actionProbabilities[a];
             return array;
@@ -818,7 +863,7 @@ namespace ACESim
                     else
                         PastValuesCumulativeStrategyDiscounts[LastPastValueIndexRecorded] = PastValuesCumulativeStrategyDiscounts[LastPastValueIndexRecorded] + averageStrategyAdjustment;
                     for (byte a = 1; a <= NumPossibleActions; a++)
-                        PastValues[LastPastValueIndexRecorded, a - 1] = GetMultiplicativeWeightsProbability(a, false);
+                        PastValues[LastPastValueIndexRecorded, a - 1] = GetCurrentProbability(a, false);
                 }
             }
         }
@@ -862,207 +907,6 @@ namespace ACESim
             SetProbabilitiesFromFunc(currentProbabilityDimension, SmallestProbabilityRepresented, false, false, unadjustedProbabilityFunc);
         }
 
-        public void InitializeMultiplicativeWeights()
-        {
-            if (NumPossibleActions == 0)
-                throw new Exception("NumPossibleActions not initialized");
-            double probability = 1.0 / (double)NumPossibleActions;
-            if (double.IsNaN(probability))
-                throw new Exception();
-            BestResponseAction = 1;
-            for (int a = 1; a <= NumPossibleActions; a++)
-            {
-                NodeInformation[adjustedWeightsDimension, a - 1] = 1.0;
-                NodeInformation[currentProbabilityDimension, a - 1] = probability;
-                NodeInformation[currentProbabilityForOpponentDimension, a - 1] = probability;
-                NodeInformation[averageStrategyProbabilityDimension, a - 1] = probability;
-            }
-        }
-
-        public void MultiplicativeWeightsIncrementLastRegret(byte action, double regretTimesInversePi, double inversePi)
-        {
-            NodeInformation[lastRegretNumeratorDimension, action - 1] += regretTimesInversePi;
-            NodeInformation[lastRegretDenominatorDimension, action - 1] += inversePi;
-        }
-        public void MultiplicativeWeightsIncrementLastRegret_Parallel(byte action, double regretTimesInversePi, double inversePi)
-        {
-            Interlocking.Add(ref NodeInformation[lastRegretNumeratorDimension, action - 1], regretTimesInversePi);
-            Interlocking.Add(ref NodeInformation[lastRegretDenominatorDimension, action - 1], inversePi);
-            //    Debug.WriteLine($"after increment: regret*invpi {regretTimesInversePi} inversePi {inversePi} numerator {NodeInformation[lastRegretNumeratorDimension, action - 1]} denominator {NodeInformation[lastRegretDenominatorDimension, action - 1]} fraction {NodeInformation[lastRegretNumeratorDimension, action - 1] / NodeInformation[lastRegretDenominatorDimension, action - 1]}");
-        }
-
-        public double NormalizeRegret(double regret)
-        {
-            // best performance possible occurs if expected value is MaxPossibleThisPlayer when overall expected value is MinPossibleThisPlayer. worst performance possible occurs if regret is MinPossibleThisPlayer when overall expected value is MaxPossibleThisPlayer. Regret can range from -(MaxPossible - MinPossible) to +(MaxPossible - MinPossible). Thus, Regret + (MaxPossible - MinPossible) can range from 0 to 2*(MaxPossible - MinPossible). So, we can normalize regret to be from 0 to 1 by calculating (regret + range) / (2 * range).
-            double range = MaxPossibleThisPlayer - MinPossibleThisPlayer;
-            double normalizedRegret = (regret + range) / (2 * range);
-            if (normalizedRegret < 0 || normalizedRegret > 1.0)
-                throw new Exception("Invalid normalized regret");
-            return normalizedRegret;
-        }
-
-        public void MultiplicativeWeightsIncrementLastCumulativeStrategyIncrements(byte action, double strategyProbabilityTimesSelfReachProbability)
-        {
-            NodeInformation[lastCumulativeStrategyIncrementsDimension, action - 1] += strategyProbabilityTimesSelfReachProbability;
-        }
-
-        public void MultiplicativeWeightsIncrementLastCumulativeStrategyIncrements_Parallel(byte action, double strategyProbabilityTimesSelfReachProbability)
-        {
-            Interlocking.Add(ref NodeInformation[lastCumulativeStrategyIncrementsDimension, action - 1], strategyProbabilityTimesSelfReachProbability);
-            //Interlocked.Increment(ref NumRegretIncrements);
-        }
-
-        public double GetLastCumulativeStrategyIncrement(byte action) => NodeInformation[lastCumulativeStrategyIncrementsDimension, action - 1];
-
-        public double GetAverageStrategy(byte action)
-        {
-            return NodeInformation[averageStrategyProbabilityDimension, action - 1];
-        }
-
-        public unsafe void GetMultiplicativeWeightsCorrelatedEquilibriumStrategyProbabilities(double randomNumberToChooseIteration, double* probabilities)
-        {
-            int pastValuesCount = LastPastValueIndexRecorded;
-            double cumulativeDiscountLevelToSeek = pastValuesCount * randomNumberToChooseIteration;
-            Span<double> pastValueDiscounts = new Span<double>(PastValuesCumulativeStrategyDiscounts, 0, pastValuesCount);
-            int index = pastValueDiscounts.BinarySearch(cumulativeDiscountLevelToSeek, Comparer<double>.Default);
-            if (index < 0)
-                index = ~index; // when negative, index is the bitwise complement of the first index larger than the value sought
-            if (index == pastValuesCount)
-                index--; // should be very rare.
-            for (int a = 0; a < NumPossibleActions; a++)
-                probabilities[a] = PastValues[index, a];
-        }
-
-        //public unsafe void GetEpsilonAdjustedMultiplicativeWeightsProbabilities(double* probabilitiesToSet, double epsilon, int iteration)
-        //{
-        //    GetMultiplicativeWeightsProbabilities(probabilitiesToSet, iteration);
-        //    double equalProbabilities = 1.0 / NumPossibleActions;
-        //    for (byte a = 1; a <= NumPossibleActions; a++)
-        //        probabilitiesToSet[a - 1] = epsilon * equalProbabilities + (1.0 - epsilon) * probabilitiesToSet[a - 1];
-        //}
-
-        public unsafe void GetMultiplicativeWeightsProbabilities(double* probabilitiesToSet, bool opponentProbabilities)
-        {
-            int probabilityDimension = opponentProbabilities ? currentProbabilityForOpponentDimension : currentProbabilityDimension;
-            for (byte a = 1; a <= NumPossibleActions; a++)
-            {
-                probabilitiesToSet[a - 1] = NodeInformation[probabilityDimension, a - 1];
-            }
-        }
-
-        public unsafe double GetMultiplicativeWeightsProbability(byte a, bool opponentProbabilities)
-        {
-            int probabilityDimension = opponentProbabilities ? currentProbabilityForOpponentDimension : currentProbabilityDimension;
-            return NodeInformation[probabilityDimension, a - 1];
-        }
-
-        public unsafe double[] GetMultiplicativeWeightsProbabilitiesAsArray()
-        {
-            double[] array = new double[NumPossibleActions];
-
-            double* actionProbabilities = stackalloc double[NumPossibleActions];
-            GetMultiplicativeWeightsProbabilities(actionProbabilities, false);
-            for (int a = 0; a < NumPossibleActions; a++)
-                array[a] = actionProbabilities[a];
-            return array;
-        }
-
-        public unsafe string GetMultiplicativeWeightsProbabilitiesAsString()
-        {
-            return String.Join(", ", GetMultiplicativeWeightsProbabilitiesAsArray().Select(x => x.ToSignificantFigures(3)));
-        }
-
-        public void MultiplicativeWeightsAnalyze()
-        {
-            string avgDistanceString = null, rangesString = null;
-            List<(int startIteration, int endIteration, int significantActions)> ranges = null;
-            if (PastValues != null && LastPastValueIndexRecorded > -1)
-            {
-                int total = LastPastValueIndexRecorded;
-                int numToTest = 1000;
-                double sumDistances = 0;
-                for (int i = 0; i < numToTest; i++)
-                {
-                    // Note: we're not weighting these here
-                    int j0 = RandomGenerator.Next(total);
-                    int j1 = RandomGenerator.Next(total);
-                    double sumSqDiffs = 0;
-                    for (int k = 0; k < NumPossibleActions; k++)
-                    {
-                        double diff = PastValues[j0, k] - PastValues[j1, k];
-                        sumSqDiffs += diff * diff;
-                    }
-                    double distance = Math.Sqrt(sumSqDiffs);
-                    sumDistances += distance;
-                }
-                double avgDistance = sumDistances / (double) numToTest;
-                avgDistanceString = avgDistance.ToSignificantFigures(3);
-
-                ranges = new List<(int startIteration, int endIteration, int significantActions)>();
-                int activeRangeStart = total / 2  /* focus on second half */;
-                int significantActionsInRange = 0;
-
-                for (int i = activeRangeStart; i < total; i++)
-                {
-                    int significantActions = 0;
-                    for (int k = 0; k < NumPossibleActions; k++)
-                    {
-                        if (PastValues[i, k] >= 0.01)
-                        {
-                            significantActions |= (1 << k);
-                        }
-                    }
-                    if (significantActions != significantActionsInRange || i == total - 1)
-                    {
-                        if (i > 0)
-                            ranges.Add(((int)activeRangeStart, i - 1, significantActionsInRange));
-                        activeRangeStart = i;
-                        significantActionsInRange = significantActions;
-                    }
-                }
-                int minNumIterations = 1;
-                ranges = ranges.Where(x => x.endIteration - x.startIteration + 1 >= minNumIterations).ToList();
-
-                string GetActionsAsString(int sigActionsBits)
-                {
-                    List<int> sigActions = new List<int>();
-                    for (int i = 0; i < 32; i++)
-                        if ((sigActionsBits & (1 << i)) != 0)
-                            sigActions.Add(i);
-                    return String.Join(",", sigActions);
-                }
-
-                rangesString = String.Join("; ", ranges.Select(x => $"({x.startIteration}-{x.endIteration}): {GetActionsAsString(x.significantActions)}"));
-            }
-            string hedgeString = GetMultiplicativeWeightsProbabilitiesAsString();
-            double[] averageStrategies = GetAverageStrategiesAsArray();
-            string avgStratString = GetAverageStrategiesAsString();
-            bool avgStratSameAsBestResponse = averageStrategies[BestResponseAction - 1] > 0.9999999;
-            //if (ranges.Count() > 1)
-                Console.WriteLine($"{(avgStratSameAsBestResponse ? "*" : "")} decision {Decision.Name} Information set {InformationSetNodeNumber} bestrespon {BestResponseAction} hedge {hedgeString} avg {avgStratString} avg distance {avgDistanceString} ranges: {rangesString}");
-        }
-
-        public void ZeroLowProbabilities(double threshold)
-        {
-            double reallocated = 0;
-            for (byte action = 1; action < NumPossibleActions; action++)
-            {
-                double p = GetAverageStrategy(action);
-                if (p < threshold)
-                {
-                    reallocated += p;
-                    NodeInformation[averageStrategyProbabilityDimension, action - 1] = 0;
-                    NodeInformation[cumulativeStrategyDimension, action - 1] = 0;
-                }
-            }
-            if (reallocated > 0)
-            {
-                double multiplyBy = 1.0 / (1.0 - reallocated);
-                for (byte action = 1; action < NumPossibleActions; action++)
-                    NodeInformation[averageStrategyProbabilityDimension, action - 1] *= multiplyBy;
-            }
-
-        }
 
         #endregion
 
@@ -1134,6 +978,57 @@ namespace ACESim
             }
         }
 
+        #endregion
+
+        #region Get probabilities
+
+        public double GetAverageStrategy(byte action)
+        {
+            return NodeInformation[averageStrategyProbabilityDimension, action - 1];
+        }
+
+        public unsafe void GetAverageStrategyProbabilities(double* probabilitiesToSet)
+        {
+            for (byte a = 1; a <= NumPossibleActions; a++)
+            {
+                probabilitiesToSet[a - 1] = NodeInformation[averageStrategyProbabilityDimension, a - 1];
+            }
+        }
+
+        public unsafe void GetCorrelatedEquilibriumProbabilities(double randomNumberToChooseIteration, double* probabilities)
+        {
+            int pastValuesCount = LastPastValueIndexRecorded;
+            double cumulativeDiscountLevelToSeek = pastValuesCount * randomNumberToChooseIteration;
+            Span<double> pastValueDiscounts = new Span<double>(PastValuesCumulativeStrategyDiscounts, 0, pastValuesCount);
+            int index = pastValueDiscounts.BinarySearch(cumulativeDiscountLevelToSeek, Comparer<double>.Default);
+            if (index < 0)
+                index = ~index; // when negative, index is the bitwise complement of the first index larger than the value sought
+            if (index == pastValuesCount)
+                index--; // should be very rare.
+            for (int a = 0; a < NumPossibleActions; a++)
+                probabilities[a] = PastValues[index, a];
+        }
+
+        public unsafe void GetCurrentProbabilities(double* probabilitiesToSet, bool opponentProbabilities)
+        {
+            int probabilityDimension = opponentProbabilities ? currentProbabilityForOpponentDimension : currentProbabilityDimension;
+            for (byte a = 1; a <= NumPossibleActions; a++)
+            {
+                probabilitiesToSet[a - 1] = NodeInformation[probabilityDimension, a - 1];
+            }
+        }
+
+        public unsafe double GetCurrentProbability(byte a, bool opponentProbabilities)
+        {
+            int probabilityDimension = opponentProbabilities ? currentProbabilityForOpponentDimension : currentProbabilityDimension;
+            return NodeInformation[probabilityDimension, a - 1];
+        }
+
+        public unsafe string GetCurrentProbabilitiesAsString()
+        {
+            return String.Join(", ", GetCurrentProbabilitiesAsArray().Select(x => x.ToSignificantFigures(3)));
+        }
+
         public unsafe void GetCurrentProbabilities(double* probabilitiesToSet)
         {
             bool done = false;
@@ -1176,6 +1071,29 @@ namespace ACESim
             NodeInformation = (double[,])BackupNodeInformation.Clone();
             BestResponseAction = BackupBestResponseAction;
             AverageStrategyAdjustmentsSum = BackupAverageStrategyAdjustmentsSum;
+        }
+
+
+
+        public void ZeroLowProbabilities(double threshold)
+        {
+            double reallocated = 0;
+            for (byte action = 1; action < NumPossibleActions; action++)
+            {
+                double p = GetAverageStrategy(action);
+                if (p < threshold)
+                {
+                    reallocated += p;
+                    NodeInformation[averageStrategyProbabilityDimension, action - 1] = 0;
+                    NodeInformation[cumulativeStrategyDimension, action - 1] = 0;
+                }
+            }
+            if (reallocated > 0)
+            {
+                double multiplyBy = 1.0 / (1.0 - reallocated);
+                for (byte action = 1; action < NumPossibleActions; action++)
+                    NodeInformation[averageStrategyProbabilityDimension, action - 1] *= multiplyBy;
+            }
         }
 
         public void AddMixedness(double minProbabilitySecondBest, bool continuousDecisionsOnly)
@@ -1228,6 +1146,76 @@ namespace ACESim
             if (d < 1E-8)
                 return 0;
             return d * multiplyByFn();
+        }
+
+        public void PastValuesAnalyze()
+        {
+            string avgDistanceString = null, rangesString = null;
+            List<(int startIteration, int endIteration, int significantActions)> ranges = null;
+            if (PastValues != null && LastPastValueIndexRecorded > -1)
+            {
+                int total = LastPastValueIndexRecorded;
+                int numToTest = 1000;
+                double sumDistances = 0;
+                for (int i = 0; i < numToTest; i++)
+                {
+                    // Note: we're not weighting these here
+                    int j0 = RandomGenerator.Next(total);
+                    int j1 = RandomGenerator.Next(total);
+                    double sumSqDiffs = 0;
+                    for (int k = 0; k < NumPossibleActions; k++)
+                    {
+                        double diff = PastValues[j0, k] - PastValues[j1, k];
+                        sumSqDiffs += diff * diff;
+                    }
+                    double distance = Math.Sqrt(sumSqDiffs);
+                    sumDistances += distance;
+                }
+                double avgDistance = sumDistances / (double)numToTest;
+                avgDistanceString = avgDistance.ToSignificantFigures(3);
+
+                ranges = new List<(int startIteration, int endIteration, int significantActions)>();
+                int activeRangeStart = total / 2  /* focus on second half */;
+                int significantActionsInRange = 0;
+
+                for (int i = activeRangeStart; i < total; i++)
+                {
+                    int significantActions = 0;
+                    for (int k = 0; k < NumPossibleActions; k++)
+                    {
+                        if (PastValues[i, k] >= 0.01)
+                        {
+                            significantActions |= (1 << k);
+                        }
+                    }
+                    if (significantActions != significantActionsInRange || i == total - 1)
+                    {
+                        if (i > 0)
+                            ranges.Add(((int)activeRangeStart, i - 1, significantActionsInRange));
+                        activeRangeStart = i;
+                        significantActionsInRange = significantActions;
+                    }
+                }
+                int minNumIterations = 1;
+                ranges = ranges.Where(x => x.endIteration - x.startIteration + 1 >= minNumIterations).ToList();
+
+                string GetActionsAsString(int sigActionsBits)
+                {
+                    List<int> sigActions = new List<int>();
+                    for (int i = 0; i < 32; i++)
+                        if ((sigActionsBits & (1 << i)) != 0)
+                            sigActions.Add(i);
+                    return String.Join(",", sigActions);
+                }
+
+                rangesString = String.Join("; ", ranges.Select(x => $"({x.startIteration}-{x.endIteration}): {GetActionsAsString(x.significantActions)}"));
+            }
+            string hedgeString = GetCurrentProbabilitiesAsString();
+            double[] averageStrategies = GetAverageStrategiesAsArray();
+            string avgStratString = GetAverageStrategiesAsString();
+            bool avgStratSameAsBestResponse = averageStrategies[BestResponseAction - 1] > 0.9999999;
+            //if (ranges.Count() > 1)
+            Console.WriteLine($"{(avgStratSameAsBestResponse ? "*" : "")} decision {Decision.Name} Information set {InformationSetNodeNumber} bestrespon {BestResponseAction} hedge {hedgeString} avg {avgStratString} avg distance {avgDistanceString} ranges: {rangesString}");
         }
 
         #endregion
