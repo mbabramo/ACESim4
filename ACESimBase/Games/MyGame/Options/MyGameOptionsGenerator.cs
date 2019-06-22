@@ -56,8 +56,8 @@ namespace ACESim
                 CourtLiabilityNoiseStdev = 0.15,
                 NumDamagesStrengthPoints = 1,
                 NumDamagesSignals = 1,
-                PDamagesNoiseStdev = 0.25,
-                DDamagesNoiseStdev = 0.25,
+                PDamagesNoiseStdev = 0.15, // DEBUG -- 0.25 before
+                DDamagesNoiseStdev = 0.15,
                 CostsMultiplier = 1.0,
                 PTrialCosts = 15_000,
                 DTrialCosts = 15_000,
@@ -115,7 +115,7 @@ namespace ACESim
             options.NumLiabilityStrengthPoints = 5;
             options.NumLiabilitySignals = 5;
             options.NumOffers = 5;
-            options.NumPotentialBargainingRounds = 2;
+            options.NumPotentialBargainingRounds = 3; // DEBUG
             options.AllowAbandonAndDefaults = true;
             options.BargainingRoundsSimultaneous = true;
             return options;

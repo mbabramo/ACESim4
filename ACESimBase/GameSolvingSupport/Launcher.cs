@@ -18,7 +18,7 @@ namespace ACESim
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.MultiplicativeWeights;
 
-        public const int VanillaIterations = 250_000; 
+        public const int VanillaIterations = 2_000; 
         public const int VanillaReportEveryNIterations = VanillaIterations;
         public const int VanillaBestResponseEveryMIterations = 1000; 
         public const int MiniReportEveryPIterations = EffectivelyNever; 
