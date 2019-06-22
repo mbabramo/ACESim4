@@ -103,11 +103,18 @@ namespace ACESim
             options.DUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth };
             //options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth, Alpha = 20 * 0.000001 };
             //options.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth, Alpha = 20 * 0.000001 };
-            options.NumDamagesStrengthPoints = 4;
-            options.NumDamagesSignals = 4;
-            options.NumLiabilityStrengthPoints = 4;
-            options.NumLiabilitySignals = 4;
-            options.NumOffers = 6;
+
+            //options.NumDamagesStrengthPoints = 4;
+            //options.NumDamagesSignals = 4;
+            //options.NumLiabilityStrengthPoints = 4;
+            //options.NumLiabilitySignals = 4;
+            //options.NumOffers = 6;
+
+            options.NumDamagesStrengthPoints = 5;
+            options.NumDamagesSignals = 5;
+            options.NumLiabilityStrengthPoints = 5;
+            options.NumLiabilitySignals = 5;
+            options.NumOffers = 5;
             options.NumPotentialBargainingRounds = 2;
             options.AllowAbandonAndDefaults = true;
             options.BargainingRoundsSimultaneous = true;

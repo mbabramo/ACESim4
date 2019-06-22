@@ -16,17 +16,17 @@ namespace ACESim
 
         #region Settings
 
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching;
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.MultiplicativeWeights;
 
-        public const int ProbingIterations = 20_000_000;
-        public const int VanillaIterations = 2000; 
-        public const int VanillaReportEveryNIterations = 100;
-        public const int VanillaBestResponseEveryMIterations = 100; 
+        public const int VanillaIterations = 250_000; 
+        public const int VanillaReportEveryNIterations = VanillaIterations;
+        public const int VanillaBestResponseEveryMIterations = 1000; 
         public const int MiniReportEveryPIterations = EffectivelyNever; 
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever; 
         public const int RecordPastValuesEveryNIterations = EffectivelyNever; // used for correlated equilibrium calculations
         public const bool UseRandomPathsForReporting = true; 
         public const int SummaryTableRandomPathsIterations = 25_000;
+        public const int ProbingIterations = 20_000_000;
 
         public const bool UseRegretAndStrategyDiscounting = true;
 
