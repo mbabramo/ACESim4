@@ -657,7 +657,7 @@ namespace ACESim
             AcceleratedBestResponsePrepResult = TreeWalk_Tree(prepWalk, new NodeActionsHistory());
             InformationSetsByDecisionIndex = InformationSets.GroupBy(x => x.DecisionIndex).Select(x => x.ToList()).ToList();
             s.Stop();
-            Console.WriteLine($"... {s.ElapsedMilliseconds} milliseconds");
+            Console.WriteLine($"... {s.ElapsedMilliseconds} milliseconds. Total information sets: {InformationSets.Count()}");
         }
 
         private void ExecuteAcceleratedBestResponse(bool determineWhetherReachable)
