@@ -35,10 +35,6 @@ namespace ACESimBase.GameSolvingSupport
 
         public bool ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, bool fromPredecessor, int distributorChanceInputs)
         {
-            if (chanceNode.ChanceNodeNumber == 2)
-            {
-                var DEBUG = 0;
-            }
             return true; // ignored
         }
 

@@ -18,7 +18,7 @@ namespace ACESim
         public int CorrelatedEquilibriumCalculationsEveryNIterations = 100000;
         public const int EffectivelyNever = 999999999;
         public int? BestResponseEveryMIterations = 100; // For partial recall games, this is very costly, so consider using EffectivelyNever.
-        public bool UseAcceleratedBestResponse = false;  // DEBUG
+        public bool UseAcceleratedBestResponse = true; 
         public int? MiniReportEveryPIterations = 1000;
         public bool MeasureRegretMatchingChanges = false;
         public bool UseRandomPathsForReporting = true;
@@ -144,7 +144,7 @@ namespace ACESim
 
         public bool CFRBR = false; // if true, opponent plays best response
 
-        public bool DistributeChanceDecisions = true; // DEBUG
-        public bool UnrollAlgorithm = false;
+        public bool DistributeChanceDecisions = true; 
+        public bool UnrollAlgorithm = true;
     }
 }
