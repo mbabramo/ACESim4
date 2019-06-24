@@ -713,7 +713,6 @@ namespace ACESim
             s.Start();
             if (EvolutionSettings.UseAcceleratedBestResponse)
             {
-                AverageStrategyUtilities = new double[NumNonChancePlayers];
                 if (actionStrategy != ActionStrategies.AverageStrategy)
                     throw new NotSupportedException();
                 if (AcceleratedBestResponsePrepResult == null)
@@ -722,10 +721,16 @@ namespace ACESim
             }
             else
             {
+                if (EvolutionSettings.DistributeChanceDecisions)
+                    throw new Exception("DEBUG");
+                var calculator = new AverageStrategyCalculator();
+                AverageStrategyUtilities = TreeWalk_Tree(calculator, true);
+                BestResponseImprovement = new double[NumNonChancePlayers];
                 for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
                 {
                     double bestResponse = CalculateBestResponse(playerBeingOptimized, actionStrategy);
                     BestResponseUtilities[playerBeingOptimized] = bestResponse;
+                    BestResponseImprovement[playerBeingOptimized] = bestResponse - AverageStrategyUtilities[playerBeingOptimized];
                 }
             }
             s.Stop();

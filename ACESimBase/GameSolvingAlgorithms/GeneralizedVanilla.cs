@@ -158,7 +158,7 @@ namespace ACESim
             for (byte p = 0; p < NumNonChancePlayers; p++)
                 Unroll_IterationResultForPlayers[p] = new GeneralizedVanillaUtilities()
                 {
-                    HedgeVsHedge = array[Unroll_IterationResultForPlayersIndices[p][Unroll_Result_HedgeVsHedgeIndex]],
+                    CurrentVsCurrent = array[Unroll_IterationResultForPlayersIndices[p][Unroll_Result_HedgeVsHedgeIndex]],
                     AverageStrategyVsAverageStrategy = array[Unroll_IterationResultForPlayersIndices[p][Unroll_Result_AverageStrategyIndex]],
                     BestResponseToAverageStrategy = array[Unroll_IterationResultForPlayersIndices[p][Unroll_Result_BestResponseIndex]],
                 };
@@ -832,7 +832,7 @@ namespace ACESim
                 double util = finalUtilities.Utilities[playerBeingOptimized];
                 if (double.IsNaN(util))
                     throw new Exception();
-                return new GeneralizedVanillaUtilities { AverageStrategyVsAverageStrategy = util, BestResponseToAverageStrategy = util, HedgeVsHedge = util };
+                return new GeneralizedVanillaUtilities { AverageStrategyVsAverageStrategy = util, BestResponseToAverageStrategy = util, CurrentVsCurrent = util };
             }
             else if (gameStateType == GameStateTypeEnum.Chance)
             {
@@ -896,7 +896,7 @@ namespace ACESim
                     }
                     HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                     GeneralizedVanillaUtilities innerResult = GeneralizedVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, distributorChanceInputsNext);
-                    expectedValueOfAction[action - 1] = innerResult.HedgeVsHedge;
+                    expectedValueOfAction[action - 1] = innerResult.CurrentVsCurrent;
 
                     if (playerMakingDecision == playerBeingOptimized)
                     {
@@ -908,7 +908,7 @@ namespace ACESim
                         // Meanwhile, we need to determine the best response action in the next iteration. To do this, we need to figure out which action, when weighted by the probability we play to this information set, produces the highest best response on average. Note that we may get different inner results for the same action, because the next information set will differ depending on the other player's information set.
                         informationSet.IncrementBestResponse(action, inversePiAvgStrat, innerResult.BestResponseToAverageStrategy);
                         // The other result utilities are just the probability adjusted utilities. 
-                        result.HedgeVsHedge += probabilityOfAction * innerResult.HedgeVsHedge;
+                        result.CurrentVsCurrent += probabilityOfAction * innerResult.CurrentVsCurrent;
                         result.AverageStrategyVsAverageStrategy += probabilityOfActionAvgStrat * innerResult.AverageStrategyVsAverageStrategy;
                     }
                     else
@@ -1009,7 +1009,7 @@ namespace ACESim
             {
                 TabbedText.Tabs--;
                 TabbedText.WriteLine(
-                    $"... action {action} value {result.HedgeVsHedge} probability {actionProbability} expected value contribution {result.HedgeVsHedge * actionProbability}");
+                    $"... action {action} value {result.CurrentVsCurrent} probability {actionProbability} expected value contribution {result.CurrentVsCurrent * actionProbability}");
             }
             result.MakeProbabilityAdjusted(actionProbability);
 

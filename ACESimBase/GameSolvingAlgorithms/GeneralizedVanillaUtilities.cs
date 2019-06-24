@@ -6,9 +6,9 @@ namespace ACESim
     public struct GeneralizedVanillaUtilities
     {
         /// <summary>
-        /// The utility from the player being optimized playing Hedge against Hedge. This is used to set counterfactual values and regret.
+        /// The utility from the player being optimized playing its current strategy vs. an opponent playing its current strategy. This is used to set counterfactual values and regret.
         /// </summary>
-        public double HedgeVsHedge;
+        public double CurrentVsCurrent;
         /// <summary>
         /// The utility from the player being optimized playing an average strategy against the other player playing an average strategy. This can be used to compare with best response to average strategies; in an epsilon-equilibrium, they should be very close. Note that this is an exact result based on the average strategies of the prior player at the time of the most recent player's update, but it will not be up to date after the most recent player updates.
         /// </summary>
@@ -20,12 +20,12 @@ namespace ACESim
 
         public override string ToString()
         {
-            return $"Playing hedge: {HedgeVsHedge} approx avgstrat {AverageStrategyVsAverageStrategy} approx bestres {BestResponseToAverageStrategy} diff {BestResponseToAverageStrategy - AverageStrategyVsAverageStrategy}";
+            return $"Playing current: {CurrentVsCurrent} approx avgstrat {AverageStrategyVsAverageStrategy} approx bestres {BestResponseToAverageStrategy} diff {BestResponseToAverageStrategy - AverageStrategyVsAverageStrategy}";
         }
 
         public void IncrementBasedOnNotYetProbabilityAdjusted(ref GeneralizedVanillaUtilities other, double averageStrategyProbability, double hedgeProbability)
         {
-            HedgeVsHedge += other.HedgeVsHedge * hedgeProbability;
+            CurrentVsCurrent += other.CurrentVsCurrent * hedgeProbability;
             AverageStrategyVsAverageStrategy += other.AverageStrategyVsAverageStrategy * averageStrategyProbability;
             BestResponseToAverageStrategy += other.BestResponseToAverageStrategy * averageStrategyProbability;
         }
@@ -33,14 +33,14 @@ namespace ACESim
         public void IncrementBasedOnProbabilityAdjusted(ref GeneralizedVanillaUtilities other)
         {
             // supports parallelism, since we may increment by multiple probability adjusted items at once
-            Interlocking.Add(ref HedgeVsHedge, other.HedgeVsHedge);
+            Interlocking.Add(ref CurrentVsCurrent, other.CurrentVsCurrent);
             Interlocking.Add(ref AverageStrategyVsAverageStrategy, other.AverageStrategyVsAverageStrategy);
             Interlocking.Add(ref BestResponseToAverageStrategy, other.BestResponseToAverageStrategy);
         }
 
         public void MakeProbabilityAdjusted(double actionProbability)
         {
-            HedgeVsHedge *= actionProbability;
+            CurrentVsCurrent *= actionProbability;
             AverageStrategyVsAverageStrategy *= actionProbability;
             BestResponseToAverageStrategy *= actionProbability;
         }
