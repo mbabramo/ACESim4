@@ -144,7 +144,7 @@ namespace ACESim
 
         public bool CFRBR = false; // if true, opponent plays best response
 
-        public bool DistributeChanceDecisions = false; // DEBUG
-        public bool UnrollAlgorithm = true;
+        public bool DistributeChanceDecisions = true; // DEBUG
+        public bool UnrollAlgorithm = false;
     }
 }

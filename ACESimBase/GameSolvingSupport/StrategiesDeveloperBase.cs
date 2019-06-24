@@ -676,10 +676,11 @@ namespace ACESim
                     Parallel.ForEach(informationSetsForDecision, informationSet => informationSet.AcceleratedBestResponse_DetermineWhetherReachable());
                 }
             // Finally, we need to calculate the final values by looking at the first information sets for each player.
-            if (BestResponseUtilities == null || BestResponseImprovement == null)
+            if (BestResponseUtilities == null || BestResponseImprovement == null || AverageStrategyUtilities == null)
             {
                 BestResponseUtilities = new double[NumNonChancePlayers];
                 BestResponseImprovement = new double[NumNonChancePlayers];
+                AverageStrategyUtilities = new double[NumNonChancePlayers];
             }
             for (byte playerIndex = 0; playerIndex < NumNonChancePlayers; playerIndex++)
             {
@@ -721,9 +722,7 @@ namespace ACESim
             }
             else
             {
-                if (EvolutionSettings.DistributeChanceDecisions)
-                    throw new Exception("DEBUG");
-                var calculator = new AverageStrategyCalculator();
+                var calculator = new AverageStrategyCalculator(EvolutionSettings.DistributeChanceDecisions);
                 AverageStrategyUtilities = TreeWalk_Tree(calculator, true);
                 BestResponseImprovement = new double[NumNonChancePlayers];
                 for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)

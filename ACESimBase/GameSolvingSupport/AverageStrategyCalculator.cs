@@ -8,11 +8,22 @@ namespace ACESimBase.GameSolvingSupport
 {
     public class AverageStrategyCalculator : ITreeNodeProcessor<bool, double[]>
     {
+        bool DistributingChanceActions;
+
+        public AverageStrategyCalculator(bool distributingChanceActions)
+        {
+            DistributingChanceActions = distributingChanceActions;
+        }
+
         public double[] ChanceNode_Backward(ChanceNode chanceNode, IEnumerable<double[]> fromSuccessors, int distributorChanceInputs)
         {
+            if (DistributingChanceActions && chanceNode.Decision.DistributedChanceDecision)
+                return fromSuccessors.Single();
             int numPlayers = fromSuccessors.First().Length;
             double[] passBack = new double[numPlayers];
             List<double[]> fromSuccessorsList = fromSuccessors.ToList();
+            if (fromSuccessorsList.Count() != chanceNode.Decision.NumPossibleActions)
+                throw new Exception();
             for (byte a = 1; a <= chanceNode.Decision.NumPossibleActions; a++)
             {
                 double probability = chanceNode.GetActionProbability(a, distributorChanceInputs);
@@ -24,6 +35,10 @@ namespace ACESimBase.GameSolvingSupport
 
         public bool ChanceNode_Forward(ChanceNode chanceNode, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, bool fromPredecessor, int distributorChanceInputs)
         {
+            if (chanceNode.ChanceNodeNumber == 2)
+            {
+                var DEBUG = 0;
+            }
             return true; // ignored
         }
 
@@ -37,6 +52,8 @@ namespace ACESimBase.GameSolvingSupport
             int numPlayers = fromSuccessors.First().Length;
             double[] passBack = new double[numPlayers];
             List<double[]> fromSuccessorsList = fromSuccessors.ToList();
+            if (fromSuccessorsList.Count() != informationSet.Decision.NumPossibleActions)
+                throw new Exception();
             for (byte a = 1; a <= informationSet.Decision.NumPossibleActions; a++)
             {
                 double probability = informationSet.GetAverageStrategy(a);

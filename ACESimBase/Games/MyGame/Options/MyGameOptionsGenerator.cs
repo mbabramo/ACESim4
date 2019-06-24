@@ -110,13 +110,13 @@ namespace ACESim
             //options.NumLiabilitySignals = 4;
             //options.NumOffers = 6;
 
-            options.NumDamagesStrengthPoints = 3;
-            options.NumDamagesSignals = 3;
-            options.NumLiabilityStrengthPoints = 3;
-            options.NumLiabilitySignals = 3;
-            options.NumOffers = 3;
-            options.NumPotentialBargainingRounds = 2; 
-            options.AllowAbandonAndDefaults = true;
+            options.NumDamagesStrengthPoints = 2;
+            options.NumDamagesSignals = 2;
+            options.NumLiabilityStrengthPoints = 2;
+            options.NumLiabilitySignals = 2;
+            options.NumOffers = 2;
+            options.NumPotentialBargainingRounds = 1; 
+            options.AllowAbandonAndDefaults = false; // DEBUG
             options.BargainingRoundsSimultaneous = true;
             return options;
         }
