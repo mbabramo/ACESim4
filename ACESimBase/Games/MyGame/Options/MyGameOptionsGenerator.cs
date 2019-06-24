@@ -110,7 +110,7 @@ namespace ACESim
             //options.NumLiabilitySignals = 4;
             //options.NumOffers = 6;
 
-            options.NumDamagesStrengthPoints = 2;
+            options.NumDamagesStrengthPoints = 4;
             options.NumDamagesSignals = 2;
             options.NumLiabilityStrengthPoints = 2;
             options.NumLiabilitySignals = 2;
