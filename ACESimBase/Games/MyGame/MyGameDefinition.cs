@@ -361,6 +361,8 @@ namespace ACESim
 
         private void AddFileAndAnswerDecisions(List<Decision> decisions)
         {
+            if (Options.SkipFileAndAnswerDecisions)
+                return;
             var pFile =
                 new Decision("PFile", "PF", false, (byte)MyGamePlayers.Plaintiff, new byte[]  { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
                     2, (byte)MyGameDecisions.PFile)

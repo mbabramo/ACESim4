@@ -62,6 +62,10 @@ namespace ACESim
         /// </summary>
         public double CourtDamagesNoiseStdev;
         /// <summary>
+        /// If true, then plaintiff has no choice but to file and defendant has no choice but to answer
+        /// </summary>
+        public bool SkipFileAndAnswerDecisions;
+        /// <summary>
         /// If true, then the bargaining round starts with P and D deciding whether to bargain at all this round. The per bargaining round costs will be borne either way.
         /// </summary>
         public bool IncludeAgreementToBargainDecisions;

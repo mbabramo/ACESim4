@@ -20,7 +20,7 @@ namespace ACESim
             PerfectInfo
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Custom2;
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Custom;
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
@@ -51,6 +51,7 @@ namespace ACESim
                     ExogenousProbabilityTrulyLiable = 0.5,
                     StdevNoiseToProduceLiabilityStrength = 0.5
                 },
+                SkipFileAndAnswerDecisions = false,
                 PFilingCost = 5000,
                 DAnswerCost = 5000,
                 PLiabilityNoiseStdev = 0.15,
@@ -58,7 +59,7 @@ namespace ACESim
                 CourtLiabilityNoiseStdev = 0.15,
                 NumDamagesStrengthPoints = 1,
                 NumDamagesSignals = 1,
-                PDamagesNoiseStdev = 0.15, // DEBUG -- 0.25 before
+                PDamagesNoiseStdev = 0.15,
                 DDamagesNoiseStdev = 0.15,
                 CostsMultiplier = 1.0,
                 PTrialCosts = 15_000,
@@ -101,16 +102,23 @@ namespace ACESim
             var options = BaseOptions();
             options.DamagesMax = 150_000;
             options.DamagesMin = 50_000;
-            options.PUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth };
-            options.DUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth };
+            //options.PUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth };
+            //options.DUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth };            
+            options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth, Alpha = 10 * 0.000001 }; // DEBUG
+            options.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth, Alpha = 10 * 0.000001 }; // DEBUG
+            //options.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.PInitialWealth };
+            //options.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.DInitialWealth };
 
             options.NumDamagesStrengthPoints = 4;
             options.NumDamagesSignals = 4;
             options.NumLiabilityStrengthPoints = 4;
             options.NumLiabilitySignals = 4;
             options.NumOffers = 4;
-            options.NumPotentialBargainingRounds = 2; 
-            options.AllowAbandonAndDefaults = true;
+            options.NumPotentialBargainingRounds = 2;
+
+            options.SkipFileAndAnswerDecisions = true; // DEBUG
+            options.AllowAbandonAndDefaults = false; // DEBUG
+            options.SimultaneousOffersUltimatelyRevealed = false; // DEBUG
             options.BargainingRoundsSimultaneous = true;
             return options;
         }
@@ -131,7 +139,6 @@ namespace ACESim
             options.NumLiabilitySignals = 5;
             options.NumOffers = 5;
             options.NumPotentialBargainingRounds = 3;
-            options.SimultaneousOffersUltimatelyRevealed = false; // DEBUG
             options.AllowAbandonAndDefaults = true;
             options.BargainingRoundsSimultaneous = true;
             return options;

@@ -94,6 +94,10 @@ namespace ACESim
                         MyProgress.GameComplete = true;
                     break;
                 case (byte)MyGameDecisions.PreBargainingRound:
+                    if (MyDefinition.Options.SkipFileAndAnswerDecisions)
+                    {
+                        MyProgress.PFiles = MyProgress.DAnswers = true;
+                    }
                     break;
                 case (byte)MyGameDecisions.PAgreeToBargain:
                     MyProgress.AddPAgreesToBargain(action == 1);
