@@ -363,7 +363,11 @@ namespace ACESim
                 MyProgress.FalsePositiveExpenditures = 0;
                 return;
             }
-            double correctDamagesIfTrulyLiable = (double) (MyProgress.DamagesMin + MyProgress.DamagesStrengthUniform * (MyProgress.DamagesMax - MyProgress.DamagesMin));
+            double correctDamagesIfTrulyLiable;
+            if (MyDefinition.Options.NumDamagesStrengthPoints == 1)
+                correctDamagesIfTrulyLiable = (double) MyProgress.DamagesMax;
+            else
+                correctDamagesIfTrulyLiable = (double) (MyProgress.DamagesMin + MyProgress.DamagesStrengthUniform * (MyProgress.DamagesMax - MyProgress.DamagesMin));
             double falseNegativeShortfallIfTrulyLiable = Math.Max(0, correctDamagesIfTrulyLiable - MyProgress.PChangeWealth); // how much plaintiff's payment fell short (if at all)
             double falsePositiveExpendituresIfNotTrulyLiable = Math.Max(0, 0 - MyProgress.DChangeWealth); // how much defendant's payment was excessive (if at all), in the condition in which the defendant is NOT truly liable. In this case, the defendant ideally would pay 0.
             double falsePositiveExpendituresIfTrulyLiable = Math.Max(0, 0 - correctDamagesIfTrulyLiable - MyProgress.DChangeWealth); // how much defendant's payment was excessive (if at all), in the condition in which the defendant is truly liable. In this case, the defendant ideally would pay the correct amount of damages. E.g., if correct damages are 100 and defendant pays out 150 (including costs), then change in wealth is -150, we have -100 - -150, so we have 50.
