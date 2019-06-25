@@ -20,7 +20,7 @@ namespace ACESim
             PerfectInfo
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Custom2;
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Custom;
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
@@ -104,12 +104,12 @@ namespace ACESim
             options.PUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth };
             options.DUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth };
 
-            options.NumDamagesStrengthPoints = 5;
-            options.NumDamagesSignals = 5;
-            options.NumLiabilityStrengthPoints = 5;
-            options.NumLiabilitySignals = 5;
-            options.NumOffers = 5;
-            options.NumPotentialBargainingRounds = 3; 
+            options.NumDamagesStrengthPoints = 4;
+            options.NumDamagesSignals = 4;
+            options.NumLiabilityStrengthPoints = 4;
+            options.NumLiabilitySignals = 4;
+            options.NumOffers = 4;
+            options.NumPotentialBargainingRounds = 2; 
             options.AllowAbandonAndDefaults = true;
             options.BargainingRoundsSimultaneous = true;
             return options;
@@ -123,11 +123,11 @@ namespace ACESim
             options.PUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth };
             options.DUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth };
 
-            options.NumDamagesStrengthPoints = 4;
-            options.NumDamagesSignals = 4;
-            options.NumLiabilityStrengthPoints = 4;
-            options.NumLiabilitySignals = 4;
-            options.NumOffers = 4;
+            options.NumDamagesStrengthPoints = 5;
+            options.NumDamagesSignals = 5;
+            options.NumLiabilityStrengthPoints = 5;
+            options.NumLiabilitySignals = 5;
+            options.NumOffers = 5;
             options.NumPotentialBargainingRounds = 3;
             options.AllowAbandonAndDefaults = true;
             options.BargainingRoundsSimultaneous = true;
