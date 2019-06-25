@@ -1,8 +1,12 @@
-﻿using ACESim.Util;
+﻿//#define SAFETYCHECKS
+
+using ACESim.Util;
+using ACESimBase.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
@@ -54,7 +58,7 @@ namespace ACESim
         public void Initialize()
         {
             if (MaxInformationSetLoggingLength != MaxInformationSetLoggingLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLoggingLengthPerPartialPlayer * NumPartialPlayers)
-                throw new Exception("Lengths not set correctly.");
+                ThrowHelper.Throw("Lengths not set correctly.");
             fixed (byte* logPtr = InformationSetLogs)
                 for (byte p = 0; p < MaxNumPlayers; p++)
                 {
@@ -62,11 +66,13 @@ namespace ACESim
                 }
         }
 
-
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AddToLog(byte information, byte followingDecisionIndex, byte playerIndex, string[] playerNames, List<ActionPoint> actionPoints)
         {
+#if (SAFETYCHECKS)
             if (playerIndex >= MaxNumPlayers)
-                throw new NotImplementedException();
+                ThrowHelper.Throw();
+#endif
             fixed (byte* informationSetsLogPtr = InformationSetLogs)
             {
                 byte* playerPointer = informationSetsLogPtr + InformationSetLoggingIndex(playerIndex);
@@ -74,8 +80,10 @@ namespace ACESim
                 // advance to the end of the information set
                 while (*playerPointer != InformationSetTerminator)
                     playerPointer += 2;
+#if (SAFETYCHECKS)
                 if (playerPointer >= nextPlayerPointerMinusTwo)
-                    throw new Exception("Internal error. Must increase size of information set.");
+                    ThrowHelper.Throw("Internal error. Must increase size of information set.");
+#endif
                 // now record the information
                 *playerPointer = followingDecisionIndex; // we must record the decision
                 playerPointer++;
@@ -99,8 +107,10 @@ namespace ACESim
 
         public void RemoveLastItemInLog(byte playerIndex)
         {
+#if (SAFETYCHECKS)
             if (playerIndex >= MaxNumPlayers)
-                throw new NotImplementedException();
+                ThrowHelper.Throw();
+#endif
             fixed (byte* informationSetsLogPtr = InformationSetLogs)
             {
                 // Console.WriteLine($"Adding information {information} following decision {followingDecisionIndex} for Player number {playerIndex}"); 
@@ -115,8 +125,10 @@ namespace ACESim
 
         public unsafe byte GetPlayerInformationItem(byte playerIndex, byte decisionIndex)
         {
+#if (SAFETYCHECKS)
             if (playerIndex >= MaxNumPlayers)
-                throw new NotImplementedException();
+                ThrowHelper.Throw();
+#endif
             fixed (byte* informationSetsPtr = InformationSetLogs)
             {
                 byte* playerPointer = informationSetsPtr + InformationSetLoggingIndex(playerIndex);
@@ -180,8 +192,10 @@ namespace ACESim
 
         public byte CountItemsInInformationSet(byte playerIndex)
         {
+#if (SAFETYCHECKS)
             if (playerIndex >= MaxNumPlayers)
-                throw new NotImplementedException();
+                ThrowHelper.Throw();
+#endif
             byte b = 0;
             fixed (byte* informationSetsPtr = InformationSetLogs)
             {
@@ -201,8 +215,10 @@ namespace ACESim
 
         public void AddRemovalToInformationSetLog(byte followingDecisionIndex, byte playerIndex, string[] playerNames, List<ActionPoint> actionPoints)
         {
+#if (SAFETYCHECKS)
             if (playerIndex >= MaxNumPlayers)
-                throw new NotImplementedException();
+                ThrowHelper.Throw();
+#endif
             fixed (byte* informationSetsLogPtr = InformationSetLogs)
             {
                 AddToLog(RemoveItemFromInformationSet, followingDecisionIndex, playerIndex, playerNames, actionPoints);

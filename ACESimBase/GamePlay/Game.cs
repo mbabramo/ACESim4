@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace ACESim
 {
@@ -149,17 +150,18 @@ namespace ACESim
             return !GameDefinition.SkipDecision(currentDecision, ref gameProgress.GameHistory);
         }
 
-        public unsafe virtual byte ChooseAction()
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public virtual byte ChooseAction()
         {
             byte actionToChoose;
             if (Progress.ActionsToPlay == null)
-                Progress.ActionsToPlay = new List<byte>();
+                ResetActionsToPlay();
             if (Progress.ActionOverrider != null)
             {
                 byte actionToAdd = Progress.ActionOverrider(CurrentDecision, Progress);
                 if (actionToAdd != 0)
                 {
-                    GameProgressLogger.Log(() => $"Choosing overridden action {actionToAdd} for {CurrentDecision}");
+                    //DEBUG GameProgressLogger.Log(() => $"Choosing overridden action {actionToAdd} for {CurrentDecision}");
                     return actionToAdd;
                 }
             }
@@ -177,27 +179,38 @@ namespace ACESim
             }
             else
             {
-                double randomNumberForIterationThisTime;
-                long iterationNumber = Progress.IterationID.GetIterationNumber();
-                if (iterationNumber == LastIterationNumberReceivingRandomNumber)
-                    randomNumberForIterationThisTime = RandomNumberForIteration;
-                else
-                {
-                    randomNumberForIterationThisTime = RandomNumberForIteration = Progress.IterationID.GetRandomNumberBasedOnIterationID((byte)(253));
-                    LastIterationNumberReceivingRandomNumber = iterationNumber;
-                }
-                actionToChoose = CurrentPlayerStrategy.ChooseActionBasedOnRandomNumber(Progress, Progress.IterationID.GetRandomNumberBasedOnIterationID((byte)CurrentDecisionIndex), // must be different for every decision in the game
-                    randomNumberForIterationThisTime, // must be same for every decision in the game
-                    CurrentDecision.NumPossibleActions);
-
-                //Console.WriteLine($"Decision byte code {CurrentDecision.DecisionByteCode} (index {CurrentDecisionIndex}) ==> randomly chosen {actionToChoose}");
+                actionToChoose = ChooseActionRandomly();
             }
 
-            GameProgressLogger.Log(() => $"Choosing action {actionToChoose} for {CurrentDecision}");
-            if (actionToChoose > CurrentDecision.NumPossibleActions)
-                throw new Exception("Internal error.");
+            //DEBUG GameProgressLogger.Log(() => $"Choosing action {actionToChoose} for {CurrentDecision}");
             return actionToChoose;
         }
+
+        private byte ChooseActionRandomly()
+        {
+            byte actionToChoose;
+            double randomNumberForIterationThisTime;
+            long iterationNumber = Progress.IterationID.GetIterationNumber();
+            if (iterationNumber == LastIterationNumberReceivingRandomNumber)
+                randomNumberForIterationThisTime = RandomNumberForIteration;
+            else
+            {
+                randomNumberForIterationThisTime = RandomNumberForIteration = Progress.IterationID.GetRandomNumberBasedOnIterationID((byte)(253));
+                LastIterationNumberReceivingRandomNumber = iterationNumber;
+            }
+            actionToChoose = CurrentPlayerStrategy.ChooseActionBasedOnRandomNumber(Progress, Progress.IterationID.GetRandomNumberBasedOnIterationID((byte)CurrentDecisionIndex), // must be different for every decision in the game
+                randomNumberForIterationThisTime, // must be same for every decision in the game
+                CurrentDecision.NumPossibleActions);
+
+            //Console.WriteLine($"Decision byte code {CurrentDecision.DecisionByteCode} (index {CurrentDecisionIndex}) ==> randomly chosen {actionToChoose}");
+            return actionToChoose;
+        }
+
+        private void ResetActionsToPlay()
+        {
+            Progress.ActionsToPlay = new List<byte>();
+        }
+
         long LastIterationNumberReceivingRandomNumber = -1;
         double RandomNumberForIteration = -1;
 

@@ -128,7 +128,7 @@ namespace ACESim
             options.NumLiabilityStrengthPoints = 4;
             options.NumLiabilitySignals = 4;
             options.NumOffers = 4;
-            options.NumPotentialBargainingRounds = 2;
+            options.NumPotentialBargainingRounds = 3;
             options.AllowAbandonAndDefaults = true;
             options.BargainingRoundsSimultaneous = true;
             return options;

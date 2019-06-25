@@ -1,8 +1,12 @@
-﻿using ACESim.Util;
+﻿//#define SAFETYCHECKS
+
+using ACESim.Util;
+using ACESimBase.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
@@ -123,7 +127,7 @@ namespace ACESim
             if (Initialized)
                 return;
             if (MaxInformationSetLength != MaxInformationSetLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLengthPerPartialPlayer * NumPartialPlayers)
-                throw new Exception("Lengths not set correctly.");
+                ThrowHelper.Throw("Lengths not set correctly.");
             Initialize_Helper();
         }
 
@@ -164,8 +168,10 @@ namespace ACESim
             fixed (byte* cachePtr = Cache)
             {
                 byte currentValue = *(cachePtr + (byte)cacheIndexToDecrement);
+#if SAFETYCHECKS
                 if (currentValue == 0)
-                    throw new Exception();
+                    ThrowHelper.Throw();
+#endif
                 *(cachePtr + (byte) cacheIndexToDecrement) = (byte) (currentValue - (byte)decrementBy);
             }
         }
@@ -179,16 +185,19 @@ namespace ACESim
         public unsafe void SetCacheItemAtIndex(byte cacheIndexToReset, byte newValue)
         {
             // Console.WriteLine($"Set cache for {cacheIndexToReset} to {newValue}"); 
+#if SAFETYCHECKS
             if (cacheIndexToReset >= CacheLength)
-                throw new NotImplementedException();
+                ThrowHelper.Throw();
+#endif
             fixed (byte* cachePtr = Cache)
                 *(cachePtr + (byte) cacheIndexToReset) = newValue;
         }
 
-        #endregion
+#endregion
 
-        #region History
+#region History
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, byte[] playersToInform, byte[] playersToInformOfOccurrenceOnly, byte[] cacheIndicesToIncrement, byte? storeActionInCacheIndex, GameProgress gameProgress, bool skipAddToHistory, bool deferNotification, bool delayPreviousDeferredNotification)
         {
             // Debug.WriteLine($"Add to history {decisionByteCode} for player {playerIndex} action {action} of {numPossibleActions}");
@@ -223,14 +232,18 @@ namespace ACESim
 
         private void AddToSimpleActionsList(byte action)
         {
+#if SAFETYCHECKS
             if (action == 0)
-                throw new Exception("Invalid action.");
+                ThrowHelper.Throw("Invalid action.");
+#endif
             fixed (byte* historyPtr = ActionsHistory)
             {
                 *(historyPtr + NextIndexInHistoryActionsOnly) = action;
                 NextIndexInHistoryActionsOnly++;
+#if SAFETYCHECKS
                 if (NextIndexInHistoryActionsOnly >= GameFullHistory.MaxNumActions)
-                    throw new Exception("Internal error. Must increase MaxNumActions.");
+                    ThrowHelper.Throw("Internal error. Must increase MaxNumActions.");
+#endif
             }
         }
 
@@ -262,9 +275,9 @@ namespace ACESim
             return Complete;
         }
 
-        #endregion
+#endregion
 
-        #region Player information sets
+#region Player information sets
 
 
         private void AddToInformationSetAndLog(byte information, byte followingDecisionIndex, byte playerIndex, byte[] playersToInform, GameProgress gameProgress)
@@ -302,8 +315,10 @@ namespace ACESim
 
         private void AddToInformationSet(byte information, byte playerIndex, byte* informationSetsPtr)
         {
+#if SAFETYCHECKS
             if (playerIndex >= MaxNumPlayers)
-                throw new NotImplementedException();
+                ThrowHelper.Throw();
+#endif
             byte* playerPointer = informationSetsPtr + InformationSetIndex(playerIndex);
             byte numItems = 0;
             while (*playerPointer != InformationSetTerminator)
@@ -314,8 +329,10 @@ namespace ACESim
             *playerPointer = information;
             playerPointer++;
             numItems++;
+#if SAFETYCHECKS
             if (numItems >= MaxInformationSetLengthForPlayer(playerIndex))
-                throw new Exception("Must increase MaxInformationSetLengthPerPlayer");
+                ThrowHelper.Throw("Must increase MaxInformationSetLengthPerPlayer");
+#endif
             *playerPointer = InformationSetTerminator;
         }
 
@@ -338,8 +355,10 @@ namespace ACESim
                     playerPointer++;
                     playerInfoBuffer++;
                     size++;
+#if SAFETYCHECKS
                     if (size == maxInformationSetLengthForPlayer)
-                        throw new Exception("Internal error.");
+                        ThrowHelper.Throw("Internal error.");
+#endif
                 }
                 *playerInfoBuffer = InformationSetTerminator;
             }
@@ -356,8 +375,10 @@ namespace ACESim
 
         public byte CountItemsInInformationSet(byte playerIndex)
         {
+#if SAFETYCHECKS
             if (playerIndex >= MaxNumPlayers)
-                throw new NotImplementedException();
+                ThrowHelper.Throw();
+#endif
             byte b = 0;
             fixed (byte* informationSetsPtr = InformationSets)
             {
@@ -374,8 +395,10 @@ namespace ACESim
 
         public void RemoveItemsInInformationSetAndLog(byte playerIndex, byte followingDecisionIndex, byte numItemsToRemove, GameProgress gameProgress)
         {
+#if SAFETYCHECKS
             if (playerIndex >= MaxNumPlayers)
                 throw new NotImplementedException();
+#endif
             // This takes the approach of keeping the information set log as append-only storage. That is, we add a notation that we're removing an item from the information set. 
             if (gameProgress != null)
                 for (byte b = 0; b < numItemsToRemove; b++)
@@ -407,7 +430,7 @@ namespace ACESim
             }
         }
 
-        #endregion
+#endregion
 
     }
 }

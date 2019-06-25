@@ -262,7 +262,7 @@ namespace ACESim
             return game.Progress;
         }
 
-        public unsafe void ContinuePathWithAction(byte actionToPlay, GameProgress currentGameState)
+        public void ContinuePathWithAction(byte actionToPlay, GameProgress currentGameState)
         {
             Game game = GameDefinition.GameFactory.CreateNewGame();
             game.PlaySetup(Strategies, currentGameState, GameDefinition, false, false);

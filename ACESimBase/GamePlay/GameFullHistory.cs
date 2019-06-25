@@ -1,10 +1,14 @@
-﻿using System;
+﻿//#define SAFETYCHECKS
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
 using ACESim.Util;
+using ACESimBase.Util;
 
 namespace ACESim
 {
@@ -63,15 +67,19 @@ namespace ACESim
 
         public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, bool skipAddToHistory)
         {
+#if (SAFETYCHECKS)
             if (!Initialized)
-                throw new Exception();
+                ThrowHelper.Throw();
+#endif
             if (!skipAddToHistory)
             {
                 short i = LastIndexAddedToHistory;
                 fixed (byte* historyPtr = History)
                 {
+#if (SAFETYCHECKS)
                     if (*(historyPtr + i) == HistoryComplete)
-                        throw new Exception("Cannot add to history of complete game.");
+                        ThrowHelper.Throw("Cannot add to history of complete game.");
+#endif
                     *(historyPtr + i + History_DecisionByteCode_Offset) = decisionByteCode;
                     *(historyPtr + i + History_DecisionIndex_Offset) = decisionIndex;
                     *(historyPtr + i + History_PlayerNumber_Offset) = playerIndex;
@@ -80,8 +88,11 @@ namespace ACESim
                     *(historyPtr + i + History_NumPiecesOfInformation) = HistoryTerminator; // this is just one item at end of all history items
                 }
                 LastIndexAddedToHistory = (short)(i + History_NumPiecesOfInformation);
+
+#if (SAFETYCHECKS)
                 if (LastIndexAddedToHistory >= MaxHistoryLength - 2) // must account for terminator characters
-                    throw new Exception("Internal error. Must increase history length.");
+                   ThrowHelper.Throw("Internal error. Must increase history length.");
+#endif
             }
             if (GameProgressLogger.LoggingOn)
                 GameProgressLogger.Log($"Actions so far: {GetActionsAsListString()}");
@@ -95,8 +106,10 @@ namespace ACESim
         /// <returns></returns>        
         public byte? LastDecisionIndex()
         {
+#if (SAFETYCHECKS)
             if (!Initialized)
-                throw new Exception();
+                ThrowHelper.Throw();
+#endif
             short i = LastIndexAddedToHistory;
             if (i == 0)
                 return null; // no decisions processed yet
@@ -108,15 +121,19 @@ namespace ACESim
 
         public unsafe void GetActions(byte* actions)
         {
+#if (SAFETYCHECKS)
             if (!Initialized)
-                throw new Exception();
+                ThrowHelper.Throw();
+#endif
             GetItems(History_Action_Offset, actions);
         }
 
         public unsafe void GetActionsWithBlanksForSkippedDecisions(byte* actions)
         {
+#if (SAFETYCHECKS)
             if (!Initialized)
-                throw new Exception();
+                ThrowHelper.Throw();
+#endif
             int d = 0;
             if (LastIndexAddedToHistory != 0)
                 for (short i = 0; i < LastIndexAddedToHistory; i += History_NumPiecesOfInformation)
@@ -150,8 +167,10 @@ namespace ACESim
 
         private unsafe void GetItems(int offset, byte* items)
         {
+#if (SAFETYCHECKS)
             if (!Initialized)
-                throw new Exception();
+                ThrowHelper.Throw();
+#endif
             int d = 0;
             if (LastIndexAddedToHistory != 0)
                 for (short i = 0; i < LastIndexAddedToHistory; i += History_NumPiecesOfInformation)
@@ -168,13 +187,17 @@ namespace ACESim
 
         public void MarkComplete()
         {
+#if (SAFETYCHECKS)
             if (!Initialized)
-                throw new Exception();
+                ThrowHelper.Throw();
+#endif
             short i = LastIndexAddedToHistory;
             fixed (byte* historyPtr = History)
             {
+#if (SAFETYCHECKS)
                 if (*(historyPtr + i) == HistoryComplete)
-                    throw new Exception("Game is already complete.");
+                    ThrowHelper.Throw("Game is already complete.");
+#endif
                 *(historyPtr + i) = HistoryComplete;
                 *(historyPtr + i + 1) = HistoryTerminator;
             }
@@ -182,16 +205,20 @@ namespace ACESim
 
         public bool IsComplete()
         {
+#if (SAFETYCHECKS)
             if (!Initialized)
-                throw new Exception();
+                ThrowHelper.Throw();
+#endif
             fixed (byte* historyPtr = History)
                 return (*(historyPtr + LastIndexAddedToHistory) == HistoryComplete);
         }
 
         public IEnumerable<InformationSetHistory> GetInformationSetHistoryItems(GameProgress gameProgress)
         {
+#if (SAFETYCHECKS)
             if (!Initialized)
-                throw new Exception();
+                ThrowHelper.Throw();
+#endif
             if (LastIndexAddedToHistory == 0)
                 yield break;
             for (short i = 0; i < LastIndexAddedToHistory; i += History_NumPiecesOfInformation)
@@ -200,10 +227,13 @@ namespace ACESim
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private InformationSetHistory GetInformationSetHistory(short index, GameProgress gameProgress)
         {
+#if (SAFETYCHECKS)
             if (!Initialized)
-                throw new Exception();
+                ThrowHelper.Throw();
+#endif
             byte playerIndex = GetHistoryIndex(index + History_PlayerNumber_Offset);
             byte decisionByteCode = GetHistoryIndex(index + History_DecisionByteCode_Offset);
             byte decisionIndex = GetHistoryIndex(index + History_DecisionIndex_Offset);
@@ -220,7 +250,7 @@ namespace ACESim
             return informationSetHistory;
         }
 
-        #region Decision paths
+#region Decision paths
 
         /// <summary>
         /// When called on a complete game, this returns the next decision path to take. 
@@ -230,10 +260,12 @@ namespace ACESim
         /// </summary>
         public unsafe void GetNextDecisionPath(GameDefinition gameDefinition, byte* nextDecisionPath)
         {
+#if (SAFETYCHECKS)
             if (!Initialized)
-                throw new Exception();
+                ThrowHelper.Throw();
             if (!IsComplete())
-                throw new Exception("Can get next path to try only on a completed game.");
+                ThrowHelper.Throw("Can get next path to try only on a completed game.");
+#endif
             // We need to find the last decision made where there was another action that could have been taken.
             int? lastDecisionInNextPath = GetIndexOfLastDecisionWithAnotherAction(gameDefinition) ?? -1; // negative number symbolizes that there is nothing else to do
             int indexInNewDecisionPath = 0, indexInCurrentActions = 0;
@@ -250,9 +282,11 @@ namespace ACESim
                 }
                 else
                 {
+#if (SAFETYCHECKS)
                     bool another = currentAction != HistoryTerminator;
                     if (!another)
-                        throw new Exception("Internal error. Expected another decision to exist.");
+                        ThrowHelper.Throw("Internal error. Expected another decision to exist.");
+#endif
                     if (indexInNewDecisionPath == lastDecisionInNextPath)
                         nextDecisionPath[indexInNewDecisionPath] =
                             (byte)(currentAction +
@@ -270,8 +304,10 @@ namespace ACESim
 
         private int? GetIndexOfLastDecisionWithAnotherAction(GameDefinition gameDefinition)
         {
+#if (SAFETYCHECKS)
             if (!Initialized)
-                throw new Exception();
+                ThrowHelper.Throw();
+#endif
             int? lastDecisionWithAnotherAction = null;
 
             fixed (byte* historyPtr = History)
@@ -288,11 +324,13 @@ namespace ACESim
                         break;
                     }
                 }
+#if (SAFETYCHECKS)
             if (lastDecisionWithAnotherAction == null)
-                throw new Exception("No more decision paths to take."); // indicates that there are no more decisions to take
+                ThrowHelper.Throw("No more decision paths to take."); // indicates that there are no more decisions to take
+#endif
             return lastDecisionWithAnotherAction;
         }
 
-        #endregion
+#endregion
     }
 }

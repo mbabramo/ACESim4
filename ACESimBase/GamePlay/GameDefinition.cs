@@ -377,7 +377,7 @@ namespace ACESim
             return null; // subclass should define if needed
         }
 
-        public virtual unsafe double[] GetUnevenChanceActionProbabilitiesFromChanceInformationSet(byte decisionByteCode, List<(List<byte>, double)> distributionOfChanceValues)
+        public virtual double[] GetUnevenChanceActionProbabilitiesFromChanceInformationSet(byte decisionByteCode, List<(List<byte>, double)> distributionOfChanceValues)
         {
             return null;
         }
