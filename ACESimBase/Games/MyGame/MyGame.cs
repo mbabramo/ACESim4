@@ -185,6 +185,8 @@ namespace ACESim
                         }
                     }
                     //System.Diagnostics.Console.WriteLine($"Quality {MyProgress.LiabilityStrengthUniform} Court noise action {action} => {courtNoiseNormalDraw} => signal {courtLiabilitySignal} PWins {MyProgress.PWinsAtTrial}");
+                    if (!MyProgress.GameComplete)
+                        throw new Exception("DEBUG");
                     break;
                 case (byte)MyGameDecisions.CourtDecisionDamages:
                     MyProgress.DamagesAwarded = (double) (MyProgress.DamagesMin + (MyProgress.DamagesMax - MyProgress.DamagesMin) * ConvertActionToUniformDistributionDraw(action, true));
