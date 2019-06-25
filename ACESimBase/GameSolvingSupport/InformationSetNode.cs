@@ -256,6 +256,9 @@ namespace ACESim
         public ByteList LastActionsList => PathsFromPredecessor.Last().ActionsList; // so that we can find corresponding path in predecessor
         
         public List<PathFromPredecessorInfo> PathsFromPredecessor;
+        /// <summary>
+        /// A list for each action of the list of histories (one for each path from predecessor) from this node to possible successors given that action.
+        /// </summary>
         public List<List<NodeActionsMultipleHistories>> PathsToSuccessors;
         public (bool consideredForPruning, bool prunable)[] PrunableActions;
         public double LastBestResponseValue => BestResponseOptions?[BestResponseAction - 1] ?? 0; 
