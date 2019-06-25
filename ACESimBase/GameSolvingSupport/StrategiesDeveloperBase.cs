@@ -1056,6 +1056,9 @@ namespace ACESim
         {
             if (!EvolutionSettings.DistributeChanceDecisions || !GameDefinition.DecisionsExecutionOrder.Any(x => x.DistributorChanceDecision))
                 return; // nothing to do
+            Stopwatch s = new Stopwatch();
+            s.Start();
+            Console.WriteLine($"Distributing chance decisions...");
             var chanceNodeAggregationDictionary = new Dictionary<string, ChanceNodeUnequalProbabilities>();
             var informationSetAggregationDictionary = new Dictionary<string, InformationSetNode>();
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
@@ -1063,6 +1066,7 @@ namespace ACESim
             foreach (var chanceNode in Navigation.ChanceNodes)
                 if (chanceNode is ChanceNodeUnequalProbabilities unequal)
                     unequal.NormalizeDistributorChanceInputProbabilities();
+            Console.WriteLine($"...{s.ElapsedMilliseconds} milliseconds");
         }
 
         private unsafe bool DistributeChanceDecisions_WalkNode(ref HistoryPoint historyPoint, double piChance, int distributorChanceInputs, string distributedActionsString, Dictionary<string, ChanceNodeUnequalProbabilities> chanceNodeAggregationDictionary, Dictionary<string, InformationSetNode> informationSetAggregationDictionary)

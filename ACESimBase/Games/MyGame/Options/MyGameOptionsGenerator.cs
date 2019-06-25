@@ -12,6 +12,7 @@ namespace ACESim
         public enum MyGameOptionSetChoices
         {
             Custom,
+            Custom2,
             SuperSimple,
             Fast,
             Usual,
@@ -19,11 +20,12 @@ namespace ACESim
             PerfectInfo
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Custom;
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Custom2;
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
             MyGameOptionSetChoices.Custom => Custom(),
+            MyGameOptionSetChoices.Custom2 => Custom2(),
             MyGameOptionSetChoices.SuperSimple => SuperSimple(),
             MyGameOptionSetChoices.Fast => Fast(),
             MyGameOptionSetChoices.Usual => Usual(),
@@ -101,14 +103,6 @@ namespace ACESim
             options.DamagesMin = 50_000;
             options.PUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth };
             options.DUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth };
-            //options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth, Alpha = 20 * 0.000001 };
-            //options.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth, Alpha = 20 * 0.000001 };
-
-            //options.NumDamagesStrengthPoints = 4;
-            //options.NumDamagesSignals = 4;
-            //options.NumLiabilityStrengthPoints = 4;
-            //options.NumLiabilitySignals = 4;
-            //options.NumOffers = 6;
 
             options.NumDamagesStrengthPoints = 5;
             options.NumDamagesSignals = 5;
@@ -116,6 +110,25 @@ namespace ACESim
             options.NumLiabilitySignals = 5;
             options.NumOffers = 5;
             options.NumPotentialBargainingRounds = 3; 
+            options.AllowAbandonAndDefaults = true;
+            options.BargainingRoundsSimultaneous = true;
+            return options;
+        }
+
+        public static MyGameOptions Custom2()
+        {
+            var options = BaseOptions();
+            options.DamagesMax = 150_000;
+            options.DamagesMin = 50_000;
+            options.PUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth };
+            options.DUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth };
+
+            options.NumDamagesStrengthPoints = 4;
+            options.NumDamagesSignals = 4;
+            options.NumLiabilityStrengthPoints = 4;
+            options.NumLiabilitySignals = 4;
+            options.NumOffers = 4;
+            options.NumPotentialBargainingRounds = 2;
             options.AllowAbandonAndDefaults = true;
             options.BargainingRoundsSimultaneous = true;
             return options;
