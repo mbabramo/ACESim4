@@ -120,10 +120,10 @@ namespace ACESim
             var options = BaseOptions();
             options.DamagesMax = 150_000;
             options.DamagesMin = 50_000;
-            //options.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.PInitialWealth };
-            //options.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.DInitialWealth };
-            options.PUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth };
-            options.DUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth };
+            options.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.PInitialWealth };
+            options.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.DInitialWealth };
+            //options.PUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth };
+            //options.DUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth };
 
             options.NumDamagesStrengthPoints = 5;
             options.NumDamagesSignals = 5;
@@ -131,6 +131,7 @@ namespace ACESim
             options.NumLiabilitySignals = 5;
             options.NumOffers = 5;
             options.NumPotentialBargainingRounds = 3;
+            options.SimultaneousOffersUltimatelyRevealed = false; // DEBUG
             options.AllowAbandonAndDefaults = true;
             options.BargainingRoundsSimultaneous = true;
             return options;
