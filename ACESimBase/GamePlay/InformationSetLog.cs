@@ -1,4 +1,4 @@
-﻿//#define SAFETYCHECKS
+﻿#define SAFETYCHECKS
 
 using ACESim.Util;
 using ACESimBase.Util;

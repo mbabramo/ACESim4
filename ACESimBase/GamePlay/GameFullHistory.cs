@@ -1,4 +1,4 @@
-﻿//#define SAFETYCHECKS
+﻿#define SAFETYCHECKS
 
 using System;
 using System.Collections.Generic;
@@ -32,6 +32,7 @@ namespace ACESim
 
         public bool Initialized;
 
+        public int DEBUGQ;
 
         public void GetObjectData(SerializationInfo info, StreamingContext context)
         {
@@ -55,6 +56,7 @@ namespace ACESim
                     *(ptr + b) = history[b];
             Initialized = true;
             LastIndexAddedToHistory = (short)info.GetValue("LastIndexAddedToHistory", typeof(short));
+            DEBUGQ = 0;
         }
 
         public void Initialize()
@@ -199,9 +201,12 @@ namespace ACESim
                     ThrowHelper.Throw("Game is already complete.");
 #endif
                 *(historyPtr + i) = HistoryComplete;
+                DEBUGQ = ++DEBUGQQ;
                 *(historyPtr + i + 1) = HistoryTerminator;
             }
         }
+
+        static int DEBUGQQ;
 
         public bool IsComplete()
         {

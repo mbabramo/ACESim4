@@ -449,11 +449,6 @@ namespace ACESim
             do
             {
                 nextDecisionIndex++;
-                if (nextDecisionIndex == 13)
-                {
-                    var DEBUG = 0;
-                    var x = gameHistory.ToString();
-                }
                 decision = DecisionsExecutionOrder[nextDecisionIndex];
             } while (nextDecisionIndex < numDecisionsExecutionOrder - 1 && SkipDecision(decision, ref gameHistory));
         }
