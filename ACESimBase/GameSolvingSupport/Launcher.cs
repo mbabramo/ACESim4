@@ -16,7 +16,7 @@ namespace ACESim
 
         #region Settings
 
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.FictitiousSelfPlay;
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.MultiplicativeWeights;
 
         public const int VanillaIterations = 5_000;
         public const int VanillaReportEveryNIterations = 500; // DEBUG VanillaIterations;
@@ -101,6 +101,7 @@ namespace ACESim
         public IStrategiesDeveloper GetStrategiesDeveloper(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition)
         {
             Console.WriteLine($"Using {Algorithm}");
+            Console.WriteLine($"Game: {gameDefinition}");
             switch (Algorithm)
             {
                 case GameApproximationAlgorithm.Vanilla:

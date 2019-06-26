@@ -592,7 +592,10 @@ namespace ACESim
                 Console.WriteLine("");
                 Console.WriteLine(prefaceFn());
                 if (doBestResponse)
+                {
                     CalculateBestResponse(false);
+                    RememberBest(iteration);
+                }
 
                 if (doReports)
                 {

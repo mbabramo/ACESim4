@@ -9,9 +9,14 @@ namespace ACESim
     [Serializable]
     public partial class MyGameDefinition : GameDefinition
     {
+        #region Construction and setup
+
         public MyGameOptions Options;
 
-        #region Construction and setup
+        public override string ToString()
+        {
+            return Options.ToString();
+        }
 
         public MyGameDefinition() : base()
         {
