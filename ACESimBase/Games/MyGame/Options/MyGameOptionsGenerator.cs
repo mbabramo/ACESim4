@@ -20,7 +20,7 @@ namespace ACESim
             PerfectInfo
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Usual;
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Custom2;
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
@@ -104,8 +104,8 @@ namespace ACESim
             options.DamagesMin = 50_000;
             //options.PUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth };
             //options.DUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth };            
-            options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth, Alpha = 10 * 0.000001 }; // DEBUG
-            options.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth, Alpha = 10 * 0.000001 }; // DEBUG
+            options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth, Alpha = 10 * 0.000001 }; 
+            options.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth, Alpha = 10 * 0.000001 }; 
             //options.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.PInitialWealth };
             //options.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.DInitialWealth };
 
@@ -116,8 +116,8 @@ namespace ACESim
             options.NumOffers = 4;
             options.NumPotentialBargainingRounds = 2;
 
-            options.SkipFileAndAnswerDecisions = true; // DEBUG
-            options.AllowAbandonAndDefaults = false; // DEBUG
+            options.SkipFileAndAnswerDecisions = true; 
+            options.AllowAbandonAndDefaults = false; 
             options.SimultaneousOffersUltimatelyRevealed = true;
             options.BargainingRoundsSimultaneous = true;
             return options;
@@ -133,12 +133,12 @@ namespace ACESim
             //options.PUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth };
             //options.DUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth };
 
-            options.NumDamagesStrengthPoints = 5;
-            options.NumDamagesSignals = 5;
-            options.NumLiabilityStrengthPoints = 5;
-            options.NumLiabilitySignals = 5;
-            options.NumOffers = 5;
-            options.NumPotentialBargainingRounds = 3;
+            options.NumDamagesStrengthPoints = 2;
+            options.NumDamagesSignals = 2;
+            options.NumLiabilityStrengthPoints = 2;
+            options.NumLiabilitySignals = 2;
+            options.NumOffers = 2;
+            options.NumPotentialBargainingRounds = 1;
             options.AllowAbandonAndDefaults = true;
             options.BargainingRoundsSimultaneous = true;
             return options;
