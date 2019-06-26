@@ -20,7 +20,7 @@ namespace ACESim
             PerfectInfo
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Custom;
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.SuperSimple;
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
@@ -151,6 +151,7 @@ namespace ACESim
             options.NumOffers = 2;
             options.NumPotentialBargainingRounds = 1;
             options.AllowAbandonAndDefaults = false;
+            options.SkipFileAndAnswerDecisions = true; // DEBUG
 
             options.PLiabilityNoiseStdev = 0.30;
             options.DLiabilityNoiseStdev = 0.30;

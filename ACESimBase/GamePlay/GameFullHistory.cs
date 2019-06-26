@@ -54,7 +54,6 @@ namespace ACESim
                     *(ptr + b) = history[b];
             Initialized = true;
             LastIndexAddedToHistory = (short)info.GetValue("LastIndexAddedToHistory", typeof(short));
-            DEBUGQ = 0;
         }
 
         public void Initialize()

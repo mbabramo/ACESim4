@@ -19,12 +19,12 @@ namespace ACESim
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.MultiplicativeWeights;
 
         public const int VanillaIterations = 5_000;
-        public const int VanillaReportEveryNIterations = 500; // DEBUG VanillaIterations;
+        public const int VanillaReportEveryNIterations = 1; // DEBUG VanillaIterations;
         public const int VanillaBestResponseEveryMIterations = 500;
         public const int MiniReportEveryPIterations = EffectivelyNever; 
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever; 
         public const int RecordPastValuesEveryNIterations = EffectivelyNever; // used for correlated equilibrium calculations
-        public const bool UseRandomPathsForReporting = true; 
+        public const bool UseRandomPathsForReporting = false; // DEBUG
         public const int SummaryTableRandomPathsIterations = 5_000;
         public const int ProbingIterations = 20_000_000;
 
@@ -38,7 +38,7 @@ namespace ACESim
 
         public bool LocalDistributedProcessing = true; // this should be false if actually running on service fabric
         public bool ParallelizeOptionSets = false;
-        public bool ParallelizeIndividualExecutions = true; // only affects SingleGameMode or if no local distributed processing
+        public bool ParallelizeIndividualExecutions = false; // DEBUG // only affects SingleGameMode or if no local distributed processing
 
         public string OverrideDateTimeString = null; // "2017-10-11 10:18"; // use this if termination finished unexpectedly
         public string MasterReportNameForDistributedProcessing = "AMONLY";
