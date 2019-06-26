@@ -23,11 +23,17 @@ namespace ACESimBase.GameSolvingSupport
             int numPossibleActions = node.NumPossibleActions;
             for (int a = 1; a <= numPossibleActions; a++)
             {
+                if ((node.InformationSetNodeNumber == 0 && a == 1) || (node.InformationSetNodeNumber == 2 && a == 2))
+                {
+                    var DEBUGX = 0;
+                }
                 double normalizedRegret = GetNormalizedRegret(node, a, false, true);
                 double adjustedNormalizedRegret = 1.0 - normalizedRegret; // if regret is high (good move), this is low; bad moves are now close to 1 and good moves are close to 0
                 double weightAdjustment = Math.Pow(1 - MultiplicativeWeightsEpsilon, adjustedNormalizedRegret); // if there is a good move, then this is high (relatively close to 1). For example, suppose MultiplicativeWeightsEpsilon is 0.5. Then, if adjustedNormalizedRegret is 0.9 (bad move), the weight adjustment is 0.536, but if adjustedNormalizedRegret is 0.1 (good move), the weight adjustment is only 0.933, so the bad move is discounted relative to the good move by 0.536/0.933. if MultiplicativeWeightsEpsilon is 0.1, then the weight adjustments are 0.98 and 0.90; i.e., the algorithm is much less greedy (because 1 - MultiplicativeWeightsEpsilon is relatively lose to 1). if MultiplicativeWeightsEpsilon is 0.9, the algorithm is much more greedy.
                 double weight = nodeInformation[InformationSetNode.adjustedWeightsDimension, a - 1];
                 weight *= weightAdjustment; // So, this weight reduces only slightly when regret is high
+                if ((node.InformationSetNodeNumber == 0 && a == 1) || (node.InformationSetNodeNumber == 2 && a == 2))
+                    Console.WriteLine($"Adjust3  {node.InformationSetNodeNumber}: {normalizedRegret} -> {weightAdjustment} ->  {weight}"); // DEBUG
                 if (double.IsNaN(weight) || double.IsInfinity(weight))
                     throw new Exception();
                 nodeInformation[InformationSetNode.adjustedWeightsDimension, a - 1] = weight;

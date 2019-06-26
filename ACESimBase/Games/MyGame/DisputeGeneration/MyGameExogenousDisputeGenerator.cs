@@ -44,7 +44,7 @@ namespace ACESim
         {
             prePrimaryChanceActions = 0;
             primaryActions = 0;
-            postPrimaryChanceActions = 2; // not truly liable or truly liable
+            postPrimaryChanceActions = (byte) 2; // not truly liable or truly liable
             prePrimaryPlayersToInform = null; // new byte[] {(byte) MyGamePlayers.Defendant }; // if we did have a pre-primary chance, we must notify defendant
             primaryPlayersToInform = null; // new byte[] {(byte) MyGamePlayers.Resolution}; // not relevant for this dispute generator
             postPrimaryPlayersToInform = new byte[] {(byte) MyGamePlayers.LiabilityStrengthChance, (byte) MyGamePlayers.Resolution};

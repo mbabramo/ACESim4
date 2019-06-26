@@ -7,7 +7,9 @@ namespace ACESim
     public class CalculateMinMax : ITreeNodeProcessor<bool, double[]>
     {
         public bool Max;
+
         public bool Min => !Max;
+        public HashSet<int> InitializedInformationSets = new HashSet<int>();
 
         Dictionary<int, double[]> ChanceNodePassback = new Dictionary<int, double[]>();
 
@@ -58,6 +60,10 @@ namespace ACESim
 
         public bool InformationSet_Forward(InformationSetNode informationSet, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, bool fromPredecessor)
         {
+            if (InitializedInformationSets.Contains(informationSet.InformationSetNodeNumber))
+                return true;
+            InitializedInformationSets.Add(informationSet.InformationSetNodeNumber);
+
             if (Min)
             {
                 informationSet.MinPossible = new double[NumNonChancePlayers];
@@ -86,6 +92,10 @@ namespace ACESim
             }
             else
             {
+                if (informationSet.InformationSetNodeNumber == 2)
+                {
+                    var DEBUG = 0;
+                }
                 ProcessSuccessors(informationSet.MaxPossible, fromSuccessors);
                 if (CalculatingForPlayer == null || CalculatingForPlayer == informationSet.PlayerIndex)
                 {
