@@ -151,18 +151,18 @@ namespace ACESim
             options.NumOffers = 2;
             options.NumPotentialBargainingRounds = 1;
             options.AllowAbandonAndDefaults = false;
-            options.SkipFileAndAnswerDecisions = true; // DEBUG
-            options.MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
-            {
-                ProbabilityTrulyLiable_LiabilityStrength75 = 0.75,
-                ProbabilityTrulyLiable_LiabilityStrength90 = 0.90,
-                NumPointsToDetermineTrulyLiable = 1
-            };
-            //options.MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
+            options.SkipFileAndAnswerDecisions = true; // set to true to make game fully symmetrical
+            //options.MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator()
             //{
-            //    ExogenousProbabilityTrulyLiable = 1.0,
-            //    StdevNoiseToProduceLiabilityStrength = 0.5
-            //}; // DEBUG
+            //    ProbabilityTrulyLiable_LiabilityStrength75 = 0.75,
+            //    ProbabilityTrulyLiable_LiabilityStrength90 = 0.90,
+            //    NumPointsToDetermineTrulyLiable = 1
+            //};
+            options.MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
+            {
+                ExogenousProbabilityTrulyLiable = 0.5,
+                StdevNoiseToProduceLiabilityStrength = 0.5
+            };
             options.PLiabilityNoiseStdev = 0.30;
             options.DLiabilityNoiseStdev = 0.30;
             options.CourtLiabilityNoiseStdev = 0.30;

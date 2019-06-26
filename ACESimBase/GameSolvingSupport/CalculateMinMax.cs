@@ -92,10 +92,6 @@ namespace ACESim
             }
             else
             {
-                if (informationSet.InformationSetNodeNumber == 2)
-                {
-                    var DEBUG = 0;
-                }
                 ProcessSuccessors(informationSet.MaxPossible, fromSuccessors);
                 if (CalculatingForPlayer == null || CalculatingForPlayer == informationSet.PlayerIndex)
                 {

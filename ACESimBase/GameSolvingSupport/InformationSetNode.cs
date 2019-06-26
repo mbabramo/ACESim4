@@ -404,8 +404,6 @@ namespace ACESim
         {
             NodeInformation[sumRegretTimesInversePiDimension, action - 1] += regretTimesInversePi;
             NodeInformation[sumInversePiDimension, action - 1] += inversePi;
-            if ((InformationSetNodeNumber == 0 && action == 1) || (InformationSetNodeNumber == 2 && action == 2))
-                Console.WriteLine($"Incrementing {InformationSetNodeNumber} to num {NodeInformation[sumRegretTimesInversePiDimension, action - 1]} den {NodeInformation[sumInversePiDimension, action - 1]}"); // DEBUG
         }
         public void IncrementLastRegret_Parallel(byte action, double regretTimesInversePi, double inversePi)
         {
