@@ -15,18 +15,20 @@ namespace ACESim
             Custom2,
             SuperSimple,
             Fast,
+            Faster,
             Usual,
             Ambitious,
             PerfectInfo
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Custom2;
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Fast;
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
             MyGameOptionSetChoices.Custom => Custom(),
             MyGameOptionSetChoices.Custom2 => Custom2(),
             MyGameOptionSetChoices.SuperSimple => SuperSimple(),
+            MyGameOptionSetChoices.Faster => Faster(),
             MyGameOptionSetChoices.Fast => Fast(),
             MyGameOptionSetChoices.Usual => Usual(),
             MyGameOptionSetChoices.Ambitious => Ambitious(),
@@ -48,6 +50,7 @@ namespace ACESim
                 NumDamagesStrengthPoints = 5,
                 NumDamagesSignals = 5,
                 NumOffers = 5,
+                IncludeEndpointsForOffers = false,
                 MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
                 {
                     ExogenousProbabilityTrulyLiable = 0.5,
@@ -93,7 +96,6 @@ namespace ACESim
             //options.DUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth };
             //options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth, Alpha = 10 * 0.000001 };
             //options.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth, Alpha = 10 * 0.000001 };
-            //options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth, Alpha = 10 * 0.000001 };
             return options;
         }
 
@@ -167,6 +169,24 @@ namespace ACESim
             return options;
         }
 
+        public static MyGameOptions Faster()
+        {
+            var options = BaseOptions();
+            options.NumDamagesStrengthPoints = 3;
+            options.NumDamagesSignals = 3;
+            options.NumLiabilityStrengthPoints = 3;
+            options.NumLiabilitySignals = 3;
+            options.NumOffers = 3;
+            options.NumPotentialBargainingRounds = 2;
+            options.AllowAbandonAndDefaults = false;
+            options.SkipFileAndAnswerDecisions = false;
+
+            options.PLiabilityNoiseStdev = 0.30;
+            options.DLiabilityNoiseStdev = 0.30;
+            options.CourtLiabilityNoiseStdev = 0.30;
+            return options;
+        }
+
         public static MyGameOptions Fast()
         {
             var options = BaseOptions();
@@ -176,11 +196,17 @@ namespace ACESim
             options.NumLiabilitySignals = 4;
             options.NumOffers = 4;
             options.NumPotentialBargainingRounds = 2;
-            options.AllowAbandonAndDefaults = false;
+            options.AllowAbandonAndDefaults = true;
+            options.SkipFileAndAnswerDecisions = false;
 
             options.PLiabilityNoiseStdev = 0.30;
             options.DLiabilityNoiseStdev = 0.30;
             options.CourtLiabilityNoiseStdev = 0.30;
+
+            // DEBUG
+            options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth, Alpha = 10 * 0.000001 };
+            options.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth, Alpha = 10 * 0.000001 };
+
             return options;
         }
 

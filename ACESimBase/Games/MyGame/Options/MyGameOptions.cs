@@ -78,6 +78,10 @@ namespace ACESim
         /// </summary>
         public byte NumOffers;
         /// <summary>
+        /// If true, then parties may offer damages of 0% or 100% of the alleged amount. This may not be necessary when parties can abandon or default. If false, offer levels are all between these extremes, so there is a greater density of offers.
+        /// </summary>
+        public bool IncludeEndpointsForOffers;
+        /// <summary>
         /// True if each barganiing round consists of simultaneous offers.
         /// </summary>
         public bool BargainingRoundsSimultaneous;

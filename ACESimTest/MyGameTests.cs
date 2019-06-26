@@ -90,6 +90,7 @@ namespace ACESimTest
                 NumDamagesStrengthPoints = allowDamagesVariation ? NumDamagesStrengthPoints : (byte) 0,
                 NumDamagesSignals = allowDamagesVariation ? NumDamagesSignals : (byte) 0,
                 NumOffers = NumOffers,
+                IncludeEndpointsForOffers = true,
                 MyGameDisputeGenerator = new MyGameEqualQualityProbabilitiesDisputeGenerator
                 {
                     ProbabilityTrulyLiable_LiabilityStrength75 = 0.75,

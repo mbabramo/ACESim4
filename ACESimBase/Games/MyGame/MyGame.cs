@@ -106,12 +106,12 @@ namespace ACESim
                     MyProgress.AddDAgreesToBargain(action == 1);
                     break;
                 case (byte)MyGameDecisions.POffer:
-                    double offer = GetOfferBasedOnAction(action, true);
+                    double offer = GetOfferBasedOnAction(action, true, MyDefinition.Options.IncludeEndpointsForOffers);
                     MyProgress.AddOffer(true, offer);
                     MyProgress.AddOfferMixedness(true, MyProgress.Mixedness);
                 break;
                 case (byte)MyGameDecisions.DOffer:
-                    offer = GetOfferBasedOnAction(action, false);
+                    offer = GetOfferBasedOnAction(action, false, MyDefinition.Options.IncludeEndpointsForOffers);
                     MyProgress.AddOffer(false, offer);
                     MyProgress.AddOfferMixedness(false, MyProgress.Mixedness);
                     if (MyDefinition.Options.BargainingRoundsSimultaneous || MyDefinition.Options.PGoesFirstIfNotSimultaneous[MyProgress.BargainingRoundsComplete])
@@ -201,16 +201,16 @@ namespace ACESim
         /// <param name="action"></param>
         /// <param name="plaintiffOffer">True if this is the plaintiffs offer, false otherwise</param>
         /// <returns></returns>
-        private double GetOfferBasedOnAction(byte action, bool plaintiffOffer)
+        private double GetOfferBasedOnAction(byte action, bool plaintiffOffer, bool includeEndpoints)
         {
             double offer;
             if (MyProgress.BargainingRoundsComplete == 0 || !MyDefinition.Options.DeltaOffersOptions.SubsequentOffersAreDeltas)
-                offer = ConvertActionToUniformDistributionDraw(action, true);
+                offer = ConvertActionToUniformDistributionDraw(action, includeEndpoints);
             else
             {
                 double? previousOffer = plaintiffOffer ? MyProgress.PLastOffer : MyProgress.DLastOffer;
                 if (previousOffer == null)
-                    offer = ConvertActionToUniformDistributionDraw(action, true);
+                    offer = ConvertActionToUniformDistributionDraw(action, includeEndpoints);
                 else
                     offer = MyDefinition.Options.DeltaOffersCalculation.GetOfferValue((double) previousOffer, action);
             }

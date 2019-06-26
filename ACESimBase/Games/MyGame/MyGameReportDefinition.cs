@@ -537,8 +537,8 @@ namespace ACESim
                 new SimpleReportColumnFilter("All", (GameProgress gp) => true, true)
             };
             //AddColumnFiltersLiabilityStrength(columnItems);
-            double[] offerPoints = EquallySpaced.GetEquallySpacedPoints(Options.NumOffers, true);
-            Tuple<double, double>[] offerRegions = EquallySpaced.GetRegions(Options.NumOffers);
+            double[] offerPoints = EquallySpaced.GetEquallySpacedPoints(Options.NumOffers, Options.IncludeEndpointsForOffers);
+            Tuple<double, double>[] offerRegions = offerPoints.Select(x => new Tuple<double, double>(x - 0.001, x + 0.001)).ToArray();
             for (int i = 0; i < Options.NumOffers; i++)
             {
                 //double regionStart = offerRegions[i].Item1;
