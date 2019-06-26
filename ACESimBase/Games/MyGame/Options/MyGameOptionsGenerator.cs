@@ -20,7 +20,7 @@ namespace ACESim
             PerfectInfo
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Custom;
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Usual;
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
@@ -43,9 +43,11 @@ namespace ACESim
                 DInitialWealth = 1000000,
                 DamagesMin = 100000,
                 DamagesMax = 100000,
-                NumLiabilityStrengthPoints = 6,
-                NumLiabilitySignals = 6,
-                NumOffers = 6,
+                NumLiabilityStrengthPoints = 5,
+                NumLiabilitySignals = 5,
+                NumDamagesStrengthPoints = 5,
+                NumDamagesSignals = 5,
+                NumOffers = 5,
                 MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
                 {
                     ExogenousProbabilityTrulyLiable = 0.5,
@@ -57,10 +59,9 @@ namespace ACESim
                 PLiabilityNoiseStdev = 0.1,
                 DLiabilityNoiseStdev = 0.1,
                 CourtLiabilityNoiseStdev = 0.15,
-                NumDamagesStrengthPoints = 1,
-                NumDamagesSignals = 1,
                 PDamagesNoiseStdev = 0.1,
                 DDamagesNoiseStdev = 0.1,
+                CourtDamagesNoiseStdev = 0.15,
                 CostsMultiplier = 1.0,
                 PTrialCosts = 15_000,
                 DTrialCosts = 15_000,
@@ -77,7 +78,7 @@ namespace ACESim
                     DeltaStartingValue = 0.01,
                     MaxDelta = 0.25
                 },
-                NumPotentialBargainingRounds = 2,
+                NumPotentialBargainingRounds = 3,
                 BargainingRoundRecall = MyGameBargainingRoundRecall.RememberAllBargainingRounds,
                 BargainingRoundsSimultaneous = true,
                 SimultaneousOffersUltimatelyRevealed = true,
@@ -103,10 +104,10 @@ namespace ACESim
             options.DamagesMin = 50_000;
             //options.PUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth };
             //options.DUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth };            
-            //options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth, Alpha = 10 * 0.000001 }; // DEBUG
-            //options.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth, Alpha = 10 * 0.000001 }; // DEBUG
-            options.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.PInitialWealth };
-            options.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.DInitialWealth };
+            options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth, Alpha = 10 * 0.000001 }; // DEBUG
+            options.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth, Alpha = 10 * 0.000001 }; // DEBUG
+            //options.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.PInitialWealth };
+            //options.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.DInitialWealth };
 
             options.NumDamagesStrengthPoints = 1;
             options.NumDamagesSignals = 1;
@@ -146,6 +147,8 @@ namespace ACESim
         public static MyGameOptions SuperSimple()
         {
             var options = BaseOptions();
+            options.NumDamagesStrengthPoints = 1;
+            options.NumDamagesSignals = 1;
             options.NumLiabilityStrengthPoints = 2;
             options.NumLiabilitySignals = 2;
             options.NumOffers = 2;
@@ -158,11 +161,6 @@ namespace ACESim
             //    ProbabilityTrulyLiable_LiabilityStrength90 = 0.90,
             //    NumPointsToDetermineTrulyLiable = 1
             //};
-            options.MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
-            {
-                ExogenousProbabilityTrulyLiable = 0.5,
-                StdevNoiseToProduceLiabilityStrength = 0.5
-            };
             options.PLiabilityNoiseStdev = 0.30;
             options.DLiabilityNoiseStdev = 0.30;
             options.CourtLiabilityNoiseStdev = 0.30;
@@ -172,6 +170,8 @@ namespace ACESim
         public static MyGameOptions Fast()
         {
             var options = BaseOptions();
+            options.NumDamagesStrengthPoints = 4;
+            options.NumDamagesSignals = 4;
             options.NumLiabilityStrengthPoints = 4;
             options.NumLiabilitySignals = 4;
             options.NumOffers = 4;
@@ -193,10 +193,12 @@ namespace ACESim
         public static MyGameOptions Ambitious()
         {
             var options = BaseOptions();
+            options.NumDamagesStrengthPoints = 10;
+            options.NumDamagesSignals = 10;
             options.NumLiabilityStrengthPoints = 10;
             options.NumLiabilitySignals = 10;
             options.NumOffers = 10;
-            options.NumPotentialBargainingRounds = 2;
+            options.NumPotentialBargainingRounds = 3;
             options.AllowAbandonAndDefaults = true;
             return options;
         }
@@ -206,6 +208,8 @@ namespace ACESim
             var options = BaseOptions();
             options.PLiabilityNoiseStdev = 0.001;
             options.DLiabilityNoiseStdev = 0.001;
+            options.PDamagesNoiseStdev = 0.001;
+            options.DDamagesNoiseStdev = 0.001;
             if (courtIsPerfectToo)
                 options.CourtLiabilityNoiseStdev = 0.001;
             return options;
