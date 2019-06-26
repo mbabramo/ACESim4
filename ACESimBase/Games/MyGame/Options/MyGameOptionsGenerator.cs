@@ -20,7 +20,7 @@ namespace ACESim
             PerfectInfo
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.SuperSimple;
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Custom;
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
@@ -117,7 +117,7 @@ namespace ACESim
 
             options.SkipFileAndAnswerDecisions = true; // DEBUG
             options.AllowAbandonAndDefaults = false; // DEBUG
-            options.SimultaneousOffersUltimatelyRevealed = false; // DEBUG
+            options.SimultaneousOffersUltimatelyRevealed = true;
             options.BargainingRoundsSimultaneous = true;
             return options;
         }
