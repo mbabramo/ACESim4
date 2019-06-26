@@ -185,8 +185,6 @@ namespace ACESim
                         }
                     }
                     //System.Diagnostics.Console.WriteLine($"Quality {MyProgress.LiabilityStrengthUniform} Court noise action {action} => {courtNoiseNormalDraw} => signal {courtLiabilitySignal} PWins {MyProgress.PWinsAtTrial}");
-                    if (!MyProgress.GameComplete)
-                        throw new Exception("DEBUG");
                     break;
                 case (byte)MyGameDecisions.CourtDecisionDamages:
                     MyProgress.DamagesAwarded = (double) (MyProgress.DamagesMin + (MyProgress.DamagesMax - MyProgress.DamagesMin) * ConvertActionToUniformDistributionDraw(action, true));
@@ -366,7 +364,7 @@ namespace ACESim
                 return;
             }
             double correctDamagesIfTrulyLiable;
-            if (MyDefinition.Options.NumDamagesStrengthPoints == 1)
+            if (MyDefinition.Options.NumDamagesStrengthPoints <= 1)
                 correctDamagesIfTrulyLiable = (double) MyProgress.DamagesMax;
             else
                 correctDamagesIfTrulyLiable = (double) (MyProgress.DamagesMin + MyProgress.DamagesStrengthUniform * (MyProgress.DamagesMax - MyProgress.DamagesMin));

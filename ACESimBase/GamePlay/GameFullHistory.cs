@@ -32,8 +32,6 @@ namespace ACESim
 
         public bool Initialized;
 
-        public int DEBUGQ;
-
         public void GetObjectData(SerializationInfo info, StreamingContext context)
         {
             // Use the AddValue method to specify serialized values.
@@ -201,12 +199,9 @@ namespace ACESim
                     ThrowHelper.Throw("Game is already complete.");
 #endif
                 *(historyPtr + i) = HistoryComplete;
-                DEBUGQ = ++DEBUGQQ;
                 *(historyPtr + i + 1) = HistoryTerminator;
             }
         }
-
-        static int DEBUGQQ;
 
         public bool IsComplete()
         {

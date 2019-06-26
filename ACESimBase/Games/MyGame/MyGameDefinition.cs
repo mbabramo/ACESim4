@@ -785,7 +785,13 @@ namespace ACESim
             {
                 case (byte)MyGameDecisions.CourtDecisionLiability:
                     bool pWins = gameHistory.GetCacheItemAtIndex(GameHistoryCacheIndex_PWins) == 1;
-                    return pWins;
+                    if (pWins)
+                    {
+                        bool courtWouldDecideDamages = Options.NumDamagesStrengthPoints > 1;
+                        return !courtWouldDecideDamages;
+                    }
+                    else
+                        return true; // defendant wins --> always over
                 case (byte)MyGameDecisions.CourtDecisionDamages:
                     return true;
                 case (byte)MyGameDecisions.DResponse:

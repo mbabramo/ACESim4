@@ -161,7 +161,7 @@ namespace ACESim
                 byte actionToAdd = Progress.ActionOverrider(CurrentDecision, Progress);
                 if (actionToAdd != 0)
                 {
-                    //DEBUG GameProgressLogger.Log(() => $"Choosing overridden action {actionToAdd} for {CurrentDecision}");
+                    GameProgressLogger.Log(() => $"Choosing overridden action {actionToAdd} for {CurrentDecision}");
                     return actionToAdd;
                 }
             }
@@ -182,7 +182,7 @@ namespace ACESim
                 actionToChoose = ChooseActionRandomly();
             }
 
-            //DEBUG GameProgressLogger.Log(() => $"Choosing action {actionToChoose} for {CurrentDecision}");
+            GameProgressLogger.Log(() => $"Choosing action {actionToChoose} for {CurrentDecision}");
             return actionToChoose;
         }
 

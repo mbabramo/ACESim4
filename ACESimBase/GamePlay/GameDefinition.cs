@@ -449,7 +449,7 @@ namespace ACESim
             do
             {
                 nextDecisionIndex++;
-                decision = DecisionsExecutionOrder[nextDecisionIndex];
+                decision = DecisionsExecutionOrder[nextDecisionIndex]; // NOTE: If we get an argument out of range exception here, it can be caused by failure to properly note that game is complete in GameDefinition.ShouldMarkGameDefinitionComplete. 
             } while (nextDecisionIndex < numDecisionsExecutionOrder - 1 && SkipDecision(decision, ref gameHistory));
         }
 
