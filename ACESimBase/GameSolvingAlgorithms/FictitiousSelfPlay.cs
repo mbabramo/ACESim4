@@ -13,8 +13,6 @@ namespace ACESim
     {
         public bool AddNoiseToBestResponses = false;
         public bool ReportOnBestResponse = false; // not yet implemented
-        public bool BestBecomesResult = true;  
-        public double BestExploitability = int.MaxValue; // initialize to worst possible score (i.e., highest possible exploitability)
 
         public FictitiousSelfPlay(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
         {
@@ -52,27 +50,14 @@ namespace ACESim
             double[] lastUtilities = new double[NumNonChancePlayers];
 
             CalculateBestResponse(true);
-
-            if (BestBecomesResult && iteration >= 3)
-            {
-                double exploitability = BestResponseImprovement.Sum();
-                if (exploitability < BestExploitability)
-                {
-                    Parallel.ForEach(InformationSets, informationSet => informationSet.CreateBackup());
-                    BestExploitability = exploitability;
-                }
-                if (iteration == EvolutionSettings.TotalVanillaCFRIterations)
-                {
-                    Parallel.ForEach(InformationSets, informationSet => informationSet.RestoreBackup());
-                }
-            }
+            RememberBest(iteration);
 
             if (AddNoiseToBestResponses)
                 Parallel.ForEach(InformationSets, informationSet => informationSet.AddNoiseToBestResponse(0.10, iteration));
 
             if (!EvolutionSettings.ParallelOptimization)
-            foreach (var informationSet in InformationSets)
-                informationSet.MoveAverageStrategyTowardBestResponse(iteration, EvolutionSettings.TotalVanillaCFRIterations);
+                foreach (var informationSet in InformationSets)
+                    informationSet.MoveAverageStrategyTowardBestResponse(iteration, EvolutionSettings.TotalVanillaCFRIterations);
             else
                 Parallel.ForEach(InformationSets, informationSet => informationSet.MoveAverageStrategyTowardBestResponse(iteration, EvolutionSettings.TotalVanillaCFRIterations));
 

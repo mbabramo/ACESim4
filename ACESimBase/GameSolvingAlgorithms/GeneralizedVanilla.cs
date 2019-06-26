@@ -97,6 +97,7 @@ namespace ACESim
                 Unroll_ExecuteUnrolledCommands(array, iteration == 1);
                 StrategiesDeveloperStopwatch.Stop();
                 UpdateInformationSets(iteration);
+                RememberBest(iteration);
                 SimulatedAnnealing(iteration);
                 MiniReport(iteration, Unroll_IterationResultForPlayers);
                 reportString = await GenerateReports(iteration,
@@ -740,6 +741,7 @@ namespace ACESim
                 GeneralizedVanillaCFRIteration_OptimizePlayer(iteration, results, playerBeingOptimized);
             }
             UpdateInformationSets(iteration);
+            RememberBest(iteration);
             SimulatedAnnealing(iteration);
             MiniReport(iteration, results);
 
@@ -765,6 +767,8 @@ namespace ACESim
 
         private void SimulatedAnnealing(int iteration)
         {
+            if (BestBecomesResult)
+                throw new NotSupportedException(); // both use backup functionality
             if (iteration % EvolutionSettings.SimulatedAnnealingEveryNIterations == 0)
             {
                 if (!EvolutionSettings.UseAcceleratedBestResponse)

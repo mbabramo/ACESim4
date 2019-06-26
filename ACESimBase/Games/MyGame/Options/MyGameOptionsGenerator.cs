@@ -194,18 +194,18 @@ namespace ACESim
             options.NumDamagesSignals = 4;
             options.NumLiabilityStrengthPoints = 4;
             options.NumLiabilitySignals = 4;
-            options.NumOffers = 4;
+            options.NumOffers = 4; 
             options.NumPotentialBargainingRounds = 2;
             options.AllowAbandonAndDefaults = true;
+            options.IncludeAgreementToBargainDecisions = true;
             options.SkipFileAndAnswerDecisions = false;
 
             options.PLiabilityNoiseStdev = 0.30;
             options.DLiabilityNoiseStdev = 0.30;
             options.CourtLiabilityNoiseStdev = 0.30;
 
-            // DEBUG
-            options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth, Alpha = 10 * 0.000001 };
-            options.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth, Alpha = 10 * 0.000001 };
+            //options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth, Alpha = 10 * 0.000001 };
+            //options.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth, Alpha = 10 * 0.000001 };
 
             return options;
         }
