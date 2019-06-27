@@ -21,7 +21,7 @@ namespace ACESim
             PerfectInfo
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Ambitious;
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Custom2;
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
@@ -128,21 +128,15 @@ namespace ACESim
         public static MyGameOptions Custom2()
         {
             var options = BaseOptions();
-            options.DamagesMax = 150_000;
-            options.DamagesMin = 50_000;
-            options.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.PInitialWealth };
-            options.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.DInitialWealth };
-            //options.PUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth };
-            //options.DUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth };
-
-            options.NumDamagesStrengthPoints = 2;
-            options.NumDamagesSignals = 2;
-            options.NumLiabilityStrengthPoints = 2;
-            options.NumLiabilitySignals = 2;
-            options.NumOffers = 2;
-            options.NumPotentialBargainingRounds = 1;
+            options.NumDamagesStrengthPoints = 5;
+            options.NumDamagesSignals = 5;
+            options.NumLiabilityStrengthPoints = 5;
+            options.NumLiabilitySignals = 5;
+            options.NumOffers = 10;
+            options.NumPotentialBargainingRounds = 2;
             options.AllowAbandonAndDefaults = true;
-            options.BargainingRoundsSimultaneous = true;
+            options.IncludeAgreementToBargainDecisions = true;
+            options.SkipFileAndAnswerDecisions = false;
             return options;
         }
 
