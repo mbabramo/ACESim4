@@ -191,7 +191,7 @@ namespace ACESim
             options.NumOffers = 4; 
             options.NumPotentialBargainingRounds = 2;
             options.AllowAbandonAndDefaults = true;
-            options.IncludeAgreementToBargainDecisions = true;
+            options.IncludeAgreementToBargainDecisions = false; // DEBUG
             options.SkipFileAndAnswerDecisions = false;
 
             //options.PLiabilityNoiseStdev = 0.30;
