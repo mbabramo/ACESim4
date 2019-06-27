@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="call &quot;$(DevEnvDir)..\tools\VsDevCmd.bat&quot;&#xD;&#xA;editbin $(TargetDir)\ACESimConsole.exe /STACK:20971520" />
+    <Exec Command="call &quot;$(DevEnvDir)..\tools\VsDevCmd.bat&quot;&#xD;&#xA;editbin $(TargetDir)\ACESimConsole.exe /STACK:2097152" />
   </Target>
 
 </Project>

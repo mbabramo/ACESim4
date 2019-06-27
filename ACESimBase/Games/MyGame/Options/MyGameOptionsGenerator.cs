@@ -21,7 +21,7 @@ namespace ACESim
             PerfectInfo
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Custom2;
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Fast;
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
@@ -132,7 +132,7 @@ namespace ACESim
             options.NumDamagesSignals = 5;
             options.NumLiabilityStrengthPoints = 5;
             options.NumLiabilitySignals = 5;
-            options.NumOffers = 10;
+            options.NumOffers = 5;
             options.NumPotentialBargainingRounds = 2;
             options.AllowAbandonAndDefaults = true;
             options.IncludeAgreementToBargainDecisions = true;
@@ -194,9 +194,9 @@ namespace ACESim
             options.IncludeAgreementToBargainDecisions = true;
             options.SkipFileAndAnswerDecisions = false;
 
-            options.PLiabilityNoiseStdev = 0.30;
-            options.DLiabilityNoiseStdev = 0.30;
-            options.CourtLiabilityNoiseStdev = 0.30;
+            //options.PLiabilityNoiseStdev = 0.30;
+            //options.DLiabilityNoiseStdev = 0.30;
+            //options.CourtLiabilityNoiseStdev = 0.30;
 
             //options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth, Alpha = 10 * 0.000001 };
             //options.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth, Alpha = 10 * 0.000001 };
@@ -213,11 +213,11 @@ namespace ACESim
         public static MyGameOptions Ambitious()
         {
             var options = BaseOptions();
-            options.NumDamagesStrengthPoints = 10;
-            options.NumDamagesSignals = 10;
-            options.NumLiabilityStrengthPoints = 10;
-            options.NumLiabilitySignals = 10;
-            options.NumOffers = 10;
+            options.NumDamagesStrengthPoints = 5;
+            options.NumDamagesSignals = 5;
+            options.NumLiabilityStrengthPoints = 5;
+            options.NumLiabilitySignals = 5;
+            options.NumOffers = 5;
             options.NumPotentialBargainingRounds = 2;
             options.AllowAbandonAndDefaults = true;
             options.IncludeAgreementToBargainDecisions = true;
