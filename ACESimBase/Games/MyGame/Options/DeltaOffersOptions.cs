@@ -19,5 +19,15 @@ namespace ACESim
         /// When subsequent offers are deltas, this represents the maximum delta. The intermediate deltas will be determined relative to this. 
         /// </summary>
         public double MaxDelta;
+
+        public override string ToString()
+        {
+            if (SubsequentOffersAreDeltas)
+            {
+                return $"Deltas {DeltaStartingValue}-{MaxDelta}";
+            }
+            else
+                return "N/A";
+        }
     }
 }

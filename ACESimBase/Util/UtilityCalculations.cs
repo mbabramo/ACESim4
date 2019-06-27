@@ -82,6 +82,11 @@ namespace ACESim.Util
     [Serializable]
     public class CARARiskAverseUtilityCalculator : UtilityCalculator
     {
+        public override string ToString()
+        {
+            return $"CARA Alpha={Alpha}";
+        }
+
         public double Alpha; // coefficient for constant absolute risk aversion, should be on the order of magnitude of 1 / laterWealth. As alpha goes up, risk aversion increases.
             
         public override double GetSubjectiveUtilityForWealthLevel(double laterWealth)

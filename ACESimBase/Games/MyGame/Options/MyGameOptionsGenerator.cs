@@ -21,7 +21,7 @@ namespace ACESim
             PerfectInfo
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Fast;
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Ambitious;
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
@@ -81,7 +81,7 @@ namespace ACESim
                     DeltaStartingValue = 0.01,
                     MaxDelta = 0.25
                 },
-                NumPotentialBargainingRounds = 3,
+                NumPotentialBargainingRounds = 2,
                 BargainingRoundRecall = MyGameBargainingRoundRecall.RememberAllBargainingRounds,
                 BargainingRoundsSimultaneous = true,
                 SimultaneousOffersUltimatelyRevealed = true,
@@ -224,8 +224,10 @@ namespace ACESim
             options.NumLiabilityStrengthPoints = 10;
             options.NumLiabilitySignals = 10;
             options.NumOffers = 10;
-            options.NumPotentialBargainingRounds = 3;
+            options.NumPotentialBargainingRounds = 2;
             options.AllowAbandonAndDefaults = true;
+            options.IncludeAgreementToBargainDecisions = true;
+            options.SkipFileAndAnswerDecisions = false;
             return options;
         }
 
