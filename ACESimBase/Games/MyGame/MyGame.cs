@@ -184,7 +184,7 @@ namespace ACESim
                             MyProgress.GameComplete = true;
                         }
                     }
-                    //System.Diagnostics.Console.WriteLine($"Quality {MyProgress.LiabilityStrengthUniform} Court noise action {action} => {courtNoiseNormalDraw} => signal {courtLiabilitySignal} PWins {MyProgress.PWinsAtTrial}");
+                    //System.Diagnostics.TabbedText.WriteLine($"Quality {MyProgress.LiabilityStrengthUniform} Court noise action {action} => {courtNoiseNormalDraw} => signal {courtLiabilitySignal} PWins {MyProgress.PWinsAtTrial}");
                     break;
                 case (byte)MyGameDecisions.CourtDecisionDamages:
                     MyProgress.DamagesAwarded = (double) (MyProgress.DamagesMin + (MyProgress.DamagesMax - MyProgress.DamagesMin) * ConvertActionToUniformDistributionDraw(action, true));

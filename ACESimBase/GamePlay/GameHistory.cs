@@ -157,14 +157,14 @@ namespace ACESim
 
         public unsafe void IncrementItemAtCacheIndex(byte cacheIndexToIncrement, byte incrementBy = 1)
         {
-            // Console.WriteLine($"Increment cache for {cacheIndexToIncrement}");
+            // TabbedText.WriteLine($"Increment cache for {cacheIndexToIncrement}");
             fixed (byte* cachePtr = Cache)
                 *(cachePtr + (byte) cacheIndexToIncrement) = (byte) (*(cachePtr + (byte) cacheIndexToIncrement) + incrementBy);
         }
 
         public unsafe void DecrementItemAtCacheIndex(byte cacheIndexToDecrement, byte decrementBy = 1)
         {
-            // Console.WriteLine($"Decrement cache for {cacheIndexToIncrement}");
+            // TabbedText.WriteLine($"Decrement cache for {cacheIndexToIncrement}");
             fixed (byte* cachePtr = Cache)
             {
                 byte currentValue = *(cachePtr + (byte)cacheIndexToDecrement);
@@ -184,7 +184,7 @@ namespace ACESim
 
         public unsafe void SetCacheItemAtIndex(byte cacheIndexToReset, byte newValue)
         {
-            // Console.WriteLine($"Set cache for {cacheIndexToReset} to {newValue}"); 
+            // TabbedText.WriteLine($"Set cache for {cacheIndexToReset} to {newValue}"); 
 #if SAFETYCHECKS
             if (cacheIndexToReset >= CacheLength)
                 ThrowHelper.Throw();

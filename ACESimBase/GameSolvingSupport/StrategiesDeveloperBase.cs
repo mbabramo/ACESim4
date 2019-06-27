@@ -172,7 +172,7 @@ namespace ACESim
 
             if (!SkipEveryPermutationInitialization)
             {
-                Console.WriteLine("Initializing all game paths...");
+                TabbedText.WriteLine("Initializing all game paths...");
                 Stopwatch stopwatch = new Stopwatch();
                 stopwatch.Start();
                 if (StoreGameStateNodesInLists && GamePlayer.PlayAllPathsIsParallel)
@@ -187,7 +187,7 @@ namespace ACESim
                 stopwatch.Stop();
                 string parallelString = GamePlayer.PlayAllPathsIsParallel ? " (higher number in parallel)" : "";
                 string informationSetsString = StoreGameStateNodesInLists ? $" Total information sets: {InformationSets.Count()} chance nodes: {ChanceNodes.Count()} final nodes: {FinalUtilitiesNodes.Count()}" : "";
-                Console.WriteLine($"... Initialized. Total paths{parallelString}: {NumInitializedGamePaths}{informationSetsString} Initialization milliseconds {stopwatch.ElapsedMilliseconds}");
+                TabbedText.WriteLine($"... Initialized. Total paths{parallelString}: {NumInitializedGamePaths}{informationSetsString} Initialization milliseconds {stopwatch.ElapsedMilliseconds}");
             }
 
             DistributeChanceDecisions();
@@ -202,7 +202,7 @@ namespace ACESim
         {
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
-            Console.WriteLine("Calculating min-max...");
+            TabbedText.WriteLine("Calculating min-max...");
             foreach (bool isMin in new bool[] { true, false })
                 // foreach (byte? playerIndex in Enumerable.Range(0, NumNonChancePlayers).Select(x => (byte?) x))
                 foreach (byte? playerIndex in new byte?[] { null }) // uncomment to avoid distributing distributable distributor inputs
@@ -210,7 +210,7 @@ namespace ACESim
                     CalculateMinMax c = new CalculateMinMax(isMin, NumNonChancePlayers, playerIndex);
                     TreeWalk_Tree(c);
                 }
-            Console.WriteLine($"... complete {stopwatch.ElapsedMilliseconds} milliseconds");
+            TabbedText.WriteLine($"... complete {stopwatch.ElapsedMilliseconds} milliseconds");
         }
 
         Task ProcessInitializedGameProgressAsync(HistoryPoint completedGame, double probability)
@@ -319,15 +319,15 @@ namespace ACESim
                             if (t != null &&
                                 EvolutionSettings.RestrictToTheseInformationSets.Contains(t.InformationSetNodeNumber))
                             {
-                                Console.WriteLine($"{t}");
+                                TabbedText.WriteLine($"{t}");
                             }
                         });
                     }
                     else
                     {
-                        Console.WriteLine($"{s.PlayerInfo}");
+                        TabbedText.WriteLine($"{s.PlayerInfo}");
                         string tree = s.GetInformationSetTreeString();
-                        Console.WriteLine(tree);
+                        TabbedText.WriteLine(tree);
                     }
                 }
             }
@@ -589,8 +589,8 @@ namespace ACESim
             bool doReports = EvolutionSettings.ReportEveryNIterations != null && iteration % EvolutionSettings.ReportEveryNIterations == 0;
             if (doReports || doBestResponse)
             {
-                Console.WriteLine("");
-                Console.WriteLine(prefaceFn());
+                TabbedText.WriteLine("");
+                TabbedText.WriteLine(prefaceFn());
                 if (doBestResponse)
                 {
                     CalculateBestResponse(false);
@@ -638,19 +638,19 @@ namespace ACESim
             Func<GamePlayer, Func<Decision, GameProgress, byte>, Task> reportGenerator;
             if (useRandomPaths)
             {
-                Console.WriteLine($"Result using {EvolutionSettings.NumRandomIterationsForSummaryTable} randomly chosen paths playing {ActionStrategy}");
+                TabbedText.WriteLine($"Result using {EvolutionSettings.NumRandomIterationsForSummaryTable} randomly chosen paths playing {ActionStrategy}");
                 reportGenerator = GenerateReports_RandomPaths;
             }
             else
             {
-                Console.WriteLine($"Result using all paths playing {ActionStrategy}");
+                TabbedText.WriteLine($"Result using all paths playing {ActionStrategy}");
                 reportGenerator = GenerateReports_AllPaths;
             }
             var reports = await GenerateReportsByPlaying(reportGenerator);
             if (!EvolutionSettings.SuppressReportPrinting)
             {
                 Debug.WriteLine($"{reports.standardReport}");
-                Console.WriteLine($"{reports.standardReport}");
+                TabbedText.WriteLine($"{reports.standardReport}");
             }
             return reports.csvReport;
         }
@@ -672,14 +672,14 @@ namespace ACESim
         {
             if (!EvolutionSettings.UseAcceleratedBestResponse)
                 return;
-            Console.WriteLine($"Prepping accelerated best response...");
+            TabbedText.WriteLine($"Prepping accelerated best response...");
             Stopwatch s = new Stopwatch();
             s.Start();
             AcceleratedBestResponsePrep prepWalk = new AcceleratedBestResponsePrep(EvolutionSettings.DistributeChanceDecisions, (byte)NumNonChancePlayers, TraceTreeWalk);
             AcceleratedBestResponsePrepResult = TreeWalk_Tree(prepWalk, new NodeActionsHistory());
             InformationSetsByDecisionIndex = InformationSets.GroupBy(x => x.DecisionIndex).Select(x => x.ToList()).ToList();
             s.Stop();
-            Console.WriteLine($"... {s.ElapsedMilliseconds} milliseconds. Total information sets: {InformationSets.Count()}");
+            TabbedText.WriteLine($"... {s.ElapsedMilliseconds} milliseconds. Total information sets: {InformationSets.Count()}");
         }
 
         private void ExecuteAcceleratedBestResponse(bool determineWhetherReachable)
@@ -774,12 +774,12 @@ namespace ACESim
                 actionStrategy = ActionStrategies.AverageStrategy; // best response against average strategy is same as against correlated equilibrium
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
-                Console.WriteLine($"U(P{playerBeingOptimized}) {ActionStrategyLastReport}: {AverageStrategyUtilities[playerBeingOptimized]} Best response vs. {BestResponseOpponentString} {BestResponseUtilities[playerBeingOptimized]} Best response improvement: {BestResponseImprovement?[playerBeingOptimized]}");
+                TabbedText.WriteLine($"U(P{playerBeingOptimized}) {ActionStrategyLastReport}: {AverageStrategyUtilities[playerBeingOptimized]} Best response vs. {BestResponseOpponentString} {BestResponseUtilities[playerBeingOptimized]} Best response improvement: {BestResponseImprovement?[playerBeingOptimized]}");
             }
             if (!averageStrategyUtilitiesRecorded)
                 AverageStrategyUtilities = null; // we may be using approximations, so set to null to avoid confusion
-            Console.WriteLine($"Total best response calculation time: {BestResponseCalculationTime} milliseconds");
-            Console.WriteLine("");
+            TabbedText.WriteLine($"Total best response calculation time: {BestResponseCalculationTime} milliseconds");
+            TabbedText.WriteLine("");
         }
 
         public IEnumerable<GameProgress> GetRandomCompleteGames(GamePlayer player, int numIterations, Func<Decision, GameProgress, byte> actionOverride)
@@ -812,10 +812,10 @@ namespace ACESim
                     CountPaths[gameActions] = 1;
                 else
                     CountPaths[gameActions] = CountPaths[gameActions] + 1;
-                //Console.WriteLine($"{gameActions} {gameProgress1.GetNonChancePlayerUtilities()[0]}");
+                //TabbedText.WriteLine($"{gameActions} {gameProgress1.GetNonChancePlayerUtilities()[0]}");
             }
             foreach (var item in CountPaths.AsEnumerable().OrderBy(x => x.Key))
-                Console.WriteLine($"{item.Key} => {((double)item.Value) / (double)EvolutionSettings.NumRandomIterationsForSummaryTable}");
+                TabbedText.WriteLine($"{item.Key} => {((double)item.Value) / (double)EvolutionSettings.NumRandomIterationsForSummaryTable}");
         }
 
         public async Task ProcessAllPathsAsync(HistoryPoint history, Func<HistoryPoint, double, Task> pathPlayer)
@@ -849,7 +849,7 @@ namespace ACESim
             if (actionStrategy == ActionStrategies.CorrelatedEquilibrium)
             {
                 actionStrategy = ActionStrategies.AverageStrategy;
-                Console.WriteLine("Correlated equilibrium not supported in process all paths, since some iteration must be chosen at random anyway, so using average strategy.");
+                TabbedText.WriteLine("Correlated equilibrium not supported in process all paths, since some iteration must be chosen at random anyway, so using average strategy.");
             }
             ActionProbabilityUtilities.GetActionProbabilitiesAtHistoryPoint(gameState, actionStrategy, 0 /* ignored */, probabilities, numPossibleActions, null, Navigation);
             var historyPointCopy = historyPoint;
@@ -1080,7 +1080,7 @@ namespace ACESim
                 return; // nothing to do
             Stopwatch s = new Stopwatch();
             s.Start();
-            Console.WriteLine($"Distributing chance decisions...");
+            TabbedText.WriteLine($"Distributing chance decisions...");
             var chanceNodeAggregationDictionary = new Dictionary<string, ChanceNodeUnequalProbabilities>();
             var informationSetAggregationDictionary = new Dictionary<string, InformationSetNode>();
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
@@ -1088,7 +1088,7 @@ namespace ACESim
             foreach (var chanceNode in Navigation.ChanceNodes)
                 if (chanceNode is ChanceNodeUnequalProbabilities unequal)
                     unequal.NormalizeDistributorChanceInputProbabilities();
-            Console.WriteLine($"...{s.ElapsedMilliseconds} milliseconds");
+            TabbedText.WriteLine($"...{s.ElapsedMilliseconds} milliseconds");
         }
 
         private unsafe bool DistributeChanceDecisions_WalkNode(ref HistoryPoint historyPoint, double piChance, int distributorChanceInputs, string distributedActionsString, Dictionary<string, ChanceNodeUnequalProbabilities> chanceNodeAggregationDictionary, Dictionary<string, InformationSetNode> informationSetAggregationDictionary)
@@ -1201,7 +1201,7 @@ namespace ACESim
             {
                 if (CorrelatedEquilibriumCodeIsPrecompiled)
                 {
-                    Console.WriteLine($"Using precompiled code for correlated equilibrium.");
+                    TabbedText.WriteLine($"Using precompiled code for correlated equilibrium.");
                     CorrelatedEquilibriumCalculatorType = Type.GetType("CorrEqCalc.AutogeneratedCalculator");
                 }
                 else
@@ -1328,7 +1328,7 @@ namespace ACESim
             {
                 int correspondingIteration = (int)(((double)(correlatedEquilibriumIterationIndex + 1) / (double)numPastValues) * (double)(currentIterationNumber));
                 string result = resultString(correlatedEquilibriumIterationIndex, correspondingIteration.ToString());
-                Console.WriteLine(result);
+                TabbedText.WriteLine(result);
             }
         }
 

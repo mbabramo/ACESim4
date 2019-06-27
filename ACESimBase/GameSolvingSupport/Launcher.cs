@@ -65,7 +65,7 @@ namespace ACESim
                 result = await Launch_Single();
             else
                 result = await Launch_Multiple();
-            Console.WriteLine(result);
+            TabbedText.WriteLine(result);
             return result;
         }
 
@@ -100,8 +100,8 @@ namespace ACESim
 
         public IStrategiesDeveloper GetStrategiesDeveloper(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition)
         {
-            Console.WriteLine($"Using {Algorithm}");
-            Console.WriteLine($"Game: {gameDefinition}");
+            TabbedText.WriteLine($"Using {Algorithm}");
+            TabbedText.WriteLine($"Game: {gameDefinition}");
             switch (Algorithm)
             {
                 case GameApproximationAlgorithm.Vanilla:
@@ -213,7 +213,7 @@ namespace ACESim
                         throw new NotImplementedException();
                     Debug.WriteLine(taskCoordinator);
                     taskCoordinator.Update(theCompletedTask, readyForAnotherTask, out taskToDo);
-                    Console.WriteLine($"Percentage Complete {100.0 * taskCoordinator.ProportionComplete}%");
+                    TabbedText.WriteLine($"Percentage Complete {100.0 * taskCoordinator.ProportionComplete}%");
                     if (taskToDo != null)
                         Debug.WriteLine($"Task to do: {taskToDo}");
                     return taskCoordinator;
@@ -348,8 +348,8 @@ namespace ACESim
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Error: {e}");
-                Console.WriteLine(e.StackTrace);
+                TabbedText.WriteLine($"Error: {e}");
+                TabbedText.WriteLine(e.StackTrace);
                 goto retry;
             }
             string singleRepetitionReport = SimpleReportMerging.AddReportInformationColumns(report, optionSetName, reportIteration, i == 0);
@@ -434,8 +434,8 @@ namespace ACESim
             List<(string reportName, GameOptions options)> optionSets = GetOptionsSets();
             int numRepetitionsPerOptionSet = NumRepetitions;
 
-            Console.WriteLine($"Number of option sets: {optionSets.Count} repetitions {numRepetitionsPerOptionSet} => {optionSets.Count * numRepetitionsPerOptionSet}");
-            Console.WriteLine("IMPORTANT: This will run on Azure. Have you published to Azure? Press G to continue on Azure.");
+            TabbedText.WriteLine($"Number of option sets: {optionSets.Count} repetitions {numRepetitionsPerOptionSet} => {optionSets.Count * numRepetitionsPerOptionSet}");
+            TabbedText.WriteLine("IMPORTANT: This will run on Azure. Have you published to Azure? Press G to continue on Azure.");
             do
             {
                 while (!Console.KeyAvailable)
@@ -443,7 +443,7 @@ namespace ACESim
                     // Do something
                 }
             } while (Console.ReadKey(true).Key != ConsoleKey.G);
-            Console.WriteLine("Processing on Azure...");
+            TabbedText.WriteLine("Processing on Azure...");
 
             string azureBlobReportName = "Report" + DateTime.Now.ToString("yyyy-MM-dd HH:mm");
 
@@ -501,12 +501,12 @@ namespace ACESim
                     result = await task;
                     if (result.Success)
                     {
-                        Console.WriteLine($"Successfully processed {optionSetIndex}:{repetition}");
+                        TabbedText.WriteLine($"Successfully processed {optionSetIndex}:{repetition}");
                         return result.Info;
                     }
                     else
                     {
-                        Console.WriteLine($"Failure on {optionSetIndex}:{repetition} attempt {attempt} message {result.Info}");
+                        TabbedText.WriteLine($"Failure on {optionSetIndex}:{repetition} attempt {attempt} message {result.Info}");
                     }
                 }
                 catch
@@ -518,7 +518,7 @@ namespace ACESim
                 retryInterval *= 2;
             }
 
-            Console.WriteLine($"Complete failure on {optionSetIndex}:{repetition} message {result?.Info}");
+            TabbedText.WriteLine($"Complete failure on {optionSetIndex}:{repetition} message {result?.Info}");
             return ""; // just return empty string on failure
 
             // The following simulates the basic algorithm without actually using Azure.

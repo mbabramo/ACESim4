@@ -48,8 +48,8 @@ namespace ACESim
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
-                Console.WriteLine(e.StackTrace);
+                TabbedText.WriteLine(e.Message);
+                TabbedText.WriteLine(e.StackTrace);
             }
         }
 
@@ -83,9 +83,9 @@ namespace ACESim
             string launchResult = await launcher.Launch();
             TextCopy.Clipboard.SetText(launchResult);
             s.Stop();
-            Console.WriteLine($"Total runtime {s.Elapsed} ");
-            Console.WriteLine();
-            Console.WriteLine("Press Enter to end.");
+            TabbedText.WriteLine($"Total runtime {s.Elapsed} ");
+            TabbedText.WriteLine();
+            TabbedText.WriteLine("Press Enter to end.");
             do
             {
                 while (!Console.KeyAvailable)

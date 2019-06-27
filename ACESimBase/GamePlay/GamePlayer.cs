@@ -65,7 +65,7 @@ namespace ACESim
                 System.Threading.Interlocked.Increment(ref numPathsPlayed);
             }) ;
             s.Stop();
-            Console.WriteLine("PlayAllPathsTime " + s.ElapsedMilliseconds);
+            TabbedText.WriteLine("PlayAllPathsTime " + s.ElapsedMilliseconds);
             return numPathsPlayed;
         }
 
@@ -146,7 +146,7 @@ namespace ACESim
             }
             GameProgress ConvertPathInfoToGameProgressAndPlanNextPath(PathInfo pathToPlay)
             {
-                //Console.WriteLine($"Playing {String.Join(",", pathToPlay.Path)}");
+                //TabbedText.WriteLine($"Playing {String.Join(",", pathToPlay.Path)}");
                 (GameProgress gameProgress, IEnumerable<byte> nextAsEnumerable) = PlayPath(pathToPlay.Path, true);
                 List<byte> next = nextAsEnumerable?.ToList();
                 if (next != null)
@@ -165,7 +165,7 @@ namespace ACESim
                             for (int j = 0; j < pathToExpand; j++)
                                 next2.Add(next[j]);
                             next2.Add(i);
-                            //Console.WriteLine($"{String.Join(",", pathToPlay.Path)} => {String.Join(",", next2)}");
+                            //TabbedText.WriteLine($"{String.Join(",", pathToPlay.Path)} => {String.Join(",", next2)}");
                             bufferBlock.Post(new PathInfo(next2, pathToExpand));
                         }
                     }
@@ -205,7 +205,7 @@ namespace ACESim
             //} while (!done);
             //if (numYielded != numYielded2)
             //    throw new Exception("Internal error. Parallel processing did not yield all results!");
-            //Console.WriteLine($"Yielded: {numYielded} {numYielded2}");
+            //TabbedText.WriteLine($"Yielded: {numYielded} {numYielded2}");
         }
 
         public unsafe (GameProgress progress, IEnumerable<byte> next) PlayPath(IEnumerable<byte> actionsToPlay, bool getNextPath)
@@ -315,7 +315,7 @@ namespace ACESim
                                 {
                                     atLeastOneFound = true;
                                     heisenbugTrackingIterNum = iterNum;
-                                    Console.WriteLine("CONSISTENCY ERROR (same observation producing different results based on parallel execution order) at iteration " + iterNum);
+                                    TabbedText.WriteLine("CONSISTENCY ERROR (same observation producing different results based on parallel execution order) at iteration " + iterNum);
                                     FieldwiseObjectComparison.AreEqual(gameProgressResults[iterNum, 0], gameProgressResults[iterNum, 1], false, true);
                                 }
                             }

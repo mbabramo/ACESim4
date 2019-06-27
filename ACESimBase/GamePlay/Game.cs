@@ -169,13 +169,13 @@ namespace ACESim
             if (anotherActionPlanned)
             {
                 actionToChoose = Progress.ActionsToPlay_CurrentAction;
-                //Console.WriteLine($"Decision byte code {CurrentDecision.DecisionByteCode} (index {CurrentDecisionIndex}) ==> {actionToChoose}");
+                //TabbedText.WriteLine($"Decision byte code {CurrentDecision.DecisionByteCode} (index {CurrentDecisionIndex}) ==> {actionToChoose}");
             }
             else if (ChooseDefaultActionIfNoneChosen)
             {
                 actionToChoose =
                     1; // The history does not give us guidance, so we play the first available decision. When the game is complete, we can figure out the next possible game history and play that one (which may go to completion or not). 
-                //Console.WriteLine($"Decision byte code {CurrentDecision.DecisionByteCode} (index {CurrentDecisionIndex}) ==> default {actionToChoose}");
+                //TabbedText.WriteLine($"Decision byte code {CurrentDecision.DecisionByteCode} (index {CurrentDecisionIndex}) ==> default {actionToChoose}");
             }
             else
             {
@@ -202,7 +202,7 @@ namespace ACESim
                 randomNumberForIterationThisTime, // must be same for every decision in the game
                 CurrentDecision.NumPossibleActions);
 
-            //Console.WriteLine($"Decision byte code {CurrentDecision.DecisionByteCode} (index {CurrentDecisionIndex}) ==> randomly chosen {actionToChoose}");
+            //TabbedText.WriteLine($"Decision byte code {CurrentDecision.DecisionByteCode} (index {CurrentDecisionIndex}) ==> randomly chosen {actionToChoose}");
             return actionToChoose;
         }
 
@@ -329,7 +329,7 @@ namespace ACESim
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Exception found in PlayUntilComplete: " + ex.Message);
+                TabbedText.WriteLine("Exception found in PlayUntilComplete: " + ex.Message);
             }
         }
 
@@ -356,7 +356,7 @@ namespace ACESim
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Exception found in PlayUpTo: " + ex.Message);
+                TabbedText.WriteLine("Exception found in PlayUpTo: " + ex.Message);
             }
         }
 

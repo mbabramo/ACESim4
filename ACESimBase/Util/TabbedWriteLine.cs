@@ -17,6 +17,11 @@ namespace ACESim
 
         public static bool WriteToConsole = true;
 
+        public static void WriteLine()
+        {
+            WriteLine("");
+        }
+
         public static void WriteLine(string format, params object[] args)
         {
             Write(format, args);

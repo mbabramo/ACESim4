@@ -260,7 +260,7 @@ namespace ACESim
             StrategiesDeveloperStopwatch.Stop();
 
             string reportString = $"{iteration}: {revisedOriginalBest} mutation weight: {PopulationMembers[0].MutationWeightOnBestResponse} (second best: {secondBest})";
-            Console.WriteLine(reportString);
+            TabbedText.WriteLine(reportString);
 
             //reportString = await GenerateReports(iteration,
             //    () =>

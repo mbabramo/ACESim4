@@ -77,7 +77,7 @@ public class MD5HashGenerator
 		}
 		catch (SerializationException se)
 		{
-			Console.WriteLine("Error occured during serialization. Message: " + se.Message);
+			TabbedText.WriteLine("Error occured during serialization. Message: " + se.Message);
 			return null;
 		}
 		finally
@@ -113,7 +113,7 @@ public class MD5HashGenerator
 		catch // (ArgumentNullException ane)
 		{
 			//If something occured during serialization, this method is called with an null argument. 
-			Console.WriteLine("Hash has not been generated.");
+			TabbedText.WriteLine("Hash has not been generated.");
 			return null;
 		}
 	}

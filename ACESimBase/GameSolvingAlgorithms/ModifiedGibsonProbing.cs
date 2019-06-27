@@ -420,8 +420,8 @@ namespace ACESim
                 }
                 catch (Exception e)
                 { // not clear on why this is needed
-                    Console.WriteLine($"Error: {e}");
-                    Console.WriteLine(e.StackTrace);
+                    TabbedText.WriteLine($"Error: {e}");
+                    TabbedText.WriteLine(e.StackTrace);
                     success = false;
                 }
             } while (!success);
@@ -434,7 +434,7 @@ namespace ACESim
             GameProgressLogger.OutputLogMessages = true;
             string reportString = null;
             GameNumber = EvolutionSettings.GameNumber;
-            Console.WriteLine($"{reportName } game number {GameNumber} ({DateTime.Now})");
+            TabbedText.WriteLine($"{reportName } game number {GameNumber} ({DateTime.Now})");
             Stopwatch s = new Stopwatch();
             if (NumNonChancePlayers > 2)
                 throw new Exception(

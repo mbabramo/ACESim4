@@ -113,7 +113,7 @@ namespace ACESim
 #endif
             fixed (byte* informationSetsLogPtr = InformationSetLogs)
             {
-                // Console.WriteLine($"Adding information {information} following decision {followingDecisionIndex} for Player number {playerIndex}"); 
+                // TabbedText.WriteLine($"Adding information {information} following decision {followingDecisionIndex} for Player number {playerIndex}"); 
                 byte* playerPointer = informationSetsLogPtr + InformationSetLoggingIndex(playerIndex);
                 // advance to the end of the information set
                 while (*playerPointer != InformationSetTerminator)

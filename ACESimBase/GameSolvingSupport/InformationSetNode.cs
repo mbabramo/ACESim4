@@ -1174,7 +1174,7 @@ namespace ACESim
             string avgStratString = GetAverageStrategiesAsString();
             bool avgStratSameAsBestResponse = averageStrategies[BestResponseAction - 1] > 0.9999999;
             //if (ranges.Count() > 1)
-            Console.WriteLine($"{(avgStratSameAsBestResponse ? "*" : "")} decision {Decision.Name} Information set {InformationSetNodeNumber} bestrespon {BestResponseAction} hedge {hedgeString} avg {avgStratString} avg distance {avgDistanceString} ranges: {rangesString}");
+            TabbedText.WriteLine($"{(avgStratSameAsBestResponse ? "*" : "")} decision {Decision.Name} Information set {InformationSetNodeNumber} bestrespon {BestResponseAction} hedge {hedgeString} avg {avgStratString} avg distance {avgDistanceString} ranges: {rangesString}");
         }
 
         #endregion

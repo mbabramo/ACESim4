@@ -122,7 +122,7 @@ namespace ACESim
 
         private void Unroll_CreateUnrolledCommandList()
         {
-            Console.WriteLine($"Unrolling commands...");
+            TabbedText.WriteLine($"Unrolling commands...");
             Stopwatch s = new Stopwatch();
             s.Start();
             const int max_num_commands = 150_000_000;
@@ -146,7 +146,7 @@ namespace ACESim
             Unroll_Commands.EndCommandChunk();
 
             Unroll_SizeOfArray = Unroll_Commands.FullArraySize;
-            Console.WriteLine($"... {s.ElapsedMilliseconds} milliseconds");
+            TabbedText.WriteLine($"... {s.ElapsedMilliseconds} milliseconds");
         }
 
         private void Unroll_ExecuteUnrolledCommands(double[] array, bool firstExecution)

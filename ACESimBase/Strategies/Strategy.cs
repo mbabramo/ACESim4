@@ -61,7 +61,7 @@ namespace ACESim
             if (decisionIndex == 0)
                 decisionIndex = DecisionIndexSubstitute; // a bit hacky -- we can't use a 0 prefix
             var returnVal = InformationSetTree.SetValueIfNotSet(new NWayTreeStorageKeyUnsafeStackOnly(decisionIndex, informationSet), historyComplete, setter);
-            // System.Diagnostics.Console.WriteLine($"{String.Join(",", informationSet)}: {PlayerInfo.PlayerName} {returnVal.StoredValue}");
+            // System.Diagnostics.TabbedText.WriteLine($"{String.Join(",", informationSet)}: {PlayerInfo.PlayerName} {returnVal.StoredValue}");
             return returnVal;
         }
 
@@ -69,7 +69,7 @@ namespace ACESim
         {
 
             var returnVal = InformationSetTree.SetValueIfNotSet(new NWayTreeStorageKeyUnsafeStackOnly(DecisionIndexSubstitute, informationSet), historyComplete, setter);
-            // System.Diagnostics.Console.WriteLine($"{String.Join(",", informationSet)}: {PlayerInfo.PlayerName} {returnVal.StoredValue}");
+            // System.Diagnostics.TabbedText.WriteLine($"{String.Join(",", informationSet)}: {PlayerInfo.PlayerName} {returnVal.StoredValue}");
             return returnVal;
         }
 

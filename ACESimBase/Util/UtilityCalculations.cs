@@ -28,6 +28,11 @@ namespace ACESim.Util
     [Serializable]
     public class RiskNeutralUtilityCalculator : UtilityCalculator
     {
+        public override string ToString()
+        {
+            return "Risk neutral";
+        }
+
         public override double GetSubjectiveUtilityForWealthLevel(double laterWealth)
         {
             return laterWealth;

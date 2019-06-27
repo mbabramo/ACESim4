@@ -84,16 +84,16 @@ namespace ACESim
                                                 x.player1Strategy == player1StrategyIndex))
                     {
                         SetPureStrategyBasedOnIndex(player1InformationSets, player1StrategyIndex, player1Permutations);
-                        Console.WriteLine(
+                        TabbedText.WriteLine(
                             $"Player0StrategyIndex {player0StrategyIndex} Player1StrategyIndex {player1StrategyIndex}");
                         await GenerateReports(0, () => "");
                         PrintGameTree();
-                        Console.WriteLine("");
+                        TabbedText.WriteLine("");
                         numPrinted++;
                     }
                 }
             }
-            Console.WriteLine($"Total equilibria: {numPrinted}");
+            TabbedText.WriteLine($"Total equilibria: {numPrinted}");
         }
 
         private void GetUtilitiesForStrategyCombinations(List<(InformationSetNode, int)> player0InformationSets,

@@ -53,8 +53,8 @@ namespace ACESim
                 cumTotal += probabilities[a];
                 if (cumTotal >= randomNumberToChooseAction)
                 {
-                    //Console.WriteLine($"DecisionCode {historyPoint.GetNextDecisionByteCode(navigation)}");
-                    //Console.WriteLine($"Actions {historyPoint.GetActionsToHereString(navigation)}\n probabilities {String.Join(",", probabilities)} random number {randomNumber} result {(byte)(a + 1)}");
+                    //TabbedText.WriteLine($"DecisionCode {historyPoint.GetNextDecisionByteCode(navigation)}");
+                    //TabbedText.WriteLine($"Actions {historyPoint.GetActionsToHereString(navigation)}\n probabilities {String.Join(",", probabilities)} random number {randomNumber} result {(byte)(a + 1)}");
                     return (byte)(a + 1); // actions are one-based}
                 }
             }
