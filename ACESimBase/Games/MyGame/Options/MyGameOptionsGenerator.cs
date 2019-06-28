@@ -21,7 +21,7 @@ namespace ACESim
             PerfectInfo
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Fast;
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Custom2;
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
@@ -43,8 +43,8 @@ namespace ACESim
             {
                 PInitialWealth = 1000000,
                 DInitialWealth = 1000000,
-                DamagesMin = 100000,
-                DamagesMax = 100000,
+                DamagesMin = 50_000,
+                DamagesMax = 150_000,
                 NumLiabilityStrengthPoints = 5,
                 NumLiabilitySignals = 5,
                 NumDamagesStrengthPoints = 5,
@@ -128,15 +128,33 @@ namespace ACESim
         public static MyGameOptions Custom2()
         {
             var options = BaseOptions();
-            options.NumDamagesStrengthPoints = 5;
-            options.NumDamagesSignals = 5;
-            options.NumLiabilityStrengthPoints = 5;
-            options.NumLiabilitySignals = 5;
-            options.NumOffers = 5;
-            options.NumPotentialBargainingRounds = 2;
+            options.NumDamagesStrengthPoints = 4;
+            options.NumDamagesSignals = 4;
+            options.NumLiabilityStrengthPoints = 4;
+            options.NumLiabilitySignals = 4;
+            options.NumOffers = 15;  // DEBUG
+            options.NumPotentialBargainingRounds = 1; // DEBUG
             options.AllowAbandonAndDefaults = true;
             options.IncludeAgreementToBargainDecisions = true;
             options.SkipFileAndAnswerDecisions = false;
+
+            options.PFilingCost = options.DAnswerCost = 10_000;
+            options.PerPartyCostsLeadingUpToBargainingRound = 0;
+            options.PTrialCosts = options.DTrialCosts = 25_000;
+            
+
+            // DEBUG
+            double level = .1;
+            options.PLiabilityNoiseStdev = level;
+            options.DLiabilityNoiseStdev = level;
+            options.CourtLiabilityNoiseStdev = level;
+            options.PDamagesNoiseStdev = level;
+            options.DDamagesNoiseStdev = level;
+            options.CourtDamagesNoiseStdev = level;
+
+            //options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth, Alpha = 10 * 0.000001 };
+            //options.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth, Alpha = 10 * 0.000001 };
+
             return options;
         }
 
@@ -188,15 +206,11 @@ namespace ACESim
             options.NumDamagesSignals = 4;
             options.NumLiabilityStrengthPoints = 4;
             options.NumLiabilitySignals = 4;
-            options.NumOffers = 4; 
+            options.NumOffers = 4;  
             options.NumPotentialBargainingRounds = 2;
             options.AllowAbandonAndDefaults = true;
-            options.IncludeAgreementToBargainDecisions = false; // DEBUG
+            options.IncludeAgreementToBargainDecisions = true;
             options.SkipFileAndAnswerDecisions = false;
-
-            //options.PLiabilityNoiseStdev = 0.30;
-            //options.DLiabilityNoiseStdev = 0.30;
-            //options.CourtLiabilityNoiseStdev = 0.30;
 
             //options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth, Alpha = 10 * 0.000001 };
             //options.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth, Alpha = 10 * 0.000001 };

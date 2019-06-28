@@ -256,6 +256,8 @@ namespace ACESim
             rows.Add(new SimpleReportFilter($"High Quality{countString}", (GameProgress gp) => MyGP(gp).LiabilityStrengthDiscrete >= 8) { UseSum = useCounts });
             AddRowsForLiabilityStrengthAndSignalDistributions("High Quality Liable ", false, useCounts, rows, gp => MyGP(gp).LiabilityStrengthDiscrete >= 8);
             AddRowsForDamagesStrengthAndSignalDistributions("", true, false, rows, gp => true);
+            AddRowFilterSignalRegions(true, rows);
+            AddRowFilterSignalRegions(false, rows);
             // Now include the litigation flow diagram in rows too, so we get get things like average total expenses for cases settling in particular round
             rows.Add(
                 new SimpleReportFilter($"PDoesntFile",
@@ -320,6 +322,12 @@ namespace ACESim
                     (GameProgress gp) => MyGP(gp).TrialOccurs && MyGP(gp).PWinsAtTrial)
             );
 
+            rows.Add(new SimpleReportFilter(
+                    $"DSignal Liab 3 Dam 3 Answers",
+                    (GameProgress gp) => MyGP(gp).DLiabilitySignalDiscrete == 3 && MyGP(gp).DDamagesSignalDiscrete == 3 && MyGP(gp).DAnswers));
+            rows.Add(new SimpleReportFilter(
+                                $"DSignal Liab 3 Dam 3 Noans",
+                                (GameProgress gp) => MyGP(gp).DLiabilitySignalDiscrete == 3 && MyGP(gp).DDamagesSignalDiscrete == 3 && !MyGP(gp).DAnswers));
 
             return new SimpleReportDefinition(
                 "MyGameReport",
@@ -499,6 +507,7 @@ namespace ACESim
                 new SimpleReportColumnFilter("Trial", (GameProgress gp) => MyGP(gp).TrialOccurs, false),
                 new SimpleReportColumnFilter("PWinsAtTrial", (GameProgress gp) => MyGP(gp).TrialOccurs && MyGP(gp).PWinsAtTrial == true, false),
                 new SimpleReportColumnFilter("DWinsAtTrial", (GameProgress gp) => MyGP(gp).TrialOccurs && MyGP(gp).PWinsAtTrial == false, false),
+                new SimpleReportColumnVariable("TrialDamages", (GameProgress gp) => MyGP(gp).DamagesAwarded),
                 new SimpleReportColumnVariable("PWelfare", (GameProgress gp) => MyGP(gp).PWelfare),
                 new SimpleReportColumnVariable("DWelfare", (GameProgress gp) => MyGP(gp).DWelfare),
             };
@@ -619,7 +628,7 @@ namespace ACESim
             }
         }
 
-        private void AddRowFilterSignalRegions(bool plaintiffMakesOffer, List<SimpleReportFilter> rowFilters)
+        private void AddRowFilterSignalRegions(bool plaintiffSignal, List<SimpleReportFilter> rowFilters)
         {
             Tuple<double, double>[] signalRegions = EquallySpaced.GetRegions(Options.NumLiabilitySignals);
             for (int i = 1; i <= Options.NumLiabilitySignals; i++)
@@ -629,7 +638,7 @@ namespace ACESim
                 if (Options.NumDamagesSignals <= 1)
                 {
                     byte i2 = (byte)(i);
-                    if (plaintiffMakesOffer)
+                    if (plaintiffSignal)
                     {
                         rowFilters.Add(new SimpleReportFilter(
                             $"PLiabilitySignal {i2}",
@@ -647,7 +656,7 @@ namespace ACESim
                     {
                         byte i2 = (byte)(i);
                         byte j2 = (byte)(j);
-                        if (plaintiffMakesOffer)
+                        if (plaintiffSignal)
                         {
                             rowFilters.Add(new SimpleReportFilter(
                                 $"PSignal Liab {i2} Dam {j2}",
