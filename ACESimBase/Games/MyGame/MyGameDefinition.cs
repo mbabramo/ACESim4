@@ -452,6 +452,13 @@ namespace ACESim
                         DeferNotificationOfPlayers = true, // wait until after defendant has gone for defendant to find out -- of course, we don't do that with defendant decision
                         StoreActionInGameCacheItem = GameHistoryCacheIndex_POffer,
                         IsContinuousAction = true,
+                        WarmStartThroughIteration = Options.WarmStartThroughIteration,
+                        WarmStartValue = (byte)(Options.WarmStartOptions switch
+                        {
+                            MyGameWarmStartOptions.DiscourageSettlementByMakingOpponentGenerous => 1,
+                            MyGameWarmStartOptions.FacilitateSettlementByMakingOpponentStingy => Options.NumOffers,
+                            _ => 0,
+                        })
                     };
                 AddOfferDecision(decisions, pOffer);
                 var dOffer =
@@ -463,6 +470,13 @@ namespace ACESim
                         IncrementGameCacheItem = dIncrementGameCacheItem,
                         StoreActionInGameCacheItem = GameHistoryCacheIndex_DOffer,
                         IsContinuousAction = true,
+                        WarmStartThroughIteration = Options.WarmStartThroughIteration,
+                        WarmStartValue = (byte)(Options.WarmStartOptions switch
+                        {
+                            MyGameWarmStartOptions.DiscourageSettlementByMakingOpponentGenerous => Options.NumOffers,
+                            MyGameWarmStartOptions.FacilitateSettlementByMakingOpponentStingy => 1,
+                            _ => 0,
+                        })
                     };
                 AddOfferDecision(decisions, dOffer);
             }
@@ -481,13 +495,6 @@ namespace ACESim
                         },
                             StoreActionInGameCacheItem = GameHistoryCacheIndex_POffer,
                             IsContinuousAction = true,
-                            WarmStartThroughIteration = Options.WarmStartThroughIteration,
-                            WarmStartValue = (byte) (Options.WarmStartOptions switch
-                            {
-                                MyGameWarmStartOptions.FacilitateSettlement => 1,
-                                MyGameWarmStartOptions.BlockSettlement => Options.NumOffers,
-                                _ => 0,
-                            })
                         }; // { AlwaysDoAction = 4});
                     AddOfferDecision(decisions, pOffer);
                     decisions.Add(
@@ -501,8 +508,8 @@ namespace ACESim
                             WarmStartThroughIteration = Options.WarmStartThroughIteration,
                             WarmStartValue = (byte)(Options.WarmStartOptions switch
                             {
-                                MyGameWarmStartOptions.FacilitateSettlement => 1,
-                                MyGameWarmStartOptions.BlockSettlement => 2,
+                                MyGameWarmStartOptions.DiscourageSettlementByMakingOpponentGenerous => 1,
+                                MyGameWarmStartOptions.FacilitateSettlementByMakingOpponentStingy => 2,
                                 _ => 0,
                             })
                         });
@@ -524,8 +531,8 @@ namespace ACESim
                             WarmStartThroughIteration = Options.WarmStartThroughIteration,
                             WarmStartValue = (byte)(Options.WarmStartOptions switch
                             {
-                                MyGameWarmStartOptions.FacilitateSettlement => Options.NumOffers,
-                                MyGameWarmStartOptions.BlockSettlement => 1,
+                                MyGameWarmStartOptions.DiscourageSettlementByMakingOpponentGenerous => Options.NumOffers,
+                                MyGameWarmStartOptions.FacilitateSettlementByMakingOpponentStingy => 1,
                                 _ => 0,
                             })
                         };
@@ -541,8 +548,8 @@ namespace ACESim
                             WarmStartThroughIteration = Options.WarmStartThroughIteration,
                             WarmStartValue = (byte)(Options.WarmStartOptions switch
                             {
-                                MyGameWarmStartOptions.FacilitateSettlement => 1,
-                                MyGameWarmStartOptions.BlockSettlement => 2,
+                                MyGameWarmStartOptions.DiscourageSettlementByMakingOpponentGenerous => 1,
+                                MyGameWarmStartOptions.FacilitateSettlementByMakingOpponentStingy => 2,
                                 _ => 0,
                             })
                         });

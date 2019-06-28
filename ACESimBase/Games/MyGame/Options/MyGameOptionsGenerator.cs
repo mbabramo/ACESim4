@@ -140,8 +140,8 @@ namespace ACESim
             options.IncludeAgreementToBargainDecisions = false; // DEBUG
             options.SkipFileAndAnswerDecisions = false;
 
-            options.WarmStartOptions = MyGameWarmStartOptions.BlockSettlement; // DEBUG
-            options.WarmStartThroughIteration = 1000; // DEBUG
+            options.WarmStartOptions = MyGameWarmStartOptions.FacilitateSettlementByMakingOpponentStingy; // DEBUG
+            options.WarmStartThroughIteration = null; // DEBUG
 
             options.PFilingCost = options.DAnswerCost = 10_000;
             options.PerPartyCostsLeadingUpToBargainingRound = 0;

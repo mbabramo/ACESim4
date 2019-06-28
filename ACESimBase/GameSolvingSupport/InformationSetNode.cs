@@ -780,6 +780,14 @@ namespace ACESim
                 {
                     NodeInformation[currentProbabilityForOpponentDimension, a - 1] = (a == Decision.WarmStartValue) ? 1.0 : 0;
                 }
+                if (Decision.PlayerNumber == 0)
+                {
+                    var DEBUG = 0;
+                }
+                else
+                {
+                    var DEBUG = 0;
+                }
                 return;
             }
             // The opponent's probability is the probability to use when traversing an opponent information set during optimization. 

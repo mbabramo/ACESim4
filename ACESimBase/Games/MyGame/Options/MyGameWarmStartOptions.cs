@@ -7,7 +7,7 @@ namespace ACESim
     public enum MyGameWarmStartOptions
     {
         NoWarmStart,
-        FacilitateSettlement,
-        BlockSettlement,
+        DiscourageSettlementByMakingOpponentGenerous, // if opponent is generous, then player will be stingy --> discourages settlement
+        FacilitateSettlementByMakingOpponentStingy,
     }
 }
