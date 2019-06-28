@@ -72,7 +72,7 @@ namespace ACESim.Util
 
         // We will calculate a number of discrete points in the inverse normal distribution
 
-        const int NumInInverseNormalDistribution = 10000;
+        const int NumInInverseNormalDistribution = 10_000;
         private static double[] _PointsInInverseNormalDistribution;
         private static double[] PointsInInverseNormalDistribution
         {
@@ -180,8 +180,35 @@ namespace ACESim.Util
                     numValuesAtEachLiabilitySignal[band]++;
                     totalNumberForUniformDistributionPoint++;
                 }
-                for (int s = 0; s < nsParams.NumSignals; s++)
-                    probabilitiesOfLiabilitySignalGivenSourceLiabilityStrength[u][s] = ((double)numValuesAtEachLiabilitySignal[s]) / ((double)totalNumberForUniformDistributionPoint);
+                bool calculateExactValues = true; // we've calculated the signal bands using an approximation, but we may wish to use exact values so that we can represent small probabilities
+                if (calculateExactValues)
+                {
+                    double sumCumNormal = 0;
+                    int indexOfSignalWithinCutoff = -1;
+                    for (int s = 0; s < nsParams.NumSignals; s++)
+                    {
+                            double lowerCutoff = (s == 0) ? double.NegativeInfinity : signalValueCutoffs[s - 1];
+                            double upperCutoff = (s == nsParams.NumSignals - 1) ? double.PositiveInfinity : signalValueCutoffs[s];
+                        if (lowerCutoff < uniformDistributionPoint && uniformDistributionPoint <= upperCutoff)
+                            indexOfSignalWithinCutoff = s;
+                        else
+                        {
+                            double distance = Math.Min(Math.Abs(lowerCutoff - uniformDistributionPoint), Math.Abs(upperCutoff - uniformDistributionPoint));
+                            double numStdDeviations = distance / nsParams.StdevOfNormalDistribution;
+                            double cumNormal = NormalDistributionCalculation.CumulativeNormalDistribution(0 - numStdDeviations);
+                            sumCumNormal += cumNormal;
+                            probabilitiesOfLiabilitySignalGivenSourceLiabilityStrength[u][s] = cumNormal;
+                        }
+                    }
+                    probabilitiesOfLiabilitySignalGivenSourceLiabilityStrength[u][indexOfSignalWithinCutoff] = 1.0 - sumCumNormal;
+                }
+                else
+                {
+                    for (int s = 0; s < nsParams.NumSignals; s++)
+                    {
+                        probabilitiesOfLiabilitySignalGivenSourceLiabilityStrength[u][s] = ((double)numValuesAtEachLiabilitySignal[s]) / ((double)totalNumberForUniformDistributionPoint);
+                    }
+                }
             }
             // Assign to dictionary.
             CutoffsForStandardDeviation[nsParams] = signalValueCutoffs;

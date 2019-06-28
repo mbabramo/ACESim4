@@ -7,8 +7,31 @@ using System.Text;
 namespace ACESim
 {
 
-    public static class NormalDistributionPDF
+    public static class NormalDistributionCalculation
     {
+        public static double CumulativeNormalDistribution(double x)
+        {
+            // constants
+            double a1 = 0.254829592;
+            double a2 = -0.284496736;
+            double a3 = 1.421413741;
+            double a4 = -1.453152027;
+            double a5 = 1.061405429;
+            double p = 0.3275911;
+
+            // Save the sign of x
+            int sign = 1;
+            if (x < 0)
+                sign = -1;
+            x = Math.Abs(x) / Math.Sqrt(2.0);
+
+            // A&S formula 7.1.26
+            double t = 1.0 / (1.0 + p * x);
+            double y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.Exp(-x * x);
+
+            return 0.5 * (1.0 + sign * y);
+        }
+
         public static double GetStandardNormalDistributionPDFApproximate(double numStandardDeviationsFromMean)
         {
             // faster than return alglib.normaldistr.normaldistribution(Math.Abs(numStandardDeviationsFromMean));
@@ -34,14 +57,14 @@ namespace ACESim
             s.Start();
             for (int i = 0; i < 100000; i++)
                 for (double stdev = 0.001; stdev <= 6.0; stdev += 0.01)
-                    test = NormalDistributionPDF.GetStandardNormalDistributionPDFApproximate(stdev);
+                    test = NormalDistributionCalculation.GetStandardNormalDistributionPDFApproximate(stdev);
             s.Stop();
 
             Stopwatch s2 = new Stopwatch();
             s2.Start();
             for (int i = 0; i < 100000; i++)
                 for (double stdev = 0.001; stdev <= 6.0; stdev += 0.01)
-                    test = NormalDistributionPDF.GetStandardNormalDistributionPDFExact(stdev);
+                    test = NormalDistributionCalculation.GetStandardNormalDistributionPDFExact(stdev);
             s2.Stop();
 
             Debug.WriteLine(s.ElapsedMilliseconds + " " + s2.ElapsedMilliseconds);
