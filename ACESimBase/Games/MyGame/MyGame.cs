@@ -225,6 +225,8 @@ namespace ACESim
             public double DFinalWealth;
             public double PWelfare;
             public double DWelfare;
+            public double PCertaintyEquivWelfare;
+            public double DCertaintyEquivWelfare;
             public bool TrialOccurs;
             public bool PWinsAtTrial;
             public double DamagesAwarded;
@@ -330,8 +332,10 @@ namespace ACESim
             }
             outcome.PWelfare =
                 gameDefinition.Options.PUtilityCalculator.GetSubjectiveUtilityForWealthLevel(pPerceivedFinalWealth);
+            outcome.PCertaintyEquivWelfare = gameDefinition.Options.PUtilityCalculator.GetDeltaFromInitialWealthProducingSpecifiedSubjectiveUtility(outcome.PWelfare) + gameDefinition.Options.PUtilityCalculator.InitialWealth;
             outcome.DWelfare =
                 gameDefinition.Options.DUtilityCalculator.GetSubjectiveUtilityForWealthLevel(dPerceivedFinalWealth);
+            outcome.DCertaintyEquivWelfare = gameDefinition.Options.DUtilityCalculator.GetDeltaFromInitialWealthProducingSpecifiedSubjectiveUtility(outcome.DWelfare) + gameDefinition.Options.DUtilityCalculator.InitialWealth;
             return outcome;
         }
 
@@ -345,6 +349,8 @@ namespace ACESim
             MyProgress.DFinalWealth = outcome.DFinalWealth;
             MyProgress.PWelfare = outcome.PWelfare;
             MyProgress.DWelfare = outcome.DWelfare;
+            MyProgress.PCertaintyEquivWelfare = outcome.PCertaintyEquivWelfare;
+            MyProgress.DCertaintyEquivWelfare = outcome.DCertaintyEquivWelfare;
             MyProgress.TrialOccurs = outcome.TrialOccurs;
             MyProgress.NumChips = outcome.NumChips;
 

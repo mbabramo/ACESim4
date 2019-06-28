@@ -137,11 +137,14 @@ namespace ACESim
             options.NumOffers = 5;  // DEBUG
             options.NumPotentialBargainingRounds = 1; // DEBUG
             options.AllowAbandonAndDefaults = true;
-            options.IncludeAgreementToBargainDecisions = false; // DEBUG
+            options.IncludeAgreementToBargainDecisions = true; 
             options.SkipFileAndAnswerDecisions = false;
 
-            options.WarmStartOptions = MyGameWarmStartOptions.FacilitateSettlementByMakingOpponentStingy; // DEBUG
-            options.WarmStartThroughIteration = null; // DEBUG
+            //options.WarmStartOptions = MyGameWarmStartOptions.FacilitateSettlementByMakingOpponentStingy; // DEBUG
+            //options.WarmStartThroughIteration = null; // DEBUG
+            //options.IncludeAgreementToBargainDecisions = false; // DEBUG
+            //options.SkipFileAndAnswerDecisions = true;
+            //options.AllowAbandonAndDefaults = false;
 
             options.PFilingCost = options.DAnswerCost = 10_000;
             options.PerPartyCostsLeadingUpToBargainingRound = 0;
@@ -150,7 +153,7 @@ namespace ACESim
             options.IncludeCourtSuccessReport = true;
 
             // DEBUG
-            double level = .2;
+            double level = .1;
             options.PLiabilityNoiseStdev = level;
             options.DLiabilityNoiseStdev = level;
             options.CourtLiabilityNoiseStdev = level;
@@ -158,8 +161,14 @@ namespace ACESim
             options.DDamagesNoiseStdev = level;
             options.CourtDamagesNoiseStdev = level;
 
-            //options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth, Alpha = 10 * 0.000001 };
-            //options.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth, Alpha = 10 * 0.000001 };
+            //options.LoserPays = true;
+            //options.LoserPaysAfterAbandonment = true;
+            //options.LoserPaysMultiple = 1.0; 
+
+            options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth, Alpha = 30 * 0.000001 };
+            options.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth, Alpha = 30 * 0.000001 };
+            options.PUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth };
+            options.DUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth };  
 
             return options;
         }

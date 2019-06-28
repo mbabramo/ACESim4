@@ -101,7 +101,12 @@ namespace ACESim.Util
 
         public override double GetDeltaFromInitialWealthProducingSpecifiedSubjectiveUtility(double subjectiveUtility)
         {
-            return -Math.Log(subjectiveUtility) / Alpha - InitialWealth;
+            double result = -Math.Log(0 - subjectiveUtility) / Alpha - InitialWealth;
+            if (double.IsNaN(result) || double.IsInfinity(result))
+            {
+                var DEBUG = 0;
+            }
+            return result;
         }
     }
 
