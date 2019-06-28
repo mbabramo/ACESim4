@@ -88,7 +88,7 @@ namespace ACESim
         {
             var colItems = new List<SimpleReportColumnItem>()
                 {
-                    new SimpleReportColumnFilter("All", (GameProgress gp) => true, true),
+                    new SimpleReportColumnFilter("All", (GameProgress gp) => true, SimpleReportColumnFilterOptions.ProportionOfAll),
                     //new SimpleReportColumnVariable("P1Action1", (GameProgress gp) => (MyGP(gp).P1Decision == 1 ? 1.0 : 0.0)),
                     //new SimpleReportColumnVariable("P1Action2", (GameProgress gp) => (MyGP(gp).P1Decision == 2 ? 1.0 : 0.0)),
                     new SimpleReportColumnVariable("P1Welfare", (GameProgress gp) => (MRCGP(gp).GetNonChancePlayerUtilities()[0])),
@@ -97,10 +97,10 @@ namespace ACESim
             for (int i = 1; i <= TotalRounds; i++)
             {
                 byte round = (byte) i; // to avoid closure
-                colItems.Add(new SimpleReportColumnFilter("P1Cooperates-" + i, (GameProgress gp) => (MRCGP(gp).P1Decisions[round - 1] == 1), false));
-                colItems.Add(new SimpleReportColumnFilter("P2Cooperates-" + i, (GameProgress gp) => (MRCGP(gp).P2Decisions[round - 1] == 1), false));
+                colItems.Add(new SimpleReportColumnFilter("P1Cooperates-" + i, (GameProgress gp) => (MRCGP(gp).P1Decisions[round - 1] == 1), SimpleReportColumnFilterOptions.ProportionOfRow));
+                colItems.Add(new SimpleReportColumnFilter("P2Cooperates-" + i, (GameProgress gp) => (MRCGP(gp).P2Decisions[round - 1] == 1), SimpleReportColumnFilterOptions.ProportionOfRow));
             }
-            colItems.Add(new SimpleReportColumnFilter("FullCooperation", (GameProgress gp) => (MRCGP(gp).P1Decisions.All(x => x == 1) && MRCGP(gp).P2Decisions.All(x => x == 1)), false));
+            colItems.Add(new SimpleReportColumnFilter("FullCooperation", (GameProgress gp) => (MRCGP(gp).P1Decisions.All(x => x == 1) && MRCGP(gp).P2Decisions.All(x => x == 1)), SimpleReportColumnFilterOptions.ProportionOfRow));
 
             var rowItems = new List<SimpleReportFilter>()
                 {

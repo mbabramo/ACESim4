@@ -42,7 +42,7 @@ namespace ACESim
                 for (int b = 1; b <= Options.NumPotentialBargainingRounds; b++)
                 {
                     reports.Add(GetSignalsReport(b, false));
-                    reports.Add(GetSignalsReport(b, true));
+                    reports.Add(GetSignalsReport(b, true)); // i.e., if not simultaneous, report fraction relative to previous report
                 }
             }
             return reports;
@@ -54,24 +54,24 @@ namespace ACESim
             {
                 //new SimpleReportColumnVariable("PWelfare", (GameProgress gp) => MyGP(gp).PWelfare),
                 //new SimpleReportColumnVariable("DWelfare", (GameProgress gp) => MyGP(gp).DWelfare),
-                new SimpleReportColumnFilter("All", (GameProgress gp) => true, true),
-                new SimpleReportColumnFilter("NoDispute", (GameProgress gp) => !MyGP(gp).DisputeArises, true),
-                new SimpleReportColumnFilter("DisputeArises", (GameProgress gp) => MyGP(gp).DisputeArises, true),
+                new SimpleReportColumnFilter("All", (GameProgress gp) => true, SimpleReportColumnFilterOptions.ProportionOfAll),
+                new SimpleReportColumnFilter("NoDispute", (GameProgress gp) => !MyGP(gp).DisputeArises, SimpleReportColumnFilterOptions.ProportionOfAll),
+                new SimpleReportColumnFilter("DisputeArises", (GameProgress gp) => MyGP(gp).DisputeArises, SimpleReportColumnFilterOptions.ProportionOfAll),
                 new SimpleReportColumnVariable("LitigQuality", (GameProgress gp) => MyGP(gp).LiabilityStrengthUniform),
-                new SimpleReportColumnFilter("PFiles", (GameProgress gp) => MyGP(gp).PFiles, false),
-                new SimpleReportColumnFilter("DAnswers", (GameProgress gp) => MyGP(gp).DAnswers, false),
+                new SimpleReportColumnFilter("PFiles", (GameProgress gp) => MyGP(gp).PFiles, SimpleReportColumnFilterOptions.ProportionOfRow),
+                new SimpleReportColumnFilter("DAnswers", (GameProgress gp) => MyGP(gp).DAnswers, SimpleReportColumnFilterOptions.ProportionOfRow),
             };
             for (byte b = 1; b <= Options.NumPotentialBargainingRounds; b++)
             {
                 byte bargainingRoundNum = b; // needed for closure -- otherwise b below will always be max value.
                 colItems.Add(
                     new SimpleReportColumnFilter($"PBargains{b}",
-                        (GameProgress gp) => !Options.IncludeAgreementToBargainDecisions || ((MyGP(gp).PAgreesToBargain?.Count() ?? 0) >= bargainingRoundNum && MyGP(gp).PAgreesToBargain[bargainingRoundNum - 1]), false)
+                        (GameProgress gp) => !Options.IncludeAgreementToBargainDecisions || ((MyGP(gp).PAgreesToBargain?.Count() ?? 0) >= bargainingRoundNum && MyGP(gp).PAgreesToBargain[bargainingRoundNum - 1]), SimpleReportColumnFilterOptions.ProportionOfRow)
                 );
 
                 colItems.Add(
                     new SimpleReportColumnFilter($"DBargains{b}",
-                        (GameProgress gp) => !Options.IncludeAgreementToBargainDecisions || ((MyGP(gp).DAgreesToBargain?.Count() ?? 0) >= bargainingRoundNum && MyGP(gp).DAgreesToBargain[bargainingRoundNum - 1]), false)
+                        (GameProgress gp) => !Options.IncludeAgreementToBargainDecisions || ((MyGP(gp).DAgreesToBargain?.Count() ?? 0) >= bargainingRoundNum && MyGP(gp).DAgreesToBargain[bargainingRoundNum - 1]), SimpleReportColumnFilterOptions.ProportionOfRow)
                 );
                 colItems.Add(
                     new SimpleReportColumnVariable($"POffer{b}",
@@ -92,7 +92,7 @@ namespace ACESim
                 colItems.Add(
                     new SimpleReportColumnFilter($"Settles{b}",
                         (GameProgress gp) => MyGP(gp).SettlementValue != null &&
-                                             MyGP(gp).BargainingRoundsComplete == bargainingRoundNum, false)
+                                             MyGP(gp).BargainingRoundsComplete == bargainingRoundNum, SimpleReportColumnFilterOptions.ProportionOfRow)
                 );
 
                 colItems.Add(
@@ -113,17 +113,17 @@ namespace ACESim
                 );
                 colItems.Add(
                     new SimpleReportColumnFilter($"PAbandons{b}",
-                        (GameProgress gp) => (MyGP(gp).PAbandons && bargainingRoundNum == MyGP(gp).BargainingRoundsComplete), false)
+                        (GameProgress gp) => (MyGP(gp).PAbandons && bargainingRoundNum == MyGP(gp).BargainingRoundsComplete), SimpleReportColumnFilterOptions.ProportionOfRow)
                 );
                 colItems.Add(
                     new SimpleReportColumnFilter($"DDefaults{b}",
-                        (GameProgress gp) => (MyGP(gp).DDefaults && bargainingRoundNum == MyGP(gp).BargainingRoundsComplete), false)
+                        (GameProgress gp) => (MyGP(gp).DDefaults && bargainingRoundNum == MyGP(gp).BargainingRoundsComplete), SimpleReportColumnFilterOptions.ProportionOfRow)
                 );
             }
             colItems.AddRange(new List<SimpleReportColumnItem>()
             {
-                new SimpleReportColumnFilter("Trial", (GameProgress gp) => MyGP(gp).TrialOccurs, false),
-                new SimpleReportColumnFilter("PWinPct", (GameProgress gp) => !MyGP(gp).TrialOccurs ? (bool?) null : MyGP(gp).PWinsAtTrial, false),
+                new SimpleReportColumnFilter("Trial", (GameProgress gp) => MyGP(gp).TrialOccurs, SimpleReportColumnFilterOptions.ProportionOfRow),
+                new SimpleReportColumnFilter("PWinPct", (GameProgress gp) => !MyGP(gp).TrialOccurs ? (bool?) null : MyGP(gp).PWinsAtTrial, SimpleReportColumnFilterOptions.ProportionOfRow),
                 new SimpleReportColumnVariable("PWealth", (GameProgress gp) => MyGP(gp).PFinalWealth),
                 new SimpleReportColumnVariable("DWealth", (GameProgress gp) => MyGP(gp).DFinalWealth),
                 new SimpleReportColumnVariable("PWelfare", (GameProgress gp) => MyGP(gp).PWelfare),
@@ -133,65 +133,65 @@ namespace ACESim
                 new SimpleReportColumnVariable("False-", (GameProgress gp) => MyGP(gp).FalseNegativeShortfall),
                 new SimpleReportColumnVariable("PDSWelfare", (GameProgress gp) => MyGP(gp).PreDisputeSWelfare),
                 new SimpleReportColumnVariable("Chips", (GameProgress gp) => MyGP(gp).NumChips),
-                new SimpleReportColumnFilter("Settles", (GameProgress gp) => MyGP(gp).SettlementValue != null, false),
+                new SimpleReportColumnFilter("Settles", (GameProgress gp) => MyGP(gp).SettlementValue != null, SimpleReportColumnFilterOptions.ProportionOfRow),
                 new SimpleReportColumnVariable("ValIfSettled", (GameProgress gp) => MyGP(gp).SettlementValue),
-                new SimpleReportColumnFilter("PAbandons", (GameProgress gp) => MyGP(gp).PAbandons, false),
-                new SimpleReportColumnFilter("DDefaults", (GameProgress gp) => MyGP(gp).DDefaults, false),
-                new SimpleReportColumnFilter("BothReadyToGiveUp", (GameProgress gp) => MyGP(gp).BothReadyToGiveUp, false),
-                new SimpleReportColumnFilter("TrulyLiable", (GameProgress gp) => MyGP(gp).IsTrulyLiable, false),
+                new SimpleReportColumnFilter("PAbandons", (GameProgress gp) => MyGP(gp).PAbandons, SimpleReportColumnFilterOptions.ProportionOfRow),
+                new SimpleReportColumnFilter("DDefaults", (GameProgress gp) => MyGP(gp).DDefaults, SimpleReportColumnFilterOptions.ProportionOfRow),
+                new SimpleReportColumnFilter("BothReadyToGiveUp", (GameProgress gp) => MyGP(gp).BothReadyToGiveUp, SimpleReportColumnFilterOptions.ProportionOfRow),
+                new SimpleReportColumnFilter("TrulyLiable", (GameProgress gp) => MyGP(gp).IsTrulyLiable, SimpleReportColumnFilterOptions.ProportionOfRow),
                 new SimpleReportColumnVariable("PrimaryAction", (GameProgress gp) => (double) MyGP(gp).DisputeGeneratorActions.PrimaryAction),
                 new SimpleReportColumnVariable("MutualOptimism", (GameProgress gp) => (double) MyGP(gp).PLiabilitySignalDiscrete - (double) MyGP(gp).DLiabilitySignalDiscrete),
             });
             // Now go through bargaining rounds again for our litigation flow diagram
             colItems.Add(
                 new SimpleReportColumnFilter($"PDoesntFile",
-                    (GameProgress gp) => !MyGP(gp).PFiles, false)
+                    (GameProgress gp) => !MyGP(gp).PFiles, SimpleReportColumnFilterOptions.ProportionOfRow)
             );
             colItems.Add(
                 new SimpleReportColumnFilter($"P Files",
-                    (GameProgress gp) => MyGP(gp).PFiles, false)
+                    (GameProgress gp) => MyGP(gp).PFiles, SimpleReportColumnFilterOptions.ProportionOfRow)
             );
             colItems.Add(
                 new SimpleReportColumnFilter($"DDoesntAnswer",
-                    (GameProgress gp) => MyGP(gp).PFiles && !MyGP(gp).DAnswers, false)
+                    (GameProgress gp) => MyGP(gp).PFiles && !MyGP(gp).DAnswers, SimpleReportColumnFilterOptions.ProportionOfRow)
             );
             colItems.Add(
                 new SimpleReportColumnFilter($"D Answers",
-                    (GameProgress gp) => MyGP(gp).PFiles && MyGP(gp).DAnswers, false)
-            );
+                    (GameProgress gp) => MyGP(gp).PFiles && MyGP(gp).DAnswers, SimpleReportColumnFilterOptions.ProportionOfRow)
+                    );
             for (byte b = 1; b <= Options.NumPotentialBargainingRounds; b++)
             {
                 byte bargainingRoundNum = b; // needed for closure -- otherwise b below will always be max value.
                 
                 colItems.Add(
                     new SimpleReportColumnFilter($"Settles{b}",
-                        (GameProgress gp) => MyGP(gp).SettlesInRound(bargainingRoundNum), false)
+                        (GameProgress gp) => MyGP(gp).SettlesInRound(bargainingRoundNum), SimpleReportColumnFilterOptions.ProportionOfRow)
                 );
 
                 colItems.Add(
                     new SimpleReportColumnFilter($"DoesntSettle{b}",
-                        (GameProgress gp) => MyGP(gp).DoesntSettleInRound(bargainingRoundNum), false)
+                        (GameProgress gp) => MyGP(gp).DoesntSettleInRound(bargainingRoundNum), SimpleReportColumnFilterOptions.ProportionOfRow)
                 );
 
                 colItems.Add(
                     new SimpleReportColumnFilter($"PAbandons{b}",
-                        (GameProgress gp) => (MyGP(gp).PAbandonsInRound(bargainingRoundNum)), false)
+                        (GameProgress gp) => (MyGP(gp).PAbandonsInRound(bargainingRoundNum)), SimpleReportColumnFilterOptions.ProportionOfRow)
                 );
                 colItems.Add(
                     new SimpleReportColumnFilter($"PDoesntAbandon{b}",
-                        (GameProgress gp) => (MyGP(gp).PDoesntAbandonInRound(bargainingRoundNum)), false)
+                        (GameProgress gp) => (MyGP(gp).PDoesntAbandonInRound(bargainingRoundNum)), SimpleReportColumnFilterOptions.ProportionOfRow)
                 );
                 colItems.Add(
                     new SimpleReportColumnFilter($"DDefaults{b}",
-                        (GameProgress gp) => (MyGP(gp).DDefaultsInRound(bargainingRoundNum)), false)
+                        (GameProgress gp) => (MyGP(gp).DDefaultsInRound(bargainingRoundNum)), SimpleReportColumnFilterOptions.ProportionOfRow)
                 );
                 colItems.Add(
                     new SimpleReportColumnFilter($"DDoesntDefault{b}",
-                        (GameProgress gp) => (MyGP(gp).DDoesntDefaultInRound(bargainingRoundNum)), false)
+                        (GameProgress gp) => (MyGP(gp).DDoesntDefaultInRound(bargainingRoundNum)), SimpleReportColumnFilterOptions.ProportionOfRow)
                 );
                 colItems.Add(
                     new SimpleReportColumnFilter($"POrDQuits{b}",
-                        (GameProgress gp) => (MyGP(gp).PAbandonsInRound(bargainingRoundNum)) || (MyGP(gp).DDefaultsInRound(bargainingRoundNum)), false)
+                        (GameProgress gp) => (MyGP(gp).PAbandonsInRound(bargainingRoundNum)) || (MyGP(gp).DDefaultsInRound(bargainingRoundNum)), SimpleReportColumnFilterOptions.ProportionOfRow)
                 );
 
                 
@@ -199,12 +199,12 @@ namespace ACESim
 
             colItems.Add(
                 new SimpleReportColumnFilter($"P Loses",
-                    (GameProgress gp) => MyGP(gp).TrialOccurs && !MyGP(gp).PWinsAtTrial, false)
+                    (GameProgress gp) => MyGP(gp).TrialOccurs && !MyGP(gp).PWinsAtTrial, SimpleReportColumnFilterOptions.ProportionOfRow)
             );
 
             colItems.Add(
                 new SimpleReportColumnFilter($"P Wins",
-                    (GameProgress gp) => MyGP(gp).TrialOccurs && MyGP(gp).PWinsAtTrial, false)
+                    (GameProgress gp) => MyGP(gp).TrialOccurs && MyGP(gp).PWinsAtTrial, SimpleReportColumnFilterOptions.ProportionOfRow)
             );
             var rows = new List<SimpleReportFilter>()
             {
@@ -484,11 +484,8 @@ namespace ACESim
 
         private SimpleReportDefinition GetCourtSuccessReport()
         {
-            bool reportResponseToOffer = false;
-            (bool plaintiffMakesOffer, int offerNumber, bool isSimultaneous) =
-                GetOfferorAndNumber(1, ref reportResponseToOffer);
             string reportName =
-                $"Probability of winning given {(plaintiffMakesOffer ? "P" : "D")} signal";
+                $"Probability of winning";
             List<SimpleReportFilter> metaFilters = new List<SimpleReportFilter>()
             {
                 new SimpleReportFilter("All", (GameProgress gp) => true)
@@ -498,33 +495,40 @@ namespace ACESim
             {
                 new SimpleReportFilter("All", (GameProgress gp) => true)
             };
+            bool reportResponseToOffer = false;
+            (bool plaintiffMakesOffer, int offerNumber, bool isSimultaneous) =
+                GetOfferorAndNumber(1, ref reportResponseToOffer);
             bool reportPlaintiff = (plaintiffMakesOffer && !reportResponseToOffer) || (!plaintiffMakesOffer && reportResponseToOffer);
             AddRowFilterSignalRegions(reportPlaintiff, rowFilters);
+            if (reportPlaintiff && Options.BargainingRoundsSimultaneous)
+                AddRowFilterSignalRegions(false, rowFilters); // add defendant too
             AddRowFiltersLitigationStrength(rowFilters);
             List<SimpleReportColumnItem> columnItems = new List<SimpleReportColumnItem>()
             {
-                new SimpleReportColumnFilter("All", (GameProgress gp) => true, true),
-                new SimpleReportColumnFilter("Trial", (GameProgress gp) => MyGP(gp).TrialOccurs, false),
-                new SimpleReportColumnFilter("PWinsAtTrial", (GameProgress gp) => MyGP(gp).TrialOccurs && MyGP(gp).PWinsAtTrial == true, false),
-                new SimpleReportColumnFilter("DWinsAtTrial", (GameProgress gp) => MyGP(gp).TrialOccurs && MyGP(gp).PWinsAtTrial == false, false),
+                new SimpleReportColumnFilter("All", (GameProgress gp) => true, SimpleReportColumnFilterOptions.ProportionOfAll),
+                new SimpleReportColumnFilter("Trial", (GameProgress gp) => MyGP(gp).TrialOccurs, SimpleReportColumnFilterOptions.ProportionOfRow),
+                new SimpleReportColumnFilter("PWinsAtTrial", (GameProgress gp) => MyGP(gp).TrialOccurs && MyGP(gp).PWinsAtTrial == true, SimpleReportColumnFilterOptions.ProportionOfRow),
+                new SimpleReportColumnFilter("DWinsAtTrial", (GameProgress gp) => MyGP(gp).TrialOccurs && MyGP(gp).PWinsAtTrial == false, SimpleReportColumnFilterOptions.ProportionOfRow),
                 new SimpleReportColumnVariable("TrialDamages", (GameProgress gp) => MyGP(gp).DamagesAwarded),
                 new SimpleReportColumnVariable("PWelfare", (GameProgress gp) => MyGP(gp).PWelfare),
                 new SimpleReportColumnVariable("DWelfare", (GameProgress gp) => MyGP(gp).DWelfare),
             };
             AddColumnFiltersLiabilityStrength(columnItems);
+            AddColumnFiltersDamagesStrength(columnItems);
             AddColumnFiltersPLiabilitySignal(columnItems);
             return new SimpleReportDefinition(
                     reportName,
                     metaFilters,
                     rowFilters,
                     columnItems,
-                    reportResponseToOffer
+                    false // reportResponseToOffer --> right now we're reporting only one report
                 )
                 {ActionsOverride = MyGameActionsGenerator.GamePlaysOutToTrial};
         }
 
         private SimpleReportDefinition GetSignalsReport(int bargainingRound, bool reportResponseToOffer)
         {
+            // Note: When reporting response to offer, we are calculating everything in this report as a fraction of what was in the previous report
             (bool plaintiffMakesOffer, int offerNumber, bool isSimultaneous) =
                 GetOfferorAndNumber(bargainingRound, ref reportResponseToOffer);
             string reportName =
@@ -543,9 +547,9 @@ namespace ACESim
             //AddRowFilterLiabilitySignalRegions(false, rowFilters);
             List<SimpleReportColumnItem> columnItems = new List<SimpleReportColumnItem>()
             {
-                new SimpleReportColumnFilter("All", (GameProgress gp) => true, true)
+                new SimpleReportColumnFilter("All", (GameProgress gp) => true, SimpleReportColumnFilterOptions.ProportionOfAll)
             };
-            AddColumnFiltersLiabilityStrength(columnItems); // DEBUG
+            //AddColumnFiltersLiabilityStrength(columnItems); // not needed -- in court success report
             double[] offerPoints = EquallySpaced.GetEquallySpacedPoints(Options.NumOffers, Options.IncludeEndpointsForOffers);
             Tuple<double, double>[] offerRegions = offerPoints.Select(x => new Tuple<double, double>(x - 0.001, x + 0.001)).ToArray();
             for (int i = 0; i < Options.NumOffers; i++)
@@ -563,7 +567,7 @@ namespace ACESim
                         $"{(reportResponseToOffer ? "To" : "")}{(plaintiffMakesOffer ? "P" : "D")}{offerNumber} {offerPoints[i].ToSignificantFigures(2)}{(reportResponseToOffer ? "" : "  ")}",
                         GetOfferOrResponseFilter(plaintiffMakesOffer, offerNumber, reportResponseToOffer,
                             offerRegions[i]),
-                        false
+                        SimpleReportColumnFilterOptions.ProportionOfRow
                     )
                 );
             }
@@ -611,11 +615,27 @@ namespace ACESim
             {
                 byte j = (byte)(i); // necessary to prevent access to modified closure
                 columnFilters.Add(new SimpleReportColumnFilter(
-                    $"LitQual {j}",
+                    $"LiabStr {j}",
                     (GameProgress gp) => MyGP(gp).LiabilityStrengthDiscrete == j,
-                    false));
+                    SimpleReportColumnFilterOptions.ProportionOfRow));
+                columnFilters.Add(new SimpleReportColumnFilter(
+                    $"LiabStrPct {j}",
+                    (GameProgress gp) => MyGP(gp).LiabilityStrengthDiscrete == j,
+                    SimpleReportColumnFilterOptions.ProportionOfFirstRowOfColumn));
             }
         }
+        private void AddColumnFiltersDamagesStrength(List<SimpleReportColumnItem> columnFilters)
+        {
+            for (int i = 1; i <= Options.NumDamagesStrengthPoints; i++)
+            {
+                byte j = (byte)(i); // necessary to prevent access to modified closure
+                columnFilters.Add(new SimpleReportColumnFilter(
+                    $"DamStr {j}",
+                    (GameProgress gp) => MyGP(gp).DamagesStrengthDiscrete == j,
+                    SimpleReportColumnFilterOptions.ProportionOfRow));
+            }
+        }
+
         private void AddColumnFiltersPLiabilitySignal(List<SimpleReportColumnItem> columnFilters)
         {
             for (int i = 1; i <= Options.NumLiabilitySignals; i++)
@@ -624,7 +644,7 @@ namespace ACESim
                 columnFilters.Add(new SimpleReportColumnFilter(
                     $"PLiabilitySignal {j}",
                     (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete == j,
-                    false));
+                    SimpleReportColumnFilterOptions.ProportionOfRow));
             }
         }
 

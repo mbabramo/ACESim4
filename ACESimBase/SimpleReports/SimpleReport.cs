@@ -44,14 +44,17 @@ namespace ACESim
                         {
                             var v = colItem.GetValueToRecord(completedGame);
                             bool recordThis;
-                            if (colItem is SimpleReportColumnVariable)
-                                recordThis = rowFilterSatisfied;
-                            else
+                            recordThis = rowFilterSatisfied;
+                            if (colItem is SimpleReportColumnFilter colFilter)
                             {
-                                var cf = (SimpleReportColumnFilter)colItem;
-                                recordThis = cf.ReportAsPercentageOfAll || rowFilterSatisfied;
-                                if (recordThis && !rowFilterSatisfied)
-                                    v = 0; // record this as a 0; we record as a 1 only if column and row filters are satisfied.
+                                if (colFilter.ColumnFilterOptions == SimpleReportColumnFilterOptions.ProportionOfAll || colFilter.ColumnFilterOptions == SimpleReportColumnFilterOptions.ProportionOfFirstRowOfColumn)
+                                {
+                                    // For proportion of all, we are determining what percentage of all items in the table have both the row filter and column filter satisfied. For proportion of first row in column, we do the same calculation, but then divide by the calculation for the first row. 
+                                    recordThis = true;
+                                    if (!rowFilterSatisfied)
+                                        v = 0;  // record this as a 0 (regardless of whether the column filter is satisfied); we record as a 1 only if column and row filters are satisfied.
+                                }
+                                // NOTE: We deal with ProportionOfFirstRowOfColumn below by simply dividing values by the first row when printing out.
                             }
                             //if (recordThis && v == null)
                             //    StatCollectors[i] = null; // this collection is invalid -- we only report stats when every item is present.
@@ -90,6 +93,7 @@ namespace ACESim
             rowFilterColumnWidth = Math.Max(9, Definition.RowFilters.Max(x => x.Name.Length) + 3);
             SimpleReportColumnItem lastColumn = Definition.ColumnItems.Last();
             bool printMetaColumn = Definition.MetaFilters.Count() > 1;
+            double?[] firstRowValues = new double?[Definition.ColumnItems.Count];
             foreach (SimpleReportFilter metaFilter in Definition.MetaFilters)
             {
                 // print column headers
@@ -105,6 +109,7 @@ namespace ACESim
 
                 // print rows
                 int i = 0;
+                int r = 0;
                 Dictionary<string, double?> firstColumnValues = new Dictionary<string, double?>();
                 foreach (SimpleReportFilter rowFilter in Definition.RowFilters)
                 {
@@ -144,6 +149,16 @@ namespace ACESim
                             firstColumnValues.Add(rowFilter.Name, value);
                         else
                             value = rowFilter.Manipulate(firstColumnValues, value);
+                        if (r == 0)
+                            firstRowValues[c] = value; // record this so that we can divide each value (including this one) by this.
+                        if (colItem is SimpleReportColumnFilter colFilter && colFilter.ColumnFilterOptions == SimpleReportColumnFilterOptions.ProportionOfFirstRowOfColumn)
+                        {
+                            double? firstRowValue = firstRowValues[c];
+                            if (firstRowValue == 0 || firstRowValue == null)
+                                value = null;
+                            else
+                                value /= firstRowValues[c];
+                        }
                         string valueString = value == null ? "" : value.ToSignificantFigures_MaxLength(6, colItem.Width);
                         Append(standardReport, csvReport, true, valueString, colItem.Width, colItem == lastColumn);
                         i++;
@@ -151,6 +166,7 @@ namespace ACESim
                     }
                     standardReport.AppendLine();
                     csvReport.AppendLine();
+                    r++;
                 }
             }
         }

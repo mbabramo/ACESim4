@@ -10,7 +10,7 @@ namespace ACESim
     public class SimpleReportColumnFilter : SimpleReportColumnItem
     {
         public Func<GameProgress, bool?> Filter;
-        public bool ReportAsPercentageOfAll;
+        public SimpleReportColumnFilterOptions ColumnFilterOptions;
 
         public override double? GetValueToRecord(GameProgress completedGame)
         {
@@ -20,10 +20,10 @@ namespace ACESim
             return ((bool) filterResult) ? 1.0 : 0.0;
         }
 
-        public SimpleReportColumnFilter(string name, Func<GameProgress, bool?> filter, bool reportAsPercentageOfAll, int? width = null) : base(name, width)
+        public SimpleReportColumnFilter(string name, Func<GameProgress, bool?> filter, SimpleReportColumnFilterOptions columnFilterOptions, int? width = null) : base(name, width)
         {
             Filter = filter;
-            ReportAsPercentageOfAll = reportAsPercentageOfAll;
+            ColumnFilterOptions = columnFilterOptions;
         }
     }
 }
