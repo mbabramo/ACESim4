@@ -128,8 +128,6 @@ namespace ACESim
                 new SimpleReportColumnVariable("DWealth", (GameProgress gp) => MyGP(gp).DFinalWealth),
                 new SimpleReportColumnVariable("PWelfare", (GameProgress gp) => MyGP(gp).PWelfare),
                 new SimpleReportColumnVariable("DWelfare", (GameProgress gp) => MyGP(gp).DWelfare),
-                new SimpleReportColumnVariable("PEquWelf", (GameProgress gp) => MyGP(gp).PCertaintyEquivWelfare),
-                new SimpleReportColumnVariable("DEquWelf", (GameProgress gp) => MyGP(gp).DCertaintyEquivWelfare),
                 new SimpleReportColumnVariable("TotExpense", (GameProgress gp) => MyGP(gp).TotalExpensesIncurred),
                 new SimpleReportColumnVariable("False+", (GameProgress gp) => MyGP(gp).FalsePositiveExpenditures),
                 new SimpleReportColumnVariable("False-", (GameProgress gp) => MyGP(gp).FalseNegativeShortfall),

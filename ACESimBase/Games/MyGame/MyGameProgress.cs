@@ -60,8 +60,6 @@ namespace ACESim
         public double DFinalWealth;
         public double PWelfare;
         public double DWelfare;
-        public double PCertaintyEquivWelfare;
-        public double DCertaintyEquivWelfare;
         public List<double> POfferMixedness;
         public List<double> DOfferMixedness;
         public MyGameDisputeGeneratorActions DisputeGeneratorActions;
@@ -289,8 +287,6 @@ namespace ACESim
             copy.DFinalWealth = DFinalWealth;
             copy.PWelfare = PWelfare;
             copy.DWelfare = DWelfare;
-            copy.PCertaintyEquivWelfare = PCertaintyEquivWelfare;
-            copy.DCertaintyEquivWelfare = DCertaintyEquivWelfare;
             copy.FalsePositiveExpenditures = FalsePositiveExpenditures;
             copy.FalseNegativeShortfall = FalseNegativeShortfall;
             copy.TotalExpensesIncurred = TotalExpensesIncurred;
