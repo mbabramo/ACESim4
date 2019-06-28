@@ -66,12 +66,12 @@ namespace ACESim
                 byte bargainingRoundNum = b; // needed for closure -- otherwise b below will always be max value.
                 colItems.Add(
                     new SimpleReportColumnFilter($"PBargains{b}",
-                        (GameProgress gp) => !Options.IncludeAgreementToBargainDecisions || ((MyGP(gp).PAgreesToBargain?.Count() ?? 0) >= bargainingRoundNum && MyGP(gp).PAgreesToBargain[bargainingRoundNum - 1]), SimpleReportColumnFilterOptions.ProportionOfRow)
+                        (GameProgress gp) => MyGP(gp).PAgreesToBargainInRound(bargainingRoundNum), SimpleReportColumnFilterOptions.ProportionOfRow)
                 );
 
                 colItems.Add(
                     new SimpleReportColumnFilter($"DBargains{b}",
-                        (GameProgress gp) => !Options.IncludeAgreementToBargainDecisions || ((MyGP(gp).DAgreesToBargain?.Count() ?? 0) >= bargainingRoundNum && MyGP(gp).DAgreesToBargain[bargainingRoundNum - 1]), SimpleReportColumnFilterOptions.ProportionOfRow)
+                        (GameProgress gp) => MyGP(gp).DAgreesToBargainInRound(bargainingRoundNum), SimpleReportColumnFilterOptions.ProportionOfRow)
                 );
                 colItems.Add(
                     new SimpleReportColumnVariable($"POffer{b}",
@@ -516,6 +516,7 @@ namespace ACESim
             AddColumnFiltersLiabilityStrength(columnItems);
             AddColumnFiltersDamagesStrength(columnItems);
             AddColumnFiltersPLiabilitySignal(columnItems);
+            AddColumnFiltersDLiabilitySignal(columnItems);
             return new SimpleReportDefinition(
                     reportName,
                     metaFilters,
@@ -543,7 +544,10 @@ namespace ACESim
                 new SimpleReportFilter("All", (GameProgress gp) => true)
             };
             bool reportPlaintiff = (plaintiffMakesOffer && !reportResponseToOffer) || (!plaintiffMakesOffer && reportResponseToOffer);
-            AddRowFilterSignalRegions(reportPlaintiff, rowFilters);
+            Func<GameProgress, bool> additionalCriterion = null;
+            if (Options.BargainingRoundsSimultaneous || !reportResponseToOffer)
+                additionalCriterion = gp => MyGP(gp).BothAgreeToBargainInRound(bargainingRound);
+            AddRowFilterSignalRegions(reportPlaintiff, rowFilters, additionalCriterion, false);
             //AddRowFilterLiabilitySignalRegions(false, rowFilters);
             List<SimpleReportColumnItem> columnItems = new List<SimpleReportColumnItem>()
             {
@@ -592,6 +596,9 @@ namespace ACESim
                         (GameProgress gp) => MyGP(gp).LiabilityStrengthDiscrete == i2));
                 else
                 {
+                    rowFilters.Add(new SimpleReportFilter(
+                           $"LiabStr {i2}",
+                           (GameProgress gp) => MyGP(gp).LiabilityStrengthDiscrete == i2));
                     for (int j = 1; j <= Options.NumDamagesStrengthPoints; j++)
                     {
                         byte j2 = (byte)j;
@@ -626,6 +633,8 @@ namespace ACESim
         }
         private void AddColumnFiltersDamagesStrength(List<SimpleReportColumnItem> columnFilters)
         {
+            if (Options.NumDamagesStrengthPoints <= 1)
+                return;
             for (int i = 1; i <= Options.NumDamagesStrengthPoints; i++)
             {
                 byte j = (byte)(i); // necessary to prevent access to modified closure
@@ -648,7 +657,19 @@ namespace ACESim
             }
         }
 
-        private void AddRowFilterSignalRegions(bool plaintiffSignal, List<SimpleReportFilter> rowFilters)
+        private void AddColumnFiltersDLiabilitySignal(List<SimpleReportColumnItem> columnFilters)
+        {
+            for (int i = 1; i <= Options.NumLiabilitySignals; i++)
+            {
+                byte j = (byte)(i); // necessary to prevent access to modified closure
+                columnFilters.Add(new SimpleReportColumnFilter(
+                    $"DLiabilitySignal {j}",
+                    (GameProgress gp) => MyGP(gp).DLiabilitySignalDiscrete == j,
+                    SimpleReportColumnFilterOptions.ProportionOfRow));
+            }
+        }
+
+        private void AddRowFilterSignalRegions(bool plaintiffSignal, List<SimpleReportFilter> rowFilters, Func<GameProgress, bool> additionalCriterion = null, bool divideByFirstColumn = false)
         {
             Tuple<double, double>[] signalRegions = EquallySpaced.GetRegions(Options.NumLiabilitySignals);
             for (int i = 1; i <= Options.NumLiabilitySignals; i++)
@@ -661,14 +682,14 @@ namespace ACESim
                     if (plaintiffSignal)
                     {
                         rowFilters.Add(new SimpleReportFilter(
-                            $"PLiabilitySignal {i2}",
-                            (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete == i2));
+                             $"PLiabilitySignal {i2}",
+                            (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete == i2 && (additionalCriterion == null || additionalCriterion(gp))).WithDivisionByAllColumnForRowWithSameName(divideByFirstColumn));
                     }
                     else
                     {
                         rowFilters.Add(new SimpleReportFilter(
                             $"DLiabilitySignal {i2}",
-                            (GameProgress gp) => MyGP(gp).DLiabilitySignalDiscrete == i2));
+                            (GameProgress gp) => MyGP(gp).DLiabilitySignalDiscrete == i2 && (additionalCriterion == null || additionalCriterion(gp))).WithDivisionByAllColumnForRowWithSameName(divideByFirstColumn));
                     }
                 }
                 else
@@ -680,13 +701,13 @@ namespace ACESim
                         {
                             rowFilters.Add(new SimpleReportFilter(
                                 $"PSignal Liab {i2} Dam {j2}",
-                                (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete == i2 && MyGP(gp).PDamagesSignalDiscrete == j2));
+                                (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete == i2 && MyGP(gp).PDamagesSignalDiscrete == j2 && (additionalCriterion == null || additionalCriterion(gp))).WithDivisionByAllColumnForRowWithSameName(divideByFirstColumn));
                         }
                         else
                         {
                             rowFilters.Add(new SimpleReportFilter(
                                 $"DSignal Liab {i2} Dam {j2}",
-                                (GameProgress gp) => MyGP(gp).DLiabilitySignalDiscrete == i2 && MyGP(gp).DDamagesSignalDiscrete == j2));
+                                (GameProgress gp) => MyGP(gp).DLiabilitySignalDiscrete == i2 && MyGP(gp).DDamagesSignalDiscrete == j2 && (additionalCriterion == null || additionalCriterion(gp))).WithDivisionByAllColumnForRowWithSameName(divideByFirstColumn));
                         }
                     }
             }
@@ -696,8 +717,7 @@ namespace ACESim
             bool reportResponseToOffer, Tuple<double, double> offerRange)
         {
             if (reportResponseToOffer)
-                return (GameProgress gp) => IsInOfferRange(MyGP(gp).GetOffer(plaintiffMakesOffer, offerNumber),
-                                                offerRange) && MyGP(gp).GetResponse(!plaintiffMakesOffer, offerNumber);
+                return (GameProgress gp) => IsInOfferRange(MyGP(gp).GetOffer(plaintiffMakesOffer, offerNumber), offerRange) && MyGP(gp).GetResponse(!plaintiffMakesOffer, offerNumber);
             else
                 return (GameProgress gp) => IsInOfferRange(MyGP(gp).GetOffer(plaintiffMakesOffer, offerNumber),
                     offerRange);

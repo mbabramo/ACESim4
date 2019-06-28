@@ -8,6 +8,9 @@ namespace ACESim
     [Serializable]
     public class MyGameProgress : GameProgress
     {
+        public MyGameDefinition MyGameDefinition => (MyGameDefinition)GameDefinition;
+        public MyGameOptions MyGameOptions => MyGameDefinition.Options;
+
         public bool DisputeArises;
         public bool IsTrulyLiable;
         public byte LiabilityStrengthDiscrete;
@@ -90,6 +93,10 @@ namespace ACESim
         public bool DDefaultsInRound(byte round) => PDoesntAbandonInRound(round) && DDefaults && BargainingRoundsComplete == round;
         public bool DDoesntDefaultInRound(byte round) => PDoesntAbandonInRound(round) && !(DDefaults && BargainingRoundsComplete == round);
         public bool BothPlayersHaveCompletedRoundWithOfferResponse => POffers?.Count() == DResponses?.Count() && DOffers?.Count() == PResponses?.Count();
+
+        public bool PAgreesToBargainInRound(int bargainingRoundNum) => !MyGameOptions.IncludeAgreementToBargainDecisions || ((PAgreesToBargain?.Count() ?? 0) >= bargainingRoundNum && PAgreesToBargain[bargainingRoundNum - 1]);
+        public bool DAgreesToBargainInRound(int bargainingRoundNum) => !MyGameOptions.IncludeAgreementToBargainDecisions || ((DAgreesToBargain?.Count() ?? 0) >= bargainingRoundNum && DAgreesToBargain[bargainingRoundNum - 1]);
+        public bool BothAgreeToBargainInRound(int bargainingRoundNum) => PAgreesToBargainInRound(bargainingRoundNum) && DAgreesToBargainInRound(bargainingRoundNum);
 
         public void ConcludeMainPortionOfBargainingRound(MyGameDefinition gameDefinition)
         {

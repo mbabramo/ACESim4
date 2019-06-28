@@ -21,6 +21,13 @@ namespace ACESim
             IsInFilter = isInFilter;
         }
 
+        public SimpleReportFilter WithDivisionByAllColumnForRowWithSameName(bool divide = true)
+        {
+            if (divide)
+                DivideByAllColumnForRowWithName = Name;
+            return this;
+        }
+
         internal double? Manipulate(Dictionary<string, double?> firstColumnValues, double? value)
         {
             if (MultiplyByAllColumnForRowWithName != null)
