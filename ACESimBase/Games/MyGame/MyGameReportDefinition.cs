@@ -547,7 +547,7 @@ namespace ACESim
             Func<GameProgress, bool> additionalCriterion = null;
             if (Options.BargainingRoundsSimultaneous || !reportResponseToOffer)
                 additionalCriterion = gp => MyGP(gp).BothAgreeToBargainInRound(bargainingRound);
-            AddRowFilterSignalRegions(reportPlaintiff, rowFilters, additionalCriterion, false);
+            AddRowFilterSignalRegions(reportPlaintiff, rowFilters, additionalCriterion);
             //AddRowFilterLiabilitySignalRegions(false, rowFilters);
             List<SimpleReportColumnItem> columnItems = new List<SimpleReportColumnItem>()
             {
@@ -669,7 +669,7 @@ namespace ACESim
             }
         }
 
-        private void AddRowFilterSignalRegions(bool plaintiffSignal, List<SimpleReportFilter> rowFilters, Func<GameProgress, bool> additionalCriterion = null, bool divideByFirstColumn = false)
+        private void AddRowFilterSignalRegions(bool plaintiffSignal, List<SimpleReportFilter> rowFilters, Func<GameProgress, bool> additionalCriterion = null)
         {
             Tuple<double, double>[] signalRegions = EquallySpaced.GetRegions(Options.NumLiabilitySignals);
             for (int i = 1; i <= Options.NumLiabilitySignals; i++)
@@ -683,13 +683,13 @@ namespace ACESim
                     {
                         rowFilters.Add(new SimpleReportFilter(
                              $"PLiabilitySignal {i2}",
-                            (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete == i2 && (additionalCriterion == null || additionalCriterion(gp))).WithDivisionByAllColumnForRowWithSameName(divideByFirstColumn));
+                            (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete == i2 && (additionalCriterion == null || additionalCriterion(gp))));
                     }
                     else
                     {
                         rowFilters.Add(new SimpleReportFilter(
                             $"DLiabilitySignal {i2}",
-                            (GameProgress gp) => MyGP(gp).DLiabilitySignalDiscrete == i2 && (additionalCriterion == null || additionalCriterion(gp))).WithDivisionByAllColumnForRowWithSameName(divideByFirstColumn));
+                            (GameProgress gp) => MyGP(gp).DLiabilitySignalDiscrete == i2 && (additionalCriterion == null || additionalCriterion(gp))));
                     }
                 }
                 else
@@ -701,13 +701,13 @@ namespace ACESim
                         {
                             rowFilters.Add(new SimpleReportFilter(
                                 $"PSignal Liab {i2} Dam {j2}",
-                                (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete == i2 && MyGP(gp).PDamagesSignalDiscrete == j2 && (additionalCriterion == null || additionalCriterion(gp))).WithDivisionByAllColumnForRowWithSameName(divideByFirstColumn));
+                                (GameProgress gp) => MyGP(gp).PLiabilitySignalDiscrete == i2 && MyGP(gp).PDamagesSignalDiscrete == j2 && (additionalCriterion == null || additionalCriterion(gp))));
                         }
                         else
                         {
                             rowFilters.Add(new SimpleReportFilter(
                                 $"DSignal Liab {i2} Dam {j2}",
-                                (GameProgress gp) => MyGP(gp).DLiabilitySignalDiscrete == i2 && MyGP(gp).DDamagesSignalDiscrete == j2 && (additionalCriterion == null || additionalCriterion(gp))).WithDivisionByAllColumnForRowWithSameName(divideByFirstColumn));
+                                (GameProgress gp) => MyGP(gp).DLiabilitySignalDiscrete == i2 && MyGP(gp).DDamagesSignalDiscrete == j2 && (additionalCriterion == null || additionalCriterion(gp))));
                         }
                     }
             }
