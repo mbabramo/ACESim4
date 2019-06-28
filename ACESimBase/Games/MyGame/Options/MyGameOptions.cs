@@ -195,7 +195,19 @@ namespace ACESim
 
         public override string ToString()
         {
-            return $"NumOffers {NumOffers} IncludeEndpointsForOffers {IncludeEndpointsForOffers}  NumPotentialBargainingRounds {NumPotentialBargainingRounds}  BargainingRoundsSimultaneous {BargainingRoundsSimultaneous} SimultaneousOffersUltimatelyRevealed {SimultaneousOffersUltimatelyRevealed} NumLiabilityStrengthPoints {NumLiabilityStrengthPoints} NumLiabilitySignals {NumLiabilitySignals} PLiabilityNoiseStdev {PLiabilityNoiseStdev} DLiabilityNoiseStdev {DLiabilityNoiseStdev} CourtLiabilityNoiseStdev {CourtLiabilityNoiseStdev} NumDamagesStrengthPoints {NumDamagesStrengthPoints} NumDamagesSignals {NumDamagesSignals} PDamagesNoiseStdev {PDamagesNoiseStdev} DDamagesNoiseStdev {DDamagesNoiseStdev} CourtDamagesNoiseStdev {CourtDamagesNoiseStdev} SkipFileAndAnswerDecisions {SkipFileAndAnswerDecisions} IncludeAgreementToBargainDecisions {IncludeAgreementToBargainDecisions} BargainingRoundRecall {BargainingRoundRecall} DeltaOffersOptions {DeltaOffersOptions} CostsMultiplier {CostsMultiplier} PTrialCosts {PTrialCosts} DTrialCosts {DTrialCosts} PFilingCost {PFilingCost} DAnswerCost {DAnswerCost} PerPartyCostsLeadingUpToBargainingRound {PerPartyCostsLeadingUpToBargainingRound} LoserPays {LoserPays} LoserPaysMultiple {LoserPaysMultiple} LoserPaysAfterAbandonment {LoserPaysAfterAbandonment} PInitialWealth {PInitialWealth} DInitialWealth {DInitialWealth} DamagesMin {DamagesMin} DamagesMax {DamagesMax} RegretAversion {RegretAversion} PUtilityCalculator {PUtilityCalculator} DUtilityCalculator {DUtilityCalculator} WarmStartOptions {WarmStartOptions} for {WarmStartThroughIteration} iterations";
+            return 
+$@"NumOffers {NumOffers} IncludeEndpointsForOffers {IncludeEndpointsForOffers}  
+NumPotentialBargainingRounds {NumPotentialBargainingRounds}  BargainingRoundsSimultaneous {BargainingRoundsSimultaneous} SimultaneousOffersUltimatelyRevealed {SimultaneousOffersUltimatelyRevealed} 
+NumLiabilityStrengthPoints {NumLiabilityStrengthPoints} NumLiabilitySignals {NumLiabilitySignals} PLiabilityNoiseStdev {PLiabilityNoiseStdev} DLiabilityNoiseStdev {DLiabilityNoiseStdev} CourtLiabilityNoiseStdev {CourtLiabilityNoiseStdev} 
+NumDamagesStrengthPoints {NumDamagesStrengthPoints} NumDamagesSignals {NumDamagesSignals} PDamagesNoiseStdev {PDamagesNoiseStdev} DDamagesNoiseStdev {DDamagesNoiseStdev} CourtDamagesNoiseStdev {CourtDamagesNoiseStdev} 
+SkipFileAndAnswerDecisions {SkipFileAndAnswerDecisions} IncludeAgreementToBargainDecisions {IncludeAgreementToBargainDecisions} BargainingRoundRecall {BargainingRoundRecall} DeltaOffersOptions {DeltaOffersOptions} 
+CostsMultiplier {CostsMultiplier} PTrialCosts {PTrialCosts} DTrialCosts {DTrialCosts} PFilingCost {PFilingCost} DAnswerCost {DAnswerCost} PerPartyCostsLeadingUpToBargainingRound {PerPartyCostsLeadingUpToBargainingRound} 
+LoserPays {LoserPays} LoserPaysMultiple {LoserPaysMultiple} LoserPaysAfterAbandonment {LoserPaysAfterAbandonment} 
+PInitialWealth {PInitialWealth} DInitialWealth {DInitialWealth} 
+DamagesMin {DamagesMin} DamagesMax {DamagesMax} 
+RegretAversion {RegretAversion} 
+PUtilityCalculator {PUtilityCalculator} DUtilityCalculator {DUtilityCalculator} 
+WarmStartOptions {WarmStartOptions} for {WarmStartThroughIteration} iterations";
 
         }
     }

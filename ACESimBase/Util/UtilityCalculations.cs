@@ -92,7 +92,7 @@ namespace ACESim.Util
             return $"CARA Alpha={Alpha}";
         }
 
-        public double Alpha; // coefficient for constant absolute risk aversion, should be on the order of magnitude of 1 / laterWealth. As alpha goes up, risk aversion increases.
+        public double Alpha; // coefficient for constant absolute risk aversion, should be on the order of magnitude of 1 / laterWealth. As alpha goes up, risk aversion increases. WIth an initial wealth of 1,000,000 and a CARA of 30 / 1,000,000, one would be indifferent about whether to accept a coin flip that might pay $14,400 or cost $10,000.
             
         public override double GetSubjectiveUtilityForWealthLevel(double laterWealth)
         {
@@ -102,10 +102,6 @@ namespace ACESim.Util
         public override double GetDeltaFromInitialWealthProducingSpecifiedSubjectiveUtility(double subjectiveUtility)
         {
             double result = -Math.Log(0 - subjectiveUtility) / Alpha - InitialWealth;
-            if (double.IsNaN(result) || double.IsInfinity(result))
-            {
-                var DEBUG = 0;
-            }
             return result;
         }
     }
