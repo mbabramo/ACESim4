@@ -855,14 +855,24 @@ namespace ACESim
             var historyPointCopy = historyPoint;
 
             bool includeZeroProbabilityActions = true; // may be relevant for counts
+            bool roundOffPlayerActionsNearZeroOrOne = true;  // DEBUG
 
             await Parallelizer.GoAsync(EvolutionSettings.ParallelOptimization, 1, (byte)(numPossibleActions + 1), async (action) =>
             {
                 byte actionByte = (byte)action;
-                if (includeZeroProbabilityActions || probabilities[action - 1] > 0)
+                double actionProbability = probabilities[action - 1];
+                if (roundOffPlayerActionsNearZeroOrOne && gameState is InformationSetNode)
+                {
+                    if (actionProbability < 0.005)
+                        actionProbability = 0;
+                    else if (actionProbability > 0.995)
+                        actionProbability = 1.0;
+                }
+                if (includeZeroProbabilityActions || actionProbability > 0)
                 {
                     var nextHistoryPoint = historyPointCopy.GetBranch(Navigation, actionByte, GameDefinition.DecisionsExecutionOrder[nextDecisionIndex], nextDecisionIndex); // must use a copy because it's an anonymous method (but this won't be executed much so it isn't so costly). Note that we couldn't use switch-to-branch approach here because all threads are sharing historyPointCopy variable.
-                    await ProcessAllPaths_Recursive(nextHistoryPoint, completedGameProcessor, actionStrategy, probability * probabilities[action - 1], actionByte, nextDecisionIndex);
+                    double nextProbability = probability * actionProbability;
+                    await ProcessAllPaths_Recursive(nextHistoryPoint, completedGameProcessor, actionStrategy, nextProbability, actionByte, nextDecisionIndex);
                 }
             });
         }
