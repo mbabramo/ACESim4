@@ -769,11 +769,19 @@ namespace ACESim
             DetermineBestResponseAction();
             ClearBestResponse();
             updater.UpdateInformationSet(this);
-            UpdateOpponentProbabilities(pruneOpponentStrategyBelow, pruneOpponentStrategyIfDesignatedPrunable, addOpponentTremble);
+            UpdateOpponentProbabilities(iteration, pruneOpponentStrategyBelow, pruneOpponentStrategyIfDesignatedPrunable, addOpponentTremble);
         }
 
-        private void UpdateOpponentProbabilities(double? pruneOpponentStrategyBelow, bool pruneOpponentStrategyIfDesignatedPrunable, bool addOpponentTremble)
+        private void UpdateOpponentProbabilities(int iteration, double? pruneOpponentStrategyBelow, bool pruneOpponentStrategyIfDesignatedPrunable, bool addOpponentTremble)
         {
+            if (iteration <= Decision.WarmStartThroughIteration)
+            {
+                for (int a = 1; a <= NumPossibleActions; a++)
+                {
+                    NodeInformation[currentProbabilityForOpponentDimension, a - 1] = (a == Decision.WarmStartValue) ? 1.0 : 0;
+                }
+                return;
+            }
             // The opponent's probability is the probability to use when traversing an opponent information set during optimization. 
             bool pruning = pruneOpponentStrategyIfDesignatedPrunable || (pruneOpponentStrategyBelow != null && pruneOpponentStrategyBelow != 0);
             double probabilityThreshold = pruning && !pruneOpponentStrategyIfDesignatedPrunable ? (double)pruneOpponentStrategyBelow : SmallestProbabilityRepresented;

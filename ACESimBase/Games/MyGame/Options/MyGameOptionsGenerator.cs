@@ -88,6 +88,8 @@ namespace ACESim
                 PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false, true, false, true, false },
                 IncludeSignalsReport = true,
                 IncludeCourtSuccessReport = false,
+                WarmStartThroughIteration = null,
+                WarmStartOptions = MyGameWarmStartOptions.NoWarmStart
             };
             // options.AdditionalTableOverrides = new List<(Func<Decision, GameProgress, byte>, string)>() { (MyGameActionsGenerator.GamePlaysOutToTrial, "GamePlaysOutToTrial") };
             options.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.PInitialWealth };
@@ -135,8 +137,11 @@ namespace ACESim
             options.NumOffers = 5;  // DEBUG
             options.NumPotentialBargainingRounds = 1; // DEBUG
             options.AllowAbandonAndDefaults = true;
-            options.IncludeAgreementToBargainDecisions = true;
+            options.IncludeAgreementToBargainDecisions = false; // DEBUG
             options.SkipFileAndAnswerDecisions = false;
+
+            options.WarmStartOptions = MyGameWarmStartOptions.BlockSettlement; // DEBUG
+            options.WarmStartThroughIteration = 1000; // DEBUG
 
             options.PFilingCost = options.DAnswerCost = 10_000;
             options.PerPartyCostsLeadingUpToBargainingRound = 0;
@@ -145,7 +150,7 @@ namespace ACESim
             options.IncludeCourtSuccessReport = true;
 
             // DEBUG
-            double level = .3;
+            double level = .2;
             options.PLiabilityNoiseStdev = level;
             options.DLiabilityNoiseStdev = level;
             options.CourtLiabilityNoiseStdev = level;

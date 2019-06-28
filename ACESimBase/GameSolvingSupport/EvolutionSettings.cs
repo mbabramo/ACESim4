@@ -126,7 +126,7 @@ namespace ACESim
 
         }
 
-        public double PerturbationInitial = 0.001; // DEBUG
+        public double PerturbationInitial = 0.001; 
         public double PerturbationFinal = 0.0;
         public double PerturbationCurvature = 3.0;
         public double Perturbation_BasedOnCurve(int iteration, int maxIteration) => MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(PerturbationInitial, PerturbationFinal, PerturbationCurvature, ((double)(iteration - 1)) / (double)maxIteration);

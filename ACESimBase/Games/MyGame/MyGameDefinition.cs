@@ -401,7 +401,9 @@ namespace ACESim
                         GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound,
                     },
                     StoreActionInGameCacheItem = GameHistoryCacheIndex_PAgreesToBargain,
-                    DeferNotificationOfPlayers = true
+                    DeferNotificationOfPlayers = true,
+                    WarmStartThroughIteration = Options.WarmStartThroughIteration,
+                    WarmStartValue = 1
                 };
                 decisions.Add(pAgreeToBargain);
 
@@ -412,7 +414,9 @@ namespace ACESim
                     IncrementGameCacheItem = new byte[] {
                         GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound,
                     },
-                    StoreActionInGameCacheItem = GameHistoryCacheIndex_DAgreesToBargain
+                    StoreActionInGameCacheItem = GameHistoryCacheIndex_DAgreesToBargain,
+                    WarmStartThroughIteration = Options.WarmStartThroughIteration,
+                    WarmStartValue = 1
                 };
                 decisions.Add(dAgreeToBargain);
             }
@@ -473,10 +477,17 @@ namespace ACESim
                         {
                             CustomByte = (byte)(b + 1),
                             IncrementGameCacheItem = new byte[] {
-                        GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound,
+                        GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound
                         },
                             StoreActionInGameCacheItem = GameHistoryCacheIndex_POffer,
                             IsContinuousAction = true,
+                            WarmStartThroughIteration = Options.WarmStartThroughIteration,
+                            WarmStartValue = (byte) (Options.WarmStartOptions switch
+                            {
+                                MyGameWarmStartOptions.FacilitateSettlement => 1,
+                                MyGameWarmStartOptions.BlockSettlement => Options.NumOffers,
+                                _ => 0,
+                            })
                         }; // { AlwaysDoAction = 4});
                     AddOfferDecision(decisions, pOffer);
                     decisions.Add(
@@ -487,6 +498,13 @@ namespace ACESim
                             CustomByte = (byte)(b + 1),
                             IncrementGameCacheItem = new byte[] { GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound },
                             StoreActionInGameCacheItem = GameHistoryCacheIndex_DResponse,
+                            WarmStartThroughIteration = Options.WarmStartThroughIteration,
+                            WarmStartValue = (byte)(Options.WarmStartOptions switch
+                            {
+                                MyGameWarmStartOptions.FacilitateSettlement => 1,
+                                MyGameWarmStartOptions.BlockSettlement => 2,
+                                _ => 0,
+                            })
                         });
                 }
                 else
@@ -503,6 +521,13 @@ namespace ACESim
                             },
                             StoreActionInGameCacheItem = GameHistoryCacheIndex_DOffer,
                             IsContinuousAction = true,
+                            WarmStartThroughIteration = Options.WarmStartThroughIteration,
+                            WarmStartValue = (byte)(Options.WarmStartOptions switch
+                            {
+                                MyGameWarmStartOptions.FacilitateSettlement => Options.NumOffers,
+                                MyGameWarmStartOptions.BlockSettlement => 1,
+                                _ => 0,
+                            })
                         };
                     AddOfferDecision(decisions, dOffer);
                     decisions.Add(
@@ -513,6 +538,13 @@ namespace ACESim
                             CustomByte = (byte)(b + 1),
                             IncrementGameCacheItem = new byte[] { GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound },
                             StoreActionInGameCacheItem = GameHistoryCacheIndex_PResponse,
+                            WarmStartThroughIteration = Options.WarmStartThroughIteration,
+                            WarmStartValue = (byte)(Options.WarmStartOptions switch
+                            {
+                                MyGameWarmStartOptions.FacilitateSettlement => 1,
+                                MyGameWarmStartOptions.BlockSettlement => 2,
+                                _ => 0,
+                            })
                         });
                 }
             }

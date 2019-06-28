@@ -187,6 +187,16 @@ namespace ACESim
         /// </summary>
         public bool Unroll_Parallelize_Identical;
 
+        /// <summary>
+        /// If non-null, then through the specified iteration, the action of this player, when an opponent is being optimized using the opponent action probability in the information set, will be set to the WarmStartValue.
+        /// </summary>
+        public int? WarmStartThroughIteration;
+
+        /// <summary>
+        /// The action to choose when warm starting.
+        /// </summary>
+        public byte WarmStartValue;
+
         public Decision()
         {
 
@@ -211,7 +221,7 @@ namespace ACESim
 
         public Decision Clone()
         {
-            Decision d = new Decision(Name, Abbreviation, IsChance, PlayerNumber, PlayersToInform?.ToArray() ?? new byte[] {}, NumPossibleActions, DecisionByteCode, DecisionTypeCode, RepetitionsAfterFirst, PreevolvedStrategyFilename, InformationSetAbbreviations, AlwaysDoAction, UnevenChanceActions, CriticalNode) { IsAlwaysPlayersLastDecision = IsAlwaysPlayersLastDecision, CanTerminateGame = CanTerminateGame, IncrementGameCacheItem = IncrementGameCacheItem, CustomByte = CustomByte, DeferNotificationOfPlayers = DeferNotificationOfPlayers, StoreActionInGameCacheItem = StoreActionInGameCacheItem, };
+            Decision d = new Decision(Name, Abbreviation, IsChance, PlayerNumber, PlayersToInform?.ToArray() ?? new byte[] { }, NumPossibleActions, DecisionByteCode, DecisionTypeCode, RepetitionsAfterFirst, PreevolvedStrategyFilename, InformationSetAbbreviations, AlwaysDoAction, UnevenChanceActions, CriticalNode) { PlayersToInformOfOccurrenceOnly = PlayersToInformOfOccurrenceOnly?.ToArray(), IsAlwaysPlayersLastDecision = IsAlwaysPlayersLastDecision, CanTerminateGame = CanTerminateGame, IncrementGameCacheItem = IncrementGameCacheItem, CustomByte = CustomByte, DeferNotificationOfPlayers = DeferNotificationOfPlayers, RequiresCustomInformationSetManipulation = RequiresCustomInformationSetManipulation, IsReversible = IsReversible, StoreActionInGameCacheItem = StoreActionInGameCacheItem, DistributedChanceDecision = DistributedChanceDecision, DistributableDistributorChanceInput = DistributableDistributorChanceInput, DistributorChanceDecision = DistributorChanceDecision, DistributorChanceInputDecision = DistributorChanceInputDecision, DistributorChanceInputDecisionMultiplier = DistributorChanceInputDecisionMultiplier, ProvidesPrivateInformationFor = ProvidesPrivateInformationFor, AlwaysTerminatesGame = AlwaysTerminatesGame,  IsChance = IsChance, IsContinuousAction = IsContinuousAction, Unroll_Parallelize = Unroll_Parallelize, Unroll_Parallelize_Identical = Unroll_Parallelize_Identical, WarmStartThroughIteration = WarmStartThroughIteration, WarmStartValue = WarmStartValue };
             return d;
         }
 

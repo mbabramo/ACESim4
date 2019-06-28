@@ -74,6 +74,14 @@ namespace ACESim
         /// </summary>
         public MyGameBargainingRoundRecall BargainingRoundRecall;
         /// <summary>
+        /// This can be used to set the strategy to be used when optimizing the opponent for a certain number of iterations.
+        /// </summary>
+        public MyGameWarmStartOptions WarmStartOptions;
+        /// <summary>
+        /// The number of iterations to warm start for
+        /// </summary>
+        public int? WarmStartThroughIteration;
+        /// <summary>
         /// The number of discrete offers a party can make at any given time. For example, 10 signals might allow offers of 0.05, 0.15, ..., 0.95, but delta offers may allow offers to get gradually more precise.
         /// </summary>
         public byte NumOffers;
@@ -187,7 +195,7 @@ namespace ACESim
 
         public override string ToString()
         {
-            return $"NumOffers {NumOffers} IncludeEndpointsForOffers {IncludeEndpointsForOffers}  NumPotentialBargainingRounds {NumPotentialBargainingRounds}  BargainingRoundsSimultaneous {BargainingRoundsSimultaneous} SimultaneousOffersUltimatelyRevealed {SimultaneousOffersUltimatelyRevealed} NumLiabilityStrengthPoints {NumLiabilityStrengthPoints} NumLiabilitySignals {NumLiabilitySignals} PLiabilityNoiseStdev {PLiabilityNoiseStdev} DLiabilityNoiseStdev {DLiabilityNoiseStdev} CourtLiabilityNoiseStdev {CourtLiabilityNoiseStdev} NumDamagesStrengthPoints {NumDamagesStrengthPoints} NumDamagesSignals {NumDamagesSignals} PDamagesNoiseStdev {PDamagesNoiseStdev} DDamagesNoiseStdev {DDamagesNoiseStdev} CourtDamagesNoiseStdev {CourtDamagesNoiseStdev} SkipFileAndAnswerDecisions {SkipFileAndAnswerDecisions} IncludeAgreementToBargainDecisions {IncludeAgreementToBargainDecisions} BargainingRoundRecall {BargainingRoundRecall} DeltaOffersOptions {DeltaOffersOptions} CostsMultiplier {CostsMultiplier} PTrialCosts {PTrialCosts} DTrialCosts {DTrialCosts} PFilingCost {PFilingCost} DAnswerCost {DAnswerCost} PerPartyCostsLeadingUpToBargainingRound {PerPartyCostsLeadingUpToBargainingRound} LoserPays {LoserPays} LoserPaysMultiple {LoserPaysMultiple} LoserPaysAfterAbandonment {LoserPaysAfterAbandonment} PInitialWealth {PInitialWealth} DInitialWealth {DInitialWealth} DamagesMin {DamagesMin} DamagesMax {DamagesMax} RegretAversion {RegretAversion} PUtilityCalculator {PUtilityCalculator} DUtilityCalculator {DUtilityCalculator}";
+            return $"NumOffers {NumOffers} IncludeEndpointsForOffers {IncludeEndpointsForOffers}  NumPotentialBargainingRounds {NumPotentialBargainingRounds}  BargainingRoundsSimultaneous {BargainingRoundsSimultaneous} SimultaneousOffersUltimatelyRevealed {SimultaneousOffersUltimatelyRevealed} NumLiabilityStrengthPoints {NumLiabilityStrengthPoints} NumLiabilitySignals {NumLiabilitySignals} PLiabilityNoiseStdev {PLiabilityNoiseStdev} DLiabilityNoiseStdev {DLiabilityNoiseStdev} CourtLiabilityNoiseStdev {CourtLiabilityNoiseStdev} NumDamagesStrengthPoints {NumDamagesStrengthPoints} NumDamagesSignals {NumDamagesSignals} PDamagesNoiseStdev {PDamagesNoiseStdev} DDamagesNoiseStdev {DDamagesNoiseStdev} CourtDamagesNoiseStdev {CourtDamagesNoiseStdev} SkipFileAndAnswerDecisions {SkipFileAndAnswerDecisions} IncludeAgreementToBargainDecisions {IncludeAgreementToBargainDecisions} BargainingRoundRecall {BargainingRoundRecall} DeltaOffersOptions {DeltaOffersOptions} CostsMultiplier {CostsMultiplier} PTrialCosts {PTrialCosts} DTrialCosts {DTrialCosts} PFilingCost {PFilingCost} DAnswerCost {DAnswerCost} PerPartyCostsLeadingUpToBargainingRound {PerPartyCostsLeadingUpToBargainingRound} LoserPays {LoserPays} LoserPaysMultiple {LoserPaysMultiple} LoserPaysAfterAbandonment {LoserPaysAfterAbandonment} PInitialWealth {PInitialWealth} DInitialWealth {DInitialWealth} DamagesMin {DamagesMin} DamagesMax {DamagesMax} RegretAversion {RegretAversion} PUtilityCalculator {PUtilityCalculator} DUtilityCalculator {DUtilityCalculator} WarmStartOptions {WarmStartOptions} for {WarmStartThroughIteration} iterations";
 
         }
     }
