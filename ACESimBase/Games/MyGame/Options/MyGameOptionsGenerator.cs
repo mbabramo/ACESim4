@@ -144,7 +144,7 @@ namespace ACESim
             
 
             // DEBUG
-            double level = .1;
+            double level = .5;
             options.PLiabilityNoiseStdev = level;
             options.DLiabilityNoiseStdev = level;
             options.CourtLiabilityNoiseStdev = level;
