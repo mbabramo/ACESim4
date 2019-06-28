@@ -153,7 +153,7 @@ namespace ACESim
             options.IncludeCourtSuccessReport = true;
 
             // DEBUG
-            double level = .03;
+            double level = .05;
             options.PLiabilityNoiseStdev = level;
             options.DLiabilityNoiseStdev = level;
             options.CourtLiabilityNoiseStdev = level;
