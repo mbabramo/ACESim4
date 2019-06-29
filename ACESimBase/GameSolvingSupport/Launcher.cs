@@ -28,7 +28,7 @@ namespace ACESim
         public const int SummaryTableRandomPathsIterations = 25_000;
         public const int ProbingIterations = 20_000_000;
 
-        public const bool UseRegretAndStrategyDiscounting = true;
+        public const bool UseRegretAndStrategyDiscounting = false; // DEBUG
 
         public const int StartGameNumber = 1;
         public bool SingleGameMode = true;
