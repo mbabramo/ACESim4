@@ -502,10 +502,12 @@ namespace ACESim
                 {
                     Parallel.ForEach(InformationSets, informationSet => informationSet.CreateBackup());
                     BestExploitability = exploitability;
+                    LastBestResponseImprovement = BestResponseImprovement.ToArray();
                 }
                 if (iteration == EvolutionSettings.TotalVanillaCFRIterations)
                 {
                     Parallel.ForEach(InformationSets, informationSet => informationSet.RestoreBackup());
+                    BestResponseImprovement = LastBestResponseImprovement.ToArray();
                 }
             }
         }
