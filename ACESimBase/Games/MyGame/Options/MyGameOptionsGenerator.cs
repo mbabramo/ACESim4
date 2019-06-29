@@ -132,9 +132,9 @@ namespace ACESim
             var options = BaseOptions();
             options.NumDamagesStrengthPoints = 5; // DEBUG -- all below were 4 (except offers was 5)
             options.NumDamagesSignals = 5;
-            options.NumLiabilityStrengthPoints =5;
+            options.NumLiabilityStrengthPoints = 5;
             options.NumLiabilitySignals = 5;
-            options.NumOffers = 10;  // DEBUG
+            options.NumOffers = 15;  // DEBUG
             options.NumPotentialBargainingRounds = 1;
             options.AllowAbandonAndDefaults = true;
             options.IncludeAgreementToBargainDecisions = true; 
