@@ -107,10 +107,12 @@ namespace ACESim
 
             options.NumDamagesStrengthPoints = 1;
             options.NumDamagesSignals = 1;
+            options.DamagesMax = 100_000;
+
             options.NumLiabilityStrengthPoints = 4;
             options.NumLiabilitySignals = 4;
             options.NumOffers = 4;
-            options.NumPotentialBargainingRounds = 2;
+            options.NumPotentialBargainingRounds = 3;
 
             options.SkipFileAndAnswerDecisions = true; 
             options.AllowAbandonAndDefaults = false; 
