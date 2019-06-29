@@ -199,10 +199,10 @@ namespace ACESim
             var options = BaseOptions();
             options.NumDamagesStrengthPoints = 1;
             options.NumDamagesSignals = 1;
-            options.NumLiabilityStrengthPoints = 3;
-            options.NumLiabilitySignals = 3;
-            options.NumOffers = 3;
-            options.NumPotentialBargainingRounds = 2;
+            options.NumLiabilityStrengthPoints = 4;
+            options.NumLiabilitySignals = 4;
+            options.NumOffers = 4;
+            options.NumPotentialBargainingRounds = 3;
             options.AllowAbandonAndDefaults = false;
             options.SkipFileAndAnswerDecisions = false;
 

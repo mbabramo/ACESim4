@@ -16,7 +16,7 @@ namespace ACESim
 
         #region Settings
 
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.MultiplicativeWeights; // DEBUG
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.MultiplicativeWeights;
 
         public const int VanillaIterations = 1_000;
         public const int VanillaReportEveryNIterations = VanillaIterations;
