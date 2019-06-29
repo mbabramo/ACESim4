@@ -20,7 +20,7 @@ namespace ACESim
 
         public const int VanillaIterations = 30_000; // DEBUG
         public const int VanillaReportEveryNIterations = VanillaIterations;
-        public const int VanillaBestResponseEveryMIterations = 30_000; // DEBUG
+        public const int VanillaBestResponseEveryMIterations = 10_000;
         public const int MiniReportEveryPIterations = EffectivelyNever; 
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever; 
         public const int RecordPastValuesEveryNIterations = EffectivelyNever; // used for correlated equilibrium calculations
@@ -28,7 +28,7 @@ namespace ACESim
         public const int SummaryTableRandomPathsIterations = 2_000;
         public const int ProbingIterations = 20_000_000;
 
-        public const bool UseRegretAndStrategyDiscounting = true; // DEBUG
+        public const bool UseRegretAndStrategyDiscounting = false;
 
         public const int StartGameNumber = 1;
         public bool SingleGameMode = true;

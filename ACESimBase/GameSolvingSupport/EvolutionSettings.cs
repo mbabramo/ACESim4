@@ -51,7 +51,7 @@ namespace ACESim
 
         // For Vanilla algorithm:
         // From Solving Imperfect Information Games with Discounted Regret Minimization -- optimal values (for situations in which pruning may be used)
-        public bool UseDiscounting = false; 
+        public bool UseDiscounting = false; // Note: This might be helpful sometimes for multiplicative weights
         public bool DiscountRegrets = false; // if true, Discounting_Alpha and Discounting_Beta are used -- note never currently used in MultiplicativeWeightsVanilla
         public const double Discounting_Alpha = 1.5; // multiply accumulated positive regrets by t^alpha / (t^alpha + 1)
         public const double Discounting_Beta = 0.5; // multiply accumulated negative regrets by t^alpha / (t^alpha + 1)
@@ -131,7 +131,7 @@ namespace ACESim
         public double PerturbationCurvature = 1.0;
         public double Perturbation_BasedOnCurve(int iteration, int maxIteration) => MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(PerturbationInitial, PerturbationFinal, PerturbationCurvature, ((double)(iteration - 1)) / (double)maxIteration);
 
-        public bool UseCFRPlusInRegretMatching = false; // if true, then cumulative regrets never fall below zero
+        public bool UseCFRPlusInRegretMatching = true; // DEBUG; // if true, then cumulative regrets never fall below zero
 
         public bool RecordPastValues = true; 
         public int RecordPastValuesEveryN = 10;

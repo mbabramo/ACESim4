@@ -48,25 +48,31 @@ namespace ACESim
                 return;
             }
 
-            bool alwaysNormalizeCumulativeStrategyIncrements = false;
-            if (alwaysNormalizeCumulativeStrategyIncrements || EvolutionSettings.DiscountingTarget_ConstantAfterProportionOfIterations == 1.0)
-                Parallel.For(0, numInformationSets, n => InformationSets[n].PostIterationUpdates(iteration, PostIterationUpdater, AverageStrategyAdjustment, true, false, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble));
-            else
+            bool normalizeCumulativeStrategyIncrements = false;
+            bool resetPreviousCumulativeStrategyIncrements = false;
+
+            if (EvolutionSettings.UseDiscounting)
             {
+
                 int maxIterationToDiscount = EvolutionSettings.StopDiscountingAtIteration;
-
-                if (iteration < maxIterationToDiscount)
+                if (iteration < maxIterationToDiscount || EvolutionSettings.DiscountingTarget_ConstantAfterProportionOfIterations == 1.0)
                 {
-                    //foreach (var infoSet in InformationSets)
-                    //    infoSet.PostIterationUpdates(iteration, PostIterationUpdater, AverageStrategyAdjustment, true, false, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble);
-
-                    Parallel.For(0, numInformationSets, n => InformationSets[n].PostIterationUpdates(iteration, PostIterationUpdater, AverageStrategyAdjustment, true, false, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble));
+                    normalizeCumulativeStrategyIncrements = true;
+                    resetPreviousCumulativeStrategyIncrements = false;
                 }
                 else if (iteration == maxIterationToDiscount)
-                    Parallel.For(0, numInformationSets, n => InformationSets[n].PostIterationUpdates(iteration, PostIterationUpdater, 1.0, false, true, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble));
+                {
+                    normalizeCumulativeStrategyIncrements = false;
+                    resetPreviousCumulativeStrategyIncrements = true;
+                }
                 else
-                    Parallel.For(0, numInformationSets, n => InformationSets[n].PostIterationUpdates(iteration, PostIterationUpdater, 1.0, false, false, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble));
+                {
+                    normalizeCumulativeStrategyIncrements = false;
+                    resetPreviousCumulativeStrategyIncrements = false;
+                }
             }
+
+            Parallel.For(0, numInformationSets, n => InformationSets[n].PostIterationUpdates(iteration, PostIterationUpdater, 1.0, normalizeCumulativeStrategyIncrements, resetPreviousCumulativeStrategyIncrements, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble));
         }
 
         #endregion
