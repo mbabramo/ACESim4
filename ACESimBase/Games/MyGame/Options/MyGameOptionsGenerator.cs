@@ -111,7 +111,7 @@ namespace ACESim
 
             options.NumLiabilityStrengthPoints = 4;
             options.NumLiabilitySignals = 4;
-            options.NumOffers = 4;
+            options.NumOffers = 5;
             options.NumPotentialBargainingRounds = 3;
 
             double level = 0.2;
