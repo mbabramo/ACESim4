@@ -130,12 +130,12 @@ namespace ACESim
         public static MyGameOptions Custom2()
         {
             var options = BaseOptions();
-            options.NumDamagesStrengthPoints = 4;
-            options.NumDamagesSignals = 4;
-            options.NumLiabilityStrengthPoints = 4;
-            options.NumLiabilitySignals = 4;
-            options.NumOffers = 5;  // DEBUG
-            options.NumPotentialBargainingRounds = 1; // DEBUG
+            options.NumDamagesStrengthPoints = 5; // DEBUG -- all below were 4 (except offers was 5)
+            options.NumDamagesSignals = 5;
+            options.NumLiabilityStrengthPoints =5;
+            options.NumLiabilitySignals = 5;
+            options.NumOffers = 10;  // DEBUG
+            options.NumPotentialBargainingRounds = 1;
             options.AllowAbandonAndDefaults = true;
             options.IncludeAgreementToBargainDecisions = true; 
             options.SkipFileAndAnswerDecisions = false;
@@ -165,10 +165,8 @@ namespace ACESim
             //options.LoserPaysAfterAbandonment = true;
             //options.LoserPaysMultiple = 1.0; 
 
-            options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth, Alpha = 30 * 0.000001 };
-            options.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth, Alpha = 30 * 0.000001 };
-            //options.PUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth };
-            //options.DUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth };  
+            //options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth, Alpha = 30 * 0.000001 };
+            //options.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth, Alpha = 30 * 0.000001 };
 
             return options;
         }
