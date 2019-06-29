@@ -51,13 +51,13 @@ namespace ACESim
 
         // For Vanilla algorithm:
         // From Solving Imperfect Information Games with Discounted Regret Minimization -- optimal values (for situations in which pruning may be used)
-        public bool UseDiscounting = true; 
+        public bool UseDiscounting = false; 
         public bool DiscountRegrets = false; // if true, Discounting_Alpha and Discounting_Beta are used -- note never currently used in MultiplicativeWeightsVanilla
         public const double Discounting_Alpha = 1.5; // multiply accumulated positive regrets by t^alpha / (t^alpha + 1)
         public const double Discounting_Beta = 0.5; // multiply accumulated negative regrets by t^alpha / (t^alpha + 1)
         public double Discounting_Gamma = 200;  // multiply contributions to average strategy by (t / t + 1)^gamma, which approaches 1 as t -> inf. Higher gamma means more discounting. If gamma equals 20, then we still get to 80% of the maximum in a mere 100 iterations. In other words, very early iterations are heavily discounted, but after a while, there is very little discounting.
 
-        public double DiscountingTarget_ConstantAfterProportionOfIterations = 1.0; // DEBUG -- this seems to actually reset everything. CHECK 0.1; // set to 1.0 to make it so that discounting occurs all the time (albeit at lower rates pursuant to Gamma)
+        public double DiscountingTarget_ConstantAfterProportionOfIterations = 0.10; // set to 1.0 to make it so that discounting occurs all the time (albeit at lower rates pursuant to Gamma)
 
         public double Discounting_Gamma_ForIteration(int iteration)
         {
@@ -128,7 +128,7 @@ namespace ACESim
 
         public double PerturbationInitial = 0.001; 
         public double PerturbationFinal = 0.0;
-        public double PerturbationCurvature = 3.0;
+        public double PerturbationCurvature = 1.0;
         public double Perturbation_BasedOnCurve(int iteration, int maxIteration) => MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(PerturbationInitial, PerturbationFinal, PerturbationCurvature, ((double)(iteration - 1)) / (double)maxIteration);
 
         public bool UseCFRPlusInRegretMatching = false; // if true, then cumulative regrets never fall below zero
