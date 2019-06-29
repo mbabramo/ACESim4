@@ -114,6 +114,11 @@ namespace ACESim
             options.NumOffers = 4;
             options.NumPotentialBargainingRounds = 3;
 
+            double level = 0.2;
+            options.PLiabilityNoiseStdev = level;
+            options.DLiabilityNoiseStdev = level;
+            options.CourtLiabilityNoiseStdev = level;
+
             options.SkipFileAndAnswerDecisions = true; 
             options.AllowAbandonAndDefaults = false; 
             options.SimultaneousOffersUltimatelyRevealed = true;
