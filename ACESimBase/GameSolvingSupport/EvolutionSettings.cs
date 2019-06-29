@@ -57,7 +57,7 @@ namespace ACESim
         public const double Discounting_Beta = 0.5; // multiply accumulated negative regrets by t^alpha / (t^alpha + 1)
         public double Discounting_Gamma = 200;  // multiply contributions to average strategy by (t / t + 1)^gamma, which approaches 1 as t -> inf. Higher gamma means more discounting. If gamma equals 20, then we still get to 80% of the maximum in a mere 100 iterations. In other words, very early iterations are heavily discounted, but after a while, there is very little discounting.
 
-        public double DiscountingTarget_ConstantAfterProportionOfIterations = 0.1; // set to 1.0 to make it so that discounting occurs all the time (albeit at lower rates pursuant to Gamma)
+        public double DiscountingTarget_ConstantAfterProportionOfIterations = 1.0; // DEBUG 0.1; // set to 1.0 to make it so that discounting occurs all the time (albeit at lower rates pursuant to Gamma)
 
         public double Discounting_Gamma_ForIteration(int iteration)
         {

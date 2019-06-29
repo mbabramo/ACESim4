@@ -21,7 +21,7 @@ namespace ACESim
             PerfectInfo
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Custom;
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Faster;
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
@@ -197,8 +197,8 @@ namespace ACESim
         public static MyGameOptions Faster()
         {
             var options = BaseOptions();
-            options.NumDamagesStrengthPoints = 3;
-            options.NumDamagesSignals = 3;
+            options.NumDamagesStrengthPoints = 1;
+            options.NumDamagesSignals = 1;
             options.NumLiabilityStrengthPoints = 3;
             options.NumLiabilitySignals = 3;
             options.NumOffers = 3;
