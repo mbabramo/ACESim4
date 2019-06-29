@@ -131,7 +131,7 @@ namespace ACESim
         public double PerturbationCurvature = 1.0;
         public double Perturbation_BasedOnCurve(int iteration, int maxIteration) => MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(PerturbationInitial, PerturbationFinal, PerturbationCurvature, ((double)(iteration - 1)) / (double)maxIteration);
 
-        public bool UseCFRPlusInRegretMatching = true; // DEBUG; // if true, then cumulative regrets never fall below zero
+        public bool UseCFRPlusInRegretMatching = true; // if true, then cumulative regrets never fall below zero
 
         public bool RecordPastValues = true; 
         public int RecordPastValuesEveryN = 10;
