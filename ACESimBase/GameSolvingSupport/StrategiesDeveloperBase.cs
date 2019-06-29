@@ -105,6 +105,9 @@ namespace ACESim
         public bool BestBecomesResult = true;
         public double BestExploitability = int.MaxValue; // initialize to worst possible score (i.e., highest possible exploitability)
 
+        public double[] MinScore, MaxScore, ScoreRange;
+        public bool ScoreRangeExists => (ScoreRange == null || ScoreRange.Any(x => x == 0));
+
         public ActionStrategies _ActionStrategy;
         public ActionStrategies ActionStrategy
         {
@@ -203,12 +206,22 @@ namespace ACESim
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
             TabbedText.WriteLine("Calculating min-max...");
-            foreach (bool isMin in new bool[] { true, false })
+            foreach (bool isMax in new bool[] { false, true })
                 // foreach (byte? playerIndex in Enumerable.Range(0, NumNonChancePlayers).Select(x => (byte?) x))
-                foreach (byte? playerIndex in new byte?[] { null }) // uncomment to avoid distributing distributable distributor inputs
+                foreach (byte? playerIndex in new byte?[] { null }) // uncomment above to avoid distributing distributable distributor inputs
                 {
-                    CalculateMinMax c = new CalculateMinMax(isMin, NumNonChancePlayers, playerIndex);
-                    TreeWalk_Tree(c);
+                    CalculateMinMax c = new CalculateMinMax(isMax, NumNonChancePlayers, playerIndex);
+                    double[] result = TreeWalk_Tree(c);
+                    if (playerIndex == null)
+                    {
+                        if (!isMax)
+                            MinScore = result;
+                        else
+                        {
+                            MaxScore = result;
+                            ScoreRange = MinScore.Zip(MaxScore, (min, max) => max - min).ToArray();
+                        }
+                    }
                 }
             TabbedText.WriteLine($"... complete {stopwatch.ElapsedMilliseconds} milliseconds");
         }
@@ -659,6 +672,7 @@ namespace ACESim
         public double[] AverageStrategyUtilities;
         public double[] BestResponseImprovement;
         public double[] LastBestResponseImprovement;
+        public double[] BestResponseImprovementAdj => ScoreRangeExists ? BestResponseImprovement : BestResponseImprovement.Zip(ScoreRange, (bri, sr) => bri / sr).ToArray();
 
         long BestResponseCalculationTime;
 
@@ -774,7 +788,7 @@ namespace ACESim
                 actionStrategy = ActionStrategies.AverageStrategy; // best response against average strategy is same as against correlated equilibrium
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
-                TabbedText.WriteLine($"U(P{playerBeingOptimized}) {ActionStrategyLastReport}: {AverageStrategyUtilities[playerBeingOptimized]} Best response vs. {BestResponseOpponentString} {BestResponseUtilities[playerBeingOptimized]} Best response improvement: {BestResponseImprovement?[playerBeingOptimized]}");
+                TabbedText.WriteLine($"U(P{playerBeingOptimized}) {ActionStrategyLastReport}: {AverageStrategyUtilities[playerBeingOptimized]} Best response vs. {BestResponseOpponentString} {BestResponseUtilities[playerBeingOptimized]} Best response improvement: {BestResponseImprovementAdj?[playerBeingOptimized]}");
             }
             if (!averageStrategyUtilitiesRecorded)
                 AverageStrategyUtilities = null; // we may be using approximations, so set to null to avoid confusion
