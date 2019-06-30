@@ -165,8 +165,8 @@ namespace ACESim
             //options.LoserPaysAfterAbandonment = true;
             //options.LoserPaysMultiple = 1.0; 
 
-            //options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth, Alpha = 30 * 0.000001 };
-            //options.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth, Alpha = 30 * 0.000001 };
+            options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth, Alpha = 10 * 0.000001 };
+            options.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth, Alpha = 10 * 0.000001 };
 
             return options;
         }
