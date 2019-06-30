@@ -81,6 +81,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 InformationSets = informationSets;
                 InformationSetsCount = informationSets.Count();
                 CalculateBestResponseAction = calculateBestResponseAction;
+                PureStrategies = new byte[InformationSetsCount];
                 MemberID++;
                 Randomize();
             }
@@ -245,7 +246,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 for (int i = 0; i < popSize; i++)
                 {
                     double sum = 0;
-                    for (int j = 0; i < popSize; i++)
+                    for (int j = 0; j < popSize; j++)
                         sum += Similarity[i, j];
                     Members[i].DiversityFitness = sum;
                     Members[i].OverallFitness = Members[i].GameFitness * (1.0 - weightOnDiversity) + Members[i].DiversityFitness * weightOnDiversity;

@@ -25,7 +25,7 @@ namespace ACESim
         public int NextInt(int exclusiveMax)
         {
             double v = NextDouble();
-            double q = v / (double)exclusiveMax;
+            double q = v * (double)exclusiveMax;
             int r = (int)q;
             return r;
         }
