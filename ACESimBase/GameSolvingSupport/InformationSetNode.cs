@@ -1026,11 +1026,14 @@ namespace ACESim
 
         #region General manipulation
 
-        public void SetToPureStrategy(byte action)
+        public void SetToPureStrategy(byte action, bool setAverageStrategy)
         {
             for (byte a = 1; a <= NumPossibleActions; a++)
             {
-                NodeInformation[currentProbabilityDimension, a - 1] = (action == a) ? 1.0 : 0;
+                double v = (action == a) ? 1.0 : 0;
+                NodeInformation[currentProbabilityDimension, a - 1] = v;
+                if (setAverageStrategy)
+                    NodeInformation[averageStrategyProbabilityDimension, a - 1] = v;
             }
         }
 

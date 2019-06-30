@@ -31,7 +31,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             return BestResponseImprovement.Sum();
         }
 
-        public override Task<string> RunAlgorithm(string reportName)
+        public override async Task<string> RunAlgorithm(string reportName)
         {
             string reportString = null;
             Pop = new Population(InformationSets, CalculateBestResponseAndGetFitness);
@@ -39,24 +39,25 @@ namespace ACESimBase.GameSolvingAlgorithms
 
             for (int iteration = 1; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
-                reportString = GeneticIteration(iteration, EvolutionSettings.TotalVanillaCFRIterations);
+                reportString = await GeneticIteration(iteration, EvolutionSettings.TotalVanillaCFRIterations);
             }
 
-            return Task.FromResult(reportString);
+            return reportString;
         }
 
 
 
-        private string GeneticIteration(int iteration, int maxIteration)
+        private async Task<string> GeneticIteration(int iteration, int maxIteration)
         {
             Pop.Generation(iteration, maxIteration);
 
             string reportString = $"{iteration}: {Pop.Members[0].GameFitness}";
             TabbedText.WriteLine(reportString);
 
-            //reportString = await GenerateReports(iteration,
-            //    () =>
-            //        $"Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
+            reportString = await GenerateReports(iteration,
+                () =>
+                    $"Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
+
             return reportString;
         }
 
@@ -82,7 +83,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 InformationSetsCount = informationSets.Count();
                 CalculateBestResponseAction = calculateBestResponseAction;
                 PureStrategies = new byte[InformationSetsCount];
-                MemberID++;
+                MemberID = memberID;
                 Randomize();
             }
 
@@ -92,7 +93,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 for (int i = 0; i < InformationSetsCount; i++)
                 {
                     InformationSetNode informationSet = InformationSets[i];
-                    byte action = (byte) (r.NextInt(informationSet.NumPossibleActions + 1));
+                    byte action = (byte) (r.NextInt(informationSet.NumPossibleActions) + 1);
                     PureStrategies[i] = action;
                 }
             }
@@ -186,7 +187,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             {
                 for (int i = 0; i < InformationSetsCount; i++)
                 {
-                    InformationSets[i].SetToPureStrategy(PureStrategies[i]);
+                    InformationSets[i].SetToPureStrategy(PureStrategies[i], true /* best response relies on average strategy */);
                 }
             }
         }
@@ -230,8 +231,8 @@ namespace ACESimBase.GameSolvingAlgorithms
             public void CalculateGameFitness(bool all)
             {
                 for (int i = 0; i < popSize; i++)
-                    if (all || Members[i].OverallRank >= numToKeep)
-                        Members[i].MeasureGameFitness(); // if less than, it hasn't changed
+                    if (all || Members[i].OverallRank >= numToKeep) // if less than, it hasn't changed
+                        Members[i].MeasureGameFitness(); 
             }
 
             public void Rank(double weightOnDiversity)
@@ -255,6 +256,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 var ranked = Enumerable.Range(0, popSize).OrderBy(x => Members[x].OverallFitness).ToArray();
                 for (int i = 0; i < popSize; i++)
                     Members[ranked[i]].OverallRank = i;
+                Members = Members.OrderBy(x => x.OverallRank).ToArray();
             }
 
             private ConsistentRandomSequenceProducer GetRandomProducer(int iteration)
@@ -262,7 +264,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 long seed = 0;
                 unchecked
                 {
-                    seed = 123523523 * iteration;
+                    seed = 9845623 * iteration;
                 }
                 ConsistentRandomSequenceProducer r = new ConsistentRandomSequenceProducer(seed);
                 return r;

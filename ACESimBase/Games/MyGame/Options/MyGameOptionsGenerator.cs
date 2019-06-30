@@ -136,8 +136,8 @@ namespace ACESim
             options.NumLiabilitySignals = 5;
             options.NumOffers = 5;  // DEBUG
             options.NumPotentialBargainingRounds = 1;
-            options.AllowAbandonAndDefaults = true;
-            options.IncludeAgreementToBargainDecisions = true; 
+            options.AllowAbandonAndDefaults = false; // DEBUG
+            options.IncludeAgreementToBargainDecisions = false; // DEBUG
             options.SkipFileAndAnswerDecisions = false;
 
             //options.WarmStartOptions = MyGameWarmStartOptions.FacilitateSettlementByMakingOpponentStingy; // DEBUG

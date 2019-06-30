@@ -19,14 +19,14 @@ namespace ACESim
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.GeneticAlgorithm; // DEBUG
 
-        public const int VanillaIterations = 1_000;
+        public const int VanillaIterations = 1000;
         public const int VanillaReportEveryNIterations = VanillaIterations;
         public const int VanillaBestResponseEveryMIterations = 1000; // DEBUG
         public const int MiniReportEveryPIterations = EffectivelyNever; 
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever; 
         public const int RecordPastValuesEveryNIterations = EffectivelyNever; // used for correlated equilibrium calculations
         public const bool UseRandomPathsForReporting = true; 
-        public const int SummaryTableRandomPathsIterations = 20_000;
+        public const int SummaryTableRandomPathsIterations = 1_000;
         public const int ProbingIterations = 20_000_000;
 
         public const bool UseRegretAndStrategyDiscounting = false;
