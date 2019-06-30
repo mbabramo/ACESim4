@@ -134,7 +134,7 @@ namespace ACESim
             options.NumDamagesSignals = 5;
             options.NumLiabilityStrengthPoints = 5;
             options.NumLiabilitySignals = 5;
-            options.NumOffers = 15;  // DEBUG
+            options.NumOffers = 5;  // DEBUG
             options.NumPotentialBargainingRounds = 1;
             options.AllowAbandonAndDefaults = true;
             options.IncludeAgreementToBargainDecisions = true; 
