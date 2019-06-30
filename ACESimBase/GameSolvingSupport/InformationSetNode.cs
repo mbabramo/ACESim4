@@ -1026,6 +1026,24 @@ namespace ACESim
 
         #region General manipulation
 
+        public void SetToPureStrategy(byte action)
+        {
+            for (byte a = 1; a <= NumPossibleActions; a++)
+            {
+                NodeInformation[currentProbabilityDimension, a - 1] = (action == a) ? 1.0 : 0;
+            }
+        }
+
+        public byte GetPureStrategy()
+        {
+            for (byte a = 1; a <= NumPossibleActions; a++)
+            {
+                if (NodeInformation[currentProbabilityDimension, a - 1] == 1.0)
+                    return a;
+            }
+            throw new Exception("No pure strategy found.");
+        }
+
         public void CreateBackup()
         {
             BackupNodeInformation = (double[,])NodeInformation.Clone();

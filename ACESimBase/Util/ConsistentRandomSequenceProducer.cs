@@ -22,6 +22,14 @@ namespace ACESim
             return v;
         }
 
+        public int NextInt(int exclusiveMax)
+        {
+            double v = NextDouble();
+            double q = v / (double)exclusiveMax;
+            int r = (int)q;
+            return r;
+        }
+
         bool AlwaysUseNewRandomObject = true;
 
         public double GetDoubleAtIndex(int index)

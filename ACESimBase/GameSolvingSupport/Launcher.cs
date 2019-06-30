@@ -1,5 +1,6 @@
 ﻿using ACESim;
 using ACESim.Util;
+using ACESimBase.GameSolvingAlgorithms;
 using ACESimBase.GameSolvingSupport;
 using System;
 using System.Collections.Generic;
@@ -122,6 +123,8 @@ namespace ACESim
                     return new FictitiousSelfPlay(existingStrategyState, evolutionSettings, gameDefinition);
                 case GameApproximationAlgorithm.GreedyFictitiousSelfPlay:
                     return new GreedyFictitiousSelfPlay(existingStrategyState, evolutionSettings, gameDefinition);
+                case GameApproximationAlgorithm.GeneticAlgorithm:
+                    return new GeneticAlgorithm(existingStrategyState, evolutionSettings, gameDefinition);
                 default:
                     throw new NotImplementedException();
             }

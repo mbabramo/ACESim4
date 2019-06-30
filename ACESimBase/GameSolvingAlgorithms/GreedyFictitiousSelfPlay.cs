@@ -189,7 +189,7 @@ namespace ACESim
 
             for (int iteration = 1; iteration <= 5000000; iteration++)
             {
-                reportString = GeneticAlgorithmIteration(iteration);
+                reportString = GreedyIteration(iteration);
             }
 
             return Task.FromResult(reportString);
@@ -197,7 +197,7 @@ namespace ACESim
 
         bool LastWasImprovement = true;
 
-        private string GeneticAlgorithmIteration(int iteration)
+        private string GreedyIteration(int iteration)
         {
             StrategiesDeveloperStopwatch.Start();
 

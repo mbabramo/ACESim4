@@ -11,5 +11,6 @@ namespace ACESim
         PureStrategyFinder,
         FictitiousSelfPlay,
         GreedyFictitiousSelfPlay,
+        GeneticAlgorithm,
     }
 }
