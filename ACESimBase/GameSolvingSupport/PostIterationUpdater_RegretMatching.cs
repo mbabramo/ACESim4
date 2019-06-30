@@ -18,10 +18,6 @@ namespace ACESimBase.GameSolvingSupport
 
         public override void UpdateInformationSet(InformationSetNode node)
         {
-            if (node.InformationSetNodeNumber == 65)
-            {
-                var DEBUG = 0;
-            }
             // normalize regrets to costs between 0 and 1. the key assumption is that each iteration takes into account ALL possible outcomes (as in a vanilla hedge CFR algorithm)
             double sumPositiveCumRegrets = 0;
             double[,] nodeInformation = node.NodeInformation;
