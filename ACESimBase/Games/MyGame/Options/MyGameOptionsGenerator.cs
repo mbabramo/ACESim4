@@ -148,7 +148,7 @@ namespace ACESim
 
             options.PFilingCost = options.DAnswerCost = 10_000;
             options.PerPartyCostsLeadingUpToBargainingRound = 0;
-            options.PTrialCosts = options.DTrialCosts = 25_000;
+            options.PTrialCosts = options.DTrialCosts = 75_000; // DEBUG -- prev 25000
 
             options.IncludeCourtSuccessReport = true;
 
