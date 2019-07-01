@@ -11,6 +11,8 @@ namespace ACESim
     public class MyGameLauncher : Launcher
     {
 
+        // We can use this to allow for multiple options sets. These can then run in parallel. But note that we can also have multiple runs with a single option set using different settings by using GameDefinition scenarios; this is useful when there is a long initialization and it makes sense to complete one set before starting the next set.
+
         private bool HigherRiskAversion = false;
         private bool PRiskAverse = false;
         public bool DRiskAverse = false;

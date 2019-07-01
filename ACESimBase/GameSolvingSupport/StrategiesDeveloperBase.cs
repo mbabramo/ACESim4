@@ -56,13 +56,30 @@ namespace ACESim
 
         public abstract Task<string> RunAlgorithm(string reportName);
 
+        public virtual void ReinitializeForLaterScenario(int scenario)
+        {
+            GameDefinition.SetToScenario(scenario);
+            if (scenario > 0)
+            {
+                foreach (var node in FinalUtilitiesNodes)
+                    node.CurrentScenario = scenario;
+            }
+        }
+
         public async Task<string> DevelopStrategies(string reportName)
         {
             await Initialize();
-            string report = await RunAlgorithm(reportName);
-            if (EvolutionSettings.SerializeResults)
-                StrategySerialization.SerializeStrategies(Strategies.ToArray(), "serstat.sst");
-            return report;
+            StringBuilder multipleScenariosReport = new StringBuilder();
+            for (int s = 0; s < GameDefinition.NumScenarios; s++)
+            {
+                if (s > 0)
+                    ReinitializeForLaterScenario(s);
+                string report = await RunAlgorithm(reportName);
+                if (EvolutionSettings.SerializeResults && s == 0)
+                    StrategySerialization.SerializeStrategies(Strategies.ToArray(), "serstat.sst");
+                multipleScenariosReport.Append(report);
+            }
+            return multipleScenariosReport.ToString();
         }
 
         public abstract IStrategiesDeveloper DeepCopy();

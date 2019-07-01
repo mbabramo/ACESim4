@@ -723,6 +723,12 @@ namespace ACESim
                 Unroll_CreateUnrolledCommandList();
         }
 
+        public override void ReinitializeForLaterScenario(int scenario)
+        {
+            base.ReinitializeForLaterScenario(scenario);
+            InitializeInformationSets();
+        }
+
         public override async Task<string> RunAlgorithm(string reportName)
         {
             if (EvolutionSettings.UnrollAlgorithm)

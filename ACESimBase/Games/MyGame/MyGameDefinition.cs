@@ -1000,6 +1000,24 @@ namespace ACESim
 
         #endregion
 
+        #region Alternative scenarios
+
+        public bool UseMultipleScenarios = true;
+
+        public override int NumScenarios => UseMultipleScenarios ? 2 : 1;
+
+        public override void SetToScenario(int scenario)
+        {
+            CurrentScenario = scenario;
+            if (!UseMultipleScenarios)
+                return;
+            if (scenario == 0)
+                Options.PTrialCosts = Options.DTrialCosts = 25_000;
+            else
+                Options.PTrialCosts = Options.DTrialCosts = 75_000;
+        }
+
+        #endregion
 
     }
 }

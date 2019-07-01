@@ -10,7 +10,8 @@ namespace ACESim
     [Serializable]
     public class FinalUtilitiesNode : IGameState
     {
-        public double[] Utilities => AllScenarioUtilities[0];
+        public int CurrentScenario = 0;
+        public double[] Utilities => AllScenarioUtilities[CurrentScenario];
         public List<double[]> AllScenarioUtilities;
         public static int FinalUtilitiesNodesSoFar = 0;
         public int FinalUtilitiesNodeNumber;
