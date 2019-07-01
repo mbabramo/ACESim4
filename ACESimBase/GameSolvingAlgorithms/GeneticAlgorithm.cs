@@ -24,17 +24,17 @@ namespace ACESimBase.GameSolvingAlgorithms
             return created;
         }
 
-        public double CalculateBestResponseAndGetFitness()
+        public (double exploitability, double[] utilities) CalculateBestResponseAndGetFitnessAndUtilities()
         {
             // gets the best response for whichever population member's actions have been copied to information set
             CalculateBestResponse(false);
-            return BestResponseImprovement.Sum();
+            return (BestResponseImprovementAdj.Sum(), BestResponseUtilities.ToArray());
         }
 
         public override async Task<string> RunAlgorithm(string reportName)
         {
             string reportString = null;
-            Pop = new Population(InformationSets, CalculateBestResponseAndGetFitness);
+            Pop = new Population(InformationSets, CalculateBestResponseAndGetFitnessAndUtilities);
             StrategiesDeveloperStopwatch.Reset();
 
             for (int iteration = 1; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
@@ -67,6 +67,7 @@ namespace ACESimBase.GameSolvingAlgorithms
 
             public int MemberID;
             public double GameFitness; // lower (exploitability) is better
+            public double[] Utilities;
             public double DiversityFitness; // lower (less similar) is better
             public double OverallFitness;
             public int GameFitnessRank;
@@ -75,9 +76,9 @@ namespace ACESimBase.GameSolvingAlgorithms
 
             private List<InformationSetNode> InformationSets;
             private int InformationSetsCount;
-            Func<double> CalculateBestResponseAction;
+            Func<(double exploitability, double[] utilities)> CalculateBestResponseAction;
 
-            public PopulationMember(List<InformationSetNode> informationSets, Func<double> calculateBestResponseAction, int memberID)
+            public PopulationMember(List<InformationSetNode> informationSets, Func<(double exploitability, double[] utilities)> calculateBestResponseAction, int memberID)
             {
                 InformationSets = informationSets;
                 InformationSetsCount = informationSets.Count();
@@ -101,16 +102,25 @@ namespace ACESimBase.GameSolvingAlgorithms
             public void MeasureGameFitness()
             {
                 CopyToInformationSets();
-                GameFitness = CalculateBestResponseAction();
+                (GameFitness, Utilities) = CalculateBestResponseAction();
             }
 
             public double CalculateSimilarity(PopulationMember other)
             {
-                int matches = 0;
-                for (int i = 0; i < InformationSetsCount; i++)
-                    if (PureStrategies[i] == other.PureStrategies[i])
-                        matches++;
-                return (double)matches / (double)InformationSetsCount;
+                bool useStructure = false;
+                if (useStructure)
+                {
+                    int matches = 0;
+                    for (int i = 0; i < InformationSetsCount; i++)
+                        if (PureStrategies[i] == other.PureStrategies[i])
+                            matches++;
+                    return (double)matches / (double)InformationSetsCount;
+                }
+                else
+                {
+                    double ratio = Utilities.Zip(other.Utilities).Select(x => Math.Min(x.First / x.Second, x.Second / x.First)).Average();
+                    return ratio;
+                }
             }
 
             public void Mutate(int iteration, int numMutations)
@@ -196,19 +206,19 @@ namespace ACESimBase.GameSolvingAlgorithms
         {
             const int popSize = 30;
             const int numToKeep = 10;
-            const double probMutation = 0.05;
+            const double probMutation = 0.75;
             public PopulationMember[] Members = new PopulationMember[popSize];
             double[,] Similarity = new double[popSize, popSize];
             private List<InformationSetNode> InformationSets;
             private int InformationSetsCount;
-            Func<double> CalculateBestResponseAction;
+            Func<(double exploitability, double[] utilities)> CalculateBestResponseAction;
 
-            public double WeightOnDiversityInitial = 0.5;
+            public double WeightOnDiversityInitial = 0.5; // DEBUG
             public double WeightOnDiversityFinal = 0.0;
             public double WeightOnDiversityCurvature = 0.5;
             public double WeightOnDiversity_BasedOnCurve(int iteration, int maxIteration) => MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(WeightOnDiversityInitial, WeightOnDiversityFinal, WeightOnDiversityCurvature, ((double)(iteration - 1)) / (double)maxIteration);
 
-            public Population(List<InformationSetNode> informationSets, Func<double> calculateBestResponseAction)
+            public Population(List<InformationSetNode> informationSets, Func<(double exploitability, double[] utilities)> calculateBestResponseAction)
             {
                 InformationSets = informationSets;
                 InformationSetsCount = informationSets.Count();
