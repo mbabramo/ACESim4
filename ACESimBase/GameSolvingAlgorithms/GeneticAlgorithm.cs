@@ -1,4 +1,5 @@
 ﻿using ACESim;
+using ACESimBase.Util;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -73,6 +74,8 @@ namespace ACESimBase.GameSolvingAlgorithms
             public int GameFitnessRank;
             public int DiversityRank;
             public int OverallRank;
+            public bool Keep;
+
 
             private List<InformationSetNode> InformationSets;
             private int InformationSetsCount;
@@ -205,7 +208,7 @@ namespace ACESimBase.GameSolvingAlgorithms
         public class Population
         {
             const int popSize = 30;
-            const int numToKeep = 10;
+            const int numToKeep = 5;
             const double probMutation = 0.75;
             public PopulationMember[] Members = new PopulationMember[popSize];
             double[,] Similarity = new double[popSize, popSize];
@@ -241,35 +244,72 @@ namespace ACESimBase.GameSolvingAlgorithms
             public void CalculateGameFitness(bool all)
             {
                 for (int i = 0; i < popSize; i++)
-                    if (all || Members[i].OverallRank >= numToKeep) // if less than, it hasn't changed
+                    if (all || !Members[i].Keep) // if less than, it hasn't changed
                         Members[i].MeasureGameFitness(); 
             }
 
             public void Rank(double weightOnDiversity)
             {
-                for (int i = 1; i < popSize; i++)
-                    for (int j = 0; j < i; j++)
+
+                Members = Members.OrderBy(x => x.GameFitness).ToArray();
+
+                bool countAllInComputingSimilarity = false;
+
+                if (countAllInComputingSimilarity)
+                {
+                    for (int i = 1; i < popSize; i++)
                     {
-                        double similarity = Members[i].CalculateSimilarity(Members[j]);
-                        Similarity[i, j] = Similarity[j, i] = similarity;
+                        for (int j = 0; j < i; j++)
+                        {
+                            double similarity = Members[i].CalculateSimilarity(Members[j]);
+                            Similarity[i, j] = Similarity[j, i] = similarity;
+                        }
+                        Members[i].Keep = false; // default
+                    }
+                    for (int i = 0; i < popSize; i++)
+                    {
+                        double sum = 0;
+                        for (int j = 0; j < popSize; j++)
+                            sum += Similarity[i, j];
+                        Members[i].DiversityFitness = sum;
+                        Members[i].OverallFitness = Members[i].GameFitness * (1.0 - weightOnDiversity) + Members[i].DiversityFitness * weightOnDiversity;
                     }
 
-                for (int i = 0; i < popSize; i++)
-                {
-                    double sum = 0;
-                    for (int j = 0; j < popSize; j++)
-                        sum += Similarity[i, j];
-                    Members[i].DiversityFitness = sum;
-                    Members[i].OverallFitness = Members[i].GameFitness * (1.0 - weightOnDiversity) + Members[i].DiversityFitness * weightOnDiversity;
+                    var ranked = Enumerable.Range(0, popSize).OrderBy(x => Members[x].OverallFitness).ToArray();
+                    for (int i = 0; i < popSize; i++)
+                        Members[ranked[i]].OverallRank = i;
+                    ranked = Enumerable.Range(0, popSize).OrderBy(x => Members[x].GameFitness).ToArray();
+                    for (int i = 0; i < popSize; i++)
+                        Members[ranked[i]].GameFitnessRank = i;
+                    Members = Members.OrderByDescending(x => x.GameFitnessRank == 0).ThenBy(x => x.OverallRank).ToArray();
+                    for (int i = 0; i < numToKeep; i++)
+                        Members[i].Keep = true;
                 }
-
-                var ranked = Enumerable.Range(0, popSize).OrderBy(x => Members[x].OverallFitness).ToArray();
-                for (int i = 0; i < popSize; i++)
-                    Members[ranked[i]].OverallRank = i;
-                ranked = Enumerable.Range(0, popSize).OrderBy(x => Members[x].GameFitness).ToArray();
-                for (int i = 0; i < popSize; i++)
-                    Members[ranked[i]].GameFitnessRank = i;
-                Members = Members.OrderByDescending(x => x.GameFitnessRank == 0).ThenBy(x => x.OverallRank).ToArray();
+                else
+                {
+                    // use kmeans to cluster based on scores, then keep best in each cluster
+                    int[] clusters = KMeans.Cluster(Members.Select(x => x.Utilities).ToArray(), numToKeep);
+                    for (int clusterNum = 0; clusterNum < numToKeep; clusterNum++)
+                    {
+                        int indexOfBestInCluster = -1;
+                        double bestFitnessInCluster;
+                        for (int i = 0; i < popSize; i++)
+                        {
+                            if (clusters[i] == clusterNum)
+                            {
+                                Members[i].Keep = false;
+                                Members[i].OverallFitness = Members[i].GameFitness; // don't take diversity into account separate from this
+                                if (indexOfBestInCluster == -1 || Members[i].GameFitness < Members[indexOfBestInCluster].GameFitness)
+                                {
+                                    indexOfBestInCluster = i;
+                                    bestFitnessInCluster = Members[i].GameFitness;
+                                }
+                            }
+                        }
+                        Members[indexOfBestInCluster].Keep = true;
+                    }
+                    Members = Members.OrderByDescending(x => x.Keep).ThenBy(x => x.GameFitness).ToArray();
+                }
             }
 
             private ConsistentRandomSequenceProducer GetRandomProducer(int iteration)
