@@ -266,7 +266,10 @@ namespace ACESimBase.GameSolvingAlgorithms
                 var ranked = Enumerable.Range(0, popSize).OrderBy(x => Members[x].OverallFitness).ToArray();
                 for (int i = 0; i < popSize; i++)
                     Members[ranked[i]].OverallRank = i;
-                Members = Members.OrderBy(x => x.OverallRank).ToArray();
+                ranked = Enumerable.Range(0, popSize).OrderBy(x => Members[x].GameFitness).ToArray();
+                for (int i = 0; i < popSize; i++)
+                    Members[ranked[i]].GameFitnessRank = i;
+                Members = Members.OrderByDescending(x => x.GameFitnessRank == 0).ThenBy(x => x.OverallRank).ToArray();
             }
 
             private ConsistentRandomSequenceProducer GetRandomProducer(int iteration)
