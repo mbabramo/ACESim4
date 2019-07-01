@@ -36,6 +36,7 @@ namespace ACESim
 
         bool RecordPastValues = false;
         bool SuppressRecordWhileDiscounting;
+        int NumPastValuesToStore = 0;
         int RecordPastValuesEveryN;
         public int LastPastValueIndexRecorded = -1;
         public double[,] PastValues;
@@ -84,19 +85,19 @@ namespace ACESim
         {
             Decision = decision;
             DecisionIndex = decisionIndex;
-            Initialize();
             InformationSetNodeNumber = InformationSetsSoFar;
-            Interlocked.Increment(ref InformationSetsSoFar);
             RecordPastValues = evolutionSettings.RecordPastValues;
             RecordPastValuesEveryN = evolutionSettings.RecordPastValuesEveryN;
             if (RecordPastValues)
             {
                 SuppressRecordWhileDiscounting = evolutionSettings.SuppressRecordingWhileDiscounting;
-                int numPastValuesToStore = (evolutionSettings.TotalVanillaCFRIterations - (evolutionSettings.SuppressRecordingWhileDiscounting ? evolutionSettings.StopDiscountingAtIteration : 0)) / RecordPastValuesEveryN;
-                PastValues = new double[numPastValuesToStore, NumPossibleActions];
-                PastValuesCumulativeStrategyDiscounts = new double[numPastValuesToStore];
+                NumPastValuesToStore = (evolutionSettings.TotalVanillaCFRIterations - (evolutionSettings.SuppressRecordingWhileDiscounting ? evolutionSettings.StopDiscountingAtIteration : 0)) / RecordPastValuesEveryN;
+                PastValues = new double[NumPastValuesToStore, NumPossibleActions];
+                PastValuesCumulativeStrategyDiscounts = new double[NumPastValuesToStore];
                 LastPastValueIndexRecorded = -1;
             }
+            Initialize();
+            Interlocked.Increment(ref InformationSetsSoFar);
         }
 
         public void Reinitialize()
@@ -128,6 +129,7 @@ namespace ACESim
         public void Initialize()
         {
             ResetNodeInformation(totalDimensions, NumPossibleActions);
+            BackupNodeInformation = null;
             double probability = 1.0 / (double)NumPossibleActions;
             if (double.IsNaN(probability))
                 throw new Exception();
@@ -138,6 +140,11 @@ namespace ACESim
                 NodeInformation[currentProbabilityDimension, a - 1] = probability;
                 NodeInformation[currentProbabilityForOpponentDimension, a - 1] = probability;
                 NodeInformation[averageStrategyProbabilityDimension, a - 1] = probability;
+            }
+            if (RecordPastValues)
+            {
+                PastValues = new double[NumPastValuesToStore, NumPossibleActions];
+                PastValuesCumulativeStrategyDiscounts = new double[NumPastValuesToStore];
             }
         }
 

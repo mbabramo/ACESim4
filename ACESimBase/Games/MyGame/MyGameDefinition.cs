@@ -1002,7 +1002,7 @@ namespace ACESim
 
         #region Alternative scenarios
 
-        public bool UseMultipleScenarios = true;
+        public bool UseMultipleScenarios = true; // DEBUG
 
         public override int NumScenarios => UseMultipleScenarios ? 2 : 1;
 

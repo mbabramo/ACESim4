@@ -63,6 +63,7 @@ namespace ACESim
             {
                 foreach (var node in FinalUtilitiesNodes)
                     node.CurrentScenario = scenario;
+                CalculateMinMax();
             }
         }
 
