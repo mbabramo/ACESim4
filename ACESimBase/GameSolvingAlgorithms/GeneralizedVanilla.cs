@@ -87,8 +87,6 @@ namespace ACESim
         public async Task<string> Unroll_SolveGeneralizedVanillaCFR()
         {
             string reportString = null;
-            InitializeInformationSets();
-            Unroll_CreateUnrolledCommandList();
             double[] array = new double[Unroll_SizeOfArray];
             for (int iteration = 1; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
@@ -717,12 +715,19 @@ namespace ACESim
 
         #region Core algorithm
 
+        public override async Task Initialize()
+        {
+            await base.Initialize();
+            InitializeInformationSets();
+            if (EvolutionSettings.UnrollAlgorithm)
+                Unroll_CreateUnrolledCommandList();
+        }
+
         public override async Task<string> RunAlgorithm(string reportName)
         {
             if (EvolutionSettings.UnrollAlgorithm)
                 return await Unroll_SolveGeneralizedVanillaCFR();
             string reportString = null;
-            InitializeInformationSets();
             for (int iteration = 1; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
                 if (EvolutionSettings.CFRBR)

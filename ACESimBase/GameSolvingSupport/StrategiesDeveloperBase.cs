@@ -150,7 +150,7 @@ namespace ACESim
             }
         }
 
-        public Task Initialize()
+        public virtual Task Initialize()
         {
             if (StoreGameStateNodesInLists)
             {
