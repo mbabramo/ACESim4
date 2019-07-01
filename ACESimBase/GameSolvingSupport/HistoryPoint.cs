@@ -282,7 +282,7 @@ namespace ACESim
                         true,
                         () =>
                         {
-                            var finalUtilitiesResult = new FinalUtilitiesNode(gameProgress.GetNonChancePlayerUtilities());
+                            FinalUtilitiesNode finalUtilitiesResult = new FinalUtilitiesNode(gameProgress.GetNonChancePlayerUtilities_IncludingAlternateScenarios(navigation.GameDefinition));
                             navigation.FinalUtilitiesNodes.Add(finalUtilitiesResult);
                             return finalUtilitiesResult;
                         }

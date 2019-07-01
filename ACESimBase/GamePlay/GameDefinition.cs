@@ -462,5 +462,19 @@ namespace ACESim
         {
             return new List<SimpleReportDefinition>();
         }
+
+        public virtual int NumScenarios => 1;
+
+        public int CurrentScenario = 0;
+
+        public virtual void SetToScenario(int scenario)
+        {
+            if (CurrentScenario == scenario)
+                return;
+            if (scenario != 0)
+                throw new NotImplementedException();
+        }
+
+
     }
 }

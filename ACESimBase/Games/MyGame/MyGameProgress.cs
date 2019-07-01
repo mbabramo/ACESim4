@@ -369,5 +369,25 @@ namespace ACESim
                 DResponses.Add(value);
             }
         }
+
+        public void CalculateGameOutcome()
+        {
+            MyGameDefinition gameDefinition = (MyGameDefinition)GameDefinition;
+            var outcome = MyGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, PInitialWealth, DInitialWealth, PFiles, PAbandons, DAnswers, DDefaults, SettlementValue, PWinsAtTrial, DamagesAwarded, BargainingRoundsComplete, PFinalWealthWithBestOffer, DFinalWealthWithBestOffer);
+            DisputeArises = gameDefinition.Options.MyGameDisputeGenerator.PotentialDisputeArises(gameDefinition, DisputeGeneratorActions);
+            PChangeWealth = outcome.PChangeWealth;
+            DChangeWealth = outcome.DChangeWealth;
+            PFinalWealth = outcome.PFinalWealth;
+            DFinalWealth = outcome.DFinalWealth;
+            PWelfare = outcome.PWelfare;
+            DWelfare = outcome.DWelfare;
+            TrialOccurs = outcome.TrialOccurs;
+            NumChips = outcome.NumChips;
+        }
+
+        public override void RecalculateGameOutcome()
+        {
+            CalculateGameOutcome();
+        }
     }
 }

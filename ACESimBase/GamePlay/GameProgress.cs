@@ -273,6 +273,24 @@ namespace ACESim
             return new double[] { };
         }
 
+        public virtual List<double[]> GetNonChancePlayerUtilities_IncludingAlternateScenarios(GameDefinition gameDefinition)
+        {
+            List<double[]> alternativeScenarios = new List<double[]>();
+            int numScenarios = gameDefinition.NumScenarios;
+            for (int s = 0; s < numScenarios; s++)
+            {
+                gameDefinition.SetToScenario(0);
+                if (gameDefinition.NumScenarios > 0)
+                    RecalculateGameOutcome();
+                alternativeScenarios.Add(GetNonChancePlayerUtilities());
+            }
+            return alternativeScenarios;
+        }
+
+        public virtual void RecalculateGameOutcome()
+        {
+        }
+
 
     }
 }

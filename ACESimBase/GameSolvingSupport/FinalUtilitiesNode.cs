@@ -10,14 +10,22 @@ namespace ACESim
     [Serializable]
     public class FinalUtilitiesNode : IGameState
     {
-        public double[] Utilities;
+        public double[] Utilities => AllScenarioUtilities[0];
+        public List<double[]> AllScenarioUtilities;
         public static int FinalUtilitiesNodesSoFar = 0;
         public int FinalUtilitiesNodeNumber;
         public int GetNodeNumber() => FinalUtilitiesNodeNumber;
 
+        public FinalUtilitiesNode(List<double[]> allScenarioUtilities)
+        {
+            AllScenarioUtilities = allScenarioUtilities;
+            FinalUtilitiesNodeNumber = FinalUtilitiesNodesSoFar;
+            Interlocked.Increment(ref FinalUtilitiesNodesSoFar);
+        }
+
         public FinalUtilitiesNode(double[] utilities)
         {
-            Utilities = utilities;
+            AllScenarioUtilities = new List<double[]>() { utilities };
             FinalUtilitiesNodeNumber = FinalUtilitiesNodesSoFar;
             Interlocked.Increment(ref FinalUtilitiesNodesSoFar);
         }

@@ -155,9 +155,9 @@ namespace ACESim
             TabbedText.WriteLine($"... {s.ElapsedMilliseconds} milliseconds");
         }
 
-        private void Unroll_ExecuteUnrolledCommands(double[] array, bool firstExecution)
+        private void Unroll_ExecuteUnrolledCommands(double[] array, bool copyChanceAndFinalUtilities)
         {
-            Unroll_CopyInformationSetsToArray(array, firstExecution);
+            Unroll_CopyInformationSetsToArray(array, copyChanceAndFinalUtilities);
             Unroll_Commands.ExecuteAll(array, TraceCFR);
             Unroll_CopyArrayToInformationSets(array);
             Unroll_DetermineIterationResultForEachPlayer(array);

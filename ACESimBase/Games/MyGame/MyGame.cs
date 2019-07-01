@@ -337,16 +337,7 @@ namespace ACESim
 
         public override void FinalProcessing()
         {
-            var outcome = CalculateGameOutcome(MyDefinition, MyProgress.DisputeGeneratorActions, MyProgress.PretrialActions, MyProgress.RunningSideBetsActions, MyProgress.PInitialWealth, MyProgress.DInitialWealth, MyProgress.PFiles, MyProgress.PAbandons, MyProgress.DAnswers, MyProgress.DDefaults, MyProgress.SettlementValue, MyProgress.PWinsAtTrial, MyProgress.DamagesAwarded, MyProgress.BargainingRoundsComplete, MyProgress.PFinalWealthWithBestOffer, MyProgress.DFinalWealthWithBestOffer);
-            MyProgress.DisputeArises = MyDefinition.Options.MyGameDisputeGenerator.PotentialDisputeArises(MyDefinition, MyProgress.DisputeGeneratorActions);
-            MyProgress.PChangeWealth = outcome.PChangeWealth;
-            MyProgress.DChangeWealth = outcome.DChangeWealth;
-            MyProgress.PFinalWealth = outcome.PFinalWealth;
-            MyProgress.DFinalWealth = outcome.DFinalWealth;
-            MyProgress.PWelfare = outcome.PWelfare;
-            MyProgress.DWelfare = outcome.DWelfare;
-            MyProgress.TrialOccurs = outcome.TrialOccurs;
-            MyProgress.NumChips = outcome.NumChips;
+            MyProgress.CalculateGameOutcome();
 
             CalculateSocialWelfareOutcomes();
 
