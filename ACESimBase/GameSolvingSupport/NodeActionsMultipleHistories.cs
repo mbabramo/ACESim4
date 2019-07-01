@@ -11,11 +11,11 @@ namespace ACESimBase.GameSolvingSupport
     {
         public List<NodeActionsHistory> Histories;
 
-        public NodeActionsMultipleHistories(IGameState successorInformationSet)
+        public NodeActionsMultipleHistories(IGameState successor)
         {
             Histories = new List<NodeActionsHistory>()
             {
-                new NodeActionsHistory() { SuccessorInformationSet = successorInformationSet }
+                new NodeActionsHistory() { Successor = successor }
             };
         }
 

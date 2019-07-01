@@ -11,7 +11,7 @@ namespace ACESimBase.GameSolvingSupport
     {
         public double Coefficient = 1.0;
         public List<NodeAction> NodeActions = new List<NodeAction>();
-        public IGameState SuccessorInformationSet;
+        public IGameState Successor;
 
         public NodeActionsHistory()
         {
@@ -22,8 +22,8 @@ namespace ACESimBase.GameSolvingSupport
         {
             string coefString = Coefficient == 1.0 ? "" : $"{Coefficient.ToSignificantFigures(3)} * ";
             var s = coefString + String.Join(", ", NodeActions);
-            if (SuccessorInformationSet != null)
-                s += $"{(s.Length > 0 ? " " : "")}Successor: {SuccessorInformationSet.GetGameStateType()} {SuccessorInformationSet.GetNodeNumber()}";
+            if (Successor != null)
+                s += $"{(s.Length > 0 ? " " : "")}Successor: {Successor.GetGameStateType()} {Successor.GetNodeNumber()}";
             return s;
         }
 
@@ -32,7 +32,7 @@ namespace ACESimBase.GameSolvingSupport
             return new NodeActionsHistory()
             {
                 NodeActions = NodeActions.Select(x => x.Clone()).Skip(skip).Take(take).ToList(),
-                SuccessorInformationSet = SuccessorInformationSet
+                Successor = Successor
             };
         }
 
@@ -44,19 +44,19 @@ namespace ACESimBase.GameSolvingSupport
                                 .Where(x => !(x.Node is ChanceNode c) || !c.Decision.DistributedChanceDecision)
                                 .Select(x => x.Clone())
                                 .ToList(),
-                SuccessorInformationSet = SuccessorInformationSet
+                Successor = Successor
             };
         }
 
         public override bool Equals(object obj)
         {
             NodeActionsHistory other = (NodeActionsHistory)obj;
-            return other.NodeActions.SequenceEqual(NodeActions) && other.SuccessorInformationSet == SuccessorInformationSet;
+            return other.NodeActions.SequenceEqual(NodeActions) && other.Successor == Successor;
         }
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(NodeActions, SuccessorInformationSet);
+            return HashCode.Combine(NodeActions, Successor);
         }
 
         private bool ModifyCoefficient(IGameState node)
@@ -78,7 +78,7 @@ namespace ACESimBase.GameSolvingSupport
             {
                 Coefficient = Coefficient,
                 NodeActions = copied,
-                SuccessorInformationSet = SuccessorInformationSet
+                Successor = Successor
             };
             if (!prepended.ModifyCoefficient(node) && !(omitDistributedChanceDecisions && node is ChanceNode c && c.Decision.DistributedChanceDecision))
                 copied.Insert(0, new NodeAction(node, actionAtNode, distributorChanceInputs));
@@ -94,7 +94,7 @@ namespace ACESimBase.GameSolvingSupport
             {
                 Coefficient = Coefficient,
                 NodeActions = copied,
-                SuccessorInformationSet = null
+                Successor = null
             };
             if (!appended.ModifyCoefficient(node))
                 copied.Add(new NodeAction(node, actionAtNode, distributorChanceInputs));
@@ -107,7 +107,7 @@ namespace ACESimBase.GameSolvingSupport
             return new NodeActionsHistory()
             {
                 NodeActions = copied,
-                SuccessorInformationSet = node
+                Successor = node
             };
         }
 
@@ -235,7 +235,7 @@ namespace ACESimBase.GameSolvingSupport
         public double GetBestResponseUtilityAfterPathToSuccessor(byte playerIndex)
         {
             double utility;
-            var successor = SuccessorInformationSet;
+            var successor = Successor;
             switch (successor)
             {
                 case FinalUtilitiesNode f:
@@ -255,7 +255,7 @@ namespace ACESimBase.GameSolvingSupport
         public double GetAverageStrategyUtilityAfterPathToSuccessor(byte playerIndex)
         {
             double utility;
-            var successor = SuccessorInformationSet;
+            var successor = Successor;
             switch (successor)
             {
                 case FinalUtilitiesNode f:
