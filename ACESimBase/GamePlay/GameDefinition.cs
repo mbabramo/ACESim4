@@ -463,17 +463,27 @@ namespace ACESim
             return new List<SimpleReportDefinition>();
         }
 
-        public virtual int NumScenariosToPlay => 1;
+        public virtual int NumScenariosToDevelop => 1;
         public virtual int NumScenariosToInitialize => 1;
 
-        public int CurrentScenario = 0;
+        public int BaselineScenarioIndex = 0;
+        public int CurrentScenarioIndex = 0;
 
-        public virtual void SetToScenario(int scenario)
+        public virtual int GetScenarioIndex(int baselineScenario, bool warmupVersion)
         {
-            if (CurrentScenario == scenario)
-                return;
-            if (scenario != 0)
-                throw new NotImplementedException();
+            return baselineScenario;
+        }
+
+        public virtual void SetScenario(int baselineScenario, bool warmupVersion)
+        {
+            BaselineScenarioIndex = baselineScenario;
+            CurrentScenarioIndex = GetScenarioIndex(baselineScenario, warmupVersion);
+            SetScenarioIndex(CurrentScenarioIndex);
+        }
+
+        public virtual void SetScenarioIndex(int scenarioIndex)
+        {
+            CurrentScenarioIndex = scenarioIndex;
         }
 
 

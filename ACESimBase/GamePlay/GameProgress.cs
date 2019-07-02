@@ -279,13 +279,13 @@ namespace ACESim
             int numScenarios = gameDefinition.NumScenariosToInitialize;
             for (int s = 0; s < numScenarios; s++)
             {
-                gameDefinition.SetToScenario(s);
+                gameDefinition.SetScenarioIndex(s);
                 if (s > 0)
                     RecalculateGameOutcome();
                 alternativeScenarios.Add(GetNonChancePlayerUtilities());
             }
             if (numScenarios > 0)
-                gameDefinition.SetToScenario(0);
+                gameDefinition.SetScenarioIndex(0);
             return alternativeScenarios;
         }
 

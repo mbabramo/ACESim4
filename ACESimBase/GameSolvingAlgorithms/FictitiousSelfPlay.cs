@@ -26,24 +26,26 @@ namespace ACESim
             return created;
         }
 
+
+        public override int? IterationsForWarmupScenario()
+        {
+            return EvolutionSettings.IterationsForWarmupScenario; // warmup is supported
+        }
+
         public override async Task<string> RunAlgorithm(string reportName)
         {
             string reportString = null;
             StrategiesDeveloperStopwatch.Reset();
-            bool warmUp = (EvolutionSettings.UseAlternativeScenarioForWarmUp != null);
-            int baselineScenario = EvolutionSettings.UseAlternativeScenarioForWarmUp?.scenario ?? 0;
-            int iterationToReturnToBaselineScenario = warmUp ? EvolutionSettings.UseAlternativeScenarioForWarmUp.Value.iterations : -1;
+            int iterationToReturnToBaselineScenario = EvolutionSettings.IterationsForWarmupScenario ?? - 1;
             int startingIteration = 2;
             if (iterationToReturnToBaselineScenario < startingIteration)
                 iterationToReturnToBaselineScenario = startingIteration;
-            if (warmUp)
-                ReinitializeForScenario(EvolutionSettings.UseAlternativeScenarioForWarmUp.Value.scenario);
-            for (int iteration = 2; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
+            for (int iteration = startingIteration; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
                 reportString = await FictitiousSelfPlayIteration(iteration);
                 if (iteration == iterationToReturnToBaselineScenario)
                 {
-                    ReinitializeForScenario(baselineScenario);
+                    ReinitializeForScenario(GameDefinition.BaselineScenarioIndex, false);
                 }
             }
             return reportString;

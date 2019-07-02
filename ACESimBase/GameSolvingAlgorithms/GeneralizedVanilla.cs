@@ -723,9 +723,9 @@ namespace ACESim
                 Unroll_CreateUnrolledCommandList();
         }
 
-        public override void ReinitializeForScenario(int scenario)
+        public override void ReinitializeForScenario(int scenario, bool warmupVersion)
         {
-            base.ReinitializeForScenario(scenario);
+            base.ReinitializeForScenario(scenario, warmupVersion);
             InitializeInformationSets();
         }
 

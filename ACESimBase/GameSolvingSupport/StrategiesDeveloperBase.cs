@@ -56,9 +56,9 @@ namespace ACESim
 
         public abstract Task<string> RunAlgorithm(string reportName);
 
-        public virtual void ReinitializeForScenario(int scenario)
+        public virtual void ReinitializeForScenario(int scenario, bool warmupVersion)
         {
-            GameDefinition.SetToScenario(scenario);
+            GameDefinition.SetScenario(scenario, warmupVersion);
             if (scenario > 0)
             {
                 foreach (var node in FinalUtilitiesNodes)
@@ -67,14 +67,21 @@ namespace ACESim
             }
         }
 
+        public virtual int? IterationsForWarmupScenario()
+        {
+            return null; // not supported by default
+        }
+
         public async Task<string> DevelopStrategies(string reportName)
         {
             await Initialize();
             StringBuilder multipleScenariosReport = new StringBuilder();
-            for (int s = 0; s < GameDefinition.NumScenariosToPlay; s++)
+            for (int s = 0; s < GameDefinition.NumScenariosToDevelop; s++)
             {
+                if (GameDefinition.NumScenariosToDevelop > 0)
+                    Console.WriteLine($@"Scenario {s}");
                 if (s > 0)
-                    ReinitializeForScenario(s);
+                    ReinitializeForScenario(s, IterationsForWarmupScenario() != null);
                 string report = await RunAlgorithm(reportName);
                 if (EvolutionSettings.SerializeResults && s == 0)
                     StrategySerialization.SerializeStrategies(Strategies.ToArray(), "serstat.sst");
