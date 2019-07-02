@@ -305,8 +305,8 @@ namespace ACESim
             List<string> combinedReports = new List<string>();
             for (int i = 0; i < NumRepetitions; i++)
             {
-                string singleRepetitionReport = await GetSingleRepetitionReportAndSave(masterReportName, options, optionSetName, i, developer);
-                combinedReports.Add(singleRepetitionReport);
+                var result = await GetSingleRepetitionReportAndSave(masterReportName, options, optionSetName, i, developer);
+                combinedReports.Add(result.standardReport);
                 // AzureBlob.SerializeObject("results", reportName + " CRM", true, developer);
             }
             if (AzureEnabled)
@@ -316,16 +316,16 @@ namespace ACESim
         }
 
 
-        public async Task<string> GetSingleRepetitionReportAndSave(string masterReportName, int optionSetIndex, int repetition, IStrategiesDeveloper developer)
+        public async Task<(string standardReport, string csvReport)> GetSingleRepetitionReportAndSave(string masterReportName, int optionSetIndex, int repetition, IStrategiesDeveloper developer)
         {
             bool includeFirstLine = optionSetIndex == 0;
             List<(string reportName, GameOptions options)> optionSets = GetOptionsSets();
             var options = optionSets[optionSetIndex].options;
             int numRepetitionsPerOptionSet = NumRepetitions;
-            string result = await GetSingleRepetitionReportAndSave(masterReportName, options, optionSets[optionSetIndex].reportName, repetition, developer);
+            var result = await GetSingleRepetitionReportAndSave(masterReportName, options, optionSets[optionSetIndex].reportName, repetition, developer);
             return result;
         }
-        public async Task<string> GetSingleRepetitionReportAndSave(string masterReportName, GameOptions options, string optionSetName, int repetition, IStrategiesDeveloper developer)
+        public async Task<(string standardReport, string csvReport)> GetSingleRepetitionReportAndSave(string masterReportName, GameOptions options, string optionSetName, int repetition, IStrategiesDeveloper developer)
         {
             string masterReportNamePlusOptionSet = $"{masterReportName} {optionSetName}";
             if (developer == null)
@@ -333,21 +333,21 @@ namespace ACESim
             var result = await GetSingleRepetitionReport(optionSetName, repetition, developer);
             string azureBlobInterimReportName = masterReportNamePlusOptionSet + $" {repetition}";
             if (AzureEnabled)
-                AzureBlob.WriteTextToBlob("results", azureBlobInterimReportName, true, result); // we write to a blob in case this times out and also to allow individual report to be taken out
+                AzureBlob.WriteTextToBlob("results", azureBlobInterimReportName, true, result.standardReport); // we write to a blob in case this times out and also to allow individual report to be taken out
             return result;
         }
 
-        public async Task<string> GetSingleRepetitionReport(string optionSetName, int i, IStrategiesDeveloper developer)
+        public async Task<(string standardReport, string csvReport)> GetSingleRepetitionReport(string optionSetName, int i, IStrategiesDeveloper developer)
         {
             developer.EvolutionSettings.GameNumber = StartGameNumber + i;
             string reportIteration = i.ToString();
             if (i > 0)
                 developer.Reinitialize();
-            string report;
+            (string standardReport, string csvReport) = ("", "");
         retry:
             try
             {
-                report = await developer.DevelopStrategies(optionSetName);
+                (standardReport, csvReport) = await developer.DevelopStrategies(optionSetName);
             }
             catch (Exception e)
             {
@@ -355,8 +355,8 @@ namespace ACESim
                 TabbedText.WriteLine(e.StackTrace);
                 goto retry;
             }
-            string singleRepetitionReport = SimpleReportMerging.AddReportInformationColumns(report, optionSetName, reportIteration, i == 0);
-            return singleRepetitionReport;
+            string singleRepetitionReport = SimpleReportMerging.AddReportInformationColumns(standardReport, optionSetName, reportIteration, i == 0);
+            return (singleRepetitionReport, csvReport);
         }
 
         public string CombineResultsOfAllOptionSets(string masterReportName)

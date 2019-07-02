@@ -177,9 +177,9 @@ namespace ACESim
             return BestResponseImprovement.Sum();
         }
 
-        public override Task<string> RunAlgorithm(string reportName)
+        public override Task<(string standardReport, string csvReport)> RunAlgorithm(string reportName)
         {
-            string reportString = null;
+            string standardResult = "", csvResult = "";
             StrategiesDeveloperStopwatch.Reset();
             CalculateBestResponseAndGetFitness();
             for (int i = 0; i < NumPopulationMembers; i++)
@@ -189,15 +189,15 @@ namespace ACESim
 
             for (int iteration = 1; iteration <= 5000000; iteration++)
             {
-                reportString = GreedyIteration(iteration);
+                (standardResult, csvResult) = GreedyIteration(iteration);
             }
 
-            return Task.FromResult(reportString);
+            return Task.FromResult((standardResult, csvResult));
         }
 
         bool LastWasImprovement = true;
 
-        private string GreedyIteration(int iteration)
+        private (string standardReport, string csvReport) GreedyIteration(int iteration)
         {
             StrategiesDeveloperStopwatch.Start();
 
@@ -265,7 +265,7 @@ namespace ACESim
             //reportString = await GenerateReports(iteration,
             //    () =>
             //        $"Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
-            return reportString;
+            return (reportString, "");
         }
 
         private void ZeroLowPorbabilities()

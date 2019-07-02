@@ -78,9 +78,9 @@ namespace ACESim
         private ArrayCommandList Unroll_Commands;
         private int Unroll_SizeOfArray;
 
-        public async Task<string> Unroll_SolveGeneralizedVanillaCFR()
+        public async Task<(string standardReport, string csvReport)> Unroll_SolveGeneralizedVanillaCFR()
         {
-            string reportString = null;
+            string standardResult = "", csvResult = "";
             double[] array = new double[Unroll_SizeOfArray];
             for (int iteration = 1; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
@@ -97,9 +97,11 @@ namespace ACESim
                 UpdateInformationSets(iteration);
                 SimulatedAnnealing(iteration);
                 MiniReport(iteration, Unroll_IterationResultForPlayers);
-                reportString = await GenerateReports(iteration,
+                var result = await GenerateReports(iteration,
                     () =>
                         $"Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
+                standardResult += result.standardReport;
+                csvResult += result.csvReport;
                 if (TraceCFR)
                 { // only trace through iteration
                     // There are a number of advanced settings in ArrayCommandList that must be disabled for this feature to work properly. 
@@ -108,7 +110,7 @@ namespace ACESim
                 if (EvolutionSettings.PruneOnOpponentStrategy && EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions)
                     CalculateReachProbabilitiesAndPrunability();
             }
-            return reportString;
+            return (standardResult, csvResult);
         }
 
         public string TraceCommandList(double[] array)
@@ -723,28 +725,30 @@ namespace ACESim
             InitializeInformationSets();
         }
 
-        public override async Task<string> RunAlgorithm(string reportName)
+        public override async Task<(string standardReport, string csvReport)> RunAlgorithm(string reportName)
         {
             if (EvolutionSettings.UnrollAlgorithm)
                 return await Unroll_SolveGeneralizedVanillaCFR();
-            string reportString = null;
+            string standardResult = "", csvResult = "";
             for (int iteration = 1; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
                 if (EvolutionSettings.CFRBR)
                     CalculateBestResponse(false);
-                reportString = await GeneralizedVanillaCFRIteration(iteration);
+                var result = await GeneralizedVanillaCFRIteration(iteration);
+                standardResult += result.standardReport;
+                csvResult += result.csvReport;
                 if (EvolutionSettings.PruneOnOpponentStrategy && EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions)
                     CalculateReachProbabilitiesAndPrunability();
             }
-            return reportString;
+            return (standardResult, csvResult);
         }
-        private async Task<string> GeneralizedVanillaCFRIteration(int iteration)
+        private async Task<(string standardReport, string csvReport)> GeneralizedVanillaCFRIteration(int iteration)
         {
             IterationNumDouble = iteration;
             IterationNum = iteration;
             CalculateDiscountingAdjustments();
 
-            string reportString = null;
+            string standardResult = "", csvResult = "";
             double[] lastUtilities = new double[NumNonChancePlayers];
 
             ActionStrategy = ActionStrategies.CurrentProbability;
@@ -758,10 +762,13 @@ namespace ACESim
             SimulatedAnnealing(iteration);
             MiniReport(iteration, results);
 
-            reportString = await GenerateReports(iteration,
+            var result = await GenerateReports(iteration,
                 () =>
                     $"Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
-            return reportString;
+            standardResult += result.standardReport;
+            csvResult += result.csvReport;
+
+            return (standardResult, csvResult);
         }
 
         private unsafe void GeneralizedVanillaCFRIteration_OptimizePlayer(int iteration, GeneralizedVanillaUtilities[] results, byte playerBeingOptimized)

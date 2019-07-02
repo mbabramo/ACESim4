@@ -427,12 +427,12 @@ namespace ACESim
             } while (!success);
         }
 
-        public override async Task<string> RunAlgorithm(string reportName)
+        public override async Task<(string standardReport, string csvReport)> RunAlgorithm(string reportName)
         {
             //TraceCFR = true;
             //GameProgressLogger.LoggingOn = true;
             GameProgressLogger.OutputLogMessages = true;
-            string reportString = null;
+            string standardResult = "", csvResult = "";
             GameNumber = EvolutionSettings.GameNumber;
             TabbedText.WriteLine($"{reportName } game number {GameNumber} ({DateTime.Now})");
             Stopwatch s = new Stopwatch();
@@ -468,11 +468,13 @@ namespace ACESim
                 );
                 s.Stop();
                 IterationNum = startingIteration = stopBefore; // this is the iteration to run next
-                reportString = await GenerateReports(IterationNum,
+                var result = await GenerateReports(IterationNum,
                     () =>
                         $"Iteration {IterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)(IterationNum + 1))))}");
+                standardResult += result.standardReport;
+                csvResult += result.csvReport;
             }
-            return reportString; // final report
+            return (standardResult, csvResult);
         }
 
         private int ModifiedGibsonProbing_GetNextMultipleOf(int value, int multiple)

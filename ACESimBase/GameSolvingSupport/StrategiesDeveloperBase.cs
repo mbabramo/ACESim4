@@ -54,24 +54,26 @@ namespace ACESim
         #region Implementation of interface
 
 
-        public abstract Task<string> RunAlgorithm(string reportName);
+        public abstract Task<(string standardReport, string csvReport)> RunAlgorithm(string reportName);
 
-        public async Task<string> DevelopStrategies(string reportName)
+        public async Task<(string standardReport, string csvReport)> DevelopStrategies(string reportName)
         {
             await Initialize();
             StringBuilder multipleScenariosReport = new StringBuilder();
+            StringBuilder multipleScenariosReportCSV = new StringBuilder();
             for (int s = 0; s < GameDefinition.NumScenariosToDevelop; s++)
             {
                 if (GameDefinition.NumScenariosToDevelop > 0)
                     Console.WriteLine($@"Scenario {s}");
                 if (s > 0)
                     ReinitializeForScenario(s, IterationsForWarmupScenario() != null);
-                string report = await RunAlgorithm(reportName);
+                var result = await RunAlgorithm(reportName);
                 if (EvolutionSettings.SerializeResults && s == 0)
                     StrategySerialization.SerializeStrategies(Strategies.ToArray(), "serstat.sst");
-                multipleScenariosReport.Append(report);
+                multipleScenariosReport.Append(result.standardReport);
+                multipleScenariosReportCSV.Append(result.csvReport);
             }
-            return multipleScenariosReport.ToString();
+            return (multipleScenariosReport.ToString(), multipleScenariosReportCSV.ToString());
         }
 
         public abstract IStrategiesDeveloper DeepCopy();
@@ -628,9 +630,9 @@ namespace ACESim
 
         #region Game play and reporting
 
-        public async Task<string> GenerateReports(int iteration, Func<string> prefaceFn)
+        public async Task<(string standardReport, string csvReport)> GenerateReports(int iteration, Func<string> prefaceFn)
         {
-            string reportString = "";
+            (string standardReport, string csvReport) = ("", "");
             bool doBestResponse = (EvolutionSettings.BestResponseEveryMIterations != null && iteration % EvolutionSettings.BestResponseEveryMIterations == 0 && EvolutionSettings.BestResponseEveryMIterations != EvolutionSettings.EffectivelyNever && iteration != 0);
             bool doReports = EvolutionSettings.ReportEveryNIterations != null && iteration % EvolutionSettings.ReportEveryNIterations == 0;
             if (doReports || doBestResponse)
@@ -658,7 +660,11 @@ namespace ACESim
                             ActionStrategy = actionStrategy;
                             ActionStrategyLastReport = ActionStrategy.ToString();
                             if (EvolutionSettings.GenerateReportsByPlaying)
-                                reportString += await GenerateReportsByPlaying(useRandomPaths);
+                            {
+                                var reports = await GenerateReportsByPlaying(useRandomPaths);
+                                standardReport += reports.standardReport;
+                                csvReport += reports.csvReport;
+                            }
                         }
                     ActionStrategy = previous;
                     Br.eak.Remove("Report");
@@ -675,11 +681,11 @@ namespace ACESim
                     AnalyzeInformationSets();
             }
 
-            return reportString;
+            return (standardReport, csvReport);
         }
 
         string ActionStrategyLastReport;
-        private async Task<string> GenerateReportsByPlaying(bool useRandomPaths)
+        private async Task<(string standardReport, string csvReport)> GenerateReportsByPlaying(bool useRandomPaths)
         {
             Func<GamePlayer, Func<Decision, GameProgress, byte>, Task> reportGenerator;
             if (useRandomPaths)
@@ -698,7 +704,7 @@ namespace ACESim
                 Debug.WriteLine($"{reports.standardReport}");
                 TabbedText.WriteLine($"{reports.standardReport}");
             }
-            return reports.csvReport;
+            return reports;
         }
 
         public double[] BestResponseUtilities;

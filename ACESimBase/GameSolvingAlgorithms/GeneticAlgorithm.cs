@@ -32,34 +32,34 @@ namespace ACESimBase.GameSolvingAlgorithms
             return (BestResponseImprovementAdj.Sum(), BestResponseUtilities.ToArray());
         }
 
-        public override async Task<string> RunAlgorithm(string reportName)
+        public override async Task<(string standardReport, string csvReport)> RunAlgorithm(string reportName)
         {
-            string reportString = null;
+            string standardResult = "", csvResult = "";
             Pop = new Population(InformationSets, CalculateBestResponseAndGetFitnessAndUtilities);
             StrategiesDeveloperStopwatch.Reset();
 
             for (int iteration = 1; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
-                reportString = await GeneticIteration(iteration, EvolutionSettings.TotalVanillaCFRIterations);
+                (standardResult, csvResult) = await GeneticIteration(iteration, EvolutionSettings.TotalVanillaCFRIterations);
             }
 
-            return reportString;
+            return (standardResult, csvResult);
         }
 
 
 
-        private async Task<string> GeneticIteration(int iteration, int maxIteration)
+        private async Task<(string standardReport, string csvReport)> GeneticIteration(int iteration, int maxIteration)
         {
             Pop.Generation(iteration, maxIteration);
 
             string reportString = $"{iteration}: {Pop.Members[0].GameFitness}";
             TabbedText.WriteLine(reportString);
 
-            reportString = await GenerateReports(iteration,
+            (string standardResult, string csvResult) = await GenerateReports(iteration,
                 () =>
                     $"Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
 
-            return reportString;
+            return (standardResult, csvResult);
         }
 
         public class PopulationMember

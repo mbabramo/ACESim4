@@ -221,33 +221,37 @@ namespace ACESim
             return probabilityAdjustedExpectedValueParticularAction;
         }
 
-        public override async Task<string> RunAlgorithm(string reportName)
+        public override async Task<(string standardReport, string csvReport)> RunAlgorithm(string reportName)
         {
-            string reportString = null;
+            string standardResult = "", csvResult = "";
             for (int iteration = 0; iteration < EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
-                reportString = await VanillaCFRIteration(iteration);
+                var result = await VanillaCFRIteration(iteration);
+                standardResult += result.standardReport;
+                csvResult += result.csvReport;
             }
-            return reportString;
+            return (standardResult, csvResult);
         }
 
         double PositiveRegretsAdjustment, NegativeRegretsAdjustment, AverageStrategyAdjustment, AverageStrategyAdjustmentAsPctOfMax;
-        private async Task<string> VanillaCFRIteration(int iteration)
+        private async Task<(string standardReport, string csvReport)> VanillaCFRIteration(int iteration)
         {
             IterationNumDouble = iteration;
             SetDiscountingAdjustments();
 
-            string reportString = null;
+            string standardResult = "", csvResult = "";
             double[] lastUtilities = new double[NumNonChancePlayers];
 
             bool usePruning = false; // iteration >= 100;
             ActionStrategy = usePruning ? ActionStrategies.RegretMatchingWithPruning : ActionStrategies.RegretMatching;
             VanillaCFR_OptimizeEachPlayer(iteration, lastUtilities, usePruning);
 
-            reportString = await GenerateReports(iteration,
+            var result = await GenerateReports(iteration,
                 () =>
                     $"Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration + 1.0)))}");
-            return reportString;
+            standardResult += result.standardReport;
+            csvResult += result.csvReport;
+            return (standardResult, csvResult);
         }
 
         private void SetDiscountingAdjustments()
