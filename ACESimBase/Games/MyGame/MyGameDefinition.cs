@@ -1002,9 +1002,12 @@ namespace ACESim
 
         #region Alternative scenarios
 
-        public bool UseMultipleScenarios = true; // DEBUG // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
+        public bool PlayMultipleScenarios = false; // DEBUG // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
 
-        public override int NumScenarios => UseMultipleScenarios ? 2 : 1;
+        public int NumScenariosDefined = 2;
+
+        public override int NumScenariosToPlay => PlayMultipleScenarios ? NumScenariosDefined : 1;
+        public override int NumScenariosToInitialize => NumScenariosDefined;
 
         public override void SetToScenario(int scenario)
         {
@@ -1012,7 +1015,7 @@ namespace ACESim
             if (scenario == 0)
                 Options.PTrialCosts = Options.DTrialCosts = 25_000;
             else
-                Options.PTrialCosts = Options.DTrialCosts = 75_000;
+                Options.PTrialCosts = Options.DTrialCosts = 35_000;
         }
 
         #endregion

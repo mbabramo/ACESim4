@@ -71,7 +71,7 @@ namespace ACESim
         {
             await Initialize();
             StringBuilder multipleScenariosReport = new StringBuilder();
-            for (int s = 0; s < GameDefinition.NumScenarios; s++)
+            for (int s = 0; s < GameDefinition.NumScenariosToPlay; s++)
             {
                 if (s > 0)
                     ReinitializeForScenario(s);

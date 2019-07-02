@@ -463,7 +463,8 @@ namespace ACESim
             return new List<SimpleReportDefinition>();
         }
 
-        public virtual int NumScenarios => 1;
+        public virtual int NumScenariosToPlay => 1;
+        public virtual int NumScenariosToInitialize => 1;
 
         public int CurrentScenario = 0;
 
