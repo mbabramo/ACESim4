@@ -56,7 +56,7 @@ namespace ACESim
 
         public abstract Task<string> RunAlgorithm(string reportName);
 
-        public virtual void ReinitializeForLaterScenario(int scenario)
+        public virtual void ReinitializeForScenario(int scenario)
         {
             GameDefinition.SetToScenario(scenario);
             if (scenario > 0)
@@ -74,7 +74,7 @@ namespace ACESim
             for (int s = 0; s < GameDefinition.NumScenarios; s++)
             {
                 if (s > 0)
-                    ReinitializeForLaterScenario(s);
+                    ReinitializeForScenario(s);
                 string report = await RunAlgorithm(reportName);
                 if (EvolutionSettings.SerializeResults && s == 0)
                     StrategySerialization.SerializeStrategies(Strategies.ToArray(), "serstat.sst");

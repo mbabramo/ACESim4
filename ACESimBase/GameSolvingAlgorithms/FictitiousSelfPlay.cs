@@ -9,8 +9,6 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
-    debug; // formalize what we initialize to and verify that initializing with a high-settlement strategy makes a difference
-
     public partial class FictitiousSelfPlay : StrategiesDeveloperBase
     {
         public bool AddNoiseToBestResponses = false;
@@ -32,9 +30,21 @@ namespace ACESim
         {
             string reportString = null;
             StrategiesDeveloperStopwatch.Reset();
+            bool warmUp = (EvolutionSettings.UseAlternativeScenarioForWarmUp != null);
+            int baselineScenario = EvolutionSettings.UseAlternativeScenarioForWarmUp?.scenario ?? 0;
+            int iterationToReturnToBaselineScenario = warmUp ? EvolutionSettings.UseAlternativeScenarioForWarmUp.Value.iterations : -1;
+            int startingIteration = 2;
+            if (iterationToReturnToBaselineScenario < startingIteration)
+                iterationToReturnToBaselineScenario = startingIteration;
+            if (warmUp)
+                ReinitializeForScenario(EvolutionSettings.UseAlternativeScenarioForWarmUp.Value.scenario);
             for (int iteration = 2; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
                 reportString = await FictitiousSelfPlayIteration(iteration);
+                if (iteration == iterationToReturnToBaselineScenario)
+                {
+                    ReinitializeForScenario(baselineScenario);
+                }
             }
             return reportString;
         }
