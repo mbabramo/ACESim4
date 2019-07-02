@@ -17,7 +17,7 @@ namespace ACESim
 
         #region Settings
 
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching; // DEBUG
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.FictitiousSelfPlay; // DEBUG
 
         public const int VanillaIterations = 1_000;
         public const int VanillaReportEveryNIterations = VanillaIterations;
