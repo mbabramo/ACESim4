@@ -486,6 +486,11 @@ namespace ACESim
             CurrentScenarioIndex = scenarioIndex;
         }
 
+        public virtual string GetFilterNameForScenario()
+        {
+            return null;
+        }
+
 
     }
 }

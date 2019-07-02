@@ -1020,7 +1020,16 @@ namespace ACESim
         public override void SetScenarioIndex(int scenarioIndex)
         {
             CurrentScenarioIndex = scenarioIndex;
-            Options.PTrialCosts = Options.DTrialCosts = 25_000 + 5_000 * scenarioIndex;
+            int warmupTrialCosts = 25_000 + 5_000 * scenarioIndex;
+            Options.PTrialCosts = Options.DTrialCosts = warmupTrialCosts;
+        }
+
+        public override string GetFilterNameForScenario()
+        {
+            if (NumScenariosToDevelop == 1)
+                return base.GetFilterNameForScenario();
+            int warmupTrialCosts = 25_000 + 5_000 * CurrentScenarioIndex;
+            return "WarmCosts" + warmupTrialCosts.ToString();
         }
 
         #endregion

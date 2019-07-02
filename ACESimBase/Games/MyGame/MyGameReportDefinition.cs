@@ -45,6 +45,11 @@ namespace ACESim
                     reports.Add(GetSignalsReport(b, true)); // i.e., if not simultaneous, report fraction relative to previous report
                 }
             }
+
+            if (NumScenariosToDevelop > 1)
+                foreach (var report in reports)
+                    report.MetaFilters.Add(new SimpleReportFilter(GetFilterNameForScenario(), x => true));
+
             return reports;
         }
 
