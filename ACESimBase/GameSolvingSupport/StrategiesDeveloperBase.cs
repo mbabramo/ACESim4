@@ -51,26 +51,10 @@ namespace ACESim
 
         #endregion
 
-        #region Interface implementation
+        #region Implementation of interface
 
 
         public abstract Task<string> RunAlgorithm(string reportName);
-
-        public virtual void ReinitializeForScenario(int scenario, bool warmupVersion)
-        {
-            GameDefinition.SetScenario(scenario, warmupVersion);
-            if (scenario > 0)
-            {
-                foreach (var node in FinalUtilitiesNodes)
-                    node.CurrentScenario = scenario;
-                CalculateMinMax();
-            }
-        }
-
-        public virtual int? IterationsForWarmupScenario()
-        {
-            return null; // not supported by default
-        }
 
         public async Task<string> DevelopStrategies(string reportName)
         {
@@ -159,6 +143,28 @@ namespace ACESim
         #endregion
 
         #region Initialization
+
+        public void InitializeInformationSets()
+        {
+            int numInformationSets = InformationSets.Count;
+            Parallel.For(0, numInformationSets, n => InformationSets[n].Initialize());
+        }
+
+        public virtual void ReinitializeForScenario(int scenario, bool warmupVersion)
+        {
+            GameDefinition.SetScenario(scenario, warmupVersion);
+            if (scenario > 0)
+            {
+                foreach (var node in FinalUtilitiesNodes)
+                    node.CurrentScenario = scenario;
+                CalculateMinMax();
+            }
+        }
+
+        public virtual int? IterationsForWarmupScenario()
+        {
+            return null; // not supported by default
+        }
 
         public void Reinitialize()
         {

@@ -22,12 +22,6 @@ namespace ACESim
 
         #region Game state management
 
-        public void InitializeInformationSets()
-        {
-            int numInformationSets = InformationSets.Count;
-            Parallel.For(0, numInformationSets, n => InformationSets[n].Initialize());
-        }
-
         public override IStrategiesDeveloper DeepCopy()
         {
             var created = new GeneralizedVanilla(Strategies, EvolutionSettings, GameDefinition, PostIterationUpdater);
