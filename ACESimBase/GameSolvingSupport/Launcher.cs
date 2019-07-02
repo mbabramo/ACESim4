@@ -19,7 +19,7 @@ namespace ACESim
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.FictitiousSelfPlay; // DEBUG
 
-        public const int VanillaIterations = 1_000; // DEBUG
+        public const int VanillaIterations = 500; // DEBUG
         public const int VanillaReportEveryNIterations = VanillaIterations;
         public const int VanillaBestResponseEveryMIterations = 1000; // DEBUG
         public const int MiniReportEveryPIterations = EffectivelyNever; 
@@ -59,29 +59,28 @@ namespace ACESim
 
         #region Launching
 
-        public async Task<string> Launch()
+        public async Task<(string standardReport, string csvReport)> Launch()
         {
-            string result;
+            (string standardReport, string csvReport) result;
             if (SingleGameMode)
                 result = await Launch_Single();
             else
                 result = await Launch_Multiple();
-            TabbedText.WriteLine(result);
+            TabbedText.WriteLine(result.standardReport);
             return result;
         }
 
-        public async Task<string> Launch_Single()
+        public async Task<(string standardReport, string csvReport)> Launch_Single()
         {
             var options = GetSingleGameOptions();
-            string report = "";
-            await ProcessSingleOptionSet(options, "Report", "Single", true);
-            return report;
+            (string standardReport, string csvReport) = await ProcessSingleOptionSet(options, "Report", "Single", true);
+            return (standardReport, csvReport);
         }
 
-        public async Task<string> Launch_Multiple()
+        public async Task<(string standardReport, string csvReport)> Launch_Multiple()
         {
             var optionSets = GetOptionsSets();
-            string combined = LocalDistributedProcessing ? await SimulateDistributedProcessingAlgorithm() : await ProcessAllOptionSetsLocally();
+            var combined = LocalDistributedProcessing ? await SimulateDistributedProcessingAlgorithm() : await ProcessAllOptionSetsLocally();
             return combined;
         }
 
@@ -178,7 +177,7 @@ namespace ACESim
 
         #region Distributed processing
 
-        public async Task<string> SimulateDistributedProcessingAlgorithm()
+        public async Task<(string standardReport, string csvReport)> SimulateDistributedProcessingAlgorithm()
         {
             string dateTimeString = OverrideDateTimeString ?? DateTime.Now.ToString("yyyy-MM-dd HH:mm");
             string masterReportName = MasterReportNameForDistributedProcessing + " " + dateTimeString;
@@ -195,7 +194,7 @@ namespace ACESim
                 await Task.WhenAll(tasks.ToArray());
             }
             var result = AzureBlob.GetBlobText("results", $"{masterReportName} AllCombined");
-            return result;
+            return (result, "");
         }
 
         public async Task ParticipateInDistributedProcessing(string masterReportName, CancellationToken cancellationToken, Action actionEachTime = null)
@@ -268,28 +267,28 @@ namespace ACESim
 
 
 
-        public async Task<string> ProcessAllOptionSetsLocally()
+        public async Task<(string standardReport, string csvReport)> ProcessAllOptionSetsLocally()
         {
             string masterReportName = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
 
             List<(string optionSetName, GameOptions options)> optionSets = GetOptionsSets();
             int numRepetitionsPerOptionSet = NumRepetitions;
-            string[] results = new string[optionSets.Count];
+            (string standardReport, string csvReport)[] results = new (string standardReport, string csvReport)[optionSets.Count];
 
             async Task SingleOptionSetAction(long index)
             {
                 var optionSet = optionSets[(int)index];
-                string optionSetResults = await ProcessSingleOptionSet(masterReportName, (int)index);
+                var optionSetResults = await ProcessSingleOptionSet(masterReportName, (int)index);
                 results[index] = optionSetResults;
             }
 
             Parallelizer.MaxDegreeOfParallelism = Environment.ProcessorCount;
             await Parallelizer.GoAsync(ParallelizeOptionSets, 0, optionSets.Count, SingleOptionSetAction);
-            string combinedResults = CombineResultsOfAllOptionSets(masterReportName, results.ToList());
-            return combinedResults;
+            string combinedResults = CombineResultsOfAllOptionSets(masterReportName, results.Select(x => x.standardReport).ToList());
+            return (combinedResults, String.Join("\n",results.Select(x => x.csvReport)));
         }
 
-        public async Task<string> ProcessSingleOptionSet(string masterReportName, int optionSetIndex)
+        public async Task<(string standardReport, string csvReport)> ProcessSingleOptionSet(string masterReportName, int optionSetIndex)
         {
             bool includeFirstLine = optionSetIndex == 0;
             var optionSet = GetOptionsSets()[optionSetIndex];
@@ -297,22 +296,23 @@ namespace ACESim
             return await ProcessSingleOptionSet(options, masterReportName, optionSet.reportName, includeFirstLine);
         }
 
-        public async Task<string> ProcessSingleOptionSet(GameOptions options, string masterReportName, string optionSetName, bool includeFirstLine)
+        public async Task<(string standardReport, string csvReport)> ProcessSingleOptionSet(GameOptions options, string masterReportName, string optionSetName, bool includeFirstLine)
         {
             string masterReportNamePlusOptionSet = $"{masterReportName} {optionSetName}";
             var developer = GetInitializedDeveloper(options);
             developer.EvolutionSettings.GameNumber = StartGameNumber;
+            (string standardReport, string csvReport) result = ("", "");
             List<string> combinedReports = new List<string>();
             for (int i = 0; i < NumRepetitions; i++)
             {
-                var result = await GetSingleRepetitionReportAndSave(masterReportName, options, optionSetName, i, developer);
+                result = await GetSingleRepetitionReportAndSave(masterReportName, options, optionSetName, i, developer);
                 combinedReports.Add(result.standardReport);
                 // AzureBlob.SerializeObject("results", reportName + " CRM", true, developer);
             }
             if (AzureEnabled)
-                return CombineResultsOfRepetitionsOfOptionSets(masterReportName, optionSetName, includeFirstLine, combinedReports);
+                return (CombineResultsOfRepetitionsOfOptionSets(masterReportName, optionSetName, includeFirstLine, combinedReports), result.csvReport);
             else
-                return "";
+                return result;
         }
 
 

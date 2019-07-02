@@ -80,8 +80,8 @@ namespace ACESim
                     launcher = new MyGameLauncher();
                     break;
             }
-            string launchResult = await launcher.Launch();
-            TextCopy.Clipboard.SetText(launchResult);
+            (string standardReport, string csvReport) launchResult = await launcher.Launch();
+            TextCopy.Clipboard.SetText(launchResult.standardReport);
             s.Stop();
             TabbedText.WriteLine($"Total runtime {s.Elapsed} ");
             TabbedText.WriteLine();
@@ -93,7 +93,7 @@ namespace ACESim
                     // Do something
                 }
             } while (Console.ReadKey(true).Key != ConsoleKey.Enter);
-            TextCopy.Clipboard.SetText(launchResult);
+            TextCopy.Clipboard.SetText(launchResult.standardReport);
         }
     }
 }
