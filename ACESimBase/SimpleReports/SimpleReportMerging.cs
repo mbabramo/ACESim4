@@ -98,7 +98,7 @@ namespace ACESim
             return differentiatedReport;
         }
 
-        private static string GetAggregatedCSV(List<string> variableNames, List<string> filterNames, Dictionary<string, List<ValueTuple<string, double?>>> aggregatedReport, bool includeFirstLine)
+        private static string GetAggregatedCSV(List<string> variableNames, List<string> filterNames, Dictionary<string, List<(string theString, double? value)>> aggregatedReport, bool includeFirstLine)
         {
             StringBuilder sb = new StringBuilder();
             if (includeFirstLine)
@@ -123,7 +123,7 @@ namespace ACESim
             return aggregatedCSV;
         }
 
-        private static void MergeCumulativeReportToDictionary(string cumulativeReport, string reportName, SimpleReportAggregations simpleReportAggregation, out List<string> variableNames, out List<string> filterNames, out Dictionary<string, List<ValueTuple<string, double?>>> aggregatedReport)
+        private static void MergeCumulativeReportToDictionary(string cumulativeReport, string reportName, SimpleReportAggregations simpleReportAggregation, out List<string> variableNames, out List<string> filterNames, out Dictionary<string, List<(string theString, double? value)>> aggregatedReport)
         {
             (string headerLine, List<string> otherLines) = GetHeaderLineAndOtherLines(cumulativeReport);
             variableNames = headerLine.Split(',').ToList();
