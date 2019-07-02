@@ -14,7 +14,6 @@ namespace ACESim
 {
     public abstract partial class StrategiesDeveloperBase : IStrategiesDeveloper
     {
-
         #region Options
 
         public static bool StoreGameStateNodesInLists = true;

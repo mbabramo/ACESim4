@@ -66,7 +66,7 @@ namespace ACESim
             return GetAggregatedCSV(variableNames, filterNames, aggregatedReport, includeFirstLine);
         }
 
-        public static string AddReportInformationColumns(string report, string reportName, string reportIteration, bool includeFirst)
+        public static string AddCSVReportInformationColumns(string report, string reportName, string reportIteration, bool includeFirst)
         {
             int numMainLines;
             StringBuilder sb = new StringBuilder();

@@ -101,6 +101,11 @@ namespace ACESim
                 {
                     Append(standardReport, csvReport, false, "Filter1", metaColumnWidth, false);
                 }
+                if (Definition.StaticTextColumns != null)
+                    foreach (var textColumn in Definition.StaticTextColumns)
+                    {
+                        Append(standardReport, csvReport, false, textColumn.textColumnName, 15, false);
+                    }
                 Append(standardReport, csvReport, false, printMetaColumn ? "Filter2" : "Filter", rowFilterColumnWidth, false);
                 foreach (SimpleReportColumnItem colItem in Definition.ColumnItems)
                     Append(standardReport, csvReport, false, colItem.Name, colItem.Width, colItem == lastColumn);
@@ -115,6 +120,11 @@ namespace ACESim
                 {
                     if (printMetaColumn)
                         Append(standardReport, csvReport, false, metaFilter.Name, metaColumnWidth, false);
+                    if (Definition.StaticTextColumns != null)
+                        foreach (var textColumn in Definition.StaticTextColumns)
+                        {
+                            Append(standardReport, csvReport, false, textColumn.textColumnContent, 15, false);
+                        }
                     Append(standardReport, csvReport, false, rowFilter.Name, rowFilterColumnWidth, false);
                     int c = 0;
                     foreach (SimpleReportColumnItem colItem in Definition.ColumnItems)

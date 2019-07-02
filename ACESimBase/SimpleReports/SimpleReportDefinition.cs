@@ -13,6 +13,7 @@ namespace ACESim
         public List<SimpleReportFilter> MetaFilters;
         public List<SimpleReportFilter> RowFilters;
         public List<SimpleReportColumnItem> ColumnItems;
+        public List<(string textColumnName, string textColumnContent)> StaticTextColumns; // same for every line of report to facilitate appending reports
         public bool DivideColumnFiltersByImmediatelyEarlierReport;
         public Func<Decision, GameProgress, byte> ActionsOverride;
 

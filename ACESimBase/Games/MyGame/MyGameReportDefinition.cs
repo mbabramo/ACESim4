@@ -48,7 +48,7 @@ namespace ACESim
 
             if (NumScenariosToDevelop > 1)
                 foreach (var report in reports)
-                    report.MetaFilters.Add(new SimpleReportFilter(GetFilterNameForScenario(), x => true));
+                    report.StaticTextColumns = new List<(string textColumnName, string textColumnContent)> { ("Scenario", GetNameForScenario()) }; 
 
             return reports;
         }

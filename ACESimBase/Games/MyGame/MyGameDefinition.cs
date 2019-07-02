@@ -1024,10 +1024,10 @@ namespace ACESim
             Options.PTrialCosts = Options.DTrialCosts = warmupTrialCosts;
         }
 
-        public override string GetFilterNameForScenario()
+        public override string GetNameForScenario()
         {
             if (NumScenariosToDevelop == 1)
-                return base.GetFilterNameForScenario();
+                return base.GetNameForScenario();
             int warmupTrialCosts = 25_000 + 5_000 * CurrentScenarioIndex;
             return "WarmCosts" + warmupTrialCosts.ToString();
         }
