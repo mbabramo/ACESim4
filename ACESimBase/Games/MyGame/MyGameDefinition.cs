@@ -1012,9 +1012,9 @@ namespace ACESim
             if (!UseMultipleScenarios)
                 return;
             if (scenario == 0)
-                Options.PTrialCosts = Options.DTrialCosts = 25_000;
-            else
                 Options.PTrialCosts = Options.DTrialCosts = 75_000;
+            else
+                Options.PTrialCosts = Options.DTrialCosts = 25_000;
         }
 
         #endregion

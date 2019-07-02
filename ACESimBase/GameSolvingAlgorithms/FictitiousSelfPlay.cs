@@ -9,6 +9,8 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
+    debug; // formalize what we initialize to and verify that initializing with a high-settlement strategy makes a difference
+
     public partial class FictitiousSelfPlay : StrategiesDeveloperBase
     {
         public bool AddNoiseToBestResponses = false;
