@@ -34,7 +34,7 @@ namespace ACESim
 
         public override async Task<(string standardReport, string csvReport)> RunAlgorithm(string reportName)
         {
-            string standardResult = "", csvResult = "";
+            string standardReport = "", csvReport = "";
             StrategiesDeveloperStopwatch.Reset();
             InitializeInformationSets();
             int iterationToReturnToBaselineScenario = EvolutionSettings.IterationsForWarmupScenario ?? - 1;
@@ -44,14 +44,14 @@ namespace ACESim
             for (int iteration = startingIteration; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
                 var result = await FictitiousSelfPlayIteration(iteration);
-                standardResult += result.standardReport;
-                csvResult += result.csvReport;
+                standardReport += result.standardReport;
+                csvReport += result.csvReport;
                 if (iteration == iterationToReturnToBaselineScenario)
                 {
                     ReinitializeForScenario(GameDefinition.BaselineScenarioIndex, false);
                 }
             }
-            return (standardResult, csvResult);
+            return (standardReport, csvReport);
         }
 
         private async Task<(string standardReport, string csvReport)> FictitiousSelfPlayIteration(int iteration)
@@ -63,7 +63,7 @@ namespace ACESim
 
             //double lambda2 = 1.0 / IterationNumDouble;
 
-            string standardResult = "", csvResult = "";
+            string standardReport = "", csvReport = "";
             double[] lastUtilities = new double[NumNonChancePlayers];
 
             CalculateBestResponse(true);
@@ -83,10 +83,10 @@ namespace ACESim
             var result = await GenerateReports(iteration,
                 () =>
                     $"Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
-            standardResult += result.standardReport;
-            csvResult += result.csvReport;
+            standardReport += result.standardReport;
+            csvReport += result.csvReport;
 
-            return (standardResult, csvResult);
+            return (standardReport, csvReport);
         }
 
         private void ZeroLowPorbabilities()

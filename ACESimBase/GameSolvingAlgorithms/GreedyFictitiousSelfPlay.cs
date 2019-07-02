@@ -179,7 +179,7 @@ namespace ACESim
 
         public override Task<(string standardReport, string csvReport)> RunAlgorithm(string reportName)
         {
-            string standardResult = "", csvResult = "";
+            string standardReport = "", csvReport = "";
             StrategiesDeveloperStopwatch.Reset();
             CalculateBestResponseAndGetFitness();
             for (int i = 0; i < NumPopulationMembers; i++)
@@ -189,10 +189,10 @@ namespace ACESim
 
             for (int iteration = 1; iteration <= 5000000; iteration++)
             {
-                (standardResult, csvResult) = GreedyIteration(iteration);
+                (standardReport, csvReport) = GreedyIteration(iteration);
             }
 
-            return Task.FromResult((standardResult, csvResult));
+            return Task.FromResult((standardReport, csvReport));
         }
 
         bool LastWasImprovement = true;

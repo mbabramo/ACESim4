@@ -80,7 +80,7 @@ namespace ACESim
 
         public async Task<(string standardReport, string csvReport)> Unroll_SolveGeneralizedVanillaCFR()
         {
-            string standardResult = "", csvResult = "";
+            string standardReport = "", csvReport = "";
             double[] array = new double[Unroll_SizeOfArray];
             for (int iteration = 1; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
@@ -100,8 +100,8 @@ namespace ACESim
                 var result = await GenerateReports(iteration,
                     () =>
                         $"Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
-                standardResult += result.standardReport;
-                csvResult += result.csvReport;
+                standardReport += result.standardReport;
+                csvReport += result.csvReport;
                 if (TraceCFR)
                 { // only trace through iteration
                     // There are a number of advanced settings in ArrayCommandList that must be disabled for this feature to work properly. 
@@ -110,7 +110,7 @@ namespace ACESim
                 if (EvolutionSettings.PruneOnOpponentStrategy && EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions)
                     CalculateReachProbabilitiesAndPrunability();
             }
-            return (standardResult, csvResult);
+            return (standardReport, csvReport);
         }
 
         public string TraceCommandList(double[] array)
@@ -729,18 +729,18 @@ namespace ACESim
         {
             if (EvolutionSettings.UnrollAlgorithm)
                 return await Unroll_SolveGeneralizedVanillaCFR();
-            string standardResult = "", csvResult = "";
+            string standardReport = "", csvReport = "";
             for (int iteration = 1; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
                 if (EvolutionSettings.CFRBR)
                     CalculateBestResponse(false);
                 var result = await GeneralizedVanillaCFRIteration(iteration);
-                standardResult += result.standardReport;
-                csvResult += result.csvReport;
+                standardReport += result.standardReport;
+                csvReport += result.csvReport;
                 if (EvolutionSettings.PruneOnOpponentStrategy && EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions)
                     CalculateReachProbabilitiesAndPrunability();
             }
-            return (standardResult, csvResult);
+            return (standardReport, csvReport);
         }
         private async Task<(string standardReport, string csvReport)> GeneralizedVanillaCFRIteration(int iteration)
         {
@@ -748,7 +748,7 @@ namespace ACESim
             IterationNum = iteration;
             CalculateDiscountingAdjustments();
 
-            string standardResult = "", csvResult = "";
+            string standardReport = "", csvReport = "";
             double[] lastUtilities = new double[NumNonChancePlayers];
 
             ActionStrategy = ActionStrategies.CurrentProbability;
@@ -765,10 +765,10 @@ namespace ACESim
             var result = await GenerateReports(iteration,
                 () =>
                     $"Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
-            standardResult += result.standardReport;
-            csvResult += result.csvReport;
+            standardReport += result.standardReport;
+            csvReport += result.csvReport;
 
-            return (standardResult, csvResult);
+            return (standardReport, csvReport);
         }
 
         private unsafe void GeneralizedVanillaCFRIteration_OptimizePlayer(int iteration, GeneralizedVanillaUtilities[] results, byte playerBeingOptimized)

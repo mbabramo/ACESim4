@@ -200,7 +200,7 @@ namespace ACESim
             int reportingGroupSize = EvolutionSettings.ReportEveryNIterations ??
                                      EvolutionSettings.TotalAvgStrategySamplingCFRIterations;
             Stopwatch s = new Stopwatch();
-            string standardResult = "", csvResult = "";
+            string standardReport = "", csvReport = "";
             for (int iterationGrouper = 0;
                 iterationGrouper < EvolutionSettings.TotalAvgStrategySamplingCFRIterations;
                 iterationGrouper += reportingGroupSize)
@@ -219,10 +219,10 @@ namespace ACESim
                 var result = await GenerateReports(iterationGrouper + reportingGroupSize,
                     () =>
                         $"Iteration {iterationGrouper + reportingGroupSize} Milliseconds per iteration {((s.ElapsedMilliseconds / ((double) reportingGroupSize)))}");
-                standardResult += result.standardReport;
-                csvResult += result.csvReport;
+                standardReport += result.standardReport;
+                csvReport += result.csvReport;
             }
-            return (standardResult, csvResult);
+            return (standardReport, csvReport);
         }
     }
 }

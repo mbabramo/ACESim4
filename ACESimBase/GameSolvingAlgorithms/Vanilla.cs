@@ -223,14 +223,14 @@ namespace ACESim
 
         public override async Task<(string standardReport, string csvReport)> RunAlgorithm(string reportName)
         {
-            string standardResult = "", csvResult = "";
+            string standardReport = "", csvReport = "";
             for (int iteration = 0; iteration < EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
                 var result = await VanillaCFRIteration(iteration);
-                standardResult += result.standardReport;
-                csvResult += result.csvReport;
+                standardReport += result.standardReport;
+                csvReport += result.csvReport;
             }
-            return (standardResult, csvResult);
+            return (standardReport, csvReport);
         }
 
         double PositiveRegretsAdjustment, NegativeRegretsAdjustment, AverageStrategyAdjustment, AverageStrategyAdjustmentAsPctOfMax;
@@ -239,7 +239,7 @@ namespace ACESim
             IterationNumDouble = iteration;
             SetDiscountingAdjustments();
 
-            string standardResult = "", csvResult = "";
+            string standardReport = "", csvReport = "";
             double[] lastUtilities = new double[NumNonChancePlayers];
 
             bool usePruning = false; // iteration >= 100;
@@ -249,9 +249,9 @@ namespace ACESim
             var result = await GenerateReports(iteration,
                 () =>
                     $"Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration + 1.0)))}");
-            standardResult += result.standardReport;
-            csvResult += result.csvReport;
-            return (standardResult, csvResult);
+            standardReport += result.standardReport;
+            csvReport += result.csvReport;
+            return (standardReport, csvReport);
         }
 
         private void SetDiscountingAdjustments()

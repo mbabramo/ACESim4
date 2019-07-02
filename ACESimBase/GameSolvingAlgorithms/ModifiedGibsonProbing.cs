@@ -432,7 +432,7 @@ namespace ACESim
             //TraceCFR = true;
             //GameProgressLogger.LoggingOn = true;
             GameProgressLogger.OutputLogMessages = true;
-            string standardResult = "", csvResult = "";
+            string standardReport = "", csvReport = "";
             GameNumber = EvolutionSettings.GameNumber;
             TabbedText.WriteLine($"{reportName } game number {GameNumber} ({DateTime.Now})");
             Stopwatch s = new Stopwatch();
@@ -471,10 +471,10 @@ namespace ACESim
                 var result = await GenerateReports(IterationNum,
                     () =>
                         $"Iteration {IterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)(IterationNum + 1))))}");
-                standardResult += result.standardReport;
-                csvResult += result.csvReport;
+                standardReport += result.standardReport;
+                csvReport += result.csvReport;
             }
-            return (standardResult, csvResult);
+            return (standardReport, csvReport);
         }
 
         private int ModifiedGibsonProbing_GetNextMultipleOf(int value, int multiple)

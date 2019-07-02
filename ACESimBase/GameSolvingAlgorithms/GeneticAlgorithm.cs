@@ -34,16 +34,16 @@ namespace ACESimBase.GameSolvingAlgorithms
 
         public override async Task<(string standardReport, string csvReport)> RunAlgorithm(string reportName)
         {
-            string standardResult = "", csvResult = "";
+            string standardReport = "", csvReport = "";
             Pop = new Population(InformationSets, CalculateBestResponseAndGetFitnessAndUtilities);
             StrategiesDeveloperStopwatch.Reset();
 
             for (int iteration = 1; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
-                (standardResult, csvResult) = await GeneticIteration(iteration, EvolutionSettings.TotalVanillaCFRIterations);
+                (standardReport, csvReport) = await GeneticIteration(iteration, EvolutionSettings.TotalVanillaCFRIterations);
             }
 
-            return (standardResult, csvResult);
+            return (standardReport, csvReport);
         }
 
 
@@ -55,11 +55,11 @@ namespace ACESimBase.GameSolvingAlgorithms
             string reportString = $"{iteration}: {Pop.Members[0].GameFitness}";
             TabbedText.WriteLine(reportString);
 
-            (string standardResult, string csvResult) = await GenerateReports(iteration,
+            (string standardReport, string csvReport) = await GenerateReports(iteration,
                 () =>
                     $"Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
 
-            return (standardResult, csvResult);
+            return (standardReport, csvReport);
         }
 
         public class PopulationMember
