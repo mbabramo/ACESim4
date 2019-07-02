@@ -529,7 +529,7 @@ namespace ACESim
             if (BestBecomesResult && iteration >= 3)
             {
                 double exploitability = BestResponseImprovement.Sum();
-                if (exploitability < BestExploitability)
+                if (exploitability < BestExploitability || iteration == 3)
                 {
                     Parallel.ForEach(InformationSets, informationSet => informationSet.CreateBackup());
                     BestExploitability = exploitability;
