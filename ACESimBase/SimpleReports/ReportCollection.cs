@@ -7,29 +7,66 @@ namespace ACESim
     public class ReportCollection
     {
         public string standardReport;
-        public string csvReport;
+        public List<string> csvReports;
 
         public ReportCollection()
         {
             standardReport = "";
-            csvReport = "";
+            csvReports = new List<string>();
         }
 
         public ReportCollection(string standard, string csv)
         {
             standardReport = standard;
-            csvReport = csv;
+            csvReports = new List<string>() { csv };
+        }
+
+        public ReportCollection(string standard, List<string> csvs)
+        {
+            standardReport = standard;
+            csvReports = csvs;
         }
 
         public void Add(string standard, string csv)
         {
             standardReport += standard;
-            csvReport += csv;
+            AddCSV(csv);
         }
 
         public void Add(ReportCollection other)
         {
-            Add(other.standardReport, other.csvReport);
+            standardReport += other.standardReport;
+            foreach (string csv in other.csvReports)
+                AddCSV(csv);
+        }
+
+        private void AddCSV(string csv)
+        {
+            if (csv == null || csv == "")
+                return;
+            string firstLineNew = FirstLine(csv);
+            int? match = null;
+            for (int i = 0; i < csvReports.Count; i++)
+            {
+                string existingReport = (string)csvReports[i];
+                string firstLineExisting = FirstLine(existingReport);
+                if (firstLineNew == firstLineExisting)
+                {
+                    match = i;
+                    break;
+                }
+            }
+            if (match != null)
+                csvReports[(int)match] += csv.Substring(firstLineNew.Length);
+            else
+                csvReports.Add(csv);
+        }
+
+        private static string FirstLine(string str)
+        {
+            if (string.IsNullOrWhiteSpace(str)) return str;
+            var newLinePos = str.IndexOf(Environment.NewLine, StringComparison.CurrentCulture);
+            return newLinePos > 0 ? str.Substring(0, newLinePos) : str;
         }
     }
 }

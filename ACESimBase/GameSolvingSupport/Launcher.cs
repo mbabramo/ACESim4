@@ -19,7 +19,7 @@ namespace ACESim
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.FictitiousSelfPlay; // DEBUG
 
-        public const int VanillaIterations = 500; // DEBUG
+        public const int VanillaIterations = 7000; // DEBUG
         public const int VanillaReportEveryNIterations = VanillaIterations;
         public const int VanillaBestResponseEveryMIterations = 1000; // DEBUG
         public const int MiniReportEveryPIterations = EffectivelyNever; 
@@ -285,7 +285,7 @@ namespace ACESim
             Parallelizer.MaxDegreeOfParallelism = Environment.ProcessorCount;
             await Parallelizer.GoAsync(ParallelizeOptionSets, 0, optionSets.Count, SingleOptionSetAction);
             string combinedResults = CombineResultsOfAllOptionSets(masterReportName, results.Select(x => x.standardReport).ToList());
-            return new ReportCollection(combinedResults, String.Join("\n",results.Select(x => x.csvReport))); // DEBUG
+            return new ReportCollection(combinedResults, String.Join("\n",results.Select(x => x.csvReports))); // DEBUG
         }
 
         public async Task<ReportCollection> ProcessSingleOptionSet(string masterReportName, int optionSetIndex, bool addOptionSetColumns)
@@ -310,7 +310,7 @@ namespace ACESim
                 // AzureBlob.SerializeObject("results", reportName + " CRM", true, developer);
             }
             if (AzureEnabled)
-                return new ReportCollection(CombineResultsOfRepetitionsOfOptionSets(masterReportName, optionSetName, includeFirstLine, combinedReports), result.csvReport); // DEBUG
+                return new ReportCollection(CombineResultsOfRepetitionsOfOptionSets(masterReportName, optionSetName, includeFirstLine, combinedReports), result.csvReports); // DEBUG
             else
                 return result;
         }
@@ -355,7 +355,7 @@ namespace ACESim
                 TabbedText.WriteLine(e.StackTrace);
                 goto retry;
             }
-            string singleRepetitionReport = addOptionSetColumns ? SimpleReportMerging.AddCSVReportInformationColumns(reportCollection.csvReport, optionSetName, reportIteration, i == 0) : reportCollection.csvReport;
+            string singleRepetitionReport = addOptionSetColumns ? SimpleReportMerging.AddCSVReportInformationColumns(reportCollection.csvReports.FirstOrDefault(), optionSetName, reportIteration, i == 0) : reportCollection.csvReports.FirstOrDefault(); // DEBUG
             return reportCollection;
         }
 

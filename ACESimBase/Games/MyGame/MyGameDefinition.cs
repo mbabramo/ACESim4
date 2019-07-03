@@ -1004,7 +1004,7 @@ namespace ACESim
 
         public bool PlayMultipleScenarios = true; // DEBUG // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
 
-        public int NumScenariosDefined = 2; // DEBUG
+        public int NumScenariosDefined = 11;
 
         public override int NumScenariosToDevelop => PlayMultipleScenarios ? NumScenariosDefined : 1;
         public override int NumScenariosToInitialize => NumScenariosDefined;
