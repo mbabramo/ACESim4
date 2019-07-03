@@ -126,6 +126,47 @@ namespace ACESim
         //}
     }
 
+    public static class FolderFinder
+    {
+        static Dictionary<string, DirectoryInfo> Locations = new Dictionary<string, DirectoryInfo>();
+
+        private static DirectoryInfo TryGetSolutionDirectoryInfo(string currentPath = null)
+        {
+            var directory = new DirectoryInfo(
+                currentPath ?? Directory.GetCurrentDirectory());
+            while (directory != null && !directory.GetFiles("*.sln").Any())
+            {
+                directory = directory.Parent;
+            }
+            return directory;
+        }
+
+        private static DirectoryInfo GetTopDirectory(string currentPath = null)
+        {
+            var directory = new DirectoryInfo(
+                currentPath ?? Directory.GetCurrentDirectory());
+            while (directory.Parent != null)
+            {
+                directory = directory.Parent;
+            }
+            return directory;
+        }
+
+        public static DirectoryInfo GetFolderToWriteTo(string folderName)
+        {
+            lock (Locations)
+                if (Locations.ContainsKey(folderName))
+                    return Locations[folderName];
+            DirectoryInfo containingDirectory = TryGetSolutionDirectoryInfo() ?? GetTopDirectory();
+            DirectoryInfo result = (containingDirectory.GetDirectories(folderName)).FirstOrDefault();
+            if (result == null)
+                result = containingDirectory.CreateSubdirectory(folderName);
+            lock (Locations)
+                Locations[folderName] = result;
+            return result;
+        }
+    }
+
     public static class TextFileCreate
     {
         public static void CreateTextFile(string filename, string theText)

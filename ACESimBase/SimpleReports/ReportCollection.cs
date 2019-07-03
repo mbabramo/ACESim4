@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Reflection;
 using System.Text;
 
 namespace ACESim
@@ -8,6 +10,8 @@ namespace ACESim
     {
         public string standardReport;
         public List<string> csvReports;
+
+        static int reportID = 0;
 
         public ReportCollection()
         {
@@ -38,6 +42,16 @@ namespace ACESim
             standardReport += other.standardReport;
             foreach (string csv in other.csvReports)
                 AddCSV(csv);
+            SaveLatest();
+        }
+
+        public void SaveLatest()
+        {
+            DirectoryInfo folder = FolderFinder.GetFolderToWriteTo("ReportResults");
+            TextFileCreate.CreateTextFile(Path.Combine(folder.FullName, "standardreport"), standardReport);
+            int i = 0;
+            foreach (string csv in csvReports)
+                TextFileCreate.CreateTextFile(Path.Combine(folder.FullName, "csvreport-" + i++.ToString() + ".csv"), csv);
         }
 
         private void AddCSV(string csv)
@@ -57,7 +71,10 @@ namespace ACESim
                 }
             }
             if (match != null)
+            {
                 csvReports[(int)match] += csv.Substring(firstLineNew.Length);
+                csvReports[(int)match] = csvReports[(int)match].Replace("\r\n\r\n", "\r\n");
+            }
             else
                 csvReports.Add(csv);
         }
