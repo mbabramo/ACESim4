@@ -83,12 +83,14 @@ namespace ACESim
             standardReport.Append(FormatTableString(text, columnWidth, isLastColumn));
         }
 
-        public void GetReport(StringBuilder standardReport, StringBuilder csvReport)
+        public ReportCollection BuildReport()
         {
+            StringBuilder standardReport = new StringBuilder();
+            StringBuilder csvReport = new StringBuilder();
             standardReport.AppendLine(Definition.Name);
             int? metaColumnWidth = null, rowFilterColumnWidth = null;
             if (!Definition.RowFilters.Any() || !Definition.ColumnItems.Any())
-                return;
+                return new ReportCollection() ;
             metaColumnWidth = Math.Max(9, Definition.MetaFilters.Max(x => x.Name.Length) + 3);
             rowFilterColumnWidth = Math.Max(9, Definition.RowFilters.Max(x => x.Name.Length) + 3);
             SimpleReportColumnItem lastColumn = Definition.ColumnItems.Last();
@@ -179,6 +181,7 @@ namespace ACESim
                     r++;
                 }
             }
+            return new ReportCollection(standardReport.ToString(), csvReport.ToString());
         }
 
         public static string FormatTableString(string s, int? width, bool isLastColumn)

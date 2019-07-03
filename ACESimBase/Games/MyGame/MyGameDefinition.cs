@@ -1028,7 +1028,7 @@ namespace ACESim
         {
             if (NumScenariosToDevelop == 1)
                 return base.GetNameForScenario();
-            int warmupTrialCosts = 25_000 + 5_000 * CurrentScenarioIndex;
+            int warmupTrialCosts = 25_000 + 5_000 * BaselineScenarioIndex;
             return "WarmCosts" + warmupTrialCosts.ToString();
         }
 

@@ -27,10 +27,10 @@ namespace ACESim
             return created;
         }
 
-        public override async Task<(string standardReport, string csvReport)> RunAlgorithm(string reportName)
+        public override async Task<ReportCollection> RunAlgorithm(string reportName)
         {
             await FindPureStrategies();
-            return ("", ""); // currently results are just written to console. 
+            return new ReportCollection(); // currently results are just written to console. 
         }
 
         public async Task FindPureStrategies()

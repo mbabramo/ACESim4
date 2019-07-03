@@ -190,7 +190,7 @@ namespace ACESim
             }
         }
 
-        public override async Task<(string standardReport, string csvReport)> RunAlgorithm(string reportName)
+        public override async Task<ReportCollection> RunAlgorithm(string reportName)
         {
             if (NumNonChancePlayers > 2)
                 throw new Exception(
@@ -200,7 +200,7 @@ namespace ACESim
             int reportingGroupSize = EvolutionSettings.ReportEveryNIterations ??
                                      EvolutionSettings.TotalAvgStrategySamplingCFRIterations;
             Stopwatch s = new Stopwatch();
-            string standardReport = "", csvReport = "";
+            ReportCollection reportCollection = new ReportCollection();
             for (int iterationGrouper = 0;
                 iterationGrouper < EvolutionSettings.TotalAvgStrategySamplingCFRIterations;
                 iterationGrouper += reportingGroupSize)
@@ -219,10 +219,9 @@ namespace ACESim
                 var result = await GenerateReports(iterationGrouper + reportingGroupSize,
                     () =>
                         $"Iteration {iterationGrouper + reportingGroupSize} Milliseconds per iteration {((s.ElapsedMilliseconds / ((double) reportingGroupSize)))}");
-                standardReport += result.standardReport;
-                csvReport += result.csvReport;
+                reportCollection.Add(result);
             }
-            return (standardReport, csvReport);
+            return reportCollection;
         }
     }
 }

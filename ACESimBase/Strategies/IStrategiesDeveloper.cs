@@ -8,8 +8,8 @@ namespace ACESim
     {
         List<Strategy> Strategies { get; set; }
         IStrategiesDeveloper DeepCopy();
-        Task<(string standardReport, string csvReport)> DevelopStrategies(string reportName);
-        Task<(string standardReport, string csvReport)> RunAlgorithm(string reportName);
+        Task<ReportCollection> DevelopStrategies(string reportName);
+        Task<ReportCollection> RunAlgorithm(string reportName);
         EvolutionSettings EvolutionSettings { get; set; }
 
         GameDefinition GameDefinition { get; set; }

@@ -32,9 +32,9 @@ namespace ACESim
             return EvolutionSettings.IterationsForWarmupScenario; // warmup is supported
         }
 
-        public override async Task<(string standardReport, string csvReport)> RunAlgorithm(string reportName)
+        public override async Task<ReportCollection> RunAlgorithm(string reportName)
         {
-            string standardReport = "", csvReport = "";
+            ReportCollection reportCollection = new ReportCollection();
             StrategiesDeveloperStopwatch.Reset();
             InitializeInformationSets();
             int iterationToReturnToBaselineScenario = EvolutionSettings.IterationsForWarmupScenario ?? - 1;
@@ -44,17 +44,16 @@ namespace ACESim
             for (int iteration = startingIteration; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
                 var result = await FictitiousSelfPlayIteration(iteration);
-                standardReport += result.standardReport;
-                csvReport += result.csvReport;
+                reportCollection.Add(result);
                 if (iteration == iterationToReturnToBaselineScenario)
                 {
                     ReinitializeForScenario(GameDefinition.BaselineScenarioIndex, false);
                 }
             }
-            return (standardReport, csvReport);
+            return reportCollection;
         }
 
-        private async Task<(string standardReport, string csvReport)> FictitiousSelfPlayIteration(int iteration)
+        private async Task<ReportCollection> FictitiousSelfPlayIteration(int iteration)
         {
             StrategiesDeveloperStopwatch.Start();
 
@@ -63,7 +62,7 @@ namespace ACESim
 
             //double lambda2 = 1.0 / IterationNumDouble;
 
-            string standardReport = "", csvReport = "";
+            ReportCollection reportCollection = new ReportCollection();
             double[] lastUtilities = new double[NumNonChancePlayers];
 
             CalculateBestResponse(true);
@@ -83,10 +82,9 @@ namespace ACESim
             var result = await GenerateReports(iteration,
                 () =>
                     $"Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
-            standardReport += result.standardReport;
-            csvReport += result.csvReport;
+            reportCollection.Add(result);
 
-            return (standardReport, csvReport);
+            return reportCollection;
         }
 
         private void ZeroLowPorbabilities()

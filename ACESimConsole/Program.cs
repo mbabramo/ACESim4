@@ -80,20 +80,22 @@ namespace ACESim
                     launcher = new MyGameLauncher();
                     break;
             }
-            (string standardReport, string csvReport) launchResult = await launcher.Launch();
+            ReportCollection launchResult = await launcher.Launch();
             TextCopy.Clipboard.SetText(launchResult.standardReport);
             s.Stop();
             TabbedText.WriteLine($"Total runtime {s.Elapsed} ");
             TabbedText.WriteLine();
-            TabbedText.WriteLine("Press Enter to end.");
+            TabbedText.WriteLine("Press Enter to end (copying standard report to clipboard).");
+            TabbedText.WriteLine("Press c to end (copying comma-separated report to clipboard).");
+            ConsoleKey key = Console.ReadKey(true).Key;
             do
             {
                 while (!Console.KeyAvailable)
                 {
                     // Do something
                 }
-            } while (Console.ReadKey(true).Key != ConsoleKey.Enter);
-            TextCopy.Clipboard.SetText(launchResult.standardReport);
+            } while (key != ConsoleKey.Enter && key != ConsoleKey.C);
+            TextCopy.Clipboard.SetText((key == ConsoleKey.C) ? launchResult.csvReport : launchResult.standardReport);
         }
     }
 }

@@ -59,9 +59,9 @@ namespace ACESim
 
         #region Launching
 
-        public async Task<(string standardReport, string csvReport)> Launch()
+        public async Task<ReportCollection> Launch()
         {
-            (string standardReport, string csvReport) result;
+            ReportCollection result;
             if (SingleGameMode)
                 result = await Launch_Single();
             else
@@ -70,14 +70,14 @@ namespace ACESim
             return result;
         }
 
-        public async Task<(string standardReport, string csvReport)> Launch_Single()
+        public async Task<ReportCollection> Launch_Single()
         {
             var options = GetSingleGameOptions();
-            (string standardReport, string csvReport) = await ProcessSingleOptionSet(options, "Report", "Single", true, false);
-            return (standardReport, csvReport);
+            ReportCollection reportCollection = await ProcessSingleOptionSet(options, "Report", "Single", true, false);
+            return reportCollection;
         }
 
-        public async Task<(string standardReport, string csvReport)> Launch_Multiple()
+        public async Task<ReportCollection> Launch_Multiple()
         {
             var optionSets = GetOptionsSets();
             var combined = LocalDistributedProcessing ? await SimulateDistributedProcessingAlgorithm() : await ProcessAllOptionSetsLocally();
@@ -177,7 +177,7 @@ namespace ACESim
 
         #region Distributed processing
 
-        public async Task<(string standardReport, string csvReport)> SimulateDistributedProcessingAlgorithm()
+        public async Task<ReportCollection> SimulateDistributedProcessingAlgorithm()
         {
             string dateTimeString = OverrideDateTimeString ?? DateTime.Now.ToString("yyyy-MM-dd HH:mm");
             string masterReportName = MasterReportNameForDistributedProcessing + " " + dateTimeString;
@@ -194,7 +194,7 @@ namespace ACESim
                 await Task.WhenAll(tasks.ToArray());
             }
             var result = AzureBlob.GetBlobText("results", $"{masterReportName} AllCombined");
-            return (result, "");
+            return new ReportCollection(result, "");
         }
 
         public async Task ParticipateInDistributedProcessing(string masterReportName, CancellationToken cancellationToken, Action actionEachTime = null)
@@ -267,13 +267,13 @@ namespace ACESim
 
 
 
-        public async Task<(string standardReport, string csvReport)> ProcessAllOptionSetsLocally()
+        public async Task<ReportCollection> ProcessAllOptionSetsLocally()
         {
             string masterReportName = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
 
             List<(string optionSetName, GameOptions options)> optionSets = GetOptionsSets();
             int numRepetitionsPerOptionSet = NumRepetitions;
-            (string standardReport, string csvReport)[] results = new (string standardReport, string csvReport)[optionSets.Count];
+            ReportCollection[] results = new ReportCollection[optionSets.Count];
 
             async Task SingleOptionSetAction(long index)
             {
@@ -285,10 +285,10 @@ namespace ACESim
             Parallelizer.MaxDegreeOfParallelism = Environment.ProcessorCount;
             await Parallelizer.GoAsync(ParallelizeOptionSets, 0, optionSets.Count, SingleOptionSetAction);
             string combinedResults = CombineResultsOfAllOptionSets(masterReportName, results.Select(x => x.standardReport).ToList());
-            return (combinedResults, String.Join("\n",results.Select(x => x.csvReport)));
+            return new ReportCollection(combinedResults, String.Join("\n",results.Select(x => x.csvReport))); // DEBUG
         }
 
-        public async Task<(string standardReport, string csvReport)> ProcessSingleOptionSet(string masterReportName, int optionSetIndex, bool addOptionSetColumns)
+        public async Task<ReportCollection> ProcessSingleOptionSet(string masterReportName, int optionSetIndex, bool addOptionSetColumns)
         {
             bool includeFirstLine = optionSetIndex == 0;
             var optionSet = GetOptionsSets()[optionSetIndex];
@@ -296,12 +296,12 @@ namespace ACESim
             return await ProcessSingleOptionSet(options, masterReportName, optionSet.reportName, includeFirstLine, addOptionSetColumns);
         }
 
-        public async Task<(string standardReport, string csvReport)> ProcessSingleOptionSet(GameOptions options, string masterReportName, string optionSetName, bool includeFirstLine, bool addOptionSetColumns)
+        public async Task<ReportCollection> ProcessSingleOptionSet(GameOptions options, string masterReportName, string optionSetName, bool includeFirstLine, bool addOptionSetColumns)
         {
             string masterReportNamePlusOptionSet = $"{masterReportName} {optionSetName}";
             var developer = GetInitializedDeveloper(options);
             developer.EvolutionSettings.GameNumber = StartGameNumber;
-            (string standardReport, string csvReport) result = ("", "");
+            ReportCollection result = new ReportCollection();
             List<string> combinedReports = new List<string>();
             for (int i = 0; i < NumRepetitions; i++)
             {
@@ -310,13 +310,13 @@ namespace ACESim
                 // AzureBlob.SerializeObject("results", reportName + " CRM", true, developer);
             }
             if (AzureEnabled)
-                return (CombineResultsOfRepetitionsOfOptionSets(masterReportName, optionSetName, includeFirstLine, combinedReports), result.csvReport);
+                return new ReportCollection(CombineResultsOfRepetitionsOfOptionSets(masterReportName, optionSetName, includeFirstLine, combinedReports), result.csvReport); // DEBUG
             else
                 return result;
         }
 
 
-        public async Task<(string standardReport, string csvReport)> GetSingleRepetitionReportAndSave(string masterReportName, int optionSetIndex, int repetition, bool addOptionSetColumns, IStrategiesDeveloper developer)
+        public async Task<ReportCollection> GetSingleRepetitionReportAndSave(string masterReportName, int optionSetIndex, int repetition, bool addOptionSetColumns, IStrategiesDeveloper developer)
         {
             bool includeFirstLine = optionSetIndex == 0;
             List<(string reportName, GameOptions options)> optionSets = GetOptionsSets();
@@ -325,7 +325,7 @@ namespace ACESim
             var result = await GetSingleRepetitionReportAndSave(masterReportName, options, optionSets[optionSetIndex].reportName, repetition, addOptionSetColumns, developer);
             return result;
         }
-        public async Task<(string standardReport, string csvReport)> GetSingleRepetitionReportAndSave(string masterReportName, GameOptions options, string optionSetName, int repetition, bool addOptionSetColumns, IStrategiesDeveloper developer)
+        public async Task<ReportCollection> GetSingleRepetitionReportAndSave(string masterReportName, GameOptions options, string optionSetName, int repetition, bool addOptionSetColumns, IStrategiesDeveloper developer)
         {
             string masterReportNamePlusOptionSet = $"{masterReportName} {optionSetName}";
             if (developer == null)
@@ -337,17 +337,17 @@ namespace ACESim
             return result;
         }
 
-        public async Task<(string standardReport, string csvReport)> GetSingleRepetitionReport(string optionSetName, int i, bool addOptionSetColumns, IStrategiesDeveloper developer)
+        public async Task<ReportCollection> GetSingleRepetitionReport(string optionSetName, int i, bool addOptionSetColumns, IStrategiesDeveloper developer)
         {
             developer.EvolutionSettings.GameNumber = StartGameNumber + i;
             string reportIteration = i.ToString();
             if (i > 0)
                 developer.Reinitialize();
-            (string standardReport, string csvReport) = ("", "");
+            ReportCollection reportCollection = new ReportCollection();
         retry:
             try
             {
-                (standardReport, csvReport) = await developer.DevelopStrategies(optionSetName);
+                reportCollection = await developer.DevelopStrategies(optionSetName);
             }
             catch (Exception e)
             {
@@ -355,8 +355,8 @@ namespace ACESim
                 TabbedText.WriteLine(e.StackTrace);
                 goto retry;
             }
-            string singleRepetitionReport = addOptionSetColumns ? SimpleReportMerging.AddCSVReportInformationColumns(csvReport, optionSetName, reportIteration, i == 0) : csvReport;
-            return (standardReport, csvReport);
+            string singleRepetitionReport = addOptionSetColumns ? SimpleReportMerging.AddCSVReportInformationColumns(reportCollection.csvReport, optionSetName, reportIteration, i == 0) : reportCollection.csvReport;
+            return reportCollection;
         }
 
         public string CombineResultsOfAllOptionSets(string masterReportName)

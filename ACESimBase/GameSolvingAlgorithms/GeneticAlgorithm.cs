@@ -32,34 +32,34 @@ namespace ACESimBase.GameSolvingAlgorithms
             return (BestResponseImprovementAdj.Sum(), BestResponseUtilities.ToArray());
         }
 
-        public override async Task<(string standardReport, string csvReport)> RunAlgorithm(string reportName)
+        public override async Task<ReportCollection> RunAlgorithm(string reportName)
         {
-            string standardReport = "", csvReport = "";
+            ReportCollection reportCollection = new ReportCollection();
             Pop = new Population(InformationSets, CalculateBestResponseAndGetFitnessAndUtilities);
             StrategiesDeveloperStopwatch.Reset();
 
             for (int iteration = 1; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
-                (standardReport, csvReport) = await GeneticIteration(iteration, EvolutionSettings.TotalVanillaCFRIterations);
+                reportCollection = await GeneticIteration(iteration, EvolutionSettings.TotalVanillaCFRIterations);
             }
 
-            return (standardReport, csvReport);
+            return reportCollection;
         }
 
 
 
-        private async Task<(string standardReport, string csvReport)> GeneticIteration(int iteration, int maxIteration)
+        private async Task<ReportCollection> GeneticIteration(int iteration, int maxIteration)
         {
             Pop.Generation(iteration, maxIteration);
 
             string reportString = $"{iteration}: {Pop.Members[0].GameFitness}";
             TabbedText.WriteLine(reportString);
 
-            (string standardReport, string csvReport) = await GenerateReports(iteration,
+            ReportCollection reportCollection = await GenerateReports(iteration,
                 () =>
                     $"Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
 
-            return (standardReport, csvReport);
+            return reportCollection;
         }
 
         public class PopulationMember

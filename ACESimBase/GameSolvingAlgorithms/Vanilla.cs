@@ -221,25 +221,24 @@ namespace ACESim
             return probabilityAdjustedExpectedValueParticularAction;
         }
 
-        public override async Task<(string standardReport, string csvReport)> RunAlgorithm(string reportName)
+        public override async Task<ReportCollection> RunAlgorithm(string reportName)
         {
-            string standardReport = "", csvReport = "";
+            ReportCollection reportCollection = new ReportCollection();
             for (int iteration = 0; iteration < EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
                 var result = await VanillaCFRIteration(iteration);
-                standardReport += result.standardReport;
-                csvReport += result.csvReport;
+                reportCollection.Add(result);
             }
-            return (standardReport, csvReport);
+            return reportCollection;
         }
 
         double PositiveRegretsAdjustment, NegativeRegretsAdjustment, AverageStrategyAdjustment, AverageStrategyAdjustmentAsPctOfMax;
-        private async Task<(string standardReport, string csvReport)> VanillaCFRIteration(int iteration)
+        private async Task<ReportCollection> VanillaCFRIteration(int iteration)
         {
             IterationNumDouble = iteration;
             SetDiscountingAdjustments();
 
-            string standardReport = "", csvReport = "";
+            ReportCollection reportCollection = new ReportCollection();
             double[] lastUtilities = new double[NumNonChancePlayers];
 
             bool usePruning = false; // iteration >= 100;
@@ -249,9 +248,8 @@ namespace ACESim
             var result = await GenerateReports(iteration,
                 () =>
                     $"Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration + 1.0)))}");
-            standardReport += result.standardReport;
-            csvReport += result.csvReport;
-            return (standardReport, csvReport);
+            reportCollection.Add(result);
+            return reportCollection;
         }
 
         private void SetDiscountingAdjustments()

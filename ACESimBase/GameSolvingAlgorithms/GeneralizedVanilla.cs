@@ -78,9 +78,9 @@ namespace ACESim
         private ArrayCommandList Unroll_Commands;
         private int Unroll_SizeOfArray;
 
-        public async Task<(string standardReport, string csvReport)> Unroll_SolveGeneralizedVanillaCFR()
+        public async Task<ReportCollection> Unroll_SolveGeneralizedVanillaCFR()
         {
-            string standardReport = "", csvReport = "";
+            ReportCollection reportCollection = new ReportCollection();
             double[] array = new double[Unroll_SizeOfArray];
             for (int iteration = 1; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
@@ -100,8 +100,7 @@ namespace ACESim
                 var result = await GenerateReports(iteration,
                     () =>
                         $"Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
-                standardReport += result.standardReport;
-                csvReport += result.csvReport;
+                reportCollection.Add(result);
                 if (TraceCFR)
                 { // only trace through iteration
                     // There are a number of advanced settings in ArrayCommandList that must be disabled for this feature to work properly. 
@@ -110,7 +109,7 @@ namespace ACESim
                 if (EvolutionSettings.PruneOnOpponentStrategy && EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions)
                     CalculateReachProbabilitiesAndPrunability();
             }
-            return (standardReport, csvReport);
+            return reportCollection;
         }
 
         public string TraceCommandList(double[] array)
@@ -725,30 +724,29 @@ namespace ACESim
             InitializeInformationSets();
         }
 
-        public override async Task<(string standardReport, string csvReport)> RunAlgorithm(string reportName)
+        public override async Task<ReportCollection> RunAlgorithm(string reportName)
         {
             if (EvolutionSettings.UnrollAlgorithm)
                 return await Unroll_SolveGeneralizedVanillaCFR();
-            string standardReport = "", csvReport = "";
+            ReportCollection reportCollection = new ReportCollection();
             for (int iteration = 1; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
             {
                 if (EvolutionSettings.CFRBR)
                     CalculateBestResponse(false);
                 var result = await GeneralizedVanillaCFRIteration(iteration);
-                standardReport += result.standardReport;
-                csvReport += result.csvReport;
+                reportCollection.Add(result);
                 if (EvolutionSettings.PruneOnOpponentStrategy && EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions)
                     CalculateReachProbabilitiesAndPrunability();
             }
-            return (standardReport, csvReport);
+            return reportCollection;
         }
-        private async Task<(string standardReport, string csvReport)> GeneralizedVanillaCFRIteration(int iteration)
+        private async Task<ReportCollection> GeneralizedVanillaCFRIteration(int iteration)
         {
             IterationNumDouble = iteration;
             IterationNum = iteration;
             CalculateDiscountingAdjustments();
 
-            string standardReport = "", csvReport = "";
+            ReportCollection reportCollection = new ReportCollection();
             double[] lastUtilities = new double[NumNonChancePlayers];
 
             ActionStrategy = ActionStrategies.CurrentProbability;
@@ -765,10 +763,9 @@ namespace ACESim
             var result = await GenerateReports(iteration,
                 () =>
                     $"Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
-            standardReport += result.standardReport;
-            csvReport += result.csvReport;
+            reportCollection.Add(result);
 
-            return (standardReport, csvReport);
+            return reportCollection;
         }
 
         private unsafe void GeneralizedVanillaCFRIteration_OptimizePlayer(int iteration, GeneralizedVanillaUtilities[] results, byte playerBeingOptimized)

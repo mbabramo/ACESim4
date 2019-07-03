@@ -240,9 +240,9 @@ namespace ACESim
 
         private int ProbingCFRIterationNum;
 
-        public async override Task<(string standardReport, string csvReport)> RunAlgorithm(string reportName)
+        public async override Task<ReportCollection> RunAlgorithm(string reportName)
         {
-            string standardReport = "", csvReport = "";
+            ReportCollection reportCollection = new ReportCollection();
             Stopwatch s = new Stopwatch();
             if (NumNonChancePlayers > 2)
                 throw new Exception(
@@ -258,10 +258,9 @@ namespace ACESim
                 var result = await GenerateReports(ProbingCFRIterationNum + 1,
                     () =>
                         $"Iteration {ProbingCFRIterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)(ProbingCFRIterationNum + 1))))}");
-                standardReport += result.standardReport;
-                csvReport += result.csvReport;
+                reportCollection.Add(result);
             }
-            return (standardReport, csvReport);
+            return reportCollection;
         }
     }
 }

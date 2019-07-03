@@ -53,13 +53,12 @@ namespace ACESim
         #region Implementation of interface
 
 
-        public abstract Task<(string standardReport, string csvReport)> RunAlgorithm(string reportName);
+        public abstract Task<ReportCollection> RunAlgorithm(string reportName);
 
-        public async Task<(string standardReport, string csvReport)> DevelopStrategies(string reportName)
+        public async Task<ReportCollection> DevelopStrategies(string reportName)
         {
             await Initialize();
-            StringBuilder multipleScenariosReport = new StringBuilder();
-            StringBuilder multipleScenariosReportCSV = new StringBuilder();
+            ReportCollection reportCollection = new ReportCollection();
             for (int s = 0; s < GameDefinition.NumScenariosToDevelop; s++)
             {
                 if (GameDefinition.NumScenariosToDevelop > 0)
@@ -69,10 +68,9 @@ namespace ACESim
                 var result = await RunAlgorithm(reportName);
                 if (EvolutionSettings.SerializeResults && s == 0)
                     StrategySerialization.SerializeStrategies(Strategies.ToArray(), "serstat.sst");
-                multipleScenariosReport.Append(result.standardReport);
-                multipleScenariosReportCSV.Append(result.csvReport);
+                reportCollection.Add(result);
             }
-            return (multipleScenariosReport.ToString(), multipleScenariosReportCSV.ToString());
+            return reportCollection;
         }
 
         public abstract IStrategiesDeveloper DeepCopy();
@@ -629,9 +627,9 @@ namespace ACESim
 
         #region Game play and reporting
 
-        public async Task<(string standardReport, string csvReport)> GenerateReports(int iteration, Func<string> prefaceFn)
+        public async Task<ReportCollection> GenerateReports(int iteration, Func<string> prefaceFn)
         {
-            (string standardReport, string csvReport) = ("", "");
+            ReportCollection reportCollection = new ReportCollection();
             bool doBestResponse = (EvolutionSettings.BestResponseEveryMIterations != null && iteration % EvolutionSettings.BestResponseEveryMIterations == 0 && EvolutionSettings.BestResponseEveryMIterations != EvolutionSettings.EffectivelyNever && iteration != 0);
             bool doReports = EvolutionSettings.ReportEveryNIterations != null && iteration % EvolutionSettings.ReportEveryNIterations == 0;
             if (doReports || doBestResponse)
@@ -660,9 +658,8 @@ namespace ACESim
                             ActionStrategyLastReport = ActionStrategy.ToString();
                             if (EvolutionSettings.GenerateReportsByPlaying)
                             {
-                                var reports = await GenerateReportsByPlaying(useRandomPaths);
-                                standardReport += reports.standardReport;
-                                csvReport += reports.csvReport;
+                                var result = await GenerateReportsByPlaying(useRandomPaths);
+                                reportCollection.Add(result);
                             }
                         }
                     ActionStrategy = previous;
@@ -680,11 +677,11 @@ namespace ACESim
                     AnalyzeInformationSets();
             }
 
-            return (standardReport, csvReport);
+            return reportCollection;
         }
 
         string ActionStrategyLastReport;
-        private async Task<(string standardReport, string csvReport)> GenerateReportsByPlaying(bool useRandomPaths)
+        private async Task<ReportCollection> GenerateReportsByPlaying(bool useRandomPaths)
         {
             Func<GamePlayer, Func<Decision, GameProgress, byte>, Task> reportGenerator;
             if (useRandomPaths)
@@ -977,7 +974,7 @@ namespace ACESim
 
         SimpleReport[] ReportsBeingGenerated = null;
 
-        public async Task<(string standardReport, string csvReport)> GenerateReportsByPlaying(Func<GamePlayer, Func<Decision, GameProgress, byte>, Task> generator)
+        public async Task<ReportCollection> GenerateReportsByPlaying(Func<GamePlayer, Func<Decision, GameProgress, byte>, Task> generator)
         {
             Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, InformationSets, ChanceNodes, FinalUtilitiesNodes, GetGameState, EvolutionSettings);
             StringBuilder standardReport = new StringBuilder();
@@ -986,16 +983,18 @@ namespace ACESim
             int simpleReportDefinitionsCount = simpleReportDefinitions.Count();
             ReportsBeingGenerated = new SimpleReport[simpleReportDefinitionsCount];
             GamePlayer.ReportingMode = true;
+            ReportCollection reportCollection = new ReportCollection();
             for (int i = 0; i < simpleReportDefinitionsCount; i++)
             {
                 ReportsBeingGenerated[i] = new SimpleReport(simpleReportDefinitions[i], simpleReportDefinitions[i].DivideColumnFiltersByImmediatelyEarlierReport ? ReportsBeingGenerated[i - 1] : null);
                 await generator(GamePlayer, simpleReportDefinitions[i].ActionsOverride);
-                ReportsBeingGenerated[i].GetReport(standardReport, csvReport);
+                ReportCollection result = ReportsBeingGenerated[i].BuildReport();
+                reportCollection.Add(result);
                 ReportsBeingGenerated[i] = null; // so we don't keep adding GameProgress to this report
             }
             GamePlayer.ReportingMode = false;
             ReportsBeingGenerated = null;
-            return (standardReport.ToString(), csvReport.ToString());
+            return reportCollection;
         }
 
         private StatCollectorArray UtilityCalculationsArray;
