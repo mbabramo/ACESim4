@@ -19,10 +19,11 @@ namespace ACESim
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.FictitiousSelfPlay;
 
-        public const int VanillaIterations = 15_000; 
+        public const int VanillaIterations = 1_000; 
         public const int VanillaReportEveryNIterations = VanillaIterations;
         public const int VanillaBestResponseEveryMIterations = 1000; 
-        public const int MiniReportEveryPIterations = EffectivelyNever; 
+        public const int MiniReportEveryPIterations = EffectivelyNever;
+        public const bool AlwaysSuppressReportPrinting = true;
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever; 
         public const int RecordPastValuesEveryNIterations = EffectivelyNever; // used for correlated equilibrium calculations
         public const bool UseRandomPathsForReporting = true; 
@@ -135,7 +136,7 @@ namespace ACESim
             {
                 MaxParallelDepth = 3, // we're parallelizing on the iteration level, so there is no need for further parallelization
                 ParallelOptimization = ParallelizeIndividualExecutions && !ParallelizeOptionSets && (SingleGameMode || !LocalDistributedProcessing),
-                SuppressReportPrinting = !SingleGameMode && (ParallelizeOptionSets || LocalDistributedProcessing),
+                SuppressReportPrinting = AlwaysSuppressReportPrinting || (!SingleGameMode && (ParallelizeOptionSets || LocalDistributedProcessing)),
 
                 GameNumber = StartGameNumber,
 

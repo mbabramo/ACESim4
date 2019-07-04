@@ -130,11 +130,11 @@ namespace ACESim
         public static MyGameOptions Custom2()
         {
             var options = BaseOptions();
-            options.NumDamagesStrengthPoints = 5; // DEBUG -- all below were 4 (except offers was 5)
+            options.NumDamagesStrengthPoints = 5; 
             options.NumDamagesSignals = 5;
             options.NumLiabilityStrengthPoints = 5;
             options.NumLiabilitySignals = 5;
-            options.NumOffers = 5;  // DEBUG
+            options.NumOffers = 5;  
             options.NumPotentialBargainingRounds = 1;
             options.AllowAbandonAndDefaults = true; // DEBUG
             options.IncludeAgreementToBargainDecisions = true; // DEBUG
@@ -153,13 +153,17 @@ namespace ACESim
             options.IncludeCourtSuccessReport = true;
 
             // DEBUG
-            double level = .10;
+            double level = .20; // DEBUG
             options.PLiabilityNoiseStdev = level;
             options.DLiabilityNoiseStdev = level;
             options.CourtLiabilityNoiseStdev = level;
             options.PDamagesNoiseStdev = level;
             options.DDamagesNoiseStdev = level;
             options.CourtDamagesNoiseStdev = level;
+
+            options.NumDamagesSignals = 1;
+            options.NumDamagesStrengthPoints = 1;
+            options.DamagesMax = options.DamagesMin = 100_000;
 
             //options.LoserPays = true;
             //options.LoserPaysAfterAbandonment = true;
