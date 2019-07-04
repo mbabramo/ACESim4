@@ -1004,7 +1004,7 @@ namespace ACESim
 
         public bool PlayMultipleScenarios = true; // DEBUG // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
 
-        public int NumScenariosDefined = 41;
+        public int NumScenariosDefined = 21;
 
         public override int NumScenariosToDevelop => PlayMultipleScenarios ? NumScenariosDefined : 1;
         public override int NumScenariosToInitialize => NumScenariosDefined;
@@ -1017,18 +1017,26 @@ namespace ACESim
             return baselineScenario;
         }
 
-        public override void SetScenarioIndex(int scenarioIndex)
+        public override void ChangeOptionsBasedOnScenarioIndex(int scenarioIndex)
         {
             CurrentScenarioIndex = scenarioIndex;
-            int warmupTrialCosts = 10_000 + 2_000 * scenarioIndex;
-            Options.PTrialCosts = Options.DTrialCosts = warmupTrialCosts;
+            int baselineCosts = 25_000;
+            int warmupTrialCosts = 0 + 5_000 * (scenarioIndex - 1);
+            int costs;
+            if (scenarioIndex == 0)
+                costs = baselineCosts;
+            else
+                costs = warmupTrialCosts;
+            Options.PTrialCosts = Options.DTrialCosts = costs;
         }
 
         public override string GetNameForScenario()
         {
             if (NumScenariosToDevelop == 1)
                 return base.GetNameForScenario();
-            int warmupTrialCosts = 10_000 + 2_000 * BaselineScenarioIndex;
+            int warmupTrialCosts = 0 + 5_000 * (BaselineScenarioIndex - 1);
+            if (BaselineScenarioIndex == 0)
+                warmupTrialCosts = 25_000; // warmup is same as baseline in base scenario
             return "WarmCosts" + warmupTrialCosts.ToString();
         }
 
