@@ -150,6 +150,12 @@ namespace ACESim
             options.PerPartyCostsLeadingUpToBargainingRound = 0;
             options.PTrialCosts = options.DTrialCosts = 25_000;
 
+            // DEBUG -- spread 25_000 out over litigation
+            options.PTrialCosts = 10_000;
+            options.DTrialCosts = 10_000;
+            options.PerPartyCostsLeadingUpToBargainingRound = 7_500;
+            options.NumPotentialBargainingRounds = 2;
+
             options.IncludeCourtSuccessReport = true;
 
             // DEBUG
@@ -161,9 +167,9 @@ namespace ACESim
             options.DDamagesNoiseStdev = level;
             options.CourtDamagesNoiseStdev = level;
 
-            //options.NumDamagesSignals = 1;
-            //options.NumDamagesStrengthPoints = 1;
-            //options.DamagesMax = options.DamagesMin = 100_000;
+            options.NumDamagesSignals = 1;
+            options.NumDamagesStrengthPoints = 1;
+            options.DamagesMax = options.DamagesMin = 100_000;
 
             //options.LoserPays = true;
             //options.LoserPaysAfterAbandonment = true;
