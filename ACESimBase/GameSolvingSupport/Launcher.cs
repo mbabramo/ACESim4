@@ -67,7 +67,6 @@ namespace ACESim
                 result = await Launch_Single();
             else
                 result = await Launch_Multiple();
-            TabbedText.WriteLine(result.standardReport);
             return result;
         }
 
