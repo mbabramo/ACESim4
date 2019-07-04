@@ -1017,6 +1017,8 @@ namespace ACESim
             return baselineScenario;
         }
 
+        bool warmupChangeForDefendantOnly = true; // DEBUG
+
         public override void ChangeOptionsBasedOnScenarioIndex(int scenarioIndex)
         {
             CurrentScenarioIndex = scenarioIndex;
@@ -1028,6 +1030,8 @@ namespace ACESim
             else
                 costs = warmupTrialCosts;
             Options.PTrialCosts = Options.DTrialCosts = costs;
+            if (warmupChangeForDefendantOnly)
+                Options.DTrialCosts = baselineCosts;
         }
 
         public override string GetNameForScenario()

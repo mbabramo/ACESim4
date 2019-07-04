@@ -5,28 +5,28 @@
 "WarmCosts25000","PLiabilitySignal 3",0,,,,,
 "WarmCosts25000","PLiabilitySignal 4",0,,,,,
 "WarmCosts25000","PLiabilitySignal 5",0,,,,,
-"WarmCosts0","All",1,0,0,0.000391083,0.000391083,0
+"WarmCosts0","All",1,0,0,0,0,0
 "WarmCosts0","PLiabilitySignal 1",0,,,,,
-"WarmCosts0","PLiabilitySignal 2",0.0004,0,0,1,0,0
-"WarmCosts0","PLiabilitySignal 3",0.0004,0,0,0,1,0
-"WarmCosts0","PLiabilitySignal 4",0.0004,0,0,0,0,0
+"WarmCosts0","PLiabilitySignal 2",0.2262,0,0,0,0,0
+"WarmCosts0","PLiabilitySignal 3",0,,,,,
+"WarmCosts0","PLiabilitySignal 4",0,,,,,
 "WarmCosts0","PLiabilitySignal 5",0,,,,,
 "WarmCosts5000","All",1,0,0,0,0,0
 "WarmCosts5000","PLiabilitySignal 1",0,,,,,
-"WarmCosts5000","PLiabilitySignal 2",0,,,,,
-"WarmCosts5000","PLiabilitySignal 3",0.462,0,0,0,0,0
-"WarmCosts5000","PLiabilitySignal 4",0.0459,0,0,0,0,0
+"WarmCosts5000","PLiabilitySignal 2",0.2382,0,0,0,0,0
+"WarmCosts5000","PLiabilitySignal 3",0,,,,,
+"WarmCosts5000","PLiabilitySignal 4",0,,,,,
 "WarmCosts5000","PLiabilitySignal 5",0,,,,,
 "WarmCosts10000","All",1,0,0,0,0,0
 "WarmCosts10000","PLiabilitySignal 1",0,,,,,
-"WarmCosts10000","PLiabilitySignal 2",0,,,,,
-"WarmCosts10000","PLiabilitySignal 3",0.4345,0,0,0,0,0
-"WarmCosts10000","PLiabilitySignal 4",0,,,,,
+"WarmCosts10000","PLiabilitySignal 2",0.4314,0,0,0,0,0
+"WarmCosts10000","PLiabilitySignal 3",0.3878,0,0,0,0,0
+"WarmCosts10000","PLiabilitySignal 4",0.1059,0,0,0,0,0
 "WarmCosts10000","PLiabilitySignal 5",0,,,,,
 "WarmCosts15000","All",1,0,0,0,0,0
 "WarmCosts15000","PLiabilitySignal 1",0,,,,,
 "WarmCosts15000","PLiabilitySignal 2",0,,,,,
-"WarmCosts15000","PLiabilitySignal 3",0,,,,,
+"WarmCosts15000","PLiabilitySignal 3",0.0006,0,0,0,0,0
 "WarmCosts15000","PLiabilitySignal 4",0,,,,,
 "WarmCosts15000","PLiabilitySignal 5",0,,,,,
 "WarmCosts20000","All",1,0,0,0,0,0
@@ -41,22 +41,22 @@
 "WarmCosts25000","PLiabilitySignal 3",0,,,,,
 "WarmCosts25000","PLiabilitySignal 4",0,,,,,
 "WarmCosts25000","PLiabilitySignal 5",0,,,,,
-"WarmCosts30000","All",1,0,0,0,0.000842815,0.000421408
+"WarmCosts30000","All",1,0,0,0.00041841,0,0
 "WarmCosts30000","PLiabilitySignal 1",0,,,,,
-"WarmCosts30000","PLiabilitySignal 2",0.0004,0,0,0,0,0
-"WarmCosts30000","PLiabilitySignal 3",0.2802,0,0,0,0.00300752,0
-"WarmCosts30000","PLiabilitySignal 4",0.0775,0,0,0,0,0.00543478
-"WarmCosts30000","PLiabilitySignal 5",0.0169,0,0,0,0,0
+"WarmCosts30000","PLiabilitySignal 2",0,,,,,
+"WarmCosts30000","PLiabilitySignal 3",0.5795,0,0,0,0,0
+"WarmCosts30000","PLiabilitySignal 4",0.0222,0,0,0.0188679,0,0
+"WarmCosts30000","PLiabilitySignal 5",0.0033,0,0,0,0,0
 "WarmCosts35000","All",1,0,0,0,0,0
 "WarmCosts35000","PLiabilitySignal 1",0,,,,,
 "WarmCosts35000","PLiabilitySignal 2",0,,,,,
-"WarmCosts35000","PLiabilitySignal 3",0,,,,,
-"WarmCosts35000","PLiabilitySignal 4",0,,,,,
-"WarmCosts35000","PLiabilitySignal 5",0,,,,,
-"WarmCosts40000","All",1,0,0,0.000678426,0,0
+"WarmCosts35000","PLiabilitySignal 3",0.6563,0,0,0,0,0
+"WarmCosts35000","PLiabilitySignal 4",0.1462,0,0,0,0,0
+"WarmCosts35000","PLiabilitySignal 5",0.0291,0,0,0,0,0
+"WarmCosts40000","All",1,0,0,0,0,0
 "WarmCosts40000","PLiabilitySignal 1",0,,,,,
 "WarmCosts40000","PLiabilitySignal 2",0,,,,,
-"WarmCosts40000","PLiabilitySignal 3",0.0007,0,0,1,0,0
+"WarmCosts40000","PLiabilitySignal 3",0.5837,0,0,0,0,0
 "WarmCosts40000","PLiabilitySignal 4",0,,,,,
 "WarmCosts40000","PLiabilitySignal 5",0,,,,,
 "WarmCosts45000","All",1,0,0,0,0,0
@@ -65,63 +65,63 @@
 "WarmCosts45000","PLiabilitySignal 3",0,,,,,
 "WarmCosts45000","PLiabilitySignal 4",0,,,,,
 "WarmCosts45000","PLiabilitySignal 5",0,,,,,
-"WarmCosts50000","All",1,0,0,0,0.0357356,0
+"WarmCosts50000","All",1,0,0,0,0,0
 "WarmCosts50000","PLiabilitySignal 1",0,,,,,
 "WarmCosts50000","PLiabilitySignal 2",0,,,,,
-"WarmCosts50000","PLiabilitySignal 3",0.0244,0,0,0,1,0
-"WarmCosts50000","PLiabilitySignal 4",0.0024,0,0,0,1,0
-"WarmCosts50000","PLiabilitySignal 5",0.0089,0,0,0,1,0
+"WarmCosts50000","PLiabilitySignal 3",0,,,,,
+"WarmCosts50000","PLiabilitySignal 4",0.0011,0,0,0,0,0
+"WarmCosts50000","PLiabilitySignal 5",0,,,,,
 "WarmCosts55000","All",1,0,0,0,0,0
 "WarmCosts55000","PLiabilitySignal 1",0,,,,,
 "WarmCosts55000","PLiabilitySignal 2",0,,,,,
 "WarmCosts55000","PLiabilitySignal 3",0,,,,,
 "WarmCosts55000","PLiabilitySignal 4",0,,,,,
-"WarmCosts55000","PLiabilitySignal 5",0,,,,,
+"WarmCosts55000","PLiabilitySignal 5",0.0005,0,0,0,0,0
 "WarmCosts60000","All",1,0,0,0,0,0
 "WarmCosts60000","PLiabilitySignal 1",0,,,,,
 "WarmCosts60000","PLiabilitySignal 2",0,,,,,
 "WarmCosts60000","PLiabilitySignal 3",0,,,,,
 "WarmCosts60000","PLiabilitySignal 4",0,,,,,
 "WarmCosts60000","PLiabilitySignal 5",0,,,,,
-"WarmCosts65000","All",1,0,0,0,0,0
+"WarmCosts65000","All",1,0,0,0,0.000923361,0
 "WarmCosts65000","PLiabilitySignal 1",0,,,,,
 "WarmCosts65000","PLiabilitySignal 2",0,,,,,
-"WarmCosts65000","PLiabilitySignal 3",0,,,,,
-"WarmCosts65000","PLiabilitySignal 4",0,,,,,
+"WarmCosts65000","PLiabilitySignal 3",0.0009,0,0,0,1,0
+"WarmCosts65000","PLiabilitySignal 4",0.0018,0,0,0,0,0
 "WarmCosts65000","PLiabilitySignal 5",0,,,,,
 "WarmCosts70000","All",1,0,0,0,0,0
 "WarmCosts70000","PLiabilitySignal 1",0,,,,,
 "WarmCosts70000","PLiabilitySignal 2",0,,,,,
 "WarmCosts70000","PLiabilitySignal 3",0,,,,,
 "WarmCosts70000","PLiabilitySignal 4",0,,,,,
-"WarmCosts70000","PLiabilitySignal 5",0,,,,,
-"WarmCosts75000","All",1,0,0,0,0,0
+"WarmCosts70000","PLiabilitySignal 5",0.0016,0,0,0,0,0
+"WarmCosts75000","All",1,0,0.00077101,0,0,0
 "WarmCosts75000","PLiabilitySignal 1",0,,,,,
 "WarmCosts75000","PLiabilitySignal 2",0,,,,,
 "WarmCosts75000","PLiabilitySignal 3",0,,,,,
-"WarmCosts75000","PLiabilitySignal 4",0,,,,,
+"WarmCosts75000","PLiabilitySignal 4",0.0093,0,0.0833333,0,0,0
 "WarmCosts75000","PLiabilitySignal 5",0,,,,,
 "WarmCosts80000","All",1,0,0,0,0,0
 "WarmCosts80000","PLiabilitySignal 1",0,,,,,
 "WarmCosts80000","PLiabilitySignal 2",0,,,,,
 "WarmCosts80000","PLiabilitySignal 3",0,,,,,
 "WarmCosts80000","PLiabilitySignal 4",0,,,,,
-"WarmCosts80000","PLiabilitySignal 5",0,,,,,
+"WarmCosts80000","PLiabilitySignal 5",0.0016,0,0,0,0,0
 "WarmCosts85000","All",1,0,0,0,0,0
-"WarmCosts85000","PLiabilitySignal 1",0.4668,0,0,0,0,0
-"WarmCosts85000","PLiabilitySignal 2",0.3413,0,0,0,0,0
-"WarmCosts85000","PLiabilitySignal 3",0.0003,0,0,0,0,0
+"WarmCosts85000","PLiabilitySignal 1",0,,,,,
+"WarmCosts85000","PLiabilitySignal 2",0,,,,,
+"WarmCosts85000","PLiabilitySignal 3",0,,,,,
 "WarmCosts85000","PLiabilitySignal 4",0,,,,,
-"WarmCosts85000","PLiabilitySignal 5",0,,,,,
-"WarmCosts90000","All",1,0,0,0,0,0
+"WarmCosts85000","PLiabilitySignal 5",0.0006,0,0,0,0,0
+"WarmCosts90000","All",1,0,0.000582411,0,0,0.000582411
 "WarmCosts90000","PLiabilitySignal 1",0,,,,,
 "WarmCosts90000","PLiabilitySignal 2",0,,,,,
-"WarmCosts90000","PLiabilitySignal 3",0.0006,0,0,0,0,0
-"WarmCosts90000","PLiabilitySignal 4",0.0037,0,0,0,0,0
-"WarmCosts90000","PLiabilitySignal 5",0.0068,0,0,0,0,0
-"WarmCosts95000","All",1,0,0.00191205,0.00191205,0.00152964,0.000382409
-"WarmCosts95000","PLiabilitySignal 1",0.0004,0,0,0,1,0
-"WarmCosts95000","PLiabilitySignal 2",0.0008,0,0,0.5,0,0
-"WarmCosts95000","PLiabilitySignal 3",0.0023,0,0.833333,0,0.166667,0
-"WarmCosts95000","PLiabilitySignal 4",0.008,0,0,0.190476,0.0952381,0
-"WarmCosts95000","PLiabilitySignal 5",0.0069,0,0,0,0,0.0555556
+"WarmCosts90000","PLiabilitySignal 3",0,,,,,
+"WarmCosts90000","PLiabilitySignal 4",0.0012,0,0.5,0,0,0.5
+"WarmCosts90000","PLiabilitySignal 5",0,,,,,
+"WarmCosts95000","All",1,0,0,0,0,0
+"WarmCosts95000","PLiabilitySignal 1",0,,,,,
+"WarmCosts95000","PLiabilitySignal 2",0,,,,,
+"WarmCosts95000","PLiabilitySignal 3",0,,,,,
+"WarmCosts95000","PLiabilitySignal 4",0,,,,,
+"WarmCosts95000","PLiabilitySignal 5",0,,,,,
