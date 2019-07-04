@@ -153,7 +153,7 @@ namespace ACESim
             options.IncludeCourtSuccessReport = true;
 
             // DEBUG
-            double level = .20; // DEBUG
+            double level = .10; 
             options.PLiabilityNoiseStdev = level;
             options.DLiabilityNoiseStdev = level;
             options.CourtLiabilityNoiseStdev = level;
@@ -161,9 +161,9 @@ namespace ACESim
             options.DDamagesNoiseStdev = level;
             options.CourtDamagesNoiseStdev = level;
 
-            options.NumDamagesSignals = 1;
-            options.NumDamagesStrengthPoints = 1;
-            options.DamagesMax = options.DamagesMin = 100_000;
+            //options.NumDamagesSignals = 1;
+            //options.NumDamagesStrengthPoints = 1;
+            //options.DamagesMax = options.DamagesMin = 100_000;
 
             //options.LoserPays = true;
             //options.LoserPaysAfterAbandonment = true;
