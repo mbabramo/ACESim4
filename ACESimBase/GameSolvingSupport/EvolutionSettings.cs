@@ -22,7 +22,9 @@ namespace ACESim
         public int? MiniReportEveryPIterations = 1000;
         public bool MeasureRegretMatchingChanges = false;
         public bool UseRandomPathsForReporting = true;
-        public bool SerializeResults = false;
+        public bool SerializeResults = true; // DEBUG
+        public string SerializeResultsPrefix = "serstrat";
+        public string SerializeResultsPrefixPlus(int scenario, int totalScenarios) => SerializeResultsPrefix + (totalScenarios > 0 ? scenario.ToString() : "");
 
         // The following apply to  average strategy sampling. The MCCFR algorithm is not guaranteed to visit all information sets. There is a trade-off, however. When we use epsilon policy exploration, whether for the player being optimized or for the opponent, we change the dynamics of the game. Perhaps, for example, it will make sense not to take a settlement that is valuable so long as there is some small chance that the opponent will engage in policy exploration and agree to a deal that is bad for the opponent. Similarly, a player's own earlier or later exploration can affect the player's own moves; if I might make a bad move later, then maybe I should play what otherwise would be suboptimally now. 
         public bool UseEpsilonOnPolicyForOpponent = true;

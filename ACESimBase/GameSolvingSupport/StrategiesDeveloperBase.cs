@@ -66,8 +66,8 @@ namespace ACESim
                 if (s > 0)
                     ReinitializeForScenario(s, IterationsForWarmupScenario() != null);
                 var result = await RunAlgorithm(reportName);
-                if (EvolutionSettings.SerializeResults && s == 0)
-                    StrategySerialization.SerializeStrategies(Strategies.ToArray(), "serstat.sst");
+                if (EvolutionSettings.SerializeResults)
+                    StrategySerialization.SerializeStrategies(Strategies.ToArray(), EvolutionSettings.SerializeResultsPrefixPlus(s, GameDefinition.NumScenariosToDevelop));
                 reportCollection.Add(result);
             }
             return reportCollection;
