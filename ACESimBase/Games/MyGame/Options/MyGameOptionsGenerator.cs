@@ -153,8 +153,9 @@ namespace ACESim
             // DEBUG -- spread 25_000 out over litigation
             options.PTrialCosts = 10_000;
             options.DTrialCosts = 10_000;
-            options.PerPartyCostsLeadingUpToBargainingRound = 5_000;
-            options.NumPotentialBargainingRounds = 3;
+            options.PerPartyCostsLeadingUpToBargainingRound = 7_500;
+            options.NumPotentialBargainingRounds = 2;
+            options.AllowAbandonAndDefaults = false; // DEBUG
 
             options.IncludeCourtSuccessReport = true;
 
