@@ -12,7 +12,7 @@ namespace ACESimBase.GameSolvingSupport
 
         public override void PrepareForUpdating(int iteration, EvolutionSettings evolutionSettings)
         {
-            Perturbation = evolutionSettings.Perturbation_BasedOnCurve(iteration, evolutionSettings.TotalVanillaCFRIterations);
+            Perturbation = evolutionSettings.Perturbation_BasedOnCurve(iteration, evolutionSettings.TotalIterations);
             UseCFRPlus = evolutionSettings.UseCFRPlusInRegretMatching;
         }
 

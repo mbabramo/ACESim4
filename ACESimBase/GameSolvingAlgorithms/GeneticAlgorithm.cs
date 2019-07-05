@@ -38,9 +38,9 @@ namespace ACESimBase.GameSolvingAlgorithms
             Pop = new Population(InformationSets, CalculateBestResponseAndGetFitnessAndUtilities);
             StrategiesDeveloperStopwatch.Reset();
 
-            for (int iteration = 1; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
+            for (int iteration = 1; iteration <= EvolutionSettings.TotalIterations; iteration++)
             {
-                reportCollection = await GeneticIteration(iteration, EvolutionSettings.TotalVanillaCFRIterations);
+                reportCollection = await GeneticIteration(iteration, EvolutionSettings.TotalIterations);
             }
 
             return reportCollection;

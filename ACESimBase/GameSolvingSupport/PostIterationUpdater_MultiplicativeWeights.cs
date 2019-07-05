@@ -11,7 +11,7 @@ namespace ACESimBase.GameSolvingSupport
 
         public override void PrepareForUpdating(int iteration, EvolutionSettings evolutionSettings)
         {
-            MultiplicativeWeightsEpsilon = evolutionSettings.MultiplicativeWeightsEpsilon(iteration, evolutionSettings.TotalVanillaCFRIterations);
+            MultiplicativeWeightsEpsilon = evolutionSettings.MultiplicativeWeightsEpsilon(iteration, evolutionSettings.TotalIterations);
 
         }
 

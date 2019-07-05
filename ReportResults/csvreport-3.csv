@@ -1,127 +1,19 @@
 "Scenario","Filter","All","D1 0.17  ","D1 0.33  ","D1 0.5  ","D1 0.67  ","D1 0.83  "
-"WarmCosts25000","All",1,0.573591,0.122383,0,0,0.304026
-"WarmCosts25000","DLiabilitySignal 1",0.0939,1,0,0,0,0
-"WarmCosts25000","DLiabilitySignal 2",0.2322,1,0,0,0,0
-"WarmCosts25000","DLiabilitySignal 3",0.2279,1,0,0,0,0
-"WarmCosts25000","DLiabilitySignal 4",0.3237,0.0606965,0,0,0,0.939303
-"WarmCosts25000","DLiabilitySignal 5",0,,,,,
-"WarmCosts0","All",1,0.0727651,0,0.380919,0,0
-"WarmCosts0","DLiabilitySignal 1",0,,,,,
-"WarmCosts0","DLiabilitySignal 2",0.0725,1,0,0,0,0
-"WarmCosts0","DLiabilitySignal 3",0.3809,0,0,1,0,0
-"WarmCosts0","DLiabilitySignal 4",0,,,,,
-"WarmCosts0","DLiabilitySignal 5",0,,,,,
-"WarmCosts5000","All",1,0.6929,0,0,0,0
-"WarmCosts5000","DLiabilitySignal 1",0,,,,,
-"WarmCosts5000","DLiabilitySignal 2",0.2275,1,0,0,0,0
-"WarmCosts5000","DLiabilitySignal 3",0.4654,1,0,0,0,0
-"WarmCosts5000","DLiabilitySignal 4",0,,,,,
-"WarmCosts5000","DLiabilitySignal 5",0,,,,,
-"WarmCosts10000","All",1,0.687283,0,0,0,0.312717
-"WarmCosts10000","DLiabilitySignal 1",0.0997,1,0,0,0,0
-"WarmCosts10000","DLiabilitySignal 2",0.2337,1,0,0,0,0
-"WarmCosts10000","DLiabilitySignal 3",0.3539,1,0,0,0,0
-"WarmCosts10000","DLiabilitySignal 4",0.3127,0,0,0,0,1
-"WarmCosts10000","DLiabilitySignal 5",0,,,,,
-"WarmCosts15000","All",1,0.851695,0,0.0301695,0,0.118136
-"WarmCosts15000","DLiabilitySignal 1",0.1036,1,0,0,0,0
-"WarmCosts15000","DLiabilitySignal 2",0.2232,1,0,0,0,0
-"WarmCosts15000","DLiabilitySignal 3",0.3615,1,0,0,0,0
-"WarmCosts15000","DLiabilitySignal 4",0.2698,0.562186,0,0,0,0.437814
-"WarmCosts15000","DLiabilitySignal 5",0,,,,,
-"WarmCosts20000","All",1,0.995308,0.00273705,0,0,0.00195503
-"WarmCosts20000","DLiabilitySignal 1",0.0696,1,0,0,0,0
-"WarmCosts20000","DLiabilitySignal 2",0.1951,0.998998,0.001002,0,0,0
-"WarmCosts20000","DLiabilitySignal 3",0.3783,1,0,0,0,0
-"WarmCosts20000","DLiabilitySignal 4",0.3546,0.993936,0.00110254,0,0,0.00496141
-"WarmCosts20000","DLiabilitySignal 5",0.0002,0,0,0,0,1
-"WarmCosts25000","All",1,0.574095,0.129043,0,0,0.296862
-"WarmCosts25000","DLiabilitySignal 1",0.1006,1,0,0,0,0
-"WarmCosts25000","DLiabilitySignal 2",0.2222,1,0,0,0,0
-"WarmCosts25000","DLiabilitySignal 3",0.232,1,0,0,0,0
-"WarmCosts25000","DLiabilitySignal 4",0.3162,0.0610687,0,0,0,0.938931
-"WarmCosts25000","DLiabilitySignal 5",0,,,,,
-"WarmCosts30000","All",1,0.77594,0,0,0,0.22406
-"WarmCosts30000","DLiabilitySignal 1",0,,,,,
-"WarmCosts30000","DLiabilitySignal 2",0,,,,,
-"WarmCosts30000","DLiabilitySignal 3",0,,,,,
-"WarmCosts30000","DLiabilitySignal 4",0,,,,,
-"WarmCosts30000","DLiabilitySignal 5",0,,,,,
-"WarmCosts35000","All",1,0.568287,0.00092908,0,0.430784,0
-"WarmCosts35000","DLiabilitySignal 1",0.0249,1,0,0,0,0
-"WarmCosts35000","DLiabilitySignal 2",0.1126,1,0,0,0,0
-"WarmCosts35000","DLiabilitySignal 3",0.2772,0.996648,0.00335196,0,0,0
-"WarmCosts35000","DLiabilitySignal 4",0.2886,0.535408,0,0,0.464592,0
-"WarmCosts35000","DLiabilitySignal 5",0.2967,0,0,0,1,0
-"WarmCosts40000","All",1,0.389724,0,0,0.610276,0
-"WarmCosts40000","DLiabilitySignal 1",0,,,,,
-"WarmCosts40000","DLiabilitySignal 2",0,,,,,
-"WarmCosts40000","DLiabilitySignal 3",0,,,,,
-"WarmCosts40000","DLiabilitySignal 4",0.2915,0,0,0,1,0
-"WarmCosts40000","DLiabilitySignal 5",0.3188,0,0,0,1,0
-"WarmCosts45000","All",1,0.417668,0.124396,0.0001239,0.457812,0
-"WarmCosts45000","DLiabilitySignal 1",0.074,1,0,0,0,0
-"WarmCosts45000","DLiabilitySignal 2",0.1751,1,0,0,0,0
-"WarmCosts45000","DLiabilitySignal 3",0.2764,0.583595,0.416405,0,0,0
-"WarmCosts45000","DLiabilitySignal 4",0.2342,0.0312169,0.0396825,0,0.929101,0
-"WarmCosts45000","DLiabilitySignal 5",0.2404,0,0,0.000515464,0.999485,0
-"WarmCosts50000","All",1,0.3761,0.4219,0.202,0,0
-"WarmCosts50000","DLiabilitySignal 1",0.1847,1,0,0,0,0
-"WarmCosts50000","DLiabilitySignal 2",0.1914,1,0,0,0,0
-"WarmCosts50000","DLiabilitySignal 3",0.2276,0,1,0,0,0
-"WarmCosts50000","DLiabilitySignal 4",0.1943,0,1,0,0,0
-"WarmCosts50000","DLiabilitySignal 5",0,,,,,
-"WarmCosts55000","All",1,0.508847,0,0.491153,0,0
-"WarmCosts55000","DLiabilitySignal 1",0.0814,1,0,0,0,0
-"WarmCosts55000","DLiabilitySignal 2",0.1705,1,0,0,0,0
-"WarmCosts55000","DLiabilitySignal 3",0.257,1,0,0,0,0
-"WarmCosts55000","DLiabilitySignal 4",0,,,,,
-"WarmCosts55000","DLiabilitySignal 5",0,,,,,
-"WarmCosts60000","All",1,0,0.384,0.616,0,0
-"WarmCosts60000","DLiabilitySignal 1",0.188,0,1,0,0,0
-"WarmCosts60000","DLiabilitySignal 2",0.196,0,1,0,0,0
-"WarmCosts60000","DLiabilitySignal 3",0,,,,,
-"WarmCosts60000","DLiabilitySignal 4",0,,,,,
-"WarmCosts60000","DLiabilitySignal 5",0,,,,,
-"WarmCosts65000","All",1,0.1218,0.1822,0.696,0,0
-"WarmCosts65000","DLiabilitySignal 1",0.1899,0.31069,0.3307,0.35861,0,0
-"WarmCosts65000","DLiabilitySignal 2",0.191,0.328796,0.625131,0.0460733,0,0
-"WarmCosts65000","DLiabilitySignal 3",0,,,,,
-"WarmCosts65000","DLiabilitySignal 4",0,,,,,
-"WarmCosts65000","DLiabilitySignal 5",0,,,,,
-"WarmCosts70000","All",1,0,1,0,0,0
-"WarmCosts70000","DLiabilitySignal 1",0.1989,0,1,0,0,0
-"WarmCosts70000","DLiabilitySignal 2",0.1897,0,1,0,0,0
-"WarmCosts70000","DLiabilitySignal 3",0.2297,0,1,0,0,0
-"WarmCosts70000","DLiabilitySignal 4",0.1945,0,1,0,0,0
-"WarmCosts70000","DLiabilitySignal 5",0.1872,0,1,0,0,0
-"WarmCosts75000","All",1,0.261022,0.738978,0,0,0
-"WarmCosts75000","DLiabilitySignal 1",0.0769,1,0,0,0,0
-"WarmCosts75000","DLiabilitySignal 2",0.1841,1,0,0,0,0
-"WarmCosts75000","DLiabilitySignal 3",0.2833,0,1,0,0,0
-"WarmCosts75000","DLiabilitySignal 4",0.226,0,1,0,0,0
-"WarmCosts75000","DLiabilitySignal 5",0.2297,0,1,0,0,0
-"WarmCosts80000","All",1,0.250491,0.749509,0,0,0
-"WarmCosts80000","DLiabilitySignal 1",0.0776,1,0,0,0,0
-"WarmCosts80000","DLiabilitySignal 2",0.1729,1,0,0,0,0
-"WarmCosts80000","DLiabilitySignal 3",0.2774,0,1,0,0,0
-"WarmCosts80000","DLiabilitySignal 4",0.2366,0,1,0,0,0
-"WarmCosts80000","DLiabilitySignal 5",0.2355,0,1,0,0,0
-"WarmCosts85000","All",,,,,,
-"WarmCosts85000","DLiabilitySignal 1",,,,,,
-"WarmCosts85000","DLiabilitySignal 2",,,,,,
-"WarmCosts85000","DLiabilitySignal 3",,,,,,
-"WarmCosts85000","DLiabilitySignal 4",,,,,,
-"WarmCosts85000","DLiabilitySignal 5",,,,,,
-"WarmCosts90000","All",,,,,,
-"WarmCosts90000","DLiabilitySignal 1",,,,,,
-"WarmCosts90000","DLiabilitySignal 2",,,,,,
-"WarmCosts90000","DLiabilitySignal 3",,,,,,
-"WarmCosts90000","DLiabilitySignal 4",,,,,,
-"WarmCosts90000","DLiabilitySignal 5",,,,,,
-"WarmCosts95000","All",,,,,,
-"WarmCosts95000","DLiabilitySignal 1",,,,,,
-"WarmCosts95000","DLiabilitySignal 2",,,,,,
-"WarmCosts95000","DLiabilitySignal 3",,,,,,
-"WarmCosts95000","DLiabilitySignal 4",,,,,,
-"WarmCosts95000","DLiabilitySignal 5",,,,,,
+"WarmCosts25000","All",1,0.187719,0.20926,0.0984753,0.129389,0.0879843
+"WarmCosts25000","DLiabilitySignal 1",0.1182,0.465089,0.121893,0.127811,0.133728,0.151479
+"WarmCosts25000","DLiabilitySignal 2",0.156,0.488789,0.127354,0.113901,0.13722,0.132735
+"WarmCosts25000","DLiabilitySignal 3",0.1452,0.131021,0.492293,0.133911,0.125241,0.117534
+"WarmCosts25000","DLiabilitySignal 4",0.1673,0.127926,0.522575,0.12291,0.12709,0.0994983
+"WarmCosts25000","DLiabilitySignal 5",0.1262,0.127494,0.127494,0.202882,0.41796,0.124169
+"WarmCosts0","All",1,0.255396,0.208495,0.0896514,0.0857775,0.0841173
+"WarmCosts0","DLiabilitySignal 1",0.1245,0.481111,0.12,0.141111,0.132222,0.125556
+"WarmCosts0","DLiabilitySignal 2",0.1652,0.523451,0.138191,0.122278,0.102178,0.113903
+"WarmCosts0","DLiabilitySignal 3",0.1454,0.521408,0.114177,0.129401,0.118934,0.11608
+"WarmCosts0","DLiabilitySignal 4",0.174,0.115262,0.54531,0.108108,0.118442,0.112878
+"WarmCosts0","DLiabilitySignal 5",0.1143,0.115012,0.51816,0.124697,0.127119,0.115012
+"WarmCosts5000","All",1,0.25318,0.199077,0.0905914,0.0872361,0.0914302
+"WarmCosts5000","DLiabilitySignal 1",0.1239,0.462754,0.147856,0.141084,0.134312,0.113995
+"WarmCosts5000","DLiabilitySignal 2",0.1543,0.524457,0.105978,0.122283,0.108696,0.138587
+"WarmCosts5000","DLiabilitySignal 3",0.1476,0.511364,0.135417,0.122159,0.105114,0.125947
+"WarmCosts5000","DLiabilitySignal 4",0.1701,0.141331,0.474938,0.127362,0.130649,0.125719
+"WarmCosts5000","DLiabilitySignal 5",0.1255,0.122494,0.506682,0.115813,0.128062,0.126949

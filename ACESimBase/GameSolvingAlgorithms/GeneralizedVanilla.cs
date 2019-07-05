@@ -82,7 +82,7 @@ namespace ACESim
         {
             ReportCollection reportCollection = new ReportCollection();
             double[] array = new double[Unroll_SizeOfArray];
-            for (int iteration = 1; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
+            for (int iteration = 1; iteration <= EvolutionSettings.TotalIterations; iteration++)
             {
                 // uncomment to skip a player
                 //if (iteration == 5001)
@@ -729,7 +729,7 @@ namespace ACESim
             if (EvolutionSettings.UnrollAlgorithm)
                 return await Unroll_SolveGeneralizedVanillaCFR();
             ReportCollection reportCollection = new ReportCollection();
-            for (int iteration = 1; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
+            for (int iteration = 1; iteration <= EvolutionSettings.TotalIterations; iteration++)
             {
                 if (EvolutionSettings.CFRBR)
                     CalculateBestResponse(false);
@@ -798,7 +798,7 @@ namespace ACESim
                     if (sumBestResponseImprovements > lastSumBestResponseImprovements)
                     {
                         // Things got worse! Consider rejecting.
-                        if (!EvolutionSettings.AcceptSimulatedAnnealingIfWorse(iteration, EvolutionSettings.TotalVanillaCFRIterations))
+                        if (!EvolutionSettings.AcceptSimulatedAnnealingIfWorse(iteration, EvolutionSettings.TotalIterations))
                         {
                             // Reject -- that is, revert to previous backup. We will then have a different epsilon value in the next set (since iterations keep marching forward), so we may have a different outcome, and even if we don't, we may accept.
                             Parallel.ForEach(InformationSets, informationSet => informationSet.RestoreBackup());

@@ -41,7 +41,7 @@ namespace ACESim
             int startingIteration = 2;
             if (iterationToReturnToBaselineScenario < startingIteration)
                 iterationToReturnToBaselineScenario = startingIteration;
-            for (int iteration = startingIteration; iteration <= EvolutionSettings.TotalVanillaCFRIterations; iteration++)
+            for (int iteration = startingIteration; iteration <= EvolutionSettings.TotalIterations; iteration++)
             {
                 var result = await FictitiousSelfPlayIteration(iteration);
                 reportCollection.Add(result);
@@ -71,11 +71,13 @@ namespace ACESim
             if (AddNoiseToBestResponses)
                 Parallel.ForEach(InformationSets, informationSet => informationSet.AddNoiseToBestResponse(0.10, iteration));
 
+            double perturbation = EvolutionSettings.Perturbation_BasedOnCurve(iteration, EvolutionSettings.TotalIterations);
+
             if (!EvolutionSettings.ParallelOptimization)
                 foreach (var informationSet in InformationSets)
-                    informationSet.MoveAverageStrategyTowardBestResponse(iteration, EvolutionSettings.TotalVanillaCFRIterations);
+                    informationSet.MoveAverageStrategyTowardBestResponse(iteration, EvolutionSettings.TotalIterations, perturbation);
             else
-                Parallel.ForEach(InformationSets, informationSet => informationSet.MoveAverageStrategyTowardBestResponse(iteration, EvolutionSettings.TotalVanillaCFRIterations));
+                Parallel.ForEach(InformationSets, informationSet => informationSet.MoveAverageStrategyTowardBestResponse(iteration, EvolutionSettings.TotalIterations, perturbation));
 
             StrategiesDeveloperStopwatch.Stop();
 

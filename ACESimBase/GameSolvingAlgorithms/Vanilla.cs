@@ -224,7 +224,7 @@ namespace ACESim
         public override async Task<ReportCollection> RunAlgorithm(string reportName)
         {
             ReportCollection reportCollection = new ReportCollection();
-            for (int iteration = 0; iteration < EvolutionSettings.TotalVanillaCFRIterations; iteration++)
+            for (int iteration = 0; iteration < EvolutionSettings.TotalIterations; iteration++)
             {
                 var result = await VanillaCFRIteration(iteration);
                 reportCollection.Add(result);

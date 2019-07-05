@@ -91,7 +91,7 @@ namespace ACESim
             if (RecordPastValues)
             {
                 SuppressRecordWhileDiscounting = evolutionSettings.SuppressRecordingWhileDiscounting;
-                NumPastValuesToStore = (evolutionSettings.TotalVanillaCFRIterations - (evolutionSettings.SuppressRecordingWhileDiscounting ? evolutionSettings.StopDiscountingAtIteration : 0)) / RecordPastValuesEveryN;
+                NumPastValuesToStore = (evolutionSettings.TotalIterations - (evolutionSettings.SuppressRecordingWhileDiscounting ? evolutionSettings.StopDiscountingAtIteration : 0)) / RecordPastValuesEveryN;
                 PastValues = new double[NumPastValuesToStore, NumPossibleActions];
                 PastValuesCumulativeStrategyDiscounts = new double[NumPastValuesToStore];
                 LastPastValueIndexRecorded = -1;
@@ -370,7 +370,7 @@ namespace ACESim
                 BestResponseMayReachHere = PredecessorInformationSetForPlayer.BestResponseAction == ActionTakenAtPredecessorSet;
         }
 
-        public void MoveAverageStrategyTowardBestResponse(int iteration, int maxIterations)
+        public void MoveAverageStrategyTowardBestResponse(int iteration, int maxIterations, double perturbation = 0)
         {
             if (!BestResponseMayReachHere && iteration > 2)
             {
@@ -384,11 +384,11 @@ namespace ACESim
             const double maxWeightOnBestResponse = 0.5; // DEBUG
             if (weightOnBestResponse > maxWeightOnBestResponse || !LastBestResponseMayReachHere)
                 weightOnBestResponse = maxWeightOnBestResponse;
-            MoveAverageStrategyTowardBestResponse(weightOnBestResponse);
+            MoveAverageStrategyTowardBestResponse(weightOnBestResponse, perturbation);
             LastBestResponseMayReachHere = BestResponseMayReachHere;
         }
 
-        private void MoveAverageStrategyTowardBestResponse(double weightOnBestResponse)
+        private void MoveAverageStrategyTowardBestResponse(double weightOnBestResponse, double perturbation = 0)
         {
             double total = 0;
             for (byte action = 1; action <= NumPossibleActions; action++)
@@ -402,6 +402,25 @@ namespace ACESim
             }
             if (Math.Abs(total - 1.0) > 1E-8)
                 throw new Exception();
+            if (perturbation != 0)
+                PerturbAverageStrategy(perturbation, true);
+        }
+
+        public void PerturbAverageStrategy(double minValueForEachAction, bool includeCumulativeStrategy)
+        {
+            double totalPerturbation = NumPossibleActions * minValueForEachAction;
+            if (totalPerturbation > 1.0)
+            {
+                totalPerturbation = 1.0;
+                minValueForEachAction = 1.0 / NumPossibleActions;
+            }
+            double remainingAfterPerturbation = 1.0 - totalPerturbation;
+            for (byte action = 1; action <= NumPossibleActions; action++)
+            {
+                NodeInformation[averageStrategyProbabilityDimension, action - 1] = minValueForEachAction + NodeInformation[averageStrategyProbabilityDimension, action - 1] * remainingAfterPerturbation;
+                if (includeCumulativeStrategy)
+                    NodeInformation[cumulativeStrategyDimension, action - 1] = NodeInformation[averageStrategyProbabilityDimension, action - 1];
+            }
         }
 
         #endregion

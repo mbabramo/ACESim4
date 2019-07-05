@@ -13,7 +13,7 @@ namespace ACESim
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching;
         public int TotalAvgStrategySamplingCFRIterations = 100000;
         public int TotalProbingCFRIterations = 100000;
-        public int TotalVanillaCFRIterations = 100000;
+        public int TotalIterations = 100000;
         public int? ReportEveryNIterations = 100;
         public int CorrelatedEquilibriumCalculationsEveryNIterations = 100000;
         public const int EffectivelyNever = 999999999;
@@ -72,14 +72,14 @@ namespace ACESim
         public bool Discounting_DeriveGamma = true; // if true, gamma is derived so that at the specified proportion of iterations, the discount is the specified proportion of the discount that will exist at the maximum iteration
         public double DiscountingTarget_ProportionOfIterations = 0.25;
         public double DiscountingTarget_TargetDiscount = 0.001;
-        public int StopDiscountingAtIteration => (int)(TotalVanillaCFRIterations * DiscountingTarget_ConstantAfterProportionOfIterations);
+        public int StopDiscountingAtIteration => (int)(TotalIterations * DiscountingTarget_ConstantAfterProportionOfIterations);
         public void CalculateGamma()
         {
             if (!Discounting_DeriveGamma)
                 return;
             // we want (pt/(pt+1))^gamma = d * (t/(t+1))^gamma. 
             double p = DiscountingTarget_ProportionOfIterations;
-            double t = TotalVanillaCFRIterations;
+            double t = TotalIterations;
 
             Discounting_Gamma = Math.Log(DiscountingTarget_TargetDiscount) / (Math.Log(p * t / (p * t + 1)) - Math.Log(t / (t + 1)));
         }
@@ -126,9 +126,9 @@ namespace ACESim
 
         }
 
-        public double PerturbationInitial = 0.001; 
+        public double PerturbationInitial = 0.1; // DEBUG
         public double PerturbationFinal = 0.0;
-        public double PerturbationCurvature = 1.0;
+        public double PerturbationCurvature = 5.0;
         public double Perturbation_BasedOnCurve(int iteration, int maxIteration) => MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(PerturbationInitial, PerturbationFinal, PerturbationCurvature, ((double)(iteration - 1)) / (double)maxIteration);
 
         public bool UseCFRPlusInRegretMatching = true; // if true, then cumulative regrets never fall below zero

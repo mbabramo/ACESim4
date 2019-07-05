@@ -536,7 +536,7 @@ namespace ACESim
                     BestIteration = iteration;
                     LastBestResponseImprovement = BestResponseImprovement.ToArray();
                 }
-                if (iteration == EvolutionSettings.TotalVanillaCFRIterations)
+                if (iteration == EvolutionSettings.TotalIterations)
                 {
                     Parallel.ForEach(InformationSets, informationSet => informationSet.RestoreBackup());
                     BestResponseImprovement = LastBestResponseImprovement.ToArray();
@@ -907,7 +907,7 @@ namespace ACESim
             var historyPointCopy = historyPoint;
 
             bool includeZeroProbabilityActions = true; // may be relevant for counts
-            bool roundOffPlayerActionsNearZeroOrOne = true;  // DEBUG
+            bool roundOffPlayerActionsNearZeroOrOne = false;  // DEBUG
 
             await Parallelizer.GoAsync(EvolutionSettings.ParallelOptimization, 1, (byte)(numPossibleActions + 1), async (action) =>
             {
@@ -1334,7 +1334,7 @@ namespace ACESim
                 correlatedEquilibriumResults[correlatedEquilibriumIterationIndex, p1CvC_Index] = (double)parameters[5];
                 correlatedEquilibriumResults[correlatedEquilibriumIterationIndex, p0BRvC_Index] = (double)parameters[6];
                 correlatedEquilibriumResults[correlatedEquilibriumIterationIndex, p1CvBR_Index] = (double)parameters[7];
-                int correspondingIteration = (int)(((double)(correlatedEquilibriumIterationIndex + 1) / (double)numPastValues) * (double)(EvolutionSettings.TotalVanillaCFRIterations));
+                int correspondingIteration = (int)(((double)(correlatedEquilibriumIterationIndex + 1) / (double)numPastValues) * (double)(EvolutionSettings.TotalIterations));
                 double averageStrategyAdjustment = EvolutionSettings.Discounting_Gamma_ForIteration(correspondingIteration);
                 double averageStrategyAdjustmentAsPct = EvolutionSettings.Discounting_Gamma_AsPctOfMax(correspondingIteration);
                 correlatedEquilibriumResults[correlatedEquilibriumIterationIndex, avgStratContribution_Index] = averageStrategyAdjustment;
