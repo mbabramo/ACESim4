@@ -19,7 +19,7 @@ namespace ACESim
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.FictitiousSelfPlay;
 
-        public const int VanillaIterations = 10_000; 
+        public const int VanillaIterations = 5_000; 
         public const int VanillaReportEveryNIterations = VanillaIterations;
         public const int VanillaBestResponseEveryMIterations = 1000; 
         public const int MiniReportEveryPIterations = EffectivelyNever;
