@@ -1017,7 +1017,8 @@ namespace ACESim
             return baselineScenario;
         }
 
-        bool warmupChangeForDefendantOnly = true; // DEBUG
+        bool warmupChangeForPlaintiff = true;
+        bool warmupChangeForDefendant = true;
 
         public override void ChangeOptionsBasedOnScenarioIndex(int scenarioIndex)
         {
@@ -1029,8 +1030,13 @@ namespace ACESim
                 costs = baselineCosts;
             else
                 costs = warmupTrialCosts;
-            Options.PTrialCosts = Options.DTrialCosts = costs;
-            if (warmupChangeForDefendantOnly)
+            if (warmupChangeForPlaintiff)
+                Options.PTrialCosts = costs;
+            else
+                Options.PTrialCosts = baselineCosts;
+            if (warmupChangeForDefendant)
+                Options.DTrialCosts = costs;
+            else
                 Options.DTrialCosts = baselineCosts;
         }
 

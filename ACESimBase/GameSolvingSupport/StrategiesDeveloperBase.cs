@@ -112,6 +112,7 @@ namespace ACESim
 
         public bool BestBecomesResult = true;
         public double BestExploitability = int.MaxValue; // initialize to worst possible score (i.e., highest possible exploitability)
+        public int BestIteration = -1;
 
         public double[] MinScore, MaxScore, ScoreRange;
         public bool ScoreRangeExists => (ScoreRange == null || ScoreRange.Any(x => x == 0));
@@ -532,12 +533,14 @@ namespace ACESim
                 {
                     Parallel.ForEach(InformationSets, informationSet => informationSet.CreateBackup());
                     BestExploitability = exploitability;
+                    BestIteration = iteration;
                     LastBestResponseImprovement = BestResponseImprovement.ToArray();
                 }
                 if (iteration == EvolutionSettings.TotalVanillaCFRIterations)
                 {
                     Parallel.ForEach(InformationSets, informationSet => informationSet.RestoreBackup());
                     BestResponseImprovement = LastBestResponseImprovement.ToArray();
+                    TabbedText.WriteLine($"Best iteration {BestIteration} best exploitability {BestExploitability}");
                 }
             }
         }
