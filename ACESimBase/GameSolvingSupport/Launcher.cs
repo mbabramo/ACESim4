@@ -20,7 +20,7 @@ namespace ACESim
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching;
 
         public const int VanillaIterations = 2_500_000;  // DEBUG
-        public const int VanillaReportEveryNIterations = 50_000; // DEBUG VanillaIterations;
+        public const int VanillaReportEveryNIterations = VanillaIterations;
         public const int VanillaBestResponseEveryMIterations = 1000; 
         public const int MiniReportEveryPIterations = EffectivelyNever;
         public const bool AlwaysSuppressReportPrinting = true;
@@ -148,7 +148,7 @@ namespace ACESim
                 CorrelatedEquilibriumCalculationsEveryNIterations = CorrelatedEquilibriumCalculationsEveryNIterations,
                 BestResponseEveryMIterations = VanillaBestResponseEveryMIterations, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
                 MiniReportEveryPIterations = MiniReportEveryPIterations,
-                RecordPastValuesEveryN = RecordPastValuesEveryNIterations,
+
                 NumRandomIterationsForSummaryTable = SummaryTableRandomPathsIterations,
                 GenerateReportsByPlaying = true,
                 PrintInformationSets = false,

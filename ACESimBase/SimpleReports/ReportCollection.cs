@@ -11,8 +11,6 @@ namespace ACESim
         public string standardReport;
         public List<string> csvReports;
 
-        static int reportID = 0;
-
         public ReportCollection()
         {
             standardReport = "";

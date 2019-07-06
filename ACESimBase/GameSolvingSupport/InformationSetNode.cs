@@ -24,6 +24,7 @@ namespace ACESim
         public int InformationSetNodeNumber; // could delete this once things are working, but may be useful in testing scenarios
         public int GetNodeNumber() => InformationSetNodeNumber;
         public Decision Decision;
+        public EvolutionSettings EvolutionSettings;
         public byte DecisionByteCode => Decision.DecisionByteCode;
         public byte DecisionIndex;
         public byte PlayerIndex => Decision.PlayerNumber;
@@ -33,11 +34,7 @@ namespace ACESim
 
         public double[] MaxPossible, MinPossible;
         public double MaxPossibleThisPlayer, MinPossibleThisPlayer;
-
-        bool RecordPastValues = false;
-        bool SuppressRecordWhileDiscounting;
-        int NumPastValuesToStore = 0;
-        int RecordPastValuesEveryN;
+        
         public int LastPastValueIndexRecorded = -1;
         public double[,] PastValues;
         public double[] PastValuesCumulativeStrategyDiscounts;
@@ -85,15 +82,13 @@ namespace ACESim
         {
             Decision = decision;
             DecisionIndex = decisionIndex;
+            EvolutionSettings = evolutionSettings;
             InformationSetNodeNumber = InformationSetsSoFar;
-            RecordPastValues = evolutionSettings.RecordPastValues;
-            RecordPastValuesEveryN = evolutionSettings.RecordPastValuesEveryN;
-            if (RecordPastValues)
+            if (EvolutionSettings.RecordPastValues)
             {
-                SuppressRecordWhileDiscounting = evolutionSettings.SuppressRecordingWhileDiscounting;
-                NumPastValuesToStore = (evolutionSettings.TotalIterations - (evolutionSettings.SuppressRecordingWhileDiscounting ? evolutionSettings.StopDiscountingAtIteration : 0)) / RecordPastValuesEveryN;
-                PastValues = new double[NumPastValuesToStore, NumPossibleActions];
-                PastValuesCumulativeStrategyDiscounts = new double[NumPastValuesToStore];
+                int totalValuesToRecord = EvolutionSettings.RecordPastValues_TargetNumberToRecord;
+                PastValues = new double[totalValuesToRecord, NumPossibleActions];
+                PastValuesCumulativeStrategyDiscounts = new double[totalValuesToRecord];
                 LastPastValueIndexRecorded = -1;
             }
             Initialize();
@@ -141,10 +136,10 @@ namespace ACESim
                 NodeInformation[currentProbabilityForOpponentDimension, a - 1] = probability;
                 NodeInformation[averageStrategyProbabilityDimension, a - 1] = probability;
             }
-            if (RecordPastValues)
+            if (EvolutionSettings.RecordPastValues)
             {
-                PastValues = new double[NumPastValuesToStore, NumPossibleActions];
-                PastValuesCumulativeStrategyDiscounts = new double[NumPastValuesToStore];
+                PastValues = new double[EvolutionSettings.RecordPastValues_TargetNumberToRecord, NumPossibleActions];
+                PastValuesCumulativeStrategyDiscounts = new double[EvolutionSettings.RecordPastValues_TargetNumberToRecord];
             }
         }
 
@@ -887,7 +882,7 @@ namespace ACESim
 
         private void RecordProbabilitiesAsPastValues(int iteration, double averageStrategyAdjustment)
         {
-            if (RecordPastValues && iteration % RecordPastValuesEveryN == 0 && (!SuppressRecordWhileDiscounting || averageStrategyAdjustment == 1.0))
+            if (EvolutionSettings.RecordPastValues_AtIteration(iteration))
             {
                 if (LastPastValueIndexRecorded + 1 < PastValuesCumulativeStrategyDiscounts.Length)
                 {

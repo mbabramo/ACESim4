@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -135,9 +136,46 @@ namespace ACESim
 
         public bool UseCFRPlusInRegretMatching = true; // if true, then cumulative regrets never fall below zero
 
-        public bool RecordPastValues = true; 
-        public int RecordPastValuesEveryN = 10;
-        public bool SuppressRecordingWhileDiscounting = true;
+        public bool RecordPastValues = true;
+        public double RecordPastValues_AfterProportion = 0.75;
+        public int RecordPastValues_TargetNumberToRecord = 1000;
+
+        public BitArray RecordPastValues_Iterations;
+        public int RecordPastValues_EarliestPossibleIteration => (int)(RecordPastValues_AfterProportion * TotalIterations);
+
+        public bool RecordPastValues_AtIteration(int iteration)
+        {
+            if (!RecordPastValues)
+                return false;
+            int earliestPossible = RecordPastValues_EarliestPossibleIteration;
+            if (iteration < earliestPossible)
+                return false;
+            if (RecordPastValues_Iterations == null)
+            { // choose iterations to record at random past proportion
+                lock (RecordPastValues_Iterations)
+                {
+                    if (RecordPastValues_Iterations == null)
+                    {
+                        int numEligibleIterations = TotalIterations - earliestPossible + 1;
+                        if (numEligibleIterations < RecordPastValues_TargetNumberToRecord)
+                            RecordPastValues_TargetNumberToRecord = numEligibleIterations;
+                        RecordPastValues_Iterations = new BitArray(numEligibleIterations);
+                        int numSelected = 0;
+                        ConsistentRandomSequenceProducer r = new ConsistentRandomSequenceProducer(17);
+                        while (numSelected < numEligibleIterations)
+                        {
+                            int selection = r.NextInt(RecordPastValues_TargetNumberToRecord);
+                            if (RecordPastValues_Iterations.Get(selection) == false)
+                            {
+                                RecordPastValues_Iterations.Set(selection, true);
+                                numSelected++;
+                            }
+                        }
+                    }
+                }
+            }
+            return RecordPastValues_Iterations.Get(iteration - earliestPossible);
+        }
 
         public int? IterationsForWarmupScenario = 1; // DEBUG
 
