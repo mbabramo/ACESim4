@@ -3,6 +3,7 @@ using ACESimBase.Util.ArrayProcessing;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -27,7 +28,7 @@ namespace ACESim
         public override async Task<ReportCollection> RunAlgorithm(string reportName)
         {
             StrategiesDeveloperStopwatch.Reset();
-            Strategies = StrategySerialization.DeserializeStrategies(EvolutionSettings.SerializeResultsPrefixPlus(GameDefinition.CurrentScenarioIndex, GameDefinition.NumScenariosToDevelop)).ToList();
+            Strategies = StrategySerialization.DeserializeStrategies(Path.Combine(FolderFinder.GetFolderToWriteTo("Strategies").FullName, EvolutionSettings.SerializeResultsPrefixPlus(GameDefinition.CurrentScenarioIndex, GameDefinition.NumScenariosToDevelop))).ToList();
             IterationNum = EvolutionSettings.ReportEveryNIterations ?? 0;
             ReportCollection reportCollection = await GenerateReports(IterationNum, () => "Replayed report");
 

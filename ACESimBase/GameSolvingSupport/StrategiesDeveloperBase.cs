@@ -4,6 +4,7 @@ using ACESimBase.Util;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -67,7 +68,7 @@ namespace ACESim
                     ReinitializeForScenario(s, IterationsForWarmupScenario() != null);
                 var result = await RunAlgorithm(reportName);
                 if (EvolutionSettings.SerializeResults)
-                    StrategySerialization.SerializeStrategies(Strategies.ToArray(), EvolutionSettings.SerializeResultsPrefixPlus(s, GameDefinition.NumScenariosToDevelop));
+                    StrategySerialization.SerializeStrategies(Strategies.ToArray(), Path.Combine(FolderFinder.GetFolderToWriteTo("Strategies").FullName, EvolutionSettings.SerializeResultsPrefixPlus(s, GameDefinition.NumScenariosToDevelop)));
                 reportCollection.Add(result);
             }
             return reportCollection;

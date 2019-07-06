@@ -152,7 +152,7 @@ namespace ACESim
                 return false;
             if (RecordPastValues_Iterations == null)
             { // choose iterations to record at random past proportion
-                lock (RecordPastValues_Iterations)
+                lock (this)
                 {
                     if (RecordPastValues_Iterations == null)
                     {
@@ -162,9 +162,9 @@ namespace ACESim
                         RecordPastValues_Iterations = new BitArray(numEligibleIterations);
                         int numSelected = 0;
                         ConsistentRandomSequenceProducer r = new ConsistentRandomSequenceProducer(17);
-                        while (numSelected < numEligibleIterations)
+                        while (numSelected < RecordPastValues_TargetNumberToRecord)
                         {
-                            int selection = r.NextInt(RecordPastValues_TargetNumberToRecord);
+                            int selection = r.NextInt(numEligibleIterations);
                             if (RecordPastValues_Iterations.Get(selection) == false)
                             {
                                 RecordPastValues_Iterations.Set(selection, true);

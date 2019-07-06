@@ -7,6 +7,7 @@ using System.Text;
 
 namespace ACESimBase.GameSolvingSupport
 {
+    [Serializable]
     public class NodeActionsMultipleHistories
     {
         public List<NodeActionsHistory> Histories;

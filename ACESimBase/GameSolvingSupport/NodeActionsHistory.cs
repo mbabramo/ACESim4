@@ -7,6 +7,7 @@ using System.Text;
 
 namespace ACESimBase.GameSolvingSupport
 {
+    [Serializable]
     public class NodeActionsHistory
     {
         public double Coefficient = 1.0;

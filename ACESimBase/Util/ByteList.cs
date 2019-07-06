@@ -6,6 +6,7 @@ using System.Text;
 
 namespace ACESimBase.Util
 {
+    [Serializable]
     public class ByteList
     {
         public List<byte> TheList;
