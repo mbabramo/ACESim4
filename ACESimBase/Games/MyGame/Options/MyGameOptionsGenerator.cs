@@ -151,12 +151,12 @@ namespace ACESim
             options.PTrialCosts = options.DTrialCosts = 25_000;
 
             //// DEBUG -- spread 25_000 out over litigation
-            //options.PTrialCosts = 10_000;
-            //options.DTrialCosts = 10_000;
-            //options.PerPartyCostsLeadingUpToBargainingRound = 7_500;
-            //options.NumPotentialBargainingRounds = 2;
+            options.PTrialCosts = 10_000;
+            options.DTrialCosts = 10_000;
+            options.PerPartyCostsLeadingUpToBargainingRound = 7_500;
+            options.NumPotentialBargainingRounds = 2;
 
-            options.IncludeCourtSuccessReport = true;
+            options.IncludeCourtSuccessReport = false;
              
             double level = .20; // DEBUG
             options.PLiabilityNoiseStdev = level;
