@@ -29,7 +29,13 @@ namespace ACESim
         public override async Task<ReportCollection> RunAlgorithm(string reportName)
         {
             StrategiesDeveloperStopwatch.Reset();
-            Strategies = StrategySerialization.DeserializeStrategies(Path.Combine(FolderFinder.GetFolderToWriteTo("Strategies").FullName, EvolutionSettings.SerializeResultsPrefixPlus(GameDefinition.CurrentScenarioIndex, GameDefinition.NumScenariosToDevelop))).ToList();
+            string filename = Path.Combine(FolderFinder.GetFolderToWriteTo("Strategies").FullName, EvolutionSettings.SerializeResultsPrefixPlus(GameDefinition.CurrentScenarioIndex, GameDefinition.NumScenariosToDevelop));
+            if (EvolutionSettings.SerializeInformationSetDataOnly)
+            {
+                StrategySerialization.DeserializeInformationSets(InformationSets, filename);
+            }
+            else
+                Strategies = StrategySerialization.DeserializeStrategies(filename).ToList();
             IterationNum = EvolutionSettings.ReportEveryNIterations ?? 0;
             ReportCollection reportCollection = await GenerateReports(IterationNum, () => "Replayed report");
 

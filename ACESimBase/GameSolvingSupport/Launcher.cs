@@ -19,15 +19,14 @@ namespace ACESim
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching;
 
-        public const int VanillaIterations = 2000; 
+        public const int VanillaIterations = 250_000; 
         public const int VanillaReportEveryNIterations = VanillaIterations;
         public const int VanillaBestResponseEveryMIterations = 1000; 
         public const int MiniReportEveryPIterations = EffectivelyNever;
         public const bool AlwaysSuppressReportPrinting = true;
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever; 
-        public const int RecordPastValuesEveryNIterations = EffectivelyNever; // used for correlated equilibrium calculations
         public const bool UseRandomPathsForReporting = true; 
-        public const int SummaryTableRandomPathsIterations = 10_000;
+        public const int SummaryTableRandomPathsIterations = 25_000;
         public const int ProbingIterations = 20_000_000;
 
         public const bool UseRegretAndStrategyDiscounting = false;
@@ -156,9 +155,9 @@ namespace ACESim
                 PrintGameTree = false,
                 ActionStrategiesToUseInReporting =
                  new List<ActionStrategies>() {
-                     //ActionStrategies.CorrelatedEquilibrium,
-                     //ActionStrategies.BestResponseVsCorrelatedEquilibrium,
-                     //ActionStrategies.CorrelatedEquilibriumVsBestResponse,
+                     ActionStrategies.CorrelatedEquilibrium,
+                     ActionStrategies.BestResponseVsCorrelatedEquilibrium,
+                     ActionStrategies.CorrelatedEquilibriumVsBestResponse,
                      ActionStrategies.AverageStrategy
                  },
                 TotalProbingCFRIterations = ProbingIterations,

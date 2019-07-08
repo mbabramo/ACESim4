@@ -24,6 +24,7 @@ namespace ACESim
         public bool MeasureRegretMatchingChanges = false;
         public bool UseRandomPathsForReporting = true;
         public bool SerializeResults = true; // DEBUG
+        public bool SerializeInformationSetDataOnly = true;
         public string SerializeResultsPrefix = "serstrat";
         public string SerializeResultsPrefixPlus(int scenario, int totalScenarios) => SerializeResultsPrefix + (totalScenarios > 0 ? scenario.ToString() : "");
 
@@ -139,6 +140,7 @@ namespace ACESim
         public bool RecordPastValues = true;
         public double RecordPastValues_AfterProportion = 0.75;
         public int RecordPastValues_TargetNumberToRecord = 100;
+        public int RecordPastValues_NumberToRecord => Math.Min(RecordPastValues_TargetNumberToRecord, TotalIterations - RecordPastValues_EarliestPossibleIteration + 1);
 
         public BitArray RecordPastValues_Iterations;
         public int RecordPastValues_EarliestPossibleIteration => (int)(RecordPastValues_AfterProportion * TotalIterations);
@@ -156,13 +158,12 @@ namespace ACESim
                 {
                     if (RecordPastValues_Iterations == null)
                     {
-                        int numEligibleIterations = TotalIterations - earliestPossible + 1;
-                        if (numEligibleIterations < RecordPastValues_TargetNumberToRecord)
-                            RecordPastValues_TargetNumberToRecord = numEligibleIterations;
+                        int numEligibleIterations = TotalIterations - RecordPastValues_EarliestPossibleIteration + 1;
                         RecordPastValues_Iterations = new BitArray(numEligibleIterations);
                         int numSelected = 0;
                         ConsistentRandomSequenceProducer r = new ConsistentRandomSequenceProducer(17);
-                        while (numSelected < RecordPastValues_TargetNumberToRecord)
+                        int recordPastValues_NumberToRecord = RecordPastValues_NumberToRecord;
+                        while (numSelected < recordPastValues_NumberToRecord)
                         {
                             int selection = r.NextInt(numEligibleIterations);
                             if (RecordPastValues_Iterations.Get(selection) == false)

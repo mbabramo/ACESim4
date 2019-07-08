@@ -118,7 +118,7 @@ namespace ACESim
             if (BestResponseAction == 0)
                 return "";
             return $"BestResponse {BestResponseAction} ";
-            //return $"BestResponse {LastBestResponseAction} {NodeInformation[bestResponseNumeratorDimension, PlayerIndex]}/{NodeInformation[bestResponseDenominatorDimension, PlayerIndex]}";
+            //return $"BestResponse {BackupBestResponseAction} {NodeInformation[bestResponseNumeratorDimension, PlayerIndex]}/{NodeInformation[bestResponseDenominatorDimension, PlayerIndex]}";
         }
 
         public void Initialize()
@@ -988,6 +988,14 @@ namespace ACESim
         {
             int pastValuesCount = LastPastValueIndexRecorded;
             double cumulativeDiscountLevelToSeek = pastValuesCount * randomNumberToChooseIteration;
+            if (PastValuesCumulativeStrategyDiscounts == null)
+            {
+                int index2 = (int)(randomNumberToChooseIteration * LastPastValueIndexRecorded);
+                for (int a = 0; a < NumPossibleActions; a++)
+                    probabilities[a] = PastValues[index2, a];
+                return;
+            }
+
             Span<double> pastValueDiscounts = new Span<double>(PastValuesCumulativeStrategyDiscounts, 0, pastValuesCount);
             int index = pastValueDiscounts.BinarySearch(cumulativeDiscountLevelToSeek, Comparer<double>.Default);
             if (index < 0)
@@ -1160,6 +1168,20 @@ namespace ACESim
             if (d < 1E-8)
                 return 0;
             return d * multiplyByFn();
+        }
+
+        public void SetAverageStrategyFromPastValues()
+        {
+            if (PastValues != null)
+                for (int a = 1; a <= NumPossibleActions; a++)
+                {
+                    double total = 0;
+                    for (int p = 0; p <= LastPastValueIndexRecorded; p++)
+                    {
+                        total += PastValues[p, a - 1];
+                    }
+                    NodeInformation[averageStrategyProbabilityDimension, a - 1] = (total / (double)(LastPastValueIndexRecorded + 1));
+                }
         }
 
         public void PastValuesAnalyze()
