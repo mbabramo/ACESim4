@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
+    [Serializable]
     public partial class GreedyFictitiousSelfPlay : StrategiesDeveloperBase
     {
 

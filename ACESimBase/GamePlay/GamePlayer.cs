@@ -16,6 +16,7 @@ namespace ACESim
     {
         public List<Strategy> Strategies;
 
+        [NonSerialized]
         public ConcurrentBag<GameProgress> CompletedGameProgresses;
         public GameProgress MostRecentlyCompletedGameProgress;
 

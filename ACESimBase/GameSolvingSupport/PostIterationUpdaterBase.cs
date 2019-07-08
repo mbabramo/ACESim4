@@ -5,6 +5,7 @@ using System.Text;
 
 namespace ACESimBase.GameSolvingSupport
 {
+    [Serializable]
     public abstract class PostIterationUpdaterBase
     {
         public virtual void PrepareForUpdating(int iteration, EvolutionSettings evolutionSettings)

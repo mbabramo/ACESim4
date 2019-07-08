@@ -5,6 +5,7 @@ using System.Text;
 
 namespace ACESimBase.GameSolvingSupport
 {
+    [Serializable]
     public class PostIterationUpdater_RegretMatching : PostIterationUpdaterBase
     {
         double Perturbation;

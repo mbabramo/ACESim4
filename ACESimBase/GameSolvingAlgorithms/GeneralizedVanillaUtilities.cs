@@ -3,6 +3,7 @@ using System;
 
 namespace ACESim
 {
+    [Serializable]
     public struct GeneralizedVanillaUtilities
     {
         /// <summary>

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
+    [Serializable]
     public class GibsonProbing : CounterfactualRegretMinimization
     {
 

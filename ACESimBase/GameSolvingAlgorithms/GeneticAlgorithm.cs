@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 
 namespace ACESimBase.GameSolvingAlgorithms
 {
+    [Serializable]
     public class GeneticAlgorithm : StrategiesDeveloperBase
     {
 

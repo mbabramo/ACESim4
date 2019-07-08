@@ -143,6 +143,16 @@ namespace ACESim
     /// </summary>
     public static class StrategySerialization
     {
+        public static void SerializeStrategyDeveloper(StrategiesDeveloperBase developer, string filename)
+        {
+            BinarySerialization.SerializeObject(filename + ".sdb", developer);
+        }
+
+        public static StrategiesDeveloperBase DeserializeStrategyDeveloper(string filename)
+        {
+            return BinarySerialization.GetSerializedObject(filename + ".sdb") as StrategiesDeveloperBase;
+        }
+
         public static void SerializeStrategies(Strategy[] strategies, string filename)
         {
             BinarySerialization.SerializeObject(filename + ".sti", new StrategySerializationInfo { NumStrategies = strategies.Count() });

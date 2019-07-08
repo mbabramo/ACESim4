@@ -13,6 +13,7 @@ using System.Threading.Tasks.Dataflow;
 
 namespace ACESim
 {
+    [Serializable]
     public abstract partial class StrategiesDeveloperBase : IStrategiesDeveloper
     {
         #region Options
@@ -29,6 +30,7 @@ namespace ACESim
             AllowSkipEveryPermutationInitialization  
             && EvolutionSettings.Algorithm != GameApproximationAlgorithm.PureStrategyFinder;
 
+        [NonSerialized]
         public Stopwatch StrategiesDeveloperStopwatch = new Stopwatch();
 
         public int IterationNum;
@@ -67,8 +69,11 @@ namespace ACESim
                 if (s > 0)
                     ReinitializeForScenario(s, IterationsForWarmupScenario() != null);
                 var result = await RunAlgorithm(reportName);
-                if (EvolutionSettings.SerializeResults)
-                    StrategySerialization.SerializeStrategies(Strategies.ToArray(), Path.Combine(FolderFinder.GetFolderToWriteTo("Strategies").FullName, EvolutionSettings.SerializeResultsPrefixPlus(s, GameDefinition.NumScenariosToDevelop)));
+                if (EvolutionSettings.SerializeResults && !(this is PlaybackOnly))
+                {
+                    StrategySerialization.SerializeStrategyDeveloper(this, Path.Combine(FolderFinder.GetFolderToWriteTo("Strategies").FullName, EvolutionSettings.SerializeResultsPrefixPlus(s, GameDefinition.NumScenariosToDevelop)));
+                    //StrategySerialization.SerializeStrategies(Strategies.ToArray(), Path.Combine(FolderFinder.GetFolderToWriteTo("Strategies").FullName, EvolutionSettings.SerializeResultsPrefixPlus(s, GameDefinition.NumScenariosToDevelop)));
+                }
                 reportCollection.Add(result);
             }
             return reportCollection;
@@ -1255,6 +1260,7 @@ namespace ACESim
 
         #region Game value calculation
 
+        [NonSerialized]
         Type CorrelatedEquilibriumCalculatorType = null;
         bool CorrelatedEquilibriumCodeIsPrecompiled = false;
 

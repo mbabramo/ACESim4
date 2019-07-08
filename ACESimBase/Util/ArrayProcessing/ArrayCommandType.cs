@@ -4,6 +4,7 @@ using System.Text;
 
 namespace ACESimBase.Util.ArrayProcessing
 {
+    [Serializable]
     public enum ArrayCommandType : byte
     {
         Zero,

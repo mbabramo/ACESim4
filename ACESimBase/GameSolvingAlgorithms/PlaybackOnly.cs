@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
+    [Serializable]
     public partial class PlaybackOnly : StrategiesDeveloperBase
     {
 

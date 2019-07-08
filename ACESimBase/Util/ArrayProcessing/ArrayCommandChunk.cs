@@ -8,6 +8,7 @@ namespace ACESimBase.Util.ArrayProcessing
 {
     public partial class ArrayCommandList
     {
+        [Serializable]
         public class ArrayCommandChunk
         {
             public static int NextID = 0;
