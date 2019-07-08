@@ -13,6 +13,7 @@ namespace ACESim
         {
             Custom,
             Custom2,
+            Custom3,
             SuperSimple,
             Fast,
             Faster,
@@ -21,12 +22,13 @@ namespace ACESim
             PerfectInfo
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Custom2;
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Custom3;
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
             MyGameOptionSetChoices.Custom => Custom(),
             MyGameOptionSetChoices.Custom2 => Custom2(),
+            MyGameOptionSetChoices.Custom3 => Custom3(),
             MyGameOptionSetChoices.SuperSimple => SuperSimple(),
             MyGameOptionSetChoices.Faster => Faster(),
             MyGameOptionSetChoices.Fast => Fast(),
@@ -165,6 +167,58 @@ namespace ACESim
             options.DTrialCosts = 10_000;
             options.PerPartyCostsLeadingUpToBargainingRound = 7_500;
             options.NumPotentialBargainingRounds = 2;
+
+            options.IncludeCourtSuccessReport = false;
+
+            //options.LoserPays = true;
+            //options.LoserPaysAfterAbandonment = true;
+            //options.LoserPaysMultiple = 1.0; 
+
+            //options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth, Alpha = 5 * 0.000001 };
+            //options.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth, Alpha = 5 * 0.000001 };
+
+            return options;
+        }
+
+
+        public static MyGameOptions Custom3()
+        {
+            var options = BaseOptions();
+
+            options.NumLiabilityStrengthPoints = 5;
+            options.NumLiabilitySignals = 5;
+            options.NumOffers = 5;
+
+            options.NumDamagesSignals = 1;
+            options.NumDamagesStrengthPoints = 1;
+            options.DamagesMax = options.DamagesMin = 100_000;
+            //options.NumDamagesStrengthPoints = 5; 
+            //options.NumDamagesSignals = 5;
+
+            double level = .20;
+            options.PLiabilityNoiseStdev = level;
+            options.DLiabilityNoiseStdev = level;
+            options.CourtLiabilityNoiseStdev = level;
+            options.PDamagesNoiseStdev = level;
+            options.DDamagesNoiseStdev = level;
+            options.CourtDamagesNoiseStdev = level;
+
+            options.AllowAbandonAndDefaults = true;
+            options.IncludeAgreementToBargainDecisions = true;
+            options.SkipFileAndAnswerDecisions = false;
+
+            //options.WarmStartOptions = MyGameWarmStartOptions.FacilitateSettlementByMakingOpponentStingy; 
+            //options.WarmStartThroughIteration = null; 
+            //options.IncludeAgreementToBargainDecisions = false; 
+            //options.SkipFileAndAnswerDecisions = true;
+            //options.AllowAbandonAndDefaults = false;
+
+            options.PFilingCost = options.DAnswerCost = 10_000;
+            options.PerPartyCostsLeadingUpToBargainingRound = 0;
+            options.PTrialCosts = 25_000;
+            options.DTrialCosts = 25_000;
+            options.PerPartyCostsLeadingUpToBargainingRound = 0;
+            options.NumPotentialBargainingRounds = 1;
 
             options.IncludeCourtSuccessReport = false;
 
