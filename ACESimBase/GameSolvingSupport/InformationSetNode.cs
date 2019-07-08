@@ -988,7 +988,7 @@ namespace ACESim
         {
             int pastValuesCount = LastPastValueIndexRecorded;
             double cumulativeDiscountLevelToSeek = pastValuesCount * randomNumberToChooseIteration;
-            if (PastValuesCumulativeStrategyDiscounts == null)
+            if (PastValuesCumulativeStrategyDiscounts == null || PastValuesCumulativeStrategyDiscounts.All(x => x == 0))
             {
                 int index2 = (int)(randomNumberToChooseIteration * LastPastValueIndexRecorded);
                 for (int a = 0; a < NumPossibleActions; a++)

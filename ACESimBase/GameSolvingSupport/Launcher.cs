@@ -17,13 +17,14 @@ namespace ACESim
 
         #region Settings
 
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching;
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.FictitiousSelfPlay;
 
-        public const int VanillaIterations = 250_000; 
+        public const int VanillaIterations = 10_000; 
         public const int VanillaReportEveryNIterations = VanillaIterations;
         public const int VanillaBestResponseEveryMIterations = 1000; 
         public const int MiniReportEveryPIterations = EffectivelyNever;
         public const bool AlwaysSuppressReportPrinting = true;
+        public const bool RecordPastValues = false;
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever; 
         public const bool UseRandomPathsForReporting = true; 
         public const int SummaryTableRandomPathsIterations = 25_000;
@@ -141,6 +142,7 @@ namespace ACESim
                 GameNumber = StartGameNumber,
 
                 Algorithm = Algorithm,
+                RecordPastValues = RecordPastValues,
 
                 UseRandomPathsForReporting = UseRandomPathsForReporting,
                 ReportEveryNIterations = VanillaReportEveryNIterations,
@@ -155,10 +157,10 @@ namespace ACESim
                 PrintGameTree = false,
                 ActionStrategiesToUseInReporting =
                  new List<ActionStrategies>() {
-                     ActionStrategies.CorrelatedEquilibrium,
-                     ActionStrategies.BestResponseVsCorrelatedEquilibrium,
-                     ActionStrategies.CorrelatedEquilibriumVsBestResponse,
-                     ActionStrategies.AverageStrategy
+                     //ActionStrategies.CorrelatedEquilibrium,
+                     //ActionStrategies.BestResponseVsCorrelatedEquilibrium,
+                     //ActionStrategies.CorrelatedEquilibriumVsBestResponse,
+                     //ActionStrategies.AverageStrategy
                  },
                 TotalProbingCFRIterations = ProbingIterations,
                 EpsilonForMainPlayer = 0.5,

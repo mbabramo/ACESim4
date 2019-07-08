@@ -137,7 +137,7 @@ namespace ACESim
 
         public bool UseCFRPlusInRegretMatching = true; // if true, then cumulative regrets never fall below zero
 
-        public bool RecordPastValues = true;
+        public bool RecordPastValues = false;
         public double RecordPastValues_AfterProportion = 0.75;
         public int RecordPastValues_TargetNumberToRecord = 100;
         public int RecordPastValues_NumberToRecord => Math.Min(RecordPastValues_TargetNumberToRecord, TotalIterations - RecordPastValues_EarliestPossibleIteration + 1);
