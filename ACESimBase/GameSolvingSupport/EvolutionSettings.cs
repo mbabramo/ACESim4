@@ -23,7 +23,7 @@ namespace ACESim
         public int? MiniReportEveryPIterations = 1000;
         public bool MeasureRegretMatchingChanges = false;
         public bool UseRandomPathsForReporting = true;
-        public bool SerializeResults = true; // DEBUG
+        public bool SerializeResults = true;
         public bool SerializeInformationSetDataOnly = true;
         public string SerializeResultsPrefix = "serstrat";
         public string SerializeResultsPrefixPlus(int scenario, int totalScenarios) => SerializeResultsPrefix + (totalScenarios > 0 ? scenario.ToString() : "");
@@ -130,7 +130,7 @@ namespace ACESim
 
         }
 
-        public double PerturbationInitial = 0.001; // DEBUG
+        public double PerturbationInitial = 0.001;
         public double PerturbationFinal = 0.0;
         public double PerturbationCurvature = 5.0;
         public double Perturbation_BasedOnCurve(int iteration, int maxIteration) => MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(PerturbationInitial, PerturbationFinal, PerturbationCurvature, ((double)(iteration - 1)) / (double)maxIteration);
@@ -178,7 +178,7 @@ namespace ACESim
             return RecordPastValues_Iterations.Get(iteration - earliestPossible);
         }
 
-        public int? IterationsForWarmupScenario = 1; // DEBUG
+        public int? IterationsForWarmupScenario = 1; // applicable only to fictitious self-play
 
         public static bool PruneOnOpponentStrategy = true; // NOTE: In general sum games, this seems to cause difficulties, because some of the player's own information sets may not be visited, as a result of pruning on opponents' sets. 
         public static double PruneOnOpponentStrategyThreshold = 1E-4; // NOTE: This is the probability for this action, not the cumulative probability. 

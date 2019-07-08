@@ -376,7 +376,7 @@ namespace ACESim
             const double Curvature = 10.0;
             double weightMultiplier = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(InitialWeightMultiplier, 1.0, Curvature, (double)iteration / (double)maxIterations);
             double weightOnBestResponse = weightMultiplier / (double)iteration;
-            const double maxWeightOnBestResponse = 0.5; // DEBUG
+            const double maxWeightOnBestResponse = 0.5;
             if (weightOnBestResponse > maxWeightOnBestResponse || !LastBestResponseMayReachHere)
                 weightOnBestResponse = maxWeightOnBestResponse;
             MoveAverageStrategyTowardBestResponse(weightOnBestResponse, perturbation);

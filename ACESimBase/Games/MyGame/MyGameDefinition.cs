@@ -334,7 +334,7 @@ namespace ACESim
                 PDamagesSignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, pParams);
                 DiscreteValueSignalParameters dParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = Options.NumDamagesStrengthPoints, NumSignals = Options.NumDamagesSignals, StdevOfNormalDistribution = Options.DDamagesNoiseStdev, UseEndpoints = false };
                 DDamagesSignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, dParams);
-                DiscreteValueSignalParameters cParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = Options.NumDamagesStrengthPoints, NumSignals = Options.NumDamagesSignals, StdevOfNormalDistribution = Options.CourtDamagesNoiseStdev, UseEndpoints = false }; // DEBUG TODO: Differentiate number of court damages signals, since we might want that to be a higher number.
+                DiscreteValueSignalParameters cParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = Options.NumDamagesStrengthPoints, NumSignals = Options.NumDamagesSignals, StdevOfNormalDistribution = Options.CourtDamagesNoiseStdev, UseEndpoints = false }; // TODO: Differentiate number of court damages signals, since we might want that to be a higher number.
                 CDamagesSignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, cParams);
             }
         }
@@ -1004,7 +1004,9 @@ namespace ACESim
 
         public bool PlayMultipleScenarios = false; // DEBUG // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
 
-        public int NumScenariosDefined = 21; 
+        public int NumScenariosDefined = 11;
+
+        public double WarmupVariableIncrement => 100_000 / Math.Max(1, NumScenariosDefined - 1);
 
         public override int NumScenariosToDevelop => PlayMultipleScenarios ? NumScenariosDefined : 1;
         public override int NumScenariosToInitialize => NumScenariosDefined;
@@ -1023,9 +1025,9 @@ namespace ACESim
         public override void ChangeOptionsBasedOnScenarioIndex(int scenarioIndex)
         {
             CurrentScenarioIndex = scenarioIndex;
-            int baselineCosts = 25_000;
-            int warmupTrialCosts = 0 + 5_000 * (scenarioIndex - 1);
-            int costs;
+            double baselineCosts = 25_000;
+            double warmupTrialCosts = 0 + WarmupVariableIncrement * (scenarioIndex - 1);
+            double costs;
             if (scenarioIndex == 0)
                 costs = baselineCosts;
             else
@@ -1044,7 +1046,7 @@ namespace ACESim
         {
             if (NumScenariosToDevelop == 1)
                 return base.GetNameForScenario();
-            int warmupTrialCosts = 0 + 5_000 * (BaselineScenarioIndex - 1);
+            double warmupTrialCosts = 0 + WarmupVariableIncrement * (BaselineScenarioIndex - 1);
             if (BaselineScenarioIndex == 0)
                 warmupTrialCosts = 25_000; // warmup is same as baseline in base scenario
             return "WarmCosts" + warmupTrialCosts.ToString();

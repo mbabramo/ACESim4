@@ -286,7 +286,7 @@ namespace ACESim
             Parallelizer.MaxDegreeOfParallelism = Environment.ProcessorCount;
             await Parallelizer.GoAsync(ParallelizeOptionSets, 0, optionSets.Count, SingleOptionSetAction);
             string combinedResults = CombineResultsOfAllOptionSets(masterReportName, results.Select(x => x.standardReport).ToList());
-            return new ReportCollection(combinedResults, String.Join("\n",results.Select(x => x.csvReports))); // DEBUG
+            return new ReportCollection(combinedResults, String.Join("\n",results.Select(x => x.csvReports)));
         }
 
         public async Task<ReportCollection> ProcessSingleOptionSet(string masterReportName, int optionSetIndex, bool addOptionSetColumns)
@@ -311,7 +311,7 @@ namespace ACESim
                 // AzureBlob.SerializeObject("results", reportName + " CRM", true, developer);
             }
             if (AzureEnabled)
-                return new ReportCollection(CombineResultsOfRepetitionsOfOptionSets(masterReportName, optionSetName, includeFirstLine, combinedReports), result.csvReports); // DEBUG
+                return new ReportCollection(CombineResultsOfRepetitionsOfOptionSets(masterReportName, optionSetName, includeFirstLine, combinedReports), result.csvReports); 
             else
                 return result;
         }
@@ -356,7 +356,7 @@ namespace ACESim
                 TabbedText.WriteLine(e.StackTrace);
                 goto retry;
             }
-            string singleRepetitionReport = addOptionSetColumns ? SimpleReportMerging.AddCSVReportInformationColumns(reportCollection.csvReports.FirstOrDefault(), optionSetName, reportIteration, i == 0) : reportCollection.csvReports.FirstOrDefault(); // DEBUG
+            string singleRepetitionReport = addOptionSetColumns ? SimpleReportMerging.AddCSVReportInformationColumns(reportCollection.csvReports.FirstOrDefault(), optionSetName, reportIteration, i == 0) : reportCollection.csvReports.FirstOrDefault(); 
             return reportCollection;
         }
 

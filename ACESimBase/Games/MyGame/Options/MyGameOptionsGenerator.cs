@@ -130,35 +130,18 @@ namespace ACESim
         public static MyGameOptions Custom2()
         {
             var options = BaseOptions();
-            options.NumDamagesStrengthPoints = 5; 
-            options.NumDamagesSignals = 5;
+
             options.NumLiabilityStrengthPoints = 5;
             options.NumLiabilitySignals = 5;
-            options.NumOffers = 5;  
-            options.NumPotentialBargainingRounds = 1;
-            options.AllowAbandonAndDefaults = true; // DEBUG
-            options.IncludeAgreementToBargainDecisions = true; // DEBUG
-            options.SkipFileAndAnswerDecisions = false;
+            options.NumOffers = 5;
 
-            //options.WarmStartOptions = MyGameWarmStartOptions.FacilitateSettlementByMakingOpponentStingy; // DEBUG
-            //options.WarmStartThroughIteration = null; // DEBUG
-            //options.IncludeAgreementToBargainDecisions = false; // DEBUG
-            //options.SkipFileAndAnswerDecisions = true;
-            //options.AllowAbandonAndDefaults = false;
+            options.NumDamagesSignals = 1;
+            options.NumDamagesStrengthPoints = 1;
+            options.DamagesMax = options.DamagesMin = 100_000;
+            //options.NumDamagesStrengthPoints = 5; 
+            //options.NumDamagesSignals = 5;
 
-            options.PFilingCost = options.DAnswerCost = 10_000;
-            options.PerPartyCostsLeadingUpToBargainingRound = 0;
-            options.PTrialCosts = options.DTrialCosts = 25_000;
-
-            //// DEBUG -- spread 25_000 out over litigation
-            options.PTrialCosts = 10_000;
-            options.DTrialCosts = 10_000;
-            options.PerPartyCostsLeadingUpToBargainingRound = 7_500;
-            options.NumPotentialBargainingRounds = 2;
-
-            options.IncludeCourtSuccessReport = false;
-             
-            double level = .20; // DEBUG
+            double level = .20;
             options.PLiabilityNoiseStdev = level;
             options.DLiabilityNoiseStdev = level;
             options.CourtLiabilityNoiseStdev = level;
@@ -166,15 +149,29 @@ namespace ACESim
             options.DDamagesNoiseStdev = level;
             options.CourtDamagesNoiseStdev = level;
 
-            options.NumDamagesSignals = 1;
-            options.NumDamagesStrengthPoints = 1;
-            options.DamagesMax = options.DamagesMin = 100_000;
+            options.AllowAbandonAndDefaults = true; 
+            options.IncludeAgreementToBargainDecisions = true;
+            options.SkipFileAndAnswerDecisions = false;
+
+            //options.WarmStartOptions = MyGameWarmStartOptions.FacilitateSettlementByMakingOpponentStingy; 
+            //options.WarmStartThroughIteration = null; 
+            //options.IncludeAgreementToBargainDecisions = false; 
+            //options.SkipFileAndAnswerDecisions = true;
+            //options.AllowAbandonAndDefaults = false;
+
+            options.PFilingCost = options.DAnswerCost = 10_000;
+            options.PerPartyCostsLeadingUpToBargainingRound = 0;
+            options.PTrialCosts = 10_000;
+            options.DTrialCosts = 10_000;
+            options.PerPartyCostsLeadingUpToBargainingRound = 7_500;
+            options.NumPotentialBargainingRounds = 2;
+
+            options.IncludeCourtSuccessReport = false;
 
             //options.LoserPays = true;
             //options.LoserPaysAfterAbandonment = true;
             //options.LoserPaysMultiple = 1.0; 
 
-            // DEBUG
             //options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth, Alpha = 5 * 0.000001 };
             //options.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth, Alpha = 5 * 0.000001 };
 

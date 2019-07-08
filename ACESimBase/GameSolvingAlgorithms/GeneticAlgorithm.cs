@@ -217,7 +217,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             private int InformationSetsCount;
             Func<(double exploitability, double[] utilities)> CalculateBestResponseAction;
 
-            public double WeightOnDiversityInitial = 0.5; // DEBUG
+            public double WeightOnDiversityInitial = 0.5; 
             public double WeightOnDiversityFinal = 0.0;
             public double WeightOnDiversityCurvature = 0.5;
             public double WeightOnDiversity_BasedOnCurve(int iteration, int maxIteration) => MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(WeightOnDiversityInitial, WeightOnDiversityFinal, WeightOnDiversityCurvature, ((double)(iteration - 1)) / (double)maxIteration);

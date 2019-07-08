@@ -916,7 +916,7 @@ namespace ACESim
             var historyPointCopy = historyPoint;
 
             bool includeZeroProbabilityActions = true; // may be relevant for counts
-            bool roundOffPlayerActionsNearZeroOrOne = false;  // DEBUG
+            bool roundOffPlayerActionsNearZeroOrOne = false; 
 
             await Parallelizer.GoAsync(EvolutionSettings.ParallelOptimization, 1, (byte)(numPossibleActions + 1), async (action) =>
             {
