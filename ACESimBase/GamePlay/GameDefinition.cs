@@ -478,10 +478,10 @@ namespace ACESim
         {
             BaselineScenarioIndex = baselineScenario;
             CurrentScenarioIndex = GetScenarioIndex(baselineScenario, warmupVersion);
-            ChangeOptionsBasedOnScenarioIndex(CurrentScenarioIndex);
+            ChangeOptionsBasedOnScenarioIndex(CurrentScenarioIndex, true);
         }
 
-        public virtual void ChangeOptionsBasedOnScenarioIndex(int scenarioIndex)
+        public virtual void ChangeOptionsBasedOnScenarioIndex(int scenarioIndex, bool printChange)
         {
             CurrentScenarioIndex = scenarioIndex;
         }

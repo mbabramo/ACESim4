@@ -1002,13 +1002,13 @@ namespace ACESim
 
         #region Alternative scenarios
 
-        public bool PlayMultipleScenarios = true; // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
+        public bool PlayMultipleScenarios = true; // DEBUG // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
 
         public bool UseDifferentWarmup = false;
 
-        public int NumScenariosDefined = 5;
+        public int NumScenariosDefined = 11;
 
-        public double TrialCostsScenarioPerPartyMax = 50_000;
+        public double TrialCostsScenarioPerPartyMax = 100_000;
         public double TrialCostsScenarioBaselineIfUsingWarmup = 25_000;
         public double TrialCostsScenarioIncrement => TrialCostsScenarioPerPartyMax / Math.Max(1, NumScenariosDefined - 1);
 
@@ -1029,13 +1029,13 @@ namespace ACESim
         bool changeTrialCostsForPlaintiff = true;
         bool changeTrialCostsForDefendant = true;
 
-        public override void ChangeOptionsBasedOnScenarioIndex(int scenarioIndex)
+        public override void ChangeOptionsBasedOnScenarioIndex(int scenarioIndex, bool printChange)
         {
-            if (!PlayMultipleScenarios)
-                throw new Exception();
+            if (!PlayMultipleScenarios && !UseDifferentWarmup)
+                return;
             CurrentScenarioIndex = scenarioIndex;
             double baselineCosts = TrialCostsScenarioBaselineIfUsingWarmup;
-            double adjustedTrialCosts = 0 + TrialCostsScenarioIncrement * (scenarioIndex - 1);
+            double adjustedTrialCosts = 0 + TrialCostsScenarioIncrement * (UseDifferentWarmup ? scenarioIndex - 1 : scenarioIndex);
             double costs;
             if (scenarioIndex == 0 && UseDifferentWarmup)
                 costs = baselineCosts;
@@ -1049,16 +1049,18 @@ namespace ACESim
                 Options.DTrialCosts = costs;
             else
                 Options.DTrialCosts = baselineCosts;
+            if (printChange)
+                TabbedText.WriteLine($"Trial costs {GetNameForScenario()}: P {Options.PTrialCosts} D {Options.DTrialCosts}");
         }
 
         public override string GetNameForScenario()
         {
             if (NumScenariosToDevelop == 1)
                 return base.GetNameForScenario();
-            double warmupTrialCosts = 0 + TrialCostsScenarioIncrement * (BaselineScenarioIndex - 1);
+            double trialCosts = 0 + TrialCostsScenarioIncrement * (UseDifferentWarmup ? BaselineScenarioIndex - 1 : BaselineScenarioIndex);
             if (BaselineScenarioIndex == 0 && UseDifferentWarmup)
-                warmupTrialCosts = TrialCostsScenarioBaselineIfUsingWarmup; // warmup is same as baseline in base scenario
-            return "WarmCosts" + warmupTrialCosts.ToString();
+                trialCosts = TrialCostsScenarioBaselineIfUsingWarmup; // warmup is same as baseline in base scenario
+            return (UseDifferentWarmup ? "WarmCosts" : "TrialCosts") + trialCosts.ToString();
         }
 
         #endregion
