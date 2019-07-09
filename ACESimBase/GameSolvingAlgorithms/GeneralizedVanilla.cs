@@ -855,6 +855,10 @@ namespace ACESim
                 double util = finalUtilities.Utilities[playerBeingOptimized];
                 if (double.IsNaN(util))
                     throw new Exception();
+                if (util == 980000)
+                {
+                    var DEBUG = 0;
+                }
                 return new GeneralizedVanillaUtilities { AverageStrategyVsAverageStrategy = util, BestResponseToAverageStrategy = util, CurrentVsCurrent = util };
             }
             else if (gameStateType == GameStateTypeEnum.Chance)

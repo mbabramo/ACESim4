@@ -159,13 +159,14 @@ namespace ACESim
             Parallel.For(0, numInformationSets, n => InformationSets[n].Initialize());
         }
 
-        public virtual void ReinitializeForScenario(int scenario, bool warmupVersion)
+        public virtual void ReinitializeForScenario(int baselineScenario, bool warmupVersion)
         {
-            GameDefinition.SetScenario(scenario, warmupVersion);
-            if (scenario > 0)
+            GameDefinition.SetScenario(baselineScenario, warmupVersion);
+            int currentScenarioIndex = GameDefinition.CurrentScenarioIndex; // Note: This may be different from scenario. E.g., when setting scenario to 1, game definition may keep scenario index at 0.
+            if (currentScenarioIndex > 0)
             {
                 foreach (var node in FinalUtilitiesNodes)
-                    node.CurrentScenario = scenario;
+                    node.CurrentScenarioIndex = currentScenarioIndex;
                 CalculateMinMax();
             }
         }

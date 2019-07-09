@@ -1004,7 +1004,7 @@ namespace ACESim
 
         public bool PlayMultipleScenarios = true; // DEBUG // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
 
-        public int NumScenariosDefined = 11;
+        public int NumScenariosDefined = 2;
 
         public double WarmupVariableIncrement => 100_000 / Math.Max(1, NumScenariosDefined - 1);
 
