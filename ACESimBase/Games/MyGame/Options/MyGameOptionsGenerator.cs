@@ -13,7 +13,8 @@ namespace ACESim
         {
             Custom,
             Custom2,
-            Custom3,
+            LiabilityUncertainty_1BR,
+            LiabilityUncertainty_2BR,
             SuperSimple,
             Fast,
             Faster,
@@ -22,13 +23,14 @@ namespace ACESim
             PerfectInfo
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Custom3; 
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.LiabilityUncertainty_2BR; 
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
             MyGameOptionSetChoices.Custom => Custom(),
             MyGameOptionSetChoices.Custom2 => Custom2(),
-            MyGameOptionSetChoices.Custom3 => Custom3(),
+            MyGameOptionSetChoices.LiabilityUncertainty_1BR => LiabilityUncertainty_1BR(),
+            MyGameOptionSetChoices.LiabilityUncertainty_2BR => LiabilityUncertainty_2BR(),
             MyGameOptionSetChoices.SuperSimple => SuperSimple(),
             MyGameOptionSetChoices.Faster => Faster(),
             MyGameOptionSetChoices.Fast => Fast(),
@@ -89,7 +91,7 @@ namespace ACESim
                 SimultaneousOffersUltimatelyRevealed = true,
                 PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false, true, false, true, false },
                 IncludeSignalsReport = true,
-                IncludeCourtSuccessReport = false,
+                IncludeCourtSuccessReport = true,
                 WarmStartThroughIteration = null,
                 WarmStartOptions = MyGameWarmStartOptions.NoWarmStart
             };
@@ -181,7 +183,7 @@ namespace ACESim
         }
 
 
-        public static MyGameOptions Custom3()
+        public static MyGameOptions LiabilityUncertainty_1BR()
         {
             var options = BaseOptions();
 
@@ -207,27 +209,25 @@ namespace ACESim
             options.IncludeAgreementToBargainDecisions = true;
             options.SkipFileAndAnswerDecisions = false;
 
-            //options.WarmStartOptions = MyGameWarmStartOptions.FacilitateSettlementByMakingOpponentStingy; 
-            //options.WarmStartThroughIteration = null; 
-            //options.IncludeAgreementToBargainDecisions = false; 
-            //options.SkipFileAndAnswerDecisions = true;
-            //options.AllowAbandonAndDefaults = false;
-
             options.PFilingCost = options.DAnswerCost = 10_000;
             options.PerPartyCostsLeadingUpToBargainingRound = 0;
+            options.NumPotentialBargainingRounds = 1;
             options.PTrialCosts = 25_000;
             options.DTrialCosts = 25_000;
-            options.PerPartyCostsLeadingUpToBargainingRound = 0;
-            options.NumPotentialBargainingRounds = 1;
 
-            options.IncludeCourtSuccessReport = true;
+            return options;
+        }
 
-            //options.LoserPays = true;
-            //options.LoserPaysAfterAbandonment = true;
-            //options.LoserPaysMultiple = 1.0; 
 
-            //options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth, Alpha = 5 * 0.000001 };
-            //options.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth, Alpha = 5 * 0.000001 };
+        public static MyGameOptions LiabilityUncertainty_2BR()
+        {
+            var options = LiabilityUncertainty_1BR();
+
+            options.PFilingCost = options.DAnswerCost = 10_000;
+            options.PerPartyCostsLeadingUpToBargainingRound = 7_500;
+            options.NumPotentialBargainingRounds = 2;
+            options.PTrialCosts = 10_000;
+            options.DTrialCosts = 10_000;
 
             return options;
         }
