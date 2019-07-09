@@ -21,7 +21,8 @@ namespace ACESim
 
         public const int VanillaIterations = 10_000; 
         public const int VanillaReportEveryNIterations = VanillaIterations;
-        public const int VanillaBestResponseEveryMIterations = 1000; 
+        public const int VanillaBestResponseEveryMIterations = 1000;
+        public const bool CalculatePerturbedBestResponse = true; // DEBUG
         public const int MiniReportEveryPIterations = EffectivelyNever;
         public const bool AlwaysSuppressReportPrinting = true;
         public const bool RecordPastValues = false;
@@ -148,6 +149,7 @@ namespace ACESim
                 ReportEveryNIterations = VanillaReportEveryNIterations,
                 CorrelatedEquilibriumCalculationsEveryNIterations = CorrelatedEquilibriumCalculationsEveryNIterations,
                 BestResponseEveryMIterations = VanillaBestResponseEveryMIterations, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
+                CalculatePerturbedBestResponseRefinement = CalculatePerturbedBestResponse,
                 MiniReportEveryPIterations = MiniReportEveryPIterations,
 
                 NumRandomIterationsForSummaryTable = SummaryTableRandomPathsIterations,
@@ -160,7 +162,7 @@ namespace ACESim
                      //ActionStrategies.CorrelatedEquilibrium,
                      //ActionStrategies.BestResponseVsCorrelatedEquilibrium,
                      //ActionStrategies.CorrelatedEquilibriumVsBestResponse,
-                     //ActionStrategies.AverageStrategy
+                     ActionStrategies.AverageStrategy
                  },
                 TotalProbingCFRIterations = ProbingIterations,
                 EpsilonForMainPlayer = 0.5,

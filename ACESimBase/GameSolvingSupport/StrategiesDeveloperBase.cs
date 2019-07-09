@@ -651,6 +651,23 @@ namespace ACESim
                 if (doBestResponse)
                 {
                     CalculateBestResponse(false);
+                    if (EvolutionSettings.CalculatePerturbedBestResponseRefinement)
+                    {
+                        var utilities = BestResponseUtilities.ToArray();
+                        var improvement = BestResponseImprovement.ToArray();
+                        var br = BestResponseImprovementAdjAvg;
+                        InformationSets.ForEach(x =>
+                        {
+                            x.CreateBackup();
+                            x.PerturbAverageStrategy(EvolutionSettings.PerturbationForBestResponseCalculation, false);
+                        });
+                        CalculateBestResponse(false);
+                        InformationSets.ForEach(x => x.RestoreBackup());
+                        double refinement = br / BestResponseImprovementAdjAvg; // if very refined, this should be close to 1. If the perturbation greatly increases exploitability, this will be closer to 0.
+                        TabbedText.WriteLine($"Refinement: {refinement}");
+                        BestResponseUtilities = utilities;
+                        BestResponseImprovement = improvement;
+                    }
                     RememberBest(iteration);
                 }
 
@@ -720,6 +737,7 @@ namespace ACESim
         public double[] BestResponseImprovement;
         public double[] LastBestResponseImprovement;
         public double[] BestResponseImprovementAdj => ScoreRangeExists ? BestResponseImprovement : BestResponseImprovement.Zip(ScoreRange, (bri, sr) => bri / sr).ToArray();
+        public double BestResponseImprovementAdjAvg => BestResponseImprovementAdj.Average();
 
         long BestResponseCalculationTime;
 
