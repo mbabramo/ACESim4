@@ -1,19 +1,7 @@
-"Scenario","Filter","All","D1 0.17  ","D1 0.33  ","D1 0.5  ","D1 0.67  ","D1 0.83  "
-"WarmCosts25000","All",1,0.913578,0,0,0,0.0864225
-"WarmCosts25000","DLiabilitySignal 1",0.186,1,0,0,0,0
-"WarmCosts25000","DLiabilitySignal 2",0.2457,1,0,0,0,0
-"WarmCosts25000","DLiabilitySignal 3",0.2165,1,0,0,0,0
-"WarmCosts25000","DLiabilitySignal 4",0.2654,1,0,0,0,0
-"WarmCosts25000","DLiabilitySignal 5",0.0864,0,0,0,0,1
-"WarmCosts0","All",1,0.912967,0,0,0,0.087033
-"WarmCosts0","DLiabilitySignal 1",0.1818,1,0,0,0,0
-"WarmCosts0","DLiabilitySignal 2",0.247,1,0,0,0,0
-"WarmCosts0","DLiabilitySignal 3",0.2255,1,0,0,0,0
-"WarmCosts0","DLiabilitySignal 4",0.2587,1,0,0,0,0
-"WarmCosts0","DLiabilitySignal 5",0.087,0,0,0,0,1
-"WarmCosts50000","All",1,0.920017,0,0,0,0.0799825
-"WarmCosts50000","DLiabilitySignal 1",0.1941,1,0,0,0,0
-"WarmCosts50000","DLiabilitySignal 2",0.2535,1,0,0,0,0
-"WarmCosts50000","DLiabilitySignal 3",0.2163,1,0,0,0,0
-"WarmCosts50000","DLiabilitySignal 4",0.2561,1,0,0,0,0
-"WarmCosts50000","DLiabilitySignal 5",0.08,0,0,0,0,1
+"Filter","All","D1 0.17  ","D1 0.33  ","D1 0.5  ","D1 0.67  ","D1 0.83  "
+"All",1,1,0,0,0,0
+"DLiabilitySignal 1",0,,,,,
+"DLiabilitySignal 2",0,,,,,
+"DLiabilitySignal 3",0,,,,,
+"DLiabilitySignal 4",0,,,,,
+"DLiabilitySignal 5",0,,,,,

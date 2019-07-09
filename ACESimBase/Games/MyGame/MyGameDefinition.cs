@@ -1002,9 +1002,9 @@ namespace ACESim
 
         #region Alternative scenarios
 
-        public bool PlayMultipleScenarios = true; // DEBUG // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
+        public bool PlayMultipleScenarios = false; // DEBUG // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
 
-        public int NumScenariosDefined = 3;
+        public int NumScenariosDefined = 1;
 
         public double WarmupVariableIncrement => 100_000 / Math.Max(1, NumScenariosDefined - 1);
 

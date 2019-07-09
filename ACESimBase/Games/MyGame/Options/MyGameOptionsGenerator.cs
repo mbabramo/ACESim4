@@ -15,6 +15,7 @@ namespace ACESim
             Custom2,
             LiabilityUncertainty_1BR,
             LiabilityUncertainty_2BR,
+            LiabilityUncertainty_3BR,
             SuperSimple,
             Fast,
             Faster,
@@ -23,7 +24,7 @@ namespace ACESim
             PerfectInfo
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.LiabilityUncertainty_2BR; 
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.LiabilityUncertainty_3BR; 
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
@@ -31,6 +32,7 @@ namespace ACESim
             MyGameOptionSetChoices.Custom2 => Custom2(),
             MyGameOptionSetChoices.LiabilityUncertainty_1BR => LiabilityUncertainty_1BR(),
             MyGameOptionSetChoices.LiabilityUncertainty_2BR => LiabilityUncertainty_2BR(),
+            MyGameOptionSetChoices.LiabilityUncertainty_3BR => LiabilityUncertainty_3BR(),
             MyGameOptionSetChoices.SuperSimple => SuperSimple(),
             MyGameOptionSetChoices.Faster => Faster(),
             MyGameOptionSetChoices.Fast => Fast(),
@@ -226,6 +228,19 @@ namespace ACESim
             options.PFilingCost = options.DAnswerCost = 10_000;
             options.PerPartyCostsLeadingUpToBargainingRound = 7_500;
             options.NumPotentialBargainingRounds = 2;
+            options.PTrialCosts = 10_000;
+            options.DTrialCosts = 10_000;
+
+            return options;
+        }
+
+        public static MyGameOptions LiabilityUncertainty_3BR()
+        {
+            var options = LiabilityUncertainty_1BR();
+
+            options.PFilingCost = options.DAnswerCost = 10_000;
+            options.PerPartyCostsLeadingUpToBargainingRound = 5_000;
+            options.NumPotentialBargainingRounds = 3;
             options.PTrialCosts = 10_000;
             options.DTrialCosts = 10_000;
 
