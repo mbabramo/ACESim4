@@ -147,7 +147,7 @@ namespace ACESim
         {
             InformationSetNodesCoreData d = new InformationSetNodesCoreData(informationSets);
             BinarySerialization.SerializeObject(filename + ".sis", d);
-        }
+         }
 
         public static void DeserializeInformationSets(List<InformationSetNode> informationSets, string filename)
         {

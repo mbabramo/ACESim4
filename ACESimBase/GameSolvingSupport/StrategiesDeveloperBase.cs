@@ -163,7 +163,7 @@ namespace ACESim
         {
             GameDefinition.SetScenario(baselineScenario, warmupVersion);
             int currentScenarioIndex = GameDefinition.CurrentScenarioIndex; // Note: This may be different from scenario. E.g., when setting scenario to 1, game definition may keep scenario index at 0.
-            if (currentScenarioIndex > 0)
+            if (FinalUtilitiesNodes != null && currentScenarioIndex != FinalUtilitiesNodes.First().CurrentScenarioIndex)
             {
                 foreach (var node in FinalUtilitiesNodes)
                     node.CurrentScenarioIndex = currentScenarioIndex;

@@ -11,7 +11,7 @@ namespace ACESim
     {
         public bool ParallelOptimization = false;
         public int MaxParallelDepth = 1;
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching;
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.FictitiousSelfPlay;
         public int TotalAvgStrategySamplingCFRIterations = 100000;
         public int TotalProbingCFRIterations = 100000;
         public int TotalIterations = 100000;

@@ -17,13 +17,11 @@ namespace ACESim
 
         #region Settings
 
-            // DEBUG -- Two issues: (1) When we used FictitiousSelfPlay and then PlaybackOnly, we didn't get the same best response results.
-
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching;
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.FictitiousSelfPlay;
 
         public const int VanillaIterations = 1000;
         public const int VanillaReportEveryNIterations = VanillaIterations;
-        public const int VanillaBestResponseEveryMIterations = 1000;
+        public const int VanillaBestResponseEveryMIterations = VanillaIterations;
         public const bool CalculatePerturbedBestResponse = false;
         public const int MiniReportEveryPIterations = EffectivelyNever;
         public const bool AlwaysSuppressReportPrinting = true;
