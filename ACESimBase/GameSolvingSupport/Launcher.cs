@@ -17,14 +17,14 @@ namespace ACESim
 
         #region Settings
 
-            // DEBUG -- Two issues: (1) When we used FictitiousSelfPlay and then PlaybackOnly, we didn't get the same best response results. (2) When we do multiple scenarios with RegretMatching, we're getting slightly different results each time. But there doesn't seem to be a warmup setup.
+            // DEBUG -- Two issues: (1) When we used FictitiousSelfPlay and then PlaybackOnly, we didn't get the same best response results.
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching;
 
-        public const int VanillaIterations = 1; // DEBUG
+        public const int VanillaIterations = 1000;
         public const int VanillaReportEveryNIterations = VanillaIterations;
-        public const int VanillaBestResponseEveryMIterations = 1;
-        public const bool CalculatePerturbedBestResponse = true; // DEBUG
+        public const int VanillaBestResponseEveryMIterations = 1000;
+        public const bool CalculatePerturbedBestResponse = false;
         public const int MiniReportEveryPIterations = EffectivelyNever;
         public const bool AlwaysSuppressReportPrinting = true;
         public const bool RecordPastValues = false;
