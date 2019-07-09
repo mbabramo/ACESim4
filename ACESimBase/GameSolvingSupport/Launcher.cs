@@ -19,16 +19,16 @@ namespace ACESim
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.FictitiousSelfPlay;
 
-        public const int VanillaIterations = 1000;
+        public const int VanillaIterations = 10_000;
         public const int VanillaReportEveryNIterations = VanillaIterations;
         public const int VanillaBestResponseEveryMIterations = VanillaIterations;
-        public const bool CalculatePerturbedBestResponse = false;
+        public const bool CalculatePerturbedBestResponseRefinement = true;
         public const int MiniReportEveryPIterations = EffectivelyNever;
         public const bool AlwaysSuppressReportPrinting = true;
         public const bool RecordPastValues = false;
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever; 
         public const bool UseRandomPathsForReporting = true; 
-        public const int SummaryTableRandomPathsIterations = 25_000;
+        public const int SummaryTableRandomPathsIterations = 5_000;
         public const int ProbingIterations = 20_000_000;
 
         public const bool UseRegretAndStrategyDiscounting = false;
@@ -149,7 +149,7 @@ namespace ACESim
                 ReportEveryNIterations = VanillaReportEveryNIterations,
                 CorrelatedEquilibriumCalculationsEveryNIterations = CorrelatedEquilibriumCalculationsEveryNIterations,
                 BestResponseEveryMIterations = VanillaBestResponseEveryMIterations, // should probably set above to TRUE for calculating best response, and only do this for relatively simple games
-                CalculatePerturbedBestResponseRefinement = CalculatePerturbedBestResponse,
+                CalculatePerturbedBestResponseRefinement = CalculatePerturbedBestResponseRefinement,
                 MiniReportEveryPIterations = MiniReportEveryPIterations,
 
                 NumRandomIterationsForSummaryTable = SummaryTableRandomPathsIterations,

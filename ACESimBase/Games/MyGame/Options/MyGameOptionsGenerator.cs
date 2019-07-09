@@ -220,7 +220,7 @@ namespace ACESim
             options.PerPartyCostsLeadingUpToBargainingRound = 0;
             options.NumPotentialBargainingRounds = 1;
 
-            options.IncludeCourtSuccessReport = false;
+            options.IncludeCourtSuccessReport = true;
 
             //options.LoserPays = true;
             //options.LoserPaysAfterAbandonment = true;

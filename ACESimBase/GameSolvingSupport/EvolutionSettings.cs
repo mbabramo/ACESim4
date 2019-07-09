@@ -20,7 +20,7 @@ namespace ACESim
         public const int EffectivelyNever = 999999999;
         public int? BestResponseEveryMIterations = 100; // For partial recall games, this is very costly, so consider using EffectivelyNever.
         public bool UseAcceleratedBestResponse = true;
-        public bool CalculatePerturbedBestResponseRefinement = true;
+        public bool CalculatePerturbedBestResponseRefinement = false;
         public double PerturbationForBestResponseCalculation = 0.001;
         public int? MiniReportEveryPIterations = 1000;
         public bool MeasureRegretMatchingChanges = false;
@@ -132,7 +132,7 @@ namespace ACESim
 
         }
 
-        public double PerturbationInitial = 0.01; // DEBUG 0.001 -- should use with regret matching
+        public double PerturbationInitial = 0.00; // DEBUG 0.001 -- should use with regret matching
         public double PerturbationFinal = 0.0;
         public double PerturbationCurvature = 5.0;
         public double Perturbation_BasedOnCurve(int iteration, int maxIteration) => MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(PerturbationInitial, PerturbationFinal, PerturbationCurvature, ((double)(iteration - 1)) / (double)maxIteration);
