@@ -1002,11 +1002,15 @@ namespace ACESim
 
         #region Alternative scenarios
 
-        public bool PlayMultipleScenarios = false; // DEBUG // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
+        public bool PlayMultipleScenarios = true; // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
 
-        public int NumScenariosDefined = 1;
+        public bool UseDifferentWarmup = false;
 
-        public double WarmupVariableIncrement => 100_000 / Math.Max(1, NumScenariosDefined - 1);
+        public int NumScenariosDefined = 5;
+
+        public double TrialCostsScenarioPerPartyMax = 50_000;
+        public double TrialCostsScenarioBaselineIfUsingWarmup = 25_000;
+        public double TrialCostsScenarioIncrement => TrialCostsScenarioPerPartyMax / Math.Max(1, NumScenariosDefined - 1);
 
         public override int NumScenariosToDevelop => PlayMultipleScenarios ? NumScenariosDefined : 1;
         public override int NumScenariosToInitialize => NumScenariosDefined;
@@ -1014,29 +1018,34 @@ namespace ACESim
         public override int GetScenarioIndex(int baselineScenario, bool warmupVersion)
         {
             // Testing the same scenario each time, but with different warmups
-            if (!warmupVersion)
-                return 0; 
+            if (UseDifferentWarmup)
+            {
+                if (!warmupVersion)
+                    return 0;
+            }
             return baselineScenario;
         }
 
-        bool warmupChangeForPlaintiff = true;
-        bool warmupChangeForDefendant = true;
+        bool changeTrialCostsForPlaintiff = true;
+        bool changeTrialCostsForDefendant = true;
 
         public override void ChangeOptionsBasedOnScenarioIndex(int scenarioIndex)
         {
+            if (!PlayMultipleScenarios)
+                throw new Exception();
             CurrentScenarioIndex = scenarioIndex;
-            double baselineCosts = 25_000;
-            double warmupTrialCosts = 0 + WarmupVariableIncrement * (scenarioIndex - 1);
+            double baselineCosts = TrialCostsScenarioBaselineIfUsingWarmup;
+            double adjustedTrialCosts = 0 + TrialCostsScenarioIncrement * (scenarioIndex - 1);
             double costs;
-            if (scenarioIndex == 0)
+            if (scenarioIndex == 0 && UseDifferentWarmup)
                 costs = baselineCosts;
             else
-                costs = warmupTrialCosts;
-            if (warmupChangeForPlaintiff)
+                costs = adjustedTrialCosts;
+            if (changeTrialCostsForPlaintiff)
                 Options.PTrialCosts = costs;
             else
                 Options.PTrialCosts = baselineCosts;
-            if (warmupChangeForDefendant)
+            if (changeTrialCostsForDefendant)
                 Options.DTrialCosts = costs;
             else
                 Options.DTrialCosts = baselineCosts;
@@ -1046,9 +1055,9 @@ namespace ACESim
         {
             if (NumScenariosToDevelop == 1)
                 return base.GetNameForScenario();
-            double warmupTrialCosts = 0 + WarmupVariableIncrement * (BaselineScenarioIndex - 1);
-            if (BaselineScenarioIndex == 0)
-                warmupTrialCosts = 25_000; // warmup is same as baseline in base scenario
+            double warmupTrialCosts = 0 + TrialCostsScenarioIncrement * (BaselineScenarioIndex - 1);
+            if (BaselineScenarioIndex == 0 && UseDifferentWarmup)
+                warmupTrialCosts = TrialCostsScenarioBaselineIfUsingWarmup; // warmup is same as baseline in base scenario
             return "WarmCosts" + warmupTrialCosts.ToString();
         }
 
