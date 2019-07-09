@@ -1,25 +1,19 @@
-"Filter","All","D2 0.17  ","D2 0.33  ","D2 0.5  ","D2 0.67  ","D2 0.83  "
-"All",1,0.000114051,0.000456204,0.000570255,0.000342153,0
-"DLiabilitySignal 1",0.0001,0,0,0,0,0
-"DLiabilitySignal 2",0,,,,,
-"DLiabilitySignal 3",0.152,0.000750188,0.00300075,0.00225056,0,0
-"DLiabilitySignal 4",0.073,0,0,0.003125,0.0046875,0
-"DLiabilitySignal 5",0,,,,,
-"All",1,0.00115741,0.00562169,0.0187665,0.0176918,0.00901124
-"DLiabilitySignal 1",0.007,0,0,0,0,0
-"DLiabilitySignal 2",0.0002,0,0,0,0,0
-"DLiabilitySignal 3",0.1028,0.0112631,0.0152856,0.0305712,0.0193081,0
-"DLiabilitySignal 4",0.0589,0,0.0687237,0.265077,0.26648,0.152875
-"DLiabilitySignal 5",0,,,,,
-"All",1,0,0,0,0,0
-"DLiabilitySignal 1",0,,,,,
-"DLiabilitySignal 2",0,,,,,
-"DLiabilitySignal 3",0.0118,0,0,0,0,0
-"DLiabilitySignal 4",0.2976,0,0,0,0,0
-"DLiabilitySignal 5",0,,,,,
-"All",1,0.206897,0.000229885,0.00191571,0.00222222,0.00176245
-"DLiabilitySignal 1",0.0958,0.6736,0,0.0008,0,0
-"DLiabilitySignal 2",0.1252,0.653611,0,0.000611995,0,0.000611995
-"DLiabilitySignal 3",0.1323,0.409038,0.00115875,0.00753187,0.00463499,0.00463499
-"DLiabilitySignal 4",0.0672,0.0957811,0.00114025,0.0114025,0.0216648,0.0159635
-"DLiabilitySignal 5",0.01,0,0,0,0.0153846,0
+"Scenario","Filter","All","P2 0.17  ","P2 0.33  ","P2 0.5  ","P2 0.67  ","P2 0.83  "
+"WarmCosts25000","All",1,0.314198,0,0,0,0.685802
+"WarmCosts25000","PLiabilitySignal 1",0,,,,,
+"WarmCosts25000","PLiabilitySignal 2",0.3142,1,0,0,0,0
+"WarmCosts25000","PLiabilitySignal 3",0.2348,0,0,0,0,1
+"WarmCosts25000","PLiabilitySignal 4",0.2681,0,0,0,0,1
+"WarmCosts25000","PLiabilitySignal 5",0.1829,0,0,0,0,1
+"WarmCosts0","All",1,0.307622,0,0,0,0.692378
+"WarmCosts0","PLiabilitySignal 1",0,,,,,
+"WarmCosts0","PLiabilitySignal 2",0.3076,1,0,0,0,0
+"WarmCosts0","PLiabilitySignal 3",0.2467,0,0,0,0,1
+"WarmCosts0","PLiabilitySignal 4",0.2758,0,0,0,0,1
+"WarmCosts0","PLiabilitySignal 5",0.1699,0,0,0,0,1
+"WarmCosts50000","All",1,0.318182,0,0,0,0.681818
+"WarmCosts50000","PLiabilitySignal 1",0,,,,,
+"WarmCosts50000","PLiabilitySignal 2",0.3182,1,0,0,0,0
+"WarmCosts50000","PLiabilitySignal 3",0.2642,0,0,0,0,1
+"WarmCosts50000","PLiabilitySignal 4",0.2441,0,0,0,0,1
+"WarmCosts50000","PLiabilitySignal 5",0.1736,0,0,0,0,1

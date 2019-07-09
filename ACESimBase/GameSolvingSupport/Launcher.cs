@@ -21,7 +21,7 @@ namespace ACESim
 
         public const int VanillaIterations = 10_000;
         public const int VanillaReportEveryNIterations = VanillaIterations;
-        public const int VanillaBestResponseEveryMIterations = VanillaIterations;
+        public const int VanillaBestResponseEveryMIterations = 1000;
         public const bool CalculatePerturbedBestResponseRefinement = true;
         public const int MiniReportEveryPIterations = EffectivelyNever;
         public const bool AlwaysSuppressReportPrinting = true;
