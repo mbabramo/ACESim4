@@ -12,460 +12,1690 @@ RegretAversion 0
 PUtilityCalculator Risk neutral DUtilityCalculator Risk neutral
 WarmStartOptions NoWarmStart for  iterations
 Distributing chance decisions...
-...99 milliseconds
+...101 milliseconds
 Prepping accelerated best response...
-... 529 milliseconds. Total information sets: 2110
+... 546 milliseconds. Total information sets: 2110
 Calculating min-max...
-... complete 188 milliseconds
+... complete 209 milliseconds
 Scenario 0
 Trial costs CostsMult0: CostsMultiplier 0
 
-Iteration 1000 Overall milliseconds per iteration 7.116
+Iteration 1000 Overall milliseconds per iteration 7.919
 Avg BR: 4.9309394368517E-07 With perturb: 0.002032803802765335 Refinement: 0.00024256838904688547
 U(P0) : 1049997.051994204 Best response vs. average strategy 1050000.07119 Best response improvement: 2.744239577946583E-07
 U(P1) : 950002.9479695845 Best response vs. average strategy 950000.0276574757 Best response improvement: 7.117639295756817E-07
-Total best response calculation time: 5 milliseconds
+Total best response calculation time: 6 milliseconds
 
 
-Iteration 2000 Overall milliseconds per iteration 7.0975
+Iteration 2000 Overall milliseconds per iteration 7.834
 Avg BR: 1.177066939542347E-07 With perturb: 0.0020326344899403714 Refinement: 5.790844076334044E-05
 U(P0) : 1049997.0193115415 Best response vs. average strategy 1050000.0170045125 Best response improvement: 6.550744807055172E-08
 U(P1) : 950002.9806532945 Best response vs. average strategy 950000.0065914122 Best response improvement: 1.6990593983791768E-07
 Total best response calculation time: 8 milliseconds
 
 
-Iteration 3000 Overall milliseconds per iteration 7.080333333333333
+Iteration 3000 Overall milliseconds per iteration 7.8886666666666665
 Avg BR: 6.104633533434311E-08 With perturb: 0.002032608934361088 Refinement: 3.003348765340927E-05
 U(P0) : 1049997.014378393 Best response vs. average strategy 1050000.0088257866 Best response improvement: 3.397415569129068E-08
 U(P1) : 950002.9855866057 Best response vs. average strategy 950000.0034117935 Best response improvement: 8.811851497739553E-08
 Total best response calculation time: 5 milliseconds
 
 
-Iteration 4000 Overall milliseconds per iteration 7.118
+Iteration 4000 Overall milliseconds per iteration 7.94875
 Avg BR: 4.1710773352071765E-08 With perturb: 0.002032600237107561 Refinement: 2.0520893676282946E-05
 U(P0) : 1049997.012695232 Best response vs. average strategy 1050000.0060347768 Best response improvement: 2.3213265202015875E-08
 U(P1) : 950002.9872698502 Best response vs. average strategy 950000.0023267526 Best response improvement: 6.020828150212765E-08
-Total best response calculation time: 8 milliseconds
+Total best response calculation time: 7 milliseconds
 
 
-Iteration 5000 Overall milliseconds per iteration 7.102
+Iteration 5000 Overall milliseconds per iteration 8.1782
 Avg BR: 3.26354623135287E-08 With perturb: 0.0020325961635665616 Refinement: 1.6056048367356856E-05
 Result using 5000 randomly chosen paths playing AverageStrategy
 U(P0) AverageStrategy: 1049997.011905166 Best response vs. average strategy 1050000.0047247459 Best response improvement: 1.8162699801123826E-08
 U(P1) AverageStrategy: 950002.9880598725 Best response vs. average strategy 950000.0018174436 Best response improvement: 4.7108224825933574E-08
-Total best response calculation time: 7 milliseconds
+Total best response calculation time: 6 milliseconds
 
 Scenario 1
+Trial costs CostsMult0.05: CostsMultiplier 0.05
+Calculating min-max...
+... complete 193 milliseconds
+Trial costs CostsMult0.05: CostsMultiplier 0.05
+
+Iteration 1000 Overall milliseconds per iteration 8.211
+Avg BR: 6.346603854417179E-09 With perturb: 0.0017191117516881498 Refinement: 3.6917924900373E-06
+U(P0) AverageStrategy: 1048256.2560400965 Best response vs. average strategy 1048250.0006882948 Best response improvement: 6.362234736666268E-09
+U(P1) AverageStrategy: 948256.8555124283 Best response vs. average strategy 948250.000660422 Best response improvement: 6.330972972168091E-09
+Total best response calculation time: 5 milliseconds
+
+
+Iteration 2000 Overall milliseconds per iteration 8.109
+Avg BR: 1.5149665061069958E-09 With perturb: 0.001719107803795248 Refinement: 8.812516020010075E-07
+U(P0) AverageStrategy: 1048256.2560171443 Best response vs. average strategy 1048250.0001749088 Best response improvement: 1.5186985241778103E-09
+U(P1) AverageStrategy: 948256.855489473 Best response vs. average strategy 948250.0001470335 Best response improvement: 1.5112344880361815E-09
+Total best response calculation time: 7 milliseconds
+
+
+Iteration 3000 Overall milliseconds per iteration 7.9286666666666665
+Avg BR: 7.857009421009223E-10 With perturb: 0.0017191072079223875 Refinement: 4.570401069113511E-07
+U(P0) AverageStrategy: 1048256.2560136828 Best response vs. average strategy 1048250.0000974229 Best response improvement: 7.87633298723786E-10
+U(P1) AverageStrategy: 948256.8554860107 Best response vs. average strategy 948250.0000695474 Best response improvement: 7.837685854780586E-10
+Total best response calculation time: 7 milliseconds
+
+
+Iteration 4000 Overall milliseconds per iteration 7.94375
+Avg BR: 5.367501392008179E-10 With perturb: 0.0017191070044695852 Refinement: 3.122261370614491E-07
+U(P0) AverageStrategy: 1048256.2560125199 Best response vs. average strategy 1048250.0000709904 Best response improvement: 5.380687430317019E-10
+U(P1) AverageStrategy: 948256.8554848457 Best response vs. average strategy 948250.0000431134 Best response improvement: 5.35431535369934E-10
+Total best response calculation time: 9 milliseconds
+
+
+Iteration 5000 Overall milliseconds per iteration 7.9476
+Avg BR: 4.2015120131018007E-10 With perturb: 0.001719106909286042 Refinement: 2.444008566545009E-07
+Result using 5000 randomly chosen paths playing AverageStrategy
+U(P0) AverageStrategy: 1048256.2560119203 Best response vs. average strategy 1048250.0000585564 Best response improvement: 4.211946586031973E-10
+U(P1) AverageStrategy: 948256.8554842502 Best response vs. average strategy 948250.0000306813 Best response improvement: 4.1910774401716286E-10
+Total best response calculation time: 10 milliseconds
+
+Scenario 2
 Trial costs CostsMult0.1: CostsMultiplier 0.1
 Calculating min-max...
 ... complete 165 milliseconds
 Trial costs CostsMult0.1: CostsMultiplier 0.1
 
-Iteration 1000 Overall milliseconds per iteration 7.188
+Iteration 1000 Overall milliseconds per iteration 8.348
 Avg BR: 6.086808891930288E-09 With perturb: 0.0019174635665955017 Refinement: 3.1744065430862654E-06
 U(P0) AverageStrategy: 1046513.785144187 Best response vs. average strategy 1046500.0007805435 Best response improvement: 6.116354247418845E-09
 U(P1) AverageStrategy: 946514.8841165672 Best response vs. average strategy 946500.0007526742 Best response improvement: 6.0572635364417294E-09
-Total best response calculation time: 7 milliseconds
+Total best response calculation time: 15 milliseconds
 
 
-Iteration 2000 Overall milliseconds per iteration 7.3355
+Iteration 2000 Overall milliseconds per iteration 9.028
 Avg BR: 1.4529533995243226E-09 With perturb: 0.0019174628329350469 Refinement: 7.577478815066768E-07
 U(P0) AverageStrategy: 1046513.7850424027 Best response vs. average strategy 1046500.0001969293 Best response improvement: 1.4600060062437522E-09
 U(P1) AverageStrategy: 946514.8840147769 Best response vs. average strategy 946500.0001690552 Best response improvement: 1.445900792804893E-09
-Total best response calculation time: 6 milliseconds
+Total best response calculation time: 9 milliseconds
 
 
-Iteration 3000 Overall milliseconds per iteration 7.807666666666667
+Iteration 3000 Overall milliseconds per iteration 8.475666666666667
 Avg BR: 7.535390976363868E-10 With perturb: 0.0019174627221966063 Refinement: 3.929876126995302E-07
 U(P0) AverageStrategy: 1046513.7850270419 Best response vs. average strategy 1046500.0001088434 Best response improvement: 7.571970544210295E-10
 U(P1) AverageStrategy: 946514.8839994152 Best response vs. average strategy 946500.0000809679 Best response improvement: 7.498811408517442E-10
-Total best response calculation time: 10 milliseconds
+Total best response calculation time: 5 milliseconds
 
 
-Iteration 4000 Overall milliseconds per iteration 7.912
+Iteration 4000 Overall milliseconds per iteration 8.391
 Avg BR: 5.147735358576788E-10 With perturb: 0.0019174626843239601 Refinement: 2.6846599939918647E-07
 U(P0) AverageStrategy: 1046513.7850218192 Best response vs. average strategy 1046500.0000787936 Best response improvement: 5.172679155338101E-10
 U(P1) AverageStrategy: 946514.88399419 Best response vs. average strategy 946500.0000509172 Best response improvement: 5.122791561815473E-10
-Total best response calculation time: 6 milliseconds
+Total best response calculation time: 7 milliseconds
 
 
-Iteration 5000 Overall milliseconds per iteration 8.2674
+Iteration 5000 Overall milliseconds per iteration 8.3986
 Avg BR: 4.0295291156510774E-10 With perturb: 0.0019174626667799255 Refinement: 2.1014902586959007E-07
 Result using 5000 randomly chosen paths playing AverageStrategy
 U(P0) AverageStrategy: 1046513.785019314 Best response vs. average strategy 1046500.0000646622 Best response improvement: 4.0491634025806336E-10
 U(P1) AverageStrategy: 946514.8839916892 Best response vs. average strategy 946500.0000367875 Best response improvement: 4.009894828721521E-10
 Total best response calculation time: 10 milliseconds
 
-Scenario 2
-Trial costs CostsMult0.2: CostsMultiplier 0.2
+Scenario 3
+Trial costs CostsMult0.15000000000000002: CostsMultiplier 0.15000000000000002
 Calculating min-max...
-... complete 179 milliseconds
-Trial costs CostsMult0.2: CostsMultiplier 0.2
+... complete 243 milliseconds
+Trial costs CostsMult0.15000000000000002: CostsMultiplier 0.15000000000000002
 
-Iteration 1000 Overall milliseconds per iteration 8.14
-Avg BR: 9.785433899945715E-07 With perturb: 0.0018135373793452393 Refinement: 0.0005395771827696572
-U(P0) AverageStrategy: 1043027.3703936723 Best response vs. average strategy 1043000.1686627283 Best response improvement: 9.877749319587436E-07
-U(P1) AverageStrategy: 943029.4683660548 Best response vs. average strategy 943000.1686348657 Best response improvement: 9.693118480303996E-07
-Total best response calculation time: 9 milliseconds
-
-
-Iteration 2000 Overall milliseconds per iteration 7.8325
-Avg BR: 2.33602549703141E-07 With perturb: 0.0018141223617036185 Refinement: 0.00012876890480737358
-U(P0) AverageStrategy: 1043027.3215445776 Best response vs. average strategy 1043000.0402738241 Best response improvement: 2.3580634789097877E-07
-U(P1) AverageStrategy: 943029.419516949 Best response vs. average strategy 943000.0402459514 Best response improvement: 2.3139875151530326E-07
+Iteration 1000 Overall milliseconds per iteration 10.098
+Avg BR: 2.1702941592975808E-07 With perturb: 0.0018750372675990393 Refinement: 0.00011574672124125907
+U(P0) AverageStrategy: 1044768.6604878565 Best response vs. average strategy 1044750.0248603452 Best response improvement: 2.1858704220279154E-07
+U(P1) AverageStrategy: 944770.2589601907 Best response vs. average strategy 944750.0248324795 Best response improvement: 2.1547178965672462E-07
 Total best response calculation time: 8 milliseconds
 
 
-Iteration 3000 Overall milliseconds per iteration 7.629333333333333
-Avg BR: 1.2115461707884438E-07 With perturb: 0.001814210658026024 Refinement: 6.67808980962929E-05
-U(P0) AverageStrategy: 1043027.3141712872 Best response vs. average strategy 1043000.0208940958 Best response improvement: 1.2229758736100934E-07
-U(P1) AverageStrategy: 943029.4121436564 Best response vs. average strategy 943000.020866221 Best response improvement: 1.200116467966794E-07
+Iteration 2000 Overall milliseconds per iteration 9.101
+Avg BR: 5.180769514765723E-08 With perturb: 0.0018750639302005144 Refinement: 2.7629828675823893E-05
+U(P0) AverageStrategy: 1044768.6587311894 Best response vs. average strategy 1044750.0059450858 Best response improvement: 5.217952182494014E-08
+U(P1) AverageStrategy: 944770.257203515 Best response vs. average strategy 944750.0059172119 Best response improvement: 5.143586847037431E-08
+Total best response calculation time: 8 milliseconds
+
+
+Iteration 3000 Overall milliseconds per iteration 8.682666666666666
+Avg BR: 2.686911622328905E-08 With perturb: 0.0018750679544889365 Refinement: 1.4329675977323405E-05
+U(P0) AverageStrategy: 1044768.6584660426 Best response vs. average strategy 1044750.0030900193 Best response improvement: 2.7061957327357257E-08
+U(P1) AverageStrategy: 944770.2569383688 Best response vs. average strategy 944750.0030621445 Best response improvement: 2.6676275119220842E-08
+Total best response calculation time: 10 milliseconds
+
+
+Iteration 4000 Overall milliseconds per iteration 8.4635
+Avg BR: 1.8358687724601173E-08 With perturb: 0.0018750693277579907 Refinement: 9.790938101767441E-06
+U(P0) AverageStrategy: 1044768.6583755744 Best response vs. average strategy 1044750.0021157258 Best response improvement: 1.8490445856229368E-08
+U(P1) AverageStrategy: 944770.256847897 Best response vs. average strategy 944750.0020878498 Best response improvement: 1.822692959297298E-08
 Total best response calculation time: 9 milliseconds
 
 
-Iteration 4000 Overall milliseconds per iteration 7.56125
+Iteration 5000 Overall milliseconds per iteration 8.273
+Avg BR: 1.4364330269249395E-08 With perturb: 0.0018750699724129245 Refinement: 7.660690257209297E-06
+Result using 5000 randomly chosen paths playing AverageStrategy
+U(P0) AverageStrategy: 1044768.6583330712 Best response vs. average strategy 1044750.0016584012 Best response improvement: 1.4467428561793752E-08
+U(P1) AverageStrategy: 944770.2568053962 Best response vs. average strategy 944750.0016305267 Best response improvement: 1.426123197670504E-08
+Total best response calculation time: 6 milliseconds
+
+Scenario 4
+Trial costs CostsMult0.2: CostsMultiplier 0.2
+Calculating min-max...
+... complete 161 milliseconds
+Trial costs CostsMult0.2: CostsMultiplier 0.2
+
+Iteration 1000 Overall milliseconds per iteration 7.584
+Avg BR: 9.785433899945715E-07 With perturb: 0.0018135373793452393 Refinement: 0.0005395771827696572
+U(P0) AverageStrategy: 1043027.3703936723 Best response vs. average strategy 1043000.1686627283 Best response improvement: 9.877749319587436E-07
+U(P1) AverageStrategy: 943029.4683660548 Best response vs. average strategy 943000.1686348657 Best response improvement: 9.693118480303996E-07
+Total best response calculation time: 11 milliseconds
+
+
+Iteration 2000 Overall milliseconds per iteration 7.4835
+Avg BR: 2.33602549703141E-07 With perturb: 0.0018141223617036185 Refinement: 0.00012876890480737358
+U(P0) AverageStrategy: 1043027.3215445776 Best response vs. average strategy 1043000.0402738241 Best response improvement: 2.3580634789097877E-07
+U(P1) AverageStrategy: 943029.419516949 Best response vs. average strategy 943000.0402459514 Best response improvement: 2.3139875151530326E-07
+Total best response calculation time: 12 milliseconds
+
+
+Iteration 3000 Overall milliseconds per iteration 7.478
+Avg BR: 1.2115461707884438E-07 With perturb: 0.001814210658026024 Refinement: 6.67808980962929E-05
+U(P0) AverageStrategy: 1043027.3141712872 Best response vs. average strategy 1043000.0208940958 Best response improvement: 1.2229758736100934E-07
+U(P1) AverageStrategy: 943029.4121436564 Best response vs. average strategy 943000.020866221 Best response improvement: 1.200116467966794E-07
+Total best response calculation time: 10 milliseconds
+
+
+Iteration 4000 Overall milliseconds per iteration 7.4485
 Avg BR: 8.278096375637118E-08 With perturb: 0.0018142407894087011 Refinement: 4.562843269737708E-05
 U(P0) AverageStrategy: 1043027.3116551341 Best response vs. average strategy 1043000.0142806612 Best response improvement: 8.356191240073669E-08
 U(P1) AverageStrategy: 943029.4096275019 Best response vs. average strategy 943000.0142527858 Best response improvement: 8.200001511200566E-08
-Total best response calculation time: 6 milliseconds
+Total best response calculation time: 7 milliseconds
 
 
-Iteration 5000 Overall milliseconds per iteration 7.507
+Iteration 5000 Overall milliseconds per iteration 7.4366
 Avg BR: 6.476960081833406E-08 With perturb: 0.0018142555505345573 Refinement: 3.570037352193861E-05
 Result using 5000 randomly chosen paths playing AverageStrategy
 U(P0) AverageStrategy: 1043027.3104741109 Best response vs. average strategy 1043000.0111764952 Best response improvement: 6.538063753396273E-08
 U(P1) AverageStrategy: 943029.4084464832 Best response vs. average strategy 943000.0111486206 Best response improvement: 6.41585641027054E-08
-Total best response calculation time: 6 milliseconds
+Total best response calculation time: 8 milliseconds
 
-Scenario 3
-Trial costs CostsMult0.30000000000000004: CostsMultiplier 0.30000000000000004
+Scenario 5
+Trial costs CostsMult0.25: CostsMultiplier 0.25
 Calculating min-max...
-... complete 160 milliseconds
-Trial costs CostsMult0.30000000000000004: CostsMultiplier 0.30000000000000004
+... complete 165 milliseconds
+Trial costs CostsMult0.25: CostsMultiplier 0.25
 
-Iteration 1000 Overall milliseconds per iteration 7.365
-Avg BR: 0.00030352957089507587 With perturb: 0.0018719892809499882 Refinement: 0.16214279322210762
-U(P0) AverageStrategy: 1039638.3405972075 Best response vs. average strategy 1039632.2541775294 Best response improvement: 0.00030770658474892033
-U(P1) AverageStrategy: 939641.4375702234 Best response vs. average strategy 939632.2541500103 Best response improvement: 0.0002993525570412314
-Total best response calculation time: 6 milliseconds
-
-
-Iteration 2000 Overall milliseconds per iteration 7.366
-Avg BR: 5.966946035338852E-05 With perturb: 0.0016875194616259065 Refinement: 0.03535927241745565
-U(P0) AverageStrategy: 1039564.4840856445 Best response vs. average strategy 1039530.408287267 Best response improvement: 6.0490600073840036E-05
-U(P1) AverageStrategy: 939567.5810581703 Best response vs. average strategy 939530.4082594754 Best response improvement: 5.8848320632937E-05
+Iteration 1000 Overall milliseconds per iteration 7.576
+Avg BR: 2.1325234513908645E-07 With perturb: 0.0017278117183100196 Refinement: 0.00012342337008089605
+U(P0) AverageStrategy: 1042198.3243585061 Best response vs. average strategy 1042168.7517480933 Best response improvement: 2.1573202465386952E-07
+U(P1) AverageStrategy: 942200.9218253319 Best response vs. average strategy 942168.7517242944 Best response improvement: 2.107726656243034E-07
 Total best response calculation time: 7 milliseconds
 
 
-Iteration 3000 Overall milliseconds per iteration 7.352666666666667
-Avg BR: 2.9858451328679092E-05 With perturb: 0.001690985869749057 Refinement: 0.01765742213630094
-U(P0) AverageStrategy: 1039553.2237599074 Best response vs. average strategy 1039515.6679088665 Best response improvement: 3.0269347632650372E-05
-U(P1) AverageStrategy: 939556.3207323573 Best response vs. average strategy 939515.6678810347 Best response improvement: 2.9447555024707815E-05
-Total best response calculation time: 5 milliseconds
+Iteration 2000 Overall milliseconds per iteration 7.5095
+Avg BR: 3.5885511018446643E-07 With perturb: 0.0017276143648863175 Refinement: 0.00020771713727217142
+U(P0) AverageStrategy: 1042198.4070816681 Best response vs. average strategy 1042168.8042585166 Best response improvement: 1.641406480442075E-07
+U(P1) AverageStrategy: 942200.9158585819 Best response vs. average strategy 942168.7550976754 Best response improvement: 5.535695723247254E-07
+Total best response calculation time: 7 milliseconds
 
 
-Iteration 4000 Overall milliseconds per iteration 7.4
-Avg BR: 2.014402846238216E-05 With perturb: 0.001701322406952107 Refinement: 0.01184021816210008
-U(P0) AverageStrategy: 1039549.3754222973 Best response vs. average strategy 1039510.6808946442 Best response improvement: 2.0421239989268224E-05
-U(P1) AverageStrategy: 939552.4723947205 Best response vs. average strategy 939510.6808667972 Best response improvement: 1.9866816935496094E-05
+Iteration 3000 Overall milliseconds per iteration 7.454666666666666
+Avg BR: 1.8611298156795145E-07 With perturb: 0.0017275992982789365 Refinement: 0.00010772925281537237
+U(P0) AverageStrategy: 1042198.365129696 Best response vs. average strategy 1042168.7724185749 Best response improvement: 8.512798696756363E-08
+U(P1) AverageStrategy: 942200.915788948 Best response vs. average strategy 942168.7469108272 Best response improvement: 2.8709797616833926E-07
+Total best response calculation time: 7 milliseconds
+
+
+Iteration 4000 Overall milliseconds per iteration 7.513
+Avg BR: 1.2716438044479684E-07 With perturb: 0.0017275937702529135 Refinement: 7.360780215488994E-05
+U(P0) AverageStrategy: 1042198.3509152376 Best response vs. average strategy 1042168.7615531613 Best response improvement: 5.8164821170708715E-08
+U(P1) AverageStrategy: 942200.9156590751 Best response vs. average strategy 942168.7441170705 Best response improvement: 1.96163939718885E-07
+Total best response calculation time: 7 milliseconds
+
+
+Iteration 5000 Overall milliseconds per iteration 7.4916
+Avg BR: 9.949596379609669E-08 With perturb: 0.0017275890067281509 Refinement: 5.759238071590318E-05
+Result using 5000 randomly chosen paths playing AverageStrategy
+U(P0) AverageStrategy: 1042198.3446819623 Best response vs. average strategy 1042168.7564532575 Best response improvement: 4.550940850201775E-08
+U(P1) AverageStrategy: 942200.9153718756 Best response vs. average strategy 942168.742805749 Best response improvement: 1.5348251909017563E-07
+Total best response calculation time: 8 milliseconds
+
+Scenario 6
+Trial costs CostsMult0.30000000000000004: CostsMultiplier 0.30000000000000004
+Calculating min-max...
+... complete 167 milliseconds
+Trial costs CostsMult0.30000000000000004: CostsMultiplier 0.30000000000000004
+
+Iteration 1000 Overall milliseconds per iteration 7.518
+Avg BR: 0.00030352957089507587 With perturb: 0.0018719892809499882 Refinement: 0.16214279322210762
+U(P0) AverageStrategy: 1039638.3405972075 Best response vs. average strategy 1039632.2541775294 Best response improvement: 0.00030770658474892033
+U(P1) AverageStrategy: 939641.4375702234 Best response vs. average strategy 939632.2541500103 Best response improvement: 0.0002993525570412314
 Total best response calculation time: 8 milliseconds
 
 
-Iteration 5000 Overall milliseconds per iteration 7.8162
+Iteration 2000 Overall milliseconds per iteration 7.3625
+Avg BR: 5.966946035338852E-05 With perturb: 0.0016875194616259065 Refinement: 0.03535927241745565
+U(P0) AverageStrategy: 1039564.4840856445 Best response vs. average strategy 1039530.408287267 Best response improvement: 6.0490600073840036E-05
+U(P1) AverageStrategy: 939567.5810581703 Best response vs. average strategy 939530.4082594754 Best response improvement: 5.8848320632937E-05
+Total best response calculation time: 5 milliseconds
+
+
+Iteration 3000 Overall milliseconds per iteration 7.34
+Avg BR: 2.9858451328679092E-05 With perturb: 0.001690985869749057 Refinement: 0.01765742213630094
+U(P0) AverageStrategy: 1039553.2237599074 Best response vs. average strategy 1039515.6679088665 Best response improvement: 3.0269347632650372E-05
+U(P1) AverageStrategy: 939556.3207323573 Best response vs. average strategy 939515.6678810347 Best response improvement: 2.9447555024707815E-05
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 4000 Overall milliseconds per iteration 7.31975
+Avg BR: 2.014402846238216E-05 With perturb: 0.001701322406952107 Refinement: 0.01184021816210008
+U(P0) AverageStrategy: 1039549.3754222973 Best response vs. average strategy 1039510.6808946442 Best response improvement: 2.0421239989268224E-05
+U(P1) AverageStrategy: 939552.4723947205 Best response vs. average strategy 939510.6808667972 Best response improvement: 1.9866816935496094E-05
+Total best response calculation time: 9 milliseconds
+
+
+Iteration 5000 Overall milliseconds per iteration 7.3188
 Avg BR: 1.5666127825256506E-05 With perturb: 0.0017061800233087552 Refinement: 0.009181989949029851
 Result using 5000 randomly chosen paths playing AverageStrategy
 U(P0) AverageStrategy: 1039547.568163057 Best response vs. average strategy 1039508.3478941952 Best response improvement: 1.588171684334791E-05
 U(P1) AverageStrategy: 939550.6651354696 Best response vs. average strategy 939508.3478663429 Best response improvement: 1.5450538807165096E-05
+Total best response calculation time: 9 milliseconds
+
+Scenario 7
+Trial costs CostsMult0.35000000000000003: CostsMultiplier 0.35000000000000003
+Calculating min-max...
+... complete 164 milliseconds
+Trial costs CostsMult0.35000000000000003: CostsMultiplier 0.35000000000000003
+
+Iteration 1000 Overall milliseconds per iteration 8.027
+Avg BR: 9.431617376541553E-09 With perturb: 0.0016729240308446908 Refinement: 5.6378037511837E-06
+U(P0) AverageStrategy: 1037798.3579665548 Best response vs. average strategy 1037750.0021430493 Best response improvement: 9.580987409271043E-09
+U(P1) AverageStrategy: 937801.9544389525 Best response vs. average strategy 937750.0021151965 Best response improvement: 9.282247343812064E-09
+Total best response calculation time: 7 milliseconds
+
+
+Iteration 2000 Overall milliseconds per iteration 7.9175
+Avg BR: 2.251361649260953E-09 With perturb: 0.0016729244000142898 Refinement: 1.3457641297130477E-06
+U(P0) AverageStrategy: 1037798.3571499058 Best response vs. average strategy 1037750.000522166 Best response improvement: 2.287014590940256E-09
+U(P1) AverageStrategy: 937801.9536222842 Best response vs. average strategy 937750.0004942957 Best response improvement: 2.2157087075816496E-09
+Total best response calculation time: 8 milliseconds
+
+
+Iteration 3000 Overall milliseconds per iteration 7.767
+Avg BR: 1.1676177403926575E-09 With perturb: 0.0016729244557437393 Refinement: 6.979500696423046E-07
+U(P0) AverageStrategy: 1037798.3570266454 Best response vs. average strategy 1037750.0002775202 Best response improvement: 1.1861099508301964E-09
+U(P1) AverageStrategy: 937801.9534990212 Best response vs. average strategy 937750.0002496465 Best response improvement: 1.1491255299551185E-09
 Total best response calculation time: 11 milliseconds
 
-Scenario 4
+
+Iteration 4000 Overall milliseconds per iteration 7.739
+Avg BR: 7.977139468332732E-10 With perturb: 0.0016729244747015742 Refinement: 4.768379917303642E-07
+U(P0) AverageStrategy: 1037798.3569846 Best response vs. average strategy 1037750.0001940432 Best response improvement: 8.10341631201492E-10
+U(P1) AverageStrategy: 937801.9534569732 Best response vs. average strategy 937750.0001661683 Best response improvement: 7.850862624650543E-10
+Total best response calculation time: 10 milliseconds
+
+
+Iteration 5000 Overall milliseconds per iteration 7.5736
+Avg BR: 6.243045348895786E-10 With perturb: 0.0016729245485031553 Refinement: 3.731815254000387E-07
+Result using 5000 randomly chosen paths playing AverageStrategy
+U(P0) AverageStrategy: 1037798.3569648166 Best response vs. average strategy 1037750.0001548374 Best response improvement: 6.341985587416024E-10
+U(P1) AverageStrategy: 937801.9534371942 Best response vs. average strategy 937750.0001269635 Best response improvement: 6.144105110375547E-10
+Total best response calculation time: 5 milliseconds
+
+Scenario 8
 Trial costs CostsMult0.4: CostsMultiplier 0.4
 Calculating min-max...
-... complete 173 milliseconds
+... complete 175 milliseconds
 Trial costs CostsMult0.4: CostsMultiplier 0.4
 
-Iteration 1000 Overall milliseconds per iteration 7.163
+Iteration 1000 Overall milliseconds per iteration 6.708
 Avg BR: 1.1617755424528364E-07 With perturb: 0.0014442393507763606 Refinement: 8.044203627524178E-05
 U(P0) AverageStrategy: 1036882.8519475827 Best response vs. average strategy 1036840.0032731732 Best response improvement: 1.1825215134939009E-07
 U(P1) AverageStrategy: 936886.947923983 Best response vs. average strategy 936840.003249385 Best response improvement: 1.1410295714117717E-07
 Total best response calculation time: 6 milliseconds
 
 
-Iteration 2000 Overall milliseconds per iteration 7.3115
+Iteration 2000 Overall milliseconds per iteration 6.701
 Avg BR: 2.7732132392619073E-08 With perturb: 0.001444168607477276 Refinement: 1.920283563084959E-05
 U(P0) AverageStrategy: 1036882.851064548 Best response vs. average strategy 1036839.9925090548 Best response improvement: 2.8227350081909788E-08
 U(P1) AverageStrategy: 936886.9470409274 Best response vs. average strategy 936839.992485246 Best response improvement: 2.7236914703328358E-08
-Total best response calculation time: 8 milliseconds
+Total best response calculation time: 5 milliseconds
 
 
-Iteration 3000 Overall milliseconds per iteration 7.256666666666667
+Iteration 3000 Overall milliseconds per iteration 6.647333333333333
 Avg BR: 1.4382674755377063E-08 With perturb: 0.0014441579298762213 Refinement: 9.959211840916735E-06
 U(P0) AverageStrategy: 1036882.8509312761 Best response vs. average strategy 1036839.9908843877 Best response improvement: 1.4639508233151653E-08
 U(P1) AverageStrategy: 936886.9469076523 Best response vs. average strategy 936839.9908605757 Best response improvement: 1.4125841277602471E-08
-Total best response calculation time: 11 milliseconds
+Total best response calculation time: 10 milliseconds
 
 
-Iteration 4000 Overall milliseconds per iteration 7.24525
+Iteration 4000 Overall milliseconds per iteration 6.63575
 Avg BR: 9.827111829874334E-09 With perturb: 0.0014441542860772704 Refinement: 6.804752043888286E-06
 U(P0) AverageStrategy: 1036882.8508858095 Best response vs. average strategy 1036839.9903299756 Best response improvement: 1.0002593890848486E-08
 U(P1) AverageStrategy: 936886.9468621834 Best response vs. average strategy 936839.9903061617 Best response improvement: 9.651629768900182E-09
-Total best response calculation time: 8 milliseconds
+Total best response calculation time: 7 milliseconds
 
 
-Iteration 5000 Overall milliseconds per iteration 7.208
+Iteration 5000 Overall milliseconds per iteration 6.636
 Avg BR: 7.689068254686453E-09 With perturb: 0.0014441525759964703 Refinement: 5.324276937553477E-06
 Result using 5000 randomly chosen paths playing AverageStrategy
 U(P0) AverageStrategy: 1036882.8508644237 Best response vs. average strategy 1036839.9900697287 Best response improvement: 7.826377722350034E-09
 U(P1) AverageStrategy: 936886.9468408002 Best response vs. average strategy 936839.9900459166 Best response improvement: 7.551758787022871E-09
 Total best response calculation time: 7 milliseconds
 
-Scenario 5
+Scenario 9
+Trial costs CostsMult0.45: CostsMultiplier 0.45
+Calculating min-max...
+... complete 155 milliseconds
+Trial costs CostsMult0.45: CostsMultiplier 0.45
+
+Iteration 1000 Overall milliseconds per iteration 6.659
+Avg BR: 7.788384589820332E-09 With perturb: 0.0015653459120649718 Refinement: 4.975503835791832E-06
+U(P0) AverageStrategy: 1036932.9667870599 Best response vs. average strategy 1036886.0141276061 Best response improvement: 7.942780391888672E-09
+U(P1) AverageStrategy: 936937.5622638917 Best response vs. average strategy 936886.0141042073 Best response improvement: 7.63398878775199E-09
+Total best response calculation time: 7 milliseconds
+
+
+Iteration 2000 Overall milliseconds per iteration 6.6925
+Avg BR: 1.8591351307995278E-09 With perturb: 0.0015653400079299223 Refinement: 1.1876877364542249E-06
+U(P0) AverageStrategy: 1036932.9666064671 Best response vs. average strategy 1036886.0132760592 Best response improvement: 1.895993822411205E-09
+U(P1) AverageStrategy: 936937.562083275 Best response vs. average strategy 936886.0132526372 Best response improvement: 1.822276439187851E-09
+Total best response calculation time: 9 milliseconds
+
+
+Iteration 3000 Overall milliseconds per iteration 6.633333333333334
+Avg BR: 9.642039400199688E-10 With perturb: 0.0015653391167896474 Refinement: 6.159712803941511E-07
+U(P0) AverageStrategy: 1036932.9665792118 Best response vs. average strategy 1036886.013147533 Best response improvement: 9.833186278852184E-10
+U(P1) AverageStrategy: 936937.5620560161 Best response vs. average strategy 936886.0131241077 Best response improvement: 9.45089252154719E-10
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 4000 Overall milliseconds per iteration 6.595
+Avg BR: 6.587407772631364E-10 With perturb: 0.0015653388126255336 Refinement: 4.2082951751399705E-07
+U(P0) AverageStrategy: 1036932.9665699258 Best response vs. average strategy 1036886.0131036806 Best response improvement: 6.717954123957773E-10
+U(P1) AverageStrategy: 936937.5620467273 Best response vs. average strategy 936886.0130802534 Best response improvement: 6.456861421304954E-10
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 5000 Overall milliseconds per iteration 6.626
+Avg BR: 5.155409802595119E-10 With perturb: 0.0015653386700229203 Refinement: 3.293478849864248E-07
+Result using 5000 randomly chosen paths playing AverageStrategy
+U(P0) AverageStrategy: 1036932.9665655269 Best response vs. average strategy 1036886.0130830774 Best response improvement: 5.257640326960703E-10
+U(P1) AverageStrategy: 936937.562042331 Best response vs. average strategy 936886.0130596517 Best response improvement: 5.053179278229534E-10
+Total best response calculation time: 8 milliseconds
+
+Scenario 10
 Trial costs CostsMult0.5: CostsMultiplier 0.5
 Calculating min-max...
-... complete 179 milliseconds
+... complete 149 milliseconds
 Trial costs CostsMult0.5: CostsMultiplier 0.5
 
-Iteration 1000 Overall milliseconds per iteration 7.033
+Iteration 1000 Overall milliseconds per iteration 6.847
 Avg BR: 1.1614084950522752E-08 With perturb: 0.0017205076414298368 Refinement: 6.750382660823759E-06
 U(P0) AverageStrategy: 1035495.610290596 Best response vs. average strategy 1035428.9050059572 Best response improvement: 1.1866564551989238E-08
 U(P1) AverageStrategy: 935500.7052675219 Best response vs. average strategy 935428.9049825621 Best response improvement: 1.1361605349056265E-08
 Total best response calculation time: 9 milliseconds
 
 
-Iteration 2000 Overall milliseconds per iteration 7.08
+Iteration 2000 Overall milliseconds per iteration 6.7735
 Avg BR: 2.7723491508909996E-09 With perturb: 0.0017204989061691748 Refinement: 1.6113635068003916E-06
 U(P0) AverageStrategy: 1035495.6100482786 Best response vs. average strategy 1035428.9037392677 Best response improvement: 2.832617610692978E-09
 U(P1) AverageStrategy: 935500.7050251788 Best response vs. average strategy 935428.9037158468 Best response improvement: 2.7120806910890213E-09
 Total best response calculation time: 5 milliseconds
 
 
-Iteration 3000 Overall milliseconds per iteration 7.077
+Iteration 3000 Overall milliseconds per iteration 6.724666666666667
 Avg BR: 1.4378180304634656E-09 With perturb: 0.0017204975877108987 Refinement: 8.356989517064451E-07
 U(P0) AverageStrategy: 1035495.6100117068 Best response vs. average strategy 1035428.9035480813 Best response improvement: 1.4690744380156199E-09
 U(P1) AverageStrategy: 935500.7049886028 Best response vs. average strategy 935428.9035246564 Best response improvement: 1.4065616229113113E-09
 Total best response calculation time: 8 milliseconds
 
 
-Iteration 4000 Overall milliseconds per iteration 7.088
+Iteration 4000 Overall milliseconds per iteration 6.70675
 Avg BR: 9.823241105950471E-10 With perturb: 0.0017204971376982635 Refinement: 5.7095364419451E-07
 U(P0) AverageStrategy: 1035495.6099992476 Best response vs. average strategy 1035428.9034828496 Best response improvement: 1.003673921028773E-09
 U(P1) AverageStrategy: 935500.7049761398 Best response vs. average strategy 935428.9034594225 Best response improvement: 9.60974300161321E-10
 Total best response calculation time: 7 milliseconds
 
 
-Iteration 5000 Overall milliseconds per iteration 7.1308
+Iteration 5000 Overall milliseconds per iteration 6.6866
 Avg BR: 7.687744422514106E-10 With perturb: 0.0017204969267230526 Refinement: 4.4683279017281256E-07
 Result using 5000 randomly chosen paths playing AverageStrategy
 U(P0) AverageStrategy: 1035495.6099933409 Best response vs. average strategy 1035428.9034522027 Best response improvement: 7.854940162764656E-10
 U(P1) AverageStrategy: 935500.7049702371 Best response vs. average strategy 935428.9034287769 Best response improvement: 7.520548682263557E-10
-Total best response calculation time: 8 milliseconds
+Total best response calculation time: 7 milliseconds
 
-Scenario 6
-Trial costs CostsMult0.6000000000000001: CostsMultiplier 0.6000000000000001
+Scenario 11
+Trial costs CostsMult0.55: CostsMultiplier 0.55
 Calculating min-max...
-... complete 163 milliseconds
-Trial costs CostsMult0.6000000000000001: CostsMultiplier 0.6000000000000001
+... complete 158 milliseconds
+Trial costs CostsMult0.55: CostsMultiplier 0.55
 
-Iteration 1000 Overall milliseconds per iteration 7.284
-Avg BR: 5.438384468467425E-10 With perturb: 0.0016423290982024777 Refinement: 3.311385321260954E-07
-U(P0) AverageStrategy: 1032590.6010624187 Best response vs. average strategy 1032514.6840793551 Best response improvement: 5.576658346082854E-10
-U(P1) AverageStrategy: 932596.6950393289 Best response vs. average strategy 932514.684055966 Best response improvement: 5.300110590851996E-10
+Iteration 1000 Overall milliseconds per iteration 6.984
+Avg BR: 3.383345604162576E-10 With perturb: 0.0017045629344341982 Refinement: 1.9848757331366134E-07
+U(P0) AverageStrategy: 1034042.3068908581 Best response vs. average strategy 1033971.7937141883 Best response improvement: 3.4632099853767145E-10
+U(P1) AverageStrategy: 934047.9013677695 Best response vs. average strategy 933971.7936907962 Best response improvement: 3.303481222948438E-10
+Total best response calculation time: 7 milliseconds
+
+
+Iteration 2000 Overall milliseconds per iteration 6.7895
+Avg BR: 8.077377510818621E-11 With perturb: 0.0017045627042691085 Refinement: 4.738680185005035E-08
+U(P0) AverageStrategy: 1034042.3068892562 Best response vs. average strategy 1033971.7936844566 Best response improvement: 8.267995256644028E-11
+U(P1) AverageStrategy: 934047.9013661382 Best response vs. average strategy 933971.7936610364 Best response improvement: 7.886759764993215E-11
 Total best response calculation time: 6 milliseconds
 
 
-Iteration 2000 Overall milliseconds per iteration 7.2145
+Iteration 3000 Overall milliseconds per iteration 6.742333333333334
+Avg BR: 4.188893566064142E-11 With perturb: 0.0017045626695205431 Refinement: 2.4574594064308518E-08
+U(P0) AverageStrategy: 1034042.3068890163 Best response vs. average strategy 1033971.7936799701 Best response improvement: 4.287972882553771E-11
+U(P1) AverageStrategy: 934047.9013658947 Best response vs. average strategy 933971.793656545 Best response improvement: 4.089814249574513E-11
+Total best response calculation time: 9 milliseconds
+
+
+Iteration 4000 Overall milliseconds per iteration 6.72625
+Avg BR: 2.8531038215583468E-11 With perturb: 0.0017045626575719654 Refinement: 1.673804015877246E-08
+U(P0) AverageStrategy: 1034042.3068889561 Best response vs. average strategy 1033971.7936784497 Best response improvement: 2.9199521292696943E-11
+U(P1) AverageStrategy: 934047.9013658307 Best response vs. average strategy 933971.7936550229 Best response improvement: 2.7862555138469992E-11
+Total best response calculation time: 5 milliseconds
+
+
+Iteration 5000 Overall milliseconds per iteration 6.7428
+Avg BR: 2.25008098308983E-11 With perturb: 0.0017045626522066005 Refinement: 1.3200341918656037E-08
+Result using 5000 randomly chosen paths playing AverageStrategy
+U(P0) AverageStrategy: 1034042.3068888695 Best response vs. average strategy 1033971.793677707 Best response improvement: 2.3037440829224638E-11
+U(P1) AverageStrategy: 934047.9013657479 Best response vs. average strategy 933971.7936542814 Best response improvement: 2.196417883257196E-11
+Total best response calculation time: 8 milliseconds
+
+Scenario 12
+Trial costs CostsMult0.6000000000000001: CostsMultiplier 0.6000000000000001
+Calculating min-max...
+... complete 169 milliseconds
+Trial costs CostsMult0.6000000000000001: CostsMultiplier 0.6000000000000001
+
+Iteration 1000 Overall milliseconds per iteration 7.036
+Avg BR: 5.438384468467425E-10 With perturb: 0.0016423290982024777 Refinement: 3.311385321260954E-07
+U(P0) AverageStrategy: 1032590.6010624187 Best response vs. average strategy 1032514.6840793551 Best response improvement: 5.576658346082854E-10
+U(P1) AverageStrategy: 932596.6950393289 Best response vs. average strategy 932514.684055966 Best response improvement: 5.300110590851996E-10
+Total best response calculation time: 8 milliseconds
+
+
+Iteration 2000 Overall milliseconds per iteration 6.815
 Avg BR: 1.298208703245784E-10 With perturb: 0.0016423287210359308 Refinement: 7.904682458618356E-08
 U(P0) AverageStrategy: 1032590.6010542229 Best response vs. average strategy 1032514.6840251638 Best response improvement: 1.331204143555268E-10
 U(P1) AverageStrategy: 932596.695031102 Best response vs. average strategy 932514.6840017444 Best response improvement: 1.2652132629363004E-10
-Total best response calculation time: 10 milliseconds
+Total best response calculation time: 6 milliseconds
 
 
-Iteration 3000 Overall milliseconds per iteration 7.219333333333333
+Iteration 3000 Overall milliseconds per iteration 6.756
 Avg BR: 6.732714696754836E-11 With perturb: 0.001642328664103003 Refinement: 4.099492899268167E-08
 U(P0) AverageStrategy: 1032590.6010529876 Best response vs. average strategy 1032514.6840169855 Best response improvement: 6.903934737910395E-11
 U(P1) AverageStrategy: 932596.695029862 Best response vs. average strategy 932514.6839935614 Best response improvement: 6.561494655599279E-11
 Total best response calculation time: 7 milliseconds
 
 
-Iteration 4000 Overall milliseconds per iteration 7.21125
+Iteration 4000 Overall milliseconds per iteration 6.70225
 Avg BR: 4.592135182487806E-11 With perturb: 0.001642328644593786 Refinement: 2.7961122139616736E-08
 U(P0) AverageStrategy: 1032590.601052586 Best response vs. average strategy 1032514.6840142051 Best response improvement: 4.7083417682544046E-11
 U(P1) AverageStrategy: 932596.6950294568 Best response vs. average strategy 932514.6839907788 Best response improvement: 4.4759285967212076E-11
-Total best response calculation time: 7 milliseconds
+Total best response calculation time: 6 milliseconds
 
 
-Iteration 5000 Overall milliseconds per iteration 7.2058
+Iteration 5000 Overall milliseconds per iteration 6.6804
 Avg BR: 3.6097458954278054E-11 With perturb: 0.0016423286356582808 Refinement: 2.1979437105661505E-08
 Result using 5000 randomly chosen paths playing AverageStrategy
 U(P0) AverageStrategy: 1032590.6010523426 Best response vs. average strategy 1032514.6840128724 Best response improvement: 3.702209695525791E-11
 U(P1) AverageStrategy: 932596.6950292169 Best response vs. average strategy 932514.6839894468 Best response improvement: 3.51728209532982E-11
+Total best response calculation time: 9 milliseconds
+
+Scenario 13
+Trial costs CostsMult0.65: CostsMultiplier 0.65
+Calculating min-max...
+... complete 149 milliseconds
+Trial costs CostsMult0.65: CostsMultiplier 0.65
+
+Iteration 1000 Overall milliseconds per iteration 6.899
+Avg BR: 9.603904589129228E-10 With perturb: 0.001602185951033289 Refinement: 5.994250906354181E-07
+U(P0) AverageStrategy: 1031140.7936151742 Best response vs. average strategy 1031057.5745645376 Best response improvement: 9.86506942138877E-10
+U(P1) AverageStrategy: 931147.3870920928 Best response vs. average strategy 931057.5745411532 Best response improvement: 9.342739756869687E-10
+Total best response calculation time: 11 milliseconds
+
+
+Iteration 2000 Overall milliseconds per iteration 6.76
+Avg BR: 2.29265663497155E-10 With perturb: 0.0016021907772718017 Refinement: 1.4309510874076233E-07
+U(P0) AverageStrategy: 1031140.7928872487 Best response vs. average strategy 1031057.5743945193 Best response improvement: 2.35500435034434E-10
+U(P1) AverageStrategy: 931147.3863626434 Best response vs. average strategy 931057.5743711009 Best response improvement: 2.23030891959876E-10
+Total best response calculation time: 8 milliseconds
+
+
+Iteration 3000 Overall milliseconds per iteration 6.724666666666667
+Avg BR: 1.1890174282290782E-10 With perturb: 0.001602191505596682 Refinement: 7.421194183564648E-08
+U(P0) AverageStrategy: 1031140.7927764241 Best response vs. average strategy 1031057.5743688588 Best response improvement: 1.2213644641701893E-10
+U(P1) AverageStrategy: 931147.3862535863 Best response vs. average strategy 931057.5743454351 Best response improvement: 1.1566703922879671E-10
 Total best response calculation time: 7 milliseconds
 
-Scenario 7
+
+Iteration 4000 Overall milliseconds per iteration 6.717
+Avg BR: 8.117072502046258E-11 With perturb: 0.0016021917533005458 Refinement: 5.066230359334288E-08
+U(P0) AverageStrategy: 1031140.7927389508 Best response vs. average strategy 1031057.574360111 Best response improvement: 8.337440029267342E-11
+U(P1) AverageStrategy: 931147.3862162277 Best response vs. average strategy 931057.574336685 Best response improvement: 7.896704974825173E-11
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 5000 Overall milliseconds per iteration 6.7194
+Avg BR: 6.365184231734664E-11 With perturb: 0.0016021918697161665 Refinement: 3.972797735431198E-08
+Result using 5000 randomly chosen paths playing AverageStrategy
+U(P0) AverageStrategy: 1031140.7927213118 Best response vs. average strategy 1031057.5743559814 Best response improvement: 6.538685611499253E-11
+U(P1) AverageStrategy: 931147.386198662 Best response vs. average strategy 931057.574332556 Best response improvement: 6.191682851970075E-11
+Total best response calculation time: 7 milliseconds
+
+Scenario 14
 Trial costs CostsMult0.7000000000000001: CostsMultiplier 0.7000000000000001
 Calculating min-max...
-... complete 163 milliseconds
+... complete 159 milliseconds
 Trial costs CostsMult0.7000000000000001: CostsMultiplier 0.7000000000000001
 
-Iteration 1000 Overall milliseconds per iteration 7.477
+Iteration 1000 Overall milliseconds per iteration 7.236
 Avg BR: 1.043360109356548E-09 With perturb: 0.0015605563356775201 Refinement: 6.685821495214207E-07
 U(P0) AverageStrategy: 1029689.8738553734 Best response vs. average strategy 1029600.4648626643 Best response improvement: 1.0735385040653513E-09
 U(P1) AverageStrategy: 929696.9668322924 Best response vs. average strategy 929600.4648392826 Best response improvement: 1.013181714647745E-09
-Total best response calculation time: 7 milliseconds
+Total best response calculation time: 9 milliseconds
 
 
-Iteration 2000 Overall milliseconds per iteration 7.3165
+Iteration 2000 Overall milliseconds per iteration 7.116
 Avg BR: 2.4906633248135524E-10 With perturb: 0.0015605627598363505 Refinement: 1.5960033065730324E-07
 U(P0) AverageStrategy: 1029689.8727807032 Best response vs. average strategy 1029600.4647192243 Best response improvement: 2.562702494732877E-10
 U(P1) AverageStrategy: 929696.9657575858 Best response vs. average strategy 929600.4646958067 Best response improvement: 2.4186241548942275E-10
-Total best response calculation time: 5 milliseconds
+Total best response calculation time: 6 milliseconds
 
 
-Iteration 3000 Overall milliseconds per iteration 7.345
+Iteration 3000 Overall milliseconds per iteration 7.038666666666667
 Avg BR: 1.2917468182810714E-10 With perturb: 0.0015605637292758936 Refinement: 8.277437146898486E-08
 U(P0) AverageStrategy: 1029689.8726185223 Best response vs. average strategy 1029600.464697575 Best response improvement: 1.3291162062198558E-10
 U(P1) AverageStrategy: 929696.9655953995 Best response vs. average strategy 929600.4646741516 Best response improvement: 1.2543774303422874E-10
-Total best response calculation time: 6 milliseconds
+Total best response calculation time: 9 milliseconds
 
 
-Iteration 4000 Overall milliseconds per iteration 7.308
+Iteration 4000 Overall milliseconds per iteration 7.01275
 Avg BR: 8.819337100577458E-11 With perturb: 0.001560564060017125 Refinement: 5.651377810456995E-08
 U(P0) AverageStrategy: 1029689.8725631966 Best response vs. average strategy 1029600.4646901959 Best response improvement: 9.074153259713599E-11
 U(P1) AverageStrategy: 929696.96554007 Best response vs. average strategy 929600.46466677 Best response improvement: 8.564520941441317E-11
-Total best response calculation time: 6 milliseconds
+Total best response calculation time: 8 milliseconds
 
 
-Iteration 5000 Overall milliseconds per iteration 7.2818
+Iteration 5000 Overall milliseconds per iteration 6.9834
 Avg BR: 6.913749091591395E-11 With perturb: 0.0015605642154348127 Refinement: 4.4302881119602304E-08
 Result using 5000 randomly chosen paths playing AverageStrategy
 U(P0) AverageStrategy: 1029689.8725371829 Best response vs. average strategy 1029600.4646867092 Best response improvement: 7.114214624496217E-11
 U(P1) AverageStrategy: 929696.9655140591 Best response vs. average strategy 929600.4646632844 Best response improvement: 6.713283558686574E-11
+Total best response calculation time: 11 milliseconds
+
+Scenario 15
+Trial costs CostsMult0.75: CostsMultiplier 0.75
+Calculating min-max...
+... complete 177 milliseconds
+Trial costs CostsMult0.75: CostsMultiplier 0.75
+
+Iteration 1000 Overall milliseconds per iteration 7.098
+Avg BR: 3.0163203818901184E-11 With perturb: 0.001510807038270264 Refinement: 1.996496114648453E-08
+U(P0) AverageStrategy: 1028247.4763076849 Best response vs. average strategy 1028143.3550111529 Best response improvement: 3.1086567201112443E-11
+U(P1) AverageStrategy: 928255.0688284091 Best response vs. average strategy 928143.354987774 Best response improvement: 2.9239840436689925E-11
 Total best response calculation time: 8 milliseconds
 
-Scenario 8
+
+Iteration 2000 Overall milliseconds per iteration 6.9885
+Avg BR: 7.2145177446472696E-12 With perturb: 0.0015108067786183408 Refinement: 4.7752749370406405E-09
+U(P0) AverageStrategy: 1028247.4764420547 Best response vs. average strategy 1028143.3550082094 Best response improvement: 7.434895164088198E-12
+U(P1) AverageStrategy: 928255.0687452811 Best response vs. average strategy 928143.3549847928 Best response improvement: 6.994140325206341E-12
+Total best response calculation time: 7 milliseconds
+
+
+Iteration 3000 Overall milliseconds per iteration 6.935333333333333
+Avg BR: 3.74161149605666E-12 With perturb: 0.0015108073633938635 Refinement: 2.476564244200888E-09
+U(P0) AverageStrategy: 1028247.4762432006 Best response vs. average strategy 1028143.3550077663 Best response improvement: 3.855675458908081E-12
+U(P1) AverageStrategy: 928255.0688081621 Best response vs. average strategy 928143.3549843435 Best response improvement: 3.62754753320524E-12
+Total best response calculation time: 7 milliseconds
+
+
+Iteration 4000 Overall milliseconds per iteration 6.91975
+Avg BR: 2.4787642919750127E-12 With perturb: 0.0015108072255952784 Refinement: 1.6406886662845726E-09
+U(P0) AverageStrategy: 1028247.4762707432 Best response vs. average strategy 1028143.3550076245 Best response improvement: 2.5508435148941843E-12
+U(P1) AverageStrategy: 928255.0688133936 Best response vs. average strategy 928143.354984199 Best response improvement: 2.4066850690558406E-12
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 5000 Overall milliseconds per iteration 6.9146
+Avg BR: 2.1076184144673588E-12 With perturb: 0.0015108070015533643 Refinement: 1.3950282281591042E-09
+Result using 5000 randomly chosen paths playing AverageStrategy
+U(P0) AverageStrategy: 1028247.4763192111 Best response vs. average strategy 1028143.3550075295 Best response improvement: 2.1783144850479927E-12
+U(P1) AverageStrategy: 928255.0688182474 Best response vs. average strategy 928143.3549841053 Best response improvement: 2.036922343886725E-12
+Total best response calculation time: 8 milliseconds
+
+Scenario 16
 Trial costs CostsMult0.8: CostsMultiplier 0.8
 Calculating min-max...
-... complete 161 milliseconds
+... complete 158 milliseconds
 Trial costs CostsMult0.8: CostsMultiplier 0.8
 
-Iteration 1000 Overall milliseconds per iteration 7.321
+Iteration 1000 Overall milliseconds per iteration 7.16
 Avg BR: 2.060254094734167E-11 With perturb: 0.0014125240267151033 Refinement: 1.4585621594879296E-08
 U(P0) AverageStrategy: 1027384.4181105924 Best response vs. average strategy 1027271.4575147909 Best response improvement: 2.126713904241721E-11
 U(P1) AverageStrategy: 927392.5100905848 Best response vs. average strategy 927271.4574944976 Best response improvement: 1.9937942852266133E-11
-Total best response calculation time: 6 milliseconds
+Total best response calculation time: 7 milliseconds
 
 
-Iteration 2000 Overall milliseconds per iteration 7.406
+Iteration 2000 Overall milliseconds per iteration 7.1415
 Avg BR: 4.92882463731803E-12 With perturb: 0.0014125240104826237 Refinement: 3.4893740571772476E-09
 U(P0) AverageStrategy: 1027384.4181108371 Best response vs. average strategy 1027271.4575129456 Best response improvement: 5.087349563837052E-12
 U(P1) AverageStrategy: 927392.5100907881 Best response vs. average strategy 927271.4574926121 Best response improvement: 4.770299710799009E-12
-Total best response calculation time: 6 milliseconds
+Total best response calculation time: 7 milliseconds
 
 
-Iteration 3000 Overall milliseconds per iteration 7.389666666666667
+Iteration 3000 Overall milliseconds per iteration 7.056666666666667
 Avg BR: 2.5548312502602738E-12 With perturb: 0.0014125240057179327 Refinement: 1.8086993494753028E-09
 U(P0) AverageStrategy: 1027384.4181113009 Best response vs. average strategy 1027271.4575126681 Best response improvement: 2.6358369116981825E-12
 U(P1) AverageStrategy: 927392.510090959 Best response vs. average strategy 927271.4574923285 Best response improvement: 2.473825588822365E-12
 Total best response calculation time: 7 milliseconds
 
 
-Iteration 4000 Overall milliseconds per iteration 7.32625
+Iteration 4000 Overall milliseconds per iteration 7.02575
 Avg BR: 1.6373329951117436E-12 With perturb: 0.0014125203754283577 Refinement: 1.159157080913052E-09
 U(P0) AverageStrategy: 1027384.418966617 Best response vs. average strategy 1027271.457512587 Best response improvement: 1.681231272717317E-12
 U(P1) AverageStrategy: 927392.5089455097 Best response vs. average strategy 927271.4574922442 Best response improvement: 1.5934347175061703E-12
 Total best response calculation time: 7 milliseconds
 
 
-Iteration 5000 Overall milliseconds per iteration 7.3166
+Iteration 5000 Overall milliseconds per iteration 6.9802
 Avg BR: 1.4991504334223768E-12 With perturb: 0.001412516955339288 Refinement: 1.061332699586802E-09
 Result using 5000 randomly chosen paths playing AverageStrategy
 U(P0) AverageStrategy: 1027384.417828813 Best response vs. average strategy 1027271.4575125113 Best response improvement: 1.5522042910257976E-12
 U(P1) AverageStrategy: 927392.5098089532 Best response vs. average strategy 927271.4574921702 Best response improvement: 1.446096575818956E-12
+Total best response calculation time: 8 milliseconds
+
+Scenario 17
+Trial costs CostsMult0.8500000000000001: CostsMultiplier 0.8500000000000001
+Calculating min-max...
+... complete 158 milliseconds
+Trial costs CostsMult0.8500000000000001: CostsMultiplier 0.8500000000000001
+
+Iteration 1000 Overall milliseconds per iteration 7.279
+Avg BR: 1.2748373719243989E-10 With perturb: 0.001437059346198101 Refinement: 8.871153270719972E-08
+U(P0) AverageStrategy: 1025347.4236426068 Best response vs. average strategy 1025229.1357649945 Best response improvement: 1.3180230696176745E-10
+U(P1) AverageStrategy: 925356.0151195147 Best response vs. average strategy 925229.1357416225 Best response improvement: 1.2316516742311233E-10
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 2000 Overall milliseconds per iteration 7.0285
+Avg BR: 3.0440659349428284E-11 With perturb: 0.0014370589899364331 Refinement: 2.1182609456258158E-08
+U(P0) AverageStrategy: 1025347.4236171686 Best response vs. average strategy 1025229.1356952365 Best response improvement: 3.1471982137444094E-11
+U(P1) AverageStrategy: 925356.0150951181 Best response vs. average strategy 925229.1356718212 Best response improvement: 2.940933656141248E-11
 Total best response calculation time: 5 milliseconds
 
-Scenario 9
+
+Iteration 3000 Overall milliseconds per iteration 6.984333333333334
+Avg BR: 1.5785559673544037E-11 With perturb: 0.0014370587673262348 Refinement: 1.0984630574930738E-08
+U(P0) AverageStrategy: 1025347.4236347566 Best response vs. average strategy 1025229.1356847082 Best response improvement: 1.6317347583082533E-11
+U(P1) AverageStrategy: 925356.015112523 Best response vs. average strategy 925229.1356612868 Best response improvement: 1.525377176400554E-11
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 4000 Overall milliseconds per iteration 6.93475
+Avg BR: 1.0674474962720038E-11 With perturb: 0.0014370584231136255 Refinement: 7.428003476429314E-09
+U(P0) AverageStrategy: 1025347.4236748725 Best response vs. average strategy 1025229.1356811299 Best response improvement: 1.1029931687817131E-11
+U(P1) AverageStrategy: 925356.0151515942 Best response vs. average strategy 925229.1356577046 Best response improvement: 1.0319018237622947E-11
+Total best response calculation time: 12 milliseconds
+
+
+Iteration 5000 Overall milliseconds per iteration 6.9718
+Avg BR: 8.583565782423731E-12 With perturb: 0.0014370584571162573 Refinement: 5.973010868081426E-09
+Result using 5000 randomly chosen paths playing AverageStrategy
+U(P0) AverageStrategy: 1025347.4236690517 Best response vs. average strategy 1025229.1356794103 Best response improvement: 8.882129008008033E-12
+U(P1) AverageStrategy: 925356.0151454835 Best response vs. average strategy 925229.135655987 Best response improvement: 8.28500255683943E-12
+Total best response calculation time: 7 milliseconds
+
+Scenario 18
 Trial costs CostsMult0.9: CostsMultiplier 0.9
 Calculating min-max...
-... complete 215 milliseconds
+... complete 173 milliseconds
 Trial costs CostsMult0.9: CostsMultiplier 0.9
 
-Iteration 1000 Overall milliseconds per iteration 7.275
+Iteration 1000 Overall milliseconds per iteration 7.241
 Avg BR: 5.1638653340420695E-11 With perturb: 0.0013923111892453484 Refinement: 3.7088442396566204E-08
 U(P0) AverageStrategy: 1023897.3515179813 Best response vs. average strategy 1023772.0260419685 Best response improvement: 5.3468369403663944E-11
 U(P1) AverageStrategy: 923906.4424949256 Best response vs. average strategy 923772.0260185999 Best response improvement: 4.980893727717744E-11
-Total best response calculation time: 10 milliseconds
+Total best response calculation time: 6 milliseconds
 
 
-Iteration 2000 Overall milliseconds per iteration 7.235
+Iteration 2000 Overall milliseconds per iteration 7.147
 Avg BR: 1.2340506505071678E-11 With perturb: 0.0013923111503343867 Refinement: 8.863325200051655E-09
 U(P0) AverageStrategy: 1023897.351496213 Best response vs. average strategy 1023772.026014892 Best response improvement: 1.2780976842860787E-11
 U(P1) AverageStrategy: 923906.4424731107 Best response vs. average strategy 923772.0259914772 Best response improvement: 1.190003616728257E-11
-Total best response calculation time: 6 milliseconds
+Total best response calculation time: 8 milliseconds
 
 
-Iteration 3000 Overall milliseconds per iteration 7.1946666666666665
+Iteration 3000 Overall milliseconds per iteration 7.035666666666667
 Avg BR: 6.393928396176393E-12 With perturb: 0.001392311144450662 Refinement: 4.592312876084264E-09
 U(P0) AverageStrategy: 1023897.3514929308 Best response vs. average strategy 1023772.026010806 Best response improvement: 6.6209432421898355E-12
 U(P1) AverageStrategy: 923906.4424698215 Best response vs. average strategy 923772.0259873844 Best response improvement: 6.16691355016295E-12
-Total best response calculation time: 6 milliseconds
+Total best response calculation time: 8 milliseconds
 
 
-Iteration 4000 Overall milliseconds per iteration 7.33525
+Iteration 4000 Overall milliseconds per iteration 6.977
 Avg BR: 4.262517152819963E-12 With perturb: 0.0013923111423391299 Refinement: 3.061468822018324E-09
 U(P0) AverageStrategy: 1023897.3514918381 Best response vs. average strategy 1023772.0260094261 Best response improvement: 4.406676304583647E-12
 U(P1) AverageStrategy: 923906.4424687236 Best response vs. average strategy 923772.0259860011 Best response improvement: 4.11835800105628E-12
-Total best response calculation time: 9 milliseconds
+Total best response calculation time: 10 milliseconds
 
 
-Iteration 5000 Overall milliseconds per iteration 7.413
+Iteration 5000 Overall milliseconds per iteration 7.0038
 Avg BR: 3.5632573703525504E-12 With perturb: 0.0013923111416484755 Refinement: 2.5592392847863785E-09
 Result using 5000 randomly chosen paths playing AverageStrategy
 U(P0) AverageStrategy: 1023897.3514912453 Best response vs. average strategy 1023772.0260087377 Best response improvement: 3.698681082044329E-12
 U(P1) AverageStrategy: 923906.4424681359 Best response vs. average strategy 923772.0259853145 Best response improvement: 3.4278336586607725E-12
-Total best response calculation time: 10 milliseconds
+Total best response calculation time: 12 milliseconds
 
-Scenario 10
+Scenario 19
+Trial costs CostsMult0.9500000000000001: CostsMultiplier 0.9500000000000001
+Calculating min-max...
+... complete 164 milliseconds
+Trial costs CostsMult0.9500000000000001: CostsMultiplier 0.9500000000000001
+
+Iteration 1000 Overall milliseconds per iteration 7.075
+Avg BR: 6.9597015138430285E-06 With perturb: 0.0016163433722394087 Refinement: 0.004305831071154462
+U(P0) AverageStrategy: 1023510.8355503539 Best response vs. average strategy 1023426.3965777463 Best response improvement: 7.2169660966880994E-06
+U(P1) AverageStrategy: 923520.4260390552 Best response vs. average strategy 923426.3965665846 Best response improvement: 6.702436930997958E-06
+Total best response calculation time: 7 milliseconds
+
+
+Iteration 2000 Overall milliseconds per iteration 6.9985
+Avg BR: 2.5029671635695966E-06 With perturb: 0.00161537533733065 Refinement: 0.0015494647626016504
+U(P0) AverageStrategy: 1023485.3209171202 Best response vs. average strategy 1023400.1407002071 Best response improvement: 2.595488630197566E-06
+U(P1) AverageStrategy: 923494.911405766 Best response vs. average strategy 923400.1406889942 Best response improvement: 2.4104456969416275E-06
+Total best response calculation time: 11 milliseconds
+
+
+Iteration 3000 Overall milliseconds per iteration 6.985
+Avg BR: 1.4760035172193156E-06 With perturb: 0.0016218363335323077 Refinement: 0.0009100816689712624
+U(P0) AverageStrategy: 1023480.1117143873 Best response vs. average strategy 1023394.7624526018 Best response improvement: 1.5305632894689388E-06
+U(P1) AverageStrategy: 923489.7022030234 Best response vs. average strategy 923394.7624413803 Best response improvement: 1.4214437449696923E-06
+Total best response calculation time: 9 milliseconds
+
+
+Iteration 4000 Overall milliseconds per iteration 6.938
+Avg BR: 9.78130387730001E-07 With perturb: 0.0016258504024294006 Refinement: 0.0006016115543400829
+U(P0) AverageStrategy: 1023477.0903429467 Best response vs. average strategy 1023391.6577158124 Best response improvement: 1.014286286263454E-06
+U(P1) AverageStrategy: 923486.6808315765 Best response vs. average strategy 923391.6577045859 Best response improvement: 9.419744891965479E-07
+Total best response calculation time: 7 milliseconds
+
+
+Iteration 5000 Overall milliseconds per iteration 6.9256
+Avg BR: 7.466218296350489E-07 With perturb: 0.0016340095435564538 Refinement: 0.0004569262355775548
+Result using 5000 randomly chosen paths playing AverageStrategy
+U(P0) AverageStrategy: 1023471.4134815244 Best response vs. average strategy 1023385.9194936468 Best response improvement: 7.742200319589389E-07
+U(P1) AverageStrategy: 923481.0039701599 Best response vs. average strategy 923385.9194824226 Best response improvement: 7.19023627311159E-07
+Total best response calculation time: 8 milliseconds
+
+Scenario 20
 Trial costs CostsMult1: CostsMultiplier 1
 Calculating min-max...
-... complete 229 milliseconds
+... complete 159 milliseconds
 Trial costs CostsMult1: CostsMultiplier 1
 
-Iteration 1000 Overall milliseconds per iteration 9.471
+Iteration 1000 Overall milliseconds per iteration 7.22
 Avg BR: 0.0002468877492521165 With perturb: 0.001402336785318968 Refinement: 0.17605453400123192
 U(P0) AverageStrategy: 1026204.7008008307 Best response vs. average strategy 1026151.6253538858 Best response improvement: 0.0003342703768666834
 U(P1) AverageStrategy: 922547.8609296655 Best response vs. average strategy 922479.5613795054 Best response improvement: 0.00015950512163754967
-Total best response calculation time: 6 milliseconds
+Total best response calculation time: 5 milliseconds
 
 
-Iteration 2000 Overall milliseconds per iteration 9.128
+Iteration 2000 Overall milliseconds per iteration 7.049
 Avg BR: 0.0008031447905972944 With perturb: 0.0019028277835324752 Refinement: 0.4220796004493422
 U(P0) AverageStrategy: 1025615.8382623876 Best response vs. average strategy 1025633.9814621327 Best response improvement: 0.0008677094274526462
 U(P1) AverageStrategy: 924404.33564386 Best response vs. average strategy 924410.6959650933 Best response improvement: 0.0007385801537419428
-Total best response calculation time: 12 milliseconds
+Total best response calculation time: 11 milliseconds
 
 
-Iteration 3000 Overall milliseconds per iteration 9.055666666666667
+Iteration 3000 Overall milliseconds per iteration 7.042333333333334
 Avg BR: 0.0006934760855301283 With perturb: 0.001798235813726102 Refinement: 0.3856424614818371
 U(P0) AverageStrategy: 1023503.707940949 Best response vs. average strategy 1023502.1714203857 Best response improvement: 0.0006470193486241624
 U(P1) AverageStrategy: 926081.6833141849 Best response vs. average strategy 926082.769548232 Best response improvement: 0.0007399328224360943
-Total best response calculation time: 8 milliseconds
+Total best response calculation time: 6 milliseconds
 
 
-Iteration 4000 Overall milliseconds per iteration 9.63775
+Iteration 4000 Overall milliseconds per iteration 7.005
 Avg BR: 0.0005418208855902259 With perturb: 0.0016550729091338364 Refinement: 0.3273697989980282
 U(P0) AverageStrategy: 1022793.3168187946 Best response vs. average strategy 1022773.8427805239 Best response improvement: 0.00047980023544374854
 U(P1) AverageStrategy: 926707.1415018071 Best response vs. average strategy 926688.949859137 Best response improvement: 0.0006038415357367032
-Total best response calculation time: 13 milliseconds
+Total best response calculation time: 7 milliseconds
 
 
-Iteration 5000 Overall milliseconds per iteration 9.4798
+Iteration 5000 Overall milliseconds per iteration 6.991
 Avg BR: 0.0004333593424538806 With perturb: 0.0018462955427355201 Refinement: 0.23471829532329586
 Result using 5000 randomly chosen paths playing AverageStrategy
 U(P0) AverageStrategy: 1023126.1363983721 Best response vs. average strategy 1023103.7703314793 Best response improvement: 0.00038110232487041505
 U(P1) AverageStrategy: 926722.1993159793 Best response vs. average strategy 926689.7845693676 Best response improvement: 0.00048561636003734615
-Total best response calculation time: 12 milliseconds
+Total best response calculation time: 10 milliseconds
 
-Total runtime 00:08:13.3942143
+Scenario 21
+Trial costs CostsMult1.05: CostsMultiplier 1.05
+Calculating min-max...
+... complete 156 milliseconds
+Trial costs CostsMult1.05: CostsMultiplier 1.05
+
+Iteration 1000 Overall milliseconds per iteration 7.25
+Avg BR: 0.0007502796324102603 With perturb: 0.0018611148604512039 Refinement: 0.40313451273413853
+U(P0) AverageStrategy: 1023359.1630517282 Best response vs. average strategy 1023361.1241988883 Best response improvement: 0.0005591066754662828
+U(P1) AverageStrategy: 926775.668177407 Best response vs. average strategy 926805.4825109949 Best response improvement: 0.0009414525893542378
+Total best response calculation time: 7 milliseconds
+
+
+Iteration 2000 Overall milliseconds per iteration 7.065
+Avg BR: 0.0005904368331137089 With perturb: 0.00166919908562 Refinement: 0.35372463249007813
+U(P0) AverageStrategy: 1023098.6213072228 Best response vs. average strategy 1023122.775078947 Best response improvement: 0.0008247211735354422
+U(P1) AverageStrategy: 925341.7971772611 Best response vs. average strategy 925299.3104946526 Best response improvement: 0.0003561524926919756
+Total best response calculation time: 5 milliseconds
+
+
+Iteration 3000 Overall milliseconds per iteration 6.999
+Avg BR: 0.0007506386083159363 With perturb: 0.0018667597735600899 Refinement: 0.4021077692735989
+U(P0) AverageStrategy: 1023535.737526716 Best response vs. average strategy 1023529.0604111655 Best response improvement: 0.0004993550709476418
+U(P1) AverageStrategy: 926433.29030792 Best response vs. average strategy 926474.9710750966 Best response improvement: 0.0010019221456842309
+Total best response calculation time: 5 milliseconds
+
+
+Iteration 4000 Overall milliseconds per iteration 6.95375
+Avg BR: 0.0007220356382804114 With perturb: 0.0018179389104024338 Refinement: 0.3971726630355118
+U(P0) AverageStrategy: 1024377.8678970902 Best response vs. average strategy 1024350.064825576 Best response improvement: 0.0004275233698852065
+U(P1) AverageStrategy: 924396.8770911294 Best response vs. average strategy 924445.0004502069 Best response improvement: 0.0010165479066756161
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 5000 Overall milliseconds per iteration 6.9356
+Avg BR: 0.0005389843531539897 With perturb: 0.0015978977656377661 Refinement: 0.33730840905135495
+Result using 5000 randomly chosen paths playing AverageStrategy
+U(P0) AverageStrategy: 1025437.9005703327 Best response vs. average strategy 1025402.0593147461 Best response improvement: 0.0003550797485801769
+U(P1) AverageStrategy: 924162.2949874157 Best response vs. average strategy 924177.8288341938 Best response improvement: 0.0007228889577278026
+Total best response calculation time: 8 milliseconds
+
+Scenario 22
+Trial costs CostsMult1.1: CostsMultiplier 1.1
+Calculating min-max...
+... complete 163 milliseconds
+Trial costs CostsMult1.1: CostsMultiplier 1.1
+
+Iteration 1000 Overall milliseconds per iteration 7.183
+Avg BR: 0.0025193408708779176 With perturb: 0.003470575104450822 Refinement: 0.7259145228256265
+U(P0) AverageStrategy: 1029069.0656986551 Best response vs. average strategy 1029431.9336642531 Best response improvement: 0.003421225621236269
+U(P1) AverageStrategy: 922159.8776364708 Best response vs. average strategy 922325.873416233 Best response improvement: 0.0016174561205195659
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 2000 Overall milliseconds per iteration 7.099
+Avg BR: 0.00277990855949274 With perturb: 0.003529120515256762 Refinement: 0.7877057605357768
+U(P0) AverageStrategy: 1030105.7054743643 Best response vs. average strategy 1030639.0203850772 Best response improvement: 0.004894514280826986
+U(P1) AverageStrategy: 920237.6133819357 Best response vs. average strategy 920264.399282278 Best response improvement: 0.0006653028381584945
+Total best response calculation time: 7 milliseconds
+
+
+Iteration 3000 Overall milliseconds per iteration 7.099
+Avg BR: 0.001973144478760386 With perturb: 0.002901887293580799 Refinement: 0.679952141189334
+U(P0) AverageStrategy: 1028583.410121405 Best response vs. average strategy 1028861.0564226987 Best response improvement: 0.002810235342271078
+U(P1) AverageStrategy: 921033.0986269611 Best response vs. average strategy 921134.1074501985 Best response improvement: 0.0011360536152496934
+Total best response calculation time: 9 milliseconds
+
+
+Iteration 4000 Overall milliseconds per iteration 7.104
+Avg BR: 0.0016482899717434561 With perturb: 0.002524145243974135 Refinement: 0.6530091624792199
+U(P0) AverageStrategy: 1028056.1665381403 Best response vs. average strategy 1028333.7866116895 Best response improvement: 0.0027887287787526993
+U(P1) AverageStrategy: 920603.210750441 Best response vs. average strategy 920613.5953128464 Best response improvement: 0.000507851164734213
+Total best response calculation time: 5 milliseconds
+
+
+Iteration 5000 Overall milliseconds per iteration 6.985
+Avg BR: 0.001095512682311432 With perturb: 0.001898474452989719 Refinement: 0.5770489461083966
+Result using 5000 randomly chosen paths playing AverageStrategy
+U(P0) AverageStrategy: 1028669.5137245428 Best response vs. average strategy 1028797.0266706551 Best response improvement: 0.0016054375085724044
+U(P1) AverageStrategy: 919908.5911869133 Best response vs. average strategy 919925.2446778131 Best response improvement: 0.0005855878560504597
+Total best response calculation time: 6 milliseconds
+
+Scenario 23
+Trial costs CostsMult1.1500000000000001: CostsMultiplier 1.1500000000000001
+Calculating min-max...
+... complete 151 milliseconds
+Trial costs CostsMult1.1500000000000001: CostsMultiplier 1.1500000000000001
+
+Iteration 1000 Overall milliseconds per iteration 6.948
+Avg BR: 0.00015881555570626866 With perturb: 0.0011119186226771298 Refinement: 0.14283019680333592
+U(P0) AverageStrategy: 1027953.0196793873 Best response vs. average strategy 1027932.3001354731 Best response improvement: 0.0001454314774182598
+U(P1) AverageStrategy: 924903.3860094802 Best response vs. average strategy 924874.1049201149 Best response improvement: 0.0001721996339942775
+Total best response calculation time: 9 milliseconds
+
+
+Iteration 2000 Overall milliseconds per iteration 6.681
+Avg BR: 0.00010810285982466611 With perturb: 0.0011266640086424126 Refinement: 0.09594951023147172
+U(P0) AverageStrategy: 1027939.27405809 Best response vs. average strategy 1027921.572842264 Best response improvement: 0.00016488735779794384
+U(P1) AverageStrategy: 925148.6460138005 Best response vs. average strategy 925100.7941544255 Best response improvement: 5.1318361851388384E-05
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 3000 Overall milliseconds per iteration 6.595666666666666
+Avg BR: 7.669293257628768E-05 With perturb: 0.0011297161519678062 Refinement: 0.06788690454916432
+U(P0) AverageStrategy: 1028042.62006499 Best response vs. average strategy 1028008.0798360554 Best response improvement: 3.259212194661637E-05
+U(P1) AverageStrategy: 925323.8898610773 Best response vs. average strategy 925286.8910773016 Best response improvement: 0.00012079374320595898
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 4000 Overall milliseconds per iteration 6.57575
+Avg BR: 6.64772880063285E-05 With perturb: 0.0010701427754267068 Refinement: 0.06212001756477911
+U(P0) AverageStrategy: 1028107.2047290142 Best response vs. average strategy 1028079.334609656 Best response improvement: 8.315077320518858E-05
+U(P1) AverageStrategy: 925485.763963077 Best response vs. average strategy 925437.7602593447 Best response improvement: 4.980380280746841E-05
+Total best response calculation time: 7 milliseconds
+
+
+Iteration 5000 Overall milliseconds per iteration 6.5478
+Avg BR: 5.909326598112922E-05 With perturb: 0.0010619599888342557 Refinement: 0.05564547308980785
+Result using 5000 randomly chosen paths playing AverageStrategy
+U(P0) AverageStrategy: 1028107.3810644732 Best response vs. average strategy 1028080.0166688764 Best response improvement: 8.432650664658512E-05
+U(P1) AverageStrategy: 925623.9431819728 Best response vs. average strategy 925573.1001689208 Best response improvement: 3.386002531567333E-05
+Total best response calculation time: 19 milliseconds
+
+Scenario 24
+Trial costs CostsMult1.2000000000000002: CostsMultiplier 1.2000000000000002
+Calculating min-max...
+... complete 152 milliseconds
+Trial costs CostsMult1.2000000000000002: CostsMultiplier 1.2000000000000002
+
+Iteration 1000 Overall milliseconds per iteration 6.721
+Avg BR: 6.060530162255082E-05 With perturb: 0.000793348240641402 Refinement: 0.07639180188204989
+U(P0) AverageStrategy: 1026729.304714012 Best response vs. average strategy 1026713.7174474479 Best response improvement: 5.065877548365209E-05
+U(P1) AverageStrategy: 929664.7398249203 Best response vs. average strategy 929621.1938507995 Best response improvement: 7.055182776144955E-05
+Total best response calculation time: 8 milliseconds
+
+
+Iteration 2000 Overall milliseconds per iteration 6.5355
+Avg BR: 4.214587260589719E-05 With perturb: 0.0007814953417866176 Refinement: 0.053929780962667415
+U(P0) AverageStrategy: 1026655.7838000258 Best response vs. average strategy 1026638.7576324648 Best response improvement: 4.2710901481600905E-05
+U(P1) AverageStrategy: 929617.1419028798 Best response vs. average strategy 929568.211967073 Best response improvement: 4.158084373019347E-05
+Total best response calculation time: 8 milliseconds
+
+
+Iteration 3000 Overall milliseconds per iteration 6.507333333333333
+Avg BR: 2.8481568793171133E-05 With perturb: 0.0007668944514923243 Refinement: 0.03713883799491305
+U(P0) AverageStrategy: 1026668.6108895213 Best response vs. average strategy 1026651.6757433116 Best response improvement: 4.996674793163458E-05
+U(P1) AverageStrategy: 929539.6028621902 Best response vs. average strategy 929485.2079722293 Best response improvement: 6.996389654707688E-06
+Total best response calculation time: 7 milliseconds
+
+
+Iteration 4000 Overall milliseconds per iteration 6.62125
+Avg BR: 2.4130135886852942E-05 With perturb: 0.0008886374276457431 Refinement: 0.027154084597562623
+U(P0) AverageStrategy: 1026500.4274229298 Best response vs. average strategy 1026479.6034745092 Best response improvement: 1.9300625250280765E-05
+U(P1) AverageStrategy: 929598.538214801 Best response vs. average strategy 929547.6367407294 Best response improvement: 2.895964652342512E-05
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 5000 Overall milliseconds per iteration 6.6028
+Avg BR: 2.144145383147668E-05 With perturb: 0.0009025399039726302 Refinement: 0.023756793175680902
+Result using 5000 randomly chosen paths playing AverageStrategy
+U(P0) AverageStrategy: 1026483.203658703 Best response vs. average strategy 1026461.9343558439 Best response improvement: 1.669531499322217E-05
+U(P1) AverageStrategy: 929592.6067348606 Best response vs. average strategy 929541.2583065627 Best response improvement: 2.618759266973119E-05
+Total best response calculation time: 8 milliseconds
+
+Scenario 25
+Trial costs CostsMult1.25: CostsMultiplier 1.25
+Calculating min-max...
+... complete 153 milliseconds
+Trial costs CostsMult1.25: CostsMultiplier 1.25
+
+Iteration 1000 Overall milliseconds per iteration 6.766
+Avg BR: 7.950218768470282E-11 With perturb: 0.0006863322422659993 Refinement: 1.1583630024755628E-07
+U(P0) AverageStrategy: 1027213.2038343719 Best response vs. average strategy 1027169.3028794021 Best response improvement: 2.5686763581775482E-11
+U(P1) AverageStrategy: 929663.0946840432 Best response vs. average strategy 929579.7799560678 Best response improvement: 1.3331761178763017E-10
+Total best response calculation time: 9 milliseconds
+
+
+Iteration 2000 Overall milliseconds per iteration 6.6705
+Avg BR: 1.898785478456667E-11 With perturb: 0.0006863322207464318 Refinement: 2.7665690478462632E-08
+U(P0) AverageStrategy: 1027213.2039216715 Best response vs. average strategy 1027169.3029708731 Best response improvement: 6.142294123059227E-12
+U(P1) AverageStrategy: 929663.0948209885 Best response vs. average strategy 929579.780074348 Best response improvement: 3.183341544607411E-11
+Total best response calculation time: 5 milliseconds
+
+
+Iteration 3000 Overall milliseconds per iteration 6.593333333333334
+Avg BR: 9.848726585538245E-12 With perturb: 0.000686332217493995 Refinement: 1.4349794945513271E-08
+U(P0) AverageStrategy: 1027213.2039348492 Best response vs. average strategy 1027169.3029846803 Best response improvement: 3.1895580745878674E-12
+U(P1) AverageStrategy: 929663.0948416597 Best response vs. average strategy 929579.7800922008 Best response improvement: 1.650789509648862E-11
+Total best response calculation time: 7 milliseconds
+
+
+Iteration 4000 Overall milliseconds per iteration 6.5815
+Avg BR: 6.672241734668582E-12 With perturb: 0.0006863322142878351 Refinement: 9.721591957608982E-09
+U(P0) AverageStrategy: 1027213.2039373139 Best response vs. average strategy 1027169.3029893978 Best response improvement: 2.1030150708698093E-12
+U(P1) AverageStrategy: 929663.0948497176 Best response vs. average strategy 929579.7800983019 Best response improvement: 1.1241468398467355E-11
+Total best response calculation time: 8 milliseconds
+
+
+Iteration 5000 Overall milliseconds per iteration 6.5538
+Avg BR: 5.328457023539652E-12 With perturb: 0.0006863322140993916 Refinement: 7.763670295633257E-09
+Result using 5000 randomly chosen paths playing AverageStrategy
+U(P0) AverageStrategy: 1027213.2039390076 Best response vs. average strategy 1027169.302991597 Best response improvement: 1.789913291022891E-12
+U(P1) AverageStrategy: 929663.094853114 Best response vs. average strategy 929579.7801011428 Best response improvement: 8.867000756056413E-12
+Total best response calculation time: 7 milliseconds
+
+Scenario 26
+Trial costs CostsMult1.3: CostsMultiplier 1.3
+Calculating min-max...
+... complete 173 milliseconds
+Trial costs CostsMult1.3: CostsMultiplier 1.3
+
+Iteration 1000 Overall milliseconds per iteration 6.819
+Avg BR: 5.0730204304124925E-05 With perturb: 0.0007929686821471481 Refinement: 0.06397504144395846
+U(P0) AverageStrategy: 1028488.9281358086 Best response vs. average strategy 1028465.8346709638 Best response improvement: 3.488179004382131E-05
+U(P1) AverageStrategy: 926701.3262451583 Best response vs. average strategy 926647.1673207639 Best response improvement: 6.657861856442853E-05
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 2000 Overall milliseconds per iteration 6.658
+Avg BR: 3.065988484931047E-05 With perturb: 0.0007419794142187461 Refinement: 0.04132174594303703
+U(P0) AverageStrategy: 1028483.4820373257 Best response vs. average strategy 1028460.6368994674 Best response improvement: 3.271466057554309E-05
+U(P1) AverageStrategy: 926925.2616907728 Best response vs. average strategy 926864.0940148287 Best response improvement: 2.8605109123077844E-05
+Total best response calculation time: 7 milliseconds
+
+
+Iteration 3000 Overall milliseconds per iteration 6.5953333333333335
+Avg BR: 2.729315683282947E-05 With perturb: 0.0006819656252608657 Refinement: 0.040021308731491095
+U(P0) AverageStrategy: 1028264.236191671 Best response vs. average strategy 1028242.7495692172 Best response improvement: 4.3139795199001456E-05
+U(P1) AverageStrategy: 926828.2398625333 Best response vs. average strategy 926763.9443471859 Best response improvement: 1.1446518466657482E-05
+Total best response calculation time: 9 milliseconds
+
+
+Iteration 4000 Overall milliseconds per iteration 6.61375
+Avg BR: 2.419114863787856E-05 With perturb: 0.0006734801458934738 Refinement: 0.03591961661436258
+U(P0) AverageStrategy: 1028268.137858658 Best response vs. average strategy 1028246.4944712768 Best response improvement: 4.115834265226885E-05
+U(P1) AverageStrategy: 926872.6711483056 Best response vs. average strategy 926807.5332616472 Best response improvement: 7.223954623488268E-06
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 5000 Overall milliseconds per iteration 6.5892
+Avg BR: 1.8328983331195046E-05 With perturb: 0.0007444752907744103 Refinement: 0.0246200022463191
+Result using 5000 randomly chosen paths playing AverageStrategy
+U(P0) AverageStrategy: 1028470.0666107582 Best response vs. average strategy 1028445.7568596362 Best response improvement: 2.226212547547272E-05
+U(P1) AverageStrategy: 926890.7522959787 Best response vs. average strategy 926826.9169819392 Best response improvement: 1.439584118691737E-05
+Total best response calculation time: 9 milliseconds
+
+Scenario 27
+Trial costs CostsMult1.35: CostsMultiplier 1.35
+Calculating min-max...
+... complete 154 milliseconds
+Trial costs CostsMult1.35: CostsMultiplier 1.35
+
+Iteration 1000 Overall milliseconds per iteration 6.758
+Avg BR: 5.781514010925642E-05 With perturb: 0.0006873701927201101 Refinement: 0.0841106302274561
+U(P0) AverageStrategy: 1028475.2631527653 Best response vs. average strategy 1028440.9941984859 Best response improvement: 7.80119626190966E-05
+U(P1) AverageStrategy: 923968.2552053925 Best response vs. average strategy 923913.7283864024 Best response improvement: 3.761831759941623E-05
+Total best response calculation time: 5 milliseconds
+
+
+Iteration 2000 Overall milliseconds per iteration 6.59
+Avg BR: 3.727027306782657E-05 With perturb: 0.0007333039535098128 Refinement: 0.050825135865475504
+U(P0) AverageStrategy: 1028553.6138777471 Best response vs. average strategy 1028513.61902272 Best response improvement: 3.9520139014783586E-05
+U(P1) AverageStrategy: 923830.2699219807 Best response vs. average strategy 923775.3368642611 Best response improvement: 3.502040712086955E-05
+Total best response calculation time: 9 milliseconds
+
+
+Iteration 3000 Overall milliseconds per iteration 6.561333333333334
+Avg BR: 2.7304751561550334E-05 With perturb: 0.0007591142040409489 Refinement: 0.03596922757629949
+U(P0) AverageStrategy: 1028678.6838314981 Best response vs. average strategy 1028636.0310030318 Best response improvement: 2.0497221642426242E-05
+U(P1) AverageStrategy: 923829.8631446944 Best response vs. average strategy 923774.9387326023 Best response improvement: 3.411228148067443E-05
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 4000 Overall milliseconds per iteration 6.521
+Avg BR: 2.8150102819374742E-05 With perturb: 0.0007042701228702529 Refinement: 0.03997060489326027
+U(P0) AverageStrategy: 1028543.3788909899 Best response vs. average strategy 1028504.133137079 Best response improvement: 4.318023648147828E-05
+U(P1) AverageStrategy: 923933.4821842328 Best response vs. average strategy 923875.000671981 Best response improvement: 1.3119969157271201E-05
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 5000 Overall milliseconds per iteration 6.5012
+Avg BR: 2.755516950198318E-05 With perturb: 0.0007555607335176569 Refinement: 0.03646982734755794
+Result using 5000 randomly chosen paths playing AverageStrategy
+U(P0) AverageStrategy: 1028747.8972573143 Best response vs. average strategy 1028709.5470293498 Best response improvement: 5.16344255193302E-05
+U(P1) AverageStrategy: 923903.4049397174 Best response vs. average strategy 923843.8984190001 Best response improvement: 3.4759134846361567E-06
+Total best response calculation time: 7 milliseconds
+
+Scenario 28
+Trial costs CostsMult1.4000000000000001: CostsMultiplier 1.4000000000000001
+Calculating min-max...
+... complete 163 milliseconds
+Trial costs CostsMult1.4000000000000001: CostsMultiplier 1.4000000000000001
+
+Iteration 1000 Overall milliseconds per iteration 6.959
+Avg BR: 6.839648958546703E-05 With perturb: 0.0008140145305692819 Refinement: 0.08402367158929444
+U(P0) AverageStrategy: 1029143.0246268833 Best response vs. average strategy 1029101.2774359679 Best response improvement: 6.638445131204746E-05
+U(P1) AverageStrategy: 920992.7546287016 Best response vs. average strategy 920951.1970298135 Best response improvement: 7.040852785888659E-05
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 2000 Overall milliseconds per iteration 6.735
+Avg BR: 3.029234448153877E-05 With perturb: 0.000774088424270354 Refinement: 0.03913292529867238
+U(P0) AverageStrategy: 1029097.3393350276 Best response vs. average strategy 1029051.9799894339 Best response improvement: 4.49682817225241E-05
+U(P1) AverageStrategy: 920838.9409814443 Best response vs. average strategy 920788.6836264131 Best response improvement: 1.561640724055344E-05
+Total best response calculation time: 7 milliseconds
+
+
+Iteration 3000 Overall milliseconds per iteration 6.64
+Avg BR: 3.6091596221228005E-05 With perturb: 0.0007760461554441663 Refinement: 0.04650702276924644
+U(P0) AverageStrategy: 1028850.3030602937 Best response vs. average strategy 1028798.9187897918 Best response improvement: 3.365763077615864E-06
+U(P1) AverageStrategy: 920769.992178799 Best response vs. average strategy 920726.5729681695 Best response improvement: 6.881742936484015E-05
+Total best response calculation time: 7 milliseconds
+
+
+Iteration 4000 Overall milliseconds per iteration 6.59475
+Avg BR: 5.4387455920907804E-05 With perturb: 0.0007599103856921611 Refinement: 0.07157088117879745
+U(P0) AverageStrategy: 1028947.6991959811 Best response vs. average strategy 1028898.0433047279 Best response improvement: 1.6566393429551413E-05
+U(P1) AverageStrategy: 920884.1232547722 Best response vs. average strategy 920843.1170476647 Best response improvement: 9.22085184122642E-05
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 5000 Overall milliseconds per iteration 6.6088
+Avg BR: 5.0647217169884504E-05 With perturb: 0.000744614640183534 Refinement: 0.06801802494428646
+Result using 5000 randomly chosen paths playing AverageStrategy
+U(P0) AverageStrategy: 1028865.991280561 Best response vs. average strategy 1028814.2780860087 Best response improvement: 2.9230887829153624E-06
+U(P1) AverageStrategy: 920898.8654663956 Best response vs. average strategy 920857.6731658473 Best response improvement: 9.837134555685365E-05
+Total best response calculation time: 9 milliseconds
+
+Scenario 29
+Trial costs CostsMult1.4500000000000002: CostsMultiplier 1.4500000000000002
+Calculating min-max...
+... complete 155 milliseconds
+Trial costs CostsMult1.4500000000000002: CostsMultiplier 1.4500000000000002
+
+Iteration 1000 Overall milliseconds per iteration 6.976
+Avg BR: 0.0001325802437076645 With perturb: 0.0008900238524131987 Refinement: 0.1489625736975343
+U(P0) AverageStrategy: 1028393.0603538358 Best response vs. average strategy 1028354.7877733702 Best response improvement: 6.549023849325716E-05
+U(P1) AverageStrategy: 928593.1509223648 Best response vs. average strategy 928543.0392195313 Best response improvement: 0.0001996702489220718
+Total best response calculation time: 7 milliseconds
+
+
+Iteration 2000 Overall milliseconds per iteration 6.734
+Avg BR: 6.16600336584442E-05 With perturb: 0.000727582238132792 Refinement: 0.08474648009094272
+U(P0) AverageStrategy: 1028672.9322605876 Best response vs. average strategy 1028640.7648326219 Best response improvement: 0.00010850425581661387
+U(P1) AverageStrategy: 928531.6733835544 Best response vs. average strategy 928451.0035683736 Best response improvement: 1.4815811500274523E-05
+Total best response calculation time: 10 milliseconds
+
+
+Iteration 3000 Overall milliseconds per iteration 6.638
+Avg BR: 5.933157560538175E-05 With perturb: 0.0006292098660843459 Refinement: 0.0942953675768147
+U(P0) AverageStrategy: 1028602.1030291566 Best response vs. average strategy 1028557.0003443131 Best response improvement: 1.3581591976994494E-05
+U(P1) AverageStrategy: 928404.8388289945 Best response vs. average strategy 928335.3190325104 Best response improvement: 0.00010508155923376901
+Total best response calculation time: 9 milliseconds
+
+
+Iteration 4000 Overall milliseconds per iteration 6.587
+Avg BR: 4.777653865609181E-05 With perturb: 0.000652450603840411 Refinement: 0.07322629234285745
+U(P0) AverageStrategy: 1028530.1661878913 Best response vs. average strategy 1028487.676964453 Best response improvement: 2.8107183443707063E-05
+U(P1) AverageStrategy: 928456.356644883 Best response vs. average strategy 928381.1481191709 Best response improvement: 6.744589386847655E-05
+Total best response calculation time: 7 milliseconds
+
+
+Iteration 5000 Overall milliseconds per iteration 6.5634
+Avg BR: 4.3238196271931665E-05 With perturb: 0.0006489332732615763 Refinement: 0.0666296490771909
+Result using 5000 randomly chosen paths playing AverageStrategy
+U(P0) AverageStrategy: 1028548.7929154182 Best response vs. average strategy 1028505.3710260525 Best response improvement: 2.095065641926106E-05
+U(P1) AverageStrategy: 928457.4973948051 Best response vs. average strategy 928381.916564485 Best response improvement: 6.552573612460227E-05
+Total best response calculation time: 5 milliseconds
+
+Scenario 30
+Trial costs CostsMult1.5: CostsMultiplier 1.5
+Calculating min-max...
+... complete 176 milliseconds
+Trial costs CostsMult1.5: CostsMultiplier 1.5
+
+Iteration 1000 Overall milliseconds per iteration 7.089
+Avg BR: 0.00011331177106399184 With perturb: 0.0007038046103752677 Refinement: 0.16099890423220467
+U(P0) AverageStrategy: 1027446.0009174558 Best response vs. average strategy 1027428.357719559 Best response improvement: 0.0001999277631498196
+U(P1) AverageStrategy: 928374.8412418468 Best response vs. average strategy 928299.3354525595 Best response improvement: 2.669577897816408E-05
+Total best response calculation time: 8 milliseconds
+
+
+Iteration 2000 Overall milliseconds per iteration 6.79
+Avg BR: 8.107353789150998E-05 With perturb: 0.0006603447797629725 Refinement: 0.1227745571345486
+U(P0) AverageStrategy: 1027208.0290684432 Best response vs. average strategy 1027165.169734893 Best response improvement: 1.7489263106306844E-05
+U(P1) AverageStrategy: 928205.6784886181 Best response vs. average strategy 928143.131051218 Best response improvement: 0.0001446578126767131
+Total best response calculation time: 10 milliseconds
+
+
+Iteration 3000 Overall milliseconds per iteration 6.689666666666667
+Avg BR: 6.962348044449505E-05 With perturb: 0.0006356876804400374 Refinement: 0.10952466531410535
+U(P0) AverageStrategy: 1027257.7986643036 Best response vs. average strategy 1027214.8829197614 Best response improvement: 1.5709661879492076E-05
+U(P1) AverageStrategy: 928227.602545417 Best response vs. average strategy 928161.7937460816 Best response improvement: 0.00012353729900949802
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 4000 Overall milliseconds per iteration 6.62825
+Avg BR: 5.8538758919391104E-05 With perturb: 0.0006365953256119246 Refinement: 0.09195599867642912
+U(P0) AverageStrategy: 1027223.2343053849 Best response vs. average strategy 1027179.7579198317 Best response improvement: 9.859561473131179E-06
+U(P1) AverageStrategy: 928247.6919460505 Best response vs. average strategy 928179.3650755631 Best response improvement: 0.00010721795636565103
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 5000 Overall milliseconds per iteration 6.6348
+Avg BR: 4.604772904289584E-05 With perturb: 0.0006545261410007118 Refinement: 0.07035277303438636
+Result using 5000 randomly chosen paths playing AverageStrategy
+U(P0) AverageStrategy: 1027285.037427491 Best response vs. average strategy 1027246.2749912613 Best response improvement: 4.251651029356501E-05
+U(P1) AverageStrategy: 928312.181601731 Best response vs. average strategy 928235.848865388 Best response improvement: 4.9578947792226666E-05
+Total best response calculation time: 7 milliseconds
+
+Scenario 31
+Trial costs CostsMult1.55: CostsMultiplier 1.55
+Calculating min-max...
+... complete 159 milliseconds
+Trial costs CostsMult1.55: CostsMultiplier 1.55
+
+Iteration 1000 Overall milliseconds per iteration 6.826
+Avg BR: 0.00011993003103621445 With perturb: 0.0007340834278329868 Refinement: 0.16337384347477743
+U(P0) AverageStrategy: 1026025.6119008758 Best response vs. average strategy 1025999.3904661342 Best response improvement: 0.00013423158464332421
+U(P1) AverageStrategy: 928255.9027992107 Best response vs. average strategy 928193.3871316887 Best response improvement: 0.00010562847742910469
+Total best response calculation time: 7 milliseconds
+
+
+Iteration 2000 Overall milliseconds per iteration 6.622
+Avg BR: 8.323578170255255E-05 With perturb: 0.0006603696473387244 Refinement: 0.12604422695378412
+U(P0) AverageStrategy: 1025790.2371572141 Best response vs. average strategy 1025751.1895447677 Best response improvement: 4.309007064481308E-05
+U(P1) AverageStrategy: 928087.6629650127 Best response vs. average strategy 928023.4495528099 Best response improvement: 0.00012338149276029203
+Total best response calculation time: 8 milliseconds
+
+
+Iteration 3000 Overall milliseconds per iteration 6.583666666666667
+Avg BR: 5.8233014806132336E-05 With perturb: 0.000692442147264979 Refinement: 0.08409802181473527
+U(P0) AverageStrategy: 1025766.7821165777 Best response vs. average strategy 1025730.4475204335 Best response improvement: 5.8116189116058314E-05
+U(P1) AverageStrategy: 928153.401761574 Best response vs. average strategy 928079.4700142157 Best response improvement: 5.834984049620635E-05
+Total best response calculation time: 7 milliseconds
+
+
+Iteration 4000 Overall milliseconds per iteration 6.537
+Avg BR: 5.393983539310571E-05 With perturb: 0.0007558707960829143 Refinement: 0.07136118457365145
+U(P0) AverageStrategy: 1025891.9513742791 Best response vs. average strategy 1025851.5346779258 Best response improvement: 2.596276419757454E-05
+U(P1) AverageStrategy: 928248.9202837921 Best response vs. average strategy 928179.8356348891 Best response improvement: 8.191690658863688E-05
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 5000 Overall milliseconds per iteration 6.517
+Avg BR: 4.6509127652087697E-05 With perturb: 0.0006383656366852354 Refinement: 0.07285656523366461
+Result using 5000 randomly chosen paths playing AverageStrategy
+U(P0) AverageStrategy: 1025888.9122974441 Best response vs. average strategy 1025847.695535887 Best response improvement: 2.377554958786916E-05
+U(P1) AverageStrategy: 928140.4889322075 Best response vs. average strategy 928068.2353235368 Best response improvement: 6.924270571630623E-05
+Total best response calculation time: 8 milliseconds
+
+Scenario 32
+Trial costs CostsMult1.6: CostsMultiplier 1.6
+Calculating min-max...
+... complete 150 milliseconds
+Trial costs CostsMult1.6: CostsMultiplier 1.6
+
+Iteration 1000 Overall milliseconds per iteration 6.736
+Avg BR: 0.00014623038897858192 With perturb: 0.0007319672760560587 Refinement: 0.19977722196338005
+U(P0) AverageStrategy: 1024458.9934135578 Best response vs. average strategy 1024415.6458806379 Best response improvement: 1.254843081447429E-06
+U(P1) AverageStrategy: 927793.1870008652 Best response vs. average strategy 927757.8679704309 Best response improvement: 0.0002912059348757164
+Total best response calculation time: 7 milliseconds
+
+
+Iteration 2000 Overall milliseconds per iteration 6.5855
+Avg BR: 8.078190072481401E-05 With perturb: 0.0008055170497182742 Refinement: 0.10028577390517943
+U(P0) AverageStrategy: 1024316.1752155119 Best response vs. average strategy 1024288.3565961907 Best response improvement: 9.89747348241508E-05
+U(P1) AverageStrategy: 928097.0767969842 Best response vs. average strategy 928027.2095986546 Best response improvement: 6.258906662547722E-05
+Total best response calculation time: 7 milliseconds
+
+
+Iteration 3000 Overall milliseconds per iteration 6.547
+Avg BR: 6.18761908281731E-05 With perturb: 0.0007423998008704754 Refinement: 0.08334618457012286
+U(P0) AverageStrategy: 1024323.7169018342 Best response vs. average strategy 1024295.1257768752 Best response improvement: 9.209727650907423E-05
+U(P1) AverageStrategy: 928035.6153470989 Best response vs. average strategy 927959.9798319741 Best response improvement: 3.165510514727197E-05
+Total best response calculation time: 8 milliseconds
+
+
+Iteration 4000 Overall milliseconds per iteration 6.51025
+Avg BR: 4.784629235613192E-05 With perturb: 0.0006707022134613777 Refinement: 0.07133760914431087
+U(P0) AverageStrategy: 1024584.8510770883 Best response vs. average strategy 1024555.8090077887 Best response improvement: 8.980753724879053E-05
+U(P1) AverageStrategy: 928058.0691193751 Best response vs. average strategy 927979.1203500567 Best response improvement: 5.885047463473315E-06
+Total best response calculation time: 8 milliseconds
+
+
+Iteration 5000 Overall milliseconds per iteration 6.5276
+Avg BR: 5.425613284487987E-05 With perturb: 0.0006393596488753979 Refinement: 0.08486011424135653
+Result using 5000 randomly chosen paths playing AverageStrategy
+U(P0) AverageStrategy: 1024441.2829673684 Best response vs. average strategy 1024400.9336493749 Best response improvement: 9.819510930849772E-06
+U(P1) AverageStrategy: 927973.2601411529 Best response vs. average strategy 927907.5142293009 Best response improvement: 9.869275475890996E-05
+Total best response calculation time: 7 milliseconds
+
+Scenario 33
+Trial costs CostsMult1.6500000000000001: CostsMultiplier 1.6500000000000001
+Calculating min-max...
+... complete 153 milliseconds
+Trial costs CostsMult1.6500000000000001: CostsMultiplier 1.6500000000000001
+
+Iteration 1000 Overall milliseconds per iteration 6.754
+Avg BR: 0.00013390836099324413 With perturb: 0.0007738283519438433 Refinement: 0.1730465944506539
+U(P0) AverageStrategy: 1022782.9938671277 Best response vs. average strategy 1022769.2975921178 Best response improvement: 0.00018856441184499228
+U(P1) AverageStrategy: 927858.3440478658 Best response vs. average strategy 927797.0680304271 Best response improvement: 7.925231014149597E-05
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 2000 Overall milliseconds per iteration 6.6605
+Avg BR: 8.17155945782037E-05 With perturb: 0.0007489790181308897 Refinement: 0.10910264853897855
+U(P0) AverageStrategy: 1023115.942670082 Best response vs. average strategy 1023082.3367340934 Best response improvement: 4.771245689238463E-05
+U(P1) AverageStrategy: 927991.3683742798 Best response vs. average strategy 927935.9273301191 Best response improvement: 0.00011571873226402277
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 3000 Overall milliseconds per iteration 6.613333333333333
+Avg BR: 7.648018014157906E-05 With perturb: 0.0007893214204412566 Refinement: 0.09689358246330643
+U(P0) AverageStrategy: 1023046.6569928761 Best response vs. average strategy 1023007.9208161319 Best response improvement: 9.216383774558791E-06
+U(P1) AverageStrategy: 928008.9985009211 Best response vs. average strategy 927957.7460922104 Best response improvement: 0.00014374397650859932
+Total best response calculation time: 8 milliseconds
+
+
+Iteration 4000 Overall milliseconds per iteration 6.56775
+Avg BR: 6.277474311631087E-05 With perturb: 0.0006742465088452679 Refinement: 0.09310354935885472
+U(P0) AverageStrategy: 1022985.7076925958 Best response vs. average strategy 1022950.272861209 Best response improvement: 3.379727812747644E-05
+U(P1) AverageStrategy: 927847.7093560535 Best response vs. average strategy 927786.2838068674 Best response improvement: 9.175220810514528E-05
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 5000 Overall milliseconds per iteration 6.565
+Avg BR: 5.0809133254494496E-05 With perturb: 0.0007159666532700759 Refinement: 0.07096578174755906
+Result using 5000 randomly chosen paths playing AverageStrategy
+U(P0) AverageStrategy: 1023115.4180233333 Best response vs. average strategy 1023082.6024772619 Best response improvement: 4.841633269695186E-05
+U(P1) AverageStrategy: 927955.6228572582 Best response vs. average strategy 927889.4783873565 Best response improvement: 5.320193381203714E-05
+Total best response calculation time: 6 milliseconds
+
+Scenario 34
+Trial costs CostsMult1.7000000000000002: CostsMultiplier 1.7000000000000002
+Calculating min-max...
+... complete 156 milliseconds
+Trial costs CostsMult1.7000000000000002: CostsMultiplier 1.7000000000000002
+
+Iteration 1000 Overall milliseconds per iteration 7.016
+Avg BR: 0.00016378048232457357 With perturb: 0.0006191246076661625 Refinement: 0.26453557215559015
+U(P0) AverageStrategy: 1027044.2569957515 Best response vs. average strategy 1027049.8008079111 Best response improvement: 0.00022703850450762138
+U(P1) AverageStrategy: 927558.5494898107 Best response vs. average strategy 927514.9868707204 Best response improvement: 0.00010052246014152575
+Total best response calculation time: 7 milliseconds
+
+
+Iteration 2000 Overall milliseconds per iteration 6.7285
+Avg BR: 8.684214945807753E-05 With perturb: 0.0005652895007148429 Refinement: 0.15362420378984634
+U(P0) AverageStrategy: 1027732.4069409862 Best response vs. average strategy 1027721.0754388473 Best response improvement: 8.954709415536439E-05
+U(P1) AverageStrategy: 927545.6529966164 Best response vs. average strategy 927499.8326340992 Best response improvement: 8.413720476079066E-05
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 3000 Overall milliseconds per iteration 6.634333333333333
+Avg BR: 3.9509176120964564E-05 With perturb: 0.0006226853190319432 Refinement: 0.06344966697205491
+U(P0) AverageStrategy: 1028147.717381767 Best response vs. average strategy 1028130.6079911193 Best response improvement: 3.3510155855727036E-05
+U(P1) AverageStrategy: 927760.5548703994 Best response vs. average strategy 927710.5285597107 Best response improvement: 4.550819638620209E-05
+Total best response calculation time: 5 milliseconds
+
+
+Iteration 4000 Overall milliseconds per iteration 6.58975
+Avg BR: 4.8535575570709666E-05 With perturb: 0.0005546112097313104 Refinement: 0.08751279223913169
+U(P0) AverageStrategy: 1028338.7355003607 Best response vs. average strategy 1028325.3070199324 Best response improvement: 6.21312233472341E-05
+U(P1) AverageStrategy: 927610.5538254138 Best response vs. average strategy 927557.1779259212 Best response improvement: 3.493992779418523E-05
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 5000 Overall milliseconds per iteration 6.55
+Avg BR: 5.0100150447454474E-05 With perturb: 0.0005252618575137334 Refinement: 0.0953812840791406
+Result using 5000 randomly chosen paths playing AverageStrategy
+U(P0) AverageStrategy: 1028423.1909311918 Best response vs. average strategy 1028413.1077889879 Best response improvement: 8.411519573429566E-05
+U(P1) AverageStrategy: 927652.5484006352 Best response vs. average strategy 927596.5705015177 Best response improvement: 1.608510516061328E-05
+Total best response calculation time: 6 milliseconds
+
+Scenario 35
+Trial costs CostsMult1.75: CostsMultiplier 1.75
+Calculating min-max...
+... complete 165 milliseconds
+Trial costs CostsMult1.75: CostsMultiplier 1.75
+
+Iteration 1000 Overall milliseconds per iteration 7.106
+Avg BR: 6.318216223377366E-05 With perturb: 0.0005188824664207409 Refinement: 0.1217658454902228
+U(P0) AverageStrategy: 1028150.2643996584 Best response vs. average strategy 1028145.792389362 Best response improvement: 9.531976060131969E-05
+U(P1) AverageStrategy: 926629.0142304981 Best response vs. average strategy 926579.4974415909 Best response improvement: 3.104456386622763E-05
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 2000 Overall milliseconds per iteration 6.8
+Avg BR: 5.588357784276195E-05 With perturb: 0.000608118841724921 Refinement: 0.09189581708116282
+U(P0) AverageStrategy: 1028221.442183216 Best response vs. average strategy 1028219.0913157724 Best response improvement: 9.7495995040821E-05
+U(P1) AverageStrategy: 926759.745893582 Best response vs. average strategy 926709.1775316298 Best response improvement: 1.4271160644702902E-05
+Total best response calculation time: 5 milliseconds
+
+
+Iteration 3000 Overall milliseconds per iteration 6.696
+Avg BR: 2.3349917928801542E-05 With perturb: 0.0005869961063651996 Refinement: 0.039778658964859284
+U(P0) AverageStrategy: 1028196.0196165664 Best response vs. average strategy 1028181.0534722763 Best response improvement: 1.6285180847120025E-05
+U(P1) AverageStrategy: 926633.2887739231 Best response vs. average strategy 926583.864296286 Best response improvement: 3.041465501048306E-05
+Total best response calculation time: 7 milliseconds
+
+
+Iteration 4000 Overall milliseconds per iteration 6.6365
+Avg BR: 2.3899178144173278E-05 With perturb: 0.0005692684556219607 Refinement: 0.041982263215448956
+U(P0) AverageStrategy: 1028198.3242424767 Best response vs. average strategy 1028185.3456421925 Best response improvement: 2.6050700700801353E-05
+U(P1) AverageStrategy: 926778.4639514176 Best response vs. average strategy 926729.2304569677 Best response improvement: 2.17476555875452E-05
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 5000 Overall milliseconds per iteration 6.6026
+Avg BR: 4.545572520365212E-05 With perturb: 0.0005060317629533385 Refinement: 0.08982781029072204
+Result using 5000 randomly chosen paths playing AverageStrategy
+U(P0) AverageStrategy: 1028151.6777094727 Best response vs. average strategy 1028146.7202210091 Best response improvement: 8.941701999096119E-05
+U(P1) AverageStrategy: 926718.399851742 Best response vs. average strategy 926665.0956687949 Best response improvement: 1.494430416343055E-06
+Total best response calculation time: 8 milliseconds
+
+Scenario 36
+Trial costs CostsMult1.8: CostsMultiplier 1.8
+Calculating min-max...
+... complete 150 milliseconds
+Trial costs CostsMult1.8: CostsMultiplier 1.8
+
+Iteration 1000 Overall milliseconds per iteration 6.865
+Avg BR: 6.357455299664797E-09 With perturb: 0.0005093971581905435 Refinement: 1.2480350935304487E-05
+U(P0) AverageStrategy: 1012767.9546669913 Best response vs. average strategy 1012736.9455030358 Best response improvement: 5.954235053524889E-09
+U(P1) AverageStrategy: 942647.2750943763 Best response vs. average strategy 942679.7467869684 Best response improvement: 6.7606755458047055E-09
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 2000 Overall milliseconds per iteration 6.8015
+Avg BR: 1.5175539374852727E-09 With perturb: 0.000509215342778606 Refinement: 2.9801810943176294E-06
+U(P0) AverageStrategy: 1012767.8370146197 Best response vs. average strategy 1012736.942450289 Best response improvement: 1.4213058326778741E-09
+U(P1) AverageStrategy: 942647.3620402212 Best response vs. average strategy 942679.7757451159 Best response improvement: 1.613802042292671E-09
+Total best response calculation time: 7 milliseconds
+
+
+Iteration 3000 Overall milliseconds per iteration 6.759333333333333
+Avg BR: 7.870457858605355E-10 With perturb: 0.0005091829157695777 Refinement: 1.5457034426832575E-06
+U(P0) AverageStrategy: 1012767.8158092032 Best response vs. average strategy 1012736.9419895277 Best response improvement: 7.371289719795358E-10
+U(P1) AverageStrategy: 942647.376830471 Best response vs. average strategy 942679.7801158767 Best response improvement: 8.36962599741535E-10
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 4000 Overall milliseconds per iteration 6.66775
+Avg BR: 5.377308951790486E-10 With perturb: 0.0005091718501730824 Refinement: 1.056089206416769E-06
+U(P0) AverageStrategy: 1012767.8085728644 Best response vs. average strategy 1012736.9418322964 Best response improvement: 5.036183022733393E-10
+U(P1) AverageStrategy: 942647.3818775865 Best response vs. average strategy 942679.7816074073 Best response improvement: 5.71843488084758E-10
+Total best response calculation time: 8 milliseconds
+
+
+Iteration 5000 Overall milliseconds per iteration 6.6186
+Avg BR: 4.2079110594983703E-10 With perturb: 0.0005091666564508396 Refinement: 8.264309938969162E-07
+Result using 5000 randomly chosen paths playing AverageStrategy
+U(P0) AverageStrategy: 1012767.8051763343 Best response vs. average strategy 1012736.9417584869 Best response improvement: 3.941188534272128E-10
+U(P1) AverageStrategy: 942647.3842465052 Best response vs. average strategy 942679.7823074702 Best response improvement: 4.4746335847246133E-10
+Total best response calculation time: 6 milliseconds
+
+Scenario 37
+Trial costs CostsMult1.85: CostsMultiplier 1.85
+Calculating min-max...
+... complete 163 milliseconds
+Trial costs CostsMult1.85: CostsMultiplier 1.85
+
+Iteration 1000 Overall milliseconds per iteration 7.104
+Avg BR: 8.305567234125842E-05 With perturb: 0.0006006677787500044 Refinement: 0.13827222847561108
+U(P0) AverageStrategy: 1025799.6603269231 Best response vs. average strategy 1025763.1254648605 Best response improvement: 5.5739608074291646E-05
+U(P1) AverageStrategy: 924256.442266461 Best response vs. average strategy 924226.8493258628 Best response improvement: 0.00011037173660822519
+Total best response calculation time: 8 milliseconds
+
+
+Iteration 2000 Overall milliseconds per iteration 6.826
+Avg BR: 3.912414740867566E-05 With perturb: 0.0005575532710066296 Refinement: 0.07017113779646439
+U(P0) AverageStrategy: 1025799.166805882 Best response vs. average strategy 1025759.2239888927 Best response improvement: 3.453031096161685E-05
+U(P1) AverageStrategy: 924207.3422525398 Best response vs. average strategy 924166.7522908526 Best response improvement: 4.3717983855734467E-05
+Total best response calculation time: 5 milliseconds
+
+
+Iteration 3000 Overall milliseconds per iteration 6.749
+Avg BR: 2.8729814894646643E-05 With perturb: 0.0005888056120719842 Refinement: 0.04879337816354626
+U(P0) AverageStrategy: 1025821.8158484662 Best response vs. average strategy 1025778.685033071 Best response improvement: 1.1159012293936605E-05
+U(P1) AverageStrategy: 924146.1891700912 Best response vs. average strategy 924105.7489661572 Best response improvement: 4.630061749535668E-05
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 4000 Overall milliseconds per iteration 6.6875
+Avg BR: 2.171850499505687E-05 With perturb: 0.000578627996357236 Refinement: 0.03753448697917513
+U(P0) AverageStrategy: 1025822.2267015788 Best response vs. average strategy 1025778.494121754 Best response improvement: 8.43718419345016E-06
+U(P1) AverageStrategy: 924208.2008949396 Best response vs. average strategy 924166.2582116559 Best response improvement: 3.499982579666358E-05
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 5000 Overall milliseconds per iteration 6.6412
+Avg BR: 1.9415978361162E-05 With perturb: 0.0005594604948902707 Refinement: 0.03470482462746567
+Result using 5000 randomly chosen paths playing AverageStrategy
+U(P0) AverageStrategy: 1025817.1185423669 Best response vs. average strategy 1025773.9038157911 Best response improvement: 1.419277317646859E-05
+U(P1) AverageStrategy: 924152.2653136646 Best response vs. average strategy 924108.3065691793 Best response improvement: 2.4639183545855407E-05
+Total best response calculation time: 5 milliseconds
+
+Scenario 38
+Trial costs CostsMult1.9000000000000001: CostsMultiplier 1.9000000000000001
+Calculating min-max...
+... complete 169 milliseconds
+Trial costs CostsMult1.9000000000000001: CostsMultiplier 1.9000000000000001
+
+Iteration 1000 Overall milliseconds per iteration 6.741
+Avg BR: 0.00018994596103536106 With perturb: 0.0004983209519688491 Refinement: 0.38117193404148675
+U(P0) AverageStrategy: 1031162.9209083485 Best response vs. average strategy 1031179.3846029185 Best response improvement: 0.000147055656426602
+U(P1) AverageStrategy: 922880.5279345457 Best response vs. average strategy 922856.6977632456 Best response improvement: 0.0002328362656441201
+Total best response calculation time: 7 milliseconds
+
+
+Iteration 2000 Overall milliseconds per iteration 6.574
+Avg BR: 0.00012737853956015617 With perturb: 0.0006220174786837828 Refinement: 0.20478289425193474
+U(P0) AverageStrategy: 1031090.7437717108 Best response vs. average strategy 1031105.4123325462 Best response improvement: 0.0001233957526518695
+U(P1) AverageStrategy: 922983.9263047917 Best response vs. average strategy 922944.8750306614 Best response improvement: 0.00013136132646844283
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 3000 Overall milliseconds per iteration 6.528333333333333
+Avg BR: 0.0001047367632319114 With perturb: 0.0006083941557051295 Refinement: 0.1721528095721455
+U(P0) AverageStrategy: 1031096.8338717583 Best response vs. average strategy 1031118.2893108703 Best response improvement: 0.00016957383958101903
+U(P1) AverageStrategy: 922857.1665702149 Best response vs. average strategy 922802.45394003 Best response improvement: 3.989968688280375E-05
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 4000 Overall milliseconds per iteration 6.50525
+Avg BR: 8.609748750707319E-05 With perturb: 0.0006100133065148697 Refinement: 0.1411403433131085
+U(P0) AverageStrategy: 1031085.0238484627 Best response vs. average strategy 1031105.3206900945 Best response improvement: 0.00016178334906728843
+U(P1) AverageStrategy: 922847.0990135213 Best response vs. average strategy 922786.7151993698 Best response improvement: 1.0411625946857952E-05
+Total best response calculation time: 9 milliseconds
+
+
+Iteration 5000 Overall milliseconds per iteration 6.505
+Avg BR: 7.68652842464436E-05 With perturb: 0.0005355814061059912 Refinement: 0.14351746227581325
+Result using 5000 randomly chosen paths playing AverageStrategy
+U(P0) AverageStrategy: 1031273.3491831026 Best response vs. average strategy 1031273.5396988281 Best response improvement: 2.9700653885601688E-05
+U(P1) AverageStrategy: 922737.0231413437 Best response vs. average strategy 922695.520826914 Best response improvement: 0.00012402991460728552
+Total best response calculation time: 6 milliseconds
+
+Scenario 39
+Trial costs CostsMult1.9500000000000002: CostsMultiplier 1.9500000000000002
+Calculating min-max...
+... complete 163 milliseconds
+Trial costs CostsMult1.9500000000000002: CostsMultiplier 1.9500000000000002
+
+Iteration 1000 Overall milliseconds per iteration 7.319
+Avg BR: 0.006003765601291882 With perturb: 0.0065064315605457106 Refinement: 0.9227432188325871
+U(P0) AverageStrategy: 1019821.3912822453 Best response vs. average strategy 1020453.8661191717 Best response improvement: 0.004417306070007822
+U(P1) AverageStrategy: 923197.2395070234 Best response vs. average strategy 924424.1470760864 Best response improvement: 0.007590225132575942
+Total best response calculation time: 7 milliseconds
+
+
+Iteration 2000 Overall milliseconds per iteration 6.891
+Avg BR: 0.009262944193586234 With perturb: 0.009674013527253713 Refinement: 0.9575078810351659
+U(P0) AverageStrategy: 1024562.699058456 Best response vs. average strategy 1025298.6231024648 Best response improvement: 0.005163955835051083
+U(P1) AverageStrategy: 921141.9503144553 Best response vs. average strategy 923332.2705177581 Best response improvement: 0.013361932552121385
+Total best response calculation time: 5 milliseconds
+
+
+Iteration 3000 Overall milliseconds per iteration 6.8
+Avg BR: 0.005121301461123909 With perturb: 0.005550044047775788 Refinement: 0.9227496965859757
+U(P0) AverageStrategy: 1024401.610978818 Best response vs. average strategy 1024920.7067440959 Best response improvement: 0.003787556019610874
+U(P1) AverageStrategy: 922091.2144954995 Best response vs. average strategy 923119.8092277433 Best response improvement: 0.006455046902636943
+Total best response calculation time: 9 milliseconds
+
+
+Iteration 4000 Overall milliseconds per iteration 6.70075
+Avg BR: 0.0037161392837869057 With perturb: 0.004208817145206574 Refinement: 0.8829414905846457
+U(P0) AverageStrategy: 1024584.2913871397 Best response vs. average strategy 1025011.5005536508 Best response improvement: 0.0031580194873837048
+U(P1) AverageStrategy: 922551.212660218 Best response vs. average strategy 923214.2932510779 Best response improvement: 0.004274259080190106
+Total best response calculation time: 11 milliseconds
+
+
+Iteration 5000 Overall milliseconds per iteration 6.6592
+Avg BR: 0.0031348670895226943 With perturb: 0.0035681539382494644 Refinement: 0.8785683419983442
+Result using 5000 randomly chosen paths playing AverageStrategy
+U(P0) AverageStrategy: 1024618.7982264356 Best response vs. average strategy 1024986.84076041 Best response improvement: 0.002762698356867494
+U(P1) AverageStrategy: 922447.5459766274 Best response vs. average strategy 922981.4336161641 Best response improvement: 0.003507035822177895
+Total best response calculation time: 7 milliseconds
+
+Scenario 40
+Trial costs CostsMult2: CostsMultiplier 2
+Calculating min-max...
+... complete 157 milliseconds
+Trial costs CostsMult2: CostsMultiplier 2
+
+Iteration 1000 Overall milliseconds per iteration 6.908
+Avg BR: 0.00016903485720947512 With perturb: 0.0006783595935692874 Refinement: 0.24918178914530228
+U(P0) AverageStrategy: 1030611.7185316486 Best response vs. average strategy 1030622.8544887708 Best response improvement: 7.720238852857922E-05
+U(P1) AverageStrategy: 923736.847404018 Best response vs. average strategy 923712.0721040732 Best response improvement: 0.000260867325890371
+Total best response calculation time: 8 milliseconds
+
+
+Iteration 2000 Overall milliseconds per iteration 6.686
+Avg BR: 0.00010493417742077772 With perturb: 0.0006137565681530281 Refinement: 0.170970353501153
+U(P0) AverageStrategy: 1030613.8178622844 Best response vs. average strategy 1030623.8207031547 Best response improvement: 7.128170674744373E-05
+U(P1) AverageStrategy: 923680.3851994941 Best response vs. average strategy 923633.9122570937 Best response improvement: 0.00013858664809411172
+Total best response calculation time: 7 milliseconds
+
+
+Iteration 3000 Overall milliseconds per iteration 6.608666666666666
+Avg BR: 8.890558377969736E-05 With perturb: 0.00046374776083971467 Refinement: 0.19171107935640433
+U(P0) AverageStrategy: 1030737.60810686 Best response vs. average strategy 1030740.1193494094 Best response improvement: 2.612948681693524E-05
+U(P1) AverageStrategy: 923525.8673992797 Best response vs. average strategy 923480.164011655 Best response improvement: 0.00015168168074245947
+Total best response calculation time: 9 milliseconds
+
+
+Iteration 4000 Overall milliseconds per iteration 6.57375
+Avg BR: 6.083686675721158E-05 With perturb: 0.00047558847994281107 Refinement: 0.12791913455205461
+U(P0) AverageStrategy: 1030831.2190935542 Best response vs. average strategy 1030844.2992363669 Best response improvement: 9.583910775293285E-05
+U(P1) AverageStrategy: 923605.0201081975 Best response vs. average strategy 923538.9872323051 Best response improvement: 2.5834625761490314E-05
+Total best response calculation time: 6 milliseconds
+
+
+Iteration 5000 Overall milliseconds per iteration 6.5522
+Avg BR: 6.173492699740546E-05 With perturb: 0.0005702859929092137 Refinement: 0.1082525746116884
+Result using 5000 randomly chosen paths playing AverageStrategy
+U(P0) AverageStrategy: 1030664.5951189367 Best response vs. average strategy 1030668.3422679164 Best response improvement: 3.0774335015254715E-05
+U(P1) AverageStrategy: 923653.6354101548 Best response vs. average strategy 923599.1154227712 Best response improvement: 9.26955189795562E-05
+Total best response calculation time: 7 milliseconds
+
+Total runtime 00:27:45.4328060
 
 Press Enter to end (copying standard report to clipboard).
 Press c to end (copying comma-separated report to clipboard).
