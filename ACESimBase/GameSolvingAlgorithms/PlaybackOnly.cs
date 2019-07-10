@@ -43,7 +43,7 @@ namespace ACESim
             }
             IterationNum = EvolutionSettings.ReportEveryNIterations ?? 0;
             ReportCollection reportCollection = null;
-            bool reportForEachPastValue = true; // DEBUG
+            bool reportForEachPastValue = false;
             if (reportForEachPastValue)
             {
                 int num = EvolutionSettings.RecordPastValues_NumberToRecord;

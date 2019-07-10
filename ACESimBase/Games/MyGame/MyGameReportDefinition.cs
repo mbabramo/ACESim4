@@ -149,21 +149,21 @@ namespace ACESim
             });
             // Now go through bargaining rounds again for our litigation flow diagram
             colItems.Add(
-                new SimpleReportColumnFilter($"PDoesntFile",
-                    (GameProgress gp) => !MyGP(gp).PFiles, SimpleReportColumnFilterOptions.ProportionOfRow)
-            );
-            colItems.Add(
                 new SimpleReportColumnFilter($"P Files",
                     (GameProgress gp) => MyGP(gp).PFiles, SimpleReportColumnFilterOptions.ProportionOfRow)
-            );
-            colItems.Add(
-                new SimpleReportColumnFilter($"DDoesntAnswer",
-                    (GameProgress gp) => MyGP(gp).PFiles && !MyGP(gp).DAnswers, SimpleReportColumnFilterOptions.ProportionOfRow)
             );
             colItems.Add(
                 new SimpleReportColumnFilter($"D Answers",
                     (GameProgress gp) => MyGP(gp).PFiles && MyGP(gp).DAnswers, SimpleReportColumnFilterOptions.ProportionOfRow)
                     );
+            colItems.Add(
+                new SimpleReportColumnFilter($"PDoesntFile",
+                    (GameProgress gp) => !MyGP(gp).PFiles, SimpleReportColumnFilterOptions.ProportionOfRow)
+            );
+            colItems.Add(
+                new SimpleReportColumnFilter($"DDoesntAnswer",
+                    (GameProgress gp) => MyGP(gp).PFiles && !MyGP(gp).DAnswers, SimpleReportColumnFilterOptions.ProportionOfRow)
+            );
             for (byte b = 1; b <= Options.NumPotentialBargainingRounds; b++)
             {
                 byte bargainingRoundNum = b; // needed for closure -- otherwise b below will always be max value.
@@ -173,31 +173,31 @@ namespace ACESim
                         (GameProgress gp) => MyGP(gp).SettlesInRound(bargainingRoundNum), SimpleReportColumnFilterOptions.ProportionOfRow)
                 );
 
-                colItems.Add(
-                    new SimpleReportColumnFilter($"DoesntSettle{b}",
-                        (GameProgress gp) => MyGP(gp).DoesntSettleInRound(bargainingRoundNum), SimpleReportColumnFilterOptions.ProportionOfRow)
-                );
+                //colItems.Add(
+                //    new SimpleReportColumnFilter($"DoesntSettle{b}",
+                //        (GameProgress gp) => MyGP(gp).DoesntSettleInRound(bargainingRoundNum), SimpleReportColumnFilterOptions.ProportionOfRow)
+                //);
 
                 colItems.Add(
                     new SimpleReportColumnFilter($"PAbandons{b}",
                         (GameProgress gp) => (MyGP(gp).PAbandonsInRound(bargainingRoundNum)), SimpleReportColumnFilterOptions.ProportionOfRow)
                 );
-                colItems.Add(
-                    new SimpleReportColumnFilter($"PDoesntAbandon{b}",
-                        (GameProgress gp) => (MyGP(gp).PDoesntAbandonInRound(bargainingRoundNum)), SimpleReportColumnFilterOptions.ProportionOfRow)
-                );
+                //colItems.Add(
+                //    new SimpleReportColumnFilter($"PDoesntAbandon{b}",
+                //        (GameProgress gp) => (MyGP(gp).PDoesntAbandonInRound(bargainingRoundNum)), SimpleReportColumnFilterOptions.ProportionOfRow)
+                //);
                 colItems.Add(
                     new SimpleReportColumnFilter($"DDefaults{b}",
                         (GameProgress gp) => (MyGP(gp).DDefaultsInRound(bargainingRoundNum)), SimpleReportColumnFilterOptions.ProportionOfRow)
                 );
-                colItems.Add(
-                    new SimpleReportColumnFilter($"DDoesntDefault{b}",
-                        (GameProgress gp) => (MyGP(gp).DDoesntDefaultInRound(bargainingRoundNum)), SimpleReportColumnFilterOptions.ProportionOfRow)
-                );
-                colItems.Add(
-                    new SimpleReportColumnFilter($"POrDQuits{b}",
-                        (GameProgress gp) => (MyGP(gp).PAbandonsInRound(bargainingRoundNum)) || (MyGP(gp).DDefaultsInRound(bargainingRoundNum)), SimpleReportColumnFilterOptions.ProportionOfRow)
-                );
+                //colItems.Add(
+                //    new SimpleReportColumnFilter($"DDoesntDefault{b}",
+                //        (GameProgress gp) => (MyGP(gp).DDoesntDefaultInRound(bargainingRoundNum)), SimpleReportColumnFilterOptions.ProportionOfRow)
+                //);
+                //colItems.Add(
+                //    new SimpleReportColumnFilter($"POrDQuits{b}",
+                //        (GameProgress gp) => (MyGP(gp).PAbandonsInRound(bargainingRoundNum)) || (MyGP(gp).DDefaultsInRound(bargainingRoundNum)), SimpleReportColumnFilterOptions.ProportionOfRow)
+                //);
 
                 
             }
