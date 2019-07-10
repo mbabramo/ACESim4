@@ -1008,9 +1008,10 @@ namespace ACESim
 
         public int NumScenariosDefined = 11;
 
-        public double TrialCostsScenarioPerPartyMax = 100_000;
+        public double TrialCostsScenarioPerPartyMin = 59_500; // DEBUG
+        public double TrialCostsScenarioPerPartyMax = 60_500; // DEBUG
         public double TrialCostsScenarioBaselineIfUsingWarmup = 25_000;
-        public double TrialCostsScenarioIncrement => TrialCostsScenarioPerPartyMax / Math.Max(1, NumScenariosDefined - 1);
+        public double TrialCostsScenarioIncrement => (TrialCostsScenarioPerPartyMax - TrialCostsScenarioPerPartyMin) / Math.Max(1, NumScenariosDefined - 1);
 
         public override int NumScenariosToDevelop => PlayMultipleScenarios ? NumScenariosDefined : 1;
         public override int NumScenariosToInitialize => NumScenariosDefined;
@@ -1035,7 +1036,7 @@ namespace ACESim
                 return;
             CurrentScenarioIndex = scenarioIndex;
             double baselineCosts = TrialCostsScenarioBaselineIfUsingWarmup;
-            double adjustedTrialCosts = 0 + TrialCostsScenarioIncrement * (UseDifferentWarmup ? scenarioIndex - 1 : scenarioIndex);
+            double adjustedTrialCosts = TrialCostsScenarioPerPartyMin + TrialCostsScenarioIncrement * (UseDifferentWarmup ? scenarioIndex - 1 : scenarioIndex);
             double costs;
             if (scenarioIndex == 0 && UseDifferentWarmup)
                 costs = baselineCosts;
@@ -1057,7 +1058,7 @@ namespace ACESim
         {
             if (NumScenariosToDevelop == 1)
                 return base.GetNameForScenario();
-            double trialCosts = 0 + TrialCostsScenarioIncrement * (UseDifferentWarmup ? BaselineScenarioIndex - 1 : BaselineScenarioIndex);
+            double trialCosts = TrialCostsScenarioPerPartyMin + TrialCostsScenarioIncrement * (UseDifferentWarmup ? BaselineScenarioIndex - 1 : BaselineScenarioIndex);
             if (BaselineScenarioIndex == 0 && UseDifferentWarmup)
                 trialCosts = TrialCostsScenarioBaselineIfUsingWarmup; // warmup is same as baseline in base scenario
             return (UseDifferentWarmup ? "WarmCosts" : "TrialCosts") + trialCosts.ToString();
