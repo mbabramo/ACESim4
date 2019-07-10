@@ -199,7 +199,7 @@ namespace ACESim
             //options.NumDamagesStrengthPoints = 5; 
             //options.NumDamagesSignals = 5;
 
-            double level = .20;
+            double level = .10; // DEBUG
             options.PLiabilityNoiseStdev = level;
             options.DLiabilityNoiseStdev = level;
             options.CourtLiabilityNoiseStdev = level;
