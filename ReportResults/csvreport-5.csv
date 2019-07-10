@@ -1,37 +1,67 @@
 "Scenario","Filter","All","D2 0.17  ","D2 0.33  ","D2 0.5  ","D2 0.67  ","D2 0.83  "
-"TrialCosts0","All",1,0,0,0,0,0
-"TrialCosts0","DLiabilitySignal 1",0,,,,,
-"TrialCosts0","DLiabilitySignal 2",0,,,,,
-"TrialCosts0","DLiabilitySignal 3",0,,,,,
-"TrialCosts0","DLiabilitySignal 4",0,,,,,
-"TrialCosts0","DLiabilitySignal 5",0,,,,,
-"TrialCosts10000","All",1,0,0,0,0,0
-"TrialCosts10000","DLiabilitySignal 1",0,,,,,
-"TrialCosts10000","DLiabilitySignal 2",0,,,,,
-"TrialCosts10000","DLiabilitySignal 3",0.0013,0,0,0,0,0
-"TrialCosts10000","DLiabilitySignal 4",0,,,,,
-"TrialCosts10000","DLiabilitySignal 5",0,,,,,
-"TrialCosts20000","All",1,0,0,0,0,0
-"TrialCosts20000","DLiabilitySignal 1",0,,,,,
-"TrialCosts20000","DLiabilitySignal 2",0,,,,,
-"TrialCosts20000","DLiabilitySignal 3",0.4777,0,0,0,0,0
-"TrialCosts20000","DLiabilitySignal 4",0,,,,,
-"TrialCosts20000","DLiabilitySignal 5",0,,,,,
-"TrialCosts30000","All",1,0.000820345,0,0.103363,0,0
-"TrialCosts30000","DLiabilitySignal 1",0,,,,,
-"TrialCosts30000","DLiabilitySignal 2",0.032,0,0,0.25641,0,0
-"TrialCosts30000","DLiabilitySignal 3",0.4011,0.00204499,0,0.237219,0,0
-"TrialCosts30000","DLiabilitySignal 4",0,,,,,
-"TrialCosts30000","DLiabilitySignal 5",0,,,,,
-"TrialCosts40000","All",1,0,0,0,0,0
-"TrialCosts40000","DLiabilitySignal 1",0,,,,,
-"TrialCosts40000","DLiabilitySignal 2",0,,,,,
-"TrialCosts40000","DLiabilitySignal 3",0,,,,,
-"TrialCosts40000","DLiabilitySignal 4",0,,,,,
-"TrialCosts40000","DLiabilitySignal 5",0,,,,,
-"TrialCosts50000","All",1,0,0,0,0,0
-"TrialCosts50000","DLiabilitySignal 1",0,,,,,
-"TrialCosts50000","DLiabilitySignal 2",0,,,,,
-"TrialCosts50000","DLiabilitySignal 3",0,,,,,
-"TrialCosts50000","DLiabilitySignal 4",0,,,,,
-"TrialCosts50000","DLiabilitySignal 5",0,,,,,
+"CostsMult1","All",1,0.919699,0,0,0,0.0803011
+"CostsMult1","DLiabilitySignal 1",0.1271,1,0,0,0,0
+"CostsMult1","DLiabilitySignal 2",0.2137,1,0,0,0,0
+"CostsMult1","DLiabilitySignal 3",0.2886,1,0,0,0,0
+"CostsMult1","DLiabilitySignal 4",0.3706,0.783296,0,0,0,0.216704
+"CostsMult1","DLiabilitySignal 5",0,,,,,
+"CostsMult1.1","All",1,0.10312,0.120854,0,0,0.00295567
+"CostsMult1.1","DLiabilitySignal 1",0.1672,0.330059,0,0,0,0
+"CostsMult1.1","DLiabilitySignal 2",0.2617,0.0564617,0.240903,0,0,0
+"CostsMult1.1","DLiabilitySignal 3",0.2759,0.0571429,0.133333,0,0,0
+"CostsMult1.1","DLiabilitySignal 4",0.2952,0.0589544,0.0711902,0,0,0.0100111
+"CostsMult1.1","DLiabilitySignal 5",0,,,,,
+"CostsMult1.2","All",1,0,0,0,0,0
+"CostsMult1.2","DLiabilitySignal 1",0.1269,0,0,0,0,0
+"CostsMult1.2","DLiabilitySignal 2",0.224,0,0,0,0,0
+"CostsMult1.2","DLiabilitySignal 3",0.2961,0,0,0,0,0
+"CostsMult1.2","DLiabilitySignal 4",0.3531,0,0,0,0,0
+"CostsMult1.2","DLiabilitySignal 5",0,,,,,
+"CostsMult1.3","All",1,0,0,0,0,0
+"CostsMult1.3","DLiabilitySignal 1",0.1545,0,0,0,0,0
+"CostsMult1.3","DLiabilitySignal 2",0.2271,0,0,0,0,0
+"CostsMult1.3","DLiabilitySignal 3",0.378,0,0,0,0,0
+"CostsMult1.3","DLiabilitySignal 4",0.2404,0,0,0,0,0
+"CostsMult1.3","DLiabilitySignal 5",0,,,,,
+"CostsMult1.4","All",1,0,0,0,0,0
+"CostsMult1.4","DLiabilitySignal 1",0.1634,0,0,0,0,0
+"CostsMult1.4","DLiabilitySignal 2",0.2782,0,0,0,0,0
+"CostsMult1.4","DLiabilitySignal 3",0.3905,0,0,0,0,0
+"CostsMult1.4","DLiabilitySignal 4",0.1678,0,0,0,0,0
+"CostsMult1.4","DLiabilitySignal 5",0,,,,,
+"CostsMult1.5","All",1,0.418413,0.409431,0,0,0.172156
+"CostsMult1.5","DLiabilitySignal 1",0.1519,1,0,0,0,0
+"CostsMult1.5","DLiabilitySignal 2",0.2665,1,0,0,0,0
+"CostsMult1.5","DLiabilitySignal 3",0.4094,0,1,0,0,0
+"CostsMult1.5","DLiabilitySignal 4",0.1722,0,0,0,0,1
+"CostsMult1.5","DLiabilitySignal 5",0,,,,,
+"CostsMult1.6","All",1,0.397207,0.397983,0,0,0.20481
+"CostsMult1.6","DLiabilitySignal 1",0.1373,1,0,0,0,0
+"CostsMult1.6","DLiabilitySignal 2",0.2599,1,0,0,0,0
+"CostsMult1.6","DLiabilitySignal 3",0.398,0,1,0,0,0
+"CostsMult1.6","DLiabilitySignal 4",0.2048,0,0,0,0,1
+"CostsMult1.6","DLiabilitySignal 5",0,,,,,
+"CostsMult1.7000000000000002","All",1,0.789641,0,0,0,0.210359
+"CostsMult1.7000000000000002","DLiabilitySignal 1",0.1691,1,0,0,0,0
+"CostsMult1.7000000000000002","DLiabilitySignal 2",0.3161,1,0,0,0,0
+"CostsMult1.7000000000000002","DLiabilitySignal 3",0.4968,0.612766,0,0,0,0.387234
+"CostsMult1.7000000000000002","DLiabilitySignal 4",0.018,0,0,0,0,1
+"CostsMult1.7000000000000002","DLiabilitySignal 5",0,,,,,
+"CostsMult1.8","All",1,1,0,0,0,0
+"CostsMult1.8","DLiabilitySignal 1",0.3636,1,0,0,0,0
+"CostsMult1.8","DLiabilitySignal 2",0.6364,1,0,0,0,0
+"CostsMult1.8","DLiabilitySignal 3",0,,,,,
+"CostsMult1.8","DLiabilitySignal 4",0,,,,,
+"CostsMult1.8","DLiabilitySignal 5",0,,,,,
+"CostsMult1.9","All",1,0.658991,0,0,0,0.341009
+"CostsMult1.9","DLiabilitySignal 1",0.2325,1,0,0,0,0
+"CostsMult1.9","DLiabilitySignal 2",0.364,1,0,0,0,0
+"CostsMult1.9","DLiabilitySignal 3",0.4035,0.154891,0,0,0,0.845109
+"CostsMult1.9","DLiabilitySignal 4",0,,,,,
+"CostsMult1.9","DLiabilitySignal 5",0,,,,,
+"CostsMult2","All",1,0.62439,0,0,0,0.37561
+"CostsMult2","DLiabilitySignal 1",0.2037,1,0,0,0,0
+"CostsMult2","DLiabilitySignal 2",0.4207,1,0,0,0,0
+"CostsMult2","DLiabilitySignal 3",0.3756,0,0,0,0,1
+"CostsMult2","DLiabilitySignal 4",0,,,,,
+"CostsMult2","DLiabilitySignal 5",0,,,,,

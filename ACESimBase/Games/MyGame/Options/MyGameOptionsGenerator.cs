@@ -102,6 +102,7 @@ namespace ACESim
             options.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = options.DInitialWealth };
             //options.PUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth };
             //options.DUtilityCalculator = new LogRiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth };
+            // DEBUG
             //options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth, Alpha = 10 * 0.000001 };
             //options.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.DInitialWealth, Alpha = 10 * 0.000001 };
             return options;
@@ -199,7 +200,7 @@ namespace ACESim
             //options.NumDamagesStrengthPoints = 5; 
             //options.NumDamagesSignals = 5;
 
-            double level = .10; // DEBUG
+            double level = .2; 
             options.PLiabilityNoiseStdev = level;
             options.DLiabilityNoiseStdev = level;
             options.CourtLiabilityNoiseStdev = level;

@@ -1006,12 +1006,27 @@ namespace ACESim
 
         public bool UseDifferentWarmup = false;
 
-        public int NumScenariosDefined = 6;
+        public int NumScenariosDefined = 41;
+
+        public enum ChangeInScenario
+        {
+            TrialCosts,
+            CostsMultiplier
+        }
+
+        ChangeInScenario WhatToChange = ChangeInScenario.CostsMultiplier;
 
         public double TrialCostsScenarioPerPartyMin = 0; 
-        public double TrialCostsScenarioPerPartyMax = 50_000;
+        public double TrialCostsScenarioPerPartyMax = 30_000;
         public double TrialCostsScenarioBaselineIfUsingWarmup = 25_000;
         public double TrialCostsScenarioIncrement => (TrialCostsScenarioPerPartyMax - TrialCostsScenarioPerPartyMin) / Math.Max(1, NumScenariosDefined - 1);
+        bool changeTrialCostsForPlaintiff = true;
+        bool changeTrialCostsForDefendant = true;
+
+        public double CostsMultiplierMin = 0.0;
+        public double CostsMultiplierMax = 2.0;
+        public double CostsMultiplierBaselineIfUsingWarmup = 25_000;
+        public double CostsMultiplierScenarioIncrement => (CostsMultiplierMax - CostsMultiplierMin) / Math.Max(1, NumScenariosDefined - 1);
 
         public override int NumScenariosToDevelop => PlayMultipleScenarios ? NumScenariosDefined : 1;
         public override int NumScenariosToInitialize => NumScenariosDefined;
@@ -1027,41 +1042,65 @@ namespace ACESim
             return baselineScenario;
         }
 
-        bool changeTrialCostsForPlaintiff = true;
-        bool changeTrialCostsForDefendant = true;
-
         public override void ChangeOptionsBasedOnScenarioIndex(int scenarioIndex, bool printChange)
         {
             if (!PlayMultipleScenarios && !UseDifferentWarmup)
                 return;
             CurrentScenarioIndex = scenarioIndex;
-            double baselineCosts = TrialCostsScenarioBaselineIfUsingWarmup;
-            double adjustedTrialCosts = TrialCostsScenarioPerPartyMin + TrialCostsScenarioIncrement * (UseDifferentWarmup ? scenarioIndex - 1 : scenarioIndex);
-            double costs;
-            if (scenarioIndex == 0 && UseDifferentWarmup)
-                costs = baselineCosts;
-            else
-                costs = adjustedTrialCosts;
-            if (changeTrialCostsForPlaintiff)
-                Options.PTrialCosts = costs;
-            else
-                Options.PTrialCosts = baselineCosts;
-            if (changeTrialCostsForDefendant)
-                Options.DTrialCosts = costs;
-            else
-                Options.DTrialCosts = baselineCosts;
-            if (printChange)
-                TabbedText.WriteLine($"Trial costs {GetNameForScenario()}: P {Options.PTrialCosts} D {Options.DTrialCosts}");
+            if (WhatToChange == ChangeInScenario.TrialCosts)
+            {
+                double baselineCosts = TrialCostsScenarioBaselineIfUsingWarmup;
+                double adjustedTrialCosts = TrialCostsScenarioPerPartyMin + TrialCostsScenarioIncrement * (UseDifferentWarmup ? scenarioIndex - 1 : scenarioIndex);
+                double costs;
+                if (scenarioIndex == 0 && UseDifferentWarmup)
+                    costs = baselineCosts;
+                else
+                    costs = adjustedTrialCosts;
+                if (changeTrialCostsForPlaintiff)
+                    Options.PTrialCosts = costs;
+                else
+                    Options.PTrialCosts = baselineCosts;
+                if (changeTrialCostsForDefendant)
+                    Options.DTrialCosts = costs;
+                else
+                    Options.DTrialCosts = baselineCosts;
+                if (printChange)
+                    TabbedText.WriteLine($"Trial costs {GetNameForScenario()}: P {Options.PTrialCosts} D {Options.DTrialCosts}");
+            }
+            else if (WhatToChange == ChangeInScenario.CostsMultiplier)
+            {
+                double baselineCostsMultiplier = CostsMultiplierBaselineIfUsingWarmup;
+                double adjustedCostsMultiplier = CostsMultiplierMin + CostsMultiplierScenarioIncrement * (UseDifferentWarmup ? scenarioIndex - 1 : scenarioIndex);
+                double costsMultiplier;
+                if (scenarioIndex == 0 && UseDifferentWarmup)
+                    costsMultiplier = baselineCostsMultiplier;
+                else
+                    costsMultiplier = adjustedCostsMultiplier;
+                Options.CostsMultiplier = costsMultiplier;
+                if (printChange)
+                    TabbedText.WriteLine($"Trial costs {GetNameForScenario()}: CostsMultiplier {Options.CostsMultiplier}");
+            }
         }
 
         public override string GetNameForScenario()
         {
             if (NumScenariosToDevelop == 1)
                 return base.GetNameForScenario();
-            double trialCosts = TrialCostsScenarioPerPartyMin + TrialCostsScenarioIncrement * (UseDifferentWarmup ? BaselineScenarioIndex - 1 : BaselineScenarioIndex);
-            if (BaselineScenarioIndex == 0 && UseDifferentWarmup)
-                trialCosts = TrialCostsScenarioBaselineIfUsingWarmup; // warmup is same as baseline in base scenario
-            return (UseDifferentWarmup ? "WarmCosts" : "TrialCosts") + trialCosts.ToString();
+            if (WhatToChange == ChangeInScenario.TrialCosts)
+            {
+                double trialCosts = TrialCostsScenarioPerPartyMin + TrialCostsScenarioIncrement * (UseDifferentWarmup ? BaselineScenarioIndex - 1 : BaselineScenarioIndex);
+                if (BaselineScenarioIndex == 0 && UseDifferentWarmup)
+                    trialCosts = TrialCostsScenarioBaselineIfUsingWarmup; // warmup is same as baseline in base scenario
+                return (UseDifferentWarmup ? "WarmCosts" : "TrialCosts") + trialCosts.ToString();
+            }
+            else if (WhatToChange == ChangeInScenario.CostsMultiplier)
+            {
+                double costsMultiplier = CostsMultiplierMin + CostsMultiplierScenarioIncrement * (UseDifferentWarmup ? BaselineScenarioIndex - 1 : BaselineScenarioIndex);
+                if (BaselineScenarioIndex == 0 && UseDifferentWarmup)
+                    costsMultiplier = CostsMultiplierBaselineIfUsingWarmup; // warmup is same as baseline in base scenario
+                return (UseDifferentWarmup ? "WarmCostsM" : "CostsMult") + costsMultiplier.ToString();
+            }
+            throw new NotImplementedException();
         }
 
         #endregion
