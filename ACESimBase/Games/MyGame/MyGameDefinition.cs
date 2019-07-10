@@ -1008,8 +1008,8 @@ namespace ACESim
 
         public int NumScenariosDefined = 11;
 
-        public double TrialCostsScenarioPerPartyMin = 59_500; // DEBUG
-        public double TrialCostsScenarioPerPartyMax = 60_500; // DEBUG
+        public double TrialCostsScenarioPerPartyMin = 0; 
+        public double TrialCostsScenarioPerPartyMax = 100_000;
         public double TrialCostsScenarioBaselineIfUsingWarmup = 25_000;
         public double TrialCostsScenarioIncrement => (TrialCostsScenarioPerPartyMax - TrialCostsScenarioPerPartyMin) / Math.Max(1, NumScenariosDefined - 1);
 
