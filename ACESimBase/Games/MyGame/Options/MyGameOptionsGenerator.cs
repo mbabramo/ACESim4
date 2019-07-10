@@ -13,6 +13,7 @@ namespace ACESim
         {
             Custom,
             Custom2,
+            Custom3,
             LiabilityUncertainty_1BR,
             LiabilityUncertainty_2BR,
             LiabilityUncertainty_3BR,
@@ -24,12 +25,13 @@ namespace ACESim
             PerfectInfo
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.LiabilityUncertainty_2BR; 
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Custom3; 
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
             MyGameOptionSetChoices.Custom => Custom(),
             MyGameOptionSetChoices.Custom2 => Custom2(),
+            MyGameOptionSetChoices.Custom3 => Custom3(),
             MyGameOptionSetChoices.LiabilityUncertainty_1BR => LiabilityUncertainty_1BR(),
             MyGameOptionSetChoices.LiabilityUncertainty_2BR => LiabilityUncertainty_2BR(),
             MyGameOptionSetChoices.LiabilityUncertainty_3BR => LiabilityUncertainty_3BR(),
@@ -232,6 +234,13 @@ namespace ACESim
             options.PTrialCosts = 10_000;
             options.DTrialCosts = 10_000;
 
+            return options;
+        }
+
+        public static MyGameOptions Custom3()
+        {
+            var options = LiabilityUncertainty_2BR();
+            options.CostsMultiplier = 1.7;
             return options;
         }
 

@@ -897,6 +897,13 @@ namespace ACESim
             }
         }
 
+        public void SetAverageStrategyToPastValue(int pastValueIndex)
+        {
+            CreateBackup();
+            for (byte a = 1; a <= NumPossibleActions; a++)
+                NodeInformation[averageStrategyProbabilityDimension, a - 1] = PastValues[pastValueIndex, a - 1];
+        }
+
         #endregion
 
         #region Hedge

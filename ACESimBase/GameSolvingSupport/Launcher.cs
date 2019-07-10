@@ -17,15 +17,15 @@ namespace ACESim
 
         #region Settings
 
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.FictitiousSelfPlay;
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.PlaybackOnly;
 
-        public const int VanillaIterations = 5_000; 
+        public const int VanillaIterations = 250_000; 
         public const int VanillaReportEveryNIterations = VanillaIterations;
         public const int VanillaBestResponseEveryMIterations = 1000;
         public const bool CalculatePerturbedBestResponseRefinement = true;
         public const int MiniReportEveryPIterations = EffectivelyNever;
         public const bool AlwaysSuppressReportPrinting = true;
-        public const bool RecordPastValues = false;
+        public const bool RecordPastValues = true; // DEBUG
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever; 
         public const bool UseRandomPathsForReporting = true; 
         public const int SummaryTableRandomPathsIterations = 5_000;

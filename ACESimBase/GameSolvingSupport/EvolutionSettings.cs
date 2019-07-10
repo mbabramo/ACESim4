@@ -141,7 +141,7 @@ namespace ACESim
 
         public bool RecordPastValues = false;
         public double RecordPastValues_AfterProportion = 0.75;
-        public int RecordPastValues_TargetNumberToRecord = 100;
+        public int RecordPastValues_TargetNumberToRecord = 1000;
         public int RecordPastValues_NumberToRecord => Math.Min(RecordPastValues_TargetNumberToRecord, TotalIterations - RecordPastValues_EarliestPossibleIteration + 1);
 
         public BitArray RecordPastValues_Iterations;
