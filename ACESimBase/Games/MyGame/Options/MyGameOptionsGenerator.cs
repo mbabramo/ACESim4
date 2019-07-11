@@ -17,15 +17,17 @@ namespace ACESim
             LiabilityUncertainty_1BR,
             LiabilityUncertainty_2BR,
             LiabilityUncertainty_3BR,
+            Shootout,
             SuperSimple,
             Fast,
             Faster,
             Usual,
             Ambitious,
-            PerfectInfo
+            PerfectInfo,
+            SimpleWhereFSPFails,
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Custom3; 
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.SimpleWhereFSPFails; 
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
@@ -35,6 +37,8 @@ namespace ACESim
             MyGameOptionSetChoices.LiabilityUncertainty_1BR => LiabilityUncertainty_1BR(),
             MyGameOptionSetChoices.LiabilityUncertainty_2BR => LiabilityUncertainty_2BR(),
             MyGameOptionSetChoices.LiabilityUncertainty_3BR => LiabilityUncertainty_3BR(),
+            MyGameOptionSetChoices.SimpleWhereFSPFails => SimpleWhereFSPFails(),
+            MyGameOptionSetChoices.Shootout => Shootout(),
             MyGameOptionSetChoices.SuperSimple => SuperSimple(),
             MyGameOptionSetChoices.Faster => Faster(),
             MyGameOptionSetChoices.Fast => Fast(),
@@ -244,6 +248,16 @@ namespace ACESim
             return options;
         }
 
+        public static MyGameOptions Shootout()
+        {
+            var options = BaseOptions();
+            options.ShootoutSettlements = true;
+            options.ShootoutsApplyAfterAbandonment = false;
+            options.ShootoutStrength = 1.0;
+
+            return options;
+        }
+
         public static MyGameOptions LiabilityUncertainty_3BR()
         {
             var options = LiabilityUncertainty_1BR();
@@ -320,6 +334,17 @@ namespace ACESim
         public static MyGameOptions Usual()
         {
             var options = BaseOptions();
+            return options;
+        }
+
+        public static MyGameOptions SimpleWhereFSPFails()
+        {
+            var options = BaseOptions();
+            options.NumLiabilityStrengthPoints = 2;
+            options.NumLiabilitySignals = 2;
+            options.NumDamagesStrengthPoints = 2;
+            options.NumDamagesSignals = 2;
+            options.NumOffers = 2;
             return options;
         }
 

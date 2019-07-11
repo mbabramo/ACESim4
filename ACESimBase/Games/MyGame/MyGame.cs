@@ -231,7 +231,7 @@ namespace ACESim
             public byte NumChips;
         }
 
-        public static MyGameOutcome CalculateGameOutcome(MyGameDefinition gameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions, MyGamePretrialActions pretrialActions, MyGameRunningSideBetsActions runningSideBetActions, double pInitialWealth, double dInitialWealth, bool pFiles, bool pAbandons, bool dAnswers, bool dDefaults, double? settlementValue, bool pWinsAtTrial, double? damagesAwarded, byte bargainingRoundsComplete, double? pFinalWealthWithBestOffer, double? dFinalWealthWithBestOffer)
+        public static MyGameOutcome CalculateGameOutcome(MyGameDefinition gameDefinition, MyGameDisputeGeneratorActions disputeGeneratorActions, MyGamePretrialActions pretrialActions, MyGameRunningSideBetsActions runningSideBetActions, double pInitialWealth, double dInitialWealth, bool pFiles, bool pAbandons, bool dAnswers, bool dDefaults, double? settlementValue, bool pWinsAtTrial, double? damagesAwarded, byte bargainingRoundsComplete, double? pFinalWealthWithBestOffer, double? dFinalWealthWithBestOffer, List<double> pOffers, List<bool> pResponses, List<double> dOffers, List<bool> dResponses)
         {
             MyGameOutcome outcome = new MyGameOutcome();
 
@@ -282,6 +282,31 @@ namespace ACESim
                 outcome.NumChips = totalChipsThatCount;
                 if (outcome.TrialOccurs)
                     trialCostsMultiplier = gameDefinition.Options.MyGameRunningSideBets.GetTrialCostsMultiplier(gameDefinition, totalChipsThatCount);
+            }
+
+            if (gameDefinition.Options.ShootoutSettlements)
+            {
+                bool abandonedAfterLastRound = (pAbandons || dDefaults) && bargainingRoundsComplete == gameDefinition.Options.NumPotentialBargainingRounds;
+                bool applyShootout = outcome.TrialOccurs || (abandonedAfterLastRound && gameDefinition.Options.ShootoutSettlements);
+                if (applyShootout)
+                {
+                    if (gameDefinition.Options.BargainingRoundsSimultaneous)
+                    {
+                        double lastPOffer = pOffers.Last();
+                        double lastDOffer = dOffers.Last();
+                        double midpoint = (lastPOffer + lastDOffer) / 2.0;
+                        double shootoutStrength = gameDefinition.Options.ShootoutStrength;
+                        double costToP = midpoint * shootoutStrength;
+                        double extraDamages = (damagesAwarded ?? 0) * shootoutStrength;
+                        double netBenefitToP = extraDamages - costToP;
+                        outcome.PChangeWealth += netBenefitToP;
+                        outcome.DChangeWealth -= netBenefitToP;
+                    }
+                    else
+                    {
+                        throw new NotImplementedException();
+                    }
+                }
             }
 
             double pFilingCostIncurred = pFiles ? gameDefinition.Options.PFilingCost * gameDefinition.Options.CostsMultiplier : 0;

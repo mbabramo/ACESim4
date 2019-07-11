@@ -114,13 +114,13 @@ namespace ACESim
             {
                 if (playersMovingSimultaneously || !pGoesFirstIfNotSimultaneous)
                 { // defendant has made an offer this round
-                    var pMissedOpportunity = MyGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, PInitialWealth, DInitialWealth, PFiles, PAbandons, DAnswers, DDefaults, (double) DLastOffer * (double)DamagesMax, true /* ignored */, 0, (byte) (BargainingRoundsComplete + 1), null, null);
+                    var pMissedOpportunity = MyGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, PInitialWealth, DInitialWealth, PFiles, PAbandons, DAnswers, DDefaults, (double) DLastOffer * (double)DamagesMax, true /* ignored */, 0, (byte) (BargainingRoundsComplete + 1), null, null, POffers, PResponses, DOffers, DResponses);
                     if (pMissedOpportunity.PFinalWealth > PFinalWealthWithBestOffer || PFinalWealthWithBestOffer == null)
                         PFinalWealthWithBestOffer = pMissedOpportunity.PFinalWealth;
                 }
                 if (playersMovingSimultaneously || pGoesFirstIfNotSimultaneous)
                 { // plaintiff has made an offer this round
-                    var dMissedOpportunity = MyGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, PInitialWealth, DInitialWealth, PFiles, PAbandons, DAnswers, DDefaults, (double)PLastOffer * (double)DamagesMax, true /* ignored */, 0, (byte)(BargainingRoundsComplete + 1), null, null);
+                    var dMissedOpportunity = MyGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, PInitialWealth, DInitialWealth, PFiles, PAbandons, DAnswers, DDefaults, (double)PLastOffer * (double)DamagesMax, true /* ignored */, 0, (byte)(BargainingRoundsComplete + 1), null, null, POffers, PResponses, DOffers, DResponses);
                     if (dMissedOpportunity.DFinalWealth > DFinalWealthWithBestOffer || DFinalWealthWithBestOffer == null)
                         DFinalWealthWithBestOffer = dMissedOpportunity.DFinalWealth;
                 }
@@ -373,7 +373,7 @@ namespace ACESim
         public void CalculateGameOutcome()
         {
             MyGameDefinition gameDefinition = (MyGameDefinition)GameDefinition;
-            var outcome = MyGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, PInitialWealth, DInitialWealth, PFiles, PAbandons, DAnswers, DDefaults, SettlementValue, PWinsAtTrial, DamagesAwarded, BargainingRoundsComplete, PFinalWealthWithBestOffer, DFinalWealthWithBestOffer);
+            var outcome = MyGame.CalculateGameOutcome(gameDefinition, DisputeGeneratorActions, PretrialActions, RunningSideBetsActions, PInitialWealth, DInitialWealth, PFiles, PAbandons, DAnswers, DDefaults, SettlementValue, PWinsAtTrial, DamagesAwarded, BargainingRoundsComplete, PFinalWealthWithBestOffer, DFinalWealthWithBestOffer, POffers, PResponses, DOffers, DResponses);
             DisputeArises = gameDefinition.Options.MyGameDisputeGenerator.PotentialDisputeArises(gameDefinition, DisputeGeneratorActions);
             PChangeWealth = outcome.PChangeWealth;
             DChangeWealth = outcome.DChangeWealth;

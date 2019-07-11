@@ -150,6 +150,18 @@ namespace ACESim
         /// If true, then the loser pays rule applies also when a party gives up (except when that occurs by not answering in the first place).
         /// </summary>
         public bool LoserPaysAfterAbandonment;
+        /// <summary>
+        /// If true, "shootout settlements" apply. That is, where settlement fails, plaintiff buys from defendant at midpoint of offer price right to double damages (if ShootoutStrength == 1.0).
+        /// </summary>
+        public bool ShootoutSettlements;
+        /// <summary>
+        /// If true, then additional damages from shootout settlements apply even if a party drops out after the shootout has occurred.
+        /// </summary>
+        public bool ShootoutsApplyAfterAbandonment;
+        /// <summary>
+        /// The proportion of extra damages that the plaintiff buys after a failed shootout round. This strength is also multiplied by the midpoint of the settlement offers to determine the price that the plaintiff must pay for the damages.
+        /// </summary>
+        public double ShootoutStrength; 
 
         /// <summary>
         /// Plaintiff's initial wealth.
