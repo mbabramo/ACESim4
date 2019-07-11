@@ -27,7 +27,7 @@ namespace ACESim
             SimpleWhereFSPFails,
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.SimpleWhereFSPFails; 
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Shootout; 
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
