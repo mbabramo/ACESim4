@@ -26,7 +26,30 @@ namespace ACESim
 
         public override GameOptions GetSingleGameOptions() => MyGameOptionsGenerator.GetMyGameOptions();
 
+
         public override List<(string reportName, GameOptions options)> GetOptionsSets()
+        {
+            List<(string reportName, GameOptions options)> optionSets = new List<(string reportName, GameOptions options)>();
+
+            foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("lowcosts", 1.0 / 3.0), ("basecosts", 1.0), ("highcosts", 3.0) })
+            {
+                optionSets.Add(GetAndTransform("liab", name, MyGameOptionsGenerator.LiabilityUncertainty_2BR, x => { x.CostsMultiplier = costsMultiplier; }));
+                optionSets.Add(GetAndTransform("dam", name, MyGameOptionsGenerator.DamagesUncertainty_2BR, x => { x.CostsMultiplier = costsMultiplier; }));
+                optionSets.Add(GetAndTransform("both", name, MyGameOptionsGenerator.Usual, x => { x.CostsMultiplier = costsMultiplier; }));
+            }
+
+            return optionSets;
+        }
+
+        (string reportName, MyGameOptions options) GetAndTransform(string baseName, string suffix, Func<MyGameOptions> baseOptionsFn, Action<MyGameOptions> transform)
+        {
+            MyGameOptions g = baseOptionsFn();
+            transform(g);
+            return (baseName + suffix, g);
+        }
+
+
+        public List<(string reportName, GameOptions options)> GetOptionsSets2()
         {
             List<(string reportName, GameOptions options)> optionSets = new List<(string reportName, GameOptions options)>();
 
