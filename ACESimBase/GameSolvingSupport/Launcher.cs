@@ -290,9 +290,6 @@ namespace ACESim
             Parallelizer.MaxDegreeOfParallelism = Environment.ProcessorCount;
             await Parallelizer.GoAsync(ParallelizeOptionSets, 0, optionSets.Count, SingleOptionSetAction);
             return results;
-            // DEBUG
-            //string combinedResults = CombineResultsOfAllOptionSets(masterReportName, results.Select(x => x.standardReport).ToList());
-            //return new ReportCollection(combinedResults, String.Join("\n",results.Select(x => x.csvReports)));
         }
 
         public async Task<ReportCollection> ProcessSingleOptionSet(string masterReportName, int optionSetIndex, bool addOptionSetColumns)

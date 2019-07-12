@@ -713,7 +713,7 @@ namespace ACESim
         string ActionStrategyLastReport;
         private async Task<ReportCollection> GenerateReportsByPlaying(bool useRandomPaths)
         {
-            Func<GamePlayer, Func<Decision, GameProgress, byte>, Task> reportGenerator;
+            Func<GamePlayer, Func<Decision, GameProgress, byte>, List<SimpleReportDefinition>, Task> reportGenerator;
             if (useRandomPaths)
             {
                 TabbedText.WriteLine($"Result using {EvolutionSettings.NumRandomIterationsForSummaryTable} randomly chosen paths playing {ActionStrategy}");
@@ -880,14 +880,14 @@ namespace ACESim
             return player.PlayMultipleIterations(null, numIterations, null, actionOverride);
         }
 
-        private async Task GenerateReports_RandomPaths(GamePlayer player, Func<Decision, GameProgress, byte> actionOverride)
+        private async Task GenerateReports_RandomPaths(GamePlayer player, Func<Decision, GameProgress, byte> actionOverride, List<SimpleReportDefinition> simpleReportDefinitions)
         {
             UtilityCalculationsArray = new StatCollectorArray();
             UtilityCalculationsArray.Initialize(NumNonChancePlayers);
             // start Task Parallel Library consumer/producer pattern
             // we'll set up step1, step2, and step3 (but not in that order, since step 1 triggers step 2)
             var step2_buffer = new BufferBlock<Tuple<GameProgress, double>>(new DataflowBlockOptions { BoundedCapacity = 10000 });
-            var step3_consumer = AddGameProgressToReport(step2_buffer);
+            var step3_consumer = AddGameProgressToReports(step2_buffer, simpleReportDefinitions);
             await player.PlayMultipleIterationsAndProcess(EvolutionSettings.NumRandomIterationsForSummaryTable, actionOverride, step2_buffer);
             step2_buffer.Complete(); // tell consumer nothing more to be produced
             await step3_consumer; // wait until all have been processed
@@ -1018,7 +1018,7 @@ namespace ACESim
 
         SimpleReport[] ReportsBeingGenerated = null;
 
-        public async Task<ReportCollection> GenerateReportsByPlaying(Func<GamePlayer, Func<Decision, GameProgress, byte>, Task> generator)
+        public async Task<ReportCollection> GenerateReportsByPlaying(Func<GamePlayer, Func<Decision, GameProgress, byte>, List<SimpleReportDefinition>, Task> generator)
         {
             Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, InformationSets, ChanceNodes, FinalUtilitiesNodes, GetGameState, EvolutionSettings);
             var simpleReportDefinitions = GameDefinition.GetSimpleReportDefinitions();
@@ -1029,7 +1029,7 @@ namespace ACESim
             for (int i = 0; i < simpleReportDefinitionsCount; i++)
             {
                 ReportsBeingGenerated[i] = new SimpleReport(simpleReportDefinitions[i], simpleReportDefinitions[i].DivideColumnFiltersByImmediatelyEarlierReport ? ReportsBeingGenerated[i - 1] : null);
-                await generator(GamePlayer, simpleReportDefinitions[i].ActionsOverride);
+                await generator(GamePlayer, simpleReportDefinitions[i].ActionsOverride, simpleReportDefinitions);
                 ReportCollection result = ReportsBeingGenerated[i].BuildReport();
                 reportCollection.Add(result);
                 ReportsBeingGenerated[i] = null; // so we don't keep adding GameProgress to this report
@@ -1041,14 +1041,14 @@ namespace ACESim
 
         private StatCollectorArray UtilityCalculationsArray;
 
-        private async Task GenerateReports_AllPaths(GamePlayer player, Func<Decision, GameProgress, byte> actionOverride)
+        private async Task GenerateReports_AllPaths(GamePlayer player, Func<Decision, GameProgress, byte> actionOverride, List<SimpleReportDefinition> simpleReportDefinitions)
         {
             UtilityCalculationsArray = new StatCollectorArray();
             UtilityCalculationsArray.Initialize(NumNonChancePlayers);
             // start Task Parallel Library consumer/producer pattern
             // we'll set up step1, step2, and step3 (but not in that order, since step 1 triggers step 2)
             var step2_buffer = new BufferBlock<Tuple<GameProgress, double>>(new DataflowBlockOptions { BoundedCapacity = 10_000 });
-            var step3_consumer = AddGameProgressToReport(step2_buffer);
+            var step3_consumer = AddGameProgressToReports(step2_buffer, simpleReportDefinitions);
             async Task step1_playPath(HistoryPoint completedGame, double probabilityOfPath)
             {
                 // play each path and then asynchronously consume the result, including the probability of the game path
@@ -1077,9 +1077,8 @@ namespace ACESim
                     throw new Exception("Imperfect sampling.");
         }
 
-        async Task AddGameProgressToReport(ISourceBlock<Tuple<GameProgress, double>> source)
+        async Task AddGameProgressToReports(ISourceBlock<Tuple<GameProgress, double>> source, List<SimpleReportDefinition> simpleReportDefinitions)
         {
-            var simpleReportDefinitions = GameDefinition.GetSimpleReportDefinitions();
             int simpleReportDefinitionsCount = simpleReportDefinitions.Count();
             while (await source.OutputAvailableAsync())
             {
