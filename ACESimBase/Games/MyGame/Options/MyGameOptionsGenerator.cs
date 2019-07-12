@@ -17,6 +17,8 @@ namespace ACESim
             LiabilityUncertainty_1BR,
             LiabilityUncertainty_2BR,
             LiabilityUncertainty_3BR,
+            DamagesUncertainty_1BR,
+            DamagesUncertainty_2BR,
             Shootout,
             SuperSimple,
             Fast,
@@ -27,7 +29,7 @@ namespace ACESim
             SimpleWhereFSPFails,
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Shootout; 
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.DamagesUncertainty_2BR; 
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
@@ -37,6 +39,8 @@ namespace ACESim
             MyGameOptionSetChoices.LiabilityUncertainty_1BR => LiabilityUncertainty_1BR(),
             MyGameOptionSetChoices.LiabilityUncertainty_2BR => LiabilityUncertainty_2BR(),
             MyGameOptionSetChoices.LiabilityUncertainty_3BR => LiabilityUncertainty_3BR(),
+            MyGameOptionSetChoices.DamagesUncertainty_1BR => DamagesUncertainty_1BR(),
+            MyGameOptionSetChoices.DamagesUncertainty_2BR => DamagesUncertainty_2BR(),
             MyGameOptionSetChoices.SimpleWhereFSPFails => SimpleWhereFSPFails(),
             MyGameOptionSetChoices.Shootout => Shootout(),
             MyGameOptionSetChoices.SuperSimple => SuperSimple(),
@@ -191,6 +195,53 @@ namespace ACESim
             return options;
         }
 
+        public static MyGameOptions DamagesUncertainty_1BR()
+        {
+            var options = BaseOptions();
+
+            options.NumLiabilityStrengthPoints = 2;
+            options.NumLiabilitySignals = 1;
+            options.MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
+            {
+                ExogenousProbabilityTrulyLiable = 1.0,
+                StdevNoiseToProduceLiabilityStrength = 0.001
+            };
+            options.PLiabilityNoiseStdev = 0.001;
+            options.DLiabilityNoiseStdev = 0.001;
+            options.CourtLiabilityNoiseStdev = 0.001;
+
+            options.NumOffers = 5;
+
+            //double level = .2;
+            //options.PDamagesNoiseStdev = level;
+            //options.DDamagesNoiseStdev = level;
+            //options.CourtDamagesNoiseStdev = level;
+
+            options.AllowAbandonAndDefaults = true;
+            options.IncludeAgreementToBargainDecisions = true;
+            options.SkipFileAndAnswerDecisions = false;
+
+            options.PFilingCost = options.DAnswerCost = 10_000;
+            options.PerPartyCostsLeadingUpToBargainingRound = 0;
+            options.NumPotentialBargainingRounds = 1;
+            options.PTrialCosts = 25_000;
+            options.DTrialCosts = 25_000;
+
+            return options;
+        }
+
+        public static MyGameOptions DamagesUncertainty_2BR()
+        {
+            var options = DamagesUncertainty_1BR();
+
+            options.PFilingCost = options.DAnswerCost = 10_000;
+            options.PerPartyCostsLeadingUpToBargainingRound = 7_500;
+            options.NumPotentialBargainingRounds = 2;
+            options.PTrialCosts = 10_000;
+            options.DTrialCosts = 10_000;
+
+            return options;
+        }
 
         public static MyGameOptions LiabilityUncertainty_1BR()
         {
@@ -206,13 +257,13 @@ namespace ACESim
             //options.NumDamagesStrengthPoints = 5; 
             //options.NumDamagesSignals = 5;
 
-            double level = .2; 
-            options.PLiabilityNoiseStdev = level;
-            options.DLiabilityNoiseStdev = level;
-            options.CourtLiabilityNoiseStdev = level;
-            options.PDamagesNoiseStdev = level;
-            options.DDamagesNoiseStdev = level;
-            options.CourtDamagesNoiseStdev = level;
+            //double level = .2; 
+            //options.PLiabilityNoiseStdev = level;
+            //options.DLiabilityNoiseStdev = level;
+            //options.CourtLiabilityNoiseStdev = level;
+            //options.PDamagesNoiseStdev = level;
+            //options.DDamagesNoiseStdev = level;
+            //options.CourtDamagesNoiseStdev = level;
 
             options.AllowAbandonAndDefaults = true;
             options.IncludeAgreementToBargainDecisions = true;
@@ -243,8 +294,9 @@ namespace ACESim
 
         public static MyGameOptions Custom3()
         {
-            var options = LiabilityUncertainty_2BR();
-            options.CostsMultiplier = 1.7;
+            var options = DamagesUncertainty_2BR();
+
+            options.CostsMultiplier = 3.0;
             return options;
         }
 
@@ -254,6 +306,9 @@ namespace ACESim
             options.ShootoutSettlements = true;
             options.ShootoutsApplyAfterAbandonment = false;
             options.ShootoutStrength = 1.0;
+            options.ShootoutsAverageAllRounds = false;
+
+            options.CostsMultiplier = 3.0; // DEBUG
 
             return options;
         }
@@ -334,6 +389,7 @@ namespace ACESim
         public static MyGameOptions Usual()
         {
             var options = BaseOptions();
+
             return options;
         }
 

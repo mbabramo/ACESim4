@@ -159,6 +159,10 @@ namespace ACESim
         /// </summary>
         public bool ShootoutsApplyAfterAbandonment;
         /// <summary>
+        /// If true, then the shootout depends on an average of all rounds, not just the last round
+        /// </summary>
+        public bool ShootoutsAverageAllRounds;
+        /// <summary>
         /// The proportion of extra damages that the plaintiff buys after a failed shootout round. This strength is also multiplied by the midpoint of the settlement offers to determine the price that the plaintiff must pay for the damages.
         /// </summary>
         public double ShootoutStrength; 
@@ -215,6 +219,7 @@ NumDamagesStrengthPoints {NumDamagesStrengthPoints} NumDamagesSignals {NumDamage
 SkipFileAndAnswerDecisions {SkipFileAndAnswerDecisions} IncludeAgreementToBargainDecisions {IncludeAgreementToBargainDecisions} BargainingRoundRecall {BargainingRoundRecall} DeltaOffersOptions {DeltaOffersOptions} 
 CostsMultiplier {CostsMultiplier} PTrialCosts {PTrialCosts} DTrialCosts {DTrialCosts} PFilingCost {PFilingCost} DAnswerCost {DAnswerCost} PerPartyCostsLeadingUpToBargainingRound {PerPartyCostsLeadingUpToBargainingRound} 
 LoserPays {LoserPays} LoserPaysMultiple {LoserPaysMultiple} LoserPaysAfterAbandonment {LoserPaysAfterAbandonment} 
+ShootoutSettlements {ShootoutSettlements} ShootoutStrength {ShootoutStrength} ShootoutsAverageAllRounds {ShootoutsAverageAllRounds} ShootoutsApplyAfterAbandonment {ShootoutsApplyAfterAbandonment}
 PInitialWealth {PInitialWealth} DInitialWealth {DInitialWealth} 
 DamagesMin {DamagesMin} DamagesMax {DamagesMax} 
 RegretAversion {RegretAversion} 

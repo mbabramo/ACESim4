@@ -292,11 +292,21 @@ namespace ACESim
                 {
                     if (gameDefinition.Options.BargainingRoundsSimultaneous)
                     {
-                        double lastPOffer = pOffers.Last();
-                        double lastDOffer = dOffers.Last();
-                        double midpoint = (lastPOffer + lastDOffer) / 2.0;
+                        double offersMidpoint;
+                        if (gameDefinition.Options.ShootoutsAverageAllRounds)
+                        {
+                            double averagePOffer = pOffers.Average();
+                            double averageDOffer = dOffers.Average();
+                            offersMidpoint = (averagePOffer + averageDOffer) / 2.0;
+                        }
+                        else
+                        {
+                            double lastPOffer = pOffers.Last();
+                            double lastDOffer = dOffers.Last();
+                            offersMidpoint = (lastPOffer + lastDOffer) / 2.0;
+                        }
                         double shootoutStrength = gameDefinition.Options.ShootoutStrength;
-                        double costToP = midpoint * shootoutStrength;
+                        double costToP = offersMidpoint * shootoutStrength;
                         double extraDamages = (damagesAwarded ?? 0) * shootoutStrength;
                         double netBenefitToP = extraDamages - costToP;
                         outcome.PChangeWealth += netBenefitToP;
