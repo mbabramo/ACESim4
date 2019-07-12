@@ -428,14 +428,14 @@ namespace ACESim
             } while (!success);
         }
 
-        public override async Task<ReportCollection> RunAlgorithm(string reportName)
+        public override async Task<ReportCollection> RunAlgorithm(string optionSetName)
         {
             //TraceCFR = true;
             //GameProgressLogger.LoggingOn = true;
             GameProgressLogger.OutputLogMessages = true;
             ReportCollection reportCollection = new ReportCollection();
             GameNumber = EvolutionSettings.GameNumber;
-            TabbedText.WriteLine($"{reportName } game number {GameNumber} ({DateTime.Now})");
+            TabbedText.WriteLine($"{optionSetName } game number {GameNumber} ({DateTime.Now})");
             Stopwatch s = new Stopwatch();
             if (NumNonChancePlayers > 2)
                 throw new Exception(

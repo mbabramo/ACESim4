@@ -178,7 +178,7 @@ namespace ACESim
             return BestResponseImprovement.Sum();
         }
 
-        public override Task<ReportCollection> RunAlgorithm(string reportName)
+        public override Task<ReportCollection> RunAlgorithm(string optionSetName)
         {
             ReportCollection reportCollection = new ReportCollection();
             StrategiesDeveloperStopwatch.Reset();

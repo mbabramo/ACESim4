@@ -725,7 +725,7 @@ namespace ACESim
             InitializeInformationSets();
         }
 
-        public override async Task<ReportCollection> RunAlgorithm(string reportName)
+        public override async Task<ReportCollection> RunAlgorithm(string optionSetName)
         {
             if (EvolutionSettings.UnrollAlgorithm)
                 return await Unroll_SolveGeneralizedVanillaCFR();

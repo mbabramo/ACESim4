@@ -485,7 +485,7 @@ namespace ACESim
 
         private SimpleReportDefinition GetCourtSuccessReport()
         {
-            string reportName =
+            string suboptionSetName =
                 $"Probability of winning";
             List<SimpleReportFilter> metaFilters = new List<SimpleReportFilter>()
             {
@@ -519,7 +519,7 @@ namespace ACESim
             AddColumnFiltersPLiabilitySignal(columnItems);
             AddColumnFiltersDLiabilitySignal(columnItems);
             return new SimpleReportDefinition(
-                    reportName,
+                    suboptionSetName,
                     metaFilters,
                     rowFilters,
                     columnItems,
@@ -533,7 +533,7 @@ namespace ACESim
             // Note: When reporting response to offer, we are calculating everything in this report as a fraction of what was in the previous report
             (bool plaintiffMakesOffer, int offerNumber, bool isSimultaneous) =
                 GetOfferorAndNumber(bargainingRound, ref reportResponseToOffer);
-            string reportName =
+            string suboptionSetName =
                 $"Round {bargainingRound} {(reportResponseToOffer ? "ResponseTo" : "")}{(plaintiffMakesOffer ? "P" : "D")} {offerNumber}";
             List<SimpleReportFilter> metaFilters = new List<SimpleReportFilter>
             {
@@ -577,7 +577,7 @@ namespace ACESim
                 );
             }
             return new SimpleReportDefinition(
-                reportName,
+                suboptionSetName,
                 metaFilters,
                 rowFilters,
                 columnItems,

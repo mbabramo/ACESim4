@@ -53,7 +53,7 @@ namespace ACESim
         public abstract GameDefinition GetGameDefinition();
 
         public abstract GameOptions GetSingleGameOptions();
-        public abstract List<(string reportName, GameOptions options)> GetOptionsSets();
+        public abstract List<(string optionSetName, GameOptions options)> GetOptionsSets();
 
         #endregion
 
@@ -298,7 +298,7 @@ namespace ACESim
             bool includeFirstLine = optionSetIndex == 0;
             var optionSet = GetOptionsSets()[optionSetIndex];
             var options = optionSet.options;
-            return await ProcessSingleOptionSet(options, masterReportName, optionSet.reportName, includeFirstLine, addOptionSetColumns);
+            return await ProcessSingleOptionSet(options, masterReportName, optionSet.optionSetName, includeFirstLine, addOptionSetColumns);
         }
 
         public async Task<ReportCollection> ProcessSingleOptionSet(GameOptions options, string masterReportName, string optionSetName, bool includeFirstLine, bool addOptionSetColumns)
@@ -312,7 +312,7 @@ namespace ACESim
             {
                 result = await GetSingleRepetitionReportAndSave(masterReportName, options, optionSetName, i, addOptionSetColumns, developer);
                 combinedReports.Add(result.standardReport);
-                // AzureBlob.SerializeObject("results", reportName + " CRM", true, developer);
+                // AzureBlob.SerializeObject("results", optionSetName + " CRM", true, developer);
             }
             if (AzureEnabled)
                 return new ReportCollection(CombineResultsOfRepetitionsOfOptionSets(masterReportName, optionSetName, includeFirstLine, combinedReports), result.csvReports); 
@@ -324,10 +324,10 @@ namespace ACESim
         public async Task<ReportCollection> GetSingleRepetitionReportAndSave(string masterReportName, int optionSetIndex, int repetition, bool addOptionSetColumns, IStrategiesDeveloper developer)
         {
             bool includeFirstLine = optionSetIndex == 0;
-            List<(string reportName, GameOptions options)> optionSets = GetOptionsSets();
+            List<(string optionSetName, GameOptions options)> optionSets = GetOptionsSets();
             var options = optionSets[optionSetIndex].options;
             int numRepetitionsPerOptionSet = NumRepetitions;
-            var result = await GetSingleRepetitionReportAndSave(masterReportName, options, optionSets[optionSetIndex].reportName, repetition, addOptionSetColumns, developer);
+            var result = await GetSingleRepetitionReportAndSave(masterReportName, options, optionSets[optionSetIndex].optionSetName, repetition, addOptionSetColumns, developer);
             return result;
         }
         public async Task<ReportCollection> GetSingleRepetitionReportAndSave(string masterReportName, GameOptions options, string optionSetName, int repetition, bool addOptionSetColumns, IStrategiesDeveloper developer)
@@ -392,7 +392,7 @@ namespace ACESim
             bool includeFirstLine = optionSetIndex == 0;
             var optionSet = GetOptionsSets()[optionSetIndex];
             var options = optionSet.options;
-            var optionSetName = optionSet.reportName;
+            var optionSetName = optionSet.optionSetName;
             return CombineResultsOfRepetitionsOfOptionSets(masterReportName, optionSetName, includeFirstLine, null);
         }
 
@@ -428,7 +428,7 @@ namespace ACESim
                     return LastDeveloperOnThread[currentThreadID].developer;
                 var optionSet = GetOptionsSets()[optionSetIndex];
                 var options = optionSet.options;
-                LastDeveloperOnThread[currentThreadID] = (optionSetIndex, GetInitializedDeveloper(options, optionSet.reportName));
+                LastDeveloperOnThread[currentThreadID] = (optionSetIndex, GetInitializedDeveloper(options, optionSet.optionSetName));
                 return LastDeveloperOnThread[currentThreadID].developer;
             }
         }
@@ -439,7 +439,7 @@ namespace ACESim
 
         public async Task<string> ProcessAllOptionSetsOnAzureFunctions()
         {
-            List<(string reportName, GameOptions options)> optionSets = GetOptionsSets();
+            List<(string optionSetName, GameOptions options)> optionSets = GetOptionsSets();
             int numRepetitionsPerOptionSet = NumRepetitions;
 
             TabbedText.WriteLine($"Number of option sets: {optionSets.Count} repetitions {numRepetitionsPerOptionSet} => {optionSets.Count * numRepetitionsPerOptionSet}");
@@ -472,11 +472,11 @@ namespace ACESim
         public async Task<string> ProcessSingleOptionSet_AzureFunctions(int optionSetIndex, string azureBlobReportName)
         {
             bool includeFirstLine = optionSetIndex == 0;
-            List<(string reportName, GameOptions options)> optionSets = GetOptionsSets();
+            List<(string optionSetName, GameOptions options)> optionSets = GetOptionsSets();
             var options = optionSets[optionSetIndex].options;
-            string reportName = optionSets[optionSetIndex].reportName;
+            string optionSetName = optionSets[optionSetIndex].optionSetName;
             int numRepetitionsPerOptionSet = NumRepetitions;
-            var developer = GetInitializedDeveloper(options, reportName);
+            var developer = GetInitializedDeveloper(options, optionSetName);
             developer.EvolutionSettings.GameNumber = StartGameNumber;
             string[] combinedReports = new string[NumRepetitions];
             List<Task<string>> tasks = new List<Task<string>>();
@@ -490,7 +490,7 @@ namespace ACESim
                 combinedReports[i] = tasks[i].Result;
             string combinedRepetitionsReport = String.Join("", combinedReports);
 
-            string mergedReport = SimpleReportMerging.GetMergedReports(combinedRepetitionsReport, reportName, includeFirstLine);
+            string mergedReport = SimpleReportMerging.GetMergedReports(combinedRepetitionsReport, optionSetName, includeFirstLine);
             return mergedReport;
         }
 

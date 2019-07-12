@@ -241,7 +241,7 @@ namespace ACESim
 
         private int ProbingCFRIterationNum;
 
-        public async override Task<ReportCollection> RunAlgorithm(string reportName)
+        public async override Task<ReportCollection> RunAlgorithm(string optionSetName)
         {
             ReportCollection reportCollection = new ReportCollection();
             Stopwatch s = new Stopwatch();

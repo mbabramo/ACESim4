@@ -19,17 +19,17 @@ namespace ACESim
             return new LeducGameOptions() { OneBetSizeOnly = true };
         }
 
-        public override List<(string reportName, GameOptions options)> GetOptionsSets()
+        public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
         {
-            List<(string reportName, GameOptions options)> optionSets = new List<(string reportName, GameOptions options)>() { ("Report", GetSingleGameOptions()) };
+            List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>() { ("Report", GetSingleGameOptions()) };
 
             
             return optionSets;
         }
 
-        private List<(string reportName, GameOptions options)> GetOptionsVariations(string description, Func<GameOptions> initialOptionsFunc)
+        private List<(string optionSetName, GameOptions options)> GetOptionsVariations(string description, Func<GameOptions> initialOptionsFunc)
         {
-            var list = new List<(string reportName, GameOptions options)>();
+            var list = new List<(string optionSetName, GameOptions options)>();
             GameOptions options;
 
             options = initialOptionsFunc();

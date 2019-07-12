@@ -139,29 +139,29 @@ namespace ControlExcel
             throw new Exception("Not found");
         }
 
-        private static List<int> GetRowNumbers(Excel.Worksheet worksheet, string reportName, string statisticName, List<string> filterNames)
+        private static List<int> GetRowNumbers(Excel.Worksheet worksheet, string optionSetName, string statisticName, List<string> filterNames)
         {
-            return filterNames.Select(x => GetRowNumber(worksheet, reportName, x, statisticName)).ToList();
+            return filterNames.Select(x => GetRowNumber(worksheet, optionSetName, x, statisticName)).ToList();
         }
 
-        private static List<int> GetRowNumbers(Excel.Worksheet worksheet, List<string> reportNames, string statisticName, string filterName)
+        private static List<int> GetRowNumbers(Excel.Worksheet worksheet, List<string> optionSetNames, string statisticName, string filterName)
         {
-            return reportNames.Select(x => GetRowNumber(worksheet, x, filterName, statisticName)).ToList();
+            return optionSetNames.Select(x => GetRowNumber(worksheet, x, filterName, statisticName)).ToList();
         }
-        private static List<int> GetRowNumbers(Excel.Worksheet worksheet, List<string> reportNames, List<string> statisticNames, string filterName)
+        private static List<int> GetRowNumbers(Excel.Worksheet worksheet, List<string> optionSetNames, List<string> statisticNames, string filterName)
         {
             List<int> results = new List<int>();
             foreach (string statisticName in statisticNames)
-                results.AddRange(reportNames.Select(x => GetRowNumber(worksheet, x, filterName, statisticName)));
+                results.AddRange(optionSetNames.Select(x => GetRowNumber(worksheet, x, filterName, statisticName)));
             return results;
         }
 
-        private static int GetRowNumber(Excel.Worksheet worksheet, string reportName, string filterName, string statisticName)
+        private static int GetRowNumber(Excel.Worksheet worksheet, string optionSetName, string filterName, string statisticName)
         {
             int reportColNum = GetColumnNumber(worksheet, 1, "Report");
             int filterColNum = GetColumnNumber(worksheet, 1, "Filter");
             int statisticColNum = GetColumnNumber(worksheet, 1, "Iteration");
-            return GetRowNumberMatching(worksheet, new List<(int colNum, string text)>() {(reportColNum, reportName), (filterColNum, filterName), (statisticColNum, statisticName)});
+            return GetRowNumberMatching(worksheet, new List<(int colNum, string text)>() {(reportColNum, optionSetName), (filterColNum, filterName), (statisticColNum, statisticName)});
         }
 
         private static List<int> GetColumnNumbersMatching(Excel.Worksheet worksheet, List<string> columnNames)
@@ -462,7 +462,7 @@ namespace ControlExcel
             Excel.Worksheet targetWS = GetWorksheet(targetWorksheetName);
             List<string> crossStats = new List<string>() {"TotExpense", "False+", "False-"};
             List<string> columnHeads = new List<string>() {"Litigation Expenditures", "False Positive Expenditures", "False Negative Shortfall"};
-            List<string> reportNames = new List<string>() {"Exog American", "Exog British"};
+            List<string> ruleNames = new List<string>() {"Exog American", "Exog British"};
             List<string> rowHeads = new List<string>() { "American Rule", "British Rule" };
             List<string> statistics = new List<string>() {"Average", "UpperBound", "LowerBound"};
             List<string> statisticAppend = new List<string>() { "", " Upper Error", " Lower Error" };
@@ -477,7 +477,7 @@ namespace ControlExcel
                 string statistic = statistics[statisticIndex];
                 statisticFirstRow++;
                 int targetRowNum = statisticFirstRow;
-                var sourceRowNumbers = GetRowNumbers(sourceWS, reportNames, statistic, "All");
+                var sourceRowNumbers = GetRowNumbers(sourceWS, ruleNames, statistic, "All");
                 for (int reportIndex = 0; reportIndex < rowHeads.Count(); reportIndex++)
                 {
                     int rowNumber = sourceRowNumbers[reportIndex];

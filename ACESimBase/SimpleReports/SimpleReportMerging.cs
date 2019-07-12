@@ -8,12 +8,12 @@ namespace ACESim
 {
     public static class SimpleReportMerging
     {
-        public static string GetMergedReports(string cumulativeReport, string reportName, bool includeFirstLine)
+        public static string GetMergedReports(string cumulativeReport, string optionSetName, bool includeFirstLine)
         {
-            var averageReport = SimpleReportMerging.GetAggregationReport(cumulativeReport, reportName, SimpleReportAggregations.Average, includeFirstLine);
-            var lowerBoundReport = SimpleReportMerging.GetAggregationReport(cumulativeReport, reportName, SimpleReportAggregations.LowerBound, false);
-            var upperBoundReport = SimpleReportMerging.GetAggregationReport(cumulativeReport, reportName, SimpleReportAggregations.UpperBound, false);
-            var stdevReport = SimpleReportMerging.GetAggregationReport(cumulativeReport, reportName, SimpleReportAggregations.StandardDeviation, false);
+            var averageReport = SimpleReportMerging.GetAggregationReport(cumulativeReport, optionSetName, SimpleReportAggregations.Average, includeFirstLine);
+            var lowerBoundReport = SimpleReportMerging.GetAggregationReport(cumulativeReport, optionSetName, SimpleReportAggregations.LowerBound, false);
+            var upperBoundReport = SimpleReportMerging.GetAggregationReport(cumulativeReport, optionSetName, SimpleReportAggregations.UpperBound, false);
+            var stdevReport = SimpleReportMerging.GetAggregationReport(cumulativeReport, optionSetName, SimpleReportAggregations.StandardDeviation, false);
             return averageReport + lowerBoundReport + upperBoundReport + stdevReport;
         }
 
@@ -60,13 +60,13 @@ namespace ACESim
         }
 
 
-        public static string GetAggregationReport(string cumulativeReport, string reportName, SimpleReportAggregations simpleReportAggregation, bool includeFirstLine)
+        public static string GetAggregationReport(string cumulativeReport, string optionSetName, SimpleReportAggregations simpleReportAggregation, bool includeFirstLine)
         {
-            MergeCumulativeReportToDictionary(cumulativeReport, reportName, simpleReportAggregation, out List<string> variableNames, out List<string> filterNames, out Dictionary<string, List<(string theString, double? theValue)>> aggregatedReport);
+            MergeCumulativeReportToDictionary(cumulativeReport, optionSetName, simpleReportAggregation, out List<string> variableNames, out List<string> filterNames, out Dictionary<string, List<(string theString, double? theValue)>> aggregatedReport);
             return GetAggregatedCSV(variableNames, filterNames, aggregatedReport, includeFirstLine);
         }
 
-        public static string AddCSVReportInformationColumns(string report, string reportName, string reportIteration, bool includeFirst)
+        public static string AddCSVReportInformationColumns(string report, string optionSetName, string reportIteration, bool includeFirst)
         {
             int numMainLines;
             StringBuilder sb = new StringBuilder();
@@ -86,7 +86,7 @@ namespace ACESim
                     if (isFirst)
                         lineWithPreface = $"\"Report\",\"Iteration\",\"LineNum\",{line}";
                     else
-                        lineWithPreface = $"\"{reportName}\",{reportIteration},{numMainLines},{line}";
+                        lineWithPreface = $"\"{optionSetName}\",{reportIteration},{numMainLines},{line}";
                     sb.Append(lineWithPreface);
                     sb.AppendLine();
                     if (!isFirst)
@@ -123,12 +123,12 @@ namespace ACESim
             return aggregatedCSV;
         }
 
-        private static void MergeCumulativeReportToDictionary(string cumulativeReport, string reportName, SimpleReportAggregations simpleReportAggregation, out List<string> variableNames, out List<string> filterNames, out Dictionary<string, List<(string theString, double? value)>> aggregatedReport)
+        private static void MergeCumulativeReportToDictionary(string cumulativeReport, string optionSetName, SimpleReportAggregations simpleReportAggregation, out List<string> variableNames, out List<string> filterNames, out Dictionary<string, List<(string theString, double? value)>> aggregatedReport)
         {
             (string headerLine, List<string> otherLines) = GetHeaderLineAndOtherLines(cumulativeReport);
             variableNames = headerLine.Split(',').ToList();
             var listOfDictionaries = GetLinesAsDictionaries(variableNames, otherLines);
-            var narrowedToReport = Enumerable.Where<Dictionary<string, (string theString, double? theValue)>>(listOfDictionaries, x => x["\"Report\""].theString == $"\"{reportName}\"").ToList();
+            var narrowedToReport = Enumerable.Where<Dictionary<string, (string theString, double? theValue)>>(listOfDictionaries, x => x["\"Report\""].theString == $"\"{optionSetName}\"").ToList();
             filterNames = narrowedToReport.Select(x => x["\"Filter\""].theString).Distinct().ToList();
 
             aggregatedReport = new Dictionary<string, List<(string theString, double? theValue)>>();

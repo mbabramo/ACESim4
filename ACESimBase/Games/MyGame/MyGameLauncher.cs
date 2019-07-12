@@ -27,9 +27,9 @@ namespace ACESim
         public override GameOptions GetSingleGameOptions() => MyGameOptionsGenerator.GetMyGameOptions();
 
 
-        public override List<(string reportName, GameOptions options)> GetOptionsSets()
+        public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
         {
-            List<(string reportName, GameOptions options)> optionSets = new List<(string reportName, GameOptions options)>();
+            List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
 
             foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("lowcosts", 1.0 / 3.0), ("basecosts", 1.0), ("highcosts", 3.0) })
             {
@@ -41,7 +41,7 @@ namespace ACESim
             return optionSets;
         }
 
-        (string reportName, MyGameOptions options) GetAndTransform(string baseName, string suffix, Func<MyGameOptions> baseOptionsFn, Action<MyGameOptions> transform)
+        (string optionSetName, MyGameOptions options) GetAndTransform(string baseName, string suffix, Func<MyGameOptions> baseOptionsFn, Action<MyGameOptions> transform)
         {
             MyGameOptions g = baseOptionsFn();
             transform(g);
@@ -49,9 +49,9 @@ namespace ACESim
         }
 
 
-        public List<(string reportName, GameOptions options)> GetOptionsSets2()
+        public List<(string optionSetName, GameOptions options)> GetOptionsSets2()
         {
-            List<(string reportName, GameOptions options)> optionSets = new List<(string reportName, GameOptions options)>();
+            List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
 
             List<IMyGameDisputeGenerator> disputeGenerators;
 
@@ -103,9 +103,9 @@ namespace ACESim
             return optionSets;
         }
 
-        private List<(string reportName, GameOptions options)> GetOptionsVariations(string description, Func<MyGameOptions> initialOptionsFunc)
+        private List<(string optionSetName, GameOptions options)> GetOptionsVariations(string description, Func<MyGameOptions> initialOptionsFunc)
         {
-            var list = new List<(string reportName, GameOptions options)>();
+            var list = new List<(string optionSetName, GameOptions options)>();
             MyGameOptions options;
 
             if (!LimitToAmerican)

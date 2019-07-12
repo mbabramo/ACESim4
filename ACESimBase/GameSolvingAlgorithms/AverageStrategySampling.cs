@@ -191,7 +191,7 @@ namespace ACESim
             }
         }
 
-        public override async Task<ReportCollection> RunAlgorithm(string reportName)
+        public override async Task<ReportCollection> RunAlgorithm(string optionSetName)
         {
             if (NumNonChancePlayers > 2)
                 throw new Exception(

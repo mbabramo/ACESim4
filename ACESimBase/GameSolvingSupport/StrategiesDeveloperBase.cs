@@ -56,9 +56,9 @@ namespace ACESim
         #region Implementation of interface
 
 
-        public abstract Task<ReportCollection> RunAlgorithm(string reportName);
+        public abstract Task<ReportCollection> RunAlgorithm(string optionSetName);
 
-        public async Task<ReportCollection> DevelopStrategies(string reportName)
+        public async Task<ReportCollection> DevelopStrategies(string optionSetName)
         {
             await Initialize();
             ReportCollection reportCollection = new ReportCollection();
@@ -68,7 +68,7 @@ namespace ACESim
                     Console.WriteLine($@"Scenario {s}");
                 if (s > 0)
                     ReinitializeForScenario(s, IterationsForWarmupScenario() != null);
-                var result = await RunAlgorithm(reportName);
+                var result = await RunAlgorithm(optionSetName);
                 if (EvolutionSettings.SerializeResults && !(this is PlaybackOnly))
                 {
                     string filename = Path.Combine(FolderFinder.GetFolderToWriteTo("Strategies").FullName, EvolutionSettings.SerializeResultsPrefixPlus(s, GameDefinition.NumScenariosToDevelop));
@@ -1048,7 +1048,8 @@ namespace ACESim
                     d.StaticTextColumns = new List<(string textColumnName, string textColumnContent)>();
                 if (GameDefinition.NumScenariosToDevelop > 1)
                     d.StaticTextColumns.Add(("Scenario", GameDefinition.GetNameForScenario()));
-                asdf;
+                if (GameDefinition.OptionSetName != null && GameDefinition.OptionSetName != "")
+                    d.StaticTextColumns.Add(("OptionSet", GameDefinition.OptionSetName));
             }
             return simpleReportDefinitions;
         }

@@ -26,7 +26,7 @@ namespace ACESim
             return created;
         }
 
-        public override async Task<ReportCollection> RunAlgorithm(string reportName)
+        public override async Task<ReportCollection> RunAlgorithm(string optionSetName)
         {
             StrategiesDeveloperStopwatch.Reset();
             string filename = Path.Combine(FolderFinder.GetFolderToWriteTo("Strategies").FullName, EvolutionSettings.SerializeResultsPrefixPlus(GameDefinition.BaselineScenarioIndex, GameDefinition.NumScenariosToDevelop));

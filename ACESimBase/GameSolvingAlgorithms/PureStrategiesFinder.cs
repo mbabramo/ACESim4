@@ -28,7 +28,7 @@ namespace ACESim
             return created;
         }
 
-        public override async Task<ReportCollection> RunAlgorithm(string reportName)
+        public override async Task<ReportCollection> RunAlgorithm(string optionSetName)
         {
             await FindPureStrategies();
             return new ReportCollection(); // currently results are just written to console. 

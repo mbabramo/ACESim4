@@ -33,7 +33,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             return (BestResponseImprovementAdj.Sum(), BestResponseUtilities.ToArray());
         }
 
-        public override async Task<ReportCollection> RunAlgorithm(string reportName)
+        public override async Task<ReportCollection> RunAlgorithm(string optionSetName)
         {
             ReportCollection reportCollection = new ReportCollection();
             Pop = new Population(InformationSets, CalculateBestResponseAndGetFitnessAndUtilities);

@@ -33,7 +33,7 @@ namespace ACESim
             return EvolutionSettings.IterationsForWarmupScenario; // warmup is supported
         }
 
-        public override async Task<ReportCollection> RunAlgorithm(string reportName)
+        public override async Task<ReportCollection> RunAlgorithm(string optionSetName)
         {
             ReportCollection reportCollection = new ReportCollection();
             StrategiesDeveloperStopwatch.Reset();

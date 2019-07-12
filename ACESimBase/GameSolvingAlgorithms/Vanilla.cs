@@ -222,7 +222,7 @@ namespace ACESim
             return probabilityAdjustedExpectedValueParticularAction;
         }
 
-        public override async Task<ReportCollection> RunAlgorithm(string reportName)
+        public override async Task<ReportCollection> RunAlgorithm(string optionSetName)
         {
             ReportCollection reportCollection = new ReportCollection();
             for (int iteration = 0; iteration < EvolutionSettings.TotalIterations; iteration++)
