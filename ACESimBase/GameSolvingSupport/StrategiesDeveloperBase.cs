@@ -1039,6 +1039,20 @@ namespace ACESim
             return reportCollection;
         }
 
+        private List<SimpleReportDefinition> GetSimpleReportDefinitions()
+        {
+            var simpleReportDefinitions = GameDefinition.GetSimpleReportDefinitions();
+            foreach (var d in simpleReportDefinitions)
+            {
+                if (d.StaticTextColumns == null)
+                    d.StaticTextColumns = new List<(string textColumnName, string textColumnContent)>();
+                if (GameDefinition.NumScenariosToDevelop > 1)
+                    d.StaticTextColumns.Add(("Scenario", GameDefinition.GetNameForScenario()));
+                asdf;
+            }
+            return simpleReportDefinitions;
+        }
+
         private StatCollectorArray UtilityCalculationsArray;
 
         private async Task GenerateReports_AllPaths(GamePlayer player, Func<Decision, GameProgress, byte> actionOverride, List<SimpleReportDefinition> simpleReportDefinitions)

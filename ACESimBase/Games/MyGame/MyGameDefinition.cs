@@ -1002,13 +1002,11 @@ namespace ACESim
 
         #region Alternative scenarios
 
-        // It may make sense to use "alternative scenarios" instead of multiple option sets (a) where there is a large cost to initialization and each scenario can share the same initialization; or (b) we want to use different settings during a "warmup phase".
+        public override bool PlayMultipleScenarios => false; // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
 
-        public bool PlayMultipleScenarios = false; // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
+        public override bool UseDifferentWarmup => false;
 
-        public bool UseDifferentWarmup = false;
-
-        public int NumScenariosDefined = 41;
+        public override int NumScenariosDefined => 41;
 
         public enum ChangeInScenario
         {
@@ -1029,9 +1027,6 @@ namespace ACESim
         public double CostsMultiplierMax = 2.0;
         public double CostsMultiplierBaselineIfUsingWarmup = 25_000;
         public double CostsMultiplierScenarioIncrement => (CostsMultiplierMax - CostsMultiplierMin) / Math.Max(1, NumScenariosDefined - 1);
-
-        public override int NumScenariosToDevelop => PlayMultipleScenarios ? NumScenariosDefined : 1;
-        public override int NumScenariosToInitialize => NumScenariosDefined;
 
         public override int GetScenarioIndex(int baselineScenario, bool warmupVersion)
         {

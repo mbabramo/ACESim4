@@ -83,10 +83,11 @@ namespace ACESim
             return combined;
         }
 
-        public IStrategiesDeveloper GetInitializedDeveloper(GameOptions options)
+        public IStrategiesDeveloper GetInitializedDeveloper(GameOptions options, string optionSetName)
         {
             GameDefinition gameDefinition = GetGameDefinition();
             gameDefinition.Setup(options);
+            gameDefinition.OptionSetName = optionSetName;
             if (GameProgressLogger.LoggingOn)
                 gameDefinition.PrintOutOrderingInformation();
             List<Strategy> starterStrategies = Strategy.GetStarterStrategies(gameDefinition);
@@ -303,7 +304,7 @@ namespace ACESim
         public async Task<ReportCollection> ProcessSingleOptionSet(GameOptions options, string masterReportName, string optionSetName, bool includeFirstLine, bool addOptionSetColumns)
         {
             string masterReportNamePlusOptionSet = $"{masterReportName} {optionSetName}";
-            var developer = GetInitializedDeveloper(options);
+            var developer = GetInitializedDeveloper(options, optionSetName);
             developer.EvolutionSettings.GameNumber = StartGameNumber;
             ReportCollection result = new ReportCollection();
             List<string> combinedReports = new List<string>();
@@ -427,7 +428,7 @@ namespace ACESim
                     return LastDeveloperOnThread[currentThreadID].developer;
                 var optionSet = GetOptionsSets()[optionSetIndex];
                 var options = optionSet.options;
-                LastDeveloperOnThread[currentThreadID] = (optionSetIndex, GetInitializedDeveloper(options));
+                LastDeveloperOnThread[currentThreadID] = (optionSetIndex, GetInitializedDeveloper(options, optionSet.reportName));
                 return LastDeveloperOnThread[currentThreadID].developer;
             }
         }
@@ -475,7 +476,7 @@ namespace ACESim
             var options = optionSets[optionSetIndex].options;
             string reportName = optionSets[optionSetIndex].reportName;
             int numRepetitionsPerOptionSet = NumRepetitions;
-            var developer = GetInitializedDeveloper(options);
+            var developer = GetInitializedDeveloper(options, reportName);
             developer.EvolutionSettings.GameNumber = StartGameNumber;
             string[] combinedReports = new string[NumRepetitions];
             List<Task<string>> tasks = new List<Task<string>>();

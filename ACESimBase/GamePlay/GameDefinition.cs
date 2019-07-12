@@ -10,12 +10,13 @@ namespace ACESim
     [Serializable]
     public class GameDefinition
     {
+        public string OptionSetName;
+
         public IGameFactory GameFactory;
 
         public List<PlayerInfo> Players;
 
         public string[] PlayerNames;
-
 
         /// <summary>
         /// The number of players in the game, including chance (if applicable).
@@ -463,8 +464,17 @@ namespace ACESim
             return new List<SimpleReportDefinition>();
         }
 
-        public virtual int NumScenariosToDevelop => 1;
-        public virtual int NumScenariosToInitialize => 1;
+
+        // It may make sense to use "alternative scenarios" instead of multiple option sets (a) where there is a large cost to initialization and each scenario can share the same initialization; or (b) we want to use different settings during a "warmup phase".
+
+        public virtual bool PlayMultipleScenarios => false; // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
+
+        public virtual bool UseDifferentWarmup => false;
+
+        public virtual int NumScenariosDefined => 1;
+
+        public int NumScenariosToDevelop => PlayMultipleScenarios ? NumScenariosDefined : 1;
+        public int NumScenariosToInitialize => NumScenariosDefined;
 
         public int BaselineScenarioIndex = 0;
         public int CurrentScenarioIndex = 0;
