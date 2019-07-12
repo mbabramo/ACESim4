@@ -64,14 +64,13 @@ namespace ACESim
             ReportCollection reportCollection = new ReportCollection();
             for (int s = 0; s < GameDefinition.NumScenariosToDevelop; s++)
             {
-                if (GameDefinition.NumScenariosToDevelop > 0)
-                    Console.WriteLine($@"Scenario {s}");
+                Console.WriteLine($@"Option set {optionSetName} Scenario {s} (total: {GameDefinition.NumScenariosToDevelop}");
                 if (s > 0)
                     ReinitializeForScenario(s, IterationsForWarmupScenario() != null);
                 var result = await RunAlgorithm(optionSetName);
                 if (EvolutionSettings.SerializeResults && !(this is PlaybackOnly))
                 {
-                    string filename = Path.Combine(FolderFinder.GetFolderToWriteTo("Strategies").FullName, EvolutionSettings.SerializeResultsPrefixPlus(s, GameDefinition.NumScenariosToDevelop));
+                    string filename = Path.Combine(FolderFinder.GetFolderToWriteTo("Strategies").FullName, GameDefinition.OptionSetName + "-" + EvolutionSettings.SerializeResultsPrefixPlus(s, GameDefinition.NumScenariosToDevelop));
                     if (EvolutionSettings.SerializeInformationSetDataOnly)
                         StrategySerialization.SerializeInformationSets(InformationSets, filename);
                     else
@@ -1021,7 +1020,7 @@ namespace ACESim
         public async Task<ReportCollection> GenerateReportsByPlaying(Func<GamePlayer, Func<Decision, GameProgress, byte>, List<SimpleReportDefinition>, Task> generator)
         {
             Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, InformationSets, ChanceNodes, FinalUtilitiesNodes, GetGameState, EvolutionSettings);
-            var simpleReportDefinitions = GameDefinition.GetSimpleReportDefinitions();
+            var simpleReportDefinitions = GetSimpleReportDefinitions();
             int simpleReportDefinitionsCount = simpleReportDefinitions.Count();
             ReportsBeingGenerated = new SimpleReport[simpleReportDefinitionsCount];
             GamePlayer.ReportingMode = true;

@@ -34,11 +34,11 @@ namespace ACESim
         public const bool UseRegretAndStrategyDiscounting = false;
 
         public const int StartGameNumber = 1;
-        public bool LaunchSingleOptionsSetOnly = false; // DEBUG
+        public bool LaunchSingleOptionsSetOnly = false; 
         public int NumRepetitions = 1;
         public bool AzureEnabled = false;
         public bool LocalDistributedProcessing = false; // this should be true if running on the local service fabric
-        public bool ParallelizeOptionSets = false; // DEBUG
+        public bool ParallelizeOptionSets = true; // run multiple option sets at same time on computer (in which case each individually will be run not in parallel)
         public bool ParallelizeIndividualExecutions = true; // only if LaunchSingleOptionsSetOnly or !LocalDistributedProcessing
 
         public string OverrideDateTimeString = null; // "2017-10-11 10:18"; // use this if termination finished unexpectedly
@@ -289,6 +289,11 @@ namespace ACESim
             }
 
             Parallelizer.MaxDegreeOfParallelism = Environment.ProcessorCount;
+            if (ParallelizeOptionSets)
+            {
+                TabbedText.WriteLine("Suppressing output due to parallelization");
+                TabbedText.EnableOutput = false; // TODO: We could put each parallel item in a separate output
+            }
             await Parallelizer.GoAsync(ParallelizeOptionSets, 0, optionSets.Count, SingleOptionSetAction);
             return results;
         }

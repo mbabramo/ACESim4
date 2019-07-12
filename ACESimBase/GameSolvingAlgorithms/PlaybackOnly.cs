@@ -29,7 +29,7 @@ namespace ACESim
         public override async Task<ReportCollection> RunAlgorithm(string optionSetName)
         {
             StrategiesDeveloperStopwatch.Reset();
-            string filename = Path.Combine(FolderFinder.GetFolderToWriteTo("Strategies").FullName, EvolutionSettings.SerializeResultsPrefixPlus(GameDefinition.BaselineScenarioIndex, GameDefinition.NumScenariosToDevelop));
+            string filename = Path.Combine(FolderFinder.GetFolderToWriteTo("Strategies").FullName, GameDefinition.OptionSetName + "-" + EvolutionSettings.SerializeResultsPrefixPlus(GameDefinition.BaselineScenarioIndex, GameDefinition.NumScenariosToDevelop));
             if (EvolutionSettings.SerializeInformationSetDataOnly)
             {
                 StrategySerialization.DeserializeInformationSets(InformationSets, filename);

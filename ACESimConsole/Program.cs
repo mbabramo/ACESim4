@@ -83,6 +83,7 @@ namespace ACESim
             ReportCollection launchResult = await launcher.Launch();
             TextCopy.Clipboard.SetText(launchResult.standardReport);
             s.Stop();
+            TabbedText.EnableOutput = true;
             TabbedText.WriteLine($"Total runtime {s.Elapsed} ");
             TabbedText.WriteLine();
             TabbedText.WriteLine("Press Enter to end (copying standard report to clipboard).");
