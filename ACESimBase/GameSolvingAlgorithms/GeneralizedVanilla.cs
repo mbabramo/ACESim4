@@ -108,7 +108,7 @@ namespace ACESim
                     string resultWithReplacementOfARRAY = TraceCommandList(array);
                 }
                 if (EvolutionSettings.PruneOnOpponentStrategy && EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions)
-                    CalculateReachProbabilitiesAndPrunability();
+                    CalculateReachProbabilitiesAndPrunability(EvolutionSettings.ParallelOptimization);
             }
             return reportCollection;
         }
@@ -737,7 +737,7 @@ namespace ACESim
                 var result = await GeneralizedVanillaCFRIteration(iteration);
                 reportCollection.Add(result);
                 if (EvolutionSettings.PruneOnOpponentStrategy && EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions)
-                    CalculateReachProbabilitiesAndPrunability();
+                    CalculateReachProbabilitiesAndPrunability(EvolutionSettings.ParallelOptimization);
             }
             return reportCollection;
         }

@@ -1002,6 +1002,8 @@ namespace ACESim
 
         #region Alternative scenarios
 
+        // It may make sense to use "alternative scenarios" instead of multiple option sets (a) where there is a large cost to initialization and each scenario can share the same initialization; or (b) we want to use different settings during a "warmup phase".
+
         public bool PlayMultipleScenarios = false; // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
 
         public bool UseDifferentWarmup = false;

@@ -765,18 +765,40 @@ namespace ACESim
         private void ExecuteAcceleratedBestResponse(bool determineWhetherReachable)
         {
             // index through information sets by decision (note that i is not the same as the actual decision index). First, calculate reach probabilities going forward. Second, calculate best response values going backward.
-            CalculateReachProbabilitiesAndPrunability();
+            bool parallelize = EvolutionSettings.ParallelOptimization;
+            CalculateReachProbabilitiesAndPrunability(parallelize);
+            CalculateBestResponseValuesAndReachability(determineWhetherReachable, parallelize);
+            CompleteAcceleratedBestResponse();
+        }
+        public void CalculateReachProbabilitiesAndPrunability(bool parallelize)
+        {
+            for (int i = 0; i < InformationSetsByDecisionIndex.Count; i++)
+            {
+                List<InformationSetNode> informationSetsForDecision = InformationSetsByDecisionIndex[i];
+                int c = informationSetsForDecision.Count();
+                Parallelizer.Go(parallelize, 0, c, i => informationSetsForDecision[i].AcceleratedBestResponse_CalculateReachProbabilities(EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions));
+            }
+        }
+
+        private void CalculateBestResponseValuesAndReachability(bool determineWhetherReachable, bool parallelize)
+        {
             for (int i = InformationSetsByDecisionIndex.Count - 1; i >= 0; i--)
             {
                 List<InformationSetNode> informationSetsForDecision = InformationSetsByDecisionIndex[i];
-                Parallel.ForEach(informationSetsForDecision, informationSet => informationSet.AcceleratedBestResponse_CalculateBestResponseValues(NumNonChancePlayers));
+                int c = informationSetsForDecision.Count();
+                Parallelizer.Go(parallelize, 0, c, i => informationSetsForDecision[i].AcceleratedBestResponse_CalculateBestResponseValues(NumNonChancePlayers));
             }
             if (determineWhetherReachable)
                 for (int i = 0; i < InformationSetsByDecisionIndex.Count; i++)
                 {
                     List<InformationSetNode> informationSetsForDecision = InformationSetsByDecisionIndex[i];
-                    Parallel.ForEach(informationSetsForDecision, informationSet => informationSet.AcceleratedBestResponse_DetermineWhetherReachable());
+                    int c = informationSetsForDecision.Count();
+                    Parallelizer.Go(parallelize, 0, c, i => informationSetsForDecision[i].AcceleratedBestResponse_DetermineWhetherReachable());
                 }
+        }
+
+        private void CompleteAcceleratedBestResponse()
+        {
             // Finally, we need to calculate the final values by looking at the first information sets for each player.
             if (BestResponseUtilities == null || BestResponseImprovement == null || AverageStrategyUtilities == null)
             {
@@ -791,15 +813,6 @@ namespace ACESim
                 BestResponseUtilities[playerIndex] = bestResponseResult;
                 AverageStrategyUtilities[playerIndex] = averageStrategyResult;
                 BestResponseImprovement[playerIndex] = bestResponseResult - averageStrategyResult;
-            }
-        }
-
-        public void CalculateReachProbabilitiesAndPrunability()
-        {
-            for (int i = 0; i < InformationSetsByDecisionIndex.Count; i++)
-            {
-                List<InformationSetNode> informationSetsForDecision = InformationSetsByDecisionIndex[i];
-                Parallel.ForEach(informationSetsForDecision, informationSet => informationSet.AcceleratedBestResponse_CalculateReachProbabilities(EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions));
             }
         }
 

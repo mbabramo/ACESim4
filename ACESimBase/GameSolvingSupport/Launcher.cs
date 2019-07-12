@@ -19,7 +19,7 @@ namespace ACESim
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching;
 
-        public const int VanillaIterations = 10_000;
+        public const int VanillaIterations = 1000; // DEBUG
         public const int VanillaReportEveryNIterations = VanillaIterations;
         public const int VanillaBestResponseEveryMIterations = 500;
         public const bool CalculatePerturbedBestResponseRefinement = true;
@@ -34,14 +34,12 @@ namespace ACESim
         public const bool UseRegretAndStrategyDiscounting = false;
 
         public const int StartGameNumber = 1;
-        public bool SingleGameMode = true;
+        public bool LaunchSingleOptionsSetOnly = false; // DEBUG
         public int NumRepetitions = 1;
-
         public bool AzureEnabled = false;
-
-        public bool LocalDistributedProcessing = true; // this should be false if actually running on service fabric
-        public bool ParallelizeOptionSets = false;
-        public bool ParallelizeIndividualExecutions = true; // only affects SingleGameMode or if no local distributed processing
+        public bool LocalDistributedProcessing = false; // this should be true if running on the local service fabric
+        public bool ParallelizeOptionSets = false; // DEBUG
+        public bool ParallelizeIndividualExecutions = true; // only if LaunchSingleOptionsSetOnly or !LocalDistributedProcessing
 
         public string OverrideDateTimeString = null; // "2017-10-11 10:18"; // use this if termination finished unexpectedly
         public string MasterReportNameForDistributedProcessing = "AMONLY";
@@ -64,7 +62,7 @@ namespace ACESim
         public async Task<ReportCollection> Launch()
         {
             ReportCollection result;
-            if (SingleGameMode)
+            if (LaunchSingleOptionsSetOnly)
                 result = await Launch_Single();
             else
                 result = await Launch_Multiple();
@@ -137,8 +135,8 @@ namespace ACESim
             EvolutionSettings evolutionSettings = new EvolutionSettings()
             {
                 MaxParallelDepth = 3, // we're parallelizing on the iteration level, so there is no need for further parallelization
-                ParallelOptimization = ParallelizeIndividualExecutions && !ParallelizeOptionSets && (SingleGameMode || !LocalDistributedProcessing),
-                SuppressReportPrinting = AlwaysSuppressReportPrinting || (!SingleGameMode && (ParallelizeOptionSets || LocalDistributedProcessing)),
+                ParallelOptimization = ParallelizeIndividualExecutions && !ParallelizeOptionSets && (LaunchSingleOptionsSetOnly || !LocalDistributedProcessing),
+                SuppressReportPrinting = AlwaysSuppressReportPrinting || (!LaunchSingleOptionsSetOnly && (ParallelizeOptionSets || LocalDistributedProcessing)),
 
                 GameNumber = StartGameNumber,
 
@@ -271,6 +269,7 @@ namespace ACESim
         }
 
 
+        private object LocalOptionSetsLock = new object();
 
         public async Task<ReportCollection> ProcessAllOptionSetsLocally()
         {
@@ -278,19 +277,22 @@ namespace ACESim
 
             List<(string optionSetName, GameOptions options)> optionSets = GetOptionsSets();
             int numRepetitionsPerOptionSet = NumRepetitions;
-            ReportCollection[] results = new ReportCollection[optionSets.Count];
+            ReportCollection results = new ReportCollection();
 
             async Task SingleOptionSetAction(long index)
             {
                 var optionSet = optionSets[(int)index];
                 var optionSetResults = await ProcessSingleOptionSet(masterReportName, (int)index, true);
-                results[index] = optionSetResults;
+                lock (LocalOptionSetsLock)
+                    results.Add(optionSetResults);
             }
 
             Parallelizer.MaxDegreeOfParallelism = Environment.ProcessorCount;
             await Parallelizer.GoAsync(ParallelizeOptionSets, 0, optionSets.Count, SingleOptionSetAction);
-            string combinedResults = CombineResultsOfAllOptionSets(masterReportName, results.Select(x => x.standardReport).ToList());
-            return new ReportCollection(combinedResults, String.Join("\n",results.Select(x => x.csvReports)));
+            return results;
+            // DEBUG
+            //string combinedResults = CombineResultsOfAllOptionSets(masterReportName, results.Select(x => x.standardReport).ToList());
+            //return new ReportCollection(combinedResults, String.Join("\n",results.Select(x => x.csvReports)));
         }
 
         public async Task<ReportCollection> ProcessSingleOptionSet(string masterReportName, int optionSetIndex, bool addOptionSetColumns)
