@@ -10,6 +10,10 @@ namespace ACESim
     [Serializable]
     public class ChanceNodeUnequalProbabilities : ChanceNode
     {
+        public ChanceNodeUnequalProbabilities(int chanceNodeNumber) : base(chanceNodeNumber)
+        {
+        }
+
         public double[] Probabilities;
         // The remaining settings are for distributed chance actions.
         public Dictionary<int, double[]> ProbabilitiesForDistributorChanceInputs;

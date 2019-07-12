@@ -10,7 +10,6 @@ namespace ACESim
     [Serializable]
     public abstract class ChanceNode : IGameState
     {
-        public static int ChanceNodesSoFar = 0;
         public int ChanceNodeNumber;
         public int GetNodeNumber() => ChanceNodeNumber;
         public Decision Decision;
@@ -23,10 +22,9 @@ namespace ACESim
 
         public string GetActionProbabilityString(int distributorChanceInputs) => String.Join(",", Enumerable.Range(1, Decision.NumPossibleActions).Select(action => GetActionProbability(action, distributorChanceInputs).ToSignificantFigures(3)));
 
-        public ChanceNode()
+        public ChanceNode(int chanceNodeNumber)
         {
-            ChanceNodeNumber = ChanceNodesSoFar;
-            Interlocked.Increment(ref ChanceNodesSoFar);
+            ChanceNodeNumber = chanceNodeNumber;
         }
 
         public byte SampleAction(byte numPossibleActions, double randomNumber)

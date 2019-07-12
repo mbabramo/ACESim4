@@ -13,22 +13,19 @@ namespace ACESim
         public int CurrentScenarioIndex = 0;
         public double[] Utilities => AllScenarioUtilities[CurrentScenarioIndex];
         public List<double[]> AllScenarioUtilities;
-        public static int FinalUtilitiesNodesSoFar = 0;
         public int FinalUtilitiesNodeNumber;
         public int GetNodeNumber() => FinalUtilitiesNodeNumber;
 
-        public FinalUtilitiesNode(List<double[]> allScenarioUtilities)
+        public FinalUtilitiesNode(List<double[]> allScenarioUtilities, int finalUtilitiesNodeNumber)
         {
             AllScenarioUtilities = allScenarioUtilities;
-            FinalUtilitiesNodeNumber = FinalUtilitiesNodesSoFar;
-            Interlocked.Increment(ref FinalUtilitiesNodesSoFar);
+            FinalUtilitiesNodeNumber = finalUtilitiesNodeNumber;
         }
 
-        public FinalUtilitiesNode(double[] utilities)
+        public FinalUtilitiesNode(double[] utilities, int finalUtilitiesNodeNumber)
         {
             AllScenarioUtilities = new List<double[]>() { utilities };
-            FinalUtilitiesNodeNumber = FinalUtilitiesNodesSoFar;
-            Interlocked.Increment(ref FinalUtilitiesNodesSoFar);
+            FinalUtilitiesNodeNumber = finalUtilitiesNodeNumber;
         }
 
         public override string ToString()

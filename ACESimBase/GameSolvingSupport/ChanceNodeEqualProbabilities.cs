@@ -10,6 +10,9 @@ namespace ACESim
     public class ChanceNodeEqualProbabilities : ChanceNode
     {
         public double EachProbability;
+        public ChanceNodeEqualProbabilities(int chanceNodeNumber) : base(chanceNodeNumber)
+        {
+        }
 
         public override double GetActionProbability(int action, int distributorChanceInputs = -1) => EachProbability;
 

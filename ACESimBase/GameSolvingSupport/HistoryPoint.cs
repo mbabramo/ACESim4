@@ -74,7 +74,7 @@ namespace ACESim
             {
                 if (GameProgress.GameComplete)
                 {
-                    GameState = new FinalUtilitiesNode(GameProgress.GetNonChancePlayerUtilities());
+                    GameState = new FinalUtilitiesNode(GameProgress.GetNonChancePlayerUtilities(), -1);
                     return GameState;
                 }
                 // Otherwise, when playing the actual game, we use the GameHistory object, so we'll set this object as the "cached" object even though it's cached.
@@ -282,7 +282,7 @@ namespace ACESim
                         true,
                         () =>
                         {
-                            FinalUtilitiesNode finalUtilitiesResult = new FinalUtilitiesNode(gameProgress.GetNonChancePlayerUtilities_IncludingAlternateScenarios(navigation.GameDefinition));
+                            FinalUtilitiesNode finalUtilitiesResult = new FinalUtilitiesNode(gameProgress.GetNonChancePlayerUtilities_IncludingAlternateScenarios(navigation.GameDefinition), navigation.FinalUtilitiesNodes.Count());
                             navigation.FinalUtilitiesNodes.Add(finalUtilitiesResult);
                             return finalUtilitiesResult;
                         }
@@ -349,15 +349,16 @@ namespace ACESim
                             if (playerInfo.PlayerIsChance)
                             {
                                 ChanceNode chanceNode;
+                                int chanceNodeNumber = navigation.ChanceNodes.Count();
                                 if (decision.UnevenChanceActions)
-                                    chanceNode = new ChanceNodeUnequalProbabilities()
+                                    chanceNode = new ChanceNodeUnequalProbabilities(chanceNodeNumber)
                                     {
                                         Decision = decision,
                                         DecisionIndex = informationSetHistory.DecisionIndex,
                                         Probabilities = navigation.GameDefinition.GetUnevenChanceActionProbabilities(decision.DecisionByteCode, gameProgress), // the probabilities depend on the current state of the game
                                     };
                                 else
-                                    chanceNode = new ChanceNodeEqualProbabilities()
+                                    chanceNode = new ChanceNodeEqualProbabilities(chanceNodeNumber)
                                     {
                                         Decision = decision,
                                         DecisionIndex = informationSetHistory.DecisionIndex,
@@ -371,7 +372,7 @@ namespace ACESim
                                 if (creatingInformationSet)
                                     throw new Exception("Internal exception. Lock failing.");
                                 creatingInformationSet = true;
-                                InformationSetNode nodeInfo = new InformationSetNode(decision, informationSetHistory.DecisionIndex, navigation.EvolutionSettings);
+                                InformationSetNode nodeInfo = new InformationSetNode(decision, informationSetHistory.DecisionIndex, navigation.EvolutionSettings, navigation.InformationSets.Count());
                                 navigation.InformationSets.Add(nodeInfo);
                                 creatingInformationSet = false;
                                 return nodeInfo;

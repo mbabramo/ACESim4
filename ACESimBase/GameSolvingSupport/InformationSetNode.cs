@@ -20,7 +20,6 @@ namespace ACESim
         public const double SmallestProbabilityRepresented = 1E-16; // We make this considerably greater than Double.Epsilon (but still very small), because (1) otherwise when we multiply the value by anything < 1, we get 0, and this makes it impossible to climb out of being a zero-probability action, (2) we want to be able to represent 1 - probability.
         public const double SmallestProbabilityInAverageStrategy = 1E-5; // This is greater still -- when calculating average strategies, we disregard very small probabilities (which presumably are on their way to zero)
 
-        public static int InformationSetsSoFar = 0;
         public int InformationSetNodeNumber; // could delete this once things are working, but may be useful in testing scenarios
         public int GetNodeNumber() => InformationSetNodeNumber;
         public Decision Decision;
@@ -78,12 +77,12 @@ namespace ACESim
 
         }
 
-        public InformationSetNode(Decision decision, byte decisionIndex, EvolutionSettings evolutionSettings)
+        public InformationSetNode(Decision decision, byte decisionIndex, EvolutionSettings evolutionSettings, int informationSetNodeNumber)
         {
             Decision = decision;
             DecisionIndex = decisionIndex;
             EvolutionSettings = evolutionSettings;
-            InformationSetNodeNumber = InformationSetsSoFar;
+            InformationSetNodeNumber = informationSetNodeNumber;
             if (EvolutionSettings.RecordPastValues)
             {
                 int totalValuesToRecord = EvolutionSettings.RecordPastValues_TargetNumberToRecord;
@@ -92,7 +91,6 @@ namespace ACESim
                 LastPastValueIndexRecorded = -1;
             }
             Initialize();
-            Interlocked.Increment(ref InformationSetsSoFar);
         }
 
         public void Reinitialize()
