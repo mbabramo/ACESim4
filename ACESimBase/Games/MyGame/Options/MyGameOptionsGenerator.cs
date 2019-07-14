@@ -20,6 +20,7 @@ namespace ACESim
             DamagesUncertainty_1BR,
             DamagesUncertainty_2BR,
             Shootout,
+            Shootout_AllRounds,
             SuperSimple,
             Fast,
             Faster,
@@ -43,6 +44,7 @@ namespace ACESim
             MyGameOptionSetChoices.DamagesUncertainty_2BR => DamagesUncertainty_2BR(),
             MyGameOptionSetChoices.SimpleWhereFSPFails => SimpleWhereFSPFails(),
             MyGameOptionSetChoices.Shootout => Shootout(),
+            MyGameOptionSetChoices.Shootout_AllRounds => Shootout_AllRounds(),
             MyGameOptionSetChoices.SuperSimple => SuperSimple(),
             MyGameOptionSetChoices.Faster => Faster(),
             MyGameOptionSetChoices.Fast => Fast(),
@@ -306,6 +308,17 @@ namespace ACESim
             options.ShootoutsApplyAfterAbandonment = false;
             options.ShootoutStrength = 1.0;
             options.ShootoutsAverageAllRounds = false;
+
+            return options;
+        }
+
+        public static MyGameOptions Shootout_AllRounds()
+        {
+            var options = BaseOptions();
+            options.ShootoutSettlements = true;
+            options.ShootoutsApplyAfterAbandonment = false;
+            options.ShootoutStrength = 1.0;
+            options.ShootoutsAverageAllRounds = true;
 
             return options;
         }

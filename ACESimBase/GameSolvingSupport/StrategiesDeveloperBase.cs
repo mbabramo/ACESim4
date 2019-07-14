@@ -64,7 +64,7 @@ namespace ACESim
             ReportCollection reportCollection = new ReportCollection();
             for (int s = 0; s < GameDefinition.NumScenariosToDevelop; s++)
             {
-                Console.WriteLine($@"Option set {optionSetName} Scenario {s} (total: {GameDefinition.NumScenariosToDevelop}");
+                Console.WriteLine($@"Option set {optionSetName} Scenario {s} (total: {GameDefinition.NumScenariosToDevelop})");
                 if (s > 0)
                     ReinitializeForScenario(s, IterationsForWarmupScenario() != null);
                 var result = await RunAlgorithm(optionSetName);
@@ -1049,6 +1049,8 @@ namespace ACESim
                     d.StaticTextColumns.Add(("Scenario", GameDefinition.GetNameForScenario()));
                 if (GameDefinition.OptionSetName != null && GameDefinition.OptionSetName != "")
                     d.StaticTextColumns.Add(("OptionSet", GameDefinition.OptionSetName));
+                if (BestResponseImprovementAdj != null)
+                    d.StaticTextColumns.Add(("Exploit", BestResponseImprovementAdjAvg.ToString()));
             }
             return simpleReportDefinitions;
         }
