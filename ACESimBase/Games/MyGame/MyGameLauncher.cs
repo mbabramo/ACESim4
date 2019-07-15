@@ -26,6 +26,31 @@ namespace ACESim
 
         public override GameOptions GetSingleGameOptions() => MyGameOptionsGenerator.GetMyGameOptions();
 
+        public List<(string optionSetName, GameOptions options)> GetOptionsSets_Simple()
+        {
+            List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
+
+            foreach (bool riskAverse in new bool[] { true })
+            {
+                foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("basecosts", 1.0), })
+                {
+                    optionSets.Add(GetAndTransform("both", name, MyGameOptionsGenerator.Usual, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
+                    optionSets.Add(GetAndTransform("sotrip", name, MyGameOptionsGenerator.Shootout_Triple, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
+                }
+            }
+
+            optionSets = optionSets.OrderBy(x => x.optionSetName).ToList();
+
+            foreach (var optionSet in optionSets)
+            {
+                MyGameOptions g = optionSet.options as MyGameOptions;
+                g.AllowAbandonAndDefaults = false;
+                g.SkipFileAndAnswerDecisions = true;
+            }
+
+            return optionSets;
+        }
+
 
         public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
         {
@@ -35,11 +60,12 @@ namespace ACESim
             {
                 foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("lowcosts", 1.0 / 3.0), ("basecosts", 1.0), ("highcosts", 3.0) })
                 {
-                    optionSets.Add(GetAndTransform("liab", name, MyGameOptionsGenerator.LiabilityUncertainty_2BR, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                    optionSets.Add(GetAndTransform("dam", name, MyGameOptionsGenerator.DamagesUncertainty_2BR, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                    optionSets.Add(GetAndTransform("both", name, MyGameOptionsGenerator.Usual, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
+                    //optionSets.Add(GetAndTransform("liab", name, MyGameOptionsGenerator.LiabilityUncertainty_2BR, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
+                    //optionSets.Add(GetAndTransform("dam", name, MyGameOptionsGenerator.DamagesUncertainty_2BR, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
+                    //optionSets.Add(GetAndTransform("both", name, MyGameOptionsGenerator.Usual, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
                     optionSets.Add(GetAndTransform("shootout", name, MyGameOptionsGenerator.Shootout, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                    optionSets.Add(GetAndTransform("liabtrip", name, MyGameOptionsGenerator.Shootout_Triple, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
+                    //optionSets.Add(GetAndTransform("soallrounds", name, MyGameOptionsGenerator.Shootout_AllRounds, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
+                    //optionSets.Add(GetAndTransform("sotrip", name, MyGameOptionsGenerator.Shootout_Triple, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
                 }
             }
 

@@ -215,6 +215,8 @@ namespace ACESim
                 new SimpleReportFilter("Litigated", (GameProgress gp) => MyGP(gp).PFiles && MyGP(gp).DAnswers),
                 new SimpleReportFilter("Settles", (GameProgress gp) => MyGP(gp).CaseSettles),
                 new SimpleReportFilter("Tried", (GameProgress gp) => MyGP(gp).TrialOccurs),
+                new SimpleReportFilter("PWins", (GameProgress gp) => MyGP(gp).PWinsAtTrial),
+                new SimpleReportFilter("DWins", (GameProgress gp) => MyGP(gp).DWinsAtTrial),
                 new SimpleReportFilter("Abandoned", (GameProgress gp) => MyGP(gp).PAbandons || MyGP(gp).DDefaults),
                 new SimpleReportFilter("OneRound", (GameProgress gp) => MyGP(gp).BargainingRoundsComplete == 1),
                 new SimpleReportFilter("TwoRounds", (GameProgress gp) => MyGP(gp).BargainingRoundsComplete == 2),

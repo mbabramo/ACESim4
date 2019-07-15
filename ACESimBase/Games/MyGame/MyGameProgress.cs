@@ -43,6 +43,7 @@ namespace ACESim
         public double? SettlementValue;
         public bool TrialOccurs;
         public bool PWinsAtTrial;
+        public bool DWinsAtTrial => TrialOccurs && !PWinsAtTrial;
         public double FalsePositiveExpenditures;
         public double FalseNegativeShortfall;
         public double TotalExpensesIncurred;

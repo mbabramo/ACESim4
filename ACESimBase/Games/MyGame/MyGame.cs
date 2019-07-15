@@ -286,36 +286,55 @@ namespace ACESim
 
             if (gameDefinition.Options.ShootoutSettlements)
             {
-                bool abandonedAfterLastRound = (pAbandons || dDefaults) && bargainingRoundsComplete == gameDefinition.Options.NumPotentialBargainingRounds;
-                bool applyShootout = outcome.TrialOccurs || (abandonedAfterLastRound && gameDefinition.Options.ShootoutSettlements);
+                if (gameDefinition.Options.IncludeAgreementToBargainDecisions)
+                    throw new NotSupportedException(); // shootout settlements require bargaining
+                bool abandoned = (pAbandons || dDefaults);
+                bool abandonedAfterLastRound = abandoned && bargainingRoundsComplete == gameDefinition.Options.NumPotentialBargainingRounds;
+                bool applyShootout = outcome.TrialOccurs || (abandonedAfterLastRound && gameDefinition.Options.ShootoutsApplyAfterAbandonment) || (abandoned && gameDefinition.Options.ShootoutsApplyAfterAbandonment && gameDefinition.Options.ShootoutsAverageAllRounds);
+                Br.eak.IfAdded("Case"); // DEBUG
                 if (applyShootout)
                 {
+                    double shootoutPrice;
                     if (gameDefinition.Options.BargainingRoundsSimultaneous)
                     {
-                        double offersMidpoint;
                         if (gameDefinition.Options.ShootoutsAverageAllRounds)
                         {
                             double averagePOffer = pOffers.Average();
                             double averageDOffer = dOffers.Average();
-                            offersMidpoint = (averagePOffer + averageDOffer) / 2.0;
+                            shootoutPrice = (averagePOffer + averageDOffer) / 2.0;
                         }
                         else
                         {
                             double lastPOffer = pOffers.Last();
                             double lastDOffer = dOffers.Last();
-                            offersMidpoint = (lastPOffer + lastDOffer) / 2.0;
+                            shootoutPrice = (lastPOffer + lastDOffer) / 2.0;
                         }
-                        double shootoutStrength = gameDefinition.Options.ShootoutStrength;
-                        double costToP = offersMidpoint * shootoutStrength;
-                        double extraDamages = (damagesAwarded ?? 0) * shootoutStrength;
-                        double netBenefitToP = extraDamages - costToP;
-                        outcome.PChangeWealth += netBenefitToP;
-                        outcome.DChangeWealth -= netBenefitToP;
                     }
                     else
                     {
-                        throw new NotImplementedException();
+                        List<double> applicableOffers = new List<double>();
+                        if (gameDefinition.Options.ShootoutsAverageAllRounds)
+                        {
+                            if (pOffers != null)
+                                applicableOffers.AddRange(pOffers);
+                            if (dOffers != null)
+                                applicableOffers.AddRange(dOffers);
+                        }
+                        else
+                        {
+                            if (pOffers != null && pOffers.Any())
+                                applicableOffers.Add(pOffers.Last());
+                            if (dOffers != null && dOffers.Any())
+                                applicableOffers.Add(dOffers.Last());
+                        }
+                        shootoutPrice = applicableOffers.Average();
                     }
+                    double shootoutStrength = gameDefinition.Options.ShootoutStrength;
+                    double costToP = shootoutPrice * gameDefinition.Options.DamagesMax * shootoutStrength;
+                    double extraDamages = (dDefaults ? gameDefinition.Options.DamagesMax : (damagesAwarded ?? 0)) * shootoutStrength;
+                    double netBenefitToP = extraDamages - costToP;
+                    outcome.PChangeWealth += netBenefitToP;
+                    outcome.DChangeWealth -= netBenefitToP;
                 }
             }
 

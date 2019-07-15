@@ -46,6 +46,15 @@ namespace ACESimTest
             Irrelevant // i.e., we're not getting to trial, so doesn't matter now
         }
 
+        public enum ShootoutSettings
+        {
+            None,
+            Regular,
+            ApplyAfterAbandonment,
+            AverageAllRounds,
+            ApplyAfterAbandonment_AverageAllRounds
+        }
+
         private const double PartyLiabilityNoise = 0.2, PartyDamagesNoise = 0.25, InitialWealth = 1_000_000, DamagesAlleged = 100_000, DamagesMinMaxRatio = 0.5, CostsMultiplier = 1.1, PFileCost = 3000, DAnswerCost = 2000, PTrialCosts = 4000, DTrialCosts = 6000, PerRoundBargainingCost = 1000, RegretAversion = 0.25, LoserPaysMultiple = 1.5, ValueOfChip = 8000;
         private const byte MaxChipsPerRound = 3;
         private const byte NumLiabilityStrengthPoints = 8;
@@ -77,7 +86,7 @@ namespace ACESimTest
             resolutionSet.Should().Be(resolutionSet2);
         }
 
-        private MyGameOptions GetGameOptions(bool allowDamagesVariation, bool allowAbandonAndDefaults, byte numBargainingRounds, MyGameBargainingRoundRecall bargainingRoundRecall, bool simultaneousBargainingRounds, bool simultaneousOffersUltimatelyRevealed, LoserPaysPolicy loserPaysPolicy, HowToSimulateBargainingFailure simulatingBargainingFailure, SideBetChallenges sideBetChallenges, RunningSideBetChallenges runningSideBetChallenges)
+        private MyGameOptions GetGameOptions(bool allowDamagesVariation, bool allowAbandonAndDefaults, byte numBargainingRounds, MyGameBargainingRoundRecall bargainingRoundRecall, bool simultaneousBargainingRounds, bool simultaneousOffersUltimatelyRevealed, LoserPaysPolicy loserPaysPolicy, HowToSimulateBargainingFailure simulatingBargainingFailure, SideBetChallenges sideBetChallenges, RunningSideBetChallenges runningSideBetChallenges, ShootoutSettings shootout)
         {
             var options = new MyGameOptions
             {
@@ -111,6 +120,10 @@ namespace ACESimTest
                 RegretAversion = RegretAversion,
                 MyGamePretrialDecisionGeneratorGenerator = sideBetChallenges == SideBetChallenges.NoChallengesAllowed ? null : new MyGameSideBet {DamagesMultipleForChallengedToPay = DamagesMultipleForChallengedToPay, DamagesMultipleForChallengerToPay = DamagesMultipleForChallengerToPay},
                 MyGameRunningSideBets = runningSideBetChallenges == RunningSideBetChallenges.None ? null : new MyGameRunningSideBets {MaxChipsPerRound = MaxChipsPerRound, ValueOfChip = ValueOfChip, TrialCostsMultiplierAsymptote = 1.0},
+                ShootoutSettlements = shootout != ShootoutSettings.None,
+                ShootoutsApplyAfterAbandonment = shootout == ShootoutSettings.ApplyAfterAbandonment || shootout == ShootoutSettings.ApplyAfterAbandonment_AverageAllRounds,
+                ShootoutStrength = 1.5,
+                ShootoutsAverageAllRounds = shootout == ShootoutSettings.AverageAllRounds,
                 LoserPays = loserPaysPolicy != LoserPaysPolicy.NoLoserPays,
                 LoserPaysMultiple = LoserPaysMultiple,
                 LoserPaysAfterAbandonment = loserPaysPolicy == LoserPaysPolicy.EvenAfterAbandonOrDefault,
@@ -562,15 +575,16 @@ namespace ACESimTest
                 foreach (var loserPaysPolicy in new[] {LoserPaysPolicy.NoLoserPays, LoserPaysPolicy.AfterTrialOnly, LoserPaysPolicy.EvenAfterAbandonOrDefault})
                 foreach (var simulatingBargainingFailure in new[] {HowToSimulateBargainingFailure.PRefusesToBargain, HowToSimulateBargainingFailure.DRefusesToBargain, HowToSimulateBargainingFailure.BothRefuseToBargain, HowToSimulateBargainingFailure.BothAgreeToBargain, HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain})
                 foreach (var runningSideBetChallenges in new[] {RunningSideBetChallenges.None, RunningSideBetChallenges.PChallenges2D1, RunningSideBetChallenges.DChallenges2P1})
+                foreach (var shootout in new[] { ShootoutSettings.None, ShootoutSettings.Regular, ShootoutSettings.AverageAllRounds, ShootoutSettings.ApplyAfterAbandonment, ShootoutSettings.ApplyAfterAbandonment_AverageAllRounds})
                 {
                     // must check CaseNumber within CaseGivenUpVariousActions, which runs various case scenarios
-                    bool incompatible = runningSideBetChallenges != RunningSideBetChallenges.None && simulatingBargainingFailure == HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain;
+                    bool incompatible = (runningSideBetChallenges != RunningSideBetChallenges.None && simulatingBargainingFailure == HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain) || (simulatingBargainingFailure != HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain && shootout != ShootoutSettings.None) || ((shootout == ShootoutSettings.AverageAllRounds || shootout == ShootoutSettings.ApplyAfterAbandonment_AverageAllRounds) && bargainingRoundRecall != MyGameBargainingRoundRecall.RememberAllBargainingRounds);
                     if (!incompatible)
-                        CaseGivenUpVariousActions(allowDamagesVariation, numPotentialBargainingRounds, bargainingRoundRecall, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, loserPaysPolicy, simulatingBargainingFailure, runningSideBetChallenges);
+                        CaseGivenUpVariousActions(allowDamagesVariation, numPotentialBargainingRounds, bargainingRoundRecall, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, loserPaysPolicy, simulatingBargainingFailure, runningSideBetChallenges, shootout);
                 }
         }
 
-        private void CaseGivenUpVariousActions(bool allowDamagesVariation, byte numPotentialBargainingRounds, MyGameBargainingRoundRecall bargainingRoundRecall, bool simultaneousBargainingRounds, bool simultaneousOffersUltimatelyRevealed, LoserPaysPolicy loserPaysPolicy, HowToSimulateBargainingFailure simulatingBargainingFailure, RunningSideBetChallenges runningSideBetChallenges)
+        private void CaseGivenUpVariousActions(bool allowDamagesVariation, byte numPotentialBargainingRounds, MyGameBargainingRoundRecall bargainingRoundRecall, bool simultaneousBargainingRounds, bool simultaneousOffersUltimatelyRevealed, LoserPaysPolicy loserPaysPolicy, HowToSimulateBargainingFailure simulatingBargainingFailure, RunningSideBetChallenges runningSideBetChallenges, ShootoutSettings shootout)
         {
             try
             {
@@ -585,7 +599,7 @@ namespace ACESimTest
                             continue; // not interested in this case
                         if ((!plaintiffGivesUp || !defendantGivesUp) && !plaintiffWinsIfBothGiveUp)
                             continue; // only need to test both values of plaintiff wins if both give up.
-                        if (CaseNumber == 99999999)
+                        if (CaseNumber == 116)
                         {
                             Br.eak.Add("Case");
                             GameProgressLogger.LoggingOn = true;
@@ -606,7 +620,8 @@ namespace ACESimTest
                             loserPaysPolicy, 
                             allowDamagesVariation,
                             simulatingBargainingFailure,
-                            runningSideBetChallenges);
+                            runningSideBetChallenges,
+                            shootout);
                         CaseNumber++;
                     }
             }
@@ -616,13 +631,13 @@ namespace ACESimTest
             }
         }
 
-        public void CaseGivenUp_SpecificSettingsAndActions(byte numPotentialBargainingRounds, byte? abandonmentInRound, MyGameBargainingRoundRecall bargainingRoundRecall, bool simultaneousBargainingRounds, bool simultaneousOffersUltimatelyRevealed, byte liabilityStrength, byte damagesStrength, byte? pReadyToAbandonRound, byte? dReadyToDefaultRound, byte mutualGiveUpResult, LoserPaysPolicy loserPaysPolicy, bool allowDamagesVariation, HowToSimulateBargainingFailure simulatingBargainingFailure, RunningSideBetChallenges runningSideBetChallenges)
+        public void CaseGivenUp_SpecificSettingsAndActions(byte numPotentialBargainingRounds, byte? abandonmentInRound, MyGameBargainingRoundRecall bargainingRoundRecall, bool simultaneousBargainingRounds, bool simultaneousOffersUltimatelyRevealed, byte liabilityStrength, byte damagesStrength, byte? pReadyToAbandonRound, byte? dReadyToDefaultRound, byte mutualGiveUpResult, LoserPaysPolicy loserPaysPolicy, bool allowDamagesVariation, HowToSimulateBargainingFailure simulatingBargainingFailure, RunningSideBetChallenges runningSideBetChallenges, ShootoutSettings shootout)
         {
             var bargainingRoundMoves = GetBargainingRoundMoves(simultaneousBargainingRounds,
                 abandonmentInRound ?? numPotentialBargainingRounds, false, simulatingBargainingFailure, out var offers);
             var bestOffers = GetBestOffers(offers);
             var numActualRounds = (byte) bargainingRoundMoves.Count();
-            var options = GetGameOptions(allowDamagesVariation, true, numPotentialBargainingRounds, bargainingRoundRecall, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, loserPaysPolicy, simulatingBargainingFailure, SideBetChallenges.NoChallengesAllowed, runningSideBetChallenges);
+            var options = GetGameOptions(allowDamagesVariation, true, numPotentialBargainingRounds, bargainingRoundRecall, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, loserPaysPolicy, simulatingBargainingFailure, SideBetChallenges.NoChallengesAllowed, runningSideBetChallenges, shootout);
             bool pFiles = pReadyToAbandonRound != 0;
             bool dAnswers = pFiles && dReadyToDefaultRound != 0;
             var actionsToPlay = GetPlayerActions(pFiles, dAnswers, liabilityStrength, PLiabilitySignal,
@@ -633,7 +648,7 @@ namespace ACESimTest
             bool pWins = pReadyToAbandonRound == null && dReadyToDefaultRound != null ||
                          pReadyToAbandonRound != null && dReadyToDefaultRound != null && pFiles && mutualGiveUpResult == 2;
 
-            double damagesAlleged = pWins ? options.DamagesMax : 0; // actually awarded irrelevant since we are testing settlement
+            double damagesImposed = pWins ? options.DamagesMax : 0;
 
             myGameProgress.GameComplete.Should().BeTrue();
             myGameProgress.CaseSettles.Should().BeFalse();
@@ -670,9 +685,8 @@ namespace ACESimTest
                 dExpenses = 0;
             }
 
-
-            double pFinalWealthExpected = options.PInitialWealth + damagesAlleged - pExpenses;
-            double dFinalWealthExpected = options.DInitialWealth - damagesAlleged - dExpenses;
+            double pFinalWealthExpected = options.PInitialWealth + damagesImposed - pExpenses;
+            double dFinalWealthExpected = options.DInitialWealth - damagesImposed - dExpenses;
 
             if (pFiles && dAnswers && runningSideBetChallenges != RunningSideBetChallenges.None)
             {
@@ -693,6 +707,12 @@ namespace ACESimTest
                 pFinalWealthExpected += transferToP;
                 dFinalWealthExpected -= transferToP;
             }
+
+            double shootoutsTransferToP = 0;
+            if (options.ShootoutsApplyAfterAbandonment && (options.ShootoutsAverageAllRounds || abandonmentInRound == numPotentialBargainingRounds))
+                shootoutsTransferToP = GetShootoutTransferAmount(options, offers, damagesImposed);
+            pFinalWealthExpected += shootoutsTransferToP;
+            dFinalWealthExpected -= shootoutsTransferToP;
 
             CheckFinalWelfare(myGameProgress, pFinalWealthExpected, dFinalWealthExpected, bestOffers);
 
@@ -775,7 +795,7 @@ namespace ACESimTest
                 settlementInRound ?? numPotentialBargainingRounds, settlementInRound != null, simulatingBargainingFailure, out var offers);
             var bestOffers = GetBestOffers(offers);
             var numActualRounds = (byte) bargainingRoundMoves.Count();
-            var options = GetGameOptions(allowDamagesVariation, allowAbandonAndDefault, numPotentialBargainingRounds, bargainingRoundRecall, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, loserPaysPolicy, simulatingBargainingFailure, SideBetChallenges.NoChallengesAllowed, runningSideBetChallenges);
+            var options = GetGameOptions(allowDamagesVariation, allowAbandonAndDefault, numPotentialBargainingRounds, bargainingRoundRecall, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, loserPaysPolicy, simulatingBargainingFailure, SideBetChallenges.NoChallengesAllowed, runningSideBetChallenges, ShootoutSettings.None);
             var actionsToPlay = GetPlayerActions(true, true, LiabilityStrength, PLiabilitySignal,
                 DLiabilitySignal, DamagesStrength, PDamagesSignal, DDamagesSignal, simulatingBargainingFailure, bargainingRoundMoves: bargainingRoundMoves, simultaneousBargainingRounds: simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed: simultaneousOffersUltimatelyRevealed, sideBetChallenges: SideBetChallenges.NoChallengesAllowed, runningSideBetChallenges: runningSideBetChallenges);
             var myGameProgress = MyGameLauncher.PlayMyGameOnce(options, actionsToPlay);
@@ -816,9 +836,10 @@ namespace ACESimTest
                 foreach (var simulatingBargainingFailure in new[] {HowToSimulateBargainingFailure.PRefusesToBargain, HowToSimulateBargainingFailure.DRefusesToBargain, HowToSimulateBargainingFailure.BothRefuseToBargain, HowToSimulateBargainingFailure.BothAgreeToBargain, HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain})
                 foreach (var sideBetChallenges in new[] {SideBetChallenges.NoChallengesAllowed, SideBetChallenges.BothChallenge, SideBetChallenges.NoOneChallenges, SideBetChallenges.PChallenges, SideBetChallenges.DChallenges})
                 foreach (var runningSideBetChallenges in new[] {RunningSideBetChallenges.None, RunningSideBetChallenges.PChallenges2D1, RunningSideBetChallenges.DChallenges2P1})
+                foreach (var shootout in new[] { ShootoutSettings.None, ShootoutSettings.Regular, ShootoutSettings.AverageAllRounds, ShootoutSettings.ApplyAfterAbandonment, ShootoutSettings.ApplyAfterAbandonment_AverageAllRounds })
                 {
                     var skipThis = false;
-                    if (CaseNumber == 903)
+                    if (CaseNumber == int.MaxValue)
                     {
                         Br.eak.Add("Case");
                         GameProgressLogger.LoggingOn = true;
@@ -833,11 +854,16 @@ namespace ACESimTest
                         GameProgressLogger.DetailedLogging = false;
                         GameProgressLogger.OutputLogMessages = false;
                     }
-                    bool incompatible = runningSideBetChallenges != RunningSideBetChallenges.None && (!allowAbandonAndDefault || simulatingBargainingFailure == HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain);
+                    bool incompatible = (runningSideBetChallenges != RunningSideBetChallenges.None && (!allowAbandonAndDefault || simulatingBargainingFailure == HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain))
+                                                                    ||
+                          (simulatingBargainingFailure != HowToSimulateBargainingFailure.BothHaveNoChoiceAndMustBargain && shootout != ShootoutSettings.None) 
+                          ||
+                          ((shootout == ShootoutSettings.AverageAllRounds || shootout == ShootoutSettings.ApplyAfterAbandonment_AverageAllRounds) && bargainingRoundRecall != MyGameBargainingRoundRecall.RememberAllBargainingRounds)
+                          ;
                     if (incompatible)
                         skipThis = true;
                     if (!skipThis)
-                        CaseTried_Helper(allowDamagesVariation, allowAbandonAndDefault, bargainingRoundRecall, numBargainingRounds, plaintiffWins, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, loserPaysPolicy, simulatingBargainingFailure, sideBetChallenges, runningSideBetChallenges);
+                        CaseTried_Helper(allowDamagesVariation, allowAbandonAndDefault, bargainingRoundRecall, numBargainingRounds, plaintiffWins, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, loserPaysPolicy, simulatingBargainingFailure, sideBetChallenges, runningSideBetChallenges, shootout);
                     CaseNumber++;
                 }
             }
@@ -847,12 +873,12 @@ namespace ACESimTest
             }
         }
 
-        private void CaseTried_Helper(bool allowDamagesVariation, bool allowAbandonAndDefaults, MyGameBargainingRoundRecall bargainingRoundRecall, byte numBargainingRounds, bool plaintiffWins, bool simultaneousBargainingRounds, bool simultaneousOffersUltimatelyRevealed, LoserPaysPolicy loserPaysPolicy, HowToSimulateBargainingFailure simulatingBargainingFailure, SideBetChallenges sideBetChallenges, RunningSideBetChallenges runningSideBetChallenges)
+        private void CaseTried_Helper(bool allowDamagesVariation, bool allowAbandonAndDefaults, MyGameBargainingRoundRecall bargainingRoundRecall, byte numBargainingRounds, bool plaintiffWins, bool simultaneousBargainingRounds, bool simultaneousOffersUltimatelyRevealed, LoserPaysPolicy loserPaysPolicy, HowToSimulateBargainingFailure simulatingBargainingFailure, SideBetChallenges sideBetChallenges, RunningSideBetChallenges runningSideBetChallenges, ShootoutSettings shootout)
         {
-            var options = GetGameOptions(allowDamagesVariation, allowAbandonAndDefaults, numBargainingRounds, bargainingRoundRecall, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, loserPaysPolicy, simulatingBargainingFailure, sideBetChallenges, runningSideBetChallenges);
+            var options = GetGameOptions(allowDamagesVariation, allowAbandonAndDefaults, numBargainingRounds, bargainingRoundRecall, simultaneousBargainingRounds, simultaneousOffersUltimatelyRevealed, loserPaysPolicy, simulatingBargainingFailure, sideBetChallenges, runningSideBetChallenges, shootout);
             var bargainingMoves = GetBargainingRoundMoves(simultaneousBargainingRounds, numBargainingRounds, false, simulatingBargainingFailure, out var offers);
             var bestOffers = GetBestOffers(offers);
-            byte courtLiabilityResult = plaintiffWins ? (byte) 2 : (byte) 1;
+            byte courtLiabilityResult = plaintiffWins ? (byte)2 : (byte)1;
             byte courtDamagesResultIfAllowVariation = CDamagesSignal;
             double damagesIfAwarded = DamagesAlleged;
             if (allowDamagesVariation)
@@ -888,13 +914,16 @@ namespace ACESimTest
             if (runningSideBetChallenges != RunningSideBetChallenges.None)
             {
                 // add the total chips bet so far
-                var chipsBet = (byte) (2 * numBargainingRounds);
+                var chipsBet = (byte)(2 * numBargainingRounds);
                 double totalBet = chipsBet * ValueOfChip;
                 runningSideBetTransferFromP = plaintiffWins ? 0 - totalBet : totalBet;
             }
 
-            double pFinalWealthExpected = options.PInitialWealth - pExpenses - sideBetTransferFromP - runningSideBetTransferFromP;
-            double dFinalWealthExpected = options.DInitialWealth - dExpenses + sideBetTransferFromP + runningSideBetTransferFromP;
+            double resolutionForShootout = plaintiffWins ? damagesIfAwarded : 0;
+            double shootoutsTransferToP = GetShootoutTransferAmount(options, offers, resolutionForShootout);
+
+            double pFinalWealthExpected = options.PInitialWealth - pExpenses - sideBetTransferFromP - runningSideBetTransferFromP + shootoutsTransferToP;
+            double dFinalWealthExpected = options.DInitialWealth - dExpenses + sideBetTransferFromP + runningSideBetTransferFromP - shootoutsTransferToP;
             if (plaintiffWins)
             {
                 pFinalWealthExpected += damagesIfAwarded;
@@ -910,6 +939,38 @@ namespace ACESimTest
             pInformationSet.Should().Be(expectedPartyInformationSets.pInformationSet);
             dInformationSet.Should().Be(expectedPartyInformationSets.dInformationSet);
             resolutionSet.Should().Be(expectedResolutionSet);
+        }
+
+        private static double GetShootoutTransferAmount(MyGameOptions options, List<(byte offerMove, byte bargainingRoundNumber, bool isOfferToP)> offers, double resolutionForShootout)
+        {
+            double shootoutsTransferToP = 0;
+            if (options.ShootoutSettlements && offers != null && offers.Any())
+            {
+                List<(byte offerMove, byte bargainingRoundNumber, bool isOfferToP)> applicableOffers;
+                List<double> applicablePOffers, applicableDOffers;
+                if (!options.ShootoutsAverageAllRounds)
+                {
+                    byte lastRound = offers.Max(x => x.bargainingRoundNumber);
+                    applicableOffers = offers.Where(x => x.bargainingRoundNumber == lastRound).ToList();
+                }
+                else
+                    applicableOffers = offers;
+                applicablePOffers = applicableOffers.Where(x => !x.isOfferToP).Select(x => EquallySpaced.GetLocationOfEquallySpacedPoint(x.offerMove - 1, NumOffers, true)).ToList();
+                applicableDOffers = applicableOffers.Where(x => x.isOfferToP).Select(x => EquallySpaced.GetLocationOfEquallySpacedPoint(x.offerMove - 1, NumOffers, true)).ToList();
+                double pricePoint;
+                if (options.BargainingRoundsSimultaneous)
+                    pricePoint = (applicablePOffers.Average() + applicableDOffers.Average()) / 2.0;
+                else
+                {
+                    List<double> applicableOffers2 = new List<double>();
+                    applicableOffers2.AddRange(applicablePOffers);
+                    applicableOffers2.AddRange(applicableDOffers);
+                    pricePoint = applicableOffers2.Average();
+                }
+                shootoutsTransferToP = (resolutionForShootout - pricePoint * options.DamagesMax) * options.ShootoutStrength;
+            }
+
+            return shootoutsTransferToP;
         }
 
         private static void CheckFinalWelfare(MyGameProgress myGameProgress, double pFinalWealthExpected, double dFinalWealthExpected, ValueTuple<double?, double?> bestOffers)
