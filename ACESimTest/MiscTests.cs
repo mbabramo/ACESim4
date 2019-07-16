@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using ACESim;
 using ACESim.Util;
+using ACESimBase.Util;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -109,6 +110,24 @@ namespace ACESimTest
             double average = vals.Average();
             lowerBound.Should().BeLessThan(average);
             upperBound.Should().BeGreaterThan(average);
+        }
+
+        [TestMethod]
+        public void MergeCSVWorks()
+        {
+            string csv1 = @"""V1"",""V2"",""V3""
+""A1"",""1.2"",""3.4""
+";
+            string csv2 = @"""V1"",""V3"",""U4"",""U5""
+""A1"",""5.6"",""V4a1"",""V5a1""
+""A2"",,""V4a2"",""V5a2""
+";
+            string expected = @"""V1"",""V2"",""V3"",""U4"",""U5""
+""A1"",""1.2"",""5.6"",""V4a1"",""V5a1""
+""A2"","""","""",""V4a2"",""V5a2""
+";
+            string result = DynamicUtilities.MergeCSV(csv1, csv2, new List<string>() { "V1" });
+            result.Should().Be(expected);
         }
 
         [TestMethod]

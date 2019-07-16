@@ -165,37 +165,37 @@ namespace ACESim
                 byte bargainingRoundNum = b; // needed for closure -- otherwise b below will always be max value.
                 
                 colItems.Add(
-                    new SimpleReportColumnFilter($"Settles{b}",
+                    new SimpleReportColumnFilter($"SettlesBR{b}",
                         (GameProgress gp) => MyGP(gp).SettlesInRound(bargainingRoundNum), SimpleReportColumnFilterOptions.ProportionOfRow)
                 );
 
                 //colItems.Add(
-                //    new SimpleReportColumnFilter($"DoesntSettle{b}",
+                //    new SimpleReportColumnFilter($"DoesntSettleBR{b}",
                 //        (GameProgress gp) => MyGP(gp).DoesntSettleInRound(bargainingRoundNum), SimpleReportColumnFilterOptions.ProportionOfRow)
                 //);
 
                 colItems.Add(
-                    new SimpleReportColumnFilter($"PAbandons{b}",
+                    new SimpleReportColumnFilter($"PAbandonsBR{b}",
                         (GameProgress gp) => (MyGP(gp).PAbandonsInRound(bargainingRoundNum)), SimpleReportColumnFilterOptions.ProportionOfRow)
                 );
                 //colItems.Add(
-                //    new SimpleReportColumnFilter($"PDoesntAbandon{b}",
+                //    new SimpleReportColumnFilter($"PDoesntAbandonBR{b}",
                 //        (GameProgress gp) => (MyGP(gp).PDoesntAbandonInRound(bargainingRoundNum)), SimpleReportColumnFilterOptions.ProportionOfRow)
                 //);
                 colItems.Add(
-                    new SimpleReportColumnFilter($"DDefaults{b}",
+                    new SimpleReportColumnFilter($"DDefaultsBR{b}",
                         (GameProgress gp) => (MyGP(gp).DDefaultsInRound(bargainingRoundNum)), SimpleReportColumnFilterOptions.ProportionOfRow)
                 );
                 //colItems.Add(
-                //    new SimpleReportColumnFilter($"DDoesntDefault{b}",
+                //    new SimpleReportColumnFilter($"DDoesntDefaultBR{b}",
                 //        (GameProgress gp) => (MyGP(gp).DDoesntDefaultInRound(bargainingRoundNum)), SimpleReportColumnFilterOptions.ProportionOfRow)
                 //);
                 //colItems.Add(
-                //    new SimpleReportColumnFilter($"POrDQuits{b}",
+                //    new SimpleReportColumnFilter($"POrDQuitsBR{b}",
                 //        (GameProgress gp) => (MyGP(gp).PAbandonsInRound(bargainingRoundNum)) || (MyGP(gp).DDefaultsInRound(bargainingRoundNum)), SimpleReportColumnFilterOptions.ProportionOfRow)
                 //);
 
-                
+
             }
 
             colItems.Add(
@@ -324,13 +324,6 @@ namespace ACESim
                 new SimpleReportFilter($"P Wins",
                     (GameProgress gp) => MyGP(gp).TrialOccurs && MyGP(gp).PWinsAtTrial)
             );
-
-            rows.Add(new SimpleReportFilter(
-                    $"DSignal Liab 3 Dam 3 Answers",
-                    (GameProgress gp) => MyGP(gp).DLiabilitySignalDiscrete == 3 && MyGP(gp).DDamagesSignalDiscrete == 3 && MyGP(gp).DAnswers));
-            rows.Add(new SimpleReportFilter(
-                                $"DSignal Liab 3 Dam 3 Noans",
-                                (GameProgress gp) => MyGP(gp).DLiabilitySignalDiscrete == 3 && MyGP(gp).DDamagesSignalDiscrete == 3 && !MyGP(gp).DAnswers));
 
             return new SimpleReportDefinition(
                 "MyGameReport",

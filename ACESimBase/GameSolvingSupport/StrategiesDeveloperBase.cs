@@ -736,7 +736,7 @@ namespace ACESim
         public double[] AverageStrategyUtilities;
         public double[] BestResponseImprovement;
         public double[] LastBestResponseImprovement;
-        public double[] BestResponseImprovementAdj => ScoreRangeExists ? BestResponseImprovement : BestResponseImprovement.Zip(ScoreRange, (bri, sr) => bri / sr).ToArray();
+        public double[] BestResponseImprovementAdj => ScoreRangeExists && BestResponseImprovement != null ? BestResponseImprovement.Zip(ScoreRange, (bri, sr) => bri / sr).ToArray() : BestResponseImprovement;
         public double BestResponseImprovementAdjAvg => BestResponseImprovementAdj.Average();
 
         long BestResponseCalculationTime;

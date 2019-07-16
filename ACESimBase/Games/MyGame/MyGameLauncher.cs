@@ -55,10 +55,28 @@ namespace ACESim
         public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
         {
             List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
+            AddShootoutMainPermutations(optionSets); // DEBUG
 
+            optionSets = optionSets.OrderBy(x => x.optionSetName).ToList();
+
+            return optionSets;
+        }
+
+        private void AddShootoutMainPermutations(List<(string optionSetName, GameOptions options)> optionSets)
+        {
+            bool riskAverse = false;
+            foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("basecosts", 1.0) })
+            {
+                optionSets.Add(GetAndTransform("shootout", name, MyGameOptionsGenerator.Shootout, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
+                optionSets.Add(GetAndTransform("sotrip", name, MyGameOptionsGenerator.Shootout_Triple, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
+            }
+        }
+
+        private void AddShootoutPermutations(List<(string optionSetName, GameOptions options)> optionSets)
+        {
             foreach (bool riskAverse in new bool[] { false, true })
             {
-                foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("lowcosts", 1.0 / 3.0), ("basecosts", 1.0),  ("highcosts", 3.0) })
+                foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("lowcosts", 1.0 / 3.0), ("basecosts", 1.0), ("highcosts", 3.0) })
                 {
                     optionSets.Add(GetAndTransform("liab", name, MyGameOptionsGenerator.LiabilityUncertainty_2BR, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
                     optionSets.Add(GetAndTransform("dam", name, MyGameOptionsGenerator.DamagesUncertainty_2BR, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
@@ -70,10 +88,6 @@ namespace ACESim
                     optionSets.Add(GetAndTransform("sotrip", name, MyGameOptionsGenerator.Shootout_Triple, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
                 }
             }
-
-            optionSets = optionSets.OrderBy(x => x.optionSetName).ToList();
-
-            return optionSets;
         }
 
         (string optionSetName, MyGameOptions options) GetAndTransform(string baseName, string suffix, Func<MyGameOptions> baseOptionsFn, Action<MyGameOptions> transform, bool riskAverse)
