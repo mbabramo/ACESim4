@@ -22,6 +22,8 @@ namespace ACESim
             Shootout,
             Shootout_Triple,
             Shootout_AllRounds,
+            Shootout_IncludingAbandoment,
+            Shootout_AllRoundsIncludingAbandoment,
             SuperSimple,
             Fast,
             Faster,
@@ -47,6 +49,8 @@ namespace ACESim
             MyGameOptionSetChoices.Shootout => Shootout(),
             MyGameOptionSetChoices.Shootout_Triple => Shootout_Triple(),
             MyGameOptionSetChoices.Shootout_AllRounds => Shootout_AllRounds(),
+            MyGameOptionSetChoices.Shootout_IncludingAbandoment => Shootout_IncludingAbandoment(),
+            MyGameOptionSetChoices.Shootout_AllRoundsIncludingAbandoment => Shootout_AllRoundsIncludingAbandoment(),
             MyGameOptionSetChoices.SuperSimple => SuperSimple(),
             MyGameOptionSetChoices.Faster => Faster(),
             MyGameOptionSetChoices.Fast => Fast(),
@@ -330,6 +334,28 @@ namespace ACESim
             var options = BaseOptions();
             options.ShootoutSettlements = true;
             options.ShootoutsApplyAfterAbandonment = false;
+            options.ShootoutStrength = 1.0;
+            options.ShootoutsAverageAllRounds = true;
+
+            return options;
+        }
+
+        public static MyGameOptions Shootout_IncludingAbandoment()
+        {
+            var options = BaseOptions();
+            options.ShootoutSettlements = true;
+            options.ShootoutsApplyAfterAbandonment = true;
+            options.ShootoutStrength = 1.0;
+            options.ShootoutsAverageAllRounds = false;
+
+            return options;
+        }
+
+        public static MyGameOptions Shootout_AllRoundsIncludingAbandoment()
+        {
+            var options = BaseOptions();
+            options.ShootoutSettlements = true;
+            options.ShootoutsApplyAfterAbandonment = true;
             options.ShootoutStrength = 1.0;
             options.ShootoutsAverageAllRounds = true;
 

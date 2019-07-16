@@ -19,7 +19,7 @@ namespace ACESim
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching;
 
-        public const int VanillaIterations = 2_000; 
+        public const int VanillaIterations = 3_000; 
         public const int VanillaReportEveryNIterations = VanillaIterations;
         public const int VanillaBestResponseEveryMIterations = 500;
         public const bool CalculatePerturbedBestResponseRefinement = true;
@@ -28,7 +28,7 @@ namespace ACESim
         public const bool RecordPastValues = false; 
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever; 
         public const bool UseRandomPathsForReporting = true; 
-        public const int SummaryTableRandomPathsIterations = 25_000;
+        public const int SummaryTableRandomPathsIterations = 10_000;
         public const int ProbingIterations = 20_000_000;
 
         public const bool UseRegretAndStrategyDiscounting = false;
@@ -42,7 +42,7 @@ namespace ACESim
         public bool ParallelizeIndividualExecutions = true; // only if LaunchSingleOptionsSetOnly or !LocalDistributedProcessing
 
         public string OverrideDateTimeString = null; // "2017-10-11 10:18"; // use this if termination finished unexpectedly
-        public string MasterReportNameForDistributedProcessing = "AMONLY";
+        public string MasterReportNameForDistributedProcessing = "R";
 
         const int EffectivelyNever = EvolutionSettings.EffectivelyNever;
 
@@ -269,7 +269,6 @@ namespace ACESim
             //    Debug.WriteLine(result);
         }
 
-
         private object LocalOptionSetsLock = new object();
 
         public async Task<ReportCollection> ProcessAllOptionSetsLocally()
@@ -283,6 +282,7 @@ namespace ACESim
             async Task SingleOptionSetAction(long index)
             {
                 var optionSet = optionSets[(int)index];
+                TabbedText.WriteLine($"Option set {index} of {optionSets.Count()}: {optionSet.optionSetName}");
                 var optionSetResults = await ProcessSingleOptionSet(masterReportName, (int)index, true);
                 lock (LocalOptionSetsLock)
                     results.Add(optionSetResults);
