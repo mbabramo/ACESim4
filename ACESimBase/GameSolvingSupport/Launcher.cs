@@ -72,7 +72,7 @@ namespace ACESim
         public async Task<ReportCollection> Launch_Single()
         {
             var options = GetSingleGameOptions();
-            ReportCollection reportCollection = await ProcessSingleOptionSet(options, "Report", "Single", true, false);
+            ReportCollection reportCollection = await ProcessSingleOptionSetLocally(options, "Report", "Single", true, false);
             return reportCollection;
         }
 
@@ -212,12 +212,13 @@ namespace ACESim
                 IndividualTask theCompletedTask = taskCompleted; // avoid problem with closure
                 var blockBlob = AzureBlob.GetLeasedBlockBlob("results", masterReportName + " Coordinator", true);
                 bool readyForAnotherTask = !cancellationToken.IsCancellationRequested;
+                // We are serializing the TaskCoordinator to synchronize information. Thus, we need to update the task coordinator to report that this job is complete. 
                 AzureBlob.TransformSharedBlobObject(blockBlob.blob, blockBlob.lease, o =>
                 {
                     TaskCoordinator taskCoordinator = (TaskCoordinator)o;
                     if (taskCoordinator == null)
                         throw new NotImplementedException();
-                    Debug.WriteLine(taskCoordinator);
+                    //Debug.WriteLine(taskCoordinator);
                     taskCoordinator.Update(theCompletedTask, readyForAnotherTask, out taskToDo);
                     TabbedText.WriteLine($"Percentage Complete {100.0 * taskCoordinator.ProportionComplete}%");
                     if (taskToDo != null)
@@ -264,7 +265,7 @@ namespace ACESim
                 new TaskStage(Enumerable.Range(0, 1).Select(x => new RepeatedTask("CombineOptionSets", x, 1)).ToList()),
             });
             var blockBlob = AzureBlob.GetLeasedBlockBlob("results", masterReportName + " Coordinator", true);
-            var result = AzureBlob.TransformSharedBlobObject(blockBlob.blob, blockBlob.lease, o => o == null ? tasks : null); // return null if the object is already created
+            var result = AzureBlob.TransformSharedBlobObject(blockBlob.blob, blockBlob.lease, o => o == null ? tasks : null); // return null if the task coordinator object is already created
             //if (result != null)
             //    Debug.WriteLine(result);
         }
@@ -303,38 +304,30 @@ namespace ACESim
             bool includeFirstLine = optionSetIndex == 0;
             var optionSet = GetOptionsSets()[optionSetIndex];
             var options = optionSet.options;
-            return await ProcessSingleOptionSet(options, masterReportName, optionSet.optionSetName, includeFirstLine, addOptionSetColumns);
+            return await ProcessSingleOptionSetLocally(options, masterReportName, optionSet.optionSetName, includeFirstLine, addOptionSetColumns);
         }
 
-        public async Task<ReportCollection> ProcessSingleOptionSet(GameOptions options, string masterReportName, string optionSetName, bool includeFirstLine, bool addOptionSetColumns)
+        public async Task<ReportCollection> ProcessSingleOptionSetLocally(GameOptions options, string masterReportName, string optionSetName, bool includeFirstLine, bool addOptionSetColumns)
         {
-            string masterReportNamePlusOptionSet = $"{masterReportName} {optionSetName}";
             var developer = GetInitializedDeveloper(options, optionSetName);
             developer.EvolutionSettings.GameNumber = StartGameNumber;
             ReportCollection result = new ReportCollection();
-            List<string> combinedReports = new List<string>();
             for (int i = 0; i < NumRepetitions; i++)
             {
-                result = await GetSingleRepetitionReportAndSave(masterReportName, options, optionSetName, i, addOptionSetColumns, developer);
-                combinedReports.Add(result.standardReport);
-                // AzureBlob.SerializeObject("results", optionSetName + " CRM", true, developer);
+                var repetitionReport = await GetSingleRepetitionReportAndSave(masterReportName, options, optionSetName, i, addOptionSetColumns, developer);
+                result.Add(repetitionReport);
             }
-            if (AzureEnabled)
-                return new ReportCollection(CombineResultsOfRepetitionsOfOptionSets(masterReportName, optionSetName, includeFirstLine, combinedReports), result.csvReports); 
-            else
-                return result;
+            return result;
         }
-
 
         public async Task<ReportCollection> GetSingleRepetitionReportAndSave(string masterReportName, int optionSetIndex, int repetition, bool addOptionSetColumns, IStrategiesDeveloper developer)
         {
-            bool includeFirstLine = optionSetIndex == 0;
             List<(string optionSetName, GameOptions options)> optionSets = GetOptionsSets();
             var options = optionSets[optionSetIndex].options;
-            int numRepetitionsPerOptionSet = NumRepetitions;
             var result = await GetSingleRepetitionReportAndSave(masterReportName, options, optionSets[optionSetIndex].optionSetName, repetition, addOptionSetColumns, developer);
             return result;
         }
+
         public async Task<ReportCollection> GetSingleRepetitionReportAndSave(string masterReportName, GameOptions options, string optionSetName, int repetition, bool addOptionSetColumns, IStrategiesDeveloper developer)
         {
             string masterReportNamePlusOptionSet = $"{masterReportName} {optionSetName}";
@@ -342,6 +335,7 @@ namespace ACESim
                 throw new Exception("Developer must be set"); // should call GetDeveloper(options) before calling this (note: earlier version passed developer as ref so that it could be set here)
             var result = await GetSingleRepetitionReport(optionSetName, repetition, addOptionSetColumns, developer);
             string azureBlobInterimReportName = masterReportNamePlusOptionSet + $" {repetition}";
+            debug; // should write all csv reports
             if (AzureEnabled)
                 AzureBlob.WriteTextToBlob("results", azureBlobInterimReportName, true, result.standardReport); // we write to a blob in case this times out and also to allow individual report to be taken out
             return result;
@@ -415,7 +409,7 @@ namespace ACESim
                 }
             }
             string combinedRepetitionsReport = String.Join("", combinedReports);
-            string mergedReport = SimpleReportMerging.GetMergedReports(combinedRepetitionsReport, optionSetName, includeFirstLine);
+            string mergedReport = SimpleReportMerging.GetDistributionReports(combinedRepetitionsReport, optionSetName, includeFirstLine);
             AzureBlob.WriteTextToBlob("results", masterReportNamePlusOptionSet, true, mergedReport);
             return mergedReport;
         }
@@ -495,7 +489,7 @@ namespace ACESim
                 combinedReports[i] = tasks[i].Result;
             string combinedRepetitionsReport = String.Join("", combinedReports);
 
-            string mergedReport = SimpleReportMerging.GetMergedReports(combinedRepetitionsReport, optionSetName, includeFirstLine);
+            string mergedReport = SimpleReportMerging.GetDistributionReports(combinedRepetitionsReport, optionSetName, includeFirstLine);
             return mergedReport;
         }
 
