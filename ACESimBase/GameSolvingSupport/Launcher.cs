@@ -335,7 +335,6 @@ namespace ACESim
                 throw new Exception("Developer must be set"); // should call GetDeveloper(options) before calling this (note: earlier version passed developer as ref so that it could be set here)
             var result = await GetSingleRepetitionReport(optionSetName, repetition, addOptionSetColumns, developer);
             string azureBlobInterimReportName = masterReportNamePlusOptionSet + $" {repetition}";
-            debug; // should write all csv reports
             if (AzureEnabled)
                 AzureBlob.WriteTextToBlob("results", azureBlobInterimReportName, true, result.standardReport); // we write to a blob in case this times out and also to allow individual report to be taken out
             return result;

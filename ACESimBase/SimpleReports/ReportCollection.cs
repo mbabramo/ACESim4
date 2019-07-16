@@ -1,6 +1,8 @@
-﻿using System;
+﻿using ACESimBase.Util;
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 
@@ -10,6 +12,8 @@ namespace ACESim
     {
         public string standardReport;
         public List<string> csvReports;
+        public bool MultipleCSV => csvReports.Count() > 1;
+        public List<string> IDColumnNames = new List<string>() { "OptionSet", "Filter", "Repetition", "Simulation" };
 
         public ReportCollection()
         {
@@ -32,27 +36,52 @@ namespace ACESim
         public void Add(string standard, string csv)
         {
             standardReport += standard;
-            AddCSV(csv);
+            AddCSVIntoExistingMatchOrAsSeparateReport(csv);
         }
 
-        public void Add(ReportCollection other)
+        public void Add(ReportCollection other, bool integrateCSVReportsIfPossible = true)
         {
             standardReport += other.standardReport;
-            foreach (string csv in other.csvReports)
-                AddCSV(csv);
-            SaveLatest();
+            if (integrateCSVReportsIfPossible && !MultipleCSV && !other.MultipleCSV)
+            {
+                string thisReport = csvReports.SingleOrDefault();
+                string otherReport = other.csvReports.SingleOrDefault();
+                if (thisReport == null || otherReport == null)
+                {
+                    if (thisReport != null || otherReport != null)
+                        csvReports = new List<string>() { (thisReport ?? otherReport) };
+                }
+                else
+                {
+                    csvReports = new List<string>() { DynamicUtilities.MergeCSV(thisReport, otherReport, IDColumnNames) };
+                }
+            }
+            else
+            {
+                foreach (string csv in other.csvReports)
+                    AddCSVIntoExistingMatchOrAsSeparateReport(csv);
+            }
+            SaveLatestLocally();
         }
 
-        public void SaveLatest()
+        public void SaveLatestLocally()
         {
             DirectoryInfo folder = FolderFinder.GetFolderToWriteTo("ReportResults");
             TextFileCreate.CreateTextFile(Path.Combine(folder.FullName, "standardreport"), standardReport);
-            int i = 0;
-            foreach (string csv in csvReports)
-                TextFileCreate.CreateTextFile(Path.Combine(folder.FullName, "csvreport-" + i++.ToString() + ".csv"), csv);
+            if (MultipleCSV)
+            {
+                int i = 0;
+                foreach (string csv in csvReports)
+                    TextFileCreate.CreateTextFile(Path.Combine(folder.FullName, "csvreport-" + i++.ToString() + ".csv"), csv);
+            }
+            else
+            {
+                if (csvReports.Any())
+                    TextFileCreate.CreateTextFile(Path.Combine(folder.FullName, "csvreport.csv"), csvReports.Single());
+            }
         }
 
-        private void AddCSV(string csv)
+        private void AddCSVIntoExistingMatchOrAsSeparateReport(string csv)
         {
             if (csv == null || csv == "")
                 return;

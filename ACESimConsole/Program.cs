@@ -96,7 +96,7 @@ namespace ACESim
                     // Do something
                 }
             } while (key != ConsoleKey.Enter && key != ConsoleKey.C);
-            TextCopy.Clipboard.SetText((key == ConsoleKey.C) ? String.Join("\r", launchResult.csvReports) : launchResult.standardReport);
+            TextCopy.Clipboard.SetText((key == ConsoleKey.C) ? String.Join("\r", launchResult.csvReports.SingleOrDefault() ?? "") : launchResult.standardReport);
         }
     }
 }
