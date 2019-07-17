@@ -42,7 +42,7 @@ namespace ACESim
         public bool ParallelizeOptionSets = false; // run multiple option sets at same time on computer (in which case each individually will be run not in parallel)
         public bool ParallelizeIndividualExecutions = true; // only if LaunchSingleOptionsSetOnly or !LocalDistributedProcessing
 
-        public string OverrideDateTimeString = null; // "2017-10-11 10:18"; // use this if termination finished unexpectedly
+        public string OverrideDateTimeString = null; // "2017-10-11 10-18"; // use this if termination finished unexpectedly
         public string MasterReportNameForDistributedProcessing = "R";
 
         const int EffectivelyNever = EvolutionSettings.EffectivelyNever;
@@ -209,9 +209,9 @@ namespace ACESim
             return new ReportCollection("", result);
         }
 
-        public async Task ParticipateInDistributedProcessing(string masterReportName, CancellationToken cancellationToken, Action actionEachTime = null)
+        private async Task ParticipateInDistributedProcessing(string masterReportName, CancellationToken cancellationToken, Action actionEachTime = null)
         {
-            InitiateNonLocalOptionSetsProcessing(masterReportName);
+            InitializeTaskCoordinatorIfNecessary(masterReportName);
             IndividualTask taskToDo = null, taskCompleted = null;
             bool complete = false;
             while (!complete)
@@ -246,7 +246,7 @@ namespace ACESim
             }
         }
 
-        public async Task CompleteIndividualTask(string masterReportName, IndividualTask taskToDo)
+        private async Task CompleteIndividualTask(string masterReportName, IndividualTask taskToDo)
         {
             if (taskToDo.Name == "Optimize")
             {
@@ -266,7 +266,7 @@ namespace ACESim
                 throw new NotImplementedException();
         }
 
-        public void InitiateNonLocalOptionSetsProcessing(string masterReportName)
+        private void InitializeTaskCoordinatorIfNecessary(string masterReportName)
         {
             List<(string optionSetName, GameOptions options)> optionSets = GetOptionsSets();
             int optionSetsCount = optionSets.Count();
@@ -285,96 +285,27 @@ namespace ACESim
             //    Debug.WriteLine(result);
         }
 
-        private object LocalOptionSetsLock = new object();
+        private Dictionary<int, (int optionSetIndex, IStrategiesDeveloper developer)> LastDeveloperOnThread = new Dictionary<int, (int optionSetIndex, IStrategiesDeveloper developer)>();
+        private object LockObj = new object();
 
-        public async Task<ReportCollection> ProcessAllOptionSetsLocally()
+        private IStrategiesDeveloper GetDeveloper(int optionSetIndex)
         {
-            string masterReportName = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
-
-            List<(string optionSetName, GameOptions options)> optionSets = GetOptionsSets();
-            int numRepetitionsPerOptionSet = NumRepetitions;
-            ReportCollection results = new ReportCollection();
-
-            async Task SingleOptionSetAction(long index)
+            lock (LockObj)
             {
-                var optionSet = optionSets[(int)index];
-                TabbedText.WriteLine($"Option set {index} of {optionSets.Count()}: {optionSet.optionSetName}");
-                var optionSetResults = await ProcessSingleOptionSet(masterReportName, (int)index, true);
-                lock (LocalOptionSetsLock)
-                    results.Add(optionSetResults);
+                int currentThreadID = Thread.CurrentThread.ManagedThreadId;
+
+                if (LastDeveloperOnThread.ContainsKey(currentThreadID) && LastDeveloperOnThread[currentThreadID].optionSetIndex == optionSetIndex)
+                    return LastDeveloperOnThread[currentThreadID].developer;
+                var optionSet = GetOptionsSets()[optionSetIndex];
+                var options = optionSet.options;
+                LastDeveloperOnThread[currentThreadID] = (optionSetIndex, GetInitializedDeveloper(options, optionSet.optionSetName));
+                return LastDeveloperOnThread[currentThreadID].developer;
             }
-
-            Parallelizer.MaxDegreeOfParallelism = Environment.ProcessorCount;
-            if (ParallelizeOptionSets)
-            {
-                TabbedText.WriteLine("Suppressing output due to parallelization");
-                TabbedText.DisableOutput(); // TODO: We could put each parallel item in a separate output
-            }
-            await Parallelizer.GoAsync(ParallelizeOptionSets, 0, optionSets.Count, SingleOptionSetAction);
-            return results;
         }
 
-        public async Task<ReportCollection> ProcessSingleOptionSet(string masterReportName, int optionSetIndex, bool addOptionSetColumns)
-        {
-            bool includeFirstLine = optionSetIndex == 0;
-            var optionSet = GetOptionsSets()[optionSetIndex];
-            var options = optionSet.options;
-            return await ProcessSingleOptionSetLocally(options, masterReportName, optionSet.optionSetName, includeFirstLine, addOptionSetColumns);
-        }
+        #endregion
 
-        public async Task<ReportCollection> ProcessSingleOptionSetLocally(GameOptions options, string masterReportName, string optionSetName, bool includeFirstLine, bool addOptionSetColumns)
-        {
-            var developer = GetInitializedDeveloper(options, optionSetName);
-            developer.EvolutionSettings.GameNumber = StartGameNumber;
-            ReportCollection result = new ReportCollection();
-            for (int i = 0; i < NumRepetitions; i++)
-            {
-                var repetitionReport = await GetSingleRepetitionReportAndSave(masterReportName, options, optionSetName, i, addOptionSetColumns, developer);
-                result.Add(repetitionReport);
-            }
-            return result;
-        }
-
-        public async Task<ReportCollection> GetSingleRepetitionReportAndSave(string masterReportName, int optionSetIndex, int repetition, bool addOptionSetColumns, IStrategiesDeveloper developer)
-        {
-            List<(string optionSetName, GameOptions options)> optionSets = GetOptionsSets();
-            var options = optionSets[optionSetIndex].options;
-            var result = await GetSingleRepetitionReportAndSave(masterReportName, options, optionSets[optionSetIndex].optionSetName, repetition, addOptionSetColumns, developer);
-            return result;
-        }
-
-        public async Task<ReportCollection> GetSingleRepetitionReportAndSave(string masterReportName, GameOptions options, string optionSetName, int repetition, bool addOptionSetColumns, IStrategiesDeveloper developer)
-        {
-            string masterReportNamePlusOptionSet = $"{masterReportName} {optionSetName}";
-            if (developer == null)
-                throw new Exception("Developer must be set"); // should call GetDeveloper(options) before calling this (note: earlier version passed developer as ref so that it could be set here)
-            var result = await GetSingleRepetitionReport(optionSetName, repetition, addOptionSetColumns, developer);
-            if (AzureEnabled)
-                AzureBlob.WriteTextToBlob("results", masterReportNamePlusOptionSet + ".csv", true, result.csvReports.FirstOrDefault()); // we write to a blob in case this times out and also to allow individual report to be taken out
-            return result;
-        }
-
-        public async Task<ReportCollection> GetSingleRepetitionReport(string optionSetName, int i, bool addOptionSetColumns, IStrategiesDeveloper developer)
-        {
-            developer.EvolutionSettings.GameNumber = StartGameNumber + i;
-            string reportIteration = i.ToString();
-            if (i > 0)
-                developer.Reinitialize();
-            ReportCollection reportCollection = new ReportCollection();
-        retry:
-            try
-            {
-                reportCollection = await developer.DevelopStrategies(optionSetName);
-            }
-            catch (Exception e)
-            {
-                TabbedText.WriteLine($"Error: {e}");
-                TabbedText.WriteLine(e.StackTrace);
-                goto retry;
-            }
-            string singleRepetitionReport = addOptionSetColumns ? SimpleReportMerging.AddCSVReportInformationColumns(reportCollection.csvReports.FirstOrDefault(), optionSetName, reportIteration, i == 0) : reportCollection.csvReports.FirstOrDefault(); 
-            return reportCollection;
-        }
+        #region Combining report results
 
         public string CombineResultsOfAllOptionSets(string masterReportName)
         {
@@ -427,22 +358,99 @@ namespace ACESim
             return mergedReport;
         }
 
-        public Dictionary<int, (int optionSetIndex, IStrategiesDeveloper developer)> LastDeveloperOnThread = new Dictionary<int, (int optionSetIndex, IStrategiesDeveloper developer)>();
-        public object LockObj = new object();
+        #endregion
 
-        public IStrategiesDeveloper GetDeveloper(int optionSetIndex)
+        #region Local processing
+
+        private object LocalOptionSetsLock = new object();
+
+        public async Task<ReportCollection> ProcessAllOptionSetsLocally()
         {
-            lock (LockObj)
-            {
-                int currentThreadID = Thread.CurrentThread.ManagedThreadId;
+            string masterReportName = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
 
-                if (LastDeveloperOnThread.ContainsKey(currentThreadID) && LastDeveloperOnThread[currentThreadID].optionSetIndex == optionSetIndex)
-                    return LastDeveloperOnThread[currentThreadID].developer;
-                var optionSet = GetOptionsSets()[optionSetIndex];
-                var options = optionSet.options;
-                LastDeveloperOnThread[currentThreadID] = (optionSetIndex, GetInitializedDeveloper(options, optionSet.optionSetName));
-                return LastDeveloperOnThread[currentThreadID].developer;
+            List<(string optionSetName, GameOptions options)> optionSets = GetOptionsSets();
+            int numRepetitionsPerOptionSet = NumRepetitions;
+            ReportCollection results = new ReportCollection();
+
+            async Task SingleOptionSetAction(long index)
+            {
+                var optionSet = optionSets[(int)index];
+                TabbedText.WriteLine($"Option set {index} of {optionSets.Count()}: {optionSet.optionSetName}");
+                var optionSetResults = await ProcessSingleOptionSet(masterReportName, (int)index, true);
+                lock (LocalOptionSetsLock)
+                    results.Add(optionSetResults);
             }
+
+            Parallelizer.MaxDegreeOfParallelism = Environment.ProcessorCount;
+            if (ParallelizeOptionSets)
+            {
+                TabbedText.WriteLine("Suppressing output due to parallelization");
+                TabbedText.DisableOutput(); // TODO: We could put each parallel item in a separate output
+            }
+            await Parallelizer.GoAsync(ParallelizeOptionSets, 0, optionSets.Count, SingleOptionSetAction);
+            return results;
+        }
+
+        private async Task<ReportCollection> ProcessSingleOptionSet(string masterReportName, int optionSetIndex, bool addOptionSetColumns)
+        {
+            bool includeFirstLine = optionSetIndex == 0;
+            var optionSet = GetOptionsSets()[optionSetIndex];
+            var options = optionSet.options;
+            return await ProcessSingleOptionSetLocally(options, masterReportName, optionSet.optionSetName, includeFirstLine, addOptionSetColumns);
+        }
+
+        private async Task<ReportCollection> ProcessSingleOptionSetLocally(GameOptions options, string masterReportName, string optionSetName, bool includeFirstLine, bool addOptionSetColumns)
+        {
+            var developer = GetInitializedDeveloper(options, optionSetName);
+            developer.EvolutionSettings.GameNumber = StartGameNumber;
+            ReportCollection result = new ReportCollection();
+            for (int i = 0; i < NumRepetitions; i++)
+            {
+                var repetitionReport = await GetSingleRepetitionReportAndSave(masterReportName, options, optionSetName, i, addOptionSetColumns, developer);
+                result.Add(repetitionReport);
+            }
+            return result;
+        }
+
+        private async Task<ReportCollection> GetSingleRepetitionReportAndSave(string masterReportName, int optionSetIndex, int repetition, bool addOptionSetColumns, IStrategiesDeveloper developer)
+        {
+            List<(string optionSetName, GameOptions options)> optionSets = GetOptionsSets();
+            var options = optionSets[optionSetIndex].options;
+            var result = await GetSingleRepetitionReportAndSave(masterReportName, options, optionSets[optionSetIndex].optionSetName, repetition, addOptionSetColumns, developer);
+            return result;
+        }
+
+        private async Task<ReportCollection> GetSingleRepetitionReportAndSave(string masterReportName, GameOptions options, string optionSetName, int repetition, bool addOptionSetColumns, IStrategiesDeveloper developer)
+        {
+            string masterReportNamePlusOptionSet = $"{masterReportName} {optionSetName}";
+            if (developer == null)
+                throw new Exception("Developer must be set"); // should call GetDeveloper(options) before calling this (note: earlier version passed developer as ref so that it could be set here)
+            var result = await GetSingleRepetitionReport(optionSetName, repetition, addOptionSetColumns, developer);
+            if (AzureEnabled)
+                AzureBlob.WriteTextToBlob("results", masterReportNamePlusOptionSet + ".csv", true, result.csvReports.FirstOrDefault()); // we write to a blob in case this times out and also to allow individual report to be taken out
+            return result;
+        }
+
+        private async Task<ReportCollection> GetSingleRepetitionReport(string optionSetName, int i, bool addOptionSetColumns, IStrategiesDeveloper developer)
+        {
+            developer.EvolutionSettings.GameNumber = StartGameNumber + i;
+            string reportIteration = i.ToString();
+            if (i > 0)
+                developer.Reinitialize();
+            ReportCollection reportCollection = new ReportCollection();
+        retry:
+            try
+            {
+                reportCollection = await developer.DevelopStrategies(optionSetName);
+            }
+            catch (Exception e)
+            {
+                TabbedText.WriteLine($"Error: {e}");
+                TabbedText.WriteLine(e.StackTrace);
+                goto retry;
+            }
+            string singleRepetitionReport = addOptionSetColumns ? SimpleReportMerging.AddCSVReportInformationColumns(reportCollection.csvReports.FirstOrDefault(), optionSetName, reportIteration, i == 0) : reportCollection.csvReports.FirstOrDefault(); 
+            return reportCollection;
         }
 
         #endregion
