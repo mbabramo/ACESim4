@@ -42,13 +42,13 @@ namespace distributed
 
             ServiceEventSource.Current.ServiceMessage(this.Context, "Working-{0}", ++iterations);
 
-            //MyGameLauncher launcher = new MyGameLauncher()
+            MyGameLauncher launcher = new MyGameLauncher();
 
-            //await ACESim.MyGameRunner.ParticipateInDistributedProcessing(
-            //    ACESim.MyGameRunner.MasterReportNameForDistributedProcessing, 
-            //    cancellationToken, 
-            //    () => ServiceEventSource.Current.ServiceMessage(this.Context, "Working-{0}", ++iterations)
-            //    );
+            await ACESim.MyGameRunner.ParticipateInDistributedProcessing(
+                ACESim.MyGameRunner.MasterReportNameForDistributedProcessing,
+                cancellationToken,
+                () => ServiceEventSource.Current.ServiceMessage(this.Context, "Working-{0}", ++iterations)
+                );
 
         }
     }

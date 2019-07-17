@@ -57,7 +57,7 @@ namespace ACESimBase.GameSolvingSupport
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(NodeActions, Successor);
+            return (NodeActions, Successor).GetHashCode();
         }
 
         private bool ModifyCoefficient(IGameState node)

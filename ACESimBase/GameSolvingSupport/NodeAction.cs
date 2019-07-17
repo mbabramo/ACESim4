@@ -41,7 +41,7 @@ namespace ACESimBase.GameSolvingSupport
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(Node, ActionAtNode, DistributorChanceInputs);
+            return (Node, ActionAtNode, DistributorChanceInputs).GetHashCode();
         }
     }
 }

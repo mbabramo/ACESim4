@@ -122,7 +122,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                 }
                 else
                 {
-                    double ratio = Utilities.Zip(other.Utilities).Select(x => Math.Min(x.First / x.Second, x.Second / x.First)).Average();
+                    double ratio = Utilities.Zip(other.Utilities, (First, Second) => (First, Second)).Select(x => Math.Min(x.First / x.Second, x.Second / x.First)).Average();
                     return ratio;
                 }
             }
