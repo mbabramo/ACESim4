@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Threading.Tasks;
+using ACESimBase.Resources;
 using Microsoft.Azure.Storage;
 using Microsoft.Azure.Storage.Blob;
 
@@ -151,7 +152,7 @@ namespace ACESim.Util
         private static CloudBlobContainer GetContainer(string containerName, bool publicAccess)
         {
             // Retrieve storage account from connection string.
-            string storageConnectionString = "DefaultEndpointsProtocol=https;AccountName=acesim;AccountKey=OLD+g=="; // TODO: Use a technology like key vault to hide this and ideally put it in config file in the class library
+            string storageConnectionString = cloudpw.GetCloudStorageAccountConnectionString(); // TODO: Use a technology like key vault to hide this. for now, though, we're just not putting the cloudpw file onto github, thus maintaining the secret.
             CloudStorageAccount storageAccount = CloudStorageAccount.Parse(storageConnectionString
                 );
 

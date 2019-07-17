@@ -47,7 +47,12 @@ namespace ACESim.Util
                 taskToDo = null;
                 return; 
             }
-            repeatedTask = taskStage.TaskWithLowestAvailable;
+            repeatedTask = taskStage.IncompleteRepeatedTask;
+            if (repeatedTask == null)
+            {
+                taskToDo = null;
+                return;
+            }
             taskToDo = repeatedTask.FirstIncomplete();
             taskToDo.Started = DateTime.Now;
         }

@@ -61,7 +61,6 @@ namespace ACESim
                 foreach (string csv in other.csvReports)
                     AddCSVIntoExistingMatchOrAsSeparateReport(csv);
             }
-            SaveLatestLocally();
         }
 
         public void SaveLatestLocally()

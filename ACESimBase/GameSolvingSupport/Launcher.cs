@@ -36,8 +36,8 @@ namespace ACESim
         public const int StartGameNumber = 1;
         public bool LaunchSingleOptionsSetOnly = false; 
         public int NumRepetitions = 1;
-        public bool AzureEnabled = false;
-        public bool LocalDistributedProcessing = false; // this should be true if running on the local service fabric
+        public bool AzureEnabled = true;
+        public bool LocalDistributedProcessing = true; // this should be true if running on the local service fabric
         public bool ParallelizeOptionSets = false; // run multiple option sets at same time on computer (in which case each individually will be run not in parallel)
         public bool ParallelizeIndividualExecutions = true; // only if LaunchSingleOptionsSetOnly or !LocalDistributedProcessing
 
@@ -73,6 +73,7 @@ namespace ACESim
         {
             var options = GetSingleGameOptions();
             ReportCollection reportCollection = await ProcessSingleOptionSetLocally(options, "Report", "Single", true, false);
+            reportCollection.SaveLatestLocally();
             return reportCollection;
         }
 
@@ -80,6 +81,8 @@ namespace ACESim
         {
             var optionSets = GetOptionsSets();
             var combined = LocalDistributedProcessing ? await SimulateDistributedProcessingAlgorithm() : await ProcessAllOptionSetsLocally();
+            if (!AzureEnabled)
+                combined.SaveLatestLocally();
             return combined;
         }
 
@@ -183,7 +186,7 @@ namespace ACESim
 
         public async Task<ReportCollection> SimulateDistributedProcessingAlgorithm()
         {
-            string dateTimeString = OverrideDateTimeString ?? DateTime.Now.ToString("yyyy-MM-dd HH:mm");
+            string dateTimeString = OverrideDateTimeString ?? DateTime.Now.ToString("yyyy-MM-dd HH-mm");
             string masterReportName = MasterReportNameForDistributedProcessing + " " + dateTimeString;
             bool singleThread = false;
             if (singleThread)
@@ -192,13 +195,15 @@ namespace ACESim
             }
             else
             {
+                TabbedText.EnableOutput = false;
                 List<Task> tasks = new List<Task>();
-                for (int i = 0; i < Environment.ProcessorCount; i++)
+                for (int i = 0; i < 2; i++) // DEBUG Environment.ProcessorCount; i++)
                     tasks.Add(Task.Run(() => ParticipateInDistributedProcessing(masterReportName, new CancellationToken(false))));
                 await Task.WhenAll(tasks.ToArray());
+                TabbedText.EnableOutput = true;
             }
             var result = AzureBlob.GetBlobText("results", $"{masterReportName} AllCombined");
-            return new ReportCollection(result, "");
+            return new ReportCollection("", result);
         }
 
         public async Task ParticipateInDistributedProcessing(string masterReportName, CancellationToken cancellationToken, Action actionEachTime = null)
@@ -217,12 +222,18 @@ namespace ACESim
                 {
                     TaskCoordinator taskCoordinator = (TaskCoordinator)o;
                     if (taskCoordinator == null)
-                        throw new NotImplementedException();
-                    //Debug.WriteLine(taskCoordinator);
+                        throw new Exception("Corrupted or nonexistent task coordinator blob");
+                    Debug.WriteLine("Initial task coordinator state:");
+                    Debug.WriteLine(taskCoordinator);
                     taskCoordinator.Update(theCompletedTask, readyForAnotherTask, out taskToDo);
+                    Debug.WriteLine("Updated task coordinator state:");
+                    Debug.WriteLine(taskCoordinator);
+                    bool originallyEnabledOutput = TabbedText.EnableOutput;
+                    TabbedText.EnableOutput = true;
                     TabbedText.WriteLine($"Percentage Complete {100.0 * taskCoordinator.ProportionComplete}%");
                     if (taskToDo != null)
-                        Debug.WriteLine($"Task to do: {taskToDo}");
+                        TabbedText.WriteLine($"Task to do: {taskToDo}");
+                    TabbedText.EnableOutput = originallyEnabledOutput;
                     return taskCoordinator;
                 });
                 complete = taskToDo == null;
@@ -244,7 +255,8 @@ namespace ACESim
             }
             else if (taskToDo.Name == "CombineRepetitions")
             {
-                CombineResultsOfRepetitionsOfOptionSets(masterReportName, taskToDo.ID);
+                if (NumRepetitions > 1)
+                    CombineResultsOfRepetitionsOfOptionSets(masterReportName, taskToDo.ID);
             }
             else if (taskToDo.Name == "CombineOptionSets")
             {
@@ -258,12 +270,15 @@ namespace ACESim
         {
             List<(string optionSetName, GameOptions options)> optionSets = GetOptionsSets();
             int optionSetsCount = optionSets.Count();
-            TaskCoordinator tasks = new TaskCoordinator(new List<TaskStage>()
+            var taskStages = new List<TaskStage>()
             {
-                new TaskStage(Enumerable.Range(0, optionSetsCount).Select(x => new RepeatedTask("Optimize", x, NumRepetitions)).ToList()),
-                new TaskStage(Enumerable.Range(0, optionSetsCount).Select(x => new RepeatedTask("CombineRepetitions", x, 1)).ToList()),
-                new TaskStage(Enumerable.Range(0, 1).Select(x => new RepeatedTask("CombineOptionSets", x, 1)).ToList()),
-            });
+                new TaskStage(Enumerable.Range(0, optionSetsCount).Select(x => new RepeatedTask("Optimize", x, NumRepetitions)).ToList())
+            };
+            if (NumRepetitions > 1)
+                taskStages.Add(new TaskStage(Enumerable.Range(0, optionSetsCount).Select(x => new RepeatedTask("CombineRepetitions", x, 1)).ToList()));
+            if (optionSetsCount > 1)
+                taskStages.Add(new TaskStage(Enumerable.Range(0, 1).Select(x => new RepeatedTask("CombineOptionSets", x, 1)).ToList()));
+            TaskCoordinator tasks = new TaskCoordinator(taskStages);
             var blockBlob = AzureBlob.GetLeasedBlockBlob("results", masterReportName + " Coordinator", true);
             var result = AzureBlob.TransformSharedBlobObject(blockBlob.blob, blockBlob.lease, o => o == null ? tasks : null); // return null if the task coordinator object is already created
             //if (result != null)
@@ -334,9 +349,8 @@ namespace ACESim
             if (developer == null)
                 throw new Exception("Developer must be set"); // should call GetDeveloper(options) before calling this (note: earlier version passed developer as ref so that it could be set here)
             var result = await GetSingleRepetitionReport(optionSetName, repetition, addOptionSetColumns, developer);
-            string azureBlobInterimReportName = masterReportNamePlusOptionSet + $" {repetition}";
             if (AzureEnabled)
-                AzureBlob.WriteTextToBlob("results", azureBlobInterimReportName, true, result.standardReport); // we write to a blob in case this times out and also to allow individual report to be taken out
+                AzureBlob.WriteTextToBlob("results", masterReportNamePlusOptionSet, true, result.csvReports.FirstOrDefault()); // we write to a blob in case this times out and also to allow individual report to be taken out
             return result;
         }
 
@@ -369,18 +383,18 @@ namespace ACESim
 
         public string CombineResultsOfAllOptionSets(string masterReportName, List<string> results)
         {
+            ReportCollection reportCollection = new ReportCollection();
             if (results == null)
             { // load all the Azure blobs to get the results to combine; this is useful if we haven't done all the results consecutively
-                results = new List<string>();
                 List<(string optionSetName, GameOptions options)> optionSets = GetOptionsSets();
                 foreach (var optionSet in optionSets)
                 {
                     string masterReportNamePlusOptionSet = $"{masterReportName} {optionSet.optionSetName}";
-                    string result = AzureBlob.GetBlobText("results", masterReportNamePlusOptionSet);
-                    results.Add(result);
+                    string csvResult = AzureBlob.GetBlobText("results", masterReportNamePlusOptionSet);
+                    reportCollection.Add("", csvResult);
                 }
             }
-            string combinedResults = String.Join("", results);
+            string combinedResults = reportCollection.csvReports.FirstOrDefault();
             AzureBlob.WriteTextToBlob("results", $"{masterReportName} AllCombined", true, combinedResults);
             return combinedResults;
         }

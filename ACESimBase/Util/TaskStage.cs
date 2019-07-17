@@ -13,7 +13,12 @@ namespace ACESim.Util
         }
         public List<RepeatedTask> RepeatedTasks = null;
         public bool Complete => RepeatedTasks.All(x => x.Complete);
-        public RepeatedTask TaskWithLowestAvailable => RepeatedTasks.Where(x => !x.Complete).OrderBy(x => x.IndexOfFirstIncomplete).First();
+        public RepeatedTask IncompleteRepeatedTask => RepeatedTasks
+            .Where(x => !x.Complete)
+            .OrderBy(x => x.AllStarted) // put repeated tasks where not all have been started first
+            .ThenBy(x => x.ID)
+            .FirstOrDefault();
+
         public override string ToString()
         {
             return String.Join("\n", RepeatedTasks.Select(x => x.ToString()));

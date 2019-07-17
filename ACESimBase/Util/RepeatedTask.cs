@@ -21,17 +21,23 @@ namespace ACESim.Util
             }
         }
 
+        public bool AllStarted => IndividualTasks.All(x => x.Started != null);
         public bool Complete => IndividualTasks.All(x => x.Complete);
-        public int? IndexOfFirstIncomplete => Complete ? (int?) null : IndividualTasks.OrderBy(x => x.Complete).ThenBy(x => x.Started != null).ThenBy(x => x.Started).First().Repetition;
-
-        public IndividualTask FirstIncomplete()
+        public int? IndexOfFirstIncomplete()
         {
-            int? lowestAvailable = IndexOfFirstIncomplete;
-            if (lowestAvailable == null)
-                return null;
-            return IndividualTasks[(int) lowestAvailable];
+            var firstIncomplete = FirstIncomplete();
+            for (int i = 0; i < IndividualTasks.Count(); i++)
+                if (IndividualTasks[i] == firstIncomplete)
+                    return i;
+            return null;
         }
 
+        public IndividualTask FirstIncomplete() => Complete ? (IndividualTask)null :
+            IndividualTasks
+            .OrderBy(x => x.Complete) // incomplete first
+            .ThenBy(x => x.Started != null) // not started first
+            .ThenBy(x => x.Started) // oldest started first
+            .FirstOrDefault();
         public override string ToString()
         {
             return String.Join("; ", IndividualTasks.Select(x => x.ToString()));
