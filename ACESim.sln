@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.26730.16
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29102.190
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{FE8C46F8-2AAA-4D85-80A9-AF6F28233639}"
 EndProject
@@ -15,7 +15,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ACESimBase", "ACESimBase\AC
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ACESimTest", "ACESimTest\ACESimTest.csproj", "{F45078A1-B15B-4430-8B51-4C70AE2EC176}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ACESimConsole", "ACESimConsole\ACESimConsole.csproj", "{C9F0FA3F-7E18-494D-8778-A3DD1F4A7598}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ACESimConsole", "ACESimConsole\ACESimConsole.csproj", "{C9F0FA3F-7E18-494D-8778-A3DD1F4A7598}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -28,20 +28,26 @@ Global
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{66264A36-3657-4206-AB41-D0732D4454E3}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{66264A36-3657-4206-AB41-D0732D4454E3}.Debug|Any CPU.Build.0 = Debug|x64
+		{66264A36-3657-4206-AB41-D0732D4454E3}.Debug|Any CPU.Deploy.0 = Debug|x64
 		{66264A36-3657-4206-AB41-D0732D4454E3}.Debug|x64.ActiveCfg = Debug|x64
 		{66264A36-3657-4206-AB41-D0732D4454E3}.Debug|x64.Build.0 = Debug|x64
 		{66264A36-3657-4206-AB41-D0732D4454E3}.Debug|x64.Deploy.0 = Debug|x64
 		{66264A36-3657-4206-AB41-D0732D4454E3}.Debug|x86.ActiveCfg = Debug|x64
 		{66264A36-3657-4206-AB41-D0732D4454E3}.Release|Any CPU.ActiveCfg = Release|x64
+		{66264A36-3657-4206-AB41-D0732D4454E3}.Release|Any CPU.Build.0 = Release|x64
+		{66264A36-3657-4206-AB41-D0732D4454E3}.Release|Any CPU.Deploy.0 = Release|x64
 		{66264A36-3657-4206-AB41-D0732D4454E3}.Release|x64.ActiveCfg = Release|x64
 		{66264A36-3657-4206-AB41-D0732D4454E3}.Release|x64.Build.0 = Release|x64
 		{66264A36-3657-4206-AB41-D0732D4454E3}.Release|x64.Deploy.0 = Release|x64
 		{66264A36-3657-4206-AB41-D0732D4454E3}.Release|x86.ActiveCfg = Release|x64
 		{6A7F83D7-2F7E-4631-9C08-2A69D1F360C7}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{6A7F83D7-2F7E-4631-9C08-2A69D1F360C7}.Debug|Any CPU.Build.0 = Debug|x64
 		{6A7F83D7-2F7E-4631-9C08-2A69D1F360C7}.Debug|x64.ActiveCfg = Debug|x64
 		{6A7F83D7-2F7E-4631-9C08-2A69D1F360C7}.Debug|x64.Build.0 = Debug|x64
 		{6A7F83D7-2F7E-4631-9C08-2A69D1F360C7}.Debug|x86.ActiveCfg = Debug|x64
 		{6A7F83D7-2F7E-4631-9C08-2A69D1F360C7}.Release|Any CPU.ActiveCfg = Release|x64
+		{6A7F83D7-2F7E-4631-9C08-2A69D1F360C7}.Release|Any CPU.Build.0 = Release|x64
 		{6A7F83D7-2F7E-4631-9C08-2A69D1F360C7}.Release|x64.ActiveCfg = Release|x64
 		{6A7F83D7-2F7E-4631-9C08-2A69D1F360C7}.Release|x64.Build.0 = Release|x64
 		{6A7F83D7-2F7E-4631-9C08-2A69D1F360C7}.Release|x86.ActiveCfg = Release|x64

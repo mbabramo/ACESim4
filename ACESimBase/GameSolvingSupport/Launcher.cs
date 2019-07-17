@@ -209,7 +209,7 @@ namespace ACESim
             return new ReportCollection("", result);
         }
 
-        private async Task ParticipateInDistributedProcessing(string masterReportName, CancellationToken cancellationToken, Action actionEachTime = null)
+        public async Task ParticipateInDistributedProcessing(string masterReportName, CancellationToken cancellationToken, Action actionEachTime = null)
         {
             InitializeTaskCoordinatorIfNecessary(masterReportName);
             IndividualTask taskToDo = null, taskCompleted = null;

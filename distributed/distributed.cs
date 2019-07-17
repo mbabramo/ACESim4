@@ -4,6 +4,7 @@ using System.Fabric;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using ACESim;
 using Microsoft.ServiceFabric.Services.Communication.Runtime;
 using Microsoft.ServiceFabric.Services.Runtime;
 
@@ -44,8 +45,8 @@ namespace distributed
 
             MyGameLauncher launcher = new MyGameLauncher();
 
-            await ACESim.MyGameRunner.ParticipateInDistributedProcessing(
-                ACESim.MyGameRunner.MasterReportNameForDistributedProcessing,
+            await launcher.ParticipateInDistributedProcessing(
+                launcher.MasterReportNameForDistributedProcessing,
                 cancellationToken,
                 () => ServiceEventSource.Current.ServiceMessage(this.Context, "Working-{0}", ++iterations)
                 );
