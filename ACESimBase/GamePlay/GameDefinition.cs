@@ -342,17 +342,17 @@ namespace ACESim
         private void PrintOutActionGroupList(string header, List<ActionGroup> actionGroupList)
         {
             TabbedText.WriteLine(header);
-            TabbedText.Tabs++;
+            TabbedText.TabIndent();
             foreach (ActionGroup ag in actionGroupList)
                 TabbedText.WriteLine(ag.ToString());
-            TabbedText.Tabs--;
+            TabbedText.TabUnindent();
         }
 
         private static void PrintOutOrderedDecisionPoints(string heading, List<ActionPoint> decisionPointsToPrint)
         {
             TabbedText.WriteLine("");
             TabbedText.WriteLine(heading);
-            TabbedText.Tabs++;
+            TabbedText.TabIndent();
             foreach (ActionPoint dp in decisionPointsToPrint)
             {
                 string repetitionTag = dp.ActionGroup.RepetitionTagString();
@@ -360,7 +360,7 @@ namespace ACESim
                     repetitionTag = " (Repetition:" + repetitionTag + ")";
                 TabbedText.WriteLine($"{dp.DecisionNumber} {dp.Decision}");
             }
-            TabbedText.Tabs--;
+            TabbedText.TabUnindent();
         }
 
         public virtual void CalculateDistributorChanceInputDecisionMultipliers()

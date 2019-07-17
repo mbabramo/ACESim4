@@ -38,7 +38,7 @@ namespace ACESim.Util
                     while (s.ElapsedMilliseconds < maxTimeout)
                     {
                         await Task.Delay(10000); // wait 10 seconds
-                        string storedResult = AzureBlob.GetBlobText("results", azureBlobInterimReportName);
+                        string storedResult = AzureBlob.GetBlobText("results", azureBlobInterimReportName + ".csv");
                         if (storedResult != null)
                             return new AzureFunctionResult() {Success = true, Info = Unescape(storedResult)};
                     }

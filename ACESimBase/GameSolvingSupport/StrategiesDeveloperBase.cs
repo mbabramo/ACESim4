@@ -64,7 +64,10 @@ namespace ACESim
             ReportCollection reportCollection = new ReportCollection();
             for (int s = 0; s < GameDefinition.NumScenariosToDevelop; s++)
             {
-                Console.WriteLine($@"Option set {optionSetName} Scenario {s} (total: {GameDefinition.NumScenariosToDevelop})");
+                string optionSetInfo = $@"Option set {optionSetName}";
+                if (GameDefinition.NumScenariosToDevelop > 1)
+                    optionSetInfo += $" (scenario {s} of {GameDefinition.NumScenariosToDevelop})";
+                TabbedText.WriteLineEvenIfDisabled(optionSetInfo);
                 if (s > 0)
                     ReinitializeForScenario(s, IterationsForWarmupScenario() != null);
                 var result = await RunAlgorithm(optionSetName);
@@ -426,9 +429,9 @@ namespace ACESim
                         double chanceProbability = chanceNode.GetActionProbability(action);
                         TabbedText.WriteLine($"{action} (C): p={chanceProbability:N2}");
                         HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
-                        TabbedText.Tabs++;
+                        TabbedText.TabIndent();
                         double[] utilitiesAtNextHistoryPoint = PrintGameTree_Helper_Manual(ref nextHistoryPoint);
-                        TabbedText.Tabs--;
+                        TabbedText.TabUnindent();
                         if (cumUtilities == null)
                             cumUtilities = new double[utilitiesAtNextHistoryPoint.Length];
                         for (int i = 0; i < cumUtilities.Length; i++)
@@ -447,9 +450,9 @@ namespace ACESim
                     {
                         TabbedText.WriteLine($"{action} (P{informationSet.PlayerIndex}): p={actionProbabilities[action - 1]:N2} ({informationSet.ToStringAbbreviated()})");
                         HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
-                        TabbedText.Tabs++;
+                        TabbedText.TabIndent();
                         double[] utilitiesAtNextHistoryPoint = PrintGameTree_Helper_Manual(ref nextHistoryPoint);
-                        TabbedText.Tabs--;
+                        TabbedText.TabUnindent();
                         if (cumUtilities == null)
                             cumUtilities = new double[utilitiesAtNextHistoryPoint.Length];
                         for (int i = 0; i < cumUtilities.Length; i++)
@@ -495,9 +498,9 @@ namespace ACESim
                         i++;
                     }
                     TabbedText.WriteLine($"{String.Join(",", path2)}");
-                    TabbedText.Tabs++;
+                    TabbedText.TabIndent();
                     PrintGenericGameProgress(progress);
-                    TabbedText.Tabs--;
+                    TabbedText.TabUnindent();
                 }
             }
         }
@@ -511,7 +514,7 @@ namespace ACESim
                 var informationSetHistoryCopy = informationSetHistory; // must copy because informationSetHistory is foreach iteration variable.
                 var decision = GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
                 TabbedText.WriteLine($"Decision {decision.Name} ({decision.DecisionByteCode}) for player {GameDefinition.Players[decision.PlayerNumber].PlayerName} ({GameDefinition.Players[decision.PlayerNumber].PlayerIndex})");
-                TabbedText.Tabs++;
+                TabbedText.TabIndent();
                 bool playerIsChance = GameDefinition.Players[informationSetHistory.PlayerIndex].PlayerIsChance;
                 var playersStrategy = Strategies[informationSetHistory.PlayerIndex];
                 unsafe
@@ -522,7 +525,7 @@ namespace ACESim
                     TabbedText.WriteLine($"Game state before action: {gameState}");
                 }
                 TabbedText.WriteLine($"==> Action chosen: {informationSetHistory.ActionChosen}");
-                TabbedText.Tabs--;
+                TabbedText.TabUnindent();
                 historyPoint = historyPoint.GetBranch(Navigation, informationSetHistory.ActionChosen, decision, informationSetHistory.DecisionIndex);
             }
             double[] finalUtilities = historyPoint.GetFinalUtilities(Navigation);
@@ -1214,14 +1217,14 @@ namespace ACESim
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             GameStateTypeEnum gameStateTypeEnum = gameStateForCurrentPlayer.GetGameStateType();
             bool result = false;
-            TabbedText.Tabs++;
+            //TabbedText.TabIndent();
             if (gameStateTypeEnum == GameStateTypeEnum.Chance)
                 result = DistributeChanceDecisions_ChanceNode(ref historyPoint, piChance, distributorChanceInputs, distributedActionsString, chanceNodeAggregationDictionary, informationSetAggregationDictionary);
             else if (gameStateTypeEnum == GameStateTypeEnum.InformationSet)
                 result = DistributeChanceDecisions_DecisionNode(ref historyPoint, piChance, distributorChanceInputs, distributedActionsString, chanceNodeAggregationDictionary, informationSetAggregationDictionary);
             else
                 result = false; // don't stop non-chance decisions; we need to backtrack and then move forwards to get to a chance decision
-            TabbedText.Tabs--;
+            //TabbedText.TabUnindent();
             return result;
         }
 
@@ -1598,7 +1601,8 @@ namespace ACESim
 
         public Back TreeWalk_Node<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, Forward forward, int distributorChanceInputs, ref HistoryPoint historyPoint)
         {
-            TabbedText.Tabs++;
+            if (TraceTreeWalk)
+                TabbedText.TabIndent();
             IGameState gameState = GetGameState(ref historyPoint);
             Back b = default;
             switch (gameState)
@@ -1617,7 +1621,8 @@ namespace ACESim
                 default:
                     throw new NotSupportedException();
             }
-            TabbedText.Tabs--;
+            if (TraceTreeWalk)
+                TabbedText.TabUnindent();
             return b;
         }
 

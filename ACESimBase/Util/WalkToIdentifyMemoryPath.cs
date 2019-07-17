@@ -31,7 +31,7 @@ namespace ACESim
             alreadyWalked.Add(myObject, true);
             if (!objectType.IsSerializable)
                 return;
-            TabbedText.Tabs++;
+            TabbedText.TabIndent();
             int length = BinarySerialization.GetByteArray(myObject).Length;
             if (length > minSizeToReport)
                 TabbedText.WriteLine(rootName + "--" + objectType.FullName + ": " + length);
@@ -84,7 +84,7 @@ namespace ACESim
               }
             }
           }
-          TabbedText.Tabs--;
+          TabbedText.TabUnindent();
         }
     }
 }

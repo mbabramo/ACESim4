@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Diagnostics;
 using System.IO;
+using System.Threading;
 
 namespace ACESim
 {
@@ -11,15 +12,48 @@ namespace ACESim
     {
         public static StringBuilder AccumulatedText = new StringBuilder();
 
-        public static int Tabs = 0;
+        private static int Tabs = 0;
 
-        public static bool EnableOutput = true;
+        public static void TabIndent()
+        {
+            Interlocked.Increment(ref Tabs);
+        }
+
+        public static void TabUnindent()
+        {
+            Interlocked.Decrement(ref Tabs);
+        }
+
+        private static bool OutputEnabled = true;
+
+        public static void EnableOutput()
+        {
+            lock (AccumulatedText)
+                OutputEnabled = true;
+        }
+
+        public static void DisableOutput()
+        {
+            lock (AccumulatedText)
+                OutputEnabled = false;
+        }
 
         public static bool WriteToConsole = true;
 
         public static void WriteLine()
         {
             WriteLine("");
+        }
+
+        public static void WriteLineEvenIfDisabled(string format, params object[] args)
+        {
+            lock (AccumulatedText)
+            {
+                bool original = OutputEnabled;
+                OutputEnabled = true;
+                WriteLine(format, args);
+                OutputEnabled = original;
+            }
         }
 
         public static void WriteLine(string format, params object[] args)
@@ -50,7 +84,7 @@ namespace ACESim
         private static void OutputAndAccumulate(StringBuilder builder)
         {
             string localString = builder.ToString();
-            if (EnableOutput)
+            if (OutputEnabled)
             {
                 if (WriteToConsole)
                     Console.Write(localString);

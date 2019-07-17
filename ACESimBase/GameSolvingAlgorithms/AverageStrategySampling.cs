@@ -54,12 +54,12 @@ namespace ACESim
                             $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} for chance decision {chanceNode.DecisionIndex}");
                     nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction, chanceNode.Decision, chanceNode.DecisionIndex);
                     if (TraceCFR)
-                        TabbedText.Tabs++;
+                        TabbedText.TabIndent();
                     double walkTreeValue =
                         AverageStrategySampling_WalkTree(ref nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ, chanceNode.Decision, chanceNode.DecisionIndex);
                     if (TraceCFR)
                     {
-                        TabbedText.Tabs--;
+                        TabbedText.TabUnindent();
                         TabbedText.WriteLine($"Returning walk tree result {walkTreeValue}");
                     }
                     return walkTreeValue;
@@ -97,13 +97,13 @@ namespace ACESim
                                 $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {playerAtPoint} decision {informationSet.DecisionIndex} with regret-matched prob {sigma_regretMatchedActionProbabilities[sampledAction - 1]}");
                         nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction, informationSet.Decision, informationSet.DecisionIndex);
                         if (TraceCFR)
-                            TabbedText.Tabs++;
+                            TabbedText.TabIndent();
                         double walkTreeValue2 =
                             AverageStrategySampling_WalkTree(ref nextHistoryPoint, playerBeingOptimized,
                                 samplingProbabilityQ, informationSet.Decision, informationSet.DecisionIndex);
                         if (TraceCFR)
                         {
-                            TabbedText.Tabs--;
+                            TabbedText.TabUnindent();
                             TabbedText.WriteLine($"Returning walk tree result {walkTreeValue2}");
                         }
                         return walkTreeValue2;
@@ -134,7 +134,7 @@ namespace ACESim
                         if (explore)
                         {
                             if (TraceCFR)
-                                TabbedText.Tabs++;
+                                TabbedText.TabIndent();
                             nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                             counterfactualValues[action - 1] = AverageStrategySampling_WalkTree(ref nextHistoryPoint,
                                 playerBeingOptimized, samplingProbabilityQ * Math.Min(1.0, rho), informationSet.Decision, informationSet.DecisionIndex);
@@ -142,7 +142,7 @@ namespace ACESim
                                 sigma_regretMatchedActionProbabilities[action - 1] *
                                 counterfactualValues[action - 1];
                             if (TraceCFR)
-                                TabbedText.Tabs--;
+                                TabbedText.TabUnindent();
                         }
                         else
                             counterfactualValues[action - 1] = 0;
@@ -183,11 +183,11 @@ namespace ACESim
                 if (TraceCFR)
                 {
                     TabbedText.WriteLine($"Optimize player {playerBeingOptimized}");
-                    TabbedText.Tabs++;
+                    TabbedText.TabIndent();
                 }
                 AverageStrategySampling_WalkTree(ref historyPoint, playerBeingOptimized, 1.0, GameDefinition.DecisionsExecutionOrder[0], 0);
                 if (TraceCFR)
-                    TabbedText.Tabs--;
+                    TabbedText.TabUnindent();
             }
         }
 

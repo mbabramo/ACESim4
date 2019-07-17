@@ -29,13 +29,13 @@ namespace ACESim
                 if (TraceGEBR)
                 {
                     TabbedText.WriteLine($"Optimizing {playerIndex} depthToTarget {depthToTarget}: ");
-                    TabbedText.Tabs++;
+                    TabbedText.TabIndent();
                 }
                 var startHistoryPoint2 = GetStartOfGameHistoryPoint();
                 bestResponseUtility = GEBRPass2(ref startHistoryPoint2, playerIndex, depthToTarget, 1, 1.0,
                     opponentsActionStrategy, 0);
                 if (TraceGEBR)
-                    TabbedText.Tabs--;
+                    TabbedText.TabUnindent();
             }
             return bestResponseUtility;
         }
@@ -117,7 +117,7 @@ namespace ACESim
             if (playerMakingDecision == playerIndex && depthSoFar > depthToTarget)
             {
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionIndex))
-                    TabbedText.Tabs++;
+                    TabbedText.TabIndent();
                 byte? alwaysAction = GameDefinition.DecisionsExecutionOrder[decisionIndex].AlwaysDoAction;
                 byte action;
                 if (alwaysAction != null)
@@ -148,7 +148,7 @@ namespace ACESim
                 }
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionIndex))
                 {
-                    TabbedText.Tabs--;
+                    TabbedText.TabUnindent();
                     TabbedText.WriteLine($"Best response action {action} producing expected value {expectedValue}");
                 }
                 return expectedValue;
@@ -194,7 +194,7 @@ namespace ACESim
                     if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionIndex))
                     {
                         TabbedText.WriteLine($"action {action} for playerMakingDecision {playerMakingDecision}...");
-                        TabbedText.Tabs++;
+                        TabbedText.TabIndent();
                     }
                     double expectedValue;
                     if (historyPoint.BranchingIsReversible(Navigation, informationSet.Decision))
@@ -209,7 +209,7 @@ namespace ACESim
                     double product = actionProbabilities[action - 1] * expectedValue;
                     if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(decisionIndex))
                     {
-                        TabbedText.Tabs--;
+                        TabbedText.TabUnindent();
                         TabbedText.WriteLine(
                             $"... action {action} producing expected value {expectedValue} * probability {actionProbabilities[action - 1]} = product {product}");
                     }
@@ -260,7 +260,7 @@ namespace ACESim
                         $"chance action {action} for decision {chanceNode.DecisionByteCode} {GameDefinition.DecisionsExecutionOrder[chanceNode.DecisionIndex].Name} ... ");
                 double probability = chanceNode.GetActionProbability(action, distributorChanceInputs);
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNode.DecisionIndex))
-                    TabbedText.Tabs++;
+                    TabbedText.TabIndent();
                 int distributorChanceInputsNext = distributorChanceInputs;
                 if (chanceNode.Decision.DistributorChanceInputDecision)
                     distributorChanceInputsNext += action * chanceNode.Decision.DistributorChanceInputDecisionMultiplier;
@@ -279,7 +279,7 @@ namespace ACESim
                 double expectedValue = probability * valueBelow;
                 if (TraceGEBR && !TraceGEBR_SkipDecisions.Contains(chanceNode.DecisionIndex))
                 {
-                    TabbedText.Tabs--;
+                    TabbedText.TabUnindent();
                     TabbedText.WriteLine(
                         $"... chance action {action} probability {probability} * valueBelow {valueBelow} = expectedValue {expectedValue}");
                 }

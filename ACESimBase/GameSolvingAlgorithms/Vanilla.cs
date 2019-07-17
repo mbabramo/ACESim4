@@ -101,7 +101,7 @@ namespace ACESim
                 {
                     TabbedText.WriteLine(
                         $"decisionNum {decisionNum} optimizing player {playerBeingOptimized}  own decision {playerMakingDecision == playerBeingOptimized} action {action} probability {probabilityOfAction} ...");
-                    TabbedText.Tabs++;
+                    TabbedText.TabIndent();
                 }
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                 expectedValueOfAction[action - 1] = VanillaCFRIterationForPlayer(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, usePruning);
@@ -109,7 +109,7 @@ namespace ACESim
 
                 if (TraceCFR)
                 {
-                    TabbedText.Tabs--;
+                    TabbedText.TabUnindent();
                     TabbedText.WriteLine(
                         $"... action {action} expected value {expectedValueOfAction[action - 1]} cum expected value {expectedValue}");
                 }
@@ -207,14 +207,14 @@ namespace ACESim
             {
                 TabbedText.WriteLine(
                     $"Chance decisionNum {chanceNode.DecisionByteCode} action {action} probability {actionProbability} ...");
-                TabbedText.Tabs++;
+                TabbedText.TabIndent();
             }
             double expectedValueParticularAction =
                 VanillaCFRIterationForPlayer(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, usePruning);
             var probabilityAdjustedExpectedValueParticularAction = actionProbability * expectedValueParticularAction;
             if (TraceCFR)
             {
-                TabbedText.Tabs--;
+                TabbedText.TabUnindent();
                 TabbedText.WriteLine(
                     $"... action {action} expected value {expectedValueParticularAction} cum expected value {expectedValue}");
             }

@@ -83,11 +83,10 @@ namespace ACESim
             ReportCollection launchResult = await launcher.Launch();
             TextCopy.Clipboard.SetText(launchResult.standardReport);
             s.Stop();
-            TabbedText.EnableOutput = true;
-            TabbedText.WriteLine($"Total runtime {s.Elapsed} ");
-            TabbedText.WriteLine();
-            TabbedText.WriteLine("Press Enter to end (copying standard report to clipboard).");
-            TabbedText.WriteLine("Press c to end (copying comma-separated report to clipboard).");
+            TabbedText.WriteLineEvenIfDisabled($"Total runtime {s.Elapsed} ");
+            TabbedText.WriteLineEvenIfDisabled("");
+            TabbedText.WriteLineEvenIfDisabled("Press Enter to end (copying standard report to clipboard).");
+            TabbedText.WriteLineEvenIfDisabled("Press c to end (copying comma-separated report to clipboard).");
             ConsoleKey key = Console.ReadKey(true).Key;
             do
             {

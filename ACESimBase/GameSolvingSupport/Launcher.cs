@@ -5,6 +5,7 @@ using ACESimBase.GameSolvingSupport;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -37,7 +38,7 @@ namespace ACESim
         public bool LaunchSingleOptionsSetOnly = false; 
         public int NumRepetitions = 1;
         public bool AzureEnabled = true;
-        public bool LocalDistributedProcessing = true; // this should be true if running on the local service fabric
+        public bool DistributedProcessing = true; // this should be true if running on the local service fabric
         public bool ParallelizeOptionSets = false; // run multiple option sets at same time on computer (in which case each individually will be run not in parallel)
         public bool ParallelizeIndividualExecutions = true; // only if LaunchSingleOptionsSetOnly or !LocalDistributedProcessing
 
@@ -80,7 +81,7 @@ namespace ACESim
         public async Task<ReportCollection> Launch_Multiple()
         {
             var optionSets = GetOptionsSets();
-            var combined = LocalDistributedProcessing ? await SimulateDistributedProcessingAlgorithm() : await ProcessAllOptionSetsLocally();
+            var combined = DistributedProcessing ? await LaunchDistributedProcessingParticipation() : await ProcessAllOptionSetsLocally();
             if (!AzureEnabled)
                 combined.SaveLatestLocally();
             return combined;
@@ -139,8 +140,8 @@ namespace ACESim
             EvolutionSettings evolutionSettings = new EvolutionSettings()
             {
                 MaxParallelDepth = 3, // we're parallelizing on the iteration level, so there is no need for further parallelization
-                ParallelOptimization = ParallelizeIndividualExecutions && !ParallelizeOptionSets && (LaunchSingleOptionsSetOnly || !LocalDistributedProcessing),
-                SuppressReportPrinting = AlwaysSuppressReportPrinting || (!LaunchSingleOptionsSetOnly && (ParallelizeOptionSets || LocalDistributedProcessing)),
+                ParallelOptimization = ParallelizeIndividualExecutions && !ParallelizeOptionSets && (LaunchSingleOptionsSetOnly || !DistributedProcessing),
+                SuppressReportPrinting = AlwaysSuppressReportPrinting || (!LaunchSingleOptionsSetOnly && (ParallelizeOptionSets || DistributedProcessing)),
 
                 GameNumber = StartGameNumber,
 
@@ -184,7 +185,7 @@ namespace ACESim
 
         #region Distributed processing
 
-        public async Task<ReportCollection> SimulateDistributedProcessingAlgorithm()
+        public async Task<ReportCollection> LaunchDistributedProcessingParticipation()
         {
             string dateTimeString = OverrideDateTimeString ?? DateTime.Now.ToString("yyyy-MM-dd HH-mm");
             string masterReportName = MasterReportNameForDistributedProcessing + " " + dateTimeString;
@@ -195,14 +196,16 @@ namespace ACESim
             }
             else
             {
-                TabbedText.EnableOutput = false;
+                TabbedText.DisableOutput();
                 List<Task> tasks = new List<Task>();
-                for (int i = 0; i < 2; i++) // DEBUG Environment.ProcessorCount; i++)
+                for (int i = 0; i < Environment.ProcessorCount - 1; i++)
                     tasks.Add(Task.Run(() => ParticipateInDistributedProcessing(masterReportName, new CancellationToken(false))));
                 await Task.WhenAll(tasks.ToArray());
-                TabbedText.EnableOutput = true;
+                TabbedText.EnableOutput();
             }
-            var result = AzureBlob.GetBlobText("results", $"{masterReportName} AllCombined");
+            var result = AzureBlob.GetBlobText("results", $"{masterReportName} AllCombined.csv");
+            DirectoryInfo folder = FolderFinder.GetFolderToWriteTo("ReportResults");
+            TextFileCreate.CreateTextFile(Path.Combine(folder.FullName, "csvreport.csv"), result);
             return new ReportCollection("", result);
         }
 
@@ -228,12 +231,9 @@ namespace ACESim
                     taskCoordinator.Update(theCompletedTask, readyForAnotherTask, out taskToDo);
                     Debug.WriteLine("Updated task coordinator state:");
                     Debug.WriteLine(taskCoordinator);
-                    bool originallyEnabledOutput = TabbedText.EnableOutput;
-                    TabbedText.EnableOutput = true;
-                    TabbedText.WriteLine($"Percentage Complete {100.0 * taskCoordinator.ProportionComplete}%");
+                    TabbedText.WriteLineEvenIfDisabled($"Percentage Complete {100.0 * taskCoordinator.ProportionComplete}%");
                     if (taskToDo != null)
-                        TabbedText.WriteLine($"Task to do: {taskToDo}");
-                    TabbedText.EnableOutput = originallyEnabledOutput;
+                        TabbedText.WriteLineEvenIfDisabled($"Task to do: {taskToDo}");
                     return taskCoordinator;
                 });
                 complete = taskToDo == null;
@@ -308,7 +308,7 @@ namespace ACESim
             if (ParallelizeOptionSets)
             {
                 TabbedText.WriteLine("Suppressing output due to parallelization");
-                TabbedText.EnableOutput = false; // TODO: We could put each parallel item in a separate output
+                TabbedText.DisableOutput(); // TODO: We could put each parallel item in a separate output
             }
             await Parallelizer.GoAsync(ParallelizeOptionSets, 0, optionSets.Count, SingleOptionSetAction);
             return results;
@@ -350,7 +350,7 @@ namespace ACESim
                 throw new Exception("Developer must be set"); // should call GetDeveloper(options) before calling this (note: earlier version passed developer as ref so that it could be set here)
             var result = await GetSingleRepetitionReport(optionSetName, repetition, addOptionSetColumns, developer);
             if (AzureEnabled)
-                AzureBlob.WriteTextToBlob("results", masterReportNamePlusOptionSet, true, result.csvReports.FirstOrDefault()); // we write to a blob in case this times out and also to allow individual report to be taken out
+                AzureBlob.WriteTextToBlob("results", masterReportNamePlusOptionSet + ".csv", true, result.csvReports.FirstOrDefault()); // we write to a blob in case this times out and also to allow individual report to be taken out
             return result;
         }
 
@@ -390,12 +390,12 @@ namespace ACESim
                 foreach (var optionSet in optionSets)
                 {
                     string masterReportNamePlusOptionSet = $"{masterReportName} {optionSet.optionSetName}";
-                    string csvResult = AzureBlob.GetBlobText("results", masterReportNamePlusOptionSet);
+                    string csvResult = AzureBlob.GetBlobText("results", masterReportNamePlusOptionSet + ".csv");
                     reportCollection.Add("", csvResult);
                 }
             }
             string combinedResults = reportCollection.csvReports.FirstOrDefault();
-            AzureBlob.WriteTextToBlob("results", $"{masterReportName} AllCombined", true, combinedResults);
+            AzureBlob.WriteTextToBlob("results", $"{masterReportName} AllCombined.csv", true, combinedResults);
             return combinedResults;
         }
 
@@ -417,13 +417,13 @@ namespace ACESim
                 for (int repetition = 0; repetition < NumRepetitions; repetition++)
                 {
                     string specificRepetitionReportName = masterReportNamePlusOptionSet + $" {repetition}";
-                    string result = AzureBlob.GetBlobText("results", specificRepetitionReportName);
+                    string result = AzureBlob.GetBlobText("results", specificRepetitionReportName + ".csv");
                     combinedReports.Add(result);
                 }
             }
             string combinedRepetitionsReport = String.Join("", combinedReports);
             string mergedReport = SimpleReportMerging.GetDistributionReports(combinedRepetitionsReport, optionSetName, includeFirstLine);
-            AzureBlob.WriteTextToBlob("results", masterReportNamePlusOptionSet, true, mergedReport);
+            AzureBlob.WriteTextToBlob("results", masterReportNamePlusOptionSet, true, mergedReport + ".csv");
             return mergedReport;
         }
 
@@ -477,7 +477,7 @@ namespace ACESim
             foreach (var taskResult in taskResults)
                 stringResults.Add(taskResult);
             string combinedResults = String.Join("", stringResults);
-            AzureBlob.WriteTextToBlob("results", azureBlobReportName + " allsets", true, combinedResults);
+            AzureBlob.WriteTextToBlob("results", azureBlobReportName + " allsets.csv", true, combinedResults);
             return combinedResults;
         }
 

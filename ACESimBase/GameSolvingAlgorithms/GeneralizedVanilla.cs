@@ -494,7 +494,7 @@ namespace ACESim
                     int probabilityOfActionCopy = Unroll_Commands.CopyToNew(probabilityOfAction, false);
                     TabbedText.WriteLine(
                         $"({GameDefinition.DecisionsExecutionOrder.FirstOrDefault(x => x.DecisionByteCode == informationSet.DecisionByteCode)?.Name}) code {informationSet.DecisionByteCode} optimizing player {playerBeingOptimized}  {(playerMakingDecision == playerBeingOptimized ? "own decision" : "opp decision")} action {action} probability ARRAY{probabilityOfActionCopy} ...");
-                    TabbedText.Tabs++;
+                    TabbedText.TabIndent();
                 }
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                 int[] innerResult = Unroll_Commands.NewZeroArray(3);
@@ -528,7 +528,7 @@ namespace ACESim
                     int expectedValueOfActionCopy = Unroll_Commands.CopyToNew(expectedValueOfAction[action - 1], false);
                     int bestResponseExpectedValueCopy = Unroll_Commands.CopyToNew(resultArray[Unroll_Result_BestResponseIndex], false);
                     int cumExpectedValueCopy = Unroll_Commands.CopyToNew(expectedValue, false);
-                    TabbedText.Tabs--;
+                    TabbedText.TabUnindent();
                     TabbedText.WriteLine(
                         $"... action {action} expected value ARRAY{expectedValueOfActionCopy} best response expected value ARRAY{bestResponseExpectedValueCopy} cum expected value ARRAY{cumExpectedValueCopy}{(action == numPossibleActions && IncludeAsteriskForBestResponseInTrace ? "*" : "")}");
                 }
@@ -636,7 +636,7 @@ namespace ACESim
                 int actionProbabilityCopy = Unroll_Commands.CopyToNew(actionProbability, false);
                 TabbedText.WriteLine(
                     $"Chance code {chanceNode.DecisionByteCode} ({chanceNode.Decision.Name}) action {action} probability ARRAY{actionProbabilityCopy} ...");
-                TabbedText.Tabs++;
+                TabbedText.TabIndent();
             }
             int[] innerResult = Unroll_Commands.NewZeroArray(3);
             Unroll_GeneralizedVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, innerResult, false, distributorChanceInputsNext);
@@ -651,7 +651,7 @@ namespace ACESim
 
                 int resultHedgeCopy = Unroll_Commands.CopyToNew(resultArray[Unroll_Result_HedgeVsHedgeIndex], false);
 
-                TabbedText.Tabs--;
+                TabbedText.TabUnindent();
                 TabbedText.WriteLine(
                     $"... action {action} value ARRAY{beforeMultipleHedgeCopy} probability ARRAY{actionProbabilityCopy} expected value contribution ARRAY{resultHedgeCopy}");
             }
@@ -818,11 +818,11 @@ namespace ACESim
             if (iteration % EvolutionSettings.MiniReportEveryPIterations == 0)
             {
                 TabbedText.WriteLine($"Iteration {iteration} (relative contribution {AverageStrategyAdjustmentAsPctOfMax})");
-                TabbedText.Tabs++;
+                TabbedText.TabIndent();
                 for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
                     TabbedText.WriteLine($"Player {playerBeingOptimized} {results[playerBeingOptimized]}");
                 TabbedText.WriteLine($"Cumulative milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
-                TabbedText.Tabs--;
+                TabbedText.TabUnindent();
             }
         }
 
@@ -915,7 +915,7 @@ namespace ACESim
                     {
                         TabbedText.WriteLine(
                             $"({informationSet.Decision.Name}) code {informationSet.DecisionByteCode} optimizing player {playerBeingOptimized}  {(playerMakingDecision == playerBeingOptimized ? "own decision" : "opp decision")} action {action} probability {probabilityOfAction} ...");
-                        TabbedText.Tabs++;
+                        TabbedText.TabIndent();
                     }
                     HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                     GeneralizedVanillaUtilities innerResult = GeneralizedVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, distributorChanceInputsNext);
@@ -943,7 +943,7 @@ namespace ACESim
 
                     if (TraceCFR)
                     {
-                        TabbedText.Tabs--;
+                        TabbedText.TabUnindent();
                         TabbedText.WriteLine(
                             $"... action {action}{(informationSet.BestResponseAction == action && IncludeAsteriskForBestResponseInTrace ? "*" : "")} expected value {expectedValueOfAction[action - 1]} best response expected value {result.BestResponseToAverageStrategy} cum expected value {expectedValue}{(action == numPossibleActions && IncludeAsteriskForBestResponseInTrace ? "*" : "")}");
                     }
@@ -1024,13 +1024,13 @@ namespace ACESim
             {
                 TabbedText.WriteLine(
                     $"Chance code {chanceNode.DecisionByteCode} ({GameDefinition.DecisionsExecutionOrder.FirstOrDefault(x => x.DecisionByteCode == chanceNode.DecisionByteCode).Name}) action {action} probability {actionProbability} ...");
-                TabbedText.Tabs++;
+                TabbedText.TabIndent();
             }
             GeneralizedVanillaUtilities result =
                 GeneralizedVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, distributorChanceInputsNext);
             if (TraceCFR)
             {
-                TabbedText.Tabs--;
+                TabbedText.TabUnindent();
                 TabbedText.WriteLine(
                     $"... action {action} value {result.CurrentVsCurrent} probability {actionProbability} expected value contribution {result.CurrentVsCurrent * actionProbability}");
             }
