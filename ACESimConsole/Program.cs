@@ -12,6 +12,7 @@ using System.IO;
 using System.Runtime.Serialization;
 using System.Diagnostics;
 using ACESim.Util;
+using ACESimBase.Util;
 
 namespace ACESim
 {
@@ -81,21 +82,24 @@ namespace ACESim
                     break;
             }
             ReportCollection launchResult = await launcher.Launch();
-            TextCopy.Clipboard.SetText(launchResult.standardReport);
-            s.Stop();
-            TabbedText.WriteLineEvenIfDisabled($"Total runtime {s.Elapsed} ");
-            TabbedText.WriteLineEvenIfDisabled("");
-            TabbedText.WriteLineEvenIfDisabled("Press Enter to end (copying standard report to clipboard).");
-            TabbedText.WriteLineEvenIfDisabled("Press c to end (copying comma-separated report to clipboard).");
-            ConsoleKey key = Console.ReadKey(true).Key;
-            do
+            if (AzureUtil.IsRunningInAzureOrDevFabric() == false)
             {
-                while (!Console.KeyAvailable)
+                TextCopy.Clipboard.SetText(launchResult.standardReport);
+                s.Stop();
+                TabbedText.WriteLineEvenIfDisabled($"Total runtime {s.Elapsed} ");
+                TabbedText.WriteLineEvenIfDisabled("");
+                TabbedText.WriteLineEvenIfDisabled("Press Enter to end (copying standard report to clipboard).");
+                TabbedText.WriteLineEvenIfDisabled("Press c to end (copying comma-separated report to clipboard).");
+                ConsoleKey key = Console.ReadKey(true).Key;
+                do
                 {
-                    // Do something
-                }
-            } while (key != ConsoleKey.Enter && key != ConsoleKey.C);
-            TextCopy.Clipboard.SetText((key == ConsoleKey.C) ? String.Join("\r", launchResult.csvReports.SingleOrDefault() ?? "") : launchResult.standardReport);
+                    while (!Console.KeyAvailable)
+                    {
+                        // Do something
+                    }
+                } while (key != ConsoleKey.Enter && key != ConsoleKey.C);
+                TextCopy.Clipboard.SetText((key == ConsoleKey.C) ? String.Join("\r", launchResult.csvReports.SingleOrDefault() ?? "") : launchResult.standardReport);
+            }
         }
     }
 }
