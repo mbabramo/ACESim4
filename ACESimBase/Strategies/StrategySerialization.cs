@@ -5,6 +5,7 @@ using System.Text;
 using System.Diagnostics;
 using System.IO;
 using System.Collections;
+using ACESim.Util;
 
 namespace ACESim
 {
@@ -143,15 +144,15 @@ namespace ACESim
     /// </summary>
     public static class StrategySerialization
     {
-        public static void SerializeInformationSets(List<InformationSetNode> informationSets, string filename)
+        public static void SerializeInformationSets(List<InformationSetNode> informationSets, string path, string filename, bool azureEnabled)
         {
             InformationSetNodesCoreData d = new InformationSetNodesCoreData(informationSets);
-            BinarySerialization.SerializeObject(filename + ".sis", d);
+            AzureBlob.SerializeToFileOrAzure(d, path, "strategies", filename + ".sis", azureEnabled);
          }
 
-        public static void DeserializeInformationSets(List<InformationSetNode> informationSets, string filename)
+        public static void DeserializeInformationSets(List<InformationSetNode> informationSets, string path, string filename, bool azureEnabled)
         {
-            InformationSetNodesCoreData d = BinarySerialization.GetSerializedObject(filename + ".sis") as InformationSetNodesCoreData;
+            InformationSetNodesCoreData d = AzureBlob.GetSerializedObjectFromFileOrAzure(path, "strategies", filename + ".sis", azureEnabled) as InformationSetNodesCoreData;
             d.CopyToInformationSets(informationSets);
         }
 
@@ -166,15 +167,16 @@ namespace ACESim
             return BinarySerialization.GetSerializedObject(filename + ".sdb") as StrategiesDeveloperBase;
         }
 
-        public static void SerializeStrategies(Strategy[] strategies, string filename)
+        public static void SerializeStrategies(Strategy[] strategies, string path, string filename, bool azureEnabled)
         {
-            BinarySerialization.SerializeObject(filename + ".sti", new StrategySerializationInfo { NumStrategies = strategies.Count() });
-            for (int s = 0; s < strategies.Count(); s++)
+            for (int s = -1; s < strategies.Count(); s++)
             {
                 try
                 {
-                    string completeFilename = filename + "-" + s.ToString() + ".stg";
-                    BinarySerialization.SerializeObject(completeFilename, strategies[s]);
+                    if (s == -1)
+                        AzureBlob.SerializeToFileOrAzure(new StrategySerializationInfo { NumStrategies = strategies.Count() }, path, "strategies", filename + ".sti", azureEnabled);
+                    else
+                        AzureBlob.SerializeToFileOrAzure(strategies[s], path, "strategies", filename + s.ToString() + ".stg", azureEnabled);
                 }
                 catch
                 {
@@ -183,12 +185,12 @@ namespace ACESim
             }
         }
 
-        public static Strategy[] DeserializeStrategies(string filename)
+        public static Strategy[] DeserializeStrategies(string path, string filename, bool azureEnabled)
         {
-            StrategySerializationInfo theInfo = BinarySerialization.GetSerializedObject(filename + ".sti") as StrategySerializationInfo;
+            StrategySerializationInfo theInfo = AzureBlob.GetSerializedObjectFromFileOrAzure(path, "strategies", filename + ".sti", azureEnabled) as StrategySerializationInfo;
             Strategy[] theStrategies = new Strategy[theInfo.NumStrategies];
             for (int s = 0; s < theInfo.NumStrategies; s++)
-                theStrategies[s] = BinarySerialization.GetSerializedObject(filename + "-" + s.ToString() + ".stg") as Strategy;
+                theStrategies[s] = AzureBlob.GetSerializedObjectFromFileOrAzure(path, "strategies", filename + "-" + s.ToString() + ".stg", azureEnabled) as Strategy;
             return theStrategies;
         }
 

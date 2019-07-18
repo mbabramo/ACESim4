@@ -26,32 +26,6 @@ namespace ACESim
 
         public override GameOptions GetSingleGameOptions() => MyGameOptionsGenerator.GetMyGameOptions();
 
-        public List<(string optionSetName, GameOptions options)> GetOptionsSets_Simple()
-        {
-            List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
-
-            foreach (bool riskAverse in new bool[] { true })
-            {
-                foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("basecosts", 1.0), })
-                {
-                    optionSets.Add(GetAndTransform("both", name, MyGameOptionsGenerator.Usual, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                    optionSets.Add(GetAndTransform("sotrip", name, MyGameOptionsGenerator.Shootout_Triple, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                }
-            }
-
-            optionSets = optionSets.OrderBy(x => x.optionSetName).ToList();
-
-            foreach (var optionSet in optionSets)
-            {
-                MyGameOptions g = optionSet.options as MyGameOptions;
-                g.AllowAbandonAndDefaults = false;
-                g.SkipFileAndAnswerDecisions = true;
-            }
-
-            return optionSets;
-        }
-
-
         public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
         {
             List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
@@ -60,6 +34,15 @@ namespace ACESim
             optionSets = optionSets.OrderBy(x => x.optionSetName).ToList();
 
             return optionSets;
+        }
+
+        private void AddFast(List<(string optionSetName, GameOptions options)> optionSets)
+        {
+            bool riskAverse = false;
+            foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("basecosts", 1.0), ("highcosts", 3.0) })
+            {
+                optionSets.Add(GetAndTransform("fast1", name, MyGameOptionsGenerator.SuperSimple, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
+            }
         }
 
         private void AddShootoutMainPermutations(List<(string optionSetName, GameOptions options)> optionSets)

@@ -13,6 +13,19 @@ namespace ACESim.Util
 {
     public static class AzureBlob
     {
+        public static void SerializeToFileOrAzure(object toSerialize, string path, string containerName, string fileName, bool useAzure)
+        {
+            if (useAzure)
+            {
+                AzureBlob.SerializeObject(containerName, fileName, false, toSerialize);
+            }
+            else
+            {
+                string fullFilename = Path.Combine(path, fileName);
+                BinarySerialization.SerializeObject(fullFilename, toSerialize);
+            }
+        }
+
         public static void SerializeObject(string containerName, string fileName, bool publicAccess, object theObject)
         {
             var blockBlob = GetBlockBlob(containerName, fileName, publicAccess);
@@ -36,6 +49,19 @@ namespace ACESim.Util
                 blockBlob.UploadFromStream(stream, accessCondition, options);
                 if (leaseID != null)
                     blockBlob.ReleaseLease(accessCondition);
+            }
+        }
+
+        public static object GetSerializedObjectFromFileOrAzure(string path, string containerName, string fileName, bool useAzure)
+        {
+            if (useAzure)
+            {
+                return GetSerializedObject(containerName, fileName);
+            }
+            else
+            {
+                string fullFilename = Path.Combine(path, fileName);
+                return BinarySerialization.GetSerializedObject(fullFilename);
             }
         }
 

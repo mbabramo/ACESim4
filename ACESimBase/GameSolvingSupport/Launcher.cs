@@ -42,8 +42,7 @@ namespace ACESim
         public bool ParallelizeOptionSets = false; // run multiple option sets at same time on computer (in which case each individually will be run not in parallel)
         public bool ParallelizeIndividualExecutions = true; // only if LaunchSingleOptionsSetOnly or !LocalDistributedProcessing
 
-        public string OverrideDateTimeString = null; // "2017-10-11 10-18"; // use this if termination finished unexpectedly
-        public string MasterReportNameForDistributedProcessing = "R";
+        public string MasterReportNameForDistributedProcessing = "R004"; // IMPORTANT: Must update this (or delete the Coordinator).
 
         const int EffectivelyNever = EvolutionSettings.EffectivelyNever;
 
@@ -139,6 +138,8 @@ namespace ACESim
         {
             EvolutionSettings evolutionSettings = new EvolutionSettings()
             {
+                AzureEnabled = AzureEnabled,
+
                 MaxParallelDepth = 3, // we're parallelizing on the iteration level, so there is no need for further parallelization
                 ParallelOptimization = ParallelizeIndividualExecutions && !ParallelizeOptionSets && (LaunchSingleOptionsSetOnly || !DistributedProcessing),
                 SuppressReportPrinting = AlwaysSuppressReportPrinting || (!LaunchSingleOptionsSetOnly && (ParallelizeOptionSets || DistributedProcessing)),
@@ -187,8 +188,7 @@ namespace ACESim
 
         public async Task<ReportCollection> LaunchDistributedProcessingParticipation()
         {
-            string dateTimeString = OverrideDateTimeString ?? DateTime.Now.ToString("yyyy-MM-dd HH-mm");
-            string masterReportName = MasterReportNameForDistributedProcessing + " " + dateTimeString;
+            string masterReportName = MasterReportNameForDistributedProcessing;
             bool singleThread = false;
             if (singleThread)
             {

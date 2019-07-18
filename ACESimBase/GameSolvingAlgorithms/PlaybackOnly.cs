@@ -29,13 +29,14 @@ namespace ACESim
         public override async Task<ReportCollection> RunAlgorithm(string optionSetName)
         {
             StrategiesDeveloperStopwatch.Reset();
-            string filename = Path.Combine(FolderFinder.GetFolderToWriteTo("Strategies").FullName, GameDefinition.OptionSetName + "-" + EvolutionSettings.SerializeResultsPrefixPlus(GameDefinition.BaselineScenarioIndex, GameDefinition.NumScenariosToDevelop));
+            string path = FolderFinder.GetFolderToWriteTo("Strategies").FullName;
+            string filename = GameDefinition.OptionSetName + "-" + EvolutionSettings.SerializeResultsPrefixPlus(GameDefinition.BaselineScenarioIndex, GameDefinition.NumScenariosToDevelop);
             if (EvolutionSettings.SerializeInformationSetDataOnly)
             {
-                StrategySerialization.DeserializeInformationSets(InformationSets, filename);
+                StrategySerialization.DeserializeInformationSets(InformationSets, path, filename, EvolutionSettings.AzureEnabled);
             }
             else
-                Strategies = StrategySerialization.DeserializeStrategies(filename).ToList();
+                Strategies = StrategySerialization.DeserializeStrategies(path, filename, EvolutionSettings.AzureEnabled).ToList();
             int correctCurrentScenarioIndex = GameDefinition.GetScenarioIndex(GameDefinition.BaselineScenarioIndex, false);
             if (correctCurrentScenarioIndex != GameDefinition.CurrentScenarioIndex)
             {

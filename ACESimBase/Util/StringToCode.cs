@@ -16,6 +16,23 @@ namespace ACESimBase.Util
 
         public static Type LoadCode(string codeString, string fullyQualifiedClassName, List<Type> extraTypesToReference = null)
         {
+            int maxRetries = 10;
+            int tryNum = 0;
+            retry:
+            try
+            {
+                return LoadCodeHelper(codeString, fullyQualifiedClassName, extraTypesToReference);
+            }
+            catch
+            {
+                if (++tryNum <= maxRetries)
+                    goto retry;
+                throw new Exception("LoadCode failed");
+            }
+        }
+
+        public static Type LoadCodeHelper(string codeString, string fullyQualifiedClassName, List<Type> extraTypesToReference = null)
+        {
             SyntaxTree tree = CSharpSyntaxTree.ParseText(codeString);
             string assemblyName = Path.GetRandomFileName();
             var assemblyPath = Path.GetDirectoryName(typeof(object).Assembly.Location);
@@ -24,7 +41,8 @@ namespace ACESimBase.Util
                 MetadataReference.CreateFromFile(typeof(object).Assembly.Location),
                 MetadataReference.CreateFromFile(typeof(Enumerable).Assembly.Location),
             };
-            var trustedAssembliesPaths = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")).Split(Path.PathSeparator);
+            string trustedPlatformAssembliesString = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES"));
+            string[] trustedAssembliesPaths = trustedPlatformAssembliesString?.Split(Path.PathSeparator) ?? new string[0];
             var neededAssemblies = new[]
             {
                 "System.Runtime",

@@ -9,6 +9,7 @@ namespace ACESim
     [Serializable]
     public class EvolutionSettings
     {
+        public bool AzureEnabled = false;
         public bool ParallelOptimization = false;
         public int MaxParallelDepth = 1;
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.FictitiousSelfPlay;
