@@ -29,7 +29,7 @@ namespace ACESim
         public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
         {
             List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
-            AddShootoutMainPermutations(optionSets); // DEBUG
+            AddShootoutPermutations(optionSets);
 
             optionSets = optionSets.OrderBy(x => x.optionSetName).ToList();
 
