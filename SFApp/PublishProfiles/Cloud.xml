@@ -19,12 +19,11 @@
        <ClusterConnectionParameters ConnectionEndpoint="mycluster.westus.cloudapp.azure.com:19000"
                                     AzureActiveDirectory="true"
                                     ServerCertThumbprint="0123456789012345678901234567890123456789" />
-                                    
-                                    NOTE: WHEN GOING TO PUBLISH, CHOOSE TO CREATE A CLUSTER IF THE ONE HERE DOESN'T WORK. IT WILL THEN IMPORT CERTIFICATES ETC.
   -->
-  <ClusterConnectionParameters ConnectionEndpoint=""/>
+  <ClusterConnectionParameters ConnectionEndpoint="sfapp01.eastus.cloudapp.azure.com:19000" X509Credential="true" ServerCertThumbprint="19A2AC3B15DEBFAB0044D1C4BC35E4D98206E72C" FindType="FindByThumbprint" FindValue="19A2AC3B15DEBFAB0044D1C4BC35E4D98206E72C" StoreLocation="CurrentUser" StoreName="My" />
   <ApplicationParameterFile Path="..\ApplicationParameters\Cloud.xml" />
-  <UpgradeDeployment Mode="Monitored" Enabled="false">
-    <Parameters FailureAction="Invalid" Force="True" />
+  <CopyPackageParameters CompressPackage="true" />
+  <UpgradeDeployment Mode="Monitored" Enabled="true">
+    <Parameters FailureAction="Rollback" Force="True" />
   </UpgradeDeployment>
 </PublishProfile>
