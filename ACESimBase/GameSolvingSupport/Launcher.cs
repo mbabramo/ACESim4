@@ -209,14 +209,16 @@ namespace ACESim
             return new ReportCollection("", result);
         }
 
-        public async Task ParticipateInDistributedProcessing(string masterReportName, CancellationToken cancellationToken, Action actionEachTime = null)
+        public async Task ParticipateInDistributedProcessing(string masterReportName, CancellationToken cancellationToken, Action<string> logAction = null)
         {
             InitializeTaskCoordinatorIfNecessary(masterReportName);
             IndividualTask taskToDo = null, taskCompleted = null;
             bool complete = false;
+            if (logAction == null)
+                logAction = s => Debug.WriteLine(s);
             while (!complete)
             {
-                actionEachTime?.Invoke();
+                logAction?.Invoke("Starting participation in distributed processing");
                 IndividualTask theCompletedTask = taskCompleted; // avoid problem with closure
                 var blockBlob = AzureBlob.GetLeasedBlockBlob("results", masterReportName + " Coordinator", true);
                 bool readyForAnotherTask = !cancellationToken.IsCancellationRequested;
@@ -226,11 +228,11 @@ namespace ACESim
                     TaskCoordinator taskCoordinator = (TaskCoordinator)o;
                     if (taskCoordinator == null)
                         throw new Exception("Corrupted or nonexistent task coordinator blob");
-                    Debug.WriteLine("Initial task coordinator state:");
-                    Debug.WriteLine(taskCoordinator);
+                    logAction("Initial task coordinator state:");
+                    logAction(taskCoordinator.ToString());
                     taskCoordinator.Update(theCompletedTask, readyForAnotherTask, out taskToDo);
-                    Debug.WriteLine("Updated task coordinator state:");
-                    Debug.WriteLine(taskCoordinator);
+                    logAction("Updated task coordinator state:");
+                    logAction(taskCoordinator.ToString());
                     TabbedText.WriteLineEvenIfDisabled($"Percentage Complete {100.0 * taskCoordinator.ProportionComplete}%");
                     if (taskToDo != null)
                         TabbedText.WriteLineEvenIfDisabled($"Task to do: {taskToDo}");
@@ -239,19 +241,21 @@ namespace ACESim
                 complete = taskToDo == null;
                 if (!complete)
                 {
-                    await CompleteIndividualTask(masterReportName, taskToDo);
-                    Debug.WriteLine($"Completed task {taskToDo.Name} {taskToDo.ID}");
+                    await CompleteIndividualTask(masterReportName, taskToDo, logAction);
+                    logAction($"Completed task {taskToDo.Name} {taskToDo.ID}");
                     taskCompleted = taskToDo;
                 }
             }
         }
 
-        private async Task CompleteIndividualTask(string masterReportName, IndividualTask taskToDo)
+        private async Task CompleteIndividualTask(string masterReportName, IndividualTask taskToDo, Action<string> logAction = null)
         {
+            if (logAction == null)
+                logAction = s => Debug.WriteLine(s);
             if (taskToDo.Name == "Optimize")
             {
                 IStrategiesDeveloper developer = GetDeveloper(taskToDo.ID);
-                await GetSingleRepetitionReportAndSave(masterReportName, taskToDo.ID, taskToDo.Repetition, true, developer);
+                await GetSingleRepetitionReportAndSave(masterReportName, taskToDo.ID, taskToDo.Repetition, true, developer, logAction);
             }
             else if (taskToDo.Name == "CombineRepetitions")
             {
@@ -412,27 +416,43 @@ namespace ACESim
             return result;
         }
 
-        private async Task<ReportCollection> GetSingleRepetitionReportAndSave(string masterReportName, int optionSetIndex, int repetition, bool addOptionSetColumns, IStrategiesDeveloper developer)
+        private async Task<ReportCollection> GetSingleRepetitionReportAndSave(string masterReportName, int optionSetIndex, int repetition, bool addOptionSetColumns, IStrategiesDeveloper developer, Action<string> logAction = null)
         {
+            if (logAction == null)
+                logAction = s => Debug.WriteLine(s);
             List<(string optionSetName, GameOptions options)> optionSets = GetOptionsSets();
             var options = optionSets[optionSetIndex].options;
-            var result = await GetSingleRepetitionReportAndSave(masterReportName, options, optionSets[optionSetIndex].optionSetName, repetition, addOptionSetColumns, developer);
+            var result = await GetSingleRepetitionReportAndSave(masterReportName, options, optionSets[optionSetIndex].optionSetName, repetition, addOptionSetColumns, developer, logAction);
             return result;
         }
 
-        private async Task<ReportCollection> GetSingleRepetitionReportAndSave(string masterReportName, GameOptions options, string optionSetName, int repetition, bool addOptionSetColumns, IStrategiesDeveloper developer)
+        private async Task<ReportCollection> GetSingleRepetitionReportAndSave(string masterReportName, GameOptions options, string optionSetName, int repetition, bool addOptionSetColumns, IStrategiesDeveloper developer, Action<string> logAction = null)
         {
             string masterReportNamePlusOptionSet = $"{masterReportName} {optionSetName}";
+            if (logAction == null)
+                logAction = s => Debug.WriteLine(s);
             if (developer == null)
                 throw new Exception("Developer must be set"); // should call GetDeveloper(options) before calling this (note: earlier version passed developer as ref so that it could be set here)
-            var result = await GetSingleRepetitionReport(optionSetName, repetition, addOptionSetColumns, developer);
-            if (AzureEnabled)
-                AzureBlob.WriteTextToBlob("results", masterReportNamePlusOptionSet + ".csv", true, result.csvReports.FirstOrDefault()); // we write to a blob in case this times out and also to allow individual report to be taken out
-            return result;
+            try
+            {
+                var result = await GetSingleRepetitionReport(optionSetName, repetition, addOptionSetColumns, developer, logAction);
+                logAction("Writing report to blob");
+                if (AzureEnabled)
+                    AzureBlob.WriteTextToBlob("results", masterReportNamePlusOptionSet + ".csv", true, result.csvReports.FirstOrDefault()); // we write to a blob in case this times out and also to allow individual report to be taken out
+                logAction("Report written to blob");
+                return result;
+            }
+            catch (Exception ex)
+            {
+                logAction(ex.Message + ex.StackTrace);
+                throw;
+            }
         }
 
-        private async Task<ReportCollection> GetSingleRepetitionReport(string optionSetName, int i, bool addOptionSetColumns, IStrategiesDeveloper developer)
+        private async Task<ReportCollection> GetSingleRepetitionReport(string optionSetName, int i, bool addOptionSetColumns, IStrategiesDeveloper developer, Action<string> logAction = null)
         {
+            if (logAction == null)
+                logAction = s => Debug.WriteLine(s);
             developer.EvolutionSettings.GameNumber = StartGameNumber + i;
             string reportIteration = i.ToString();
             if (i > 0)
@@ -445,6 +465,7 @@ namespace ACESim
             }
             catch (Exception e)
             {
+                logAction(e.Message + e.StackTrace);
                 TabbedText.WriteLine($"Error: {e}");
                 TabbedText.WriteLine(e.StackTrace);
                 goto retry;

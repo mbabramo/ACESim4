@@ -40,23 +40,26 @@ namespace SFStateless
 
             long iterations = 0;
 
-            string nodeID = Context.NodeContext.NodeName;
+            string nodeID = Context?.NodeContext?.NodeName ?? "N/A";
 
             while (true)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-
                 try
                 {
+                    ServiceEventSource.Current.ServiceMessage(this.Context, $"{nodeID}: RunAsync loop");
+                    AzureBlob.SerializeObject("results", $"DEBUG-{nodeID}-{iterations}.txt", true, "success");
+
+                    cancellationToken.ThrowIfCancellationRequested(); // keep inside try loop, as we want to start again
 
                     MyGameLauncher launcher = new MyGameLauncher();
 
                     await launcher.ParticipateInDistributedProcessing(
                         launcher.MasterReportNameForDistributedProcessing,
                         cancellationToken,
-                        () => ServiceEventSource.Current.ServiceMessage(this.Context, "Working-{0}" + "-" + nodeID, ++iterations)
+                        message => ServiceEventSource.Current.ServiceMessage(this.Context, $"{nodeID}: {message}", ++iterations)
                         );
                 }
+
                 catch (Exception ex)
                 {
                     try
@@ -69,8 +72,6 @@ namespace SFStateless
 
                     }
                 }
-
-                await Task.Delay(TimeSpan.FromSeconds(60), cancellationToken);
             }
         }
     }
