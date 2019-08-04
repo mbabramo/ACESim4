@@ -18,20 +18,20 @@ namespace ACESim
 
         #region Settings
 
-        public string MasterReportNameForDistributedProcessing = "R005"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
+        public string MasterReportNameForDistributedProcessing = "R006"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching;
 
-        public const int VanillaIterations = 1_000; 
+        public const int VanillaIterations = 100_000; 
         public const int VanillaReportEveryNIterations = VanillaIterations;
-        public const int VanillaBestResponseEveryMIterations = VanillaIterations;
+        public const int VanillaBestResponseEveryMIterations = 5_000;
         public const bool CalculatePerturbedBestResponseRefinement = true;
         public const int MiniReportEveryPIterations = EffectivelyNever;
         public const bool AlwaysSuppressReportPrinting = true;
         public const bool RecordPastValues = false; 
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever; 
         public const bool UseRandomPathsForReporting = true; 
-        public const int SummaryTableRandomPathsIterations = 1_000;
+        public const int SummaryTableRandomPathsIterations = 25_000;
         public const int ProbingIterations = 20_000_000;
 
         public const bool UseRegretAndStrategyDiscounting = false;
@@ -40,7 +40,7 @@ namespace ACESim
         public bool LaunchSingleOptionsSetOnly = false; 
         public int NumRepetitions = 1;
         public bool AzureEnabled = true;
-        public bool DistributedProcessing = true; // this should be true if running on the local service fabric
+        public bool DistributedProcessing = false; // this should be true if running on the local service fabric
         public bool ParallelizeOptionSets = false; // run multiple option sets at same time on computer (in which case each individually will be run not in parallel)
         public bool ParallelizeIndividualExecutions = true; // only if LaunchSingleOptionsSetOnly or !LocalDistributedProcessing
 

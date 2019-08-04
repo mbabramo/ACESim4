@@ -23,7 +23,7 @@ namespace ACESim
         public bool UseAcceleratedBestResponse = true;
         public bool CalculatePerturbedBestResponseRefinement = false;
         public double PerturbationForBestResponseCalculation = 0.001;
-        public int? MiniReportEveryPIterations = 1000;
+        public int? MiniReportEveryPIterations = 5000;
         public bool MeasureRegretMatchingChanges = false;
         public bool UseRandomPathsForReporting = true;
         public bool SerializeResults = true;
