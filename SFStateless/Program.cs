@@ -27,7 +27,8 @@ namespace SFStateless
                     ServiceRuntime.RegisterServiceAsync("SFStatelessType",
                     context => new SFStateless(context)).GetAwaiter().GetResult();
 
-                    ServiceEventSource.Current.ServiceTypeRegistered(Process.GetCurrentProcess().Id, typeof(SFStateless).Name);
+                    int id = Process.GetCurrentProcess().Id;
+                    ServiceEventSource.Current.ServiceTypeRegistered(id, typeof(SFStateless).Name);
 
                     // Prevents this host process from terminating so services keep running.
                     Thread.Sleep(Timeout.Infinite);

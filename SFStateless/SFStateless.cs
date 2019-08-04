@@ -49,7 +49,7 @@ namespace SFStateless
                     ServiceEventSource.Current.ServiceMessage(this.Context, $"{nodeID}: RunAsync loop");
                     AzureBlob.SerializeObject("results", $"DEBUG-{nodeID}-{iterations}.txt", true, "success");
 
-                    cancellationToken.ThrowIfCancellationRequested(); // keep inside try loop, as we want to start again
+                    cancellationToken.ThrowIfCancellationRequested();
 
                     MyGameLauncher launcher = new MyGameLauncher();
 
@@ -59,7 +59,9 @@ namespace SFStateless
                         message => ServiceEventSource.Current.ServiceMessage(this.Context, $"{nodeID}: {message}", ++iterations)
                         );
                 }
-
+                catch (OperationCanceledException)
+                {
+                }
                 catch (Exception ex)
                 {
                     try
