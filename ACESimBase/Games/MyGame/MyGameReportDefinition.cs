@@ -481,15 +481,16 @@ namespace ACESim
         private SimpleReportDefinition GetCourtSuccessReport()
         {
             string suboptionSetName =
-                $"Probability of winning";
+                $"PlayToTrial";
+            string allString = "PlayToTrial-All";
             List<SimpleReportFilter> metaFilters = new List<SimpleReportFilter>()
             {
-                new SimpleReportFilter("All", (GameProgress gp) => true)
+                new SimpleReportFilter(allString, (GameProgress gp) => true)
             };
 
             List<SimpleReportFilter> rowFilters = new List<SimpleReportFilter>()
             {
-                new SimpleReportFilter("All", (GameProgress gp) => true)
+                new SimpleReportFilter(allString, (GameProgress gp) => true)
             };
             bool reportResponseToOffer = false;
             (bool plaintiffMakesOffer, int offerNumber, bool isSimultaneous) =
@@ -501,7 +502,7 @@ namespace ACESim
             AddRowFiltersLitigationStrength(rowFilters);
             List<SimpleReportColumnItem> columnItems = new List<SimpleReportColumnItem>()
             {
-                new SimpleReportColumnFilter("All", (GameProgress gp) => true, SimpleReportColumnFilterOptions.ProportionOfAll),
+                new SimpleReportColumnFilter(allString, (GameProgress gp) => true, SimpleReportColumnFilterOptions.ProportionOfAll),
                 new SimpleReportColumnFilter("Trial", (GameProgress gp) => MyGP(gp).TrialOccurs, SimpleReportColumnFilterOptions.ProportionOfRow),
                 new SimpleReportColumnFilter("PWinsAtTrial", (GameProgress gp) => MyGP(gp).TrialOccurs && MyGP(gp).PWinsAtTrial == true, SimpleReportColumnFilterOptions.ProportionOfRow),
                 new SimpleReportColumnFilter("DWinsAtTrial", (GameProgress gp) => MyGP(gp).TrialOccurs && MyGP(gp).PWinsAtTrial == false, SimpleReportColumnFilterOptions.ProportionOfRow),
@@ -513,6 +514,13 @@ namespace ACESim
             AddColumnFiltersDamagesStrength(columnItems);
             AddColumnFiltersPLiabilitySignal(columnItems);
             AddColumnFiltersDLiabilitySignal(columnItems);
+
+            bool includeSuboptionSetNameInRow = true;
+            string rowNamePrefix = includeSuboptionSetNameInRow ? suboptionSetName + " " : "";
+            if (includeSuboptionSetNameInRow)
+                foreach (var rowFilter in rowFilters)
+                    if (rowFilter.Name != allString)
+                        rowFilter.Name = rowNamePrefix + rowFilter.Name;
             return new SimpleReportDefinition(
                     suboptionSetName,
                     metaFilters,
@@ -530,6 +538,7 @@ namespace ACESim
                 GetOfferorAndNumber(bargainingRound, ref reportResponseToOffer);
             string suboptionSetName =
                 $"Round {bargainingRound} {(reportResponseToOffer ? "ResponseTo" : "")}{(plaintiffMakesOffer ? "P" : "D")} {offerNumber}";
+            string allString = suboptionSetName + "-All";
             List<SimpleReportFilter> metaFilters = new List<SimpleReportFilter>
             {
                 new SimpleReportFilter("RoundOccurs",
@@ -537,7 +546,7 @@ namespace ACESim
             };
             List<SimpleReportFilter> rowFilters = new List<SimpleReportFilter>()
             {
-                new SimpleReportFilter("All", (GameProgress gp) => true)
+                new SimpleReportFilter(allString, (GameProgress gp) => true)
             };
             bool reportPlaintiff = (plaintiffMakesOffer && !reportResponseToOffer) || (!plaintiffMakesOffer && reportResponseToOffer);
             Func<GameProgress, bool> additionalCriterion = null;
@@ -547,7 +556,7 @@ namespace ACESim
             //AddRowFilterLiabilitySignalRegions(false, rowFilters);
             List<SimpleReportColumnItem> columnItems = new List<SimpleReportColumnItem>()
             {
-                new SimpleReportColumnFilter("All", (GameProgress gp) => true, SimpleReportColumnFilterOptions.ProportionOfAll)
+                new SimpleReportColumnFilter(allString, (GameProgress gp) => true, SimpleReportColumnFilterOptions.ProportionOfAll)
             };
             //AddColumnFiltersLiabilityStrength(columnItems); // not needed -- in court success report
             double[] offerPoints = EquallySpaced.GetEquallySpacedPoints(Options.NumOffers, Options.IncludeEndpointsForOffers);
@@ -571,6 +580,12 @@ namespace ACESim
                     )
                 );
             }
+            bool includeSuboptionSetNameInRow = true;
+            string rowNamePrefix = includeSuboptionSetNameInRow ? suboptionSetName + " " : "";
+            if (includeSuboptionSetNameInRow)
+                foreach (var rowFilter in rowFilters)
+                    if (rowFilter.Name != allString)
+                        rowFilter.Name = rowNamePrefix + rowFilter.Name;
             return new SimpleReportDefinition(
                 suboptionSetName,
                 metaFilters,

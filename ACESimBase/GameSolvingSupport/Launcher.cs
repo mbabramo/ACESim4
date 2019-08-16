@@ -18,26 +18,26 @@ namespace ACESim
 
         #region Settings
 
-        public string MasterReportNameForDistributedProcessing = "R006"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
+        public string MasterReportNameForDistributedProcessing = "R007"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching;
 
-        public const int VanillaIterations = 100_000; 
+        public const int VanillaIterations = 10_000;
         public const int VanillaReportEveryNIterations = VanillaIterations;
-        public const int VanillaBestResponseEveryMIterations = 5_000;
+        public const int VanillaBestResponseEveryMIterations = VanillaIterations;
         public const bool CalculatePerturbedBestResponseRefinement = true;
         public const int MiniReportEveryPIterations = EffectivelyNever;
         public const bool AlwaysSuppressReportPrinting = true;
         public const bool RecordPastValues = false; 
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever; 
-        public const bool UseRandomPathsForReporting = true; 
-        public const int SummaryTableRandomPathsIterations = 25_000;
+        public const bool UseRandomPathsForReporting = true;
+        public const int SummaryTableRandomPathsIterations = 10_000;
         public const int ProbingIterations = 20_000_000;
 
         public const bool UseRegretAndStrategyDiscounting = false;
 
         public const int StartGameNumber = 1;
-        public bool LaunchSingleOptionsSetOnly = false; 
+        public bool LaunchSingleOptionsSetOnly = true; 
         public int NumRepetitions = 1;
         public bool AzureEnabled = true;
         public bool DistributedProcessing = false; // this should be true if running on the local service fabric
@@ -370,7 +370,7 @@ namespace ACESim
 
         public async Task<ReportCollection> ProcessAllOptionSetsLocally()
         {
-            string masterReportName = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
+            string masterReportName = DateTime.Now.ToString("yyyy-MM-dd HH-mm"); // avoid colons and slashes
 
             List<(string optionSetName, GameOptions options)> optionSets = GetOptionsSets();
             int numRepetitionsPerOptionSet = NumRepetitions;
@@ -494,7 +494,7 @@ namespace ACESim
             } while (Console.ReadKey(true).Key != ConsoleKey.G);
             TabbedText.WriteLine("Processing on Azure...");
 
-            string azureBlobReportName = "Report" + DateTime.Now.ToString("yyyy-MM-dd HH:mm");
+            string azureBlobReportName = "Report" + DateTime.Now.ToString("yyyy-MM-dd HH-mm");  // avoid colons and slashes
 
             List<Task<string>> tasks = new List<Task<string>>();
             for (int i = 0; i < optionSets.Count; i++)
