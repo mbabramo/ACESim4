@@ -54,7 +54,7 @@ namespace ACESim
         public List<ActionStrategies> ActionStrategiesToUseInReporting = new List<ActionStrategies>() { ActionStrategies.AverageStrategy };
         public int GameNumber = 0;
         internal int NumRandomIterationsForUtilityCalculation = 10000;
-        internal bool SuppressReportPrinting;
+        internal bool SuppressReportDisplayOnScreen;
 
         // For Vanilla algorithm:
         // From Solving Imperfect Information Games with Discounted Regret Minimization -- optimal values (for situations in which pruning may be used)

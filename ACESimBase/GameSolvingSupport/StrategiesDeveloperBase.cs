@@ -728,7 +728,7 @@ namespace ACESim
                 reportGenerator = GenerateReports_AllPaths;
             }
             var reports = await GenerateReportsByPlaying(reportGenerator);
-            if (!EvolutionSettings.SuppressReportPrinting)
+            if (!EvolutionSettings.SuppressReportDisplayOnScreen)
             {
                 Debug.WriteLine($"{reports.standardReport}");
                 TabbedText.WriteLine($"{reports.standardReport}");

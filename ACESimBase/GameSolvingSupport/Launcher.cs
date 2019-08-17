@@ -22,16 +22,16 @@ namespace ACESim
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching;
 
-        public const int VanillaIterations = 10_000;
+        public const int VanillaIterations = 100_000;
         public const int VanillaReportEveryNIterations = VanillaIterations;
-        public const int VanillaBestResponseEveryMIterations = VanillaIterations;
+        public const int VanillaBestResponseEveryMIterations = 5_000;
         public const bool CalculatePerturbedBestResponseRefinement = true;
         public const int MiniReportEveryPIterations = EffectivelyNever;
-        public const bool AlwaysSuppressReportPrinting = true;
+        public const bool AlwaysSuppressDisplayReportOnScreen = true;
         public const bool RecordPastValues = false; 
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever; 
         public const bool UseRandomPathsForReporting = true;
-        public const int SummaryTableRandomPathsIterations = 10_000;
+        public const int SummaryTableRandomPathsIterations = 25_000;
         public const int ProbingIterations = 20_000_000;
 
         public const bool UseRegretAndStrategyDiscounting = false;
@@ -142,7 +142,7 @@ namespace ACESim
 
                 MaxParallelDepth = 3, // we're parallelizing on the iteration level, so there is no need for further parallelization
                 ParallelOptimization = ParallelizeIndividualExecutions && !ParallelizeOptionSets && (LaunchSingleOptionsSetOnly || !DistributedProcessing),
-                SuppressReportPrinting = AlwaysSuppressReportPrinting || (!LaunchSingleOptionsSetOnly && (ParallelizeOptionSets || DistributedProcessing)),
+                SuppressReportDisplayOnScreen = AlwaysSuppressDisplayReportOnScreen || (!LaunchSingleOptionsSetOnly && (ParallelizeOptionSets || DistributedProcessing)),
 
                 GameNumber = StartGameNumber,
 
