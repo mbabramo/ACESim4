@@ -127,7 +127,7 @@ namespace ACESim
         public int BestIteration = -1;
 
         public double[] MinScore, MaxScore, ScoreRange;
-        public bool ScoreRangeExists => (ScoreRange == null || ScoreRange.Any(x => x == 0));
+        public bool ScoreRangeExists => !(ScoreRange == null || ScoreRange.Any(x => x == 0));
 
         public ActionStrategies _ActionStrategy;
         public ActionStrategies ActionStrategy

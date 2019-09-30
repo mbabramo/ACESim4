@@ -18,7 +18,7 @@ namespace ACESim
 
         #region Settings
 
-        public string MasterReportNameForDistributedProcessing = "R007"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
+        public string MasterReportNameForDistributedProcessing = "R008"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching;
 
@@ -37,7 +37,7 @@ namespace ACESim
         public const bool UseRegretAndStrategyDiscounting = false;
 
         public const int StartGameNumber = 1;
-        public bool LaunchSingleOptionsSetOnly = true; 
+        public bool LaunchSingleOptionsSetOnly = false; 
         public int NumRepetitions = 1;
         public bool AzureEnabled = true;
         public bool DistributedProcessing = false; // this should be true if running on the local service fabric
