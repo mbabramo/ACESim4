@@ -245,28 +245,38 @@ namespace ACESim
             {
                 if (parallel == null || parallel(this) == false)
                 {
-                    for (int branchIndexPlusOne = 1; branchIndexPlusOne <= Branches.Length; branchIndexPlusOne++)
-                    {
-                        NWayTreeStorage<T> branch = Branches[branchIndexPlusOne - 1];
-                        if (branch != null && !branch.Equals(default(T)))
-                            branch.WalkTree(beforeDescending, afterAscending, parallel);
-                    }
+                    WalkTreeSerial(beforeDescending, afterAscending, parallel);
                 }
                 else
                 {
-                    List<int> branches = Enumerable.Range(1, Branches.Length).ToList();
-                    //The commented out code randomizes order without executing code simultaneously. You can also comment out just the first to run in order instead of in parallel.
-                    //RandomSubset.Shuffle(branches, 5); 
-                    //foreach (int branch in branches)
-                    Parallel.ForEach(branches, branchIndexPlusOne =>
-                    {
-                        NWayTreeStorage<T> branch = Branches[branchIndexPlusOne - 1];
-                        if (branch != null && !branch.Equals(default(T)))
-                            branch.WalkTree(beforeDescending, afterAscending, parallel);
-                    });
+                    WalkTreeParallel(beforeDescending, afterAscending, parallel);
                 }
             }
             afterAscending?.Invoke(this);
+        }
+
+        private void WalkTreeParallel(Action<NWayTreeStorage<T>> beforeDescending, Action<NWayTreeStorage<T>> afterAscending, Func<NWayTreeStorage<T>, bool> parallel)
+        {
+            List<int> branches = Enumerable.Range(1, Branches.Length).ToList();
+            //The commented out code randomizes order without executing code simultaneously. You can also comment out just the first to run in order instead of in parallel.
+            //RandomSubset.Shuffle(branches, 5); 
+            //foreach (int branch in branches)
+            Parallel.ForEach(branches, branchIndexPlusOne =>
+            {
+                NWayTreeStorage<T> branch = Branches[branchIndexPlusOne - 1];
+                if (branch != null && !branch.Equals(default(T)))
+                    branch.WalkTree(beforeDescending, afterAscending, parallel);
+            });
+        }
+
+        private void WalkTreeSerial(Action<NWayTreeStorage<T>> beforeDescending, Action<NWayTreeStorage<T>> afterAscending, Func<NWayTreeStorage<T>, bool> parallel)
+        {
+            for (int branchIndexPlusOne = 1; branchIndexPlusOne <= Branches.Length; branchIndexPlusOne++)
+            {
+                NWayTreeStorage<T> branch = Branches[branchIndexPlusOne - 1];
+                if (branch != null && !branch.Equals(default(T)))
+                    branch.WalkTree(beforeDescending, afterAscending, parallel);
+            }
         }
 
         public override void WalkTree(Action<NWayTreeStorage<T>> action, Func<NWayTreeStorage<T>, bool> parallel = null) => WalkTree(action, null, parallel);
