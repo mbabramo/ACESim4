@@ -245,10 +245,11 @@ namespace ACESim
             {
                 if (parallel == null || parallel(this) == false)
                 {
-                    for (int branch = 1; branch <= Branches.Length; branch++)
+                    for (int branchIndexPlusOne = 1; branchIndexPlusOne <= Branches.Length; branchIndexPlusOne++)
                     {
-                        if (Branches[branch - 1] != null && !Branches[branch - 1].Equals(default(T)))
-                            Branches[branch - 1].WalkTree(beforeDescending, afterAscending, parallel);
+                        NWayTreeStorage<T> branch = Branches[branchIndexPlusOne - 1];
+                        if (branch != null && !branch.Equals(default(T)))
+                            branch.WalkTree(beforeDescending, afterAscending, parallel);
                     }
                 }
                 else
@@ -257,10 +258,11 @@ namespace ACESim
                     //The commented out code randomizes order without executing code simultaneously. You can also comment out just the first to run in order instead of in parallel.
                     //RandomSubset.Shuffle(branches, 5); 
                     //foreach (int branch in branches)
-                    Parallel.ForEach(branches, branch =>
+                    Parallel.ForEach(branches, branchIndexPlusOne =>
                     {
-                        if (Branches[branch - 1] != null && !Branches[branch - 1].Equals(default(T)))
-                            Branches[branch - 1].WalkTree(beforeDescending, afterAscending, parallel);
+                        NWayTreeStorage<T> branch = Branches[branchIndexPlusOne - 1];
+                        if (branch != null && !branch.Equals(default(T)))
+                            branch.WalkTree(beforeDescending, afterAscending, parallel);
                     });
                 }
             }

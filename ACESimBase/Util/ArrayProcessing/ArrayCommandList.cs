@@ -34,6 +34,8 @@ namespace ACESimBase.Util.ArrayProcessing
         public bool ReuseDestinations = false; // NOTE: Not currently working (must adapt to source code generation). If true, then we will not add a new ordered destination index for a destination location already used within code executed not in parallel. Instead, we will just increment the previous destination.
         public List<int> OrderedDestinationIndices;
         public double[] OrderedDestinations;
+        public List<int>[] OrderedDestinationsInverted; // here, the outer array is the same size as the target array, and the inner list consists of the items to add up for that array index.
+        public (int targetIndex, List<int> sourceIndices)[] OrderedDestinationsInvertedWithTarget;
         public Dictionary<int, int> ReusableOrderedDestinationIndices;
         public bool Parallelize;
 
@@ -941,7 +943,7 @@ else
             //    System.Diagnostics.Debug.WriteLine($"{i}: {OrderedDestinations[i]}");
             //PrintCommandLog();
 
-            CopyOrderedDestinations(array, 0, OrderedDestinationIndices.Count());
+            CopyOrderedDestinations(array);
         }
 
         private unsafe double[] ExecuteAllCommands(double[] array)
@@ -1196,7 +1198,7 @@ else
                 OrderedSources = new double[sourcesCount];
                 OrderedDestinations = new double[destinationsCount];
             }
-            // DEBUG
+            //// DEBUG
             Parallelizer.Go(Parallelize, 0, sourcesCount, n =>
             {
                 OrderedSources[n] = array[OrderedSourceIndices[n]];
@@ -1207,22 +1209,69 @@ else
             //    OrderedSources[currentOrderedSourceIndex++] = array[orderedSourceIndex];
             //}
             Array.Clear(OrderedDestinations, 0, destinationsCount);
-            // DEBUG
-            //for (int i = 0; i < destinationsCount; i++)
-            //    OrderedDestinations[i] = 0;
+                //// DEBUG
+                //for (int i = 0; i < destinationsCount; i++)
+                //    OrderedDestinations[i] = 0;
         }
 
         static object DestinationCopier = new object();
-        public void CopyOrderedDestinations(double[] array, int startOrderedDestinationIndex, int endOrderedDestinationIndexExclusive)
+        public void CopyOrderedDestinations(double[] array)
         {
-            // NOTE: We can't use a parallel for here, because we might affect the same destination multiple times. (We could using Interlocking.Add, but that seems to take much longer.) This is also the same reason that we can't call this within each command segment. Alternatively, we could lock around the copying code.
-            Parallelizer.Go(Parallelize, startOrderedDestinationIndex, endOrderedDestinationIndexExclusive, currentOrderedDestinationIndex =>
-            //for (int currentOrderedDestinationIndex = startOrderedDestinationIndex; currentOrderedDestinationIndex < endOrderedDestinationIndexExclusive; currentOrderedDestinationIndex++)
+            int startOrderedDestinationIndex = 0;
+            int endOrderedDestinationIndexExclusive = OrderedDestinationIndices.Count();
+            if (Parallelize)
             {
-                int destinationIndex = OrderedDestinationIndices[currentOrderedDestinationIndex];
-                array[destinationIndex] += OrderedDestinations[currentOrderedDestinationIndex];
+                if (OrderedDestinationsInverted == null)
+                {
+                    OrderedDestinationsInverted = new List<int>[array.Length];
+                    for (int currentOrderedDestinationIndex = startOrderedDestinationIndex; currentOrderedDestinationIndex < endOrderedDestinationIndexExclusive; currentOrderedDestinationIndex++)
+                    {
+                        int destinationIndex = OrderedDestinationIndices[currentOrderedDestinationIndex];
+                        if (OrderedDestinationsInverted[destinationIndex] == null)
+                            OrderedDestinationsInverted[destinationIndex] = new List<int>();
+                        OrderedDestinationsInverted[destinationIndex].Add(currentOrderedDestinationIndex);
+                    }
+                    int nonNullCount = OrderedDestinationsInverted.Where(x => x != null).Count();
+                    OrderedDestinationsInvertedWithTarget = new (int targetIndex, List<int> sourceIndices)[nonNullCount];
+                    int totalCopied = 0;
+                    for (int i = 0; i < array.Length; i++)
+                    {
+                        if (OrderedDestinationsInverted[i] != null)
+                            OrderedDestinationsInvertedWithTarget[totalCopied++] = (i, OrderedDestinationsInverted[i]);
+                    }
+                }
+                else if (OrderedDestinationsInverted.Length != array.Length)
+                    throw new Exception();
+                int numItemsInTargetArray = OrderedDestinationsInvertedWithTarget.Length;
+                Parallelizer.Go(true, 0, numItemsInTargetArray, i =>
+                {
+                    var targetAndSourceIndices = OrderedDestinationsInvertedWithTarget[i];
+                    List<int> indicesToCopy = targetAndSourceIndices.sourceIndices;
+                    if (indicesToCopy != null)
+                    {
+                        double total = 0;
+                        foreach (int indexToCopy in indicesToCopy)
+                            total += OrderedDestinations[indexToCopy];
+                        array[targetAndSourceIndices.targetIndex] = total;
+                    }
+                });
+                // WARNING: We can't use a parallel for without interlocking, because we might affect the same destination multiple times. (We could using Interlocking.Add as in the code below, but that seems to take much longer.) This is also the same reason that we can't call this within each command segment. Alternatively, we could lock around the copying code.
+                //Parallelizer.Go(Parallelize, startOrderedDestinationIndex, endOrderedDestinationIndexExclusive, currentOrderedDestinationIndex =>
+                //{
+                //    int destinationIndex = OrderedDestinationIndices[currentOrderedDestinationIndex];
+                //    Interlocking.Add(ref array[destinationIndex], OrderedDestinations[currentOrderedDestinationIndex]);
+                //}
+                //);
             }
-            );
+            else
+            {
+                
+                for (int currentOrderedDestinationIndex = startOrderedDestinationIndex; currentOrderedDestinationIndex < endOrderedDestinationIndexExclusive; currentOrderedDestinationIndex++)
+                {
+                    int destinationIndex = OrderedDestinationIndices[currentOrderedDestinationIndex];
+                    array[destinationIndex] += OrderedDestinations[currentOrderedDestinationIndex];
+                }
+            }
         }
 
         #endregion
