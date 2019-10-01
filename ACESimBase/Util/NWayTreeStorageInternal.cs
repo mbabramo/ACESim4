@@ -245,7 +245,7 @@ namespace ACESim
             beforeDescending?.Invoke(this);
             if (Branches != null)
             {
-                if (parallel == null || parallel(this) == false || executionCounter.ProcessorsRemaining <= Branches.Count())
+                if (parallel == null || parallel(this) == false || !executionCounter.ShouldAddTasks(Branches.Count()))
                 {
                     WalkTreeSerial(beforeDescending, afterAscending, executionCounter, parallel);
                 }
