@@ -264,12 +264,20 @@ namespace ACESim
             //The commented out code randomizes order without executing code simultaneously. You can also comment out just the first to run in order instead of in parallel.
             //RandomSubset.Shuffle(branches, 5); 
             //foreach (int branch in branches)
-            Parallel.ForEach(branches, branchIndexPlusOne =>
+            if (Branches.Count() < 10)
             {
-                NWayTreeStorage<T> branch = Branches[branchIndexPlusOne - 1];
-                if (branch != null && !branch.Equals(default(T)))
-                    branch.WalkTree(beforeDescending, afterAscending, executionCounter, parallel);
-            });
+                Task.WaitAll(Branches.Where(x => x != null)
+                    .Select(x => Task.Factory.StartNew(() => x.WalkTree(beforeDescending, afterAscending, executionCounter, parallel))).ToArray());
+            }
+            else
+            {
+                Parallel.ForEach(branches, branchIndexPlusOne =>
+                {
+                    NWayTreeStorage<T> branch = Branches[branchIndexPlusOne - 1];
+                    if (branch != null && !branch.Equals(default(T)))
+                        branch.WalkTree(beforeDescending, afterAscending, executionCounter, parallel);
+                });
+            }
         }
 
         private void WalkTreeSerial(Action<NWayTreeStorage<T>> beforeDescending, Action<NWayTreeStorage<T>> afterAscending, ExecutionCounter executionCounter, Func<NWayTreeStorage<T>, bool> parallel)
