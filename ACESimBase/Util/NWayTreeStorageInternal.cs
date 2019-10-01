@@ -269,7 +269,7 @@ namespace ACESim
                 var tasks = Branches.Skip(1).Where(x => x != null)
                     .Select(x => Task.Factory.StartNew(() => x.WalkTree(beforeDescending, afterAscending, executionCounter, parallel))).ToArray();
                 Branches.First().WalkTree(beforeDescending, afterAscending, executionCounter, parallel); // this is a simple way of doing some work while waiting for the remaining tasks -- better would be to make everything async.
-                Task.WaitAll();
+                Task.WaitAll(tasks);
             }
             else
             {
