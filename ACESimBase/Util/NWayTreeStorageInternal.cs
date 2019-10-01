@@ -243,7 +243,7 @@ namespace ACESim
         {
             executionCounter.Increment();
             beforeDescending?.Invoke(this);
-            if (Branches != null)
+            if (Branches != null && Branches.Where(x => x != null).Any())
             {
                 if (parallel == null || parallel(this) == false || !executionCounter.ShouldAddTasks(Branches.Count()))
                 {
@@ -266,8 +266,10 @@ namespace ACESim
             //foreach (int branch in branches)
             if (Branches.Count() < 10)
             {
-                Task.WaitAll(Branches.Where(x => x != null)
-                    .Select(x => Task.Factory.StartNew(() => x.WalkTree(beforeDescending, afterAscending, executionCounter, parallel))).ToArray());
+                var tasks = Branches.Skip(1).Where(x => x != null)
+                    .Select(x => Task.Factory.StartNew(() => x.WalkTree(beforeDescending, afterAscending, executionCounter, parallel))).ToArray();
+                Branches.First().WalkTree(beforeDescending, afterAscending, executionCounter, parallel); // this is a simple way of doing some work while waiting for the remaining tasks -- better would be to make everything async.
+                Task.WaitAll();
             }
             else
             {
