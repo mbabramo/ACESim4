@@ -117,10 +117,10 @@ namespace ACESim
             // This is a relatively simple way of limiting the total number of threads. If a tree is large, then much of the time can be spent switching between threads. Possibly, further gains could be achieved with something like the TPL Dataflow library, creating one consumer per logical processor. But it's complicated, because the consumers need to create new tasks in the form of their children, and we have to limit max concurrency.
 
             public int Count = 0;
-            public int TotalProcessors = Environment.ProcessorCount * 3;
+            public int Target = Environment.ProcessorCount * 3;// a bit arbitrary but seems to work empirically
             public bool Throttle = true; // false = disabling this for now
             public bool ShouldAddTasks(int numTasks) => !Throttle || ProcessorsRemaining > numTasks;
-            public int ProcessorsRemaining => TotalProcessors - Count; // DEBUG // a bit arbitrary but seems to work empirically
+            public int ProcessorsRemaining => Target - Count; 
 
             public void Increment()
             {
