@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ACESim
@@ -111,15 +112,47 @@ namespace ACESim
             return l;
         }
 
+        public class ExecutionCounter
+        {
+            public int Count = 0;
+            public int ProcessorsRemaining => Environment.ProcessorCount * 2 /* DEBUG */ - Count;
+
+            public void Increment()
+            {
+                Interlocked.Increment(ref Count);
+            }
+
+            public void Decrement()
+            {
+                Interlocked.Decrement(ref Count);
+            }
+        }
+
         public virtual void WalkTree(Action<NWayTreeStorage<T>> beforeDescending, Action<NWayTreeStorage<T>> afterAscending, Func<NWayTreeStorage<T>, bool> parallel = null)
         {
+            ExecutionCounter executionCounter = new ExecutionCounter();
+            WalkTree(beforeDescending, afterAscending, executionCounter, parallel);
+        }
+
+        public virtual void WalkTree(Action<NWayTreeStorage<T>> beforeDescending, Action<NWayTreeStorage<T>> afterAscending, ExecutionCounter executionCounter, Func<NWayTreeStorage<T>, bool> parallel = null)
+        {
+            executionCounter.Increment();
             beforeDescending?.Invoke(this);
             afterAscending?.Invoke(this);
+            executionCounter.Decrement();
         }
 
         public virtual void WalkTree(Action<NWayTreeStorage<T>> action, Func<NWayTreeStorage<T>, bool> parallel = null)
         {
+            ExecutionCounter executionCounter = new ExecutionCounter();
+            WalkTree(action, executionCounter, parallel);
+        }
+
+        public virtual void WalkTree(Action<NWayTreeStorage<T>> action, ExecutionCounter executionCounter, Func<NWayTreeStorage<T>, bool> parallel = null)
+        {
+            executionCounter.Increment();
             action(this);
+            executionCounter.Decrement();
         }
 
         public string ToTreeString(string branchWord)

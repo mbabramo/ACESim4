@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ACESim
@@ -238,24 +239,26 @@ namespace ACESim
             return nextTree;
         }
 
-        public override void WalkTree(Action<NWayTreeStorage<T>> beforeDescending, Action<NWayTreeStorage<T>> afterAscending, Func<NWayTreeStorage<T>, bool> parallel = null)
+        public override void WalkTree(Action<NWayTreeStorage<T>> beforeDescending, Action<NWayTreeStorage<T>> afterAscending, ExecutionCounter executionCounter, Func<NWayTreeStorage<T>, bool> parallel = null)
         {
+            executionCounter.Increment();
             beforeDescending?.Invoke(this);
             if (Branches != null)
             {
-                if (parallel == null || parallel(this) == false)
+                if (parallel == null || parallel(this) == false || executionCounter.ProcessorsRemaining <= Branches.Count())
                 {
-                    WalkTreeSerial(beforeDescending, afterAscending, parallel);
+                    WalkTreeSerial(beforeDescending, afterAscending, executionCounter, parallel);
                 }
                 else
                 {
-                    WalkTreeParallel(beforeDescending, afterAscending, parallel);
+                    WalkTreeParallel(beforeDescending, afterAscending, executionCounter, parallel);
                 }
             }
             afterAscending?.Invoke(this);
+            executionCounter.Decrement();
         }
 
-        private void WalkTreeParallel(Action<NWayTreeStorage<T>> beforeDescending, Action<NWayTreeStorage<T>> afterAscending, Func<NWayTreeStorage<T>, bool> parallel)
+        private void WalkTreeParallel(Action<NWayTreeStorage<T>> beforeDescending, Action<NWayTreeStorage<T>> afterAscending, ExecutionCounter executionCounter, Func<NWayTreeStorage<T>, bool> parallel)
         {
             List<int> branches = Enumerable.Range(1, Branches.Length).ToList();
             //The commented out code randomizes order without executing code simultaneously. You can also comment out just the first to run in order instead of in parallel.
@@ -265,21 +268,21 @@ namespace ACESim
             {
                 NWayTreeStorage<T> branch = Branches[branchIndexPlusOne - 1];
                 if (branch != null && !branch.Equals(default(T)))
-                    branch.WalkTree(beforeDescending, afterAscending, parallel);
+                    branch.WalkTree(beforeDescending, afterAscending, executionCounter, parallel);
             });
         }
 
-        private void WalkTreeSerial(Action<NWayTreeStorage<T>> beforeDescending, Action<NWayTreeStorage<T>> afterAscending, Func<NWayTreeStorage<T>, bool> parallel)
+        private void WalkTreeSerial(Action<NWayTreeStorage<T>> beforeDescending, Action<NWayTreeStorage<T>> afterAscending, ExecutionCounter executionCounter, Func<NWayTreeStorage<T>, bool> parallel)
         {
             for (int branchIndexPlusOne = 1; branchIndexPlusOne <= Branches.Length; branchIndexPlusOne++)
             {
                 NWayTreeStorage<T> branch = Branches[branchIndexPlusOne - 1];
                 if (branch != null && !branch.Equals(default(T)))
-                    branch.WalkTree(beforeDescending, afterAscending, parallel);
+                    branch.WalkTree(beforeDescending, afterAscending, executionCounter, parallel);
             }
         }
 
-        public override void WalkTree(Action<NWayTreeStorage<T>> action, Func<NWayTreeStorage<T>, bool> parallel = null) => WalkTree(action, null, parallel);
+        public override void WalkTree(Action<NWayTreeStorage<T>> action, ExecutionCounter executionCounter, Func<NWayTreeStorage<T>, bool> parallel = null) => WalkTree(action, null, executionCounter, parallel);
 
         internal override void ToTreeString(StringBuilder s, int? branch, int level, string branchWord)
         {
