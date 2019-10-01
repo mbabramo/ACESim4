@@ -1196,24 +1196,33 @@ else
                 OrderedSources = new double[sourcesCount];
                 OrderedDestinations = new double[destinationsCount];
             }
-            int currentOrderedSourceIndex = 0;
-            foreach (int orderedSourceIndex in OrderedSourceIndices)
+            // DEBUG
+            Parallelizer.Go(Parallelize, 0, sourcesCount, n =>
             {
-                OrderedSources[currentOrderedSourceIndex++] = array[orderedSourceIndex];
-            }
-            for (int i = 0; i < destinationsCount; i++)
-                OrderedDestinations[i] = 0;
+                OrderedSources[n] = array[OrderedSourceIndices[n]];
+            });
+            //int currentOrderedSourceIndex = 0;
+            //foreach (int orderedSourceIndex in OrderedSourceIndices)
+            //{
+            //    OrderedSources[currentOrderedSourceIndex++] = array[orderedSourceIndex];
+            //}
+            Array.Clear(OrderedDestinations, 0, destinationsCount);
+            // DEBUG
+            //for (int i = 0; i < destinationsCount; i++)
+            //    OrderedDestinations[i] = 0;
         }
 
         static object DestinationCopier = new object();
         public void CopyOrderedDestinations(double[] array, int startOrderedDestinationIndex, int endOrderedDestinationIndexExclusive)
         {
             // NOTE: We can't use a parallel for here, because we might affect the same destination multiple times. (We could using Interlocking.Add, but that seems to take much longer.) This is also the same reason that we can't call this within each command segment. Alternatively, we could lock around the copying code.
-            for (int currentOrderedDestinationIndex = startOrderedDestinationIndex; currentOrderedDestinationIndex < endOrderedDestinationIndexExclusive; currentOrderedDestinationIndex++)
+            Parallelizer.Go(Parallelize, startOrderedDestinationIndex, endOrderedDestinationIndexExclusive, currentOrderedDestinationIndex =>
+            //for (int currentOrderedDestinationIndex = startOrderedDestinationIndex; currentOrderedDestinationIndex < endOrderedDestinationIndexExclusive; currentOrderedDestinationIndex++)
             {
                 int destinationIndex = OrderedDestinationIndices[currentOrderedDestinationIndex];
                 array[destinationIndex] += OrderedDestinations[currentOrderedDestinationIndex];
             }
+            );
         }
 
         #endregion
