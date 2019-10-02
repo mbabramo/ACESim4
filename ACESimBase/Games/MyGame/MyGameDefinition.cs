@@ -267,6 +267,10 @@ namespace ACESim
             PLiabilitySignalsTable = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { Options.NumLiabilityStrengthPoints, Options.NumLiabilitySignals });
             DLiabilitySignalsTable = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { Options.NumLiabilityStrengthPoints, Options.NumLiabilitySignals });
             CLiabilitySignalsTable = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { Options.NumLiabilityStrengthPoints, 2 });
+            if (PLiabilitySignalsTable.Any(x => x.Length != PLiabilitySignalsTable[0].Length) || DLiabilitySignalsTable.Any(x => x.Length != DLiabilitySignalsTable[0].Length))
+            {
+                var DEBUG = 0;
+            }
             for (byte litigationQuality = 1;
                 litigationQuality <= Options.NumLiabilityStrengthPoints;
                 litigationQuality++)
@@ -281,6 +285,10 @@ namespace ACESim
                 DLiabilitySignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, dParams);
                 DiscreteValueSignalParameters cParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = Options.NumLiabilityStrengthPoints, NumSignals = 2, StdevOfNormalDistribution = Options.CourtLiabilityNoiseStdev, UseEndpoints = false };
                 CLiabilitySignalsTable[litigationQuality - 1] = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(litigationQuality, cParams);
+            }
+            if (PLiabilitySignalsTable.Any(x => x.Length != PLiabilitySignalsTable[0].Length) || DLiabilitySignalsTable.Any(x => x.Length != DLiabilitySignalsTable[0].Length))
+            {
+                var DEBUG = 0;
             }
         }
 
@@ -321,6 +329,10 @@ namespace ACESim
         {
             PDamagesSignalsTable = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { Options.NumDamagesStrengthPoints, Options.NumDamagesSignals });
             DDamagesSignalsTable = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { Options.NumDamagesStrengthPoints, Options.NumDamagesSignals });
+            if (PDamagesSignalsTable.Any(x => x.Length != PDamagesSignalsTable[0].Length) || DDamagesSignalsTable.Any(x => x.Length != DDamagesSignalsTable[0].Length))
+            {
+                var DEBUG = 0;
+            }
             CDamagesSignalsTable = ArrayFormConversionExtension.CreateJaggedArray<double[][]>(new int[] { Options.NumDamagesStrengthPoints, Options.NumDamagesSignals });
             for (byte litigationQuality = 1;
                 litigationQuality <= Options.NumDamagesStrengthPoints;

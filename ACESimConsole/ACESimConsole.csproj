@@ -15,7 +15,10 @@
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="call &quot;$(DevEnvDir)..\tools\VsDevCmd.bat&quot;&#xD;&#xA;editbin $(TargetDir)\ACESimConsole.exe /STACK:2097152" />
+    <!-- The below event is designed to change the stack size of the executable. There are two lines. The first is supposed to make it so that the second -->
+    <!-- command will work even if editbin is not on the PATH. But that doesn't always work either. So search the Microsoft Visual Studio folder for -->
+    <!-- editbin and add that path to the Environment Variables PATH. -->
+    <Exec Command="call &quot;$(DevEnvDir)..\Tools\VsDevCmd.bat&quot;&#xD;&#xA;editbin $(TargetDir)ACESimConsole.exe /STACK:2097152" />
   </Target>
 
 </Project>

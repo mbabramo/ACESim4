@@ -1220,7 +1220,14 @@ namespace ACESim
             bool result = false;
             //TabbedText.TabIndent();
             if (gameStateTypeEnum == GameStateTypeEnum.Chance)
+            {
+                var DEBUG = (ChanceNode)gameStateForCurrentPlayer;
+                if (DEBUG.Decision?.NumPossibleActions == 5 && DEBUG is ChanceNodeUnequalProbabilities u && u.Probabilities.Length == 2)
+                {
+                    var DEBUG2 = 0;
+                }
                 result = DistributeChanceDecisions_ChanceNode(ref historyPoint, piChance, distributorChanceInputs, distributedActionsString, chanceNodeAggregationDictionary, informationSetAggregationDictionary);
+            }
             else if (gameStateTypeEnum == GameStateTypeEnum.InformationSet)
                 result = DistributeChanceDecisions_DecisionNode(ref historyPoint, piChance, distributorChanceInputs, distributedActionsString, chanceNodeAggregationDictionary, informationSetAggregationDictionary);
             else
@@ -1300,6 +1307,10 @@ namespace ACESim
                 //if (chanceNode.Decision.Name.Contains("PostPrimary") || chanceNode.Decision.Name.Contains("LiabilitySignal") || chanceNode.Decision.Name.Contains("LiabilityStrength") || chanceNode.Decision.Name.Contains("PrePrimary"))
                 //    TabbedText.WriteLine($"{chanceNode.Decision.Name}: action: {action} probability: {actionProbability} cumulative probability {piChanceNext}");
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
+                if (nextHistoryPoint.GameState?.ToString() == "Chance player 4 for decision 5 => probabilities 0.19934665395220935,0.5921046322637485,0.20232400578452214,0.00620994894414556,1.4759055374402585E-05" || nextHistoryPoint.GameState?.ToString() == "Chance player 6 for decision 3 => probabilities 0.8667396897505837,0.1332603102494163")
+                {
+                    var DEBUG = 0;
+                }
                 bool stopNonChanceDecisions = DistributeChanceDecisions_WalkNode(ref nextHistoryPoint, piChanceNext, distributorChanceInputsNext, chanceNode.Decision.DistributedChanceDecision ? distributedActionsString + chanceNode.DecisionByteCode + ":1;" : distributedActionsString, chanceNodeAggregationDictionary, informationSetAggregationDictionary);
                 if (stopNonChanceDecisions && chanceNode.Decision.NumPossibleActions == 1)
                     return true; // this is just a dummy chance decision, so we need to backtrack to a real chance decision

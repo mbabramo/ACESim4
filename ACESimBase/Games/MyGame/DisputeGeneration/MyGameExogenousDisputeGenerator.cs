@@ -33,6 +33,10 @@ namespace ACESim
             DiscreteValueSignalParameters liabilityParams = new DiscreteValueSignalParameters() { NumPointsInSourceUniformDistribution = 2, NumSignals = myGameDefinition.Options.NumLiabilityStrengthPoints, StdevOfNormalDistribution = StdevNoiseToProduceLiabilityStrength, UseEndpoints = true };
             ProbabilitiesLiabilityStrength_TrulyNotLiable = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(1, liabilityParams);
             ProbabilitiesLiabilityStrength_TrulyLiable = DiscreteValueSignal.GetProbabilitiesOfDiscreteSignals(2, liabilityParams);
+            if (ProbabilitiesLiabilityStrength_TrulyLiable.Length != ProbabilitiesLiabilityStrength_TrulyNotLiable.Length)
+            {
+                var DEBUG = 0;
+            }
 
             // damages is simpler -- each damages level is equally likely
             ProbabilityOfDamagesStrengthValues = new double[myGameDefinition.Options.NumDamagesStrengthPoints];

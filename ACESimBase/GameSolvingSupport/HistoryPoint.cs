@@ -364,6 +364,10 @@ namespace ACESim
                                         DecisionIndex = informationSetHistory.DecisionIndex,
                                         EachProbability = 1.0 / (double)decision.NumPossibleActions,
                                     };
+                                if (chanceNode.Decision.NumPossibleActions == 5 && chanceNode is ChanceNodeUnequalProbabilities u && u.Probabilities.Length == 2)
+                                {
+                                    var DEBUG = 0;
+                                }
                                 navigation.ChanceNodes.Add(chanceNode);
                                 return chanceNode;
                             }
