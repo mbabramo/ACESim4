@@ -66,8 +66,6 @@ namespace ACESim.Util
             return probabilities[actualUniformDistributionValue - 1];
         }
 
-        DEBUG; // PROBLEM IS HERE WITH STATIC VARIABLES -- WE SHOULDN'T USE A SINGLE ONE FOR ALL SIMULATIONS.
-
         private static Dictionary<DiscreteValueSignalParameters, double[]> CutoffsForStandardDeviation = new Dictionary<DiscreteValueSignalParameters, double[]>();
         private static Dictionary<DiscreteValueSignalParameters, double[][]> ProbabilitiesOfLiabilitySignalGivenSourceLiabilityStrengthForStandardDeviation = new Dictionary<DiscreteValueSignalParameters, double[][]>();
         private static object CalcLock = new object();
@@ -104,6 +102,7 @@ namespace ACESim.Util
         private static double[] GetLiabilitySignalCutoffs(DiscreteValueSignalParameters nsParams)
         {
             double[] returnVal;
+            bool allowCaching = false; // DEBUG: Caching may not work in parallel
             if (CachedParamsValue.Equals(nsParams))
             {
                 returnVal = CachedCutoffsValue;
