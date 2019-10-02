@@ -1198,23 +1198,13 @@ else
                 OrderedSources = new double[sourcesCount];
                 OrderedDestinations = new double[destinationsCount];
             }
-            //// DEBUG
             Parallelizer.Go(Parallelize, 0, sourcesCount, n =>
             {
                 OrderedSources[n] = array[OrderedSourceIndices[n]];
             });
-            //int currentOrderedSourceIndex = 0;
-            //foreach (int orderedSourceIndex in OrderedSourceIndices)
-            //{
-            //    OrderedSources[currentOrderedSourceIndex++] = array[orderedSourceIndex];
-            //}
             Array.Clear(OrderedDestinations, 0, destinationsCount);
-                //// DEBUG
-                //for (int i = 0; i < destinationsCount; i++)
-                //    OrderedDestinations[i] = 0;
         }
 
-        static object DestinationCopier = new object();
         public void CopyOrderedDestinations(double[] array)
         {
             int startOrderedDestinationIndex = 0;

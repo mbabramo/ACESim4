@@ -95,6 +95,7 @@ namespace ACESim.Util
         }
 
         // We are going to store last values returned for a particular parameters to avoid having to go to the dictionary unnecessarily.
+        private static bool AllowCaching = false; // Does not work if running multiple simulations in parallel
         private static double[] CachedCutoffsValue;
         private static double[][] CachedProbabilitiesValue;
         private static DiscreteValueSignalParameters CachedParamsValue;
@@ -102,8 +103,7 @@ namespace ACESim.Util
         private static double[] GetLiabilitySignalCutoffs(DiscreteValueSignalParameters nsParams)
         {
             double[] returnVal;
-            bool allowCaching = false; // DEBUG: Caching may not work in parallel
-            if (CachedParamsValue.Equals(nsParams))
+            if (AllowCaching && CachedParamsValue.Equals(nsParams))
             {
                 returnVal = CachedCutoffsValue;
                 if (CachedParamsValue.Equals(nsParams)) // make sure it hasn't changed!
@@ -133,7 +133,7 @@ namespace ACESim.Util
         private static double[][] GetProbabilitiesOfLiabilitySignalGivenSourceLiabilityStrength(DiscreteValueSignalParameters nsParams)
         {
             double[][] returnVal;
-            if (CachedParamsValue.Equals(nsParams))
+            if (AllowCaching && CachedParamsValue.Equals(nsParams))
             {
                 returnVal = CachedProbabilitiesValue;
                 if (CachedParamsValue.Equals(nsParams)) // make sure it hasn't changed!
