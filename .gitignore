@@ -15,6 +15,7 @@ TestResults
 
 # Password file
 cloudpw.cs
+cloudpw2.cs
 
 # ACESim saved strategies
 *.stg
