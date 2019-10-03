@@ -291,7 +291,6 @@ namespace ACESim
                 bool abandoned = (pAbandons || dDefaults);
                 bool abandonedAfterLastRound = abandoned && bargainingRoundsComplete == gameDefinition.Options.NumPotentialBargainingRounds;
                 bool applyShootout = outcome.TrialOccurs || (abandonedAfterLastRound && gameDefinition.Options.ShootoutsApplyAfterAbandonment) || (abandoned && gameDefinition.Options.ShootoutsApplyAfterAbandonment && gameDefinition.Options.ShootoutsAverageAllRounds);
-                Br.eak.IfAdded("Case"); // DEBUG
                 if (applyShootout)
                 {
                     double shootoutPrice;

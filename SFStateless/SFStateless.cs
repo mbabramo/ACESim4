@@ -47,7 +47,7 @@ namespace SFStateless
                 try
                 {
                     ServiceEventSource.Current.ServiceMessage(this.Context, $"{nodeID}: RunAsync loop");
-                    AzureBlob.SerializeObject("results", $"DEBUG-{nodeID}-{iterations}.txt", true, "success");
+                    //AzureBlob.SerializeObject("results", $"Starting-{nodeID}-{iterations}.txt", true, "success");
 
                     cancellationToken.ThrowIfCancellationRequested();
 
