@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,7 +7,7 @@ using System.Text;
 namespace ACESim
 {
     [Serializable]
-    public unsafe class GameProgress : GameProgressReportable, IDisposable
+    public unsafe class GameProgress : GameProgressReportable
     {
         public double DummyVariable = 1.0; // used by reporting module
         public IterationID IterationID;
@@ -39,33 +38,7 @@ namespace ACESim
         {
             GameHistoryStorable.Initialize();
             GameFullHistoryStorable.Initialize();
-            InformationSetLog.LogStorage = new byte[InformationSetLog.MaxInformationSetLoggingLength]; // DEBUG ArrayPool<byte>.Shared.Rent(InformationSetLog.MaxInformationSetLoggingLength);
             InformationSetLog.Initialize();
-        }
-
-
-        bool disposed = false;
-
-        public void Dispose()
-        {
-            // Dispose of unmanaged resources.
-            Dispose(true);
-            // Suppress finalization.
-            GC.SuppressFinalize(this);
-        }
-
-        // Protected implementation of Dispose pattern.
-        protected virtual void Dispose(bool disposing)
-        {
-            if (disposed)
-                return;
-
-            if (disposing)
-            {
-                // DEBUG ArrayPool<byte>.Shared.Return(InformationSetLog.LogStorage);
-            }
-
-            disposed = true;
         }
 
         public int ActionsToPlayIndex;
