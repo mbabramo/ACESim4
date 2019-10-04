@@ -78,10 +78,12 @@ namespace ACESim
             return actionsPlayed;
         }
 
-        public IEnumerable<InformationSetHistory> GetInformationSetHistoryItems()
+        public IEnumerable<short> GetInformationSetHistoryItems_OverallIndices()
         {
-            return GameFullHistory.GetInformationSetHistoryItems(this);
+            return GameFullHistory.GetInformationSetHistoryItems_OverallIndices(this);
         }
+
+        public InformationSetHistory GetInformationSetHistory_OverallIndex(short index) => GameFullHistory.GetInformationSetHistory_OverallIndex(index, this);
 
 
         static ConcurrentQueue<GameProgress> RecycledGameProgressQueue = new ConcurrentQueue<GameProgress>();

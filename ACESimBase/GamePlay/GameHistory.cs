@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 namespace ACESim
 {
     [Serializable]
-    public unsafe struct GameHistory : ISerializable
+    public unsafe ref struct GameHistory
     {
 
         #region Construction
@@ -82,38 +82,38 @@ namespace ACESim
             return informationSetsString;
         }
 
-        public void GetObjectData(SerializationInfo info, StreamingContext context)
-        {
-            // Use the AddValue method to specify serialized values.
-            byte[] informationSets = new byte[MaxInformationSetLength];
-            fixed (byte* ptr = InformationSets)
-                for (int b = 0; b < MaxInformationSetLength; b++)
-                    informationSets[b] = *(ptr + b);
+        //public void GetObjectData(SerializationInfo info, StreamingContext context)
+        //{
+        //    // Use the AddValue method to specify serialized values.
+        //    byte[] informationSets = new byte[MaxInformationSetLength];
+        //    fixed (byte* ptr = InformationSets)
+        //        for (int b = 0; b < MaxInformationSetLength; b++)
+        //            informationSets[b] = *(ptr + b);
 
-            info.AddValue("informationSets", informationSets, typeof(byte[]));
-            info.AddValue("Initialized", Initialized, typeof(bool));
+        //    info.AddValue("informationSets", informationSets, typeof(byte[]));
+        //    info.AddValue("Initialized", Initialized, typeof(bool));
 
-        }
+        //}
 
-        // The special constructor is used to deserialize values.
-        public GameHistory(SerializationInfo info, StreamingContext context)
-        {
-            byte[] history = (byte[]) info.GetValue("history", typeof(byte[]));
-            byte[] informationSets = (byte[]) info.GetValue("informationSets", typeof(byte[]));
-            fixed (byte* ptr = InformationSets)
-                for (int b = 0; b < MaxInformationSetLength; b++)
-                    *(ptr + b) = informationSets[b];
-            Initialized = (bool) info.GetValue("Initialized", typeof(bool));
+        //// The special constructor is used to deserialize values.
+        //public GameHistory(SerializationInfo info, StreamingContext context)
+        //{
+        //    byte[] history = (byte[]) info.GetValue("history", typeof(byte[]));
+        //    byte[] informationSets = (byte[]) info.GetValue("informationSets", typeof(byte[]));
+        //    fixed (byte* ptr = InformationSets)
+        //        for (int b = 0; b < MaxInformationSetLength; b++)
+        //            *(ptr + b) = informationSets[b];
+        //    Initialized = (bool) info.GetValue("Initialized", typeof(bool));
 
-            NextIndexInHistoryActionsOnly = 0;
-            LastDecisionIndexAdded = 255;
-            Complete = false;
+        //    NextIndexInHistoryActionsOnly = 0;
+        //    LastDecisionIndexAdded = 255;
+        //    Complete = false;
 
-            PreviousNotificationDeferred = false;
-            DeferredAction = 0;
-            DeferredPlayerNumber = 0;
-            DeferredPlayersToInform = null;
-        }
+        //    PreviousNotificationDeferred = false;
+        //    DeferredAction = 0;
+        //    DeferredPlayerNumber = 0;
+        //    DeferredPlayersToInform = null;
+        //}
 
         public GameHistory DeepCopy()
         {

@@ -292,17 +292,21 @@ namespace ACESim
             // Go through each non-chance decision point on this path and make sure that the information set tree extends there. We then store the regrets etc. at these points. 
 
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
-            IEnumerable<InformationSetHistory> informationSetHistories = gameProgress.GetInformationSetHistoryItems();
+            IEnumerable<short> informationSetHistoriesIndices = gameProgress.GetInformationSetHistoryItems_OverallIndices();
             //GameProgressLogger.Log(() => "Processing information set histories");
             //if (GameProgressLogger.LoggingOn)
             //{
             //    GameProgressLogger.Tabs++;
             //}
             int i = 1;
-            foreach (var informationSetHistory in informationSetHistories)
+            foreach (short informationSetHistoryIndex in informationSetHistoriesIndices)
             {
-                if (GameProgressLogger.DetailedLogging)
-                    GameProgressLogger.Log(() => $"Setting information set point based on player's information set: {informationSetHistory}");
+                InformationSetHistory informationSetHistory = gameProgress.GetInformationSetHistory_OverallIndex(informationSetHistoryIndex);
+                if (GameProgressLogger.DetailedLogging && GameProgressLogger.LoggingOn)
+                {
+                    string informationSetHistoryString = informationSetHistoryIndex.ToString();
+                    GameProgressLogger.Log(() => $"Setting information set point based on player's information set: {informationSetHistoryString}");
+                }
                 GameProgressLogger.Tabs++;
                 //var informationSetHistoryString = informationSetHistory.ToString();
                 historyPoint.SetInformationIfNotSet(Navigation, gameProgress, informationSetHistory);
@@ -510,8 +514,9 @@ namespace ACESim
         {
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
             // Go through each non-chance decision point 
-            foreach (var informationSetHistory in progress.GetInformationSetHistoryItems())
+            foreach (short informationSetHistoryIndex in progress.GetInformationSetHistoryItems_OverallIndices())
             {
+                var informationSetHistory = progress.GetInformationSetHistory_OverallIndex(informationSetHistoryIndex);
                 var informationSetHistoryCopy = informationSetHistory; // must copy because informationSetHistory is foreach iteration variable.
                 var decision = GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
                 TabbedText.WriteLine($"Decision {decision.Name} ({decision.DecisionByteCode}) for player {GameDefinition.Players[decision.PlayerNumber].PlayerName} ({GameDefinition.Players[decision.PlayerNumber].PlayerIndex})");

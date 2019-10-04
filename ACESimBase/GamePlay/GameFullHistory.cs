@@ -12,7 +12,7 @@ using ACESimBase.Util;
 
 namespace ACESim
 {
-    public unsafe struct GameFullHistory
+    public unsafe ref struct GameFullHistory
     {
 
         const byte HistoryComplete = 254;
@@ -212,7 +212,21 @@ namespace ACESim
                 return (*(historyPtr + LastIndexAddedToHistory) == HistoryComplete);
         }
 
-        public IEnumerable<InformationSetHistory> GetInformationSetHistoryItems(GameProgress gameProgress)
+        public string GetInformationSetHistoryItemsString(GameProgress gameProgress) => String.Join(",", GetInformationSetHistoryItemsStrings(gameProgress));
+
+        public IEnumerable<string> GetInformationSetHistoryItemsStrings(GameProgress gameProgress)
+        {
+            foreach (short i in GetInformationSetHistoryItems_OverallIndices(gameProgress))
+            {
+                string s = GetInformationSetHistory_OverallIndex(i, gameProgress).ToString();
+                yield return s;
+            }
+        }
+
+        // NOTE: InformationSetHistory is ref struct, so we can't enumerate it directly. We can enumerate the indices, and the caller can then
+        // access each InformationSetHistory one at a time.
+
+        public IEnumerable<short> GetInformationSetHistoryItems_OverallIndices(GameProgress gameProgress)
         {
 #if (SAFETYCHECKS)
             if (!Initialized)
@@ -220,10 +234,16 @@ namespace ACESim
 #endif
             if (LastIndexAddedToHistory == 0)
                 yield break;
+            short overallIndex = 0;
             for (short i = 0; i < LastIndexAddedToHistory; i += History_NumPiecesOfInformation)
             {
-                yield return GetInformationSetHistory(i, gameProgress);
+                yield return overallIndex++;
             }
+        }
+
+        public InformationSetHistory GetInformationSetHistory_OverallIndex(short index, GameProgress gameProgress)
+        {
+            return GetInformationSetHistory((short) (index * History_NumPiecesOfInformation), gameProgress);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -33,7 +33,7 @@ namespace ACESim
         public override string ToString()
         {
             if (GameProgress?.GameFullHistory.LastIndexAddedToHistory > 0)
-                return String.Join(",", GameProgress?.GameFullHistory.GetInformationSetHistoryItems(GameProgress));
+                return GameProgress?.GameFullHistory.GetInformationSetHistoryItemsString(GameProgress);
             return "HistoryPoint";
         }
 
@@ -334,7 +334,8 @@ namespace ACESim
 
         private unsafe void SetInformationAtPoint(HistoryNavigationInfo navigation, GameProgress gameProgress, InformationSetHistory informationSetHistory)
         {
-            var decision = navigation.GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
+            byte decisionIndex = informationSetHistory.DecisionIndex;
+            var decision = navigation.GameDefinition.DecisionsExecutionOrder[decisionIndex];
             var playerInfo = navigation.GameDefinition.Players[informationSetHistory.PlayerIndex];
             var playersStrategy = navigation.Strategies[informationSetHistory.PlayerIndex];
             bool isNecessarilyLast = false; // Not relevant now that we are storing final utilities decision.IsAlwaysPlayersLastDecision || informationSetHistory.IsTerminalAction;
@@ -354,14 +355,14 @@ namespace ACESim
                                     chanceNode = new ChanceNodeUnequalProbabilities(chanceNodeNumber)
                                     {
                                         Decision = decision,
-                                        DecisionIndex = informationSetHistory.DecisionIndex,
+                                        DecisionIndex = decisionIndex,
                                         Probabilities = navigation.GameDefinition.GetUnevenChanceActionProbabilities(decision.DecisionByteCode, gameProgress), // the probabilities depend on the current state of the game
                                     };
                                 else
                                     chanceNode = new ChanceNodeEqualProbabilities(chanceNodeNumber)
                                     {
                                         Decision = decision,
-                                        DecisionIndex = informationSetHistory.DecisionIndex,
+                                        DecisionIndex = decisionIndex,
                                         EachProbability = 1.0 / (double)decision.NumPossibleActions,
                                     };
                                 navigation.ChanceNodes.Add(chanceNode);
@@ -372,7 +373,7 @@ namespace ACESim
                                 if (creatingInformationSet)
                                     throw new Exception("Internal exception. Lock failing.");
                                 creatingInformationSet = true;
-                                InformationSetNode nodeInfo = new InformationSetNode(decision, informationSetHistory.DecisionIndex, navigation.EvolutionSettings, navigation.InformationSets.Count());
+                                InformationSetNode nodeInfo = new InformationSetNode(decision, decisionIndex, navigation.EvolutionSettings, navigation.InformationSets.Count());
                                 navigation.InformationSets.Add(nodeInfo);
                                 creatingInformationSet = false;
                                 return nodeInfo;

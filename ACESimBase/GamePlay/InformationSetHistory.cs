@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace ACESim
 {
 
-    public unsafe struct InformationSetHistory
+    public unsafe ref struct InformationSetHistory
     {
         public fixed byte InformationSetForPlayer[InformationSetLog.MaxInformationSetLoggingLengthPerFullPlayer];
         public byte PlayerIndex;
@@ -21,6 +21,11 @@ namespace ACESim
         {
             fixed (byte* ptr = InformationSetForPlayer)
                 return Util.ListExtensions.GetPointerAsList_255Terminated(ptr);
+        }
+
+        public unsafe (byte playerIndex, List<byte>) GetPlayerAndInformationSetAsList()
+        {
+            return (PlayerIndex, GetInformationSetForPlayerAsList());
         }
 
         public override string ToString()
