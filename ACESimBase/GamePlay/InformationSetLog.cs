@@ -91,8 +91,16 @@ namespace ACESim
                 ThrowHelper.Throw("Internal error. Must increase size of information set.");
 #endif
             // now record the information
+            if (playerArrayIndex == 992 && followingDecisionIndex == 0)
+            {
+                var DEBUGQ = 0;
+            }
             LogStorage[playerArrayIndex] = followingDecisionIndex; // we must record the decision
             playerArrayIndex++;
+            if (playerArrayIndex == 992 && information == 0)
+            {
+                var DEBUGQ = 0;
+            }
             LogStorage[playerArrayIndex] = information;
             playerArrayIndex++;
             LogStorage[playerArrayIndex] = InformationSetTerminator; // terminator
