@@ -854,7 +854,7 @@ namespace ACESim
             BestResponseCalculationTime = s.ElapsedMilliseconds;
         }
 
-        private unsafe void CompareBestResponse()
+        private void CompareBestResponse()
         {
             // This is comparing (1) Best response vs. average strategy; to (2) most recently calculated average strategy
             bool averageStrategyUtilitiesRecorded = AverageStrategyUtilities != null;
