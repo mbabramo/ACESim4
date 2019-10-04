@@ -17,6 +17,27 @@ namespace ACESim
     [Serializable]
     public unsafe ref struct GameHistory
     {
+        public GameHistoryStorable ToStorable()
+        {
+            var result = new GameHistoryStorable()
+            {
+                Complete = Complete,
+                NextIndexInHistoryActionsOnly = NextIndexInHistoryActionsOnly,
+                Initialized = Initialized,
+                PreviousNotificationDeferred = PreviousNotificationDeferred,
+                DeferredAction = DeferredAction,
+                DeferredPlayerNumber = DeferredPlayerNumber,
+                DeferredPlayersToInform = DeferredPlayersToInform,
+                LastDecisionIndexAdded = LastDecisionIndexAdded
+            };
+            for (int i = 0; i < GameFullHistory.MaxHistoryLength; i++)
+                result.ActionsHistory[i] = ActionsHistory[i];
+            for (int i = 0; i < GameHistory.CacheLength; i++)
+                result.Cache[i] = Cache[i];
+            for (int i = 0; i < GameHistory.MaxInformationSetLength; i++)
+                result.InformationSets[i] = InformationSets[i];
+            return result;
+        }
 
         #region Construction
 
@@ -52,11 +73,11 @@ namespace ACESim
         public int MaxInformationSetLengthForPlayer(byte playerIndex) => playerIndex < NumFullPlayers ? MaxInformationSetLengthPerFullPlayer : MaxInformationSetLengthPerPartialPlayer;
 
         // The following are used to defer adding information to a player information set.
-        private bool PreviousNotificationDeferred;
+        public bool PreviousNotificationDeferred;
 
-        private byte DeferredAction;
-        private byte DeferredPlayerNumber;
-        private byte[] DeferredPlayersToInform;
+        public byte DeferredAction;
+        public byte DeferredPlayerNumber;
+        public byte[] DeferredPlayersToInform;
 
         public byte LastDecisionIndexAdded;
 

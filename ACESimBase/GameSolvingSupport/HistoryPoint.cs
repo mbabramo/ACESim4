@@ -10,13 +10,14 @@ namespace ACESim
     public struct HistoryPoint
     {
         public NWayTreeStorage<IGameState> TreePoint;
-        public GameHistory HistoryToPoint;
+        public GameHistoryStorable HistoryToPointStorable;
+        public GameHistory HistoryToPoint => HistoryToPointStorable.ToRefStruct();
         public GameProgress GameProgress;
         public IGameState GameState;
 
         public HistoryPoint(GameHistory historyToPoint)
         {
-            HistoryToPoint = historyToPoint;
+            HistoryToPointStorable = historyToPoint.ToStorable();
             TreePoint = null;
             GameProgress = null;
             GameState = null;
@@ -25,7 +26,7 @@ namespace ACESim
         public HistoryPoint(NWayTreeStorage<IGameState> treePoint, GameHistory historyToPoint, GameProgress gameProgress)
         {
             TreePoint = treePoint;
-            HistoryToPoint = historyToPoint;
+            HistoryToPointStorable = historyToPoint.ToStorable();
             GameProgress = gameProgress;
             GameState = null;
         }

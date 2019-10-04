@@ -133,8 +133,10 @@ namespace ACESim
                 Progress.IsFinalGamePath = false;
             byte decisionIndex = (byte)CurrentDecisionIndex;
             byte playerNumber = CurrentPlayerNumber;
-            UpdateGameHistory(ref Progress.GameHistory, GameDefinition, currentDecision, decisionIndex, action, Progress);
+            var gameHistory = Progress.GameHistory;
+            UpdateGameHistory(ref gameHistory, GameDefinition, currentDecision, decisionIndex, action, Progress);
             // We update game progress now (note that this will not be called when traversing the tree -- that's why we don't do this within UpdateGameHistory)
+            Progress.GameHistoryStorable = gameHistory.ToStorable();
             UpdateGameProgressFollowingAction(currentDecision.DecisionByteCode, action);
         }
 

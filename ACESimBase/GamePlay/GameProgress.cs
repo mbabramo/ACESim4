@@ -14,7 +14,8 @@ namespace ACESim
         [FieldwiseComparisonSkip]
         public GameDefinition GameDefinition;
         public List<GameModuleProgress> GameModuleProgresses;
-        public GameHistory GameHistory;
+        public GameHistoryStorable GameHistoryStorable;
+        public GameHistory GameHistory => GameHistoryStorable.ToRefStruct();
         public GameFullHistoryStorable GameFullHistoryStorable;
         public GameFullHistory GameFullHistory => GameFullHistoryStorable.ToRefStruct();
         public InformationSetLog InformationSetLog;
