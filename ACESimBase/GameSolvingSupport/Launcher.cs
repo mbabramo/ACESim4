@@ -18,20 +18,20 @@ namespace ACESim
 
         #region Settings
 
-        public string MasterReportNameForDistributedProcessing = "R010"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
+        public string MasterReportNameForDistributedProcessing = "R011"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching;
 
-        public const int VanillaIterations = 100_000;
+        public const int VanillaIterations = 1_000; // DEBUG
         public const int VanillaReportEveryNIterations = VanillaIterations;
-        public const int VanillaBestResponseEveryMIterations = 5000;
+        public const int VanillaBestResponseEveryMIterations = 1000; // DEBUG
         public const bool CalculatePerturbedBestResponseRefinement = true;
         public const int MiniReportEveryPIterations = EffectivelyNever;
         public const bool AlwaysSuppressDisplayReportOnScreen = true;
         public const bool RecordPastValues = false; 
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever; 
         public const bool UseRandomPathsForReporting = true;
-        public const int SummaryTableRandomPathsIterations = 25_000;
+        public const int SummaryTableRandomPathsIterations = 2_000; // DEBUG 25_000;
         public const int ProbingIterations = 20_000_000;
 
         public const bool UseRegretAndStrategyDiscounting = false;
@@ -43,6 +43,7 @@ namespace ACESim
         public bool DistributedProcessing = true; // this should be true if running on the local service fabric
         public bool ParallelizeOptionSets = false; // run multiple option sets at same time on computer (in which case each individually will be run not in parallel)
         public bool ParallelizeIndividualExecutions = true; // only if !ParallelizeOptionSets && (LaunchSingleOptionsSetOnly || !DistributedProcessing)
+        public bool ParallelizeIndividualExecutionsAlways = false; // DEBUG -- not really working // will always take precedence
 
         const int EffectivelyNever = EvolutionSettings.EffectivelyNever;
 
@@ -141,7 +142,8 @@ namespace ACESim
                 AzureEnabled = AzureEnabled,
 
                 MaxParallelDepth = 3, // we're parallelizing on the iteration level, so there is no need for further parallelization
-                ParallelOptimization = ParallelizeIndividualExecutions && !ParallelizeOptionSets && (LaunchSingleOptionsSetOnly || !DistributedProcessing),
+                ParallelOptimization = ParallelizeIndividualExecutionsAlways || 
+                            ( ParallelizeIndividualExecutions && !ParallelizeOptionSets && (LaunchSingleOptionsSetOnly || !DistributedProcessing) ),
                 SuppressReportDisplayOnScreen = AlwaysSuppressDisplayReportOnScreen || (!LaunchSingleOptionsSetOnly && (ParallelizeOptionSets || DistributedProcessing)),
 
                 GameNumber = StartGameNumber,
