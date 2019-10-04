@@ -133,10 +133,9 @@ namespace ACESim
                 Progress.IsFinalGamePath = false;
             byte decisionIndex = (byte)CurrentDecisionIndex;
             byte playerNumber = CurrentPlayerNumber;
-            var gameHistory = Progress.GameHistory;
-            UpdateGameHistory(ref gameHistory, GameDefinition, currentDecision, decisionIndex, action, Progress);
+            var history = Progress.GameHistory;
+            UpdateGameHistory(ref history, GameDefinition, currentDecision, decisionIndex, action, Progress);
             // We update game progress now (note that this will not be called when traversing the tree -- that's why we don't do this within UpdateGameHistory)
-            Progress.GameHistoryStorable = gameHistory.ToStorable();
             UpdateGameProgressFollowingAction(currentDecision.DecisionByteCode, action);
         }
 
@@ -149,7 +148,8 @@ namespace ACESim
 
         public virtual bool DecisionIsNeeded(Decision currentDecision, GameProgress gameProgress)
         {
-            return !GameDefinition.SkipDecision(currentDecision, ref gameProgress.GameHistory);
+            var history = gameProgress.GameHistory;
+            return !GameDefinition.SkipDecision(currentDecision, ref history);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

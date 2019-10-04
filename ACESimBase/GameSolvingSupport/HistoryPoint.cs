@@ -7,17 +7,28 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
-    public struct HistoryPoint
+
+    public ref struct HistoryPoint
     {
+        public HistoryPointStorable ToStorable()
+        {
+            return new HistoryPointStorable()
+            {
+                TreePoint = TreePoint,
+                HistoryToPointStorable = HistoryToPoint.ToStorable(),
+                GameProgress = GameProgress,
+                GameState = GameState
+            };
+        }
+
         public NWayTreeStorage<IGameState> TreePoint;
-        public GameHistoryStorable HistoryToPointStorable;
-        public GameHistory HistoryToPoint => HistoryToPointStorable.ToRefStruct();
+        public GameHistory HistoryToPoint;
         public GameProgress GameProgress;
         public IGameState GameState;
 
         public HistoryPoint(GameHistory historyToPoint)
         {
-            HistoryToPointStorable = historyToPoint.ToStorable();
+            HistoryToPoint = historyToPoint;
             TreePoint = null;
             GameProgress = null;
             GameState = null;
@@ -26,7 +37,7 @@ namespace ACESim
         public HistoryPoint(NWayTreeStorage<IGameState> treePoint, GameHistory historyToPoint, GameProgress gameProgress)
         {
             TreePoint = treePoint;
-            HistoryToPointStorable = historyToPoint.ToStorable();
+            HistoryToPoint = historyToPoint;
             GameProgress = gameProgress;
             GameState = null;
         }
@@ -34,7 +45,7 @@ namespace ACESim
         public override string ToString()
         {
             if (GameProgress?.GameFullHistory.LastIndexAddedToHistory > 0)
-                return GameProgress?.GameFullHistory.GetInformationSetHistoryItemsString(GameProgress);
+                return GameProgress?.GameFullHistory.ToStorable().GetInformationSetHistoryItemsString(GameProgress);
             return "HistoryPoint";
         }
 

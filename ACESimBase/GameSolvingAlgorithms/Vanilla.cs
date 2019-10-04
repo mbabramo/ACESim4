@@ -157,7 +157,7 @@ namespace ACESim
             else
                 equalProbabilityNextPiValues = null;
             double expectedValue = 0;
-            var historyPointCopy = historyPoint; // can't use historyPoint in anonymous method below. This is costly, so it might be worth optimizing if we use VanillaCFR much.
+            var historyPointCopy = historyPoint.ToStorable(); // can't use historyPoint in anonymous method below. This is costly, so it might be worth optimizing if we use VanillaCFR much.
             Parallelizer.GoByte(EvolutionSettings.ParallelOptimization, EvolutionSettings.MaxParallelDepth, 1,
                 (byte) (numPossibleActions + 1),
                 action =>
@@ -172,7 +172,7 @@ namespace ACESim
                     //    for (int i = 0; i < MaxNumPlayers; i++)
                     //        *(equalProbabilityPiValuesToPass + i) = *(equalProbabilityNextPiValues + i);
                     // TODO -- we could optimize this by (a) setting to a different method; and (b) creating an alternative action to use when not running in parallel, where that action would not copy the history point.
-                    var historyPointCopy2 = historyPointCopy; // Need to do this because we need a separate copy for each thread
+                    var historyPointCopy2 = historyPointCopy.ToRefStruct(); // Need to do this because we need a separate copy for each thread
                     double probabilityAdjustedExpectedValueParticularAction =
                         VanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues,
                             chanceNode, equalProbabilityNextPiValues, expectedValue, action, usePruning);

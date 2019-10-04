@@ -333,6 +333,12 @@ namespace ACESim
             //}
         }
 
+        public IGameState GetGameState(HistoryPointStorable historyPointStorable, HistoryNavigationInfo? navigation = null)
+        {
+            HistoryPoint historyPoint = historyPointStorable.ToRefStruct();
+            return GetGameState(ref historyPoint, navigation);
+        }
+
         public IGameState GetGameState(ref HistoryPoint historyPoint, HistoryNavigationInfo? navigation = null)
         {
             HistoryNavigationInfo navigationSettings = navigation ?? Navigation;
@@ -609,6 +615,11 @@ namespace ACESim
         {
             double[] utilities = GetUtilities(ref historyPoint);
             return utilities[playerIndex];
+        }
+
+        public double[] GetUtilities(ref HistoryPointStorable completedGame)
+        {
+            return completedGame.ToRefStruct().GetFinalUtilities(Navigation);
         }
 
         public double[] GetUtilities(ref HistoryPoint completedGame)
@@ -919,21 +930,21 @@ namespace ACESim
                 TabbedText.WriteLine($"{item.Key} => {((double)item.Value) / (double)EvolutionSettings.NumRandomIterationsForSummaryTable}");
         }
 
-        public async Task ProcessAllPathsAsync(HistoryPoint history, Func<HistoryPoint, double, Task> pathPlayer)
+        public async Task ProcessAllPathsAsync(HistoryPointStorable history, Func<HistoryPointStorable, double, Task> pathPlayer)
         {
             await ProcessAllPaths_Recursive(history, pathPlayer, ActionStrategy, 1.0);
         }
 
-        public async Task ProcessAllPaths(HistoryPoint history, Func<HistoryPoint, double, Task> pathPlayer)
+        public async Task ProcessAllPaths(HistoryPointStorable history, Func<HistoryPointStorable, double, Task> pathPlayer)
         {
             await ProcessAllPaths_Recursive(history, pathPlayer, ActionStrategy, 1.0);
         }
 
-        private async Task ProcessAllPaths_Recursive(HistoryPoint history, Func<HistoryPoint, double, Task> pathPlayer, ActionStrategies actionStrategy, double probability, byte action = 0, byte nextDecisionIndex = 0)
+        private async Task ProcessAllPaths_Recursive(HistoryPointStorable history, Func<HistoryPointStorable, double, Task> pathPlayer, ActionStrategies actionStrategy, double probability, byte action = 0, byte nextDecisionIndex = 0)
         {
             // The last two parameters are included to facilitate debugging.
             // Note that this method is different from GamePlayer.PlayAllPaths, because it relies on the cached history, rather than needing to play the game to discover what the next paths are.
-            if (history.IsComplete(Navigation))
+            if (history.ToRefStruct().IsComplete(Navigation))
             {
                 await pathPlayer(history, probability);
                 return;
@@ -941,12 +952,12 @@ namespace ACESim
             await ProcessAllPaths_Helper(history, probability, pathPlayer, actionStrategy);
         }
 
-        private async Task ProcessAllPaths_Helper(HistoryPoint historyPoint, double probability, Func<HistoryPoint, double, Task> completedGameProcessor, ActionStrategies actionStrategy)
+        private async Task ProcessAllPaths_Helper(HistoryPointStorable historyPoint, double probability, Func<HistoryPointStorable, double, Task> completedGameProcessor, ActionStrategies actionStrategy)
         {
             double[] probabilities = new double[GameFullHistory.MaxNumActions];
-            byte nextDecisionIndex = historyPoint.GetNextDecisionIndex(Navigation);
+            byte nextDecisionIndex = historyPoint.ToRefStruct().GetNextDecisionIndex(Navigation);
             byte numPossibleActions = NumPossibleActionsAtDecision(nextDecisionIndex);
-            IGameState gameState = GetGameState(ref historyPoint);
+            IGameState gameState = GetGameState(historyPoint);
             if (actionStrategy == ActionStrategies.CorrelatedEquilibrium)
             {
                 actionStrategy = ActionStrategies.AverageStrategy;
@@ -971,7 +982,7 @@ namespace ACESim
                 }
                 if (includeZeroProbabilityActions || actionProbability > 0)
                 {
-                    var nextHistoryPoint = historyPointCopy.GetBranch(Navigation, actionByte, GameDefinition.DecisionsExecutionOrder[nextDecisionIndex], nextDecisionIndex); // must use a copy because it's an anonymous method (but this won't be executed much so it isn't so costly). Note that we couldn't use switch-to-branch approach here because all threads are sharing historyPointCopy variable.
+                    var nextHistoryPoint = historyPointCopy.ToRefStruct().GetBranch(Navigation, actionByte, GameDefinition.DecisionsExecutionOrder[nextDecisionIndex], nextDecisionIndex).ToStorable(); // must use a copy because it's an anonymous method (but this won't be executed much so it isn't so costly). Note that we couldn't use switch-to-branch approach here because all threads are sharing historyPointCopy variable.
                     double nextProbability = probability * actionProbability;
                     await ProcessAllPaths_Recursive(nextHistoryPoint, completedGameProcessor, actionStrategy, nextProbability, actionByte, nextDecisionIndex);
                 }
@@ -1074,10 +1085,10 @@ namespace ACESim
             // we'll set up step1, step2, and step3 (but not in that order, since step 1 triggers step 2)
             var step2_buffer = new BufferBlock<Tuple<GameProgress, double>>(new DataflowBlockOptions { BoundedCapacity = 10_000 });
             var step3_consumer = AddGameProgressToReports(step2_buffer, simpleReportDefinitions);
-            async Task step1_playPath(HistoryPoint completedGame, double probabilityOfPath)
+            async Task step1_playPath(HistoryPointStorable completedGame, double probabilityOfPath)
             {
                 // play each path and then asynchronously consume the result, including the probability of the game path
-                List<byte> actions = completedGame.GetActionsToHere(Navigation);
+                List<byte> actions = completedGame.ToRefStruct().GetActionsToHere(Navigation);
                 (GameProgress progress, _) = player.PlayPath(actions, false);
                 // do the simple aggregation of utilities. note that this is different from the value returned by vanilla, since that uses regret matching, instead of average strategies.
                 double[] utilities = GetUtilities(ref completedGame);
@@ -1092,8 +1103,7 @@ namespace ACESim
                 } while (!messageAccepted);
             };
             // Now, we have to send the paths through all of these steps and make sure that step 3 is completely finished.
-            var startHistoryPoint = GetStartOfGameHistoryPoint();
-            await ProcessAllPathsAsync(startHistoryPoint, (historyPoint, pathProbability) => step1_playPath(historyPoint, pathProbability));
+            await ProcessAllPathsAsync(GetStartOfGameHistoryPoint().ToStorable(), (historyPoint, pathProbability) => step1_playPath(historyPoint, pathProbability));
             step2_buffer.Complete(); // tell consumer nothing more to be produced
             await step3_consumer; // wait until all have been processed
 

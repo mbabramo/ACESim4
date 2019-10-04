@@ -34,7 +34,7 @@ namespace ACESim
         private const byte History_PlayerNumber_Offset = 2;
         private const byte History_Action_Offset = 3;
         private const byte History_NumPossibleActions_Offset = 4;
-        private const byte History_NumPiecesOfInformation = 5; // the total number of pieces of information above, so that we know how much to skip (i.e., 0, 1, 2, and 3)
+        public const byte History_NumPiecesOfInformation = 5; // the total number of pieces of information above, so that we know how much to skip (i.e., 0, 1, 2, and 3)
 
         public const int MaxNumActions = 100;
         public const int MaxHistoryLength = 300;
@@ -223,34 +223,23 @@ namespace ACESim
                 return (*(historyPtr + LastIndexAddedToHistory) == HistoryComplete);
         }
 
-        public string GetInformationSetHistoryItemsString(GameProgress gameProgress) => String.Join(",", GetInformationSetHistoryItemsStrings(gameProgress));
-
-        public IEnumerable<string> GetInformationSetHistoryItemsStrings(GameProgress gameProgress)
-        {
-            foreach (short i in GetInformationSetHistoryItems_OverallIndices(gameProgress))
-            {
-                string s = GetInformationSetHistory_OverallIndex(i, gameProgress).ToString();
-                yield return s;
-            }
-        }
-
-        // NOTE: InformationSetHistory is ref struct, so we can't enumerate it directly. We can enumerate the indices, and the caller can then
-        // access each InformationSetHistory one at a time.
-
-        public IEnumerable<short> GetInformationSetHistoryItems_OverallIndices(GameProgress gameProgress)
+        public short GetInformationSetHistoryItems_Count(GameProgress gameProgress)
         {
 #if (SAFETYCHECKS)
             if (!Initialized)
                 ThrowHelper.Throw();
 #endif
             if (LastIndexAddedToHistory == 0)
-                yield break;
+                return 0;
             short overallIndex = 0;
             for (short i = 0; i < LastIndexAddedToHistory; i += History_NumPiecesOfInformation)
             {
-                yield return overallIndex++;
+                overallIndex++;
             }
+            return overallIndex;
         }
+
+        
 
         public InformationSetHistory GetInformationSetHistory_OverallIndex(short index, GameProgress gameProgress)
         {

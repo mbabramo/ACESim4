@@ -989,7 +989,7 @@ namespace ACESim
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             ChanceNode chanceNode = (ChanceNode)gameStateForCurrentPlayer;
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNode.DecisionIndex);
-            var historyPointCopy = historyPoint; // can't use historyPoint in anonymous method below. This is costly, so it might be worth optimizing if we use GeneralizedVanillaCFR much.
+            var historyPointCopy = historyPoint.ToStorable(); // can't use historyPoint in anonymous method below. This is costly, so it might be worth optimizing if we use GeneralizedVanillaCFR much.
             byte numPossibleActionsToExplore = numPossibleActions;
             if (EvolutionSettings.DistributeChanceDecisions && chanceNode.Decision.DistributedChanceDecision)
                 numPossibleActionsToExplore = 1;
@@ -997,7 +997,7 @@ namespace ACESim
                 (byte)(numPossibleActionsToExplore + 1),
                 action =>
                 {
-                    var historyPointCopy2 = historyPointCopy; // Need to do this because we need a separate copy for each thread
+                    var historyPointCopy2 = historyPointCopy.ToRefStruct(); // Will produce a separate copy for each thread
                     GeneralizedVanillaUtilities probabilityAdjustedInnerResult =  GeneralizedVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues, avgStratPiValues, chanceNode, action, distributorChanceInputs);
                     result.IncrementBasedOnProbabilityAdjusted(ref probabilityAdjustedInnerResult);
                 });

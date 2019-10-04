@@ -82,7 +82,7 @@ namespace ACESim
 
         public IEnumerable<short> GetInformationSetHistoryItems_OverallIndices()
         {
-            return GameFullHistory.GetInformationSetHistoryItems_OverallIndices(this);
+            return GameFullHistory.ToStorable().GetInformationSetHistoryItems_OverallIndices(this);
         }
 
         public InformationSetHistory GetInformationSetHistory_OverallIndex(short index) => GameFullHistory.GetInformationSetHistory_OverallIndex(index, this);
@@ -203,7 +203,7 @@ namespace ACESim
             copy.IterationID = IterationID;
             copy.GameDefinition = GameDefinition;
             copy.GameModuleProgresses = GameModuleProgresses == null ? null : (GameModuleProgresses.Select(x => x?.DeepCopy()).ToList());
-            copy.GameHistory = GameHistory.DeepCopy();
+            copy.GameHistoryStorable = GameHistoryStorable.ToRefStruct().DeepCopy().ToStorable();
             copy.GameFullHistoryStorable = GameFullHistoryStorable;
             copy.ActionsToPlay = ActionsToPlay?.ToList(); 
             copy.ActionsToPlayIndex = ActionsToPlayIndex;
