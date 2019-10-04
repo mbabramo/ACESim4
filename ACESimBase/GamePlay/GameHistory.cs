@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 
 namespace ACESim
 {
+
     [Serializable]
     public unsafe ref struct GameHistory
     {

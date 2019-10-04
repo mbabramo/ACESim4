@@ -14,6 +14,17 @@ namespace ACESim
 {
     public unsafe ref struct GameFullHistory
     {
+        public GameFullHistoryStorable ToStorable()
+        {
+            var result = new GameFullHistoryStorable()
+            {
+                LastIndexAddedToHistory = LastIndexAddedToHistory,
+                Initialized = Initialized
+            };
+            for (int i = 0; i < GameFullHistory.MaxHistoryLength; i++)
+                result.History[i] = History[i];
+            return result;
+        }
 
         const byte HistoryComplete = 254;
         const byte HistoryTerminator = 255;

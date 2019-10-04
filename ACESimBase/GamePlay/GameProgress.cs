@@ -15,7 +15,8 @@ namespace ACESim
         public GameDefinition GameDefinition;
         public List<GameModuleProgress> GameModuleProgresses;
         public GameHistory GameHistory;
-        public GameFullHistory GameFullHistory;
+        public GameFullHistoryStorable GameFullHistoryStorable;
+        public GameFullHistory GameFullHistory => GameFullHistoryStorable.ToRefStruct();
         public InformationSetLog InformationSetLog;
         public double PiChance; // probability chance would play to here
         public List<byte> ActionsToPlay = new List<byte>();
@@ -202,7 +203,7 @@ namespace ACESim
             copy.GameDefinition = GameDefinition;
             copy.GameModuleProgresses = GameModuleProgresses == null ? null : (GameModuleProgresses.Select(x => x?.DeepCopy()).ToList());
             copy.GameHistory = GameHistory.DeepCopy();
-            copy.GameFullHistory = GameFullHistory;
+            copy.GameFullHistoryStorable = GameFullHistoryStorable;
             copy.ActionsToPlay = ActionsToPlay?.ToList(); 
             copy.ActionsToPlayIndex = ActionsToPlayIndex;
             copy.GameComplete = this.GameComplete;
