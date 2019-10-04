@@ -12,8 +12,11 @@ using ACESimBase.Util;
 
 namespace ACESim
 {
+
     public unsafe ref struct GameFullHistory
     {
+        // Note: This is intended to be read-only except for the contents of the buffers. DEBUG TODO -- CAN'T DO CURRENTLY WITH FIXED
+
         public GameFullHistoryStorable ToStorable()
         {
             var result = new GameFullHistoryStorable()
@@ -26,14 +29,14 @@ namespace ACESim
             return result;
         }
 
-        const byte HistoryComplete = 254;
-        const byte HistoryTerminator = 255;
+        public const byte HistoryComplete = 254;
+        public const byte HistoryTerminator = 255;
 
-        private const byte History_DecisionByteCode_Offset = 0;
-        private const byte History_DecisionIndex_Offset = 1; // the decision index reflects the order of the decision in the decisions list. A decision with the same byte code could correspond to multiple decision indices.
-        private const byte History_PlayerNumber_Offset = 2;
-        private const byte History_Action_Offset = 3;
-        private const byte History_NumPossibleActions_Offset = 4;
+        public const byte History_DecisionByteCode_Offset = 0;
+        public const byte History_DecisionIndex_Offset = 1; // the decision index reflects the order of the decision in the decisions list. A decision with the same byte code could correspond to multiple decision indices.
+        public const byte History_PlayerNumber_Offset = 2;
+        public const byte History_Action_Offset = 3;
+        public const byte History_NumPossibleActions_Offset = 4;
         public const byte History_NumPiecesOfInformation = 5; // the total number of pieces of information above, so that we know how much to skip (i.e., 0, 1, 2, and 3)
 
         public const int MaxNumActions = 100;
@@ -65,47 +68,6 @@ namespace ACESim
                     *(ptr + b) = history[b];
             Initialized = true;
             LastIndexAddedToHistory = (short)info.GetValue("LastIndexAddedToHistory", typeof(short));
-        }
-
-        public void Initialize()
-        {
-            fixed (byte* historyPtr = History)
-                *(historyPtr + 0) = HistoryTerminator;
-            LastIndexAddedToHistory = 0;
-            Initialized = true;
-        }
-
-        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, bool skipAddToHistory)
-        {
-#if (SAFETYCHECKS)
-            if (!Initialized)
-                ThrowHelper.Throw();
-#endif
-            if (!skipAddToHistory)
-            {
-                short i = LastIndexAddedToHistory;
-                fixed (byte* historyPtr = History)
-                {
-#if (SAFETYCHECKS)
-                    if (*(historyPtr + i) == HistoryComplete)
-                        ThrowHelper.Throw("Cannot add to history of complete game.");
-#endif
-                    *(historyPtr + i + History_DecisionByteCode_Offset) = decisionByteCode;
-                    *(historyPtr + i + History_DecisionIndex_Offset) = decisionIndex;
-                    *(historyPtr + i + History_PlayerNumber_Offset) = playerIndex;
-                    *(historyPtr + i + History_Action_Offset) = action;
-                    *(historyPtr + i + History_NumPossibleActions_Offset) = numPossibleActions;
-                    *(historyPtr + i + History_NumPiecesOfInformation) = HistoryTerminator; // this is just one item at end of all history items
-                }
-                LastIndexAddedToHistory = (short)(i + History_NumPiecesOfInformation);
-
-#if (SAFETYCHECKS)
-                if (LastIndexAddedToHistory >= MaxHistoryLength - 2) // must account for terminator characters
-                   ThrowHelper.Throw("Internal error. Must increase history length.");
-#endif
-            }
-            if (GameProgressLogger.LoggingOn)
-                GameProgressLogger.Log($"Actions so far: {GetActionsAsListString()}");
         }
 
 
@@ -193,24 +155,6 @@ namespace ACESim
             // The following is useful in iterator blocks, which cannot directly contain unsafe code.
             fixed (byte* historyPtr = History)
                 return *(historyPtr + i);
-        }
-
-        public void MarkComplete()
-        {
-#if (SAFETYCHECKS)
-            if (!Initialized)
-                ThrowHelper.Throw();
-#endif
-            short i = LastIndexAddedToHistory;
-            fixed (byte* historyPtr = History)
-            {
-#if (SAFETYCHECKS)
-                if (*(historyPtr + i) == HistoryComplete)
-                    ThrowHelper.Throw("Game is already complete.");
-#endif
-                *(historyPtr + i) = HistoryComplete;
-                *(historyPtr + i + 1) = HistoryTerminator;
-            }
         }
 
         public bool IsComplete()

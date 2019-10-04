@@ -1,8 +1,11 @@
 ﻿#define SAFETYCHECKS
 
 
+using ACESimBase.Util;
+
 namespace ACESim
 {
+
     public unsafe struct GameHistoryStorable
     {
         public bool Complete;
@@ -37,6 +40,35 @@ namespace ACESim
             for (int i = 0; i < GameHistory.MaxInformationSetLength; i++)
                 result.InformationSets[i] = InformationSets[i];
             return result;
+        }
+
+        public void Initialize()
+        {
+            if (Initialized)
+                return;
+            if (GameHistory.MaxInformationSetLength != GameHistory.MaxInformationSetLengthPerFullPlayer * GameHistory.NumFullPlayers + GameHistory.MaxInformationSetLengthPerPartialPlayer * GameHistory.NumPartialPlayers)
+                ThrowHelper.Throw("Lengths not set correctly.");
+            Initialize_Helper();
+        }
+
+        public void Reinitialize()
+        {
+            Initialize_Helper();
+        }
+
+        private void Initialize_Helper()
+        {
+            fixed (byte* informationSetPtr = InformationSets)
+                for (byte p = 0; p < GameHistory.MaxNumPlayers; p++)
+                {
+                    *(informationSetPtr + GameHistory.InformationSetIndex(p)) = GameHistory.InformationSetTerminator;
+                }
+            Initialized = true;
+            LastDecisionIndexAdded = 255;
+            NextIndexInHistoryActionsOnly = 0;
+            fixed (byte* cachePtr = Cache)
+                for (int i = 0; i < GameHistory.CacheLength; i++)
+                    *(cachePtr + i) = 0;
         }
     }
 }

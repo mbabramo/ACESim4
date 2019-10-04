@@ -571,8 +571,9 @@ namespace ACESim
 
         public unsafe HistoryPoint GetStartOfGameHistoryPoint()
         {
-            GameHistory gameHistory = new GameHistory();
-            gameHistory.Initialize();
+            GameHistoryStorable gameHistoryStorable = new GameHistoryStorable();
+            gameHistoryStorable.Initialize();
+            GameHistory gameHistory = gameHistoryStorable.ToRefStruct();
             switch (Navigation.LookupApproach)
             {
                 case InformationSetLookupApproach.PlayUnderlyingGame:

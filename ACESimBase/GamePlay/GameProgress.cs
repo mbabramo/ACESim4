@@ -36,8 +36,8 @@ namespace ACESim
 
         public GameProgress()
         {
-            GameHistory.Initialize();
-            GameFullHistory.Initialize();
+            GameHistoryStorable.Initialize();
+            GameFullHistoryStorable.Initialize();
             InformationSetLog.Initialize();
         }
 
@@ -112,8 +112,8 @@ namespace ACESim
                 foreach (var gmp in GameModuleProgresses)
                     gmp.Recycle();
             GameModuleProgresses = null;
-            GameHistory.Reinitialize();
-            GameFullHistory.Initialize();
+            GameHistoryStorable.Reinitialize();
+            GameFullHistoryStorable.Initialize();
             ActionsToPlay = null;
             ActionsToPlayIndex = -1;
             GameComplete = false;

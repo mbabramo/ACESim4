@@ -17,6 +17,8 @@ namespace ACESim
     [Serializable]
     public unsafe ref struct GameHistory
     {
+        // Note: This is intended to be read-only except for the contents of the buffers. DEBUG TODO -- CAN'T DO CURRENTLY WITH FIXED
+
         public GameHistoryStorable ToStorable()
         {
             var result = new GameHistoryStorable()
@@ -68,9 +70,9 @@ namespace ACESim
         public const int MaxInformationSetLengthPerPartialPlayer = 3;
         public const int NumFullPlayers = 3; // includes main players and resolution player and any chance players that need full size information set
         public const int MaxNumPlayers = 13; // includes chance players that need a very limited information set
-        public int NumPartialPlayers => MaxNumPlayers - NumFullPlayers;
-        public int InformationSetIndex(byte playerIndex) => playerIndex <= NumFullPlayers ? MaxInformationSetLengthPerFullPlayer * playerIndex : MaxInformationSetLengthPerFullPlayer * NumFullPlayers + (playerIndex - NumFullPlayers) * MaxInformationSetLengthPerPartialPlayer;
-        public int MaxInformationSetLengthForPlayer(byte playerIndex) => playerIndex < NumFullPlayers ? MaxInformationSetLengthPerFullPlayer : MaxInformationSetLengthPerPartialPlayer;
+        public static int NumPartialPlayers => MaxNumPlayers - NumFullPlayers;
+        public static int InformationSetIndex(byte playerIndex) => playerIndex <= NumFullPlayers ? MaxInformationSetLengthPerFullPlayer * playerIndex : MaxInformationSetLengthPerFullPlayer * NumFullPlayers + (playerIndex - NumFullPlayers) * MaxInformationSetLengthPerPartialPlayer;
+        public static int MaxInformationSetLengthForPlayer(byte playerIndex) => playerIndex < NumFullPlayers ? MaxInformationSetLengthPerFullPlayer : MaxInformationSetLengthPerPartialPlayer;
 
         // The following are used to defer adding information to a player information set.
         public bool PreviousNotificationDeferred;
@@ -144,34 +146,6 @@ namespace ACESim
             return b;
         }
 
-        public void Initialize()
-        {
-            if (Initialized)
-                return;
-            if (MaxInformationSetLength != MaxInformationSetLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLengthPerPartialPlayer * NumPartialPlayers)
-                ThrowHelper.Throw("Lengths not set correctly.");
-            Initialize_Helper();
-        }
-
-        public void Reinitialize()
-        {
-            Initialize_Helper();
-        }
-
-        private void Initialize_Helper()
-        {
-            fixed (byte* informationSetPtr = InformationSets)
-                for (byte p = 0; p < MaxNumPlayers; p++)
-                {
-                    *(informationSetPtr + InformationSetIndex(p)) = InformationSetTerminator;
-                }
-            Initialized = true;
-            LastDecisionIndexAdded = 255;
-            NextIndexInHistoryActionsOnly = 0;
-            fixed (byte* cachePtr = Cache)
-                for (int i = 0; i < CacheLength; i++)
-                    *(cachePtr + i) = 0;
-        }
 
         #endregion
 
@@ -225,8 +199,8 @@ namespace ACESim
             // Debug.WriteLine($"Add to history {decisionByteCode} for player {playerIndex} action {action} of {numPossibleActions}");
             if (!skipAddToHistory)
                 AddToSimpleActionsList(action);
-            
-            gameProgress?.GameFullHistory.AddToHistory(decisionByteCode, decisionIndex, playerIndex, action, numPossibleActions, skipAddToHistory);
+
+            gameProgress?.GameFullHistoryStorable.AddToHistory(decisionByteCode, decisionIndex, playerIndex, action, numPossibleActions, skipAddToHistory);
             LastDecisionIndexAdded = decisionIndex;
             if (!delayPreviousDeferredNotification)
             {
@@ -289,7 +263,7 @@ namespace ACESim
         {
             Complete = true;
             if (gameProgress != null)
-                gameProgress.GameFullHistory.MarkComplete();
+                gameProgress.GameFullHistoryStorable.MarkComplete();
         }
 
         public bool IsComplete()
