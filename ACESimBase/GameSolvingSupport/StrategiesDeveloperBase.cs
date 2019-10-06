@@ -350,6 +350,7 @@ namespace ACESim
             DEBUG++;
             if (DEBUG == 6)
             {
+                Br.eak.Add("X");
                 var DEBUG2 = 0;
                 GameProgressLogger.LoggingOn = true;
                 GameProgressLogger.DetailedLogging = true;

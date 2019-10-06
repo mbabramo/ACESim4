@@ -40,6 +40,7 @@ namespace ACESim
             DoParallelIfNotDisabled = doParallel;
             GameDefinition = gameDefinition;
             StartingProgress = GameDefinition.GameFactory.CreateNewGameProgress(new IterationID(1));
+            if (StartingProgress.InformationSetLog.LogStorage[990] == 0) throw new Exception("DEBUG");
         }
         
 
@@ -211,6 +212,7 @@ namespace ACESim
 
         public unsafe (GameProgress progress, IEnumerable<byte> next) PlayPath(IEnumerable<byte> actionsToPlay, bool getNextPath)
         {
+            if (Br.eak.Contains("X") && StartingProgress.InformationSetLog.LogStorage[990] == 0) throw new Exception("DEBUG");
             byte* actionsToPlay_AsPointer = stackalloc byte[GameFullHistory.MaxNumActions];
             int d = 0;
             foreach (byte b in actionsToPlay)
@@ -230,6 +232,7 @@ namespace ACESim
         {
             Game game = GameDefinition.GameFactory.CreateNewGame();
             GameProgress gameProgress = StartingProgress.DeepCopy();
+            if (Br.eak.Contains("X") && StartingProgress.InformationSetLog.LogStorage[990] == 0) throw new Exception("DEBUG");
             game.PlaySetup(Strategies, gameProgress, GameDefinition, false, true);
             game.PlayPathAndStop(actionsToPlay);
             return gameProgress;
@@ -239,6 +242,7 @@ namespace ACESim
         {
             Game game = GameDefinition.GameFactory.CreateNewGame();
             GameProgress gameProgress = StartingProgress.DeepCopy();
+            if (Br.eak.Contains("X") && StartingProgress.InformationSetLog.LogStorage[990] == 0) throw new Exception("DEBUG");
             gameProgress.ActionOverrider = actionOverride;
             game.PlaySetup(Strategies, gameProgress, GameDefinition, false, true);
             game.PlayUntilComplete();
@@ -248,9 +252,13 @@ namespace ACESim
         public unsafe GameProgress PlayPathAndKeepGoing(byte* actionsToPlay, ref byte* nextActionsToPlay)
         {
             Game game = GameDefinition.GameFactory.CreateNewGame();
+            Br.eak.IfAdded("X");
             GameProgress gameProgress = StartingProgress.DeepCopy();
+            if (Br.eak.Contains("X") && gameProgress.InformationSetLog.LogStorage[990] == 0) throw new Exception("DEBUG");
             game.PlaySetup(Strategies, gameProgress, GameDefinition, false, true);
+            if (Br.eak.Contains("X") && gameProgress.InformationSetLog.LogStorage[990] == 0) throw new Exception("DEBUG");
             game.PlayPathAndContinueWithDefaultAction(actionsToPlay, ref nextActionsToPlay);
+            if (Br.eak.Contains("X") && gameProgress.InformationSetLog.LogStorage[990] == 0) throw new Exception("DEBUG");
             return gameProgress;
         }
 
@@ -273,6 +281,7 @@ namespace ACESim
         public GameProgress PlaySpecificIterationStartToFinish(IterationID iterationID)
         {
             GameProgress initialGameState = StartingProgress.DeepCopy();
+            if (Br.eak.Contains("X") && StartingProgress.InformationSetLog.LogStorage[990] == 0) throw new Exception("DEBUG");
             return PlayGameFromSpecifiedPoint(initialGameState);
         }
 

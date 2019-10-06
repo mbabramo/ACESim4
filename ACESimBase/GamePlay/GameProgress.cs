@@ -34,13 +34,14 @@ namespace ACESim
         public bool IsFinalGamePath;
         public byte RandomNumbersUsed;
         public double Mixedness;
+        public bool DEBUG_Constructor;
 
         public GameProgress()
         {
             GameHistoryStorable.Initialize();
-            GameFullHistoryStorable.Initialize();
-            InformationSetLog.LogStorage = new byte[InformationSetLog.MaxInformationSetLoggingLength]; // DEBUG ArrayPool<byte>.Shared.Rent(InformationSetLog.MaxInformationSetLoggingLength);
+            GameFullHistoryStorable.Initialize(); // DEBUG ArrayPool<byte>.Shared.Rent(InformationSetLog.MaxInformationSetLoggingLength);
             InformationSetLog.Initialize();
+            DEBUG_Constructor = true;
         }
 
 
@@ -226,7 +227,7 @@ namespace ACESim
 
         internal virtual void CopyFieldInfo(GameProgress copy)
         {
-            copy.InformationSetLog = InformationSetLog;
+            copy.InformationSetLog = new InformationSetLog() { LogStorage = InformationSetLog.LogStorage.ToArray(), Initialized = InformationSetLog.Initialized }; // DEBUG -- must change so that we don't reallocate the array, instead renting it from a pool. // We can't just copy the array because then the starting game progress will be shared among all copies.
             copy.IterationID = IterationID;
             copy.GameDefinition = GameDefinition;
             copy.GameModuleProgresses = GameModuleProgresses == null ? null : (GameModuleProgresses.Select(x => x?.DeepCopy()).ToList());

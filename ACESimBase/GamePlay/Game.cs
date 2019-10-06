@@ -136,6 +136,7 @@ namespace ACESim
 
             // Note: This may be time consuming. We need to update the game history, but in Progress it's not stored as a ref struct. So we convert it to a ref struct and then convert it back. DEBUG: Could we pass the history so that we wouldn't need to do this?
             var history = Progress.GameHistory;
+            if (Br.eak.Contains("X") && Progress.InformationSetLog.LogStorage[990] == 0) throw new Exception("DEBUG");
             UpdateGameHistory(ref history, GameDefinition, currentDecision, decisionIndex, action, Progress);
             Progress.GameHistoryStorable = history.ToStorable();
 
@@ -383,6 +384,7 @@ namespace ACESim
                 GameProgressLogger.Log(gamePointString);
             }
 
+            if (Br.eak.Contains("X") && Progress.InformationSetLog.LogStorage[990] == 0) throw new Exception("DEBUG");
             PrepareForOrMakeDecision();
 
             if (Progress.IsFinalStep(GameDefinition.ExecutionOrder) || Progress.GameComplete)

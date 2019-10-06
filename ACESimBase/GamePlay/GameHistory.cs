@@ -200,6 +200,9 @@ namespace ACESim
             if (!skipAddToHistory)
                 AddToSimpleActionsList(action);
 
+
+            if (Br.eak.Contains("X") && gameProgress.InformationSetLog.LogStorage[990] == 0) throw new Exception("DEBUG");
+
             gameProgress?.GameFullHistoryStorable.AddToHistory(decisionByteCode, decisionIndex, playerIndex, action, numPossibleActions, skipAddToHistory);
             LastDecisionIndexAdded = decisionIndex;
             if (!delayPreviousDeferredNotification)
