@@ -34,14 +34,12 @@ namespace ACESim
         public bool IsFinalGamePath;
         public byte RandomNumbersUsed;
         public double Mixedness;
-        public bool DEBUG_Constructor;
 
         public GameProgress()
         {
             GameHistoryStorable.Initialize();
             GameFullHistoryStorable.Initialize(); // DEBUG ArrayPool<byte>.Shared.Rent(InformationSetLog.MaxInformationSetLoggingLength);
             InformationSetLog.Initialize();
-            DEBUG_Constructor = true;
         }
 
 

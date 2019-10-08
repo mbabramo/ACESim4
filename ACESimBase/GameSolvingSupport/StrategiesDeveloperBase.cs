@@ -344,17 +344,9 @@ namespace ACESim
             HistoryNavigationInfo navigationSettings = navigation ?? Navigation;
             return historyPoint.GetGameStateForCurrentPlayer(navigationSettings) ?? GetGameStateByPlayingUnderlyingGame(ref historyPoint, navigationSettings);
         }
-        static int DEBUG = 0;
+
         private unsafe IGameState GetGameStateByPlayingUnderlyingGame(ref HistoryPoint historyPoint, HistoryNavigationInfo navigationSettings)
         {
-            DEBUG++;
-            if (DEBUG == 6)
-            {
-                Br.eak.Add("X");
-                var DEBUG2 = 0;
-                GameProgressLogger.LoggingOn = true;
-                GameProgressLogger.DetailedLogging = true;
-            }
             IGameState gameState;
             List<byte> actionsSoFar = historyPoint.GetActionsToHere(navigationSettings);
             (GameProgress progress, _) = GamePlayer.PlayPath(actionsSoFar, false);

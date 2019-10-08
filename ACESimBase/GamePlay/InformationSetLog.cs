@@ -89,8 +89,6 @@ namespace ACESim
                 ThrowHelper.Throw();
 #endif
 
-            if (Br.eak.Contains("X") && LogStorage[990] == 0) throw new Exception("DEBUG");
-
             int playerArrayIndex = InformationSetLoggingIndex(playerIndex);
             int nextPlayerArrayIndexMinusTwo = playerArrayIndex + MaxInformationSetLoggingLengthForPlayer(playerIndex) - 2;
             // advance to the end of the information set
@@ -101,16 +99,8 @@ namespace ACESim
                 ThrowHelper.Throw("Internal error. Must increase size of information set.");
 #endif
             // now record the information
-            if (playerArrayIndex == 990 && followingDecisionIndex == 0)
-            {
-                var DEBUGQ = 0;
-            }
             LogStorage[playerArrayIndex] = followingDecisionIndex; // we must record the decision
             playerArrayIndex++;
-            if (playerArrayIndex == 990 && information == 0)
-            {
-                var DEBUGQ = 0;
-            }
             LogStorage[playerArrayIndex] = information;
             playerArrayIndex++;
             LogStorage[playerArrayIndex] = InformationSetTerminator; // terminator
@@ -120,7 +110,6 @@ namespace ACESim
                 string playerInformation = GetPlayerInformationAtPointString(playerIndex, null);
                 GameProgressLogger.Log($"Player {playerIndex} ({playerNames[playerIndex]}) info: {playerInformation}");
             }
-            if (Br.eak.Contains("X") && LogStorage[990] == 0) throw new Exception("DEBUG");
         }
 
         public void RemoveLastItemsInLog(byte playerIndex, byte numItems)
@@ -142,7 +131,6 @@ namespace ACESim
                 playerArrayIndex += 2;
             playerArrayIndex -= 2;
             LogStorage[playerArrayIndex] = InformationSetTerminator;
-            if (Br.eak.Contains("X") && LogStorage[990] == 0) throw new Exception("DEBUG");
         }
 
         public unsafe byte GetPlayerInformationItem(byte playerIndex, byte decisionIndex)
@@ -171,7 +159,6 @@ namespace ACESim
                     playerArrayIndex++;
                 }
             }
-            if (Br.eak.Contains("X") && LogStorage[990] == 0) throw new Exception("DEBUG");
             return 0;
         }
         public unsafe void GetPlayerInformationAtPoint(byte playerIndex, byte? upToDecision, byte* playerInfoBuffer)
@@ -199,7 +186,6 @@ namespace ACESim
                 playerArrayIndex++;
             }
             *playerInfoBuffer = InformationSetTerminator;
-            if (Br.eak.Contains("X") && LogStorage[990] == 0) throw new Exception("DEBUG");
         }
 
         public unsafe string GetPlayerInformationAtPointString(byte playerIndex, byte? upToDecision)
@@ -227,7 +213,6 @@ namespace ACESim
                     b++;
                 playerArrayIndex++; // now move past the information
             }
-            if (Br.eak.Contains("X") && LogStorage[990] == 0) throw new Exception("DEBUG");
             return b;
         }
 
@@ -239,7 +224,6 @@ namespace ACESim
 #endif
 
             AddToLog(RemoveItemFromInformationSet, followingDecisionIndex, playerIndex, playerNames, actionPoints);
-            if (Br.eak.Contains("X") && LogStorage[990] == 0) throw new Exception("DEBUG");
         }
     }
 }
