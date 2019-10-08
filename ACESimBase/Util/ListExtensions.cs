@@ -69,6 +69,18 @@ namespace ACESim.Util
             return smaller; // for example, if x is () and y is (1), this will return 0, since the difference is at the first index of y. If x is (2) and y is (2,6,7), then it will return 1, since the difference is at the second index of y
         }
 
+        public static unsafe List<byte> GetPointerAsList_255Terminated(Span<byte> r)
+        {
+            var r2 = new List<byte>();
+            int d = 0;
+            while (r[d] != 255)
+            {
+                r2.Add(r[d]);
+                d++;
+            }
+            return r2;
+        }
+
         public static unsafe List<byte> GetPointerAsList_255Terminated(byte* r)
         {
             var r2 = new List<byte>();

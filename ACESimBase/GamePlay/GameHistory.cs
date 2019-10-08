@@ -17,9 +17,6 @@ namespace ACESim
     [Serializable]
     public unsafe ref struct GameHistory
     {
-        // Note: This is intended to be read-only except for the contents of the buffers. DEBUG TODO -- CAN'T DO CURRENTLY WITH FIXED
-
-
         #region Construction
 
         // We use a struct here because this makes a big difference in performance, allowing GameHistory to be allocated on the stack. A disadvantage is that we must set the number of players, maximum size of different players' information sets, etc. in the GameHistory (which means that we need to change the code whenever we change games). We distinguish between full and partial players because this also produces a significant performance boost.
@@ -72,17 +69,15 @@ namespace ACESim
         private void Initialize_Helper()
         {
             CreateArraysForSpans();
-            fixed (byte* informationSetPtr = InformationSets)
-                for (byte p = 0; p < GameHistory.MaxNumPlayers; p++)
-                {
-                    *(informationSetPtr + GameHistory.InformationSetIndex(p)) = GameHistory.InformationSetTerminator;
-                }
+            for (byte p = 0; p < GameHistory.MaxNumPlayers; p++)
+            {
+                InformationSets[GameHistory.InformationSetIndex(p)] = GameHistory.InformationSetTerminator;
+            }
             Initialized = true;
             LastDecisionIndexAdded = 255;
             NextIndexInHistoryActionsOnly = 0;
-            fixed (byte* cachePtr = Cache)
-                for (int i = 0; i < GameHistory.CacheLength; i++)
-                    *(cachePtr + i) = 0;
+            for (int i = 0; i < GameHistory.CacheLength; i++)
+                Cache[i] = 0;
         }
 
 
@@ -158,9 +153,8 @@ namespace ACESim
         public string CacheString()
         {
             string cacheString = "";
-            fixed (byte* cache = Cache)
-                for (int i = 0; i < CacheLength; i++)
-                    cacheString += cache[i] + ",";
+            for (int i = 0; i < CacheLength; i++)
+                cacheString += Cache[i] + ",";
             return cacheString;
         }
 
@@ -214,42 +208,36 @@ namespace ACESim
 
         #region Cache
 
-        public unsafe void IncrementItemAtCacheIndex(byte cacheIndexToIncrement, byte incrementBy = 1)
+        public void IncrementItemAtCacheIndex(byte cacheIndexToIncrement, byte incrementBy = 1)
         {
             // TabbedText.WriteLine($"Increment cache for {cacheIndexToIncrement}");
-            fixed (byte* cachePtr = Cache)
-                *(cachePtr + (byte) cacheIndexToIncrement) = (byte) (*(cachePtr + (byte) cacheIndexToIncrement) + incrementBy);
+            Cache[(byte) cacheIndexToIncrement] += incrementBy;
         }
 
-        public unsafe void DecrementItemAtCacheIndex(byte cacheIndexToDecrement, byte decrementBy = 1)
+        public void DecrementItemAtCacheIndex(byte cacheIndexToDecrement, byte decrementBy = 1)
         {
             // TabbedText.WriteLine($"Decrement cache for {cacheIndexToIncrement}");
-            fixed (byte* cachePtr = Cache)
-            {
-                byte currentValue = *(cachePtr + (byte)cacheIndexToDecrement);
+            byte currentValue = Cache[(byte)cacheIndexToDecrement];
 #if SAFETYCHECKS
-                if (currentValue == 0)
-                    ThrowHelper.Throw();
+            if (currentValue == 0)
+                ThrowHelper.Throw();
 #endif
-                *(cachePtr + (byte) cacheIndexToDecrement) = (byte) (currentValue - (byte)decrementBy);
-            }
+            Cache[(byte) cacheIndexToDecrement] = (byte) (currentValue - (byte)decrementBy);
         }
 
-        public unsafe byte GetCacheItemAtIndex(byte cacheIndexToReset)
+        public byte GetCacheItemAtIndex(byte cacheIndexToReset)
         {
-            fixed (byte* cachePtr = Cache)
-                return *(cachePtr + (byte) cacheIndexToReset);
+            return Cache[(byte) cacheIndexToReset];
         }
 
-        public unsafe void SetCacheItemAtIndex(byte cacheIndexToReset, byte newValue)
+        public void SetCacheItemAtIndex(byte cacheIndexToReset, byte newValue)
         {
             // TabbedText.WriteLine($"Set cache for {cacheIndexToReset} to {newValue}"); 
 #if SAFETYCHECKS
             if (cacheIndexToReset >= CacheLength)
                 ThrowHelper.Throw();
 #endif
-            fixed (byte* cachePtr = Cache)
-                *(cachePtr + (byte) cacheIndexToReset) = newValue;
+            Cache[(byte) cacheIndexToReset] = newValue;
         }
 
 #endregion
@@ -295,15 +283,12 @@ namespace ACESim
             if (action == 0)
                 ThrowHelper.Throw("Invalid action.");
 #endif
-            fixed (byte* historyPtr = ActionsHistory)
-            {
-                *(historyPtr + NextIndexInHistoryActionsOnly) = action;
-                NextIndexInHistoryActionsOnly++;
+            ActionsHistory[NextIndexInHistoryActionsOnly] = action;
+            NextIndexInHistoryActionsOnly++;
 #if SAFETYCHECKS
-                if (NextIndexInHistoryActionsOnly >= GameFullHistory.MaxNumActions)
-                    ThrowHelper.Throw("Internal error. Must increase MaxNumActions.");
+            if (NextIndexInHistoryActionsOnly >= GameFullHistory.MaxNumActions)
+                ThrowHelper.Throw("Internal error. Must increase MaxNumActions.");
 #endif
-            }
         }
 
         public void RemoveLastActionFromSimpleActionsList()
@@ -314,11 +299,8 @@ namespace ACESim
         public List<byte> GetActionsAsList()
         {
             List<byte> actions = new List<byte>();
-            fixed (byte* historyPtr = ActionsHistory)
-            {
-                for (int i = 0; i < NextIndexInHistoryActionsOnly; i++)
-                    actions.Add(*(historyPtr + i));
-            }
+            for (int i = 0; i < NextIndexInHistoryActionsOnly; i++)
+                actions.Add(ActionsHistory[i]);
             return actions;
         }
 
@@ -343,13 +325,10 @@ namespace ACESim
         {
             if (playersToInform == null)
                 return;
-            fixed (byte* informationSetsPtr = InformationSets)
+            foreach (byte playerToInformIndex in playersToInform)
             {
-                foreach (byte playerToInformIndex in playersToInform)
-                {
-                    AddToInformationSet(information, playerToInformIndex, informationSetsPtr);
-                    gameProgress?.InformationSetLog.AddToLog(information, followingDecisionIndex, playerToInformIndex, gameProgress.GameDefinition.PlayerNames, gameProgress.GameDefinition.DecisionPointsExecutionOrder);
-                }
+                AddToInformationSet(information, playerToInformIndex, InformationSets);
+                gameProgress?.InformationSetLog.AddToLog(information, followingDecisionIndex, playerToInformIndex, gameProgress.GameDefinition.PlayerNames, gameProgress.GameDefinition.DecisionPointsExecutionOrder);
             }
             if (GameProgressLogger.LoggingOn && GameProgressLogger.DetailedLogging)
             {
@@ -364,35 +343,65 @@ namespace ACESim
 
         public void AddToInformationSetAndLog(byte information, byte followingDecisionIndex, byte playerIndex, GameProgress gameProgress)
         {
-            fixed (byte* informationSetsPtr = InformationSets)
-            {
-                AddToInformationSet(information, playerIndex, informationSetsPtr);
-                if (gameProgress != null)
-                    gameProgress.InformationSetLog.AddToLog(information, followingDecisionIndex, playerIndex, gameProgress.GameDefinition.PlayerNames, gameProgress.GameDefinition.DecisionPointsExecutionOrder);
-            }
+            AddToInformationSet(information, playerIndex, InformationSets);
+            if (gameProgress != null)
+                gameProgress.InformationSetLog.AddToLog(information, followingDecisionIndex, playerIndex, gameProgress.GameDefinition.PlayerNames, gameProgress.GameDefinition.DecisionPointsExecutionOrder);
         }
 
-        private void AddToInformationSet(byte information, byte playerIndex, byte* informationSetsPtr)
+        private void AddToInformationSet(byte information, byte playerIndex, Span<byte> informationSets)
         {
 #if SAFETYCHECKS
             if (playerIndex >= MaxNumPlayers)
                 ThrowHelper.Throw();
 #endif
-            byte* playerPointer = informationSetsPtr + InformationSetIndex(playerIndex);
+            int playerPointer = InformationSetIndex(playerIndex);
             byte numItems = 0;
-            while (*playerPointer != InformationSetTerminator)
+            while (informationSets[playerPointer] != InformationSetTerminator)
             {
                 playerPointer++;
                 numItems++;
             }
-            *playerPointer = information;
+            informationSets[playerPointer] = information;
             playerPointer++;
             numItems++;
 #if SAFETYCHECKS
             if (numItems >= MaxInformationSetLengthForPlayer(playerIndex))
                 ThrowHelper.Throw("Must increase MaxInformationSetLengthPerPlayer");
 #endif
-            *playerPointer = InformationSetTerminator;
+            informationSets[playerPointer] = InformationSetTerminator;
+        }
+
+        public void GetPlayerInformationCurrent(byte playerIndex, Span<byte> playerInfo)
+        {
+            GetPlayerInformationCurrent(playerIndex, InformationSets, playerInfo);
+        }
+
+
+        // Note: This static method is made available so that we can call this when playerInfo Span<byte> is stack-allocated. 
+        public static void GetPlayerInformationCurrent(byte playerIndex, Span<byte> informationSets, Span<byte> playerInfo)
+        {
+            int playerInfoBufferIndex = 0;
+            if (playerIndex >= MaxNumPlayers)
+            {
+                // player has no information
+                playerInfo[playerInfoBufferIndex] = InformationSetTerminator;
+                return;
+            }
+            int maxInformationSetLengthForPlayer = MaxInformationSetLengthForPlayer(playerIndex);
+            byte size = 0;
+            int playerPointer = InformationSetIndex(playerIndex);
+            while (informationSets[playerPointer] != InformationSetTerminator)
+            {
+                playerInfo[playerInfoBufferIndex] = informationSets[playerPointer];
+                playerPointer++;
+                playerInfoBufferIndex++;
+                size++;
+#if SAFETYCHECKS
+                if (size == maxInformationSetLengthForPlayer)
+                    ThrowHelper.Throw("Internal error.");
+#endif
+            }
+            playerInfo[playerInfoBufferIndex] = InformationSetTerminator;
         }
 
         public unsafe void GetPlayerInformationCurrent(byte playerIndex, byte* playerInfoBuffer)
@@ -405,29 +414,26 @@ namespace ACESim
             }
             int maxInformationSetLengthForPlayer = MaxInformationSetLengthForPlayer(playerIndex);
             byte size = 0;
-            fixed (byte* informationSetsPtr = InformationSets)
+            int playerPointer = InformationSetIndex(playerIndex);
+            while (InformationSets[playerPointer] != InformationSetTerminator)
             {
-                byte* playerPointer = informationSetsPtr + InformationSetIndex(playerIndex);
-                while (*playerPointer != InformationSetTerminator)
-                {
-                    *playerInfoBuffer = *playerPointer;
-                    playerPointer++;
-                    playerInfoBuffer++;
-                    size++;
+                *playerInfoBuffer = InformationSets[playerPointer];
+                playerPointer++;
+                playerInfoBuffer++;
+                size++;
 #if SAFETYCHECKS
-                    if (size == maxInformationSetLengthForPlayer)
-                        ThrowHelper.Throw("Internal error.");
+                if (size == maxInformationSetLengthForPlayer)
+                    ThrowHelper.Throw("Internal error.");
 #endif
-                }
-                *playerInfoBuffer = InformationSetTerminator;
             }
+            *playerInfoBuffer = InformationSetTerminator;
         }
 
 
-        public unsafe string GetCurrentPlayerInformationString(byte playerIndex)
+        public string GetCurrentPlayerInformationString(byte playerIndex)
         {
-            byte* playerInfoBuffer = stackalloc byte[MaxInformationSetLengthPerFullPlayer];
-            GetPlayerInformationCurrent(playerIndex, playerInfoBuffer);
+            Span<byte> playerInfoBuffer = stackalloc byte[MaxInformationSetLengthPerFullPlayer]; 
+            GetPlayerInformationCurrent(playerIndex, InformationSets, playerInfoBuffer);
             List<byte> informationSetList = ListExtensions.GetPointerAsList_255Terminated(playerInfoBuffer);
             return String.Join(",", informationSetList);
         }
@@ -439,14 +445,11 @@ namespace ACESim
                 ThrowHelper.Throw();
 #endif
             byte b = 0;
-            fixed (byte* informationSetsPtr = InformationSets)
+            int ptr = InformationSetIndex(playerIndex);
+            while (InformationSets[ptr] != InformationSetTerminator)
             {
-                byte* ptr = informationSetsPtr + InformationSetIndex(playerIndex);
-                while (*ptr != InformationSetTerminator)
-                {
-                    b++;
-                    ptr++; // now move past the information
-                }
+                b++;
+                ptr++; // now move past the information
             }
             return b;
         }
@@ -470,23 +473,20 @@ namespace ACESim
                 GameProgressLogger.Log($"Player {playerIndex} information (removed {numItemsToRemove}): {GetCurrentPlayerInformationString(playerIndex)}");
         }
 
-        public unsafe void ReverseAdditionsToInformationSet(byte playerIndex, byte numItemsToRemove, GameProgress gameProgress = null)
+        public void ReverseAdditionsToInformationSet(byte playerIndex, byte numItemsToRemove, GameProgress gameProgress = null)
         {
             RemoveItemsInInformationSet(playerIndex, numItemsToRemove);
             if (gameProgress != null)
                 gameProgress.InformationSetLog.RemoveLastItemInLog(playerIndex);
         }
 
-    public unsafe void RemoveItemsInInformationSet(byte playerIndex, byte numItemsToRemove)
+    public void RemoveItemsInInformationSet(byte playerIndex, byte numItemsToRemove)
         {
-            fixed (byte* informationSetsPtr = InformationSets)
-            {
-                byte* ptr = informationSetsPtr + InformationSetIndex(playerIndex);
-                while (*ptr != InformationSetTerminator)
-                    ptr++; // now move past the information
-                ptr -= (byte) numItemsToRemove;
-                *ptr = InformationSetTerminator;
-            }
+            int ptr = InformationSetIndex(playerIndex);
+            while (InformationSets[ptr] != InformationSetTerminator)
+                ptr++; // now move past the information
+            ptr -= (byte) numItemsToRemove;
+            InformationSets[ptr] = InformationSetTerminator;
         }
 
 #endregion
