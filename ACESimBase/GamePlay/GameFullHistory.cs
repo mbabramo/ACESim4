@@ -17,14 +17,15 @@ namespace ACESim
     {
         // Note: This is intended to be read-only except for the contents of the buffers. DEBUG TODO -- CAN'T DO CURRENTLY WITH FIXED
 
-        public GameFullHistoryStorable ToStorable()
+        public GameFullHistoryStorable DeepCopyToStorable()
         {
             var result = new GameFullHistoryStorable()
             {
                 LastIndexAddedToHistory = LastIndexAddedToHistory,
-                Initialized = Initialized
+                Initialized = Initialized,
+                History = new byte[History.Length]
             };
-            for (int i = 0; i < GameFullHistory.MaxHistoryLength; i++)
+            for (int i = 0; i < History.Length; i++)
                 result.History[i] = History[i];
             return result;
         }
@@ -41,7 +42,7 @@ namespace ACESim
 
         public const int MaxNumActions = 100;
         public const int MaxHistoryLength = 300;
-        public fixed byte History[MaxHistoryLength];
+        public Span<byte> History; // length is MaxHistoryLength
         public short LastIndexAddedToHistory;
 
         public bool Initialized;
@@ -62,6 +63,7 @@ namespace ACESim
         // The special constructor is used to deserialize values.
         public GameFullHistory(SerializationInfo info, StreamingContext context)
         {
+            History = new byte[MaxHistoryLength]; // rarely used so allocation not an issue
             byte[] history = (byte[])info.GetValue("history", typeof(byte[]));
             fixed (byte* ptr = History)
                 for (int b = 0; b < MaxHistoryLength; b++)

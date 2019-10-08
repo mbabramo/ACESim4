@@ -18,7 +18,7 @@ namespace ACESim
         public GameHistoryStorable GameHistoryStorable;
         public GameHistory GameHistory => GameHistoryStorable.ShallowCopyToRefStruct();
         public GameFullHistoryStorable GameFullHistoryStorable;
-        public GameFullHistory GameFullHistory => GameFullHistoryStorable.ToRefStruct();
+        public GameFullHistory GameFullHistory => GameFullHistoryStorable.ShallowCopyToRefStruct();
         public InformationSetLog InformationSetLog;
         public double PiChance; // probability chance would play to here
         public List<byte> ActionsToPlay = new List<byte>();
@@ -109,7 +109,7 @@ namespace ACESim
 
         public IEnumerable<short> GetInformationSetHistoryItems_OverallIndices()
         {
-            return GameFullHistory.ToStorable().GetInformationSetHistoryItems_OverallIndices(this);
+            return GameFullHistoryStorable.GetInformationSetHistoryItems_OverallIndices(this);
         }
 
         public InformationSetHistory GetInformationSetHistory_OverallIndex(short index) => GameFullHistory.GetInformationSetHistory_OverallIndex(index, this);

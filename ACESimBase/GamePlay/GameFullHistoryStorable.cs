@@ -10,24 +10,34 @@ namespace ACESim
     public unsafe struct GameFullHistoryStorable
     {
 
-        public fixed byte History[GameFullHistory.MaxHistoryLength];
+        public byte[] History; // length is GameFullHistory.MaxHistoryLength;
         public short LastIndexAddedToHistory;
         public bool Initialized;
 
-        public GameFullHistory ToRefStruct()
+
+        public GameFullHistory DeepCopyToRefStruct()
+        {
+            var result = ShallowCopyToRefStruct();
+            result.History = new byte[GameFullHistory.MaxHistoryLength];
+            for (int i = 0; i < GameFullHistory.MaxHistoryLength; i++)
+                result.History[i] = History[i];
+            return result;
+        }
+        public GameFullHistory ShallowCopyToRefStruct()
         {
             var result = new GameFullHistory()
             {
                 LastIndexAddedToHistory = LastIndexAddedToHistory,
-                Initialized = Initialized
+                Initialized = Initialized,
+                History = History
             };
-            for (int i = 0; i < GameFullHistory.MaxHistoryLength; i++)
-                result.History[i] = History[i];
             return result;
         }
 
         public void Initialize()
         {
+            if (History == null)
+                History = new byte[GameFullHistory.MaxHistoryLength];
             fixed (byte* historyPtr = History)
                 *(historyPtr + 0) = GameFullHistory.HistoryTerminator;
             LastIndexAddedToHistory = 0;
@@ -64,7 +74,7 @@ namespace ACESim
 #endif
             }
             if (GameProgressLogger.LoggingOn)
-                GameProgressLogger.Log($"Actions so far: {ToRefStruct().GetActionsAsListString()}");
+                GameProgressLogger.Log($"Actions so far: {ShallowCopyToRefStruct().GetActionsAsListString()}");
         }
 
 
@@ -91,10 +101,10 @@ namespace ACESim
 
         public IEnumerable<string> GetInformationSetHistoryItemsStrings(GameProgress gameProgress)
         {
-            short numItems = ToRefStruct().GetInformationSetHistoryItems_Count(gameProgress);
+            short numItems = ShallowCopyToRefStruct().GetInformationSetHistoryItems_Count(gameProgress);
             for (short i = 0; i < numItems; i++)
             {
-                string s = ToRefStruct().GetInformationSetHistory_OverallIndex(i, gameProgress).ToString();
+                string s = ShallowCopyToRefStruct().GetInformationSetHistory_OverallIndex(i, gameProgress).ToString();
                 yield return s;
             }
         }
@@ -112,7 +122,7 @@ namespace ACESim
             if (LastIndexAddedToHistory == 0)
                 yield break;
             short overallIndex = 0;
-            GameFullHistory gameFullHistory = ToRefStruct();
+            GameFullHistory gameFullHistory = ShallowCopyToRefStruct();
             short piecesOfInfo = GameFullHistory.History_NumPiecesOfInformation;
             for (short i = 0; i < LastIndexAddedToHistory; i += piecesOfInfo)
             {
