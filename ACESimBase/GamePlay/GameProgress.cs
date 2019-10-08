@@ -38,7 +38,7 @@ namespace ACESim
         public GameProgress()
         {
             GameHistoryStorable.Initialize();
-            GameFullHistoryStorable.Initialize(); // DEBUG ArrayPool<byte>.Shared.Rent(InformationSetLog.MaxInformationSetLoggingLength);
+            GameFullHistoryStorable.Initialize();
             InformationSetLog.Initialize();
         }
 
@@ -61,7 +61,7 @@ namespace ACESim
 
             if (disposing)
             {
-                // DEBUG ArrayPool<byte>.Shared.Return(InformationSetLog.LogStorage);
+                // TODO: If using array pool on InformationSetLog: ArrayPool<byte>.Shared.Return(InformationSetLog.LogStorage);
             }
 
             disposed = true;
@@ -225,7 +225,7 @@ namespace ACESim
 
         internal virtual void CopyFieldInfo(GameProgress copy)
         {
-            copy.InformationSetLog = new InformationSetLog() { LogStorage = InformationSetLog.LogStorage.ToArray(), Initialized = InformationSetLog.Initialized }; // DEBUG -- must change so that we don't reallocate the array, instead renting it from a pool. // We can't just copy the array because then the starting game progress will be shared among all copies.
+            copy.InformationSetLog = new InformationSetLog() { LogStorage = InformationSetLog.LogStorage.ToArray(), Initialized = InformationSetLog.Initialized }; // NOTE: We can't just copy the array because then the starting game progress will be shared among all copies.
             copy.IterationID = IterationID;
             copy.GameDefinition = GameDefinition;
             copy.GameModuleProgresses = GameModuleProgresses == null ? null : (GameModuleProgresses.Select(x => x?.DeepCopy()).ToList());

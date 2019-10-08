@@ -71,7 +71,7 @@ namespace ACESim
         public void Initialize()
         {
             if (LogStorage == null)
-                LogStorage = new byte[MaxInformationSetLoggingLength];
+                LogStorage = new byte[MaxInformationSetLoggingLength]; // TODO: Use array pool. But only high priority if we are using PlayUnderlyingGame, since this will not otherwise be called in main algorithm. If doing this, must also use in GameProgress.CopyFieldInfo. Then, we must return the array. We don't necessarily need to catch all uses, just common ones, since unreturned array will still eventually be garbage collected and recycled. Key collection point would be GenerateReports_RandomPaths but also where we use GetGameState.
             if (MaxInformationSetLoggingLength != MaxInformationSetLoggingLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLoggingLengthPerPartialPlayer * NumPartialPlayers)
                 ThrowHelper.Throw("Lengths not set correctly.");
             for (byte p = 0; p < MaxNumPlayers; p++)

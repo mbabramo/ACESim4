@@ -40,7 +40,6 @@ namespace ACESim
             DoParallelIfNotDisabled = doParallel;
             GameDefinition = gameDefinition;
             StartingProgress = GameDefinition.GameFactory.CreateNewGameProgress(new IterationID(1));
-            if (StartingProgress.InformationSetLog.LogStorage[990] == 0) throw new Exception("DEBUG");
         }
         
 
