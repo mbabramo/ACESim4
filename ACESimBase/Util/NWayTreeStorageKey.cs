@@ -7,10 +7,13 @@ using ACESim.Util;
 
 namespace ACESim
 {
-    public struct NWayTreeStorageKeySafe : INWayTreeStorageKey
+    public struct NWayTreeStorageKey
     {
         public byte PrefaceByte { get; set; }
         public byte[] Sequence;
+
+        [ThreadStatic]
+        public static NWayTreeStorageKey KeyForThread = new NWayTreeStorageKey() { PrefaceByte = 0, Sequence = new byte[256] };
 
         public byte Element(int i) => i == Sequence.Length ? (byte) 255 : Sequence[i];
 
@@ -18,7 +21,7 @@ namespace ACESim
 
         public override bool Equals(object obj)
         {
-            INWayTreeStorageKey other = (INWayTreeStorageKey)obj;
+            NWayTreeStorageKey other = (NWayTreeStorageKey)obj;
             if (PrefaceByte != other.PrefaceByte)
                 return false;
             int i = 0;

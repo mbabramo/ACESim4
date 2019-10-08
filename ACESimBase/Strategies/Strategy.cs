@@ -60,7 +60,7 @@ namespace ACESim
         {
             if (decisionIndex == 0)
                 decisionIndex = DecisionIndexSubstitute; // a bit hacky -- we can't use a 0 prefix
-            var returnVal = InformationSetTree.SetValueIfNotSet(new NWayTreeStorageKeyUnsafeStackOnly(decisionIndex, informationSet), historyComplete, setter);
+            var returnVal = InformationSetTree.SetValueIfNotSet(new NWayTreeStorageKeyStackOnly(decisionIndex, informationSet), historyComplete, setter);
             // System.Diagnostics.TabbedText.WriteLine($"{String.Join(",", informationSet)}: {PlayerInfo.PlayerName} {returnVal.StoredValue}");
             return returnVal;
         }
@@ -68,7 +68,7 @@ namespace ACESim
         public unsafe NWayTreeStorage<IGameState> SetInformationSetTreeValueIfNotSet(byte* informationSet, bool historyComplete, Func<IGameState> setter)
         {
 
-            var returnVal = InformationSetTree.SetValueIfNotSet(new NWayTreeStorageKeyUnsafeStackOnly(DecisionIndexSubstitute, informationSet), historyComplete, setter);
+            var returnVal = InformationSetTree.SetValueIfNotSet(new NWayTreeStorageKeyStackOnly(DecisionIndexSubstitute, informationSet), historyComplete, setter);
             // System.Diagnostics.TabbedText.WriteLine($"{String.Join(",", informationSet)}: {PlayerInfo.PlayerName} {returnVal.StoredValue}");
             return returnVal;
         }
@@ -79,12 +79,12 @@ namespace ACESim
         {
             if (decisionIndex == 0)
                 decisionIndex = DecisionIndexSubstitute; // a bit hacky -- we can't use a 0 prefix
-            return InformationSetTree?.GetValue(new NWayTreeStorageKeyUnsafeStackOnly(decisionIndex, informationSet));
+            return InformationSetTree?.GetValue(new NWayTreeStorageKeyStackOnly(decisionIndex, informationSet));
         }
 
         public unsafe IGameState GetInformationSetTreeValue(byte* informationSet)
         {
-            return InformationSetTree?.GetValue(new NWayTreeStorageKeyUnsafeStackOnly(DecisionIndexSubstitute, informationSet));
+            return InformationSetTree?.GetValue(new NWayTreeStorageKeyStackOnly(DecisionIndexSubstitute, informationSet));
         }
 
         #endregion
@@ -224,7 +224,7 @@ namespace ACESim
                     for (int i = 0; i < node.sequenceToHere.Count(); i++)
                         sequencePointer[i] = node.sequenceToHere[i];
                     sequencePointer[node.sequenceToHere.Count()] = 255;
-                    regretMatchingTree.SetValueIfNotSet(new NWayTreeStorageKeyUnsafeStackOnly(DecisionIndexSubstitute, sequencePointer), false, () => tallyNode.GetEqualProbabilitiesList());
+                    regretMatchingTree.SetValueIfNotSet(new NWayTreeStorageKeyStackOnly(DecisionIndexSubstitute, sequencePointer), false, () => tallyNode.GetEqualProbabilitiesList());
                 }
             }
             return regretMatchingTree;
