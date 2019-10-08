@@ -997,7 +997,7 @@ namespace ACESim
                 (byte)(numPossibleActionsToExplore + 1),
                 action =>
                 {
-                    var historyPointCopy2 = historyPointCopy.ToRefStruct(); // Will produce a separate copy for each thread
+                    var historyPointCopy2 = historyPointCopy.DeepCopyToRefStruct(); // Will produce a separate copy for each thread
                     GeneralizedVanillaUtilities probabilityAdjustedInnerResult =  GeneralizedVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues, avgStratPiValues, chanceNode, action, distributorChanceInputs);
                     result.IncrementBasedOnProbabilityAdjusted(ref probabilityAdjustedInnerResult);
                 });

@@ -15,7 +15,7 @@ namespace ACESim
             return new HistoryPointStorable()
             {
                 TreePoint = TreePoint,
-                HistoryToPointStorable = HistoryToPoint.ToStorable(),
+                HistoryToPointStorable = HistoryToPoint.DeepCopyToStorable(),
                 GameProgress = GameProgress,
                 GameState = GameState
             };
@@ -178,7 +178,7 @@ namespace ACESim
 
         private HistoryPoint GetBranch_CachedGameHistory(HistoryNavigationInfo navigation, byte actionChosen, Decision nextDecision, byte nextDecisionIndex)
         {
-            HistoryPoint next = new HistoryPoint {HistoryToPoint = HistoryToPoint}; // struct is copied. We then use a ref to change the copy, since otherwise it would be copied again. This is costly, because we're copying the entire struct (and this is executed very frequently.
+            HistoryPoint next = new HistoryPoint {HistoryToPoint = HistoryToPoint.DeepCopy()}; // struct is copied, along with enclosed arrays. We then use a ref to change the copy, since otherwise it would be copied again. This is very costly, because we're copying the entire struct (and this is executed very frequently). // DEBUG -- this is the critical point for allocation of arrays for history
             Game.UpdateGameHistory(ref next.HistoryToPoint, navigation.GameDefinition, nextDecision, nextDecisionIndex, actionChosen, GameProgress);
             if (nextDecision.CanTerminateGame && navigation.GameDefinition.ShouldMarkGameHistoryComplete(nextDecision, ref next.HistoryToPoint, actionChosen))
                 next.HistoryToPoint.MarkComplete();

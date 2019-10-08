@@ -19,7 +19,7 @@ namespace ACESim
     {
         // Note: This is intended to be read-only except for the contents of the buffers. DEBUG TODO -- CAN'T DO CURRENTLY WITH FIXED
 
-        public GameHistoryStorable ToStorable()
+        public GameHistoryStorable DeepCopyToStorable()
         {
             var result = new GameHistoryStorable()
             {
@@ -30,7 +30,10 @@ namespace ACESim
                 DeferredAction = DeferredAction,
                 DeferredPlayerNumber = DeferredPlayerNumber,
                 DeferredPlayersToInform = DeferredPlayersToInform,
-                LastDecisionIndexAdded = LastDecisionIndexAdded
+                LastDecisionIndexAdded = LastDecisionIndexAdded,
+                ActionsHistory = new byte[GameFullHistory.MaxHistoryLength], // DEBUG 3
+                Cache = new byte[GameHistory.CacheLength],
+                InformationSets = new byte[GameHistory.MaxInformationSetLength]
             };
             for (int i = 0; i < GameFullHistory.MaxHistoryLength; i++)
                 result.ActionsHistory[i] = ActionsHistory[i];
@@ -55,22 +58,21 @@ namespace ACESim
             DecisionHasOccurred = 251; // if reporting only that the decision has occurred, we do that here.
 
         public bool Complete;
-        public fixed byte ActionsHistory[GameFullHistory.MaxHistoryLength];
+        public Span<byte> ActionsHistory; // length GameFullHistory.MaxHistoryLength
         public byte NextIndexInHistoryActionsOnly;
-
-        public fixed byte Cache[CacheLength];
+        public Span<byte> Cache; // length CacheLength
 
         // Information set structure. We have an information set buffer for each player. We need to be able to remove information from the information set for a player, but still to remember that it was there as of a particular point in time, so that we can figure out what the information set was as of a particular decision. (This is needed for reconstructing the game play.) We thus store information in pairs. The first byte consists of the decision byte code after which we are making changes. The second byte either consists of an item to add, or 254, indicating that we are removing an item from the information set. All of this is internal. When we get the information set, we get it as of a certain point, and thus we skip decision byte codes and automatically process deletions. 
         public bool Initialized;
 
         // Must also change values in InformationSetLog.
-        public fixed byte InformationSets[MaxInformationSetLength];
-        public const int MaxInformationSetLength = 150; // MUST equal MaxInformationSetLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLengthPerPartialPlayer * NumPartialPlayers. 
+        public Span<byte> InformationSets; // length MaxInformationSetLength
+        public const int MaxInformationSetLength = MaxInformationSetLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLengthPerPartialPlayer * NumPartialPlayers;
         public const int MaxInformationSetLengthPerFullPlayer = 40;
         public const int MaxInformationSetLengthPerPartialPlayer = 3;
         public const int NumFullPlayers = 3; // includes main players and resolution player and any chance players that need full size information set
         public const int MaxNumPlayers = 13; // includes chance players that need a very limited information set
-        public static int NumPartialPlayers => MaxNumPlayers - NumFullPlayers;
+        public const int NumPartialPlayers = MaxNumPlayers - NumFullPlayers;
         public static int InformationSetIndex(byte playerIndex) => playerIndex <= NumFullPlayers ? MaxInformationSetLengthPerFullPlayer * playerIndex : MaxInformationSetLengthPerFullPlayer * NumFullPlayers + (playerIndex - NumFullPlayers) * MaxInformationSetLengthPerPartialPlayer;
         public static int MaxInformationSetLengthForPlayer(byte playerIndex) => playerIndex < NumFullPlayers ? MaxInformationSetLengthPerFullPlayer : MaxInformationSetLengthPerPartialPlayer;
 
@@ -79,10 +81,44 @@ namespace ACESim
 
         public byte DeferredAction;
         public byte DeferredPlayerNumber;
-        public byte[] DeferredPlayersToInform;
-
+        public byte[] DeferredPlayersToInform; // DEBUG -- change to span also
         public byte LastDecisionIndexAdded;
 
+        public const int TotalSpanLength = GameFullHistory.MaxHistoryLength + CacheLength + MaxInformationSetLength;
+
+        public void CreateArraysForSpans()
+        {
+            // DEBUG this is inefficient
+            if (ActionsHistory == null)
+            {
+                ActionsHistory = new byte[GameFullHistory.MaxHistoryLength];
+                Cache = new byte[GameHistory.CacheLength];
+                InformationSets = new byte[GameHistory.MaxInformationSetLength];
+            }
+        }
+
+        public void Initialize()
+        {
+            if (Initialized)
+                return;
+            Initialize_Helper();
+        }
+
+        private void Initialize_Helper()
+        {
+            CreateArraysForSpans();
+            fixed (byte* informationSetPtr = InformationSets)
+                for (byte p = 0; p < GameHistory.MaxNumPlayers; p++)
+                {
+                    *(informationSetPtr + GameHistory.InformationSetIndex(p)) = GameHistory.InformationSetTerminator;
+                }
+            Initialized = true;
+            LastDecisionIndexAdded = 255;
+            NextIndexInHistoryActionsOnly = 0;
+            fixed (byte* cachePtr = Cache)
+                for (int i = 0; i < GameHistory.CacheLength; i++)
+                    *(cachePtr + i) = 0;
+        }
 
         public override string ToString()
         {
@@ -141,9 +177,26 @@ namespace ACESim
 
         public GameHistory DeepCopy()
         {
-            // This works only because we have a fixed buffer. If we had a reference type, we would get a shallow copy.
-            GameHistory b = this;
-            return b;
+            // DEBUG the critical point for allocation of arrays for history
+            GameHistory result = new GameHistory()
+            {
+                Complete = Complete,
+                NextIndexInHistoryActionsOnly = NextIndexInHistoryActionsOnly,
+                Initialized = Initialized,
+                PreviousNotificationDeferred = PreviousNotificationDeferred,
+                DeferredAction = DeferredAction,
+                DeferredPlayerNumber = DeferredPlayerNumber,
+                DeferredPlayersToInform = DeferredPlayersToInform?.ToArray(), // DEBUG -- change after this is Span
+                LastDecisionIndexAdded = LastDecisionIndexAdded,
+            };
+            result.CreateArraysForSpans();
+            for (int i = 0; i < GameFullHistory.MaxHistoryLength; i++)
+                result.ActionsHistory[i] = ActionsHistory[i];
+            for (int i = 0; i < GameHistory.CacheLength; i++)
+                result.Cache[i] = Cache[i];
+            for (int i = 0; i < GameHistory.MaxInformationSetLength; i++)
+                result.InformationSets[i] = InformationSets[i];
+            return result;
         }
 
 

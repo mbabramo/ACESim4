@@ -2,6 +2,7 @@
 
 
 using ACESimBase.Util;
+using System.Linq;
 
 namespace ACESim
 {
@@ -9,30 +10,28 @@ namespace ACESim
     public unsafe struct GameHistoryStorable
     {
         public bool Complete;
-        public fixed byte ActionsHistory[GameFullHistory.MaxHistoryLength];
+        public byte[] ActionsHistory;
         public byte NextIndexInHistoryActionsOnly;
-        public fixed byte Cache[GameHistory.CacheLength]; 
+        public byte[] Cache; 
         public bool Initialized;
-        public fixed byte InformationSets[GameHistory.MaxInformationSetLength]; 
+        public byte[] InformationSets; 
         public bool PreviousNotificationDeferred;
         public byte DeferredAction;
         public byte DeferredPlayerNumber;
         public byte[] DeferredPlayersToInform;
         public byte LastDecisionIndexAdded;
 
-        public GameHistory ToRefStruct()
+        public static GameHistoryStorable NewInitialized()
         {
-            var result = new GameHistory()
-            {
-                Complete = Complete,
-                NextIndexInHistoryActionsOnly = NextIndexInHistoryActionsOnly,
-                Initialized = Initialized,
-                PreviousNotificationDeferred = PreviousNotificationDeferred,
-                DeferredAction = DeferredAction,
-                DeferredPlayerNumber = DeferredPlayerNumber,
-                DeferredPlayersToInform = DeferredPlayersToInform,
-                LastDecisionIndexAdded = LastDecisionIndexAdded
-            };
+            GameHistory gameHistory = new GameHistory();
+            gameHistory.Initialize();
+            return gameHistory.DeepCopyToStorable();
+        }
+
+        public GameHistory DeepCopyToRefStruct()
+        {
+            GameHistory result = ShallowCopyToRefStruct();
+            result.CreateArraysForSpans();
             for (int i = 0; i < GameFullHistory.MaxHistoryLength; i++)
                 result.ActionsHistory[i] = ActionsHistory[i];
             for (int i = 0; i < GameHistory.CacheLength; i++)
@@ -42,33 +41,23 @@ namespace ACESim
             return result;
         }
 
-        public void Initialize()
+        public GameHistory ShallowCopyToRefStruct()
         {
-            if (Initialized)
-                return;
-            if (GameHistory.MaxInformationSetLength != GameHistory.MaxInformationSetLengthPerFullPlayer * GameHistory.NumFullPlayers + GameHistory.MaxInformationSetLengthPerPartialPlayer * GameHistory.NumPartialPlayers)
-                ThrowHelper.Throw("Lengths not set correctly.");
-            Initialize_Helper();
-        }
-
-        public void Reinitialize()
-        {
-            Initialize_Helper();
-        }
-
-        private void Initialize_Helper()
-        {
-            fixed (byte* informationSetPtr = InformationSets)
-                for (byte p = 0; p < GameHistory.MaxNumPlayers; p++)
-                {
-                    *(informationSetPtr + GameHistory.InformationSetIndex(p)) = GameHistory.InformationSetTerminator;
-                }
-            Initialized = true;
-            LastDecisionIndexAdded = 255;
-            NextIndexInHistoryActionsOnly = 0;
-            fixed (byte* cachePtr = Cache)
-                for (int i = 0; i < GameHistory.CacheLength; i++)
-                    *(cachePtr + i) = 0;
+            var result = new GameHistory()
+            {
+                Complete = Complete,
+                NextIndexInHistoryActionsOnly = NextIndexInHistoryActionsOnly,
+                Initialized = Initialized,
+                PreviousNotificationDeferred = PreviousNotificationDeferred,
+                DeferredAction = DeferredAction,
+                DeferredPlayerNumber = DeferredPlayerNumber,
+                DeferredPlayersToInform = DeferredPlayersToInform?.ToArray(), // DEBUG -- change after this is Span
+                LastDecisionIndexAdded = LastDecisionIndexAdded,
+                ActionsHistory = ActionsHistory,
+                Cache = Cache,
+                InformationSets = InformationSets
+            };
+            return result;
         }
     }
 }

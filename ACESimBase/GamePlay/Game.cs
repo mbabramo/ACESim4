@@ -59,7 +59,7 @@ namespace ACESim
             return GameDefinition.DecisionPointForDecisionNumber(decisionNumber);
         }
 
-	    public virtual void PlaySetup(
+        public virtual void PlaySetup(
             List<Strategy> strategies,
             GameProgress progress,
             GameDefinition gameDefinition,
@@ -70,7 +70,9 @@ namespace ACESim
             if (restartFromBeginningOfGame && Strategies != null)
                 progress = gameDefinition.GameFactory.CreateNewGameProgress(progress.IterationID);
             if (restartFromBeginningOfGame)
-                progress.GameHistoryStorable.Reinitialize();
+            {
+                progress.GameHistoryStorable = GameHistoryStorable.NewInitialized();
+            }
 
             this.Strategies = strategies;
             this.Progress = progress;
@@ -137,7 +139,7 @@ namespace ACESim
             // Note: This may be time consuming. We need to update the game history, but in Progress it's not stored as a ref struct. So we convert it to a ref struct and then convert it back. DEBUG: Could we pass the history so that we wouldn't need to do this?
             var history = Progress.GameHistory;
             UpdateGameHistory(ref history, GameDefinition, currentDecision, decisionIndex, action, Progress);
-            Progress.GameHistoryStorable = history.ToStorable();
+            Progress.GameHistoryStorable = history.DeepCopyToStorable();
 
             // We update game progress now (note that this will not be called when traversing the tree -- that's why we don't do this within UpdateGameHistory)
             UpdateGameProgressFollowingAction(currentDecision.DecisionByteCode, action);

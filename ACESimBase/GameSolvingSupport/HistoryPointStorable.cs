@@ -7,12 +7,23 @@
         public GameProgress GameProgress;
         public IGameState GameState;
 
-        public HistoryPoint ToRefStruct()
+        public HistoryPoint ShallowCopyToRefStruct()
         {
             return new HistoryPoint()
             {
                 TreePoint = TreePoint,
-                HistoryToPoint = HistoryToPointStorable.ToRefStruct(),
+                HistoryToPoint = HistoryToPointStorable.ShallowCopyToRefStruct(),
+                GameProgress = GameProgress,
+                GameState = GameState
+            };
+        }
+
+        public HistoryPoint DeepCopyToRefStruct()
+        {
+            return new HistoryPoint()
+            {
+                TreePoint = TreePoint,
+                HistoryToPoint = HistoryToPointStorable.DeepCopyToRefStruct(),
                 GameProgress = GameProgress,
                 GameState = GameState
             };

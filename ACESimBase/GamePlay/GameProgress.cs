@@ -16,7 +16,7 @@ namespace ACESim
         public GameDefinition GameDefinition;
         public List<GameModuleProgress> GameModuleProgresses;
         public GameHistoryStorable GameHistoryStorable;
-        public GameHistory GameHistory => GameHistoryStorable.ToRefStruct();
+        public GameHistory GameHistory => GameHistoryStorable.ShallowCopyToRefStruct();
         public GameFullHistoryStorable GameFullHistoryStorable;
         public GameFullHistory GameFullHistory => GameFullHistoryStorable.ToRefStruct();
         public InformationSetLog InformationSetLog;
@@ -37,11 +37,12 @@ namespace ACESim
 
         public GameProgress()
         {
-            GameHistoryStorable.Initialize();
+            var gameHistory = new GameHistory();
+            gameHistory.Initialize();
+            GameHistoryStorable = gameHistory.DeepCopyToStorable();
             GameFullHistoryStorable.Initialize();
             InformationSetLog.Initialize();
         }
-
 
         bool disposed = false;
 
@@ -138,7 +139,7 @@ namespace ACESim
                 foreach (var gmp in GameModuleProgresses)
                     gmp.Recycle();
             GameModuleProgresses = null;
-            GameHistoryStorable.Reinitialize();
+            GameHistoryStorable = GameHistoryStorable = GameHistoryStorable.NewInitialized();
             GameFullHistoryStorable.Initialize();
             ActionsToPlay = null;
             ActionsToPlayIndex = -1;
@@ -229,7 +230,7 @@ namespace ACESim
             copy.IterationID = IterationID;
             copy.GameDefinition = GameDefinition;
             copy.GameModuleProgresses = GameModuleProgresses == null ? null : (GameModuleProgresses.Select(x => x?.DeepCopy()).ToList());
-            copy.GameHistoryStorable = GameHistoryStorable.ToRefStruct().DeepCopy().ToStorable();
+            copy.GameHistoryStorable = GameHistoryStorable.ShallowCopyToRefStruct().DeepCopyToStorable();
             copy.GameFullHistoryStorable = GameFullHistoryStorable;
             copy.ActionsToPlay = ActionsToPlay?.ToList(); 
             copy.ActionsToPlayIndex = ActionsToPlayIndex;

@@ -335,7 +335,7 @@ namespace ACESim
 
         public IGameState GetGameState(HistoryPointStorable historyPointStorable, HistoryNavigationInfo? navigation = null)
         {
-            HistoryPoint historyPoint = historyPointStorable.ToRefStruct();
+            HistoryPoint historyPoint = historyPointStorable.ShallowCopyToRefStruct();
             return GetGameState(ref historyPoint, navigation);
         }
 
@@ -571,9 +571,8 @@ namespace ACESim
 
         public unsafe HistoryPoint GetStartOfGameHistoryPoint()
         {
-            GameHistoryStorable gameHistoryStorable = new GameHistoryStorable();
-            gameHistoryStorable.Initialize();
-            GameHistory gameHistory = gameHistoryStorable.ToRefStruct();
+            GameHistory gameHistory = new GameHistory();
+            gameHistory.Initialize(); 
             switch (Navigation.LookupApproach)
             {
                 case InformationSetLookupApproach.PlayUnderlyingGame:
@@ -620,7 +619,7 @@ namespace ACESim
 
         public double[] GetUtilities(ref HistoryPointStorable completedGame)
         {
-            return completedGame.ToRefStruct().GetFinalUtilities(Navigation);
+            return completedGame.ShallowCopyToRefStruct().GetFinalUtilities(Navigation);
         }
 
         public double[] GetUtilities(ref HistoryPoint completedGame)
@@ -945,7 +944,7 @@ namespace ACESim
         {
             // The last two parameters are included to facilitate debugging.
             // Note that this method is different from GamePlayer.PlayAllPaths, because it relies on the cached history, rather than needing to play the game to discover what the next paths are.
-            if (history.ToRefStruct().IsComplete(Navigation))
+            if (history.ShallowCopyToRefStruct().IsComplete(Navigation))
             {
                 await pathPlayer(history, probability);
                 return;
@@ -956,7 +955,7 @@ namespace ACESim
         private async Task ProcessAllPaths_Helper(HistoryPointStorable historyPoint, double probability, Func<HistoryPointStorable, double, Task> completedGameProcessor, ActionStrategies actionStrategy)
         {
             double[] probabilities = new double[GameFullHistory.MaxNumActions];
-            byte nextDecisionIndex = historyPoint.ToRefStruct().GetNextDecisionIndex(Navigation);
+            byte nextDecisionIndex = historyPoint.ShallowCopyToRefStruct().GetNextDecisionIndex(Navigation);
             byte numPossibleActions = NumPossibleActionsAtDecision(nextDecisionIndex);
             IGameState gameState = GetGameState(historyPoint);
             if (actionStrategy == ActionStrategies.CorrelatedEquilibrium)
@@ -965,7 +964,6 @@ namespace ACESim
                 TabbedText.WriteLine("Correlated equilibrium not supported in process all paths, since some iteration must be chosen at random anyway, so using average strategy.");
             }
             ActionProbabilityUtilities.GetActionProbabilitiesAtHistoryPoint(gameState, actionStrategy, 0 /* ignored */, probabilities, numPossibleActions, null, Navigation);
-            var historyPointCopy = historyPoint;
 
             bool includeZeroProbabilityActions = true; // may be relevant for counts
             bool roundOffPlayerActionsNearZeroOrOne = false; 
@@ -983,7 +981,7 @@ namespace ACESim
                 }
                 if (includeZeroProbabilityActions || actionProbability > 0)
                 {
-                    var nextHistoryPoint = historyPointCopy.ToRefStruct().GetBranch(Navigation, actionByte, GameDefinition.DecisionsExecutionOrder[nextDecisionIndex], nextDecisionIndex).ToStorable(); // must use a copy because it's an anonymous method (but this won't be executed much so it isn't so costly). Note that we couldn't use switch-to-branch approach here because all threads are sharing historyPointCopy variable.
+                    var nextHistoryPoint = historyPoint.DeepCopyToRefStruct().GetBranch(Navigation, actionByte, GameDefinition.DecisionsExecutionOrder[nextDecisionIndex], nextDecisionIndex).ToStorable(); // Note that we couldn't use switch-to-branch approach here because all threads are sharing historyPoint variable. So, we make a separate copy for each thread. TODO: If it's not parallel, then we could try something with SwitchToBranch. This isn't a super-critical loop, though.
                     double nextProbability = probability * actionProbability;
                     await ProcessAllPaths_Recursive(nextHistoryPoint, completedGameProcessor, actionStrategy, nextProbability, actionByte, nextDecisionIndex);
                 }
@@ -1089,7 +1087,7 @@ namespace ACESim
             async Task step1_playPath(HistoryPointStorable completedGame, double probabilityOfPath)
             {
                 // play each path and then asynchronously consume the result, including the probability of the game path
-                List<byte> actions = completedGame.ToRefStruct().GetActionsToHere(Navigation);
+                List<byte> actions = completedGame.ShallowCopyToRefStruct().GetActionsToHere(Navigation);
                 (GameProgress progress, _) = player.PlayPath(actions, false);
                 // do the simple aggregation of utilities. note that this is different from the value returned by vanilla, since that uses regret matching, instead of average strategies.
                 double[] utilities = GetUtilities(ref completedGame);
