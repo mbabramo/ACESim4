@@ -19,30 +19,6 @@ namespace ACESim
     {
         // Note: This is intended to be read-only except for the contents of the buffers. DEBUG TODO -- CAN'T DO CURRENTLY WITH FIXED
 
-        public GameHistoryStorable DeepCopyToStorable()
-        {
-            var result = new GameHistoryStorable()
-            {
-                Complete = Complete,
-                NextIndexInHistoryActionsOnly = NextIndexInHistoryActionsOnly,
-                Initialized = Initialized,
-                PreviousNotificationDeferred = PreviousNotificationDeferred,
-                DeferredAction = DeferredAction,
-                DeferredPlayerNumber = DeferredPlayerNumber,
-                DeferredPlayersToInform = DeferredPlayersToInform,
-                LastDecisionIndexAdded = LastDecisionIndexAdded,
-                ActionsHistory = new byte[GameFullHistory.MaxHistoryLength], // DEBUG 3
-                Cache = new byte[GameHistory.CacheLength],
-                InformationSets = new byte[GameHistory.MaxInformationSetLength]
-            };
-            for (int i = 0; i < GameFullHistory.MaxHistoryLength; i++)
-                result.ActionsHistory[i] = ActionsHistory[i];
-            for (int i = 0; i < GameHistory.CacheLength; i++)
-                result.Cache[i] = Cache[i];
-            for (int i = 0; i < GameHistory.MaxInformationSetLength; i++)
-                result.InformationSets[i] = InformationSets[i];
-            return result;
-        }
 
         #region Construction
 
@@ -86,17 +62,6 @@ namespace ACESim
 
         public const int TotalSpanLength = GameFullHistory.MaxHistoryLength + CacheLength + MaxInformationSetLength;
 
-        public void CreateArraysForSpans()
-        {
-            // DEBUG this is inefficient
-            if (ActionsHistory == null)
-            {
-                ActionsHistory = new byte[GameFullHistory.MaxHistoryLength];
-                Cache = new byte[GameHistory.CacheLength];
-                InformationSets = new byte[GameHistory.MaxInformationSetLength];
-            }
-        }
-
         public void Initialize()
         {
             if (Initialized)
@@ -120,6 +85,71 @@ namespace ACESim
                     *(cachePtr + i) = 0;
         }
 
+
+        public GameHistoryStorable DeepCopyToStorable()
+        {
+            var result = new GameHistoryStorable()
+            {
+                Complete = Complete,
+                NextIndexInHistoryActionsOnly = NextIndexInHistoryActionsOnly,
+                Initialized = Initialized,
+                PreviousNotificationDeferred = PreviousNotificationDeferred,
+                DeferredAction = DeferredAction,
+                DeferredPlayerNumber = DeferredPlayerNumber,
+                DeferredPlayersToInform = DeferredPlayersToInform,
+                LastDecisionIndexAdded = LastDecisionIndexAdded,
+                ActionsHistory = new byte[GameFullHistory.MaxHistoryLength], // DEBUG 3
+                Cache = new byte[GameHistory.CacheLength],
+                InformationSets = new byte[GameHistory.MaxInformationSetLength]
+            };
+            for (int i = 0; i < GameFullHistory.MaxHistoryLength; i++)
+                result.ActionsHistory[i] = ActionsHistory[i];
+            for (int i = 0; i < GameHistory.CacheLength; i++)
+                result.Cache[i] = Cache[i];
+            for (int i = 0; i < GameHistory.MaxInformationSetLength; i++)
+                result.InformationSets[i] = InformationSets[i];
+            return result;
+        }
+
+        public void CreateArraysForSpans()
+        {
+            // DEBUG this is inefficient
+            if (ActionsHistory == null)
+            {
+                ActionsHistory = new byte[GameFullHistory.MaxHistoryLength];
+                Cache = new byte[GameHistory.CacheLength];
+                InformationSets = new byte[GameHistory.MaxInformationSetLength];
+            }
+        }
+
+        public GameHistory DeepCopy()
+        {
+            // DEBUG the critical point for allocation of arrays for history
+            GameHistory result = new GameHistory()
+            {
+                Complete = Complete,
+                NextIndexInHistoryActionsOnly = NextIndexInHistoryActionsOnly,
+                Initialized = Initialized,
+                PreviousNotificationDeferred = PreviousNotificationDeferred,
+                DeferredAction = DeferredAction,
+                DeferredPlayerNumber = DeferredPlayerNumber,
+                DeferredPlayersToInform = DeferredPlayersToInform?.ToArray(), // DEBUG -- change after this is Span
+                LastDecisionIndexAdded = LastDecisionIndexAdded,
+            };
+            result.CreateArraysForSpans();
+            for (int i = 0; i < GameFullHistory.MaxHistoryLength; i++)
+                result.ActionsHistory[i] = ActionsHistory[i];
+            for (int i = 0; i < GameHistory.CacheLength; i++)
+                result.Cache[i] = Cache[i];
+            for (int i = 0; i < GameHistory.MaxInformationSetLength; i++)
+                result.InformationSets[i] = InformationSets[i];
+            return result;
+        }
+
+        #endregion
+
+        #region Strings
+
         public override string ToString()
         {
             return $"Actions {String.Join(",", GetActionsAsList())} cache {CacheString()} {GetInformationSetsString()} PreviousNotificationDeferred {PreviousNotificationDeferred} DeferredAction {DeferredAction} DeferredPlayerNumber {DeferredPlayerNumber}";
@@ -141,6 +171,10 @@ namespace ACESim
                 informationSetsString += $"Player {i} Information: {GetCurrentPlayerInformationString(i)} ";
             return informationSetsString;
         }
+
+        #endregion
+
+        #region Serialization
 
         //public void GetObjectData(SerializationInfo info, StreamingContext context)
         //{
@@ -174,30 +208,6 @@ namespace ACESim
         //    DeferredPlayerNumber = 0;
         //    DeferredPlayersToInform = null;
         //}
-
-        public GameHistory DeepCopy()
-        {
-            // DEBUG the critical point for allocation of arrays for history
-            GameHistory result = new GameHistory()
-            {
-                Complete = Complete,
-                NextIndexInHistoryActionsOnly = NextIndexInHistoryActionsOnly,
-                Initialized = Initialized,
-                PreviousNotificationDeferred = PreviousNotificationDeferred,
-                DeferredAction = DeferredAction,
-                DeferredPlayerNumber = DeferredPlayerNumber,
-                DeferredPlayersToInform = DeferredPlayersToInform?.ToArray(), // DEBUG -- change after this is Span
-                LastDecisionIndexAdded = LastDecisionIndexAdded,
-            };
-            result.CreateArraysForSpans();
-            for (int i = 0; i < GameFullHistory.MaxHistoryLength; i++)
-                result.ActionsHistory[i] = ActionsHistory[i];
-            for (int i = 0; i < GameHistory.CacheLength; i++)
-                result.Cache[i] = Cache[i];
-            for (int i = 0; i < GameHistory.MaxInformationSetLength; i++)
-                result.InformationSets[i] = InformationSets[i];
-            return result;
-        }
 
 
         #endregion
