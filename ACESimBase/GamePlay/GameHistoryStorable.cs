@@ -51,7 +51,7 @@ namespace ACESim
                 PreviousNotificationDeferred = PreviousNotificationDeferred,
                 DeferredAction = DeferredAction,
                 DeferredPlayerNumber = DeferredPlayerNumber,
-                DeferredPlayersToInform = DeferredPlayersToInform?.ToArray(), // DEBUG -- change after this is Span
+                DeferredPlayersToInform = DeferredPlayersToInform,  // this does not need to be duplicated because it is set in gamedefinition and not changed
                 LastDecisionIndexAdded = LastDecisionIndexAdded,
                 ActionsHistory = ActionsHistory,
                 Cache = Cache,

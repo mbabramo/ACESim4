@@ -19,7 +19,7 @@ namespace ACESim
     {
         #region Construction
 
-        // We use a struct here because this makes a big difference in performance, allowing GameHistory to be allocated on the stack. A disadvantage is that we must set the number of players, maximum size of different players' information sets, etc. in the GameHistory (which means that we need to change the code whenever we change games). We distinguish between full and partial players because this also produces a significant performance boost.
+        // We use a struct here because this makes a big difference in performance, allowing GameHistory to be allocated on the stack. Currently, we fix the number of players, maximum size of different players' information sets, etc. in the GameHistory (which means that we need to change the code whenever we change games). We distinguish between full and partial players because this also produces a significant performance boost. DEBUG TODO: Make it so that the size can be specified by the game. Also, make it so that we can have a large space for history, most of which is blank space for the next history.
 
         public const int CacheLength = 25; // the game and game definition can use the cache to store information. This is helpful when the game player is simulating the game without playing the underlying game. The game definition may, for example, need to be able to figure out which decision is next.
         public const byte Cache_SubdivisionAggregationIndex = 0; // Use this cache entry to aggregate subdivision decisions. Thus, do NOT use it for any other purpose.
@@ -30,34 +30,34 @@ namespace ACESim
         public const byte 
             DecisionHasOccurred = 251; // if reporting only that the decision has occurred, we do that here.
 
-        public bool Complete;
-        public Span<byte> ActionsHistory; // length GameFullHistory.MaxHistoryLength
-        public byte NextIndexInHistoryActionsOnly;
-        public Span<byte> Cache; // length CacheLength
-
-        // Information set structure. We have an information set buffer for each player. We need to be able to remove information from the information set for a player, but still to remember that it was there as of a particular point in time, so that we can figure out what the information set was as of a particular decision. (This is needed for reconstructing the game play.) We thus store information in pairs. The first byte consists of the decision byte code after which we are making changes. The second byte either consists of an item to add, or 254, indicating that we are removing an item from the information set. All of this is internal. When we get the information set, we get it as of a certain point, and thus we skip decision byte codes and automatically process deletions. 
-        public bool Initialized;
-
-        // Must also change values in InformationSetLog.
-        public Span<byte> InformationSets; // length MaxInformationSetLength
         public const int MaxInformationSetLength = MaxInformationSetLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLengthPerPartialPlayer * NumPartialPlayers;
         public const int MaxInformationSetLengthPerFullPlayer = 40;
         public const int MaxInformationSetLengthPerPartialPlayer = 3;
         public const int NumFullPlayers = 3; // includes main players and resolution player and any chance players that need full size information set
         public const int MaxNumPlayers = 13; // includes chance players that need a very limited information set
         public const int NumPartialPlayers = MaxNumPlayers - NumFullPlayers;
-        public static int InformationSetIndex(byte playerIndex) => playerIndex <= NumFullPlayers ? MaxInformationSetLengthPerFullPlayer * playerIndex : MaxInformationSetLengthPerFullPlayer * NumFullPlayers + (playerIndex - NumFullPlayers) * MaxInformationSetLengthPerPartialPlayer;
-        public static int MaxInformationSetLengthForPlayer(byte playerIndex) => playerIndex < NumFullPlayers ? MaxInformationSetLengthPerFullPlayer : MaxInformationSetLengthPerPartialPlayer;
+        public const int TotalSpanLength = GameFullHistory.MaxHistoryLength + CacheLength + MaxInformationSetLength;
+
+        public bool Initialized;
+        public bool Complete;
+        public byte NextIndexInHistoryActionsOnly;
+        public byte LastDecisionIndexAdded;
 
         // The following are used to defer adding information to a player information set.
         public bool PreviousNotificationDeferred;
-
         public byte DeferredAction;
         public byte DeferredPlayerNumber;
-        public byte[] DeferredPlayersToInform; // DEBUG -- change to span also
-        public byte LastDecisionIndexAdded;
+        public byte[] DeferredPlayersToInform; // NOTE: We can leave this as an array because it is set in game definition and not changed.
 
-        public const int TotalSpanLength = GameFullHistory.MaxHistoryLength + CacheLength + MaxInformationSetLength;
+        public Span<byte> ActionsHistory; // length GameFullHistory.MaxHistoryLength
+        public Span<byte> Cache; // length CacheLength
+        public Span<byte> InformationSets; // length MaxInformationSetLength
+
+        // Information set structure. We have an information set buffer for each player. We need to be able to remove information from the information set for a player, but still to remember that it was there as of a particular point in time, so that we can figure out what the information set was as of a particular decision. (This is needed for reconstructing the game play.) We thus store information in pairs. The first byte consists of the decision byte code after which we are making changes. The second byte either consists of an item to add, or 254, indicating that we are removing an item from the information set. All of this is internal. When we get the information set, we get it as of a certain point, and thus we skip decision byte codes and automatically process deletions. 
+
+        // Must also change values in InformationSetLog.
+        public static int InformationSetIndex(byte playerIndex) => playerIndex <= NumFullPlayers ? MaxInformationSetLengthPerFullPlayer * playerIndex : MaxInformationSetLengthPerFullPlayer * NumFullPlayers + (playerIndex - NumFullPlayers) * MaxInformationSetLengthPerPartialPlayer;
+        public static int MaxInformationSetLengthForPlayer(byte playerIndex) => playerIndex < NumFullPlayers ? MaxInformationSetLengthPerFullPlayer : MaxInformationSetLengthPerPartialPlayer;
 
         public void Initialize()
         {
@@ -128,7 +128,7 @@ namespace ACESim
                 PreviousNotificationDeferred = PreviousNotificationDeferred,
                 DeferredAction = DeferredAction,
                 DeferredPlayerNumber = DeferredPlayerNumber,
-                DeferredPlayersToInform = DeferredPlayersToInform?.ToArray(), // DEBUG -- change after this is Span
+                DeferredPlayersToInform = DeferredPlayersToInform, // this does not need to be duplicated because it is set in gamedefinition and not changed
                 LastDecisionIndexAdded = LastDecisionIndexAdded,
             };
             result.CreateArraysForSpans();
@@ -253,7 +253,8 @@ namespace ACESim
             if (!skipAddToHistory)
                 AddToSimpleActionsList(action);
 
-            gameProgress?.GameFullHistoryStorable.AddToHistory(decisionByteCode, decisionIndex, playerIndex, action, numPossibleActions, skipAddToHistory);
+            if (gameProgress != null)
+                gameProgress.GameFullHistoryStorable = gameProgress.GameFullHistoryStorable.AddToHistory(decisionByteCode, decisionIndex, playerIndex, action, numPossibleActions, skipAddToHistory);
             LastDecisionIndexAdded = decisionIndex;
             if (!delayPreviousDeferredNotification)
             {

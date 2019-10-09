@@ -13,23 +13,8 @@ using ACESimBase.Util;
 namespace ACESim
 {
 
-    public ref struct GameFullHistory
+    public readonly ref struct GameFullHistory
     {
-        // Note: This is intended to be read-only except for the contents of the buffers. DEBUG TODO -- CAN'T DO CURRENTLY WITH FIXED
-
-        public GameFullHistoryStorable DeepCopyToStorable()
-        {
-            var result = new GameFullHistoryStorable()
-            {
-                LastIndexAddedToHistory = LastIndexAddedToHistory,
-                Initialized = Initialized,
-                History = new byte[History.Length]
-            };
-            for (int i = 0; i < History.Length; i++)
-                result.History[i] = History[i];
-            return result;
-        }
-
         public const byte HistoryComplete = 254;
         public const byte HistoryTerminator = 255;
 
@@ -42,10 +27,23 @@ namespace ACESim
 
         public const int MaxNumActions = 100;
         public const int MaxHistoryLength = 300;
-        public Span<byte> History; // length is MaxHistoryLength
-        public short LastIndexAddedToHistory;
 
-        public bool Initialized;
+        public readonly Span<byte> History; // length is MaxHistoryLength
+        public readonly short LastIndexAddedToHistory;
+
+        public GameFullHistory(Span<byte> history, short lastIndexAddedToHistory)
+        {
+            History = history;
+            LastIndexAddedToHistory = lastIndexAddedToHistory;
+        }
+
+        public GameFullHistoryStorable DeepCopyToStorable()
+        {
+            var result = new GameFullHistoryStorable(new byte[History.Length], LastIndexAddedToHistory);
+            for (int i = 0; i < History.Length; i++)
+                result.History[i] = History[i];
+            return result;
+        }
 
         public void GetObjectData(SerializationInfo info, StreamingContext context)
         {
@@ -66,7 +64,6 @@ namespace ACESim
             byte[] history = (byte[])info.GetValue("history", typeof(byte[]));
             for (int b = 0; b < MaxHistoryLength; b++)
                 History[b] = history[b];
-            Initialized = true;
             LastIndexAddedToHistory = (short)info.GetValue("LastIndexAddedToHistory", typeof(short));
         }
 
@@ -79,10 +76,6 @@ namespace ACESim
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public byte? LastDecisionIndex()
         {
-#if (SAFETYCHECKS)
-            if (!Initialized)
-                ThrowHelper.Throw();
-#endif
             short i = LastIndexAddedToHistory;
             if (i == 0)
                 return null; // no decisions processed yet
@@ -91,20 +84,11 @@ namespace ACESim
 
         public unsafe void GetActions(byte* actions)
         {
-            // DEBUG
-#if (SAFETYCHECKS)
-            if (!Initialized)
-                ThrowHelper.Throw();
-#endif
             GetItems(History_Action_Offset, actions);
         }
 
         public unsafe void GetActionsWithBlanksForSkippedDecisions(byte* actions)
         {
-#if (SAFETYCHECKS)
-            if (!Initialized)
-                ThrowHelper.Throw();
-#endif
             int d = 0;
             if (LastIndexAddedToHistory != 0)
                 for (short i = 0; i < LastIndexAddedToHistory; i += History_NumPiecesOfInformation)
@@ -133,19 +117,11 @@ namespace ACESim
 
         public unsafe void GetActions(Span<byte> actions)
         {
-#if (SAFETYCHECKS)
-            if (!Initialized)
-                ThrowHelper.Throw();
-#endif
             GetItems(History_Action_Offset, actions);
         }
 
         private unsafe void GetItems(int offset, Span<byte> items)
         {
-#if (SAFETYCHECKS)
-            if (!Initialized)
-                ThrowHelper.Throw();
-#endif
             int d = 0;
             if (LastIndexAddedToHistory != 0)
                 for (short i = 0; i < LastIndexAddedToHistory; i += History_NumPiecesOfInformation)
@@ -155,11 +131,6 @@ namespace ACESim
 
         private unsafe void GetItems(int offset, byte* items)
         {
-            // DEBUG
-#if (SAFETYCHECKS)
-            if (!Initialized)
-                ThrowHelper.Throw();
-#endif
             int d = 0;
             if (LastIndexAddedToHistory != 0)
                 for (short i = 0; i < LastIndexAddedToHistory; i += History_NumPiecesOfInformation)
@@ -178,19 +149,11 @@ namespace ACESim
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool IsComplete()
         {
-#if (SAFETYCHECKS)
-            if (!Initialized)
-                ThrowHelper.Throw();
-#endif
             return History[LastIndexAddedToHistory] == HistoryComplete;
         }
 
         public short GetInformationSetHistoryItems_Count(GameProgress gameProgress)
         {
-#if (SAFETYCHECKS)
-            if (!Initialized)
-                ThrowHelper.Throw();
-#endif
             if (LastIndexAddedToHistory == 0)
                 return 0;
             short overallIndex = 0;
@@ -211,10 +174,6 @@ namespace ACESim
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private InformationSetHistory GetInformationSetHistory(short index, GameProgress gameProgress)
         {
-#if (SAFETYCHECKS)
-            if (!Initialized)
-                ThrowHelper.Throw();
-#endif
             byte playerIndex = GetHistoryIndex(index + History_PlayerNumber_Offset);
             byte decisionByteCode = GetHistoryIndex(index + History_DecisionByteCode_Offset);
             byte decisionIndex = GetHistoryIndex(index + History_DecisionIndex_Offset);
@@ -242,8 +201,6 @@ namespace ACESim
         public unsafe void GetNextDecisionPath(GameDefinition gameDefinition, byte* nextDecisionPath)
         {
 #if (SAFETYCHECKS)
-            if (!Initialized)
-                ThrowHelper.Throw();
             if (!IsComplete())
                 ThrowHelper.Throw("Can get next path to try only on a completed game.");
 #endif
@@ -285,10 +242,6 @@ namespace ACESim
 
         private int? GetIndexOfLastDecisionWithAnotherAction(GameDefinition gameDefinition)
         {
-#if (SAFETYCHECKS)
-            if (!Initialized)
-                ThrowHelper.Throw();
-#endif
             int? lastDecisionWithAnotherAction = null;
 
             for (int i = LastIndexAddedToHistory - History_NumPiecesOfInformation; i >= 0; i -= History_NumPiecesOfInformation)

@@ -40,7 +40,7 @@ namespace ACESim
             var gameHistory = new GameHistory();
             gameHistory.Initialize();
             GameHistoryStorable = gameHistory.DeepCopyToStorable();
-            GameFullHistoryStorable.Initialize();
+            GameFullHistoryStorable = GameFullHistoryStorable.Initialize();
             InformationSetLog.Initialize();
         }
 
@@ -140,7 +140,7 @@ namespace ACESim
                     gmp.Recycle();
             GameModuleProgresses = null;
             GameHistoryStorable = GameHistoryStorable = GameHistoryStorable.NewInitialized();
-            GameFullHistoryStorable.Initialize();
+            GameFullHistoryStorable = GameFullHistoryStorable.Initialize();
             ActionsToPlay = null;
             ActionsToPlayIndex = -1;
             GameComplete = false;

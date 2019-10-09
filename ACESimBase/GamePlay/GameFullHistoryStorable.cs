@@ -4,96 +4,86 @@
 using ACESimBase.Util;
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace ACESim
 {
-    public unsafe struct GameFullHistoryStorable
+    public readonly struct GameFullHistoryStorable
     {
+        public readonly byte[] History; // length is GameFullHistory.MaxHistoryLength;
+        public readonly short LastIndexAddedToHistory;
 
-        public byte[] History; // length is GameFullHistory.MaxHistoryLength;
-        public short LastIndexAddedToHistory;
-        public bool Initialized;
-
+        public GameFullHistoryStorable(byte[] history, short lastIndexAddedToHistory)
+        {
+            History = history;
+            LastIndexAddedToHistory = lastIndexAddedToHistory;
+        }
 
         public GameFullHistory DeepCopyToRefStruct()
         {
-            var result = ShallowCopyToRefStruct();
-            result.History = new byte[GameFullHistory.MaxHistoryLength];
+            var history = new byte[GameFullHistory.MaxHistoryLength];
             for (int i = 0; i < GameFullHistory.MaxHistoryLength; i++)
-                result.History[i] = History[i];
-            return result;
+                history[i] = History[i];
+            return new GameFullHistory(history, LastIndexAddedToHistory);
         }
         public GameFullHistory ShallowCopyToRefStruct()
         {
-            var result = new GameFullHistory()
-            {
-                LastIndexAddedToHistory = LastIndexAddedToHistory,
-                Initialized = Initialized,
-                History = History
-            };
+            var result = new GameFullHistory(History, LastIndexAddedToHistory);
             return result;
         }
 
-        public void Initialize()
+        public GameFullHistoryStorable Initialize()
         {
-            if (History == null)
-                History = new byte[GameFullHistory.MaxHistoryLength];
-            fixed (byte* historyPtr = History)
-                *(historyPtr + 0) = GameFullHistory.HistoryTerminator;
-            LastIndexAddedToHistory = 0;
-            Initialized = true;
+            var history = History;
+            if (history == null)
+                history = new byte[GameFullHistory.MaxHistoryLength];
+            history[0] = GameFullHistory.HistoryTerminator;
+            const short lastIndexAddedToHistory = 0;
+            return new GameFullHistoryStorable(history, lastIndexAddedToHistory);
         }
 
-        public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, bool skipAddToHistory)
+        public GameFullHistoryStorable AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, bool skipAddToHistory)
         {
-#if (SAFETYCHECKS)
-            if (!Initialized)
-                ThrowHelper.Throw();
-#endif
+            var history = History;
+            short lastIndexAddedToHistory = LastIndexAddedToHistory;
             if (!skipAddToHistory)
             {
-                short i = LastIndexAddedToHistory;
-                fixed (byte* historyPtr = History)
-                {
+                short i = lastIndexAddedToHistory;
 #if (SAFETYCHECKS)
-                    if (*(historyPtr + i) == GameFullHistory.HistoryComplete)
-                        ThrowHelper.Throw("Cannot add to history of complete game.");
+                if (history[i] == GameFullHistory.HistoryComplete)
+                    ThrowHelper.Throw("Cannot add to history of complete game.");
 #endif
-                    *(historyPtr + i + GameFullHistory.History_DecisionByteCode_Offset) = decisionByteCode;
-                    *(historyPtr + i + GameFullHistory.History_DecisionIndex_Offset) = decisionIndex;
-                    *(historyPtr + i + GameFullHistory.History_PlayerNumber_Offset) = playerIndex;
-                    *(historyPtr + i + GameFullHistory.History_Action_Offset) = action;
-                    *(historyPtr + i + GameFullHistory.History_NumPossibleActions_Offset) = numPossibleActions;
-                    *(historyPtr + i + GameFullHistory.History_NumPiecesOfInformation) = GameFullHistory.HistoryTerminator; // this is just one item at end of all history items
-                }
-                LastIndexAddedToHistory = (short)(i + GameFullHistory.History_NumPiecesOfInformation);
+                history[i + GameFullHistory.History_DecisionByteCode_Offset] = decisionByteCode;
+                history[i + GameFullHistory.History_DecisionIndex_Offset] = decisionIndex;
+                history[i + GameFullHistory.History_PlayerNumber_Offset] = playerIndex;
+                history[i + GameFullHistory.History_Action_Offset] = action;
+                history[i + GameFullHistory.History_NumPossibleActions_Offset] = numPossibleActions;
+                history[i + GameFullHistory.History_NumPiecesOfInformation] = GameFullHistory.HistoryTerminator; // this is just one item at end of all history items
+                lastIndexAddedToHistory = (short)(i + GameFullHistory.History_NumPiecesOfInformation);
 
 #if (SAFETYCHECKS)
-                if (LastIndexAddedToHistory >= GameFullHistory.MaxHistoryLength - 2) // must account for terminator characters
+                if (lastIndexAddedToHistory >= GameFullHistory.MaxHistoryLength - 2) // must account for terminator characters
                     ThrowHelper.Throw("Internal error. Must increase history length.");
 #endif
             }
+            var result = new GameFullHistoryStorable(history, lastIndexAddedToHistory);
             if (GameProgressLogger.LoggingOn)
-                GameProgressLogger.Log($"Actions so far: {ShallowCopyToRefStruct().GetActionsAsListString()}");
+                GameProgressLogger.Log($"Actions so far: {result.ShallowCopyToRefStruct().GetActionsAsListString()}");
+            return result;
         }
 
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void MarkComplete()
         {
-#if (SAFETYCHECKS)
-            if (!Initialized)
-                ThrowHelper.Throw();
-#endif
+            // NOTE: Because this doesn't change LastIndexAddedToHistory, we just change the History bytespan, and thus we don't need to return a new GameFullHistoryStorable.
             short i = LastIndexAddedToHistory;
-            fixed (byte* historyPtr = History)
-            {
 #if (SAFETYCHECKS)
-                if (*(historyPtr + i) == GameFullHistory.HistoryComplete)
-                    ThrowHelper.Throw("Game is already complete.");
+            if (History[i] == GameFullHistory.HistoryComplete)
+                ThrowHelper.Throw("Game is already complete.");
 #endif
-                *(historyPtr + i) = GameFullHistory.HistoryComplete;
-                *(historyPtr + i + 1) = GameFullHistory.HistoryTerminator;
-            }
+            History[i] = GameFullHistory.HistoryComplete;
+            History[i + 1] = GameFullHistory.HistoryTerminator;
         }
 
 
@@ -115,10 +105,6 @@ namespace ACESim
 
         public IEnumerable<short> GetInformationSetHistoryItems_OverallIndices(GameProgress gameProgress)
         {
-#if (SAFETYCHECKS)
-            if (!Initialized)
-                ThrowHelper.Throw();
-#endif
             if (LastIndexAddedToHistory == 0)
                 yield break;
             short overallIndex = 0;
