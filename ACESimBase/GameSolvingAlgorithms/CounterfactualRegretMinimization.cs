@@ -29,7 +29,7 @@ namespace ACESim
 
         #region Misc
 
-        public unsafe byte SampleAction(double* actionProbabilities, byte numPossibleActions, double randomNumber)
+        public byte SampleAction(Span<double> actionProbabilities, byte numPossibleActions, double randomNumber)
         {
 
             double cumulative = 0;

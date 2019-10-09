@@ -28,7 +28,7 @@ namespace ACESim
         /// <param name="historyPoint">The game tree, pointing to the particular point in the game where we are located</param>
         /// <param name="playerBeingOptimized">0 for first player, etc. Note that this corresponds in Lanctot to 1, 2, etc. We are using zero-basing for player index (even though we are 1-basing actions).</param>
         /// <returns></returns>
-        public unsafe double VanillaCFRIterationForPlayer(ref HistoryPoint historyPoint, byte playerBeingOptimized, double* piValues,
+        public unsafe double VanillaCFRIterationForPlayer(ref HistoryPoint historyPoint, byte playerBeingOptimized, Span<double> piValues,
             bool usePruning)
         {
             if (usePruning && ShouldPruneIfPruning(piValues))
@@ -49,14 +49,14 @@ namespace ACESim
                 return VanillaCFR_DecisionNode(ref historyPoint, playerBeingOptimized, piValues, usePruning);
         }
 
-        private unsafe bool ShouldPruneIfPruning(double* piValues)
+        private unsafe bool ShouldPruneIfPruning(Span<double> piValues)
         {
             // If we are pruning, then we do prune when the probability of getting to this path is 0.
             // But that doesn't mean that we should prune. The results from zero reach paths can 
             // still matter.
             bool allZero = true;
             for (int i = 0; i < NumNonChancePlayers; i++)
-                if (*(piValues + i) != 0)
+                if (piValues[i] != 0)
                 {
                     allZero = false;
                     break;
@@ -67,9 +67,9 @@ namespace ACESim
         }
 
         private unsafe double VanillaCFR_DecisionNode(ref HistoryPoint historyPoint, byte playerBeingOptimized,
-            double* piValues, bool usePruning)
+            Span<double> piValues, bool usePruning)
         {
-            double* nextPiValues = stackalloc double[MaxNumMainPlayers];
+            Span<double> nextPiValues = stackalloc double[MaxNumMainPlayers];
             //var actionsToHere = historyPoint.GetActionsToHere(Navigation);
             //var historyPointString = historyPoint.ToString();
 
@@ -78,7 +78,7 @@ namespace ACESim
             byte decisionNum = informationSet.DecisionIndex;
             byte playerMakingDecision = informationSet.PlayerIndex;
             byte numPossibleActions = NumPossibleActionsAtDecision(decisionNum);
-            double* actionProbabilities = stackalloc double[numPossibleActions];
+            Span<double> actionProbabilities = stackalloc double[numPossibleActions];
             byte? alwaysDoAction = GameDefinition.DecisionsExecutionOrder[decisionNum].AlwaysDoAction;
             if (alwaysDoAction != null)
                 ActionProbabilityUtilities.SetProbabilitiesToAlwaysDoParticularAction(numPossibleActions,
@@ -90,7 +90,7 @@ namespace ACESim
                 else
                     informationSet.GetRegretMatchingProbabilities(actionProbabilities);
             }
-            double* expectedValueOfAction = stackalloc double[numPossibleActions];
+            Span<double> expectedValueOfAction = stackalloc double[numPossibleActions];
             double expectedValue = 0;
             for (byte action = 1; action <= numPossibleActions; action++)
             {
@@ -144,9 +144,9 @@ namespace ACESim
         }
 
         private unsafe double VanillaCFR_ChanceNode(ref HistoryPoint historyPoint, byte playerBeingOptimized,
-            double* piValues, bool usePruning)
+            Span<double> piValues, bool usePruning)
         {
-            double* equalProbabilityNextPiValues = stackalloc double[MaxNumMainPlayers];
+            Span<double> equalProbabilityNextPiValues = stackalloc double[MaxNumMainPlayers];
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             ChanceNode chanceNode = (ChanceNode) gameStateForCurrentPlayer;
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNode.DecisionIndex);
@@ -187,19 +187,15 @@ namespace ACESim
         }
 
         private unsafe double VanillaCFR_ChanceNode_NextAction(ref HistoryPoint historyPoint, byte playerBeingOptimized,
-            double* piValues, ChanceNode chanceNode, double* equalProbabilityNextPiValues,
+            Span<double> piValues, ChanceNode chanceNode, Span<double> equalProbabilityNextPiValues,
             double expectedValue, byte action, bool usePruning)
         {
-            double* nextPiValues = stackalloc double[MaxNumMainPlayers];
+            Span<double> nextPiValues = stackalloc double[MaxNumMainPlayers];
             if (equalProbabilityNextPiValues != null)
             {
-                double* locTarget = nextPiValues;
-                double* locSource = equalProbabilityNextPiValues;
                 for (int i = 0; i < NumNonChancePlayers; i++)
                 {
-                    (*locTarget) = (*locSource);
-                    locTarget++;
-                    locSource++;
+                    nextPiValues[i] = equalProbabilityNextPiValues[i];
                 }
             }
             else // must set probability separately for each action we take
@@ -273,7 +269,7 @@ namespace ACESim
         {
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
-                double* initialPiValues = stackalloc double[MaxNumMainPlayers];
+                Span<double> initialPiValues = stackalloc double[MaxNumMainPlayers];
                 GetInitialPiValues(initialPiValues);
                 if (TraceCFR)
                     TabbedText.WriteLine($"Iteration {iteration} Player {playerBeingOptimized}");

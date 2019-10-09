@@ -93,6 +93,14 @@ namespace ACESim.Util
             return r2;
         }
 
+        public static List<double> GetSpanAsList(Span<double> r, int size)
+        {
+            var r2 = new List<double>();
+            for (int i = 0; i < size; i++)
+                r2.Add(r[i]);
+            return r2;
+        }
+
         public static unsafe List<double> GetPointerAsList(double* r, int size)
         {
             var r2 = new List<double>();

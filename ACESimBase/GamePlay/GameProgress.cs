@@ -8,7 +8,7 @@ using System.Text;
 namespace ACESim
 {
     [Serializable]
-    public unsafe class GameProgress : GameProgressReportable, IDisposable
+    public class GameProgress : GameProgressReportable, IDisposable
     {
         public double DummyVariable = 1.0; // used by reporting module
         public IterationID IterationID;

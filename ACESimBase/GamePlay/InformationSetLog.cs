@@ -133,7 +133,7 @@ namespace ACESim
             LogStorage[playerArrayIndex] = InformationSetTerminator;
         }
 
-        public unsafe byte GetPlayerInformationItem(byte playerIndex, byte decisionIndex)
+        public byte GetPlayerInformationItem(byte playerIndex, byte decisionIndex)
         {
 #if (SAFETYCHECKS)
             if (playerIndex >= MaxNumPlayers)
@@ -189,36 +189,9 @@ namespace ACESim
             playerInfoBuffer[playerInfoBufferIndex] = InformationSetTerminator;
         }
 
-        public unsafe void GetPlayerInformationAtPoint(byte playerIndex, byte? upToDecision, byte* playerInfoBuffer)
+        public string GetPlayerInformationAtPointString(byte playerIndex, byte? upToDecision)
         {
-            // DEBUG
-            if (playerIndex >= MaxNumPlayers)
-            {
-                // player has no information
-                *playerInfoBuffer = InformationSetTerminator;
-                return;
-            }
-            int playerArrayIndex = InformationSetLoggingIndex(playerIndex);
-            while (LogStorage[playerArrayIndex] != InformationSetTerminator)
-            {
-                if (LogStorage[playerArrayIndex] >= upToDecision)
-                    break;
-                playerArrayIndex++;
-                if (LogStorage[playerArrayIndex] == RemoveItemFromInformationSet)
-                    playerInfoBuffer--; // delete an item
-                else
-                {
-                    *playerInfoBuffer = LogStorage[playerArrayIndex];
-                    playerInfoBuffer++;
-                }
-                playerArrayIndex++;
-            }
-            *playerInfoBuffer = InformationSetTerminator;
-        }
-
-        public unsafe string GetPlayerInformationAtPointString(byte playerIndex, byte? upToDecision)
-        {
-            byte* playerInfoBuffer = stackalloc byte[MaxInformationSetLoggingLengthPerFullPlayer];
+            Span<byte> playerInfoBuffer = stackalloc byte[MaxInformationSetLoggingLengthPerFullPlayer];
             GetPlayerInformationAtPoint(playerIndex, upToDecision, playerInfoBuffer);
             List<byte> informationSetList = ListExtensions.GetPointerAsList_255Terminated(playerInfoBuffer);
             return String.Join(",", informationSetList);

@@ -309,7 +309,7 @@ namespace ACESim
                 }
                 GameProgressLogger.Tabs++;
                 //var informationSetHistoryString = informationSetHistory.ToString();
-                historyPoint.SetInformationIfNotSet(Navigation, gameProgress, informationSetHistory);
+                historyPoint = historyPoint.SetInformationIfNotSet(Navigation, gameProgress, informationSetHistory);
                 var decision = GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
                 historyPoint = historyPoint.GetBranch(Navigation, informationSetHistory.ActionChosen, decision, informationSetHistory.DecisionIndex);
                 i++;
@@ -342,7 +342,10 @@ namespace ACESim
         public IGameState GetGameState(ref HistoryPoint historyPoint, HistoryNavigationInfo? navigation = null)
         {
             HistoryNavigationInfo navigationSettings = navigation ?? Navigation;
-            return historyPoint.GetGameStateForCurrentPlayer(navigationSettings) ?? GetGameStateByPlayingUnderlyingGame(ref historyPoint, navigationSettings);
+            var historyPoint2 = historyPoint.GetGameStateForCurrentPlayer(navigationSettings);
+            if (historyPoint2.GameState != null)
+                return historyPoint2.GameState;
+            return GetGameStateByPlayingUnderlyingGame(ref historyPoint, navigationSettings);
         }
 
         private unsafe IGameState GetGameStateByPlayingUnderlyingGame(ref HistoryPoint historyPoint, HistoryNavigationInfo navigationSettings)
@@ -361,11 +364,10 @@ namespace ACESim
 
         private unsafe IGameState ProcessProgress(ref HistoryPoint historyPoint, in HistoryNavigationInfo navigationSettings, GameProgress progress)
         {
-            IGameState gameState;
             ProcessInitializedGameProgress(progress);
             NumInitializedGamePaths++; // Note: This may not be exact if we initialize the same game path twice (e.g., if we are playing in parallel)
-            gameState = historyPoint.GetGameStateForCurrentPlayer(navigationSettings);
-            return gameState;
+            historyPoint = historyPoint.GetGameStateForCurrentPlayer(navigationSettings);
+            return historyPoint.GameState;
         }
 
         #endregion
@@ -455,7 +457,7 @@ namespace ACESim
                 {
                     byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
                     double[] cumUtilities = null;
-                    double* actionProbabilities = stackalloc double[numPossibleActions];
+                    Span<double> actionProbabilities = stackalloc double[numPossibleActions];
                     informationSet.GetCurrentProbabilities(actionProbabilities);
                     for (byte action = 1; action <= numPossibleActions; action++)
                     {
@@ -999,7 +1001,8 @@ namespace ACESim
 
         public unsafe void GetAverageUtilities_Helper(ref HistoryPoint historyPoint, double[] cumulated, double prob)
         {
-            IGameState gameState = historyPoint.GetGameStateForCurrentPlayer(Navigation);
+            historyPoint = historyPoint.GetGameStateForCurrentPlayer(Navigation);
+            IGameState gameState = historyPoint.GameState;
             if (gameState is FinalUtilitiesNode finalUtilities)
             {
                 for (byte p = 0; p < NumNonChancePlayers; p++)
@@ -1021,7 +1024,7 @@ namespace ACESim
             else if (gameState is InformationSetNode informationSet)
             {
                 byte numPossibilities = GameDefinition.DecisionsExecutionOrder[informationSet.DecisionIndex].NumPossibleActions;
-                double* actionProbabilities = stackalloc double[numPossibilities];
+                Span<double> actionProbabilities = stackalloc double[numPossibilities];
                 informationSet.GetRegretMatchingProbabilities(actionProbabilities);
                 for (byte action = 1; action <= numPossibilities; action++)
                 {
@@ -1173,7 +1176,7 @@ namespace ACESim
             return piValues[playerIndex];
         }
 
-        public unsafe double GetInversePiValue(double* piValues, byte playerIndex)
+        public unsafe double GetInversePiValue(Span<double> piValues, byte playerIndex)
         {
             double product = 1.0;
             for (byte p = 0; p < NumNonChancePlayers; p++)
@@ -1182,7 +1185,7 @@ namespace ACESim
             return product;
         }
 
-        public unsafe void GetNextPiValues(double* currentPiValues, byte playerIndex, double probabilityToMultiplyBy, bool changeOtherPlayers, double* nextPiValues)
+        public unsafe void GetNextPiValues(Span<double> currentPiValues, byte playerIndex, double probabilityToMultiplyBy, bool changeOtherPlayers, Span<double> nextPiValues)
         {
             for (byte p = 0; p < NumNonChancePlayers; p++)
             {
@@ -1196,7 +1199,7 @@ namespace ACESim
             }
         }
 
-        public unsafe void GetInitialPiValues(double* initialPiValues)
+        public unsafe void GetInitialPiValues(Span<double> initialPiValues)
         {
             for (byte p = 0; p < NumNonChancePlayers; p++)
                 initialPiValues[p] = 1.0;

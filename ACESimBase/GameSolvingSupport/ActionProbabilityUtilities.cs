@@ -71,7 +71,7 @@ namespace ACESim
         private static unsafe void GetActionProbabilitiesAtHistoryPoint_Helper(IGameState gameStateForCurrentPlayer, ActionStrategies actionStrategy, double randomNumberToChooseIteration, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation, out double[] probabilities)
         {
             probabilities = new double[GameFullHistory.MaxNumActions];
-            double* probabilitiesBuffer = stackalloc double[GameFullHistory.MaxNumActions];
+            Span<double> probabilitiesBuffer = stackalloc double[GameFullHistory.MaxNumActions];
             GetActionProbabilitiesAtHistoryPoint(gameStateForCurrentPlayer, actionStrategy, randomNumberToChooseIteration, probabilitiesBuffer, numPossibleActions, alwaysDoAction, navigation);
             for (byte a = 0; a < GameFullHistory.MaxNumActions; a++)
                 probabilities[a] = probabilitiesBuffer[a];
@@ -80,13 +80,13 @@ namespace ACESim
         public static unsafe void GetActionProbabilitiesAtHistoryPoint(IGameState gameStateForCurrentPlayer, ActionStrategies actionStrategy, double randomNumberToChooseIteration, double[] probabilities, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation)
         {
 
-            double* probabilities2 = stackalloc double[GameFullHistory.MaxNumActions];
+            Span<double> probabilities2 = stackalloc double[GameFullHistory.MaxNumActions];
             GetActionProbabilitiesAtHistoryPoint(gameStateForCurrentPlayer, actionStrategy, randomNumberToChooseIteration, probabilities2, numPossibleActions, alwaysDoAction, navigation);
             for (int i = 0; i < probabilities.Length; i++)
                 probabilities[i] = probabilities2[i];
         }
 
-        public static unsafe void GetActionProbabilitiesAtHistoryPoint(IGameState gameStateForCurrentPlayer, ActionStrategies actionStrategy, double randomNumberToChooseIteration, double* probabilities, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation)
+        public static unsafe void GetActionProbabilitiesAtHistoryPoint(IGameState gameStateForCurrentPlayer, ActionStrategies actionStrategy, double randomNumberToChooseIteration, Span<double> probabilities, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation)
         {
             if (gameStateForCurrentPlayer is ChanceNode chanceNode)
             {
@@ -138,7 +138,7 @@ namespace ACESim
             }
         }
 
-        public static unsafe void SetProbabilitiesToAlwaysDoParticularAction(byte numPossibleActions, double* actionProbabilities, byte alwaysDoAction)
+        public static void SetProbabilitiesToAlwaysDoParticularAction(byte numPossibleActions, Span<double> actionProbabilities, byte alwaysDoAction)
         {
             for (byte action = 1; action <= numPossibleActions; action++)
                 if (action == alwaysDoAction)

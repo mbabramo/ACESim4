@@ -145,11 +145,11 @@ namespace ACESim
             UpdateGameProgressFollowingAction(currentDecision.DecisionByteCode, action);
         }
 
-        public static void UpdateGameHistory(ref GameHistory gameHistory, GameDefinition gameDefinition, Decision decision, byte decisionIndex, byte action, GameProgress gameProgress)
+        public static void UpdateGameHistory(in GameHistory gameHistory, GameDefinition gameDefinition, Decision decision, byte decisionIndex, byte action, GameProgress gameProgress)
         {
             gameHistory.AddToHistory(decision.DecisionByteCode, decisionIndex, decision.PlayerNumber, action, decision.NumPossibleActions, decision.PlayersToInform, decision.PlayersToInformOfOccurrenceOnly, decision.IncrementGameCacheItem, decision.StoreActionInGameCacheItem, gameProgress, false, decision.DeferNotificationOfPlayers, false);
             if (decision.RequiresCustomInformationSetManipulation)
-                gameDefinition.CustomInformationSetManipulation(decision, decisionIndex, action, ref gameHistory, gameProgress);
+                gameDefinition.CustomInformationSetManipulation(decision, decisionIndex, action, in gameHistory, gameProgress);
         }
 
         public virtual bool DecisionIsNeeded(Decision currentDecision, GameProgress gameProgress)

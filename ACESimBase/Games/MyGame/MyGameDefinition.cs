@@ -760,38 +760,6 @@ namespace ACESim
                 throw new NotImplementedException(); // subclass should define if needed
         }
 
-        public override unsafe double[] GetUnevenChanceActionProbabilitiesFromChanceInformationSet(byte decisionByteCode, byte* informationSet)
-        {
-            if (decisionByteCode == (byte)MyGameDecisions.CourtDecisionLiability)
-            {
-                byte litigationQuality = *informationSet;
-                var probabilities = GetCLiabilitySignalProbabilities(litigationQuality);
-                return probabilities;
-            }
-            return null;
-        }
-
-        //public override unsafe double[] GetUnevenChanceActionProbabilitiesFromChanceInformationSet(byte decisionByteCode, List<(List<byte>, double)> distributionOfChanceValues)
-        //{
-        //    // The distribution of chance values will include combinations of all distributor chance decisions. For now, we only care about the litigation quality decision. Each litigation quality itself produces a distribution of court signal probabilities. We average these distributions based on the probability of various litigation qualities.  
-        //    if (decisionByteCode == (byte)MyGameDecisions.CourtDecision)
-        //    {
-        //        double[] results = new double[distributionOfChanceValues.Count]; 
-        //        for (int j = 0; j < distributionOfChanceValues.Count; j++)
-        //        {
-        //            var item = distributionOfChanceValues[j];
-        //            byte litigationQuality = item.Item1.Last(); // assume that litigation quality is last item
-        //            double probabilityThisItem = item.Item2;
-        //            var probabilitiesForLiabilityStrength = GetCLiabilitySignalProbabilities(litigationQuality);
-        //            if (results == null)
-        //                results = new double[probabilitiesForLiabilityStrength.Length];
-        //            for (int i = 0; i < probabilitiesForLiabilityStrength.Length; i++)
-        //                results[i] += probabilitiesForLiabilityStrength[i] * probabilityThisItem;
-        //        }
-        //        return results;
-        //    }
-        //    return null;
-        //}
 
         public override bool SkipDecision(Decision decision, ref GameHistory gameHistory)
         {

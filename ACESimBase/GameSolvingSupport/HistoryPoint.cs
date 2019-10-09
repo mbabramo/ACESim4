@@ -8,13 +8,13 @@ using System.Threading.Tasks;
 namespace ACESim
 {
 
-    public ref struct HistoryPoint
+    public readonly ref struct HistoryPoint
     {
 
-        public NWayTreeStorage<IGameState> TreePoint;
-        public GameHistory HistoryToPoint;
-        public GameProgress GameProgress;
-        public IGameState GameState;
+        public readonly NWayTreeStorage<IGameState> TreePoint;
+        public readonly GameHistory HistoryToPoint;
+        public readonly GameProgress GameProgress;
+        public readonly IGameState GameState;
 
         public bool ContainsGameHistoryOnly => TreePoint == null && GameProgress == null && GameState == null;
 
@@ -26,17 +26,27 @@ namespace ACESim
             GameState = null;
         }
 
-        public HistoryPoint(NWayTreeStorage<IGameState> treePoint, GameHistory historyToPoint, GameProgress gameProgress)
+        public HistoryPoint(NWayTreeStorage<IGameState> treePoint, GameHistory historyToPoint, GameProgress gameProgress, IGameState gameState = null)
         {
             TreePoint = treePoint;
             HistoryToPoint = historyToPoint;
             GameProgress = gameProgress;
-            GameState = null;
+            GameState = gameState;
         }
 
         public HistoryPoint DeepCopy()
         {
-            return new HistoryPoint(TreePoint, HistoryToPoint.DeepCopy(), GameProgress?.DeepCopy());
+            return new HistoryPoint(TreePoint, HistoryToPoint.DeepCopy(), GameProgress?.DeepCopy(), GameState);
+        }
+
+        public HistoryPoint WithGameState(IGameState gameState)
+        {
+            return new HistoryPoint(TreePoint, HistoryToPoint, GameProgress, gameState);
+        }
+
+        public HistoryPoint WithHistoryToPoint(GameHistory historyToPoint)
+        {
+            return new HistoryPoint(TreePoint, historyToPoint, GameProgress, GameState);
         }
 
         public HistoryPointStorable ToStorable()
@@ -85,21 +95,22 @@ namespace ACESim
         /// </summary>
         /// <param name="navigation">The navigation settings. If the LookupApproach is both, this method will verify that both return the same value.</param>
         /// <returns></returns>
-        public IGameState GetGameStateForCurrentPlayer(HistoryNavigationInfo navigation)
+        public HistoryPoint GetGameStateForCurrentPlayer(HistoryNavigationInfo navigation)
         {
             if (GameState != null)
-                return GameState;
+            {
+                return WithGameState(GameState);
+            }
             IGameState gameStateFromGameHistory = null;
             if (navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)
             {
                 if (GameProgress.GameComplete)
                 {
-                    GameState = new FinalUtilitiesNode(GameProgress.GetNonChancePlayerUtilities(), -1);
-                    return GameState;
+                    return WithGameState(new FinalUtilitiesNode(GameProgress.GetNonChancePlayerUtilities(), -1));
                 }
                 // Otherwise, when playing the actual game, we use the GameHistory object, so we'll set this object as the "cached" object even though it's cached.
                 navigation = navigation.WithLookupApproach(InformationSetLookupApproach.CachedGameHistoryOnly);
-                HistoryToPoint = GameProgress.GameHistory;
+                return WithHistoryToPoint(GameProgress.GameHistory);
             }
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
@@ -121,7 +132,7 @@ namespace ACESim
                 else
                     gameStateFromGameHistory = navigation.Strategies[nextPlayer].GetInformationSetTreeValue(informationSetsPtr); // resolution player -- we don't use the decision index
                 if (gameStateFromGameHistory == null && navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly)
-                    return null; // we haven't initialized, so we need to do so and then try again.
+                    return WithGameState(null); // we haven't initialized, so we need to do so and then try again.
             }
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
@@ -132,15 +143,14 @@ namespace ACESim
                     if (!equals)
                     {
                         if (gameStateFromGameTree == null)
-                            return null; // the game tree hasn't been set yet, so no need to throw; just indicate this
+                            return WithGameState(null); // the game tree hasn't been set yet, so no need to throw; just indicate this
                         throw new Exception("Different value from two different approaches."); // NOTE: One possible cause of this error is that a player faces the same information set at two different points of the game. Each information set must lead to a unique decision. Thus, if a player makes two consecutive decisions with the same information set, you should add a dummy piece of information to the player's information set after the first decision to allow this to be distinguished. NOTE2: Another possible cause is that you may add to information set and log passing the decision byte code rather than the decision index. NOTE3: IT also could be that you define a decision as reversible when it is not.
                     }
                 }
-                GameState = gameStateFromGameTree;
+                return WithGameState(gameStateFromGameTree);
             }
             else
-                GameState = gameStateFromGameHistory;
-            return GameState;
+                return WithGameState(gameStateFromGameHistory);
         }
 
         public bool BranchingIsReversible(HistoryNavigationInfo navigation, Decision nextDecision)
@@ -158,16 +168,18 @@ namespace ACESim
 
         private HistoryPoint GetBranch_NotCacheOnly(HistoryNavigationInfo navigation, byte actionChosen, Decision nextDecision, byte nextDecisionIndex)
         {
-            HistoryPoint next = new HistoryPoint();
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
-                next = GetBranch_CachedGameHistory(navigation, actionChosen, nextDecision, nextDecisionIndex);
+                return GetBranch_CachedGameHistory(navigation, actionChosen, nextDecision, nextDecisionIndex);
+            NWayTreeStorage<IGameState> nextTreePoint = null;
+            GameHistory nextHistoryToPoint = default;
+            GameProgress nextGameProgress = null;
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
                 NWayTreeStorage<IGameState> branch = TreePoint.GetBranch(actionChosen);
                 if (branch == null)
                     lock (TreePoint)
                         branch = ((NWayTreeStorageInternal<IGameState>) TreePoint).AddBranch(actionChosen, true);
-                next.TreePoint = branch;
+                nextTreePoint = branch;
                 if (GameProgressLogger.LoggingOn)
                     GameProgressLogger.Log($"Getting game tree branch for {actionChosen} (decision {nextDecision.Name}) => {branch.SequenceToHereString}");
             }
@@ -177,11 +189,10 @@ namespace ACESim
                 IGameFactory gameFactory = navigation.GameDefinition.GameFactory;
                 GamePlayer player = new GamePlayer(navigation.Strategies, false, navigation.GameDefinition);
                 player.ContinuePathWithAction(actionChosen, nextProgress);
-                next.HistoryToPoint = nextProgress.GameHistory;
-                next.GameProgress = nextProgress;
-                return next;
+                nextHistoryToPoint = nextProgress.GameHistory;
+                nextGameProgress = nextProgress;
             }
-            return next;
+            return new HistoryPoint(nextTreePoint, nextHistoryToPoint, nextGameProgress);
         }
 
         private HistoryPoint GetBranch_CachedGameHistory(HistoryNavigationInfo navigation, byte actionChosen, Decision nextDecision, byte nextDecisionIndex)
@@ -342,14 +353,15 @@ namespace ACESim
 
 
 
-        public void SetInformationIfNotSet(HistoryNavigationInfo navigation, GameProgress gameProgress, InformationSetHistory informationSetHistory)
+        public HistoryPoint SetInformationIfNotSet(HistoryNavigationInfo navigation, GameProgress gameProgress, InformationSetHistory informationSetHistory)
         {
             //var informationSetString = informationSetHistory.ToString(); 
             //var informationSetList = informationSetHistory.GetInformationSetForPlayerAsList(); 
             //var actionsToHere = GetActionsToHereString(navigation);
-            IGameState gameState = GetGameStateForCurrentPlayer(navigation);
-            if (gameState == null)
+            HistoryPoint revised = GetGameStateForCurrentPlayer(navigation);
+            if (revised.GameState == null)
                 SetInformationAtPoint(navigation, gameProgress, informationSetHistory);
+            return revised;
         }
 
         private void SetInformationAtPoint(HistoryNavigationInfo navigation, GameProgress gameProgress, InformationSetHistory informationSetHistory)

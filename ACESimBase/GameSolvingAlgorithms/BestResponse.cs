@@ -155,7 +155,7 @@ namespace ACESim
             }
             else
             {
-                double* actionProbabilities = stackalloc double[numPossibleActions];
+                Span<double> actionProbabilities = stackalloc double[numPossibleActions];
                 byte? alwaysDoAction = GameDefinition.DecisionsExecutionOrder[decisionIndex].AlwaysDoAction;
                 if (alwaysDoAction != null)
                     ActionProbabilityUtilities.SetProbabilitiesToAlwaysDoParticularAction(numPossibleActions,

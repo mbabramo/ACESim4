@@ -219,7 +219,7 @@ namespace ACESim
             BestResponseDeterminedFromIncrements = true;
         }
 
-        public unsafe void GetBestResponseProbabilities(double* probabilities)
+        public void GetBestResponseProbabilities(Span<double> probabilities)
         {
             int bestResponse = BestResponseAction;
             for (int a = 1; a <= NumPossibleActions; a++)
@@ -580,7 +580,7 @@ namespace ACESim
             }
         }
 
-        public unsafe string GetCumulativeStrategiesString()
+        public string GetCumulativeStrategiesString()
         {
             List<double> probs = new List<double>();
             for (byte a = 1; a <= NumPossibleActions; a++)
@@ -607,7 +607,7 @@ namespace ACESim
         public static bool ZeroOutInCalculatingAverageStrategies = false;
         public static double ZeroOutBelow = 1E-50;
 
-        public unsafe void CalculateAverageStrategyFromCumulative(double* probabilities)
+        public void CalculateAverageStrategyFromCumulative(Span<double> probabilities)
         {
             double sum = 0;
             for (int a = 1; a <= NumPossibleActions; a++)
@@ -638,18 +638,18 @@ namespace ACESim
 
         }
 
-        public unsafe double[] GetAverageStrategiesAsArray()
+        public double[] GetAverageStrategiesAsArray()
         {
             double[] array = new double[NumPossibleActions];
 
-            double* actionProbabilities = stackalloc double[NumPossibleActions];
+            Span<double> actionProbabilities = stackalloc double[NumPossibleActions];
             CalculateAverageStrategyFromCumulative(actionProbabilities);
             for (int a = 0; a < NumPossibleActions; a++)
                 array[a] = actionProbabilities[a];
             return array;
         }
 
-        public unsafe string GetAverageStrategiesAsString()
+        public string GetAverageStrategiesAsString()
         {
             return String.Join(", ", GetAverageStrategiesAsArray().Select(x => x.ToSignificantFigures(3)));
         }
@@ -668,22 +668,22 @@ namespace ACESim
 
         #region Regret matching
 
-        public unsafe List<double> GetRegretMatchingProbabilitiesList()
+        public List<double> GetRegretMatchingProbabilitiesList()
         {
-            double* probabilitiesToSet = stackalloc double[NumPossibleActions];
+            Span<double> probabilitiesToSet = stackalloc double[NumPossibleActions];
             GetRegretMatchingProbabilities(probabilitiesToSet);
-            return Util.ListExtensions.GetPointerAsList(probabilitiesToSet, NumPossibleActions);
+            return Util.ListExtensions.GetSpanAsList(probabilitiesToSet, NumPossibleActions);
         }
 
-        public unsafe List<double> GetEqualProbabilitiesList()
+        public List<double> GetEqualProbabilitiesList()
         {
             // NOTE: Not thread-safe
-            double* probabilitiesToSet = stackalloc double[NumPossibleActions];
+            Span<double> probabilitiesToSet = stackalloc double[NumPossibleActions];
             GetEqualProbabilitiesRegretMatching(probabilitiesToSet);
-            return Util.ListExtensions.GetPointerAsList(probabilitiesToSet, NumPossibleActions);
+            return Util.ListExtensions.GetSpanAsList(probabilitiesToSet, NumPossibleActions);
         }
 
-        public unsafe void GetRegretMatchingProbabilities(double* probabilitiesToSet)
+        public void GetRegretMatchingProbabilities(Span<double> probabilitiesToSet)
         {
             bool done = false;
             while (!done)
@@ -727,7 +727,7 @@ namespace ACESim
         /// </summary>
         /// <param name="probabilitiesToSet">A pointer to the probabilities to set, one per action.</param>
         /// <param name="epsilon">The weight (from 0 to 1) on equal probabilities rather than on regret-matching probabilities.</param>
-        public unsafe void GetEpsilonAdjustedRegretMatchingProbabilities(double* probabilitiesToSet, double epsilon)
+        public void GetEpsilonAdjustedRegretMatchingProbabilities(Span<double> probabilitiesToSet, double epsilon)
         {
             GetRegretMatchingProbabilities(probabilitiesToSet);
             double equalProbabilities = 1.0 / NumPossibleActions;
@@ -735,14 +735,14 @@ namespace ACESim
                 probabilitiesToSet[a - 1] = epsilon * equalProbabilities + (1.0 - epsilon) * probabilitiesToSet[a - 1];
         }
 
-        public unsafe void GetEqualProbabilitiesRegretMatching(double* probabilitiesToSet)
+        public void GetEqualProbabilitiesRegretMatching(Span<double> probabilitiesToSet)
         {
             double equalProbabilities = 1.0 / NumPossibleActions;
             for (byte a = 1; a <= NumPossibleActions; a++)
                 probabilitiesToSet[a - 1] = equalProbabilities;
         }
 
-        public unsafe void GetRegretMatchingProbabilities_WithPruning(double* probabilitiesToSet)
+        public void GetRegretMatchingProbabilities_WithPruning(Span<double> probabilitiesToSet)
         {
             bool zeroOutInRegretMatching = false;
             double sumPositiveCumulativeRegrets = GetSumPositiveCumulativeRegrets();
@@ -915,7 +915,7 @@ namespace ACESim
         double Nu;
         static double C = Math.Sqrt((2 * (Math.Sqrt(2) - 1.0)) / (Math.Exp(1.0) - 2));
 
-        private unsafe void UpdateHedgeInfoAfterIteration()
+        private void UpdateHedgeInfoAfterIteration()
         {
             double firstSum = 0, secondSum = 0;
             double minLastRegret = 0, maxLastRegret = 0;
@@ -981,7 +981,7 @@ namespace ACESim
             return NodeInformation[averageStrategyProbabilityDimension, action - 1];
         }
 
-        public unsafe void GetAverageStrategyProbabilities(double* probabilitiesToSet)
+        public void GetAverageStrategyProbabilities(Span<double> probabilitiesToSet)
         {
             for (byte a = 1; a <= NumPossibleActions; a++)
             {
@@ -989,7 +989,7 @@ namespace ACESim
             }
         }
 
-        public unsafe void GetCorrelatedEquilibriumProbabilities(double randomNumberToChooseIteration, double* probabilities)
+        public void GetCorrelatedEquilibriumProbabilities(double randomNumberToChooseIteration, Span<double> probabilities)
         {
             int pastValuesCount = LastPastValueIndexRecorded;
             double cumulativeDiscountLevelToSeek = pastValuesCount * randomNumberToChooseIteration;
@@ -1011,7 +1011,7 @@ namespace ACESim
                 probabilities[a] = PastValues[index, a];
         }
 
-        public unsafe void GetCurrentProbabilities(double* probabilitiesToSet, bool opponentProbabilities)
+        public void GetCurrentProbabilities(Span<double> probabilitiesToSet, bool opponentProbabilities)
         {
             int probabilityDimension = opponentProbabilities ? currentProbabilityForOpponentDimension : currentProbabilityDimension;
             for (byte a = 1; a <= NumPossibleActions; a++)
@@ -1020,18 +1020,18 @@ namespace ACESim
             }
         }
 
-        public unsafe double GetCurrentProbability(byte a, bool opponentProbabilities)
+        public double GetCurrentProbability(byte a, bool opponentProbabilities)
         {
             int probabilityDimension = opponentProbabilities ? currentProbabilityForOpponentDimension : currentProbabilityDimension;
             return NodeInformation[probabilityDimension, a - 1];
         }
 
-        public unsafe string GetCurrentProbabilitiesAsString()
+        public string GetCurrentProbabilitiesAsString()
         {
             return String.Join(", ", GetCurrentProbabilitiesAsArray().Select(x => x.ToSignificantFigures(3)));
         }
 
-        public unsafe void GetCurrentProbabilities(double* probabilitiesToSet)
+        public void GetCurrentProbabilities(Span<double> probabilitiesToSet)
         {
             bool done = false;
             while (!done)
@@ -1046,11 +1046,11 @@ namespace ACESim
             }
         }
 
-        public unsafe double[] GetCurrentProbabilitiesAsArray()
+        public double[] GetCurrentProbabilitiesAsArray()
         {
             double[] array = new double[NumPossibleActions];
 
-            double* actionProbabilities = stackalloc double[NumPossibleActions];
+            Span<double> actionProbabilities = stackalloc double[NumPossibleActions];
             GetCurrentProbabilities(actionProbabilities);
             for (int a = 0; a < NumPossibleActions; a++)
                 array[a] = actionProbabilities[a];

@@ -378,23 +378,7 @@ namespace ACESim
             return null; // subclass should define if needed
         }
 
-        public virtual double[] GetUnevenChanceActionProbabilitiesFromChanceInformationSet(byte decisionByteCode, List<(List<byte>, double)> distributionOfChanceValues)
-        {
-            return null;
-        }
-
-        /// <summary>
-        /// This method 
-        /// </summary>
-        /// <param name="decisionByteCode"></param>
-        /// <param name="informationSet"></param>
-        /// <returns></returns>
-        public virtual unsafe double[] GetUnevenChanceActionProbabilitiesFromChanceInformationSet(byte decisionByteCode, byte* informationSet)
-        {
-            return null; // subclass should define if needed
-        }
-
-        public virtual bool ShouldMarkGameHistoryComplete(Decision currentDecision, ref GameHistory gameHistory, byte actionChosen)
+        public virtual bool ShouldMarkGameHistoryComplete(Decision currentDecision, in GameHistory gameHistory, byte actionChosen)
         {
             // Entirely subclass. During full game play, the game marks the game complete as necessary, and this automatically calls
             // the game history. But during cached game play (without using a game tree), we must determine whether the game is complete
@@ -402,7 +386,7 @@ namespace ACESim
             return false;
         }
 
-        public virtual void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte action, ref GameHistory gameHistory, GameProgress gameProgress)
+        public virtual void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte action, in GameHistory gameHistory, GameProgress gameProgress)
         {
             // Entirely subclass. This method allow one to change information sets in ways other than mechanically adding items to an information set.
             // It is defined in the GameDefinition, rather than in the Game, because it needs to be called when playing a cached game (i.e., going through 
@@ -425,12 +409,12 @@ namespace ACESim
                 gameHistory.SetCacheItemAtIndex((byte)decisionToReverse.StoreActionInGameCacheItem, 0);
             gameHistory.RemoveLastActionFromSimpleActionsList();
             gameHistory.Complete = false; // just in case it was marked true
-            historyPoint.GameState = originalGameState;
+            historyPoint = historyPoint.WithGameState(originalGameState);
             if (historyPoint.GameProgress != null || historyPoint.TreePoint != null)
                 throw new Exception();
         }
 
-        public void GetNextDecision(ref GameHistory gameHistory, out Decision decision, out byte nextDecisionIndex)
+        public void GetNextDecision(in GameHistory gameHistory, out Decision decision, out byte nextDecisionIndex)
         {
             if (gameHistory.IsComplete())
             {

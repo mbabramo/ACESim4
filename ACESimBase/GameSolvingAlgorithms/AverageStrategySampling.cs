@@ -27,7 +27,7 @@ namespace ACESim
             return created;
         }
 
-        public unsafe double AverageStrategySampling_WalkTree(ref HistoryPoint historyPoint, byte playerBeingOptimized,
+        public double AverageStrategySampling_WalkTree(ref HistoryPoint historyPoint, byte playerBeingOptimized,
             double samplingProbabilityQ, Decision nextDecision, byte nextDecisionIndex)
         {
             if (TraceCFR)
@@ -66,7 +66,7 @@ namespace ACESim
                 case GameStateTypeEnum.InformationSet:
                     InformationSetNode informationSet = (InformationSetNode) gameStateForCurrentPlayer;
                     numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
-                    double* sigma_regretMatchedActionProbabilities = stackalloc double[numPossibleActions];
+                    Span<double> sigma_regretMatchedActionProbabilities = stackalloc double[numPossibleActions];
                     // the following use of epsilon-on-policy for early iterations of opponent's strategy is a deviation from Gibson.
                     byte playerAtPoint = informationSet.PlayerIndex;
                     if (playerAtPoint != playerBeingOptimized && EvolutionSettings.UseEpsilonOnPolicyForOpponent &&
@@ -111,14 +111,14 @@ namespace ACESim
                     double counterfactualSummation = 0;
                     // player being optimized is player at this information set
                     double sumCumulativeStrategies = 0;
-                    double* cumulativeStrategies = stackalloc double[numPossibleActions];
+                    Span<double> cumulativeStrategies = stackalloc double[numPossibleActions];
                     for (byte action = 1; action <= numPossibleActions; action++)
                     {
                         double cumulativeStrategy = informationSet.GetCumulativeStrategy(action);
                         cumulativeStrategies[action - 1] = cumulativeStrategy;
                         sumCumulativeStrategies += cumulativeStrategy;
                     }
-                    double* counterfactualValues = stackalloc double[numPossibleActions];
+                    Span<double> counterfactualValues = stackalloc double[numPossibleActions];
                     for (byte action = 1; action <= numPossibleActions; action++)
                     {
                         // Note that we may sample multiple actions here.
