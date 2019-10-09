@@ -34,7 +34,7 @@ namespace ACESim
         {
             int numInformationSets = InformationSets.Count;
             PostIterationUpdater.PrepareForUpdating(iteration, EvolutionSettings);
-            double? pruneOpponentStrategyBelow = EvolutionSettings.PruneOnOpponentStrategy && !EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions ? EvolutionSettings.PruneOnOpponentStrategyThreshold : (double?) null;
+            double? pruneOpponentStrategyBelow = EvolutionSettings.PruneOnOpponentStrategy && !EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions ? EvolutionSettings.PruneOnOpponentStrategyThreshold : (double?)null;
             bool predeterminePrunability = EvolutionSettings.PruneOnOpponentStrategy && EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions;
 
             if (EvolutionSettings.SimulatedAnnealing_UseRandomAverageStrategyAdjustment)
@@ -240,7 +240,7 @@ namespace ACESim
         private int Unroll_GetInformationSetIndex_LastCumulativeStrategyIncrement(int informationSetNumber, byte action) => Unroll_InformationSetsIndices[informationSetNumber] + (Unroll_NumPiecesInfoPerInformationSetAction * (action - 1)) + Unroll_InformationSetPerActionOrder_LastCumulativeStrategyIncrement;
 
         private int Unroll_GetChanceNodeIndex(int chanceNodeNumber) => Unroll_ChanceNodesIndices[chanceNodeNumber];
-        private int Unroll_GetChanceNodeIndex_ProbabilityForAction(int chanceNodeNumber, byte action) => Unroll_ChanceNodesIndices[chanceNodeNumber] + (byte) (action - 1);
+        private int Unroll_GetChanceNodeIndex_ProbabilityForAction(int chanceNodeNumber, byte action) => Unroll_ChanceNodesIndices[chanceNodeNumber] + (byte)(action - 1);
 
         private int Unroll_GetChanceNodeIndex_ProbabilityForAction(int chanceNodeNumber, int distributorChanceInputs, byte action)
         {
@@ -502,10 +502,10 @@ namespace ACESim
                 Unroll_Commands.CopyToExisting(expectedValueOfAction[action - 1], innerResult[Unroll_Result_HedgeVsHedgeIndex]);
                 if (playerMakingDecision == playerBeingOptimized)
                 {
-                    int lastBestResponseActionIndex = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_LastBestResponse(informationSet.InformationSetNodeNumber, (byte) informationSet.NumPossibleActions), true);
+                    int lastBestResponseActionIndex = Unroll_Commands.CopyToNew(Unroll_GetInformationSetIndex_LastBestResponse(informationSet.InformationSetNodeNumber, (byte)informationSet.NumPossibleActions), true);
                     Unroll_Commands.InsertEqualsValueCommand(lastBestResponseActionIndex, (int)action);
                     Unroll_Commands.InsertIfCommand();
-                        Unroll_Commands.CopyToExisting(resultArray[Unroll_Result_BestResponseIndex], innerResult[Unroll_Result_BestResponseIndex]);
+                    Unroll_Commands.CopyToExisting(resultArray[Unroll_Result_BestResponseIndex], innerResult[Unroll_Result_BestResponseIndex]);
                     Unroll_Commands.InsertEndIfCommand();
                     // Get the best response indices to write to -- note that we're not reading the value in
                     int bestResponseNumerator = Unroll_GetInformationSetIndex_BestResponseNumerator(informationSet.InformationSetNodeNumber, action);
@@ -546,7 +546,7 @@ namespace ACESim
                     int pi = Unroll_Commands.CopyToNew(piValues[playerBeingOptimized], false);
                     Unroll_Commands.InsertLessThanOtherArrayIndexCommand(pi, smallestPossible);
                     Unroll_Commands.InsertIfCommand();
-                        Unroll_Commands.CopyToExisting(pi, smallestPossible);
+                    Unroll_Commands.CopyToExisting(pi, smallestPossible);
                     Unroll_Commands.InsertEndIfCommand();
                     int regret = Unroll_Commands.CopyToNew(expectedValueOfAction[action - 1], false);
                     Unroll_Commands.Decrement(regret, expectedValue);
@@ -601,11 +601,11 @@ namespace ACESim
                 }
                 var historyPointCopy2 = historyPointCopy; // Need to do this because we need a separate copy for each thread
                 Unroll_Commands.ZeroExisting(probabilityAdjustedInnerResult);
-                Unroll_GeneralizedVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, 
+                Unroll_GeneralizedVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2,
                     playerBeingOptimized, piValues, avgStratPiValues,
                         chanceNode, action, probabilityAdjustedInnerResult, false, distributorChanceInputs);
                 Unroll_Commands.IncrementArrayBy(resultArray, isUltimateResult, probabilityAdjustedInnerResult);
-                
+
                 if (chanceNode.Decision.Unroll_Parallelize)
                     Unroll_Commands.EndCommandChunk(isUltimateResult ? null : resultArray, action != 1);
             }
@@ -989,55 +989,18 @@ namespace ACESim
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             ChanceNode chanceNode = (ChanceNode)gameStateForCurrentPlayer;
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNode.DecisionIndex);
+            var historyPointCopy = historyPoint.ToStorable(); // can't use historyPoint in anonymous method below. This is costly, so it might be worth optimizing if we use GeneralizedVanillaCFR much.
             byte numPossibleActionsToExplore = numPossibleActions;
             if (EvolutionSettings.DistributeChanceDecisions && chanceNode.Decision.DistributedChanceDecision)
                 numPossibleActionsToExplore = 1;
-
-            bool doParallel = EvolutionSettings.ParallelOptimization && Parallelizer.ParallelDepth <= EvolutionSettings.MaxParallelDepth;
-            if (doParallel || true /* DEBUG */)
-            {
-                var historyPointCopy = historyPoint.ToStorable(); // This is costly but needed given anonymous method below (because ref struct can't be accessed there), so we do this only if really parallelizing.
-                Parallelizer.GoByte(doParallel, 1,
-                    (byte)(numPossibleActions + 1),
-                    action =>
-                    {
-                        var historyPointCopy2 = historyPointCopy.DeepCopyToRefStruct(); // Need to do this because we need a separate copy for each thread
-                        GeneralizedVanillaUtilities probabilityAdjustedInnerResult = GeneralizedVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues,
-                                avgStratPiValues, chanceNode, action, distributorChanceInputs);
-                        result.IncrementBasedOnProbabilityAdjusted(ref probabilityAdjustedInnerResult);
-                    });
-            }
-            else
-            {
-                for (byte action = 1; action < (byte)numPossibleActions + 1; action++)
+            Parallelizer.GoByte(EvolutionSettings.ParallelOptimization && Parallelizer.ParallelDepth < EvolutionSettings.MaxParallelDepth, 1,
+                (byte)(numPossibleActionsToExplore + 1),
+                action =>
                 {
-                    GeneralizedVanillaUtilities probabilityAdjustedInnerResult = GeneralizedVanillaCFR_ChanceNode_NextAction(ref historyPoint, playerBeingOptimized, piValues,
-                            avgStratPiValues, chanceNode, action, distributorChanceInputs);
-                    // DEBUG -- must change Vanilla.cs as well
-                    //if (historyPoint.BranchingIsReversible(Navigation, chanceNode.Decision))
-                    //{
-                    //    var DEBUG = historyPoint.HistoryToPoint.DeepCopy();
-                    //    GeneralizedVanillaUtilities probabilityAdjustedInnerResult = GeneralizedVanillaCFR_ChanceNode_NextAction(ref historyPoint, playerBeingOptimized, piValues,
-                    //            avgStratPiValues, chanceNode, action, distributorChanceInputs);
-                    //    // DEBUG GameDefinition.ReverseDecision(chanceNode.Decision, ref historyPoint, gameStateForCurrentPlayer);
-                    //    var DEBUG2 = historyPoint.HistoryToPoint.DeepCopy();
-                    //    if (!DEBUG.Matches(DEBUG2))
-                    //    {
-                    //        historyPoint.HistoryToPoint = DEBUG;
-                    //        GeneralizedVanillaUtilities probabilityAdjustedInnerResult2 = GeneralizedVanillaCFR_ChanceNode_NextAction(ref historyPoint, playerBeingOptimized, piValues,
-                    //                avgStratPiValues, chanceNode, action, distributorChanceInputs);
-                    //        GameDefinition.ReverseDecision(chanceNode.Decision, ref historyPoint, gameStateForCurrentPlayer);
-                    //    }
-                    //}
-                    //else
-                    //{
-                    //    var historyPointCopy2 = historyPoint.DeepCopy(); // Need to do this because decision isn't reversible and so we can't change original history point
-                    //    GeneralizedVanillaUtilities probabilityAdjustedInnerResult = GeneralizedVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues,
-                    //            avgStratPiValues, chanceNode, action, distributorChanceInputs);
-                    //    result.IncrementBasedOnProbabilityAdjusted(ref probabilityAdjustedInnerResult);
-                    //}
-                }
-            }
+                    var historyPointCopy2 = historyPointCopy.DeepCopyToRefStruct(); // Will produce a separate copy for each thread
+                    GeneralizedVanillaUtilities probabilityAdjustedInnerResult = GeneralizedVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues, avgStratPiValues, chanceNode, action, distributorChanceInputs);
+                    result.IncrementBasedOnProbabilityAdjusted(ref probabilityAdjustedInnerResult);
+                });
 
             return result;
         }
