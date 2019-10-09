@@ -103,16 +103,19 @@ namespace ACESim
                 DeferredPlayerNumber = DeferredPlayerNumber,
                 DeferredPlayersToInform = DeferredPlayersToInform,
                 LastDecisionIndexAdded = LastDecisionIndexAdded,
-                ActionsHistory = new byte[GameFullHistory.MaxHistoryLength], // DEBUG 3
-                Cache = new byte[GameHistory.CacheLength],
-                InformationSets = new byte[GameHistory.MaxInformationSetLength]
+                ActionsHistory = ActionsHistory.Length > 0 ? new byte[GameFullHistory.MaxHistoryLength] : null,
+                Cache = Cache.Length > 0 ? new byte[GameHistory.CacheLength] : null,
+                InformationSets = InformationSets.Length > 0 ? new byte[GameHistory.MaxInformationSetLength] : null
             };
-            for (int i = 0; i < GameFullHistory.MaxHistoryLength && i < NextIndexInHistoryActionsOnly; i++)
-                result.ActionsHistory[i] = ActionsHistory[i];
-            for (int i = 0; i < GameHistory.CacheLength; i++)
-                result.Cache[i] = Cache[i];
-            for (int i = 0; i < GameHistory.MaxInformationSetLength; i++)
-                result.InformationSets[i] = InformationSets[i];
+            if (ActionsHistory.Length > 0)
+                for (int i = 0; i < GameFullHistory.MaxHistoryLength && i < NextIndexInHistoryActionsOnly; i++)
+                    result.ActionsHistory[i] = ActionsHistory[i];
+            if (Cache.Length > 0)
+                for (int i = 0; i < GameHistory.CacheLength; i++)
+                    result.Cache[i] = Cache[i];
+            if (InformationSets.Length > 0)
+                for (int i = 0; i < GameHistory.MaxInformationSetLength; i++)
+                    result.InformationSets[i] = InformationSets[i];
             return result;
         }
 
@@ -141,13 +144,16 @@ namespace ACESim
                 DeferredPlayersToInform = DeferredPlayersToInform, // this does not need to be duplicated because it is set in gamedefinition and not changed
                 LastDecisionIndexAdded = LastDecisionIndexAdded,
             };
-            result.CreateArraysForSpans();
-            for (int i = 0; i < GameFullHistory.MaxHistoryLength && i < NextIndexInHistoryActionsOnly; i++)
-                result.ActionsHistory[i] = ActionsHistory[i];
-            for (int i = 0; i < GameHistory.CacheLength; i++)
-                result.Cache[i] = Cache[i];
-            for (int i = 0; i < GameHistory.MaxInformationSetLength; i++)
-                result.InformationSets[i] = InformationSets[i];
+            if (ActionsHistory.Length > 0)
+            {
+                result.CreateArraysForSpans();
+                for (int i = 0; i < GameFullHistory.MaxHistoryLength && i < NextIndexInHistoryActionsOnly; i++)
+                    result.ActionsHistory[i] = ActionsHistory[i];
+                for (int i = 0; i < GameHistory.CacheLength; i++)
+                    result.Cache[i] = Cache[i];
+                for (int i = 0; i < GameHistory.MaxInformationSetLength; i++)
+                    result.InformationSets[i] = InformationSets[i];
+            }
             return result;
         }
 
