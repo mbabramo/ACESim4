@@ -56,6 +56,18 @@ namespace ACESim
         internal int NumRandomIterationsForUtilityCalculation = 10000;
         internal bool SuppressReportDisplayOnScreen;
 
+
+        public int? IterationsForWarmupScenario = 1; // applicable only to fictitious self-play
+
+        public static bool PruneOnOpponentStrategy = true; // NOTE: In general sum games, this seems to cause difficulties, because some of the player's own information sets may not be visited, as a result of pruning on opponents' sets. 
+        public static double PruneOnOpponentStrategyThreshold = 1E-4; // NOTE: This is the probability for this action, not the cumulative probability. 
+        public static bool PredeterminePrunabilityBasedOnRelativeContributions = false; // if True, then we prune if and only if the action contributes negligibly at any later information set
+
+        public bool CFRBR = false; // if true, opponent plays best response
+
+        public bool DistributeChanceDecisions = true;
+        public bool UnrollAlgorithm = false; // DEBUG
+
         // For Vanilla algorithm:
         // From Solving Imperfect Information Games with Discounted Regret Minimization -- optimal values (for situations in which pruning may be used)
         public bool UseDiscounting = false; // Note: This might be helpful sometimes for multiplicative weights
@@ -180,16 +192,5 @@ namespace ACESim
             }
             return RecordPastValues_Iterations.Get(iteration - earliestPossible);
         }
-
-        public int? IterationsForWarmupScenario = 1; // applicable only to fictitious self-play
-
-        public static bool PruneOnOpponentStrategy = true; // NOTE: In general sum games, this seems to cause difficulties, because some of the player's own information sets may not be visited, as a result of pruning on opponents' sets. 
-        public static double PruneOnOpponentStrategyThreshold = 1E-4; // NOTE: This is the probability for this action, not the cumulative probability. 
-        public static bool PredeterminePrunabilityBasedOnRelativeContributions = false; // if True, then we prune if and only if the action contributes negligibly at any later information set
-
-        public bool CFRBR = false; // if true, opponent plays best response
-
-        public bool DistributeChanceDecisions = true; 
-        public bool UnrollAlgorithm = true; 
     }
 }
