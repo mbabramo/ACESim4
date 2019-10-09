@@ -1011,32 +1011,9 @@ namespace ACESim
             {
                 for (byte action = 1; action < (byte)numPossibleActionsToExplore + 1; action++)
                 {
-                    //GeneralizedVanillaUtilities probabilityAdjustedInnerResult = GeneralizedVanillaCFR_ChanceNode_NextAction(ref historyPoint, playerBeingOptimized, piValues,
-                    //       avgStratPiValues, chanceNode, action, distributorChanceInputs);
-                    // DEBUG -- must change Vanilla.cs as well
-                    if (historyPoint.BranchingIsReversible(Navigation, chanceNode.Decision))
-                    {
-                        var DEBUG = historyPoint.HistoryToPoint.DeepCopy();
-                        GeneralizedVanillaUtilities probabilityAdjustedInnerResult = GeneralizedVanillaCFR_ChanceNode_NextAction(ref historyPoint, playerBeingOptimized, piValues,
-                                avgStratPiValues, chanceNode, action, distributorChanceInputs);
-                        result.IncrementBasedOnProbabilityAdjusted(ref probabilityAdjustedInnerResult);
-                        // DEBUG GameDefinition.ReverseDecision(chanceNode.Decision, ref historyPoint, gameStateForCurrentPlayer);
-                        var DEBUG2 = historyPoint.HistoryToPoint.DeepCopy();
-                        if (!DEBUG.Matches(DEBUG2))
-                        {
-                            historyPoint.HistoryToPoint = DEBUG;
-                            GeneralizedVanillaUtilities probabilityAdjustedInnerResult2 = GeneralizedVanillaCFR_ChanceNode_NextAction(ref historyPoint, playerBeingOptimized, piValues,
-                                    avgStratPiValues, chanceNode, action, distributorChanceInputs);
-                            GameDefinition.ReverseDecision(chanceNode.Decision, ref historyPoint, gameStateForCurrentPlayer);
-                        }
-                    }
-                    else
-                    {
-                        var historyPointCopy2 = historyPoint.DeepCopy(); // Need to do this because decision isn't reversible and so we can't change original history point
-                        GeneralizedVanillaUtilities probabilityAdjustedInnerResult = GeneralizedVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues,
-                                avgStratPiValues, chanceNode, action, distributorChanceInputs);
-                        result.IncrementBasedOnProbabilityAdjusted(ref probabilityAdjustedInnerResult);
-                    }
+                    GeneralizedVanillaUtilities probabilityAdjustedInnerResult = GeneralizedVanillaCFR_ChanceNode_NextAction(ref historyPoint, playerBeingOptimized, piValues,
+                            avgStratPiValues, chanceNode, action, distributorChanceInputs);
+                    result.IncrementBasedOnProbabilityAdjusted(ref probabilityAdjustedInnerResult);
                 }
             }
 

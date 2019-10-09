@@ -11,7 +11,7 @@ namespace ACESim
     {
         public bool AzureEnabled = false;
         public bool ParallelOptimization = false;
-        public int MaxParallelDepth = 1;
+        public int MaxParallelDepth = 3;
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.FictitiousSelfPlay;
         public int TotalAvgStrategySamplingCFRIterations = 100000;
         public int TotalProbingCFRIterations = 100000;

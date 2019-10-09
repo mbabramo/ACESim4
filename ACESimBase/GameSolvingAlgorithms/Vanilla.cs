@@ -176,21 +176,10 @@ namespace ACESim
             {
                 for (byte action = 1; action < (byte) numPossibleActions + 1; action++)
                 {
-                    if (historyPoint.BranchingIsReversible(Navigation, chanceNode.Decision))
-                    {
-                        double probabilityAdjustedExpectedValueParticularAction =
-                            VanillaCFR_ChanceNode_NextAction(ref historyPoint, playerBeingOptimized, piValues,
-                                chanceNode, equalProbabilityNextPiValues, expectedValue, action, usePruning);
-                        GameDefinition.ReverseDecision(chanceNode.Decision, ref historyPoint, gameStateForCurrentPlayer);
-                    }
-                    else
-                    {
-                        var historyPointCopy2 = historyPoint.DeepCopy(); // Need to do this because decision isn't reversible and so we can't change original history point
-                        double probabilityAdjustedExpectedValueParticularAction =
-                            VanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues,
-                                chanceNode, equalProbabilityNextPiValues, expectedValue, action, usePruning);
-                        Interlocking.Add(ref expectedValue, probabilityAdjustedExpectedValueParticularAction);
-                    }
+                    double probabilityAdjustedExpectedValueParticularAction =
+                        VanillaCFR_ChanceNode_NextAction(ref historyPoint, playerBeingOptimized, piValues,
+                            chanceNode, equalProbabilityNextPiValues, expectedValue, action, usePruning);
+                    Interlocking.Add(ref expectedValue, probabilityAdjustedExpectedValueParticularAction);
                 }
             }
 
