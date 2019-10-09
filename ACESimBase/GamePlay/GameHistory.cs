@@ -15,7 +15,7 @@ namespace ACESim
 {
 
     [Serializable]
-    public unsafe ref struct GameHistory
+    public ref struct GameHistory
     {
         #region Construction
 
@@ -170,38 +170,40 @@ namespace ACESim
 
         #region Serialization
 
-        //public void GetObjectData(SerializationInfo info, StreamingContext context)
-        //{
-        //    // Use the AddValue method to specify serialized values.
-        //    byte[] informationSets = new byte[MaxInformationSetLength];
-        //    fixed (byte* ptr = InformationSets)
-        //        for (int b = 0; b < MaxInformationSetLength; b++)
-        //            informationSets[b] = *(ptr + b);
+        public void GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            // Use the AddValue method to specify serialized values.
+            byte[] informationSets = new byte[MaxInformationSetLength];
+            for (int b = 0; b < MaxInformationSetLength; b++)
+                informationSets[b] = InformationSets[b];
 
-        //    info.AddValue("informationSets", informationSets, typeof(byte[]));
-        //    info.AddValue("Initialized", Initialized, typeof(bool));
+            info.AddValue("informationSets", informationSets, typeof(byte[]));
+            info.AddValue("Initialized", Initialized, typeof(bool));
 
-        //}
+        }
 
-        //// The special constructor is used to deserialize values.
-        //public GameHistory(SerializationInfo info, StreamingContext context)
-        //{
-        //    byte[] history = (byte[]) info.GetValue("history", typeof(byte[]));
-        //    byte[] informationSets = (byte[]) info.GetValue("informationSets", typeof(byte[]));
-        //    fixed (byte* ptr = InformationSets)
-        //        for (int b = 0; b < MaxInformationSetLength; b++)
-        //            *(ptr + b) = informationSets[b];
-        //    Initialized = (bool) info.GetValue("Initialized", typeof(bool));
+        // The special constructor is used to deserialize values.
+        public GameHistory(SerializationInfo info, StreamingContext context)
+        {
+            ActionsHistory = new byte[GameFullHistory.MaxHistoryLength];
+            Cache = new byte[GameHistory.CacheLength];
+            InformationSets = new byte[GameHistory.MaxInformationSetLength];
 
-        //    NextIndexInHistoryActionsOnly = 0;
-        //    LastDecisionIndexAdded = 255;
-        //    Complete = false;
+            byte[] history = (byte[])info.GetValue("history", typeof(byte[]));
+            byte[] informationSets = (byte[])info.GetValue("informationSets", typeof(byte[]));
+            for (int b = 0; b < MaxInformationSetLength; b++)
+                InformationSets[b] = informationSets[b];
+            Initialized = (bool)info.GetValue("Initialized", typeof(bool));
 
-        //    PreviousNotificationDeferred = false;
-        //    DeferredAction = 0;
-        //    DeferredPlayerNumber = 0;
-        //    DeferredPlayersToInform = null;
-        //}
+            NextIndexInHistoryActionsOnly = 0;
+            LastDecisionIndexAdded = 255;
+            Complete = false;
+
+            PreviousNotificationDeferred = false;
+            DeferredAction = 0;
+            DeferredPlayerNumber = 0;
+            DeferredPlayersToInform = null;
+        }
 
 
         #endregion
@@ -402,31 +404,6 @@ namespace ACESim
 #endif
             }
             playerInfo[playerInfoBufferIndex] = InformationSetTerminator;
-        }
-
-        public unsafe void GetPlayerInformationCurrent(byte playerIndex, byte* playerInfoBuffer)
-        {
-            if (playerIndex >= MaxNumPlayers)
-            {
-                // player has no information
-                *playerInfoBuffer = InformationSetTerminator;
-                return;
-            }
-            int maxInformationSetLengthForPlayer = MaxInformationSetLengthForPlayer(playerIndex);
-            byte size = 0;
-            int playerPointer = InformationSetIndex(playerIndex);
-            while (InformationSets[playerPointer] != InformationSetTerminator)
-            {
-                *playerInfoBuffer = InformationSets[playerPointer];
-                playerPointer++;
-                playerInfoBuffer++;
-                size++;
-#if SAFETYCHECKS
-                if (size == maxInformationSetLengthForPlayer)
-                    ThrowHelper.Throw("Internal error.");
-#endif
-            }
-            *playerInfoBuffer = InformationSetTerminator;
         }
 
 

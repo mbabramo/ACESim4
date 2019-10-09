@@ -77,7 +77,7 @@ namespace ACESim
         /// </summary>
         /// <param name="navigation">The navigation settings. If the LookupApproach is both, this method will verify that both return the same value.</param>
         /// <returns></returns>
-        public unsafe IGameState GetGameStateForCurrentPlayer(HistoryNavigationInfo navigation)
+        public IGameState GetGameStateForCurrentPlayer(HistoryNavigationInfo navigation)
         {
             if (GameState != null)
                 return GameState;
@@ -99,9 +99,9 @@ namespace ACESim
                 navigation.GameDefinition.GetNextDecision(ref HistoryToPoint, out Decision nextDecision, out byte nextDecisionIndex);
                 // If nextDecision is null, then there are no more player decisions. (If this seems wrong, it could be a result of an error in whether to mark a game complete.) When there are no more player decisions, the resolution "player" is used.
                 byte nextPlayer = nextDecision?.PlayerNumber ?? navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
-                byte* informationSetsPtr = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
+                Span<byte> informationSetsPtr = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
                 // string playerInformationString = HistoryToPoint.GetPlayerInformationString(currentPlayer, nextDecision?.DecisionByteCode);
-                HistoryToPoint.GetPlayerInformationCurrent(nextPlayer, informationSetsPtr);
+                GameHistory.GetPlayerInformationCurrent(nextPlayer, HistoryToPoint.InformationSets, informationSetsPtr);
                 if (GameProgressLogger.LoggingOn)
                 {
                     var informationSetList = Util.ListExtensions.GetPointerAsList_255Terminated(informationSetsPtr);
@@ -280,14 +280,14 @@ namespace ACESim
             }
         }
 
-        public unsafe void SetFinalUtilitiesAtPoint(HistoryNavigationInfo navigation, GameProgress gameProgress)
+        public void SetFinalUtilitiesAtPoint(HistoryNavigationInfo navigation, GameProgress gameProgress)
         {
             if (!gameProgress.GameComplete)
                 throw new Exception("Game is not complete.");
             byte resolutionPlayer = navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
             var strategy = navigation.Strategies[resolutionPlayer];
-            byte* resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
-            gameProgress.GameHistory.GetPlayerInformationCurrent(resolutionPlayer, resolutionInformationSet);
+            Span<byte> resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
+            GameHistory.GetPlayerInformationCurrent(resolutionPlayer, gameProgress.GameHistory.InformationSets, resolutionInformationSet);
             //var resolutionInformationSetList = Util.ListExtensions.GetPointerAsList_255Terminated(resolutionInformationSet); 
             NWayTreeStorage<IGameState> informationSetNode = strategy.SetInformationSetTreeValueIfNotSet(
                         resolutionInformationSet,
@@ -303,7 +303,7 @@ namespace ACESim
                 TreePoint.StoredValue = informationSetNode.StoredValue;
         }
 
-        public unsafe double[] GetFinalUtilities(HistoryNavigationInfo navigation)
+        public double[] GetFinalUtilities(HistoryNavigationInfo navigation)
         {
             if (!IsComplete(navigation))
                 throw new Exception("Game is not complete.");
@@ -317,8 +317,8 @@ namespace ACESim
             {
                 byte resolutionPlayer = navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
                 var strategy = navigation.Strategies[resolutionPlayer];
-                byte* resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
-                HistoryToPoint.GetPlayerInformationCurrent(resolutionPlayer, resolutionInformationSet);
+                Span<byte> resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
+                GameHistory.GetPlayerInformationCurrent(resolutionPlayer, HistoryToPoint.InformationSets, resolutionInformationSet);
                 FinalUtilitiesNode finalUtilities = (FinalUtilitiesNode) strategy.GetInformationSetTreeValue(resolutionInformationSet);
                 if (finalUtilities == null)
                 {
@@ -334,7 +334,7 @@ namespace ACESim
 
 
 
-        public unsafe void SetInformationIfNotSet(HistoryNavigationInfo navigation, GameProgress gameProgress, InformationSetHistory informationSetHistory)
+        public void SetInformationIfNotSet(HistoryNavigationInfo navigation, GameProgress gameProgress, InformationSetHistory informationSetHistory)
         {
             //var informationSetString = informationSetHistory.ToString(); 
             //var informationSetList = informationSetHistory.GetInformationSetForPlayerAsList(); 

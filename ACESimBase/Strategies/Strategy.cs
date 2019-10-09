@@ -56,7 +56,7 @@ namespace ACESim
 
         // NOTE: Sometimes we preface the information set with a decisionIndex, so we have dedicated methods for this.
 
-        public unsafe NWayTreeStorage<IGameState> SetInformationSetTreeValueIfNotSet(byte decisionIndex, byte* informationSet, bool historyComplete, Func<IGameState> setter)
+        public NWayTreeStorage<IGameState> SetInformationSetTreeValueIfNotSet(byte decisionIndex, Span<byte> informationSet, bool historyComplete, Func<IGameState> setter)
         {
             if (decisionIndex == 0)
                 decisionIndex = DecisionIndexSubstitute; // a bit hacky -- we can't use a 0 prefix
@@ -65,9 +65,26 @@ namespace ACESim
             return returnVal;
         }
 
+        public unsafe NWayTreeStorage<IGameState> SetInformationSetTreeValueIfNotSet(byte decisionIndex, byte* informationSet, bool historyComplete, Func<IGameState> setter)
+        {
+            // DEBUG: To
+            if (decisionIndex == 0)
+                decisionIndex = DecisionIndexSubstitute; // a bit hacky -- we can't use a 0 prefix
+            var returnVal = InformationSetTree.SetValueIfNotSet(new NWayTreeStorageKeyStackOnly(decisionIndex, informationSet), historyComplete, setter);
+            // System.Diagnostics.TabbedText.WriteLine($"{String.Join(",", informationSet)}: {PlayerInfo.PlayerName} {returnVal.StoredValue}");
+            return returnVal;
+        }
+
+        public NWayTreeStorage<IGameState> SetInformationSetTreeValueIfNotSet(Span<byte> informationSet, bool historyComplete, Func<IGameState> setter)
+        {
+            var returnVal = InformationSetTree.SetValueIfNotSet(new NWayTreeStorageKeyStackOnly(DecisionIndexSubstitute, informationSet), historyComplete, setter);
+            // System.Diagnostics.TabbedText.WriteLine($"{String.Join(",", informationSet)}: {PlayerInfo.PlayerName} {returnVal.StoredValue}");
+            return returnVal;
+        }
+
         public unsafe NWayTreeStorage<IGameState> SetInformationSetTreeValueIfNotSet(byte* informationSet, bool historyComplete, Func<IGameState> setter)
         {
-
+            // DEBUG: Remove
             var returnVal = InformationSetTree.SetValueIfNotSet(new NWayTreeStorageKeyStackOnly(DecisionIndexSubstitute, informationSet), historyComplete, setter);
             // System.Diagnostics.TabbedText.WriteLine($"{String.Join(",", informationSet)}: {PlayerInfo.PlayerName} {returnVal.StoredValue}");
             return returnVal;
@@ -77,12 +94,26 @@ namespace ACESim
 
         public unsafe IGameState GetInformationSetTreeValue(byte decisionIndex, byte* informationSet)
         {
+            // DEBUG -- remove
+            if (decisionIndex == 0)
+                decisionIndex = DecisionIndexSubstitute; // a bit hacky -- we can't use a 0 prefix
+            return InformationSetTree?.GetValue(new NWayTreeStorageKeyStackOnly(decisionIndex, informationSet));
+        }
+
+        public unsafe IGameState GetInformationSetTreeValue(byte decisionIndex, Span<byte> informationSet)
+        {
             if (decisionIndex == 0)
                 decisionIndex = DecisionIndexSubstitute; // a bit hacky -- we can't use a 0 prefix
             return InformationSetTree?.GetValue(new NWayTreeStorageKeyStackOnly(decisionIndex, informationSet));
         }
 
         public unsafe IGameState GetInformationSetTreeValue(byte* informationSet)
+        {
+            // DEBUG -- remove
+            return InformationSetTree?.GetValue(new NWayTreeStorageKeyStackOnly(DecisionIndexSubstitute, informationSet));
+        }
+
+        public unsafe IGameState GetInformationSetTreeValue(Span<byte> informationSet)
         {
             return InformationSetTree?.GetValue(new NWayTreeStorageKeyStackOnly(DecisionIndexSubstitute, informationSet));
         }

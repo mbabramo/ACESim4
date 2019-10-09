@@ -7,7 +7,7 @@ using System.Linq;
 namespace ACESim
 {
 
-    public unsafe struct GameHistoryStorable
+    public struct GameHistoryStorable
     {
         public bool Complete;
         public byte[] ActionsHistory;

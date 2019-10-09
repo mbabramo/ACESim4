@@ -13,7 +13,7 @@ using ACESimBase.Util;
 namespace ACESim
 {
 
-    public unsafe ref struct GameFullHistory
+    public ref struct GameFullHistory
     {
         // Note: This is intended to be read-only except for the contents of the buffers. DEBUG TODO -- CAN'T DO CURRENTLY WITH FIXED
 
@@ -51,9 +51,8 @@ namespace ACESim
         {
             // Use the AddValue method to specify serialized values.
             byte[] history = new byte[MaxHistoryLength];
-            fixed (byte* ptr = History)
-                for (int b = 0; b < MaxHistoryLength; b++)
-                    history[b] = *(ptr + b);
+            for (int b = 0; b < MaxHistoryLength; b++)
+                history[b] = History[b];
 
             info.AddValue("history", history, typeof(byte[]));
             info.AddValue("LastIndexAddedToHistory", LastIndexAddedToHistory, typeof(short));
@@ -65,9 +64,8 @@ namespace ACESim
         {
             History = new byte[MaxHistoryLength]; // rarely used so allocation not an issue
             byte[] history = (byte[])info.GetValue("history", typeof(byte[]));
-            fixed (byte* ptr = History)
-                for (int b = 0; b < MaxHistoryLength; b++)
-                    *(ptr + b) = history[b];
+            for (int b = 0; b < MaxHistoryLength; b++)
+                History[b] = history[b];
             Initialized = true;
             LastIndexAddedToHistory = (short)info.GetValue("LastIndexAddedToHistory", typeof(short));
         }
@@ -77,7 +75,8 @@ namespace ACESim
         /// <summary>
         /// Gets an earlier version of the GameHistory, including everything up to but not including the specified decision. 
         /// </summary>
-        /// <returns></returns>        
+        /// <returns></returns>       
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public byte? LastDecisionIndex()
         {
 #if (SAFETYCHECKS)
@@ -87,14 +86,12 @@ namespace ACESim
             short i = LastIndexAddedToHistory;
             if (i == 0)
                 return null; // no decisions processed yet
-            fixed (byte* historyPtr = History)
-            {
-                return *(historyPtr + i - History_NumPiecesOfInformation + History_DecisionIndex_Offset);
-            }
+            return History[i - History_NumPiecesOfInformation + History_DecisionIndex_Offset];
         }
 
         public unsafe void GetActions(byte* actions)
         {
+            // DEBUG
 #if (SAFETYCHECKS)
             if (!Initialized)
                 ThrowHelper.Throw();
@@ -121,25 +118,29 @@ namespace ACESim
             actions[d] = HistoryTerminator;
         }
 
-        public List<byte> GetActionsAsList()
-        {
-            byte* actions = stackalloc byte[MaxNumActions];
-            GetActions(actions);
-            return ListExtensions.GetPointerAsList_255Terminated(actions);
-        }
 
         public string GetActionsAsListString()
         {
             return String.Join(",", GetActionsAsList());
         }
 
-
-        public unsafe void GetNumPossibleActions(byte* numPossibleActions)
+        public List<byte> GetActionsAsList()
         {
-            GetItems(History_NumPossibleActions_Offset, numPossibleActions);
+            Span<byte> actions = stackalloc byte[MaxNumActions];
+            GetActions(actions);
+            return ListExtensions.GetPointerAsList_255Terminated(actions);
         }
 
-        private unsafe void GetItems(int offset, byte* items)
+        public unsafe void GetActions(Span<byte> actions)
+        {
+#if (SAFETYCHECKS)
+            if (!Initialized)
+                ThrowHelper.Throw();
+#endif
+            GetItems(History_Action_Offset, actions);
+        }
+
+        private unsafe void GetItems(int offset, Span<byte> items)
         {
 #if (SAFETYCHECKS)
             if (!Initialized)
@@ -152,21 +153,36 @@ namespace ACESim
             items[d] = HistoryTerminator;
         }
 
+        private unsafe void GetItems(int offset, byte* items)
+        {
+            // DEBUG
+#if (SAFETYCHECKS)
+            if (!Initialized)
+                ThrowHelper.Throw();
+#endif
+            int d = 0;
+            if (LastIndexAddedToHistory != 0)
+                for (short i = 0; i < LastIndexAddedToHistory; i += History_NumPiecesOfInformation)
+                    items[d++] = GetHistoryIndex(i + offset);
+            items[d] = HistoryTerminator;
+        }
+
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private byte GetHistoryIndex(int i)
         {
             // The following is useful in iterator blocks, which cannot directly contain unsafe code.
-            fixed (byte* historyPtr = History)
-                return *(historyPtr + i);
+            return History[i];
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool IsComplete()
         {
 #if (SAFETYCHECKS)
             if (!Initialized)
                 ThrowHelper.Throw();
 #endif
-            fixed (byte* historyPtr = History)
-                return (*(historyPtr + LastIndexAddedToHistory) == HistoryComplete);
+            return History[LastIndexAddedToHistory] == HistoryComplete;
         }
 
         public short GetInformationSetHistoryItems_Count(GameProgress gameProgress)
@@ -275,20 +291,19 @@ namespace ACESim
 #endif
             int? lastDecisionWithAnotherAction = null;
 
-            fixed (byte* historyPtr = History)
-                for (int i = LastIndexAddedToHistory - History_NumPiecesOfInformation; i >= 0; i -= History_NumPiecesOfInformation)
+            for (int i = LastIndexAddedToHistory - History_NumPiecesOfInformation; i >= 0; i -= History_NumPiecesOfInformation)
+            {
+                int decisionByteCode = History[i + History_DecisionByteCode_Offset];
+                int decisionIndex = History[i + History_DecisionIndex_Offset];
+                int playerIndex = History[i + History_PlayerNumber_Offset];
+                int action = History[i + History_Action_Offset];
+                int numPossibleActions = History[i + History_NumPossibleActions_Offset];
+                if (gameDefinition.DecisionsExecutionOrder[decisionIndex].NumPossibleActions > action)
                 {
-                    int decisionByteCode = *(historyPtr + i + History_DecisionByteCode_Offset);
-                    int decisionIndex = *(historyPtr + i + History_DecisionIndex_Offset);
-                    int playerIndex = *(historyPtr + i + History_PlayerNumber_Offset);
-                    int action = *(historyPtr + i + History_Action_Offset);
-                    int numPossibleActions = *(historyPtr + i + History_NumPossibleActions_Offset);
-                    if (gameDefinition.DecisionsExecutionOrder[decisionIndex].NumPossibleActions > action)
-                    {
-                        lastDecisionWithAnotherAction = decisionIndex;
-                        break;
-                    }
+                    lastDecisionWithAnotherAction = decisionIndex;
+                    break;
                 }
+            }
 #if (SAFETYCHECKS)
             if (lastDecisionWithAnotherAction == null)
                 ThrowHelper.Throw("No more decision paths to take."); // indicates that there are no more decisions to take

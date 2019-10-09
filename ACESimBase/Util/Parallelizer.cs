@@ -166,8 +166,6 @@ namespace ACESim
             if (doParallel)
             {
                 IncrementParallelDepth();
-                if (MaxDegreeOfParallelism == null)
-                    MaxDegreeOfParallelism = Environment.ProcessorCount;
                 Parallel.ForEach(Partitioner.Create(start, stopBeforeThis),
                     GetParallelOptions(),
                     (range) =>
