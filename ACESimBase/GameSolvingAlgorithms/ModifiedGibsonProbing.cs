@@ -137,7 +137,7 @@ namespace ACESim
 
         private double[] CompleteModifiedGibsonProbe_InPlace(in HistoryPoint historyPoint, IRandomProducer randomProducer, byte sampledAction, Decision nextDecision, byte nextDecisionIndex)
         {
-            historyPoint.SwitchToBranch(Navigation, sampledAction, nextDecision, nextDecisionIndex);
+            historyPoint = historyPoint.SwitchToBranch(Navigation, sampledAction, nextDecision, nextDecisionIndex);
             if (TraceCFR)
                 TabbedText.TabIndent();
             double[] probeResult = ModifiedGibsonProbe(ref historyPoint, randomProducer);
@@ -200,7 +200,7 @@ namespace ACESim
                 if (historyPoint.BranchingIsReversible(Navigation, informationSet.Decision))
                 {
                     IGameState gameStateOriginal = historyPoint.GameState; // TODO -- move out of loop?
-                    historyPoint.SwitchToBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
+                    historyPoint = historyPoint.SwitchToBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                     summation = ModifiedGibsonProbe_CalculateCounterfactualValues(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, informationSet, sigmaRegretMatchedActionProbabilities, action, sampledAction, samplingProbabilities, counterfactualValues, summation);
                     GameDefinition.ReverseDecision(informationSet.Decision, ref historyPoint, gameStateOriginal);
                 }
@@ -322,7 +322,7 @@ namespace ACESim
         private double ModifiedGibsonProbe_WalkTree_DecisionNode_OtherPlayer_Reversible(in HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNode informationSet, byte sampledAction)
         {
             IGameState gameStateOriginal = historyPoint.GameState;
-            historyPoint.SwitchToBranch(Navigation, sampledAction, informationSet.Decision, informationSet.DecisionIndex);
+            historyPoint = historyPoint.SwitchToBranch(Navigation, sampledAction, informationSet.Decision, informationSet.DecisionIndex);
             if (TraceCFR)
                 TabbedText.TabIndent();
             double walkTreeValue = ModifiedGibsonProbe_WalkTree(ref historyPoint, playerBeingOptimized, samplingProbabilityQ,
@@ -380,11 +380,11 @@ namespace ACESim
                 TabbedText.WriteLine(
                     $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} for chance decision {chanceNode.DecisionIndex}");
             IGameState gameStateOriginal = historyPoint.GameState;
-            historyPoint.SwitchToBranch(Navigation, sampledAction, chanceNode.Decision, chanceNode.DecisionIndex);
+            historyPoint = historyPoint.SwitchToBranch(Navigation, sampledAction, chanceNode.Decision, chanceNode.DecisionIndex);
             if (TraceCFR)
                 TabbedText.TabIndent();
             // var actionsToHere = nextHistoryPoint.GetActionsToHereString(Navigation);
-            double walkTreeValue = ModifiedGibsonProbe_WalkTree(ref historyPoint, playerBeingOptimized, samplingProbabilityQ,
+            double walkTreeValue = ModifiedGibsonProbe_WalkTree(in historyPoint, playerBeingOptimized, samplingProbabilityQ,
                 randomProducer, chanceNode.Decision, chanceNode.DecisionIndex);
             GameDefinition.ReverseDecision(chanceNode.Decision, ref historyPoint, gameStateOriginal);
             if (TraceCFR)

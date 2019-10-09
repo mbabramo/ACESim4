@@ -336,7 +336,7 @@ namespace ACESim
         public IGameState GetGameState(HistoryPointStorable historyPointStorable, HistoryNavigationInfo? navigation = null)
         {
             HistoryPoint historyPoint = historyPointStorable.ShallowCopyToRefStruct();
-            return GetGameState(ref historyPoint, navigation);
+            return GetGameState(in historyPoint, navigation);
         }
 
         public IGameState GetGameState(in HistoryPoint historyPoint, HistoryNavigationInfo? navigation = null)
@@ -345,7 +345,7 @@ namespace ACESim
             var historyPoint2 = historyPoint.GetGameStateForCurrentPlayer(navigationSettings);
             if (historyPoint2.GameState != null)
                 return historyPoint2.GameState;
-            return GetGameStateByPlayingUnderlyingGame(ref historyPoint, navigationSettings);
+            return GetGameStateByPlayingUnderlyingGame(in historyPoint, navigationSettings);
         }
 
         private unsafe IGameState GetGameStateByPlayingUnderlyingGame(in HistoryPoint historyPoint, HistoryNavigationInfo navigationSettings)
@@ -355,7 +355,7 @@ namespace ACESim
             (GameProgress progress, _) = GamePlayer.PlayPath(actionsSoFar, false);
             for (int i = 0; i < 20; i++) // shouldn't be necessary to do more than once, but maybe some parallelism issue is causing the need for that
             {
-                gameState = ProcessProgress(ref historyPoint, navigationSettings, progress);
+                gameState = ProcessProgress(in historyPoint, navigationSettings, progress);
                 if (gameState != null)
                     return gameState;
             }
@@ -366,8 +366,8 @@ namespace ACESim
         {
             ProcessInitializedGameProgress(progress);
             NumInitializedGamePaths++; // Note: This may not be exact if we initialize the same game path twice (e.g., if we are playing in parallel)
-            historyPoint = historyPoint.GetGameStateForCurrentPlayer(navigationSettings);
-            return historyPoint.GameState;
+            var historyPoint2 = historyPoint.GetGameStateForCurrentPlayer(navigationSettings);
+            return historyPoint2.GameState;
         }
 
         #endregion
@@ -423,7 +423,7 @@ namespace ACESim
 
         public unsafe double[] PrintGameTree_Helper_Manual(in HistoryPoint historyPoint)
         {
-            IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
+            IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
             //if (TraceCFR)
             //    TabbedText.WriteLine($"Probe optimizing player {playerBeingOptimized}");
             if (gameStateForCurrentPlayer is FinalUtilitiesNode finalUtilities)
@@ -443,7 +443,7 @@ namespace ACESim
                         TabbedText.WriteLine($"{action} (C): p={chanceProbability:N2}");
                         HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
                         TabbedText.TabIndent();
-                        double[] utilitiesAtNextHistoryPoint = PrintGameTree_Helper_Manual(ref nextHistoryPoint);
+                        double[] utilitiesAtNextHistoryPoint = PrintGameTree_Helper_Manual(in nextHistoryPoint);
                         TabbedText.TabUnindent();
                         if (cumUtilities == null)
                             cumUtilities = new double[utilitiesAtNextHistoryPoint.Length];
@@ -464,7 +464,7 @@ namespace ACESim
                         TabbedText.WriteLine($"{action} (P{informationSet.PlayerIndex}): p={actionProbabilities[action - 1]:N2} ({informationSet.ToStringAbbreviated()})");
                         HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                         TabbedText.TabIndent();
-                        double[] utilitiesAtNextHistoryPoint = PrintGameTree_Helper_Manual(ref nextHistoryPoint);
+                        double[] utilitiesAtNextHistoryPoint = PrintGameTree_Helper_Manual(in nextHistoryPoint);
                         TabbedText.TabUnindent();
                         if (cumUtilities == null)
                             cumUtilities = new double[utilitiesAtNextHistoryPoint.Length];
@@ -535,7 +535,7 @@ namespace ACESim
                 {
                     List<byte> informationSetList = informationSetHistoryCopy.GetInformationSetForPlayerAsList();
                     TabbedText.WriteLine($"Information set before action: {String.Join(",", informationSetList)}");
-                    IGameState gameState = GetGameState(ref historyPoint);
+                    IGameState gameState = GetGameState(in historyPoint);
                     TabbedText.WriteLine($"Game state before action: {gameState}");
                 }
                 TabbedText.WriteLine($"==> Action chosen: {informationSetHistory.ActionChosen}");
@@ -615,7 +615,7 @@ namespace ACESim
 
         public double GetUtilityFromTerminalHistory(in HistoryPoint historyPoint, byte playerIndex)
         {
-            double[] utilities = GetUtilities(ref historyPoint);
+            double[] utilities = GetUtilities(in historyPoint);
             return utilities[playerIndex];
         }
 
@@ -995,7 +995,7 @@ namespace ACESim
             double[] cumulated = new double[NumNonChancePlayers];
             Navigation = new HistoryNavigationInfo(LookupApproach, Strategies, GameDefinition, InformationSets, ChanceNodes, FinalUtilitiesNodes, GetGameState, EvolutionSettings);
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
-            GetAverageUtilities_Helper(ref historyPoint, cumulated, 1.0);
+            GetAverageUtilities_Helper(in historyPoint, cumulated, 1.0);
             return cumulated;
         }
 
@@ -1017,7 +1017,7 @@ namespace ACESim
                     if (actionProb > 0)
                     {
                         HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
-                        GetAverageUtilities_Helper(ref nextHistoryPoint, cumulated, prob * actionProb);
+                        GetAverageUtilities_Helper(in nextHistoryPoint, cumulated, prob * actionProb);
                     }
                 }
             }
@@ -1031,7 +1031,7 @@ namespace ACESim
                     if (actionProbabilities[action - 1] > 0)
                     {
                         HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
-                        GetAverageUtilities_Helper(ref nextHistoryPoint, cumulated, prob * actionProbabilities[action - 1]);
+                        GetAverageUtilities_Helper(in nextHistoryPoint, cumulated, prob * actionProbabilities[action - 1]);
                     }
                 }
             }
@@ -1093,7 +1093,7 @@ namespace ACESim
                 List<byte> actions = completedGame.ShallowCopyToRefStruct().GetActionsToHere(Navigation);
                 (GameProgress progress, _) = player.PlayPath(actions, false);
                 // do the simple aggregation of utilities. note that this is different from the value returned by vanilla, since that uses regret matching, instead of average strategies.
-                double[] utilities = GetUtilities(ref completedGame);
+                double[] utilities = GetUtilities(in completedGame);
                 UtilityCalculationsArray.Add(utilities, probabilityOfPath);
                 // consume the result for reports
                 bool messageAccepted;
@@ -1223,7 +1223,7 @@ namespace ACESim
             var chanceNodeAggregationDictionary = new Dictionary<string, ChanceNodeUnequalProbabilities>();
             var informationSetAggregationDictionary = new Dictionary<string, InformationSetNode>();
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
-            DistributeChanceDecisions_WalkNode(ref historyPoint, 1.0 /* 100% probability of playing to beginning */, 0 /* no nondistributed actions yet */, "", chanceNodeAggregationDictionary, informationSetAggregationDictionary);
+            DistributeChanceDecisions_WalkNode(in historyPoint, 1.0 /* 100% probability of playing to beginning */, 0 /* no nondistributed actions yet */, "", chanceNodeAggregationDictionary, informationSetAggregationDictionary);
             foreach (var chanceNode in Navigation.ChanceNodes)
                 if (chanceNode is ChanceNodeUnequalProbabilities unequal)
                     unequal.NormalizeDistributorChanceInputProbabilities();
@@ -1232,16 +1232,16 @@ namespace ACESim
 
         private unsafe bool DistributeChanceDecisions_WalkNode(in HistoryPoint historyPoint, double piChance, int distributorChanceInputs, string distributedActionsString, Dictionary<string, ChanceNodeUnequalProbabilities> chanceNodeAggregationDictionary, Dictionary<string, InformationSetNode> informationSetAggregationDictionary)
         {
-            IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
+            IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
             GameStateTypeEnum gameStateTypeEnum = gameStateForCurrentPlayer.GetGameStateType();
             bool result = false;
             //TabbedText.TabIndent();
             if (gameStateTypeEnum == GameStateTypeEnum.Chance)
             {
-                result = DistributeChanceDecisions_ChanceNode(ref historyPoint, piChance, distributorChanceInputs, distributedActionsString, chanceNodeAggregationDictionary, informationSetAggregationDictionary);
+                result = DistributeChanceDecisions_ChanceNode(in historyPoint, piChance, distributorChanceInputs, distributedActionsString, chanceNodeAggregationDictionary, informationSetAggregationDictionary);
             }
             else if (gameStateTypeEnum == GameStateTypeEnum.InformationSet)
-                result = DistributeChanceDecisions_DecisionNode(ref historyPoint, piChance, distributorChanceInputs, distributedActionsString, chanceNodeAggregationDictionary, informationSetAggregationDictionary);
+                result = DistributeChanceDecisions_DecisionNode(in historyPoint, piChance, distributorChanceInputs, distributedActionsString, chanceNodeAggregationDictionary, informationSetAggregationDictionary);
             else
                 result = false; // don't stop non-chance decisions; we need to backtrack and then move forwards to get to a chance decision
             //TabbedText.TabUnindent();
@@ -1250,7 +1250,7 @@ namespace ACESim
 
         private unsafe bool DistributeChanceDecisions_DecisionNode(in HistoryPoint historyPoint, double piChance, int distributorChanceInputs, string distributedActionsString, Dictionary<string, ChanceNodeUnequalProbabilities> chanceNodeAggregationDictionary, Dictionary<string, InformationSetNode> informationSetAggregationDictionary)
         {
-            IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
+            IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
             var informationSet = (InformationSetNode)gameStateForCurrentPlayer;
             //TabbedText.WriteLine($"Information set {informationSet.Decision.Name} ({informationSet.InformationSetNumber})");
             byte decisionNum = informationSet.DecisionIndex;
@@ -1261,7 +1261,7 @@ namespace ACESim
                 if (informationSet.Decision.DistributorChanceInputDecision)
                     distributorChanceInputsNext += action * informationSet.Decision.DistributorChanceInputDecisionMultiplier;
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
-                bool stopNonChanceDecisions = DistributeChanceDecisions_WalkNode(ref nextHistoryPoint, piChance, distributorChanceInputsNext, distributedActionsString, chanceNodeAggregationDictionary, informationSetAggregationDictionary);
+                bool stopNonChanceDecisions = DistributeChanceDecisions_WalkNode(in nextHistoryPoint, piChance, distributorChanceInputsNext, distributedActionsString, chanceNodeAggregationDictionary, informationSetAggregationDictionary);
                 if (stopNonChanceDecisions && !informationSet.Decision.DistributorChanceInputDecision) // once we have returned from a distributor decision and are working backwards, we just need to get back to the previous chance decision, so we don't need to walk every possible player action in the tree
                     return stopNonChanceDecisions;
             }
@@ -1270,7 +1270,7 @@ namespace ACESim
 
         private unsafe bool DistributeChanceDecisions_ChanceNode(in HistoryPoint historyPoint, double piChance, int distributorChanceInputs, string distributedActionsString, Dictionary<string, ChanceNodeUnequalProbabilities> chanceNodeAggregationDictionary, Dictionary<string, InformationSetNode> informationSetAggregationDictionary)
         {
-            IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
+            IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
             ChanceNode chanceNode = (ChanceNode)gameStateForCurrentPlayer;
             //TabbedText.WriteLine($"Chance node {chanceNode.Decision.Name}"); 
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNode.DecisionIndex);
@@ -1299,7 +1299,7 @@ namespace ACESim
                     for (byte action = 1; action <= numPossibleActions; action++)
                     {
                         HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
-                        DistributeChanceDecisions_WalkNode(ref nextHistoryPoint, piChance /* because one distributor decision will not depend on another, we won't adjust piChance */, distributorChanceInputs, distributedActionsString, chanceNodeAggregationDictionary, informationSetAggregationDictionary);
+                        DistributeChanceDecisions_WalkNode(in nextHistoryPoint, piChance /* because one distributor decision will not depend on another, we won't adjust piChance */, distributorChanceInputs, distributedActionsString, chanceNodeAggregationDictionary, informationSetAggregationDictionary);
                     };
 
                     return true; // we're going back up the tree after a distributor decision, so we don'tneed to walk through all other action decisions
@@ -1319,7 +1319,7 @@ namespace ACESim
                 //if (chanceNode.Decision.Name.Contains("PostPrimary") || chanceNode.Decision.Name.Contains("LiabilitySignal") || chanceNode.Decision.Name.Contains("LiabilityStrength") || chanceNode.Decision.Name.Contains("PrePrimary"))
                 //    TabbedText.WriteLine($"{chanceNode.Decision.Name}: action: {action} probability: {actionProbability} cumulative probability {piChanceNext}");
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
-                bool stopNonChanceDecisions = DistributeChanceDecisions_WalkNode(ref nextHistoryPoint, piChanceNext, distributorChanceInputsNext, chanceNode.Decision.DistributedChanceDecision ? distributedActionsString + chanceNode.DecisionByteCode + ":1;" : distributedActionsString, chanceNodeAggregationDictionary, informationSetAggregationDictionary);
+                bool stopNonChanceDecisions = DistributeChanceDecisions_WalkNode(in nextHistoryPoint, piChanceNext, distributorChanceInputsNext, chanceNode.Decision.DistributedChanceDecision ? distributedActionsString + chanceNode.DecisionByteCode + ":1;" : distributedActionsString, chanceNodeAggregationDictionary, informationSetAggregationDictionary);
                 if (stopNonChanceDecisions && chanceNode.Decision.NumPossibleActions == 1)
                     return true; // this is just a dummy chance decision, so we need to backtrack to a real chance decision
             };
@@ -1497,12 +1497,12 @@ namespace ACESim
         public void CorrelatedEquilibriumCalculationString_Tree(StringBuilder codeGenerationBuilder, byte player, ActionStrategies actionStrategy)
         {
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
-            CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, ref historyPoint, player, actionStrategy, 0);
+            CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, in historyPoint, player, actionStrategy, 0);
         }
 
         public void CorrelatedEquilibriumCalculation_Node(StringBuilder codeGenerationBuilder, in HistoryPoint historyPoint, byte player, ActionStrategies actionStrategy, int distributorChanceInputs)
         {
-            IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
+            IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
             GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
             if (gameStateType == GameStateTypeEnum.FinalUtilities)
             {
@@ -1511,15 +1511,15 @@ namespace ACESim
             }
             else if (gameStateType == GameStateTypeEnum.Chance)
             {
-                CorrelatedEquilibriumCalculation_ChanceNode(codeGenerationBuilder, ref historyPoint, player, actionStrategy, distributorChanceInputs);
+                CorrelatedEquilibriumCalculation_ChanceNode(codeGenerationBuilder, in historyPoint, player, actionStrategy, distributorChanceInputs);
             }
             else
-                CorrelatedEquilibriumCalculation_DecisionNode(codeGenerationBuilder, ref historyPoint, player, actionStrategy, distributorChanceInputs);
+                CorrelatedEquilibriumCalculation_DecisionNode(codeGenerationBuilder, in historyPoint, player, actionStrategy, distributorChanceInputs);
         }
 
         public void CorrelatedEquilibriumCalculation_ChanceNode(StringBuilder codeGenerationBuilder, in HistoryPoint historyPoint, byte player, ActionStrategies actionStrategy, int distributorChanceInputs)
         {
-            IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
+            IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
             ChanceNode chanceNode = (ChanceNode)gameStateForCurrentPlayer;
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNode.DecisionIndex);
             byte numPossibleActionsToExplore = numPossibleActions;
@@ -1539,7 +1539,7 @@ namespace ACESim
                 }
                 codeGenerationBuilder.Append(" ( ");
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
-                CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, ref nextHistoryPoint, player, actionStrategy, distributorChanceInputsNext);
+                CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, in nextHistoryPoint, player, actionStrategy, distributorChanceInputsNext);
                 codeGenerationBuilder.Append(" ) ");
                 if (action < numPossibleActionsToExplore)
                     codeGenerationBuilder.Append(" + ");
@@ -1548,7 +1548,7 @@ namespace ACESim
 
         public void CorrelatedEquilibriumCalculation_DecisionNode(StringBuilder codeGenerationBuilder, in HistoryPoint historyPoint, byte player, ActionStrategies actionStrategy, int distributorChanceInputs)
         {
-            IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
+            IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
             InformationSetNode informationSetNode = (InformationSetNode)gameStateForCurrentPlayer;
             byte numPossibleActions = NumPossibleActionsAtDecision(informationSetNode.DecisionIndex);
             byte numPossibleActionsToExplore = numPossibleActions;
@@ -1568,7 +1568,7 @@ namespace ACESim
                     distributorChanceInputsNext += 1 * informationSetNode.Decision.DistributorChanceInputDecisionMultiplier;
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, 1, informationSetNode.Decision, informationSetNode.DecisionIndex);
                 codeGenerationBuilder.Append(" ( ");
-                CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, ref nextHistoryPoint, player, actionStrategy, distributorChanceInputsNext);
+                CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, in nextHistoryPoint, player, actionStrategy, distributorChanceInputsNext);
                 codeGenerationBuilder.Append(" ) ");
                 return;
             }
@@ -1584,7 +1584,7 @@ namespace ACESim
                         distributorChanceInputsNext += action * informationSetNode.Decision.DistributorChanceInputDecisionMultiplier;
                     codeGenerationBuilder.Append($", ( ");
                     HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSetNode.Decision, informationSetNode.DecisionIndex);
-                    CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, ref nextHistoryPoint, player, actionStrategy, distributorChanceInputsNext);
+                    CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, in nextHistoryPoint, player, actionStrategy, distributorChanceInputsNext);
                     codeGenerationBuilder.Append(" ) ");
                 }
 
@@ -1599,7 +1599,7 @@ namespace ACESim
                         distributorChanceInputsNext += action * informationSetNode.Decision.DistributorChanceInputDecisionMultiplier;
                     codeGenerationBuilder.Append($"({nodeString}.PVP(cei, {action}, () => (");
                     HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSetNode.Decision, informationSetNode.DecisionIndex);
-                    CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, ref nextHistoryPoint, player, actionStrategy, distributorChanceInputsNext);
+                    CorrelatedEquilibriumCalculation_Node(codeGenerationBuilder, in nextHistoryPoint, player, actionStrategy, distributorChanceInputsNext);
                     codeGenerationBuilder.Append(")))"); // end function within PVP and PVP itself, plus surrounding parens
                     if (action < numPossibleActionsToExplore)
                         codeGenerationBuilder.Append(" + ");
@@ -1616,22 +1616,22 @@ namespace ACESim
         public Back TreeWalk_Tree<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, Forward forward = default)
         {
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
-            return TreeWalk_Node(processor, null, 0, 0, forward, 0, ref historyPoint);
+            return TreeWalk_Node(processor, null, 0, 0, forward, 0, in historyPoint);
         }
 
         public Back TreeWalk_Node<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, Forward forward, int distributorChanceInputs, in HistoryPoint historyPoint)
         {
             if (TraceTreeWalk)
                 TabbedText.TabIndent();
-            IGameState gameState = GetGameState(ref historyPoint);
+            IGameState gameState = GetGameState(in historyPoint);
             Back b = default;
             switch (gameState)
             {
                 case ChanceNode c:
-                    b = TreeWalk_ChanceNode(processor, c, predecessor, predecessorAction, predecessorDistributorChanceInputs, forward, distributorChanceInputs, ref historyPoint);
+                    b = TreeWalk_ChanceNode(processor, c, predecessor, predecessorAction, predecessorDistributorChanceInputs, forward, distributorChanceInputs, in historyPoint);
                     break;
                 case InformationSetNode n:
-                    b = TreeWalk_DecisionNode(processor, n, predecessor, predecessorAction, predecessorDistributorChanceInputs, forward, distributorChanceInputs, ref historyPoint);
+                    b = TreeWalk_DecisionNode(processor, n, predecessor, predecessorAction, predecessorDistributorChanceInputs, forward, distributorChanceInputs, in historyPoint);
                     break;
                 case FinalUtilitiesNode f:
                     if (TraceTreeWalk)
@@ -1663,7 +1663,7 @@ namespace ACESim
                 int distributorChanceInputsNext = isDistributorChanceInputDecision ? distributorChanceInputs + action * chanceNode.Decision.DistributorChanceInputDecisionMultiplier : distributorChanceInputs;
 
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
-                var fromSuccessor = TreeWalk_Node(processor, chanceNode, action, distributorChanceInputs, nextForward, distributorChanceInputsNext, ref nextHistoryPoint);
+                var fromSuccessor = TreeWalk_Node(processor, chanceNode, action, distributorChanceInputs, nextForward, distributorChanceInputsNext, in nextHistoryPoint);
                 fromSuccessors.Add(fromSuccessor);
 
                 if (isDistributedChanceDecision)
@@ -1689,7 +1689,7 @@ namespace ACESim
                 if (informationSetNode.Decision.DistributorChanceInputDecision)
                     throw new NotSupportedException(); // currently, we are only passing forward an array of distributor chance inputs from chance decisions, but we could adapt this to player decisions.
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSetNode.Decision, informationSetNode.DecisionIndex);
-                var fromSuccessor = TreeWalk_Node(processor, informationSetNode, action, predecessorDistributorChanceInputs, nextForward, distributorChanceInputs, ref nextHistoryPoint);
+                var fromSuccessor = TreeWalk_Node(processor, informationSetNode, action, predecessorDistributorChanceInputs, nextForward, distributorChanceInputs, in nextHistoryPoint);
                 fromSuccessors.Add(fromSuccessor);
             }
             return processor.InformationSet_Backward(informationSetNode, fromSuccessors);

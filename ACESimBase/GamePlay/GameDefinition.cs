@@ -386,14 +386,14 @@ namespace ACESim
             return false;
         }
 
-        public virtual void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte action, in GameHistory gameHistory, GameProgress gameProgress)
+        public virtual void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte action, ref GameHistory gameHistory, GameProgress gameProgress)
         {
             // Entirely subclass. This method allow one to change information sets in ways other than mechanically adding items to an information set.
             // It is defined in the GameDefinition, rather than in the Game, because it needs to be called when playing a cached game (i.e., going through 
             // the game tree without creating Game or GameProgress objects).
         }
 
-        public virtual void ReverseDecision(Decision decisionToReverse, in HistoryPoint historyPoint, IGameState originalGameState)
+        public virtual void ReverseDecision(Decision decisionToReverse, ref HistoryPoint historyPoint, IGameState originalGameState)
         {
             GameHistory gameHistory = historyPoint.HistoryToPoint;
             if (decisionToReverse.PlayersToInform != null)
@@ -409,8 +409,8 @@ namespace ACESim
                 gameHistory.SetCacheItemAtIndex((byte)decisionToReverse.StoreActionInGameCacheItem, 0);
             gameHistory.RemoveLastActionFromSimpleActionsList();
             gameHistory.Complete = false; // just in case it was marked true
-            var historyPoint2 = historyPoint.WithGameState(originalGameState);
-            if (historyPoint2.GameProgress != null || historyPoint2.TreePoint != null)
+            historyPoint = historyPoint.WithGameState(originalGameState);
+            if (historyPoint.GameProgress != null || historyPoint.TreePoint != null)
                 throw new Exception();
         }
 
@@ -435,7 +435,7 @@ namespace ACESim
             {
                 nextDecisionIndex++;
                 decision = DecisionsExecutionOrder[nextDecisionIndex]; // NOTE: If we get an argument out of range exception here, it can be caused by failure to properly note that game is complete in GameDefinition.ShouldMarkGameDefinitionComplete. 
-            } while (nextDecisionIndex < numDecisionsExecutionOrder - 1 && SkipDecision(decision, ref gameHistory));
+            } while (nextDecisionIndex < numDecisionsExecutionOrder - 1 && SkipDecision(decision, in gameHistory));
         }
 
         public virtual bool SkipDecision(Decision decision, in GameHistory gameHistory)

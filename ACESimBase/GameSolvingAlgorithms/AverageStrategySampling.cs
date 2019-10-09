@@ -32,7 +32,7 @@ namespace ACESim
         {
             if (TraceCFR)
                 TabbedText.WriteLine($"WalkTree sampling probability {samplingProbabilityQ}");
-            IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
+            IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
             byte sampledAction = 0;
             GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
             HistoryPoint nextHistoryPoint;
@@ -99,7 +99,7 @@ namespace ACESim
                         if (TraceCFR)
                             TabbedText.TabIndent();
                         double walkTreeValue2 =
-                            AverageStrategySampling_WalkTree(ref nextHistoryPoint, playerBeingOptimized,
+                            AverageStrategySampling_WalkTree(in nextHistoryPoint, playerBeingOptimized,
                                 samplingProbabilityQ, informationSet.Decision, informationSet.DecisionIndex);
                         if (TraceCFR)
                         {
@@ -136,7 +136,7 @@ namespace ACESim
                             if (TraceCFR)
                                 TabbedText.TabIndent();
                             nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
-                            counterfactualValues[action - 1] = AverageStrategySampling_WalkTree(ref nextHistoryPoint,
+                            counterfactualValues[action - 1] = AverageStrategySampling_WalkTree(in nextHistoryPoint,
                                 playerBeingOptimized, samplingProbabilityQ * Math.Min(1.0, rho), informationSet.Decision, informationSet.DecisionIndex);
                             counterfactualSummation +=
                                 sigma_regretMatchedActionProbabilities[action - 1] *
@@ -185,7 +185,7 @@ namespace ACESim
                     TabbedText.WriteLine($"Optimize player {playerBeingOptimized}");
                     TabbedText.TabIndent();
                 }
-                AverageStrategySampling_WalkTree(ref historyPoint, playerBeingOptimized, 1.0, GameDefinition.DecisionsExecutionOrder[0], 0);
+                AverageStrategySampling_WalkTree(in historyPoint, playerBeingOptimized, 1.0, GameDefinition.DecisionsExecutionOrder[0], 0);
                 if (TraceCFR)
                     TabbedText.TabUnindent();
             }

@@ -182,7 +182,7 @@ namespace ACESim
 
         #region Game situations
 
-        public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, in GameHistory gameHistory, GameProgress gameProgress)
+        public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, ref GameHistory gameHistory, GameProgress gameProgress)
         {
         }
 

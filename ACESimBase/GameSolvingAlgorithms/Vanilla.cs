@@ -33,7 +33,7 @@ namespace ACESim
         {
             if (usePruning && ShouldPruneIfPruning(piValues))
                 return 0;
-            IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
+            IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
             GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
             if (gameStateType == GameStateTypeEnum.FinalUtilities)
             {
@@ -43,10 +43,10 @@ namespace ACESim
             else if (gameStateType == GameStateTypeEnum.Chance)
             {
                 ChanceNode chanceNode = (ChanceNode) gameStateForCurrentPlayer;
-                return VanillaCFR_ChanceNode(ref historyPoint, playerBeingOptimized, piValues, usePruning);
+                return VanillaCFR_ChanceNode(in historyPoint, playerBeingOptimized, piValues, usePruning);
             }
             else
-                return VanillaCFR_DecisionNode(ref historyPoint, playerBeingOptimized, piValues, usePruning);
+                return VanillaCFR_DecisionNode(in historyPoint, playerBeingOptimized, piValues, usePruning);
         }
 
         private unsafe bool ShouldPruneIfPruning(Span<double> piValues)
@@ -73,7 +73,7 @@ namespace ACESim
             //var actionsToHere = historyPoint.GetActionsToHere(Navigation);
             //var historyPointString = historyPoint.ToString();
 
-            IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
+            IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
             var informationSet = (InformationSetNode) gameStateForCurrentPlayer;
             byte decisionNum = informationSet.DecisionIndex;
             byte playerMakingDecision = informationSet.PlayerIndex;
@@ -104,7 +104,7 @@ namespace ACESim
                     TabbedText.TabIndent();
                 }
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
-                expectedValueOfAction[action - 1] = VanillaCFRIterationForPlayer(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, usePruning);
+                expectedValueOfAction[action - 1] = VanillaCFRIterationForPlayer(in nextHistoryPoint, playerBeingOptimized, nextPiValues, usePruning);
                 expectedValue += probabilityOfAction * expectedValueOfAction[action - 1];
 
                 if (TraceCFR)
@@ -147,7 +147,7 @@ namespace ACESim
             Span<double> piValues, bool usePruning)
         {
             Span<double> equalProbabilityNextPiValues = stackalloc double[MaxNumMainPlayers];
-            IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
+            IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
             ChanceNode chanceNode = (ChanceNode) gameStateForCurrentPlayer;
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNode.DecisionIndex);
             bool equalProbabilities = chanceNode.AllProbabilitiesEqual();
@@ -177,7 +177,7 @@ namespace ACESim
                 for (byte action = 1; action < (byte) numPossibleActions + 1; action++)
                 {
                     double probabilityAdjustedExpectedValueParticularAction =
-                        VanillaCFR_ChanceNode_NextAction(ref historyPoint, playerBeingOptimized, piValues,
+                        VanillaCFR_ChanceNode_NextAction(in historyPoint, playerBeingOptimized, piValues,
                             chanceNode, equalProbabilityNextPiValues, expectedValue, action, usePruning);
                     Interlocking.Add(ref expectedValue, probabilityAdjustedExpectedValueParticularAction);
                 }
@@ -210,7 +210,7 @@ namespace ACESim
                 TabbedText.TabIndent();
             }
             double expectedValueParticularAction =
-                VanillaCFRIterationForPlayer(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, usePruning);
+                VanillaCFRIterationForPlayer(in nextHistoryPoint, playerBeingOptimized, nextPiValues, usePruning);
             var probabilityAdjustedExpectedValueParticularAction = actionProbability * expectedValueParticularAction;
             if (TraceCFR)
             {
@@ -276,7 +276,7 @@ namespace ACESim
                 StrategiesDeveloperStopwatch.Start();
                 HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
                 lastUtilities[playerBeingOptimized] =
-                    VanillaCFRIterationForPlayer(ref historyPoint, playerBeingOptimized, initialPiValues, usePruning);
+                    VanillaCFRIterationForPlayer(in historyPoint, playerBeingOptimized, initialPiValues, usePruning);
                 StrategiesDeveloperStopwatch.Stop();
             }
         }

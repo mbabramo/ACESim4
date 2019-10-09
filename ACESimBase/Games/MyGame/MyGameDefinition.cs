@@ -849,7 +849,7 @@ namespace ACESim
             return false;
         }
 
-        public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, in GameHistory gameHistory, GameProgress gameProgress)
+        public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, ref GameHistory gameHistory, GameProgress gameProgress)
         {
             byte decisionByteCode = currentDecision.DecisionByteCode; // get the original decision byte code
             if (decisionByteCode == (byte) MyGameDecisions.DChips)
@@ -950,19 +950,18 @@ namespace ACESim
             }
         }
 
-        public override void ReverseDecision(Decision decisionToReverse, in HistoryPoint historyPoint, IGameState originalGameState)
+        public override void ReverseDecision(Decision decisionToReverse, ref HistoryPoint historyPoint, IGameState originalGameState)
         {
             base.ReverseDecision(decisionToReverse, ref historyPoint, originalGameState);
-            in GameHistory gameHistory = ref historyPoint.HistoryToPoint;
             byte decisionByteCode = decisionToReverse.DecisionByteCode;
             if (decisionByteCode == (byte)MyGameDecisions.DChips)
             {
-                gameHistory.ReverseAdditionsToInformationSet((byte)MyGamePlayers.Plaintiff, 2, null);
-                gameHistory.ReverseAdditionsToInformationSet((byte)MyGamePlayers.Defendant, 2, null);
-                gameHistory.ReverseAdditionsToInformationSet((byte)MyGamePlayers.Resolution, 2, null);
-                gameHistory.DecrementItemAtCacheIndex(GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, 2);
-                gameHistory.DecrementItemAtCacheIndex(GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, 2);
-                gameHistory.DecrementItemAtCacheIndex(GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, 2);
+                historyPoint.HistoryToPoint.ReverseAdditionsToInformationSet((byte)MyGamePlayers.Plaintiff, 2, null);
+                historyPoint.HistoryToPoint.ReverseAdditionsToInformationSet((byte)MyGamePlayers.Defendant, 2, null);
+                historyPoint.HistoryToPoint.ReverseAdditionsToInformationSet((byte)MyGamePlayers.Resolution, 2, null);
+                historyPoint.HistoryToPoint.DecrementItemAtCacheIndex(GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, 2);
+                historyPoint.HistoryToPoint.DecrementItemAtCacheIndex(GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, 2);
+                historyPoint.HistoryToPoint.DecrementItemAtCacheIndex(GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, 2);
             }
         }
 

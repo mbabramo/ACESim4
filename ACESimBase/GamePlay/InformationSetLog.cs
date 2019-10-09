@@ -17,7 +17,7 @@ namespace ACESim
     public struct InformationSetLog
     {
 
-        // must also set similar values in GameHistory.
+        // must also set similar values ref GameHistory.
         public const int MaxInformationSetLoggingLength = 1200; // MUST equal MaxInformationSetLoggingLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLoggingLengthPerPartialPlayer * NumPartialPlayers. 
         public const int MaxInformationSetLoggingLengthPerFullPlayer = 300;
         public const int MaxInformationSetLoggingLengthPerPartialPlayer = 30;

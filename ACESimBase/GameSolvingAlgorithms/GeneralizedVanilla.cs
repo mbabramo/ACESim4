@@ -140,7 +140,7 @@ namespace ACESim
                 Unroll_Commands.StartCommandChunk(false, null, "Optimizing player " + p.ToString());
                 if (TraceCFR)
                     TabbedText.WriteLine($"Unrolling for Player {p}");
-                Unroll_GeneralizedVanillaCFR(ref historyPoint, p, initialPiValuesCopied, initialAvgStratPiValuesCopied, Unroll_IterationResultForPlayersIndices[p], true, 0);
+                Unroll_GeneralizedVanillaCFR(in historyPoint, p, initialPiValuesCopied, initialAvgStratPiValuesCopied, Unroll_IterationResultForPlayersIndices[p], true, 0);
                 Unroll_Commands.EndCommandChunk();
             }
             Unroll_Commands.EndCommandChunk();
@@ -407,7 +407,7 @@ namespace ACESim
         public unsafe void Unroll_GeneralizedVanillaCFR(in HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool isUltimateResult, int distributorChanceInputs)
         {
             Unroll_Commands.IncrementDepth(false);
-            IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
+            IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
             GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
             if (gameStateType == GameStateTypeEnum.FinalUtilities)
             {
@@ -421,10 +421,10 @@ namespace ACESim
             }
             else if (gameStateType == GameStateTypeEnum.Chance)
             {
-                Unroll_GeneralizedVanillaCFR_ChanceNode(ref historyPoint, playerBeingOptimized, piValues, avgStratPiValues, resultArray, isUltimateResult, distributorChanceInputs);
+                Unroll_GeneralizedVanillaCFR_ChanceNode(in historyPoint, playerBeingOptimized, piValues, avgStratPiValues, resultArray, isUltimateResult, distributorChanceInputs);
             }
             else
-                Unroll_GeneralizedVanillaCFR_DecisionNode(ref historyPoint, playerBeingOptimized, piValues, avgStratPiValues, resultArray, isUltimateResult, distributorChanceInputs);
+                Unroll_GeneralizedVanillaCFR_DecisionNode(in historyPoint, playerBeingOptimized, piValues, avgStratPiValues, resultArray, isUltimateResult, distributorChanceInputs);
             Unroll_Commands.DecrementDepth(false, playerBeingOptimized == NumNonChancePlayers - 1);
         }
 
@@ -439,7 +439,7 @@ namespace ACESim
             //var actionsToHere = historyPoint.GetActionsToHere(Navigation);
             //var historyPointString = historyPoint.ToString();
 
-            IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
+            IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
             var informationSet = (InformationSetNode)gameStateForCurrentPlayer;
             byte decisionNum = informationSet.DecisionIndex;
             byte playerMakingDecision = informationSet.PlayerIndex;
@@ -498,7 +498,7 @@ namespace ACESim
                 }
                 HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                 int[] innerResult = Unroll_Commands.NewZeroArray(3);
-                Unroll_GeneralizedVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, innerResult, false, distributorChanceInputsNext);
+                Unroll_GeneralizedVanillaCFR(in nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, innerResult, false, distributorChanceInputsNext);
                 Unroll_Commands.CopyToExisting(expectedValueOfAction[action - 1], innerResult[Unroll_Result_HedgeVsHedgeIndex]);
                 if (playerMakingDecision == playerBeingOptimized)
                 {
@@ -580,7 +580,7 @@ namespace ACESim
         private unsafe void Unroll_GeneralizedVanillaCFR_ChanceNode(in HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool isUltimateResult, int distributorChanceInputs)
         {
             Unroll_Commands.IncrementDepth(false);
-            IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
+            IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
             ChanceNode chanceNode = (ChanceNode)gameStateForCurrentPlayer;
             byte numPossibleActions = chanceNode.Decision.NumPossibleActions;
             byte numPossibleActionsToExplore = numPossibleActions;
@@ -601,7 +601,7 @@ namespace ACESim
                 }
                 var historyPointCopy2 = historyPointCopy; // Need to do this because we need a separate copy for each thread
                 Unroll_Commands.ZeroExisting(probabilityAdjustedInnerResult);
-                Unroll_GeneralizedVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2,
+                Unroll_GeneralizedVanillaCFR_ChanceNode_NextAction(in historyPointCopy2,
                     playerBeingOptimized, piValues, avgStratPiValues,
                         chanceNode, action, probabilityAdjustedInnerResult, false, distributorChanceInputs);
                 Unroll_Commands.IncrementArrayBy(resultArray, isUltimateResult, probabilityAdjustedInnerResult);
@@ -639,7 +639,7 @@ namespace ACESim
                 TabbedText.TabIndent();
             }
             int[] innerResult = Unroll_Commands.NewZeroArray(3);
-            Unroll_GeneralizedVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, innerResult, false, distributorChanceInputsNext);
+            Unroll_GeneralizedVanillaCFR(in nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, innerResult, false, distributorChanceInputsNext);
             Unroll_Commands.CopyToExisting(resultArray, innerResult);
             if (TraceCFR)
             {
@@ -779,7 +779,7 @@ namespace ACESim
                 TabbedText.WriteLine($"Iteration {iteration} Player {playerBeingOptimized}");
             StrategiesDeveloperStopwatch.Start();
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
-            results[playerBeingOptimized] = GeneralizedVanillaCFR(ref historyPoint, playerBeingOptimized, initialPiValues, initialAvgStratPiValues, 0);
+            results[playerBeingOptimized] = GeneralizedVanillaCFR(in historyPoint, playerBeingOptimized, initialPiValues, initialAvgStratPiValues, 0);
             StrategiesDeveloperStopwatch.Stop();
         }
 
@@ -847,7 +847,7 @@ namespace ACESim
         {
             //if (usePruning && ShouldPruneIfPruning(piValues))
             //    return new GeneralizedVanillaUtilities { AverageStrategyVsAverageStrategy = 0, BestResponseToAverageStrategy = 0, HedgeVsHedge = 0 };
-            IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
+            IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
             GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
             if (gameStateType == GameStateTypeEnum.FinalUtilities)
             {
@@ -859,10 +859,10 @@ namespace ACESim
             }
             else if (gameStateType == GameStateTypeEnum.Chance)
             {
-                return GeneralizedVanillaCFR_ChanceNode(ref historyPoint, playerBeingOptimized, piValues, avgStratPiValues, distributorChanceInputs);
+                return GeneralizedVanillaCFR_ChanceNode(in historyPoint, playerBeingOptimized, piValues, avgStratPiValues, distributorChanceInputs);
             }
             else
-                return GeneralizedVanillaCFR_DecisionNode(ref historyPoint, playerBeingOptimized, piValues, avgStratPiValues, distributorChanceInputs);
+                return GeneralizedVanillaCFR_DecisionNode(in historyPoint, playerBeingOptimized, piValues, avgStratPiValues, distributorChanceInputs);
         }
 
         bool IncludeAsteriskForBestResponseInTrace = false;
@@ -877,7 +877,7 @@ namespace ACESim
             //var actionsToHere = historyPoint.GetActionsToHere(Navigation);
             //var historyPointString = historyPoint.ToString();
 
-            IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
+            IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
             var informationSet = (InformationSetNode)gameStateForCurrentPlayer;
             byte decisionNum = informationSet.DecisionIndex;
             byte playerMakingDecision = informationSet.PlayerIndex;
@@ -918,7 +918,7 @@ namespace ACESim
                         TabbedText.TabIndent();
                     }
                     HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
-                    GeneralizedVanillaUtilities innerResult = GeneralizedVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, distributorChanceInputsNext);
+                    GeneralizedVanillaUtilities innerResult = GeneralizedVanillaCFR(in nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, distributorChanceInputsNext);
                     expectedValueOfAction[action - 1] = innerResult.CurrentVsCurrent;
 
                     if (playerMakingDecision == playerBeingOptimized)
@@ -986,7 +986,7 @@ namespace ACESim
             Span<double> piValues, Span<double> avgStratPiValues, int distributorChanceInputs)
         {
             GeneralizedVanillaUtilities result = default;
-            IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
+            IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
             ChanceNode chanceNode = (ChanceNode)gameStateForCurrentPlayer;
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNode.DecisionIndex);
             byte numPossibleActionsToExplore = numPossibleActions;
@@ -1002,7 +1002,7 @@ namespace ACESim
                     action =>
                     {
                         var historyPointCopy2 = historyPointCopy.DeepCopyToRefStruct();
-                        GeneralizedVanillaUtilities probabilityAdjustedInnerResult = GeneralizedVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues,
+                        GeneralizedVanillaUtilities probabilityAdjustedInnerResult = GeneralizedVanillaCFR_ChanceNode_NextAction(in historyPointCopy2, playerBeingOptimized, piValues,
                                 avgStratPiValues, chanceNode, action, distributorChanceInputs);
                         result.IncrementBasedOnProbabilityAdjusted(ref probabilityAdjustedInnerResult);
                     });
@@ -1011,7 +1011,7 @@ namespace ACESim
             {
                 for (byte action = 1; action < (byte)numPossibleActionsToExplore + 1; action++)
                 {
-                    GeneralizedVanillaUtilities probabilityAdjustedInnerResult = GeneralizedVanillaCFR_ChanceNode_NextAction(ref historyPoint, playerBeingOptimized, piValues,
+                    GeneralizedVanillaUtilities probabilityAdjustedInnerResult = GeneralizedVanillaCFR_ChanceNode_NextAction(in historyPoint, playerBeingOptimized, piValues,
                             avgStratPiValues, chanceNode, action, distributorChanceInputs);
                     result.IncrementBasedOnProbabilityAdjusted(ref probabilityAdjustedInnerResult);
                 }
@@ -1042,7 +1042,7 @@ namespace ACESim
                 TabbedText.TabIndent();
             }
             GeneralizedVanillaUtilities result =
-                GeneralizedVanillaCFR(ref nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, distributorChanceInputsNext);
+                GeneralizedVanillaCFR(in nextHistoryPoint, playerBeingOptimized, nextPiValues, nextAvgStratPiValues, distributorChanceInputsNext);
             if (TraceCFR)
             {
                 TabbedText.TabUnindent();

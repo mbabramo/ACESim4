@@ -207,23 +207,27 @@ namespace ACESim
 
         private HistoryPoint GetBranch_CachedGameHistory(HistoryNavigationInfo navigation, byte actionChosen, Decision nextDecision, byte nextDecisionIndex)
         {
-            HistoryPoint next = new HistoryPoint(HistoryToPoint.DeepCopy()); // struct is copied, along with enclosed arrays. We then use a ref to change the copy, since otherwise it would be copied again. This is very costly, because we're copying the entire struct (and this is executed very frequently). // DEBUG -- this is the critical point for allocation of arrays for history
-            Game.UpdateGameHistory(in next.HistoryToPoint, navigation.GameDefinition, nextDecision, nextDecisionIndex, actionChosen, GameProgress);
+            GameHistory historyToPointCopy = HistoryToPoint.DeepCopy(); // struct is copied, along with enclosed arrays. // DEBUG -- this is the critical point for allocation of arrays for history
+            Game.UpdateGameHistory(ref historyToPointCopy, navigation.GameDefinition, nextDecision, nextDecisionIndex, actionChosen, GameProgress);
+            HistoryPoint next = new HistoryPoint(historyToPointCopy);  
             if (nextDecision.CanTerminateGame && navigation.GameDefinition.ShouldMarkGameHistoryComplete(nextDecision, in next.HistoryToPoint, actionChosen))
                 next.HistoryToPoint.MarkComplete();
             return next;
         }
 
-        public void SwitchToBranch(HistoryNavigationInfo navigation, byte actionChosen, Decision nextDecision, byte nextDecisionIndex)
+        public HistoryPoint SwitchToBranch(HistoryNavigationInfo navigation, byte actionChosen, Decision nextDecision, byte nextDecisionIndex)
         {
+            debug; // make sure everything takes return value
             HistoryPoint toReturn = this;
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
-                Game.UpdateGameHistory(in HistoryToPoint, navigation.GameDefinition, nextDecision, nextDecisionIndex, actionChosen, GameProgress);
+                GameHistory historyToPointCopy = HistoryToPoint;
+                Game.UpdateGameHistory(ref historyToPointCopy, navigation.GameDefinition, nextDecision, nextDecisionIndex, actionChosen, GameProgress);
                 if (nextDecision.CanTerminateGame && navigation.GameDefinition.ShouldMarkGameHistoryComplete(nextDecision, in HistoryToPoint, actionChosen))
                 {
-                    HistoryToPoint.MarkComplete(); debug; // must revise after MarkComplete()
+                    historyToPointCopy.MarkComplete();
                 }
+                toReturn = toReturn.WithHistoryToPoint(historyToPointCopy);
             }
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
@@ -241,6 +245,7 @@ namespace ACESim
                 toReturn = toReturn.WithHistoryToPoint(GameProgress.GameHistory);
             }
             toReturn = toReturn.WithGameState(null);
+            return toReturn;
         }
 
         public byte GetNextPlayer(HistoryNavigationInfo navigation)

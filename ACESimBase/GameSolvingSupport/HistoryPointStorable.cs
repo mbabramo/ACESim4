@@ -9,24 +9,12 @@
 
         public HistoryPoint ShallowCopyToRefStruct()
         {
-            return new HistoryPoint()
-            {
-                TreePoint = TreePoint,
-                HistoryToPoint = HistoryToPointStorable.ShallowCopyToRefStruct(),
-                GameProgress = GameProgress,
-                GameState = GameState
-            };
+            return new HistoryPoint(TreePoint, HistoryToPointStorable.ShallowCopyToRefStruct(), GameProgress, GameState);
         }
 
         public HistoryPoint DeepCopyToRefStruct()
         {
-            return new HistoryPoint()
-            {
-                TreePoint = TreePoint,
-                HistoryToPoint = HistoryToPointStorable.DeepCopyToRefStruct(),
-                GameProgress = GameProgress?.DeepCopy(),
-                GameState = GameState
-            };
+            return new HistoryPoint(TreePoint, HistoryToPointStorable.DeepCopyToRefStruct(), GameProgress?.DeepCopy(), GameState);
         }
     }
 }
