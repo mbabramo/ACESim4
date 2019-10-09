@@ -56,6 +56,20 @@ namespace ACESim
         public static int InformationSetIndex(byte playerIndex) => playerIndex <= NumFullPlayers ? MaxInformationSetLengthPerFullPlayer * playerIndex : MaxInformationSetLengthPerFullPlayer * NumFullPlayers + (playerIndex - NumFullPlayers) * MaxInformationSetLengthPerPartialPlayer;
         public static int MaxInformationSetLengthForPlayer(byte playerIndex) => playerIndex < NumFullPlayers ? MaxInformationSetLengthPerFullPlayer : MaxInformationSetLengthPerPartialPlayer;
 
+        public bool Matches(GameHistory other)
+        {
+            var basics = Initialized == other.Initialized && Complete == other.Complete && NextIndexInHistoryActionsOnly == other.NextIndexInHistoryActionsOnly && LastDecisionIndexAdded == other.LastDecisionIndexAdded && PreviousNotificationDeferred == other.PreviousNotificationDeferred && DeferredAction == other.DeferredAction && DeferredPlayerNumber == other.DeferredPlayerNumber && ((DeferredPlayersToInform == null && other.DeferredPlayersToInform == null) || DeferredPlayersToInform.SequenceEqual(other.DeferredPlayersToInform));
+            if (!basics)
+                return false;
+            if (!GetActionsAsList().SequenceEqual(other.GetActionsAsList())) // will ignore info after items in span
+                return false;
+            if (!Cache.SequenceEqual(other.Cache))
+                return false;
+            if (GetInformationSetsString() != other.GetInformationSetsString())
+                return false;
+            return true;
+        }
+
         public void Initialize()
         {
             if (Initialized)
