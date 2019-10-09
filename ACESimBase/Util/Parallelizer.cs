@@ -13,7 +13,7 @@ namespace ACESim
     {
         public static int ParallelDepth = 0;
         public static int? MaxDegreeOfParallelism = (int?) null;
-        const int maxParallelDepth = 20;
+        const int maxParallelDepth = 50;
         static object[] lockObj = new object[maxParallelDepth];
         internal static bool lockObjInitialized = false;
         internal static object GetLockObj()
@@ -131,9 +131,9 @@ namespace ACESim
             //} while (!success);
         }
 
-        public static void GoByte(bool doParallel, int maxParallelDepth, byte start, byte stopBeforeThis, Action<byte> action)
+        public static void GoByte(bool doParallel, byte start, byte stopBeforeThis, Action<byte> action)
         {
-            if (ParallelDepth > 0 || DisableParallel)
+            if (ParallelDepth >= maxParallelDepth || DisableParallel)
                 doParallel = false;
             if (doParallel)
             {

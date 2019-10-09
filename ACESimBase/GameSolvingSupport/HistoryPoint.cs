@@ -10,21 +10,13 @@ namespace ACESim
 
     public ref struct HistoryPoint
     {
-        public HistoryPointStorable ToStorable()
-        {
-            return new HistoryPointStorable()
-            {
-                TreePoint = TreePoint,
-                HistoryToPointStorable = HistoryToPoint.DeepCopyToStorable(),
-                GameProgress = GameProgress,
-                GameState = GameState
-            };
-        }
 
         public NWayTreeStorage<IGameState> TreePoint;
         public GameHistory HistoryToPoint;
         public GameProgress GameProgress;
         public IGameState GameState;
+
+        public bool ContainsGameHistoryOnly => TreePoint == null && GameProgress == null && GameState == null;
 
         public HistoryPoint(GameHistory historyToPoint)
         {
@@ -40,6 +32,22 @@ namespace ACESim
             HistoryToPoint = historyToPoint;
             GameProgress = gameProgress;
             GameState = null;
+        }
+
+        public HistoryPoint DeepCopy()
+        {
+            return new HistoryPoint(TreePoint, HistoryToPoint.DeepCopy(), GameProgress?.DeepCopy());
+        }
+
+        public HistoryPointStorable ToStorable()
+        {
+            return new HistoryPointStorable()
+            {
+                TreePoint = TreePoint,
+                HistoryToPointStorable = HistoryToPoint.DeepCopyToStorable(),
+                GameProgress = GameProgress,
+                GameState = GameState
+            };
         }
 
         public override string ToString()

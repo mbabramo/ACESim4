@@ -94,7 +94,7 @@ namespace ACESim
                 Cache = new byte[GameHistory.CacheLength],
                 InformationSets = new byte[GameHistory.MaxInformationSetLength]
             };
-            for (int i = 0; i < GameFullHistory.MaxHistoryLength; i++)
+            for (int i = 0; i < GameFullHistory.MaxHistoryLength && i < NextIndexInHistoryActionsOnly; i++)
                 result.ActionsHistory[i] = ActionsHistory[i];
             for (int i = 0; i < GameHistory.CacheLength; i++)
                 result.Cache[i] = Cache[i];
@@ -129,7 +129,7 @@ namespace ACESim
                 LastDecisionIndexAdded = LastDecisionIndexAdded,
             };
             result.CreateArraysForSpans();
-            for (int i = 0; i < GameFullHistory.MaxHistoryLength; i++)
+            for (int i = 0; i < GameFullHistory.MaxHistoryLength && i < NextIndexInHistoryActionsOnly; i++)
                 result.ActionsHistory[i] = ActionsHistory[i];
             for (int i = 0; i < GameHistory.CacheLength; i++)
                 result.Cache[i] = Cache[i];
@@ -455,13 +455,13 @@ namespace ACESim
                 gameProgress.InformationSetLog.RemoveLastItemInLog(playerIndex);
         }
 
-    public void RemoveItemsInInformationSet(byte playerIndex, byte numItemsToRemove)
+        public void RemoveItemsInInformationSet(byte playerIndex, byte numItemsToRemove)
         {
-            int ptr = InformationSetIndex(playerIndex);
-            while (InformationSets[ptr] != InformationSetTerminator)
-                ptr++; // now move past the information
-            ptr -= (byte) numItemsToRemove;
-            InformationSets[ptr] = InformationSetTerminator;
+            int informationSetIndex = InformationSetIndex(playerIndex);
+            while (InformationSets[informationSetIndex] != InformationSetTerminator)
+                informationSetIndex++; // now move past the information
+            informationSetIndex -= (byte) numItemsToRemove;
+            InformationSets[informationSetIndex] = InformationSetTerminator;
         }
 
 #endregion

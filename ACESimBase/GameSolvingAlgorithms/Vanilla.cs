@@ -157,27 +157,42 @@ namespace ACESim
             else
                 equalProbabilityNextPiValues = null;
             double expectedValue = 0;
-            var historyPointCopy = historyPoint.ToStorable(); // can't use historyPoint in anonymous method below. This is costly, so it might be worth optimizing if we use VanillaCFR much.
-            Parallelizer.GoByte(EvolutionSettings.ParallelOptimization, EvolutionSettings.MaxParallelDepth, 1,
-                (byte) (numPossibleActions + 1),
-                action =>
+            bool doParallel = EvolutionSettings.ParallelOptimization && Parallelizer.ParallelDepth <= EvolutionSettings.MaxParallelDepth;
+            if (doParallel)
+            {
+                var historyPointCopy = historyPoint.ToStorable(); // This is costly but needed given anonymous method below (because ref struct can't be accessed there), so we do this only if really parallelizing.
+                Parallelizer.GoByte(doParallel, 1,
+                    (byte)(numPossibleActions + 1),
+                    action =>
+                    {
+                        var historyPointCopy2 = historyPointCopy.DeepCopyToRefStruct(); // Need to do this because we need a separate copy for each thread
+                        double probabilityAdjustedExpectedValueParticularAction =
+                            VanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues,
+                                chanceNode, equalProbabilityNextPiValues, expectedValue, action, usePruning);
+                        Interlocking.Add(ref expectedValue, probabilityAdjustedExpectedValueParticularAction);
+                    });
+            }
+            else
+            {
+                for (byte action = 1; action < (byte) numPossibleActions + 1; action++)
                 {
-                    //double* piValuesToPass = stackalloc double[MaxNumPlayers];
-                    //for (int i = 0; i < MaxNumPlayers; i++)
-                    //    *(piValuesToPass + i) = *(piValues + i);
-                    //double* equalProbabilityPiValuesToPass = stackalloc double[MaxNumPlayers];
-                    //if (equalProbabilityNextPiValues == null)
-                    //    equalProbabilityPiValuesToPass = null;
-                    //else
-                    //    for (int i = 0; i < MaxNumPlayers; i++)
-                    //        *(equalProbabilityPiValuesToPass + i) = *(equalProbabilityNextPiValues + i);
-                    // TODO -- we could optimize this by (a) setting to a different method; and (b) creating an alternative action to use when not running in parallel, where that action would not copy the history point.
-                    var historyPointCopy2 = historyPointCopy.DeepCopyToRefStruct(); // Need to do this because we need a separate copy for each thread
-                    double probabilityAdjustedExpectedValueParticularAction =
-                        VanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues,
-                            chanceNode, equalProbabilityNextPiValues, expectedValue, action, usePruning);
-                    Interlocking.Add(ref expectedValue, probabilityAdjustedExpectedValueParticularAction);
-                });
+                    if (historyPoint.BranchingIsReversible(Navigation, chanceNode.Decision))
+                    {
+                        double probabilityAdjustedExpectedValueParticularAction =
+                            VanillaCFR_ChanceNode_NextAction(ref historyPoint, playerBeingOptimized, piValues,
+                                chanceNode, equalProbabilityNextPiValues, expectedValue, action, usePruning);
+                        GameDefinition.ReverseDecision(chanceNode.Decision, ref historyPoint, gameStateForCurrentPlayer);
+                    }
+                    else
+                    {
+                        var historyPointCopy2 = historyPoint.DeepCopy(); // Need to do this because decision isn't reversible and so we can't change original history point
+                        double probabilityAdjustedExpectedValueParticularAction =
+                            VanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues,
+                                chanceNode, equalProbabilityNextPiValues, expectedValue, action, usePruning);
+                        Interlocking.Add(ref expectedValue, probabilityAdjustedExpectedValueParticularAction);
+                    }
+                }
+            }
 
             return expectedValue;
         }
