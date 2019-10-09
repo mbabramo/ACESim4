@@ -91,7 +91,6 @@ namespace ACESim
                 Cache[i] = 0;
         }
 
-
         public GameHistoryStorable DeepCopyToStorable()
         {
             var result = new GameHistoryStorable()

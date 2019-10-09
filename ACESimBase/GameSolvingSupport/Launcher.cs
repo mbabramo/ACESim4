@@ -141,7 +141,7 @@ namespace ACESim
             {
                 AzureEnabled = AzureEnabled,
 
-                MaxParallelDepth = 3, // we're parallelizing on the iteration level, so there is no need for further parallelization
+                MaxParallelDepth = 4, // we're parallelizing on the iteration level, so there is no need for further parallelization
                 ParallelOptimization = ParallelizeIndividualExecutionsAlways || 
                             ( ParallelizeIndividualExecutions && !ParallelizeOptionSets && (LaunchSingleOptionsSetOnly || !DistributedProcessing) ),
                 SuppressReportDisplayOnScreen = AlwaysSuppressDisplayReportOnScreen || (!LaunchSingleOptionsSetOnly && (ParallelizeOptionSets || DistributedProcessing)),

@@ -157,7 +157,7 @@ namespace ACESim
             else
                 equalProbabilityNextPiValues = null;
             double expectedValue = 0;
-            bool doParallel = EvolutionSettings.ParallelOptimization && Parallelizer.ParallelDepth <= EvolutionSettings.MaxParallelDepth;
+            bool doParallel = EvolutionSettings.ParallelOptimization && Parallelizer.ParallelDepth < EvolutionSettings.MaxParallelDepth;
             if (doParallel)
             {
                 var historyPointCopy = historyPoint.ToStorable(); // This is costly but needed given anonymous method below (because ref struct can't be accessed there), so we do this only if really parallelizing.

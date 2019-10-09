@@ -993,7 +993,7 @@ namespace ACESim
             if (EvolutionSettings.DistributeChanceDecisions && chanceNode.Decision.DistributedChanceDecision)
                 numPossibleActionsToExplore = 1;
 
-            bool doParallel = EvolutionSettings.ParallelOptimization && Parallelizer.ParallelDepth <= EvolutionSettings.MaxParallelDepth;
+            bool doParallel = EvolutionSettings.ParallelOptimization && Parallelizer.ParallelDepth < EvolutionSettings.MaxParallelDepth;
             if (doParallel)
             {
                 var historyPointCopy = historyPoint.ToStorable(); // This is costly but needed given anonymous method below (because ref struct can't be accessed there), so we do this only if really parallelizing.
@@ -1001,7 +1001,7 @@ namespace ACESim
                     (byte)(numPossibleActionsToExplore + 1),
                     action =>
                     {
-                        var historyPointCopy2 = historyPointCopy.DeepCopyToRefStruct(); // Need to do this because we need a separate copy for each thread
+                        var historyPointCopy2 = historyPointCopy.ShallowCopyToRefStruct();
                         GeneralizedVanillaUtilities probabilityAdjustedInnerResult = GeneralizedVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues,
                                 avgStratPiValues, chanceNode, action, distributorChanceInputs);
                         result.IncrementBasedOnProbabilityAdjusted(ref probabilityAdjustedInnerResult);
