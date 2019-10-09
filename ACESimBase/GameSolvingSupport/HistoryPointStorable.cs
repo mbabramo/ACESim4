@@ -24,7 +24,7 @@
             {
                 TreePoint = TreePoint,
                 HistoryToPoint = HistoryToPointStorable.DeepCopyToRefStruct(),
-                GameProgress = GameProgress,
+                GameProgress = GameProgress?.DeepCopy(),
                 GameState = GameState
             };
         }

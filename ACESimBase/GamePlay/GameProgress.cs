@@ -231,7 +231,7 @@ namespace ACESim
             copy.GameDefinition = GameDefinition;
             copy.GameModuleProgresses = GameModuleProgresses == null ? null : (GameModuleProgresses.Select(x => x?.DeepCopy()).ToList());
             copy.GameHistoryStorable = GameHistoryStorable.ShallowCopyToRefStruct().DeepCopyToStorable();
-            copy.GameFullHistoryStorable = GameFullHistoryStorable;
+            copy.GameFullHistoryStorable = GameFullHistoryStorable.ShallowCopyToRefStruct().DeepCopyToStorable();
             copy.ActionsToPlay = ActionsToPlay?.ToList(); 
             copy.ActionsToPlayIndex = ActionsToPlayIndex;
             copy.GameComplete = this.GameComplete;
