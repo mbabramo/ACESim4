@@ -7,13 +7,33 @@ using ACESim.Util;
 
 namespace ACESim
 {
-    public struct NWayTreeStorageKey
+    public readonly struct NWayTreeStorageKey
     {
-        public byte PrefaceByte { get; set; }
-        public byte[] Sequence;
+        public readonly byte PrefaceByte;
+        public readonly byte[] Sequence;
+
+        public NWayTreeStorageKey(byte prefaceByte, byte[] sequence)
+        {
+            PrefaceByte = prefaceByte;
+            Sequence = sequence;
+        }
 
         [ThreadStatic]
-        public static NWayTreeStorageKey KeyForThread = new NWayTreeStorageKey() { PrefaceByte = 0, Sequence = new byte[256] };
+        private static NWayTreeStorageKey _KeyForThread;
+        public static NWayTreeStorageKey KeyForThread
+        {
+            get
+            {
+                // We do the initialization here because we must do it once for each thread.
+                if (_KeyForThread.Sequence == null)
+                    _KeyForThread = new NWayTreeStorageKey(0, new byte[256]);
+                return _KeyForThread;
+            }
+            set
+            {
+                _KeyForThread = value;
+            }
+        } 
 
         public byte Element(int i) => i == Sequence.Length ? (byte) 255 : Sequence[i];
 

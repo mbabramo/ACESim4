@@ -19,16 +19,13 @@ namespace ACESim
     {
         #region Construction
 
-        // We use a struct here because this makes a big difference in performance, allowing GameHistory to be allocated on the stack. Currently, we fix the number of players, maximum size of different players' information sets, etc. in the GameHistory (which means that we need to change the code whenever we change games). We distinguish between full and partial players because this also produces a significant performance boost. DEBUG TODO: Make it so that the size can be specified by the game. Also, make it so that we can have a large space for history, most of which is blank space for the next history.
+        // We use a struct here because this makes a big difference in performance, allowing GameHistory to be allocated on the stack. Currently, we fix the number of players, maximum size of different players' information sets, etc. in the GameHistory (which means that we need to change the code whenever we change games). We distinguish between full and partial players because this also produces a significant performance boost. DEBUG TODO: Make it so that the size can be specified by the game. Also, make it so that we can have a large space for history, most of which is blank space for the next history. Then, we could make it so that we don't have to keep copying all the earlier steps, but include the index of the previous and current steps. 
 
         public const int CacheLength = 25; // the game and game definition can use the cache to store information. This is helpful when the game player is simulating the game without playing the underlying game. The game definition may, for example, need to be able to figure out which decision is next.
         public const byte Cache_SubdivisionAggregationIndex = 0; // Use this cache entry to aggregate subdivision decisions. Thus, do NOT use it for any other purpose.
 
         public const byte InformationSetTerminator = 255;
-        public const byte StartDetourMarker = 252; // when starting a subdivision detour, we need to put in a marker to delineate the subdivision action from subsequent actions by same player. Note that this will precede the second subdivision decision
-        public const byte EndDetourMarker = 253; // when ending a subdivision detour, we need to put in a marker to delineate the subdivision action from other player's
-        public const byte 
-            DecisionHasOccurred = 251; // if reporting only that the decision has occurred, we do that here.
+        public const byte DecisionHasOccurred = 251; // if reporting only that the decision has occurred, we do that here.
 
         public const int MaxInformationSetLength = MaxInformationSetLengthPerFullPlayer * NumFullPlayers + MaxInformationSetLengthPerPartialPlayer * NumPartialPlayers;
         public const int MaxInformationSetLengthPerFullPlayer = 40;
