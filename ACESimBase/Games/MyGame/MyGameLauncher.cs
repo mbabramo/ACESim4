@@ -33,6 +33,11 @@ namespace ACESim
 
             optionSets = optionSets.OrderBy(x => x.optionSetName).ToList();
 
+            bool simplify = true; // DEBUG
+            if (simplify)
+                foreach (var optionSet in optionSets)
+                    optionSet.options.Simplify();
+
             return optionSets;
         }
 

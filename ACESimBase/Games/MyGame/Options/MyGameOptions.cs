@@ -209,6 +209,20 @@ namespace ACESim
         public DiscreteValueSignalParameters PLiabilitySignalParameters, DLiabilitySignalParameters;
         public DiscreteValueSignalParameters PDamagesSignalParameters, DDamagesSignalParameters;
 
+        public override void Simplify()
+        {
+            // This is for debugging
+            byte limit = 3;
+            if (NumLiabilityStrengthPoints > limit)
+                NumLiabilityStrengthPoints = limit;
+            if (NumLiabilitySignals > limit)
+                NumLiabilitySignals = 3;
+            if (NumDamagesStrengthPoints > limit)
+                NumDamagesStrengthPoints = limit;
+            if (NumDamagesSignals > limit)
+                NumDamagesSignals = 3;
+        }
+
         public override string ToString()
         {
             return 

@@ -7,5 +7,10 @@ namespace ACESim
     [Serializable]
     public class GameOptions
     {
+
+        public virtual void Simplify()
+        {
+
+        }
     }
 }
