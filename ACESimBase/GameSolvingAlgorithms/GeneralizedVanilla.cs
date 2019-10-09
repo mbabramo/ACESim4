@@ -989,18 +989,55 @@ namespace ACESim
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             ChanceNode chanceNode = (ChanceNode)gameStateForCurrentPlayer;
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNode.DecisionIndex);
-            var historyPointCopy = historyPoint.ToStorable(); // can't use historyPoint in anonymous method below. This is costly, so it might be worth optimizing if we use GeneralizedVanillaCFR much.
             byte numPossibleActionsToExplore = numPossibleActions;
             if (EvolutionSettings.DistributeChanceDecisions && chanceNode.Decision.DistributedChanceDecision)
                 numPossibleActionsToExplore = 1;
-            Parallelizer.GoByte(EvolutionSettings.ParallelOptimization && Parallelizer.ParallelDepth < EvolutionSettings.MaxParallelDepth, 1,
-                (byte)(numPossibleActionsToExplore + 1),
-                action =>
+
+            bool doParallel = EvolutionSettings.ParallelOptimization && Parallelizer.ParallelDepth <= EvolutionSettings.MaxParallelDepth;
+            if (doParallel || true /* DEBUG */)
+            {
+                var historyPointCopy = historyPoint.ToStorable(); // This is costly but needed given anonymous method below (because ref struct can't be accessed there), so we do this only if really parallelizing.
+                Parallelizer.GoByte(doParallel, 1,
+                    (byte)(numPossibleActionsToExplore + 1),
+                    action =>
+                    {
+                        var historyPointCopy2 = historyPointCopy.DeepCopyToRefStruct(); // Need to do this because we need a separate copy for each thread
+                        GeneralizedVanillaUtilities probabilityAdjustedInnerResult = GeneralizedVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues,
+                                avgStratPiValues, chanceNode, action, distributorChanceInputs);
+                        result.IncrementBasedOnProbabilityAdjusted(ref probabilityAdjustedInnerResult);
+                    });
+            }
+            else
+            {
+                for (byte action = 1; action < (byte)numPossibleActionsToExplore + 1; action++)
                 {
-                    var historyPointCopy2 = historyPointCopy.DeepCopyToRefStruct(); // Will produce a separate copy for each thread
-                    GeneralizedVanillaUtilities probabilityAdjustedInnerResult = GeneralizedVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues, avgStratPiValues, chanceNode, action, distributorChanceInputs);
-                    result.IncrementBasedOnProbabilityAdjusted(ref probabilityAdjustedInnerResult);
-                });
+                    GeneralizedVanillaUtilities probabilityAdjustedInnerResult = GeneralizedVanillaCFR_ChanceNode_NextAction(ref historyPoint, playerBeingOptimized, piValues,
+                            avgStratPiValues, chanceNode, action, distributorChanceInputs);
+                    // DEBUG -- must change Vanilla.cs as well
+                    //if (historyPoint.BranchingIsReversible(Navigation, chanceNode.Decision))
+                    //{
+                    //    var DEBUG = historyPoint.HistoryToPoint.DeepCopy();
+                    //    GeneralizedVanillaUtilities probabilityAdjustedInnerResult = GeneralizedVanillaCFR_ChanceNode_NextAction(ref historyPoint, playerBeingOptimized, piValues,
+                    //            avgStratPiValues, chanceNode, action, distributorChanceInputs);
+                    //    // DEBUG GameDefinition.ReverseDecision(chanceNode.Decision, ref historyPoint, gameStateForCurrentPlayer);
+                    //    var DEBUG2 = historyPoint.HistoryToPoint.DeepCopy();
+                    //    if (!DEBUG.Matches(DEBUG2))
+                    //    {
+                    //        historyPoint.HistoryToPoint = DEBUG;
+                    //        GeneralizedVanillaUtilities probabilityAdjustedInnerResult2 = GeneralizedVanillaCFR_ChanceNode_NextAction(ref historyPoint, playerBeingOptimized, piValues,
+                    //                avgStratPiValues, chanceNode, action, distributorChanceInputs);
+                    //        GameDefinition.ReverseDecision(chanceNode.Decision, ref historyPoint, gameStateForCurrentPlayer);
+                    //    }
+                    //}
+                    //else
+                    //{
+                    //    var historyPointCopy2 = historyPoint.DeepCopy(); // Need to do this because decision isn't reversible and so we can't change original history point
+                    //    GeneralizedVanillaUtilities probabilityAdjustedInnerResult = GeneralizedVanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues,
+                    //            avgStratPiValues, chanceNode, action, distributorChanceInputs);
+                    //    result.IncrementBasedOnProbabilityAdjusted(ref probabilityAdjustedInnerResult);
+                    //}
+                }
+            }
 
             return result;
         }
