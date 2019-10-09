@@ -285,7 +285,7 @@ namespace ACESim
         unsafe void ProcessInitializedGameProgress(GameProgress gameProgress)
         {
             // First, add the utilities at the end of the tree for this path.
-            byte* actions = stackalloc byte[GameFullHistory.MaxNumActions];
+            Span<byte> actions = stackalloc byte[GameFullHistory.MaxNumActions];
             gameProgress.GameFullHistory.GetActions(actions);
             //var actionsAsList = ListExtensions.GetPointerAsList_255Terminated(actions);
 
@@ -486,9 +486,9 @@ namespace ACESim
             GamePlayer.PlayAllPaths(PrintGameProbabilistically);
         }
 
-        private unsafe void PrintGameProbabilistically(GameProgress progress)
+        private void PrintGameProbabilistically(GameProgress progress)
         {
-            byte* path = stackalloc byte[GameFullHistory.MaxNumActions];
+            Span<byte> path = stackalloc byte[GameFullHistory.MaxNumActions];
             bool overridePrint = false;
             string actionsList = progress.GameFullHistory.GetActionsAsListString();
             if (actionsList == "INSERT_PATH_HERE") // use this to print a single path
@@ -503,9 +503,9 @@ namespace ACESim
                     progress.GameFullHistory.GetActions(path);
                     List<byte> path2 = new List<byte>();
                     int i = 0;
-                    while (*(path + i) != 255)
+                    while (path[i] != 255)
                     {
-                        path2.Add(*(path + i));
+                        path2.Add(path[i]);
                         i++;
                     }
                     TabbedText.WriteLine($"{String.Join(",", path2)}");

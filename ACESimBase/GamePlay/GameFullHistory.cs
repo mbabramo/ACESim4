@@ -82,12 +82,7 @@ namespace ACESim
             return History[i - History_NumPiecesOfInformation + History_DecisionIndex_Offset];
         }
 
-        public unsafe void GetActions(byte* actions)
-        {
-            GetItems(History_Action_Offset, actions);
-        }
-
-        public unsafe void GetActionsWithBlanksForSkippedDecisions(byte* actions)
+        public void GetActionsWithBlanksForSkippedDecisions(Span<byte> actions)
         {
             int d = 0;
             if (LastIndexAddedToHistory != 0)
@@ -115,21 +110,12 @@ namespace ACESim
             return ListExtensions.GetPointerAsList_255Terminated(actions);
         }
 
-        public unsafe void GetActions(Span<byte> actions)
+        public void GetActions(Span<byte> actions)
         {
             GetItems(History_Action_Offset, actions);
         }
 
-        private unsafe void GetItems(int offset, Span<byte> items)
-        {
-            int d = 0;
-            if (LastIndexAddedToHistory != 0)
-                for (short i = 0; i < LastIndexAddedToHistory; i += History_NumPiecesOfInformation)
-                    items[d++] = GetHistoryIndex(i + offset);
-            items[d] = HistoryTerminator;
-        }
-
-        private unsafe void GetItems(int offset, byte* items)
+        private void GetItems(int offset, Span<byte> items)
         {
             int d = 0;
             if (LastIndexAddedToHistory != 0)
@@ -142,7 +128,6 @@ namespace ACESim
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private byte GetHistoryIndex(int i)
         {
-            // The following is useful in iterator blocks, which cannot directly contain unsafe code.
             return History[i];
         }
 
@@ -203,7 +188,7 @@ namespace ACESim
             // We need to find the last decision made where there was another action that could have been taken.
             int? lastDecisionInNextPath = GetIndexOfLastDecisionWithAnotherAction(gameDefinition) ?? -1; // negative number symbolizes that there is nothing else to do
             int indexInNewDecisionPath = 0, indexInCurrentActions = 0;
-            byte* currentActions = stackalloc byte[GameFullHistory.MaxNumActions];
+            Span<byte> currentActions = stackalloc byte[GameFullHistory.MaxNumActions];
             GetActionsWithBlanksForSkippedDecisions(currentActions);
             //var currentActionsList = Util.ListExtensions.GetPointerAsList_255Terminated(currentActions);
             while (indexInNewDecisionPath <= lastDecisionInNextPath)

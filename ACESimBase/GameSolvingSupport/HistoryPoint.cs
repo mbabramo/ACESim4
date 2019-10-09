@@ -352,7 +352,7 @@ namespace ACESim
                 SetInformationAtPoint(navigation, gameProgress, informationSetHistory);
         }
 
-        private unsafe void SetInformationAtPoint(HistoryNavigationInfo navigation, GameProgress gameProgress, InformationSetHistory informationSetHistory)
+        private void SetInformationAtPoint(HistoryNavigationInfo navigation, GameProgress gameProgress, InformationSetHistory informationSetHistory)
         {
             byte decisionIndex = informationSetHistory.DecisionIndex;
             var decision = navigation.GameDefinition.DecisionsExecutionOrder[decisionIndex];
