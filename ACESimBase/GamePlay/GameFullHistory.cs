@@ -177,15 +177,11 @@ namespace ACESim
             byte playerIndex = GetHistoryIndex(index + History_PlayerNumber_Offset);
             byte decisionByteCode = GetHistoryIndex(index + History_DecisionByteCode_Offset);
             byte decisionIndex = GetHistoryIndex(index + History_DecisionIndex_Offset);
-            var informationSetHistory = new InformationSetHistory()
-            {
-                PlayerIndex = playerIndex,
-                DecisionByteCode = decisionByteCode,
-                DecisionIndex = decisionIndex,
-                ActionChosen = GetHistoryIndex(index + History_Action_Offset),
-                NumPossibleActions = GetHistoryIndex(index + History_NumPossibleActions_Offset),
-                IsTerminalAction = GetHistoryIndex(index + History_NumPiecesOfInformation) == HistoryComplete
-            };
+            Span<byte> informationSetForPlayer = new byte[InformationSetLog.MaxInformationSetLoggingLengthPerFullPlayer]; // NOTE: This allocation occurs when we are creating GameProgress manually, but not in other time-sensitive loops. There might be ways of allocating the memory in advance so that it could be reused and/or recycling the memory, as part of a project to recycle arrays in GameProgress.
+            byte actionChosen = GetHistoryIndex(index + History_Action_Offset);
+            byte numPossibleActions = GetHistoryIndex(index + History_NumPossibleActions_Offset);
+            bool isTerminalAction = GetHistoryIndex(index + History_NumPiecesOfInformation) == HistoryComplete;
+            var informationSetHistory = new InformationSetHistory(informationSetForPlayer, playerIndex, decisionByteCode, decisionIndex, actionChosen, numPossibleActions, isTerminalAction);
             gameProgress.InformationSetLog.GetPlayerInformationAtPoint(playerIndex, decisionIndex, informationSetHistory.InformationSetForPlayer);
             return informationSetHistory;
         }

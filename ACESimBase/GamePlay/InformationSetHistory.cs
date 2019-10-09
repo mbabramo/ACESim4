@@ -7,23 +7,33 @@ using System.Threading.Tasks;
 namespace ACESim
 {
 
-    public unsafe ref struct InformationSetHistory
+    public readonly ref struct InformationSetHistory
     {
-        public fixed byte InformationSetForPlayer[InformationSetLog.MaxInformationSetLoggingLengthPerFullPlayer];
-        public byte PlayerIndex;
-        public byte DecisionByteCode;
-        public byte DecisionIndex;
-        public byte ActionChosen;
-        public byte NumPossibleActions;
-        public bool IsTerminalAction;
+        public readonly Span<byte> InformationSetForPlayer; // length [InformationSetLog.MaxInformationSetLoggingLengthPerFullPlayer];
+        public readonly byte PlayerIndex;
+        public readonly byte DecisionByteCode;
+        public readonly byte DecisionIndex;
+        public readonly byte ActionChosen;
+        public readonly byte NumPossibleActions;
+        public readonly bool IsTerminalAction;
 
-        public unsafe List<byte> GetInformationSetForPlayerAsList()
+        public InformationSetHistory(Span<byte> informationSetForPlayer, byte playerIndex, byte decisionByteCode, byte decisionIndex, byte actionChosen, byte numPossibleActions, bool isTerminalAction)
         {
-            fixed (byte* ptr = InformationSetForPlayer)
-                return Util.ListExtensions.GetPointerAsList_255Terminated(ptr);
+            InformationSetForPlayer = informationSetForPlayer;
+            PlayerIndex = playerIndex;
+            DecisionByteCode = decisionByteCode;
+            DecisionIndex = decisionIndex;
+            ActionChosen = actionChosen;
+            NumPossibleActions = numPossibleActions;
+            IsTerminalAction = isTerminalAction;
         }
 
-        public unsafe (byte playerIndex, List<byte>) GetPlayerAndInformationSetAsList()
+        public List<byte> GetInformationSetForPlayerAsList()
+        {
+            return Util.ListExtensions.GetPointerAsList_255Terminated(InformationSetForPlayer);
+        }
+
+        public (byte playerIndex, List<byte>) GetPlayerAndInformationSetAsList()
         {
             return (PlayerIndex, GetInformationSetForPlayerAsList());
         }
@@ -31,19 +41,16 @@ namespace ACESim
         public override string ToString()
         {
             StringBuilder infoSet = new StringBuilder();
-            fixed (byte* ptr = InformationSetForPlayer)
+            bool first = true;
+            int index = 0;
+            while (InformationSetForPlayer[index] != 255)
             {
-                bool first = true;
-                byte* ptr2 = ptr;
-                while (*ptr2 != 255)
-                {
-                    if (first)
-                        first = false;
-                    else
-                        infoSet.Append(",");
-                    infoSet.Append(*ptr2);
-                    ptr2++; // move to next information -- note that decision indices are not included
-                }
+                if (first)
+                    first = false;
+                else
+                    infoSet.Append(",");
+                infoSet.Append(InformationSetForPlayer[index]);
+                index++; // move to next information -- note that decision indices are not included
             }
             return $"Player {PlayerIndex} Decision {DecisionByteCode} (index {DecisionIndex}) Information {infoSet.ToString()} ActionChosen {ActionChosen} NumPossible {NumPossibleActions} IsTerminal {IsTerminalAction}";
         }
