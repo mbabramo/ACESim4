@@ -42,7 +42,7 @@ namespace ACESim
 
         int NumGameStates = 0;
 
-        public void GEBRPass1_ResetData(ref HistoryPoint historyPoint, byte playerIndex, byte depth,
+        public void GEBRPass1_ResetData(in HistoryPoint historyPoint, byte playerIndex, byte depth,
             HashSet<byte> depthOfPlayerDecisions)
         {
             NumGameStates++;
@@ -85,7 +85,7 @@ namespace ACESim
             }
         }
 
-        public double GEBRPass2(ref HistoryPoint historyPoint, byte playerIndex, byte depthToTarget, byte depthSoFar,
+        public double GEBRPass2(in HistoryPoint historyPoint, byte playerIndex, byte depthToTarget, byte depthSoFar,
             double inversePi, ActionStrategies opponentsActionStrategy, int distributorChanceInputs)
         {
             if (historyPoint.IsComplete(Navigation))
@@ -101,7 +101,7 @@ namespace ACESim
                 opponentsActionStrategy, distributorChanceInputs);
         }
 
-        private unsafe double GEBRPass2_DecisionNode(ref HistoryPoint historyPoint, byte playerIndex, byte depthToTarget,
+        private unsafe double GEBRPass2_DecisionNode(in HistoryPoint historyPoint, byte playerIndex, byte depthToTarget,
             byte depthSoFar, double inversePi, ActionStrategies opponentsActionStrategy, int distributorChanceInputs)
         {
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
@@ -238,7 +238,7 @@ namespace ACESim
         }
 
 
-        private double GEBRPass2_ChanceNode(ref HistoryPoint historyPoint, byte playerIndex, byte depthToTarget,
+        private double GEBRPass2_ChanceNode(in HistoryPoint historyPoint, byte playerIndex, byte depthToTarget,
             byte depthSoFar, double inversePi, ActionStrategies opponentsActionStrategy, int distributorChanceInputs)
         {
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
@@ -293,7 +293,7 @@ namespace ACESim
         }
 
 
-        private unsafe double GEBRPass2_RecurseNotReversible(ref HistoryPoint historyPoint, byte playerIndex, byte depthToTarget, byte depthSoFar, ActionStrategies opponentsActionStrategy, Decision decision, byte decisionIndex, byte action, double nextInversePi, int distributorChanceInputs)
+        private unsafe double GEBRPass2_RecurseNotReversible(in HistoryPoint historyPoint, byte playerIndex, byte depthToTarget, byte depthSoFar, ActionStrategies opponentsActionStrategy, Decision decision, byte decisionIndex, byte action, double nextInversePi, int distributorChanceInputs)
         {
             double expectedValue;
             {

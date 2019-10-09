@@ -17,7 +17,7 @@ namespace ACESim
         public readonly List<FinalUtilitiesNode> FinalUtilitiesNodes;
         public readonly EvolutionSettings EvolutionSettings;
 
-        public delegate IGameState GameStateFunction(ref HistoryPoint historyPoint, HistoryNavigationInfo? navigation);
+        public delegate IGameState GameStateFunction(in HistoryPoint historyPoint, HistoryNavigationInfo? navigation);
 
         [NonSerialized]
         public readonly GameStateFunction StoredGameStateFunction;
@@ -41,9 +41,9 @@ namespace ACESim
 
         public HistoryNavigationInfo WithLookupApproach(InformationSetLookupApproach lookupApproach) => new HistoryNavigationInfo(lookupApproach, Strategies, GameDefinition, InformationSets, ChanceNodes, FinalUtilitiesNodes, StoredGameStateFunction, EvolutionSettings);
 
-        public IGameState GetGameState(ref HistoryPoint historyPoint)
+        public IGameState GetGameState(in HistoryPoint historyPoint)
         {
-            return StoredGameStateFunction(ref historyPoint, this);
+            return StoredGameStateFunction(in historyPoint, this);
         }
     }
 }

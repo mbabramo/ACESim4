@@ -393,9 +393,9 @@ namespace ACESim
             // the game tree without creating Game or GameProgress objects).
         }
 
-        public virtual void ReverseDecision(Decision decisionToReverse, ref HistoryPoint historyPoint, IGameState originalGameState)
+        public virtual void ReverseDecision(Decision decisionToReverse, in HistoryPoint historyPoint, IGameState originalGameState)
         {
-            ref GameHistory gameHistory = ref historyPoint.HistoryToPoint;
+            GameHistory gameHistory = historyPoint.HistoryToPoint;
             if (decisionToReverse.PlayersToInform != null)
                 foreach (byte playerIndex in decisionToReverse.PlayersToInform)
                     gameHistory.ReverseAdditionsToInformationSet(playerIndex, 1, null);
@@ -409,8 +409,8 @@ namespace ACESim
                 gameHistory.SetCacheItemAtIndex((byte)decisionToReverse.StoreActionInGameCacheItem, 0);
             gameHistory.RemoveLastActionFromSimpleActionsList();
             gameHistory.Complete = false; // just in case it was marked true
-            historyPoint = historyPoint.WithGameState(originalGameState);
-            if (historyPoint.GameProgress != null || historyPoint.TreePoint != null)
+            var historyPoint2 = historyPoint.WithGameState(originalGameState);
+            if (historyPoint2.GameProgress != null || historyPoint2.TreePoint != null)
                 throw new Exception();
         }
 
@@ -438,7 +438,7 @@ namespace ACESim
             } while (nextDecisionIndex < numDecisionsExecutionOrder - 1 && SkipDecision(decision, ref gameHistory));
         }
 
-        public virtual bool SkipDecision(Decision decision, ref GameHistory gameHistory)
+        public virtual bool SkipDecision(Decision decision, in GameHistory gameHistory)
         {
             return false;
         }

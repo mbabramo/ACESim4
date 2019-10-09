@@ -28,7 +28,7 @@ namespace ACESim
         /// <param name="historyPoint">The game tree, pointing to the particular point in the game where we are located</param>
         /// <param name="playerBeingOptimized">0 for first player, etc. Note that this corresponds in Lanctot to 1, 2, etc. We are using zero-basing for player index (even though we are 1-basing actions).</param>
         /// <returns></returns>
-        public unsafe double VanillaCFRIterationForPlayer(ref HistoryPoint historyPoint, byte playerBeingOptimized, Span<double> piValues,
+        public unsafe double VanillaCFRIterationForPlayer(in HistoryPoint historyPoint, byte playerBeingOptimized, Span<double> piValues,
             bool usePruning)
         {
             if (usePruning && ShouldPruneIfPruning(piValues))
@@ -66,7 +66,7 @@ namespace ACESim
             return false;
         }
 
-        private unsafe double VanillaCFR_DecisionNode(ref HistoryPoint historyPoint, byte playerBeingOptimized,
+        private unsafe double VanillaCFR_DecisionNode(in HistoryPoint historyPoint, byte playerBeingOptimized,
             Span<double> piValues, bool usePruning)
         {
             Span<double> nextPiValues = stackalloc double[MaxNumMainPlayers];
@@ -143,7 +143,7 @@ namespace ACESim
             return expectedValue;
         }
 
-        private unsafe double VanillaCFR_ChanceNode(ref HistoryPoint historyPoint, byte playerBeingOptimized,
+        private unsafe double VanillaCFR_ChanceNode(in HistoryPoint historyPoint, byte playerBeingOptimized,
             Span<double> piValues, bool usePruning)
         {
             Span<double> equalProbabilityNextPiValues = stackalloc double[MaxNumMainPlayers];
@@ -186,7 +186,7 @@ namespace ACESim
             return expectedValue;
         }
 
-        private unsafe double VanillaCFR_ChanceNode_NextAction(ref HistoryPoint historyPoint, byte playerBeingOptimized,
+        private unsafe double VanillaCFR_ChanceNode_NextAction(in HistoryPoint historyPoint, byte playerBeingOptimized,
             Span<double> piValues, ChanceNode chanceNode, Span<double> equalProbabilityNextPiValues,
             double expectedValue, byte action, bool usePruning)
         {

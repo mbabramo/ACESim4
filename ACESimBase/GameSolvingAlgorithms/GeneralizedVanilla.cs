@@ -404,7 +404,7 @@ namespace ACESim
 
         #region Unrolled algorithm
 
-        public unsafe void Unroll_GeneralizedVanillaCFR(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool isUltimateResult, int distributorChanceInputs)
+        public unsafe void Unroll_GeneralizedVanillaCFR(in HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool isUltimateResult, int distributorChanceInputs)
         {
             Unroll_Commands.IncrementDepth(false);
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
@@ -428,7 +428,7 @@ namespace ACESim
             Unroll_Commands.DecrementDepth(false, playerBeingOptimized == NumNonChancePlayers - 1);
         }
 
-        private unsafe void Unroll_GeneralizedVanillaCFR_DecisionNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool isUltimateResult, int distributorChanceInputs)
+        private unsafe void Unroll_GeneralizedVanillaCFR_DecisionNode(in HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool isUltimateResult, int distributorChanceInputs)
         {
             Unroll_Commands.IncrementDepth(false);
 
@@ -577,7 +577,7 @@ namespace ACESim
             Unroll_Commands.DecrementDepth(false);
         }
 
-        private unsafe void Unroll_GeneralizedVanillaCFR_ChanceNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool isUltimateResult, int distributorChanceInputs)
+        private unsafe void Unroll_GeneralizedVanillaCFR_ChanceNode(in HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool isUltimateResult, int distributorChanceInputs)
         {
             Unroll_Commands.IncrementDepth(false);
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
@@ -615,7 +615,7 @@ namespace ACESim
             Unroll_Commands.DecrementDepth(false);
         }
 
-        private unsafe void Unroll_GeneralizedVanillaCFR_ChanceNode_NextAction(ref HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, ChanceNode chanceNode, byte action, int[] resultArray, bool isUltimateResult, int distributorChanceInputs)
+        private unsafe void Unroll_GeneralizedVanillaCFR_ChanceNode_NextAction(in HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, ChanceNode chanceNode, byte action, int[] resultArray, bool isUltimateResult, int distributorChanceInputs)
         {
             Unroll_Commands.IncrementDepth(false);
             int actionProbabilityIndex = Unroll_GetChanceNodeIndex_ProbabilityForAction(chanceNode.ChanceNodeNumber, distributorChanceInputs, action);
@@ -843,7 +843,7 @@ namespace ACESim
         /// <param name="historyPoint">The game tree, pointing to the particular point in the game where we are located</param>
         /// <param name="playerBeingOptimized">0 for first player, etc. Note that this corresponds in Lanctot to 1, 2, etc. We are using zero-basing for player index (even though we are 1-basing actions).</param>
         /// <returns></returns>
-        public unsafe GeneralizedVanillaUtilities GeneralizedVanillaCFR(ref HistoryPoint historyPoint, byte playerBeingOptimized, Span<double> piValues, Span<double> avgStratPiValues, int distributorChanceInputs)
+        public unsafe GeneralizedVanillaUtilities GeneralizedVanillaCFR(in HistoryPoint historyPoint, byte playerBeingOptimized, Span<double> piValues, Span<double> avgStratPiValues, int distributorChanceInputs)
         {
             //if (usePruning && ShouldPruneIfPruning(piValues))
             //    return new GeneralizedVanillaUtilities { AverageStrategyVsAverageStrategy = 0, BestResponseToAverageStrategy = 0, HedgeVsHedge = 0 };
@@ -867,7 +867,7 @@ namespace ACESim
 
         bool IncludeAsteriskForBestResponseInTrace = false;
 
-        private unsafe GeneralizedVanillaUtilities GeneralizedVanillaCFR_DecisionNode(ref HistoryPoint historyPoint, byte playerBeingOptimized,
+        private unsafe GeneralizedVanillaUtilities GeneralizedVanillaCFR_DecisionNode(in HistoryPoint historyPoint, byte playerBeingOptimized,
             Span<double> piValues, Span<double> avgStratPiValues, int distributorChanceInputs)
         {
             double inversePi = GetInversePiValue(piValues, playerBeingOptimized);
@@ -982,7 +982,7 @@ namespace ACESim
             return result;
         }
 
-        private unsafe GeneralizedVanillaUtilities GeneralizedVanillaCFR_ChanceNode(ref HistoryPoint historyPoint, byte playerBeingOptimized,
+        private unsafe GeneralizedVanillaUtilities GeneralizedVanillaCFR_ChanceNode(in HistoryPoint historyPoint, byte playerBeingOptimized,
             Span<double> piValues, Span<double> avgStratPiValues, int distributorChanceInputs)
         {
             GeneralizedVanillaUtilities result = default;
@@ -1020,7 +1020,7 @@ namespace ACESim
             return result;
         }
 
-        private unsafe GeneralizedVanillaUtilities GeneralizedVanillaCFR_ChanceNode_NextAction(ref HistoryPoint historyPoint, byte playerBeingOptimized, Span<double> piValues, Span<double> avgStratPiValues, ChanceNode chanceNode, byte action, int distributorChanceInputs)
+        private unsafe GeneralizedVanillaUtilities GeneralizedVanillaCFR_ChanceNode_NextAction(in HistoryPoint historyPoint, byte playerBeingOptimized, Span<double> piValues, Span<double> avgStratPiValues, ChanceNode chanceNode, byte action, int distributorChanceInputs)
         {
             Span<double> nextPiValues = stackalloc double[MaxNumMainPlayers];
             Span<double> nextAvgStratPiValues = stackalloc double[MaxNumMainPlayers];

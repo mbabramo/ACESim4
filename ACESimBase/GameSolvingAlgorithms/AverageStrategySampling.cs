@@ -27,7 +27,7 @@ namespace ACESim
             return created;
         }
 
-        public double AverageStrategySampling_WalkTree(ref HistoryPoint historyPoint, byte playerBeingOptimized,
+        public double AverageStrategySampling_WalkTree(in HistoryPoint historyPoint, byte playerBeingOptimized,
             double samplingProbabilityQ, Decision nextDecision, byte nextDecisionIndex)
         {
             if (TraceCFR)
@@ -56,7 +56,7 @@ namespace ACESim
                     if (TraceCFR)
                         TabbedText.TabIndent();
                     double walkTreeValue =
-                        AverageStrategySampling_WalkTree(ref nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ, chanceNode.Decision, chanceNode.DecisionIndex);
+                        AverageStrategySampling_WalkTree(in nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ, chanceNode.Decision, chanceNode.DecisionIndex);
                     if (TraceCFR)
                     {
                         TabbedText.TabUnindent();

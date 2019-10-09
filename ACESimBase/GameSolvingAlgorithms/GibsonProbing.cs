@@ -21,13 +21,13 @@ namespace ACESim
             return created;
         }
 
-        public unsafe double GibsonProbe_SinglePlayer(ref HistoryPoint historyPoint, byte playerBeingOptimized,
+        public unsafe double GibsonProbe_SinglePlayer(in HistoryPoint historyPoint, byte playerBeingOptimized,
             IRandomProducer randomProducer, Decision nextDecision, byte nextDecisionIndex)
         {
             return GibsonProbe(ref historyPoint, randomProducer, nextDecision, nextDecisionIndex)[playerBeingOptimized];
         }
 
-        public unsafe double[] GibsonProbe(ref HistoryPoint historyPoint, IRandomProducer randomProducer, Decision nextDecision, byte nextDecisionIndex)
+        public unsafe double[] GibsonProbe(in HistoryPoint historyPoint, IRandomProducer randomProducer, Decision nextDecision, byte nextDecisionIndex)
         {
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             //if (TraceCFR)
@@ -86,7 +86,7 @@ namespace ACESim
             }
         }
 
-        public unsafe double GibsonProbe_WalkTree(ref HistoryPoint historyPoint, byte playerBeingOptimized,
+        public unsafe double GibsonProbe_WalkTree(in HistoryPoint historyPoint, byte playerBeingOptimized,
             double samplingProbabilityQ, IRandomProducer randomProducer, Decision nextDecision, byte nextDecisionIndex)
         {
             if (TraceCFR)

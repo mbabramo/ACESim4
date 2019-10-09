@@ -63,11 +63,11 @@ namespace ACESim
             return decisions;
         }
 
-        public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, ref GameHistory gameHistory, GameProgress gameProgress)
+        public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, in GameHistory gameHistory, GameProgress gameProgress)
         {
         }
 
-        public override bool ShouldMarkGameHistoryComplete(Decision currentDecision, ref GameHistory gameHistory, byte actionChosen)
+        public override bool ShouldMarkGameHistoryComplete(Decision currentDecision, in GameHistory gameHistory, byte actionChosen)
         {
             if (currentDecision.AlwaysTerminatesGame)
                 return true;

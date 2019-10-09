@@ -39,9 +39,19 @@ namespace ACESim
             return new HistoryPoint(TreePoint, HistoryToPoint.DeepCopy(), GameProgress?.DeepCopy(), GameState);
         }
 
+        public HistoryPoint WithTreePoint(NWayTreeStorage<IGameState> treePoint)
+        {
+            return new HistoryPoint(treePoint, HistoryToPoint, GameProgress, GameState);
+        }
+
         public HistoryPoint WithGameState(IGameState gameState)
         {
             return new HistoryPoint(TreePoint, HistoryToPoint, GameProgress, gameState);
+        }
+
+        public HistoryPoint WithGameProgress(GameProgress gameProgress)
+        {
+            return new HistoryPoint(TreePoint, HistoryToPoint, gameProgress, GameState);
         }
 
         public HistoryPoint WithHistoryToPoint(GameHistory historyToPoint)
@@ -115,7 +125,7 @@ namespace ACESim
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
                 //var informationSetHistories = HistoryToPoint.GetInformationSetHistoryItems().Select(x => x.ToString());
-                navigation.GameDefinition.GetNextDecision(ref HistoryToPoint, out Decision nextDecision, out byte nextDecisionIndex);
+                navigation.GameDefinition.GetNextDecision(in HistoryToPoint, out Decision nextDecision, out byte nextDecisionIndex);
                 // If nextDecision is null, then there are no more player decisions. (If this seems wrong, it could be a result of an error in whether to mark a game complete.) When there are no more player decisions, the resolution "player" is used.
                 byte nextPlayer = nextDecision?.PlayerNumber ?? navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
                 Span<byte> informationSetsPtr = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
@@ -197,20 +207,23 @@ namespace ACESim
 
         private HistoryPoint GetBranch_CachedGameHistory(HistoryNavigationInfo navigation, byte actionChosen, Decision nextDecision, byte nextDecisionIndex)
         {
-            HistoryPoint next = new HistoryPoint {HistoryToPoint = HistoryToPoint.DeepCopy()}; // struct is copied, along with enclosed arrays. We then use a ref to change the copy, since otherwise it would be copied again. This is very costly, because we're copying the entire struct (and this is executed very frequently). // DEBUG -- this is the critical point for allocation of arrays for history
-            Game.UpdateGameHistory(ref next.HistoryToPoint, navigation.GameDefinition, nextDecision, nextDecisionIndex, actionChosen, GameProgress);
-            if (nextDecision.CanTerminateGame && navigation.GameDefinition.ShouldMarkGameHistoryComplete(nextDecision, ref next.HistoryToPoint, actionChosen))
+            HistoryPoint next = new HistoryPoint(HistoryToPoint.DeepCopy()); // struct is copied, along with enclosed arrays. We then use a ref to change the copy, since otherwise it would be copied again. This is very costly, because we're copying the entire struct (and this is executed very frequently). // DEBUG -- this is the critical point for allocation of arrays for history
+            Game.UpdateGameHistory(in next.HistoryToPoint, navigation.GameDefinition, nextDecision, nextDecisionIndex, actionChosen, GameProgress);
+            if (nextDecision.CanTerminateGame && navigation.GameDefinition.ShouldMarkGameHistoryComplete(nextDecision, in next.HistoryToPoint, actionChosen))
                 next.HistoryToPoint.MarkComplete();
             return next;
         }
 
         public void SwitchToBranch(HistoryNavigationInfo navigation, byte actionChosen, Decision nextDecision, byte nextDecisionIndex)
         {
+            HistoryPoint toReturn = this;
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
-                Game.UpdateGameHistory(ref HistoryToPoint, navigation.GameDefinition, nextDecision, nextDecisionIndex, actionChosen, GameProgress);
-                if (nextDecision.CanTerminateGame && navigation.GameDefinition.ShouldMarkGameHistoryComplete(nextDecision, ref HistoryToPoint, actionChosen))
-                    HistoryToPoint.MarkComplete();
+                Game.UpdateGameHistory(in HistoryToPoint, navigation.GameDefinition, nextDecision, nextDecisionIndex, actionChosen, GameProgress);
+                if (nextDecision.CanTerminateGame && navigation.GameDefinition.ShouldMarkGameHistoryComplete(nextDecision, in HistoryToPoint, actionChosen))
+                {
+                    HistoryToPoint.MarkComplete(); debug; // must revise after MarkComplete()
+                }
             }
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
@@ -218,16 +231,16 @@ namespace ACESim
                 if (branch == null)
                     lock (TreePoint)
                         branch = ((NWayTreeStorageInternal<IGameState>)TreePoint).AddBranch(actionChosen, true);
-                TreePoint = branch;
+                toReturn = toReturn.WithTreePoint(branch);
             }
             if (navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)
             {
                 IGameFactory gameFactory = navigation.GameDefinition.GameFactory;
                 GamePlayer player = new GamePlayer(navigation.Strategies, false, navigation.GameDefinition);
                 player.ContinuePathWithAction(actionChosen, GameProgress);
-                HistoryToPoint = GameProgress.GameHistory;
+                toReturn = toReturn.WithHistoryToPoint(GameProgress.GameHistory);
             }
-            GameState = null;
+            toReturn = toReturn.WithGameState(null);
         }
 
         public byte GetNextPlayer(HistoryNavigationInfo navigation)
@@ -248,7 +261,7 @@ namespace ACESim
             }
             else // may be actual game or cached game history -- either way, we'll use the game history
             {
-                navigation.GameDefinition.GetNextDecision(ref HistoryToPoint, out Decision nextDecision, out byte _);
+                navigation.GameDefinition.GetNextDecision(in HistoryToPoint, out Decision nextDecision, out byte _);
                 return nextDecision.PlayerNumber;
             }
         }
@@ -271,7 +284,7 @@ namespace ACESim
             }
             else // may be actual game or cached game history -- either way, we'll use the game history
             {
-                navigation.GameDefinition.GetNextDecision(ref HistoryToPoint, out Decision nextDecision, out byte _);
+                navigation.GameDefinition.GetNextDecision(in HistoryToPoint, out Decision nextDecision, out byte _);
                 return nextDecision.DecisionByteCode;
             }
         }
@@ -294,7 +307,7 @@ namespace ACESim
             }
             else // may be actual game or cached game history -- either way, we'll use the game history
             {
-                navigation.GameDefinition.GetNextDecision(ref HistoryToPoint, out _, out byte nextDecisionIndex);
+                navigation.GameDefinition.GetNextDecision(in HistoryToPoint, out _, out byte nextDecisionIndex);
                 return nextDecisionIndex;
             }
         }
@@ -341,7 +354,7 @@ namespace ACESim
                 FinalUtilitiesNode finalUtilities = (FinalUtilitiesNode) strategy.GetInformationSetTreeValue(resolutionInformationSet);
                 if (finalUtilities == null)
                 {
-                    navigation.GetGameState(ref this); // make sure that point is initialized up to here
+                    navigation.GetGameState(in this); // make sure that point is initialized up to here
                     finalUtilities = (FinalUtilitiesNode)strategy.GetInformationSetTreeValue(resolutionInformationSet);
                 }
                 utilitiesFromCachedGameHistory = finalUtilities.Utilities;

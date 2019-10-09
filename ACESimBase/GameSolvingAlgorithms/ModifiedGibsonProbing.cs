@@ -35,7 +35,7 @@ namespace ACESim
             return ModifiedGibsonProbe(ref historyPoint, randomProducer)[playerBeingOptimized];
         }
 
-        public unsafe double[] ModifiedGibsonProbe(ref HistoryPoint historyPoint, IRandomProducer randomProducer)
+        public unsafe double[] ModifiedGibsonProbe(in HistoryPoint historyPoint, IRandomProducer randomProducer)
         {
             IGameState gameStateForCurrentPlayer = GetGameState(ref historyPoint);
             //if (TraceCFR)
@@ -61,7 +61,7 @@ namespace ACESim
             }
         }
 
-        private unsafe double[] ModifiedGibsonProbe_DecisionNode(ref HistoryPoint historyPoint, IRandomProducer randomProducer, IGameState gameStateForCurrentPlayer)
+        private unsafe double[] ModifiedGibsonProbe_DecisionNode(in HistoryPoint historyPoint, IRandomProducer randomProducer, IGameState gameStateForCurrentPlayer)
         {
             InformationSetNode informationSet = (InformationSetNode)gameStateForCurrentPlayer;
             byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
@@ -75,7 +75,7 @@ namespace ACESim
             return CompleteModifiedGibsonProbe_InPlace(ref historyPoint, randomProducer, sampledAction, informationSet.Decision, informationSet.DecisionIndex);
         }
 
-        private double[] ModifiedGibsonProbe_ChanceNode(ref HistoryPoint historyPoint, IRandomProducer randomProducer, IGameState gameStateForCurrentPlayer)
+        private double[] ModifiedGibsonProbe_ChanceNode(in HistoryPoint historyPoint, IRandomProducer randomProducer, IGameState gameStateForCurrentPlayer)
         {
             ChanceNode chanceNode = (ChanceNode)gameStateForCurrentPlayer;
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNode.DecisionIndex);
@@ -119,7 +119,7 @@ namespace ACESim
             }
         }
 
-        private double[] CompleteModifiedGibsonProbe(ref HistoryPoint historyPoint, IRandomProducer randomProducer, byte sampledAction, Decision nextDecision, byte nextDecisionIndex)
+        private double[] CompleteModifiedGibsonProbe(in HistoryPoint historyPoint, IRandomProducer randomProducer, byte sampledAction, Decision nextDecision, byte nextDecisionIndex)
         {
             HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction, nextDecision, nextDecisionIndex);
             if (TraceCFR)
@@ -135,7 +135,7 @@ namespace ACESim
         }
 
 
-        private double[] CompleteModifiedGibsonProbe_InPlace(ref HistoryPoint historyPoint, IRandomProducer randomProducer, byte sampledAction, Decision nextDecision, byte nextDecisionIndex)
+        private double[] CompleteModifiedGibsonProbe_InPlace(in HistoryPoint historyPoint, IRandomProducer randomProducer, byte sampledAction, Decision nextDecision, byte nextDecisionIndex)
         {
             historyPoint.SwitchToBranch(Navigation, sampledAction, nextDecision, nextDecisionIndex);
             if (TraceCFR)
@@ -150,7 +150,7 @@ namespace ACESim
             return probeResult;
         }
 
-        public unsafe double ModifiedGibsonProbe_WalkTree(ref HistoryPoint historyPoint, byte playerBeingOptimized,
+        public unsafe double ModifiedGibsonProbe_WalkTree(in HistoryPoint historyPoint, byte playerBeingOptimized,
             double samplingProbabilityQ, IRandomProducer randomProducer, Decision nextDecision, byte nextDecisionIndex)
         {
             if (TraceCFR)
@@ -173,7 +173,7 @@ namespace ACESim
                 throw new NotImplementedException();
         }
 
-        private unsafe double ModifiedGibsonProbe_WalkTree_DecisionNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNode informationSet)
+        private unsafe double ModifiedGibsonProbe_WalkTree_DecisionNode(in HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNode informationSet)
         {
             byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
             double* sigmaRegretMatchedActionProbabilities = stackalloc double[numPossibleActions];
@@ -185,7 +185,7 @@ namespace ACESim
             return ModifiedGibsonProbe_WalkTree_DecisionNode_PlayerBeingOptimized(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, informationSet, numPossibleActions, randomDouble, playerAtPoint, sigmaRegretMatchedActionProbabilities);
         }
 
-        private unsafe double ModifiedGibsonProbe_WalkTree_DecisionNode_PlayerBeingOptimized(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNode informationSet, byte numPossibleActions, double randomDouble, byte playerAtPoint, double* sigmaRegretMatchedActionProbabilities)
+        private unsafe double ModifiedGibsonProbe_WalkTree_DecisionNode_PlayerBeingOptimized(in HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNode informationSet, byte numPossibleActions, double randomDouble, byte playerAtPoint, double* sigmaRegretMatchedActionProbabilities)
         {
             double* samplingProbabilities = stackalloc double[numPossibleActions];
             informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(samplingProbabilities, EvolutionSettings.EpsilonForMainPlayer);
@@ -236,14 +236,14 @@ namespace ACESim
             return summation;
         }
 
-        private unsafe double ModifiedGibsonProbe_CalculateCounterfactualValues_NewHistoryPoint(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNode informationSet, double* sigmaRegretMatchedActionProbabilities, byte action, double summation, byte sampledAction, double* samplingProbabilities, double* counterfactualValues)
+        private unsafe double ModifiedGibsonProbe_CalculateCounterfactualValues_NewHistoryPoint(in HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNode informationSet, double* sigmaRegretMatchedActionProbabilities, byte action, double summation, byte sampledAction, double* samplingProbabilities, double* counterfactualValues)
         {
             HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
             summation = ModifiedGibsonProbe_CalculateCounterfactualValues(ref nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, informationSet, sigmaRegretMatchedActionProbabilities, action, sampledAction, samplingProbabilities, counterfactualValues, summation);
             return summation;
         }
 
-        private unsafe double ModifiedGibsonProbe_CalculateCounterfactualValues(ref HistoryPoint nextHistoryPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNode informationSet, double* sigmaRegretMatchedActionProbabilities, byte action, byte sampledAction, double* samplingProbabilities, double* counterfactualValues, double summation)
+        private unsafe double ModifiedGibsonProbe_CalculateCounterfactualValues(in HistoryPoint nextHistoryPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNode informationSet, double* sigmaRegretMatchedActionProbabilities, byte action, byte sampledAction, double* samplingProbabilities, double* counterfactualValues, double summation)
         {
             if (action == sampledAction)
             {
@@ -279,7 +279,7 @@ namespace ACESim
             return summation;
         }
 
-        private unsafe double ModifiedGibsonProbe_WalkTree_DecisionNode_OtherPlayer(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNode informationSet, double* sigmaRegretMatchedActionProbabilities, byte numPossibleActions, double randomDouble, byte playerAtPoint)
+        private unsafe double ModifiedGibsonProbe_WalkTree_DecisionNode_OtherPlayer(in HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNode informationSet, double* sigmaRegretMatchedActionProbabilities, byte numPossibleActions, double randomDouble, byte playerAtPoint)
         {
             informationSet.GetRegretMatchingProbabilities(sigmaRegretMatchedActionProbabilities);
             for (byte action = 1; action <= numPossibleActions; action++)
@@ -304,7 +304,7 @@ namespace ACESim
             return ModifiedGibsonProbe_WalkTree_DecisionNode_OtherPlayer_NotReversible(ref historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, informationSet, sampledAction);
         }
 
-        private double ModifiedGibsonProbe_WalkTree_DecisionNode_OtherPlayer_NotReversible(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNode informationSet, byte sampledAction)
+        private double ModifiedGibsonProbe_WalkTree_DecisionNode_OtherPlayer_NotReversible(in HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNode informationSet, byte sampledAction)
         {
             HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, sampledAction, informationSet.Decision, informationSet.DecisionIndex);
             if (TraceCFR)
@@ -319,7 +319,7 @@ namespace ACESim
             return walkTreeValue2;
         }
 
-        private double ModifiedGibsonProbe_WalkTree_DecisionNode_OtherPlayer_Reversible(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNode informationSet, byte sampledAction)
+        private double ModifiedGibsonProbe_WalkTree_DecisionNode_OtherPlayer_Reversible(in HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNode informationSet, byte sampledAction)
         {
             IGameState gameStateOriginal = historyPoint.GameState;
             historyPoint.SwitchToBranch(Navigation, sampledAction, informationSet.Decision, informationSet.DecisionIndex);
@@ -336,7 +336,7 @@ namespace ACESim
             return walkTreeValue;
         }
 
-        private double ModifiedGibsonProbe_WalkTree_ChanceNode(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, ChanceNode chanceNode)
+        private double ModifiedGibsonProbe_WalkTree_ChanceNode(in HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, ChanceNode chanceNode)
         {
             byte sampledAction;
             byte numPossibleActions = NumPossibleActionsAtDecision(chanceNode.DecisionIndex);
@@ -355,7 +355,7 @@ namespace ACESim
             }
         }
 
-        private double ModifiedGibsonProbe_WalkTree_ChanceNode_NotReversible(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, ChanceNode chanceNode, byte sampledAction, byte numPossibleActions)
+        private double ModifiedGibsonProbe_WalkTree_ChanceNode_NotReversible(in HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, ChanceNode chanceNode, byte sampledAction, byte numPossibleActions)
         {
             if (TraceCFR)
                 TabbedText.WriteLine(
@@ -374,7 +374,7 @@ namespace ACESim
             return walkTreeValue;
         }
 
-        private double ModifiedGibsonProbe_WalkTree_ChanceNode_Reversible(ref HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, ChanceNode chanceNode, byte sampledAction, byte numPossibleActions)
+        private double ModifiedGibsonProbe_WalkTree_ChanceNode_Reversible(in HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, ChanceNode chanceNode, byte sampledAction, byte numPossibleActions)
         {
             if (TraceCFR)
                 TabbedText.WriteLine(

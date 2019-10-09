@@ -761,7 +761,7 @@ namespace ACESim
         }
 
 
-        public override bool SkipDecision(Decision decision, ref GameHistory gameHistory)
+        public override bool SkipDecision(Decision decision, in GameHistory gameHistory)
         {
             byte decisionByteCode = decision.DecisionByteCode;
             if (decisionByteCode == (byte) MyGameDecisions.MutualGiveUp)
@@ -786,7 +786,7 @@ namespace ACESim
             return false;
         }
         
-        public override bool ShouldMarkGameHistoryComplete(Decision currentDecision, ref GameHistory gameHistory, byte actionChosen)
+        public override bool ShouldMarkGameHistoryComplete(Decision currentDecision, in GameHistory gameHistory, byte actionChosen)
         {
             if (!currentDecision.CanTerminateGame)
                 return false;
@@ -849,7 +849,7 @@ namespace ACESim
             return false;
         }
 
-        public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, ref GameHistory gameHistory, GameProgress gameProgress)
+        public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, in GameHistory gameHistory, GameProgress gameProgress)
         {
             byte decisionByteCode = currentDecision.DecisionByteCode; // get the original decision byte code
             if (decisionByteCode == (byte) MyGameDecisions.DChips)
@@ -950,10 +950,10 @@ namespace ACESim
             }
         }
 
-        public override void ReverseDecision(Decision decisionToReverse, ref HistoryPoint historyPoint, IGameState originalGameState)
+        public override void ReverseDecision(Decision decisionToReverse, in HistoryPoint historyPoint, IGameState originalGameState)
         {
             base.ReverseDecision(decisionToReverse, ref historyPoint, originalGameState);
-            ref GameHistory gameHistory = ref historyPoint.HistoryToPoint;
+            in GameHistory gameHistory = ref historyPoint.HistoryToPoint;
             byte decisionByteCode = decisionToReverse.DecisionByteCode;
             if (decisionByteCode == (byte)MyGameDecisions.DChips)
             {
