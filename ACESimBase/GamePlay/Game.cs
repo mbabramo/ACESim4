@@ -283,7 +283,7 @@ namespace ACESim
         /// </summary>
         /// <param name="actionsToPlay"></param>
         /// <returns>The next path of decisions to play.</returns>
-        public unsafe void PlayPathAndContinueWithDefaultAction(byte* actionsToPlay, ref byte* nextPath)
+        public void PlayPathAndContinueWithDefaultAction(Span<byte> actionsToPlay, ref Span<byte> nextPath)
         {
             ChooseDefaultActionIfNoneChosen = true;
             Progress.SetActionsToPlay(actionsToPlay);

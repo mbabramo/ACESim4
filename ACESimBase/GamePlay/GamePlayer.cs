@@ -209,14 +209,14 @@ namespace ACESim
             //TabbedText.WriteLine($"Yielded: {numYielded} {numYielded2}");
         }
 
-        public unsafe (GameProgress progress, IEnumerable<byte> next) PlayPath(IEnumerable<byte> actionsToPlay, bool getNextPath)
+        public (GameProgress progress, IEnumerable<byte> next) PlayPath(IEnumerable<byte> actionsToPlay, bool getNextPath)
         {
-            byte* actionsToPlay_AsPointer = stackalloc byte[GameFullHistory.MaxNumActions];
+            Span<byte> actionsToPlay_AsPointer = stackalloc byte[GameFullHistory.MaxNumActions];
             int d = 0;
             foreach (byte b in actionsToPlay)
                 actionsToPlay_AsPointer[d++] = b;
             actionsToPlay_AsPointer[d] = 255;
-            byte* nextActionsToPlay = stackalloc byte[GameFullHistory.MaxNumActions];
+            Span<byte> nextActionsToPlay = stackalloc byte[GameFullHistory.MaxNumActions];
             if (!getNextPath)
                 nextActionsToPlay = null;
             GameProgress progress = PlayPathAndKeepGoing(actionsToPlay_AsPointer, ref nextActionsToPlay);
@@ -245,7 +245,7 @@ namespace ACESim
             return gameProgress;
         }
 
-        public unsafe GameProgress PlayPathAndKeepGoing(byte* actionsToPlay, ref byte* nextActionsToPlay)
+        public GameProgress PlayPathAndKeepGoing(Span<byte> actionsToPlay, ref Span<byte> nextActionsToPlay)
         {
             Game game = GameDefinition.GameFactory.CreateNewGame();
             GameProgress gameProgress = StartingProgress.DeepCopy();

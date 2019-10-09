@@ -179,7 +179,7 @@ namespace ACESim
         /// Note that in this example there may be further decisions after (1, 2). 
         /// If called on (3, 3, 3), it will throw an Exception.
         /// </summary>
-        public unsafe void GetNextDecisionPath(GameDefinition gameDefinition, byte* nextDecisionPath)
+        public void GetNextDecisionPath(GameDefinition gameDefinition, Span<byte> nextDecisionPath)
         {
 #if (SAFETYCHECKS)
             if (!IsComplete())

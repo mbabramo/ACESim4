@@ -77,17 +77,19 @@ namespace ACESim
         }
 
         public bool ActionsToPlayCompleted => ActionsToPlayIndex + 2 > ActionsToPlay.Count();
-        public void SetActionsToPlay(byte* actionsToPlay)
+
+        public void SetActionsToPlay(Span<byte> actionsToPlay)
         {
             ActionsToPlay = new List<byte>();
-            byte* a = actionsToPlay;
-            while (*a != 255)
+            int i = 0;
+            while (actionsToPlay[i] != 255)
             {
-                ActionsToPlay.Add(*a);
-                a++;
+                ActionsToPlay.Add(actionsToPlay[i]);
+                i++;
             }
             ActionsToPlayIndex = -1;
         }
+
         public byte ActionsToPlay_CurrentAction => ActionsToPlay[ActionsToPlayIndex];
         public bool ActionsToPlay_MoveNext()
         {
