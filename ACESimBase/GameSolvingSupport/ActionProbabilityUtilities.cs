@@ -68,7 +68,7 @@ namespace ACESim
 
         }
 
-        private static unsafe void GetActionProbabilitiesAtHistoryPoint_Helper(IGameState gameStateForCurrentPlayer, ActionStrategies actionStrategy, double randomNumberToChooseIteration, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation, out double[] probabilities)
+        private static void GetActionProbabilitiesAtHistoryPoint_Helper(IGameState gameStateForCurrentPlayer, ActionStrategies actionStrategy, double randomNumberToChooseIteration, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation, out double[] probabilities)
         {
             probabilities = new double[GameFullHistory.MaxNumActions];
             Span<double> probabilitiesBuffer = stackalloc double[GameFullHistory.MaxNumActions];
@@ -77,7 +77,7 @@ namespace ACESim
                 probabilities[a] = probabilitiesBuffer[a];
         }
 
-        public static unsafe void GetActionProbabilitiesAtHistoryPoint(IGameState gameStateForCurrentPlayer, ActionStrategies actionStrategy, double randomNumberToChooseIteration, double[] probabilities, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation)
+        public static void GetActionProbabilitiesAtHistoryPoint(IGameState gameStateForCurrentPlayer, ActionStrategies actionStrategy, double randomNumberToChooseIteration, double[] probabilities, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation)
         {
 
             Span<double> probabilities2 = stackalloc double[GameFullHistory.MaxNumActions];
@@ -86,7 +86,7 @@ namespace ACESim
                 probabilities[i] = probabilities2[i];
         }
 
-        public static unsafe void GetActionProbabilitiesAtHistoryPoint(IGameState gameStateForCurrentPlayer, ActionStrategies actionStrategy, double randomNumberToChooseIteration, Span<double> probabilities, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation)
+        public static void GetActionProbabilitiesAtHistoryPoint(IGameState gameStateForCurrentPlayer, ActionStrategies actionStrategy, double randomNumberToChooseIteration, Span<double> probabilities, byte numPossibleActions, byte? alwaysDoAction, HistoryNavigationInfo navigation)
         {
             if (gameStateForCurrentPlayer is ChanceNode chanceNode)
             {

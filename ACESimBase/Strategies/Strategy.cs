@@ -65,16 +65,6 @@ namespace ACESim
             return returnVal;
         }
 
-        public unsafe NWayTreeStorage<IGameState> SetInformationSetTreeValueIfNotSet(byte decisionIndex, byte* informationSet, bool historyComplete, Func<IGameState> setter)
-        {
-            // DEBUG: To
-            if (decisionIndex == 0)
-                decisionIndex = DecisionIndexSubstitute; // a bit hacky -- we can't use a 0 prefix
-            var returnVal = InformationSetTree.SetValueIfNotSet(new NWayTreeStorageKeyStackOnly(decisionIndex, informationSet), historyComplete, setter);
-            // System.Diagnostics.TabbedText.WriteLine($"{String.Join(",", informationSet)}: {PlayerInfo.PlayerName} {returnVal.StoredValue}");
-            return returnVal;
-        }
-
         public NWayTreeStorage<IGameState> SetInformationSetTreeValueIfNotSet(Span<byte> informationSet, bool historyComplete, Func<IGameState> setter)
         {
             var returnVal = InformationSetTree.SetValueIfNotSet(new NWayTreeStorageKeyStackOnly(DecisionIndexSubstitute, informationSet), historyComplete, setter);
@@ -82,38 +72,16 @@ namespace ACESim
             return returnVal;
         }
 
-        public unsafe NWayTreeStorage<IGameState> SetInformationSetTreeValueIfNotSet(byte* informationSet, bool historyComplete, Func<IGameState> setter)
-        {
-            // DEBUG: Remove
-            var returnVal = InformationSetTree.SetValueIfNotSet(new NWayTreeStorageKeyStackOnly(DecisionIndexSubstitute, informationSet), historyComplete, setter);
-            // System.Diagnostics.TabbedText.WriteLine($"{String.Join(",", informationSet)}: {PlayerInfo.PlayerName} {returnVal.StoredValue}");
-            return returnVal;
-        }
-
         public byte DecisionIndexSubstitute = 235;
 
-        public unsafe IGameState GetInformationSetTreeValue(byte decisionIndex, byte* informationSet)
-        {
-            // DEBUG -- remove
-            if (decisionIndex == 0)
-                decisionIndex = DecisionIndexSubstitute; // a bit hacky -- we can't use a 0 prefix
-            return InformationSetTree?.GetValue(new NWayTreeStorageKeyStackOnly(decisionIndex, informationSet));
-        }
-
-        public unsafe IGameState GetInformationSetTreeValue(byte decisionIndex, Span<byte> informationSet)
+        public IGameState GetInformationSetTreeValue(byte decisionIndex, Span<byte> informationSet)
         {
             if (decisionIndex == 0)
                 decisionIndex = DecisionIndexSubstitute; // a bit hacky -- we can't use a 0 prefix
             return InformationSetTree?.GetValue(new NWayTreeStorageKeyStackOnly(decisionIndex, informationSet));
         }
 
-        public unsafe IGameState GetInformationSetTreeValue(byte* informationSet)
-        {
-            // DEBUG -- remove
-            return InformationSetTree?.GetValue(new NWayTreeStorageKeyStackOnly(DecisionIndexSubstitute, informationSet));
-        }
-
-        public unsafe IGameState GetInformationSetTreeValue(Span<byte> informationSet)
+        public IGameState GetInformationSetTreeValue(Span<byte> informationSet)
         {
             return InformationSetTree?.GetValue(new NWayTreeStorageKeyStackOnly(DecisionIndexSubstitute, informationSet));
         }
@@ -243,7 +211,7 @@ namespace ACESim
             return strategies;
         }
 
-        public unsafe NWayTreeStorage<List<double>> GetRegretMatchingTree()
+        public NWayTreeStorage<List<double>> GetRegretMatchingTree()
         {
             var regretMatchingTree = new NWayTreeStorageRoot<List<double>>(null, InformationSetTree.Branches.Length, false);
             List<(IGameState storedValue, List<byte> sequenceToHere)> nodes = InformationSetTree.GetAllTreeNodes();
@@ -251,7 +219,7 @@ namespace ACESim
             {
                 if (node.storedValue is InformationSetNode tallyNode)
                 {
-                    byte* sequencePointer = stackalloc byte[node.sequenceToHere.Count() + 1];
+                    Span<byte> sequencePointer = stackalloc byte[node.sequenceToHere.Count() + 1];
                     for (int i = 0; i < node.sequenceToHere.Count(); i++)
                         sequencePointer[i] = node.sequenceToHere[i];
                     sequencePointer[node.sequenceToHere.Count()] = 255;

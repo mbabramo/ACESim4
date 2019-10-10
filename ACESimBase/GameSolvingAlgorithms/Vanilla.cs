@@ -28,7 +28,7 @@ namespace ACESim
         /// <param name="historyPoint">The game tree, pointing to the particular point in the game where we are located</param>
         /// <param name="playerBeingOptimized">0 for first player, etc. Note that this corresponds in Lanctot to 1, 2, etc. We are using zero-basing for player index (even though we are 1-basing actions).</param>
         /// <returns></returns>
-        public unsafe double VanillaCFRIterationForPlayer(in HistoryPoint historyPoint, byte playerBeingOptimized, Span<double> piValues,
+        public double VanillaCFRIterationForPlayer(in HistoryPoint historyPoint, byte playerBeingOptimized, Span<double> piValues,
             bool usePruning)
         {
             if (usePruning && ShouldPruneIfPruning(piValues))
@@ -49,7 +49,7 @@ namespace ACESim
                 return VanillaCFR_DecisionNode(in historyPoint, playerBeingOptimized, piValues, usePruning);
         }
 
-        private unsafe bool ShouldPruneIfPruning(Span<double> piValues)
+        private bool ShouldPruneIfPruning(Span<double> piValues)
         {
             // If we are pruning, then we do prune when the probability of getting to this path is 0.
             // But that doesn't mean that we should prune. The results from zero reach paths can 
@@ -66,7 +66,7 @@ namespace ACESim
             return false;
         }
 
-        private unsafe double VanillaCFR_DecisionNode(in HistoryPoint historyPoint, byte playerBeingOptimized,
+        private double VanillaCFR_DecisionNode(in HistoryPoint historyPoint, byte playerBeingOptimized,
             Span<double> piValues, bool usePruning)
         {
             Span<double> nextPiValues = stackalloc double[MaxNumMainPlayers];
@@ -143,7 +143,7 @@ namespace ACESim
             return expectedValue;
         }
 
-        private unsafe double VanillaCFR_ChanceNode(in HistoryPoint historyPoint, byte playerBeingOptimized,
+        private double VanillaCFR_ChanceNode(in HistoryPoint historyPoint, byte playerBeingOptimized,
             Span<double> piValues, bool usePruning)
         {
             Span<double> equalProbabilityNextPiValues = stackalloc double[MaxNumMainPlayers];
@@ -188,7 +188,7 @@ namespace ACESim
             return expectedValue;
         }
 
-        private unsafe double VanillaCFR_ChanceNode_NextAction(in HistoryPoint historyPoint, byte playerBeingOptimized,
+        private double VanillaCFR_ChanceNode_NextAction(in HistoryPoint historyPoint, byte playerBeingOptimized,
             Span<double> piValues, ChanceNode chanceNode, Span<double> equalProbabilityNextPiValues,
             double expectedValue, byte action, bool usePruning)
         {
@@ -267,7 +267,7 @@ namespace ACESim
                 AverageStrategyAdjustment = 1E-100;
         }
 
-        private unsafe void VanillaCFR_OptimizeEachPlayer(int iteration, double[] lastUtilities, bool usePruning)
+        private void VanillaCFR_OptimizeEachPlayer(int iteration, double[] lastUtilities, bool usePruning)
         {
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {

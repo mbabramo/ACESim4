@@ -21,13 +21,13 @@ namespace ACESim
             return created;
         }
 
-        public unsafe double GibsonProbe_SinglePlayer(in HistoryPoint historyPoint, byte playerBeingOptimized,
+        public double GibsonProbe_SinglePlayer(in HistoryPoint historyPoint, byte playerBeingOptimized,
             IRandomProducer randomProducer, Decision nextDecision, byte nextDecisionIndex)
         {
             return GibsonProbe(in historyPoint, randomProducer, nextDecision, nextDecisionIndex)[playerBeingOptimized];
         }
 
-        public unsafe double[] GibsonProbe(in HistoryPoint historyPoint, IRandomProducer randomProducer, Decision nextDecision, byte nextDecisionIndex)
+        public double[] GibsonProbe(in HistoryPoint historyPoint, IRandomProducer randomProducer, Decision nextDecision, byte nextDecisionIndex)
         {
             IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
             //if (TraceCFR)
@@ -86,7 +86,7 @@ namespace ACESim
             }
         }
 
-        public unsafe double GibsonProbe_WalkTree(in HistoryPoint historyPoint, byte playerBeingOptimized,
+        public double GibsonProbe_WalkTree(in HistoryPoint historyPoint, byte playerBeingOptimized,
             double samplingProbabilityQ, IRandomProducer randomProducer, Decision nextDecision, byte nextDecisionIndex)
         {
             if (TraceCFR)
@@ -165,7 +165,7 @@ namespace ACESim
                 if (TraceCFR)
                     TabbedText.WriteLine(
                         $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {playerAtPoint} decision {informationSet.DecisionIndex} with regret-matched prob {sigmaRegretMatchedActionProbabilities[sampledAction - 1]}");
-                double* counterfactualValues = stackalloc double[numPossibleActions];
+                Span<double> counterfactualValues = stackalloc double[numPossibleActions];
                 double summation = 0;
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {

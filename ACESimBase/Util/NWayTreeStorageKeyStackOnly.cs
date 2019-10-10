@@ -14,15 +14,6 @@ namespace ACESim
 
         public byte Element(int i) => Sequence[i];
 
-        public NWayTreeStorageKeyStackOnly(byte prefaceByte, byte* sequence)
-        {
-            // DEBUG -- SUPERDEBUG -- we must get rid of this so that we can make this data structure safe.
-            PrefaceByte = prefaceByte;
-            var DEBUG = Util.ListExtensions.GetPointerAsList_255Terminated(sequence);
-            DEBUG.Add(255);
-            Sequence = DEBUG.ToArray();
-        }
-
         public NWayTreeStorageKeyStackOnly(byte prefaceByte, Span<byte> sequence)
         {
             PrefaceByte = prefaceByte;

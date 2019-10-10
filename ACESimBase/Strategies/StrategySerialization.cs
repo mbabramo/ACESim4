@@ -156,7 +156,7 @@ namespace ACESim
             d.CopyToInformationSets(informationSets);
         }
 
-        // Note: Not fully implemented, and this takes a lot of time and huge amount of memory. Part of problem is that everything is serialized (including array command list) and also there are things we will have to mark as nonserialized (such as unsafe classes), which means that they won't serialize anyway.
+        // Note: Not fully implemented, and this takes a lot of time and huge amount of memory. Part of problem is that everything is serialized (including array command list) and also there are things we will have to mark as nonserialized (such as classes with SPan), which means that they won't serialize anyway.
         public static void SerializeStrategyDeveloper(StrategiesDeveloperBase developer, string filename)
         {
             BinarySerialization.SerializeObject(filename + ".sdb", developer);
