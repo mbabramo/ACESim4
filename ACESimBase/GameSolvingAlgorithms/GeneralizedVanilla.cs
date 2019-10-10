@@ -1005,7 +1005,7 @@ namespace ACESim
                 var historyPointCopy = historyPoint.ToStorable(); // This is costly but needed given anonymous method below (because ref struct can't be accessed there), so we do this only if really parallelizing.
                 var piValues2 = piValues.ToArray();
                 var avgStratPiValues2 = avgStratPiValues.ToArray();
-                Parallelizer.GoByte(doParallel, 1,
+                Parallelizer.GoByte(doParallel && false /* DEBUG SUPERDEBUG */, 1,
                     (byte)(numPossibleActionsToExplore + 1),
                     action =>
                     {
@@ -1043,7 +1043,7 @@ namespace ACESim
             GetNextPiValues(avgStratPiValues, playerBeingOptimized, actionProbability, true,
                 nextAvgStratPiValues);
             HistoryPoint nextHistoryPoint;
-            bool doReversibilityDEBUG = false; // DEBUG
+            bool doReversibilityDEBUG = true; // DEBUG
             if (chanceNode.Decision.IsReversible && doReversibilityDEBUG)
                 nextHistoryPoint = historyPoint.SwitchToBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
             else
