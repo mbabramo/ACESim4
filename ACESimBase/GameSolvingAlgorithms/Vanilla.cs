@@ -161,14 +161,16 @@ namespace ACESim
             if (doParallel)
             {
                 var historyPointCopy = historyPoint.ToStorable(); // This is costly but needed given anonymous method below (because ref struct can't be accessed there), so we do this only if really parallelizing.
+                var piValues2 = piValues.ToArray();
+                var equalProbabilityNextPiValues2 = equalProbabilityNextPiValues.ToArray();
                 Parallelizer.GoByte(doParallel, 1,
                     (byte)(numPossibleActions + 1),
                     action =>
                     {
                         var historyPointCopy2 = historyPointCopy.DeepCopyToRefStruct(); // Need to do this because we need a separate copy for each thread
                         double probabilityAdjustedExpectedValueParticularAction =
-                            VanillaCFR_ChanceNode_NextAction(ref historyPointCopy2, playerBeingOptimized, piValues,
-                                chanceNode, equalProbabilityNextPiValues, expectedValue, action, usePruning);
+                            VanillaCFR_ChanceNode_NextAction(in historyPointCopy2, playerBeingOptimized, piValues2,
+                                chanceNode, equalProbabilityNextPiValues2, expectedValue, action, usePruning);
                         Interlocking.Add(ref expectedValue, probabilityAdjustedExpectedValueParticularAction);
                     });
             }

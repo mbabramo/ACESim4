@@ -1016,8 +1016,8 @@ namespace ACESim
                     double actionProb = chanceNode.GetActionProbability(action);
                     if (actionProb > 0)
                     {
-                        HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
-                        GetAverageUtilities_Helper(in nextHistoryPoint, cumulated, prob * actionProb);
+                        HistoryPoint nextHistoryPoint2 = historyPoint.GetBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
+                        GetAverageUtilities_Helper(in nextHistoryPoint2, cumulated, prob * actionProb);
                     }
                 }
             }
@@ -1030,8 +1030,8 @@ namespace ACESim
                 {
                     if (actionProbabilities[action - 1] > 0)
                     {
-                        HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
-                        GetAverageUtilities_Helper(in nextHistoryPoint, cumulated, prob * actionProbabilities[action - 1]);
+                        HistoryPoint nextHistoryPoint2 = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
+                        GetAverageUtilities_Helper(in nextHistoryPoint2, cumulated, prob * actionProbabilities[action - 1]);
                     }
                 }
             }

@@ -997,13 +997,15 @@ namespace ACESim
             if (doParallel) 
             {
                 var historyPointCopy = historyPoint.ToStorable(); // This is costly but needed given anonymous method below (because ref struct can't be accessed there), so we do this only if really parallelizing.
+                var piValues2 = piValues.ToArray();
+                var avgStratPiValues2 = avgStratPiValues.ToArray();
                 Parallelizer.GoByte(doParallel, 1,
                     (byte)(numPossibleActionsToExplore + 1),
                     action =>
                     {
                         var historyPointCopy2 = historyPointCopy.DeepCopyToRefStruct();
-                        GeneralizedVanillaUtilities probabilityAdjustedInnerResult = GeneralizedVanillaCFR_ChanceNode_NextAction(in historyPointCopy2, playerBeingOptimized, piValues,
-                                avgStratPiValues, chanceNode, action, distributorChanceInputs);
+                        GeneralizedVanillaUtilities probabilityAdjustedInnerResult = GeneralizedVanillaCFR_ChanceNode_NextAction(in historyPointCopy2, playerBeingOptimized, piValues2,
+                                avgStratPiValues2, chanceNode, action, distributorChanceInputs);
                         result.IncrementBasedOnProbabilityAdjusted(ref probabilityAdjustedInnerResult);
                     });
             }

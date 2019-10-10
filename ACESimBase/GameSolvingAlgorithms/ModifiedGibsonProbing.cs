@@ -175,7 +175,7 @@ namespace ACESim
         private unsafe double ModifiedGibsonProbe_WalkTree_DecisionNode(in HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNode informationSet)
         {
             byte numPossibleActions = NumPossibleActionsAtDecision(informationSet.DecisionIndex);
-            double* sigmaRegretMatchedActionProbabilities = stackalloc double[numPossibleActions];
+            Span<double> sigmaRegretMatchedActionProbabilities = stackalloc double[numPossibleActions];
             informationSet.GetRegretMatchingProbabilities(sigmaRegretMatchedActionProbabilities);
             byte playerAtPoint = informationSet.PlayerIndex;
             double randomDouble = randomProducer.GetDoubleAtIndex(informationSet.DecisionIndex);
@@ -184,15 +184,15 @@ namespace ACESim
             return ModifiedGibsonProbe_WalkTree_DecisionNode_PlayerBeingOptimized(in historyPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, informationSet, numPossibleActions, randomDouble, playerAtPoint, sigmaRegretMatchedActionProbabilities);
         }
 
-        private unsafe double ModifiedGibsonProbe_WalkTree_DecisionNode_PlayerBeingOptimized(in HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNode informationSet, byte numPossibleActions, double randomDouble, byte playerAtPoint, double* sigmaRegretMatchedActionProbabilities)
+        private unsafe double ModifiedGibsonProbe_WalkTree_DecisionNode_PlayerBeingOptimized(in HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNode informationSet, byte numPossibleActions, double randomDouble, byte playerAtPoint, Span<double> sigmaRegretMatchedActionProbabilities)
         {
-            double* samplingProbabilities = stackalloc double[numPossibleActions];
+            Span<double> samplingProbabilities = stackalloc double[numPossibleActions];
             informationSet.GetEpsilonAdjustedRegretMatchingProbabilities(samplingProbabilities, EvolutionSettings.EpsilonForMainPlayer);
             byte sampledAction = SampleAction(samplingProbabilities, numPossibleActions, randomDouble);
             if (TraceCFR)
                 TabbedText.WriteLine(
                     $"{sampledAction}: Sampled action {sampledAction} of {numPossibleActions} player {playerAtPoint} decision {informationSet.DecisionIndex} with regret-matched prob {sigmaRegretMatchedActionProbabilities[sampledAction - 1]}");
-            double* counterfactualValues = stackalloc double[numPossibleActions];
+            Span<double> counterfactualValues = stackalloc double[numPossibleActions];
             double summation = 0;
             for (byte action = 1; action <= numPossibleActions; action++)
             {
@@ -235,14 +235,14 @@ namespace ACESim
             return summation;
         }
 
-        private unsafe double ModifiedGibsonProbe_CalculateCounterfactualValues_NewHistoryPoint(in HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNode informationSet, double* sigmaRegretMatchedActionProbabilities, byte action, double summation, byte sampledAction, double* samplingProbabilities, double* counterfactualValues)
+        private unsafe double ModifiedGibsonProbe_CalculateCounterfactualValues_NewHistoryPoint(in HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNode informationSet, Span<double> sigmaRegretMatchedActionProbabilities, byte action, double summation, byte sampledAction, Span<double> samplingProbabilities, Span<double> counterfactualValues)
         {
             HistoryPoint nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
             summation = ModifiedGibsonProbe_CalculateCounterfactualValues(in nextHistoryPoint, playerBeingOptimized, samplingProbabilityQ, randomProducer, informationSet, sigmaRegretMatchedActionProbabilities, action, sampledAction, samplingProbabilities, counterfactualValues, summation);
             return summation;
         }
 
-        private unsafe double ModifiedGibsonProbe_CalculateCounterfactualValues(in HistoryPoint nextHistoryPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNode informationSet, double* sigmaRegretMatchedActionProbabilities, byte action, byte sampledAction, double* samplingProbabilities, double* counterfactualValues, double summation)
+        private unsafe double ModifiedGibsonProbe_CalculateCounterfactualValues(in HistoryPoint nextHistoryPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNode informationSet, Span<double> sigmaRegretMatchedActionProbabilities, byte action, byte sampledAction, Span<double> samplingProbabilities, Span<double> counterfactualValues, double summation)
         {
             if (action == sampledAction)
             {
@@ -278,7 +278,7 @@ namespace ACESim
             return summation;
         }
 
-        private unsafe double ModifiedGibsonProbe_WalkTree_DecisionNode_OtherPlayer(in HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNode informationSet, double* sigmaRegretMatchedActionProbabilities, byte numPossibleActions, double randomDouble, byte playerAtPoint)
+        private unsafe double ModifiedGibsonProbe_WalkTree_DecisionNode_OtherPlayer(in HistoryPoint historyPoint, byte playerBeingOptimized, double samplingProbabilityQ, IRandomProducer randomProducer, InformationSetNode informationSet, Span<double> sigmaRegretMatchedActionProbabilities, byte numPossibleActions, double randomDouble, byte playerAtPoint)
         {
             informationSet.GetRegretMatchingProbabilities(sigmaRegretMatchedActionProbabilities);
             for (byte action = 1; action <= numPossibleActions; action++)
