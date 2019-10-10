@@ -217,7 +217,6 @@ namespace ACESim
 
         public HistoryPoint SwitchToBranch(HistoryNavigationInfo navigation, byte actionChosen, Decision nextDecision, byte nextDecisionIndex)
         {
-            debug; // make sure everything takes return value
             HistoryPoint toReturn = this;
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
@@ -242,7 +241,7 @@ namespace ACESim
                 IGameFactory gameFactory = navigation.GameDefinition.GameFactory;
                 GamePlayer player = new GamePlayer(navigation.Strategies, false, navigation.GameDefinition);
                 player.ContinuePathWithAction(actionChosen, GameProgress);
-                toReturn = toReturn.WithHistoryToPoint(GameProgress.GameHistory);
+                toReturn = toReturn.WithGameProgress(GameProgress);
             }
             toReturn = toReturn.WithGameState(null);
             return toReturn;

@@ -950,9 +950,9 @@ namespace ACESim
             }
         }
 
-        public override void ReverseDecision(Decision decisionToReverse, ref HistoryPoint historyPoint, IGameState originalGameState)
+        public override void ReverseSwitchToBranchEffects(Decision decisionToReverse, in HistoryPoint historyPoint)
         {
-            base.ReverseDecision(decisionToReverse, ref historyPoint, originalGameState);
+            base.ReverseSwitchToBranchEffects(decisionToReverse, in historyPoint);
             byte decisionByteCode = decisionToReverse.DecisionByteCode;
             if (decisionByteCode == (byte)MyGameDecisions.DChips)
             {

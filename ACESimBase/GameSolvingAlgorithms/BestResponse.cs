@@ -137,10 +137,10 @@ namespace ACESim
                 double expectedValue;
                 if (historyPoint.BranchingIsReversible(Navigation, informationSet.Decision))
                 {
-                    historyPoint = historyPoint.SwitchToBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
-                    expectedValue = GEBRPass2(in historyPoint, playerIndex, depthToTarget,
+                    var historyPoint2 = historyPoint.SwitchToBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
+                    expectedValue = GEBRPass2(in historyPoint2, playerIndex, depthToTarget,
                         (byte)(depthSoFar + 1), inversePi, opponentsActionStrategy, distributorChanceInputsNext);
-                    GameDefinition.ReverseDecision(informationSet.Decision, ref historyPoint, gameStateForCurrentPlayer);
+                    GameDefinition.ReverseSwitchToBranchEffects(informationSet.Decision, in historyPoint2);
                 }
                 else
                 {
@@ -199,10 +199,10 @@ namespace ACESim
                     double expectedValue;
                     if (historyPoint.BranchingIsReversible(Navigation, informationSet.Decision))
                     {
-                        historyPoint = historyPoint.SwitchToBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
-                        expectedValue = GEBRPass2(in historyPoint, playerIndex,
+                        var historyPoint2 = historyPoint.SwitchToBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
+                        expectedValue = GEBRPass2(in historyPoint2, playerIndex,
                             depthToTarget, (byte)(depthSoFar + 1), nextInversePi, opponentsActionStrategy, distributorChanceInputsNext);
-                        GameDefinition.ReverseDecision(informationSet.Decision, ref historyPoint, gameStateForCurrentPlayer);
+                        GameDefinition.ReverseSwitchToBranchEffects(informationSet.Decision, in historyPoint2);
                     }
                     else
                         expectedValue = GEBRPass2_RecurseNotReversible(in historyPoint, playerIndex, depthToTarget, depthSoFar, opponentsActionStrategy, informationSet.Decision, informationSet.DecisionIndex, action, nextInversePi, distributorChanceInputsNext);
@@ -269,10 +269,10 @@ namespace ACESim
                 double valueBelow;
                 if (historyPoint.BranchingIsReversible(Navigation, chanceNode.Decision))
                 {
-                    historyPoint = historyPoint.SwitchToBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
+                    var historyPoint2 = historyPoint.SwitchToBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
                     valueBelow = GEBRPass2(in historyPoint, playerIndex, depthToTarget,
                         (byte)(depthSoFar + 1), inversePi * probability, opponentsActionStrategy, distributorChanceInputsNext);
-                    GameDefinition.ReverseDecision(chanceNode.Decision, in historyPoint, gameStateForCurrentPlayer);
+                    GameDefinition.ReverseSwitchToBranchEffects(chanceNode.Decision, in historyPoint2);
                 }
                 else
                     valueBelow = GEBRPass2_RecurseNotReversible(in historyPoint, playerIndex, depthToTarget, depthSoFar, opponentsActionStrategy, chanceNode.Decision, chanceNode.DecisionIndex, action, inversePi * probability, distributorChanceInputsNext);

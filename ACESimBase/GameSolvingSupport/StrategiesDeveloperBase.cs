@@ -1001,8 +1001,8 @@ namespace ACESim
 
         public unsafe void GetAverageUtilities_Helper(in HistoryPoint historyPoint, double[] cumulated, double prob)
         {
-            historyPoint = historyPoint.GetGameStateForCurrentPlayer(Navigation);
-            IGameState gameState = historyPoint.GameState;
+            var historyPoint2 = historyPoint.GetGameStateForCurrentPlayer(Navigation);
+            IGameState gameState = historyPoint2.GameState;
             if (gameState is FinalUtilitiesNode finalUtilities)
             {
                 for (byte p = 0; p < NumNonChancePlayers; p++)

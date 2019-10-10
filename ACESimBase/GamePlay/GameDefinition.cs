@@ -393,8 +393,11 @@ namespace ACESim
             // the game tree without creating Game or GameProgress objects).
         }
 
-        public virtual void ReverseDecision(Decision decisionToReverse, ref HistoryPoint historyPoint, IGameState originalGameState)
+        public virtual void ReverseSwitchToBranchEffects(Decision decisionToReverse, in HistoryPoint historyPoint)
         {
+            // SwitchToBranch does not change the original HistoryPoint object because it can't (HistoryPoint is readonly), and it doesn't change the 
+            // fields of the GameHistory (which is not readonly, but is a struct and thus can't be changed within the readonly HistoryPoint). Thus,
+            // SwitchToBranch produces a new HistoryPoint. 
             GameHistory gameHistory = historyPoint.HistoryToPoint;
             if (decisionToReverse.PlayersToInform != null)
                 foreach (byte playerIndex in decisionToReverse.PlayersToInform)
@@ -407,11 +410,12 @@ namespace ACESim
                     gameHistory.DecrementItemAtCacheIndex(cacheIndex);
             if (decisionToReverse.StoreActionInGameCacheItem != null)
                 gameHistory.SetCacheItemAtIndex((byte)decisionToReverse.StoreActionInGameCacheItem, 0);
-            gameHistory.RemoveLastActionFromSimpleActionsList();
-            gameHistory.Complete = false; // just in case it was marked true
-            historyPoint = historyPoint.WithGameState(originalGameState);
-            if (historyPoint.GameProgress != null || historyPoint.TreePoint != null)
-                throw new Exception();
+            //NOTE: Originally, we were undoing all effects on the HistoryPoint object. But now HistoryPoint is readonly. Changing gameHistory will have no effect,
+            //since that is just a copy. Meanwhile, it's no longer necessary to make the following changes, because we always keep the original HistoryPoint, which
+            //will thus have the original GameHistory before SwitchToBranch was called.
+            //gameHistory.RemoveLastActionFromSimpleActionsList();
+            //gameHistory.Complete = false; // just in case it was marked true
+            //historyPoint = historyPoint.WithHistoryToPoint(gameHistory).WithGameState(originalGameState);
         }
 
         public void GetNextDecision(in GameHistory gameHistory, out Decision decision, out byte nextDecisionIndex)
