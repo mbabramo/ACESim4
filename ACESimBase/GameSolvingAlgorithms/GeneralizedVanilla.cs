@@ -1043,7 +1043,7 @@ namespace ACESim
             GetNextPiValues(avgStratPiValues, playerBeingOptimized, actionProbability, true,
                 nextAvgStratPiValues);
             HistoryPoint nextHistoryPoint;
-            bool doReversibilityDEBUG = false; // DEBUG
+            bool doReversibilityDEBUG = true; // DEBUG
             if (chanceNode.Decision.IsReversible && doReversibilityDEBUG)
                 nextHistoryPoint = historyPoint.SwitchToBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
             else
