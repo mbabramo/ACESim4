@@ -28,7 +28,7 @@ namespace ACESim
     public static class GameProgressLogger
     {
         public static bool LoggingOn = false; // change this to enable logging -- but this slows things down a lot
-        public static bool DetailedLogging = false;
+        public static bool DetailedLogging = false; // DEBUG and above
         public static bool RecordLogMessages = true;
         public static bool OutputLogMessages = true;
         public static bool PartialLoggingOn = false; // change this to allow partial logging -- might do this in code in specific places

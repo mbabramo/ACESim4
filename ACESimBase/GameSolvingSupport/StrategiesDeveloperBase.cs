@@ -311,7 +311,8 @@ namespace ACESim
                 //var informationSetHistoryString = informationSetHistory.ToString();
                 historyPoint.SetInformationIfNotSet(Navigation, gameProgress, informationSetHistory);
                 var decision = GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
-                var nextHistoryPoint = historyPoint.GetBranch(Navigation, informationSetHistory.ActionChosen, decision, informationSetHistory.DecisionIndex);
+                // NOTE: Usually we would assign the result of GetBranch to nextHistoryPoint, but here we're going to be continuing through history, so we update historyPoint.
+                historyPoint = historyPoint.GetBranch(Navigation, informationSetHistory.ActionChosen, decision, informationSetHistory.DecisionIndex);
                 i++;
                 GameProgressLogger.Tabs--;
                 //GameProgressLogger.Log(() => "Actions processed: " + historyPoint.GetActionsToHereString(Navigation));
@@ -353,7 +354,7 @@ namespace ACESim
             IGameState gameState;
             List<byte> actionsSoFar = historyPoint.GetActionsToHere(navigationSettings);
             (GameProgress progress, _) = GamePlayer.PlayPath(actionsSoFar, false);
-            for (int i = 0; i < 20; i++) // shouldn't be necessary to do more than once, but maybe some parallelism issue is causing the need for that
+            for (int i = 0; i < 1 /* DEBUG 20 */; i++) // shouldn't be necessary to do more than once, but maybe some parallelism issue is causing the need for that
             {
                 gameState = ProcessProgress(in historyPoint, navigationSettings, progress);
                 if (gameState != null)
