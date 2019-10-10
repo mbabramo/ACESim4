@@ -1043,7 +1043,8 @@ namespace ACESim
             GetNextPiValues(avgStratPiValues, playerBeingOptimized, actionProbability, true,
                 nextAvgStratPiValues);
             HistoryPoint nextHistoryPoint;
-            if (chanceNode.Decision.IsReversible && false /* DEBUG */)
+            bool doReversibilityDEBUG = false; // DEBUG
+            if (chanceNode.Decision.IsReversible && doReversibilityDEBUG)
                 nextHistoryPoint = historyPoint.SwitchToBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
             else
                 nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
@@ -1062,7 +1063,7 @@ namespace ACESim
                     $"... action {action} value {result.CurrentVsCurrent} probability {actionProbability} expected value contribution {result.CurrentVsCurrent * actionProbability}");
             }
             result.MakeProbabilityAdjusted(actionProbability);
-            if (chanceNode.Decision.IsReversible && false /* DEBUG */)
+            if (chanceNode.Decision.IsReversible && doReversibilityDEBUG)
                 GameDefinition.ReverseSwitchToBranchEffects(chanceNode.Decision, in nextHistoryPoint);
 
             return result;
