@@ -79,8 +79,8 @@ namespace ACESim
                     throw new Exception("Unexpected game state type.");
                 for (byte action = 1; action <= numPossibleActionsToExplore; action++)
                 {
-                    var nextHistory = historyPoint.GetBranch(Navigation, action, decision, decisionIndex);
-                    GEBRPass1_ResetData(in nextHistory, playerIndex, (byte) (depth + 1), depthOfPlayerDecisions);
+                    var nextHistoryPoint = historyPoint.GetBranch(Navigation, action, decision, decisionIndex);
+                    GEBRPass1_ResetData(in nextHistoryPoint, playerIndex, (byte) (depth + 1), depthOfPlayerDecisions);
                 }
             }
         }

@@ -59,5 +59,17 @@ namespace ACESim
             };
             return result;
         }
+
+        public void UpdateFromShallowCopy(GameHistory mutationOfShallowCopy)
+        {
+            Complete = mutationOfShallowCopy.Complete;
+            NextIndexInHistoryActionsOnly = mutationOfShallowCopy.NextIndexInHistoryActionsOnly;
+            Initialized = mutationOfShallowCopy.Initialized;
+            PreviousNotificationDeferred = mutationOfShallowCopy.PreviousNotificationDeferred;
+            DeferredAction = mutationOfShallowCopy.DeferredAction;
+            DeferredPlayerNumber = mutationOfShallowCopy.DeferredPlayerNumber;
+            DeferredPlayersToInform = mutationOfShallowCopy.DeferredPlayersToInform;
+            LastDecisionIndexAdded = mutationOfShallowCopy.LastDecisionIndexAdded;
+        }
     }
 }

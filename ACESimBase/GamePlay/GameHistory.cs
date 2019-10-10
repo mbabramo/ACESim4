@@ -310,7 +310,7 @@ namespace ACESim
 #endif
         }
 
-        public void RemoveLastActionFromSimpleActionsList()
+        private void RemoveLastActionFromSimpleActionsList()
         {
             NextIndexInHistoryActionsOnly--;
         }

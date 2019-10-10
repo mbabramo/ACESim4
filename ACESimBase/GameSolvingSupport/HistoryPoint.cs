@@ -210,9 +210,13 @@ namespace ACESim
         {
             GameHistory historyToPointCopy = HistoryToPoint.DeepCopy(); // struct is copied, along with enclosed arrays. // DEBUG -- this is the critical point for allocation of arrays for history
             Game.UpdateGameHistory(ref historyToPointCopy, navigation.GameDefinition, nextDecision, nextDecisionIndex, actionChosen, GameProgress);
-            HistoryPoint next = new HistoryPoint(historyToPointCopy);  
+            HistoryPoint next = new HistoryPoint(historyToPointCopy);
             if (nextDecision.CanTerminateGame && navigation.GameDefinition.ShouldMarkGameHistoryComplete(nextDecision, in next.HistoryToPoint, actionChosen))
-                next.HistoryToPoint.MarkComplete();
+            {
+                GameHistory historyToPoint = next.HistoryToPoint;
+                historyToPoint.MarkComplete();
+                next = next.WithHistoryToPoint(historyToPoint);
+            }
             return next;
         }
 

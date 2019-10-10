@@ -139,7 +139,7 @@ namespace ACESim
             // Note: This may be time consuming. We need to update the game history, but in Progress it's not stored as a ref struct. So we convert it to a ref struct and then convert it back. DEBUG: Could we pass the history so that we wouldn't need to do this?
             var history = Progress.GameHistory;
             UpdateGameHistory(ref history, GameDefinition, currentDecision, decisionIndex, action, Progress);
-            Progress.GameHistoryStorable = history.DeepCopyToStorable();
+            Progress.GameHistoryStorable.UpdateFromShallowCopy(history);
 
             // We update game progress now (note that this will not be called when traversing the tree -- that's why we don't do this within UpdateGameHistory)
             UpdateGameProgressFollowingAction(currentDecision.DecisionByteCode, action);
@@ -396,7 +396,9 @@ namespace ACESim
         public virtual void FinalProcessing()
         {
             Progress.GameComplete = true; // might have already been set as a way to trigger early final processing
-            Progress.GameHistory.MarkComplete(Progress);
+            var gameHistory = Progress.GameHistory;
+            gameHistory.MarkComplete(Progress);
+            Progress.GameHistoryStorable.UpdateFromShallowCopy(gameHistory);
         }
 
         internal void SetStatusVariables()
