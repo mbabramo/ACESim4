@@ -309,7 +309,7 @@ namespace ACESim
                 }
                 GameProgressLogger.Tabs++;
                 //var informationSetHistoryString = informationSetHistory.ToString();
-                historyPoint = historyPoint.SetInformationIfNotSet(Navigation, gameProgress, informationSetHistory);
+                historyPoint.SetInformationIfNotSet(Navigation, gameProgress, informationSetHistory);
                 var decision = GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
                 historyPoint = historyPoint.GetBranch(Navigation, informationSetHistory.ActionChosen, decision, informationSetHistory.DecisionIndex);
                 i++;

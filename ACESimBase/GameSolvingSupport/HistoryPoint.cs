@@ -105,22 +105,22 @@ namespace ACESim
         /// </summary>
         /// <param name="navigation">The navigation settings. If the LookupApproach is both, this method will verify that both return the same value.</param>
         /// <returns></returns>
-        public HistoryPoint GetGameStateForCurrentPlayer(HistoryNavigationInfo navigation)
+        public IGameState GetGameStateForCurrentPlayer(HistoryNavigationInfo navigation)
         {
             if (GameState != null)
             {
-                return WithGameState(GameState);
+                return GameState;
             }
             IGameState gameStateFromGameHistory = null;
             if (navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)
             {
                 if (GameProgress.GameComplete)
                 {
-                    return WithGameState(new FinalUtilitiesNode(GameProgress.GetNonChancePlayerUtilities(), -1));
+                    return new FinalUtilitiesNode(GameProgress.GetNonChancePlayerUtilities(), -1);
                 }
                 // Otherwise, when playing the actual game, we use the GameHistory object, so we'll set this object as the "cached" object even though it's cached.
                 navigation = navigation.WithLookupApproach(InformationSetLookupApproach.CachedGameHistoryOnly);
-                return WithHistoryToPoint(GameProgress.GameHistory);
+                return GetGameStateForCurrentPlayer(navigation);
             }
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
@@ -142,7 +142,7 @@ namespace ACESim
                 else
                     gameStateFromGameHistory = navigation.Strategies[nextPlayer].GetInformationSetTreeValue(informationSetsPtr); // resolution player -- we don't use the decision index
                 if (gameStateFromGameHistory == null && navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly)
-                    return WithGameState(null); // we haven't initialized, so we need to do so and then try again.
+                    return null; // we haven't initialized, so we need to do so and then try again.
             }
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
@@ -153,14 +153,14 @@ namespace ACESim
                     if (!equals)
                     {
                         if (gameStateFromGameTree == null)
-                            return WithGameState(null); // the game tree hasn't been set yet, so no need to throw; just indicate this
+                            return null; // the game tree hasn't been set yet, so no need to throw; just indicate this
                         throw new Exception("Different value from two different approaches."); // NOTE: One possible cause of this error is that a player faces the same information set at two different points of the game. Each information set must lead to a unique decision. Thus, if a player makes two consecutive decisions with the same information set, you should add a dummy piece of information to the player's information set after the first decision to allow this to be distinguished. NOTE2: Another possible cause is that you may add to information set and log passing the decision byte code rather than the decision index. NOTE3: IT also could be that you define a decision as reversible when it is not.
                     }
                 }
-                return WithGameState(gameStateFromGameTree);
+                return gameStateFromGameTree;
             }
             else
-                return WithGameState(gameStateFromGameHistory);
+                return gameStateFromGameHistory;
         }
 
         public bool BranchingIsReversible(HistoryNavigationInfo navigation, Decision nextDecision)
@@ -370,15 +370,14 @@ namespace ACESim
 
 
 
-        public HistoryPoint SetInformationIfNotSet(HistoryNavigationInfo navigation, GameProgress gameProgress, InformationSetHistory informationSetHistory)
+        public void SetInformationIfNotSet(HistoryNavigationInfo navigation, GameProgress gameProgress, InformationSetHistory informationSetHistory)
         {
             //var informationSetString = informationSetHistory.ToString(); 
             //var informationSetList = informationSetHistory.GetInformationSetForPlayerAsList(); 
             //var actionsToHere = GetActionsToHereString(navigation);
-            HistoryPoint revised = GetGameStateForCurrentPlayer(navigation);
-            if (revised.GameState == null)
+            IGameState gameState = GetGameStateForCurrentPlayer(navigation);
+            if (gameState == null)
                 SetInformationAtPoint(navigation, gameProgress, informationSetHistory);
-            return revised;
         }
 
         private void SetInformationAtPoint(HistoryNavigationInfo navigation, GameProgress gameProgress, InformationSetHistory informationSetHistory)
