@@ -345,14 +345,6 @@ namespace ACESim
             IGameState gameState = historyPoint.GetGameStateForCurrentPlayer(navigationSettings);
             if (gameState != null)
                 return gameState;
-            if (navigationSettings.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)
-            {
-                GameHistory cachedGameHistory = historyPoint.GameProgress.GameHistory;
-                HistoryPoint historyPoint2 = historyPoint.WithHistoryToPoint(cachedGameHistory).WithGameProgress(null);
-                return GetGameStateByPlayingUnderlyingGame(historyPoint2, navigationSettings.WithLookupApproach(InformationSetLookupApproach.CachedGameHistoryOnly));
-            }
-                navigation = ;
-            HistoryToPoint = GameProgress.GameHistory;
             return GetGameStateByPlayingUnderlyingGame(in historyPoint, navigationSettings);
         }
 
@@ -374,8 +366,8 @@ namespace ACESim
         {
             ProcessInitializedGameProgress(progress);
             NumInitializedGamePaths++; // Note: This may not be exact if we initialize the same game path twice (e.g., if we are playing in parallel)
-            var nextHistoryPoint = historyPoint.GetGameStateForCurrentPlayer(navigationSettings);
-            return nextHistoryPoint.GameState;
+            var gameState = historyPoint.GetGameStateForCurrentPlayer(navigationSettings);
+            return gameState;
         }
 
         #endregion
@@ -1009,8 +1001,7 @@ namespace ACESim
 
         public unsafe void GetAverageUtilities_Helper(in HistoryPoint historyPoint, double[] cumulated, double prob)
         {
-            var nextHistoryPoint = historyPoint.GetGameStateForCurrentPlayer(Navigation);
-            IGameState gameState = nextHistoryPoint.GameState;
+            IGameState gameState = historyPoint.GetGameStateForCurrentPlayer(Navigation);
             if (gameState is FinalUtilitiesNode finalUtilities)
             {
                 for (byte p = 0; p < NumNonChancePlayers; p++)

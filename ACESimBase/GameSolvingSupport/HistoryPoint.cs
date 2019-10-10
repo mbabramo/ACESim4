@@ -112,28 +112,30 @@ namespace ACESim
                 return GameState;
             }
             IGameState gameStateFromGameHistory = null;
+            var historyToPoint = HistoryToPoint;
             if (navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)
             {
                 if (GameProgress.GameComplete)
                 {
                     return new FinalUtilitiesNode(GameProgress.GetNonChancePlayerUtilities(), -1);
                 }
+                // use the cached game history to look up the game state
                 navigation = navigation.WithLookupApproach(InformationSetLookupApproach.CachedGameHistoryOnly);
-                return null;
+                historyToPoint = GameProgress.GameHistory;
             }
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
                 //var informationSetHistories = HistoryToPoint.GetInformationSetHistoryItems().Select(x => x.ToString());
-                navigation.GameDefinition.GetNextDecision(in HistoryToPoint, out Decision nextDecision, out byte nextDecisionIndex);
+                navigation.GameDefinition.GetNextDecision(in historyToPoint, out Decision nextDecision, out byte nextDecisionIndex);
                 // If nextDecision is null, then there are no more player decisions. (If this seems wrong, it could be a result of an error in whether to mark a game complete.) When there are no more player decisions, the resolution "player" is used.
                 byte nextPlayer = nextDecision?.PlayerNumber ?? navigation.GameDefinition.PlayerIndex_ResolutionPlayer;
                 Span<byte> informationSetsPtr = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
                 // string playerInformationString = HistoryToPoint.GetPlayerInformationString(currentPlayer, nextDecision?.DecisionByteCode);
-                GameHistory.GetPlayerInformationCurrent(nextPlayer, HistoryToPoint.InformationSets, informationSetsPtr);
+                GameHistory.GetPlayerInformationCurrent(nextPlayer, historyToPoint.InformationSets, informationSetsPtr);
                 if (GameProgressLogger.LoggingOn)
                 {
                     var informationSetList = Util.ListExtensions.GetPointerAsList_255Terminated(informationSetsPtr);
-                    var actionsToHere = String.Join(",", HistoryToPoint.GetActionsAsList());
+                    var actionsToHere = String.Join(",", historyToPoint.GetActionsAsList());
                     GameProgressLogger.Log($"Player {nextPlayer} decision: {nextDecision?.Name ?? "Resolution"} information set: {String.Join(",", informationSetList)} actions to here: {actionsToHere}");
                 }
                 if (nextDecision != null)
