@@ -118,9 +118,8 @@ namespace ACESim
                 {
                     return new FinalUtilitiesNode(GameProgress.GetNonChancePlayerUtilities(), -1);
                 }
-                // Otherwise, when playing the actual game, we use the GameHistory object, so we'll set this object as the "cached" object even though it's cached.
                 navigation = navigation.WithLookupApproach(InformationSetLookupApproach.CachedGameHistoryOnly);
-                return GetGameStateForCurrentPlayer(navigation);
+                return null;
             }
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameHistoryOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {

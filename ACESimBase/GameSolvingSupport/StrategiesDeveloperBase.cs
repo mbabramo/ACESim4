@@ -342,9 +342,17 @@ namespace ACESim
         public IGameState GetGameState(in HistoryPoint historyPoint, HistoryNavigationInfo? navigation = null)
         {
             HistoryNavigationInfo navigationSettings = navigation ?? Navigation;
-            var nextHistoryPoint = historyPoint.GetGameStateForCurrentPlayer(navigationSettings);
-            if (nextHistoryPoint.GameState != null)
-                return nextHistoryPoint.GameState;
+            IGameState gameState = historyPoint.GetGameStateForCurrentPlayer(navigationSettings);
+            if (gameState != null)
+                return gameState;
+            if (navigationSettings.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)
+            {
+                GameHistory cachedGameHistory = historyPoint.GameProgress.GameHistory;
+                HistoryPoint historyPoint2 = historyPoint.WithHistoryToPoint(cachedGameHistory).WithGameProgress(null);
+                return GetGameStateByPlayingUnderlyingGame(historyPoint2, navigationSettings.WithLookupApproach(InformationSetLookupApproach.CachedGameHistoryOnly));
+            }
+                navigation = ;
+            HistoryToPoint = GameProgress.GameHistory;
             return GetGameStateByPlayingUnderlyingGame(in historyPoint, navigationSettings);
         }
 
