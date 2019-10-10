@@ -66,7 +66,7 @@ namespace ACESim
         public bool CFRBR = false; // if true, opponent plays best response
 
         public bool DistributeChanceDecisions = true;
-        public bool UnrollAlgorithm = true; 
+        public bool UnrollAlgorithm = false; // DEBUG
 
         // For Vanilla algorithm:
         // From Solving Imperfect Information Games with Discounted Regret Minimization -- optimal values (for situations in which pruning may be used)

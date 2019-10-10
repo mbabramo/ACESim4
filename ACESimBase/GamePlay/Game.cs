@@ -136,7 +136,7 @@ namespace ACESim
             byte decisionIndex = (byte)CurrentDecisionIndex;
             byte playerNumber = CurrentPlayerNumber;
 
-            // Note: This may be time consuming. We need to update the game history, but in Progress it's not stored as a ref struct. So we convert it to a ref struct and then convert it back. DEBUG: Could we pass the history so that we wouldn't need to do this?
+            // Note: We need to update the game history, but in Progress it's not stored as a ref struct. So we convert it to a ref struct and then convert it back.
             var history = Progress.GameHistory;
             UpdateGameHistory(ref history, GameDefinition, currentDecision, decisionIndex, action, Progress);
             Progress.GameHistoryStorable.UpdateFromShallowCopy(history);
