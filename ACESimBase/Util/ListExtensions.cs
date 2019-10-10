@@ -81,40 +81,11 @@ namespace ACESim.Util
             return r2;
         }
 
-        public static unsafe List<byte> GetPointerAsList_255Terminated(byte* r)
-        { // DEBUG -- must remove
-            var r2 = new List<byte>();
-            int d = 0;
-            while (r[d] != 255)
-            {
-                r2.Add(r[d]);
-                d++;
-            }
-            return r2;
-        }
-
         public static List<double> GetSpanAsList(Span<double> r, int size)
         {
             var r2 = new List<double>();
             for (int i = 0; i < size; i++)
                 r2.Add(r[i]);
-            return r2;
-        }
-
-        public static unsafe List<double> GetPointerAsList(double* r, int size)
-        {
-            var r2 = new List<double>();
-            for (int i = 0; i < size; i++)
-                r2.Add(r[i]);
-            return r2;
-        }
-
-        public static unsafe List<byte> GetPointerAsList_NumItemsPrefix(byte* r)
-        {
-            var r2 = new List<byte>();
-            byte numItems = r[0];
-            for (byte b = 0; b < numItems; b++)
-                r2.Add(r[b]);
             return r2;
         }
 

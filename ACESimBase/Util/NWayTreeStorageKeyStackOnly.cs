@@ -7,7 +7,7 @@ using ACESim.Util;
 
 namespace ACESim
 {
-    public unsafe ref struct NWayTreeStorageKeyStackOnly
+    public ref struct NWayTreeStorageKeyStackOnly
     {
         public byte PrefaceByte { get; set; }
         public Span<byte> Sequence;

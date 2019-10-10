@@ -133,7 +133,7 @@ namespace ACESim
             }
         }
 
-        internal unsafe NWayTreeStorage<T> GetNode(byte[] restOfSequence, bool createIfNecessary, out bool created)
+        internal NWayTreeStorage<T> GetNode(byte[] restOfSequence, bool createIfNecessary, out bool created)
         {
             created = false;
             NWayTreeStorageInternal<T> tree = this;
@@ -158,51 +158,6 @@ namespace ACESim
             }
             return tree;
         }
-
-        //public unsafe NWayTreeStorage<T> SetValue(byte* restOfSequence, bool historyComplete, T valueToAdd)
-        //{
-        //    // the logic here is more complicated because we will use NWayTreeStorage<T> for leaf nodes if historyComplete is set.
-        //    bool anyInSequence = *restOfSequence != 255;
-        //    if (!anyInSequence)
-        //    {
-        //        StoredValue = valueToAdd;
-        //        return this;
-        //    }
-        //    else
-        //    {
-        //        return SetValueHelper(restOfSequence, historyComplete, valueToAdd);
-        //    }
-        //}
-
-        //private unsafe NWayTreeStorage<T> SetValueHelper(byte* restOfSequence, bool historyComplete, T valueToAdd)
-        //{
-        //    lock (this)
-        //    {
-        //        byte nextInSequence = *restOfSequence;
-        //        restOfSequence++;
-        //        bool anotherExistsAfterNext = *restOfSequence != 255;
-        //        NWayTreeStorage<T> nextTree = GetBranch(nextInSequence);
-        //        if (nextTree == null)
-        //        {
-        //            lock (this)
-        //            {
-        //                nextTree = GetBranch(nextInSequence); // check again, now that we're in the lock
-        //                if (nextTree == null)
-        //                {
-        //                    bool mayBeInternal = anotherExistsAfterNext || !historyComplete;
-        //                    nextTree = AddBranch(nextInSequence, mayBeInternal);
-        //                }
-        //            }
-        //        }
-        //        if (anotherExistsAfterNext)
-        //            return ((NWayTreeStorageInternal<T>)nextTree).SetValueHelper(restOfSequence, historyComplete, valueToAdd);
-        //        else
-        //        {
-        //            nextTree.StoredValue = valueToAdd;
-        //            return nextTree;
-        //        }
-        //    }
-        //}
 
         public NWayTreeStorage<T> AddBranch(byte index, bool mayBeInternal)
         {
