@@ -206,13 +206,9 @@ namespace ACESim
             return new HistoryPoint(nextTreePoint, nextHistoryToPoint, nextGameProgress);
         }
 
-        public static int DEBUGCount = 0;
-
         private HistoryPoint GetBranch_CachedGameHistory(HistoryNavigationInfo navigation, byte actionChosen, Decision nextDecision, byte nextDecisionIndex)
         {
-            DEBUGCount++;
             GameHistory historyToPointCopy = HistoryToPoint.DeepCopy(); // struct is copied, along with enclosed arrays. // DEBUG -- this is the critical point for allocation of arrays for history
-                historyToPointCopy.InformationSets[148] = 199; // DEBUG
             Game.UpdateGameHistory(ref historyToPointCopy, navigation.GameDefinition, nextDecision, nextDecisionIndex, actionChosen, GameProgress);
             HistoryPoint next = new HistoryPoint(historyToPointCopy);
             if (nextDecision.CanTerminateGame && navigation.GameDefinition.ShouldMarkGameHistoryComplete(nextDecision, in next.HistoryToPoint, actionChosen))

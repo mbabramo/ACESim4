@@ -1002,52 +1002,24 @@ namespace ACESim
             bool doParallel = EvolutionSettings.ParallelOptimization && Parallelizer.ParallelDepth < EvolutionSettings.MaxParallelDepth;
             if (doParallel)
             {
-                DEBUG99 = true;
                 var historyPointCopy = historyPoint.ToStorable(); // This is costly but needed given anonymous method below (because ref struct can't be accessed there), so we do this only if really parallelizing.
-                var DEBUG1 = historyPointCopy.DeepCopyToRefStruct().HistoryToPoint.ToString();
                 var piValues2 = piValues.ToArray();
                 var avgStratPiValues2 = avgStratPiValues.ToArray();
-                if (chanceNode.DecisionIndex == 3)
-                {
-                    var DEBUG = 0;
-                    
-                    //GameProgressLogger.DetailedLogging = true;
-                }
                 Parallelizer.GoByte(doParallel, 1,
                     (byte)(numPossibleActionsToExplore + 1),
                     action =>
                     {
-                        if (chanceNode.DecisionIndex == 3 && action >= 3)
-                            return; // DEBUG
                         var historyPointCopy2 = historyPointCopy.DeepCopyToRefStruct();
-                        var DEBUG2 = historyPointCopy2.HistoryToPoint.ToString();
                         if (chanceNode.DecisionIndex == 3 && action == 1)
                         {
                             GameProgressLogger.ThreadTrapID = Thread.CurrentThread.ManagedThreadId;
                             GameProgressLogger.LoggingOn = true;
                             GameProgressLogger.LoggingCondition = () => Thread.CurrentThread.ManagedThreadId == GameProgressLogger.ThreadTrapID;
                         }
-                        if (chanceNode.DecisionIndex == 3 && action == 2)
-                        {
-                            Thread.Sleep(11); // DEBUG
-                            Debug.WriteLine("RESUMING");
-                        }
-                        Debug.WriteLine($"{action}: Chance node for {chanceNode.DecisionIndex}: {DEBUG2}");
+                        Debug.WriteLine($"{action}: Chance node for {chanceNode.DecisionIndex}: {historyPointCopy2.HistoryToPoint.ToString()}"); // DEBUG
                         GeneralizedVanillaUtilities probabilityAdjustedInnerResult = GeneralizedVanillaCFR_ChanceNode_NextAction(in historyPointCopy2, playerBeingOptimized, piValues2,
                                 avgStratPiValues2, chanceNode, action, distributorChanceInputs);
-                        if (chanceNode.DecisionIndex == 3)
-                        {
-                            Debug.WriteLine($"{action}: {historyPointCopy2.HistoryToPoint.ToString()}");
-                            if (action == 2)
-                            {
-                                var DEBUG2X = 0;
-                            }
-                        }
                         result.IncrementBasedOnProbabilityAdjusted(ref probabilityAdjustedInnerResult);
-                        if (DEBUG1 != DEBUG2)
-                        {
-                            throw new Exception();
-                        }
 
                     });
             }
@@ -1064,8 +1036,6 @@ namespace ACESim
             return result;
         }
 
-        public static bool DEBUG99 = false;
-
         private GeneralizedVanillaUtilities GeneralizedVanillaCFR_ChanceNode_NextAction(in HistoryPoint historyPoint, byte playerBeingOptimized, Span<double> piValues, Span<double> avgStratPiValues, ChanceNode chanceNode, byte action, int distributorChanceInputs)
         {
             Span<double> nextPiValues = stackalloc double[MaxNumMainPlayers];
@@ -1081,12 +1051,7 @@ namespace ACESim
             GetNextPiValues(avgStratPiValues, playerBeingOptimized, actionProbability, true,
                 nextAvgStratPiValues);
             HistoryPoint nextHistoryPoint;
-            if (GameProgressLogger.ThreadTrapID != 0 && GameProgressLogger.ThreadTrapID != Thread.CurrentThread.ManagedThreadId)
-            {
-                Debug.WriteLine("STARTSWITCH"); // DEBUG
-            }
-            bool doReversibilityDEBUG = true; // DEBUG
-            if (chanceNode.Decision.IsReversible && doReversibilityDEBUG)
+            if (chanceNode.Decision.IsReversible)
                 nextHistoryPoint = historyPoint.SwitchToBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
             else
                 nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
@@ -1105,7 +1070,7 @@ namespace ACESim
                     $"... action {action} value {result.CurrentVsCurrent} probability {actionProbability} expected value contribution {result.CurrentVsCurrent * actionProbability}");
             }
             result.MakeProbabilityAdjusted(actionProbability);
-            if (chanceNode.Decision.IsReversible && doReversibilityDEBUG)
+            if (chanceNode.Decision.IsReversible)
                 GameDefinition.ReverseSwitchToBranchEffects(chanceNode.Decision, in nextHistoryPoint);
 
             return result;

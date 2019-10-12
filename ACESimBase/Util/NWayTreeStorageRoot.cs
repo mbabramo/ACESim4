@@ -22,19 +22,12 @@ namespace ACESim
                 HashTableStorage = new Dictionary<NWayTreeStorageKey, NWayTreeStorage<T>>();
         }
 
-        [ThreadStatic]
-        static bool DEBUG_UsingKey = false;
-
         public NWayTreeStorage<T> SetValueIfNotSet(NWayTreeStorageKeyStackOnly keyStackOnly, bool historyComplete, Func<T> setter)
         {
             lock (this)
             {
-                if (DEBUG_UsingKey)
-                    throw new Exception();
                 NWayTreeStorageKey key = keyStackOnly.ToThreadOnlyKey();
-                DEBUG_UsingKey = true;
                 NWayTreeStorage<T> node = GetNode_CreatingRestIfNecessary(keyStackOnly.PrefaceByte, key.Sequence, out bool created);
-                DEBUG_UsingKey = false;
                 if (created && HashTableStorage != null)
                 {
                     HashTableStorage.Add(keyStackOnly.ToStorable(), node);
@@ -67,9 +60,6 @@ namespace ACESim
 
         private  NWayTreeStorage<T> GetNode(NWayTreeStorageKeyStackOnly keyStackOnly)
         {
-            if (DEBUG_UsingKey)
-                throw new Exception();
-            DEBUG_UsingKey = true;
             var key = keyStackOnly.ToThreadOnlyKey();
             if (HashTableStorage != null)
             {
@@ -84,7 +74,6 @@ namespace ACESim
                 tree = (NWayTreeStorageInternal<T>)GetBranch(keyStackOnly.PrefaceByte);
             }
             var result = tree.GetNode(key.Sequence, false, out _);
-            DEBUG_UsingKey = false;
             return result;
         }
     }
