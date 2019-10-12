@@ -1045,6 +1045,10 @@ namespace ACESim
             GetNextPiValues(avgStratPiValues, playerBeingOptimized, actionProbability, true,
                 nextAvgStratPiValues);
             HistoryPoint nextHistoryPoint;
+            if (chanceNode.DecisionIndex == 14)
+            {
+                var DEBUG = 0;
+            }
             if (chanceNode.Decision.IsReversible && doReversibility /* DEBUG */)
                 nextHistoryPoint = historyPoint.SwitchToBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
             else
@@ -1070,7 +1074,7 @@ namespace ACESim
             return result;
         }
 
-        const bool doReversibility = false; // DEBUG
+        const bool doReversibility = true; // DEBUG
 
         #endregion
 

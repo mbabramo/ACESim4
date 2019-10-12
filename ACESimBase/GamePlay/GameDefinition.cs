@@ -410,6 +410,11 @@ namespace ACESim
                     gameHistory.DecrementItemAtCacheIndex(cacheIndex);
             if (decisionToReverse.StoreActionInGameCacheItem != null)
                 gameHistory.SetCacheItemAtIndex((byte)decisionToReverse.StoreActionInGameCacheItem, 0);
+            if (historyPoint.GameProgress != null)
+            {
+                historyPoint.GameProgress.GameComplete = false;
+                historyPoint.GameProgress.GameFullHistoryStorable.MarkIncomplete();
+            }
             //NOTE: Originally, we were undoing all effects on the HistoryPoint object. But now HistoryPoint is readonly. Changing gameHistory will have no effect,
             //since that is just a copy. Meanwhile, it's no longer necessary to make the following changes, because we always keep the original HistoryPoint, which
             //will thus have the original GameHistory before SwitchToBranch was called.

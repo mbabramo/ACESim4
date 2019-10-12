@@ -72,7 +72,7 @@ namespace ACESim
 
         public override string ToString()
         {
-            if (GameProgress?.GameFullHistory.LastIndexAddedToHistory > 0)
+            if (GameProgress?.GameFullHistory.NextIndexToAddToHistory > 0)
                 return GameProgress?.GameFullHistoryStorable.GetInformationSetHistoryItemsString(GameProgress);
             return "HistoryPoint";
         }

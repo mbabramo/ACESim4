@@ -29,17 +29,17 @@ namespace ACESim
         public const int MaxHistoryLength = 300;
 
         public readonly Span<byte> History; // length is MaxHistoryLength
-        public readonly short LastIndexAddedToHistory;
+        public readonly short NextIndexToAddToHistory;
 
-        public GameFullHistory(Span<byte> history, short lastIndexAddedToHistory)
+        public GameFullHistory(Span<byte> history, short nextIndexToAddToHistory)
         {
             History = history;
-            LastIndexAddedToHistory = lastIndexAddedToHistory;
+            NextIndexToAddToHistory = nextIndexToAddToHistory;
         }
 
         public GameFullHistoryStorable DeepCopyToStorable()
         {
-            var result = new GameFullHistoryStorable(new byte[History.Length], LastIndexAddedToHistory);
+            var result = new GameFullHistoryStorable(new byte[History.Length], NextIndexToAddToHistory);
             for (int i = 0; i < History.Length; i++)
                 result.History[i] = History[i];
             return result;
@@ -53,7 +53,7 @@ namespace ACESim
                 history[b] = History[b];
 
             info.AddValue("history", history, typeof(byte[]));
-            info.AddValue("LastIndexAddedToHistory", LastIndexAddedToHistory, typeof(short));
+            info.AddValue("LastIndexAddedToHistory", NextIndexToAddToHistory, typeof(short));
 
         }
 
@@ -64,7 +64,7 @@ namespace ACESim
             byte[] history = (byte[])info.GetValue("history", typeof(byte[]));
             for (int b = 0; b < MaxHistoryLength; b++)
                 History[b] = history[b];
-            LastIndexAddedToHistory = (short)info.GetValue("LastIndexAddedToHistory", typeof(short));
+            NextIndexToAddToHistory = (short)info.GetValue("LastIndexAddedToHistory", typeof(short));
         }
 
 
@@ -76,7 +76,7 @@ namespace ACESim
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public byte? LastDecisionIndex()
         {
-            short i = LastIndexAddedToHistory;
+            short i = NextIndexToAddToHistory;
             if (i == 0)
                 return null; // no decisions processed yet
             return History[i - History_NumPiecesOfInformation + History_DecisionIndex_Offset];
@@ -85,8 +85,8 @@ namespace ACESim
         public void GetActionsWithBlanksForSkippedDecisions(Span<byte> actions)
         {
             int d = 0;
-            if (LastIndexAddedToHistory != 0)
-                for (short i = 0; i < LastIndexAddedToHistory; i += History_NumPiecesOfInformation)
+            if (NextIndexToAddToHistory != 0)
+                for (short i = 0; i < NextIndexToAddToHistory; i += History_NumPiecesOfInformation)
                 {
                     byte decisionIndex = GetHistoryIndex(i + History_DecisionIndex_Offset);
                     while (d != decisionIndex)
@@ -118,8 +118,8 @@ namespace ACESim
         private void GetItems(int offset, Span<byte> items)
         {
             int d = 0;
-            if (LastIndexAddedToHistory != 0)
-                for (short i = 0; i < LastIndexAddedToHistory; i += History_NumPiecesOfInformation)
+            if (NextIndexToAddToHistory != 0)
+                for (short i = 0; i < NextIndexToAddToHistory; i += History_NumPiecesOfInformation)
                     items[d++] = GetHistoryIndex(i + offset);
             items[d] = HistoryTerminator;
         }
@@ -134,15 +134,15 @@ namespace ACESim
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool IsComplete()
         {
-            return History[LastIndexAddedToHistory] == HistoryComplete;
+            return History[NextIndexToAddToHistory] == HistoryComplete;
         }
 
         public short GetInformationSetHistoryItems_Count(GameProgress gameProgress)
         {
-            if (LastIndexAddedToHistory == 0)
+            if (NextIndexToAddToHistory == 0)
                 return 0;
             short overallIndex = 0;
-            for (short i = 0; i < LastIndexAddedToHistory; i += History_NumPiecesOfInformation)
+            for (short i = 0; i < NextIndexToAddToHistory; i += History_NumPiecesOfInformation)
             {
                 overallIndex++;
             }
@@ -225,7 +225,7 @@ namespace ACESim
         {
             int? lastDecisionWithAnotherAction = null;
 
-            for (int i = LastIndexAddedToHistory - History_NumPiecesOfInformation; i >= 0; i -= History_NumPiecesOfInformation)
+            for (int i = NextIndexToAddToHistory - History_NumPiecesOfInformation; i >= 0; i -= History_NumPiecesOfInformation)
             {
                 int decisionByteCode = History[i + History_DecisionByteCode_Offset];
                 int decisionIndex = History[i + History_DecisionIndex_Offset];
