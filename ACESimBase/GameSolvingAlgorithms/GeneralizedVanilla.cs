@@ -918,7 +918,7 @@ namespace ACESim
                         TabbedText.TabIndent();
                     }
                     HistoryPoint nextHistoryPoint;
-                    if (informationSet.Decision.IsReversible)
+                    if (informationSet.Decision.IsReversible && doReversibility)
                         nextHistoryPoint = historyPoint.SwitchToBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                     else
                         nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
@@ -951,7 +951,7 @@ namespace ACESim
                         TabbedText.WriteLine(
                             $"... action {action}{(informationSet.BestResponseAction == action && IncludeAsteriskForBestResponseInTrace ? "*" : "")} expected value {expectedValueOfAction[action - 1]} best response expected value {result.BestResponseToAverageStrategy} cum expected value {expectedValue}{(action == numPossibleActions && IncludeAsteriskForBestResponseInTrace ? "*" : "")}");
                     }
-                    if (informationSet.Decision.IsReversible)
+                    if (informationSet.Decision.IsReversible && doReversibility)
                         GameDefinition.ReverseSwitchToBranchEffects(informationSet.Decision, in nextHistoryPoint);
                 } // not pruning
             } // for each action
@@ -1045,7 +1045,7 @@ namespace ACESim
             GetNextPiValues(avgStratPiValues, playerBeingOptimized, actionProbability, true,
                 nextAvgStratPiValues);
             HistoryPoint nextHistoryPoint;
-            if (chanceNode.Decision.IsReversible)
+            if (chanceNode.Decision.IsReversible && doReversibility /* DEBUG */)
                 nextHistoryPoint = historyPoint.SwitchToBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
             else
                 nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
@@ -1064,11 +1064,13 @@ namespace ACESim
                     $"... action {action} value {result.CurrentVsCurrent} probability {actionProbability} expected value contribution {result.CurrentVsCurrent * actionProbability}");
             }
             result.MakeProbabilityAdjusted(actionProbability);
-            if (chanceNode.Decision.IsReversible)
+            if (chanceNode.Decision.IsReversible && doReversibility /* DEBUG */)
                 GameDefinition.ReverseSwitchToBranchEffects(chanceNode.Decision, in nextHistoryPoint);
 
             return result;
         }
+
+        const bool doReversibility = false; // DEBUG
 
         #endregion
 
