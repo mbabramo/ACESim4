@@ -42,7 +42,7 @@ namespace ACESim
         public bool AzureEnabled = true;
         public bool DistributedProcessing = false; // this should be true if running on the local service fabric
         public bool ParallelizeOptionSets = false; // run multiple option sets at same time on computer (in which case each individually will be run not in parallel)
-        public bool ParallelizeIndividualExecutions = true; // only if !ParallelizeOptionSets && (LaunchSingleOptionsSetOnly || !DistributedProcessing)
+        public bool ParallelizeIndividualExecutions = false; // only if !ParallelizeOptionSets && (LaunchSingleOptionsSetOnly || !DistributedProcessing)
         public bool ParallelizeIndividualExecutionsAlways = false; // DEBUG -- not really working // will always take precedence
 
         const int EffectivelyNever = EvolutionSettings.EffectivelyNever;
