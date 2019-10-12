@@ -201,6 +201,7 @@ namespace ACESim
         // The special constructor is used to deserialize values.
         public GameHistory(SerializationInfo info, StreamingContext context)
         {
+            DEBUGCount = 0;
             ActionsHistory = new byte[GameFullHistory.MaxHistoryLength];
             Cache = new byte[GameHistory.CacheLength];
             InformationSets = new byte[GameHistory.MaxInformationSetLength];
@@ -265,10 +266,10 @@ namespace ACESim
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void AddToHistory(byte decisionByteCode, byte decisionIndex, byte playerIndex, byte action, byte numPossibleActions, byte[] playersToInform, byte[] playersToInformOfOccurrenceOnly, byte[] cacheIndicesToIncrement, byte? storeActionInCacheIndex, GameProgress gameProgress, bool skipAddToHistory, bool deferNotification, bool delayPreviousDeferredNotification)
         {
+            //InformationSets[148] = 205; // DEBUG
             // Debug.WriteLine($"Add to history {decisionByteCode} for player {playerIndex} action {action} of {numPossibleActions}");
             if (!skipAddToHistory)
                 AddToSimpleActionsList(action);
-
             if (gameProgress != null)
                 gameProgress.GameFullHistoryStorable = gameProgress.GameFullHistoryStorable.AddToHistory(decisionByteCode, decisionIndex, playerIndex, action, numPossibleActions, skipAddToHistory);
             LastDecisionIndexAdded = decisionIndex;
@@ -278,21 +279,28 @@ namespace ACESim
                     AddToInformationSetAndLog(DeferredAction, decisionIndex, DeferredPlayerNumber, DeferredPlayersToInform, gameProgress); /* we use the current decision index, not the decision from which it was deferred -- this is important in setting the information set correctly */
                 PreviousNotificationDeferred = deferNotification;
             }
+            //InformationSets[148] = 206; // DEBUG
             if (deferNotification)
             {
                 DeferredAction = action;
                 DeferredPlayerNumber = playerIndex;
-                DeferredPlayersToInform = playersToInform;
+                DeferredPlayersToInform = playersToInform; 
             }
             else if (playersToInform != null && playersToInform.Length > 0)
-                AddToInformationSetAndLog(action, decisionIndex, playerIndex, playersToInform, gameProgress);
+            {
+                AddToInformationSetAndLog(action, decisionIndex, playerIndex, playersToInform, gameProgress); 
+            }
+            //InformationSets[148] = 207; // DEBUG
             if (playersToInformOfOccurrenceOnly != null && playersToInformOfOccurrenceOnly.Length > 0)
                 AddToInformationSetAndLog(DecisionHasOccurred, decisionIndex, playerIndex, playersToInformOfOccurrenceOnly, gameProgress);
+            //InformationSets[148] = 208; // DEBUG
             if (cacheIndicesToIncrement != null && cacheIndicesToIncrement.Length > 0)
                 foreach (byte cacheIndex in cacheIndicesToIncrement)
                     IncrementItemAtCacheIndex(cacheIndex);
+            //InformationSets[148] = 209; // DEBUG
             if (storeActionInCacheIndex != null)
                 SetCacheItemAtIndex((byte) storeActionInCacheIndex, action);
+            //InformationSets[148] = 210; // DEBUG
         }
 
 
@@ -346,6 +354,7 @@ namespace ACESim
                 return;
             foreach (byte playerToInformIndex in playersToInform)
             {
+                InformationSets[148] = 205; // DEBUG
                 AddToInformationSet(information, playerToInformIndex, InformationSets);
                 gameProgress?.InformationSetLog.AddToLog(information, followingDecisionIndex, playerToInformIndex, gameProgress.GameDefinition.PlayerNames, gameProgress.GameDefinition.DecisionPointsExecutionOrder);
             }
@@ -367,12 +376,20 @@ namespace ACESim
                 gameProgress.InformationSetLog.AddToLog(information, followingDecisionIndex, playerIndex, gameProgress.GameDefinition.PlayerNames, gameProgress.GameDefinition.DecisionPointsExecutionOrder);
         }
 
+        byte DEBUGCount;
+
         private void AddToInformationSet(byte information, byte playerIndex, Span<byte> informationSets)
         {
 #if SAFETYCHECKS
             if (playerIndex >= MaxNumPlayers)
                 ThrowHelper.Throw();
 #endif
+            bool DEBUGCondition = GameProgressLogger.ThreadTrapID != 0 && GameProgressLogger.ThreadTrapID != System.Threading.Thread.CurrentThread.ManagedThreadId;
+            if (!DEBUGCondition)
+            {
+                DEBUGCount++;
+                InformationSets[148] = DEBUGCount; // DEBUG
+            }
             int playerPointer = InformationSetIndex(playerIndex);
             byte numItems = 0;
             while (informationSets[playerPointer] != InformationSetTerminator)
@@ -380,7 +397,31 @@ namespace ACESim
                 playerPointer++;
                 numItems++;
             }
+            if (DEBUGCondition)
+            {
+                informationSets[149] = 200;
+            }
+            else
+                informationSets[146] = 195;
+            byte DEBUG = informationSets[148];
+            byte DEBUG2 = informationSets[149];
+            byte DEBUG3 = informationSets[146];
+            if (playerPointer == 149)
+                throw new Exception("DEBUG");
             informationSets[playerPointer] = information;
+            if (DEBUGCondition)
+            {
+                DateTime now = DateTime.Now;
+                while (DateTime.Now < now.AddSeconds(10))
+                {
+                    //debug; // 146 and 149 are set here, but NOT 148. So, the point where the Spans become the same must be AFTER 148 is set.
+                    DEBUG = informationSets[148];
+                    DEBUG2 = informationSets[149];
+                    DEBUG3 = informationSets[146];
+                }
+            }
+            if (informationSets[149] == 200)
+                throw new Exception("DEBUG2");
             playerPointer++;
             numItems++;
 #if SAFETYCHECKS

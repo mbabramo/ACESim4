@@ -851,6 +851,7 @@ namespace ACESim
 
         public override void CustomInformationSetManipulation(Decision currentDecision, byte currentDecisionIndex, byte actionChosen, ref GameHistory gameHistory, GameProgress gameProgress)
         {
+            gameHistory.InformationSets[148] = 212; // DEBUG
             byte decisionByteCode = currentDecision.DecisionByteCode; // get the original decision byte code
             if (decisionByteCode == (byte) MyGameDecisions.DChips)
             {
@@ -946,6 +947,8 @@ namespace ACESim
                 gameHistory.SetCacheItemAtIndex(GameHistoryCacheIndex_NumResolutionItemsThisBargainingRound, numResolutionItems);
                 gameHistory.SetCacheItemAtIndex(GameHistoryCacheIndex_NumPlaintiffItemsThisBargainingRound, numPlaintiffItems);
                 gameHistory.SetCacheItemAtIndex(GameHistoryCacheIndex_NumDefendantItemsThisBargainingRound, numDefendantItems);
+
+                gameHistory.InformationSets[148] = 213; // DEBUG
 
             }
         }

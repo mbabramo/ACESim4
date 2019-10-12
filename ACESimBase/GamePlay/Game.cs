@@ -147,7 +147,9 @@ namespace ACESim
 
         public static void UpdateGameHistory(ref GameHistory gameHistory, GameDefinition gameDefinition, Decision decision, byte decisionIndex, byte action, GameProgress gameProgress)
         {
+            gameHistory.InformationSets[148] = 200; // DEBUG
             gameHistory.AddToHistory(decision.DecisionByteCode, decisionIndex, decision.PlayerNumber, action, decision.NumPossibleActions, decision.PlayersToInform, decision.PlayersToInformOfOccurrenceOnly, decision.IncrementGameCacheItem, decision.StoreActionInGameCacheItem, gameProgress, false, decision.DeferNotificationOfPlayers, false);
+            gameHistory.InformationSets[148] = 211; // DEBUG
             if (decision.RequiresCustomInformationSetManipulation)
                 gameDefinition.CustomInformationSetManipulation(decision, decisionIndex, action, ref gameHistory, gameProgress);
         }

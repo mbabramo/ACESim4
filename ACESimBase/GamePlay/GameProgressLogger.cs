@@ -28,6 +28,8 @@ namespace ACESim
     public static class GameProgressLogger
     {
         public static bool LoggingOn = false; // change this to enable logging -- but this slows things down a lot
+        public static Func<bool> LoggingCondition = () => true; // this condition must be true, e.g. to log only one thread, turn logging on within that thread and then set GameProgressLogger.ThreadTrapID = Thread.CurrentThread.ManagedThreadId and then set condition to: () => Thread.CurrentThread.ManagedThreadId == ThreadTrapID
+        public static int ThreadTrapID;
         public static bool DetailedLogging = false; // DEBUG and above
         public static bool RecordLogMessages = true;
         public static bool OutputLogMessages = true;
@@ -48,13 +50,13 @@ namespace ACESim
         /// <param name="messageProducer"></param>
         public static void Log(Func<string> messageProducer)
         {
-            if (LoggingOn)
+            if (LoggingOn && LoggingCondition())
                 Log(messageProducer());
         }
 
         public static void Log(string message)
         {
-            if (LoggingOn)
+            if (LoggingOn && LoggingCondition())
             {
                 for (int tab = 0; tab < Tabs; tab++)
                     message = "    " + message;
@@ -74,7 +76,7 @@ namespace ACESim
 
         public static void AddGameProgressStep(GameProgress currentProgress, string stepPoint)
         {
-            if (LoggingOn)
+            if (LoggingOn && LoggingCondition())
             {
                 lock (lockObj)
                 {
