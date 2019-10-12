@@ -16,7 +16,7 @@ namespace ACESim
         public GameDefinition GameDefinition;
         public List<GameModuleProgress> GameModuleProgresses;
         public GameHistoryStorable GameHistoryStorable;
-        public GameHistory GameHistory => GameHistoryStorable.ShallowCopyToRefStruct();
+        public GameHistory GameHistory => GameHistoryStorable.ShallowCopyToRefStruct(); // SUPERDEBUG
         public GameFullHistoryStorable GameFullHistoryStorable;
         public GameFullHistory GameFullHistory => GameFullHistoryStorable.ShallowCopyToRefStruct();
         public InformationSetLog InformationSetLog;
@@ -37,6 +37,8 @@ namespace ACESim
 
         public GameProgress()
         {
+            if (GeneralizedVanilla.DEBUG99)
+                throw new Exception();
             var gameHistory = new GameHistory();
             gameHistory.Initialize();
             GameHistoryStorable = gameHistory.DeepCopyToStorable();

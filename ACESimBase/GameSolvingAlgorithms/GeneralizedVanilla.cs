@@ -1000,8 +1000,9 @@ namespace ACESim
                 numPossibleActionsToExplore = 1;
 
             bool doParallel = EvolutionSettings.ParallelOptimization && Parallelizer.ParallelDepth < EvolutionSettings.MaxParallelDepth;
-            if (doParallel) 
+            if (doParallel)
             {
+                DEBUG99 = true;
                 var historyPointCopy = historyPoint.ToStorable(); // This is costly but needed given anonymous method below (because ref struct can't be accessed there), so we do this only if really parallelizing.
                 var DEBUG1 = historyPointCopy.DeepCopyToRefStruct().HistoryToPoint.ToString();
                 var piValues2 = piValues.ToArray();
@@ -1062,6 +1063,8 @@ namespace ACESim
 
             return result;
         }
+
+        public static bool DEBUG99 = false;
 
         private GeneralizedVanillaUtilities GeneralizedVanillaCFR_ChanceNode_NextAction(in HistoryPoint historyPoint, byte playerBeingOptimized, Span<double> piValues, Span<double> avgStratPiValues, ChanceNode chanceNode, byte action, int distributorChanceInputs)
         {

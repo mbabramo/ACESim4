@@ -201,7 +201,6 @@ namespace ACESim
         // The special constructor is used to deserialize values.
         public GameHistory(SerializationInfo info, StreamingContext context)
         {
-            DEBUGCount = 0;
             ActionsHistory = new byte[GameFullHistory.MaxHistoryLength];
             Cache = new byte[GameHistory.CacheLength];
             InformationSets = new byte[GameHistory.MaxInformationSetLength];
@@ -354,8 +353,8 @@ namespace ACESim
                 return;
             foreach (byte playerToInformIndex in playersToInform)
             {
-                InformationSets[148] = 205; // DEBUG
-                AddToInformationSet(information, playerToInformIndex, InformationSets);
+                //InformationSets[148] = 205; // DEBUG
+                AddToInformationSet(information, playerToInformIndex);
                 gameProgress?.InformationSetLog.AddToLog(information, followingDecisionIndex, playerToInformIndex, gameProgress.GameDefinition.PlayerNames, gameProgress.GameDefinition.DecisionPointsExecutionOrder);
             }
             if (GameProgressLogger.LoggingOn && GameProgressLogger.DetailedLogging)
@@ -371,56 +370,48 @@ namespace ACESim
 
         public void AddToInformationSetAndLog(byte information, byte followingDecisionIndex, byte playerIndex, GameProgress gameProgress)
         {
-            AddToInformationSet(information, playerIndex, InformationSets);
+            AddToInformationSet(information, playerIndex);
             if (gameProgress != null)
                 gameProgress.InformationSetLog.AddToLog(information, followingDecisionIndex, playerIndex, gameProgress.GameDefinition.PlayerNames, gameProgress.GameDefinition.DecisionPointsExecutionOrder);
         }
 
-        byte DEBUGCount;
-
-        private void AddToInformationSet(byte information, byte playerIndex, Span<byte> informationSets)
+        private void AddToInformationSet(byte information, byte playerIndex)
         {
 #if SAFETYCHECKS
             if (playerIndex >= MaxNumPlayers)
                 ThrowHelper.Throw();
 #endif
             bool DEBUGCondition = GameProgressLogger.ThreadTrapID != 0 && GameProgressLogger.ThreadTrapID != System.Threading.Thread.CurrentThread.ManagedThreadId;
-            if (!DEBUGCondition)
-            {
-                DEBUGCount++;
-                InformationSets[148] = DEBUGCount; // DEBUG
-            }
             int playerPointer = InformationSetIndex(playerIndex);
             byte numItems = 0;
-            while (informationSets[playerPointer] != InformationSetTerminator)
+            while (InformationSets[playerPointer] != InformationSetTerminator)
             {
                 playerPointer++;
                 numItems++;
             }
             if (DEBUGCondition)
             {
-                informationSets[149] = 200;
+                InformationSets[149] = 200;
             }
             else
-                informationSets[146] = 195;
-            byte DEBUG = informationSets[148];
-            byte DEBUG2 = informationSets[149];
-            byte DEBUG3 = informationSets[146];
+                InformationSets[146] = 195;
+            byte DEBUG = InformationSets[148];
+            byte DEBUG2 = InformationSets[149];
+            byte DEBUG3 = InformationSets[146];
             if (playerPointer == 149)
                 throw new Exception("DEBUG");
-            informationSets[playerPointer] = information;
+            InformationSets[playerPointer] = information;
             if (DEBUGCondition)
             {
                 DateTime now = DateTime.Now;
                 while (DateTime.Now < now.AddSeconds(10))
                 {
                     //debug; // 146 and 149 are set here, but NOT 148. So, the point where the Spans become the same must be AFTER 148 is set.
-                    DEBUG = informationSets[148];
-                    DEBUG2 = informationSets[149];
-                    DEBUG3 = informationSets[146];
+                    DEBUG = InformationSets[148];
+                    DEBUG2 = InformationSets[149];
                 }
             }
-            if (informationSets[149] == 200)
+            if (!DEBUGCondition && InformationSets[149] == 200)
                 throw new Exception("DEBUG2");
             playerPointer++;
             numItems++;
@@ -428,7 +419,7 @@ namespace ACESim
             if (numItems >= MaxInformationSetLengthForPlayer(playerIndex))
                 ThrowHelper.Throw("Must increase MaxInformationSetLengthPerPlayer");
 #endif
-            informationSets[playerPointer] = InformationSetTerminator;
+            InformationSets[playerPointer] = InformationSetTerminator;
         }
 
         public void GetPlayerInformationCurrent(byte playerIndex, Span<byte> playerInfo)
