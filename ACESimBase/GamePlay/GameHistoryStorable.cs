@@ -14,7 +14,8 @@ namespace ACESim
         public byte NextIndexInHistoryActionsOnly;
         public byte[] Cache; 
         public bool Initialized;
-        public byte[] InformationSets; 
+        public byte[] InformationSets;
+        public int DEBUGThread;
         public bool PreviousNotificationDeferred;
         public byte DeferredAction;
         public byte DeferredPlayerNumber;
@@ -31,11 +32,12 @@ namespace ACESim
         public GameHistory DeepCopyToRefStruct()
         {
             GameHistory result = ShallowCopyToRefStruct();
-            result.CreateArraysForSpans();
+            result.CreateArraysForSpans(false);
             for (int i = 0; i < GameFullHistory.MaxHistoryLength; i++)
                 result.ActionsHistory[i] = ActionsHistory[i];
             for (int i = 0; i < GameHistory.CacheLength; i++)
                 result.Cache[i] = Cache[i];
+            result.DEBUGVerify();
             for (int i = 0; i < GameHistory.MaxInformationSetLength; i++)
                 result.InformationSets[i] = InformationSets[i];
             return result;
@@ -55,7 +57,8 @@ namespace ACESim
                 LastDecisionIndexAdded = LastDecisionIndexAdded,
                 ActionsHistory = ActionsHistory,
                 Cache = Cache,
-                InformationSets = InformationSets
+                InformationSets = InformationSets,
+                DEBUGThread = DEBUGThread
             };
             return result;
         }

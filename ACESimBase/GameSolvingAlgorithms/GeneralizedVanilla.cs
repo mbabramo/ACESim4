@@ -1010,13 +1010,7 @@ namespace ACESim
                     action =>
                     {
                         var historyPointCopy2 = historyPointCopy.DeepCopyToRefStruct();
-                        if (chanceNode.DecisionIndex == 3 && action == 1)
-                        {
-                            GameProgressLogger.ThreadTrapID = Thread.CurrentThread.ManagedThreadId;
-                            GameProgressLogger.LoggingOn = true;
-                            GameProgressLogger.LoggingCondition = () => Thread.CurrentThread.ManagedThreadId == GameProgressLogger.ThreadTrapID;
-                        }
-                        Debug.WriteLine($"{action}: Chance node for {chanceNode.DecisionIndex}: {historyPointCopy2.HistoryToPoint.ToString()}"); // DEBUG
+                        //Debug.WriteLine($"{action}: Chance node for {chanceNode.DecisionIndex}: {historyPointCopy2.HistoryToPoint.ToString()}"); // DEBUG
                         GeneralizedVanillaUtilities probabilityAdjustedInnerResult = GeneralizedVanillaCFR_ChanceNode_NextAction(in historyPointCopy2, playerBeingOptimized, piValues2,
                                 avgStratPiValues2, chanceNode, action, distributorChanceInputs);
                         result.IncrementBasedOnProbabilityAdjusted(ref probabilityAdjustedInnerResult);

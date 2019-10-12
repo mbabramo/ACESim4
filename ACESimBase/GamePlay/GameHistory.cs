@@ -49,6 +49,7 @@ namespace ACESim
         public Span<byte> ActionsHistory; // length GameFullHistory.MaxHistoryLength
         public Span<byte> Cache; // length CacheLength
         public Span<byte> InformationSets; // length MaxInformationSetLength
+        public int DEBUGThread;
 
         // Information set structure. We have an information set buffer for each player. We need to be able to remove information from the information set for a player, but still to remember that it was there as of a particular point in time, so that we can figure out what the information set was as of a particular decision. (This is needed for reconstructing the game play.) We thus store information in pairs. The first byte consists of the decision byte code after which we are making changes. The second byte either consists of an item to add, or 254, indicating that we are removing an item from the information set. All of this is internal. When we get the information set, we get it as of a certain point, and thus we skip decision byte codes and automatically process deletions. 
 
@@ -77,11 +78,18 @@ namespace ACESim
             Initialize_Helper();
         }
 
+        public void DEBUGVerify()
+        {
+            if (DEBUGThread != System.Threading.Thread.CurrentThread.ManagedThreadId)
+                throw new Exception();
+        }
+
         private void Initialize_Helper()
         {
-            CreateArraysForSpans();
+            CreateArraysForSpans(true);
             for (byte p = 0; p < GameHistory.MaxNumPlayers; p++)
             {
+                DEBUGVerify();
                 InformationSets[GameHistory.InformationSetIndex(p)] = GameHistory.InformationSetTerminator;
             }
             Initialized = true;
@@ -105,7 +113,7 @@ namespace ACESim
                 LastDecisionIndexAdded = LastDecisionIndexAdded,
                 ActionsHistory = ActionsHistory.Length > 0 ? new byte[GameFullHistory.MaxHistoryLength] : null,
                 Cache = Cache.Length > 0 ? new byte[GameHistory.CacheLength] : null,
-                InformationSets = InformationSets.Length > 0 ? new byte[GameHistory.MaxInformationSetLength] : null
+                InformationSets = InformationSets.Length > 0 ? new byte[GameHistory.MaxInformationSetLength] : null,
             };
             if (ActionsHistory.Length > 0)
                 for (int i = 0; i < GameFullHistory.MaxHistoryLength && i < NextIndexInHistoryActionsOnly; i++)
@@ -114,20 +122,22 @@ namespace ACESim
                 for (int i = 0; i < GameHistory.CacheLength; i++)
                     result.Cache[i] = Cache[i];
             if (InformationSets.Length > 0)
+            {
+                result.DEBUGThread = System.Threading.Thread.CurrentThread.ManagedThreadId;
                 for (int i = 0; i < GameHistory.MaxInformationSetLength; i++)
                     result.InformationSets[i] = InformationSets[i];
+            }
             return result;
         }
 
-        public void CreateArraysForSpans()
+        public void CreateArraysForSpans(bool onlyIfNeeded)
         {
-            // DEBUG this is inefficient
-            if (ActionsHistory == null)
-            {
-                ActionsHistory = new byte[GameFullHistory.MaxHistoryLength];
-                Cache = new byte[GameHistory.CacheLength];
-                InformationSets = new byte[GameHistory.MaxInformationSetLength];
-            }
+            if (onlyIfNeeded && ActionsHistory != null)
+                return;
+            ActionsHistory = new byte[GameFullHistory.MaxHistoryLength];
+            Cache = new byte[GameHistory.CacheLength];
+            InformationSets = new byte[GameHistory.MaxInformationSetLength];
+            DEBUGThread = System.Threading.Thread.CurrentThread.ManagedThreadId;
         }
 
         public GameHistory DeepCopy()
@@ -146,11 +156,12 @@ namespace ACESim
             };
             if (ActionsHistory.Length > 0)
             {
-                result.CreateArraysForSpans();
+                result.CreateArraysForSpans(false);
                 for (int i = 0; i < GameFullHistory.MaxHistoryLength && i < NextIndexInHistoryActionsOnly; i++)
                     result.ActionsHistory[i] = ActionsHistory[i];
                 for (int i = 0; i < GameHistory.CacheLength; i++)
                     result.Cache[i] = Cache[i];
+                result.DEBUGVerify();
                 for (int i = 0; i < GameHistory.MaxInformationSetLength; i++)
                     result.InformationSets[i] = InformationSets[i];
             }
@@ -204,6 +215,7 @@ namespace ACESim
             ActionsHistory = new byte[GameFullHistory.MaxHistoryLength];
             Cache = new byte[GameHistory.CacheLength];
             InformationSets = new byte[GameHistory.MaxInformationSetLength];
+            DEBUGThread = System.Threading.Thread.CurrentThread.ManagedThreadId;
 
             byte[] history = (byte[])info.GetValue("history", typeof(byte[]));
             byte[] informationSets = (byte[])info.GetValue("informationSets", typeof(byte[]));
@@ -381,6 +393,7 @@ namespace ACESim
                 playerPointer++;
                 numItems++;
             }
+            DEBUGVerify();
             InformationSets[playerPointer] = information;
             playerPointer++;
             numItems++;
@@ -481,6 +494,7 @@ namespace ACESim
             while (InformationSets[informationSetIndex] != InformationSetTerminator)
                 informationSetIndex++; // now move past the information
             informationSetIndex -= (byte) numItemsToRemove;
+            DEBUGVerify();
             InformationSets[informationSetIndex] = InformationSetTerminator;
         }
 
