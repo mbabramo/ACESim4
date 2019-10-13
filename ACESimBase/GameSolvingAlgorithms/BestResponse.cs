@@ -135,7 +135,7 @@ namespace ACESim
                 if (informationSet.Decision.DistributorChanceInputDecision)
                     distributorChanceInputsNext += action * informationSet.Decision.DistributorChanceInputDecisionMultiplier;
                 double expectedValue;
-                if (historyPoint.BranchingIsReversible(Navigation, informationSet.Decision))
+                if (Navigation.LookupApproach != InformationSetLookupApproach.PlayUnderlyingGame && historyPoint.BranchingIsReversible(Navigation, informationSet.Decision))
                 {
                     var nextHistoryPoint = historyPoint.SwitchToBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                     expectedValue = GEBRPass2(in nextHistoryPoint, playerIndex, depthToTarget,
@@ -197,7 +197,7 @@ namespace ACESim
                         TabbedText.TabIndent();
                     }
                     double expectedValue;
-                    if (historyPoint.BranchingIsReversible(Navigation, informationSet.Decision))
+                    if (Navigation.LookupApproach != InformationSetLookupApproach.PlayUnderlyingGame && historyPoint.BranchingIsReversible(Navigation, informationSet.Decision))
                     {
                         var nextHistoryPoint = historyPoint.SwitchToBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                         expectedValue = GEBRPass2(in nextHistoryPoint, playerIndex,
@@ -267,7 +267,7 @@ namespace ACESim
                 if (EvolutionSettings.DistributeChanceDecisions && chanceNode.Decision.DistributedChanceDecision)
                     probability = 1.0;
                 double valueBelow;
-                if (historyPoint.BranchingIsReversible(Navigation, chanceNode.Decision))
+                if (Navigation.LookupApproach != InformationSetLookupApproach.PlayUnderlyingGame && historyPoint.BranchingIsReversible(Navigation, chanceNode.Decision))
                 {
                     var nextHistoryPoint = historyPoint.SwitchToBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
                     valueBelow = GEBRPass2(in historyPoint, playerIndex, depthToTarget,

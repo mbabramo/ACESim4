@@ -410,11 +410,16 @@ namespace ACESim
                     gameHistory.DecrementItemAtCacheIndex(cacheIndex);
             if (decisionToReverse.StoreActionInGameCacheItem != null)
                 gameHistory.SetCacheItemAtIndex((byte)decisionToReverse.StoreActionInGameCacheItem, 0);
+
             if (historyPoint.GameProgress != null)
             {
-                historyPoint.GameProgress.GameComplete = false;
-                historyPoint.GameProgress.GameFullHistoryStorable.MarkIncomplete();
+                throw new Exception("Cannot use reverse switch to branch when using GameProgress for navigation, because we don't have a way of rolling back the GameProgress itself.");
+                // if we enable rolling back gameprogress, then we will need to also update various fields within gameprogress. Overall, this probably is not worth it.
+                //historyPoint.GameProgress.GameComplete = false;
+               // historyPoint.GameProgress.GameHistoryStorable = gameHistory.DeepCopy();
+                //historyPoint.GameProgress.GameFullHistoryStorable.MarkIncomplete();
             }
+
             //NOTE: Originally, we were undoing all effects on the HistoryPoint object. But now HistoryPoint is readonly. Changing gameHistory will have no effect,
             //since that is just a copy. Meanwhile, it's no longer necessary to make the following changes, because we always keep the original HistoryPoint, which
             //will thus have the original GameHistory before SwitchToBranch was called.

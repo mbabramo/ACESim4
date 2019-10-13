@@ -353,10 +353,12 @@ namespace ACESim
         {
             IGameState gameState;
             List<byte> actionsSoFar = historyPoint.GetActionsToHere(navigationSettings);
+            Br.eak.IfAddedAtLeastIteration("Y", 2);
             (GameProgress progress, _) = GamePlayer.PlayPath(actionsSoFar, false);
             for (int i = 0; i < 1 /* DEBUG 20 */; i++) // shouldn't be necessary to do more than once, but maybe some parallelism issue is causing the need for that
             {
-                gameState = ProcessProgress(in historyPoint, navigationSettings, progress);
+                HistoryPoint finalHistoryPoint = historyPoint.WithGameProgress(progress);
+                gameState = ProcessProgress(in finalHistoryPoint, navigationSettings, progress);
                 if (gameState != null)
                     return gameState;
             }

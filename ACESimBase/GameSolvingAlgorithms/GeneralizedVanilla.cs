@@ -918,7 +918,8 @@ namespace ACESim
                         TabbedText.TabIndent();
                     }
                     HistoryPoint nextHistoryPoint;
-                    if (informationSet.Decision.IsReversible && doReversibility)
+                    var DEBUG = historyPoint.DeepCopy();
+                    if (Navigation.LookupApproach != InformationSetLookupApproach.PlayUnderlyingGame && informationSet.Decision.IsReversible && doReversibility)
                         nextHistoryPoint = historyPoint.SwitchToBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                     else
                         nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
@@ -951,8 +952,19 @@ namespace ACESim
                         TabbedText.WriteLine(
                             $"... action {action}{(informationSet.BestResponseAction == action && IncludeAsteriskForBestResponseInTrace ? "*" : "")} expected value {expectedValueOfAction[action - 1]} best response expected value {result.BestResponseToAverageStrategy} cum expected value {expectedValue}{(action == numPossibleActions && IncludeAsteriskForBestResponseInTrace ? "*" : "")}");
                     }
-                    if (informationSet.Decision.IsReversible && doReversibility)
+                    if (Navigation.LookupApproach != InformationSetLookupApproach.PlayUnderlyingGame && informationSet.Decision.IsReversible && doReversibility)
+                    {
+                        if (DEBUG.ToString() == "Player 3 Decision 2 (index 0) Information  ActionChosen 1 NumPossible 2 IsTerminal False,Player 6 Decision 3 (index 1) Information 1 ActionChosen 1 NumPossible 3 IsTerminal False,Player 9 Decision 4 (index 2) Information  ActionChosen 1 NumPossible 3 IsTerminal False,Player 4 Decision 5 (index 3) Information 1 ActionChosen 1 NumPossible 3 IsTerminal False,Player 5 Decision 6 (index 4) Information 1 ActionChosen 1 NumPossible 3 IsTerminal False,Player 7 Decision 7 (index 5) Information 1 ActionChosen 1 NumPossible 3 IsTerminal False,Player 8 Decision 8 (index 6) Information 1 ActionChosen 1 NumPossible 3 IsTerminal False,Player 0 Decision 9 (index 7) Information 1,1 ActionChosen 1 NumPossible 2 IsTerminal False,Player 1 Decision 10 (index 8) Information 1,1,1 ActionChosen 1 NumPossible 2 IsTerminal False,Player 14 Decision 11 (index 9) Information  ActionChosen 1 NumPossible 1 IsTerminal False,Player 0 Decision 14 (index 10) Information 1,1,1,1,1 ActionChosen 2 NumPossible 5 IsTerminal False,Player 1 Decision 15 (index 11) Information 1,1,1,1,1 ActionChosen 1 NumPossible 5 IsTerminal False,Player 0 Decision 20 (index 12) Information 1,1,1,1,1,2,1 ActionChosen 1 NumPossible 2 IsTerminal False")
+                        {
+                            var DEBUG5 = 0;
+                        }
                         GameDefinition.ReverseSwitchToBranchEffects(informationSet.Decision, in nextHistoryPoint);
+                        var DEBUG2 = historyPoint.DeepCopy();
+                        if (DEBUG.ToString() != DEBUG2.ToString())
+                        {
+                            var DEBUG3 = 0;
+                        }
+                    }
                 } // not pruning
             } // for each action
             if (playerMakingDecision == playerBeingOptimized)
@@ -1048,8 +1060,9 @@ namespace ACESim
             if (chanceNode.DecisionIndex == 14)
             {
                 var DEBUG = 0;
+                //Br.eak.Add("Y");
             }
-            if (chanceNode.Decision.IsReversible && doReversibility /* DEBUG */)
+            if (Navigation.LookupApproach != InformationSetLookupApproach.PlayUnderlyingGame && chanceNode.Decision.IsReversible && doReversibility /* DEBUG */)
                 nextHistoryPoint = historyPoint.SwitchToBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
             else
                 nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
@@ -1068,7 +1081,7 @@ namespace ACESim
                     $"... action {action} value {result.CurrentVsCurrent} probability {actionProbability} expected value contribution {result.CurrentVsCurrent * actionProbability}");
             }
             result.MakeProbabilityAdjusted(actionProbability);
-            if (chanceNode.Decision.IsReversible && doReversibility /* DEBUG */)
+            if (Navigation.LookupApproach != InformationSetLookupApproach.PlayUnderlyingGame && chanceNode.Decision.IsReversible && doReversibility /* DEBUG */)
                 GameDefinition.ReverseSwitchToBranchEffects(chanceNode.Decision, in nextHistoryPoint);
 
             return result;
