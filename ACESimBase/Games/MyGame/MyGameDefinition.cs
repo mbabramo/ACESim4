@@ -952,6 +952,8 @@ namespace ACESim
 
         public override void ReverseSwitchToBranchEffects(Decision decisionToReverse, in HistoryPoint historyPoint)
         {
+            if (historyPoint.HistoryToPoint.IsEmpty)
+                return; // we aren't tracking the game history (maybe because we are using a game tree instead of cached history)
             base.ReverseSwitchToBranchEffects(decisionToReverse, in historyPoint);
             byte decisionByteCode = decisionToReverse.DecisionByteCode;
             if (decisionByteCode == (byte)MyGameDecisions.DChips)

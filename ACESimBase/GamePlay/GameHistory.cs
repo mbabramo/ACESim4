@@ -71,22 +71,23 @@ namespace ACESim
             return true;
         }
 
-        public void Initialize()
+        public void Initialize(bool createArraysForSpans = true)
         {
             if (Initialized)
                 return;
-            Initialize_Helper();
+            Initialize_Helper(createArraysForSpans);
         }
 
         public void DEBUGVerify()
         {
-            if (DEBUGThread != System.Threading.Thread.CurrentThread.ManagedThreadId)
+            if (!IsEmpty && DEBUGThread != System.Threading.Thread.CurrentThread.ManagedThreadId)
                 throw new Exception();
         }
 
-        private void Initialize_Helper()
+        private void Initialize_Helper(bool createArraysForSpans)
         {
-            CreateArraysForSpans(true);
+            if (createArraysForSpans)
+                CreateArraysForSpans(true);
             for (byte p = 0; p < GameHistory.MaxNumPlayers; p++)
             {
                 DEBUGVerify();
@@ -140,6 +141,8 @@ namespace ACESim
             DEBUGThread = System.Threading.Thread.CurrentThread.ManagedThreadId;
         }
 
+        public bool IsEmpty => ActionsHistory.Length == 0;
+
         public GameHistory DeepCopy()
         {
             // DEBUG the critical point for allocation of arrays for history
@@ -154,7 +157,7 @@ namespace ACESim
                 DeferredPlayersToInform = DeferredPlayersToInform, // this does not need to be duplicated because it is set in gamedefinition and not changed
                 LastDecisionIndexAdded = LastDecisionIndexAdded,
             };
-            if (ActionsHistory.Length > 0)
+            if (!IsEmpty)
             {
                 result.CreateArraysForSpans(false);
                 for (int i = 0; i < GameFullHistory.MaxHistoryLength && i < NextIndexInHistoryActionsOnly; i++)

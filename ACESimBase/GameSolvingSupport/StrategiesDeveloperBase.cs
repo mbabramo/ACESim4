@@ -23,7 +23,7 @@ namespace ACESim
         public const int MaxNumMainPlayers = 4; // this affects fixed-size stack-allocated buffers // TODO: Set to 2
         public const int MaxPossibleActions = 100; // same
 
-        public InformationSetLookupApproach LookupApproach { get; set; } = InformationSetLookupApproach.PlayUnderlyingGame; // DEBUG
+        public InformationSetLookupApproach LookupApproach { get; set; } = InformationSetLookupApproach.CachedBothMethods; // DEBUG
 
         bool AllowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => 
@@ -573,19 +573,22 @@ namespace ACESim
 
         public HistoryPoint GetStartOfGameHistoryPoint()
         {
-            GameHistory gameHistory = new GameHistory();
-            gameHistory.Initialize(); 
             switch (Navigation.LookupApproach)
             {
                 case InformationSetLookupApproach.PlayUnderlyingGame:
                     GameProgress startingProgress = GameFactory.CreateNewGameProgress(new IterationID(1));
                     return new HistoryPoint(null, startingProgress.GameHistory, startingProgress);
                 case InformationSetLookupApproach.CachedGameTreeOnly:
+                    GameHistory gameHistory = new GameHistory();
                     return new HistoryPoint(GameHistoryTree, gameHistory, null);
                 case InformationSetLookupApproach.CachedGameHistoryOnly:
-                    return new HistoryPoint(null, gameHistory, null);
+                    GameHistory gameHistory2 = new GameHistory();
+                    gameHistory2.Initialize();
+                    return new HistoryPoint(null, gameHistory2, null);
                 case InformationSetLookupApproach.CachedBothMethods:
-                    return new HistoryPoint(GameHistoryTree, gameHistory, null);
+                    GameHistory gameHistory3 = new GameHistory();
+                    gameHistory3.Initialize();
+                    return new HistoryPoint(GameHistoryTree, gameHistory3, null);
                 default:
                     throw new Exception(); // unexpected lookup approach -- won't be called
             }

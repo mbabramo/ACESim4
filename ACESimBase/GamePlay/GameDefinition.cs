@@ -399,6 +399,8 @@ namespace ACESim
             // fields of the GameHistory (which is not readonly, but is a struct and thus can't be changed within the readonly HistoryPoint). Thus,
             // SwitchToBranch produces a new HistoryPoint. 
             GameHistory gameHistory = historyPoint.HistoryToPoint;
+            if (gameHistory.IsEmpty)
+                return; // we aren't tracking the game history (maybe because we are using a game tree instead of cached history)
             if (decisionToReverse.PlayersToInform != null)
                 foreach (byte playerIndex in decisionToReverse.PlayersToInform)
                     gameHistory.ReverseAdditionsToInformationSet(playerIndex, 1, null);
