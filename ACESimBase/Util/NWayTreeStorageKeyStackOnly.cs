@@ -38,6 +38,8 @@ namespace ACESim
                     targetSequence[i] = Sequence[i];
                 }
                 while (Sequence[i++] != 255); // Note: We include the 255 because the thread-only key may be longer than necessary
+            else
+                targetSequence[0] = 255;
             NWayTreeStorageKey.KeyForThread = new NWayTreeStorageKey(PrefaceByte, targetSequence);
             return NWayTreeStorageKey.KeyForThread;
         }
