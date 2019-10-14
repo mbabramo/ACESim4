@@ -179,11 +179,11 @@ namespace ACESim
 
         private HistoryPoint GetBranch_NotCacheOnly(HistoryNavigationInfo navigation, byte actionChosen, Decision nextDecision, byte nextDecisionIndex)
         {
-            if (navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
-                return GetBranch_CachedGameHistory(navigation, actionChosen, nextDecision, nextDecisionIndex);
             NWayTreeStorage<IGameState> nextTreePoint = null;
             GameHistory nextHistoryToPoint = default;
             GameProgress nextGameProgress = null;
+            if (navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
+                nextHistoryToPoint = GetBranch_CachedGameHistory(navigation, actionChosen, nextDecision, nextDecisionIndex).HistoryToPoint;
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
             {
                 NWayTreeStorage<IGameState> branch = TreePoint.GetBranch(actionChosen);
