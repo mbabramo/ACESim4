@@ -105,7 +105,7 @@ namespace ACESim
         /// </summary>
         /// <param name="navigation">The navigation settings. If the LookupApproach is both, this method will verify that both return the same value.</param>
         /// <returns></returns>
-        public IGameState GetGameStateForCurrentPlayer(HistoryNavigationInfo navigation)
+        public IGameState GetGameStatePrerecorded(HistoryNavigationInfo navigation)
         {
             if (GameState != null)
             {
@@ -375,17 +375,21 @@ namespace ACESim
 
 
 
-        public void SetInformationIfNotSet(HistoryNavigationInfo navigation, GameProgress gameProgress, InformationSetHistory informationSetHistory)
+        public IGameState GetGameStateFromGameProgress(HistoryNavigationInfo navigation, GameProgress gameProgress, InformationSetHistory informationSetHistory)
         {
             //var informationSetString = informationSetHistory.ToString(); 
             //var informationSetList = informationSetHistory.GetInformationSetForPlayerAsList(); 
             //var actionsToHere = GetActionsToHereString(navigation);
-            IGameState gameState = GetGameStateForCurrentPlayer(navigation);
+            IGameState gameState = null;
+            gameState = GetGameStatePrerecorded(navigation);
             if (gameState == null)
-                SetInformationAtPoint(navigation, gameProgress, informationSetHistory);
+            {
+                return SetGameStateForInformationSet(navigation, gameProgress, informationSetHistory);
+            }
+            return gameState;
         }
 
-        private void SetInformationAtPoint(HistoryNavigationInfo navigation, GameProgress gameProgress, InformationSetHistory informationSetHistory)
+        private IGameState SetGameStateForInformationSet(HistoryNavigationInfo navigation, GameProgress gameProgress, InformationSetHistory informationSetHistory)
         {
             byte decisionIndex = informationSetHistory.DecisionIndex;
             var decision = navigation.GameDefinition.DecisionsExecutionOrder[decisionIndex];
@@ -435,6 +439,7 @@ namespace ACESim
                         );
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
                 TreePoint.StoredValue = informationSetNode.StoredValue;
+            return informationSetNode.StoredValue;
         }
 
     }

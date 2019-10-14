@@ -309,7 +309,7 @@ namespace ACESim
                 }
                 GameProgressLogger.Tabs++;
                 //var informationSetHistoryString = informationSetHistory.ToString();
-                historyPoint.SetInformationIfNotSet(Navigation, gameProgress, informationSetHistory);
+                historyPoint.GetGameStateFromGameProgress(Navigation, gameProgress, informationSetHistory);
                 var decision = GameDefinition.DecisionsExecutionOrder[informationSetHistory.DecisionIndex];
                 // NOTE: Usually we would assign the result of GetBranch to nextHistoryPoint, but here we're going to be continuing through history, so we update historyPoint.
                 historyPoint = historyPoint.GetBranch(Navigation, informationSetHistory.ActionChosen, decision, informationSetHistory.DecisionIndex);
@@ -343,7 +343,7 @@ namespace ACESim
         public IGameState GetGameState(in HistoryPoint historyPoint, HistoryNavigationInfo? navigation = null)
         {
             HistoryNavigationInfo navigationSettings = navigation ?? Navigation;
-            IGameState gameState = historyPoint.GetGameStateForCurrentPlayer(navigationSettings);
+            IGameState gameState = historyPoint.GetGameStatePrerecorded(navigationSettings);
             if (gameState != null)
                 return gameState;
             return GetGameStateByPlayingUnderlyingGame(in historyPoint, navigationSettings);
@@ -354,14 +354,26 @@ namespace ACESim
             IGameState gameState;
             List<byte> actionsSoFar = historyPoint.GetActionsToHere(navigationSettings);
             Br.eak.IfAddedAtLeastIteration("Y", 2);
-            (GameProgress progress, _) = GamePlayer.PlayPath(actionsSoFar, false);
-            for (int i = 0; i < 1 /* DEBUG 20 */; i++) // shouldn't be necessary to do more than once, but maybe some parallelism issue is causing the need for that
+            GameProgress gameProgress = GamePlayer.PlayPathAndStop(actionsSoFar);
+            HistoryPoint updatedHistoryPoint = historyPoint.WithGameProgress(gameProgress);
+            if (gameProgress.GameComplete)
+                gameState = ProcessProgress(in updatedHistoryPoint, navigationSettings, gameProgress);
+            else
             {
-                HistoryPoint finalHistoryPoint = historyPoint.WithGameProgress(progress);
-                gameState = ProcessProgress(in finalHistoryPoint, navigationSettings, progress);
-                if (gameState != null)
-                    return gameState;
+                if (actionsSoFar.Any())
+                {
+                    IEnumerable<short> informationSetHistoriesIndices = gameProgress.GetInformationSetHistoryItems_OverallIndices(); // DEBUG: Add method to just get last index
+                    InformationSetHistory informationSetHistory = gameProgress.GetInformationSetHistory_OverallIndex(informationSetHistoriesIndices.Last());
+                    gameState = updatedHistoryPoint.GetGameStateFromGameProgress(navigationSettings, gameProgress, informationSetHistory);
+                }
+                else
+                {
+                    InformationSetHistory informationSetHistory = new InformationSetHistory();
+                    gameState = updatedHistoryPoint.GetGameStateFromGameProgress(navigationSettings, gameProgress, informationSetHistory);
+                }
             }
+            if (gameState != null)
+                return gameState;
             throw new Exception("Internal error. The path was not processed correctly. Try using CachedBothMethods to try to identify where there is a problem with information sets.");
         }
 
@@ -369,7 +381,7 @@ namespace ACESim
         {
             ProcessInitializedGameProgress(progress);
             NumInitializedGamePaths++; // Note: This may not be exact if we initialize the same game path twice (e.g., if we are playing in parallel)
-            var gameState = historyPoint.GetGameStateForCurrentPlayer(navigationSettings);
+            var gameState = historyPoint.GetGameStatePrerecorded(navigationSettings);
             return gameState;
         }
 
@@ -1007,7 +1019,7 @@ namespace ACESim
 
         public void GetAverageUtilities_Helper(in HistoryPoint historyPoint, double[] cumulated, double prob)
         {
-            IGameState gameState = historyPoint.GetGameStateForCurrentPlayer(Navigation);
+            IGameState gameState = historyPoint.GetGameStatePrerecorded(Navigation);
             if (gameState is FinalUtilitiesNode finalUtilities)
             {
                 for (byte p = 0; p < NumNonChancePlayers; p++)

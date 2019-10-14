@@ -32,11 +32,12 @@ namespace ACESim
             // This is the key (pun intended) to making this storage efficient. We need arrays for the storage within the tree, but we reuse the thread-only key when we need to lookup, by copying the stack only key.
             int i = 0;
             byte[] targetSequence = NWayTreeStorageKey.KeyForThread.Sequence;
-            do
-            {
-                targetSequence[i] = Sequence[i];
-            }
-            while (Sequence[i++] != 255); // Note: We include the 255 because the thread-only key may be longer than necessary
+            if (Sequence.Length > 0)
+                do
+                {
+                    targetSequence[i] = Sequence[i];
+                }
+                while (Sequence[i++] != 255); // Note: We include the 255 because the thread-only key may be longer than necessary
             NWayTreeStorageKey.KeyForThread = new NWayTreeStorageKey(PrefaceByte, targetSequence);
             return NWayTreeStorageKey.KeyForThread;
         }
