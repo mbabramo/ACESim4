@@ -11,7 +11,7 @@ namespace ACESim
     {
         public bool AzureEnabled = false;
         public bool ParallelOptimization = false;
-        public int MaxParallelDepth = 3;
+        public int MaxParallelDepth = 5; // DEBUG
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.FictitiousSelfPlay;
         public int TotalAvgStrategySamplingCFRIterations = 100000;
         public int TotalProbingCFRIterations = 100000;
@@ -65,7 +65,7 @@ namespace ACESim
 
         public bool CFRBR = false; // if true, opponent plays best response
 
-        public bool DistributeChanceDecisions = true;
+        public bool DistributeChanceDecisions = false; // DEBUG
         public bool UnrollAlgorithm = false; // DEBUG
 
         // For Vanilla algorithm:

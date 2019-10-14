@@ -23,7 +23,7 @@ namespace ACESim
         public const int MaxNumMainPlayers = 4; // this affects fixed-size stack-allocated buffers // TODO: Set to 2
         public const int MaxPossibleActions = 100; // same
 
-        public InformationSetLookupApproach LookupApproach { get; set; } = InformationSetLookupApproach.CachedBothMethods; // DEBUG -- must get playunderlyinggame to work
+        public InformationSetLookupApproach LookupApproach { get; set; } = InformationSetLookupApproach.PlayUnderlyingGame;
 
         bool AllowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => 
@@ -780,7 +780,10 @@ namespace ACESim
             Stopwatch s = new Stopwatch();
             s.Start();
             AcceleratedBestResponsePrep prepWalk = new AcceleratedBestResponsePrep(EvolutionSettings.DistributeChanceDecisions, (byte)NumNonChancePlayers, TraceTreeWalk);
+            prepWalk.Trace = true; // DEBUG
+            StrategiesDeveloperBase.TraceTreeWalk = true; // DEBUG
             AcceleratedBestResponsePrepResult = TreeWalk_Tree(prepWalk, new NodeActionsHistory());
+            StrategiesDeveloperBase.TraceTreeWalk = false; // DEBUG
             InformationSetsByDecisionIndex = InformationSets.GroupBy(x => x.DecisionIndex).Select(x => x.ToList()).ToList();
             s.Stop();
             TabbedText.WriteLine($"... {s.ElapsedMilliseconds} milliseconds. Total information sets: {InformationSets.Count()}");
@@ -1613,7 +1616,7 @@ namespace ACESim
 
         #region General tree walk
 
-        bool TraceTreeWalk = false; 
+        static bool TraceTreeWalk = true;  // DEBUG
 
         public Back TreeWalk_Tree<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, Forward forward = default)
         {

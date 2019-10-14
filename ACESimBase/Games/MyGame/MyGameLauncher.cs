@@ -29,11 +29,15 @@ namespace ACESim
         public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
         {
             List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
-            AddShootoutPermutations(optionSets);
+            bool fast = true; // DEBUG
+            if (fast)
+                AddFast(optionSets);
+            else
+                AddShootoutPermutations(optionSets);
 
             optionSets = optionSets.OrderBy(x => x.optionSetName).ToList();
 
-            bool simplify = true; // DEBUG // Enable for debugging purposes to speed up execution
+            bool simplify = false; // Enable for debugging purposes to speed up execution
             if (simplify)
                 foreach (var optionSet in optionSets)
                     optionSet.options.Simplify();
