@@ -72,6 +72,11 @@ namespace ACESim
             return result;
         }
 
+        public bool IsComplete()
+        {
+            short i = NextIndexToAddToHistory;
+            return (History[i] == GameFullHistory.HistoryComplete);
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void MarkComplete()

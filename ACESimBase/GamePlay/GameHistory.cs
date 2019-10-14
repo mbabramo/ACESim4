@@ -342,7 +342,7 @@ namespace ACESim
         public void MarkComplete(GameProgress gameProgress = null)
         {
             Complete = true;
-            if (gameProgress != null)
+            if (gameProgress != null && !gameProgress.GameFullHistoryStorable.IsComplete())
                 gameProgress.GameFullHistoryStorable.MarkComplete();
         }
 

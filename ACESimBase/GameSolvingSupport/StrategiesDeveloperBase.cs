@@ -23,7 +23,7 @@ namespace ACESim
         public const int MaxNumMainPlayers = 4; // this affects fixed-size stack-allocated buffers // TODO: Set to 2
         public const int MaxPossibleActions = 100; // same
 
-        public InformationSetLookupApproach LookupApproach { get; set; } = InformationSetLookupApproach.PlayUnderlyingGame;
+        public InformationSetLookupApproach LookupApproach { get; set; } = InformationSetLookupApproach.CachedGameHistoryOnly;
 
         bool AllowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => 
@@ -355,7 +355,7 @@ namespace ACESim
             List<byte> actionsSoFar = historyPoint.GetActionsToHere(navigationSettings);
             Br.eak.IfAddedAtLeastIteration("Y", 2);
             GameProgress gameProgress = GamePlayer.PlayPathAndStop(actionsSoFar);
-            HistoryPoint updatedHistoryPoint = historyPoint.WithGameProgress(gameProgress);
+            HistoryPoint updatedHistoryPoint = historyPoint.WithGameProgress(gameProgress).WithHistoryToPoint(gameProgress.GameHistory);
             if (gameProgress.GameComplete)
                 gameState = ProcessProgress(in updatedHistoryPoint, navigationSettings, gameProgress);
             else

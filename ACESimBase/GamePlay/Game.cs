@@ -275,7 +275,11 @@ namespace ACESim
         public void PlayPathAndStop(List<byte> actionsToPlay)
         {
             Progress.SetActionsToPlay(actionsToPlay);
-            while (Progress.ActionsToPlayIndex < actionsToPlay.Count() - 1)
+            if (actionsToPlay.Count() == 8)
+            {
+                var DEBUG = 0;
+            }
+            while (!Progress.GameComplete && Progress.ActionsToPlayIndex < actionsToPlay.Count() - 1)
                 AdvanceToOrCompleteNextStep();
         }
 
