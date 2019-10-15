@@ -226,13 +226,15 @@ namespace ACESim
             return (progress, nextActionsToPlayList.AsEnumerable());
         }
 
-        public GameProgress PlayPathAndStop(List<byte> actionsToPlay)
+        public (Game game, GameProgress gameProgress) PlayPathAndStop(List<byte> actionsToPlay)
         {
             Game game = GameDefinition.GameFactory.CreateNewGame();
             GameProgress gameProgress = StartingProgress.DeepCopy();
             game.PlaySetup(Strategies, gameProgress, GameDefinition, false, true);
             game.PlayPathAndStop(actionsToPlay);
-            return gameProgress;
+            if (!gameProgress.GameComplete)
+                game.AdvanceToOrCompleteNextStep();
+            return (game, gameProgress);
         }
 
         public (Game game, GameProgress gameProgress) GetGameStarted()

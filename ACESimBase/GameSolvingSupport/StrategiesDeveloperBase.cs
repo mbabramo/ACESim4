@@ -23,7 +23,7 @@ namespace ACESim
         public const int MaxNumMainPlayers = 4; // this affects fixed-size stack-allocated buffers // TODO: Set to 2
         public const int MaxPossibleActions = 100; // same
 
-        public InformationSetLookupApproach LookupApproach { get; set; } = InformationSetLookupApproach.PlayUnderlyingGame;
+        public InformationSetLookupApproach LookupApproach { get; set; } = InformationSetLookupApproach.CachedGameTreeOnly;
 
         bool AllowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => 
@@ -353,21 +353,20 @@ namespace ACESim
         {
             IGameState gameState;
             List<byte> actionsSoFar = historyPoint.GetActionsToHere(navigationSettings);
-            Br.eak.IfAddedAtLeastIteration("Y", 2);
+            Game game;
             GameProgress gameProgress; 
             InformationSetHistory informationSetHistory;
             if (!actionsSoFar.Any())
             {
-                Game game;
                 (game, gameProgress) = GamePlayer.GetGameStarted();
-                informationSetHistory = new InformationSetHistory(default(Span<byte>), game);
             }
             else
             {
-                gameProgress = GamePlayer.PlayPathAndStop(actionsSoFar);
-                IEnumerable<short> informationSetHistoriesIndices = gameProgress.GetInformationSetHistoryItems_OverallIndices(); // DEBUG: Add method to just get last index
-                informationSetHistory = gameProgress.GetInformationSetHistory_OverallIndex(informationSetHistoriesIndices.Last());
+                (game, gameProgress) = GamePlayer.PlayPathAndStop(actionsSoFar);
+                //IEnumerable<short> informationSetHistoriesIndices = gameProgress.GetInformationSetHistoryItems_OverallIndices(); // DEBUG: Add method to just get last index
+                //informationSetHistory = gameProgress.GetInformationSetHistory_OverallIndex(informationSetHistoriesIndices.Last());
             }
+            informationSetHistory = new InformationSetHistory(default(Span<byte>), game);
             HistoryPoint updatedHistoryPoint = historyPoint.WithGameProgress(gameProgress).WithHistoryToPoint(gameProgress.GameHistory);
             if (gameProgress.GameComplete)
                 gameState = ProcessProgress(in updatedHistoryPoint, navigationSettings, gameProgress);
