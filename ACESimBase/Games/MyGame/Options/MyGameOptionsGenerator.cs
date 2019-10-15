@@ -69,10 +69,10 @@ namespace ACESim
                 DInitialWealth = 1000000,
                 DamagesMin = 0_000,
                 DamagesMax = 100_000,
-                NumLiabilityStrengthPoints = 5,
-                NumLiabilitySignals = 5,
+                NumLiabilityStrengthPoints = 5, 
+                NumLiabilitySignals = 10, // DEBUG 5,
                 NumDamagesStrengthPoints = 5,
-                NumDamagesSignals = 5,
+                NumDamagesSignals = 10, // DEBUG 5,
                 NumOffers = 5,
                 IncludeEndpointsForOffers = false,
                 MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()

@@ -11,27 +11,9 @@ namespace ACESim
 {
     public static class Parallelizer
     {
+        [ThreadStatic]
         public static int ParallelDepth = 0;
         public static int? MaxDegreeOfParallelism = (int?) null;
-        const int maxParallelDepth = 500;
-        static object[] lockObj = new object[maxParallelDepth];
-        internal static bool lockObjInitialized = false;
-        internal static object GetLockObj()
-        {
-            if (!lockObjInitialized)
-            {
-                lock (lockObj) // lock on the whole thing
-                {
-                    if (!lockObjInitialized)
-                    {
-                        for (int i = 0; i < maxParallelDepth; i++)
-                            lockObj[i] = new object();
-                        lockObjInitialized = true;
-                    }
-                }
-            }
-            return lockObj[ParallelDepth];
-        }
 
         public static ParallelOptions GetParallelOptions()
         {
@@ -133,22 +115,22 @@ namespace ACESim
 
         public static void GoByte(bool doParallel, byte start, byte stopBeforeThis, Action<byte> action)
         {
-            if (ParallelDepth >= maxParallelDepth || DisableParallel)
+            if (DisableParallel)
                 doParallel = false;
             if (doParallel)
             {
                 int initialParallelDepth = ParallelDepth;
-                IncrementParallelDepth();
                 Parallel.ForEach(Partitioner.Create(start, stopBeforeThis),
                     GetParallelOptions(),
                     (range) =>
                     {
+                        ParallelDepth = initialParallelDepth + 1;
                         for (byte i = (byte) range.Item1; i < range.Item2; i++)
                         {
                             action(i);
                         }
                     });
-                DecrementParallelDepth();
+                ParallelDepth = initialParallelDepth;
             }
             else
             {
@@ -165,17 +147,18 @@ namespace ACESim
                 doParallel = false;
             if (doParallel)
             {
-                IncrementParallelDepth();
+                int initialParallelDepth = ParallelDepth;
                 Parallel.ForEach(Partitioner.Create(start, stopBeforeThis),
                     GetParallelOptions(),
                     (range) =>
                     {
+                        ParallelDepth = initialParallelDepth + 1;
                         for (long i = range.Item1; i < range.Item2; i++)
                         {
                             action(i);
                         }
                     });
-                DecrementParallelDepth();
+                ParallelDepth = initialParallelDepth;
             }
             else
             {
@@ -192,9 +175,9 @@ namespace ACESim
                 doParallel = false;
             if (doParallel)
             {
-                IncrementParallelDepth();
+                int initialParallelDepth = ParallelDepth;
                 await ForAsync(start, stopBeforeThis, action);
-                DecrementParallelDepth();
+                ParallelDepth = initialParallelDepth;
             }
             else
             {
@@ -207,7 +190,7 @@ namespace ACESim
 
         public static Task ForAsync(long start, long stopBeforeThis, Func<long, Task> body)
         {
-
+            int initialParallelDepth = ParallelDepth;
             return Task.WhenAll(
                 from partition in Partitioner.Create(start, stopBeforeThis).GetPartitions(MaxDegreeOfParallelism ?? Environment.ProcessorCount)
                 select Task.Run(async delegate {
@@ -215,7 +198,10 @@ namespace ACESim
                         while (partition.MoveNext())
                         {
                             for (long i = partition.Current.Item1; i < partition.Current.Item2; i++)
+                            {
+                                ParallelDepth = initialParallelDepth + 1;
                                 await body(i);
+                            }
                         }
                 }));
         }
@@ -242,8 +228,6 @@ namespace ACESim
             bool abort = false;
             bool checkpointCompleted = false;
 
-            if (doParallel)
-                IncrementParallelDepth();
             Queue<long> successNumbersToRetry = new Queue<long>(); // each successfully completed operation should have a different success number assigned to it before the task launches
             long highestSuccessNumberPending = -1;
             long nextIterationToTry = firstIterationNumberToTry - 1;
@@ -309,9 +293,6 @@ namespace ACESim
                 else if (numSuccessesSoFar < numSuccessesRequired) // not necessarily done -- may need to add more tasks once currently pending ones are completed
                     Thread.Sleep(1);
             } while (numSuccessesSoFar < numSuccessesRequired && !abort);
-
-            if (doParallel)
-                DecrementParallelDepth();
         }
 
         public static void GoForSpecifiedNumberOfSuccesses(bool doParallel, long numSuccessesRequired, Func<long, long, bool> actionReturningTrueUponSuccess, long firstIterationNumberToTry = 0, double? minSuccessRate = null, CancellationToken? ct = null)
@@ -326,13 +307,13 @@ namespace ACESim
             long nextIterationNumberToTry = firstIterationNumberToTry - 1;
             if (doParallel)
             {
-                IncrementParallelDepth();
+                int initialParallelDepth = ParallelDepth;
                 RandomGenerator.ThrowExceptionIfCalled = true;
                 Parallel.ForEach(Partitioner.Create((long)0, numSuccessesRequired),
                     GetParallelOptions(),
                     (range) =>
                     {
-                        
+                        ParallelDepth = initialParallelDepth + 1;
                         for (long successNumber = range.Item1; successNumber < range.Item2; successNumber++)
                         {
                             bool cancel = false;
@@ -343,7 +324,7 @@ namespace ACESim
                         }
                     });
                 RandomGenerator.ThrowExceptionIfCalled = false;
-                DecrementParallelDepth();
+                ParallelDepth = initialParallelDepth;
             }
             else
             {
@@ -410,17 +391,18 @@ namespace ACESim
                 doParallel = false;
             if (doParallel)
             {
-                IncrementParallelDepth();
+                int initialParallelDepth = ParallelDepth;
                 Parallel.ForEach(Partitioner.Create(0, totalIterations),
                     GetParallelOptions(),
                     (range) =>
                     {
+                        ParallelDepth = initialParallelDepth + 1;
                         for (long i = range.Item1; i < range.Item2; i++)
                         {
                             action();
                         }
                     });
-                DecrementParallelDepth();
+                ParallelDepth = initialParallelDepth;
             }
             else
             {
@@ -429,18 +411,6 @@ namespace ACESim
                     action();
                 }
             }
-        }
-
-        public static void DecrementParallelDepth()
-        {
-            lock (GetLockObj())
-                ParallelDepth--;
-        }
-
-        public static void IncrementParallelDepth()
-        {
-            lock (GetLockObj())
-                ParallelDepth++;
         }
     }
 }
