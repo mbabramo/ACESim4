@@ -23,7 +23,7 @@ namespace ACESim
         public const int MaxNumMainPlayers = 4; // this affects fixed-size stack-allocated buffers // TODO: Set to 2
         public const int MaxPossibleActions = 100; // same
 
-        public InformationSetLookupApproach LookupApproach { get; set; } = InformationSetLookupApproach.CachedGameTreeOnly;
+        public InformationSetLookupApproach LookupApproach { get; set; } = InformationSetLookupApproach.CachedGameHistoryOnly;
 
         bool AllowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => 
@@ -366,7 +366,11 @@ namespace ACESim
                 //IEnumerable<short> informationSetHistoriesIndices = gameProgress.GetInformationSetHistoryItems_OverallIndices(); // DEBUG: Add method to just get last index
                 //informationSetHistory = gameProgress.GetInformationSetHistory_OverallIndex(informationSetHistoriesIndices.Last());
             }
-            informationSetHistory = new InformationSetHistory(default(Span<byte>), game);
+            byte playerIndex = game.CurrentDecision?.PlayerNumber ?? 0;
+            Span<byte> informationSetForPlayer = new byte[GameHistory.MaxInformationSetLengthForPlayer(playerIndex)];
+            if (!gameProgress.GameComplete)
+                gameProgress.GameHistory.GetPlayerInformationCurrent(playerIndex, informationSetForPlayer);
+            informationSetHistory = new InformationSetHistory(informationSetForPlayer, game);
             HistoryPoint updatedHistoryPoint = historyPoint.WithGameProgress(gameProgress).WithHistoryToPoint(gameProgress.GameHistory);
             if (gameProgress.GameComplete)
                 gameState = ProcessProgress(in updatedHistoryPoint, navigationSettings, gameProgress);
@@ -1638,8 +1642,14 @@ namespace ACESim
             return TreeWalk_Node(processor, null, 0, 0, forward, 0, in historyPoint);
         }
 
+        public static int DEBUG = 0;
         public Back TreeWalk_Node<Forward, Back>(ITreeNodeProcessor<Forward, Back> processor, IGameState predecessor, byte predecessorAction, int predecessorDistributorChanceInputs, Forward forward, int distributorChanceInputs, in HistoryPoint historyPoint)
         {
+            DEBUG++;
+            if (DEBUG == 10)
+            {
+                var DEBUG2 = 0;
+            }
             if (TraceTreeWalk)
                 TabbedText.TabIndent();
             IGameState gameState = GetGameState(in historyPoint);
