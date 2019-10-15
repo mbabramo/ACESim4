@@ -798,10 +798,7 @@ namespace ACESim
             Stopwatch s = new Stopwatch();
             s.Start();
             AcceleratedBestResponsePrep prepWalk = new AcceleratedBestResponsePrep(EvolutionSettings.DistributeChanceDecisions, (byte)NumNonChancePlayers, TraceTreeWalk);
-            prepWalk.Trace = true; // DEBUG
-            StrategiesDeveloperBase.TraceTreeWalk = true; // DEBUG 
             AcceleratedBestResponsePrepResult = TreeWalk_Tree(prepWalk, new NodeActionsHistory());
-            StrategiesDeveloperBase.TraceTreeWalk = false; // DEBUG
             InformationSetsByDecisionIndex = InformationSets.GroupBy(x => x.DecisionIndex).Select(x => x.ToList()).ToList();
             s.Stop();
             TabbedText.WriteLine($"... {s.ElapsedMilliseconds} milliseconds. Total information sets: {InformationSets.Count()}");

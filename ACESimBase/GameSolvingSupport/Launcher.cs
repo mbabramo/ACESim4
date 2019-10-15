@@ -24,7 +24,7 @@ namespace ACESim
 
         public const int VanillaIterations = 100_000; 
         public const int VanillaReportEveryNIterations = VanillaIterations;
-        public const int VanillaBestResponseEveryMIterations = 1; // DEBUG
+        public const int VanillaBestResponseEveryMIterations = 10; // DEBUG
         public const bool CalculatePerturbedBestResponseRefinement = true;
         public const int MiniReportEveryPIterations = EffectivelyNever;
         public const bool AlwaysSuppressDisplayReportOnScreen = true;
@@ -42,7 +42,7 @@ namespace ACESim
         public bool AzureEnabled = true;
         public bool DistributedProcessing = false; // this should be true if running on the local service fabric
         public bool ParallelizeOptionSets = false; // run multiple option sets at same time on computer (in which case each individually will be run not in parallel)
-        public bool ParallelizeIndividualExecutions = false; // DEBUG // only if !ParallelizeOptionSets && (LaunchSingleOptionsSetOnly || !DistributedProcessing)
+        public bool ParallelizeIndividualExecutions = true; // DEBUG // only if !ParallelizeOptionSets && (LaunchSingleOptionsSetOnly || !DistributedProcessing)
         public bool ParallelizeIndividualExecutionsAlways = false; // DEBUG -- not really working // will always take precedence
 
         const int EffectivelyNever = EvolutionSettings.EffectivelyNever;
