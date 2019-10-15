@@ -1079,8 +1079,6 @@ namespace ACESim
             return result;
         }
 
-        // DEBUG -- make sure all chance nodes are set to IsReversible = TRUE
-
         #endregion
 
     }

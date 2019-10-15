@@ -391,6 +391,8 @@ namespace ACESim
         {
             // Agreement to bargain: We do want to add this to the information set of the opposing player, since that may be relevant in future rounds and also might affect decisions whether to abandon/default later in this round, but we want to defer addition of the plaintiff statement, so that it doesn't influence the defendant decision, since the players are supposedly making the decisions at the same time.
 
+            // TODO: Can we make these decisions reversible?
+
             if (Options.IncludeAgreementToBargainDecisions)
             {
                 var pAgreeToBargain = new Decision("PAgreeToBargain" + (b + 1), "PB" + (b + 1), false, (byte) MyGamePlayers.Plaintiff, new byte[] { (byte)MyGamePlayers.Plaintiff, (byte)MyGamePlayers.Defendant, (byte)MyGamePlayers.Resolution },
@@ -632,6 +634,7 @@ namespace ACESim
             decisions.Add(bothGiveUp);
         }
 
+        debug;
         private void AddPreBargainingRoundDummyDecision(int b, List<Decision> decisions)
         {
             var dummyDecision =
