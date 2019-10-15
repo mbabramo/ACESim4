@@ -29,7 +29,7 @@ namespace ACESim
         public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
         {
             List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
-            bool fast = false; 
+            bool fast = true;  // DEBUG
             if (fast)
                 AddFast(optionSets);
             else
@@ -37,7 +37,7 @@ namespace ACESim
 
             optionSets = optionSets.OrderBy(x => x.optionSetName).ToList();
 
-            bool simplify = true; // Enable for debugging purposes to speed up execution without going all the way to "fast" option
+            bool simplify = false; // Enable for debugging purposes to speed up execution without going all the way to "fast" option
             if (simplify)
                 foreach (var optionSet in optionSets)
                     optionSet.options.Simplify();
