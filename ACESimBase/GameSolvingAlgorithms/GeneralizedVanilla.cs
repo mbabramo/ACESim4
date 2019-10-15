@@ -925,8 +925,7 @@ namespace ACESim
                         TabbedText.TabIndent();
                     }
                     HistoryPoint nextHistoryPoint;
-                    var DEBUG = historyPoint.DeepCopy();
-                    if (Navigation.LookupApproach != InformationSetLookupApproach.PlayUnderlyingGame && informationSet.Decision.IsReversible && doReversibility)
+                    if (Navigation.LookupApproach != InformationSetLookupApproach.PlayUnderlyingGame && informationSet.Decision.IsReversible)
                         nextHistoryPoint = historyPoint.SwitchToBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
                     else
                         nextHistoryPoint = historyPoint.GetBranch(Navigation, action, informationSet.Decision, informationSet.DecisionIndex);
@@ -959,18 +958,9 @@ namespace ACESim
                         TabbedText.WriteLine(
                             $"... action {action}{(informationSet.BestResponseAction == action && IncludeAsteriskForBestResponseInTrace ? "*" : "")} expected value {expectedValueOfAction[action - 1]} best response expected value {result.BestResponseToAverageStrategy} cum expected value {expectedValue}{(action == numPossibleActions && IncludeAsteriskForBestResponseInTrace ? "*" : "")}");
                     }
-                    if (Navigation.LookupApproach != InformationSetLookupApproach.PlayUnderlyingGame && informationSet.Decision.IsReversible && doReversibility)
+                    if (Navigation.LookupApproach != InformationSetLookupApproach.PlayUnderlyingGame && informationSet.Decision.IsReversible)
                     {
-                        if (DEBUG.ToString() == "Player 3 Decision 2 (index 0) Information  ActionChosen 1 NumPossible 2 IsTerminal False,Player 6 Decision 3 (index 1) Information 1 ActionChosen 1 NumPossible 3 IsTerminal False,Player 9 Decision 4 (index 2) Information  ActionChosen 1 NumPossible 3 IsTerminal False,Player 4 Decision 5 (index 3) Information 1 ActionChosen 1 NumPossible 3 IsTerminal False,Player 5 Decision 6 (index 4) Information 1 ActionChosen 1 NumPossible 3 IsTerminal False,Player 7 Decision 7 (index 5) Information 1 ActionChosen 1 NumPossible 3 IsTerminal False,Player 8 Decision 8 (index 6) Information 1 ActionChosen 1 NumPossible 3 IsTerminal False,Player 0 Decision 9 (index 7) Information 1,1 ActionChosen 1 NumPossible 2 IsTerminal False,Player 1 Decision 10 (index 8) Information 1,1,1 ActionChosen 1 NumPossible 2 IsTerminal False,Player 14 Decision 11 (index 9) Information  ActionChosen 1 NumPossible 1 IsTerminal False,Player 0 Decision 14 (index 10) Information 1,1,1,1,1 ActionChosen 2 NumPossible 5 IsTerminal False,Player 1 Decision 15 (index 11) Information 1,1,1,1,1 ActionChosen 1 NumPossible 5 IsTerminal False,Player 0 Decision 20 (index 12) Information 1,1,1,1,1,2,1 ActionChosen 1 NumPossible 2 IsTerminal False")
-                        {
-                            var DEBUG5 = 0;
-                        }
                         GameDefinition.ReverseSwitchToBranchEffects(informationSet.Decision, in nextHistoryPoint);
-                        var DEBUG2 = historyPoint.DeepCopy();
-                        if (DEBUG.ToString() != DEBUG2.ToString())
-                        {
-                            var DEBUG3 = 0;
-                        }
                     }
                 } // not pruning
             } // for each action
@@ -1029,7 +1019,7 @@ namespace ACESim
                     action =>
                     {
                         var historyPointCopy2 = historyPointCopy.DeepCopyToRefStruct();
-                        //Debug.WriteLine($"{action}: Chance node for {chanceNode.DecisionIndex}: {historyPointCopy2.HistoryToPoint.ToString()}"); // DEBUG
+                        //Debug.WriteLine($"{action}: Chance node for {chanceNode.DecisionIndex}: {historyPointCopy2.HistoryToPoint.ToString()}");
                         GeneralizedVanillaUtilities probabilityAdjustedInnerResult = GeneralizedVanillaCFR_ChanceNode_NextAction(in historyPointCopy2, playerBeingOptimized, piValues2,
                                 avgStratPiValues2, chanceNode, action, distributorChanceInputs);
                         result.IncrementBasedOnProbabilityAdjusted(ref probabilityAdjustedInnerResult);
@@ -1064,12 +1054,7 @@ namespace ACESim
             GetNextPiValues(avgStratPiValues, playerBeingOptimized, actionProbability, true,
                 nextAvgStratPiValues);
             HistoryPoint nextHistoryPoint;
-            if (chanceNode.DecisionIndex == 14)
-            {
-                var DEBUG = 0;
-                //Br.eak.Add("Y");
-            }
-            if (Navigation.LookupApproach != InformationSetLookupApproach.PlayUnderlyingGame && chanceNode.Decision.IsReversible && doReversibility /* DEBUG */)
+            if (Navigation.LookupApproach != InformationSetLookupApproach.PlayUnderlyingGame && chanceNode.Decision.IsReversible)
                 nextHistoryPoint = historyPoint.SwitchToBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
             else
                 nextHistoryPoint = historyPoint.GetBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
@@ -1088,13 +1073,13 @@ namespace ACESim
                     $"... action {action} value {result.CurrentVsCurrent} probability {actionProbability} expected value contribution {result.CurrentVsCurrent * actionProbability}");
             }
             result.MakeProbabilityAdjusted(actionProbability);
-            if (Navigation.LookupApproach != InformationSetLookupApproach.PlayUnderlyingGame && chanceNode.Decision.IsReversible && doReversibility /* DEBUG */)
+            if (Navigation.LookupApproach != InformationSetLookupApproach.PlayUnderlyingGame && chanceNode.Decision.IsReversible)
                 GameDefinition.ReverseSwitchToBranchEffects(chanceNode.Decision, in nextHistoryPoint);
 
             return result;
         }
 
-        const bool doReversibility = true; // DEBUG
+        // DEBUG -- make sure all chance nodes are set to IsReversible = TRUE
 
         #endregion
 

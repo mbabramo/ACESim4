@@ -34,7 +34,7 @@ namespace ACESim
             PlayerIndex = justStartedGame.CurrentPlayerNumber;
             DecisionByteCode = justStartedGame.CurrentDecision.DecisionByteCode;
             DecisionIndex = justStartedGame.CurrentDecisionIndex ?? 0;
-            ActionChosen = 0; // DEBUG
+            ActionChosen = 0; // assume that no action has been taken
             NumPossibleActions = justStartedGame.CurrentDecision.NumPossibleActions;
             IsTerminalAction = false;
         }

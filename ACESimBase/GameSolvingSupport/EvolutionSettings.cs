@@ -65,7 +65,7 @@ namespace ACESim
 
         public bool CFRBR = false; // if true, opponent plays best response
 
-        public bool DistributeChanceDecisions = true; 
+        public bool DistributeChanceDecisions = true; // NOTE: This is currently very slow when using full game tree.
         public bool UnrollAlgorithm = false; // DEBUG
 
         // For Vanilla algorithm:

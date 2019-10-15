@@ -29,7 +29,7 @@ namespace ACESim
         public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
         {
             List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
-            bool fast = false;  // DEBUG
+            bool fast = false; 
             if (fast)
                 AddFast(optionSets);
             else

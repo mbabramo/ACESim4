@@ -137,7 +137,7 @@ namespace ACESim
             byte playerNumber = CurrentPlayerNumber;
 
             // Note: We need to update the game history, but in Progress it's not stored as a ref struct. So we convert it to a ref struct and then convert it back.
-            // DEBUG // this only works if we can be sure that Progress is not shared across threads
+            // NOTE: this only works if we can be sure that Progress is not shared across threads
             var history = Progress.GameHistory;
             UpdateGameHistory(ref history, GameDefinition, currentDecision, decisionIndex, action, Progress);
             Progress.GameHistoryStorable.UpdateFromShallowCopy(history);
@@ -275,10 +275,6 @@ namespace ACESim
         public void PlayPathAndStop(List<byte> actionsToPlay)
         {
             Progress.SetActionsToPlay(actionsToPlay);
-            if (actionsToPlay.Count() == 8)
-            {
-                var DEBUG = 0;
-            }
             while (!Progress.GameComplete && (!Progress.HaveAdvancedToFirstStep || Progress.ActionsToPlayIndex < actionsToPlay.Count() - 1))
                 AdvanceToOrCompleteNextStep();
         }

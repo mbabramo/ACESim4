@@ -79,10 +79,6 @@ namespace ACESim
 
         public InformationSetNode(Decision decision, byte decisionIndex, EvolutionSettings evolutionSettings, int informationSetNodeNumber)
         {
-            if (informationSetNodeNumber == 2)
-            {
-                var DEBUG = 0;
-            }
             Decision = decision;
             DecisionIndex = decisionIndex;
             EvolutionSettings = evolutionSettings;

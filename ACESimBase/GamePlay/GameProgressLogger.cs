@@ -30,7 +30,7 @@ namespace ACESim
         public static bool LoggingOn = false; // change this to enable logging -- but this slows things down a lot
         public static Func<bool> LoggingCondition = () => true; // this condition must be true, e.g. to log only one thread, turn logging on within that thread and then set GameProgressLogger.ThreadTrapID = Thread.CurrentThread.ManagedThreadId and then set condition to: () => Thread.CurrentThread.ManagedThreadId == ThreadTrapID
         public static int ThreadTrapID;
-        public static bool DetailedLogging = false; // DEBUG and above
+        public static bool DetailedLogging = false;
         public static bool RecordLogMessages = true;
         public static bool OutputLogMessages = true;
         public static bool PartialLoggingOn = false; // change this to allow partial logging -- might do this in code in specific places

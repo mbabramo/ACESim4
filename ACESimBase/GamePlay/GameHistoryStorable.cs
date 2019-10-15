@@ -15,12 +15,14 @@ namespace ACESim
         public byte[] Cache; 
         public bool Initialized;
         public byte[] InformationSets;
-        public int DEBUGThread;
         public bool PreviousNotificationDeferred;
         public byte DeferredAction;
         public byte DeferredPlayerNumber;
         public byte[] DeferredPlayersToInform;
         public byte LastDecisionIndexAdded;
+#if SAFETYCHECKS
+        public int CreatingThreadID;
+#endif
 
         public static GameHistoryStorable NewInitialized()
         {
@@ -39,7 +41,7 @@ namespace ACESim
                     result.ActionsHistory[i] = ActionsHistory[i];
                 for (int i = 0; i < GameHistory.CacheLength; i++)
                     result.Cache[i] = Cache[i];
-                result.DEBUGVerify();
+                result.VerifyThread();
                 for (int i = 0; i < GameHistory.MaxInformationSetLength; i++)
                     result.InformationSets[i] = InformationSets[i];
             }
@@ -61,7 +63,9 @@ namespace ACESim
                 ActionsHistory = ActionsHistory,
                 Cache = Cache,
                 InformationSets = InformationSets,
-                DEBUGThread = DEBUGThread
+#if SAFETYCHECKS
+                CreatingThreadID = CreatingThreadID
+#endif
             };
             return result;
         }
