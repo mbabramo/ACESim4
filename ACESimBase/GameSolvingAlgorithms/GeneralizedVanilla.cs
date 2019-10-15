@@ -258,7 +258,7 @@ namespace ACESim
             int firstIndex = Unroll_GetChanceNodeIndex(chanceNodeNumber);
             return Enumerable.Range(0, numPossibleActions).Select(x => firstIndex + x).ToArray();
         }
-        private int Unroll_GetFinalUtilitiesNodesIndex(int finalUtilitiesNodeNumber, byte playerBeingOptimized) => Unroll_FinalUtilitiesNodesIndices[finalUtilitiesNodeNumber] + playerBeingOptimized;
+        private int Unroll_GetFinalUtilitiesNodesIndex(int finalUtilitiesNodeNumber, byte playerBeingOptimized) => Unroll_FinalUtilitiesNodesIndices[finalUtilitiesNodeNumber] + playerBeingOptimized; // NOTE: If finalUtilitiesNodeNumber is -1, that may be because we are using PlayUnderlyingGame. This isn't supported, since we need to have all final utilities nodes generated in advance.
 
         private void Unroll_InitializeInitialArrayIndices()
         {
@@ -713,10 +713,17 @@ namespace ACESim
 
         public override async Task Initialize()
         {
+            if (EvolutionSettings.UnrollAlgorithm && Navigation.LookupApproach == InformationSetLookupApproach.PlayUnderlyingGame)
+            { // override -- combination is not currently supported
+                LookupApproach = InformationSetLookupApproach.CachedGameHistoryOnly;
+                Navigation = Navigation.WithLookupApproach(LookupApproach);
+            }
             await base.Initialize();
             InitializeInformationSets();
             if (EvolutionSettings.UnrollAlgorithm)
+            {
                 Unroll_CreateUnrolledCommandList();
+            }
         }
 
         public override void ReinitializeForScenario(int scenario, bool warmupVersion)

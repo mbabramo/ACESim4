@@ -23,7 +23,7 @@ namespace ACESim
         public const int MaxNumMainPlayers = 4; // this affects fixed-size stack-allocated buffers // TODO: Set to 2
         public const int MaxPossibleActions = 100; // same
 
-        public InformationSetLookupApproach LookupApproach { get; set; } = InformationSetLookupApproach.CachedGameHistoryOnly;
+        public InformationSetLookupApproach LookupApproach { get; set; } = InformationSetLookupApproach.PlayUnderlyingGame;
 
         bool AllowSkipEveryPermutationInitialization = true;
         public bool SkipEveryPermutationInitialization => 
@@ -798,8 +798,8 @@ namespace ACESim
             Stopwatch s = new Stopwatch();
             s.Start();
             AcceleratedBestResponsePrep prepWalk = new AcceleratedBestResponsePrep(EvolutionSettings.DistributeChanceDecisions, (byte)NumNonChancePlayers, TraceTreeWalk);
-            //prepWalk.Trace = true; // DEBUG
-            //StrategiesDeveloperBase.TraceTreeWalk = true; // DEBUG 
+            prepWalk.Trace = true; // DEBUG
+            StrategiesDeveloperBase.TraceTreeWalk = true; // DEBUG 
             AcceleratedBestResponsePrepResult = TreeWalk_Tree(prepWalk, new NodeActionsHistory());
             StrategiesDeveloperBase.TraceTreeWalk = false; // DEBUG
             InformationSetsByDecisionIndex = InformationSets.GroupBy(x => x.DecisionIndex).Select(x => x.ToList()).ToList();

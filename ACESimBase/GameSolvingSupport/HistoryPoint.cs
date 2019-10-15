@@ -117,7 +117,9 @@ namespace ACESim
             {
                 if (GameProgress.GameComplete)
                 {
-                    return new FinalUtilitiesNode(GameProgress.GetNonChancePlayerUtilities(), -1);
+                    var finalUtilitiesResult = new FinalUtilitiesNode(GameProgress.GetNonChancePlayerUtilities(), -1); // If we want to, we could add the FInalUtilitiesNode to the list, but this means that we will have a new node everytime we play. If we want to be able to use unrolling with final utilities nodes, then we would need to check the list (e.g., by using a dictionary) for a matching FinalUtilitiesNode, rather than continually adding new ones.
+                    //navigation.FinalUtilitiesNodes.Add(finalUtilitiesResult);
+                    return finalUtilitiesResult;
                 }
                 // use the cached game history to look up the game state
                 navigation = navigation.WithLookupApproach(InformationSetLookupApproach.CachedGameHistoryOnly);
