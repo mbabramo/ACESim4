@@ -55,6 +55,27 @@ namespace ACESim
                 return false;
             return true;
         }
+        public static bool operator ==(NWayTreeStorageKey lhs, NWayTreeStorageKey rhs)
+        {
+
+            if (lhs.PrefaceByte != rhs.PrefaceByte)
+                return false;
+            int i = 0;
+            while (lhs.Element(i) != 255 && rhs.Element(i) != 255)
+            {
+                if (lhs.Element(i) != rhs.Element(i))
+                    return false;
+                i++;
+            }
+            if (lhs.Element(i) != rhs.Element(i))
+                return false;
+            return true;
+        }
+
+        public static bool operator !=(NWayTreeStorageKey lhs, NWayTreeStorageKey rhs)
+        {
+            return !(lhs == rhs);
+        }
 
         public override int GetHashCode()
         {
