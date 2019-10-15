@@ -235,6 +235,15 @@ namespace ACESim
             return gameProgress;
         }
 
+        public (Game game, GameProgress gameProgress) GetGameStarted()
+        {
+            Game game = GameDefinition.GameFactory.CreateNewGame();
+            GameProgress gameProgress = StartingProgress.DeepCopy();
+            game.PlaySetup(Strategies, gameProgress, GameDefinition, false, true);
+            game.AdvanceToOrCompleteNextStep();
+            return (game, gameProgress);
+        }
+
         public GameProgress PlayUsingActionOverride(Func<Decision, GameProgress, byte> actionOverride)
         {
             Game game = GameDefinition.GameFactory.CreateNewGame();

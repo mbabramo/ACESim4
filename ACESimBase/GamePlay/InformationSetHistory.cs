@@ -28,6 +28,17 @@ namespace ACESim
             IsTerminalAction = isTerminalAction;
         }
 
+        public InformationSetHistory(Span<byte> informationSetForPlayer, Game justStartedGame)
+        {
+            InformationSetForPlayer = informationSetForPlayer;
+            PlayerIndex = justStartedGame.CurrentPlayerNumber;
+            DecisionByteCode = justStartedGame.CurrentDecision.DecisionByteCode;
+            DecisionIndex = justStartedGame.CurrentDecisionIndex ?? 0;
+            ActionChosen = 0;
+            NumPossibleActions = justStartedGame.CurrentDecision.NumPossibleActions;
+            IsTerminalAction = false;
+        }
+
         public List<byte> GetInformationSetForPlayerAsList()
         {
             return Util.ListExtensions.GetPointerAsList_255Terminated(InformationSetForPlayer);

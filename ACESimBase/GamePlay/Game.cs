@@ -279,7 +279,7 @@ namespace ACESim
             {
                 var DEBUG = 0;
             }
-            while (!Progress.GameComplete && Progress.ActionsToPlayIndex < actionsToPlay.Count() - 1)
+            while (!Progress.GameComplete && (!Progress.HaveAdvancedToFirstStep || Progress.ActionsToPlayIndex < actionsToPlay.Count() - 1))
                 AdvanceToOrCompleteNextStep();
         }
 

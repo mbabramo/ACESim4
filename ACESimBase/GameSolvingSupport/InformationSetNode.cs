@@ -79,6 +79,8 @@ namespace ACESim
 
         public InformationSetNode(Decision decision, byte decisionIndex, EvolutionSettings evolutionSettings, int informationSetNodeNumber)
         {
+            if (decision.PlayerNumber == 3)
+                throw new Exception("DEBUG");
             Decision = decision;
             DecisionIndex = decisionIndex;
             EvolutionSettings = evolutionSettings;

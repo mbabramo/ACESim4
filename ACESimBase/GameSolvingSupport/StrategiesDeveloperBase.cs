@@ -354,23 +354,26 @@ namespace ACESim
             IGameState gameState;
             List<byte> actionsSoFar = historyPoint.GetActionsToHere(navigationSettings);
             Br.eak.IfAddedAtLeastIteration("Y", 2);
-            GameProgress gameProgress = GamePlayer.PlayPathAndStop(actionsSoFar);
+            GameProgress gameProgress; 
+            InformationSetHistory informationSetHistory;
+            if (!actionsSoFar.Any())
+            {
+                Game game;
+                (game, gameProgress) = GamePlayer.GetGameStarted();
+                informationSetHistory = new InformationSetHistory(default(Span<byte>), game);
+            }
+            else
+            {
+                gameProgress = GamePlayer.PlayPathAndStop(actionsSoFar);
+                IEnumerable<short> informationSetHistoriesIndices = gameProgress.GetInformationSetHistoryItems_OverallIndices(); // DEBUG: Add method to just get last index
+                informationSetHistory = gameProgress.GetInformationSetHistory_OverallIndex(informationSetHistoriesIndices.Last());
+            }
             HistoryPoint updatedHistoryPoint = historyPoint.WithGameProgress(gameProgress).WithHistoryToPoint(gameProgress.GameHistory);
             if (gameProgress.GameComplete)
                 gameState = ProcessProgress(in updatedHistoryPoint, navigationSettings, gameProgress);
             else
             {
-                if (actionsSoFar.Any())
-                {
-                    IEnumerable<short> informationSetHistoriesIndices = gameProgress.GetInformationSetHistoryItems_OverallIndices(); // DEBUG: Add method to just get last index
-                    InformationSetHistory informationSetHistory = gameProgress.GetInformationSetHistory_OverallIndex(informationSetHistoriesIndices.Last());
-                    gameState = updatedHistoryPoint.GetGameStateFromGameProgress(navigationSettings, gameProgress, informationSetHistory);
-                }
-                else
-                {
-                    InformationSetHistory informationSetHistory = new InformationSetHistory();
-                    gameState = updatedHistoryPoint.GetGameStateFromGameProgress(navigationSettings, gameProgress, informationSetHistory);
-                }
+                gameState = updatedHistoryPoint.GetGameStateFromGameProgress(navigationSettings, gameProgress, informationSetHistory);
             }
             if (gameState != null)
                 return gameState;

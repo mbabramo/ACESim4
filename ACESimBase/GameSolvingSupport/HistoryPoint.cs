@@ -395,7 +395,7 @@ namespace ACESim
             var decision = navigation.GameDefinition.DecisionsExecutionOrder[decisionIndex];
             var playerInfo = navigation.GameDefinition.Players[informationSetHistory.PlayerIndex];
             var playersStrategy = navigation.Strategies[informationSetHistory.PlayerIndex];
-            bool isNecessarilyLast = false; // Not relevant now that we are storing final utilities decision.IsAlwaysPlayersLastDecision || informationSetHistory.IsTerminalAction;
+            bool isNecessarilyLast = false; // Not relevant now that we are storing final utilities decisio n.IsAlwaysPlayersLastDecision || informationSetHistory.IsTerminalAction;
             bool creatingInformationSet = false; // verify inner lock working correctly
             var informationSetHistoryCopy = informationSetHistory;
             NWayTreeStorage<IGameState> informationSetNode = playersStrategy.SetInformationSetTreeValueIfNotSet(
