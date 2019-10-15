@@ -32,14 +32,17 @@ namespace ACESim
         public GameHistory DeepCopyToRefStruct()
         {
             GameHistory result = ShallowCopyToRefStruct();
-            result.CreateArraysForSpans(false);
-            for (int i = 0; i < GameFullHistory.MaxHistoryLength; i++)
-                result.ActionsHistory[i] = ActionsHistory[i];
-            for (int i = 0; i < GameHistory.CacheLength; i++)
-                result.Cache[i] = Cache[i];
-            result.DEBUGVerify();
-            for (int i = 0; i < GameHistory.MaxInformationSetLength; i++)
-                result.InformationSets[i] = InformationSets[i];
+            if (ActionsHistory != null)
+            {
+                result.CreateArraysForSpans(false);
+                for (int i = 0; i < GameFullHistory.MaxHistoryLength; i++)
+                    result.ActionsHistory[i] = ActionsHistory[i];
+                for (int i = 0; i < GameHistory.CacheLength; i++)
+                    result.Cache[i] = Cache[i];
+                result.DEBUGVerify();
+                for (int i = 0; i < GameHistory.MaxInformationSetLength; i++)
+                    result.InformationSets[i] = InformationSets[i];
+            }
             return result;
         }
 
