@@ -13,7 +13,7 @@ namespace ACESim
     {
         public static int ParallelDepth = 0;
         public static int? MaxDegreeOfParallelism = (int?) null;
-        const int maxParallelDepth = 50;
+        const int maxParallelDepth = 500;
         static object[] lockObj = new object[maxParallelDepth];
         internal static bool lockObjInitialized = false;
         internal static object GetLockObj()

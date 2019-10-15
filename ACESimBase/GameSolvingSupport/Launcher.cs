@@ -40,6 +40,7 @@ namespace ACESim
         public bool LaunchSingleOptionsSetOnly = false; 
         public int NumRepetitions = 1;
         public bool AzureEnabled = true;
+        public int MaxParallelDepth = 50; // DEBUG // max of 50
         public bool DistributedProcessing = false; // this should be true if running on the local service fabric
         public bool ParallelizeOptionSets = false; // run multiple option sets at same time on computer (in which case each individually will be run not in parallel)
         public bool ParallelizeIndividualExecutions = true; // only if !ParallelizeOptionSets && (LaunchSingleOptionsSetOnly || !DistributedProcessing)
@@ -141,7 +142,7 @@ namespace ACESim
             {
                 AzureEnabled = AzureEnabled,
 
-                MaxParallelDepth = 4, // we're parallelizing on the iteration level, so there is no need for further parallelization
+                MaxParallelDepth = MaxParallelDepth, 
                 ParallelOptimization = ParallelizeIndividualExecutionsAlways || 
                             ( ParallelizeIndividualExecutions && !ParallelizeOptionSets && (LaunchSingleOptionsSetOnly || !DistributedProcessing) ),
                 SuppressReportDisplayOnScreen = AlwaysSuppressDisplayReportOnScreen || (!LaunchSingleOptionsSetOnly && (ParallelizeOptionSets || DistributedProcessing)),

@@ -10,8 +10,8 @@ namespace ACESim
     public class EvolutionSettings
     {
         public bool AzureEnabled = false;
-        public bool ParallelOptimization = false;
-        public int MaxParallelDepth = 5; // DEBUG
+        public bool ParallelOptimization = false; // will be overridden by launcher
+        public int MaxParallelDepth = 3; // will be overridden by launcher
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.FictitiousSelfPlay;
         public int TotalAvgStrategySamplingCFRIterations = 100000;
         public int TotalProbingCFRIterations = 100000;

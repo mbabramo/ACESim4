@@ -37,7 +37,7 @@ namespace ACESim
 
             optionSets = optionSets.OrderBy(x => x.optionSetName).ToList();
 
-            bool simplify = true; // Enable for debugging purposes to speed up execution without going all the way to "fast" option
+            bool simplify = false; // Enable for debugging purposes to speed up execution without going all the way to "fast" option
             if (simplify)
                 foreach (var optionSet in optionSets)
                     optionSet.options.Simplify();
