@@ -22,12 +22,12 @@ namespace ACESim
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching;
 
-        public const int VanillaIterations = 100_000; 
+        public const int VanillaIterations = 5_000; // DEBUG
         public const int VanillaReportEveryNIterations = VanillaIterations;
-        public const int VanillaBestResponseEveryMIterations = 5_000;
+        public const int VanillaBestResponseEveryMIterations = 1_000;
         public const bool CalculatePerturbedBestResponseRefinement = true;
         public const int MiniReportEveryPIterations = EffectivelyNever;
-        public const bool AlwaysSuppressDisplayReportOnScreen = true;
+        public const bool AlwaysSuppressDisplayReportOnScreen = false; // DEBUG
         public const bool RecordPastValues = false; 
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever; 
         public const bool UseRandomPathsForReporting = true;
@@ -37,7 +37,7 @@ namespace ACESim
         public const bool UseRegretAndStrategyDiscounting = false;
 
         public const int StartGameNumber = 1;
-        public bool LaunchSingleOptionsSetOnly = false; 
+        public bool LaunchSingleOptionsSetOnly = true; 
         public int NumRepetitions = 1;
         public bool AzureEnabled = true;
         public int MaxParallelDepth = 6; 

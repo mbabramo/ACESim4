@@ -33,7 +33,7 @@ namespace ACESim
             SimpleWhereFSPFails,
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Fast; 
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.DamagesUncertainty_1BR; 
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
@@ -206,7 +206,7 @@ namespace ACESim
         {
             var options = BaseOptions();
 
-            options.NumLiabilityStrengthPoints = 2;
+            options.NumLiabilityStrengthPoints = 2; // Note: higher strength will be 100% of the time, b/c of ExogenousProbabilityTrulyLiable
             options.NumLiabilitySignals = 1;
             options.MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
             {

@@ -270,7 +270,7 @@ namespace ACESim
                 if (Navigation.LookupApproach != InformationSetLookupApproach.PlayUnderlyingGame && historyPoint.BranchingIsReversible(Navigation, chanceNode.Decision))
                 {
                     var nextHistoryPoint = historyPoint.SwitchToBranch(Navigation, action, chanceNode.Decision, chanceNode.DecisionIndex);
-                    valueBelow = GEBRPass2(in historyPoint, playerIndex, depthToTarget,
+                    valueBelow = GEBRPass2(in nextHistoryPoint, playerIndex, depthToTarget,
                         (byte)(depthSoFar + 1), inversePi * probability, opponentsActionStrategy, distributorChanceInputsNext);
                     GameDefinition.ReverseSwitchToBranchEffects(chanceNode.Decision, in nextHistoryPoint);
                 }

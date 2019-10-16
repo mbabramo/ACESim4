@@ -1090,7 +1090,7 @@ namespace ACESim
                 if (GameDefinition.OptionSetName != null && GameDefinition.OptionSetName != "")
                     d.StaticTextColumns.Add(("OptionSet", GameDefinition.OptionSetName));
                 if (BestResponseImprovementAdj != null)
-                    d.StaticTextColumns.Add(("Exploit", BestResponseImprovementAdjAvg.ToString()));
+                    d.StaticTextColumns.Add(("Exploit", BestResponseImprovementAdjAvg.ToSignificantFigures(4)));
             }
             return simpleReportDefinitions;
         }

@@ -17,10 +17,7 @@ namespace ACESim
 
         public static ParallelOptions GetParallelOptions()
         {
-            if (MaxDegreeOfParallelism == null)
-                return null;
-            else
-                return new ParallelOptions() {MaxDegreeOfParallelism = (int) MaxDegreeOfParallelism};
+            return new ParallelOptions() {MaxDegreeOfParallelism = MaxDegreeOfParallelism ?? Environment.ProcessorCount};
         }
 
         public static bool DisableParallel;

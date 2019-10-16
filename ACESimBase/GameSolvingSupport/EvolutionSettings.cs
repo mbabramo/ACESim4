@@ -12,7 +12,7 @@ namespace ACESim
         public bool AzureEnabled = false;
         public bool ParallelOptimization = false; // will be overridden by launcher
         public int MaxParallelDepth = 3; // will be overridden by launcher
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.FictitiousSelfPlay;
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching; // also will be overridden
         public int TotalAvgStrategySamplingCFRIterations = 100000;
         public int TotalProbingCFRIterations = 100000;
         public int TotalIterations = 100000;
@@ -20,7 +20,8 @@ namespace ACESim
         public int CorrelatedEquilibriumCalculationsEveryNIterations = 100000;
         public const int EffectivelyNever = 999999999;
         public int? BestResponseEveryMIterations = 100; // For partial recall games, this is very costly, so consider using EffectivelyNever.
-        public bool UseAcceleratedBestResponse = true;
+        public bool UseAcceleratedBestResponse = false; // DEBUG
+        DEBUG; // why isn't accelerated best response producing correct results with damages uncertainty? is it producing correct results in other situations?
         public bool CalculatePerturbedBestResponseRefinement = false;
         public double PerturbationForBestResponseCalculation = 0.001;
         public int? MiniReportEveryPIterations = 1000;
@@ -55,7 +56,6 @@ namespace ACESim
         public int GameNumber = 0;
         internal int NumRandomIterationsForUtilityCalculation = 10000;
         internal bool SuppressReportDisplayOnScreen;
-
 
         public int? IterationsForWarmupScenario = 1; // applicable only to fictitious self-play
 
