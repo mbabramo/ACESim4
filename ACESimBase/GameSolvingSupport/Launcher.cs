@@ -18,13 +18,13 @@ namespace ACESim
 
         #region Settings
 
-        public string MasterReportNameForDistributedProcessing = "R011"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
+        public string MasterReportNameForDistributedProcessing = "R012"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching;
 
         public const int VanillaIterations = 100_000; 
         public const int VanillaReportEveryNIterations = VanillaIterations;
-        public const int VanillaBestResponseEveryMIterations = 1_000;
+        public const int VanillaBestResponseEveryMIterations = 5_000;
         public const bool CalculatePerturbedBestResponseRefinement = true;
         public const int MiniReportEveryPIterations = EffectivelyNever;
         public const bool AlwaysSuppressDisplayReportOnScreen = true;
