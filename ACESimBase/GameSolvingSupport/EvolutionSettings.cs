@@ -9,10 +9,9 @@ namespace ACESim
     [Serializable]
     public class EvolutionSettings
     {
+        public bool DistributeChanceDecisions = true; // NOTE: This is currently very slow when using full game tree.
+        public bool UnrollAlgorithm = true;
         public bool AzureEnabled = false;
-        public bool ParallelOptimization = false; // will be overridden by launcher
-        public int MaxParallelDepth = 3; // will be overridden by launcher
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching; // also will be overridden
         public int TotalAvgStrategySamplingCFRIterations = 100000;
         public int TotalProbingCFRIterations = 100000;
         public int TotalIterations = 100000;
@@ -20,8 +19,7 @@ namespace ACESim
         public int CorrelatedEquilibriumCalculationsEveryNIterations = 100000;
         public const int EffectivelyNever = 999999999;
         public int? BestResponseEveryMIterations = 100; // For partial recall games, this is very costly, so consider using EffectivelyNever.
-        public bool UseAcceleratedBestResponse = false; // DEBUG
-        DEBUG; // why isn't accelerated best response producing correct results with damages uncertainty? is it producing correct results in other situations?
+        public bool UseAcceleratedBestResponse = true; // DEBUG
         public bool CalculatePerturbedBestResponseRefinement = false;
         public double PerturbationForBestResponseCalculation = 0.001;
         public int? MiniReportEveryPIterations = 1000;
@@ -30,6 +28,9 @@ namespace ACESim
         public bool SerializeResults = true;
         public bool SerializeInformationSetDataOnly = true;
         public string SerializeResultsPrefix = "serstrat";
+        public bool ParallelOptimization = false; // will be overridden by launcher
+        public int MaxParallelDepth = 3; // will be overridden by launcher
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching; // also will be overridden
         public string SerializeResultsPrefixPlus(int scenario, int totalScenarios) => SerializeResultsPrefix + (totalScenarios > 0 ? scenario.ToString() : "");
 
         // The following apply to  average strategy sampling. The MCCFR algorithm is not guaranteed to visit all information sets. There is a trade-off, however. When we use epsilon policy exploration, whether for the player being optimized or for the opponent, we change the dynamics of the game. Perhaps, for example, it will make sense not to take a settlement that is valuable so long as there is some small chance that the opponent will engage in policy exploration and agree to a deal that is bad for the opponent. Similarly, a player's own earlier or later exploration can affect the player's own moves; if I might make a bad move later, then maybe I should play what otherwise would be suboptimally now. 
@@ -64,9 +65,6 @@ namespace ACESim
         public static bool PredeterminePrunabilityBasedOnRelativeContributions = false; // if True, then we prune if and only if the action contributes negligibly at any later information set
 
         public bool CFRBR = false; // if true, opponent plays best response
-
-        public bool DistributeChanceDecisions = true; // NOTE: This is currently very slow when using full game tree.
-        public bool UnrollAlgorithm = true;
 
         // For Vanilla algorithm:
         // From Solving Imperfect Information Games with Discounted Regret Minimization -- optimal values (for situations in which pruning may be used)

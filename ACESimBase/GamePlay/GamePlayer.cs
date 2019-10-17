@@ -234,6 +234,8 @@ namespace ACESim
             game.PlayPathAndStop(actionsToPlay);
             if (!gameProgress.GameComplete)
                 game.AdvanceToOrCompleteNextStep();
+            while (!game.DecisionNeeded)
+                game.AdvanceToOrCompleteNextStep();
             return (game, gameProgress);
         }
 

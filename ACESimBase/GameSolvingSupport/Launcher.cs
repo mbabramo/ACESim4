@@ -18,7 +18,7 @@ namespace ACESim
 
         #region Settings
 
-        public string MasterReportNameForDistributedProcessing = "R012"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
+        public string MasterReportNameForDistributedProcessing = "R014"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching;
 
