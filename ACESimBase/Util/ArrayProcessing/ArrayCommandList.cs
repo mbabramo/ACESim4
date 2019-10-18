@@ -737,11 +737,6 @@ namespace ACESimBase.Util.ArrayProcessing
             int endCommandIndexInclusive = c.EndCommandRangeExclusive - 1;
             int virtualStackSize = c.VirtualStack.Length;
 
-            if (startCommandIndex == 61112 && endCommandIndexInclusive == 129482)
-            {
-                var DEBUG = 0;
-            }
-
             StringBuilder b = new StringBuilder();
             // Note: We know what the ordered source and destination indices are for the first time this chunk is executed. But we are creating code that can be reused each time we have the same set of commands. Thus, we pass these in as parameters.
             b.AppendLine($@"public static void Execute{startCommandIndex}to{endCommandIndexInclusive}(double[] vs, double[] os, double[] od, int cosi, int codi)
