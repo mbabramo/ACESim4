@@ -42,10 +42,12 @@ namespace ACESim
             int startingIteration = 2;
             if (iterationToReturnToBaselineScenario < startingIteration)
                 iterationToReturnToBaselineScenario = startingIteration;
-            for (int iteration = startingIteration; iteration <= EvolutionSettings.TotalIterations; iteration++)
+            bool targetMet = false;
+            for (int iteration = startingIteration; iteration <= EvolutionSettings.TotalIterations && !targetMet; iteration++)
             {
                 var result = await FictitiousSelfPlayIteration(iteration);
                 reportCollection.Add(result);
+                targetMet = BestResponseTargetMet;
                 if (iteration == iterationToReturnToBaselineScenario)
                 {
                     ReinitializeForScenario(GameDefinition.BaselineScenarioIndex, false);

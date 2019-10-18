@@ -684,7 +684,7 @@ namespace ACESim
         {
             ReportCollection reportCollection = new ReportCollection();
             bool doBestResponse = (EvolutionSettings.BestResponseEveryMIterations != null && iteration % EvolutionSettings.BestResponseEveryMIterations == 0 && EvolutionSettings.BestResponseEveryMIterations != EvolutionSettings.EffectivelyNever && iteration != 0);
-            bool doReports = EvolutionSettings.ReportEveryNIterations != null && iteration % EvolutionSettings.ReportEveryNIterations == 0;
+            bool doReports = EvolutionSettings.ReportEveryNIterations != null && (iteration % EvolutionSettings.ReportEveryNIterations == 0);
             if (doReports || doBestResponse)
             {
                 TabbedText.WriteLine("");
@@ -706,12 +706,13 @@ namespace ACESim
                         InformationSets.ForEach(x => x.RestoreBackup());
                         double refinement = br / BestResponseImprovementAdjAvg; // if very refined, this should be close to 1. If the perturbation greatly increases exploitability, this will be closer to 0.
                         TabbedText.WriteLine($"Avg BR: {br} With perturb: {BestResponseImprovementAdjAvg} Refinement: {refinement}");
+                        Refinement = refinement;
                         BestResponseUtilities = utilities;
                         BestResponseImprovement = improvement;
                     }
                     RememberBest(iteration);
                 }
-
+                doReports = EvolutionSettings.ReportEveryNIterations != null && (iteration % EvolutionSettings.ReportEveryNIterations == 0 || BestResponseTargetMet); // add possibility that best repsonse target has been met
                 if (doReports)
                 {
                     Br.eak.Add("Report");
@@ -778,7 +779,11 @@ namespace ACESim
         public double[] BestResponseImprovement;
         public double[] LastBestResponseImprovement;
         public double[] BestResponseImprovementAdj => ScoreRangeExists && BestResponseImprovement != null ? BestResponseImprovement.Zip(ScoreRange, (bri, sr) => bri / sr).ToArray() : BestResponseImprovement;
+
+        public bool BestResponseTargetMet => BestResponseImprovementAdj != null && BestResponseImprovementAdjAvg < EvolutionSettings.BestResponseTarget;
         public double BestResponseImprovementAdjAvg => BestResponseImprovementAdj.Average();
+
+        public double Refinement;
 
         long BestResponseCalculationTime;
 
@@ -1091,6 +1096,8 @@ namespace ACESim
                     d.StaticTextColumns.Add(("OptionSet", GameDefinition.OptionSetName));
                 if (BestResponseImprovementAdj != null)
                     d.StaticTextColumns.Add(("Exploit", BestResponseImprovementAdjAvg.ToSignificantFigures(4)));
+                if (Refinement != 0)
+                    d.StaticTextColumns.Add(("Refine", Refinement.ToSignificantFigures(4)));
             }
             return simpleReportDefinitions;
         }

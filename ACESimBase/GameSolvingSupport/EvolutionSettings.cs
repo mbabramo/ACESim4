@@ -12,14 +12,16 @@ namespace ACESim
         public bool DistributeChanceDecisions = true; // NOTE: This is currently very slow when using full game tree.
         public bool UnrollAlgorithm = true;
         public bool AzureEnabled = false;
+        // Note: Many of the below are overridden by launcher.
         public int TotalAvgStrategySamplingCFRIterations = 100000;
         public int TotalProbingCFRIterations = 100000;
         public int TotalIterations = 100000;
+        public double BestResponseTarget = 0.005; // will end early if this target is reached
         public int? ReportEveryNIterations = 1000;
         public int CorrelatedEquilibriumCalculationsEveryNIterations = 100000;
         public const int EffectivelyNever = 999999999;
         public int? BestResponseEveryMIterations = 100; // For partial recall games, this is very costly, so consider using EffectivelyNever.
-        public bool UseAcceleratedBestResponse = true; // DEBUG
+        public bool UseAcceleratedBestResponse = true; 
         public bool CalculatePerturbedBestResponseRefinement = false;
         public double PerturbationForBestResponseCalculation = 0.001;
         public int? MiniReportEveryPIterations = 1000;

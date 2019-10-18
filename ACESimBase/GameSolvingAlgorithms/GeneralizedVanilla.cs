@@ -83,7 +83,8 @@ namespace ACESim
         {
             ReportCollection reportCollection = new ReportCollection();
             double[] array = new double[Unroll_SizeOfArray];
-            for (int iteration = 1; iteration <= EvolutionSettings.TotalIterations; iteration++)
+            bool targetMet = false;
+            for (int iteration = 1; iteration <= EvolutionSettings.TotalIterations && !targetMet; iteration++)
             {
                 // uncomment to skip a player
                 //if (iteration == 5001)
@@ -102,6 +103,7 @@ namespace ACESim
                     () =>
                         $"Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
                 reportCollection.Add(result);
+                targetMet = BestResponseTargetMet;
                 if (TraceCFR)
                 { // only trace through iteration
                     // There are a number of advanced settings in ArrayCommandList that must be disabled for this feature to work properly. 
@@ -737,12 +739,14 @@ namespace ACESim
             if (EvolutionSettings.UnrollAlgorithm)
                 return await Unroll_SolveGeneralizedVanillaCFR();
             ReportCollection reportCollection = new ReportCollection();
-            for (int iteration = 1; iteration <= EvolutionSettings.TotalIterations; iteration++)
+            bool targetMet = false;
+            for (int iteration = 1; iteration <= EvolutionSettings.TotalIterations && !targetMet; iteration++)
             {
                 if (EvolutionSettings.CFRBR)
                     CalculateBestResponse(false);
                 var result = await GeneralizedVanillaCFRIteration(iteration);
                 reportCollection.Add(result);
+                targetMet = BestResponseTargetMet;
                 if (EvolutionSettings.PruneOnOpponentStrategy && EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions)
                     CalculateReachProbabilitiesAndPrunability(EvolutionSettings.ParallelOptimization);
             }
