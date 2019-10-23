@@ -34,7 +34,7 @@ namespace ACESimBase.GameSolvingSupport
             // Now, add this history to a list of paths from the predecessor information set.
             ByteList actionsList = historyToHere.GetActionsList(informationSet.PlayerIndex, DistributingChanceActions);
             if (informationSet.PathsFromPredecessor == null)
-                informationSet.  PathsFromPredecessor = new List<PathFromPredecessorInfo>();
+                informationSet.PathsFromPredecessor = new List<PathFromPredecessorInfo>();
             informationSet.PathsFromPredecessor.Add(new PathFromPredecessorInfo() { ActionsList = actionsList, IndexInPredecessorsPathsFromPredecessor = (predecessorInformationSetForPlayer?.PathsFromPredecessor.Count() ?? 0) - 1, Path = fromLastInformationSet });
             return historyToHere;
         }

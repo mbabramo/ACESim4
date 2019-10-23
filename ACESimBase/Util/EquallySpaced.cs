@@ -10,7 +10,7 @@ namespace ACESim
     {
         // We want to get n points within a range (x, y). There are two ways we can do this: First, we can divide region (x, y) into n regions and return the midpoint of each region. Note that in this case the distance from x to the first point and from y to the top point will be half the distance between any two adjacent points. Second, we can make the distance from x to the lowest point the same as the distance between adjacent points and as the distance between the highest point and y.
 
-        // The following two methods choose between these based on whether the number of points is even or odd. If we want to include the midpoint, then we use an odd number of points; if not, then we use an even nujmber of points.
+        // UPDATE: We always use the fully equally spaced approach. PREVIOUSLY: The following two methods choose between these based on whether the number of points is even or odd. If we want to include the midpoint, then we use an odd number of points; if not, then we use an even nujmber of points.
 
         public static double[] GetEquallySpacedPoints(int numPoints, bool includeEndpoints, double from = 0, double to = 1.0)
         {
@@ -18,17 +18,19 @@ namespace ACESim
             {
                 return Enumerable.Range(0, numPoints).Select(x => GetLocationOfEquallySpacedPoint(x, numPoints, true, from, to)).ToArray();
             }
-            if (numPoints % 2 == 0)
+            if (useMidpointsOfEquallySpacedRegions) // numPoints % 2 == 0)
                 return GetMidpointsOfEquallySpacedRegions(numPoints, from, to); // e.g., 0.05, 0.15, ... , 0.95
             else
                 return GetPointsFullyEquallySpaced(numPoints, from, to); // e.g., 0.1, 0.2, ... 0.9
         }
 
+        static bool useMidpointsOfEquallySpacedRegions = false;
+
         public static double GetLocationOfEquallySpacedPoint(int pointIndex, int numPoints, bool includeEndpoints, double from = 0, double to = 1.0)
         {
             if (includeEndpoints)
                 return from + (to - from) * ((double) pointIndex / (double) (numPoints - 1));
-            if (numPoints % 2 == 0)
+            if (useMidpointsOfEquallySpacedRegions) // numPoints % 2 == 0)
                 return GetLocationOfMidpoint(pointIndex, numPoints, from, to);
             else
                 return GetLocationOfFullyEquallySpacedPoint(pointIndex, numPoints, from, to);

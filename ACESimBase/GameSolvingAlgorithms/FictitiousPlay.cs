@@ -10,19 +10,19 @@ using System.Threading.Tasks;
 namespace ACESim
 {
     [Serializable]
-    public partial class FictitiousSelfPlay : StrategiesDeveloperBase
+    public partial class FictitiousPlay : StrategiesDeveloperBase
     {
         public bool AddNoiseToBestResponses = false;
         public bool ReportOnBestResponse = false; // not yet implemented
 
-        public FictitiousSelfPlay(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
+        public FictitiousPlay(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
         {
 
         }
 
         public override IStrategiesDeveloper DeepCopy()
         {
-            var created = new FictitiousSelfPlay(Strategies, EvolutionSettings, GameDefinition);
+            var created = new FictitiousPlay(Strategies, EvolutionSettings, GameDefinition);
             DeepCopyHelper(created);
             return created;
         }

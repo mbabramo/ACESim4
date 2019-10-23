@@ -37,7 +37,7 @@ namespace ACESim
         public const bool UseRegretAndStrategyDiscounting = false;
 
         public const int StartGameNumber = 1;
-        public bool LaunchSingleOptionsSetOnly = false; 
+        public bool LaunchSingleOptionsSetOnly = true; // DEBUG
         public int NumRepetitions = 1;
         public bool AzureEnabled = true;
         public int MaxParallelDepth = 3; // DEBUG
@@ -124,7 +124,7 @@ namespace ACESim
                 case GameApproximationAlgorithm.PureStrategyFinder:
                     return new PureStrategiesFinder(existingStrategyState, evolutionSettings, gameDefinition);
                 case GameApproximationAlgorithm.FictitiousSelfPlay:
-                    return new FictitiousSelfPlay(existingStrategyState, evolutionSettings, gameDefinition);
+                    return new FictitiousPlay(existingStrategyState, evolutionSettings, gameDefinition);
                 case GameApproximationAlgorithm.GreedyFictitiousSelfPlay:
                     return new GreedyFictitiousSelfPlay(existingStrategyState, evolutionSettings, gameDefinition);
                 case GameApproximationAlgorithm.GeneticAlgorithm:
