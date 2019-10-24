@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace ACESim
 {
     [Serializable]
-    public partial class GreedyFictitiousSelfPlay : StrategiesDeveloperBase
+    public partial class GreedyFictitiousPlay : StrategiesDeveloperBase
     {
 
         public class PopulationMember
@@ -156,7 +156,7 @@ namespace ACESim
             }
         }
 
-        public GreedyFictitiousSelfPlay(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
+        public GreedyFictitiousPlay(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition) : base(existingStrategyState, evolutionSettings, gameDefinition)
         {
 
         }
@@ -167,7 +167,7 @@ namespace ACESim
 
         public override IStrategiesDeveloper DeepCopy()
         {
-            var created = new GreedyFictitiousSelfPlay(Strategies, EvolutionSettings, GameDefinition);
+            var created = new GreedyFictitiousPlay(Strategies, EvolutionSettings, GameDefinition);
             DeepCopyHelper(created);
             return created;
         }

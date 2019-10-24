@@ -76,11 +76,22 @@ namespace ACESim
 
             double perturbation = EvolutionSettings.Perturbation_BasedOnCurve(iteration, EvolutionSettings.TotalIterations);
 
-            if (!EvolutionSettings.ParallelOptimization)
-                foreach (var informationSet in InformationSets)
-                    informationSet.MoveAverageStrategyTowardBestResponse(iteration, EvolutionSettings.TotalIterations, perturbation);
+            if (EvolutionSettings.BestResponseDynamics)
+            {
+                if (!EvolutionSettings.ParallelOptimization)
+                    foreach (var informationSet in InformationSets)
+                        informationSet.SetAverageStrategyToBestResponse(perturbation);
+                else
+                    Parallel.ForEach(InformationSets, informationSet => informationSet.SetAverageStrategyToBestResponse(perturbation));
+            }
             else
-                Parallel.ForEach(InformationSets, informationSet => informationSet.MoveAverageStrategyTowardBestResponse(iteration, EvolutionSettings.TotalIterations, perturbation));
+            {
+                if (!EvolutionSettings.ParallelOptimization)
+                    foreach (var informationSet in InformationSets)
+                        informationSet.MoveAverageStrategyTowardBestResponse(iteration, EvolutionSettings.TotalIterations, perturbation);
+                else
+                    Parallel.ForEach(InformationSets, informationSet => informationSet.MoveAverageStrategyTowardBestResponse(iteration, EvolutionSettings.TotalIterations, perturbation));
+            }
 
             StrategiesDeveloperStopwatch.Stop();
 

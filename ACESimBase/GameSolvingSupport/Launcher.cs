@@ -18,9 +18,9 @@ namespace ACESim
 
         #region Settings
 
-        public string MasterReportNameForDistributedProcessing = "R015"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
+        public string MasterReportNameForDistributedProcessing = "R016"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
 
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching;
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching; // NOTE: With RegretMatching, EvolutionSettings.PruneOnOpponentStrategyThreshold should be 0. Otherwise, we will usually set it to some positive value.
 
         public const int VanillaIterations = 100_000; 
         public const int VanillaReportEveryNIterations = VanillaIterations;
@@ -123,10 +123,13 @@ namespace ACESim
                     return new AverageStrategiesSampling(existingStrategyState, evolutionSettings, gameDefinition);
                 case GameApproximationAlgorithm.PureStrategyFinder:
                     return new PureStrategiesFinder(existingStrategyState, evolutionSettings, gameDefinition);
-                case GameApproximationAlgorithm.FictitiousSelfPlay:
+                case GameApproximationAlgorithm.FictitiousPlay:
                     return new FictitiousPlay(existingStrategyState, evolutionSettings, gameDefinition);
-                case GameApproximationAlgorithm.GreedyFictitiousSelfPlay:
-                    return new GreedyFictitiousSelfPlay(existingStrategyState, evolutionSettings, gameDefinition);
+                case GameApproximationAlgorithm.BestResponseDynamics:
+                    evolutionSettings.BestResponseDynamics = true;
+                    return new FictitiousPlay(existingStrategyState, evolutionSettings, gameDefinition);
+                case GameApproximationAlgorithm.GreedyFictitiousPlay:
+                    return new GreedyFictitiousPlay(existingStrategyState, evolutionSettings, gameDefinition);
                 case GameApproximationAlgorithm.GeneticAlgorithm:
                     return new GeneticAlgorithm(existingStrategyState, evolutionSettings, gameDefinition);
                 case GameApproximationAlgorithm.PlaybackOnly:

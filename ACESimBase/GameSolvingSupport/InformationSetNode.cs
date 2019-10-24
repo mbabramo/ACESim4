@@ -399,6 +399,22 @@ namespace ACESim
                 PerturbAverageStrategy(perturbation, true);
         }
 
+        public void SetAverageStrategyToBestResponse(double perturbation = 0)
+        {
+            double total = 0;
+            for (byte action = 1; action <= NumPossibleActions; action++)
+            {
+                double currentAverageStrategyProbability = GetAverageStrategy(action);
+                double bestResponseProbability = (BestResponseAction == action) ? 1.0 : 0.0;
+                NodeInformation[cumulativeStrategyDimension, action - 1] = NodeInformation[averageStrategyProbabilityDimension, action - 1] = bestResponseProbability;
+                total += bestResponseProbability;
+            }
+            if (Math.Abs(total - 1.0) > 1E-8)
+                throw new Exception();
+            if (perturbation != 0)
+                PerturbAverageStrategy(perturbation, true);
+        }
+
         public void PerturbAverageStrategy(double minValueForEachAction, bool includeCumulativeStrategy)
         {
             double totalPerturbation = NumPossibleActions * minValueForEachAction;
