@@ -16,7 +16,13 @@ namespace ACESim
         public int TotalAvgStrategySamplingCFRIterations = 100000;
         public int TotalProbingCFRIterations = 100000;
         public int TotalIterations = 100000;
-        public double BestResponseTarget = 0.005; // will end early if this target is reached
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching; // also will be overridden
+        public double BestResponseTarget => Algorithm switch
+        {
+            GameApproximationAlgorithm.FictitiousPlay => 0.00001,
+            GameApproximationAlgorithm.BestResponseDynamics => 0.00001,
+            _ => 0.005
+        }; // will end early if this target is reached
         public int? ReportEveryNIterations = 1000;
         public int CorrelatedEquilibriumCalculationsEveryNIterations = 100000;
         public const int EffectivelyNever = 999999999;
@@ -32,7 +38,6 @@ namespace ACESim
         public string SerializeResultsPrefix = "serstrat";
         public bool ParallelOptimization = false; // will be overridden by launcher
         public int MaxParallelDepth = 3; // will be overridden by launcher
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching; // also will be overridden
         public string SerializeResultsPrefixPlus(int scenario, int totalScenarios) => SerializeResultsPrefix + (totalScenarios > 0 ? scenario.ToString() : "");
 
         public bool BestResponseDynamics = false;

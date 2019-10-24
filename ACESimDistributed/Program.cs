@@ -34,6 +34,9 @@ namespace ACESimDistributed
 
                     MyGameLauncher launcher = new MyGameLauncher();
 
+                    if (launcher.LaunchSingleOptionsSetOnly)
+                        throw new Exception("LaunchSingleOptionsSetOnly should only be used with ACESimConsole.");
+
                     await launcher.ParticipateInDistributedProcessing(
                         launcher.MasterReportNameForDistributedProcessing,
                         cancellationToken,

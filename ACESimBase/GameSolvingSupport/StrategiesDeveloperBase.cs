@@ -684,7 +684,7 @@ namespace ACESim
         {
             ReportCollection reportCollection = new ReportCollection();
             bool doBestResponse = (EvolutionSettings.BestResponseEveryMIterations != null && iteration % EvolutionSettings.BestResponseEveryMIterations == 0 && EvolutionSettings.BestResponseEveryMIterations != EvolutionSettings.EffectivelyNever && iteration != 0);
-            bool doReports = EvolutionSettings.ReportEveryNIterations != null && (iteration % EvolutionSettings.ReportEveryNIterations == 0);
+            bool doReports = EvolutionSettings.ReportEveryNIterations != null && (iteration % EvolutionSettings.ReportEveryNIterations == 0 || BestResponseTargetMet);
             if (doReports || doBestResponse)
             {
                 TabbedText.WriteLine("");
@@ -712,7 +712,6 @@ namespace ACESim
                     }
                     RememberBest(iteration);
                 }
-                doReports = EvolutionSettings.ReportEveryNIterations != null && (iteration % EvolutionSettings.ReportEveryNIterations == 0 || BestResponseTargetMet); // add possibility that best repsonse target has been met
                 if (doReports)
                 {
                     Br.eak.Add("Report");

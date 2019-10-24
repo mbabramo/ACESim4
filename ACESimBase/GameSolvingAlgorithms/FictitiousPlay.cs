@@ -45,6 +45,7 @@ namespace ACESim
             bool targetMet = false;
             for (int iteration = startingIteration; iteration <= EvolutionSettings.TotalIterations && !targetMet; iteration++)
             {
+                IterationNum = iteration;
                 var result = await FictitiousSelfPlayIteration(iteration);
                 reportCollection.Add(result);
                 targetMet = BestResponseTargetMet;

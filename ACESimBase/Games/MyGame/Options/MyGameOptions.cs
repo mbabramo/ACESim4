@@ -155,6 +155,7 @@ namespace ACESim
         /// </summary>
         public bool ShootoutSettlements;
         /// <summary>
+        /// 
         /// If true, then additional damages from shootout settlements apply even if a party drops out after the shootout has occurred.
         /// </summary>
         public bool ShootoutsApplyAfterAbandonment;
