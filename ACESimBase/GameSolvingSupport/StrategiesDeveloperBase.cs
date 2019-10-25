@@ -1215,6 +1215,14 @@ namespace ACESim
             }
         }
 
+        public void DynamicallySetParallel()
+        {
+            var currentProcessName = Process.GetCurrentProcess().ProcessName;
+            var results = Process.GetProcessesByName(currentProcessName);
+            bool runParallel = results.Count() >= Environment.ProcessorCount * 3;
+            EvolutionSettings.ParallelOptimization = runParallel;
+        }
+
         #endregion
 
         #region Pi values utility methods

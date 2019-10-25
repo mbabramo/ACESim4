@@ -45,6 +45,8 @@ namespace ACESim
             bool targetMet = false;
             for (int iteration = startingIteration; iteration <= EvolutionSettings.TotalIterations && !targetMet; iteration++)
             {
+                if (iteration % 50 == 1 && EvolutionSettings.DynamicSetParallel)
+                    DynamicallySetParallel();
                 IterationNum = iteration;
                 var result = await FictitiousSelfPlayIteration(iteration);
                 reportCollection.Add(result);

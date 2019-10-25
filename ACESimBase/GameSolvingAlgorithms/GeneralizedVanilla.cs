@@ -89,6 +89,8 @@ namespace ACESim
                 // uncomment to skip a player
                 //if (iteration == 5001)
                 //    Unroll_Commands.SetSkip("Optimizing player 0", true); 
+                if (iteration % 50 == 1 && EvolutionSettings.DynamicSetParallel)
+                    DynamicallySetParallel();
                 IterationNumDouble = iteration;
                 IterationNum = iteration;
                 StrategiesDeveloperStopwatch.Start();
@@ -742,6 +744,8 @@ namespace ACESim
             bool targetMet = false;
             for (int iteration = 1; iteration <= EvolutionSettings.TotalIterations && !targetMet; iteration++)
             {
+                if (iteration % 50 == 1 && EvolutionSettings.DynamicSetParallel)
+                    DynamicallySetParallel();
                 if (EvolutionSettings.CFRBR)
                     CalculateBestResponse(false);
                 var result = await GeneralizedVanillaCFRIteration(iteration);
