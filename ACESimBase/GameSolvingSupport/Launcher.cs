@@ -22,7 +22,7 @@ namespace ACESim
 
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.BestResponseDynamics; // NOTE: With RegretMatching, EvolutionSettings.PruneOnOpponentStrategyThreshold should be 0. Otherwise, we will usually set it to some positive value.
 
-        public const int VanillaIterations = 5_000; 
+        public const int VanillaIterations = 5000; 
         public const int VanillaReportEveryNIterations = VanillaIterations;
         public const int VanillaBestResponseEveryMIterations = 100;
         public const bool CalculatePerturbedBestResponseRefinement = true;
@@ -37,13 +37,13 @@ namespace ACESim
         public const bool UseRegretAndStrategyDiscounting = false;
 
         public const int StartGameNumber = 1;
-        public bool LaunchSingleOptionsSetOnly = true; // DEBUG
+        public bool LaunchSingleOptionsSetOnly = false; 
         public int NumRepetitions = 1;
         public bool AzureEnabled = true;
         public int MaxParallelDepth = 3; // DEBUG
-        public bool DistributedProcessing => !LaunchSingleOptionsSetOnly && true; // this should be true if running on the local service fabric or usign ACESimDistributed
+        public bool DistributedProcessing => !LaunchSingleOptionsSetOnly && false; // this should be true if running on the local service fabric or usign ACESimDistributed
         public bool ParallelizeOptionSets = false; // run multiple option sets at same time on computer (in which case each individually will be run not in parallel)
-        public bool ParallelizeIndividualExecutions = false; // DEBUG // only if !ParallelizeOptionSets && (LaunchSingleOptionsSetOnly || !DistributedProcessing)
+        public bool ParallelizeIndividualExecutions = true; // only if !ParallelizeOptionSets && (LaunchSingleOptionsSetOnly || !DistributedProcessing)
         public bool ParallelizeIndividualExecutionsAlways = false; // DEBUG -- not really working // will always take precedence
 
         const int EffectivelyNever = EvolutionSettings.EffectivelyNever;

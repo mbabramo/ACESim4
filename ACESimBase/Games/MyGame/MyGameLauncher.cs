@@ -26,14 +26,29 @@ namespace ACESim
 
         public override GameOptions GetSingleGameOptions() => MyGameOptionsGenerator.GetMyGameOptions();
 
+        private enum OptionSetChoice
+        {
+            Fast,
+            ShootoutPermutations,
+            VariousUncertainties
+        }
+
         public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
         {
             List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
-            bool fast = false; 
-            if (fast)
-                AddFast(optionSets);
-            else
-                AddShootoutPermutations(optionSets);
+            OptionSetChoice optionSetChoice = OptionSetChoice.VariousUncertainties; // DEBUG
+            switch (optionSetChoice)
+            {
+                case OptionSetChoice.Fast:
+                    AddFast(optionSets);
+                    break;
+                case OptionSetChoice.ShootoutPermutations:
+                    AddShootoutPermutations(optionSets);
+                    break;
+                case OptionSetChoice.VariousUncertainties:
+                    AddVariousUncertainties(optionSets);
+                    break;
+            }
 
             optionSets = optionSets.OrderBy(x => x.optionSetName).ToList();
 
@@ -43,6 +58,18 @@ namespace ACESim
                     optionSet.options.Simplify();
 
             return optionSets;
+        }
+
+        private void AddVariousUncertainties(List<(string optionSetName, GameOptions options)> optionSets)
+        {
+
+            optionSets.Add(GetAndTransform("damages_unc", "basecosts", MyGameOptionsGenerator.DamagesUncertainty_1BR, x => { x.CostsMultiplier = 1.0; }, false));
+            optionSets.Add(GetAndTransform("damages_unc2BR", "basecosts", MyGameOptionsGenerator.DamagesUncertainty_2BR, x => { x.CostsMultiplier = 1.0; }, false));
+            optionSets.Add(GetAndTransform("liability_unc", "basecosts", MyGameOptionsGenerator.LiabilityUncertainty_1BR, x => { x.CostsMultiplier = 1.0; }, false));
+            optionSets.Add(GetAndTransform("liability_unc2BR", "basecosts", MyGameOptionsGenerator.LiabilityUncertainty_2BR, x => { x.CostsMultiplier = 1.0; }, false));
+            optionSets.Add(GetAndTransform("both_unc", "basecosts", MyGameOptionsGenerator.BothUncertain1BR, x => { x.CostsMultiplier = 1.0; }, false));
+            optionSets.Add(GetAndTransform("both_unc2BR", "basecosts", MyGameOptionsGenerator.Usual, x => { x.CostsMultiplier = 1.0; }, false));
+
         }
 
         private void AddFast(List<(string optionSetName, GameOptions options)> optionSets)
@@ -217,7 +244,7 @@ namespace ACESim
                 options.LoserPays = true;
                 options.LoserPaysMultiple = 1.0;
                 options.LoserPaysAfterAbandonment = false;
-                options.IncludeAgreementToBargainDecisions = true;
+                options.IncludeAgreementToBargainDecisions = true; // with the British rule, one might not want to make an offer at all
                 list.Add((description + " British", options));
             }
 

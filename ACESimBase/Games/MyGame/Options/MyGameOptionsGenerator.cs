@@ -19,6 +19,8 @@ namespace ACESim
             LiabilityUncertainty_3BR,
             DamagesUncertainty_1BR,
             DamagesUncertainty_2BR,
+            BothUncertain_1BR,
+            BothUncertain_2BR,
             Shootout,
             Shootout_Triple,
             Shootout_AllRounds,
@@ -33,7 +35,7 @@ namespace ACESim
             SimpleWhereFSPFails,
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.LiabilityUncertainty_1BR; 
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.BothUncertain_1BR; 
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
@@ -45,6 +47,8 @@ namespace ACESim
             MyGameOptionSetChoices.LiabilityUncertainty_3BR => LiabilityUncertainty_3BR(),
             MyGameOptionSetChoices.DamagesUncertainty_1BR => DamagesUncertainty_1BR(),
             MyGameOptionSetChoices.DamagesUncertainty_2BR => DamagesUncertainty_2BR(),
+            MyGameOptionSetChoices.BothUncertain_1BR => BothUncertain1BR(),
+            MyGameOptionSetChoices.BothUncertain_2BR => Usual(),
             MyGameOptionSetChoices.SimpleWhereFSPFails => SimpleWhereFSPFails(),
             MyGameOptionSetChoices.Shootout => Shootout(),
             MyGameOptionSetChoices.Shootout_Triple => Shootout_Triple(),
@@ -174,7 +178,7 @@ namespace ACESim
             options.CourtDamagesNoiseStdev = level;
 
             options.AllowAbandonAndDefaults = true; 
-            options.IncludeAgreementToBargainDecisions = true;
+            options.IncludeAgreementToBargainDecisions = false;
             options.SkipFileAndAnswerDecisions = false;
 
             //options.WarmStartOptions = MyGameWarmStartOptions.FacilitateSettlementByMakingOpponentStingy; 
@@ -225,7 +229,7 @@ namespace ACESim
             //options.CourtDamagesNoiseStdev = level;
 
             options.AllowAbandonAndDefaults = true;
-            options.IncludeAgreementToBargainDecisions = true;
+            options.IncludeAgreementToBargainDecisions = false;
             options.SkipFileAndAnswerDecisions = false;
 
             options.PFilingCost = options.DAnswerCost = 10_000;
@@ -273,7 +277,7 @@ namespace ACESim
             //options.CourtDamagesNoiseStdev = level;
 
             options.AllowAbandonAndDefaults = true;
-            options.IncludeAgreementToBargainDecisions = true;
+            options.IncludeAgreementToBargainDecisions = false;
             options.SkipFileAndAnswerDecisions = false;
 
             options.PFilingCost = options.DAnswerCost = 10_000;
@@ -426,7 +430,7 @@ namespace ACESim
             options.NumOffers = 4;  
             options.NumPotentialBargainingRounds = 2;
             options.AllowAbandonAndDefaults = true;
-            options.IncludeAgreementToBargainDecisions = true;
+            options.IncludeAgreementToBargainDecisions = false;
             options.SkipFileAndAnswerDecisions = false;
 
             //options.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = options.PInitialWealth, Alpha = 10 * 0.000001 };
@@ -438,6 +442,14 @@ namespace ACESim
         public static MyGameOptions Usual()
         {
             var options = BaseOptions();
+
+            return options;
+        }
+
+        public static MyGameOptions BothUncertain1BR()
+        {
+            var options = BaseOptions();
+            options.NumPotentialBargainingRounds = 1;
 
             return options;
         }

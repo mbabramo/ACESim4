@@ -70,7 +70,7 @@ namespace ACESim
             double[] lastUtilities = new double[NumNonChancePlayers];
 
             CalculateBestResponse(true);
-            RememberBest(iteration);
+            RememberBestResponseExploitabilityValues(iteration);
 
             if (AddNoiseToBestResponses)
                 Parallel.ForEach(InformationSets, informationSet => informationSet.AddNoiseToBestResponse(0.10, iteration));
