@@ -20,8 +20,8 @@ namespace ACESim
         public double BestResponseTarget => Algorithm switch
         {
             GameApproximationAlgorithm.FictitiousPlay => 0.00001,
-            GameApproximationAlgorithm.BestResponseDynamics => 0.00001,
-            _ => 0.005
+            GameApproximationAlgorithm.BestResponseDynamics => 0, // DEBUG 0.00001,
+            _ => 0 // DEBUG 0.005
         }; // will end early if this target is reached
         public int? ReportEveryNIterations = 1000;
         public int CorrelatedEquilibriumCalculationsEveryNIterations = 100000;
