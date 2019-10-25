@@ -372,7 +372,7 @@ namespace ACESim
             string combinedRepetitionsReport = String.Join("", combinedReports);
             string mergedReport = SimpleReportMerging.GetDistributionReports(combinedRepetitionsReport, optionSetName, includeFirstLine);
             AzureBlob.WriteTextToBlob("results", masterReportNamePlusOptionSet, true, mergedReport + ".csv");
-            AzureBlob.WriteTextToBlob("results", masterReportNamePlusOptionSet + "log", true, TabbedText.AccumulatedText.ToString());
+            AzureBlob.WriteTextToBlob("results", masterReportNamePlusOptionSet + "log.txt", true, TabbedText.AccumulatedText.ToString());
             TabbedText.ResetAccumulated();
             return mergedReport;
         }
@@ -453,7 +453,11 @@ namespace ACESim
                 var result = await GetSingleRepetitionReport(optionSetName, repetition, addOptionSetColumns, developer, logAction);
                 logAction("Writing report to blob");
                 if (AzureEnabled && result.csvReports.Any())
+                {
                     AzureBlob.WriteTextToBlob("results", masterReportNamePlusOptionSet + ".csv", true, result.csvReports.FirstOrDefault()); // we write to a blob in case this times out and also to allow individual report to be taken out
+                    AzureBlob.WriteTextToBlob("results", masterReportNamePlusOptionSet + "log.txt", true, TabbedText.AccumulatedText.ToString());
+                    TabbedText.ResetAccumulated();
+                }
                 logAction("Report written to blob");
                 return result;
             }
