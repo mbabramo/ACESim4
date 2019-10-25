@@ -42,6 +42,8 @@ namespace ACESimDistributed
                         cancellationToken,
                         message => LogMessage(message)
                         );
+                    if (Launcher.MaxOneReportPerDistributedProcess)
+                        return;
                 }
                 catch (OperationCanceledException)
                 {
