@@ -35,12 +35,12 @@ namespace ACESim
         public const bool UseRegretAndStrategyDiscounting = false;
 
         public const int StartGameNumber = 1;
-        public bool LaunchSingleOptionsSetOnly = false; 
+        public bool LaunchSingleOptionsSetOnly = true; 
         public int NumRepetitions = 1;
         public bool AzureEnabled = true;
         public int MaxParallelDepth = 3; // DEBUG
 
-        public string MasterReportNameForDistributedProcessing = "R017"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
+        public string MasterReportNameForDistributedProcessing = "R018"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
         public bool UseDistributedProcessingForMultipleOptionsSets = true;
         public bool DistributedProcessing => !LaunchSingleOptionsSetOnly && UseDistributedProcessingForMultipleOptionsSets; // this should be true if running on the local service fabric or usign ACESimDistributed
         public bool ParallelizeOptionSets = false; // run multiple option sets at same time on computer (in which case each individually will be run not in parallel)
@@ -249,6 +249,8 @@ namespace ACESim
                 if (!complete)
                 {
                     await CompleteIndividualTask(masterReportName, taskToDo, logAction);
+                    logAction(TabbedText.AccumulatedText.ToString());
+                    TabbedText.ResetAccumulated();
                     logAction($"Completed task {taskToDo.Name} {taskToDo.ID}");
                     taskCompleted = taskToDo;
                 }
