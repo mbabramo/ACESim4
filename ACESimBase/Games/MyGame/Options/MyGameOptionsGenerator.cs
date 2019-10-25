@@ -35,7 +35,7 @@ namespace ACESim
             SimpleWhereFSPFails,
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Usual; 
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.DamagesUncertainty_1BR; 
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {

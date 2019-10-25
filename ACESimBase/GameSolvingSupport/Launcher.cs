@@ -18,9 +18,9 @@ namespace ACESim
 
         #region Settings
 
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching;
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.FictitiousPlay;
 
-        public const int VanillaIterations = 100_000; 
+        public const int VanillaIterations = 100_000;
         public const int VanillaReportEveryNIterations = VanillaIterations;
         public const int VanillaBestResponseEveryMIterations = 100;
         public const bool CalculatePerturbedBestResponseRefinement = true;
@@ -40,7 +40,7 @@ namespace ACESim
         public bool AzureEnabled = true;
         public int MaxParallelDepth = 3; // DEBUG
 
-        public string MasterReportNameForDistributedProcessing = "R018"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
+        public string MasterReportNameForDistributedProcessing = "R021"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
         public bool UseDistributedProcessingForMultipleOptionsSets = true;
         public bool DistributedProcessing => !LaunchSingleOptionsSetOnly && UseDistributedProcessingForMultipleOptionsSets; // this should be true if running on the local service fabric or usign ACESimDistributed
         public bool ParallelizeOptionSets = false; // run multiple option sets at same time on computer (in which case each individually will be run not in parallel)
@@ -249,8 +249,6 @@ namespace ACESim
                 if (!complete)
                 {
                     await CompleteIndividualTask(masterReportName, taskToDo, logAction);
-                    logAction(TabbedText.AccumulatedText.ToString());
-                    TabbedText.ResetAccumulated();
                     logAction($"Completed task {taskToDo.Name} {taskToDo.ID}");
                     taskCompleted = taskToDo;
                 }
@@ -368,6 +366,8 @@ namespace ACESim
             string combinedRepetitionsReport = String.Join("", combinedReports);
             string mergedReport = SimpleReportMerging.GetDistributionReports(combinedRepetitionsReport, optionSetName, includeFirstLine);
             AzureBlob.WriteTextToBlob("results", masterReportNamePlusOptionSet, true, mergedReport + ".csv");
+            AzureBlob.WriteTextToBlob("results", masterReportNamePlusOptionSet + "log", true, TabbedText.AccumulatedText.ToString());
+            TabbedText.ResetAccumulated();
             return mergedReport;
         }
 
