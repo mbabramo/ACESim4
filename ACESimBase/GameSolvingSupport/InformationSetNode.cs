@@ -370,7 +370,7 @@ namespace ACESim
                 LastBestResponseMayReachHere = BestResponseMayReachHere;
                 return;
             }
-            const double InitialWeightMultiplier = 10.0;
+            const double InitialWeightMultiplier = 1.0; // DEBUG 10.0; // greater than 1 means that we're discounting
             const double Curvature = 10.0;
             double weightMultiplier = MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(InitialWeightMultiplier, 1.0, Curvature, (double)iteration / (double)maxIterations);
             double weightOnBestResponse = weightMultiplier / (double)iteration;

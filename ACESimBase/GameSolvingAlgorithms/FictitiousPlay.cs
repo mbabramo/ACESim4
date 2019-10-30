@@ -48,7 +48,7 @@ namespace ACESim
                 if (iteration % 50 == 1 && EvolutionSettings.DynamicSetParallel)
                     DynamicallySetParallel();
                 IterationNum = iteration;
-                var result = await FictitiousSelfPlayIteration(iteration);
+                var result = await FictitiousPlayIteration(iteration);
                 reportCollection.Add(result);
                 targetMet = BestResponseTargetMet;
                 if (iteration == iterationToReturnToBaselineScenario)
@@ -59,7 +59,7 @@ namespace ACESim
             return reportCollection;
         }
 
-        private async Task<ReportCollection> FictitiousSelfPlayIteration(int iteration)
+        private async Task<ReportCollection> FictitiousPlayIteration(int iteration)
         {
             StrategiesDeveloperStopwatch.Start();
 
@@ -77,7 +77,7 @@ namespace ACESim
             if (AddNoiseToBestResponses)
                 Parallel.ForEach(InformationSets, informationSet => informationSet.AddNoiseToBestResponse(0.10, iteration));
 
-            double perturbation = EvolutionSettings.Perturbation_BasedOnCurve(iteration, EvolutionSettings.TotalIterations);
+            double perturbation = 0; // NOTE: 0 perturbation seems necessary for fictitious play EvolutionSettings.Perturbation_BasedOnCurve(iteration, EvolutionSettings.TotalIterations);
 
             if (EvolutionSettings.BestResponseDynamics)
             {

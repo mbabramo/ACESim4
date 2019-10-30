@@ -726,7 +726,7 @@ namespace ACESim
                         });
                         CalculateBestResponse(false);
                         InformationSets.ForEach(x => x.RestoreBackup());
-                        double refinement = br / BestResponseImprovementAdjAvg; // if very refined, this should be close to 1. If the perturbation greatly increases exploitability, this will be closer to 0.
+                        double refinement = br / BestResponseImprovementAdjAvg; // i.e., the exploitability without a perturbation divided by the exploitability with a perturbation. if very refined, this should be close to 1. If the perturbation greatly increases exploitability, this will be closer to 0.
                         TabbedText.WriteLine($"Avg BR: {br} With perturb: {BestResponseImprovementAdjAvg} Refinement: {refinement}");
                         Refinement = refinement;
                         BestResponseUtilities = utilities;

@@ -35,7 +35,7 @@ namespace ACESim
             SimpleWhereFSPFails,
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.DamagesUncertainty_1BR; 
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Custom; 
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
@@ -131,26 +131,9 @@ namespace ACESim
 
         public static MyGameOptions Custom()
         {
-            var options = BaseOptions();
+            var options = DamagesUncertainty_2BR();
 
-            options.NumDamagesStrengthPoints = 1;
-            options.NumDamagesSignals = 1;
-            options.DamagesMax = 100_000;
-
-            options.NumLiabilityStrengthPoints = 4;
-            options.NumLiabilitySignals = 4;
-            options.NumOffers = 5;
-            options.NumPotentialBargainingRounds = 3;
-
-            double level = 0.2;
-            options.PLiabilityNoiseStdev = level;
-            options.DLiabilityNoiseStdev = level;
-            options.CourtLiabilityNoiseStdev = level;
-
-            options.SkipFileAndAnswerDecisions = true; 
-            options.AllowAbandonAndDefaults = false; 
-            options.SimultaneousOffersUltimatelyRevealed = true;
-            options.BargainingRoundsSimultaneous = true;
+            options.IncludeAgreementToBargainDecisions = true;
 
             return options;
         }
