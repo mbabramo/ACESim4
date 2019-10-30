@@ -19,7 +19,7 @@ namespace ACESim
         public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching; // also will be overridden
         public double BestResponseTarget => Algorithm switch
         {
-            GameApproximationAlgorithm.FictitiousPlay => 0.00001,
+            GameApproximationAlgorithm.FictitiousPlay => 0, // DEBUG 0.00001,
             GameApproximationAlgorithm.BestResponseDynamics => 0, // DEBUG 0.00001,
             _ => 0 // DEBUG 0.005
         }; // will end early if this target is reached

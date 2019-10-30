@@ -77,7 +77,7 @@ namespace ACESim
             if (AddNoiseToBestResponses)
                 Parallel.ForEach(InformationSets, informationSet => informationSet.AddNoiseToBestResponse(0.10, iteration));
 
-            double perturbation = EvolutionSettings.Perturbation_BasedOnCurve(iteration, EvolutionSettings.TotalIterations);
+            double perturbation = 0; // DEBUG now fixed EvolutionSettings.Perturbation_BasedOnCurve(iteration, EvolutionSettings.TotalIterations);
 
             if (EvolutionSettings.BestResponseDynamics)
             {

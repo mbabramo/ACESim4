@@ -30,13 +30,14 @@ namespace ACESim
         {
             Fast,
             ShootoutPermutations,
-            VariousUncertainties
+            VariousUncertainties,
+            OneUncertaintyOnly
         }
 
         public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
         {
             List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
-            OptionSetChoice optionSetChoice = OptionSetChoice.VariousUncertainties; // DEBUG
+            OptionSetChoice optionSetChoice = OptionSetChoice.ShootoutPermutations; // DEBUG
             switch (optionSetChoice)
             {
                 case OptionSetChoice.Fast:
@@ -48,6 +49,9 @@ namespace ACESim
                 case OptionSetChoice.VariousUncertainties:
                     AddVariousUncertainties(optionSets);
                     break;
+                case OptionSetChoice.OneUncertaintyOnly:
+                    AddOneUncertaintyOnly(optionSets);
+                    break;
             }
 
             optionSets = optionSets.OrderBy(x => x.optionSetName).ToList();
@@ -58,6 +62,13 @@ namespace ACESim
                     optionSet.options.Simplify();
 
             return optionSets;
+        }
+
+
+        private void AddOneUncertaintyOnly(List<(string optionSetName, GameOptions options)> optionSets)
+        {
+            optionSets.Add(GetAndTransform("both_unc", "basecosts", MyGameOptionsGenerator.BothUncertain1BR, x => { x.CostsMultiplier = 1.0; }, false));
+
         }
 
         private void AddVariousUncertainties(List<(string optionSetName, GameOptions options)> optionSets)
