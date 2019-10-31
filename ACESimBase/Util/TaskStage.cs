@@ -16,6 +16,7 @@ namespace ACESim.Util
         public RepeatedTask IncompleteRepeatedTask => RepeatedTasks
             .Where(x => !x.Complete)
             .OrderBy(x => x.AllStarted) // put repeated tasks where not all have been started first
+            .ThenBy(x => x.IndividualTasks.OrderBy(y => y.Started).FirstOrDefault()?.Started ?? DateTime.Now)
             .ThenBy(x => x.ID)
             .FirstOrDefault();
 
