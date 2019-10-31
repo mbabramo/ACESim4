@@ -32,7 +32,6 @@ namespace ACESim
             Usual,
             Ambitious,
             PerfectInfo,
-            SimpleWhereFSPFails,
         }
 
         static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Custom; 
@@ -49,7 +48,6 @@ namespace ACESim
             MyGameOptionSetChoices.DamagesUncertainty_2BR => DamagesUncertainty_2BR(),
             MyGameOptionSetChoices.BothUncertain_1BR => BothUncertain1BR(),
             MyGameOptionSetChoices.BothUncertain_2BR => Usual(),
-            MyGameOptionSetChoices.SimpleWhereFSPFails => SimpleWhereFSPFails(),
             MyGameOptionSetChoices.Shootout => Shootout(),
             MyGameOptionSetChoices.Shootout_Triple => Shootout_Triple(),
             MyGameOptionSetChoices.Shootout_AllRounds => Shootout_AllRounds(),
@@ -204,35 +202,12 @@ namespace ACESim
             options.DLiabilityNoiseStdev = 0.001;
             options.CourtLiabilityNoiseStdev = 0.001;
 
-            options.NumOffers = 5;
-
-            //double level = .2;
-            //options.PDamagesNoiseStdev = level;
-            //options.DDamagesNoiseStdev = level;
-            //options.CourtDamagesNoiseStdev = level;
-
-            options.AllowAbandonAndDefaults = true;
-            options.IncludeAgreementToBargainDecisions = false;
-            options.SkipFileAndAnswerDecisions = false;
-
-            options.PFilingCost = options.DAnswerCost = 10_000;
-            options.PerPartyCostsLeadingUpToBargainingRound = 0;
-            options.NumPotentialBargainingRounds = 1;
-            options.PTrialCosts = 25_000;
-            options.DTrialCosts = 25_000;
-
             return options;
         }
 
         public static MyGameOptions DamagesUncertainty_2BR()
         {
             var options = DamagesUncertainty_1BR();
-
-            options.PFilingCost = options.DAnswerCost = 10_000;
-            options.PerPartyCostsLeadingUpToBargainingRound = 7_500;
-            options.NumPotentialBargainingRounds = 2;
-            options.PTrialCosts = 10_000;
-            options.DTrialCosts = 10_000;
 
             return options;
         }
@@ -243,31 +218,10 @@ namespace ACESim
 
             options.NumLiabilityStrengthPoints = 5;
             options.NumLiabilitySignals = 5;
-            options.NumOffers = 5;
 
             options.NumDamagesSignals = 1;
             options.NumDamagesStrengthPoints = 1;
             options.DamagesMax = options.DamagesMin = 100_000;
-            //options.NumDamagesStrengthPoints = 5; 
-            //options.NumDamagesSignals = 5;
-
-            //double level = .2; 
-            //options.PLiabilityNoiseStdev = level;
-            //options.DLiabilityNoiseStdev = level;
-            //options.CourtLiabilityNoiseStdev = level;
-            //options.PDamagesNoiseStdev = level;
-            //options.DDamagesNoiseStdev = level;
-            //options.CourtDamagesNoiseStdev = level;
-
-            options.AllowAbandonAndDefaults = true;
-            options.IncludeAgreementToBargainDecisions = false;
-            options.SkipFileAndAnswerDecisions = false;
-
-            options.PFilingCost = options.DAnswerCost = 10_000;
-            options.PerPartyCostsLeadingUpToBargainingRound = 0;
-            options.NumPotentialBargainingRounds = 1;
-            options.PTrialCosts = 25_000;
-            options.DTrialCosts = 25_000;
 
             return options;
         }
@@ -276,12 +230,6 @@ namespace ACESim
         public static MyGameOptions LiabilityUncertainty_2BR()
         {
             var options = LiabilityUncertainty_1BR();
-
-            options.PFilingCost = options.DAnswerCost = 10_000;
-            options.PerPartyCostsLeadingUpToBargainingRound = 7_500;
-            options.NumPotentialBargainingRounds = 2;
-            options.PTrialCosts = 10_000;
-            options.DTrialCosts = 10_000;
 
             return options;
         }
@@ -353,11 +301,7 @@ namespace ACESim
         {
             var options = LiabilityUncertainty_1BR();
 
-            options.PFilingCost = options.DAnswerCost = 10_000;
-            options.PerPartyCostsLeadingUpToBargainingRound = 5_000;
             options.NumPotentialBargainingRounds = 3;
-            options.PTrialCosts = 10_000;
-            options.DTrialCosts = 10_000;
 
             return options;
         }
@@ -437,17 +381,6 @@ namespace ACESim
             return options;
         }
 
-        public static MyGameOptions SimpleWhereFSPFails()
-        {
-            var options = BaseOptions();
-            options.NumLiabilityStrengthPoints = 2;
-            options.NumLiabilitySignals = 2;
-            options.NumDamagesStrengthPoints = 2;
-            options.NumDamagesSignals = 2;
-            options.NumOffers = 2;
-            return options;
-        }
-
         public static MyGameOptions Ambitious()
         {
             var options = BaseOptions();
@@ -456,10 +389,8 @@ namespace ACESim
             options.NumLiabilityStrengthPoints = 5;
             options.NumLiabilitySignals = 5;
             options.NumOffers = 5;
-            options.NumPotentialBargainingRounds = 2;
-            options.AllowAbandonAndDefaults = true;
+            options.NumPotentialBargainingRounds = 3;
             options.IncludeAgreementToBargainDecisions = true;
-            options.SkipFileAndAnswerDecisions = false;
             return options;
         }
 

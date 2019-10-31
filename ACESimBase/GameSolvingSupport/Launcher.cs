@@ -40,7 +40,7 @@ namespace ACESim
         public bool AzureEnabled = true;
         public int MaxParallelDepth = 3; // DEBUG
 
-        public string MasterReportNameForDistributedProcessing = "R038"; // DEBUG // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
+        public string MasterReportNameForDistributedProcessing = "R042"; // DEBUG // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
         public bool UseDistributedProcessingForMultipleOptionsSets = true; // DEBUG
         public static bool MaxOneReportPerDistributedProcess = false; // DEBUG
         public bool DistributedProcessing => !LaunchSingleOptionsSetOnly && UseDistributedProcessingForMultipleOptionsSets; // this should be true if running on the local service fabric or usign ACESimDistributed
@@ -101,6 +101,7 @@ namespace ACESim
                 gameDefinition.PrintOutOrderingInformation();
             List<Strategy> starterStrategies = Strategy.GetStarterStrategies(gameDefinition);
             var evolutionSettings = GetEvolutionSettings();
+            options.ModifyEvolutionSettings?.Invoke(evolutionSettings);
             NWayTreeStorageRoot<IGameState>.EnableUseDictionary = false; // evolutionSettings.ParallelOptimization == false; // this is based on some limited performance testing; with parallelism, this seems to slow us down. Maybe it's not worth using. It might just be because of the lock.
             NWayTreeStorageRoot<IGameState>.ParallelEnabled = evolutionSettings.ParallelOptimization;
             var developer = GetStrategiesDeveloper(starterStrategies, evolutionSettings, gameDefinition);
@@ -109,9 +110,9 @@ namespace ACESim
 
         public IStrategiesDeveloper GetStrategiesDeveloper(List<Strategy> existingStrategyState, EvolutionSettings evolutionSettings, GameDefinition gameDefinition)
         {
-            TabbedText.WriteLine($"Using {Algorithm}");
+            TabbedText.WriteLine($"Using {evolutionSettings.Algorithm}"); // may differ from default algorithm if ModifyEvolutionSettings is set for game options
             TabbedText.WriteLine($"Game: {gameDefinition}");
-            switch (Algorithm)
+            switch (evolutionSettings.Algorithm)
             {
                 case GameApproximationAlgorithm.Vanilla:
                     return new VanillaCFR(existingStrategyState, evolutionSettings, gameDefinition);

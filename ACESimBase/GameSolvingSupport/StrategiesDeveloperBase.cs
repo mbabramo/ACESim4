@@ -1219,7 +1219,7 @@ namespace ACESim
         {
             var currentProcessName = Process.GetCurrentProcess().ProcessName;
             var results = Process.GetProcessesByName(currentProcessName);
-            bool runParallel = results.Count() <= Environment.ProcessorCount * 3;
+            bool runParallel = results.Count() <= Environment.ProcessorCount * 2;
             EvolutionSettings.ParallelOptimization = runParallel;
         }
 
