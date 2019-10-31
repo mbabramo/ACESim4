@@ -54,6 +54,8 @@ namespace ACESim
                     break;
             }
 
+            optionSets = optionSets.Where(x => x.optionSetName == "soallrabanlowcosts").ToList(); // DEBUG SUPERDEBUG
+
             optionSets = optionSets.OrderBy(x => x.optionSetName).ToList();
 
             bool simplify = false; // Enable for debugging purposes to speed up execution without going all the way to "fast" option
