@@ -58,7 +58,7 @@ namespace ACESimBase.GameSolvingAlgorithms
 
             ReportCollection reportCollection = await GenerateReports(iteration,
                 () =>
-                    $"Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
+                    $"{GameDefinition.OptionSetName} Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
 
             return reportCollection;
         }

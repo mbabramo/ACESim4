@@ -258,7 +258,7 @@ namespace ACESim
                 s.Stop();
                 var result = await GenerateReports(ProbingCFRIterationNum + 1,
                     () =>
-                        $"Iteration {ProbingCFRIterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)(ProbingCFRIterationNum + 1))))}");
+                        $"{GameDefinition.OptionSetName} Iteration {ProbingCFRIterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)(ProbingCFRIterationNum + 1))))}");
                 reportCollection.Add(result);
             }
             return reportCollection;

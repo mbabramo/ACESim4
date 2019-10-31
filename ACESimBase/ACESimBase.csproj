@@ -4,6 +4,7 @@
     <TargetFrameworks>netcoreapp3.0</TargetFrameworks>
     <LangVersion>8.0</LangVersion>
     <NoWarn>CA2235</NoWarn>
+    <Configurations>Debug;Release;Release2</Configurations>
   </PropertyGroup>
   
   <ItemGroup>

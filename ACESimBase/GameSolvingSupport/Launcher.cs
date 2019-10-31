@@ -40,7 +40,7 @@ namespace ACESim
         public bool AzureEnabled = true;
         public int MaxParallelDepth = 3; // DEBUG
 
-        public string MasterReportNameForDistributedProcessing = "R042"; // DEBUG // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
+        public string MasterReportNameForDistributedProcessing = "R044"; // DEBUG // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
         public bool UseDistributedProcessingForMultipleOptionsSets = true; // DEBUG
         public static bool MaxOneReportPerDistributedProcess = false; // DEBUG
         public bool DistributedProcessing => !LaunchSingleOptionsSetOnly && UseDistributedProcessingForMultipleOptionsSets; // this should be true if running on the local service fabric or usign ACESimDistributed

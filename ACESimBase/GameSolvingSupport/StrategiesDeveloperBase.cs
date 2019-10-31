@@ -73,12 +73,19 @@ namespace ACESim
                 var result = await RunAlgorithm(optionSetName);
                 if (EvolutionSettings.SerializeResults && !(this is PlaybackOnly))
                 {
-                    string path = FolderFinder.GetFolderToWriteTo("Strategies").FullName;
-                    string filename = GameDefinition.OptionSetName + "-" + EvolutionSettings.SerializeResultsPrefixPlus(s, GameDefinition.NumScenariosToDevelop);
-                    if (EvolutionSettings.SerializeInformationSetDataOnly)
-                        StrategySerialization.SerializeInformationSets(InformationSets, path, filename, EvolutionSettings.AzureEnabled);
-                    else
-                        StrategySerialization.SerializeStrategies(Strategies.ToArray(), path, filename, EvolutionSettings.AzureEnabled);
+                    try
+                    {
+                        string path = FolderFinder.GetFolderToWriteTo("Strategies").FullName;
+                        string filename = GameDefinition.OptionSetName + "-" + EvolutionSettings.SerializeResultsPrefixPlus(s, GameDefinition.NumScenariosToDevelop);
+                        if (EvolutionSettings.SerializeInformationSetDataOnly)
+                            StrategySerialization.SerializeInformationSets(InformationSets, path, filename, EvolutionSettings.AzureEnabled);
+                        else
+                            StrategySerialization.SerializeStrategies(Strategies.ToArray(), path, filename, EvolutionSettings.AzureEnabled);
+                    }
+                    catch
+                    {
+                        // ignore failure to serialize strategies
+                    }
                 }
                 reportCollection.Add(result);
             }

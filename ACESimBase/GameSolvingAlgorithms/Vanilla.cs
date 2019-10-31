@@ -250,7 +250,7 @@ namespace ACESim
 
             var result = await GenerateReports(iteration,
                 () =>
-                    $"Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration + 1.0)))}");
+                    $"{GameDefinition.OptionSetName} Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration + 1.0)))}");
             reportCollection.Add(result);
             return reportCollection;
         }
@@ -274,7 +274,7 @@ namespace ACESim
                 Span<double> initialPiValues = stackalloc double[MaxNumMainPlayers];
                 GetInitialPiValues(initialPiValues);
                 if (TraceCFR)
-                    TabbedText.WriteLine($"Iteration {iteration} Player {playerBeingOptimized}");
+                    TabbedText.WriteLine($"{GameDefinition.OptionSetName} Iteration {iteration} Player {playerBeingOptimized}");
                 StrategiesDeveloperStopwatch.Start();
                 HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
                 lastUtilities[playerBeingOptimized] =

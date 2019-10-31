@@ -409,7 +409,7 @@ namespace ACESim
                         HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
                         if (TraceCFR)
                         {
-                            TabbedText.WriteLine($"Iteration {iteration} Optimize player {playerBeingOptimized}");
+                            TabbedText.WriteLine($"{GameDefinition.OptionSetName} Iteration {iteration} Optimize player {playerBeingOptimized}");
                             TabbedText.TabIndent();
                         }
                         ModifiedGibsonProbe_WalkTree(in historyPoint, playerBeingOptimized, 1.0, randomProducer, GameDefinition.DecisionsExecutionOrder[0], 0);
@@ -469,7 +469,7 @@ namespace ACESim
                 IterationNum = startingIteration = stopBefore; // this is the iteration to run next
                 var result = await GenerateReports(IterationNum,
                     () =>
-                        $"Iteration {IterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)(IterationNum + 1))))}");
+                        $"{GameDefinition.OptionSetName} Iteration {IterationNum} Overall milliseconds per iteration {((s.ElapsedMilliseconds / ((double)(IterationNum + 1))))}");
                 reportCollection.Add(result);
             }
             return reportCollection;

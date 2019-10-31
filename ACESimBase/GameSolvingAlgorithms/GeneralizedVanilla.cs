@@ -103,7 +103,7 @@ namespace ACESim
                 MiniReport(iteration, Unroll_IterationResultForPlayers);
                 var result = await GenerateReports(iteration,
                     () =>
-                        $"Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
+                        $"{GameDefinition.OptionSetName} Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
                 reportCollection.Add(result);
                 targetMet = BestResponseTargetMet;
                 if (TraceCFR)
@@ -778,7 +778,7 @@ namespace ACESim
 
             var result = await GenerateReports(iteration,
                 () =>
-                    $"Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
+                    $"{GameDefinition.OptionSetName} Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
             reportCollection.Add(result);
 
             return reportCollection;
@@ -791,7 +791,7 @@ namespace ACESim
             GetInitialPiValues(initialPiValues);
             GetInitialPiValues(initialAvgStratPiValues);
             if (TraceCFR)
-                TabbedText.WriteLine($"Iteration {iteration} Player {playerBeingOptimized}");
+                TabbedText.WriteLine($"{GameDefinition.OptionSetName} Iteration {iteration} Player {playerBeingOptimized}");
             StrategiesDeveloperStopwatch.Start();
             HistoryPoint historyPoint = GetStartOfGameHistoryPoint();
             results[playerBeingOptimized] = GeneralizedVanillaCFR(in historyPoint, playerBeingOptimized, initialPiValues, initialAvgStratPiValues, 0);
@@ -832,7 +832,7 @@ namespace ACESim
         {
             if (iteration % EvolutionSettings.MiniReportEveryPIterations == 0)
             {
-                TabbedText.WriteLine($"Iteration {iteration} (relative contribution {AverageStrategyAdjustmentAsPctOfMax})");
+                TabbedText.WriteLine($"{GameDefinition.OptionSetName} Iteration {iteration} (relative contribution {AverageStrategyAdjustmentAsPctOfMax})");
                 TabbedText.TabIndent();
                 for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
                     TabbedText.WriteLine($"Player {playerBeingOptimized} {results[playerBeingOptimized]}");

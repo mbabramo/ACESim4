@@ -100,7 +100,7 @@ namespace ACESim
 
             var result = await GenerateReports(iteration,
                 () =>
-                    $"Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
+                    $"{GameDefinition.OptionSetName} Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
             reportCollection.Add(result);
 
             return reportCollection;
