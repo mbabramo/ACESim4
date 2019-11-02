@@ -202,6 +202,8 @@ namespace ACESim
             options.DLiabilityNoiseStdev = 0.001;
             options.CourtLiabilityNoiseStdev = 0.001;
 
+            options.NumPotentialBargainingRounds = 1;
+
             return options;
         }
 
@@ -222,6 +224,8 @@ namespace ACESim
             options.NumDamagesSignals = 1;
             options.NumDamagesStrengthPoints = 1;
             options.DamagesMax = options.DamagesMin = 100_000;
+
+            options.NumPotentialBargainingRounds = 1;
 
             return options;
         }

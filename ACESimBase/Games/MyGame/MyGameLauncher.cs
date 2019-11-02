@@ -31,13 +31,14 @@ namespace ACESim
             Fast,
             ShootoutPermutations,
             VariousUncertainties,
-            Custom
+            VariedAlgorithms,
+            Custom2
         }
 
         public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
         {
             List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
-            OptionSetChoice optionSetChoice = OptionSetChoice.ShootoutPermutations; // DEBUG
+            OptionSetChoice optionSetChoice = OptionSetChoice.Custom2; // DEBUG
             switch (optionSetChoice)
             {
                 case OptionSetChoice.Fast:
@@ -49,8 +50,11 @@ namespace ACESim
                 case OptionSetChoice.VariousUncertainties:
                     AddVariousUncertainties(optionSets);
                     break;
-                case OptionSetChoice.Custom:
-                    AddCustom(optionSets);
+                case OptionSetChoice.VariedAlgorithms:
+                    AddWithVariedAlgorithms(optionSets);
+                    break;
+                case OptionSetChoice.Custom2:
+                    AddCustom2(optionSets);
                     break;
             }
 
@@ -67,14 +71,24 @@ namespace ACESim
         }
 
 
-        private void AddCustom(List<(string optionSetName, GameOptions options)> optionSets)
+        private void AddCustom2(List<(string optionSetName, GameOptions options)> optionSets)
+        {
+            bool riskAverse = false;
+            foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("lowcosts", 1.0 / 3.0) })
+            {
+                optionSets.Add(GetAndTransform("shootout", name, MyGameOptionsGenerator.Shootout, x => { x.CostsMultiplier = costsMultiplier; x.PTrialCosts *= 3.0; }, riskAverse));
+                optionSets.Add(GetAndTransform("sotrip", name, MyGameOptionsGenerator.Shootout_Triple, x => { x.CostsMultiplier = costsMultiplier; x.PTrialCosts *= 3.0; }, riskAverse));
+            }
+        }
+
+        private void AddWithVariedAlgorithms(List<(string optionSetName, GameOptions options)> optionSets)
         {
             void Helper(List<(string optionSetName, GameOptions options)> optionSets, string optionSetNamePrefix, Action<EvolutionSettings> modifyEvolutionSettings)
             {
                 optionSets.Add(GetAndTransform(optionSetNamePrefix + "damages_unc", "basecosts", MyGameOptionsGenerator.DamagesUncertainty_1BR, x => { x.CostsMultiplier = 1.0; x.ModifyEvolutionSettings = modifyEvolutionSettings; }, false));
-                optionSets.Add(GetAndTransform(optionSetNamePrefix + "damages_unc2BR", "basecosts", MyGameOptionsGenerator.DamagesUncertainty_2BR, x => { x.CostsMultiplier = 1.0; x.ModifyEvolutionSettings = modifyEvolutionSettings; }, false));
+                //optionSets.Add(GetAndTransform(optionSetNamePrefix + "damages_unc2BR", "basecosts", MyGameOptionsGenerator.DamagesUncertainty_2BR, x => { x.CostsMultiplier = 1.0; x.ModifyEvolutionSettings = modifyEvolutionSettings; }, false));
                 optionSets.Add(GetAndTransform(optionSetNamePrefix + "liability_unc", "basecosts", MyGameOptionsGenerator.LiabilityUncertainty_1BR, x => { x.CostsMultiplier = 1.0; x.ModifyEvolutionSettings = modifyEvolutionSettings; }, false));
-                optionSets.Add(GetAndTransform(optionSetNamePrefix + "liability_unc2BR", "basecosts", MyGameOptionsGenerator.LiabilityUncertainty_2BR, x => { x.CostsMultiplier = 1.0; x.ModifyEvolutionSettings = modifyEvolutionSettings; }, false));
+                //optionSets.Add(GetAndTransform(optionSetNamePrefix + "liability_unc2BR", "basecosts", MyGameOptionsGenerator.LiabilityUncertainty_2BR, x => { x.CostsMultiplier = 1.0; x.ModifyEvolutionSettings = modifyEvolutionSettings; }, false));
             }
             Helper(optionSets, "BRD", es =>
             {
