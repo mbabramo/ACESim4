@@ -77,7 +77,7 @@ namespace ACESim
         {
 
             // now, liability and damages only
-            foreach (RiskAversion riskAverse in new RiskAversion[] { RiskAversion.POnlyRiskAverse, RiskAversion.DOnlyRiskAverse })
+            foreach (RiskAversion riskAverse in new RiskAversion[] { RiskAversion.DOnlyRiskAverse })
             {
                 foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("basecosts", 1.0) })
                 {
