@@ -409,5 +409,25 @@ namespace ACESim
                 options.CourtLiabilityNoiseStdev = 0.001;
             return options;
         }
+
+        public static MyGameOptions DamagesShootout()
+        {
+            var options = DamagesUncertainty_2BR();
+            options.ShootoutSettlements = true;
+            options.ShootoutsApplyAfterAbandonment = false;
+            options.ShootoutStrength = 1.0;
+            options.ShootoutsAverageAllRounds = false;
+            return options;
+        }
+
+        public static MyGameOptions LiabilityShootout()
+        {
+            var options = LiabilityUncertainty_2BR();
+            options.ShootoutSettlements = true;
+            options.ShootoutsApplyAfterAbandonment = false;
+            options.ShootoutStrength = 1.0;
+            options.ShootoutsAverageAllRounds = false;
+            return options;
+        }
     }
 }
