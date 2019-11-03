@@ -77,19 +77,12 @@ namespace ACESim
         {
 
             // now, liability and damages only
-            foreach (RiskAversion riskAverse in new RiskAversion[] { RiskAversion.RiskNeutral })
+            foreach (RiskAversion riskAverse in new RiskAversion[] { RiskAversion.POnlyRiskAverse, RiskAversion.DOnlyRiskAverse })
             {
                 foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("basecosts", 1.0) })
                 {
-                    Action<MyGameOptions> transform = x => { };
-                    optionSets.Add(GetAndTransform("dam-noshootout", name, MyGameOptionsGenerator.DamagesUncertainty_2BR, transform, riskAverse));
-                    optionSets.Add(GetAndTransform("dam-shootout", name, MyGameOptionsGenerator.DamagesShootout, transform, riskAverse));
-                    optionSets.Add(GetAndTransform("liab-noshootout", name, MyGameOptionsGenerator.LiabilityUncertainty_2BR, transform, riskAverse));
-                    optionSets.Add(GetAndTransform("liab-shootout", name, MyGameOptionsGenerator.LiabilityShootout, transform, riskAverse));
-                    //optionSets.Add(GetAndTransform("soallrounds", infoName + "-" + name, MyGameOptionsGenerator.Shootout_AllRounds, transform, riskAverse));
-                    //optionSets.Add(GetAndTransform("soabandon", infoName + "-" + name, MyGameOptionsGenerator.Shootout_IncludingAbandoment, transform, riskAverse));
-                    //optionSets.Add(GetAndTransform("soallraban", infoName + "-" + name, MyGameOptionsGenerator.Shootout_AllRoundsIncludingAbandoment, transform, riskAverse));
-                    //optionSets.Add(GetAndTransform("sotrip", infoName + "-" + name, MyGameOptionsGenerator.Shootout_Triple, transform, riskAverse));
+                    optionSets.Add(GetAndTransform("noshootout", name, MyGameOptionsGenerator.Usual, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
+                    optionSets.Add(GetAndTransform("shootout", name, MyGameOptionsGenerator.Shootout, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
                 }
             }
         }
@@ -202,16 +195,12 @@ namespace ACESim
                 }
             }
             // now, add a set with asymmetric risk aversion
-            foreach (RiskAversion riskAverse in new RiskAversion[] { RiskAversion.POnlyRiskAverse })
+            foreach (RiskAversion riskAverse in new RiskAversion[] { RiskAversion.POnlyRiskAverse, RiskAversion.DOnlyRiskAverse })
             {
                 foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("basecosts", 1.0) })
                 {
                     optionSets.Add(GetAndTransform("noshootout", name, MyGameOptionsGenerator.Usual, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
                     optionSets.Add(GetAndTransform("shootout", name, MyGameOptionsGenerator.Shootout, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                    //optionSets.Add(GetAndTransform("soallrounds", name, MyGameOptionsGenerator.Shootout_AllRounds, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                    //optionSets.Add(GetAndTransform("soabandon", name, MyGameOptionsGenerator.Shootout_IncludingAbandoment, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                    //optionSets.Add(GetAndTransform("soallraban", name, MyGameOptionsGenerator.Shootout_AllRoundsIncludingAbandoment, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
-                    //optionSets.Add(GetAndTransform("sotrip", name, MyGameOptionsGenerator.Shootout_Triple, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
                 }
             }
 
@@ -263,7 +252,8 @@ namespace ACESim
         {
             RiskNeutral,
             RiskAverse,
-            POnlyRiskAverse
+            POnlyRiskAverse,
+            DOnlyRiskAverse
         }
 
         (string optionSetName, MyGameOptions options) GetAndTransform(string baseName, string suffix, Func<MyGameOptions> baseOptionsFn, Action<MyGameOptions> transform, RiskAversion riskAversion)
@@ -282,11 +272,17 @@ namespace ACESim
                 g.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = g.PInitialWealth };
                 g.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = g.DInitialWealth };
             }
-            else
+            else if (riskAversion == RiskAversion.POnlyRiskAverse)
             {
                 g.PUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.PInitialWealth, Alpha = 10 * 0.000001 };
                 g.DUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = g.DInitialWealth };
                 suffix2 += "-ara";
+            }
+            else if (riskAversion == RiskAversion.DOnlyRiskAverse)
+            {
+                g.PUtilityCalculator = new RiskNeutralUtilityCalculator() { InitialWealth = g.DInitialWealth };
+                g.DUtilityCalculator = new CARARiskAverseUtilityCalculator() { InitialWealth = g.PInitialWealth, Alpha = 10 * 0.000001 };
+                suffix2 += "-dara";
             }
             return (baseName + suffix2, g);
         }
