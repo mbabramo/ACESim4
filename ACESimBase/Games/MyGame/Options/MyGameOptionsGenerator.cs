@@ -210,6 +210,7 @@ namespace ACESim
         public static MyGameOptions DamagesUncertainty_2BR()
         {
             var options = DamagesUncertainty_1BR();
+            options.NumPotentialBargainingRounds = 2;
 
             return options;
         }
@@ -234,6 +235,7 @@ namespace ACESim
         public static MyGameOptions LiabilityUncertainty_2BR()
         {
             var options = LiabilityUncertainty_1BR();
+            options.NumPotentialBargainingRounds = 2;
 
             return options;
         }

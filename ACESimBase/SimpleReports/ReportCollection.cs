@@ -33,10 +33,16 @@ namespace ACESim
             csvReports = csvs;
         }
 
-        public void Add(string standard, string csv)
+        public void Add(string standard, string csv, bool integrateCSVReportsIfPossible = true)
         {
             standardReport += standard;
-            AddCSVIntoExistingMatchOrAsSeparateReport(csv);
+            if (integrateCSVReportsIfPossible)
+            {
+                string thisReport = csvReports.SingleOrDefault();
+                IntegrateCSVReports(thisReport, csv);
+            }
+            else
+                AddCSVIntoExistingMatchOrAsSeparateReport(csv);
         }
 
         public void Add(ReportCollection other, bool integrateCSVReportsIfPossible = true)
@@ -46,20 +52,25 @@ namespace ACESim
             {
                 string thisReport = csvReports.SingleOrDefault();
                 string otherReport = other.csvReports.SingleOrDefault();
-                if (thisReport == null || otherReport == null)
-                {
-                    if (thisReport != null || otherReport != null)
-                        csvReports = new List<string>() { (thisReport ?? otherReport) };
-                }
-                else
-                {
-                    csvReports = new List<string>() { DynamicUtilities.MergeCSV(thisReport, otherReport, IDColumnNames) };
-                }
+                IntegrateCSVReports(thisReport, otherReport);
             }
             else
             {
                 foreach (string csv in other.csvReports)
                     AddCSVIntoExistingMatchOrAsSeparateReport(csv);
+            }
+        }
+
+        private void IntegrateCSVReports(string thisReport, string otherReport)
+        {
+            if (thisReport == null || otherReport == null)
+            {
+                if (thisReport != null || otherReport != null)
+                    csvReports = new List<string>() { (thisReport ?? otherReport) };
+            }
+            else
+            {
+                csvReports = new List<string>() { DynamicUtilities.MergeCSV(thisReport, otherReport, IDColumnNames) };
             }
         }
 

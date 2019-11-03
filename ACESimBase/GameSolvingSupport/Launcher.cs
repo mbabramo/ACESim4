@@ -343,6 +343,8 @@ namespace ACESim
                     reportCollection.Add("", csvResult);
                 }
             }
+            // it is possible that we have multiple csvReports -- meaning that different simulations produced
+            // different first lines. that's OK, we need to output all of them.
             string combinedResults = reportCollection.csvReports.FirstOrDefault();
             AzureBlob.WriteTextToBlob("results", $"{masterReportName} AllCombined.csv", true, combinedResults);
             return combinedResults;
