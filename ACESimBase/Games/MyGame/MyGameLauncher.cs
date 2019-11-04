@@ -33,13 +33,13 @@ namespace ACESim
             VariousUncertainties,
             VariedAlgorithms,
             Custom2,
-            ShootoutPermutations2
+            ShootoutGameVariations
         }
 
         public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
         {
             List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
-            OptionSetChoice optionSetChoice = OptionSetChoice.ShootoutPermutations2; // DEBUG
+            OptionSetChoice optionSetChoice = OptionSetChoice.ShootoutGameVariations; // DEBUG
             switch (optionSetChoice)
             {
                 case OptionSetChoice.Fast:
@@ -48,8 +48,8 @@ namespace ACESim
                 case OptionSetChoice.ShootoutPermutations:
                     AddShootoutPermutations(optionSets);
                     break;
-                case OptionSetChoice.ShootoutPermutations2:
-                    AddShootoutPermutations2(optionSets);
+                case OptionSetChoice.ShootoutGameVariations:
+                    AddShootoutGameVariations(optionSets);
                     break;
                 case OptionSetChoice.VariousUncertainties:
                     AddVariousUncertainties(optionSets);
@@ -164,38 +164,36 @@ namespace ACESim
             }
         }
 
-        private void AddShootoutPermutations2(List<(string optionSetName, GameOptions options)> optionSets)
+        private void AddShootoutGameVariations(List<(string optionSetName, GameOptions options)> optionSets)
         {
             foreach (RiskAversion riskAverse in new RiskAversion[] { RiskAversion.RiskNeutral })
             {
+                // different levels of costs, same for both parties
+                foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("basecosts", 1.0), ("lowcosts", 1.0 / 3.0), ("highcosts", 3) })
+                {
+                    optionSets.Add(GetAndTransform("noshootout", name, MyGameOptionsGenerator.Usual, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
+                    optionSets.Add(GetAndTransform("shootout", name, MyGameOptionsGenerator.Shootout, x => { x.CostsMultiplier = costsMultiplier; }, riskAverse));
+                }
                 // try lowering all costs dramatically except trial costs
-                foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("lowcostsregtrial", 1.0 / 10.0) })
+                foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("lowpretrialcosts", 1.0 / 10.0) })
                 {
                     optionSets.Add(GetAndTransform("noshootout", name, MyGameOptionsGenerator.Usual, x => { x.CostsMultiplier = costsMultiplier; x.PTrialCosts *= 1.0 / costsMultiplier; x.DTrialCosts *= 1.0 / costsMultiplier;  }, riskAverse));
                     optionSets.Add(GetAndTransform("shootout", name, MyGameOptionsGenerator.Shootout, x => { x.CostsMultiplier = costsMultiplier; x.PTrialCosts *= 1.0 / costsMultiplier; x.DTrialCosts *= 1.0 / costsMultiplier; }, riskAverse));
-                    //optionSets.Add(GetAndTransform("soallrounds", name, MyGameOptionsGenerator.Shootout_AllRounds, x => { x.CostsMultiplier = costsMultiplier; x.PTrialCosts *= 1.0 / costsMultiplier; x.DTrialCosts *= 1.0 / costsMultiplier; }, riskAverse));
-                    //optionSets.Add(GetAndTransform("soabandon", name, MyGameOptionsGenerator.Shootout_IncludingAbandoment, x => { x.CostsMultiplier = costsMultiplier; x.PTrialCosts *= 1.0 / costsMultiplier; x.DTrialCosts *= 1.0 / costsMultiplier; }, riskAverse));
-                    //optionSets.Add(GetAndTransform("soallraban", name, MyGameOptionsGenerator.Shootout_AllRoundsIncludingAbandoment, x => { x.CostsMultiplier = costsMultiplier; x.PTrialCosts *= 1.0 / costsMultiplier; x.DTrialCosts *= 1.0 / costsMultiplier; }, riskAverse));
-                    //optionSets.Add(GetAndTransform("sotrip", name, MyGameOptionsGenerator.Shootout_Triple, x => { x.CostsMultiplier = costsMultiplier; x.PTrialCosts *= 1.0 / costsMultiplier; x.DTrialCosts *= 1.0 / costsMultiplier; }, riskAverse));
                 }
                 // Now, we'll do asymmetric trial costs. We assume that other costs are the same. This might make sense in the event that trial has a publicity cost for one party. 
-                foreach ((string name, double dCostsMultiplier) in new (string name, double dCostsMultiplier)[] { ("phighcost", 0.5), ("dhighcost", 2.0) })
-                {
-                    Action<MyGameOptions> transform = x =>
-                    {
-                        x.DTrialCosts *= dCostsMultiplier;
-                        x.PTrialCosts /= dCostsMultiplier;
-                    };
-                    optionSets.Add(GetAndTransform("noshootout", name, MyGameOptionsGenerator.Usual, transform, riskAverse));
-                    optionSets.Add(GetAndTransform("shootout", name, MyGameOptionsGenerator.Shootout, transform, riskAverse));
-                    //optionSets.Add(GetAndTransform("soallrounds", name, MyGameOptionsGenerator.Shootout_AllRounds, transform, riskAverse));
-                    //optionSets.Add(GetAndTransform("soabandon", name, MyGameOptionsGenerator.Shootout_IncludingAbandoment, transform, riskAverse));
-                    //optionSets.Add(GetAndTransform("soallraban", name, MyGameOptionsGenerator.Shootout_AllRoundsIncludingAbandoment, transform, riskAverse));
-                    //optionSets.Add(GetAndTransform("sotrip", name, MyGameOptionsGenerator.Shootout_Triple, transform, riskAverse));
-                }
+                //foreach ((string name, double dCostsMultiplier) in new (string name, double dCostsMultiplier)[] { ("phighcost", 0.5), ("dhighcost", 2.0) })
+                //{
+                //    Action<MyGameOptions> transform = x =>
+                //    {
+                //        x.DTrialCosts *= dCostsMultiplier;
+                //        x.PTrialCosts /= dCostsMultiplier;
+                //    };
+                //    optionSets.Add(GetAndTransform("noshootout", name, MyGameOptionsGenerator.Usual, transform, riskAverse));
+                //    optionSets.Add(GetAndTransform("shootout", name, MyGameOptionsGenerator.Shootout, transform, riskAverse));
+                //}
             }
-            // now, add a set with asymmetric risk aversion
-            foreach (RiskAversion riskAverse in new RiskAversion[] { RiskAversion.POnlyRiskAverse, RiskAversion.DOnlyRiskAverse })
+            // now, add a set with regular and asymmetric risk aversion
+            foreach (RiskAversion riskAverse in new RiskAversion[] { RiskAversion.RiskAverse, RiskAversion.POnlyRiskAverse, RiskAversion.DOnlyRiskAverse })
             {
                 foreach ((string name, double costsMultiplier) in new (string name, double costsMultiplier)[] { ("basecosts", 1.0) })
                 {
@@ -221,14 +219,9 @@ namespace ACESim
                         };
                         optionSets.Add(GetAndTransform("noshootout", infoName + "-" + name, MyGameOptionsGenerator.Usual, transform, riskAverse));
                         optionSets.Add(GetAndTransform("shootout", infoName + "-" + name, MyGameOptionsGenerator.Shootout, transform, riskAverse));
-                        //optionSets.Add(GetAndTransform("soallrounds", infoName + "-" + name, MyGameOptionsGenerator.Shootout_AllRounds, transform, riskAverse));
-                        //optionSets.Add(GetAndTransform("soabandon", infoName + "-" + name, MyGameOptionsGenerator.Shootout_IncludingAbandoment, transform, riskAverse));
-                        //optionSets.Add(GetAndTransform("soallraban", infoName + "-" + name, MyGameOptionsGenerator.Shootout_AllRoundsIncludingAbandoment, transform, riskAverse));
-                        //optionSets.Add(GetAndTransform("sotrip", infoName + "-" + name, MyGameOptionsGenerator.Shootout_Triple, transform, riskAverse));
                     }
                 }
             }
-
 
             // now, liability and damages only
             foreach (RiskAversion riskAverse in new RiskAversion[] { RiskAversion.RiskNeutral })
@@ -240,10 +233,6 @@ namespace ACESim
                     optionSets.Add(GetAndTransform("dam-shootout", name, MyGameOptionsGenerator.DamagesShootout, transform, riskAverse)); 
                     optionSets.Add(GetAndTransform("liab-noshootout", name, MyGameOptionsGenerator.LiabilityUncertainty_2BR, transform, riskAverse));
                     optionSets.Add(GetAndTransform("liab-shootout", name, MyGameOptionsGenerator.LiabilityShootout, transform, riskAverse));
-                    //optionSets.Add(GetAndTransform("soallrounds", infoName + "-" + name, MyGameOptionsGenerator.Shootout_AllRounds, transform, riskAverse));
-                    //optionSets.Add(GetAndTransform("soabandon", infoName + "-" + name, MyGameOptionsGenerator.Shootout_IncludingAbandoment, transform, riskAverse));
-                    //optionSets.Add(GetAndTransform("soallraban", infoName + "-" + name, MyGameOptionsGenerator.Shootout_AllRoundsIncludingAbandoment, transform, riskAverse));
-                    //optionSets.Add(GetAndTransform("sotrip", infoName + "-" + name, MyGameOptionsGenerator.Shootout_Triple, transform, riskAverse));
                 }
             }
         }

@@ -129,9 +129,16 @@ namespace ACESim
 
         public static MyGameOptions Custom()
         {
-            var options = DamagesUncertainty_2BR();
-
-            options.IncludeAgreementToBargainDecisions = true;
+            var options = Usual();
+            options.MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
+            {
+                ExogenousProbabilityTrulyLiable = 0.9,
+            };
+            options.DamagesMin = 75_000;
+            options.ShootoutSettlements = true;
+            options.ShootoutsApplyAfterAbandonment = false;
+            options.ShootoutStrength = 1.0;
+            options.ShootoutsAverageAllRounds = false;
 
             return options;
         }
