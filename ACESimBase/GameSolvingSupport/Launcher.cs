@@ -18,7 +18,7 @@ namespace ACESim
 
         #region Settings
 
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.FictitiousPlay;
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.MultiplicativeWeights;
 
         public const int VanillaIterations = 100_000;
         public const int VanillaReportEveryNIterations = VanillaIterations;
@@ -40,7 +40,7 @@ namespace ACESim
         public bool AzureEnabled = true;
         public int MaxParallelDepth = 3;
 
-        public string MasterReportNameForDistributedProcessing = "R061"; // DEBUG // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
+        public string MasterReportNameForDistributedProcessing = "R063"; // IMPORTANT: Must update this (or delete the Coordinator) when deploying service fabric
         public bool UseDistributedProcessingForMultipleOptionsSets = true;
         public static bool MaxOneReportPerDistributedProcess = false;
         public bool DistributedProcessing => !LaunchSingleOptionsSetOnly && UseDistributedProcessingForMultipleOptionsSets; // this should be true if running on the local service fabric or usign ACESimDistributed

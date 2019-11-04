@@ -39,7 +39,7 @@ namespace ACESim
         public override List<(string optionSetName, GameOptions options)> GetOptionsSets()
         {
             List<(string optionSetName, GameOptions options)> optionSets = new List<(string optionSetName, GameOptions options)>();
-            OptionSetChoice optionSetChoice = OptionSetChoice.ShootoutGameVariations; // DEBUG
+            OptionSetChoice optionSetChoice = OptionSetChoice.ShootoutGameVariations;
             switch (optionSetChoice)
             {
                 case OptionSetChoice.Fast:
