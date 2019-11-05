@@ -1077,6 +1077,20 @@ namespace ACESim
 
         #region General manipulation
 
+        public void SetToMixedStrategy(double[] strategy, bool setAverageAndCumulativeStrategy)
+        {
+            for (byte a = 1; a <= NumPossibleActions; a++)
+            {
+                NodeInformation[currentProbabilityDimension, a - 1] = strategy[a - 1];
+                NodeInformation[currentProbabilityForOpponentDimension, a - 1] = strategy[a - 1];
+                if (setAverageAndCumulativeStrategy)
+                {
+                    NodeInformation[averageStrategyProbabilityDimension, a - 1] = strategy[a - 1];
+                    NodeInformation[cumulativeStrategyDimension, a - 1] = strategy[a - 1];
+                }
+            }
+        }
+
         public void SetToPureStrategy(byte action, bool setAverageAndCumulativeStrategy)
         {
             for (byte a = 1; a <= NumPossibleActions; a++)

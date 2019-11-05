@@ -101,6 +101,10 @@ namespace ACESim
                 UpdateInformationSets(iteration);
                 SimulatedAnnealing(iteration);
                 MiniReport(iteration, Unroll_IterationResultForPlayers);
+                if (iteration == EvolutionSettings.TotalIterations)
+                { // DEBUG
+                    ACESimBase.GameSolvingAlgorithms.GeneticAlgorithm.RunFromAnotherAlgorithm(InformationSets, 1000, CalculateBestResponseAndGetFitnessAndUtilities);
+                }
                 var result = await GenerateReports(iteration,
                     () =>
                         $"{GameDefinition.OptionSetName} Iteration {iteration} Overall milliseconds per iteration {((StrategiesDeveloperStopwatch.ElapsedMilliseconds / ((double)iteration)))}");
