@@ -101,9 +101,11 @@ namespace ACESim
                 UpdateInformationSets(iteration);
                 SimulatedAnnealing(iteration);
                 MiniReport(iteration, Unroll_IterationResultForPlayers);
-                if (iteration == EvolutionSettings.TotalIterations)
-                { // DEBUG
-                    ACESimBase.GameSolvingAlgorithms.GeneticAlgorithm.RunFromAnotherAlgorithm(InformationSets, 1000, CalculateBestResponseAndGetFitnessAndUtilities);
+                bool addGeneticAlgorithm = false;
+                if (addGeneticAlgorithm && iteration == EvolutionSettings.TotalIterations)
+                {
+                    int numGeneticIterations = 1_000;
+                    ACESimBase.GameSolvingAlgorithms.GeneticAlgorithm.RunFromAnotherAlgorithm(InformationSets, numGeneticIterations, CalculateBestResponseAndGetFitnessAndUtilities);
                 }
                 var result = await GenerateReports(iteration,
                     () =>
