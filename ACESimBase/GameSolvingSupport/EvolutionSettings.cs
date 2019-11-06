@@ -76,7 +76,7 @@ namespace ACESim
         public static bool PredeterminePrunabilityBasedOnRelativeContributions = false; // if True, then we prune if and only if the action contributes negligibly at any later information set
 
         public bool CFRBR = false; // if true, opponent plays best response
-        public bool CFR_OpponentPlaysAverageStrategy = true; // typically, the opponent plays the current strategy in CFR. With this variant, the opponent plays the average strategy. // DEBUG
+        public bool CFR_OpponentPlaysAverageStrategy = false; // typically, the opponent plays the current strategy in CFR. With this variant, the opponent plays the average strategy.
 
         // For Vanilla algorithm:
         // From Solving Imperfect Information Games with Discounted Regret Minimization -- optimal values (for situations in which pruning may be used)
