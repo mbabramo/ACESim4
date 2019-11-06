@@ -821,7 +821,11 @@ namespace ACESim
             // The opponent's probability is the probability to use when traversing an opponent information set during optimization. 
             bool pruning = pruneOpponentStrategyIfDesignatedPrunable || (pruneOpponentStrategyBelow != null && pruneOpponentStrategyBelow != 0);
             double probabilityThreshold = pruning && !pruneOpponentStrategyIfDesignatedPrunable ? (double)pruneOpponentStrategyBelow : SmallestProbabilityRepresented;
-            Func<byte, double> currentProbabilityFunc = a => NodeInformation[currentProbabilityDimension, a - 1];
+            Func<byte, double> currentProbabilityFunc;
+            if (EvolutionSettings.CFR_OpponentPlaysAverageStrategy)
+                currentProbabilityFunc = a => NodeInformation[averageStrategyProbabilityDimension, a - 1];
+            else
+                currentProbabilityFunc = a => NodeInformation[currentProbabilityDimension, a - 1];
             SetProbabilitiesFromFunc(currentProbabilityForOpponentDimension, probabilityThreshold, pruning, pruneOpponentStrategyIfDesignatedPrunable, currentProbabilityFunc);
 
             if (addOpponentTremble)
@@ -858,6 +862,7 @@ namespace ACESim
             NodeInformation[probabilityDimension, largestAction - 1] = remainingProbability;
         }
 
+        // TODO: Consider deleting this.
         private void AddTrembleToOpponentProbabilities(double trembleProportion)
         {
             if (!Decision.IsContinuousAction)
@@ -1076,6 +1081,20 @@ namespace ACESim
         #endregion
 
         #region General manipulation
+
+        public void SetToMixedStrategy(double[] strategy, bool setAverageAndCumulativeStrategy)
+        {
+            for (byte a = 1; a <= NumPossibleActions; a++)
+            {
+                NodeInformation[currentProbabilityDimension, a - 1] = strategy[a - 1];
+                NodeInformation[currentProbabilityForOpponentDimension, a - 1] = strategy[a - 1];
+                if (setAverageAndCumulativeStrategy)
+                {
+                    NodeInformation[averageStrategyProbabilityDimension, a - 1] = strategy[a - 1];
+                    NodeInformation[cumulativeStrategyDimension, a - 1] = strategy[a - 1];
+                }
+            }
+        }
 
         public void SetToPureStrategy(byte action, bool setAverageAndCumulativeStrategy)
         {

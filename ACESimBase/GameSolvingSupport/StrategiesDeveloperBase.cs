@@ -845,6 +845,15 @@ namespace ACESim
             CalculateBestResponseValuesAndReachability(determineWhetherReachable, parallelize);
             CompleteAcceleratedBestResponse();
         }
+
+
+        public (double exploitability, double[] utilities) CalculateBestResponseAndGetFitnessAndUtilities()
+        {
+            // gets the best response for whichever population member's actions have been copied to information set
+            CalculateBestResponse(false);
+            return (BestResponseImprovementAdj.Sum(), BestResponseUtilities.ToArray());
+        }
+
         public void CalculateReachProbabilitiesAndPrunability(bool parallelize)
         {
             for (int i = 0; i < InformationSetsByDecisionIndex.Count; i++)

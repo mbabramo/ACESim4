@@ -18,7 +18,7 @@ namespace ACESim
 
         #region Settings
 
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.MultiplicativeWeights;
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching;
 
         public const int VanillaIterations = 100_000;
         public const int VanillaReportEveryNIterations = VanillaIterations;
@@ -35,7 +35,7 @@ namespace ACESim
         public const bool UseRegretAndStrategyDiscounting = false;
 
         public const int StartGameNumber = 1;
-        public bool LaunchSingleOptionsSetOnly = false; 
+        public bool LaunchSingleOptionsSetOnly = true; 
         public int NumRepetitions = 1;
         public bool AzureEnabled = true;
         public int MaxParallelDepth = 3;
