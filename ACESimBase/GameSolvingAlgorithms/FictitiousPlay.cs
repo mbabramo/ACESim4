@@ -79,6 +79,23 @@ namespace ACESim
 
             double perturbation = 0; // NOTE: 0 perturbation seems necessary for fictitious play EvolutionSettings.Perturbation_BasedOnCurve(iteration, EvolutionSettings.TotalIterations);
 
+            if (IterationNum == 10)
+            {
+                // DEBUG
+                int numSamples = 25000;
+                List<bool>[] includedActions = InformationSets.Select(x => x.GetAverageStrategiesAsArray()).Select(x => x.Select(y => y > 0.03 ? true : false).ToList()).ToArray();
+                int totalActionsToVary = includedActions.Sum(x => x.Count() == 1 ? x.Count() : 0);
+                float[][] inputs = new float[numSamples][];
+                for (int s = 0; s < numSamples; s++)
+                {
+                    int inputIndex = -1;
+                    foreach (var informationSet in InformationSets)
+                    {
+
+                    }
+                }
+            }
+
             if (EvolutionSettings.BestResponseDynamics)
             {
                 if (!EvolutionSettings.ParallelOptimization)
