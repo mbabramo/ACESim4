@@ -108,7 +108,7 @@ namespace ACESim
 
         public override string ToString()
         {
-            return $"Information set {InformationSetNodeNumber} ({Decision.Name}): DecisionByteCode {DecisionByteCode} (index {DecisionIndex}) PlayerIndex {PlayerIndex} Probabilities {GetCurrentProbabilitiesAsString()} {GetBestResponseStringIfAvailable()}Average {GetAverageStrategiesAsString()} Regrets {GetCumulativeRegretsString()} Strategies {GetCumulativeStrategiesString()}";
+            return $"Information set {InformationSetNodeNumber} ({Decision.Name}): DecisionByteCode {DecisionByteCode} (index {DecisionIndex}) PlayerIndex {PlayerIndex} Probabilities {GetCurrentProbabilitiesAsString()} {GetBestResponseStringIfAvailable()}Average {CalculateAverageStrategiesAsString()} Regrets {GetCumulativeRegretsString()} Strategies {GetCumulativeStrategiesString()}";
         }
 
         public string GetBestResponseStringIfAvailable()
@@ -654,7 +654,7 @@ namespace ACESim
 
         }
 
-        public double[] GetAverageStrategiesAsArray()
+        public double[] CalculateAverageStrategiesAsArray()
         {
             double[] array = new double[NumPossibleActions];
 
@@ -665,9 +665,9 @@ namespace ACESim
             return array;
         }
 
-        public string GetAverageStrategiesAsString()
+        public string CalculateAverageStrategiesAsString()
         {
-            return String.Join(", ", GetAverageStrategiesAsArray().Select(x => x.ToSignificantFigures(3)));
+            return String.Join(", ", CalculateAverageStrategiesAsArray().Select(x => x.ToSignificantFigures(3)));
         }
 
         public void SetActionToCertainty(byte action, byte numPossibleActions)
@@ -1002,6 +1002,13 @@ namespace ACESim
             return NodeInformation[averageStrategyProbabilityDimension, action - 1];
         }
 
+        public double[] GetAverageStrategyProbabilities()
+        {
+            double[] p = new double[NumPossibleActions];
+            GetAverageStrategyProbabilities(p);
+            return p;
+        }
+
         public void GetAverageStrategyProbabilities(Span<double> probabilitiesToSet)
         {
             for (byte a = 1; a <= NumPossibleActions; a++)
@@ -1162,7 +1169,7 @@ namespace ACESim
         {
             if (continuousDecisionsOnly && !Decision.IsContinuousAction)
                 return;
-            double[] averageStrategyProbabilities = GetAverageStrategiesAsArray();
+            double[] averageStrategyProbabilities = CalculateAverageStrategiesAsArray();
             var indexed = averageStrategyProbabilities.Select((value, index) => (value, index)).ToList();
             var highest = indexed.OrderByDescending(x => x.value).First();
             var secondHighest = indexed.OrderByDescending(x => x.value).Skip(1).First();
@@ -1174,7 +1181,7 @@ namespace ACESim
                 NodeInformation[averageStrategyProbabilityDimension, highest.index] -= reallocation;
                 NodeInformation[averageStrategyProbabilityDimension, secondHighest.index] += reallocation;
             }
-            var revisedAverageStrategyProbabilities = GetAverageStrategiesAsArray();
+            var revisedAverageStrategyProbabilities = CalculateAverageStrategiesAsArray();
             if (Math.Abs(revisedAverageStrategyProbabilities.Sum() - 1) > 1E-8)
                 throw new Exception();
         }
@@ -1208,6 +1215,11 @@ namespace ACESim
             if (d < 1E-8)
                 return 0;
             return d * multiplyByFn();
+        }
+
+        public void SetAverageStrategyForAction(byte a, double value)
+        {
+            NodeInformation[averageStrategyProbabilityDimension, a - 1] = value;
         }
 
         public void SetAverageStrategyFromPastValues()
@@ -1287,8 +1299,8 @@ namespace ACESim
                 rangesString = String.Join("; ", ranges.Select(x => $"({x.startIteration}-{x.endIteration}): {GetActionsAsString(x.significantActions)}"));
             }
             string hedgeString = GetCurrentProbabilitiesAsString();
-            double[] averageStrategies = GetAverageStrategiesAsArray();
-            string avgStratString = GetAverageStrategiesAsString();
+            double[] averageStrategies = CalculateAverageStrategiesAsArray();
+            string avgStratString = CalculateAverageStrategiesAsString();
             bool avgStratSameAsBestResponse = averageStrategies[BestResponseAction - 1] > 0.9999999;
             //if (ranges.Count() > 1)
             TabbedText.WriteLine($"{(avgStratSameAsBestResponse ? "*" : "")} decision {Decision.Name} Information set {InformationSetNodeNumber} bestrespon {BestResponseAction} hedge {hedgeString} avg {avgStratString} avg distance {avgDistanceString} ranges: {rangesString}");

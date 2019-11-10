@@ -2,6 +2,7 @@
 using ACESim.Util;
 using System;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -13,7 +14,12 @@ namespace ACESimDistributed
         {
             long iterations = 0;
             string dateTimeString = DateTime.Now.ToString("yyyy-mm-dd-hh-mm");
-            string processID = "p" + Process.GetCurrentProcess().Id;
+            Process currentProcess = Process.GetCurrentProcess();
+            string processID = "p" + currentProcess.Id;
+            var byName = Process.GetProcessesByName(currentProcess.ProcessName);
+            var processorAffinities = Enumerable.Range(0, Environment.ProcessorCount).Select(x => (x, (IntPtr)(1L << x))).ToArray();
+            var selectedProcessorAffinity = processorAffinities.OrderBy(x => byName.Count(y => y.ProcessorAffinity == x.Item2)).First().Item2;
+            currentProcess.ProcessorAffinity = selectedProcessorAffinity;
             CancellationToken cancellationToken = new CancellationToken();
             string containerName = "results";
             string fileName = "log" + "-" + processID + "-" + dateTimeString;

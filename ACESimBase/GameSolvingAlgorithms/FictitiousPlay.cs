@@ -1,5 +1,14 @@
-﻿using ACESimBase.Util;
+﻿using ACESimBase.GameSolvingSupport;
+using ACESimBase.Util;
 using ACESimBase.Util.ArrayProcessing;
+using NeuralNetworkNET.APIs;
+using NeuralNetworkNET.APIs.Enums;
+using NeuralNetworkNET.APIs.Interfaces;
+using NeuralNetworkNET.APIs.Interfaces.Data;
+using NeuralNetworkNET.APIs.Results;
+using NeuralNetworkNET.APIs.Structs;
+using NeuralNetworkNET.Networks.Cost;
+using NeuralNetworkNET.SupervisedLearning.Progress;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -81,19 +90,46 @@ namespace ACESim
 
             if (IterationNum == 10)
             {
+                void TrackBatchProgress(BatchProgress progress)
+                {
+
+                }
                 // DEBUG
-                int numSamples = 25000;
-                List<bool>[] includedActions = InformationSets.Select(x => x.GetAverageStrategiesAsArray()).Select(x => x.Select(y => y > 0.03 ? true : false).ToList()).ToArray();
-                int totalActionsToVary = includedActions.Sum(x => x.Count() == 1 ? x.Count() : 0);
-                float[][] inputs = new float[numSamples][];
+                int numSamples = 3000;
+                int numSamplesInTraining = 2000;
+                (float[] X, float[] Y)[] data = new (float[] X, float[] Y)[numSamples];
+                InformationSetNodesMutationPrep p = new InformationSetNodesMutationPrep(InformationSets, 0.05);
+                InformationSets.ForEach(x => x.ZeroLowProbabilities(InformationSetNodesMutationPrep.MinValueToKeep)); 
+                InformationSets.ForEach(x => x.CreateBackup());
+                CalculateBestResponse(false);
+                var original = BestResponseImprovementAdjAvg;
                 for (int s = 0; s < numSamples; s++)
                 {
-                    int inputIndex = -1;
-                    foreach (var informationSet in InformationSets)
-                    {
-
-                    }
+                    ConsistentRandomSequenceProducer r = new ConsistentRandomSequenceProducer((long)s * (long)100_000);
+                    float[] conciseMutationForm = p.PrepareMutations(r);
+                    data[s].X = conciseMutationForm;
+                    //for (int i = 0; i < 5; i++)
+                    //    Debug.WriteLine(i + ": " + String.Join(",", InformationSets[i].GetAverageStrategyProbabilities()));
+                    p.ImplementMutations(conciseMutationForm);
+                    //for (int i = 0; i < 5; i++)
+                    //    Debug.WriteLine(i + ": " + String.Join(",", InformationSets[i].GetAverageStrategyProbabilities()));
+                    CalculateBestResponse(false);
+                    data[s].Y = new float[] { (float) BestResponseImprovementAdjAvg };
                 }
+                INeuralNetwork network = NetworkManager.NewSequential(TensorInfo.Linear(data.First().X.Length),
+                    NetworkLayers.FullyConnected(100, ActivationType.Sigmoid),
+                    NetworkLayers.FullyConnected(1, ActivationType.Sigmoid, CostFunctionType.Quadratic));
+                ITrainingDataset trainingData = DatasetLoader.Training(data.Take(numSamplesInTraining), numSamples);
+                ITestDataset testData = DatasetLoader.Test(data.Skip(numSamplesInTraining));
+                TrainingSessionResult trainingResult = await NetworkManager.TrainNetworkAsync(network,
+                    trainingData,
+                    TrainingAlgorithms.Adam(),
+                    60, 0.0f,
+                    TrackBatchProgress,
+                    testDataset: testData);
+                var lastTrainingReport = trainingResult.TestReports.Last();
+
+                InformationSets.ForEach(x => x.RestoreBackup());
             }
 
             if (EvolutionSettings.BestResponseDynamics)

@@ -72,7 +72,7 @@ namespace ACESimBase.GameSolvingAlgorithms
             {
                 InformationSetNode informationSet = InformationSets[i];
                 // assign probabilities that necessarily add up to 1
-                double[] probabilities = informationSet.GetAverageStrategiesAsArray();
+                double[] probabilities = informationSet.CalculateAverageStrategiesAsArray();
                 //double[] currentProbabilities = informationSet.GetCurrentProbabilitiesAsArray();
                 const double minProb = 0.03;
                 double total = 0;
