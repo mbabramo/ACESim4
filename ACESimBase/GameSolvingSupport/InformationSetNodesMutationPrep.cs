@@ -16,10 +16,10 @@ namespace ACESimBase.GameSolvingSupport
         public int totalActionsToVary;
         public double changeDiscounting;
 
-        public InformationSetNodesMutationPrep(List<InformationSetNode> sourceInformationSets, double maxChange)
+        public InformationSetNodesMutationPrep(List<InformationSetNode> sourceInformationSets, double changeSizeScale)
         {
             this.sourceInformationSets = sourceInformationSets;
-            this.changeDiscounting = maxChange;
+            this.changeDiscounting = changeSizeScale;
             averageStrategies = sourceInformationSets.Select(x => x.CalculateAverageStrategiesAsArray()).ToList();
             scratchSpace = new float[averageStrategies.Max(x => x.Length)];
             includedActionsMinus1 = averageStrategies
