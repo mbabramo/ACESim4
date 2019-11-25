@@ -17,16 +17,7 @@ using NeuralNetworkNET.Networks.Layers.Cpu;
 using NeuralNetworkNET.SupervisedLearning.Data;
 using NeuralNetworkNET.SupervisedLearning.Optimization;
 using Newtonsoft.Json;
-using NeuralNetworkNet;
-
-namespace NeuralNetworkNet
-{
-    public static class FreezeInputsParams
-    {
-        public static bool FreezeNetwork = false;
-        public static bool ChangeInput = false; // DEBUG
-    }
-}
+using NeuralNetworkNet.Minimizer;
 
 namespace NeuralNetworkNET.Networks.Implementations
 {
@@ -231,7 +222,7 @@ namespace NeuralNetworkNET.Networks.Implementations
                  * Optimization
                  * ================
                  * Edit the network weights according to the computed gradients and the current training parameters */
-                if (!FreezeInputsParams.FreezeNetwork)
+                if (!Minimizer.FreezeNetwork)
                 {
                     int samples = batch.X.GetLength(0);
                     Parallel.For(0, WeightedLayersIndexes.Length, i =>
@@ -242,13 +233,21 @@ namespace NeuralNetworkNET.Networks.Implementations
                         dJdb[l].Free();
                     }).AssertCompleted();
                 }
-                if (FreezeInputsParams.ChangeInput)
+                if (Minimizer.ChangeInput)
                 {
                     for (int e = 0; e < changeInput[0].Entities; e++)
                     {
                         int inputSize = batch.X.GetLength(1);
+                        if (Minimizer.MinimizedInput == null)
+                            Minimizer.MinimizedInput = new float[inputSize];
                         for (int i = 0; i < inputSize; i++)
+                        {
                             batch.X[e, i] -= changeInput[0][e * inputSize + i];
+                            if (e == 0)
+                            {
+                                Minimizer.MinimizedInput[i] = batch.X[e, i];
+                            }
+                        }
                     }
                     var DEBUG = Forward(batch.X);
                     var DEBUG2 = Forward(new float[] { batch.X[0, 0] + 0.001f, batch.X[0, 1] + 0.001f });
