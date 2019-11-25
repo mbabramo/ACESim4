@@ -13,7 +13,7 @@ namespace NeuralNetworkNET.Networks.Layers.Cpu
     /// <summary>
     /// A batch normalization layer, used to improve the convergence speed of a neural network
     /// </summary>
-    public sealed class BatchNormalizationLayer : BatchNormalizationLayerBase
+    internal sealed class BatchNormalizationLayer : BatchNormalizationLayerBase
     {
         public BatchNormalizationLayer(in TensorInfo shape, NormalizationMode mode, ActivationType activation)
             : base(shape, mode, activation) { }

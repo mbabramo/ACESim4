@@ -17,6 +17,16 @@ using NeuralNetworkNET.Networks.Layers.Cpu;
 using NeuralNetworkNET.SupervisedLearning.Data;
 using NeuralNetworkNET.SupervisedLearning.Optimization;
 using Newtonsoft.Json;
+using NeuralNetworkNet;
+
+namespace NeuralNetworkNet
+{
+    public static class FreezeInputsParams
+    {
+        public static bool FreezeNetwork = false;
+        public static bool ChangeInput = false; // DEBUG
+    }
+}
 
 namespace NeuralNetworkNET.Networks.Implementations
 {
@@ -65,7 +75,7 @@ namespace NeuralNetworkNET.Networks.Implementations
                 if (i == layers.Length - 1 && !(layer is OutputLayerBase)) throw new NetworkBuildException("The last layer must be an output layer");
                 if (i > 0 && layers[i - 1].OutputInfo.Size != layer.InputInfo.Size)
                     throw new NetworkBuildException($"The inputs of layer #{i} don't match with the outputs of the previous layer");
-                if (i > 0 && layer is PoolingLayer && 
+                if (i > 0 && layer is PoolingLayer &&
                     layers[i - 1] is ConvolutionalLayer convolutional && convolutional.ActivationType != ActivationType.Identity)
                     throw new NetworkBuildException("A convolutional layer followed by a pooling layer must use the Identity activation function. " +
                                                     "In order to apply any activation function after the convolutional layer, just assign it to the pooling layer that follows. " +
@@ -94,7 +104,7 @@ namespace NeuralNetworkNET.Networks.Implementations
                 {
                     _Layers[i].Forward(i == 0 ? xTensor : aList[i - 1], out zList[i], out aList[i]);
                 }
-                (float[], float[])[] features = new(float[], float[])[_Layers.Length];
+                (float[], float[])[] features = new (float[], float[])[_Layers.Length];
                 for (int i = 0; i < _Layers.Length; i++)
                 {
                     features[i] = (zList[i].ToArray(), aList[i].ToArray());
@@ -118,7 +128,7 @@ namespace NeuralNetworkNET.Networks.Implementations
                 {
                     _Layers[i].Forward(i == 0 ? xTensor : aList[i - 1], out zList[i], out aList[i]);
                 }
-                (float[,], float[,])[] features = new(float[,], float[,])[_Layers.Length];
+                (float[,], float[,])[] features = new (float[,], float[,])[_Layers.Length];
                 for (int i = 0; i < _Layers.Length; i++)
                 {
                     features[i] = (zList[i].ToArray2D(), aList[i].ToArray2D());
@@ -187,7 +197,7 @@ namespace NeuralNetworkNET.Networks.Implementations
                 Tensor*
                     dJdw = stackalloc Tensor[_Layers.Length], // One gradient item for layer (the constant layers will be skipped)
                     dJdb = stackalloc Tensor[_Layers.Length],
-                    changeInput = stackalloc Tensor;
+                    changeInput = stackalloc Tensor[_Layers.Length];
                 Tensor.Like(aList[_Layers.Length - 2], out deltas[_Layers.Length - 2]);
                 OutputLayer.Backpropagate(aList[_Layers.Length - 2], aList[_Layers.Length - 1], y, zList[_Layers.Length - 1], deltas[_Layers.Length - 2], out dJdw[_Layers.Length - 1], out dJdb[_Layers.Length - 1]);
                 for (int l = _Layers.Length - 2; l >= 0; l--)
@@ -202,7 +212,7 @@ namespace NeuralNetworkNET.Networks.Implementations
                      *       layers a dummy gradient is added to the list and then ignored during the weights update pass */
                     NetworkLayerBase layer = _Layers[l];
                     if (l > 0) Tensor.Like(aList[l - 1], out deltas[l - 1]);
-                    if (l == 0) Tensor.Like(inputs, out changeInput);
+                    if (l == 0) Tensor.Like(x, out changeInput[0]);
                     switch (layer)
                     {
                         case ConstantLayerBase constant:
@@ -211,7 +221,7 @@ namespace NeuralNetworkNET.Networks.Implementations
                         case WeightedLayerBase weighted:
                             if (!dropoutMasks[l].IsNull) CpuBlas.MultiplyElementwise(deltas[l], dropoutMasks[l], deltas[l]);
                             ref readonly Tensor inputs = ref (l == 0).SwitchRef(ref x, ref aList[l - 1]);
-                            weighted.Backpropagate(inputs, zList[l], deltas[l], l == 0 ? changeInput : deltas[l - 1], out dJdw[l], out dJdb[l]);
+                            weighted.Backpropagate(inputs, zList[l], deltas[l], l == 0 ? changeInput[0] : deltas[l - 1], out dJdw[l], out dJdb[l]);
                             break;
                         default: throw new InvalidOperationException("Invalid layer type");
                     }
@@ -221,14 +231,28 @@ namespace NeuralNetworkNET.Networks.Implementations
                  * Optimization
                  * ================
                  * Edit the network weights according to the computed gradients and the current training parameters */
-                int samples = batch.X.GetLength(0);
-                Parallel.For(0, WeightedLayersIndexes.Length, i =>
+                if (!FreezeInputsParams.FreezeNetwork)
                 {
-                    int l = WeightedLayersIndexes[i];
-                    updater(i, dJdw[l], dJdb[l], samples, _Layers[l].To<NetworkLayerBase, WeightedLayerBase>());
-                    dJdw[l].Free();
-                    dJdb[l].Free();
-                }).AssertCompleted();
+                    int samples = batch.X.GetLength(0);
+                    Parallel.For(0, WeightedLayersIndexes.Length, i =>
+                    {
+                        int l = WeightedLayersIndexes[i];
+                        updater(i, dJdw[l], dJdb[l], samples, _Layers[l].To<NetworkLayerBase, WeightedLayerBase>());
+                        dJdw[l].Free();
+                        dJdb[l].Free();
+                    }).AssertCompleted();
+                }
+                if (FreezeInputsParams.ChangeInput)
+                {
+                    for (int e = 0; e < changeInput[0].Entities; e++)
+                    {
+                        int inputSize = batch.X.GetLength(1);
+                        for (int i = 0; i < inputSize; i++)
+                            batch.X[e, i] -= changeInput[0][e * inputSize + i];
+                    }
+                    var DEBUG = Forward(batch.X);
+                    var DEBUG2 = Forward(new float[] { batch.X[0, 0] + 0.001f, batch.X[0, 1] + 0.001f });
+                }
 
                 // Cleanup
                 for (int i = 0; i < _Layers.Length - 1; i++)
@@ -237,6 +261,7 @@ namespace NeuralNetworkNET.Networks.Implementations
                     aList[i].Free();
                     deltas[i].Free();
                     dropoutMasks[i].TryFree();
+                    changeInput[i].TryFree();
                 }
                 zList[_Layers.Length - 1].Free();
                 aList[_Layers.Length - 1].Free();
@@ -250,7 +275,7 @@ namespace NeuralNetworkNET.Networks.Implementations
         /// <inheritdoc/>
         protected override void Serialize(Stream stream)
         {
-            foreach (NetworkLayerBase layer in Layers.Cast<NetworkLayerBase>()) 
+            foreach (NetworkLayerBase layer in Layers.Cast<NetworkLayerBase>())
                 layer.Serialize(stream);
         }
 
