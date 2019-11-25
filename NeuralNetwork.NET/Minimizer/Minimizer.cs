@@ -45,12 +45,12 @@ namespace NeuralNetworkNet.Minimizer
             var testDataResults = data.Skip(numSamplesForTraining + numSamplesForValidation).Select(d => (network.Forward(d.X).First(), d.Y.First())).ToList();
             var examples = data.Skip(numSamplesForTraining + numSamplesForValidation).Take(15).Select(d => $"{string.Join(",", d.X)} => {network.Forward(d.X).Single()} (correct: {d.Y.Single()})");
             foreach (var example in examples)
-                Console.WriteLine(example);
+                Debug.WriteLine(example);
             var correlation = CorrelationCoefficient(testDataResults.Select(d => d.Item1).ToArray(), testDataResults.Select(d => d.Item2).ToArray());
             var minProjected = testDataResults.Select(d => d.Item1).Min();
             var maxProjected = testDataResults.Select(d => d.Item1).Max();
             var avgAbsolute = testDataResults.Average(d => Math.Abs(d.Item2 - d.Item1));
-            Console.WriteLine($"Cost function {costFunctionType} dropout {dropout} trainingAlgorithm {trainingAlgorithm} correlation {correlation} avgabsdiff {avgAbsolute} min-projected {minProjected} max-projected {maxProjected} time {s.ElapsedMilliseconds / 1000.0 }");
+            Debug.WriteLine($"Cost function {costFunctionType} dropout {dropout} trainingAlgorithm {trainingAlgorithm} correlation {correlation} avgabsdiff {avgAbsolute} min-projected {minProjected} max-projected {maxProjected} time {s.ElapsedMilliseconds / 1000.0 }");
             return network;
         }
 
@@ -76,7 +76,7 @@ namespace NeuralNetworkNet.Minimizer
                 TrackBatchProgress,
                 testDataset: testData);
             data[0].Y = orig;
-            Console.WriteLine($"Minimized: " + String.Join(",", Minimizer.MinimizedInput));
+            Debug.WriteLine($"Minimized: " + String.Join(",", Minimizer.MinimizedInput));
             return Minimizer.MinimizedInput;
         }
 

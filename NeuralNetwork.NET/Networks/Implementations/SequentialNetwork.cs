@@ -249,8 +249,6 @@ namespace NeuralNetworkNET.Networks.Implementations
                             }
                         }
                     }
-                    var DEBUG = Forward(batch.X);
-                    var DEBUG2 = Forward(new float[] { batch.X[0, 0] + 0.001f, batch.X[0, 1] + 0.001f });
                 }
 
                 // Cleanup
