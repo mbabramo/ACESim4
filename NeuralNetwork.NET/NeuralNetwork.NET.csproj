@@ -1,0 +1,65 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>NeuralNetworkNET</RootNamespace>
+    <Version>2.1.2</Version>
+    <Authors>Sergio Pedri</Authors>
+    <Company>Sergio Pedri</Company>
+    <Description>A TensorFlow-inspired neural network library built from scratch in C# 7.3 for .NET Standard 2.0, with GPU support through cuDNN and native memory management</Description>
+    <Copyright>Copyright (c) 2018 Sergio Pedri</Copyright>
+    <PackageLicenseUrl>https://github.com/Sergio0694/NeuralNetwork.NET/blob/master/LICENSE.md</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/Sergio0694/NeuralNetwork.NET</PackageProjectUrl>
+    <PackageIconUrl>https://i.pi.gy/73nG2.png</PackageIconUrl>
+    <PackageTags>cnn, neuralnetwork, deeplearning, ai, cuda, csharp, gpu, net, netstandard</PackageTags>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <PackageReleaseNotes>• Updated to C# 7.3
+• NuGet packages updated</PackageReleaseNotes>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <LangVersion>latest</LangVersion>
+    <DocumentationFile>bin\Release\netstandard2.0\NeuralNetwork.NET.xml</DocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <LangVersion>latest</LangVersion>
+    <DocumentationFile>bin\Debug\netstandard2.0\NeuralNetwork.NET.xml</DocumentationFile>
+  </PropertyGroup>
+  
+  <PropertyGroup>
+    <RestoreProjectStyle>PackageReference</RestoreProjectStyle>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+    <AssemblyVersion>2.1.2.0</AssemblyVersion>
+    <AssetTargetFallback>
+      $(AssetTargetFallback);net45
+    </AssetTargetFallback>
+    <FileVersion>2.1.2.0</FileVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Alea" Version="3.0.4" />
+    <PackageReference Include="FSharp.Core" Version="4.2.3" />
+    <PackageReference Include="JetBrains.Annotations" Version="2018.2.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
+    <PackageReference Include="SharpZipLib.NETStandard" Version="1.0.7" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="1.0.0-beta0005" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Alea">
+      <HintPath>$(NuGetPackageRoot)\alea\3.0.4\lib\net45\Alea.dll</HintPath>
+    </Reference>
+    <Reference Include="Alea.IL">
+      <HintPath>$(NuGetPackageRoot)\alea\3.0.4\lib\net45\Alea.IL.dll</HintPath>
+    </Reference>
+    <Reference Include="Alea.Parallel">
+      <HintPath>$(NuGetPackageRoot)\alea\3.0.4\lib\net45\Alea.Parallel.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

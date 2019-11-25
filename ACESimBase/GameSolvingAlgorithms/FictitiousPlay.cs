@@ -91,9 +91,9 @@ namespace ACESim
             if (IterationNum == 10)
             {
                 // DEBUG
-                int numSamples = 7000;
-                int numSamplesForTraining = 4000;
-                int numSamplesForValidation = 2000;
+                int numSamples = 700;
+                int numSamplesForTraining = 400;
+                int numSamplesForValidation = 200;
                 const double changeSizeScale = 0.0001;
                 (float[] X, float[] Y)[] data = new (float[] X, float[] Y)[numSamples];
                 InformationSetNodesMutationPrep p = new InformationSetNodesMutationPrep(InformationSets, changeSizeScale);
@@ -152,8 +152,24 @@ namespace ACESim
 
         private static async Task TestNeuralNetwork(int numSamples, int numSamplesForTraining, int numSamplesForValidation, (float[] X, float[] Y)[] data, CostFunctionType costFunctionType, float dropout, ITrainingAlgorithmInfo trainingAlgorithm)
         {
+            // DEBUG
+            numSamples = 100_000;
+            numSamplesForTraining = 60_000;
+            numSamplesForValidation = 10_000;
+            trainingAlgorithm = TrainingAlgorithms.StochasticGradientDescent(); // DEBUG
+            costFunctionType = CostFunctionType.Quadratic; // DEBUG
+            dropout = 0; // DEBUG
+            Random r = new Random();
+            data = new (float[] X, float[] Y)[numSamples];
+            for (int q = 0; q < data.Length; q++)
+            {
+                float a = (float)r.NextDouble();
+                float b = (float)r.NextDouble();
+                data[q].X = new float[] { a, b };
+                data[q].Y = new float[] { (float)(a*0.5 + b*0.0 + r.NextDouble() * 0.01) };
+            }
             INeuralNetwork network = NetworkManager.NewSequential(TensorInfo.Linear(data.First().X.Length),
-                NetworkLayers.FullyConnected(100, ActivationType.Sigmoid),
+                NetworkLayers.FullyConnected(20, ActivationType.Sigmoid),
                 NetworkLayers.FullyConnected(1, ActivationType.Sigmoid, costFunctionType));
             ITrainingDataset trainingData = DatasetLoader.Training(data.Take(numSamplesForTraining), numSamplesForTraining);
             var validationData = DatasetLoader.Validation(data.Skip(numSamplesForTraining).Take(numSamplesForValidation), 0.005f, 10);
@@ -164,11 +180,11 @@ namespace ACESim
             TrainingSessionResult trainingResult = await NetworkManager.TrainNetworkAsync(network,
                 trainingData,
                 trainingAlgorithm,
-                500, dropout,
+                1000, dropout,
                 TrackBatchProgress,
                 testDataset: testData);
             var lastTrainingReport = trainingResult.TestReports.Last();
-            var testDataResults = data.Skip(numSamplesForTraining).Select(d => (network.Forward(d.X).First(), d.Y.First())).ToList();
+            var testDataResults = data.Skip(numSamplesForTraining + numSamplesForValidation).Select(d => (network.Forward(d.X).First(), d.Y.First())).ToList();
             float ComputeCoeff(float[] values1, float[] values2)
             {
                 if (values1.Length != values2.Length)
@@ -187,6 +203,8 @@ namespace ACESim
                 return (float)result;
             }
             var correlation = ComputeCoeff(testDataResults.Select(d => d.Item1).ToArray(), testDataResults.Select(d => d.Item2).ToArray());
+            var DEBUG = testDataResults.Select(d => d.Item1).Min();
+            var DEBUG2 = testDataResults.Select(d => d.Item1).Max();
             Debug.WriteLine($"Cost function {costFunctionType} dropout {dropout} trainingAlgorithm {trainingAlgorithm} correlation {correlation}");
         }
 
