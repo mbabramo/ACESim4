@@ -48,7 +48,6 @@ namespace ACESim
 
             if (EvolutionSettings.UseDiscounting)
             {
-
                 int maxIterationToDiscount = EvolutionSettings.StopDiscountingAtIteration;
                 if (iteration < maxIterationToDiscount || EvolutionSettings.DiscountingTarget_ConstantAfterProportionOfIterations == 1.0)
                 {

@@ -89,7 +89,7 @@ namespace ACESim
 
             double perturbation = 0; // NOTE: 0 perturbation seems necessary for fictitious play EvolutionSettings.Perturbation_BasedOnCurve(iteration, EvolutionSettings.TotalIterations);
 
-            if (IterationNum == 25_000)
+            if (IterationNum % 5_000 == 0)
             {
                 // DEBUG
                 int numSamples = 25_000;
