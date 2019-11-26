@@ -799,16 +799,16 @@ namespace ACESim
 
         // Note: The first two methods must be used if we don't have a guarantee that updating will take place before each iteration.
 
-        public void PostIterationUpdates(int iteration, PostIterationUpdaterBase updater, double averageStrategyAdjustment, bool normalizeCumulativeStrategyIncrements, bool resetPreviousCumulativeStrategyIncrements, double? pruneOpponentStrategyBelow, bool pruneOpponentStrategyIfDesignatedPrunable, bool addOpponentTremble)
+        public void PostIterationUpdates(int iteration, PostIterationUpdaterBase updater, double averageStrategyAdjustment, bool normalizeCumulativeStrategyIncrements, bool resetPreviousCumulativeStrategyIncrements, double? pruneOpponentStrategyBelow, bool pruneOpponentStrategyIfDesignatedPrunable, bool addOpponentTremble, double? randomNumberToSelectSingleOpponentAction)
         {
             UpdateCumulativeAndAverageStrategies(iteration, averageStrategyAdjustment, normalizeCumulativeStrategyIncrements, resetPreviousCumulativeStrategyIncrements);
             DetermineBestResponseAction();
             ClearBestResponse();
             updater.UpdateInformationSet(this);
-            UpdateOpponentProbabilities(iteration, pruneOpponentStrategyBelow, pruneOpponentStrategyIfDesignatedPrunable, addOpponentTremble);
+            UpdateOpponentProbabilities(iteration, pruneOpponentStrategyBelow, pruneOpponentStrategyIfDesignatedPrunable, addOpponentTremble, randomNumberToSelectSingleOpponentAction);
         }
 
-        private void UpdateOpponentProbabilities(int iteration, double? pruneOpponentStrategyBelow, bool pruneOpponentStrategyIfDesignatedPrunable, bool addOpponentTremble)
+        private void UpdateOpponentProbabilities(int iteration, double? pruneOpponentStrategyBelow, bool pruneOpponentStrategyIfDesignatedPrunable, bool addOpponentTremble, double? randomNumberToSelectSingleOpponentAction)
         {
             if (iteration <= Decision.WarmStartThroughIteration)
             {
@@ -830,6 +830,25 @@ namespace ACESim
 
             if (addOpponentTremble)
                 AddTrembleToOpponentProbabilities(0.1); // note: doesn't seem to make much difference
+
+            if (randomNumberToSelectSingleOpponentAction != null)
+            {
+                double p = (double) randomNumberToSelectSingleOpponentAction;
+                // find corresponding action based on cumulative probabilities
+                double total = 0;
+                byte a;
+                for (a = 1; a <= NumPossibleActions - 1; a++) // look at all actions but last (if we don't break, then it's the last action)
+                {
+                    total += currentProbabilityFunc(a);
+                    if (total > p)
+                        break;
+                }
+                // set probabilities to 1 or 0
+                for (byte a2 = 1; a2 <= NumPossibleActions; a2++)
+                {
+                    NodeInformation[currentProbabilityForOpponentDimension, a2 - 1] = (a == a2) ? 1.0 : 0;
+                }
+            }
         }
 
         public void SetProbabilitiesFromFunc(int probabilityDimension, double probabilityThreshold, bool setBelowThresholdToZero, bool usePrunabilityInsteadOfThreshold, Func<byte, double> initialProbabilityFunc)

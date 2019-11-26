@@ -34,12 +34,16 @@ namespace ACESim
         {
             int numInformationSets = InformationSets.Count;
             PostIterationUpdater.PrepareForUpdating(iteration, EvolutionSettings);
-            double? pruneOpponentStrategyBelow = EvolutionSettings.PruneOnOpponentStrategy && !EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions ? EvolutionSettings.PruneOnOpponentStrategyThreshold : (double?)null;
-            bool predeterminePrunability = EvolutionSettings.PruneOnOpponentStrategy && EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions;
+            double? pruneOpponentStrategyBelow = !EvolutionSettings.CFR_OpponentSampling && EvolutionSettings.PruneOnOpponentStrategy && !EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions ? EvolutionSettings.PruneOnOpponentStrategyThreshold : (double?)null;
+            bool predeterminePrunability = !EvolutionSettings.CFR_OpponentSampling && EvolutionSettings.PruneOnOpponentStrategy && EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions;
+
+            Func<int, double?> randomNumberToSelectSingleOpponentAction = n => null;
+            if (EvolutionSettings.CFR_OpponentSampling)
+                randomNumberToSelectSingleOpponentAction = n => (new Random(iteration * 997 + n * 283 + GameNumber * 719)).NextDouble();
 
             if (EvolutionSettings.SimulatedAnnealing_UseRandomAverageStrategyAdjustment)
             {
-                Parallel.For(0, numInformationSets, n => InformationSets[n].PostIterationUpdates(iteration, PostIterationUpdater, EvolutionSettings.SimulatedAnnealing_RandomAverageStrategyAdjustment(iteration, InformationSets[n]), false, false, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble));
+                Parallel.For(0, numInformationSets, n => InformationSets[n].PostIterationUpdates(iteration, PostIterationUpdater, EvolutionSettings.SimulatedAnnealing_RandomAverageStrategyAdjustment(iteration, InformationSets[n]), false, false, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble, randomNumberToSelectSingleOpponentAction(n)));
                 return;
             }
 
@@ -67,7 +71,7 @@ namespace ACESim
                 }
             }
 
-            Parallel.For(0, numInformationSets, n => InformationSets[n].PostIterationUpdates(iteration, PostIterationUpdater, 1.0, normalizeCumulativeStrategyIncrements, resetPreviousCumulativeStrategyIncrements, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble));
+            Parallel.For(0, numInformationSets, n => InformationSets[n].PostIterationUpdates(iteration, PostIterationUpdater, 1.0, normalizeCumulativeStrategyIncrements, resetPreviousCumulativeStrategyIncrements, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble, randomNumberToSelectSingleOpponentAction(n)));
         }
 
         #endregion
