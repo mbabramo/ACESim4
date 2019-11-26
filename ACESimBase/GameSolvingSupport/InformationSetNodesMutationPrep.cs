@@ -68,7 +68,7 @@ namespace ACESimBase.GameSolvingSupport
             return conciseForm;
         }
 
-        public const double MinValueToKeep = 0.01;
+        public const double MinValueToKeep = 0.02;
 
         private void CopyNontrivialAverageStrategiesToScratch(int infoSetIndex, byte numActions)
         {
@@ -105,6 +105,12 @@ namespace ACESimBase.GameSolvingSupport
                         nextActionToSet = (byte) (j + 1);
                     }
                 }
+                // normalize
+                double total = 0;
+                for (byte j = 1; j <= numActions; j++)
+                    total += informationSet.GetAverageStrategy(j);
+                for (byte j = 1; j <= numActions; j++)
+                    informationSet.SetAverageStrategyForAction(j, informationSet.GetAverageStrategy(j)/total);
             }
         }
     }

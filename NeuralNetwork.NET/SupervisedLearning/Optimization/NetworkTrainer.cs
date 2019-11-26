@@ -123,6 +123,8 @@ namespace NeuralNetworkNET.SupervisedLearning.Optimization
             // Create the training batches
             for (int i = 0; i < epochs; i++)
             {
+                Console.WriteLine($"Epoch {i + 1} of {epochs}"); // DEBUG
+
                 // Shuffle the training set
                 miniBatches.CrossShuffle();
 

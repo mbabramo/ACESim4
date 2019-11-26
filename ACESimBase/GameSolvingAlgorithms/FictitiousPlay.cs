@@ -89,7 +89,7 @@ namespace ACESim
 
             double perturbation = 0; // NOTE: 0 perturbation seems necessary for fictitious play EvolutionSettings.Perturbation_BasedOnCurve(iteration, EvolutionSettings.TotalIterations);
 
-            if (IterationNum == 100)
+            if (IterationNum == 5000)
             {
                 // DEBUG
                 int numSamples = 25_000;
@@ -118,6 +118,7 @@ namespace ACESim
 
                 CalculateBestResponse(false);
                 var revised = BestResponseImprovementAdjAvg;
+                Console.WriteLine($"best response orig: {original} revised: {revised}");
 
 
                 InformationSets.ForEach(x => x.RestoreBackup());
@@ -157,7 +158,7 @@ namespace ACESim
             int numSamplesForValidation = (int)(data.Length * 0.01f); ;
             int batchSize = 200;
             int fullyConnectedLayerSize = 500;
-            int epochs = 100; // DEBUG ;
+            int epochs = 100; // DEBUG
             Random r = new Random();
             INeuralNetwork network = await Minimizer.BuildNeuralNetwork(numSamplesForTraining, numSamplesForValidation, batchSize, fullyConnectedLayerSize, data, CostFunctionType.Quadratic, 0, TrainingAlgorithms.RMSProp(), epochs);
             var minimized = await Minimizer.MinimizeInput(batchSize, data, CostFunctionType.Quadratic, TrainingAlgorithms.RMSProp(), 2_000, network);
