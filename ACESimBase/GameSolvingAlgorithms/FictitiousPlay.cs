@@ -89,17 +89,17 @@ namespace ACESim
 
             double perturbation = 0; // NOTE: 0 perturbation seems necessary for fictitious play EvolutionSettings.Perturbation_BasedOnCurve(iteration, EvolutionSettings.TotalIterations);
 
-            if (IterationNum == 5000)
+            if (IterationNum == 25_000)
             {
                 // DEBUG
                 int numSamples = 25_000;
                 const double changeSizeScale = 0.01;
                 (float[] X, float[] Y)[] data = new (float[] X, float[] Y)[numSamples];
                 InformationSetNodesMutationPrep p = new InformationSetNodesMutationPrep(InformationSets, changeSizeScale);
-                InformationSets.ForEach(x => x.ZeroLowProbabilities(InformationSetNodesMutationPrep.MinValueToKeep)); 
-                InformationSets.ForEach(x => x.CreateBackup());
                 CalculateBestResponse(false);
                 var original = BestResponseImprovementAdjAvg;
+                InformationSets.ForEach(x => x.CreateBackup());
+                InformationSets.ForEach(x => x.ZeroLowProbabilities(InformationSetNodesMutationPrep.MinValueToKeep)); 
                 for (int s = 0; s < numSamples; s++)
                 {
                     ConsistentRandomSequenceProducer r = new ConsistentRandomSequenceProducer((long)s * (long)100_000);
@@ -120,8 +120,8 @@ namespace ACESim
                 var revised = BestResponseImprovementAdjAvg;
                 Console.WriteLine($"best response orig: {original} revised: {revised}");
 
-
-                InformationSets.ForEach(x => x.RestoreBackup());
+                if (revised > original) // didn't improve things
+                    InformationSets.ForEach(x => x.RestoreBackup());
             }
 
             if (EvolutionSettings.BestResponseDynamics)
@@ -161,7 +161,7 @@ namespace ACESim
             int epochs = 100; // DEBUG
             Random r = new Random();
             INeuralNetwork network = await Minimizer.BuildNeuralNetwork(numSamplesForTraining, numSamplesForValidation, batchSize, fullyConnectedLayerSize, data, CostFunctionType.Quadratic, 0, TrainingAlgorithms.RMSProp(), epochs);
-            var minimized = await Minimizer.MinimizeInput(batchSize, data, CostFunctionType.Quadratic, TrainingAlgorithms.RMSProp(), 2_000, network);
+            var minimized = await Minimizer.MinimizeInput(batchSize, data, CostFunctionType.Quadratic, TrainingAlgorithms.RMSProp(), 500, network);
             return minimized;
         }
 

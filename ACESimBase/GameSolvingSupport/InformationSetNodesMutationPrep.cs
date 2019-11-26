@@ -68,7 +68,7 @@ namespace ACESimBase.GameSolvingSupport
             return conciseForm;
         }
 
-        public const double MinValueToKeep = 0.02;
+        public const double MinValueToKeep = 0.01;
 
         private void CopyNontrivialAverageStrategiesToScratch(int infoSetIndex, byte numActions)
         {
