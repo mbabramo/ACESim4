@@ -34,7 +34,7 @@ namespace ACESim
             PerfectInfo,
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Fast; 
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Faster; 
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
@@ -350,7 +350,7 @@ namespace ACESim
             options.NumLiabilityStrengthPoints = 4;
             options.NumLiabilitySignals = 4;
             options.NumOffers = 4;
-            options.NumPotentialBargainingRounds = 3;
+            options.NumPotentialBargainingRounds = 2;
             options.AllowAbandonAndDefaults = false;
             options.SkipFileAndAnswerDecisions = false;
 

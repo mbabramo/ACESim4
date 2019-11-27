@@ -32,8 +32,6 @@ namespace ACESim
         public const int SummaryTableRandomPathsIterations = 25_000;
         public const int ProbingIterations = 20_000_000;
 
-        public const bool UseRegretAndStrategyDiscounting = false;
-
         public const int StartGameNumber = 1;
         public bool LaunchSingleOptionsSetOnly = true; 
         public int NumRepetitions = 1;
@@ -45,8 +43,8 @@ namespace ACESim
         public static bool MaxOneReportPerDistributedProcess = false;
         public bool DistributedProcessing => !LaunchSingleOptionsSetOnly && UseDistributedProcessingForMultipleOptionsSets; // this should be true if running on the local service fabric or usign ACESimDistributed
         public bool ParallelizeOptionSets = false; // run multiple option sets at same time on computer (in which case each individually will be run not in parallel)
-        public bool ParallelizeIndividualExecutions = true; // only if !ParallelizeOptionSets && (LaunchSingleOptionsSetOnly || !DistributedProcessing)
-        public bool DynamicSetParallelIfPossible = true;
+        public bool ParallelizeIndividualExecutions = true; // DEBUG // only if !ParallelizeOptionSets && (LaunchSingleOptionsSetOnly || !DistributedProcessing)
+        public bool DynamicSetParallelIfPossible = true; // DEBUG
         public bool DynamicSetParallel => DistributedProcessing && DynamicSetParallelIfPossible;
         public bool ParallelizeIndividualExecutionsAlways = false; // Note -- maybe not really working // will always take precedence
 
@@ -185,8 +183,6 @@ namespace ACESim
                 EpsilonForOpponentWhenExploring = 0.05,
                 MinBackupRegretsTrigger = 10,
                 TriggerIncreaseOverTime = 0,
-
-                UseDiscounting = UseRegretAndStrategyDiscounting,
 
                 TotalAvgStrategySamplingCFRIterations = ProbingIterations,
                 TotalIterations = VanillaIterations,

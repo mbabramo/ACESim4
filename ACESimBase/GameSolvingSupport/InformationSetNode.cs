@@ -595,6 +595,13 @@ namespace ACESim
                 SetProbabilitiesFromFunc(averageStrategyProbabilityDimension, SmallestProbabilityInAverageStrategy, true, false, avgStrategyFunc);
             }
         }
+        public double[] GetCumulativeStrategiesAsArray()
+        {
+            List<double> probs = new List<double>();
+            for (byte a = 1; a <= NumPossibleActions; a++)
+                probs.Add(NodeInformation[cumulativeStrategyDimension, a - 1]);
+            return probs.ToArray();
+        }
 
         public string GetCumulativeStrategiesString()
         {
@@ -652,6 +659,22 @@ namespace ACESim
             if (sum == 0)
                 GetEqualProbabilitiesRegretMatching(probabilities);
 
+        }
+
+        public double[] GetLastRegretIncrementsAsArray()
+        {
+            double[] array = new double[NumPossibleActions];
+            for (int a = 1; a <= NumPossibleActions; a++)
+                array[a - 1] = NodeInformation[sumInversePiDimension, a - 1] == 0 ? 0 : NodeInformation[sumRegretTimesInversePiDimension, a - 1] / NodeInformation[sumInversePiDimension, a - 1];
+            return array;
+        }
+
+        public double[] GetLastCumulativeStrategyIncrementAsArray()
+        {
+            double[] array = new double[NumPossibleActions];
+            for (int a = 1; a <= NumPossibleActions; a++)
+                array[a - 1] = GetLastCumulativeStrategyIncrement((byte) a);
+            return array;
         }
 
         public double[] GetAverageStrategiesAsArray()
@@ -805,6 +828,10 @@ namespace ACESim
             DetermineBestResponseAction();
             ClearBestResponse();
             updater.UpdateInformationSet(this);
+            if (iteration == 500)
+                CreateBackup(); // DEBUG SUPERDEBUG
+            if (iteration >= 500)
+                RestoreBackup(); // DEBUG SUPERDEBUG;
             UpdateOpponentProbabilities(iteration, pruneOpponentStrategyBelow, pruneOpponentStrategyIfDesignatedPrunable, addOpponentTremble, randomNumberToSelectSingleOpponentAction);
         }
 

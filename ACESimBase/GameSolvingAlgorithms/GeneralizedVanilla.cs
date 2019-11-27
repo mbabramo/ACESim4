@@ -71,7 +71,9 @@ namespace ACESim
                 }
             }
 
-            Parallel.For(0, numInformationSets, n => InformationSets[n].PostIterationUpdates(iteration, PostIterationUpdater, 1.0, normalizeCumulativeStrategyIncrements, resetPreviousCumulativeStrategyIncrements, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble, randomNumberToSelectSingleOpponentAction(n)));
+            double averageStrategyAdjustment = EvolutionSettings.UseDiscounting ? AverageStrategyAdjustment : 1.0;
+
+            Parallel.For(0, numInformationSets, n => InformationSets[n].PostIterationUpdates(iteration, PostIterationUpdater, averageStrategyAdjustment, normalizeCumulativeStrategyIncrements, resetPreviousCumulativeStrategyIncrements, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble, randomNumberToSelectSingleOpponentAction(n)));
         }
 
         #endregion
@@ -780,6 +782,8 @@ namespace ACESim
             }
             return reportCollection;
         }
+
+        double[][] DEBUGRemembered, DEBUGAccumulated, DEBUGAccumulated2;
         private async Task<ReportCollection> GeneralizedVanillaCFRIteration(int iteration)
         {
             IterationNumDouble = iteration;
@@ -794,7 +798,68 @@ namespace ACESim
             GeneralizedVanillaUtilities[] results = new GeneralizedVanillaUtilities[NumNonChancePlayers];
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
+                GameNumber = 5; // DEBUG
+                if (iteration % 100 == 0)
+                { // DEBUG
+                    //if (playerBeingOptimized == 1 && iteration >= 500)
+                    //    continue; // DEBUG SUPERDEBUG
+                    if (iteration >= 500)
+                        EvolutionSettings.CFR_OpponentSampling = false; // DEBUG SUPERDEBUG
+                    var informationSets = InformationSets.Where(x => x.PlayerIndex == 0).Take(80).Select(x => x.GetAverageStrategiesAsArray()).ToArray(); 
+                    if (iteration <= 500)
+                        DEBUGRemembered = informationSets;
+                    else if (iteration > 500)
+                    {
+                        //for (int i = 0; i < DEBUGRemembered.Length; i++)
+                        //{
+                        //    Console.Write(InformationSets.Where(x => x.PlayerIndex == 0).Skip(i).First().InformationSetNodeNumber + ": ");
+                        //    for (int j = 0; j < DEBUGRemembered[i].Length; j++)
+                        //    {
+                        //        informationSets[i][j] -= DEBUGRemembered[i][j];
+                        //        Console.Write(informationSets[i][j].ToSignificantFigures(3) + ", ");
+                        //    }
+                        //    Console.WriteLine("");
+                        //}
+                        for (int i = 0; i < DEBUGAccumulated2.Length; i++)
+                        {
+                            Console.Write(InformationSets.Where(x => x.PlayerIndex == 0).Skip(i).First().InformationSetNodeNumber + ": ");
+                            for (int j = 0; j < DEBUGAccumulated2[i].Length; j++)
+                            {
+                                Console.Write(DEBUGAccumulated2[i][j].ToSignificantFigures(3) + ", ");
+                            }
+                            Console.WriteLine("");
+                        }
+                    }
+                }
+
                 GeneralizedVanillaCFRIteration_OptimizePlayer(iteration, results, playerBeingOptimized);
+
+                if (iteration > 500)
+                {
+                    var lastStrategyIncrements = InformationSets.Where(x => x.PlayerIndex == 0).Take(80).Select(x => x.GetLastRegretIncrementsAsArray()).ToArray();
+                    if (iteration == 501)
+                    {
+                        DEBUGAccumulated = new double[DEBUGRemembered.Length][];
+                        for (int i = 0; i < DEBUGRemembered.Length; i++)
+                            DEBUGAccumulated[i] = new double[DEBUGRemembered[i].Length];
+                        DEBUGAccumulated2 = new double[DEBUGRemembered.Length][];
+                        for (int i = 0; i < DEBUGRemembered.Length; i++)
+                            DEBUGAccumulated2[i] = new double[DEBUGRemembered[i].Length];
+                    }
+                    for (int i = 0; i < DEBUGAccumulated.Length; i++)
+                    {
+                        double total = 0;
+                        for (int j = 0; j < DEBUGAccumulated[i].Length; j++)
+                        {
+                            DEBUGAccumulated[i][j] += lastStrategyIncrements[i][j];
+                            if (DEBUGAccumulated[i][j] > 0)
+                                total += DEBUGAccumulated[i][j];
+                        }
+                        if (total > 0)
+                            for (int j = 0; j < DEBUGAccumulated[i].Length; j++)
+                                DEBUGAccumulated2[i][j] = DEBUGAccumulated[i][j] <= 0 ? 0 : DEBUGAccumulated[i][j] / total;
+                    }
+                }
             }
             UpdateInformationSets(iteration);
             SimulatedAnnealing(iteration);
