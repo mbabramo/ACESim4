@@ -1063,6 +1063,13 @@ namespace ACESim
             } // for each action
             if (playerMakingDecision == playerBeingOptimized)
             {
+                if (informationSet.InformationSetNodeNumber == 56 && IterationNum > 500)
+                {
+                    var DEBUG2 = 0;
+                    TraceCFR = true;
+                    TabbedText.WriteLine("");
+                    TabbedText.WriteLine($"IterationNum {IterationNum}");
+                }
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
                     double pi = piValues[playerBeingOptimized];
@@ -1089,6 +1096,12 @@ namespace ACESim
                         TabbedText.WriteLine(
                             $"Regrets ({informationSet.Decision.Name} {informationSet.InformationSetNodeNumber}): Action {action} probability {actionProbabilities[action - 1]} regret {regret} inversePi {inversePi} avg_strat_incrememnt {contributionToAverageStrategy} cum_strategy {informationSet.GetLastCumulativeStrategyIncrement(action)}");
                     }
+                }
+
+                if (informationSet.InformationSetNodeNumber == 56 && IterationNum > 500)
+                {
+                    var DEBUG3 = 0;
+                    TraceCFR = false;
                 }
             }
             return result;
