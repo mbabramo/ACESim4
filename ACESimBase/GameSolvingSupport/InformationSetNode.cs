@@ -828,10 +828,10 @@ namespace ACESim
             DetermineBestResponseAction();
             ClearBestResponse();
             updater.UpdateInformationSet(this);
-            if (iteration == 500)
-                CreateBackup(); // DEBUG SUPERDEBUG
-            if (iteration >= 500)
-                RestoreBackup(); // DEBUG SUPERDEBUG;
+            //if (iteration == 500)
+            //    CreateBackup(); // DEBUG SUPERDEBUG
+            //if (iteration >= 500)
+            //    RestoreBackup(); // DEBUG SUPERDEBUG;
             UpdateOpponentProbabilities(iteration, pruneOpponentStrategyBelow, pruneOpponentStrategyIfDesignatedPrunable, addOpponentTremble, randomNumberToSelectSingleOpponentAction);
         }
 

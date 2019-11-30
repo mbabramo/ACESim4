@@ -52,7 +52,6 @@ namespace ACESim
 
             if (EvolutionSettings.UseDiscounting)
             {
-
                 int maxIterationToDiscount = EvolutionSettings.StopDiscountingAtIteration;
                 if (iteration < maxIterationToDiscount || EvolutionSettings.DiscountingTarget_ConstantAfterProportionOfIterations == 1.0)
                 {
@@ -803,8 +802,8 @@ namespace ACESim
                 { // DEBUG
                     //if (playerBeingOptimized == 1 && iteration >= 500)
                     //    continue; // DEBUG SUPERDEBUG
-                    if (iteration >= 500)
-                        EvolutionSettings.CFR_OpponentSampling = false; // DEBUG SUPERDEBUG
+                    //if (iteration >= 500)
+                    //    EvolutionSettings.CFR_OpponentSampling = false; // DEBUG SUPERDEBUG
                     var informationSets = InformationSets.Where(x => x.PlayerIndex == 0).Take(80).Select(x => x.GetAverageStrategiesAsArray()).ToArray(); 
                     if (iteration <= 500)
                         DEBUGRemembered = informationSets;
@@ -820,15 +819,15 @@ namespace ACESim
                         //    }
                         //    Console.WriteLine("");
                         //}
-                        for (int i = 0; i < DEBUGAccumulated2.Length; i++)
-                        {
-                            Console.Write(InformationSets.Where(x => x.PlayerIndex == 0).Skip(i).First().InformationSetNodeNumber + ": ");
-                            for (int j = 0; j < DEBUGAccumulated2[i].Length; j++)
-                            {
-                                Console.Write(DEBUGAccumulated2[i][j].ToSignificantFigures(3) + ", ");
-                            }
-                            Console.WriteLine("");
-                        }
+                        //for (int i = 0; i < DEBUGAccumulated2.Length; i++)
+                        //{
+                        //    Console.Write(InformationSets.Where(x => x.PlayerIndex == 0).Skip(i).First().InformationSetNodeNumber + ": ");
+                        //    for (int j = 0; j < DEBUGAccumulated2[i].Length; j++)
+                        //    {
+                        //        Console.Write(DEBUGAccumulated2[i][j].ToSignificantFigures(3) + ", ");
+                        //    }
+                        //    Console.WriteLine("");
+                        //}
                     }
                 }
 
@@ -1063,13 +1062,13 @@ namespace ACESim
             } // for each action
             if (playerMakingDecision == playerBeingOptimized)
             {
-                if (informationSet.InformationSetNodeNumber == 56 && IterationNum > 500)
-                {
-                    var DEBUG2 = 0;
-                    TraceCFR = true;
-                    TabbedText.WriteLine("");
-                    TabbedText.WriteLine($"IterationNum {IterationNum}");
-                }
+                //if (informationSet.InformationSetNodeNumber == 56 && IterationNum > 500)
+                //{
+                //    var DEBUG2 = 0;
+                //    TraceCFR = true;
+                //    TabbedText.WriteLine("");
+                //    TabbedText.WriteLine($"IterationNum {IterationNum}");
+                //}
                 for (byte action = 1; action <= numPossibleActions; action++)
                 {
                     double pi = piValues[playerBeingOptimized];
@@ -1098,11 +1097,11 @@ namespace ACESim
                     }
                 }
 
-                if (informationSet.InformationSetNodeNumber == 56 && IterationNum > 500)
-                {
-                    var DEBUG3 = 0;
-                    TraceCFR = false;
-                }
+                //if (informationSet.InformationSetNodeNumber == 56 && IterationNum > 500)
+                //{
+                //    var DEBUG3 = 0;
+                //    TraceCFR = false;
+                //}
             }
             return result;
         }

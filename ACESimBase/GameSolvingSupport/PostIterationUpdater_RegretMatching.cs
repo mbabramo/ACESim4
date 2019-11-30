@@ -33,6 +33,7 @@ namespace ACESimBase.GameSolvingSupport
                 nodeInformation[InformationSetNode.cumulativeRegretDimension, a - 1] = cumulativeRegret;
                 if (cumulativeRegret > 0)
                     sumPositiveCumRegrets += cumulativeRegret; // with regular CFR and CFR+, we only count total positive regrets in calculating current probabilities.
+                // DEBUG
                 nodeInformation[InformationSetNode.sumRegretTimesInversePiDimension, a - 1] = 0; // reset for next iteration
                 nodeInformation[InformationSetNode.sumInversePiDimension, a - 1] = 0;
             }

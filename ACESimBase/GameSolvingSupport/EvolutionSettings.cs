@@ -77,11 +77,11 @@ namespace ACESim
 
         public bool CFRBR = false; // if true, opponent plays best response
         public bool CFR_OpponentPlaysAverageStrategy = false; // typically, the opponent plays the current strategy in CFR. With this variant, the opponent plays the average strategy. This sometimes gives mildly better results, but not consistent performance improvements.
-        public bool CFR_OpponentSampling = false; // DEBUG // if true, then we sample only 1 action at each opponent information set (but this does not apply to chance actions, as currently implemented)
+        public bool CFR_OpponentSampling = true; // DEBUG // if true, then we sample only 1 action at each opponent information set (but this does not apply to chance actions, as currently implemented)
 
         // For Vanilla algorithm:
         // From Solving Imperfect Information Games with Discounted Regret Minimization -- optimal values (for situations in which pruning may be used)
-        public bool UseDiscounting = true; // DEBUG // Note: This might be helpful sometimes for multiplicative weights
+        public bool UseDiscounting = false; // DEBUG // Note: This might be helpful sometimes for multiplicative weights
         public bool DiscountRegrets = false; // if true, Discounting_Alpha and Discounting_Beta are used -- note never currently used in MultiplicativeWeightsVanilla
         public const double Discounting_Alpha = 1.5; // multiply accumulated positive regrets by t^alpha / (t^alpha + 1)
         public const double Discounting_Beta = 0.5; // multiply accumulated negative regrets by t^alpha / (t^alpha + 1)
