@@ -10,7 +10,7 @@ namespace ACESim
     public class EvolutionSettings
     {
         public bool DistributeChanceDecisions = true; // NOTE: This is currently very slow when using full game tree.
-        public bool UnrollAlgorithm = true; // DEBUG SUPERDEBUG
+        public bool UnrollAlgorithm = true; 
         public bool AzureEnabled = false;
         // Note: Many of the below are overridden by launcher.
         public int TotalAvgStrategySamplingCFRIterations = 100000;
@@ -192,7 +192,7 @@ namespace ACESim
 
         public bool RecordPastValues = true; // DEBUG // NOTE: This is set by launcher
         public int RecordPastValues_TargetNumberToRecord = 100;
-        public int? RecordPastValues_AtIterationMultiples = 1_000; // DEBUG
+        public int? RecordPastValues_AtIterationMultiples = 5_000; // DEBUG
         public bool RecordPastValues_ResetAtIterationMultiples = true; // DEBUG
         /// <summary>
         /// The proportion of iterations at which to start randomly selecting past values. This will be used only if RecordPastValues_AtIterationMultiples is null.
