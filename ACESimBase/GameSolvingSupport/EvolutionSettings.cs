@@ -37,8 +37,8 @@ namespace ACESim
         public bool SerializeResults = false;
         public bool SerializeInformationSetDataOnly = false;
         public string SerializeResultsPrefix = "serstrat";
-        public bool ParallelOptimization = false; // will be overridden by launcher
-        public bool DynamicSetParallel = false; // will be overridden by launcher
+        public bool ParallelOptimization = true; // will be overridden by launcher
+        public bool DynamicSetParallel = true; // will be overridden by launcher
         public int MaxParallelDepth = 3; // will be overridden by launcher
         public string SerializeResultsPrefixPlus(int scenario, int totalScenarios) => SerializeResultsPrefix + (totalScenarios > 0 ? scenario.ToString() : "");
 
@@ -65,7 +65,7 @@ namespace ACESim
         public List<int> RestrictToTheseInformationSets = null;
         public bool PrintNonChanceInformationSetsOnly = true;
         public List<ActionStrategies> ActionStrategiesToUseInReporting = new List<ActionStrategies>() { ActionStrategies.AverageStrategy };
-        public int GameNumber = 3; // DEBUG
+        public int GameNumber = 4; // DEBUG
         internal int NumRandomIterationsForUtilityCalculation = 10000;
         internal bool SuppressReportDisplayOnScreen;
 
@@ -81,7 +81,7 @@ namespace ACESim
 
         // For Vanilla algorithm:
         // From Solving Imperfect Information Games with Discounted Regret Minimization -- optimal values (for situations in which pruning may be used)
-        public bool UseDiscounting = true; // DEBUG // Note: This might be helpful sometimes for multiplicative weights
+        public bool UseDiscounting = false; // DEBUG // Note: This might be helpful sometimes for multiplicative weights
         public bool DiscountRegrets = false; // if true, Discounting_Alpha and Discounting_Beta are used -- note never currently used in MultiplicativeWeightsVanilla
         public const double Discounting_Alpha = 1.5; // multiply accumulated positive regrets by t^alpha / (t^alpha + 1)
         public const double Discounting_Beta = 0.5; // multiply accumulated negative regrets by t^alpha / (t^alpha + 1)
