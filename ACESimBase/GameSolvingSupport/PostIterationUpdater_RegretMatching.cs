@@ -17,7 +17,7 @@ namespace ACESimBase.GameSolvingSupport
             UseCFRPlus = evolutionSettings.UseCFRPlusInRegretMatching;
         }
 
-        public override void UpdateInformationSet(InformationSetNode node)
+        public override void UpdateInformationSet(InformationSetNode node, bool weightResultByInversePiForIteration)
         {
             // normalize regrets to costs between 0 and 1. the key assumption is that each iteration takes into account ALL possible outcomes (as in a vanilla hedge CFR algorithm)
             double sumPositiveCumRegrets = 0;
@@ -25,7 +25,7 @@ namespace ACESimBase.GameSolvingSupport
             int numPossibleActions = node.NumPossibleActions;
             for (int a = 1; a <= numPossibleActions; a++)
             {
-                double normalizedRegret = GetNormalizedRegret(node, a, false, false);
+                double normalizedRegret = GetNormalizedRegret(node, a, weightResultByInversePiForIteration, false);
                 double cumulativeRegret = nodeInformation[InformationSetNode.cumulativeRegretDimension, a - 1];
                 cumulativeRegret += normalizedRegret;
                 if (cumulativeRegret < 0 && UseCFRPlus)

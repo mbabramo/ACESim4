@@ -95,7 +95,7 @@ namespace ACESim
 
         public void Reinitialize()
         {
-            Initialize();
+            Initialize(false);
             V = 0;
             MaxAbsRegretDiff = 0;
             E = 1;
@@ -119,7 +119,7 @@ namespace ACESim
             //return $"BestResponse {BackupBestResponseAction} {NodeInformation[bestResponseNumeratorDimension, PlayerIndex]}/{NodeInformation[bestResponseDenominatorDimension, PlayerIndex]}";
         }
 
-        public void Initialize()
+        public void Initialize(bool clearPastValues = false)
         {
             ResetNodeInformation(totalDimensions, NumPossibleActions);
             BackupNodeInformation = null;
@@ -129,12 +129,21 @@ namespace ACESim
             BestResponseAction = 1;
             for (int a = 1; a <= NumPossibleActions; a++)
             {
-                NodeInformation[adjustedWeightsDimension, a - 1] = 1.0;
                 NodeInformation[currentProbabilityDimension, a - 1] = probability;
                 NodeInformation[currentProbabilityForOpponentDimension, a - 1] = probability;
                 NodeInformation[averageStrategyProbabilityDimension, a - 1] = probability;
+                NodeInformation[bestResponseNumeratorDimension, a - 1] = 0;
+                NodeInformation[bestResponseDenominatorDimension, a - 1] = 0;
+                NodeInformation[cumulativeRegretDimension, a - 1] = 0;
+                NodeInformation[cumulativeStrategyDimension, a - 1] = 0;
+                NodeInformation[adjustedWeightsDimension, a - 1] = 1.0;
+                NodeInformation[sumRegretTimesInversePiDimension, a - 1] = 0;
+                NodeInformation[sumInversePiDimension, a - 1] = 0;
+                NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1] = 0;
+                NodeInformation[scratchDimension, a - 1] = 0;
+
             }
-            if (EvolutionSettings.RecordPastValues)
+            if (EvolutionSettings.RecordPastValues && clearPastValues) 
             {
                 PastValues = new double[EvolutionSettings.RecordPastValues_TargetNumberToRecord, NumPossibleActions];
                 PastValuesCumulativeStrategyDiscounts = new double[EvolutionSettings.RecordPastValues_TargetNumberToRecord];
@@ -822,12 +831,12 @@ namespace ACESim
 
         // Note: The first two methods must be used if we don't have a guarantee that updating will take place before each iteration.
 
-        public void PostIterationUpdates(int iteration, PostIterationUpdaterBase updater, double averageStrategyAdjustment, bool normalizeCumulativeStrategyIncrements, bool resetPreviousCumulativeStrategyIncrements, double? pruneOpponentStrategyBelow, bool pruneOpponentStrategyIfDesignatedPrunable, bool addOpponentTremble, double? randomNumberToSelectSingleOpponentAction)
+        public void PostIterationUpdates(int iteration, PostIterationUpdaterBase updater, double averageStrategyAdjustment, bool normalizeCumulativeStrategyIncrements, bool resetPreviousCumulativeStrategyIncrements, double? pruneOpponentStrategyBelow, bool pruneOpponentStrategyIfDesignatedPrunable, bool addOpponentTremble, bool weightResultByInversePiForIteration, double? randomNumberToSelectSingleOpponentAction)
         {
             UpdateCumulativeAndAverageStrategies(iteration, averageStrategyAdjustment, normalizeCumulativeStrategyIncrements, resetPreviousCumulativeStrategyIncrements);
             DetermineBestResponseAction();
             ClearBestResponse();
-            updater.UpdateInformationSet(this);
+            updater.UpdateInformationSet(this, weightResultByInversePiForIteration);
             //if (iteration == 500)
             //    CreateBackup(); // DEBUG SUPERDEBUG
             //if (iteration >= 500)
@@ -947,6 +956,10 @@ namespace ACESim
 
         private void RecordProbabilitiesAsPastValues(int iteration, double averageStrategyAdjustment)
         {
+            if (iteration > 198)
+            {
+                var DEBUG = 0;
+            }
             if (EvolutionSettings.RecordPastValues_AtIteration(iteration))
             {
                 if (LastPastValueIndexRecorded + 1 < PastValuesCumulativeStrategyDiscounts.Length)

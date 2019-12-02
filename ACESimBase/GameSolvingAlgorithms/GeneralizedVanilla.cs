@@ -43,7 +43,7 @@ namespace ACESim
 
             if (EvolutionSettings.SimulatedAnnealing_UseRandomAverageStrategyAdjustment)
             {
-                Parallel.For(0, numInformationSets, n => InformationSets[n].PostIterationUpdates(iteration, PostIterationUpdater, EvolutionSettings.SimulatedAnnealing_RandomAverageStrategyAdjustment(iteration, InformationSets[n]), false, false, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble, randomNumberToSelectSingleOpponentAction(n)));
+                Parallel.For(0, numInformationSets, n => InformationSets[n].PostIterationUpdates(iteration, PostIterationUpdater, EvolutionSettings.SimulatedAnnealing_RandomAverageStrategyAdjustment(iteration, InformationSets[n]), false, false, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble, EvolutionSettings.Algorithm == GameApproximationAlgorithm.RegretMatching && EvolutionSettings.CFR_OpponentSampling, randomNumberToSelectSingleOpponentAction(n)));
                 return;
             }
 
@@ -72,7 +72,7 @@ namespace ACESim
 
             double averageStrategyAdjustment = EvolutionSettings.UseDiscounting ? AverageStrategyAdjustment : 1.0;
 
-            Parallel.For(0, numInformationSets, n => InformationSets[n].PostIterationUpdates(iteration, PostIterationUpdater, averageStrategyAdjustment, normalizeCumulativeStrategyIncrements, resetPreviousCumulativeStrategyIncrements, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble, randomNumberToSelectSingleOpponentAction(n)));
+            Parallel.For(0, numInformationSets, n => InformationSets[n].PostIterationUpdates(iteration, PostIterationUpdater, averageStrategyAdjustment, normalizeCumulativeStrategyIncrements, resetPreviousCumulativeStrategyIncrements, pruneOpponentStrategyBelow, predeterminePrunability, EvolutionSettings.GeneralizedVanillaAddTremble, EvolutionSettings.Algorithm == GameApproximationAlgorithm.RegretMatching && EvolutionSettings.CFR_OpponentSampling, randomNumberToSelectSingleOpponentAction(n)));
         }
 
         #endregion
@@ -124,8 +124,17 @@ namespace ACESim
                 }
                 if (EvolutionSettings.PruneOnOpponentStrategy && EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions)
                     CalculateReachProbabilitiesAndPrunability(EvolutionSettings.ParallelOptimization);
+                ReinitializeInformationSetsIfNecessary(iteration);
             }
             return reportCollection;
+        }
+
+        private void ReinitializeInformationSetsIfNecessary(int iteration)
+        {
+            if (EvolutionSettings.RecordPastValues && EvolutionSettings.RecordPastValues_AtIterationMultiples is int multiples && iteration % multiples == 0 && EvolutionSettings.RecordPastValues_ResetAtIterationMultiples)
+            {
+                ReinitializeInformationSets();
+            }
         }
 
         public string TraceCommandList(double[] array)
@@ -432,6 +441,7 @@ namespace ACESim
 
         public void Unroll_GeneralizedVanillaCFR(in HistoryPoint historyPoint, byte playerBeingOptimized, int[] piValues, int[] avgStratPiValues, int[] resultArray, bool isUltimateResult, int distributorChanceInputs)
         {
+            GameNumber = 11; // DEBUG
             Unroll_Commands.IncrementDepth(false);
             IGameState gameStateForCurrentPlayer = GetGameState(in historyPoint);
             GameStateTypeEnum gameStateType = gameStateForCurrentPlayer.GetGameStateType();
@@ -778,6 +788,7 @@ namespace ACESim
                 targetMet = BestResponseTargetMet;
                 if (EvolutionSettings.PruneOnOpponentStrategy && EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions)
                     CalculateReachProbabilitiesAndPrunability(EvolutionSettings.ParallelOptimization);
+                ReinitializeInformationSetsIfNecessary(iteration);
             }
             return reportCollection;
         }
@@ -797,17 +808,16 @@ namespace ACESim
             GeneralizedVanillaUtilities[] results = new GeneralizedVanillaUtilities[NumNonChancePlayers];
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
-                GameNumber = 5; // DEBUG
                 if (iteration % 100 == 0)
                 { // DEBUG
                     //if (playerBeingOptimized == 1 && iteration >= 500)
                     //    continue; // DEBUG SUPERDEBUG
                     //if (iteration >= 500)
                     //    EvolutionSettings.CFR_OpponentSampling = false; // DEBUG SUPERDEBUG
-                    var informationSets = InformationSets.Where(x => x.PlayerIndex == 0).Take(80).Select(x => x.GetAverageStrategiesAsArray()).ToArray(); 
-                    if (iteration <= 500)
+                    var informationSets = InformationSets.Where(x => x.PlayerIndex == 0).Take(80).Select(x => x.GetAverageStrategiesAsArray()).ToArray();  // DEBUG
+                    if (iteration <= 100)
                         DEBUGRemembered = informationSets;
-                    else if (iteration > 500)
+                    else if (iteration > 100)
                     {
                         //for (int i = 0; i < DEBUGRemembered.Length; i++)
                         //{
@@ -833,10 +843,10 @@ namespace ACESim
 
                 GeneralizedVanillaCFRIteration_OptimizePlayer(iteration, results, playerBeingOptimized);
 
-                if (iteration > 500)
+                if (iteration > 100)
                 {
                     var lastStrategyIncrements = InformationSets.Where(x => x.PlayerIndex == 0).Take(80).Select(x => x.GetLastRegretIncrementsAsArray()).ToArray();
-                    if (iteration == 501)
+                    if (iteration == 101)
                     {
                         DEBUGAccumulated = new double[DEBUGRemembered.Length][];
                         for (int i = 0; i < DEBUGRemembered.Length; i++)

@@ -16,7 +16,7 @@ namespace ACESimBase.GameSolvingSupport
 
         }
 
-        public override void UpdateInformationSet(InformationSetNode node)
+        public override void UpdateInformationSet(InformationSetNode node, bool weightResultByInversePiForIteration)
         {
             // normalize regrets to costs between 0 and 1. the key assumption is that each iteration takes into account ALL possible outcomes (as in a vanilla hedge CFR algorithm)
             double sumWeights = 0;
@@ -24,7 +24,7 @@ namespace ACESimBase.GameSolvingSupport
             int numPossibleActions = node.NumPossibleActions;
             for (int a = 1; a <= numPossibleActions; a++)
             {
-                double normalizedRegret = GetNormalizedRegret(node, a, false, true);
+                double normalizedRegret = GetNormalizedRegret(node, a, weightResultByInversePiForIteration, true);
                 double adjustedNormalizedRegret = 1.0 - normalizedRegret; // if regret is high (good move), this is low; bad moves are now close to 1 and good moves are close to 0
                 double weightAdjustment = Math.Pow(1 - MultiplicativeWeightsEpsilon, adjustedNormalizedRegret); // if there is a good move, then this is high (relatively close to 1). For example, suppose MultiplicativeWeightsEpsilon is 0.5. Then, if adjustedNormalizedRegret is 0.9 (bad move), the weight adjustment is 0.536, but if adjustedNormalizedRegret is 0.1 (good move), the weight adjustment is only 0.933, so the bad move is discounted relative to the good move by 0.536/0.933. if MultiplicativeWeightsEpsilon is 0.1, then the weight adjustments are 0.98 and 0.90; i.e., the algorithm is much less greedy (because 1 - MultiplicativeWeightsEpsilon is relatively lose to 1). if MultiplicativeWeightsEpsilon is 0.9, the algorithm is much more greedy.
                 double weight = nodeInformation[InformationSetNode.adjustedWeightsDimension, a - 1];

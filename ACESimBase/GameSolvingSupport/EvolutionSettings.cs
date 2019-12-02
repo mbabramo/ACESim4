@@ -10,7 +10,7 @@ namespace ACESim
     public class EvolutionSettings
     {
         public bool DistributeChanceDecisions = true; // NOTE: This is currently very slow when using full game tree.
-        public bool UnrollAlgorithm = false; // DEBUG
+        public bool UnrollAlgorithm = true; 
         public bool AzureEnabled = false;
         // Note: Many of the below are overridden by launcher.
         public int TotalAvgStrategySamplingCFRIterations = 100000;
@@ -65,7 +65,7 @@ namespace ACESim
         public List<int> RestrictToTheseInformationSets = null;
         public bool PrintNonChanceInformationSetsOnly = true;
         public List<ActionStrategies> ActionStrategiesToUseInReporting = new List<ActionStrategies>() { ActionStrategies.AverageStrategy };
-        public int GameNumber = 3; // DEBUG
+        public int GameNumber = 0; // does not copy over to Launcher
         internal int NumRandomIterationsForUtilityCalculation = 10000;
         internal bool SuppressReportDisplayOnScreen;
 
@@ -81,7 +81,7 @@ namespace ACESim
 
         // For Vanilla algorithm:
         // From Solving Imperfect Information Games with Discounted Regret Minimization -- optimal values (for situations in which pruning may be used)
-        public bool UseDiscounting = true; // DEBUG // Note: This might be helpful sometimes for multiplicative weights
+        public bool UseDiscounting = false; // DEBUG // Note: This might be helpful sometimes for multiplicative weights
         public bool DiscountRegrets = false; // if true, Discounting_Alpha and Discounting_Beta are used -- note never currently used in MultiplicativeWeightsVanilla
         public const double Discounting_Alpha = 1.5; // multiply accumulated positive regrets by t^alpha / (t^alpha + 1)
         public const double Discounting_Beta = 0.5; // multiply accumulated negative regrets by t^alpha / (t^alpha + 1)
@@ -119,7 +119,21 @@ namespace ACESim
         public double MultiplicativeWeightsInitial = 0.5;
         public double MultiplicativeWeightsFinal = 0.5;
         public double MultiplicativeWeightsCurvature = 1.0;
-        public double MultiplicativeWeightsEpsilon_BasedOnCurve(int iteration, int maxIteration) => MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(MultiplicativeWeightsInitial, MultiplicativeWeightsFinal, MultiplicativeWeightsCurvature, ((double)(iteration - 1)) / (double)maxIteration);
+
+        public double MultiplicativeWeightsEpsilon_BasedOnCurve(int iteration, int maxIteration)
+        {
+            if (RecordPastValues && RecordPastValues_AtIterationMultiples is int multiples && RecordPastValues_ResetAtIterationMultiples)
+            {
+                if (maxIteration > multiples)
+                    maxIteration = multiples;
+                iteration = iteration % maxIteration + 1;
+            }
+            var result = MultiplicativeWeightsEpsilon_BasedOnCurve_Helper(iteration, maxIteration);
+            if (double.IsNaN(result))
+                throw new Exception();
+            return result;
+        }
+        public double MultiplicativeWeightsEpsilon_BasedOnCurve_Helper(int iteration, int maxIteration) => MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(MultiplicativeWeightsInitial, MultiplicativeWeightsFinal, MultiplicativeWeightsCurvature, ((double)(iteration - 1)) / (double)maxIteration);
 
         public int SimulatedAnnealingEveryNIterations = EffectivelyNever;
         public double SimulatedAnnealingInitialAcceptance = 0.5;
@@ -159,13 +173,31 @@ namespace ACESim
         public double PerturbationInitial = 0.001; // should use with regret matching
         public double PerturbationFinal = 0.0;
         public double PerturbationCurvature = 5.0;
-        public double Perturbation_BasedOnCurve(int iteration, int maxIteration) => MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(PerturbationInitial, PerturbationFinal, PerturbationCurvature, ((double)(iteration - 1)) / (double)maxIteration);
+        public double Perturbation_BasedOnCurve(int iteration, int maxIteration)
+        {
+            if (RecordPastValues && RecordPastValues_AtIterationMultiples is int multiples && RecordPastValues_ResetAtIterationMultiples)
+            {
+                if (maxIteration > multiples)
+                    maxIteration = multiples;
+                iteration = iteration % maxIteration + 1;
+            }
+            var result = Perturbation_BasedOnCurve_Helper(iteration, maxIteration);
+            if (double.IsNaN(result))
+                throw new Exception();
+            return result;
+        }
+        private double Perturbation_BasedOnCurve_Helper(int iteration, int maxIteration) => MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(PerturbationInitial, PerturbationFinal, PerturbationCurvature, ((double)(iteration - 1)) / (double)maxIteration);
 
         public bool UseCFRPlusInRegretMatching = true; // if true, then cumulative regrets never fall below zero
 
-        public bool RecordPastValues = false;
+        public bool RecordPastValues = true; // DEBUG // NOTE: This is set by launcher
+        public int RecordPastValues_TargetNumberToRecord = 100;
+        public int? RecordPastValues_AtIterationMultiples = 5_000; // DEBUG
+        public bool RecordPastValues_ResetAtIterationMultiples = true; // DEBUG
+        /// <summary>
+        /// The proportion of iterations at which to start randomly selecting past values. This will be used only if RecordPastValues_AtIterationMultiples is null.
+        /// </summary>
         public double RecordPastValues_AfterProportion = 0.75;
-        public int RecordPastValues_TargetNumberToRecord = 1000;
         public int RecordPastValues_NumberToRecord => Math.Min(RecordPastValues_TargetNumberToRecord, TotalIterations - RecordPastValues_EarliestPossibleIteration + 1);
 
         public BitArray RecordPastValues_Iterations;
@@ -175,6 +207,10 @@ namespace ACESim
         {
             if (!RecordPastValues)
                 return false;
+            if (RecordPastValues_AtIterationMultiples is int multiples)
+            {
+                return iteration % multiples == 0;
+            }
             int earliestPossible = RecordPastValues_EarliestPossibleIteration;
             if (iteration < earliestPossible)
                 return false;

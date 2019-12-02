@@ -265,7 +265,10 @@ namespace ACESimBase.GameSolvingSupport
                 case InformationSetNode i:
                     if (playerIndex != i.PlayerIndex)
                         throw new Exception();
-                    utility = i.AverageStrategyResultsForPathFromPredecessor[i.NumVisitsFromPredecessorToGetAverageStrategy++]; // that is, return the average strategy result for the predecessor, on the assumption that the paths from the predecessor are being visited in order to make this request.
+                    utility = i.AverageStrategyResultsForPathFromPredecessor[i.NumVisitsFromPredecessorToGetAverageStrategy]; // that is, return the average strategy result for the predecessor, on the assumption that the paths from the predecessor are being visited in order to make this request.
+                    i.NumVisitsFromPredecessorToGetAverageStrategy++;
+                    if (i.NumVisitsFromPredecessorToGetAverageStrategy == i.AverageStrategyResultsForPathFromPredecessor.Length)
+                        i.NumVisitsFromPredecessorToGetAverageStrategy = 0;
                     break;
                 default: throw new NotSupportedException();
             }

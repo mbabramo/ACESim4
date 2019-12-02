@@ -13,14 +13,10 @@ namespace ACESimBase.GameSolvingSupport
 
         }
 
-        public abstract void UpdateInformationSet(InformationSetNode node);
+        public abstract void UpdateInformationSet(InformationSetNode node, bool weightResultByInversePiForIteration);
 
         public double GetNormalizedRegret(InformationSetNode node, int a, bool weightResultByInversePiForIteration, bool makeStrictlyPositive)
         {
-            // DEBUG -- we should do the following only if we're using opponent sampling.
-            weightResultByInversePiForIteration = true; // DEBUG SUPERDEBUG // right now, we're doing this each iteration. But with regret matching, we are then accumulating the NORMALIZED REGRET. The problem
-            // is that when we're using monte carlo, we really need to accumulate both the numerator and the denominator over many iterations. Then, after that, we can normalize (based on the range of outcomes for the player). 
-
             double[,] nodeInformation = node.NodeInformation;
             double denominator = nodeInformation[InformationSetNode.sumInversePiDimension, a - 1];
             double regretUnnormalized = (denominator == 0) ? 0.5 * (node.MaxPossibleThisPlayer - node.MinPossibleThisPlayer) : nodeInformation[InformationSetNode.sumRegretTimesInversePiDimension, a - 1] / denominator;
