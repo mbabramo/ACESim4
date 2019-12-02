@@ -34,7 +34,7 @@ namespace ACESim
             PerfectInfo,
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Fast; // DEBUG
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Usual; // DEBUG
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {

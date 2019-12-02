@@ -10,7 +10,7 @@ namespace ACESim
     public class EvolutionSettings
     {
         public bool DistributeChanceDecisions = true; // NOTE: This is currently very slow when using full game tree.
-        public bool UnrollAlgorithm = false; // DEBUG SUPERDEBUG
+        public bool UnrollAlgorithm = true; // DEBUG SUPERDEBUG
         public bool AzureEnabled = false;
         // Note: Many of the below are overridden by launcher.
         public int TotalAvgStrategySamplingCFRIterations = 100000;
@@ -77,7 +77,7 @@ namespace ACESim
 
         public bool CFRBR = false; // if true, opponent plays best response
         public bool CFR_OpponentPlaysAverageStrategy = false; // typically, the opponent plays the current strategy in CFR. With this variant, the opponent plays the average strategy. This sometimes gives mildly better results, but not consistent performance improvements.
-        public bool CFR_OpponentSampling = false; // DEBUG // if true, then we sample only 1 action at each opponent information set (but this does not apply to chance actions, as currently implemented)
+        public bool CFR_OpponentSampling = true; // DEBUG // if true, then we sample only 1 action at each opponent information set (but this does not apply to chance actions, as currently implemented)
 
         // For Vanilla algorithm:
         // From Solving Imperfect Information Games with Discounted Regret Minimization -- optimal values (for situations in which pruning may be used)
@@ -190,10 +190,10 @@ namespace ACESim
 
         public bool UseCFRPlusInRegretMatching = true; // if true, then cumulative regrets never fall below zero
 
-        public bool RecordPastValues = false; // NOTE: This is set by launcher
+        public bool RecordPastValues = true; // DEBUG // NOTE: This is set by launcher
         public int RecordPastValues_TargetNumberToRecord = 100;
         public int? RecordPastValues_AtIterationMultiples = 1_000; // DEBUG
-        public bool RecordPastValues_ResetAtIterationMultiples = false; // DEBUG
+        public bool RecordPastValues_ResetAtIterationMultiples = true; // DEBUG
         /// <summary>
         /// The proportion of iterations at which to start randomly selecting past values. This will be used only if RecordPastValues_AtIterationMultiples is null.
         /// </summary>
