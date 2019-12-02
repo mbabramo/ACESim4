@@ -18,18 +18,18 @@ namespace ACESim
 
         #region Settings
 
-        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.RegretMatching;
+        public GameApproximationAlgorithm Algorithm = GameApproximationAlgorithm.MultiplicativeWeights; // DEBUG
 
-        public const int VanillaIterations = 100_000;
-        public const int VanillaReportEveryNIterations = VanillaIterations;
-        public const int VanillaBestResponseEveryMIterations = 100;
+        public const int VanillaIterations = 10_000; // DEBUG
+        public const int VanillaReportEveryNIterations = 1_000; // DEBUG VanillaIterations;
+        public const int VanillaBestResponseEveryMIterations = 100; // DEBUG
         public const bool CalculatePerturbedBestResponseRefinement = true;
         public const int MiniReportEveryPIterations = EffectivelyNever;
-        public const bool AlwaysSuppressDisplayReportOnScreen = true;
-        public const bool RecordPastValues = false; 
+        public const bool AlwaysSuppressDisplayReportOnScreen = false; // DEBUG SUPERDEBUG
+        public const bool RecordPastValues = true;  // DEBUG
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever; 
         public const bool UseRandomPathsForReporting = true;
-        public const int SummaryTableRandomPathsIterations = 25_000;
+        public const int SummaryTableRandomPathsIterations = 1_000; // DEBUG
         public const int ProbingIterations = 20_000_000;
 
         public const int StartGameNumber = 1;

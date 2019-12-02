@@ -170,6 +170,13 @@ namespace ACESim
             Parallel.For(0, numInformationSets, n => InformationSets[n].Initialize());
         }
 
+
+        public void ReinitializeInformationSets()
+        {
+            int numInformationSets = InformationSets.Count;
+            Parallel.For(0, numInformationSets, n => InformationSets[n].Reinitialize());
+        }
+
         public virtual void ReinitializeForScenario(int baselineScenario, bool warmupVersion)
         {
             GameDefinition.SetScenario(baselineScenario, warmupVersion);
