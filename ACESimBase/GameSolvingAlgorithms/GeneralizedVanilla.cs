@@ -131,7 +131,7 @@ namespace ACESim
 
         private void ReinitializeInformationSetsIfNecessary(int iteration)
         {
-            if (EvolutionSettings.RecordPastValues && EvolutionSettings.RecordPastValues_AtIterationMultiples is int multiples && iteration % multiples == 0 && EvolutionSettings.RecordPastValues_ResetAtIterationMultiples)
+            if (EvolutionSettings.IsIterationResetPoint(iteration))
             {
                 ReinitializeInformationSets();
             }

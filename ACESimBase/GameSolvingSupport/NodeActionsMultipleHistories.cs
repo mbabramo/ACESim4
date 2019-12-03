@@ -70,9 +70,9 @@ namespace ACESimBase.GameSolvingSupport
             double cumulativeBestResponseValue = 0, cumulativeAverageStrategyValue = 0;
             foreach (var pathToSuccessorForAction in Histories)
             {
-                var values = pathToSuccessorForAction.GetProbabilityAdjustedUtilityOfPath(playerIndex);
-                cumulativeBestResponseValue += values.bestResponseValue;
-                cumulativeAverageStrategyValue += values.averageStrategyValue;
+                var (bestResponseValue, averageStrategyValue) = pathToSuccessorForAction.GetProbabilityAdjustedUtilityOfPath(playerIndex);
+                cumulativeBestResponseValue += bestResponseValue;
+                cumulativeAverageStrategyValue += averageStrategyValue;
             }
             return (cumulativeBestResponseValue, cumulativeAverageStrategyValue);
         }

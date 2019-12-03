@@ -93,15 +93,9 @@ namespace ACESim
         {
             if (!UseDiscounting)
                 return 1.0;
+            iteration = EffectiveIteration(iteration);
             if (iteration > StopDiscountingAtIteration)
                 iteration = StopDiscountingAtIteration;
-            if (RecordPastValues && RecordPastValues_AtIterationMultiples is int multiples && RecordPastValues_ResetAtIterationMultiples)
-                iteration %= multiples;
-            return Discounting_Gamma_ForIteration_Helper(iteration);
-        }
-
-        private double Discounting_Gamma_ForIteration_Helper(int iteration)
-        {
             return Math.Pow((double)iteration / (double)(iteration + 1), Discounting_Gamma);
         }
 
@@ -129,12 +123,7 @@ namespace ACESim
 
         public double MultiplicativeWeightsEpsilon_BasedOnCurve(int iteration, int maxIteration)
         {
-            if (RecordPastValues && RecordPastValues_AtIterationMultiples is int multiples && RecordPastValues_ResetAtIterationMultiples)
-            {
-                if (maxIteration > multiples)
-                    maxIteration = multiples;
-                iteration = iteration % maxIteration + 1;
-            }
+            (iteration, maxIteration) = EffectiveIterationAndMaxIteration(iteration, maxIteration);
             var result = MultiplicativeWeightsEpsilon_BasedOnCurve_Helper(iteration, maxIteration);
             if (double.IsNaN(result))
                 throw new Exception();
@@ -182,12 +171,7 @@ namespace ACESim
         public double PerturbationCurvature = 5.0;
         public double Perturbation_BasedOnCurve(int iteration, int maxIteration)
         {
-            if (RecordPastValues && RecordPastValues_AtIterationMultiples is int multiples && RecordPastValues_ResetAtIterationMultiples)
-            {
-                if (maxIteration > multiples)
-                    maxIteration = multiples;
-                iteration = iteration % maxIteration + 1;
-            }
+            (iteration, maxIteration) = EffectiveIterationAndMaxIteration(iteration, maxIteration);
             var result = Perturbation_BasedOnCurve_Helper(iteration, maxIteration);
             if (double.IsNaN(result))
                 throw new Exception();
@@ -201,6 +185,10 @@ namespace ACESim
         public int RecordPastValues_TargetNumberToRecord = 100;
         public int? RecordPastValues_AtIterationMultiples = 5_000; // DEBUG
         public bool RecordPastValues_ResetAtIterationMultiples = true; // DEBUG
+        public int EffectiveIteration(int iteration) => (RecordPastValues && RecordPastValues_AtIterationMultiples is int multiples && RecordPastValues_ResetAtIterationMultiples) ? iteration % multiples + 1 : iteration;
+        public (int effectiveIteration, int effectiveMaxIteration) EffectiveIterationAndMaxIteration(int iteration, int maxIteration) => (RecordPastValues && RecordPastValues_AtIterationMultiples is int multiples && RecordPastValues_ResetAtIterationMultiples) ? (iteration % multiples + 1, multiples) : (iteration, maxIteration);
+
+        public bool IsIterationResetPoint(int iteration) => RecordPastValues && RecordPastValues_AtIterationMultiples is int multiples && iteration % multiples == 0 && RecordPastValues_ResetAtIterationMultiples;
         /// <summary>
         /// The proportion of iterations at which to start randomly selecting past values. This will be used only if RecordPastValues_AtIterationMultiples is null.
         /// </summary>
