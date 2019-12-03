@@ -112,8 +112,11 @@ namespace ACESim
                 BargainingRoundsSimultaneous = true,
                 SimultaneousOffersUltimatelyRevealed = true,
                 PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false, true, false, true, false },
-                IncludeSignalsReport = true,
-                IncludeCourtSuccessReport = true,
+
+                IncludeSignalsReport = false, // DEBUG
+                IncludeCourtSuccessReport = false, // DEBUG
+                FirstRowOnly = true, // DEBUG
+
                 WarmStartThroughIteration = null,
                 WarmStartOptions = MyGameWarmStartOptions.NoWarmStart
             };
@@ -181,8 +184,6 @@ namespace ACESim
             options.DTrialCosts = 10_000;
             options.PerPartyCostsLeadingUpToBargainingRound = 7_500;
             options.NumPotentialBargainingRounds = 2;
-
-            options.IncludeCourtSuccessReport = false;
 
             //options.LoserPays = true;
             //options.LoserPaysAfterAbandonment = true;

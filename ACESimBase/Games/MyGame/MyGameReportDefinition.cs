@@ -207,123 +207,132 @@ namespace ACESim
                 new SimpleReportColumnFilter($"P Wins",
                     (GameProgress gp) => MyGP(gp).TrialOccurs && MyGP(gp).PWinsAtTrial, SimpleReportColumnFilterOptions.ProportionOfRow)
             );
-            var rows = new List<SimpleReportFilter>()
+            List<SimpleReportFilter> rows;
+            if (Options.FirstRowOnly)
+                rows = new List<SimpleReportFilter>()
+                {
+                    new SimpleReportFilter("All", (GameProgress gp) => true),
+                };
+            else
             {
-                new SimpleReportFilter("All", (GameProgress gp) => true),
-                new SimpleReportFilter("NoDispute", (GameProgress gp) => !MyGP(gp).DisputeArises),
-                new SimpleReportFilter("DisputeArises", (GameProgress gp) => MyGP(gp).DisputeArises),
-                new SimpleReportFilter("Litigated", (GameProgress gp) => MyGP(gp).PFiles && MyGP(gp).DAnswers),
-                new SimpleReportFilter("Settles", (GameProgress gp) => MyGP(gp).CaseSettles),
-                new SimpleReportFilter("Tried", (GameProgress gp) => MyGP(gp).TrialOccurs),
-                new SimpleReportFilter("PWins", (GameProgress gp) => MyGP(gp).PWinsAtTrial),
-                new SimpleReportFilter("DWins", (GameProgress gp) => MyGP(gp).DWinsAtTrial),
-                new SimpleReportFilter("Abandoned", (GameProgress gp) => MyGP(gp).PAbandons || MyGP(gp).DDefaults),
-                new SimpleReportFilter("OneRound", (GameProgress gp) => MyGP(gp).BargainingRoundsComplete == 1),
-                new SimpleReportFilter("TwoRounds", (GameProgress gp) => MyGP(gp).BargainingRoundsComplete == 2),
-                new SimpleReportFilter("ThreeRounds", (GameProgress gp) => MyGP(gp).BargainingRoundsComplete == 3),
-                //new SimpleReportFilter("LowQuality",
-                //    (GameProgress gp) => MyGP(gp).LiabilityStrengthUniform <= 0.25),
-                //new SimpleReportFilter("MediumQuality",
-                //    (GameProgress gp) => MyGP(gp).LiabilityStrengthUniform > 0.25 &&
-                //                         MyGP(gp).LiabilityStrengthUniform < 0.75),
-                //new SimpleReportFilter("HighQuality",
-                //    (GameProgress gp) => MyGP(gp).LiabilityStrengthUniform >= 0.75),
-                //new SimpleReportFilter("LowPLiabilitySignal", (GameProgress gp) => MyGP(gp).PLiabilitySignalUniform <= 0.25),
-                //new SimpleReportFilter("LowDLiabilitySignal", (GameProgress gp) => MyGP(gp).DLiabilitySignalUniform <= 0.25),
-                //new SimpleReportFilter("MedPLiabilitySignal",
-                //    (GameProgress gp) => MyGP(gp).PLiabilitySignalUniform > 0.25 && MyGP(gp).PLiabilitySignalUniform < 0.75),
-                //new SimpleReportFilter("MedDLiabilitySignal",
-                //    (GameProgress gp) => MyGP(gp).DLiabilitySignalUniform > 0.25 && MyGP(gp).DLiabilitySignalUniform < 0.75),
-                //new SimpleReportFilter("HiPLiabilitySignal", (GameProgress gp) => MyGP(gp).PLiabilitySignalUniform >= 0.75),
-                //new SimpleReportFilter("HiDLiabilitySignal", (GameProgress gp) => MyGP(gp).DLiabilitySignalUniform >= 0.75),
-                //new SimpleReportFilter("Custom", (GameProgress gp) => MyGP(gp).PLiabilitySignalUniform >= 0.7 && !MyGP(gp).DDefaults),
-            };
-            for (byte signal = 1; signal < 11; signal++)
-            {
-                byte s = signal; // avoid closure
+                rows = new List<SimpleReportFilter>()
+                {
+                    new SimpleReportFilter("All", (GameProgress gp) => true),
+                    new SimpleReportFilter("NoDispute", (GameProgress gp) => !MyGP(gp).DisputeArises),
+                    new SimpleReportFilter("DisputeArises", (GameProgress gp) => MyGP(gp).DisputeArises),
+                    new SimpleReportFilter("Litigated", (GameProgress gp) => MyGP(gp).PFiles && MyGP(gp).DAnswers),
+                    new SimpleReportFilter("Settles", (GameProgress gp) => MyGP(gp).CaseSettles),
+                    new SimpleReportFilter("Tried", (GameProgress gp) => MyGP(gp).TrialOccurs),
+                    new SimpleReportFilter("PWins", (GameProgress gp) => MyGP(gp).PWinsAtTrial),
+                    new SimpleReportFilter("DWins", (GameProgress gp) => MyGP(gp).DWinsAtTrial),
+                    new SimpleReportFilter("Abandoned", (GameProgress gp) => MyGP(gp).PAbandons || MyGP(gp).DDefaults),
+                    new SimpleReportFilter("OneRound", (GameProgress gp) => MyGP(gp).BargainingRoundsComplete == 1),
+                    new SimpleReportFilter("TwoRounds", (GameProgress gp) => MyGP(gp).BargainingRoundsComplete == 2),
+                    new SimpleReportFilter("ThreeRounds", (GameProgress gp) => MyGP(gp).BargainingRoundsComplete == 3),
+                    //new SimpleReportFilter("LowQuality",
+                    //    (GameProgress gp) => MyGP(gp).LiabilityStrengthUniform <= 0.25),
+                    //new SimpleReportFilter("MediumQuality",
+                    //    (GameProgress gp) => MyGP(gp).LiabilityStrengthUniform > 0.25 &&
+                    //                         MyGP(gp).LiabilityStrengthUniform < 0.75),
+                    //new SimpleReportFilter("HighQuality",
+                    //    (GameProgress gp) => MyGP(gp).LiabilityStrengthUniform >= 0.75),
+                    //new SimpleReportFilter("LowPLiabilitySignal", (GameProgress gp) => MyGP(gp).PLiabilitySignalUniform <= 0.25),
+                    //new SimpleReportFilter("LowDLiabilitySignal", (GameProgress gp) => MyGP(gp).DLiabilitySignalUniform <= 0.25),
+                    //new SimpleReportFilter("MedPLiabilitySignal",
+                    //    (GameProgress gp) => MyGP(gp).PLiabilitySignalUniform > 0.25 && MyGP(gp).PLiabilitySignalUniform < 0.75),
+                    //new SimpleReportFilter("MedDLiabilitySignal",
+                    //    (GameProgress gp) => MyGP(gp).DLiabilitySignalUniform > 0.25 && MyGP(gp).DLiabilitySignalUniform < 0.75),
+                    //new SimpleReportFilter("HiPLiabilitySignal", (GameProgress gp) => MyGP(gp).PLiabilitySignalUniform >= 0.75),
+                    //new SimpleReportFilter("HiDLiabilitySignal", (GameProgress gp) => MyGP(gp).DLiabilitySignalUniform >= 0.75),
+                    //new SimpleReportFilter("Custom", (GameProgress gp) => MyGP(gp).PLiabilitySignalUniform >= 0.7 && !MyGP(gp).DDefaults),
+                };
+                for (byte signal = 1; signal < 11; signal++)
+                {
+                    byte s = signal; // avoid closure
+                    rows.Add(
+                        new SimpleReportFilter("PrePrimary" + s, (GameProgress gp) => MyGP(gp).DisputeGeneratorActions.PrePrimaryChanceAction == s));
+                }
+                rows.Add(new SimpleReportFilter("Truly Liable", (GameProgress gp) => MyGP(gp).IsTrulyLiable));
+                rows.Add(new SimpleReportFilter("Truly Not Liable", (GameProgress gp) => !MyGP(gp).IsTrulyLiable));
+                rows.Add(new SimpleReportFilter("AllCount", (GameProgress gp) => true) { UseSum = true });
+                bool useCounts = false;
+                string countString = useCounts ? " Count" : "";
+                AddRowsForLiabilityStrengthAndSignalDistributions("", true, useCounts, rows, gp => true);
+                if (useCounts)
+                    rows.Add(new SimpleReportFilter($"Truly Liable{countString}", (GameProgress gp) => MyGP(gp).IsTrulyLiable) { UseSum = useCounts });
+                AddRowsForLiabilityStrengthAndSignalDistributions("Truly Liable ", false, useCounts, rows, gp => MyGP(gp).IsTrulyLiable);
+                if (useCounts)
+                    rows.Add(new SimpleReportFilter($"Truly Not Liable{countString}", (GameProgress gp) => !MyGP(gp).IsTrulyLiable) { UseSum = useCounts });
+                AddRowsForLiabilityStrengthAndSignalDistributions("Truly Not Liable ", false, useCounts, rows, gp => !MyGP(gp).IsTrulyLiable);
+                rows.Add(new SimpleReportFilter($"High Quality{countString}", (GameProgress gp) => MyGP(gp).LiabilityStrengthDiscrete >= 8) { UseSum = useCounts });
+                AddRowsForLiabilityStrengthAndSignalDistributions("High Quality Liable ", false, useCounts, rows, gp => MyGP(gp).LiabilityStrengthDiscrete >= 8);
+                AddRowsForDamagesStrengthAndSignalDistributions("", true, false, rows, gp => true);
+                AddRowFilterSignalRegions(true, rows);
+                AddRowFilterSignalRegions(false, rows);
+                // Now include the litigation flow diagram in rows too, so we get get things like average total expenses for cases settling in particular round
                 rows.Add(
-                    new SimpleReportFilter("PrePrimary" + s, (GameProgress gp) => MyGP(gp).DisputeGeneratorActions.PrePrimaryChanceAction == s));
+                    new SimpleReportFilter($"PDoesntFile",
+                        (GameProgress gp) => !MyGP(gp).PFiles)
+                );
+                rows.Add(
+                    new SimpleReportFilter($"P Files",
+                        (GameProgress gp) => MyGP(gp).PFiles)
+                );
+                rows.Add(
+                    new SimpleReportFilter($"DDoesntAnswer",
+                        (GameProgress gp) => MyGP(gp).PFiles && !MyGP(gp).DAnswers)
+                );
+                rows.Add(
+                    new SimpleReportFilter($"D Answers",
+                        (GameProgress gp) => MyGP(gp).PFiles && MyGP(gp).DAnswers)
+                );
+                for (byte b = 1; b <= Options.NumPotentialBargainingRounds; b++)
+                {
+                    byte bargainingRoundNum = b; // needed for closure -- otherwise b below will always be max value.
+
+                    rows.Add(
+                        new SimpleReportFilter($"Settles{b}",
+                            (GameProgress gp) => MyGP(gp).SettlesInRound(bargainingRoundNum))
+                    );
+
+                    rows.Add(
+                        new SimpleReportFilter($"DoesntSettle{b}",
+                            (GameProgress gp) => MyGP(gp).DoesntSettleInRound(bargainingRoundNum))
+                    );
+
+                    rows.Add(
+                        new SimpleReportFilter($"PAbandons{b}",
+                            (GameProgress gp) => (MyGP(gp).PAbandonsInRound(bargainingRoundNum)))
+                    );
+                    rows.Add(
+                        new SimpleReportFilter($"PDoesntAbandon{b}",
+                            (GameProgress gp) => (MyGP(gp).PDoesntAbandonInRound(bargainingRoundNum)))
+                    );
+                    rows.Add(
+                        new SimpleReportFilter($"DDefaults{b}",
+                            (GameProgress gp) => (MyGP(gp).DDefaultsInRound(bargainingRoundNum)))
+                    );
+                    rows.Add(
+                        new SimpleReportFilter($"DDoesntDefault{b}",
+                            (GameProgress gp) => (MyGP(gp).DDoesntDefaultInRound(bargainingRoundNum)))
+                    );
+
+                    rows.Add(
+                        new SimpleReportFilter($"POrDQuits{b}",
+                            (GameProgress gp) => (MyGP(gp).PAbandonsInRound(bargainingRoundNum)) || (MyGP(gp).DDefaultsInRound(bargainingRoundNum)))
+                    );
+                }
+
+                rows.Add(
+                    new SimpleReportFilter($"P Loses",
+                        (GameProgress gp) => MyGP(gp).TrialOccurs && !MyGP(gp).PWinsAtTrial)
+                );
+
+                rows.Add(
+                    new SimpleReportFilter($"P Wins",
+                        (GameProgress gp) => MyGP(gp).TrialOccurs && MyGP(gp).PWinsAtTrial)
+                );
             }
-            rows.Add(new SimpleReportFilter("Truly Liable", (GameProgress gp) => MyGP(gp).IsTrulyLiable));
-            rows.Add(new SimpleReportFilter("Truly Not Liable", (GameProgress gp) => !MyGP(gp).IsTrulyLiable));
-            rows.Add(new SimpleReportFilter("AllCount", (GameProgress gp) => true) {UseSum = true});
-            bool useCounts = false;
-            string countString = useCounts ? " Count" : "";
-            AddRowsForLiabilityStrengthAndSignalDistributions("", true, useCounts, rows, gp => true);
-            if (useCounts)
-                rows.Add(new SimpleReportFilter($"Truly Liable{countString}", (GameProgress gp) => MyGP(gp).IsTrulyLiable) { UseSum = useCounts });
-            AddRowsForLiabilityStrengthAndSignalDistributions("Truly Liable ", false, useCounts, rows, gp => MyGP(gp).IsTrulyLiable);
-            if (useCounts)
-                rows.Add(new SimpleReportFilter($"Truly Not Liable{countString}", (GameProgress gp) => !MyGP(gp).IsTrulyLiable) { UseSum = useCounts });
-            AddRowsForLiabilityStrengthAndSignalDistributions("Truly Not Liable ", false, useCounts, rows, gp => !MyGP(gp).IsTrulyLiable);
-            rows.Add(new SimpleReportFilter($"High Quality{countString}", (GameProgress gp) => MyGP(gp).LiabilityStrengthDiscrete >= 8) { UseSum = useCounts });
-            AddRowsForLiabilityStrengthAndSignalDistributions("High Quality Liable ", false, useCounts, rows, gp => MyGP(gp).LiabilityStrengthDiscrete >= 8);
-            AddRowsForDamagesStrengthAndSignalDistributions("", true, false, rows, gp => true);
-            AddRowFilterSignalRegions(true, rows);
-            AddRowFilterSignalRegions(false, rows);
-            // Now include the litigation flow diagram in rows too, so we get get things like average total expenses for cases settling in particular round
-            rows.Add(
-                new SimpleReportFilter($"PDoesntFile",
-                    (GameProgress gp) => !MyGP(gp).PFiles)
-            );
-            rows.Add(
-                new SimpleReportFilter($"P Files",
-                    (GameProgress gp) => MyGP(gp).PFiles)
-            );
-            rows.Add(
-                new SimpleReportFilter($"DDoesntAnswer",
-                    (GameProgress gp) => MyGP(gp).PFiles && !MyGP(gp).DAnswers)
-            );
-            rows.Add(
-                new SimpleReportFilter($"D Answers",
-                    (GameProgress gp) => MyGP(gp).PFiles && MyGP(gp).DAnswers)
-            );
-            for (byte b = 1; b <= Options.NumPotentialBargainingRounds; b++)
-            {
-                byte bargainingRoundNum = b; // needed for closure -- otherwise b below will always be max value.
-
-                rows.Add(
-                    new SimpleReportFilter($"Settles{b}",
-                        (GameProgress gp) => MyGP(gp).SettlesInRound(bargainingRoundNum))
-                );
-
-                rows.Add(
-                    new SimpleReportFilter($"DoesntSettle{b}",
-                        (GameProgress gp) => MyGP(gp).DoesntSettleInRound(bargainingRoundNum))
-                );
-
-                rows.Add(
-                    new SimpleReportFilter($"PAbandons{b}",
-                        (GameProgress gp) => (MyGP(gp).PAbandonsInRound(bargainingRoundNum)))
-                );
-                rows.Add(
-                    new SimpleReportFilter($"PDoesntAbandon{b}",
-                        (GameProgress gp) => (MyGP(gp).PDoesntAbandonInRound(bargainingRoundNum)))
-                );
-                rows.Add(
-                    new SimpleReportFilter($"DDefaults{b}",
-                        (GameProgress gp) => (MyGP(gp).DDefaultsInRound(bargainingRoundNum)))
-                );
-                rows.Add(
-                    new SimpleReportFilter($"DDoesntDefault{b}",
-                        (GameProgress gp) => (MyGP(gp).DDoesntDefaultInRound(bargainingRoundNum)))
-                );
-
-                rows.Add(
-                    new SimpleReportFilter($"POrDQuits{b}",
-                        (GameProgress gp) => (MyGP(gp).PAbandonsInRound(bargainingRoundNum)) || (MyGP(gp).DDefaultsInRound(bargainingRoundNum)))
-                );
-            }
-
-            rows.Add(
-                new SimpleReportFilter($"P Loses",
-                    (GameProgress gp) => MyGP(gp).TrialOccurs && !MyGP(gp).PWinsAtTrial)
-            );
-
-            rows.Add(
-                new SimpleReportFilter($"P Wins",
-                    (GameProgress gp) => MyGP(gp).TrialOccurs && MyGP(gp).PWinsAtTrial)
-            );
 
             return new SimpleReportDefinition(
                 "MyGameReport",
