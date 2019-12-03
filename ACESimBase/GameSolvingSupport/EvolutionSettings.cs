@@ -69,7 +69,7 @@ namespace ACESim
         internal int NumRandomIterationsForUtilityCalculation = 10000;
         internal bool SuppressReportDisplayOnScreen;
 
-        public int? IterationsForWarmupScenario = 1; // applicable only to fictitious self-play
+        public int? IterationsForWarmupScenario = 250; // DEBUG // Set to null when inapplicable
 
         public static bool PruneOnOpponentStrategy = true; // NOTE: In general sum games, this seems to cause difficulties, because some of the player's own information sets may not be visited, as a result of pruning on opponents' sets. 
         public static double PruneOnOpponentStrategyThreshold = 1E-4; // NOTE: This is the probability for this action, not the cumulative probability. 
@@ -181,10 +181,10 @@ namespace ACESim
 
         public bool UseCFRPlusInRegretMatching = true; // if true, then cumulative regrets never fall below zero
 
-        public bool RecordPastValues = true; // DEBUG // NOTE: This is set by launcher
+        public bool RecordPastValues = false; // DEBUG // NOTE: This is set by launcher
         public int RecordPastValues_TargetNumberToRecord = 100;
         public int? RecordPastValues_AtIterationMultiples = 5_000; // DEBUG
-        public bool RecordPastValues_ResetAtIterationMultiples = true; // DEBUG
+        public bool RecordPastValues_ResetAtIterationMultiples = false; // DEBUG
         public int EffectiveIteration(int iteration) => (RecordPastValues && RecordPastValues_AtIterationMultiples is int multiples && RecordPastValues_ResetAtIterationMultiples) ? iteration % multiples + 1 : iteration;
         public (int effectiveIteration, int effectiveMaxIteration) EffectiveIterationAndMaxIteration(int iteration, int maxIteration) => (RecordPastValues && RecordPastValues_AtIterationMultiples is int multiples && RecordPastValues_ResetAtIterationMultiples) ? (iteration % multiples + 1, multiples) : (iteration, maxIteration);
 

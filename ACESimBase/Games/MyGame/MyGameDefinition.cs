@@ -974,11 +974,11 @@ namespace ACESim
 
         #region Alternative scenarios
 
-        public override bool PlayMultipleScenarios => false; // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
+        public override bool PlayMultipleScenarios => true; // DEBUG // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
 
-        public override bool UseDifferentWarmup => false;
+        public override bool UseDifferentWarmup => true; // DEBUG
 
-        public override int NumScenariosDefined => 41;
+        public override int NumScenariosDefined => 11; // DEBUG
 
         public enum ChangeInScenario
         {
@@ -997,7 +997,7 @@ namespace ACESim
 
         public double CostsMultiplierMin = 0.0;
         public double CostsMultiplierMax = 2.0;
-        public double CostsMultiplierBaselineIfUsingWarmup = 25_000;
+        public double CostsMultiplierBaselineIfUsingWarmup = 1.0;
         public double CostsMultiplierScenarioIncrement => (CostsMultiplierMax - CostsMultiplierMin) / Math.Max(1, NumScenariosDefined - 1);
 
         public override int GetScenarioIndex(int baselineScenario, bool warmupVersion)

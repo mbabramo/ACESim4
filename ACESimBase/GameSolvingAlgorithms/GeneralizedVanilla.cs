@@ -135,6 +135,12 @@ namespace ACESim
             {
                 ReinitializeInformationSets();
             }
+
+            int iterationToReturnToBaselineScenario = EvolutionSettings.IterationsForWarmupScenario ?? -1;
+            if (iteration == iterationToReturnToBaselineScenario)
+            {
+                ReinitializeForScenario(GameDefinition.BaselineScenarioIndex, false);
+            }
         }
 
         public string TraceCommandList(double[] array)
@@ -767,7 +773,12 @@ namespace ACESim
         public override void ReinitializeForScenario(int scenario, bool warmupVersion)
         {
             base.ReinitializeForScenario(scenario, warmupVersion);
-            InitializeInformationSets();
+            //InitializeInformationSets();
+        }
+
+        public override int? IterationsForWarmupScenario()
+        {
+            return EvolutionSettings.IterationsForWarmupScenario; // warmup is supported
         }
 
         public override async Task<ReportCollection> RunAlgorithm(string optionSetName)

@@ -38,7 +38,7 @@ namespace ACESim
             ReportCollection reportCollection = new ReportCollection();
             StrategiesDeveloperStopwatch.Reset();
             InitializeInformationSets();
-            int iterationToReturnToBaselineScenario = EvolutionSettings.IterationsForWarmupScenario ?? - 1;
+            int iterationToReturnToBaselineScenario = EvolutionSettings.IterationsForWarmupScenario ?? -1;
             int startingIteration = 2;
             if (iterationToReturnToBaselineScenario < startingIteration)
                 iterationToReturnToBaselineScenario = startingIteration;
