@@ -62,14 +62,14 @@ namespace ACESim
         {
             await Initialize();
             ReportCollection reportCollection = new ReportCollection();
-            for (int s = 0; s < GameDefinition.NumScenariosToDevelop; s++)
+            bool startAtZero = false; // DEBUG
+            for (int s = startAtZero ? 0 : 1; s < GameDefinition.NumScenariosToDevelop + (startAtZero ? 0 : 1); s++)
             {
                 string optionSetInfo = $@"Option set {optionSetName}";
                 if (GameDefinition.NumScenariosToDevelop > 1)
                     optionSetInfo += $" (scenario {s} of {GameDefinition.NumScenariosToDevelop})";
                 TabbedText.WriteLineEvenIfDisabled(optionSetInfo);
-                if (s > 0)
-                    ReinitializeForScenario(s, IterationsForWarmupScenario() != null);
+                ReinitializeForScenario(s, IterationsForWarmupScenario() != null);
                 var result = await RunAlgorithm(optionSetName);
                 if (EvolutionSettings.SerializeResults && !(this is PlaybackOnly))
                 {
