@@ -95,6 +95,13 @@ namespace ACESim
                 return 1.0;
             if (iteration > StopDiscountingAtIteration)
                 iteration = StopDiscountingAtIteration;
+            if (RecordPastValues && RecordPastValues_AtIterationMultiples is int multiples && RecordPastValues_ResetAtIterationMultiples)
+                iteration %= multiples;
+            return Discounting_Gamma_ForIteration_Helper(iteration);
+        }
+
+        private double Discounting_Gamma_ForIteration_Helper(int iteration)
+        {
             return Math.Pow((double)iteration / (double)(iteration + 1), Discounting_Gamma);
         }
 

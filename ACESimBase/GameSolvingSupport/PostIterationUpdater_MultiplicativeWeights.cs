@@ -33,7 +33,6 @@ namespace ACESimBase.GameSolvingSupport
                     throw new Exception();
                 nodeInformation[InformationSetNode.adjustedWeightsDimension, a - 1] = weight;
                 sumWeights += weight;
-                // DEBUG
                 nodeInformation[InformationSetNode.sumRegretTimesInversePiDimension, a - 1] = 0; // reset for next iteration
                 nodeInformation[InformationSetNode.sumInversePiDimension, a - 1] = 0;
             }

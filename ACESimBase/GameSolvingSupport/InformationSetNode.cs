@@ -837,10 +837,6 @@ namespace ACESim
             DetermineBestResponseAction();
             ClearBestResponse();
             updater.UpdateInformationSet(this, weightResultByInversePiForIteration);
-            //if (iteration == 500)
-            //    CreateBackup(); // DEBUG SUPERDEBUG
-            //if (iteration >= 500)
-            //    RestoreBackup(); // DEBUG SUPERDEBUG;
             UpdateOpponentProbabilities(iteration, pruneOpponentStrategyBelow, pruneOpponentStrategyIfDesignatedPrunable, addOpponentTremble, randomNumberToSelectSingleOpponentAction);
         }
 
@@ -956,10 +952,6 @@ namespace ACESim
 
         private void RecordProbabilitiesAsPastValues(int iteration, double averageStrategyAdjustment)
         {
-            if (iteration > 198)
-            {
-                var DEBUG = 0;
-            }
             if (EvolutionSettings.RecordPastValues_AtIteration(iteration))
             {
                 if (LastPastValueIndexRecorded + 1 < PastValuesCumulativeStrategyDiscounts.Length)

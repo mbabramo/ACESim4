@@ -10,14 +10,14 @@ namespace ACESimBase.GameSolvingAlgorithms
         {
             const int popSize = 30;
             const int numToKeep = 5;
-            const double probMutation = 1.0; // DEBUG
+            const double probMutation = 0.1;
             public GeneticPopulationMember[] Members = new GeneticPopulationMember[popSize];
             double[,] Similarity = new double[popSize, popSize];
             private List<InformationSetNode> InformationSets;
             private int InformationSetsCount;
             Func<(double exploitability, double[] utilities)> CalculateBestResponseAction;
 
-            public double WeightOnDiversityInitial = 0.5; // DEBUG scored .151 with diversity weight // DEBUG -- check: is diversity really working?
+            public double WeightOnDiversityInitial = 0.5;
             public double WeightOnDiversityFinal = 0.0;
             public double WeightOnDiversityCurvature = 0.5;
             public double WeightOnDiversity_BasedOnCurve(int iteration, int maxIteration) => MonotonicCurve.CalculateValueBasedOnProportionOfWayBetweenValues(WeightOnDiversityInitial, WeightOnDiversityFinal, WeightOnDiversityCurvature, ((double)(iteration - 1)) / (double)maxIteration);
@@ -137,7 +137,7 @@ namespace ACESimBase.GameSolvingAlgorithms
                     while (dadIndex == momIndex)
                         dadIndex = r.NextInt(numToKeep);
                     Members[i].ReplaceWith(Members[momIndex], Members[dadIndex], iteration);
-                    const int MaxMutationsMinus1 = 0; // DEBUG
+                    const int MaxMutationsMinus1 = 3; 
                     if (r.NextDouble() < probMutation)
                         Members[i].Mutate(iteration, 1 + r.NextInt(MaxMutationsMinus1));
                 }
