@@ -1060,14 +1060,14 @@ namespace ACESim
                 double trialCosts = TrialCostsScenarioPerPartyMin + TrialCostsScenarioIncrement * (UseDifferentWarmup ? BaselineScenarioIndex - 1 : BaselineScenarioIndex);
                 if (BaselineScenarioIndex == 0 && UseDifferentWarmup)
                     trialCosts = TrialCostsScenarioBaselineIfUsingWarmup; // warmup is same as baseline in base scenario
-                return (UseDifferentWarmup ? "WarmCosts" : "TrialCosts") + trialCosts.ToString();
+                return (UseDifferentWarmup ? "WarmCosts" : "TrialCosts") + trialCosts.ToSignificantFigures(3);
             }
             else if (WhatToChange == ChangeInScenario.CostsMultiplier)
             {
                 double costsMultiplier = CostsMultiplierMin + CostsMultiplierScenarioIncrement * (UseDifferentWarmup ? BaselineScenarioIndex - 1 : BaselineScenarioIndex);
                 if (BaselineScenarioIndex == 0 && UseDifferentWarmup)
                     costsMultiplier = CostsMultiplierBaselineIfUsingWarmup; // warmup is same as baseline in base scenario
-                return (UseDifferentWarmup ? "WarmCostsM" : "CostsMult") + costsMultiplier.ToString();
+                return (UseDifferentWarmup ? "WarmCostsM" : "CostsMult") + costsMultiplier.ToSignificantFigures(3);
             }
             throw new NotImplementedException();
         }

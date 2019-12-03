@@ -69,7 +69,7 @@ namespace ACESim
         internal int NumRandomIterationsForUtilityCalculation = 10000;
         internal bool SuppressReportDisplayOnScreen;
 
-        public int? IterationsForWarmupScenario = 50; // DEBUG // Set to null when inapplicable
+        public int? IterationsForWarmupScenario = 100; // DEBUG // Set to null when inapplicable
 
         public static bool PruneOnOpponentStrategy = true; // NOTE: In general sum games, this seems to cause difficulties, because some of the player's own information sets may not be visited, as a result of pruning on opponents' sets. 
         public static double PruneOnOpponentStrategyThreshold = 1E-4; // NOTE: This is the probability for this action, not the cumulative probability. 
@@ -85,7 +85,7 @@ namespace ACESim
         public bool DiscountRegrets = false; // if true, Discounting_Alpha and Discounting_Beta are used -- note never currently used in MultiplicativeWeightsVanilla
         public const double Discounting_Alpha = 1.5; // multiply accumulated positive regrets by t^alpha / (t^alpha + 1)
         public const double Discounting_Beta = 0.5; // multiply accumulated negative regrets by t^alpha / (t^alpha + 1)
-        public double Discounting_Gamma = 200;  // multiply contributions to average strategy by (t / t + 1)^gamma, which approaches 1 as t -> inf. Higher gamma means more discounting. If gamma equals 20, then we still get to 80% of the maximum in a mere 100 iterations. In other words, very early iterations are heavily discounted, but after a while, there is very little discounting.
+        public double Discounting_Gamma = 200_000; // multiply contributions to average strategy by (t / t + 1)^gamma, for which ratio between iterations -> 1 as t -> inf. Higher gamma means more discounting. If gamma equals 20, then we still get to 80% of the maximum in a mere 100 iterations. In other words, very early iterations are heavily discounted, but after a while, there is very little discounting.
 
         public double DiscountingTarget_ConstantAfterProportionOfIterations = 0.10; // set to 1.0 to make it so that discounting occurs all the time (albeit at lower rates pursuant to Gamma)
 
