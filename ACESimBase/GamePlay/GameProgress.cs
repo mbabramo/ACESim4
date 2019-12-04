@@ -322,14 +322,14 @@ namespace ACESim
             return alternativeScenarios;
         }
 
-        public virtual float GetCustomResult()
+        public virtual FloatSet GetCustomResult()
         {
-            return 0;
+            return new FloatSet();
         }
 
-        public virtual List<float> GetCustomResult_IncludingAlternateScenarios(GameDefinition gameDefinition)
+        public virtual List<FloatSet> GetCustomResult_IncludingAlternateScenarios(GameDefinition gameDefinition)
         {
-            List<float> alternativeScenarios = new List<float>();
+            List<FloatSet> alternativeScenarios = new List<FloatSet>();
             int numScenarios = gameDefinition.NumScenariosToInitialize;
             for (int s = 0; s < numScenarios; s++)
             {

@@ -166,15 +166,15 @@ namespace ACESimBase.GameSolvingSupport
             return new ByteList(nodesToInclude);
         }
 
-        public (double bestResponseValue, double averageStrategyValue, float customResult) GetProbabilityAdjustedUtilityOfPath(byte playerIndex)
+        public (double bestResponseValue, double averageStrategyValue, FloatSet customResult) GetProbabilityAdjustedUtilityOfPath(byte playerIndex)
         {
             double bestResponseUtility = GetBestResponseUtilityAfterPathToSuccessor(playerIndex);
             double averageStrategyUtility = GetAverageStrategyUtilityAfterPathToSuccessor(playerIndex);
-            float customResult = GetCustomResultAfterPathToSuccessor(playerIndex);
+            FloatSet customResult = GetCustomResultAfterPathToSuccessor(playerIndex);
             double pathProbability = GetProbabilityOfPath();
             double bestResponseValue = pathProbability * bestResponseUtility;
             double averageStrategyValue = pathProbability * averageStrategyUtility;
-            float customResultValue = (float)(pathProbability * customResult);
+            FloatSet customResultValue = customResult.Times((float)pathProbability);
             return (bestResponseValue, averageStrategyValue, customResultValue);
         }
 
@@ -278,9 +278,9 @@ namespace ACESimBase.GameSolvingSupport
             return utility;
         }
 
-        public float GetCustomResultAfterPathToSuccessor(byte playerIndex)
+        public FloatSet GetCustomResultAfterPathToSuccessor(byte playerIndex)
         {
-            float customResult;
+            FloatSet customResult;
             var successor = Successor;
             switch (successor)
             {

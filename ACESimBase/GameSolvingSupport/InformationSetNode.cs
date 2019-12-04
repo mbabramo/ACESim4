@@ -273,7 +273,7 @@ namespace ACESim
         public double LastBestResponseValue => BestResponseOptions?[BestResponseAction - 1] ?? 0; 
         public double[] BestResponseOptions; // one per action for this player
         public double[] AverageStrategyResultsForPathFromPredecessor;
-        public float[] CustomResultForPathFromPredecessor;
+        public FloatSet[] CustomResultForPathFromPredecessor;
         public int NumVisitsFromPredecessorToGetAverageStrategy;
         public int NumVisitsFromPredecessorToGetCustomResult;
 
@@ -341,9 +341,9 @@ namespace ACESim
             else for (int pathToHere = 0; pathToHere < numPathsFromPredecessor; pathToHere++)
                 AverageStrategyResultsForPathFromPredecessor[pathToHere] = 0;
             if (CustomResultForPathFromPredecessor == null)
-                CustomResultForPathFromPredecessor = new float[numPathsFromPredecessor];
+                CustomResultForPathFromPredecessor = new FloatSet[numPathsFromPredecessor];
             else for (int pathToHere = 0; pathToHere < numPathsFromPredecessor; pathToHere++)
-                CustomResultForPathFromPredecessor[pathToHere] = 0;
+                CustomResultForPathFromPredecessor[pathToHere] = new FloatSet();
             for (byte action = 1; action <= Decision.NumPossibleActions; action++)
             {
                 var pathsToSuccessorsForAction = PathsToSuccessors[action - 1];
@@ -353,9 +353,9 @@ namespace ACESim
                 double accumulatedBestResponseNumerator = 0, accumulatedBestResponseDenominatorDenominator = 0;
                 for (int pathToHere = 0; pathToHere < numPathsFromPredecessor; pathToHere++)
                 {
-                    (double unweightedSuccessorBestResponseValue, double averageStrategyValue, float customResult) = pathsToSuccessorsForAction[pathToHere].GetProbabilityAdjustedValueOfPaths(PlayerIndex);
+                    (double unweightedSuccessorBestResponseValue, double averageStrategyValue, FloatSet customResult) = pathsToSuccessorsForAction[pathToHere].GetProbabilityAdjustedValueOfPaths(PlayerIndex);
                     AverageStrategyResultsForPathFromPredecessor[pathToHere] += averageStrategyValue * averageStrategyProbability; // for average strategy, we are weighting the path to successors for each path from predecessors by the average strategy probability.
-                    CustomResultForPathFromPredecessor[pathToHere] += (float) (customResult * averageStrategyProbability);
+                    CustomResultForPathFromPredecessor[pathToHere] = CustomResultForPathFromPredecessor[pathToHere].Plus(customResult.Times((float) averageStrategyProbability));
                     double opponentsReachProbabilityForPath = PathsFromPredecessor[pathToHere].Probability;
                     double weighted = unweightedSuccessorBestResponseValue * opponentsReachProbabilityForPath;
                     accumulatedBestResponseNumerator += weighted;

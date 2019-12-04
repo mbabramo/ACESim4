@@ -741,7 +741,7 @@ namespace ACESim
                         CalculateBestResponse(false);
                         InformationSets.ForEach(x => x.RestoreBackup());
                         double refinement = br / BestResponseImprovementAdjAvg; // i.e., the exploitability without a perturbation divided by the exploitability with a perturbation. if very refined, this should be close to 1. If the perturbation greatly increases exploitability, this will be closer to 0.
-                        TabbedText.WriteLine($"Avg BR: {br} With perturb: {BestResponseImprovementAdjAvg} Refinement: {refinement} Custom: {CustomResult}");
+                        TabbedText.WriteLine($"Avg BR: {br} With perturb: {BestResponseImprovementAdjAvg} Refinement: {refinement.ToSignificantFigures(3)} Custom: {CustomResult}");
                         Refinement = refinement;
                         BestResponseUtilities = utilities;
                         BestResponseImprovement = improvement;
@@ -814,7 +814,7 @@ namespace ACESim
         public double[] AverageStrategyUtilities;
         public double[] BestResponseImprovement;
         public double[] LastBestResponseImprovement;
-        public float CustomResult;
+        public FloatSet CustomResult;
         public double[] BestResponseImprovementAdj => ScoreRangeExists && BestResponseImprovement != null ? BestResponseImprovement.Zip(ScoreRange, (bri, sr) => bri / sr).ToArray() : BestResponseImprovement;
 
         public bool BestResponseTargetMet => BestResponseImprovementAdj != null && BestResponseImprovementAdjAvg < EvolutionSettings.BestResponseTarget;
@@ -901,7 +901,7 @@ namespace ACESim
             for (byte playerIndex = 0; playerIndex < NumNonChancePlayers; playerIndex++)
             {
                 var resultForPlayer = AcceleratedBestResponsePrepResult[playerIndex];
-                (double bestResponseResult, double averageStrategyResult, float customResult) = resultForPlayer.GetProbabilityAdjustedValueOfPaths(playerIndex);
+                (double bestResponseResult, double averageStrategyResult, FloatSet customResult) = resultForPlayer.GetProbabilityAdjustedValueOfPaths(playerIndex);
                 BestResponseUtilities[playerIndex] = bestResponseResult;
                 AverageStrategyUtilities[playerIndex] = averageStrategyResult;
                 BestResponseImprovement[playerIndex] = bestResponseResult - averageStrategyResult;
@@ -960,7 +960,7 @@ namespace ACESim
                 actionStrategy = ActionStrategies.AverageStrategy; // best response against average strategy is same as against correlated equilibrium
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
-                TabbedText.WriteLine($"U(P{playerBeingOptimized}) {ActionStrategyLastReport}: {AverageStrategyUtilities[playerBeingOptimized]} BR vs. {BestResponseOpponentString} {BestResponseUtilities[playerBeingOptimized]} BRimp: {BestResponseImprovementAdj?[playerBeingOptimized]} Custom: {CustomResult}");
+                TabbedText.WriteLine($"U(P{playerBeingOptimized}) {ActionStrategyLastReport}: {AverageStrategyUtilities[playerBeingOptimized]} BR vs. {BestResponseOpponentString} {BestResponseUtilities[playerBeingOptimized]} BRimp: {BestResponseImprovementAdj?[playerBeingOptimized].ToSignificantFigures(3)}");
             }
             if (!averageStrategyUtilitiesRecorded)
                 AverageStrategyUtilities = null; // we may be using approximations, so set to null to avoid confusion

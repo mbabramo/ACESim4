@@ -35,6 +35,18 @@ namespace ACESim
             }
         }
 
+        public static string ToSignificantFigures(this float num, int numSignificantFigures = 4)
+        {
+            return RoundToSignificantFigures((double)num, numSignificantFigures).ToString();
+        }
+
+        public static string ToSignificantFigures(this float? num, int numSignificantFigures = 4)
+        {
+            if (num == null || double.IsNaN((double)num))
+                return "--";
+            return RoundToSignificantFigures((double)num, numSignificantFigures).ToString();
+        }
+
         public static string ToSignificantFigures(this double num, int numSignificantFigures = 4)
         {
             return RoundToSignificantFigures((double)num, numSignificantFigures).ToString();
