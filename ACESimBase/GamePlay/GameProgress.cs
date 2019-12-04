@@ -322,6 +322,27 @@ namespace ACESim
             return alternativeScenarios;
         }
 
+        public virtual float GetCustomResult()
+        {
+            return 0;
+        }
+
+        public virtual List<float> GetCustomResult_IncludingAlternateScenarios(GameDefinition gameDefinition)
+        {
+            List<float> alternativeScenarios = new List<float>();
+            int numScenarios = gameDefinition.NumScenariosToInitialize;
+            for (int s = 0; s < numScenarios; s++)
+            {
+                gameDefinition.ChangeOptionsBasedOnScenarioIndex(s, false);
+                if (s > 0)
+                    RecalculateGameOutcome();
+                alternativeScenarios.Add(GetCustomResult());
+            }
+            if (numScenarios > 0)
+                gameDefinition.ChangeOptionsBasedOnScenarioIndex(0, false);
+            return alternativeScenarios;
+        }
+
         public virtual void RecalculateGameOutcome()
         {
         }

@@ -741,7 +741,7 @@ namespace ACESim
                         CalculateBestResponse(false);
                         InformationSets.ForEach(x => x.RestoreBackup());
                         double refinement = br / BestResponseImprovementAdjAvg; // i.e., the exploitability without a perturbation divided by the exploitability with a perturbation. if very refined, this should be close to 1. If the perturbation greatly increases exploitability, this will be closer to 0.
-                        TabbedText.WriteLine($"Avg BR: {br} With perturb: {BestResponseImprovementAdjAvg} Refinement: {refinement}");
+                        TabbedText.WriteLine($"Avg BR: {br} With perturb: {BestResponseImprovementAdjAvg} Refinement: {refinement} Custom: {CustomResult}");
                         Refinement = refinement;
                         BestResponseUtilities = utilities;
                         BestResponseImprovement = improvement;
@@ -814,7 +814,7 @@ namespace ACESim
         public double[] AverageStrategyUtilities;
         public double[] BestResponseImprovement;
         public double[] LastBestResponseImprovement;
-        public float[] CustomResults1;
+        public float CustomResult;
         public double[] BestResponseImprovementAdj => ScoreRangeExists && BestResponseImprovement != null ? BestResponseImprovement.Zip(ScoreRange, (bri, sr) => bri / sr).ToArray() : BestResponseImprovement;
 
         public bool BestResponseTargetMet => BestResponseImprovementAdj != null && BestResponseImprovementAdjAvg < EvolutionSettings.BestResponseTarget;
@@ -826,7 +826,7 @@ namespace ACESim
         long BestResponseCalculationTime;
 
         bool BestResponseIsToAverageStrategy = true; // usually, this should be true, since the average strategy is the least exploitable strategy
-        string BestResponseOpponentString => BestResponseIsToAverageStrategy ? "average strategy" : ActionStrategy.ToString();
+        string BestResponseOpponentString => BestResponseIsToAverageStrategy ? "avgstrat" : ActionStrategy.ToString();
 
         List<List<InformationSetNode>> InformationSetsByDecisionIndex;
         List<NodeActionsMultipleHistories> AcceleratedBestResponsePrepResult;
@@ -892,21 +892,20 @@ namespace ACESim
         private void CompleteAcceleratedBestResponse()
         {
             // Finally, we need to calculate the final values by looking at the first information sets for each player.
-            if (BestResponseUtilities == null || BestResponseImprovement == null || AverageStrategyUtilities == null || CustomResults1 == null)
+            if (BestResponseUtilities == null || BestResponseImprovement == null || AverageStrategyUtilities == null)
             {
                 BestResponseUtilities = new double[NumNonChancePlayers];
                 BestResponseImprovement = new double[NumNonChancePlayers];
                 AverageStrategyUtilities = new double[NumNonChancePlayers];
-                CustomResults1 = new float[NumNonChancePlayers];
             }
             for (byte playerIndex = 0; playerIndex < NumNonChancePlayers; playerIndex++)
             {
                 var resultForPlayer = AcceleratedBestResponsePrepResult[playerIndex];
-                (double bestResponseResult, double averageStrategyResult, float customResult1) = resultForPlayer.GetProbabilityAdjustedValueOfPaths(playerIndex);
+                (double bestResponseResult, double averageStrategyResult, float customResult) = resultForPlayer.GetProbabilityAdjustedValueOfPaths(playerIndex);
                 BestResponseUtilities[playerIndex] = bestResponseResult;
                 AverageStrategyUtilities[playerIndex] = averageStrategyResult;
-                CustomResults1[playerIndex] = customResult1;
                 BestResponseImprovement[playerIndex] = bestResponseResult - averageStrategyResult;
+                CustomResult = customResult; // will be same for each player
             }
         }
 
@@ -961,7 +960,7 @@ namespace ACESim
                 actionStrategy = ActionStrategies.AverageStrategy; // best response against average strategy is same as against correlated equilibrium
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
-                TabbedText.WriteLine($"U(P{playerBeingOptimized}) {ActionStrategyLastReport}: {AverageStrategyUtilities[playerBeingOptimized]} Best response vs. {BestResponseOpponentString} {BestResponseUtilities[playerBeingOptimized]} Best response improvement: {BestResponseImprovementAdj?[playerBeingOptimized]}");
+                TabbedText.WriteLine($"U(P{playerBeingOptimized}) {ActionStrategyLastReport}: {AverageStrategyUtilities[playerBeingOptimized]} BR vs. {BestResponseOpponentString} {BestResponseUtilities[playerBeingOptimized]} BRimp: {BestResponseImprovementAdj?[playerBeingOptimized]} Custom: {CustomResult}");
             }
             if (!averageStrategyUtilitiesRecorded)
                 AverageStrategyUtilities = null; // we may be using approximations, so set to null to avoid confusion

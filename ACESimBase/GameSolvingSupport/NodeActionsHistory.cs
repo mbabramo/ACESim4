@@ -166,16 +166,16 @@ namespace ACESimBase.GameSolvingSupport
             return new ByteList(nodesToInclude);
         }
 
-        public (double bestResponseValue, double averageStrategyValue, float customResult1) GetProbabilityAdjustedUtilityOfPath(byte playerIndex)
+        public (double bestResponseValue, double averageStrategyValue, float customResult) GetProbabilityAdjustedUtilityOfPath(byte playerIndex)
         {
             double bestResponseUtility = GetBestResponseUtilityAfterPathToSuccessor(playerIndex);
             double averageStrategyUtility = GetAverageStrategyUtilityAfterPathToSuccessor(playerIndex);
-            float customResult1 = GetCustomResult1AfterPathToSuccessor(playerIndex);
+            float customResult = GetCustomResultAfterPathToSuccessor(playerIndex);
             double pathProbability = GetProbabilityOfPath();
             double bestResponseValue = pathProbability * bestResponseUtility;
             double averageStrategyValue = pathProbability * averageStrategyUtility;
-            float customResult1Value = (float)(pathProbability * customResult1);
-            return (bestResponseValue, averageStrategyValue, customResult1Value);
+            float customResultValue = (float)(pathProbability * customResult);
+            return (bestResponseValue, averageStrategyValue, customResultValue);
         }
 
         public double GetProbabilityOfPath()
@@ -278,22 +278,22 @@ namespace ACESimBase.GameSolvingSupport
             return utility;
         }
 
-        public float GetCustomResult1AfterPathToSuccessor(byte playerIndex)
+        public float GetCustomResultAfterPathToSuccessor(byte playerIndex)
         {
             float customResult;
             var successor = Successor;
             switch (successor)
             {
                 case FinalUtilitiesNode f:
-                    customResult = f.CustomResult1[playerIndex];
+                    customResult = f.CustomResult;
                     break;
                 case InformationSetNode i:
                     if (playerIndex != i.PlayerIndex)
                         throw new Exception();
-                    customResult = i.CustomResult1ForPathFromPredecessor[i.NumVisitsFromPredecessorToGetCustomResult1]; // that is, return the average strategy result for the predecessor, on the assumption that the paths from the predecessor are being visited in order to make this request.
-                    i.NumVisitsFromPredecessorToGetCustomResult1++;
-                    if (i.NumVisitsFromPredecessorToGetCustomResult1 == i.CustomResult1ForPathFromPredecessor.Length)
-                        i.NumVisitsFromPredecessorToGetCustomResult1 = 0;
+                    customResult = i.CustomResultForPathFromPredecessor[i.NumVisitsFromPredecessorToGetCustomResult]; // that is, return the average strategy result for the predecessor, on the assumption that the paths from the predecessor are being visited in order to make this request.
+                    i.NumVisitsFromPredecessorToGetCustomResult++;
+                    if (i.NumVisitsFromPredecessorToGetCustomResult == i.CustomResultForPathFromPredecessor.Length)
+                        i.NumVisitsFromPredecessorToGetCustomResult = 0;
                     break;
                 default: throw new NotSupportedException();
             }

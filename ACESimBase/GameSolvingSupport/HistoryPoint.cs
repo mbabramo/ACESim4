@@ -117,7 +117,7 @@ namespace ACESim
             {
                 if (GameProgress.GameComplete)
                 {
-                    var finalUtilitiesResult = new FinalUtilitiesNode(GameProgress.GetNonChancePlayerUtilities(), -1); // If we want to, we could add the FInalUtilitiesNode to the list, but this means that we will have a new node everytime we play. If we want to be able to use unrolling with final utilities nodes, then we would need to check the list (e.g., by using a dictionary) for a matching FinalUtilitiesNode, rather than continually adding new ones.
+                    var finalUtilitiesResult = new FinalUtilitiesNode(GameProgress.GetNonChancePlayerUtilities(), GameProgress.GetCustomResult(), -1); // If we want to, we could add the FInalUtilitiesNode to the list, but this means that we will have a new node everytime we play. If we want to be able to use unrolling with final utilities nodes, then we would need to check the list (e.g., by using a dictionary) for a matching FinalUtilitiesNode, rather than continually adding new ones.
                     //navigation.FinalUtilitiesNodes.Add(finalUtilitiesResult);
                     return finalUtilitiesResult;
                 }
@@ -337,7 +337,7 @@ namespace ACESim
                         true,
                         () =>
                         {
-                            FinalUtilitiesNode finalUtilitiesResult = new FinalUtilitiesNode(gameProgress.GetNonChancePlayerUtilities_IncludingAlternateScenarios(navigation.GameDefinition), navigation.FinalUtilitiesNodes.Count());
+                            FinalUtilitiesNode finalUtilitiesResult = new FinalUtilitiesNode(gameProgress.GetNonChancePlayerUtilities_IncludingAlternateScenarios(navigation.GameDefinition), gameProgress.GetCustomResult_IncludingAlternateScenarios(navigation.GameDefinition), navigation.FinalUtilitiesNodes.Count());
                             navigation.FinalUtilitiesNodes.Add(finalUtilitiesResult);
                             return finalUtilitiesResult;
                         }

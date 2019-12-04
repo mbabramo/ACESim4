@@ -309,6 +309,14 @@ namespace ACESim
             return new double[] { PWelfare, DWelfare };
         }
 
+        public override float GetCustomResult()
+        {
+            if (TrialOccurs)
+                return 1.0f;
+            else
+                return 0;
+        }
+
         public void AddPAgreesToBargain(bool agreesToBargain)
         {
             if (PAgreesToBargain == null)

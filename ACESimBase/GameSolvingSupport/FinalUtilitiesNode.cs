@@ -13,18 +13,22 @@ namespace ACESim
         public int CurrentScenarioIndex = 0;
         public double[] Utilities => AllScenarioUtilities[CurrentScenarioIndex];
         public List<double[]> AllScenarioUtilities;
+        public float CustomResult => AllScenarioCustomResult[CurrentScenarioIndex];
+        public List<float> AllScenarioCustomResult;
         public int FinalUtilitiesNodeNumber;
         public int GetNodeNumber() => FinalUtilitiesNodeNumber;
 
-        public FinalUtilitiesNode(List<double[]> allScenarioUtilities, int finalUtilitiesNodeNumber)
+        public FinalUtilitiesNode(List<double[]> allScenarioUtilities, List<float> customResults, int finalUtilitiesNodeNumber)
         {
             AllScenarioUtilities = allScenarioUtilities;
+            AllScenarioCustomResult = customResults;
             FinalUtilitiesNodeNumber = finalUtilitiesNodeNumber;
         }
 
-        public FinalUtilitiesNode(double[] utilities, int finalUtilitiesNodeNumber)
+        public FinalUtilitiesNode(double[] utilities, float customResult, int finalUtilitiesNodeNumber)
         {
             AllScenarioUtilities = new List<double[]>() { utilities };
+            AllScenarioCustomResult = new List<float>() { customResult };
             FinalUtilitiesNodeNumber = finalUtilitiesNodeNumber;
         }
 
