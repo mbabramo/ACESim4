@@ -88,7 +88,7 @@ namespace ACESim
         {
             ReportCollection reportCollection = new ReportCollection();
             double[] array = new double[Unroll_SizeOfArray];
-            bool targetMet = false;
+            bool targetMet = false; 
             for (int iteration = 1; iteration <= EvolutionSettings.TotalIterations && !targetMet; iteration++)
             {
                 // uncomment to skip a player
