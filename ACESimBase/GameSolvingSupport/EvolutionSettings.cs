@@ -69,7 +69,7 @@ namespace ACESim
         internal int NumRandomIterationsForUtilityCalculation = 10000;
         internal bool SuppressReportDisplayOnScreen;
 
-        public int? IterationsForWarmupScenario = 250; // DEBUG // Set to null when inapplicable
+        public int? IterationsForWarmupScenario = null; // Set to null when inapplicable; otherwise, to number of iterations
 
         public static bool PruneOnOpponentStrategy = true; // NOTE: In general sum games, this seems to cause difficulties, because some of the player's own information sets may not be visited, as a result of pruning on opponents' sets. 
         public static double PruneOnOpponentStrategyThreshold = 1E-4; // NOTE: This is the probability for this action, not the cumulative probability. 
@@ -77,7 +77,7 @@ namespace ACESim
 
         public bool CFRBR = false; // if true, opponent plays best response
         public bool CFR_OpponentPlaysAverageStrategy = false; // typically, the opponent plays the current strategy in CFR. With this variant, the opponent plays the average strategy. This sometimes gives mildly better results, but not consistent performance improvements.
-        public bool CFR_OpponentSampling = true; // DEBUG // if true, then we sample only 1 action at each opponent information set (but this does not apply to chance actions, as currently implemented)
+        public bool CFR_OpponentSampling = false; // DEBUG // if true, then we sample only 1 action at each opponent information set (but this does not apply to chance actions, as currently implemented)
 
         // For Vanilla algorithm:
         // From Solving Imperfect Information Games with Discounted Regret Minimization -- optimal values (for situations in which pruning may be used)
@@ -166,7 +166,7 @@ namespace ACESim
 
         }
 
-        public double PerturbationInitial = 0.001; // DEBUG // should use with regret matching
+        public double PerturbationInitial = 0.001; // should use with regret matching
         public double PerturbationFinal = 0.0;
         public double PerturbationCurvature = 5.0;
         public double Perturbation_BasedOnCurve(int iteration, int maxIteration)
@@ -181,10 +181,10 @@ namespace ACESim
 
         public bool UseCFRPlusInRegretMatching = true; // if true, then cumulative regrets never fall below zero
 
-        public bool RecordPastValues = false; // DEBUG // NOTE: This is set by launcher
+        public bool RecordPastValues = false; // NOTE: This is set by launcher
         public int RecordPastValues_TargetNumberToRecord = 100;
-        public int? RecordPastValues_AtIterationMultiples = 5_000; // DEBUG
-        public bool RecordPastValues_ResetAtIterationMultiples = false; // DEBUG
+        public int? RecordPastValues_AtIterationMultiples = 5_000; 
+        public bool RecordPastValues_ResetAtIterationMultiples = false; 
         public int EffectiveIteration(int iteration) => (RecordPastValues && RecordPastValues_AtIterationMultiples is int multiples && RecordPastValues_ResetAtIterationMultiples) ? iteration % multiples + 1 : iteration;
         public (int effectiveIteration, int effectiveMaxIteration) EffectiveIterationAndMaxIteration(int iteration, int maxIteration) => (RecordPastValues && RecordPastValues_AtIterationMultiples is int multiples && RecordPastValues_ResetAtIterationMultiples) ? (iteration % multiples + 1, multiples) : (iteration, maxIteration);
 

@@ -974,11 +974,11 @@ namespace ACESim
 
         #region Alternative scenarios
 
-        public override bool PlayMultipleScenarios => true; // DEBUG // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
+        public override bool PlayMultipleScenarios => false; // Note: Even if this is false, we can define a scenario as a "warm-up scenario."
 
-        public override bool UseDifferentWarmup => true; // DEBUG
+        public override bool UseDifferentWarmup => false; 
 
-        public override int NumScenariosDefined => 11; // DEBUG
+        public override int NumScenariosDefined => 11;
 
         public enum ChangeInScenario
         {

@@ -62,8 +62,8 @@ namespace ACESim
         {
             await Initialize();
             ReportCollection reportCollection = new ReportCollection();
-            bool startAtZero = false; // DEBUG
-            for (int s = startAtZero ? 0 : 1; s < GameDefinition.NumScenariosToDevelop; s++)
+            bool startWithBaselineScenario = false; 
+            for (int s = startWithBaselineScenario ? 0 : 1; s < GameDefinition.NumScenariosToDevelop; s++)
             {
                 string optionSetInfo = $@"Option set {optionSetName}";
                 if (GameDefinition.NumScenariosToDevelop > 1)

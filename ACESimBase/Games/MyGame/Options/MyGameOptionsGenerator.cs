@@ -113,9 +113,9 @@ namespace ACESim
                 SimultaneousOffersUltimatelyRevealed = true,
                 PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false, true, false, true, false },
 
-                IncludeSignalsReport = false, // DEBUG
+                IncludeSignalsReport = true, // DEBUG
                 IncludeCourtSuccessReport = false, // DEBUG
-                FirstRowOnly = true, // DEBUG
+                FirstRowOnly = false,
 
                 WarmStartThroughIteration = null,
                 WarmStartOptions = MyGameWarmStartOptions.NoWarmStart
