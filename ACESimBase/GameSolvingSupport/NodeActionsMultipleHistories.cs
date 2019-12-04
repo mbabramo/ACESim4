@@ -65,16 +65,18 @@ namespace ACESimBase.GameSolvingSupport
             return Histories.GetSequenceHashCode();
         }
 
-        public (double bestResponseValue, double averageStrategyValue) GetProbabilityAdjustedValueOfPaths(byte playerIndex)
+        public (double bestResponseValue, double averageStrategyValue, float customResult1) GetProbabilityAdjustedValueOfPaths(byte playerIndex)
         {
             double cumulativeBestResponseValue = 0, cumulativeAverageStrategyValue = 0;
+            float cumulativeCustomResult1 = 0;
             foreach (var pathToSuccessorForAction in Histories)
             {
-                var (bestResponseValue, averageStrategyValue) = pathToSuccessorForAction.GetProbabilityAdjustedUtilityOfPath(playerIndex);
+                var (bestResponseValue, averageStrategyValue, customResult1) = pathToSuccessorForAction.GetProbabilityAdjustedUtilityOfPath(playerIndex);
                 cumulativeBestResponseValue += bestResponseValue;
                 cumulativeAverageStrategyValue += averageStrategyValue;
+                cumulativeCustomResult1 += customResult1;
             }
-            return (cumulativeBestResponseValue, cumulativeAverageStrategyValue);
+            return (cumulativeBestResponseValue, cumulativeAverageStrategyValue, cumulativeCustomResult1);
         }
     }
 }

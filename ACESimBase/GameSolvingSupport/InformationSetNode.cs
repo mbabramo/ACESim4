@@ -273,7 +273,9 @@ namespace ACESim
         public double LastBestResponseValue => BestResponseOptions?[BestResponseAction - 1] ?? 0; 
         public double[] BestResponseOptions; // one per action for this player
         public double[] AverageStrategyResultsForPathFromPredecessor;
+        public float[] CustomResult1ForPathFromPredecessor;
         public int NumVisitsFromPredecessorToGetAverageStrategy;
+        public int NumVisitsFromPredecessorToGetCustomResult1;
 
         public void AcceleratedBestResponse_CalculateReachProbabilities(bool determinePrunability)
         {
@@ -336,6 +338,8 @@ namespace ACESim
             int numPathsFromPredecessor = PathsFromPredecessor.Count();
             if (AverageStrategyResultsForPathFromPredecessor == null)
                 AverageStrategyResultsForPathFromPredecessor = new double[numPathsFromPredecessor];
+            if (CustomResult1ForPathFromPredecessor == null)
+                CustomResult1ForPathFromPredecessor = new float[numPathsFromPredecessor];
             else for (int pathToHere = 0; pathToHere < numPathsFromPredecessor; pathToHere++)
                 AverageStrategyResultsForPathFromPredecessor[pathToHere] = 0;
             for (byte action = 1; action <= Decision.NumPossibleActions; action++)
@@ -347,8 +351,9 @@ namespace ACESim
                 double accumulatedBestResponseNumerator = 0, accumulatedBestResponseDenominatorDenominator = 0;
                 for (int pathToHere = 0; pathToHere < numPathsFromPredecessor; pathToHere++)
                 {
-                    (double unweightedSuccessorBestResponseValue, double averageStrategyValue) = pathsToSuccessorsForAction[pathToHere].GetProbabilityAdjustedValueOfPaths(PlayerIndex);
+                    (double unweightedSuccessorBestResponseValue, double averageStrategyValue, float customResult1) = pathsToSuccessorsForAction[pathToHere].GetProbabilityAdjustedValueOfPaths(PlayerIndex);
                     AverageStrategyResultsForPathFromPredecessor[pathToHere] += averageStrategyValue * averageStrategyProbability; // for average strategy, we are weighting the path to successors for each path from predecessors by the average strategy probability.
+                    CustomResult1ForPathFromPredecessor[pathToHere] += (float) (customResult1 * averageStrategyProbability);
                     double opponentsReachProbabilityForPath = PathsFromPredecessor[pathToHere].Probability;
                     double weighted = unweightedSuccessorBestResponseValue * opponentsReachProbabilityForPath;
                     accumulatedBestResponseNumerator += weighted;

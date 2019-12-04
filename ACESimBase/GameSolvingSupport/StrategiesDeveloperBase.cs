@@ -814,6 +814,7 @@ namespace ACESim
         public double[] AverageStrategyUtilities;
         public double[] BestResponseImprovement;
         public double[] LastBestResponseImprovement;
+        public float[] CustomResults1;
         public double[] BestResponseImprovementAdj => ScoreRangeExists && BestResponseImprovement != null ? BestResponseImprovement.Zip(ScoreRange, (bri, sr) => bri / sr).ToArray() : BestResponseImprovement;
 
         public bool BestResponseTargetMet => BestResponseImprovementAdj != null && BestResponseImprovementAdjAvg < EvolutionSettings.BestResponseTarget;
@@ -891,18 +892,20 @@ namespace ACESim
         private void CompleteAcceleratedBestResponse()
         {
             // Finally, we need to calculate the final values by looking at the first information sets for each player.
-            if (BestResponseUtilities == null || BestResponseImprovement == null || AverageStrategyUtilities == null)
+            if (BestResponseUtilities == null || BestResponseImprovement == null || AverageStrategyUtilities == null || CustomResults1 == null)
             {
                 BestResponseUtilities = new double[NumNonChancePlayers];
                 BestResponseImprovement = new double[NumNonChancePlayers];
                 AverageStrategyUtilities = new double[NumNonChancePlayers];
+                CustomResults1 = new float[NumNonChancePlayers];
             }
             for (byte playerIndex = 0; playerIndex < NumNonChancePlayers; playerIndex++)
             {
                 var resultForPlayer = AcceleratedBestResponsePrepResult[playerIndex];
-                (double bestResponseResult, double averageStrategyResult) = resultForPlayer.GetProbabilityAdjustedValueOfPaths(playerIndex);
+                (double bestResponseResult, double averageStrategyResult, float customResult1) = resultForPlayer.GetProbabilityAdjustedValueOfPaths(playerIndex);
                 BestResponseUtilities[playerIndex] = bestResponseResult;
                 AverageStrategyUtilities[playerIndex] = averageStrategyResult;
+                CustomResults1[playerIndex] = customResult1;
                 BestResponseImprovement[playerIndex] = bestResponseResult - averageStrategyResult;
             }
         }
