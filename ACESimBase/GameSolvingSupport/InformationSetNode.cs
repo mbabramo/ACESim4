@@ -840,6 +840,8 @@ namespace ACESim
 
         public void PostIterationUpdates(int iteration, PostIterationUpdaterBase updater, double averageStrategyAdjustment, bool normalizeCumulativeStrategyIncrements, bool resetPreviousCumulativeStrategyIncrements, double? pruneOpponentStrategyBelow, bool pruneOpponentStrategyIfDesignatedPrunable, bool addOpponentTremble, bool weightResultByInversePiForIteration, double? randomNumberToSelectSingleOpponentAction)
         {
+            if (iteration > EvolutionSettings.IterationsForWarmupScenario && iteration < 1000 && Decision.Name.StartsWith("PF"))
+                return; // DEBUG SUPERDEBUG
             UpdateCumulativeAndAverageStrategies(iteration, averageStrategyAdjustment, normalizeCumulativeStrategyIncrements, resetPreviousCumulativeStrategyIncrements);
             DetermineBestResponseAction();
             ClearBestResponse();
