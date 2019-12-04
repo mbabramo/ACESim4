@@ -10,8 +10,7 @@ namespace ACESim
     public class EvolutionSettings
     {
         public bool DistributeChanceDecisions = true; // NOTE: This is currently very slow when using full game tree.
-        debug; // Why does unrolling affect things?
-        public bool UnrollAlgorithm = true; // DEBUG
+        public bool UnrollAlgorithm = true; 
         public bool AzureEnabled = false;
         // Note: Many of the below are overridden by launcher.
         public int TotalAvgStrategySamplingCFRIterations = 100000;

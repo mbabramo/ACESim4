@@ -101,7 +101,7 @@ namespace ACESim
                 StrategiesDeveloperStopwatch.Start();
                 if (EvolutionSettings.CFRBR)
                     CalculateBestResponse(false);
-                Unroll_ExecuteUnrolledCommands(array, iteration == 1);
+                Unroll_ExecuteUnrolledCommands(array, iteration == 1 || iteration == EvolutionSettings.IterationsForWarmupScenario + 1);
                 StrategiesDeveloperStopwatch.Stop();
                 UpdateInformationSets(iteration);
                 SimulatedAnnealing(iteration);
@@ -785,6 +785,11 @@ namespace ACESim
         {
             if (EvolutionSettings.UnrollAlgorithm)
                 return await Unroll_SolveGeneralizedVanillaCFR();
+            return await SolveGeneralizedVanillaCFR();
+        }
+
+        private async Task<ReportCollection> SolveGeneralizedVanillaCFR()
+        {
             ReportCollection reportCollection = new ReportCollection();
             bool targetMet = false;
             for (int iteration = 1; iteration <= EvolutionSettings.TotalIterations && !targetMet; iteration++)
@@ -802,6 +807,7 @@ namespace ACESim
             }
             return reportCollection;
         }
+
         private async Task<ReportCollection> GeneralizedVanillaCFRIteration(int iteration)
         {
             IterationNumDouble = iteration;
