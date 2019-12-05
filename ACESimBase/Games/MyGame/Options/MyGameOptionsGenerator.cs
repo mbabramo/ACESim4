@@ -19,8 +19,10 @@ namespace ACESim
             LiabilityUncertainty_3BR,
             DamagesUncertainty_1BR,
             DamagesUncertainty_2BR,
+            DamagesUncertainty_3BR,
             BothUncertain_1BR,
             BothUncertain_2BR,
+            BothUncertain_3BR,
             Shootout,
             Shootout_Triple,
             Shootout_AllRounds,
@@ -46,8 +48,10 @@ namespace ACESim
             MyGameOptionSetChoices.LiabilityUncertainty_3BR => LiabilityUncertainty_3BR(),
             MyGameOptionSetChoices.DamagesUncertainty_1BR => DamagesUncertainty_1BR(),
             MyGameOptionSetChoices.DamagesUncertainty_2BR => DamagesUncertainty_2BR(),
-            MyGameOptionSetChoices.BothUncertain_1BR => BothUncertain1BR(),
-            MyGameOptionSetChoices.BothUncertain_2BR => Usual(),
+            MyGameOptionSetChoices.DamagesUncertainty_3BR => DamagesUncertainty_3BR(),
+            MyGameOptionSetChoices.BothUncertain_1BR => BothUncertain_1BR(),
+            MyGameOptionSetChoices.BothUncertain_2BR => BothUncertain_2BR(),
+            MyGameOptionSetChoices.BothUncertain_3BR => BothUncertain_3BR(),
             MyGameOptionSetChoices.Shootout => Shootout(),
             MyGameOptionSetChoices.Shootout_Triple => Shootout_Triple(),
             MyGameOptionSetChoices.Shootout_AllRounds => Shootout_AllRounds(),
@@ -56,7 +60,7 @@ namespace ACESim
             MyGameOptionSetChoices.SuperSimple => SuperSimple(),
             MyGameOptionSetChoices.Faster => Faster(),
             MyGameOptionSetChoices.Fast => Fast(),
-            MyGameOptionSetChoices.Usual => Usual(),
+            MyGameOptionSetChoices.Usual => BothUncertain_2BR(),
             MyGameOptionSetChoices.Ambitious => Ambitious(),
             MyGameOptionSetChoices.PerfectInfo => PerfectInformation(courtIsPerfectToo: false),
             _ => throw new Exception()
@@ -82,7 +86,7 @@ namespace ACESim
                     ExogenousProbabilityTrulyLiable = 0.5,
                     StdevNoiseToProduceLiabilityStrength = 0.5
                 },
-                SkipFileAndAnswerDecisions = false,
+                SkipFileAndAnswerDecisions = false, 
                 PFilingCost = 5000,
                 DAnswerCost = 5000,
                 PLiabilityNoiseStdev = 0.1,
@@ -97,7 +101,7 @@ namespace ACESim
                 RegretAversion = 0.0,
                 IncludeAgreementToBargainDecisions = false,
                 PerPartyCostsLeadingUpToBargainingRound = 15_000,
-                AllowAbandonAndDefaults = true,
+                AllowAbandonAndDefaults = true, 
                 LoserPays = false,
                 LoserPaysMultiple = 1.0,
                 LoserPaysAfterAbandonment = false,
@@ -107,14 +111,14 @@ namespace ACESim
                     DeltaStartingValue = 0.01,
                     MaxDelta = 0.25
                 },
-                NumPotentialBargainingRounds = 2,
+                NumPotentialBargainingRounds = 2, 
                 BargainingRoundRecall = MyGameBargainingRoundRecall.RememberAllBargainingRounds,
-                BargainingRoundsSimultaneous = true,
-                SimultaneousOffersUltimatelyRevealed = true,
+                BargainingRoundsSimultaneous = true, 
+                SimultaneousOffersUltimatelyRevealed = true, 
                 PGoesFirstIfNotSimultaneous = new List<bool> { true, false, true, false, true, false, true, false },
 
-                IncludeSignalsReport = true, // DEBUG
-                IncludeCourtSuccessReport = false, // DEBUG
+                IncludeSignalsReport = true, 
+                IncludeCourtSuccessReport = false, 
                 FirstRowOnly = false,
 
                 WarmStartThroughIteration = null,
@@ -132,7 +136,7 @@ namespace ACESim
 
         public static MyGameOptions Custom()
         {
-            var options = Usual();
+            var options = BothUncertain_2BR();
             options.MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
             {
                 ExogenousProbabilityTrulyLiable = 0.9,
@@ -219,6 +223,13 @@ namespace ACESim
         {
             var options = DamagesUncertainty_1BR();
             options.NumPotentialBargainingRounds = 2;
+
+            return options;
+        }
+        public static MyGameOptions DamagesUncertainty_3BR()
+        {
+            var options = DamagesUncertainty_1BR();
+            options.NumPotentialBargainingRounds = 3;
 
             return options;
         }
@@ -380,14 +391,22 @@ namespace ACESim
             return options;
         }
 
-        public static MyGameOptions Usual()
+        public static MyGameOptions BothUncertain_2BR()
         {
             var options = BaseOptions();
 
             return options;
         }
 
-        public static MyGameOptions BothUncertain1BR()
+        public static MyGameOptions BothUncertain_3BR()
+        {
+            var options = BaseOptions();
+            options.NumPotentialBargainingRounds = 3;
+
+            return options;
+        }
+
+        public static MyGameOptions BothUncertain_1BR()
         {
             var options = BaseOptions();
             options.NumPotentialBargainingRounds = 1;
