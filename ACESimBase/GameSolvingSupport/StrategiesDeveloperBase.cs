@@ -129,7 +129,7 @@ namespace ACESim
 
         // Note: The ActionStrategy selected does not affect the learning process. It affects reporting after learning, including the calculation of best response scores. Convergence bounds guarantees depend on all players' using the AverageStrategies ActionStrategy. It may seem surprising that we can have convergence guarantees when a player is using the average strategy, thus continuing to make what appears to be some mistakes from the past. But the key is that the other players are also using their average strategies. Thus, even if new information has changed the best move for a player under current circumstances, the player will be competing against a player that continues to employ some of the old strategies. In other words, the opponents' average strategy changes extremely slowly, and the no-regret learning convergence guarantees at a single information set are based on this concept of the player and the opponent playing their average strategies. But the average strategy is not the strategy that the player has "learned." 
 
-        public bool BestBecomesResult = false; // NOTE: The argument against doing this is that exploitability is not the only consideration; we also want to be close to a sequential equilibrium.
+        public bool BestBecomesResult = true; // NOTE: The argument against doing this is that exploitability is not the only consideration; we also want to be close to a sequential equilibrium.
         public bool RememberPastExploitability = true;
         public double BestExploitability = int.MaxValue; // initialize to worst possible score (i.e., highest possible exploitability)
         public int BestIteration = -1;

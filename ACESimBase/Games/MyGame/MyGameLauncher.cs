@@ -293,11 +293,6 @@ namespace ACESim
                 };
                 options.SkipFileAndAnswerDecisions = true;
                 options.AllowAbandonAndDefaults = false;
-                if (!liabilityAlsoUncertain)
-                {
-                    options.NumDamagesSignals = 10; // DEBUG
-                    options.NumOffers = 10; // DEBUG
-                }
                 if (hiddenOffers)
                     options.SimultaneousOffersUltimatelyRevealed = false;
                 else
@@ -329,9 +324,8 @@ namespace ACESim
             optionSets.Add(("twobr", GetBluffingBase(false, onlyTwoRounds: true)));
             optionSets.Add(("twobr-hidden", GetBluffingBase(true, onlyTwoRounds: true)));
 
-            // DEBUG
-            //optionSets.Add(("bothunc", GetBluffingBase(false, liabilityAlsoUncertain: true)));
-            //optionSets.Add(("bothunc-hidden", GetBluffingBase(true, liabilityAlsoUncertain: true)));
+            optionSets.Add(("bothunc", GetBluffingBase(false, liabilityAlsoUncertain: true)));
+            optionSets.Add(("bothunc-hidden", GetBluffingBase(true, liabilityAlsoUncertain: true)));
 
             optionSets.Add(("cfrplus", GetBluffingBase(false, cfrPlus: true)));
             optionSets.Add(("cfrplus-hidden", GetBluffingBase(true, cfrPlus: true)));
