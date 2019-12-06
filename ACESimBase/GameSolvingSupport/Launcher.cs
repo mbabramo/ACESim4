@@ -24,7 +24,7 @@ namespace ACESim
         public const int VanillaReportEveryNIterations = VanillaIterations;
         public const int VanillaBestResponseEveryMIterations = 100; 
         public const bool CalculatePerturbedBestResponseRefinement = true;
-        public const int MiniReportEveryPIterations = EffectivelyNever;
+        public const int MiniReportEveryPIterations = 100; // DEBUG EffectivelyNever;
         public const bool AlwaysSuppressDisplayReportOnScreen = true; 
         public const int CorrelatedEquilibriumCalculationsEveryNIterations = EffectivelyNever; 
         public const bool UseRandomPathsForReporting = true;
@@ -32,7 +32,7 @@ namespace ACESim
         public const int ProbingIterations = 20_000_000;
 
         public const int StartGameNumber = 1;
-        public bool LaunchSingleOptionsSetOnly = false; 
+        public bool LaunchSingleOptionsSetOnly = false; // will be automatically set by ACESimConsole
         public int NumRepetitions = 1;
         public bool AzureEnabled = true;
         public int MaxParallelDepth = 3;

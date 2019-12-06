@@ -80,6 +80,7 @@ namespace ACESim
                     launcher = new MyGameLauncher();
                     break;
             }
+            launcher.LaunchSingleOptionsSetOnly = true;
             ReportCollection launchResult = await launcher.Launch();
             TextCopy.Clipboard.SetText(launchResult.standardReport);
             s.Stop();
