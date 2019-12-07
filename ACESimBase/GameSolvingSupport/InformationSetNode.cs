@@ -43,6 +43,7 @@ namespace ACESim
         public List<InformationSetNode> DescendantInformationSets;
         public List<InformationSetNode> ChildInformationSets;
         public int SizeNeededToDisplayDescendants = 1;
+        public int NumGenerationsFromHere = 1;
         public InformationSetNode ParentInformationSet;
         double PastValuesLastCumulativeStrategyDiscount => PastValuesCumulativeStrategyDiscounts[LastPastValueIndexRecorded];
 
@@ -147,11 +148,17 @@ namespace ACESim
                 {
                     if (x.ChildInformationSets.Any())
                     {
-                        int revised = x.ChildInformationSets.Sum(y => y.SizeNeededToDisplayDescendants);
-                        if (x.SizeNeededToDisplayDescendants != revised)
+                        int revisedSize = x.ChildInformationSets.Sum(y => y.SizeNeededToDisplayDescendants);
+                        if (x.SizeNeededToDisplayDescendants != revisedSize)
                         {
                             changeMade = true;
-                            x.SizeNeededToDisplayDescendants = revised;
+                            x.SizeNeededToDisplayDescendants = revisedSize;
+                        }
+                        int revisedGenerations = x.ChildInformationSets.Max(y => y.NumGenerationsFromHere) + 1;
+                        if (x.NumGenerationsFromHere != revisedGenerations)
+                        {
+                            changeMade = true;
+                            x.NumGenerationsFromHere = revisedGenerations;
                         }
                     }
                 }

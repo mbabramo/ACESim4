@@ -7,6 +7,7 @@ using CsvHelper;
 using System.Linq;
 using System.Collections.Generic;
 using System.Text;
+using ACESim;
 
 namespace ACESimBase.Util
 {
@@ -94,28 +95,28 @@ namespace ACESimBase.Util
             for (int set = 0; set < numSets; set++)
             {
                 double[][] data = GetValuesFromCSV(path + @"\" + filename + ".csv", setLocations[set].firstRow, setLocations[set].firstColumn, numRowsPerSet, numColumnsPerSet);
-                BarFill(g, rects[set], true, data, color, includeTextWherePossible);
+                BarFillMultiple(g, rects[set], true, data, color, includeTextWherePossible);
             }
         }
 
         public static void GetDataFromCSVAndPlot(string path, Graphics g, Rectangle r, string filename, int firstRow, int firstColumn, int numRows, int numColumns, Color color, bool includeTextWherePossible)
         {
             double[][] data = GetValuesFromCSV(path + @"\" + filename + ".csv", firstRow, firstColumn, numRows, numColumns);
-            BarFill(g, r, true, data, color, includeTextWherePossible);
+            BarFillMultiple(g, r, true, data, color, includeTextWherePossible);
         }
 
         #endregion
 
         #region Bars
 
-        public static void BarFill(Graphics g, Rectangle r, bool individualSetHorizontally, double[][] proportions, Color color, bool includeTextWherePossible)
+        public static void BarFillMultiple(Graphics g, Rectangle r, bool individualSetHorizontally, double[][] proportions, Color color, bool includeTextWherePossible)
         {
             Rectangle[] rectangles = DivideRectangle(r, !individualSetHorizontally, proportions.Length, 2 * BitmapMultiplier);
             for (int i = 0; i < proportions.Length; i++)
-                BarFill(g, rectangles[i], individualSetHorizontally, proportions[i], color, includeTextWherePossible);
+                BarFillSingle(g, rectangles[i], individualSetHorizontally, proportions[i], color, includeTextWherePossible);
         }
 
-        public static void BarFill(Graphics g, Rectangle r, bool horizontally, double[] proportions, Color color, bool includeTextWherePossible)
+        public static void BarFillSingle(Graphics g, Rectangle r, bool horizontally, double[] proportions, Color color, bool includeTextWherePossible)
         {
             if (proportions == null)
                 return;
@@ -276,6 +277,55 @@ namespace ACESimBase.Util
             stringFormatHorizontally.Alignment = StringAlignment.Center;
             stringFormatHorizontally.LineAlignment = StringAlignment.Center;
             g.DrawString(text, font, brush, r, stringFormatHorizontally);
+        }
+
+        #endregion
+
+        #region Information set charts
+
+        public static void CreateInformationSetChart(List<InformationSetNode> informationSets)
+        {
+            var startNodes = informationSets.Where(x => x.ParentInformationSet == null).ToList();
+            List<(InformationSetNode, Rectangle)> layout = new List<(InformationSetNode, Rectangle)>();
+            Rectangle r = default;
+            CreateInformationSetChartLayout(layout, startNodes, ref r, out int totalSizeNeededVertically, out int totalSizeNeededHorizontally);
+            CreateBlankDrawing(r.Width, r.Height, out Bitmap bmpOut, out Graphics g, out r);
+            foreach ((InformationSetNode, Rectangle) infoSetAndRectangle in layout)
+            {
+                PlotInformationSetStrategy(g, infoSetAndRectangle.Item2, infoSetAndRectangle.Item1);
+            }
+        }
+
+        public static void PlotInformationSetStrategy(Graphics g, Rectangle r, InformationSetNode informationSet)
+        {
+            BarFillSingle(g, r, true, informationSet.GetAverageStrategiesAsArray(), informationSet.PlayerIndex == 0 ? Color.Blue : Color.Orange, true);
+        }
+
+        public static void CreateInformationSetChartLayout(List<(InformationSetNode, Rectangle)> layout, List<InformationSetNode> startNodes, ref Rectangle r, out int totalSizeNeededVertically, out int totalSizeNeededHorizontally)
+        {
+            const int margin = 0;
+            int inset = 5 * BitmapMultiplier;
+            totalSizeNeededVertically = startNodes.Sum(x => x.SizeNeededToDisplayDescendants);
+            int totalSizeNeededVertically_Copy = totalSizeNeededVertically; // to use in anon lambaa
+            totalSizeNeededHorizontally = startNodes.Max(x => x.NumGenerationsFromHere);
+            if (r == default)
+            {
+                const int widthEach = 50;
+                const int heightEach = 25;
+                r = new Rectangle(0, 0, widthEach * totalSizeNeededHorizontally * BitmapMultiplier, heightEach * totalSizeNeededVertically * BitmapMultiplier);
+            }
+            double[] verticalProportions = startNodes.Select(x => x.SizeNeededToDisplayDescendants / (double)totalSizeNeededVertically_Copy).ToArray();
+            double[] horizontalProportions = new[] { 1.0 / (double)totalSizeNeededHorizontally, 1 - 1.0 / (double)totalSizeNeededHorizontally };
+            Rectangle[] verticalSplit = DivideRectangle(r, false, startNodes.Count(), margin, verticalProportions);
+            for (int i = 0; i < startNodes.Count; i++)
+            {
+                var node = startNodes[i];
+                Rectangle[] horizontalSplit = DivideRectangle(verticalSplit[i], true, 2, margin, horizontalProportions);
+                horizontalSplit[0].Offset(-inset, -inset);
+                layout.Add((node, horizontalSplit[0]));
+                if (node.ChildInformationSets.Any())
+                    CreateInformationSetChartLayout_Helper(layout, node.ChildInformationSets, ref horizontalSplit[1], out _, out _);
+            }
         }
 
         #endregion
