@@ -19,6 +19,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SFStateless", "SFStateless\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ACESimDistributed", "ACESimDistributed\ACESimDistributed.csproj", "{BDA0A67C-7EAA-42F9-9973-A2D64DAD35EE}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LitigCharts", "LitigCharts\LitigCharts.csproj", "{29328068-2F1B-4D9C-B603-EC837498E348}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -163,6 +165,24 @@ Global
 		{BDA0A67C-7EAA-42F9-9973-A2D64DAD35EE}.Release2|x64.Build.0 = Release2|Any CPU
 		{BDA0A67C-7EAA-42F9-9973-A2D64DAD35EE}.Release2|x86.ActiveCfg = Release2|Any CPU
 		{BDA0A67C-7EAA-42F9-9973-A2D64DAD35EE}.Release2|x86.Build.0 = Release2|Any CPU
+		{29328068-2F1B-4D9C-B603-EC837498E348}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{29328068-2F1B-4D9C-B603-EC837498E348}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{29328068-2F1B-4D9C-B603-EC837498E348}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{29328068-2F1B-4D9C-B603-EC837498E348}.Debug|x64.Build.0 = Debug|Any CPU
+		{29328068-2F1B-4D9C-B603-EC837498E348}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{29328068-2F1B-4D9C-B603-EC837498E348}.Debug|x86.Build.0 = Debug|Any CPU
+		{29328068-2F1B-4D9C-B603-EC837498E348}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{29328068-2F1B-4D9C-B603-EC837498E348}.Release|Any CPU.Build.0 = Release|Any CPU
+		{29328068-2F1B-4D9C-B603-EC837498E348}.Release|x64.ActiveCfg = Release|Any CPU
+		{29328068-2F1B-4D9C-B603-EC837498E348}.Release|x64.Build.0 = Release|Any CPU
+		{29328068-2F1B-4D9C-B603-EC837498E348}.Release|x86.ActiveCfg = Release|Any CPU
+		{29328068-2F1B-4D9C-B603-EC837498E348}.Release|x86.Build.0 = Release|Any CPU
+		{29328068-2F1B-4D9C-B603-EC837498E348}.Release2|Any CPU.ActiveCfg = Release|Any CPU
+		{29328068-2F1B-4D9C-B603-EC837498E348}.Release2|Any CPU.Build.0 = Release|Any CPU
+		{29328068-2F1B-4D9C-B603-EC837498E348}.Release2|x64.ActiveCfg = Release|Any CPU
+		{29328068-2F1B-4D9C-B603-EC837498E348}.Release2|x64.Build.0 = Release|Any CPU
+		{29328068-2F1B-4D9C-B603-EC837498E348}.Release2|x86.ActiveCfg = Release|Any CPU
+		{29328068-2F1B-4D9C-B603-EC837498E348}.Release2|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
