@@ -41,7 +41,7 @@ namespace ACESim
 
         public List<byte> GetInformationSetForPlayerAsList()
         {
-            return Util.ListExtensions.GetPointerAsList_255Terminated(InformationSetForPlayer);
+            return Util.ListExtensions.GetSpan255TerminatedAsList(InformationSetForPlayer);
         }
 
         public (byte playerIndex, List<byte>) GetPlayerAndInformationSetAsList()

@@ -20,11 +20,11 @@ namespace ACESim
             Sequence = sequence;
         }
 
-        public override string ToString() => PrefaceByte + ": " + String.Join(",", Util.ListExtensions.GetPointerAsList_255Terminated(Sequence));
+        public override string ToString() => PrefaceByte + ": " + String.Join(",", Util.ListExtensions.GetSpan255TerminatedAsList(Sequence));
 
         public NWayTreeStorageKey ToStorable()
         {
-            return new NWayTreeStorageKey(PrefaceByte, Util.ListExtensions.GetPointerAsList_255Terminated(Sequence).ToArray());
+            return new NWayTreeStorageKey(PrefaceByte, Util.ListExtensions.GetSpan255TerminatedAsList(Sequence).ToArray());
         }
 
         public NWayTreeStorageKey ToThreadOnlyKey()

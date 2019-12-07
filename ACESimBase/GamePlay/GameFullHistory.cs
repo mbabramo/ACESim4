@@ -107,7 +107,7 @@ namespace ACESim
         {
             Span<byte> actions = stackalloc byte[MaxNumActions];
             GetActions(actions);
-            return ListExtensions.GetPointerAsList_255Terminated(actions);
+            return ListExtensions.GetSpan255TerminatedAsList(actions);
         }
 
         public void GetActions(Span<byte> actions)

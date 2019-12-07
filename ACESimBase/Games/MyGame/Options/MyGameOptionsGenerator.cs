@@ -36,7 +36,7 @@ namespace ACESim
             PerfectInfo,
         }
 
-        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.DamagesUncertainty_2BR;
+        static MyGameOptionSetChoices MyGameChoice => MyGameOptionSetChoices.Custom;
 
         public static MyGameOptions GetMyGameOptions() => MyGameChoice switch
         {
@@ -136,16 +136,9 @@ namespace ACESim
 
         public static MyGameOptions Custom()
         {
-            var options = BothUncertain_2BR();
-            options.MyGameDisputeGenerator = new MyGameExogenousDisputeGenerator()
-            {
-                ExogenousProbabilityTrulyLiable = 0.9,
-            };
-            options.DamagesMin = 75_000;
-            options.ShootoutSettlements = true;
-            options.ShootoutsApplyAfterAbandonment = false;
-            options.ShootoutStrength = 1.0;
-            options.ShootoutsAverageAllRounds = false;
+            var options = DamagesUncertainty_2BR();
+            options.SkipFileAndAnswerDecisions = true;
+            options.AllowAbandonAndDefaults = false;
 
             return options;
         }

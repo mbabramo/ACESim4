@@ -458,7 +458,7 @@ namespace ACESim
         {
             Span<byte> playerInfoBuffer = stackalloc byte[MaxInformationSetLengthPerFullPlayer]; 
             GetPlayerInformationCurrent(playerIndex, InformationSets, playerInfoBuffer);
-            List<byte> informationSetList = ListExtensions.GetPointerAsList_255Terminated(playerInfoBuffer);
+            List<byte> informationSetList = ListExtensions.GetSpan255TerminatedAsList(playerInfoBuffer);
             return String.Join(",", informationSetList);
         }
 

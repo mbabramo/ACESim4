@@ -25,6 +25,8 @@ namespace ACESim
         public Decision Decision;
         public EvolutionSettings EvolutionSettings;
         public byte[] InformationSetContents;
+        public byte[] InformationSetContentsSinceParent => ParentInformationSet == null ? InformationSetContents : InformationSetContents.Skip(ParentInformationSet.InformationSetContents.Length).ToArray();
+        public string InformationSetContentsSinceParentString => String.Join(",", InformationSetContentsSinceParent);
         public byte DecisionByteCode => Decision.DecisionByteCode;
         public byte DecisionIndex;
         public byte PlayerIndex => Decision.PlayerNumber;
@@ -140,7 +142,10 @@ namespace ACESim
                 }
             }
 
-            bool changeMade = true;
+            foreach (InformationSetNode x in all)
+                x.ChildInformationSets = x.ChildInformationSets.OrderBy(x => x.InformationSetContentsSinceParentString).ToList();
+
+                bool changeMade = true;
             while (changeMade)
             {
                 changeMade = false;

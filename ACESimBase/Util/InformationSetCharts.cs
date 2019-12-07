@@ -14,14 +14,14 @@ namespace ACESimBase.Util
 
     public static class InformationSetCharts
     {
-        public static int BitmapMultiplier = 10;
+        public static int BitmapMultiplier = 1; // DEBUG
 
         #region Drawings
 
         public static void CreateBlankDrawing(int width, int height, out Bitmap bmpOut, out Graphics g, out Rectangle overall)
         {
-            int newWidth = 500 * BitmapMultiplier;
-            int newHeight = 300 * BitmapMultiplier;
+            int newWidth = width;
+            int newHeight = height;
             bmpOut = new System.Drawing.Bitmap(newWidth, newHeight);
             g = System.Drawing.Graphics.FromImage(bmpOut);
             g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
@@ -121,6 +121,8 @@ namespace ACESimBase.Util
             if (proportions == null)
                 return;
             GetMainFont(out int fontSize, out Font f);
+            if (r.Width <= 0 || r.Height <= 0)
+                throw new Exception();
             Rectangle[] rects = DivideRectangle(r, horizontally, proportions.Length, 0, proportions);
             for (int i = 0; i < proportions.Length; i++)
             {
@@ -266,9 +268,9 @@ namespace ACESimBase.Util
         public static void DrawTextCenteredHorizontally_Shadowed(Graphics g, Rectangle r, string text, Font font)
         {
             r.Offset(2, 2);
-            DrawTextCenteredHorizontally(g, r, text, font, Brushes.Black);
-            r.Offset(-2, -2);
             DrawTextCenteredHorizontally(g, r, text, font, Brushes.DarkGray);
+            r.Offset(-2, -2);
+            DrawTextCenteredHorizontally(g, r, text, font, Brushes.Black);
         }
 
         public static void DrawTextCenteredHorizontally(Graphics g, Rectangle r, string text, Font font, Brush brush)
@@ -283,9 +285,9 @@ namespace ACESimBase.Util
 
         #region Information set charts
 
-        public static void CreateInformationSetChart(List<InformationSetNode> informationSets)
+        public static void CreateInformationSetChart(List<InformationSetNode> informationSets, string fullPath)
         {
-            var startNodes = informationSets.Where(x => x.ParentInformationSet == null).ToList();
+            var startNodes = informationSets.Where(x => x.ParentInformationSet == null).OrderBy(x => x.PlayerIndex).ThenBy(x => x.InformationSetContentsSinceParentString).ToList();
             List<(InformationSetNode, Rectangle)> layout = new List<(InformationSetNode, Rectangle)>();
             Rectangle r = default;
             CreateInformationSetChartLayout(layout, startNodes, ref r, out int totalSizeNeededVertically, out int totalSizeNeededHorizontally);
@@ -294,11 +296,16 @@ namespace ACESimBase.Util
             {
                 PlotInformationSetStrategy(g, infoSetAndRectangle.Item2, infoSetAndRectangle.Item1);
             }
+            bmpOut.Save(fullPath);
         }
 
         public static void PlotInformationSetStrategy(Graphics g, Rectangle r, InformationSetNode informationSet)
         {
-            BarFillSingle(g, r, true, informationSet.GetAverageStrategiesAsArray(), informationSet.PlayerIndex == 0 ? Color.Blue : Color.Orange, true);
+            GetMainFont(out int fontSize, out Font f);
+            int pixels = fontSize;
+            Rectangle[] horizontallySplit = DivideRectangle_WithSpaceForHeader(r, true, pixels);
+            DrawText270(g, horizontallySplit[0], informationSet.InformationSetContentsSinceParentString, f, Brushes.Black);
+            BarFillSingle(g, horizontallySplit[1], true, informationSet.GetAverageStrategiesAsArray(), informationSet.PlayerIndex == 0 ? Color.Blue : Color.Orange, true);
         }
 
         public static void CreateInformationSetChartLayout(List<(InformationSetNode, Rectangle)> layout, List<InformationSetNode> startNodes, ref Rectangle r, out int totalSizeNeededVertically, out int totalSizeNeededHorizontally)
@@ -310,21 +317,25 @@ namespace ACESimBase.Util
             totalSizeNeededHorizontally = startNodes.Max(x => x.NumGenerationsFromHere);
             if (r == default)
             {
-                const int widthEach = 50;
-                const int heightEach = 25;
+                const int widthEach = 150;
+                const int heightEach = 30;
                 r = new Rectangle(0, 0, widthEach * totalSizeNeededHorizontally * BitmapMultiplier, heightEach * totalSizeNeededVertically * BitmapMultiplier);
             }
             double[] verticalProportions = startNodes.Select(x => x.SizeNeededToDisplayDescendants / (double)totalSizeNeededVertically_Copy).ToArray();
             double[] horizontalProportions = new[] { 1.0 / (double)totalSizeNeededHorizontally, 1 - 1.0 / (double)totalSizeNeededHorizontally };
             Rectangle[] verticalSplit = DivideRectangle(r, false, startNodes.Count(), margin, verticalProportions);
+            if (verticalSplit.Any(x => x.Width <= 0))
+                throw new Exception("DEBUG");
             for (int i = 0; i < startNodes.Count; i++)
             {
                 var node = startNodes[i];
-                Rectangle[] horizontalSplit = DivideRectangle(verticalSplit[i], true, 2, margin, horizontalProportions);
-                horizontalSplit[0].Offset(-inset, -inset);
+                Rectangle[] horizontalSplit = totalSizeNeededHorizontally == 1? new Rectangle[] { verticalSplit[i] } : DivideRectangle(verticalSplit[i], true, 2, margin, horizontalProportions);
+                if (horizontalSplit.Any(x => x.Width <= 0))
+                    throw new Exception("DEBUG");
+                //horizontalSplit[0].Offset(-inset, -inset);
                 layout.Add((node, horizontalSplit[0]));
                 if (node.ChildInformationSets.Any())
-                    CreateInformationSetChartLayout_Helper(layout, node.ChildInformationSets, ref horizontalSplit[1], out _, out _);
+                    CreateInformationSetChartLayout(layout, node.ChildInformationSets, ref horizontalSplit[1], out _, out _);
             }
         }
 
@@ -380,7 +391,7 @@ namespace ACESimBase.Util
         public static void PlotPAndD_WithHidden(string path, string filename, int numRounds, int numSignals, int numOffers)
         {
             GetMainFont(out int fontSize, out Font f);
-            CreateBlankDrawing(500, 300, out Bitmap bmpOut, out Graphics g, out Rectangle r);
+            CreateBlankDrawing(500 * BitmapMultiplier, 300 * BitmapMultiplier, out Bitmap bmpOut, out Graphics g, out Rectangle r);
             int margin = 10 * BitmapMultiplier;
             r = AddRoundHeaders(g, r, numRounds, fontSize);
             r = AddLeftHeaders(g, r, margin, "Revealed Offers", "Hidden Offers");
@@ -395,7 +406,7 @@ namespace ACESimBase.Util
             Bitmap bmpOut;
             Graphics g;
             Rectangle overall;
-            CreateBlankDrawing(500, 300, out bmpOut, out g, out overall);
+            CreateBlankDrawing(500 * BitmapMultiplier, 300 * BitmapMultiplier, out bmpOut, out g, out overall);
             PlotPAndD(path, filename, g, overall, numRounds, numSignals, numOffers);
             bmpOut.Save(path + @"\plot-" + filename + ".png");
         }

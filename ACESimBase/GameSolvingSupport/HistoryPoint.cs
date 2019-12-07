@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ACESim.Util;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -136,7 +137,7 @@ namespace ACESim
                 GameHistory.GetPlayerInformationCurrent(nextPlayer, historyToPoint.InformationSets, informationSetsPtr);
                 if (GameProgressLogger.LoggingOn)
                 {
-                    var informationSetList = Util.ListExtensions.GetPointerAsList_255Terminated(informationSetsPtr);
+                    var informationSetList = Util.ListExtensions.GetSpan255TerminatedAsList(informationSetsPtr);
                     var actionsToHere = String.Join(",", historyToPoint.GetActionsAsList());
                     GameProgressLogger.Log($"Player {nextPlayer} decision: {nextDecision?.Name ?? "Resolution"} information set: {String.Join(",", informationSetList)} actions to here: {actionsToHere}");
                 }
@@ -441,7 +442,7 @@ namespace ACESim
                         }
                         );
             if (informationSetNode.StoredValue is InformationSetNode isn && isn.InformationSetContents == null)
-                isn.InformationSetContents = informationSetForPlayer.ToArray();
+                isn.InformationSetContents = ListExtensions.GetSpan255TerminatedAsArray(informationSetForPlayer);
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
                 TreePoint.StoredValue = informationSetNode.StoredValue;
             return informationSetNode.StoredValue;

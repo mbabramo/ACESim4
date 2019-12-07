@@ -727,6 +727,8 @@ namespace ACESim
             bool doReports = EvolutionSettings.ReportEveryNIterations != null && (iteration % EvolutionSettings.ReportEveryNIterations == 0 || BestResponseTargetMet);
             if (doReports || doBestResponse)
             {
+                if (EvolutionSettings.CreateEvolutionDiagrams)
+                    InformationSetCharts.CreateInformationSetChart(InformationSets, @"H:\My Drive\Articles, books in progress\Machine learning model of litigation\bluffing results\image.png");
                 TabbedText.WriteLine("");
                 TabbedText.WriteLine(prefaceFn());
                 if (doBestResponse)
