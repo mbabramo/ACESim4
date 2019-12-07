@@ -23,6 +23,7 @@ namespace ACESim
             GameApproximationAlgorithm.BestResponseDynamics => 0, // 0.00001,
             _ => 0 // 0.005
         }; // will end early if this target is reached
+        public bool CreateEvolutionDiagrams;
         public int? ReportEveryNIterations = 1000;
         public int CorrelatedEquilibriumCalculationsEveryNIterations = 100000;
         public const int EffectivelyNever = 999999999;

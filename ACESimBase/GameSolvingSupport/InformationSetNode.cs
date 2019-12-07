@@ -24,6 +24,7 @@ namespace ACESim
         public int GetNodeNumber() => InformationSetNodeNumber;
         public Decision Decision;
         public EvolutionSettings EvolutionSettings;
+        public byte[] InformationSetContents;
         public byte DecisionByteCode => Decision.DecisionByteCode;
         public byte DecisionIndex;
         public byte PlayerIndex => Decision.PlayerNumber;
@@ -37,6 +38,12 @@ namespace ACESim
         public int LastPastValueIndexRecorded = -1;
         public double[,] PastValues;
         public double[] PastValuesCumulativeStrategyDiscounts;
+
+        public List<InformationSetNode> AncestorInformationSets;
+        public List<InformationSetNode> DescendantInformationSets;
+        public List<InformationSetNode> ChildInformationSets;
+        public int SizeNeededToDisplayDescendants = 1;
+        public InformationSetNode ParentInformationSet;
         double PastValuesLastCumulativeStrategyDiscount => PastValuesCumulativeStrategyDiscounts[LastPastValueIndexRecorded];
 
         public int NumPossibleActions => Decision.NumPossibleActions;
@@ -99,6 +106,61 @@ namespace ACESim
             V = 0;
             MaxAbsRegretDiff = 0;
             E = 1;
+        }
+
+        public static void IdentifyNodeRelationships(List<InformationSetNode> all)
+        {
+            foreach (InformationSetNode x in all)
+            {
+                x.AncestorInformationSets = new List<InformationSetNode>();
+                x.DescendantInformationSets = new List<InformationSetNode>();
+                x.ChildInformationSets = new List<InformationSetNode>();
+            }
+
+            foreach (InformationSetNode x in all)
+            {
+                foreach (InformationSetNode y in all)
+                {
+                    if (x.IsAncestorOf(y))
+                    {
+                        x.DescendantInformationSets.Add(y);
+                        y.AncestorInformationSets.Add(x);
+                    }
+                }
+            }
+
+            foreach (InformationSetNode x in all)
+            {
+                if (x.AncestorInformationSets.Any())
+                {
+                    int maxLength = x.AncestorInformationSets.Max(y => y.InformationSetContents.Length);
+                    x.ParentInformationSet = x.AncestorInformationSets.First(y => y.InformationSetContents.Length == maxLength);
+                    x.ParentInformationSet.ChildInformationSets.Add(x);
+                }
+            }
+
+            bool changeMade = true;
+            while (changeMade)
+            {
+                changeMade = false;
+                foreach (InformationSetNode x in all)
+                {
+                    if (x.ChildInformationSets.Any())
+                    {
+                        int revised = x.ChildInformationSets.Sum(y => y.SizeNeededToDisplayDescendants);
+                        if (x.SizeNeededToDisplayDescendants != revised)
+                        {
+                            changeMade = true;
+                            x.SizeNeededToDisplayDescendants = revised;
+                        }
+                    }
+                }
+            }
+        }
+
+        public bool IsAncestorOf(InformationSetNode other)
+        {
+            return this != other && other.PlayerIndex == PlayerIndex && other.InformationSetContents.Length > InformationSetContents.Length && InformationSetContents.SequenceEqual(other.InformationSetContents.Take(InformationSetContents.Length));
         }
 
         public string ToStringAbbreviated()

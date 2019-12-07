@@ -164,10 +164,14 @@ namespace ACESim
 
         #region Initialization
 
+        bool InformationSetsInitialized = false;
         public void InitializeInformationSets()
         {
             int numInformationSets = InformationSets.Count;
             Parallel.For(0, numInformationSets, n => InformationSets[n].Initialize());
+            if (EvolutionSettings.CreateEvolutionDiagrams)
+                InformationSetNode.IdentifyNodeRelationships(InformationSets);
+            InformationSetsInitialized = true;
         }
 
 

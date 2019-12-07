@@ -191,7 +191,7 @@ namespace ACESim
                 NWayTreeStorage<IGameState> branch = TreePoint.GetBranch(actionChosen);
                 if (branch == null)
                     lock (TreePoint)
-                        branch = ((NWayTreeStorageInternal<IGameState>) TreePoint).AddBranch(actionChosen, true);
+                        branch = ((NWayTreeStorageInternal<IGameState>)TreePoint).AddBranch(actionChosen, true);
                 nextTreePoint = branch;
                 if (GameProgressLogger.LoggingOn)
                     GameProgressLogger.Log($"Getting game tree branch for {actionChosen} (decision {nextDecision.Name}) => {branch.SequenceToHereString}");
@@ -362,7 +362,7 @@ namespace ACESim
                 var strategy = navigation.Strategies[resolutionPlayer];
                 Span<byte> resolutionInformationSet = stackalloc byte[GameHistory.MaxInformationSetLengthPerFullPlayer];
                 GameHistory.GetPlayerInformationCurrent(resolutionPlayer, HistoryToPoint.InformationSets, resolutionInformationSet);
-                FinalUtilitiesNode finalUtilities = (FinalUtilitiesNode) strategy.GetInformationSetTreeValue(resolutionInformationSet);
+                FinalUtilitiesNode finalUtilities = (FinalUtilitiesNode)strategy.GetInformationSetTreeValue(resolutionInformationSet);
                 if (finalUtilities == null)
                 {
                     navigation.GetGameState(in this); // make sure that point is initialized up to here
@@ -399,7 +399,8 @@ namespace ACESim
             var playersStrategy = navigation.Strategies[informationSetHistory.PlayerIndex];
             bool isNecessarilyLast = false; // Not relevant now that we are storing final utilities decisio n.IsAlwaysPlayersLastDecision || informationSetHistory.IsTerminalAction;
             bool creatingInformationSet = false; // verify inner lock working correctly
-            var informationSetHistoryCopy = informationSetHistory;
+            InformationSetHistory informationSetHistoryCopy = informationSetHistory;
+            Span<byte> informationSetForPlayer = informationSetHistoryCopy.InformationSetForPlayer;
             NWayTreeStorage<IGameState> informationSetNode = playersStrategy.SetInformationSetTreeValueIfNotSet(
                         informationSetHistoryCopy.DecisionIndex, // this will be a choice at the root level of the information set
                         informationSetHistoryCopy.InformationSetForPlayer,
@@ -439,6 +440,8 @@ namespace ACESim
                             }
                         }
                         );
+            if (informationSetNode.StoredValue is InformationSetNode isn && isn.InformationSetContents == null)
+                isn.InformationSetContents = informationSetForPlayer.ToArray();
             if (navigation.LookupApproach == InformationSetLookupApproach.CachedGameTreeOnly || navigation.LookupApproach == InformationSetLookupApproach.CachedBothMethods)
                 TreePoint.StoredValue = informationSetNode.StoredValue;
             return informationSetNode.StoredValue;
