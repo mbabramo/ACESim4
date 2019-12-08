@@ -23,7 +23,7 @@ namespace ACESim
             GameApproximationAlgorithm.BestResponseDynamics => 0, // 0.00001,
             _ => 0 // 0.005
         }; // will end early if this target is reached
-        public bool CreateEvolutionDiagrams = true; // DEBUG
+        public bool CreateInformationSetCharts = true; // DEBUG
         public int? ReportEveryNIterations = 1000;
         public int CorrelatedEquilibriumCalculationsEveryNIterations = 100000;
         public const int EffectivelyNever = 999999999;
@@ -172,6 +172,9 @@ namespace ACESim
         public double PerturbationCurvature = 5.0;
         public double Perturbation_BasedOnCurve(int iteration, int maxIteration)
         {
+            //maxIteration = 25_000; // DEBUG
+            if (iteration > maxIteration)
+                return PerturbationFinal;
             (iteration, maxIteration) = EffectiveIterationAndMaxIteration(iteration, maxIteration);
             var result = Perturbation_BasedOnCurve_Helper(iteration, maxIteration);
             if (double.IsNaN(result))

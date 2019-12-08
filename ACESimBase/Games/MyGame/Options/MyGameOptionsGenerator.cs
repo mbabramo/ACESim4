@@ -137,6 +137,10 @@ namespace ACESim
         public static MyGameOptions Custom()
         {
             var options = DamagesUncertainty_2BR();
+            options.SimultaneousOffersUltimatelyRevealed = false; // DEBUG
+            options.NumDamagesSignals = 5;
+            options.NumOffers = 5;
+            options.NumDamagesStrengthPoints = 5;
             options.SkipFileAndAnswerDecisions = true;
             options.AllowAbandonAndDefaults = false;
 

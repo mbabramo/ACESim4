@@ -169,7 +169,7 @@ namespace ACESim
         {
             int numInformationSets = InformationSets.Count;
             Parallel.For(0, numInformationSets, n => InformationSets[n].Initialize());
-            if (EvolutionSettings.CreateEvolutionDiagrams)
+            if (EvolutionSettings.CreateInformationSetCharts)
                 InformationSetNode.IdentifyNodeRelationships(InformationSets);
             InformationSetsInitialized = true;
         }
@@ -727,8 +727,8 @@ namespace ACESim
             bool doReports = EvolutionSettings.ReportEveryNIterations != null && (iteration % EvolutionSettings.ReportEveryNIterations == 0 || BestResponseTargetMet);
             if (doReports || doBestResponse)
             {
-                if (EvolutionSettings.CreateEvolutionDiagrams)
-                    InformationSetCharts.CreateInformationSetChart(InformationSets, @"H:\My Drive\Articles, books in progress\Machine learning model of litigation\bluffing results\image.png");
+                if (EvolutionSettings.CreateInformationSetCharts)
+                    InformationSetCharts.CreateInformationSetChart(InformationSets, @"H:\My Drive\Articles, books in progress\Machine learning model of litigation\bluffing results\images\image" + iteration.ToString("D8") + ".png");
                 TabbedText.WriteLine("");
                 TabbedText.WriteLine(prefaceFn());
                 if (doBestResponse)

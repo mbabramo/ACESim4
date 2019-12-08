@@ -351,12 +351,14 @@ namespace ACESim
         public int NumVisitsFromPredecessorToGetAverageStrategy;
         public int NumVisitsFromPredecessorToGetCustomResult;
 
+        public const bool UseAverageStrategyRatherThanCurrentForBestResponse = false; // DEBUG SUPERDEBUG
+
         public void AcceleratedBestResponse_CalculateReachProbabilities(bool determinePrunability)
         {
             if (PredecessorInformationSetForPlayer == null)
                 SelfReachProbability = 1.0;
             else
-                SelfReachProbability = PredecessorInformationSetForPlayer.SelfReachProbability * PredecessorInformationSetForPlayer.GetAverageStrategy(ActionTakenAtPredecessorSet);
+                SelfReachProbability = PredecessorInformationSetForPlayer.SelfReachProbability * PredecessorInformationSetForPlayer.GetAverageOrCurrentStrategy(ActionTakenAtPredecessorSet, UseAverageStrategyRatherThanCurrentForBestResponse);
 
             OpponentsReachProbability = 0;
 
@@ -423,7 +425,7 @@ namespace ACESim
                 var pathsToSuccessorsForAction = PathsToSuccessors[action - 1];
                 if (pathsToSuccessorsForAction.Count() != numPathsFromPredecessor)
                     throw new Exception();
-                double averageStrategyProbability = GetAverageStrategy(action);
+                double averageStrategyProbability = GetAverageOrCurrentStrategy(action, UseAverageStrategyRatherThanCurrentForBestResponse);
                 double accumulatedBestResponseNumerator = 0, accumulatedBestResponseDenominatorDenominator = 0;
                 for (int pathToHere = 0; pathToHere < numPathsFromPredecessor; pathToHere++)
                 {
@@ -1128,6 +1130,11 @@ namespace ACESim
         #endregion
 
         #region Get probabilities
+
+        public double GetAverageOrCurrentStrategy(byte action, bool averageStrategy)
+        {
+            return NodeInformation[averageStrategy ? averageStrategyProbabilityDimension : currentProbabilityDimension, action - 1];
+        }
 
         public double GetAverageStrategy(byte action)
         {
