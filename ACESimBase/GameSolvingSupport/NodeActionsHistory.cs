@@ -166,19 +166,19 @@ namespace ACESimBase.GameSolvingSupport
             return new ByteList(nodesToInclude);
         }
 
-        public (double bestResponseValue, double averageStrategyValue, FloatSet customResult) GetProbabilityAdjustedUtilityOfPath(byte playerIndex)
+        public (double bestResponseValue, double utilityValue, FloatSet customResult) GetProbabilityAdjustedUtilityOfPath(byte playerIndex, bool useCurrentStrategyForPathProbability)
         {
             double bestResponseUtility = GetBestResponseUtilityAfterPathToSuccessor(playerIndex);
-            double averageStrategyUtility = GetAverageStrategyUtilityAfterPathToSuccessor(playerIndex);
+            double overallUtility = GetUtilityAfterPathToSuccessor(playerIndex);
             FloatSet customResult = GetCustomResultAfterPathToSuccessor(playerIndex);
-            double pathProbability = GetProbabilityOfPath();
+            double pathProbability = GetProbabilityOfPath(useCurrentStrategyForPathProbability);
             double bestResponseValue = pathProbability * bestResponseUtility;
-            double averageStrategyValue = pathProbability * averageStrategyUtility;
+            double utilityValue = pathProbability * overallUtility;
             FloatSet customResultValue = customResult.Times((float)pathProbability);
-            return (bestResponseValue, averageStrategyValue, customResultValue);
+            return (bestResponseValue, utilityValue, customResultValue);
         }
 
-        public double GetProbabilityOfPath()
+        public double GetProbabilityOfPath(bool useCurrentStrategyForProbability)
         {
             double pathProbability = Coefficient;
             foreach (var nodeAction in NodeActions)
@@ -189,7 +189,7 @@ namespace ACESimBase.GameSolvingSupport
                         pathProbability *= c.GetActionProbability(nodeAction.ActionAtNode, nodeAction.DistributorChanceInputs);
                         break;
                     case InformationSetNode i:
-                        pathProbability *= i.GetAverageStrategy(nodeAction.ActionAtNode);
+                        pathProbability *= useCurrentStrategyForProbability ? i.GetCurrentProbability(nodeAction.ActionAtNode, false) : i.GetAverageStrategy(nodeAction.ActionAtNode);
                         break;
                     default: throw new NotSupportedException();
                 }
@@ -255,7 +255,7 @@ namespace ACESimBase.GameSolvingSupport
             return utility;
         }
 
-        public double GetAverageStrategyUtilityAfterPathToSuccessor(byte playerIndex)
+        public double GetUtilityAfterPathToSuccessor(byte playerIndex)
         {
             double utility;
             var successor = Successor;

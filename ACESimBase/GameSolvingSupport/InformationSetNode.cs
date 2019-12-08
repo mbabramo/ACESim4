@@ -351,14 +351,12 @@ namespace ACESim
         public int NumVisitsFromPredecessorToGetAverageStrategy;
         public int NumVisitsFromPredecessorToGetCustomResult;
 
-        public const bool UseAverageStrategyRatherThanCurrentForBestResponse = false; // DEBUG SUPERDEBUG
-
-        public void AcceleratedBestResponse_CalculateReachProbabilities(bool determinePrunability)
+        public void AcceleratedBestResponse_CalculateReachProbabilities(bool determinePrunability, bool useCurrentStrategyForBestResponse)
         {
             if (PredecessorInformationSetForPlayer == null)
                 SelfReachProbability = 1.0;
             else
-                SelfReachProbability = PredecessorInformationSetForPlayer.SelfReachProbability * PredecessorInformationSetForPlayer.GetAverageOrCurrentStrategy(ActionTakenAtPredecessorSet, UseAverageStrategyRatherThanCurrentForBestResponse);
+                SelfReachProbability = PredecessorInformationSetForPlayer.SelfReachProbability * PredecessorInformationSetForPlayer.GetAverageOrCurrentStrategy(ActionTakenAtPredecessorSet, !useCurrentStrategyForBestResponse);
 
             OpponentsReachProbability = 0;
 
@@ -382,7 +380,7 @@ namespace ACESim
                     sumProbabilitiesSinceOpponentInformationSets += probabilitySinceOpponentInformationSet;
                 }
                 else
-                    pathProbabilityFromPredecessor = pathFromPredecessor.Path.GetProbabilityOfPath();
+                    pathProbabilityFromPredecessor = pathFromPredecessor.Path.GetProbabilityOfPath(useCurrentStrategyForBestResponse);
                 double cumulativePathProbability = predecessorOpponentsReachProbability * pathProbabilityFromPredecessor;
                 pathFromPredecessor.Probability = cumulativePathProbability;
                 OpponentsReachProbability += cumulativePathProbability;
@@ -405,7 +403,7 @@ namespace ACESim
             }
         }
 
-        public void AcceleratedBestResponse_CalculateBestResponseValues(byte numNonChancePlayers)
+        public void AcceleratedBestResponse_CalculateBestResponseValues(byte numNonChancePlayers, bool useCurrentStrategyForBestResponse)
         {
             if (BestResponseOptions == null)
                 BestResponseOptions = new double[Decision.NumPossibleActions];
@@ -425,11 +423,11 @@ namespace ACESim
                 var pathsToSuccessorsForAction = PathsToSuccessors[action - 1];
                 if (pathsToSuccessorsForAction.Count() != numPathsFromPredecessor)
                     throw new Exception();
-                double averageStrategyProbability = GetAverageOrCurrentStrategy(action, UseAverageStrategyRatherThanCurrentForBestResponse);
+                double averageStrategyProbability = GetAverageOrCurrentStrategy(action, !useCurrentStrategyForBestResponse);
                 double accumulatedBestResponseNumerator = 0, accumulatedBestResponseDenominatorDenominator = 0;
                 for (int pathToHere = 0; pathToHere < numPathsFromPredecessor; pathToHere++)
                 {
-                    (double unweightedSuccessorBestResponseValue, double averageStrategyValue, FloatSet customResult) = pathsToSuccessorsForAction[pathToHere].GetProbabilityAdjustedValueOfPaths(PlayerIndex);
+                    (double unweightedSuccessorBestResponseValue, double averageStrategyValue, FloatSet customResult) = pathsToSuccessorsForAction[pathToHere].GetProbabilityAdjustedValueOfPaths(PlayerIndex, useCurrentStrategyForBestResponse);
                     AverageStrategyResultsForPathFromPredecessor[pathToHere] += averageStrategyValue * averageStrategyProbability; // for average strategy, we are weighting the path to successors for each path from predecessors by the average strategy probability.
                     CustomResultForPathFromPredecessor[pathToHere] = CustomResultForPathFromPredecessor[pathToHere].Plus(customResult.Times((float) averageStrategyProbability));
                     double opponentsReachProbabilityForPath = PathsFromPredecessor[pathToHere].Probability;
@@ -631,11 +629,12 @@ namespace ACESim
 
         public double GetLastCumulativeStrategyIncrement(byte action) => NodeInformation[lastCumulativeStrategyIncrementsDimension, action - 1];
 
-        private void UpdateCumulativeAndAverageStrategies(int iteration, double averageStrategyAdjustment, bool normalizeCumulativeStrategyIncrements, bool resetPreviousCumulativeStrategyIncrements)
+        private void UpdateCumulativeAndAverageStrategies(int iteration, double averageStrategyAdjustment, bool normalizeCumulativeStrategyIncrements, bool resetPreviousCumulativeStrategyIncrements, double continuousRegretsDiscountingAdjustment)
         {
 
             RecordProbabilitiesAsPastValues(iteration, averageStrategyAdjustment); // these are the average strategies played, and thus shouldn't reflect the updates below
 
+            UpdateCumulativeRegrets(continuousRegretsDiscountingAdjustment);
             if (resetPreviousCumulativeStrategyIncrements)
                 ClearCumulativeStrategy();
             UpdateCumulativeStrategy(averageStrategyAdjustment, normalizeCumulativeStrategyIncrements);
@@ -643,6 +642,15 @@ namespace ACESim
             UpdateAverageStrategy();
 
             AverageStrategyAdjustmentsSum += averageStrategyAdjustment;
+        }
+
+        private void UpdateCumulativeRegrets(double continuousDiscountingAdjustment)
+        {
+            if (continuousDiscountingAdjustment != 1.0)
+            {
+                for (byte a = 1; a <= NumPossibleActions; a++)
+                    NodeInformation[cumulativeRegretDimension, a - 1] *= continuousDiscountingAdjustment;
+            }
         }
 
         private void UpdateCumulativeStrategy(double averageStrategyAdjustment, bool normalizeCumulativeStrategyIncrements)
@@ -665,7 +673,7 @@ namespace ACESim
                 {
                     normalizedCumulativeStrategyIncrement = NodeInformation[lastCumulativeStrategyIncrementsDimension, a - 1];
                     if (normalizeCumulativeStrategyIncrements)
-                        normalizedCumulativeStrategyIncrement /= lastCumulativeStrategyIncrementSum; // This is the key effect of normalizing. This will make all probabilities add up to 1, so that even if this is an iteration where it is very unlikely that we reach the information set, this iteration will not be discounted relative to iterations where we do reach the information set. It is useful to do this when discounting, since otherwise it may take trillions of iterations to make up for a few early iterations. But later on, we want to be giving greater weight to iterations in which the self-play probability is higher.
+                        normalizedCumulativeStrategyIncrement /= lastCumulativeStrategyIncrementSum; // This is the key effect of normalizing. This will make all probabilities add up to 1, so that even if this is an iteration where it is very unlikely that we reach the information set, this iteration will not be discounted relative to iterations where we do reach the information set. The advantage is that otherwise it may take literally trillions of iterations to make up for a few early iterations that have extreme results (discounting can also reduce this concern). The drawback of normalizing is that we want to be giving greater weight to iterations in which the self-play probability is higher; this is especially important with monte carlo sampling techniques. 
                 }
                 double adjustedIncrement = averageStrategyAdjustment * normalizedCumulativeStrategyIncrement; // ... but here we do our regular discounting so later iterations can count more than earlier ones
                 NodeInformation[cumulativeStrategyDimension, a - 1] += adjustedIncrement;
@@ -914,9 +922,9 @@ namespace ACESim
 
         // Note: The first two methods must be used if we don't have a guarantee that updating will take place before each iteration.
 
-        public void PostIterationUpdates(int iteration, PostIterationUpdaterBase updater, double averageStrategyAdjustment, bool normalizeCumulativeStrategyIncrements, bool resetPreviousCumulativeStrategyIncrements, double? pruneOpponentStrategyBelow, bool pruneOpponentStrategyIfDesignatedPrunable, bool addOpponentTremble, bool weightResultByInversePiForIteration, double? randomNumberToSelectSingleOpponentAction)
+        public void PostIterationUpdates(int iteration, PostIterationUpdaterBase updater, double averageStrategyAdjustment, bool normalizeCumulativeStrategyIncrements, bool resetPreviousCumulativeStrategyIncrements, double continuousRegretsDiscountingAdjustment, double? pruneOpponentStrategyBelow, bool pruneOpponentStrategyIfDesignatedPrunable, bool addOpponentTremble, bool weightResultByInversePiForIteration, double? randomNumberToSelectSingleOpponentAction)
         {
-            UpdateCumulativeAndAverageStrategies(iteration, averageStrategyAdjustment, normalizeCumulativeStrategyIncrements, resetPreviousCumulativeStrategyIncrements);
+            UpdateCumulativeAndAverageStrategies(iteration, averageStrategyAdjustment, normalizeCumulativeStrategyIncrements, resetPreviousCumulativeStrategyIncrements, continuousRegretsDiscountingAdjustment);
             DetermineBestResponseAction();
             ClearBestResponse();
             updater.UpdateInformationSet(this, weightResultByInversePiForIteration);

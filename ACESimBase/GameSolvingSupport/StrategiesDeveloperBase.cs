@@ -164,14 +164,12 @@ namespace ACESim
 
         #region Initialization
 
-        bool InformationSetsInitialized = false;
         public void InitializeInformationSets()
         {
             int numInformationSets = InformationSets.Count;
             Parallel.For(0, numInformationSets, n => InformationSets[n].Initialize());
             if (EvolutionSettings.CreateInformationSetCharts)
                 InformationSetNode.IdentifyNodeRelationships(InformationSets);
-            InformationSetsInitialized = true;
         }
 
 
@@ -817,7 +815,7 @@ namespace ACESim
         }
 
         public double[] BestResponseUtilities;
-        public double[] AverageStrategyUtilities;
+        public double[] UtilitiesOverall;
         public double[] BestResponseImprovement;
         public double[] LastBestResponseImprovement;
         public FloatSet CustomResult;
@@ -830,9 +828,7 @@ namespace ACESim
         public double Refinement;
 
         long BestResponseCalculationTime;
-
-        bool BestResponseIsToAverageStrategy = true; // usually, this should be true, since the average strategy is the least exploitable strategy
-        string BestResponseOpponentString => BestResponseIsToAverageStrategy ? "avgstrat" : ActionStrategy.ToString();
+        string BestResponseOpponentString => EvolutionSettings.UseCurrentStrategyForAcceleratedBestResponse ? "currstrat" : "avgstrat";
 
         List<List<InformationSetNode>> InformationSetsByDecisionIndex;
         List<NodeActionsMultipleHistories> AcceleratedBestResponsePrepResult;
@@ -874,7 +870,7 @@ namespace ACESim
             {
                 List<InformationSetNode> informationSetsForDecision = InformationSetsByDecisionIndex[i];
                 int c = informationSetsForDecision.Count();
-                Parallelizer.Go(parallelize, 0, c, i => informationSetsForDecision[i].AcceleratedBestResponse_CalculateReachProbabilities(EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions));
+                Parallelizer.Go(parallelize, 0, c, i => informationSetsForDecision[i].AcceleratedBestResponse_CalculateReachProbabilities(EvolutionSettings.PredeterminePrunabilityBasedOnRelativeContributions, EvolutionSettings.UseCurrentStrategyForAcceleratedBestResponse));
             }
         }
 
@@ -884,7 +880,7 @@ namespace ACESim
             {
                 List<InformationSetNode> informationSetsForDecision = InformationSetsByDecisionIndex[i];
                 int c = informationSetsForDecision.Count();
-                Parallelizer.Go(parallelize, 0, c, i => informationSetsForDecision[i].AcceleratedBestResponse_CalculateBestResponseValues(NumNonChancePlayers));
+                Parallelizer.Go(parallelize, 0, c, i => informationSetsForDecision[i].AcceleratedBestResponse_CalculateBestResponseValues(NumNonChancePlayers, EvolutionSettings.UseCurrentStrategyForAcceleratedBestResponse));
             }
             if (determineWhetherReachable)
                 for (int i = 0; i < InformationSetsByDecisionIndex.Count; i++)
@@ -898,19 +894,19 @@ namespace ACESim
         private void CompleteAcceleratedBestResponse()
         {
             // Finally, we need to calculate the final values by looking at the first information sets for each player.
-            if (BestResponseUtilities == null || BestResponseImprovement == null || AverageStrategyUtilities == null)
+            if (BestResponseUtilities == null || BestResponseImprovement == null || UtilitiesOverall == null)
             {
                 BestResponseUtilities = new double[NumNonChancePlayers];
                 BestResponseImprovement = new double[NumNonChancePlayers];
-                AverageStrategyUtilities = new double[NumNonChancePlayers];
+                UtilitiesOverall = new double[NumNonChancePlayers];
             }
             for (byte playerIndex = 0; playerIndex < NumNonChancePlayers; playerIndex++)
             {
                 var resultForPlayer = AcceleratedBestResponsePrepResult[playerIndex];
-                (double bestResponseResult, double averageStrategyResult, FloatSet customResult) = resultForPlayer.GetProbabilityAdjustedValueOfPaths(playerIndex);
+                (double bestResponseResult, double utilityResult, FloatSet customResult) = resultForPlayer.GetProbabilityAdjustedValueOfPaths(playerIndex, EvolutionSettings.UseCurrentStrategyForAcceleratedBestResponse);
                 BestResponseUtilities[playerIndex] = bestResponseResult;
-                AverageStrategyUtilities[playerIndex] = averageStrategyResult;
-                BestResponseImprovement[playerIndex] = bestResponseResult - averageStrategyResult;
+                UtilitiesOverall[playerIndex] = utilityResult;
+                BestResponseImprovement[playerIndex] = bestResponseResult - utilityResult;
                 CustomResult = customResult; // will be same for each player
             }
         }
@@ -921,29 +917,29 @@ namespace ACESim
             ActionStrategies actionStrategy = ActionStrategy;
             if (actionStrategy == ActionStrategies.CorrelatedEquilibrium)
                 actionStrategy = ActionStrategies.AverageStrategy; // best response against average strategy is same as against correlated equilibrium
-            if (BestResponseIsToAverageStrategy)
-                actionStrategy = ActionStrategies.AverageStrategy;
+            if (EvolutionSettings.UseCurrentStrategyForAcceleratedBestResponse)
+                actionStrategy = ActionStrategies.CurrentProbability;
 
             Stopwatch s = new Stopwatch();
             s.Start();
             if (EvolutionSettings.UseAcceleratedBestResponse)
             {
-                if (actionStrategy != ActionStrategies.AverageStrategy)
-                    throw new NotSupportedException();
                 if (AcceleratedBestResponsePrepResult == null)
                     PrepareAcceleratedBestResponse();
                 ExecuteAcceleratedBestResponse(determineWhetherReachable);
             }
             else
             {
+                if (EvolutionSettings.UseCurrentStrategyForAcceleratedBestResponse)
+                    throw new NotSupportedException();
                 var calculator = new AverageStrategyCalculator(EvolutionSettings.DistributeChanceDecisions);
-                AverageStrategyUtilities = TreeWalk_Tree(calculator, true);
+                UtilitiesOverall = TreeWalk_Tree(calculator, true);
                 BestResponseImprovement = new double[NumNonChancePlayers];
                 for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
                 {
                     double bestResponse = CalculateBestResponse(playerBeingOptimized, actionStrategy);
                     BestResponseUtilities[playerBeingOptimized] = bestResponse;
-                    BestResponseImprovement[playerBeingOptimized] = bestResponse - AverageStrategyUtilities[playerBeingOptimized];
+                    BestResponseImprovement[playerBeingOptimized] = bestResponse - UtilitiesOverall[playerBeingOptimized];
                 }
             }
             s.Stop();
@@ -953,23 +949,23 @@ namespace ACESim
         private void CompareBestResponse()
         {
             // This is comparing (1) Best response vs. average strategy; to (2) most recently calculated average strategy
-            bool averageStrategyUtilitiesRecorded = AverageStrategyUtilities != null;
-            if (!averageStrategyUtilitiesRecorded)
+            bool overallUtilitiesRecorded = UtilitiesOverall != null;
+            if (!overallUtilitiesRecorded)
             {
                 if (UtilityCalculationsArray == null)
                     return; // nothing to compare BR to
                 else
-                    AverageStrategyUtilities = UtilityCalculationsArray.StatCollectors.Select(x => x.Average()).ToArray();
+                    UtilitiesOverall = UtilityCalculationsArray.StatCollectors.Select(x => x.Average()).ToArray();
             }
             ActionStrategies actionStrategy = ActionStrategy;
             if (actionStrategy == ActionStrategies.CorrelatedEquilibrium)
                 actionStrategy = ActionStrategies.AverageStrategy; // best response against average strategy is same as against correlated equilibrium
             for (byte playerBeingOptimized = 0; playerBeingOptimized < NumNonChancePlayers; playerBeingOptimized++)
             {
-                TabbedText.WriteLine($"U(P{playerBeingOptimized}) {ActionStrategyLastReport}: {AverageStrategyUtilities[playerBeingOptimized]} BR vs. {BestResponseOpponentString} {BestResponseUtilities[playerBeingOptimized]} BRimp: {BestResponseImprovementAdj?[playerBeingOptimized].ToSignificantFigures(3)}");
+                TabbedText.WriteLine($"U(P{playerBeingOptimized}) {ActionStrategyLastReport}: {UtilitiesOverall[playerBeingOptimized]} BR vs. {BestResponseOpponentString} {BestResponseUtilities[playerBeingOptimized]} BRimp: {BestResponseImprovementAdj?[playerBeingOptimized].ToSignificantFigures(3)}");
             }
-            if (!averageStrategyUtilitiesRecorded)
-                AverageStrategyUtilities = null; // we may be using approximations, so set to null to avoid confusion
+            if (!overallUtilitiesRecorded)
+                UtilitiesOverall = null; // we may be using approximations, so set to null to avoid confusion
             TabbedText.WriteLine($"Total best response calculation time: {BestResponseCalculationTime} milliseconds");
             TabbedText.WriteLine("");
         }

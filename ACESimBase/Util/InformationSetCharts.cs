@@ -305,7 +305,7 @@ namespace ACESimBase.Util
             int pixels = fontSize;
             Rectangle[] horizontallySplit = DivideRectangle_WithSpaceForHeader(r, true, pixels);
             DrawText270(g, horizontallySplit[0], informationSet.InformationSetContentsSinceParentString, f, Brushes.Black);
-            BarFillSingle(g, horizontallySplit[1], true, informationSet.GetCurrentProbabilitiesAsArray() /* DEBUG SUPERDEBUG */, informationSet.PlayerIndex == 0 ? Color.Blue : Color.Orange, true);
+            BarFillSingle(g, horizontallySplit[1], true, informationSet.GetAverageStrategiesAsArray() /* DEBUG SUPERDEBUG */, informationSet.PlayerIndex == 0 ? Color.Blue : Color.Orange, true);
         }
 
         public static void CreateInformationSetChartLayout(List<(InformationSetNode, Rectangle)> layout, List<InformationSetNode> startNodes, ref Rectangle r, out int totalSizeNeededVertically, out int totalSizeNeededHorizontally)

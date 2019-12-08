@@ -29,7 +29,8 @@ namespace ACESim
         public const int EffectivelyNever = 999999999;
         public int? BestResponseEveryMIterations = 100; // For partial recall games, this is very costly, so consider using EffectivelyNever.
         public bool RememberBestResponseExploitability = true;
-        public bool UseAcceleratedBestResponse = true; 
+        public bool UseAcceleratedBestResponse = true;
+        public bool UseCurrentStrategyForAcceleratedBestResponse = true; // DEBUG
         public bool CalculatePerturbedBestResponseRefinement = false;
         public double PerturbationForBestResponseCalculation = 0.001;
         public int? MiniReportEveryPIterations = 1000;
@@ -82,17 +83,19 @@ namespace ACESim
 
         // For Vanilla algorithm:
         // From Solving Imperfect Information Games with Discounted Regret Minimization -- optimal values (for situations in which pruning may be used)
-        public bool UseDiscounting = false; // Note: This might be helpful sometimes for multiplicative weights
+        public bool UseContinuousRegretsDiscounting = true; // DEBUG // an alternative to discounting regrets with standard discounting approach
+        public double ContinuousRegretsDiscountPerIteration => UseContinuousRegretsDiscounting ? 0.99 : 1.0; 
+        public bool UseStandardDiscounting = false; // DEBUG // Note: This might be especially helpful sometimes for multiplicative weights
         public bool DiscountRegrets = false; // if true, Discounting_Alpha and Discounting_Beta are used -- note never currently used in MultiplicativeWeightsVanilla
         public const double Discounting_Alpha = 1.5; // multiply accumulated positive regrets by t^alpha / (t^alpha + 1)
         public const double Discounting_Beta = 0.5; // multiply accumulated negative regrets by t^alpha / (t^alpha + 1)
-        public double Discounting_Gamma = 200_000; // multiply contributions to average strategy by (t / t + 1)^gamma, for which ratio between iterations -> 1 as t -> inf. Higher gamma means more discounting. If gamma equals 20, then we still get to 80% of the maximum in a mere 100 iterations. In other words, very early iterations are heavily discounted, but after a while, there is very little discounting.
+        public double Discounting_Gamma = 2000; // multiply contributions to average strategy by (t / t + 1)^gamma, for which ratio between iterations -> 1 as t -> inf. Higher gamma means more discounting. If gamma equals 20, then we still get to 80% of the maximum in a mere 100 iterations. In other words, very early iterations are heavily discounted, but after a while, there is very little discounting.
 
         public double DiscountingTarget_ConstantAfterProportionOfIterations = 0.10; // set to 1.0 to make it so that discounting occurs all the time (albeit at lower rates pursuant to Gamma)
 
         public double Discounting_Gamma_ForIteration(int iteration)
         {
-            if (!UseDiscounting)
+            if (!UseStandardDiscounting)
                 return 1.0;
             iteration = EffectiveIteration(iteration);
             if (iteration > StopDiscountingAtIteration)
@@ -167,14 +170,11 @@ namespace ACESim
 
         }
 
-        public double PerturbationInitial = 0.001; // should use with regret matching
-        public double PerturbationFinal = 0.0;
+        public double PerturbationInitial = 0.00001; // DEBUG 0.001; // should use with regret matching
+        public double PerturbationFinal = 0.00001;
         public double PerturbationCurvature = 5.0;
         public double Perturbation_BasedOnCurve(int iteration, int maxIteration)
         {
-            //maxIteration = 25_000; // DEBUG
-            if (iteration > maxIteration)
-                return PerturbationFinal;
             (iteration, maxIteration) = EffectiveIterationAndMaxIteration(iteration, maxIteration);
             var result = Perturbation_BasedOnCurve_Helper(iteration, maxIteration);
             if (double.IsNaN(result))
